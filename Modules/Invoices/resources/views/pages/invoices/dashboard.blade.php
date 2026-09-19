@@ -17,6 +17,26 @@
         $backupStatusLabels = ['running' => 'Đang chạy', 'skipped' => 'Không có file mới', 'success' => 'Hoàn tất', 'failed' => 'Thất bại', 'unknown' => 'Không xác định'];
     @endphp
 
+    @if (session('partner_sync_summary'))
+        @php($partnerSyncResult = session('partner_sync_summary'))
+        <div x-data="{ open: true }" x-show="open" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4" role="dialog" aria-modal="true" aria-labelledby="partner-sync-result-title">
+            <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
+                <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Đồng bộ đã chuẩn bị</p>
+                <h2 id="partner-sync-result-title" class="mt-1 text-xl font-bold text-slate-950">Đã quét đối tác từ hóa đơn</h2>
+                <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
+                    <div class="rounded-xl bg-slate-50 p-3"><p class="text-slate-500">Tổng candidate</p><p class="mt-1 text-xl font-bold text-slate-950">{{ number_format($partnerSyncResult['total']) }}</p></div>
+                    <div class="rounded-xl bg-emerald-50 p-3"><p class="text-emerald-700">Đã khớp</p><p class="mt-1 text-xl font-bold text-emerald-800">{{ number_format($partnerSyncResult['matched']) }}</p></div>
+                    <div class="rounded-xl bg-blue-50 p-3"><p class="text-blue-700">Chờ tạo mới</p><p class="mt-1 text-xl font-bold text-blue-800">{{ number_format($partnerSyncResult['pending']) }}</p></div>
+                    <div class="rounded-xl bg-amber-50 p-3"><p class="text-amber-700">Cần xem xét</p><p class="mt-1 text-xl font-bold text-amber-800">{{ number_format($partnerSyncResult['conflict']) }}</p></div>
+                </div>
+                <div class="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                    <button type="button" @click="open = false" class="min-h-10 rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">Đóng</button>
+                    <a href="{{ route('admin.partners.invoice-candidates') }}" class="inline-flex min-h-10 items-center justify-center rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700">Xem & đồng bộ Partner</a>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <div class="space-y-7">
         <header class="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
             <div class="min-w-0">
@@ -46,6 +66,44 @@
                     <a href="{{ route('admin.invoices.hoadon-list') }}#invoice-pdf-drive-sync" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-amber-300 hover:shadow-md"><p class="text-sm font-medium text-slate-600">PDF chưa hoàn tất</p><p class="mt-2 text-3xl font-bold {{ ($pdfMetrics['missing'] + $pdfMetrics['error']) > 0 ? 'text-amber-700' : 'text-emerald-700' }}">{{ $pdfMetrics['available'] ? number_format($pdfMetrics['missing'] + $pdfMetrics['error']) : '—' }}</p><p class="mt-2 text-xs text-slate-500">{{ $pdfMetrics['available'] ? number_format($pdfMetrics['missing']).' thiếu · '.number_format($pdfMetrics['error']).' lỗi' : 'Chưa có dữ liệu trạng thái PDF' }}</p></a>
                 @endif
             </div>
+        </section>
+
+        <section aria-labelledby="partner-sync-heading" class="rounded-2xl border border-indigo-200 bg-indigo-50/30 p-5 shadow-sm sm:p-6">
+            <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div class="min-w-0">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-indigo-700">Invoices → Partner Master</p>
+                    <h2 id="partner-sync-heading" class="mt-1 text-lg font-bold text-slate-950">Đồng bộ đối tác</h2>
+                    <p class="mt-1 max-w-3xl text-sm leading-6 text-slate-600">Gom đối tác duy nhất theo mã số thuế từ hóa đơn bán ra và mua vào. Invoices chỉ chuẩn bị candidate; mọi tạo mới, merge hoặc bỏ qua vẫn do Partner quản lý.</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    @if ($capabilities['create'] && $partnerSync['available'])
+                        <form method="POST" action="{{ route('admin.invoices.partners.sync') }}">
+                            @csrf
+                            <button type="submit" class="inline-flex min-h-10 items-center justify-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700">Quét & chuẩn bị đồng bộ</button>
+                        </form>
+                    @endif
+                    <a href="{{ route('admin.partners.invoice-candidates') }}" class="inline-flex min-h-10 items-center justify-center rounded-xl border border-indigo-300 bg-white px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-50">Xem & đồng bộ Partner →</a>
+                </div>
+            </div>
+
+            @if (session('partner_sync_error'))
+                <div role="alert" class="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">{{ session('partner_sync_error') }}</div>
+            @endif
+
+            @if ($partnerSync['available'])
+                <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                    <div class="rounded-xl border border-slate-200 bg-white p-4"><p class="text-xs font-semibold uppercase text-slate-500">Đối tác trên hóa đơn</p><p class="mt-2 text-2xl font-bold text-slate-950">{{ number_format($partnerSync['total']) }}</p><p class="mt-1 text-xs text-slate-500">MST duy nhất</p></div>
+                    <div class="rounded-xl border border-emerald-200 bg-white p-4"><p class="text-xs font-semibold uppercase text-emerald-700">Khách hàng đầu ra</p><p class="mt-2 text-2xl font-bold text-emerald-800">{{ number_format($partnerSync['customers']) }}</p><p class="mt-1 text-xs text-slate-500">Từ hóa đơn bán ra</p></div>
+                    <div class="rounded-xl border border-sky-200 bg-white p-4"><p class="text-xs font-semibold uppercase text-sky-700">Nhà cung cấp đầu vào</p><p class="mt-2 text-2xl font-bold text-sky-800">{{ number_format($partnerSync['suppliers']) }}</p><p class="mt-1 text-xs text-slate-500">Từ hóa đơn mua vào</p></div>
+                    <div class="rounded-xl border border-amber-200 bg-white p-4"><p class="text-xs font-semibold uppercase text-amber-700">Chờ / cần xem xét</p><p class="mt-2 text-2xl font-bold text-amber-800">{{ number_format($partnerSync['pending'] + $partnerSync['conflict']) }}</p><p class="mt-1 text-xs text-slate-500">{{ number_format($partnerSync['pending']) }} mới · {{ number_format($partnerSync['conflict']) }} khác biệt</p></div>
+                    <div class="rounded-xl border border-violet-200 bg-white p-4"><p class="text-xs font-semibold uppercase text-violet-700">Đã khớp Partner</p><p class="mt-2 text-2xl font-bold text-violet-800">{{ number_format($partnerSync['matched']) }}</p><p class="mt-1 text-xs text-slate-500">{{ number_format($partnerSync['ignored']) }} đã bỏ qua</p></div>
+                </div>
+                @if ($partnerSync['missing_identity'] > 0)
+                    <p class="mt-3 text-xs font-medium text-amber-700">{{ number_format($partnerSync['missing_identity']) }} hóa đơn không có MST được giữ ngoài batch để tránh ghép nhầm theo tên.</p>
+                @endif
+            @else
+                <div class="mt-5 rounded-xl border border-amber-200 bg-white px-4 py-4 text-sm text-amber-900">Workspace Partner chưa sẵn sàng. Hãy kiểm tra migration/module Partner trước khi chạy đồng bộ.</div>
+            @endif
         </section>
 
         <section aria-labelledby="classification-kpi-heading" class="rounded-2xl border border-amber-200 bg-amber-50/30 p-5 shadow-sm sm:p-6">

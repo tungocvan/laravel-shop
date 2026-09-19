@@ -214,3 +214,49 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - Acceptance evidence: focused tests PASS; targeted Pint PASS; Admin dashboard 2026 data UI PASS; 2025 empty-state UI PASS; ClientPortal invoice-list pre-VAT UI PASS. Earlier admin/client revenue and partner-report surfaces were also UI PASS in this batch.
 - Focused regression files: `InvoiceDashboardClassificationContractTest.php`, `InvoiceNetRevenueReportingContractTest.php`, and `ClientPortal/InvoicesApplicationContractTest.php`.
 - Closeout: scope is ready for PR/merge after confirming the branch is clean and up to date. Do not fold unrelated Inventory baseline drift into this refactor.
+
+
+## 2026-09-19 — Invoice → Partner candidate synchronization dashboard
+
+- Branch: `feat/invoices-partner-sync-dashboard`.
+- Scope: add a Partner synchronization workspace to `/admin/invoices/dashboard` without moving Partner master-data ownership into Invoices.
+- Invoices aggregates invoice evidence by non-empty tax code before handoff. Sold invoices contribute `customer`; purchase invoices contribute `supplier`; the same tax code may carry both roles.
+- Invoice rows without a tax code are counted as missing identity and are deliberately excluded from batch intake. Bulk synchronization never falls back to normalized-name matching.
+- `InvoicePartnerCandidateService` sends one normalized candidate per tax code through the existing `PartnerCandidateIntakeService::intake('invoices', ...)` boundary. It does not create/update `partners` directly.
+- Candidate metadata preserves first/last invoice date, sold/purchase invoice counts and the latest invoice id for provenance.
+- Dashboard shows unique invoice partners, customer/supplier counts, pending/conflict state and matched state. The POST action requires `invoices-create` and returns a centered result modal.
+- Review/create/merge/ignore remains owned by Partner at `/admin/partners/sync/invoices`; Partner permissions continue to protect those mutations.
+- No schema migration is required.
+- Added focused coverage: `InvoicePartnerSyncContractTest.php` and `InvoicePartnerSyncDashboardContractTest.php`.
+- Checkpoint: implementation pushed; local focused tests, targeted Pint and manual Dashboard/Partner UI acceptance are required before PR/merge.
+
+
+### Partner review bulk UX refinement — 2026-09-19
+
+- The existing Partner review workspace now defaults to the actionable queue (`pending + conflict`), while matched/ignored candidates remain available through the status filter.
+- Added role filter: customer, supplier, or both. Reset is shown only when the filter state differs from the default workspace.
+- Added page-scoped checkbox selection. Only eligible `pending` candidates can be bulk-created; selecting the header never means all matching rows across pagination.
+- Bulk create rechecks tax-code ownership at execution time. If the MST already exists, no duplicate Partner is created; the candidate is linked/finalized against the existing Partner without applying invoice fields.
+- Conflict candidates remain individual-review only; bulk processing does not overwrite Partner master data.
+- Added centered bulk-result feedback with selected/created/existing/skipped-or-failed counts.
+- Replaced generic Livewire pagination with `partner::vendor.pagination.admin-partner`, explicitly following `.codex/standards/ADMIN_UI_STANDARD.md`: white inactive controls, indigo active page, quiet disabled controls, bounded page sizes.
+- Added `tests/Feature/Partner/InvoiceCandidateBulkReviewContractTest.php`.
+- Local checkpoint should run the Invoices partner-sync tests plus this Partner contract test and targeted Pint before UI acceptance.
+
+
+### Missing-tax review + workspace width refinement — 2026-09-19
+
+- Partner invoice review now uses the Admin shell's available content width instead of adding a second large horizontal padding layer.
+- Status and action columns have explicit room and no-wrap treatment so badges/actions do not break awkwardly.
+- Added `Định danh MST` filter with `Có MST` (default) and `Không có MST`.
+- Missing-tax mode reads the original Invoices rows because such rows are intentionally excluded from `partner_sync_candidates`; it is review-only and exposes no checkbox or Partner-create action.
+- This preserves the safety rule: Partner creation/synchronization still requires a tax-code identity.
+
+
+### Acceptance checkpoint — 2026-09-19
+
+- User acceptance: UI PASS.
+- Focused/impacted tests: PASS on the user's environment.
+- Targeted Pint completed; the only local changes reported were import ordering in `Modules/Invoices/routes/web.php` and quote normalization in `InvoicePartnerSyncDashboardContractTest.php`. Those exact formatting changes are committed to this branch.
+- No additional regression run is required for the formatting-only synchronization.
+- Feature scope is ready for PR/merge closeout.

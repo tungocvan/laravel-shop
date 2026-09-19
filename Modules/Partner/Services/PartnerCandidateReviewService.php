@@ -41,6 +41,51 @@ class PartnerCandidateReviewService
         });
     }
 
+    /**
+     * @param  array<int, int>  $candidateIds
+     * @return array{selected:int,created:int,skipped_existing:int,skipped_ineligible:int,failed:int}
+     */
+    public function createPartners(array $candidateIds): array
+    {
+        $ids = collect($candidateIds)->map(fn ($id) => (int) $id)->filter()->unique()->values();
+        $result = [
+            'selected' => $ids->count(),
+            'created' => 0,
+            'skipped_existing' => 0,
+            'skipped_ineligible' => 0,
+            'failed' => 0,
+        ];
+
+        foreach ($ids as $id) {
+            try {
+                $candidate = PartnerSyncCandidate::query()
+                    ->where('source', 'invoices')
+                    ->find($id);
+
+                if (! $candidate || $candidate->status !== 'pending' || $candidate->matched_partner_id) {
+                    $result['skipped_ineligible']++;
+
+                    continue;
+                }
+
+                if (Partner::query()->where('tax_code', $candidate->tax_code)->exists()) {
+                    $this->confirmExisting($candidate, []);
+                    $result['skipped_existing']++;
+
+                    continue;
+                }
+
+                $this->createPartner($candidate);
+                $result['created']++;
+            } catch (\Throwable $exception) {
+                report($exception);
+                $result['failed']++;
+            }
+        }
+
+        return $result;
+    }
+
     public function confirmExisting(PartnerSyncCandidate $candidate, array $selectedFields = []): Partner
     {
         return DB::transaction(function () use ($candidate, $selectedFields): Partner {
