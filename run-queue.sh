@@ -62,9 +62,10 @@ fi
 # ========================
 # 4. Discover active general queues
 # ========================
-# Queue mặc định + queue do các Module đang bật khai báo trong config/module.php.
-# Pharma khai báo queue "pharma" tại Modules/Pharma/config/module.php; khi Pharma bật,
-# worker tổng sẽ tự nhận queue này với timeout/tries phù hợp cho upload Google Drive lớn.
+# Queue mặc định + queue metadata của các Module đã được runtime registry resolve là enabled.
+# Trạng thái bật/tắt đến từ ModuleStateResolver (runtime override mặc định tại
+# storage/app/system/module-state.json); script này không đọc manifest để quyết định enabled.
+# Pharma chỉ khai báo metadata queue "pharma"; khi runtime Pharma bật, worker tổng tự nhận queue.
 # Nhờ dùng ModuleRegistry runtime state, khi tắt Module thì queue của Module đó
 # sẽ tự biến mất khỏi worker local ở lần chạy run-queue.sh kế tiếp.
 # Request queues vẫn dùng worker riêng bên dưới vì có timeout/tries riêng.
@@ -86,19 +87,11 @@ foreach ($modules as $module) {
         continue;
     }
 
-    $path = rtrim((string) ($module["path"] ?? ""), DIRECTORY_SEPARATOR);
-    $configPath = $path !== "" ? $path.DIRECTORY_SEPARATOR."config".DIRECTORY_SEPARATOR."module.php" : "";
-
-    if ($configPath === "" || ! is_file($configPath)) {
-        continue;
-    }
-
-    $config = require $configPath;
-    if (! is_array($config)) {
-        continue;
-    }
-
-    foreach ((array) ($config["queues"] ?? []) as $definition) {
+    // enabled đã được ModuleStateResolver resolve từ runtime state
+    // (storage/app/system/module-state.json) trước khi publish vào registry.
+    // Queue metadata cũng được ModuleRegistry publish từ manifest, vì vậy script
+    // không đọc trực tiếp config/module.php và không tự quyết định trạng thái Module.
+    foreach ((array) ($module["queues"] ?? []) as $definition) {
         if (! is_array($definition)) {
             continue;
         }
