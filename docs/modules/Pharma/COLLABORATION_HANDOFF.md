@@ -227,3 +227,7 @@ Historical stashes remain on the operator machine from earlier synchronization c
 ## Previous completed checkpoints
 
 Official Facility Import + BHXH Source Mirror was merged to `main` via PR #166 on 2026-09-06. MaSoThue lookup CLI was merged via PR #168. Drug Award Allocation & Hospital Contract Management was merged earlier via PR #165. Those ownership and safety contracts remain preserved.
+
+### Docker production hardening — 2026-09-19
+
+Production Docker was aligned with the accepted HSSP runtime: PHP accepts 50 MB files / 64 MB POST bodies, Nginx accepts 100 MB request bodies, and the general Docker queue consumes `pharma` by default. `app` and `queue` already share the `app_storage` volume, so staged dossier files remain visible to the asynchronous uploader. `.env.docker.example` documents the same queue default. A focused Docker contract test guards these settings. Production still requires the existing Google Drive credentials/connection and Pharma runtime enablement.
