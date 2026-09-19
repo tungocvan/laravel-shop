@@ -17,7 +17,7 @@
         </header>
 
         <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <form method="GET" action="{{ route('admin.pharma.official-facilities.source.index') }}" autocomplete="off" data-live-filter-form class="grid gap-3 lg:grid-cols-14">
+            <form method="GET" action="{{ route('admin.pharma.official-facilities.source.index') }}" autocomplete="off" data-live-filter-form class="grid gap-3 lg:grid-cols-12">
                 <x-search
                     name="search"
                     value="{{ request('search') }}"
@@ -33,7 +33,7 @@
                     @endforeach
                 </select>
 
-                <select name="source" autocomplete="off" data-live-filter class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm lg:col-span-2">
+                <select name="source" autocomplete="off" data-live-filter class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm lg:col-span-1">
                     <option value="">Tất cả nguồn</option>
                     <option value="bhxh" @selected(request('source') === 'bhxh')>BHXH</option>
                 </select>
@@ -60,7 +60,7 @@
                     <option value="stale" @selected(request('status') === 'stale')>Stale</option>
                 </select>
 
-                <select name="per_page" autocomplete="off" data-live-filter class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm lg:col-span-2">
+                <select name="per_page" autocomplete="off" data-live-filter class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm lg:col-span-1">
                     @foreach ([10, 25, 50, 100] as $size)
                         <option value="{{ $size }}" @selected((int) request('per_page', 25) === $size)>{{ $size }} / trang</option>
                     @endforeach
