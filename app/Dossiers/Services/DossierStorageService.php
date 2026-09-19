@@ -102,7 +102,7 @@ class DossierStorageService
         $originalName = $this->safeFileName($file->getClientOriginalName());
         $storedName = Str::uuid().'-'.$originalName;
         $path = $file->storeAs($directory, $storedName, 'local');
-        if (!is_string($path) || $path === '') {
+        if (! is_string($path) || $path === '') {
             throw new RuntimeException('Không thể lưu file hồ sơ vào vùng tạm local.');
         }
 
@@ -142,7 +142,7 @@ class DossierStorageService
 
     private function safeFileName(string $name): string
     {
-        $name = trim(str_replace(["/", "\\", "\\0"], '-', $name));
+        $name = trim(str_replace(['/', '\\', '\\0'], '-', $name));
 
         return $name !== '' ? $name : 'document';
     }
