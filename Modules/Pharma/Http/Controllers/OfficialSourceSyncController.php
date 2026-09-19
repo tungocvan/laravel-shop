@@ -5,9 +5,10 @@ namespace Modules\Pharma\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\View\View;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Maatwebsite\Excel\Facades\Excel;
+use Modules\Pharma\Exports\OfficialSourceFacilitiesExport;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Modules\Pharma\Jobs\PersistOfficialSourceSnapshotJob;
 use Modules\Pharma\Models\OfficialSourceFacility;
 use Modules\Pharma\Models\OfficialSourceSyncBatch;
@@ -91,7 +92,7 @@ class OfficialSourceSyncController extends Controller
         ]);
     }
 
-    public function export(Request $request, BhxhProvinceCatalog $provinceCatalog): StreamedResponse|Response
+    public function export(Request $request, BhxhProvinceCatalog $provinceCatalog): BinaryFileResponse
     {
         $validated = $request->validate([
             'selected_ids' => ['required', 'array', 'min:1', 'max:500'],
@@ -108,32 +109,13 @@ class OfficialSourceSyncController extends Controller
             return response('Không có cơ sở hợp lệ để export.', 422);
         }
 
-        $filename = 'pharma-official-facilities-'.now()->format('Ymd-His').'.csv';
-
+        $filename = 'pharma-official-facilities-'.now()->format('Ymd-His').'.xlsx';
         $partitionLabels = $this->partitionLabels($provinceCatalog);
 
-        return response()->streamDownload(function () use ($facilities, $provinceCatalog, $partitionLabels): void {
-            $handle = fopen('php://output', 'wb');
-            fwrite($handle, "\xEF\xBB\xBF");
-            fputcsv($handle, ['Nguồn', 'Mã CSKCB', 'Tên cơ sở', 'Vùng miền ERP', 'Tỉnh/Thành', 'Vùng nguồn BHXH', 'Mã vùng nguồn', 'Địa bàn BHXH', 'Trạng thái', 'Lần đồng bộ cuối']);
-
-            foreach ($facilities as $facility) {
-                fputcsv($handle, [
-                    strtoupper((string) $facility->source),
-                    $facility->external_id,
-                    $facility->facility_name,
-                    $provinceCatalog->regionForProvinceName((string) $facility->province_name) ?? '',
-                    $facility->province_name,
-                    $partitionLabels[$facility->source_province_code] ?? $facility->source_province_code,
-                    $facility->source_province_code,
-                    $facility->district_name ?? '',
-                    $facility->is_active ? 'ACTIVE' : 'STALE',
-                    optional($facility->last_synced_at)->format('d/m/Y H:i') ?? '',
-                ]);
-            }
-
-            fclose($handle);
-        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+        return Excel::download(
+            new OfficialSourceFacilitiesExport($facilities, $provinceCatalog, $partitionLabels),
+            $filename,
+        );
     }
 
     public function store(Request $request): JsonResponse
