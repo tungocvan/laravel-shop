@@ -27,6 +27,8 @@ class BhxhOfficialFacilityLookupController extends Controller
         return view('Pharma::pages.official-facilities.bhxh', [
             'bhxhProvinces' => $provinceCatalog->all(),
             'bhxhPartitions' => $partitions,
+            'bhxhRegions' => $provinceCatalog->regions(),
+            'bhxhProvincesByRegion' => $provinceCatalog->provincesByRegion(),
         ]);
     }
 
