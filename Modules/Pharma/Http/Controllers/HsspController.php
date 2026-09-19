@@ -266,7 +266,7 @@ class HsspController extends Controller
     private function hsspFolderName(Medicine $medicine): string
     {
         $name = trim(preg_replace('/[\\\\\/]+/u', '-', (string) $medicine->name) ?? '');
-        $name = trim(preg_replace('/\s+/u', ' ', $name) ?? '', " .-_");
+        $name = trim(preg_replace('/\s+/u', ' ', $name) ?? '', ' .-_');
 
         return ($name !== '' ? $name : 'Thuoc').'-'.$medicine->id;
     }
