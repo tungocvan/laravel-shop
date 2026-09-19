@@ -1,4 +1,6 @@
 ## Module Snapshot v2 runtime checkpoint — 2026-09-19
+- Runtime Pharma v2 capture verified: 1 dossier, 1 template, 5 template items, 5 dossier items, 4 attachments, including GMP/GPLH metadata and Google Drive attachment metadata.
+- Related restore now deletes scoped child rows before root replacement and blocks ID collisions across different dossier owners/templates/children instead of overwriting shared data.
 
 - Runtime Pharma snapshot exposed a contract-test gap: related graph silently returned an empty dataset when the configured owner table did not exist.
 - Fixed HSSP owner table mapping to `pharma_medicine_profiles` and changed related graph capture to fail fast on missing tables/columns or invalid reference ordering.
