@@ -146,10 +146,15 @@ class ModuleSnapshotContractTest extends TestCase
         $this->assertStringContainsString('data/owned/', $data);
         $this->assertStringContainsString('data/related/', $data);
         $this->assertStringContainsString("'name' => 'hssp_dossier_engine'", $pharma);
+        $this->assertStringContainsString("'owner_table' => 'pharma_medicine_profiles'", $pharma);
         $this->assertStringContainsString("'table' => 'dossiers'", $pharma);
         $this->assertStringContainsString("'table' => 'dossier_items'", $pharma);
         $this->assertStringContainsString("'table' => 'dossier_attachments'", $pharma);
         $this->assertStringContainsString("'target_table' => 'dossier_templates'", $pharma);
         $this->assertStringContainsString("'target_table' => 'dossier_template_items'", $pharma);
+        $this->assertStringContainsString('assertRelatedTableColumns', $data);
+        $this->assertStringContainsString('khai báo bảng không tồn tại', $data);
+        $this->assertStringContainsString('khai báo cột không tồn tại', $data);
+        $this->assertStringNotContainsString("return ['name' => \$name, 'tables' => [], 'row_counts' => []];", $data);
     }
 }
