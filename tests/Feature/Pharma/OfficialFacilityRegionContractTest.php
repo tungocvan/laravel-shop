@@ -29,6 +29,11 @@ class OfficialFacilityRegionContractTest extends TestCase
         $this->assertStringContainsString('Kho dữ liệu nguồn Pharma', $view);
         $this->assertStringContainsString('Dữ liệu chưa ghi trực tiếp vào Partner', $view);
         $this->assertStringContainsString('business_region', $view);
+        $this->assertStringContainsString("official-facilities.bhxh.cached", file_get_contents(base_path('Modules/Pharma/routes/web.php')));
+        $this->assertStringContainsString('loadCachedFacilities', $view);
+        $this->assertStringContainsString('Tra cứu lại BHXH', $view);
+        $this->assertStringContainsString('Dữ liệu đã lưu', $view);
+        $this->assertStringNotContainsString('name="captcha" required', $view);
     }
     public function test_source_repository_exposes_region_filter_search_selection_export_and_white_pagination(): void
     {
