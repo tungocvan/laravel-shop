@@ -23,7 +23,7 @@
 
                     <div class="space-y-4 p-5 sm:p-6">
                         <div class="rounded-xl border border-indigo-200 bg-indigo-50/60 p-4 text-sm leading-6 text-indigo-950">
-                            Snapshot sẽ backup <strong>toàn bộ bảng thuộc ownership của Module {{ $moduleFilter }}</strong>.
+                            Snapshot v2 sẽ backup <strong>toàn bộ bảng thuộc ownership của Module {{ $moduleFilter }}</strong> và các <strong>related data</strong> được Module khai báo rõ ràng (nếu có). Shared table chỉ lấy các row liên quan, không lấy toàn bộ bảng.
                             Bộ lọc tìm kiếm và checkbox bảng đang hiển thị không làm thay đổi phạm vi Module Snapshot.
                         </div>
 
@@ -89,8 +89,8 @@
                     </p>
 
                     <p class="mt-1 max-w-4xl text-sm leading-6 text-amber-800">
-                        Snapshot này chỉ backup các bảng thuộc ownership của Module {{ $moduleFilter }}.
-                        Các Module phụ thuộc không được tự động backup hoặc restore cùng snapshot này.
+                        Snapshot v2 backup bảng ownership và related data được {{ $moduleFilter }} khai báo rõ ràng.
+                        Các Module phụ thuộc vẫn không được tự động backup hoặc restore toàn bộ cùng snapshot này.
                         Nên tạo snapshot riêng cho các Module phụ thuộc trước các thao tác phục hồi quan trọng.
                     </p>
                 </div>
