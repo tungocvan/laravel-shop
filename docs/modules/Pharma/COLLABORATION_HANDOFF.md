@@ -1,3 +1,15 @@
+## UI refinement — Official Source compact filters + XLSX + numbered pagination
+
+- Operator UI feedback: source repository layout works, but search should be shorter so reset stays on the filter row; export must be a native multi-column Excel workbook; pagination should expose page numbers.
+- Search placeholder/width is compacted and `Xóa bộ lọc` occupies the final desktop grid slot when filters are active.
+- Selected-record export now uses `maatwebsite/excel` and downloads a real `.xlsx` workbook with separate columns for source, CSKCB code/name, ERP business region, province/city, BHXH source partition/code, district/code, status and last sync time.
+- Export remains selection-only and read-only with respect to Partner.
+- Pagination remains white Admin UI and now renders current/nearby page numbers plus first/last page and previous/next controls.
+- No schema migration.
+- Awaiting focused contract test + UI/export smoke.
+
+---
+
 ## Checkpoint — Official Source repository region/filter/export UX
 
 - Route: `/admin/pharma/official-facilities/source`.
