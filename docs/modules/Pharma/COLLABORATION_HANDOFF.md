@@ -1,3 +1,19 @@
+## Checkpoint — Official Source repository region/filter/export UX
+
+- Route: `/admin/pharma/official-facilities/source`.
+- Operator confirmed BHXH lookup UI PASS before this refinement.
+- Source repository now displays ERP business region and filters by business region before province/source partition.
+- Facility search continues through shared `<x-search>` and searches source ID/name/geography fields.
+- Added page-scoped row checkboxes, select-all-current-page, and selected-record CSV export (maximum 500 IDs per request). Export does not write to Partner.
+- Province and BHXH source-partition options are constrained by the selected ERP business region.
+- Replaced framework pagination rendering with an explicit white Admin UI pagination surface to avoid dark pagination styling.
+- No schema migration; business region remains derived from `BhxhProvinceCatalog`.
+- Focused contract test extended in `tests/Feature/Pharma/OfficialFacilityRegionContractTest.php`.
+- Previous broad Pharma regression baseline on this branch: 174 passed / 20 failed; failures are outside this Official Facilities scope and include pre-existing Medicine/PriceList/DrugAward/dashboard contracts. Focused Official Facilities test before this refinement: 2 passed / 10 assertions.
+- Awaiting pull + focused test + source repository UI/export smoke.
+
+---
+
 ## Checkpoint — Official Facilities admin integration + ERP business regions
 
 - Branch: `refactor/pharma-official-facilities-regions`
