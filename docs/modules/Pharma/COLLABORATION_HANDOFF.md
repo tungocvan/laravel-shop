@@ -1,3 +1,38 @@
+## UI refinement — Medicine Catalog filters and columns
+
+- Filter controls are rebalanced into one desktop row. `Xóa bộ lọc` occupies the final slot only when a select/per-page value differs from its default; free-text search remains independent.
+- Reset restores HSSP, master quality, circular group, special-control and per-page selectors to defaults without clearing the search field.
+- `Variant / SKU` is removed from desktop and mobile catalog presentation; SKU remains searchable and remains part of the underlying Medicine/Variant model.
+- `Quy cách` receives additional table width so packaging text is readable after adding `Nhóm thuốc`.
+- Existing HSSP delete protection and centered delete confirmation/result modals are retained; the mobile delete action now follows the same HSSP-disabled behavior.
+- No schema/data migration.
+
+---
+
+## Checkpoint — Medicine Catalog group + guarded delete UX
+
+- Branch: `fix/pharma-medicine-catalog-delete-ux`
+- Based on the HSSP validity mapping branch so the previous approved Medicine/HSSP work is retained.
+- Desktop catalog adds `Nhóm thuốc` from `circular_group`; mobile detail also exposes the same field.
+- Medicine rows with any HSSP profile keep the Delete action visible but disabled/muted. Backend `MedicineService::delete()` remains the authoritative guard.
+- Eligible deletes use an explicit centered confirmation modal; success and failure are surfaced in a centered result modal instead of relying only on flash banners.
+- Medicine edit/create form adds a visible `← Quay về Danh mục thuốc chuẩn` action.
+- No migration/schema change.
+
+---
+
+## Checkpoint — Medicine Master validity derived from HSSP
+
+- Branch: `fix/pharma-medicine-hssp-validity-sync`
+- Medicine edit now treats the current HSSP dossier as the preferred source for the two management validity fields when HSSP values exist.
+- Mapping: HSSP `registration.metadata.effective_to` → Medicine Master `visa_validity_date` (Hiệu lực Visa).
+- Mapping: HSSP `gmp.metadata.effective_to` → Medicine Master `gmp_certification_date` (GMP cơ sở sản xuất).
+- Backward compatibility: if no HSSP dossier/value exists, the existing Medicine values remain the fallback.
+- The generic Dossier engine remains unaware of Pharma semantics; mapping is isolated in `HsspMedicineValidityService`.
+- No migration/schema change.
+
+---
+
 ## HSSP Module Snapshot v2 checkpoint — 2026-09-19
 - Fresh Pharma Snapshot v2 runtime capture verified HSSP graph: dossier=1, template=1, template_items=5, items=5, attachments=4. GMP/GPLH metadata and Google Drive attachment metadata are present in the ZIP.
 
