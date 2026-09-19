@@ -2,7 +2,6 @@
 
 namespace Modules\Invoices\Services;
 
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Modules\Invoices\Models\Invoices;
 use Modules\Partner\Models\PartnerSyncCandidate;
@@ -29,7 +28,7 @@ final class InvoicePartnerCandidateService
             'missing_identity' => 0,
         ];
 
-        if (! Schema::hasTable('invoices') || ! Schema::hasTable('partner_sync_candidates')) {
+        if (! Schema::hasTable('invoices') || ! Schema::hasTable('partners') || ! Schema::hasTable('partner_sync_candidates')) {
             return $empty;
         }
 
