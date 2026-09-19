@@ -388,6 +388,7 @@ class ModuleSnapshotService
                 $zip->close();
             }
 
+            $manifest['restore_tables'] = array_values(array_intersect($snapshotTables, $expectedTables));
             $compatibilityReport = $this->data->compatibility($manifest, $expectedTables);
             $compatibility = $compatibilityReport['status'];
         }
