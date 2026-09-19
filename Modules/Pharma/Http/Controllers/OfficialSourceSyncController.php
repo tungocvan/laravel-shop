@@ -5,6 +5,7 @@ namespace Modules\Pharma\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
 use Modules\Pharma\Exports\OfficialSourceFacilitiesExport;
@@ -92,7 +93,7 @@ class OfficialSourceSyncController extends Controller
         ]);
     }
 
-    public function export(Request $request, BhxhProvinceCatalog $provinceCatalog): BinaryFileResponse
+    public function export(Request $request, BhxhProvinceCatalog $provinceCatalog): BinaryFileResponse|Response
     {
         $validated = $request->validate([
             'selected_ids' => ['required', 'array', 'min:1', 'max:500'],
