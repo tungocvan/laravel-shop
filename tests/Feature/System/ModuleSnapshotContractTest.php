@@ -96,16 +96,20 @@ class ModuleSnapshotContractTest extends TestCase
         $this->assertStringContainsString("authorizePermission('database.restore')", $component);
         $this->assertStringContainsString("authorizePermission('database.destroy')", $component);
         $this->assertStringContainsString('public array $moduleDependencies = [];', $component);
+        $this->assertStringContainsString('public array $selectedModulePreflight = [];', $component);
+        $this->assertStringContainsString("'compatibility_report'", $component);
         $this->assertStringContainsString('app(ModuleDependencyService::class)->dependenciesFor($this->moduleFilter)', $component);
         $this->assertStringContainsString("view('System::livewire.database.table-list-with-dependencies'", $component);
         $this->assertStringNotContainsString('$e->getMessage()', $component);
 
         $this->assertStringContainsString('DEPENDENCY WARNING', $dependencyView);
         $this->assertStringContainsString("implode(' · ', \$moduleDependencies)", $dependencyView);
-        $this->assertStringContainsString('không được tự động backup hoặc restore', $dependencyView);
+        $this->assertStringContainsString('không được tự động backup hoặc restore toàn bộ', $dependencyView);
+        $this->assertStringContainsString('related data', $dependencyView);
         $this->assertStringContainsString("@include('System::livewire.database.table-list')", $dependencyView);
         $this->assertStringContainsString('Xác nhận phạm vi Backup Module {{ $moduleFilter }}', $dependencyView);
         $this->assertStringContainsString('toàn bộ bảng thuộc ownership của Module {{ $moduleFilter }}', $dependencyView);
+        $this->assertStringContainsString('Shared table chỉ lấy các row liên quan', $dependencyView);
         $this->assertStringContainsString('Bộ lọc tìm kiếm và checkbox bảng đang hiển thị không làm thay đổi phạm vi Module Snapshot', $dependencyView);
         $this->assertStringContainsString('Đã hiểu, tiếp tục', $dependencyView);
         $this->assertStringContainsString('wire:key="module-backup-scope-{{ $moduleFilter }}"', $dependencyView);
@@ -122,6 +126,8 @@ class ModuleSnapshotContractTest extends TestCase
         $this->assertStringContainsString('Bản local nếu có sẽ KHÔNG bị xóa', $view);
         $this->assertStringContainsString('RESTORE MODULE', $view);
         $this->assertStringContainsString('Safety Snapshot', $view);
+        $this->assertStringContainsString('Preflight Restore:', $view);
+        $this->assertStringContainsString('Shared table không được backup toàn bảng', $view);
     }
 
     public function test_module_snapshot_v2_is_schema_aware_and_supports_related_data_graphs(): void
