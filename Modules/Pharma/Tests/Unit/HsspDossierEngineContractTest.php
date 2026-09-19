@@ -24,8 +24,8 @@ class HsspDossierEngineContractTest extends TestCase
         $this->assertStringContainsString('name="master_files[]"', $component);
         $this->assertStringContainsString("'pharma-product-dossier'", $template);
         $this->assertStringContainsString("'allows_multiple_files' => true", $template);
-        $this->assertStringContainsString("'Laravel-Backup/'", $storage);
-        $this->assertStringContainsString("'sync_failed'", $storage);
+        $this->assertStringContainsString("'pending'", $storage);
+        $this->assertStringContainsString("->onQueue('pharma')", $storage);
         $this->assertStringContainsString("self::TARGET_GOOGLE_DRIVE", $storage);
         $this->assertStringContainsString("'Pharma/HSSP/'", $controller);
         $this->assertStringContainsString("'storage_targets' => ['required', 'array', 'min:1']", $controller);
