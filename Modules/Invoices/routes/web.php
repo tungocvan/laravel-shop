@@ -2,9 +2,9 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\Invoices\Http\Controllers\InvoicePartnerSyncController;
-use Modules\Invoices\Http\Controllers\InvoiceSourceDetailExportController;
 use Modules\Invoices\Http\Controllers\InvoicesController;
 use Modules\Invoices\Http\Controllers\InvoicesDashboardController;
+use Modules\Invoices\Http\Controllers\InvoiceSourceDetailExportController;
 
 Route::middleware(['web', 'auth:admin'])->prefix('admin/invoices')->name('admin.invoices.')->group(function () {
     Route::get('/', [InvoicesController::class, 'index'])->middleware('permission:invoices-list')->name('index');
