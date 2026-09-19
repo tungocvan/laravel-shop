@@ -13,6 +13,7 @@ class DossierAttachment extends Model
     {
         return $this->belongsTo(Dossier::class);
     }
+
     public function item(): BelongsTo
     {
         return $this->belongsTo(DossierItem::class, 'item_id');
