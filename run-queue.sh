@@ -63,6 +63,8 @@ fi
 # 4. Discover active general queues
 # ========================
 # Queue mặc định + queue do các Module đang bật khai báo trong config/module.php.
+# Pharma khai báo queue "pharma" tại Modules/Pharma/config/module.php; khi Pharma bật,
+# worker tổng sẽ tự nhận queue này với timeout/tries phù hợp cho upload Google Drive lớn.
 # Nhờ dùng ModuleRegistry runtime state, khi tắt Module thì queue của Module đó
 # sẽ tự biến mất khỏi worker local ở lần chạy run-queue.sh kế tiếp.
 # Request queues vẫn dùng worker riêng bên dưới vì có timeout/tries riêng.
