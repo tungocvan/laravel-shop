@@ -2,6 +2,9 @@
 
 namespace Modules\Pharma\Http\Controllers;
 
+use App\Dossiers\Models\Dossier;
+use App\Dossiers\Services\DossierManager;
+use App\Dossiers\Services\DossierStorageService;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -10,6 +13,7 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Modules\Pharma\Models\Medicine;
 use Modules\Pharma\Models\MedicineProfile;
+use Modules\Pharma\Services\HsspDossierTemplateService;
 
 class HsspController extends Controller
 {
@@ -42,7 +46,7 @@ class HsspController extends Controller
         ]);
     }
 
-    public function create(Medicine $medicine): View
+    public function create(Medicine $medicine, HsspDossierTemplateService $templates): View
     {
         return view('Pharma::pages.hssp.form', [
             'medicine' => $medicine,
@@ -52,26 +56,87 @@ class HsspController extends Controller
                 'is_current' => true,
             ]),
             'statusOptions' => $this->statusOptions(),
+            'dossierTemplate' => $templates->get(),
+            'dossier' => null,
         ]);
     }
 
-    public function store(Request $request, Medicine $medicine): RedirectResponse
-    {
+    public function store(
+        Request $request,
+        Medicine $medicine,
+        HsspDossierTemplateService $templates,
+        DossierManager $dossiers,
+        DossierStorageService $storage
+    ): RedirectResponse {
         $data = $this->validated($request, $medicine);
+        $request->validate([
+            'items.gmp.effective_to' => ['required', 'date'],
+            'items.registration.effective_to' => ['required', 'date'],
+            'item_files.*.*' => ['nullable', 'file', 'max:20480'],
+            'master_files.*' => ['nullable', 'file', 'max:51200'],
+            'custom_items.*.title' => ['nullable', 'string', 'max:255'],
+            'custom_items.*.effective_to' => ['nullable', 'date'],
+            'custom_files.*.*' => ['nullable', 'file', 'max:20480'],
+        ], [
+            'items.gmp.effective_to.required' => 'Hiệu lực GMP là bắt buộc.',
+            'items.registration.effective_to.required' => 'Hiệu lực số đăng ký là bắt buộc.',
+        ]);
 
-        DB::transaction(function () use ($medicine, $data): void {
+        $template = $templates->get();
+        $profile = DB::transaction(function () use ($medicine, $data, $request): MedicineProfile {
             if ($data['is_current']) {
                 $medicine->profiles()->update(['is_current' => false]);
             }
 
-            $medicine->profiles()->create($data + [
+            return $medicine->profiles()->create($data + [
+                'effective_from' => $request->input('items.registration.effective_from'),
+                'effective_to' => $request->input('items.registration.effective_to'),
                 'created_by' => auth('admin')->id(),
                 'updated_by' => auth('admin')->id(),
             ]);
         });
 
+        $itemMetadata = $request->input('items', []);
+        $itemMetadata['registration']['document_number'] = $itemMetadata['registration']['document_number']
+            ?? $medicine->registration_number;
+
+        $dossier = $dossiers->createFromTemplate($template, $profile, [
+            'version' => $profile->profile_version,
+            'status' => $profile->profile_status,
+            'is_current' => $profile->is_current,
+            'metadata' => ['medicine_id' => $medicine->id, 'medicine_code' => $medicine->medicine_code],
+        ], $itemMetadata);
+
+        $root = 'dossiers/Pharma/HSSP/'.($medicine->medicine_code ?: 'medicine-'.$medicine->id).'/profile-'.$profile->id;
+        foreach ($dossier->items as $item) {
+            foreach ($request->file('item_files.'.$item->code, []) as $file) {
+                $storage->store($dossier, $item, $file, $root);
+            }
+        }
+
+        foreach ((array) $request->input('custom_items', []) as $index => $custom) {
+            $title = trim((string) ($custom['title'] ?? ''));
+            if ($title === '') {
+                continue;
+            }
+
+            $item = $dossier->items()->create([
+                'code' => 'custom-'.($index + 1),
+                'title' => $title,
+                'sort_order' => 100 + (int) $index,
+                'metadata' => ['effective_to' => $custom['effective_to'] ?? null],
+            ]);
+            foreach ($request->file('custom_files.'.$index, []) as $file) {
+                $storage->store($dossier, $item, $file, $root);
+            }
+        }
+
+        foreach ($request->file('master_files', []) as $file) {
+            $storage->store($dossier, null, $file, $root, 'master');
+        }
+
         return redirect()->route('admin.pharma.hssp.index')
-            ->with('success', 'Đã tạo HSSP cho thuốc '.$medicine->name.'.');
+            ->with('success', 'Đã tạo bộ HSSP cho thuốc '.$medicine->name.'.');
     }
 
     public function edit(Medicine $medicine, MedicineProfile $profile): View
