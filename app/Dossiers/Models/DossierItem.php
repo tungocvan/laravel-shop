@@ -12,6 +12,12 @@ class DossierItem extends Model
 
     protected $casts = ['sort_order' => 'integer', 'metadata' => 'array'];
 
-    public function dossier(): BelongsTo { return $this->belongsTo(Dossier::class); }
-    public function attachments(): HasMany { return $this->hasMany(DossierAttachment::class, 'item_id'); }
+    public function dossier(): BelongsTo
+    {
+        return $this->belongsTo(Dossier::class);
+    }
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(DossierAttachment::class, 'item_id');
+    }
 }
