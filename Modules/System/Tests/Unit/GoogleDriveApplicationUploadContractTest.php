@@ -14,6 +14,6 @@ class GoogleDriveApplicationUploadContractTest extends TestCase
         $this->assertStringContainsString('$this->resolveRootFolder($token)', $service);
         $this->assertStringContainsString('$this->ensureChildFolder($token, $parentId, $folder)', $service);
         $this->assertStringContainsString("str_contains(\$folder, '/')", $service);
-        $this->assertStringContainsString("'uploadType=media'", $service);
+        $this->assertStringContainsString('?uploadType=media', $service);
     }
 }
