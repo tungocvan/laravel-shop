@@ -29,6 +29,6 @@ class MedicineCatalogDeleteUxContractTest extends TestCase
         $this->assertStringContainsString('min-w-64 px-4 py-4 text-sm leading-6', $index);
         $this->assertStringContainsString('@if($this->hasActiveSelectFilters())', $index);
         $this->assertStringContainsString('public function hasActiveSelectFilters(): bool', $component);
-        $this->assertStringContainsString("$this->perPage !== 10", $component);
+        $this->assertStringContainsString('$this->perPage !== 10', $component);
     }
 }
