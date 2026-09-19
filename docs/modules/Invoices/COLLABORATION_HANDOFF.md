@@ -229,3 +229,16 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - No schema migration is required.
 - Added focused coverage: `InvoicePartnerSyncContractTest.php` and `InvoicePartnerSyncDashboardContractTest.php`.
 - Checkpoint: implementation pushed; local focused tests, targeted Pint and manual Dashboard/Partner UI acceptance are required before PR/merge.
+
+
+### Partner review bulk UX refinement — 2026-09-19
+
+- The existing Partner review workspace now defaults to the actionable queue (`pending + conflict`), while matched/ignored candidates remain available through the status filter.
+- Added role filter: customer, supplier, or both. Reset is shown only when the filter state differs from the default workspace.
+- Added page-scoped checkbox selection. Only eligible `pending` candidates can be bulk-created; selecting the header never means all matching rows across pagination.
+- Bulk create rechecks tax-code ownership at execution time. If the MST already exists, no duplicate Partner is created; the candidate is linked/finalized against the existing Partner without applying invoice fields.
+- Conflict candidates remain individual-review only; bulk processing does not overwrite Partner master data.
+- Added centered bulk-result feedback with selected/created/existing/skipped-or-failed counts.
+- Replaced generic Livewire pagination with `partner::vendor.pagination.admin-partner`, explicitly following `.codex/standards/ADMIN_UI_STANDARD.md`: white inactive controls, indigo active page, quiet disabled controls, bounded page sizes.
+- Added `tests/Feature/Partner/InvoiceCandidateBulkReviewContractTest.php`.
+- Local checkpoint should run the Invoices partner-sync tests plus this Partner contract test and targeted Pint before UI acceptance.
