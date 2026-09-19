@@ -49,6 +49,7 @@ class ModuleSnapshotDataService
             if (! $this->tableExists((string) $table)) {
                 $issues[] = ['level' => 'warning', 'table' => $table, 'message' => 'Bảng từ snapshot không còn tồn tại; dữ liệu bảng này sẽ được bỏ qua.'];
                 $status = $status === 'BLOCKED' ? 'BLOCKED' : 'WARNING';
+
                 continue;
             }
 
@@ -63,6 +64,7 @@ class ModuleSnapshotDataService
                         $issues[] = ['level' => 'warning', 'table' => $table, 'column' => $name, 'message' => 'Kiểu cột đã thay đổi; restore sẽ dùng schema production hiện tại.'];
                         $status = $status === 'BLOCKED' ? 'BLOCKED' : 'WARNING';
                     }
+
                     continue;
                 }
 
@@ -278,6 +280,7 @@ class ModuleSnapshotDataService
 
         if ($upsert && in_array('id', array_keys($rows[0]), true)) {
             DB::table($table)->upsert($rows, ['id']);
+
             return;
         }
 

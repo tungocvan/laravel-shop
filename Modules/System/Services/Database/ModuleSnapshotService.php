@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\System\Services\Database;
 
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -274,7 +275,7 @@ class ModuleSnapshotService
 
         $validated = $this->validatePackage($sourcePath, $module, enforceSchema: false);
         $createdAt = isset($validated['manifest']['created_at'])
-            ? \Carbon\Carbon::parse((string) $validated['manifest']['created_at'])
+            ? Carbon::parse((string) $validated['manifest']['created_at'])
             : now();
         $safeName = basename($originalName);
 

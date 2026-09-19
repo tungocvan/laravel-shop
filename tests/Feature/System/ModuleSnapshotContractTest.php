@@ -17,8 +17,8 @@ class ModuleSnapshotContractTest extends TestCase
         $this->assertStringContainsString("'schema' => \$capture['schema']", $service);
         $this->assertStringContainsString("'related_data' => \$capture['related_data']", $service);
         $this->assertStringContainsString("'checksums.json'", $service);
-        $this->assertStringContainsString("self::LEGACY_FORMAT_VERSION", $service);
-        $this->assertStringContainsString("\$this->data->compatibility(\$manifest, \$expectedTables)", $service);
+        $this->assertStringContainsString('self::LEGACY_FORMAT_VERSION', $service);
+        $this->assertStringContainsString('$this->data->compatibility($manifest, $expectedTables)', $service);
         $this->assertStringContainsString("'restore_tables'", $service);
         $this->assertStringContainsString("\$this->create(\$module, 'safety')", $service);
         $this->assertStringContainsString('flock($lock, LOCK_EX | LOCK_NB)', $service);
@@ -143,8 +143,8 @@ class ModuleSnapshotContractTest extends TestCase
         $this->assertStringContainsString('Cột mới sẽ dùng default/null của production.', $data);
         $this->assertStringContainsString('Cột cũ không còn tồn tại và sẽ được bỏ qua.', $data);
         $this->assertStringContainsString('Bảng mới của Module không có trong snapshot cũ; bảng hiện tại sẽ được giữ nguyên.', $data);
-        $this->assertStringContainsString("data/owned/", $data);
-        $this->assertStringContainsString("data/related/", $data);
+        $this->assertStringContainsString('data/owned/', $data);
+        $this->assertStringContainsString('data/related/', $data);
         $this->assertStringContainsString("'name' => 'hssp_dossier_engine'", $pharma);
         $this->assertStringContainsString("'table' => 'dossiers'", $pharma);
         $this->assertStringContainsString("'table' => 'dossier_items'", $pharma);
@@ -152,5 +152,4 @@ class ModuleSnapshotContractTest extends TestCase
         $this->assertStringContainsString("'target_table' => 'dossier_templates'", $pharma);
         $this->assertStringContainsString("'target_table' => 'dossier_template_items'", $pharma);
     }
-
 }

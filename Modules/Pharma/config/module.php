@@ -1,5 +1,7 @@
 <?php
 
+use Modules\Pharma\Models\MedicineProfile;
+
 return [
     'name' => 'Pharma',
     'type' => 'domain',
@@ -16,7 +18,7 @@ return [
                     'table' => 'dossiers',
                     'key' => 'id',
                     'where_column' => 'owner_type',
-                    'where_value' => Modules\Pharma\Models\MedicineProfile::class,
+                    'where_value' => MedicineProfile::class,
                     'owner_table' => 'medicine_profiles',
                     'owner_key' => 'id',
                     'owner_foreign_key' => 'owner_id',
