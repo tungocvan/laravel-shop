@@ -6,6 +6,7 @@ use Exception;
 use Livewire\Component;
 use LogicException;
 use Modules\Pharma\Livewire\Concerns\AuthorizesPharmaActions;
+use Modules\Pharma\Services\HsspMedicineValidityService;
 use Modules\Pharma\Services\MedicineService;
 
 class Form extends Component
@@ -82,7 +83,7 @@ class Form extends Component
         ];
     }
 
-    public function mount(MedicineService $medicineService, ?int $id = null)
+    public function mount(MedicineService $medicineService, HsspMedicineValidityService $hsspValidity, ?int $id = null)
     {
         $id ? $this->authorizePharmaEdit() : $this->authorizePharmaCreate();
 
@@ -91,6 +92,10 @@ class Form extends Component
             $this->isEditMode = true;
             $medicine = $medicineService->findOrFail($id);
             $this->fill($medicine->toArray());
+
+            $validity = $hsspValidity->forMedicine($id);
+            $this->visa_validity_date = $validity['visa_validity_date'] ?? $this->visa_validity_date;
+            $this->gmp_certification_date = $validity['gmp_certification_date'] ?? $this->gmp_certification_date;
 
             if ($this->visa_validity_date) {
                 $this->visa_validity_date = date('Y-m-d', strtotime($this->visa_validity_date));
