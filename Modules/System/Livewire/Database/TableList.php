@@ -41,6 +41,7 @@ class TableList extends Component
     public bool $showModuleRestoreModal = false;
     public ?string $selectedModuleSnapshotReference = null;
     public bool $isModuleRestoring = false;
+    public array $selectedModulePreflight = [];
 
     public function boot(DatabaseService $service): void { $this->service = $service; }
 
@@ -148,10 +149,10 @@ class TableList extends Component
     public function openModuleRestoreModal(string $reference, ModuleSnapshotService $snapshots): void
     {
         $this->authorizePermission('database.restore'); $module = $this->moduleFilter;
-        try { $snapshot = $snapshots->resolveLocalReference($reference, $module); if ($snapshot === null) throw new \RuntimeException('Module snapshot local không tồn tại.'); $snapshots->validatePackage($snapshot['absolute_path'], $module, enforceSchema: true); $this->selectedModuleSnapshotReference = $reference; $this->showModuleRestoreModal = true; }
+        try { $snapshot = $snapshots->resolveLocalReference($reference, $module); if ($snapshot === null) throw new \RuntimeException('Module snapshot local không tồn tại.'); $validated = $snapshots->validatePackage($snapshot['absolute_path'], $module, enforceSchema: true); $this->selectedModulePreflight = (array) ($validated['compatibility_report'] ?? ['status' => $validated['compatibility'], 'issues' => []]); $this->selectedModuleSnapshotReference = $reference; $this->showModuleRestoreModal = true; }
         catch (\Throwable $e) { $this->reportOperationError('Open module snapshot restore rejected.', $e, ['module' => $module]); $this->notify('error', 'Module Snapshot không tương thích hoặc không còn tồn tại.'); }
     }
-    public function closeModuleRestoreModal(): void { if ($this->isModuleRestoring) return; $this->showModuleRestoreModal = false; $this->selectedModuleSnapshotReference = null; }
+    public function closeModuleRestoreModal(): void { if ($this->isModuleRestoring) return; $this->showModuleRestoreModal = false; $this->selectedModuleSnapshotReference = null; $this->selectedModulePreflight = []; }
     public function restoreModuleSnapshot(ModuleSnapshotService $snapshots): void
     {
         $this->authorizePermission('database.restore'); if ($this->isModuleRestoring || $this->selectedModuleSnapshotReference === null) return;
@@ -201,7 +202,7 @@ class TableList extends Component
     }
 
     private function resetVisibleSelectionState(): void { $this->selectAll = false; $this->selectedTables = []; $this->selectedExportFile = null; }
-    private function resetModuleSnapshotState(): void { $this->moduleLocalSnapshots = []; $this->moduleRemoteSnapshots = []; $this->moduleDependencies = []; $this->moduleCloudUnavailable = false; $this->showModuleRestoreModal = false; $this->selectedModuleSnapshotReference = null; }
+    private function resetModuleSnapshotState(): void { $this->moduleLocalSnapshots = []; $this->moduleRemoteSnapshots = []; $this->moduleDependencies = []; $this->moduleCloudUnavailable = false; $this->showModuleRestoreModal = false; $this->selectedModuleSnapshotReference = null; $this->selectedModulePreflight = []; }
     private function notify(string $type, string $message): void { $this->dispatch('notify', type: $type, content: $message, message: $message); }
     private function reportOperationError(string $message, \Throwable $exception, array $context = []): void { Log::error($message, $context + ['exception' => $exception::class]); }
     private function closeImportStateAfterSuccess(): void { $this->showImportModal = false; $this->importTargetTable = null; $this->importFile = null; $this->resetValidation('importFile'); }
