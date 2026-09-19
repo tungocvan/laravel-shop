@@ -139,7 +139,7 @@ class HsspController extends Controller
             ->with('success', 'Đã tạo bộ HSSP cho thuốc '.$medicine->name.'.');
     }
 
-    public function edit(Medicine $medicine, MedicineProfile $profile): View
+    public function edit(Medicine $medicine, MedicineProfile $profile, HsspDossierTemplateService $templates): View
     {
         abort_unless($profile->medicine_id === $medicine->id, 404);
 
@@ -147,21 +147,71 @@ class HsspController extends Controller
             'medicine' => $medicine,
             'profile' => $profile,
             'statusOptions' => $this->statusOptions(),
+            'dossierTemplate' => $templates->get(),
+            'dossier' => Dossier::query()->with(['items.attachments', 'attachments'])->where('owner_type', MedicineProfile::class)->where('owner_id', $profile->id)->latest('id')->first(),
         ]);
     }
 
-    public function update(Request $request, Medicine $medicine, MedicineProfile $profile): RedirectResponse
+    public function update(Request $request, Medicine $medicine, MedicineProfile $profile, HsspDossierTemplateService $templates, DossierManager $dossiers, DossierStorageService $storage): RedirectResponse
     {
         abort_unless($profile->medicine_id === $medicine->id, 404);
         $data = $this->validated($request, $medicine, $profile);
+        $request->validate([
+            'items.gmp.effective_to' => ['required', 'date'],
+            'items.registration.effective_to' => ['required', 'date'],
+            'item_files.*.*' => ['nullable', 'file', 'max:20480'],
+            'master_files.*' => ['nullable', 'file', 'max:51200'],
+        ]);
 
-        DB::transaction(function () use ($medicine, $profile, $data): void {
+        DB::transaction(function () use ($medicine, $profile, $data, $request): void {
             if ($data['is_current']) {
                 $medicine->profiles()->where('id', '!=', $profile->id)->update(['is_current' => false]);
             }
 
-            $profile->update($data + ['updated_by' => auth('admin')->id()]);
+            $profile->update($data + [
+                'effective_from' => $request->input('items.registration.effective_from'),
+                'effective_to' => $request->input('items.registration.effective_to'),
+                'updated_by' => auth('admin')->id(),
+            ]);
         });
+
+        $dossier = Dossier::query()
+            ->with('items')
+            ->where('owner_type', MedicineProfile::class)
+            ->where('owner_id', $profile->id)
+            ->latest('id')
+            ->first();
+
+        if (! $dossier) {
+            $dossier = $dossiers->createFromTemplate($templates->get(), $profile, [
+                'version' => $profile->profile_version,
+                'status' => $profile->profile_status,
+                'is_current' => $profile->is_current,
+                'metadata' => ['medicine_id' => $medicine->id, 'medicine_code' => $medicine->medicine_code],
+            ], $request->input('items', []));
+        } else {
+            foreach ($dossier->items as $item) {
+                if ($request->has('items.'.$item->code)) {
+                    $item->update(['metadata' => $request->input('items.'.$item->code, [])]);
+                }
+            }
+            $dossier->update([
+                'version' => $profile->profile_version,
+                'status' => $profile->profile_status,
+                'is_current' => $profile->is_current,
+                'updated_by' => auth('admin')->id(),
+            ]);
+        }
+
+        $root = 'dossiers/Pharma/HSSP/'.($medicine->medicine_code ?: 'medicine-'.$medicine->id).'/profile-'.$profile->id;
+        foreach ($dossier->items as $item) {
+            foreach ($request->file('item_files.'.$item->code, []) as $file) {
+                $storage->store($dossier, $item, $file, $root);
+            }
+        }
+        foreach ($request->file('master_files', []) as $file) {
+            $storage->store($dossier, null, $file, $root, 'master');
+        }
 
         return redirect()->route('admin.pharma.hssp.index')
             ->with('success', 'Đã cập nhật HSSP của thuốc '.$medicine->name.'.');
