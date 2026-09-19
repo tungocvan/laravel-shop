@@ -37,7 +37,10 @@ class BhxhFacilityLookupContractTest extends TestCase
     {
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/pages/official-facilities/bhxh.blade.php'));
 
-        $this->assertStringContainsString('Không OCR / không bypass CAPTCHA', $view);
+        $this->assertStringContainsString('Chỉ nhập CAPTCHA khi cần tra cứu mới hoặc làm mới dữ liệu từ BHXH', $view);
+        $this->assertStringContainsString('CAPTCHA chỉ được dùng khi bạn chủ động tra cứu lại từ BHXH', $view);
+        $this->assertStringContainsString("if (!captchaInput.value.trim())", $view);
+        $this->assertStringContainsString('Nhập CAPTCHA khi bạn muốn tra cứu mới/làm mới dữ liệu từ BHXH.', $view);
         $this->assertStringContainsString('Vùng dữ liệu BHXH', $view);
         $this->assertStringContainsString('Địa bàn BHXH', $view);
         $this->assertStringContainsString('source_partition', $view);

@@ -20,11 +20,22 @@
         <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div class="mb-5">
                 <h2 class="text-lg font-semibold text-slate-900">Tra cứu trực tuyến BHXH</h2>
-                <p class="mt-1 text-sm text-slate-500">Nếu một tỉnh mới gồm nhiều vùng nguồn BHXH cũ, hãy chọn đúng vùng trước khi chọn địa bàn và nhập CAPTCHA.</p>
+                <p class="mt-1 text-sm text-slate-500">Ưu tiên dữ liệu đã đồng bộ trong Kho dữ liệu nguồn Pharma. Chỉ nhập CAPTCHA khi cần tra cứu mới hoặc làm mới dữ liệu từ BHXH.</p>
             </div>
 
-            <form data-bhxh-lookup-form class="grid gap-4 xl:grid-cols-5">
+            <form data-bhxh-lookup-form class="grid gap-4 xl:grid-cols-6">
                 @csrf
+                <div>
+                    <label for="business_region" class="mb-1 block text-sm font-medium text-slate-700">Vùng miền</label>
+                    <select id="business_region" name="business_region" class="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:ring-sky-500">
+                        <option value="">- Tất cả vùng miền -</option>
+                        @foreach ($bhxhRegions as $regionKey => $regionLabel)
+                            <option value="{{ $regionLabel }}" @selected($regionLabel === 'Miền Tây / Tây Nam Bộ')>{{ $regionLabel }}</option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-xs text-slate-500">Phân vùng nghiệp vụ ERP, không thay mã nguồn BHXH.</p>
+                </div>
+
                 <div>
                     <label for="ma_tinh" class="mb-1 block text-sm font-medium text-slate-700">Tỉnh/Thành <span class="text-rose-500">*</span></label>
                     <select id="ma_tinh" name="ma_tinh" required class="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:ring-sky-500">
@@ -52,7 +63,7 @@
 
                 <div>
                     <label for="captcha" class="mb-1 block text-sm font-medium text-slate-700">Mã xác nhận</label>
-                    <input id="captcha" name="captcha" required maxlength="20" autocomplete="off" class="min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm uppercase focus:border-sky-500 focus:ring-sky-500">
+                    <input id="captcha" name="captcha" maxlength="20" autocomplete="off" class="min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm uppercase focus:border-sky-500 focus:ring-sky-500">
                 </div>
 
                 <div>
@@ -63,8 +74,8 @@
                     </div>
                 </div>
 
-                <div class="xl:col-span-5 flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                    <p class="text-xs text-slate-500">Không OCR / không bypass CAPTCHA. Mỗi lần tra cứu sử dụng đúng một vùng nguồn BHXH và yêu cầu CAPTCHA mới.</p>
+                <div class="xl:col-span-6 flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                    <p class="text-xs text-slate-500">Chọn vùng dữ liệu/địa bàn để xem dữ liệu đã lưu. CAPTCHA chỉ được dùng khi bạn chủ động tra cứu lại từ BHXH.</p>
                     <button type="submit" data-lookup-button class="min-h-11 rounded-xl bg-sky-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-slate-300">Tra cứu BHXH</button>
                 </div>
             </form>
@@ -76,7 +87,7 @@
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h2 class="text-lg font-semibold text-slate-900">Kết quả</h2>
-                    <p class="mt-1 text-sm text-slate-500">Mã CSKCB và tên cơ sở do BHXH trả về; mã CSKCB tiếp tục là source identity để enrich dữ liệu về sau.</p>
+                    <p class="mt-1 text-sm text-slate-500">Mặc định hiển thị dữ liệu đã đồng bộ trong Kho dữ liệu nguồn Pharma; khi tra cứu lại, kết quả mới từ BHXH sẽ được đánh dấu để có thể đồng bộ.</p>
                 </div>
                 <div class="flex items-center gap-3">
                     <div data-result-count class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700">0 cơ sở</div>
@@ -86,6 +97,7 @@
                 </div>
             </div>
 
+            <div data-cache-status class="mt-4 hidden rounded-xl border px-4 py-3 text-sm"></div>
             <div data-sync-message class="mt-4 hidden rounded-xl border px-4 py-3 text-sm"></div>
 
             <div class="mt-4 overflow-x-auto rounded-xl border border-slate-200">
@@ -104,7 +116,10 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const partitions = @json($bhxhPartitions);
+            const provincesByRegion = @json($bhxhProvincesByRegion);
+            const allProvinces = @json($bhxhProvinces);
             const form = document.querySelector('[data-bhxh-lookup-form]');
+            const regionSelect = document.querySelector('#business_region');
             const provinceSelect = document.querySelector('#ma_tinh');
             const partitionSelect = document.querySelector('#source_partition');
             const partitionStatus = document.querySelector('[data-partition-status]');
@@ -119,6 +134,7 @@
             const resultCount = document.querySelector('[data-result-count]');
             const syncButton = document.querySelector('[data-sync-source]');
             const syncMessage = document.querySelector('[data-sync-message]');
+            const cacheStatus = document.querySelector('[data-cache-status]');
             let syncPollTimer = null;
 
             const showMessage = (element, text, ok) => {
@@ -131,6 +147,48 @@
                 if (!syncMessage) return;
                 syncMessage.textContent = text;
                 syncMessage.className = 'mt-4 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800';
+            };
+
+            const loadCachedFacilities = async () => {
+                if (!provinceSelect.value || !partitionSelect.value) {
+                    renderRows([]);
+                    if (cacheStatus) cacheStatus.className = 'mt-4 hidden rounded-xl border px-4 py-3 text-sm';
+                    button.textContent = 'Tra cứu BHXH';
+                    return;
+                }
+
+                if (syncButton) {
+                    syncButton.disabled = true;
+                    syncButton.textContent = 'Đồng bộ vùng này';
+                }
+
+                try {
+                    const url = new URL(`{{ route('admin.pharma.official-facilities.bhxh.cached') }}`, window.location.origin);
+                    url.searchParams.set('ma_tinh', provinceSelect.value);
+                    url.searchParams.set('source_partition', partitionSelect.value);
+                    if (districtSelect.value) url.searchParams.set('ma_quan_huyen', districtSelect.value);
+                    const response = await fetch(url, { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+                    const payload = await response.json();
+                    if (!response.ok) throw new Error(payload.message ?? 'Không đọc được Kho dữ liệu nguồn Pharma.');
+
+                    renderRows(payload.facilities ?? []);
+                    button.textContent = payload.has_cached_data ? 'Tra cứu lại BHXH' : 'Tra cứu BHXH';
+                    if (payload.has_cached_data) {
+                        const syncedAt = payload.last_synced_at ? new Date(payload.last_synced_at).toLocaleString('vi-VN') : 'không rõ';
+                        showMessage(cacheStatus, `Dữ liệu đã lưu · ${payload.count ?? 0} cơ sở · Đồng bộ lần cuối ${syncedAt}. Nhập CAPTCHA nếu cần tra cứu lại BHXH.`, true);
+                    } else {
+                        showPendingMessageForCache(payload.message ?? 'Chưa có dữ liệu đã đồng bộ. Nhập CAPTCHA để tra cứu BHXH.');
+                    }
+                } catch (error) {
+                    renderRows([]);
+                    showMessage(cacheStatus, error.message || 'Không đọc được Kho dữ liệu nguồn Pharma.', false);
+                }
+            };
+
+            const showPendingMessageForCache = (text) => {
+                if (!cacheStatus) return;
+                cacheStatus.textContent = text;
+                cacheStatus.className = 'mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800';
             };
 
             const reloadCaptcha = () => {
@@ -158,6 +216,24 @@
                     });
                     resultBody.appendChild(row);
                 });
+            };
+
+            const populateProvinces = () => {
+                const selected = provinceSelect.value;
+                const source = regionSelect.value ? (provincesByRegion[regionSelect.value] ?? {}) : allProvinces;
+                provinceSelect.innerHTML = '<option value="">- Chọn Tỉnh/Thành -</option>';
+
+                Object.entries(source).forEach(([code, name]) => {
+                    const option = document.createElement('option');
+                    option.value = code;
+                    option.textContent = name;
+                    option.selected = code === selected;
+                    provinceSelect.appendChild(option);
+                });
+
+                if (!provinceSelect.value && regionSelect.value === 'Miền Tây / Tây Nam Bộ' && Object.prototype.hasOwnProperty.call(source, '92TTT')) {
+                    provinceSelect.value = '92TTT';
+                }
             };
 
             const populatePartitions = () => {
@@ -211,6 +287,7 @@
                     districtStatus.textContent = error.message || 'Không tải được danh sách địa bàn; vẫn có thể tra toàn vùng.';
                 } finally {
                     districtSelect.disabled = false;
+                    await loadCachedFacilities();
                 }
             };
 
@@ -227,7 +304,7 @@
                         window.clearTimeout(syncPollTimer);
                         syncPollTimer = null;
                         syncButton.textContent = 'Đồng bộ hoàn tất';
-                        showMessage(syncMessage, `Đồng bộ hoàn tất. Batch #${payload.batch_id} · ${payload.fetched_count ?? 0} cơ sở · tạo mới ${payload.created_count ?? 0} · cập nhật ${payload.updated_count ?? 0} · không đổi ${payload.unchanged_count ?? 0}.`, true);
+                        showMessage(syncMessage, `Đồng bộ hoàn tất vào Kho dữ liệu nguồn Pharma. Batch #${payload.batch_id} · ${payload.fetched_count ?? 0} cơ sở · tạo mới ${payload.created_count ?? 0} · cập nhật ${payload.updated_count ?? 0} · không đổi ${payload.unchanged_count ?? 0}. Dữ liệu chưa ghi trực tiếp vào Partner.`, true);
                         return;
                     }
 
@@ -258,6 +335,12 @@
                 renderRows([]);
             };
 
+            regionSelect.addEventListener('change', () => {
+                resetLookupState();
+                populateProvinces();
+                populatePartitions();
+                loadDistricts();
+            });
             provinceSelect.addEventListener('change', () => {
                 resetLookupState();
                 populatePartitions();
@@ -269,14 +352,21 @@
             });
             districtSelect.addEventListener('change', () => {
                 if (syncButton) syncButton.disabled = true;
+                loadCachedFacilities();
             });
             refreshCaptcha.addEventListener('click', reloadCaptcha);
 
+            populateProvinces();
             populatePartitions();
             loadDistricts();
 
             form.addEventListener('submit', async (event) => {
                 event.preventDefault();
+                if (!captchaInput.value.trim()) {
+                    showMessage(message, 'Nhập CAPTCHA khi bạn muốn tra cứu mới/làm mới dữ liệu từ BHXH.', false);
+                    captchaInput.focus();
+                    return;
+                }
                 button.disabled = true;
                 button.textContent = 'Đang tra cứu...';
                 if (syncButton) {
@@ -297,12 +387,13 @@
                     renderRows(payload.facilities ?? []);
                     showMessage(message, payload.message ?? (response.ok ? 'Tra cứu hoàn tất.' : 'Tra cứu thất bại.'), response.ok && (payload.facilities ?? []).length > 0);
                     if (syncButton) syncButton.disabled = !payload.can_sync;
+                    if (cacheStatus) cacheStatus.className = 'mt-4 hidden rounded-xl border px-4 py-3 text-sm';
                 } catch (error) {
                     renderRows([]);
                     showMessage(message, 'Không thể gọi route tra cứu BHXH. Kiểm tra kết nối máy chủ và log Laravel.', false);
                 } finally {
                     button.disabled = false;
-                    button.textContent = 'Tra cứu BHXH';
+                    button.textContent = syncButton && !syncButton.disabled ? 'Tra cứu lại BHXH' : 'Tra cứu BHXH';
                     reloadCaptcha();
                 }
             });
