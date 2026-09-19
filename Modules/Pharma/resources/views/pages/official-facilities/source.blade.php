@@ -17,7 +17,7 @@
         </header>
 
         <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <form method="GET" action="{{ route('admin.pharma.official-facilities.source.index') }}" autocomplete="off" data-live-filter-form class="grid gap-3 lg:grid-cols-12">
+            <form method="GET" action="{{ route('admin.pharma.official-facilities.source.index') }}" autocomplete="off" data-live-filter-form class="grid gap-3 lg:grid-cols-14">
                 <x-search
                     name="search"
                     value="{{ request('search') }}"
@@ -25,6 +25,13 @@
                     class="lg:col-span-3"
                     data-live-search
                 />
+
+                <select name="business_region" autocomplete="off" data-live-filter class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm lg:col-span-2">
+                    <option value="">Tất cả vùng miền</option>
+                    @foreach ($businessRegions as $regionKey => $regionName)
+                        <option value="{{ $regionKey }}" @selected(request('business_region') === $regionKey)>{{ $regionName }}</option>
+                    @endforeach
+                </select>
 
                 <select name="source" autocomplete="off" data-live-filter class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm lg:col-span-2">
                     <option value="">Tất cả nguồn</option>
@@ -59,7 +66,7 @@
                     @endforeach
                 </select>
 
-                @if (request()->hasAny(['search', 'source', 'province', 'partition', 'status', 'per_page']))
+                @if (request()->hasAny(['search', 'business_region', 'source', 'province', 'partition', 'status', 'per_page']))
                     <div class="lg:col-span-12 flex justify-end">
                         <a href="{{ route('admin.pharma.official-facilities.source.index') }}" class="text-sm font-semibold text-slate-500 hover:text-sky-700">Xóa bộ lọc</a>
                     </div>
@@ -73,16 +80,23 @@
                     <h2 class="text-lg font-semibold text-slate-900">Dữ liệu đã đồng bộ</h2>
                     <p class="mt-1 text-sm text-slate-500">Identity nguồn: <code>(source, external_id)</code>. Tỉnh/Thành và vùng nguồn BHXH được hiển thị tách biệt.</p>
                 </div>
-                <div class="text-sm font-semibold text-slate-700">{{ number_format($facilities->total()) }} cơ sở</div>
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="text-sm font-semibold text-slate-700">{{ number_format($facilities->total()) }} cơ sở</div>
+                    <button type="submit" form="official-source-export-form" data-export-selected disabled class="inline-flex min-h-10 items-center justify-center rounded-xl border border-sky-200 bg-white px-4 py-2 text-sm font-semibold text-sky-700 disabled:cursor-not-allowed disabled:opacity-40 hover:bg-sky-50">Export đã chọn</button>
+                </div>
             </div>
 
+            <form id="official-source-export-form" method="POST" action="{{ route('admin.pharma.official-facilities.source.export') }}">
+                @csrf
             <div class="overflow-x-auto rounded-xl border border-slate-200">
                 <table class="min-w-full divide-y divide-slate-200 text-sm">
                     <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
                         <tr>
+                            <th class="w-12 px-4 py-3"><input type="checkbox" data-select-page aria-label="Chọn tất cả cơ sở trên trang hiện tại" class="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"></th>
                             <th class="px-4 py-3">Nguồn</th>
                             <th class="px-4 py-3">Mã CSKCB</th>
                             <th class="px-4 py-3">Tên cơ sở</th>
+                            <th class="px-4 py-3">Vùng miền</th>
                             <th class="px-4 py-3">Tỉnh/Thành</th>
                             <th class="px-4 py-3">Vùng nguồn BHXH</th>
                             <th class="px-4 py-3">Trạng thái</th>
@@ -92,9 +106,11 @@
                     <tbody class="divide-y divide-slate-100 bg-white">
                         @forelse ($facilities as $facility)
                             <tr>
+                                <td class="px-4 py-3"><input type="checkbox" name="selected_ids[]" value="{{ $facility->id }}" data-row-select aria-label="Chọn {{ $facility->facility_name }}" class="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"></td>
                                 <td class="px-4 py-3 font-semibold text-slate-700">{{ strtoupper($facility->source) }}</td>
                                 <td class="px-4 py-3 font-mono text-slate-800">{{ $facility->external_id }}</td>
                                 <td class="px-4 py-3 font-medium text-slate-900">{{ $facility->facility_name }}</td>
+                                <td class="px-4 py-3 text-slate-600">{{ $provinceRegions[$facility->province_name] ?? '—' }}</td>
                                 <td class="px-4 py-3 text-slate-600">{{ $facility->province_name ?: '—' }}</td>
                                 <td class="px-4 py-3 text-slate-600">
                                     <div>{{ $partitionLabels[$facility->source_province_code] ?? $facility->source_province_code }}</div>
@@ -104,12 +120,29 @@
                                 <td class="px-4 py-3 text-slate-600">{{ optional($facility->last_synced_at)->format('d/m/Y H:i') ?: '—' }}</td>
                             </tr>
                         @empty
-                            <tr><td colspan="7" class="px-4 py-10 text-center text-slate-500">Không có dữ liệu phù hợp bộ lọc hiện tại.</td></tr>
+                            <tr><td colspan="9" class="px-4 py-10 text-center text-slate-500">Không có dữ liệu phù hợp bộ lọc hiện tại.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
-            <div class="mt-4">{{ $facilities->links() }}</div>
+            </form>
+            @if ($facilities->hasPages())
+                <nav class="mt-4 flex flex-col gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between" aria-label="Phân trang cơ sở KCB nguồn">
+                    <span>Trang {{ $facilities->currentPage() }} / {{ $facilities->lastPage() }} · {{ number_format($facilities->total()) }} cơ sở</span>
+                    <div class="flex items-center gap-2">
+                        @if ($facilities->onFirstPage())
+                            <span class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-300">Trước</span>
+                        @else
+                            <a href="{{ $facilities->previousPageUrl() }}" class="rounded-lg border border-slate-300 bg-white px-3 py-2 font-semibold text-slate-700 hover:bg-slate-50">Trước</a>
+                        @endif
+                        @if ($facilities->hasMorePages())
+                            <a href="{{ $facilities->nextPageUrl() }}" class="rounded-lg border border-slate-300 bg-white px-3 py-2 font-semibold text-slate-700 hover:bg-slate-50">Sau</a>
+                        @else
+                            <span class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-300">Sau</span>
+                        @endif
+                    </div>
+                </nav>
+            @endif
         </section>
 
         <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -144,6 +177,24 @@
                 timer = window.setTimeout(submit, 450);
             });
             search?.addEventListener('search', submit);
+
+            const selectPage = document.querySelector('[data-select-page]');
+            const rowSelections = Array.from(document.querySelectorAll('[data-row-select]'));
+            const exportButton = document.querySelector('[data-export-selected]');
+            const refreshSelection = () => {
+                const selected = rowSelections.filter((checkbox) => checkbox.checked).length;
+                if (exportButton) exportButton.disabled = selected === 0;
+                if (selectPage) {
+                    selectPage.checked = rowSelections.length > 0 && selected === rowSelections.length;
+                    selectPage.indeterminate = selected > 0 && selected < rowSelections.length;
+                }
+            };
+            selectPage?.addEventListener('change', () => {
+                rowSelections.forEach((checkbox) => checkbox.checked = selectPage.checked);
+                refreshSelection();
+            });
+            rowSelections.forEach((checkbox) => checkbox.addEventListener('change', refreshSelection));
+            refreshSelection();
         });
     </script>
 @endsection
