@@ -8,6 +8,15 @@ Last reviewed: 2026-09-15
 
 ## Canonical ownership
 
+## HSSP / Product dossier boundary
+
+Pharma owns the pharmaceutical HSSP business adapter and its rules, including Medicine/Profile ownership and mandatory GMP plus registration/GPLH validity metadata. HSSP attachments are optional evidence and do not create a second Medicine identity.
+
+Generic dossier persistence and storage live under `App\\Dossiers`. The reusable engine owns configurable dossier templates, template items, dynamic metadata, dossier instances/items, optional attachments, combined/master files and storage synchronization state. It must not depend on Pharma; other modules may reuse this engine with their own templates and validation rules.
+
+Pharma's default product-dossier template contains GMP, registration decision, HDSD, product label and product-change sections. Operators may append additional dossier items without changing the canonical template. File storage is local-first and may mirror to the configured Google Drive disk under `Laravel-Backup/...`; database metadata remains the index/source of truth for the dossier structure.
+
+
 ### Medicine Master
 
 Pharma owns the canonical medicine catalog:
