@@ -13,8 +13,20 @@ class Dossier extends Model
 
     protected $casts = ['is_current' => 'boolean', 'metadata' => 'array'];
 
-    public function template(): BelongsTo { return $this->belongsTo(DossierTemplate::class, 'template_id'); }
-    public function owner(): MorphTo { return $this->morphTo(); }
-    public function items(): HasMany { return $this->hasMany(DossierItem::class)->orderBy('sort_order'); }
-    public function attachments(): HasMany { return $this->hasMany(DossierAttachment::class); }
+    public function template(): BelongsTo
+    {
+        return $this->belongsTo(DossierTemplate::class, 'template_id');
+    }
+    public function owner(): MorphTo
+    {
+        return $this->morphTo();
+    }
+    public function items(): HasMany
+    {
+        return $this->hasMany(DossierItem::class)->orderBy('sort_order');
+    }
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(DossierAttachment::class);
+    }
 }
