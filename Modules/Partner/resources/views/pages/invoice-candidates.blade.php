@@ -3,7 +3,7 @@
 @section('title', 'Đồng bộ Partner từ Invoices')
 
 @section('content')
-    <div class="space-y-6 px-4 py-5 sm:px-6 lg:px-8">
+    <div class="space-y-6 py-5">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
                 <p class="text-sm font-medium text-indigo-600">Partner Master Hub</p>
