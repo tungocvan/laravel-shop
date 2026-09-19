@@ -82,12 +82,21 @@
                 </div>
                 <div class="flex flex-wrap items-center gap-3">
                     <div class="text-sm font-semibold text-slate-700">{{ number_format($facilities->total()) }} cơ sở</div>
-                    <button type="submit" form="official-source-export-form" data-export-selected disabled class="inline-flex min-h-10 items-center justify-center rounded-xl border border-sky-200 bg-white px-4 py-2 text-sm font-semibold text-sky-700 disabled:cursor-not-allowed disabled:opacity-40 hover:bg-sky-50">Xuất Excel đã chọn</button>
+                    <button type="submit" form="official-source-export-form" data-export-selected class="inline-flex min-h-10 items-center justify-center rounded-xl border border-sky-200 bg-white px-4 py-2 text-sm font-semibold text-sky-700 hover:bg-sky-50">Xuất Excel</button>
+                    @can('import_pharma_official_facilities')
+                        <button type="button" data-import-open class="inline-flex min-h-10 items-center justify-center rounded-xl border border-indigo-200 bg-white px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50">Import Excel</button>
+                    @endcan
                 </div>
             </div>
 
             <form id="official-source-export-form" method="POST" action="{{ route('admin.pharma.official-facilities.source.export') }}">
                 @csrf
+                <input type="hidden" name="search" value="{{ request('search') }}">
+                <input type="hidden" name="business_region" value="{{ request('business_region') }}">
+                <input type="hidden" name="source" value="{{ request('source') }}">
+                <input type="hidden" name="province" value="{{ request('province') }}">
+                <input type="hidden" name="partition" value="{{ request('partition') }}">
+                <input type="hidden" name="status" value="{{ request('status') }}">
             <div class="overflow-x-auto rounded-xl border border-slate-200">
                 <table class="min-w-full divide-y divide-slate-200 text-sm">
                     <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
@@ -170,6 +179,29 @@
             @endif
         </section>
 
+        @can('import_pharma_official_facilities')
+            <div data-import-modal class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/40 p-4">
+                <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <h2 class="text-lg font-semibold text-slate-900">Import Kho dữ liệu nguồn</h2>
+                            <p class="mt-1 text-sm text-slate-500">Chọn file .xlsx/.xls được xuất từ màn hình này. Identity import là (Source, External ID).</p>
+                        </div>
+                        <button type="button" data-import-close class="rounded-lg px-2 py-1 text-slate-500 hover:bg-slate-100">✕</button>
+                    </div>
+                    <form data-import-form class="mt-5 space-y-4" enctype="multipart/form-data">
+                        @csrf
+                        <input type="file" name="file" accept=".xlsx,.xls" required class="block w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm">
+                        <div data-import-message class="hidden rounded-xl border px-4 py-3 text-sm"></div>
+                        <div class="flex justify-end gap-2">
+                            <button type="button" data-import-close class="min-h-10 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Hủy</button>
+                            <button type="submit" data-import-submit class="min-h-10 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Import Excel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        @endcan
+
         <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div class="mb-4"><h2 class="text-lg font-semibold text-slate-900">20 batch đồng bộ gần nhất</h2><p class="mt-1 text-sm text-slate-500">Theo dõi queue và kết quả upsert/stale.</p></div>
             <div class="overflow-x-auto rounded-xl border border-slate-200">
@@ -208,7 +240,7 @@
             const exportButton = document.querySelector('[data-export-selected]');
             const refreshSelection = () => {
                 const selected = rowSelections.filter((checkbox) => checkbox.checked).length;
-                if (exportButton) exportButton.disabled = selected === 0;
+                if (exportButton) exportButton.textContent = selected > 0 ? `Xuất Excel (${selected} đã chọn)` : 'Xuất Excel';
                 if (selectPage) {
                     selectPage.checked = rowSelections.length > 0 && selected === rowSelections.length;
                     selectPage.indeterminate = selected > 0 && selected < rowSelections.length;
@@ -220,6 +252,42 @@
             });
             rowSelections.forEach((checkbox) => checkbox.addEventListener('change', refreshSelection));
             refreshSelection();
+
+            const importModal = document.querySelector('[data-import-modal]');
+            const importForm = document.querySelector('[data-import-form]');
+            const importMessage = document.querySelector('[data-import-message]');
+            const importSubmit = document.querySelector('[data-import-submit]');
+            document.querySelector('[data-import-open]')?.addEventListener('click', () => {
+                importModal?.classList.remove('hidden');
+                importModal?.classList.add('flex');
+            });
+            document.querySelectorAll('[data-import-close]').forEach((button) => button.addEventListener('click', () => {
+                importModal?.classList.add('hidden');
+                importModal?.classList.remove('flex');
+            }));
+            importForm?.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                importSubmit.disabled = true;
+                importSubmit.textContent = 'Đang import...';
+                try {
+                    const response = await fetch(`{{ route('admin.pharma.official-facilities.source.import') }}`, {
+                        method: 'POST',
+                        headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': importForm.querySelector('input[name="_token"]').value },
+                        body: new FormData(importForm),
+                    });
+                    const payload = await response.json();
+                    if (!response.ok) throw new Error(payload.message ?? 'Import Excel thất bại.');
+                    importMessage.textContent = `${payload.message} Tạo mới ${payload.created} · cập nhật ${payload.updated} · không đổi ${payload.unchanged} · lỗi ${payload.errors}.`;
+                    importMessage.className = 'rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800';
+                    window.setTimeout(() => window.location.reload(), 1200);
+                } catch (error) {
+                    importMessage.textContent = error.message || 'Import Excel thất bại.';
+                    importMessage.className = 'rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800';
+                } finally {
+                    importSubmit.disabled = false;
+                    importSubmit.textContent = 'Import Excel';
+                }
+            });
         });
     </script>
 @endsection
