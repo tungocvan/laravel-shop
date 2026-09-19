@@ -59,6 +59,7 @@ Route::prefix('admin/pharma')->name('admin.pharma.')->middleware(['web', 'auth:a
         Route::post('/{medicine}', [HsspController::class, 'store'])->middleware('can:create_pharma')->name('store');
         Route::get('/{medicine}/{profile}/edit', [HsspController::class, 'edit'])->middleware('can:edit_pharma')->name('edit');
         Route::put('/{medicine}/{profile}', [HsspController::class, 'update'])->middleware('can:edit_pharma')->name('update');
+        Route::delete('/{medicine}/{profile}', [HsspController::class, 'destroy'])->middleware('can:edit_pharma')->name('destroy');
     });
 
     Route::prefix('drug-bid-awards')->name('drug-bid-awards.')->group(function () {
