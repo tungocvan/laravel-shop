@@ -7,7 +7,7 @@
                         <span class="rounded-full bg-amber-600 px-2.5 py-1 text-xs font-bold text-white">SCHEMA DOCTOR</span>
                         <h2 class="text-sm font-bold text-amber-950">{{ count($blockedSnapshots) }} snapshot đang bị khóa Restore</h2>
                     </div>
-                    <p class="mt-2 max-w-4xl text-sm leading-6 text-amber-900">Doctor đọc schema, phân tích nguyên nhân và lập Fix Plan theo evidence. Không DROP/ALTER dữ liệu, không force Restore và không bỏ qua fingerprint validation.</p>
+                    <p class="mt-2 max-w-4xl text-sm leading-6 text-amber-900">Doctor chỉ hiển thị snapshot có compatibility BLOCKED và phân tích nguyên nhân theo evidence. Snapshot v2 WARNING vẫn được Restore qua Preflight; Doctor không DROP/ALTER dữ liệu và không force Restore.</p>
                 </div>
             </div>
 
@@ -17,7 +17,7 @@
                         <p class="break-all text-sm font-semibold text-gray-900">{{ $snapshot['name'] }}</p>
                         <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500">
                             <span>{{ count($snapshot['tables']) }} bảng</span>
-                            <span class="rounded-full bg-red-50 px-2 py-0.5 font-bold text-red-700">SCHEMA KHÔNG TƯƠNG THÍCH</span>
+                            <span class="rounded-full bg-red-50 px-2 py-0.5 font-bold text-red-700">BLOCKED</span>
                         </div>
                         <button type="button" wire:click="diagnose('{{ $snapshot['reference'] }}')" wire:loading.attr="disabled" class="mt-3 inline-flex items-center justify-center rounded-xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-bold text-amber-900 hover:bg-amber-100 disabled:opacity-50">
                             <span wire:loading.remove wire:target="diagnose('{{ $snapshot['reference'] }}')">Chẩn đoán Schema</span>

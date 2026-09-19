@@ -1,3 +1,15 @@
+## Corrective Checkpoint — Schema Doctor Snapshot v2 Semantics
+
+- Branch: `fix/system-schema-doctor-v2-semantics`
+- Production restore of the Pharma Snapshot v2 succeeded, including the HSSP product dossier, while Schema Doctor still showed the same `WARNING` snapshot as restore-blocked.
+- Root cause: `ModuleSchemaDoctorPanel` selected every compatibility status other than `COMPATIBLE`; this incorrectly included schema-aware v2 `WARNING` snapshots.
+- Fix: Schema Doctor now lists only explicit `BLOCKED` snapshots. `WARNING` remains restoreable through the normal Snapshot v2 Preflight workflow.
+- Doctor copy no longer describes v2 WARNING as a fingerprint-validation failure; blocked cards use the explicit `BLOCKED` status.
+- Focused contract coverage added to prevent WARNING from re-entering the blocked Doctor list.
+- No database/schema mutation is part of this corrective fix.
+
+---
+
 ## Corrective Checkpoint — Snapshot v2 WARNING Restore Preflight
 
 - Branch: `fix/system-module-snapshot-v2-warning-preflight`

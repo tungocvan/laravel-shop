@@ -196,4 +196,18 @@ class ModuleSnapshotContractTest extends TestCase
         $this->assertStringContainsString('{{ $preflightIssues->count() }} cảnh báo/ghi chú.', $view);
         $this->assertStringNotContainsString('Snapshot format hiện tại chỉ lưu fingerprint tổng', $view);
     }
+
+    public function test_schema_doctor_only_lists_blocked_snapshots(): void
+    {
+        $panel = file_get_contents(base_path('Modules/System/Livewire/Database/ModuleSchemaDoctorPanel.php'));
+        $view = file_get_contents(base_path('Modules/System/resources/views/livewire/database/module-schema-doctor-panel.blade.php'));
+
+        $this->assertIsString($panel);
+        $this->assertIsString($view);
+        $this->assertStringContainsString("(\$snapshot['compatibility'] ?? 'BLOCKED') === 'BLOCKED'", $panel);
+        $this->assertStringNotContainsString("(\$snapshot['compatibility'] ?? 'BLOCKED') !== 'COMPATIBLE'", $panel);
+        $this->assertStringContainsString('Snapshot v2 WARNING vẫn được Restore qua Preflight', $view);
+        $this->assertStringContainsString('>BLOCKED</span>', $view);
+        $this->assertStringNotContainsString('không bỏ qua fingerprint validation', $view);
+    }
 }
