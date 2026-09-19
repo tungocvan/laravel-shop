@@ -182,6 +182,7 @@ class ModuleSnapshotContractTest extends TestCase
         $this->assertIsInt($legacySqlFallback);
         $this->assertLessThan($legacySqlFallback, $v2Return);
     }
+
     public function test_warning_snapshot_remains_restoreable_and_preflight_is_grouped(): void
     {
         $view = file_get_contents(base_path('Modules/System/resources/views/livewire/database/table-list.blade.php'));
@@ -195,5 +196,4 @@ class ModuleSnapshotContractTest extends TestCase
         $this->assertStringContainsString('{{ $preflightIssues->count() }} cảnh báo/ghi chú.', $view);
         $this->assertStringNotContainsString('Snapshot format hiện tại chỉ lưu fingerprint tổng', $view);
     }
-
 }
