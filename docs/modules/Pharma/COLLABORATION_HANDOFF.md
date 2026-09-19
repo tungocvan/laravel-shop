@@ -1,3 +1,15 @@
+## Checkpoint — Medicine Master validity derived from HSSP
+
+- Branch: `fix/pharma-medicine-hssp-validity-sync`
+- Medicine edit now treats the current HSSP dossier as the preferred source for the two management validity fields when HSSP values exist.
+- Mapping: HSSP `registration.metadata.effective_to` → Medicine Master `visa_validity_date` (Hiệu lực Visa).
+- Mapping: HSSP `gmp.metadata.effective_to` → Medicine Master `gmp_certification_date` (GMP cơ sở sản xuất).
+- Backward compatibility: if no HSSP dossier/value exists, the existing Medicine values remain the fallback.
+- The generic Dossier engine remains unaware of Pharma semantics; mapping is isolated in `HsspMedicineValidityService`.
+- No migration/schema change.
+
+---
+
 ## HSSP Module Snapshot v2 checkpoint — 2026-09-19
 - Fresh Pharma Snapshot v2 runtime capture verified HSSP graph: dossier=1, template=1, template_items=5, items=5, attachments=4. GMP/GPLH metadata and Google Drive attachment metadata are present in the ZIP.
 
