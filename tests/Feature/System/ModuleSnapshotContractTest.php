@@ -182,4 +182,18 @@ class ModuleSnapshotContractTest extends TestCase
         $this->assertIsInt($legacySqlFallback);
         $this->assertLessThan($legacySqlFallback, $v2Return);
     }
+
+    public function test_warning_snapshot_remains_restoreable_and_preflight_is_grouped(): void
+    {
+        $view = file_get_contents(base_path('Modules/System/resources/views/livewire/database/table-list.blade.php'));
+
+        $this->assertIsString($view);
+        $this->assertStringContainsString("@elseif (\$snapshot['compatibility'] === 'WARNING')", $view);
+        $this->assertStringContainsString('Snapshot có cảnh báo schema nhưng vẫn có thể Restore.', $view);
+        $this->assertStringContainsString("in_array(\$snapshot['compatibility'], ['COMPATIBLE', 'WARNING'], true)", $view);
+        $this->assertStringContainsString("(\$selectedModulePreflight['status'] ?? '') === 'BLOCKED'", $view);
+        $this->assertStringContainsString("groupBy(fn (\$issue) => (\$issue['level'] ?? 'info').'|'.(\$issue['message'] ?? ''))", $view);
+        $this->assertStringContainsString('{{ $preflightIssues->count() }} cảnh báo/ghi chú.', $view);
+        $this->assertStringNotContainsString('Snapshot format hiện tại chỉ lưu fingerprint tổng', $view);
+    }
 }

@@ -1,3 +1,16 @@
+## Corrective Checkpoint — Snapshot v2 WARNING Restore Preflight
+
+- Branch: `fix/system-module-snapshot-v2-warning-preflight`
+- Production evidence: the downloaded Pharma snapshot validates through `schema_aware_v2` with compatibility `WARNING`, not `BLOCKED`; the report contains 157 schema warnings, primarily type differences that restore will handle using the current production schema.
+- Root UI issue: the snapshot catalog treated every status other than `COMPATIBLE` as incompatible and hid the Restore action, so a valid v2 `WARNING` package was incorrectly blocked.
+- Fix: `COMPATIBLE` and `WARNING` snapshots can open Restore/Preflight; only `BLOCKED` remains non-restoreable. WARNING is rendered as an amber advisory instead of “SCHEMA KHÔNG TƯƠNG THÍCH”.
+- Preflight UX groups repeated issues by level/message and shows the total issue count instead of flooding the modal with hundreds of near-identical rows.
+- Focused verification on DELL: `ModuleSnapshotContractTest` **8 passed (127 assertions)**.
+- Pint produced one test-only formatting correction; that exact formatting is committed on the branch.
+- Production restore has not been executed yet. After merge/deploy, verify WARNING badge + Restore button + grouped preflight before confirming the real restore.
+
+---
+
 ## Corrective Checkpoint — Snapshot v2 Canonical Validation
 
 - Branch: `fix/system-module-snapshot-v2-canonical-validation`
