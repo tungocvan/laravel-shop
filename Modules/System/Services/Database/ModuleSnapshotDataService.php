@@ -151,9 +151,16 @@ class ModuleSnapshotDataService
         $whereColumn = $this->safeIdentifier((string) ($root['where_column'] ?? ''));
         $whereValue = (string) ($root['where_value'] ?? '');
 
-        if ($name === '' || ! $this->tableExists($rootTable) || ! $this->tableExists($ownerTable)) {
-            return ['name' => $name, 'tables' => [], 'row_counts' => []];
+        if ($name === '') {
+            throw new RuntimeException('Module Snapshot related-data thiếu tên graph.');
         }
+
+        $this->assertRelatedTableColumns($name, $rootTable, [
+            (string) ($root['key'] ?? 'id'),
+            $whereColumn,
+            $ownerForeignKey,
+        ]);
+        $this->assertRelatedTableColumns($name, $ownerTable, [$ownerKey]);
 
         $ownerIds = DB::table($ownerTable)->pluck($ownerKey)->all();
         $rootRows = $ownerIds === [] ? collect() : DB::table($rootTable)
@@ -373,6 +380,21 @@ class ModuleSnapshotDataService
             ->where('TABLE_SCHEMA', $database)
             ->where('TABLE_NAME', $table)
             ->exists();
+    }
+
+    private function assertRelatedTableColumns(string $graph, string $table, array $columns): void
+    {
+        if (! $this->tableExists($table)) {
+            throw new RuntimeException('Module Snapshot related-data ['.$graph.'] khai báo bảng không tồn tại: '.$table);
+        }
+
+        $available = array_flip(array_column($this->tableSchema($table), 'name'));
+        foreach ($columns as $column) {
+            $column = $this->safeIdentifier((string) $column);
+            if (! isset($available[$column])) {
+                throw new RuntimeException('Module Snapshot related-data ['.$graph.'] khai báo cột không tồn tại: '.$table.'.'.$column);
+            }
+        }
     }
 
     private function relatedDefinitions(string $module): array
