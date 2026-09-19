@@ -31,6 +31,19 @@
     <form method="POST" enctype="multipart/form-data"
         x-data="{
             uploadError: '',
+            confirmOpen: false,
+            submitting: false,
+            requestSubmit(event) {
+                this.checkUpload(event);
+                if (event.defaultPrevented) return;
+                event.preventDefault();
+                this.confirmOpen = true;
+            },
+            confirmSubmit() {
+                this.confirmOpen = false;
+                this.submitting = true;
+                this.$nextTick(() => this.$refs.hsspForm.submit());
+            },
             checkUpload(event) {
                 const files = Array.from(event.target.querySelectorAll('input[type=file]')).flatMap(input => Array.from(input.files || []));
                 const total = files.reduce((sum, file) => sum + file.size, 0);
@@ -51,7 +64,8 @@
                 }
             }
         }"
-        @submit="checkUpload($event)"
+        x-ref="hsspForm"
+        @submit="requestSubmit($event)"
         action="{{ $profile->exists ? route('admin.pharma.hssp.update', [$medicine->id, $profile->id]) : route('admin.pharma.hssp.store', $medicine->id) }}" class="space-y-5">
         <div x-show="uploadError" x-cloak role="alert" class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800" x-text="uploadError"></div>
         @csrf
@@ -126,7 +140,18 @@
 
         <div class="sticky bottom-4 flex justify-end gap-3 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur">
             <a href="{{ route('admin.pharma.hssp.index') }}" class="inline-flex min-h-11 items-center rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700">Hủy</a>
-            <button class="inline-flex min-h-11 items-center rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700">{{ $profile->exists ? 'Lưu bộ HSSP' : 'Tạo bộ HSSP' }}</button>
+            <button type="submit" :disabled="submitting" class="inline-flex min-h-11 items-center rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60">{{ $profile->exists ? 'Lưu bộ HSSP' : 'Tạo bộ HSSP' }}</button>
+        </div>
+        <div x-show="confirmOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4" @keydown.escape.window="confirmOpen = false">
+            <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl" @click.outside="confirmOpen = false">
+                <h3 class="text-lg font-bold text-slate-950">Xác nhận lưu hồ sơ sản phẩm</h3>
+                <p class="mt-2 text-sm text-slate-600">Hệ thống sẽ lưu thông tin HSSP. Nếu chọn Google Drive, file sẽ được đưa vào queue <span class="font-mono font-semibold">pharma</span> để upload nền; bạn không cần chờ Google Drive hoàn tất.</p>
+                <p class="mt-3 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700">Google Drive: <span class="font-mono">Laravel-Backup/Pharma/HSSP/{Tên thuốc}-{ID}/</span>. File giữ nguyên tên gốc.</p>
+                <div class="mt-5 flex justify-end gap-3">
+                    <button type="button" @click="confirmOpen = false" class="min-h-11 rounded-xl border border-slate-300 px-5 text-sm font-semibold text-slate-700">Quay lại</button>
+                    <button type="button" @click="confirmSubmit()" class="min-h-11 rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white">Xác nhận lưu</button>
+                </div>
+            </div>
         </div>
     </form>
 </div>
