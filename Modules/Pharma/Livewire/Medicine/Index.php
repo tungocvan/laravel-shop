@@ -99,9 +99,19 @@ class Index extends Component
         $this->selectPage = $pageIds !== [] && count($this->selectedIds) === count($pageIds);
     }
 
+    public function hasActiveSelectFilters(): bool
+    {
+        return $this->filterCircularGroup !== ''
+            || $this->filterSpecialControl !== ''
+            || $this->filterProfileStatus !== ''
+            || $this->filterHssp !== ''
+            || $this->perPage !== 10;
+    }
+
     public function resetFilters(): void
     {
-        $this->reset(['search', 'filterCircularGroup', 'filterSpecialControl', 'filterProfileStatus', 'filterHssp']);
+        $this->reset(['filterCircularGroup', 'filterSpecialControl', 'filterProfileStatus', 'filterHssp']);
+        $this->perPage = 10;
         $this->page = 1;
         $this->clearSelection();
     }
