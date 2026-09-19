@@ -14,17 +14,18 @@ class ModuleSnapshotContractTest extends TestCase
         $this->assertStringContainsString("'format_version' => self::FORMAT_VERSION", $service);
         $this->assertStringContainsString("'dependencies' => \$this->dependencies->dependenciesFor(\$module)", $service);
         $this->assertStringContainsString("(array) (\$manifest['dependencies'] ?? [])", $service);
-        $this->assertStringContainsString("'schema_fingerprint' => \$this->schemaFingerprint(\$tables)", $service);
+        $this->assertStringContainsString("'schema' => \$capture['schema']", $service);
+        $this->assertStringContainsString("'related_data' => \$capture['related_data']", $service);
         $this->assertStringContainsString("'checksums.json'", $service);
-        $this->assertStringContainsString("hash_equals(\$expectedChecksum, hash('sha256', \$sql))", $service);
-        $this->assertStringContainsString("\$snapshotTables !== \$expectedTables", $service);
+        $this->assertStringContainsString("self::LEGACY_FORMAT_VERSION", $service);
+        $this->assertStringContainsString("\$this->data->compatibility(\$manifest, \$expectedTables)", $service);
         $this->assertStringContainsString("\$this->create(\$module, 'safety')", $service);
         $this->assertStringContainsString('flock($lock, LOCK_EX | LOCK_NB)', $service);
         $this->assertStringContainsString('Module restore and automatic rollback both failed.', $service);
         $this->assertStringContainsString("preg_replace('/\\sAUTO_INCREMENT=\\d+\\b/i'", $service);
         $this->assertStringContainsString("array_flip(['relative_path', 'absolute_path'])", $service);
-        $this->assertStringContainsString("'--single-transaction'", $service);
-        $this->assertStringContainsString("'--skip-lock-tables'", $service);
+        $this->assertStringContainsString("'compatibility_report' => \$compatibilityReport", $service);
+        $this->assertStringContainsString("\$this->data->restore(\$snapshot['absolute_path'], \$validated['manifest'])", $service);
     }
 
     public function test_module_dependency_service_uses_registry_as_single_dependency_source(): void
@@ -122,4 +123,27 @@ class ModuleSnapshotContractTest extends TestCase
         $this->assertStringContainsString('RESTORE MODULE', $view);
         $this->assertStringContainsString('Safety Snapshot', $view);
     }
+
+    public function test_module_snapshot_v2_is_schema_aware_and_supports_related_data_graphs(): void
+    {
+        $data = file_get_contents(base_path('Modules/System/Services/Database/ModuleSnapshotDataService.php'));
+        $pharma = file_get_contents(base_path('Modules/Pharma/config/module.php'));
+
+        $this->assertIsString($data);
+        $this->assertIsString($pharma);
+        $this->assertStringContainsString('information_schema.COLUMNS', $data);
+        $this->assertStringContainsString('array_intersect_key($row, array_flip($columns))', $data);
+        $this->assertStringContainsString('Cột mới sẽ dùng default/null của production.', $data);
+        $this->assertStringContainsString('Cột cũ không còn tồn tại và sẽ được bỏ qua.', $data);
+        $this->assertStringContainsString('Bảng mới của Module không có trong snapshot cũ; bảng hiện tại sẽ được giữ nguyên.', $data);
+        $this->assertStringContainsString("data/owned/", $data);
+        $this->assertStringContainsString("data/related/", $data);
+        $this->assertStringContainsString("'name' => 'hssp_dossier_engine'", $pharma);
+        $this->assertStringContainsString("'table' => 'dossiers'", $pharma);
+        $this->assertStringContainsString("'table' => 'dossier_items'", $pharma);
+        $this->assertStringContainsString("'table' => 'dossier_attachments'", $pharma);
+        $this->assertStringContainsString("'target_table' => 'dossier_templates'", $pharma);
+        $this->assertStringContainsString("'target_table' => 'dossier_template_items'", $pharma);
+    }
+
 }
