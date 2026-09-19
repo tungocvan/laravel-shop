@@ -1,5 +1,68 @@
 # Pharma Collaboration Handoff
 
+## Current checkpoint — HSSP lifecycle delete + runtime Pharma queue
+
+- Module: `Pharma` with reusable dossier core under `App\\Dossiers`
+- Branch: `refactor/pharma-hssp-dossier-engine`
+- Status: **IMPLEMENTATION COMPLETE — TEST PASS + UI PASS + QUEUE/DRIVE LIFECYCLE PASS — READY FOR PR/MERGE**
+- Date: 2026-09-19
+
+### Current implementation
+
+- Runtime module registry publishes queue metadata only after ModuleStateResolver resolves actual enablement; `run-queue.sh` consumes the resolved registry. Operator verified Pharma is runtime-enabled and PM2 runs `default,admission-documents,pharma` with timeout 600 / tries 3.
+- Generic dossier upload job now lives under `App\\Dossiers\\Jobs`; the reusable storage engine no longer imports a Pharma upload job. Pharma selects the named `pharma` queue at its adapter boundary.
+- Dossier attachments persist Google Drive `remote_id` for deterministic lifecycle cleanup; legacy attachments without it fall back to scoped remote-path lookup.
+- HSSP delete is explicit and queued. It removes managed Google Drive files, managed Local files, dossier/items/attachments and the MedicineProfile, while preserving the Medicine Master record.
+- Cleanup is retry-safe: Drive 404/missing legacy paths are treated idempotently; failed cleanup leaves dossier/profile records available for retry instead of silently losing cleanup evidence.
+- HSSP index includes a destructive confirmation modal explaining Local/Drive cleanup and Medicine preservation.
+
+### Final acceptance — 2026-09-19
+
+Operator verification:
+
+```text
+Pharma tests: 133 passed (1035 assertions)
+Pint: PASS after accepted formatting sync
+UI: PASS
+DeleteHsspDossier: DONE on queue pharma
+UploadDossierAttachmentToGoogleDrive: multiple uploads DONE on queue pharma
+```
+
+The Justone HSSP lifecycle was exercised end-to-end: delete through the confirmation UI, queued Local/Google Drive cleanup while preserving Medicine Master, recreate the product dossier, and queued Google Drive uploads through the generic dossier job. Runtime ModuleRegistry/PM2 discovery was also verified with Pharma enabled from runtime state and the `pharma` queue active.
+
+---
+
+# Pharma Collaboration Handoff
+
+## Current checkpoint — HSSP reusable dossier engine implementation
+
+- Module: `Pharma` with reusable core under `App\\Dossiers`
+- Branch: `refactor/pharma-hssp-dossier-engine`
+- Status: **IMPLEMENTED — AWAITING LOCAL MIGRATION / TARGETED TEST / UI ACCEPTANCE**
+- Date: 2026-09-19
+- Parent checkpoint: Medicine Master/GPLH refactor merged to `main` via PR #204.
+
+### Implemented scope
+
+- Generic dossier templates, template items, dossier instances, items and attachments.
+- Reusable Blade component `<x-dossier.editor>` driven by template metadata schema.
+- Pharma default HSSP template: GMP, GPLH decision, HDSD, label and product-change sections.
+- GMP expiry and registration/GPLH expiry are required; per-item uploads remain optional.
+- Operators can append custom dossier items with optional validity date and attachments.
+- Optional combined/master files are supported.
+- Attachments are local-first and mirror through the existing System Google Drive OAuth connection under the configured `Laravel-Backup` root.
+- Attachment records retain checksum, local path, remote path and sync status.
+- Existing HSSP MedicineProfile remains the Pharma owner; dossier engine does not create a second Medicine identity.
+- HSSP create/edit now composes the reusable dossier editor.
+
+### Acceptance pending
+
+Run the new migration, focused HSSP dossier contract test, impacted System Google Drive upload contract test, then Pharma module regression appropriate to the changed HSSP boundary. Perform desktop/mobile UI smoke for create/edit, required validity validation, optional item upload, custom item, master upload and Drive sync status.
+
+---
+
+# Pharma Collaboration Handoff
+
 ## Current checkpoint — Medicine Master / GPLH integrity accepted
 
 - Module: `Pharma`
@@ -164,3 +227,7 @@ Historical stashes remain on the operator machine from earlier synchronization c
 ## Previous completed checkpoints
 
 Official Facility Import + BHXH Source Mirror was merged to `main` via PR #166 on 2026-09-06. MaSoThue lookup CLI was merged via PR #168. Drug Award Allocation & Hospital Contract Management was merged earlier via PR #165. Those ownership and safety contracts remain preserved.
+
+### Docker production hardening — 2026-09-19
+
+Production Docker was aligned with the accepted HSSP runtime: PHP accepts 50 MB files / 64 MB POST bodies, Nginx accepts 100 MB request bodies, and the general Docker queue consumes `pharma` by default. `app` and `queue` already share the `app_storage` volume, so staged dossier files remain visible to the asynchronous uploader. `.env.docker.example` documents the same queue default. A focused Docker contract test guards these settings. Production still requires the existing Google Drive credentials/connection and Pharma runtime enablement.

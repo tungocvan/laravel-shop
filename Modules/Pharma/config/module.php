@@ -8,6 +8,13 @@ return [
         'Shared',
         'Partner',
     ],
+    'queues' => [
+        [
+            'name' => 'pharma',
+            'timeout' => 600,
+            'tries' => 3,
+        ],
+    ],
     'permissions' => [
         'view_pharma',
         'create_pharma',

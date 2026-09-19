@@ -2,14 +2,19 @@
 
 namespace Modules\Pharma\Http\Controllers;
 
+use App\Dossiers\Models\Dossier;
+use App\Dossiers\Services\DossierManager;
+use App\Dossiers\Services\DossierStorageService;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Modules\Pharma\Jobs\DeleteHsspDossier;
 use Modules\Pharma\Models\Medicine;
 use Modules\Pharma\Models\MedicineProfile;
+use Modules\Pharma\Services\HsspDossierTemplateService;
 
 class HsspController extends Controller
 {
@@ -42,7 +47,7 @@ class HsspController extends Controller
         ]);
     }
 
-    public function create(Medicine $medicine): View
+    public function create(Medicine $medicine, HsspDossierTemplateService $templates, DossierStorageService $storage): View
     {
         return view('Pharma::pages.hssp.form', [
             'medicine' => $medicine,
@@ -52,29 +57,95 @@ class HsspController extends Controller
                 'is_current' => true,
             ]),
             'statusOptions' => $this->statusOptions(),
+            'dossierTemplate' => $templates->get(),
+            'dossier' => null,
+            'googleDriveConnected' => $storage->googleDriveConnected(),
+            'uploadLimits' => $storage->uploadLimits(),
         ]);
     }
 
-    public function store(Request $request, Medicine $medicine): RedirectResponse
-    {
+    public function store(
+        Request $request,
+        Medicine $medicine,
+        HsspDossierTemplateService $templates,
+        DossierManager $dossiers,
+        DossierStorageService $storage
+    ): RedirectResponse {
         $data = $this->validated($request, $medicine);
+        $request->validate([
+            'items.gmp.effective_to' => ['required', 'date'],
+            'items.registration.effective_to' => ['required', 'date'],
+            'item_files.*.*' => ['nullable', 'file', 'max:20480'],
+            'master_files.*' => ['nullable', 'file', 'max:51200'],
+            'custom_items.*.title' => ['nullable', 'string', 'max:255'],
+            'custom_items.*.effective_to' => ['nullable', 'date'],
+            'custom_files.*.*' => ['nullable', 'file', 'max:20480'],
+            'storage_targets' => ['required', 'array', 'min:1'],
+            'storage_targets.*' => ['in:local,google_drive'],
+        ], [
+            'items.gmp.effective_to.required' => 'Hiệu lực GMP là bắt buộc.',
+            'items.registration.effective_to.required' => 'Hiệu lực số đăng ký là bắt buộc.',
+        ]);
 
-        DB::transaction(function () use ($medicine, $data): void {
+        $targets = array_values((array) $request->input('storage_targets', []));
+        $template = $templates->get();
+        $profile = DB::transaction(function () use ($medicine, $data, $request): MedicineProfile {
             if ($data['is_current']) {
                 $medicine->profiles()->update(['is_current' => false]);
             }
 
-            $medicine->profiles()->create($data + [
+            return $medicine->profiles()->create($data + [
+                'effective_from' => $request->input('items.registration.effective_from'),
+                'effective_to' => $request->input('items.registration.effective_to'),
                 'created_by' => auth('admin')->id(),
                 'updated_by' => auth('admin')->id(),
             ]);
         });
 
+        $itemMetadata = $request->input('items', []);
+        $itemMetadata['registration']['document_number'] = $itemMetadata['registration']['document_number']
+            ?? $medicine->registration_number;
+
+        $dossier = $dossiers->createFromTemplate($template, $profile, [
+            'version' => $profile->profile_version,
+            'status' => $profile->profile_status,
+            'is_current' => $profile->is_current,
+            'metadata' => ['medicine_id' => $medicine->id, 'medicine_code' => $medicine->medicine_code],
+        ], $itemMetadata);
+
+        $root = 'Pharma/HSSP/'.$this->hsspFolderName($medicine);
+        foreach ($dossier->items as $item) {
+            foreach ($request->file('item_files.'.$item->code, []) as $file) {
+                $storage->store($dossier, $item, $file, $root, 'item', $targets, 'pharma');
+            }
+        }
+
+        foreach ((array) $request->input('custom_items', []) as $index => $custom) {
+            $title = trim((string) ($custom['title'] ?? ''));
+            if ($title === '') {
+                continue;
+            }
+
+            $item = $dossier->items()->create([
+                'code' => 'custom-'.($index + 1),
+                'title' => $title,
+                'sort_order' => 100 + (int) $index,
+                'metadata' => ['effective_to' => $custom['effective_to'] ?? null],
+            ]);
+            foreach ($request->file('custom_files.'.$index, []) as $file) {
+                $storage->store($dossier, $item, $file, $root, 'item', $targets, 'pharma');
+            }
+        }
+
+        foreach ($request->file('master_files', []) as $file) {
+            $storage->store($dossier, null, $file, $root, 'master', $targets, 'pharma');
+        }
+
         return redirect()->route('admin.pharma.hssp.index')
-            ->with('success', 'Đã tạo HSSP cho thuốc '.$medicine->name.'.');
+            ->with('success', 'Đã tạo bộ HSSP cho thuốc '.$medicine->name.'.');
     }
 
-    public function edit(Medicine $medicine, MedicineProfile $profile): View
+    public function edit(Medicine $medicine, MedicineProfile $profile, HsspDossierTemplateService $templates, DossierStorageService $storage): View
     {
         abort_unless($profile->medicine_id === $medicine->id, 404);
 
@@ -82,24 +153,156 @@ class HsspController extends Controller
             'medicine' => $medicine,
             'profile' => $profile,
             'statusOptions' => $this->statusOptions(),
+            'dossierTemplate' => $templates->get(),
+            'dossier' => Dossier::query()->with(['items.attachments', 'attachments'])->where('owner_type', MedicineProfile::class)->where('owner_id', $profile->id)->latest('id')->first(),
+            'googleDriveConnected' => $storage->googleDriveConnected(),
+            'uploadLimits' => $storage->uploadLimits(),
         ]);
     }
 
-    public function update(Request $request, Medicine $medicine, MedicineProfile $profile): RedirectResponse
+    public function update(Request $request, Medicine $medicine, MedicineProfile $profile, HsspDossierTemplateService $templates, DossierManager $dossiers, DossierStorageService $storage): RedirectResponse
     {
         abort_unless($profile->medicine_id === $medicine->id, 404);
         $data = $this->validated($request, $medicine, $profile);
+        $request->validate([
+            'items.gmp.effective_to' => ['required', 'date'],
+            'items.registration.effective_to' => ['required', 'date'],
+            'item_files.*.*' => ['nullable', 'file', 'max:20480'],
+            'master_files.*' => ['nullable', 'file', 'max:51200'],
+            'existing_custom_items.*.title' => ['nullable', 'string', 'max:255'],
+            'existing_custom_items.*.effective_to' => ['nullable', 'date'],
+            'existing_custom_files.*.*' => ['nullable', 'file', 'max:20480'],
+            'custom_items.*.title' => ['nullable', 'string', 'max:255'],
+            'custom_items.*.effective_to' => ['nullable', 'date'],
+            'custom_files.*.*' => ['nullable', 'file', 'max:20480'],
+            'storage_targets' => ['required', 'array', 'min:1'],
+            'storage_targets.*' => ['in:local,google_drive'],
+        ]);
+        $targets = array_values((array) $request->input('storage_targets', []));
 
-        DB::transaction(function () use ($medicine, $profile, $data): void {
+        DB::transaction(function () use ($medicine, $profile, $data, $request): void {
             if ($data['is_current']) {
                 $medicine->profiles()->where('id', '!=', $profile->id)->update(['is_current' => false]);
             }
 
-            $profile->update($data + ['updated_by' => auth('admin')->id()]);
+            $profile->update($data + [
+                'effective_from' => $request->input('items.registration.effective_from'),
+                'effective_to' => $request->input('items.registration.effective_to'),
+                'updated_by' => auth('admin')->id(),
+            ]);
         });
+
+        $dossier = Dossier::query()
+            ->with('items')
+            ->where('owner_type', MedicineProfile::class)
+            ->where('owner_id', $profile->id)
+            ->latest('id')
+            ->first();
+
+        if (! $dossier) {
+            $dossier = $dossiers->createFromTemplate($templates->get(), $profile, [
+                'version' => $profile->profile_version,
+                'status' => $profile->profile_status,
+                'is_current' => $profile->is_current,
+                'metadata' => ['medicine_id' => $medicine->id, 'medicine_code' => $medicine->medicine_code],
+            ], $request->input('items', []));
+        } else {
+            foreach ($dossier->items as $item) {
+                if ($request->has('items.'.$item->code)) {
+                    $item->update(['metadata' => $request->input('items.'.$item->code, [])]);
+                }
+            }
+            $dossier->update([
+                'version' => $profile->profile_version,
+                'status' => $profile->profile_status,
+                'is_current' => $profile->is_current,
+                'updated_by' => auth('admin')->id(),
+            ]);
+        }
+
+        $root = 'Pharma/HSSP/'.$this->hsspFolderName($medicine);
+        foreach ($dossier->items as $item) {
+            foreach ($request->file('item_files.'.$item->code, []) as $file) {
+                $storage->store($dossier, $item, $file, $root, 'item', $targets, 'pharma');
+            }
+        }
+        foreach ((array) $request->input('existing_custom_items', []) as $itemId => $custom) {
+            $item = $dossier->items()->whereNull('template_item_id')->find($itemId);
+            if (! $item) {
+                continue;
+            }
+            $item->update([
+                'title' => trim((string) ($custom['title'] ?? $item->title)) ?: $item->title,
+                'metadata' => ['effective_to' => $custom['effective_to'] ?? null],
+            ]);
+            foreach ($request->file('existing_custom_files.'.$itemId, []) as $file) {
+                $storage->store($dossier, $item, $file, $root, 'item', $targets, 'pharma');
+            }
+        }
+
+        foreach ((array) $request->input('custom_items', []) as $index => $custom) {
+            $title = trim((string) ($custom['title'] ?? ''));
+            if ($title === '') {
+                continue;
+            }
+            $item = $dossier->items()->create([
+                'code' => 'custom-'.now()->format('YmdHis').'-'.($index + 1),
+                'title' => $title,
+                'sort_order' => 100 + $dossier->items()->whereNull('template_item_id')->count(),
+                'metadata' => ['effective_to' => $custom['effective_to'] ?? null],
+            ]);
+            foreach ($request->file('custom_files.'.$index, []) as $file) {
+                $storage->store($dossier, $item, $file, $root, 'item', $targets, 'pharma');
+            }
+        }
+
+        foreach ($request->file('master_files', []) as $file) {
+            $storage->store($dossier, null, $file, $root, 'master', $targets, 'pharma');
+        }
 
         return redirect()->route('admin.pharma.hssp.index')
             ->with('success', 'Đã cập nhật HSSP của thuốc '.$medicine->name.'.');
+    }
+
+    public function destroy(Medicine $medicine, MedicineProfile $profile): RedirectResponse
+    {
+        abort_unless($profile->medicine_id === $medicine->id, 404);
+
+        $dossier = Dossier::query()
+            ->where('owner_type', MedicineProfile::class)
+            ->where('owner_id', $profile->id)
+            ->latest('id')
+            ->first();
+
+        if (! $dossier) {
+            $profile->delete();
+
+            return redirect()->route('admin.pharma.hssp.index')
+                ->with('success', 'Đã xóa HSSP không có dossier của thuốc '.$medicine->name.'.');
+        }
+
+        $metadata = (array) $dossier->metadata;
+        if (($metadata['deletion_pending'] ?? false) === true) {
+            return redirect()->route('admin.pharma.hssp.index')
+                ->with('success', 'HSSP của thuốc '.$medicine->name.' đang được queue Pharma xử lý xóa.');
+        }
+
+        $metadata['deletion_pending'] = true;
+        $metadata['deletion_requested_at'] = now()->toIso8601String();
+        $dossier->update(['metadata' => $metadata]);
+
+        DeleteHsspDossier::dispatch($profile->id, $dossier->id)->onQueue('pharma');
+
+        return redirect()->route('admin.pharma.hssp.index')
+            ->with('success', 'Đã đưa yêu cầu xóa HSSP vào queue Pharma. Local, Google Drive và dữ liệu hồ sơ sẽ được dọn đồng bộ.');
+    }
+
+    private function hsspFolderName(Medicine $medicine): string
+    {
+        $name = trim(preg_replace('/[\\\\\/]+/u', '-', (string) $medicine->name) ?? '');
+        $name = trim(preg_replace('/\s+/u', ' ', $name) ?? '', ' .-_');
+
+        return ($name !== '' ? $name : 'Thuoc').'-'.$medicine->id;
     }
 
     private function validated(Request $request, Medicine $medicine, ?MedicineProfile $profile = null): array

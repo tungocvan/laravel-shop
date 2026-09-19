@@ -38,6 +38,7 @@ class ModuleRegistry
                 'depends' => $module['depends'],
                 'path' => $module['path'],
                 'source' => $module['source'],
+                'queues' => is_array($module['manifest']['queues'] ?? null) ? $module['manifest']['queues'] : [],
             ],
         ])->all();
 
@@ -56,6 +57,7 @@ class ModuleRegistry
                     'name' => $name,
                     'depends' => [],
                     'required' => ($module['type'] ?? null) === 'shell',
+                    'queues' => [],
                 ];
             })
             ->values();

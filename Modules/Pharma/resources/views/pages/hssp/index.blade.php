@@ -3,7 +3,7 @@
 @section('title', 'HSSP thuốc')
 
 @section('content')
-<div class="container-fluid space-y-5">
+<div class="container-fluid space-y-5" x-data="{ deleteOpen: false, deleteUrl: '', deleteName: '', deleting: false }">
     <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
             <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Pharma · Hồ sơ sản phẩm</p>
@@ -65,7 +65,12 @@
                         <td class="px-4 py-4">{{ $profile->source ?: '—' }}</td>
                         <td class="px-4 py-4 text-xs text-slate-600">{{ $profile->effective_from?->format('d/m/Y') ?: '—' }} → {{ $profile->effective_to?->format('d/m/Y') ?: '—' }}</td>
                         <td class="px-4 py-4"><span class="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{{ $statusOptions[$profile->profile_status] ?? $profile->profile_status }}</span></td>
-                        <td class="px-4 py-4 text-right"><a href="{{ route('admin.pharma.hssp.edit', [$profile->medicine_id, $profile->id]) }}" class="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Cập nhật HSSP</a></td>
+                        <td class="px-4 py-4 text-right">
+                            <div class="flex justify-end gap-2">
+                                <a href="{{ route('admin.pharma.hssp.edit', [$profile->medicine_id, $profile->id]) }}" class="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Cập nhật HSSP</a>
+                                <button type="button" @click="deleteUrl = @js(route('admin.pharma.hssp.destroy', [$profile->medicine_id, $profile->id])); deleteName = @js($profile->medicine->name); deleteOpen = true" class="rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-50">Xóa HSSP</button>
+                            </div>
+                        </td>
                     </tr>
                 @empty
                     <tr><td colspan="7" class="px-6 py-12 text-center text-slate-500">Chưa có HSSP phù hợp.</td></tr>
@@ -75,5 +80,24 @@
         </div>
         @if($profiles->hasPages())<div class="border-t border-slate-200 px-5 py-4">{{ $profiles->links() }}</div>@endif
     </section>
+
+    <div x-cloak x-show="deleteOpen" x-transition.opacity class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4" @keydown.escape.window="if (!deleting) deleteOpen = false">
+        <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl" @click.outside="if (!deleting) deleteOpen = false">
+            <div class="flex items-start gap-4">
+                <div class="flex size-11 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-700">!</div>
+                <div>
+                    <h3 class="text-lg font-bold text-slate-950">Xóa toàn bộ HSSP?</h3>
+                    <p class="mt-2 text-sm leading-6 text-slate-600">Hồ sơ của <strong x-text="deleteName"></strong> sẽ được xóa khỏi dữ liệu HSSP. File Local và file Google Drive do hồ sơ quản lý cũng được dọn bằng queue <strong>pharma</strong>. Thuốc trong Medicine Master không bị xóa.</p>
+                    <p class="mt-2 text-xs font-medium text-amber-700">Nếu Google Drive tạm thời lỗi, job sẽ retry và dữ liệu hồ sơ được giữ để không mất dấu file cần dọn.</p>
+                </div>
+            </div>
+            <form method="POST" :action="deleteUrl" class="mt-6 flex justify-end gap-3" @submit="deleting = true">
+                @csrf
+                @method('DELETE')
+                <button type="button" @click="deleteOpen = false" :disabled="deleting" class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">Hủy</button>
+                <button type="submit" :disabled="deleting" class="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"><span x-text="deleting ? 'Đang đưa vào queue...' : 'Xóa HSSP'"></span></button>
+            </form>
+        </div>
+    </div>
 </div>
 @endsection

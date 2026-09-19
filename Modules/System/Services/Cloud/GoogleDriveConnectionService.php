@@ -245,6 +245,97 @@ class GoogleDriveConnectionService
         ];
     }
 
+    /**
+     * Upload an application-owned file below the configured Laravel-Backup root.
+     *
+     * @param  list<string>  $folders
+     * @return array{id:string,name:string}
+     */
+    public function uploadApplicationFile(string $path, array $folders, string $fileName, string $mimeType = 'application/octet-stream'): array
+    {
+        if (! is_file($path) || ! is_readable($path)) {
+            throw new RuntimeException('File local không tồn tại hoặc không đọc được.');
+        }
+
+        $token = $this->accessToken();
+        $parentId = $this->resolveRootFolder($token);
+
+        foreach ($folders as $folder) {
+            $folder = trim((string) $folder);
+            if ($folder === '' || $folder === '.' || $folder === '..' || str_contains($folder, '/')) {
+                throw new RuntimeException('Đường dẫn thư mục Google Drive không hợp lệ.');
+            }
+            $parentId = $this->ensureChildFolder($token, $parentId, $folder);
+        }
+
+        $create = Http::withToken($token)->asJson()->acceptJson()->timeout(30)
+            ->post('https://www.googleapis.com/drive/v3/files', [
+                'name' => basename($fileName),
+                'parents' => [$parentId],
+                'mimeType' => $mimeType,
+            ]);
+
+        if (! $create->successful() || trim((string) $create->json('id')) === '') {
+            $this->throwDriveApiException('Không thể tạo file trên Google Drive.', $create->status(), $create->json());
+        }
+
+        $fileId = (string) $create->json('id');
+        $stream = fopen($path, 'rb');
+        if ($stream === false) {
+            $this->deleteCreatedFile($token, $fileId);
+            throw new RuntimeException('Không thể mở file local để upload.');
+        }
+
+        try {
+            $upload = Http::withToken($token)->withBody($stream, $mimeType)->timeout(300)
+                ->patch('https://www.googleapis.com/upload/drive/v3/files/'.rawurlencode($fileId).'?uploadType=media');
+        } finally {
+            fclose($stream);
+        }
+
+        if (! $upload->successful()) {
+            $this->deleteCreatedFile($token, $fileId);
+            $this->throwDriveApiException('Upload file lên Google Drive thất bại.', $upload->status(), $upload->json());
+        }
+
+        return ['id' => $fileId, 'name' => basename($fileName)];
+    }
+
+    public function deleteApplicationFile(?string $fileId, ?string $remotePath): void
+    {
+        $token = $this->accessToken();
+        $fileId = trim((string) $fileId);
+
+        if ($fileId !== '') {
+            $this->deleteDriveFile($token, $fileId);
+
+            return;
+        }
+
+        $segments = array_values(array_filter(explode('/', trim((string) $remotePath, '/'))));
+        $rootName = trim((string) config('system.google_drive.folder_name', 'Laravel-Backup')) ?: 'Laravel-Backup';
+        if (($segments[0] ?? null) === $rootName) {
+            array_shift($segments);
+        }
+
+        $fileName = array_pop($segments);
+        if (! is_string($fileName) || $fileName === '') {
+            return;
+        }
+
+        $parentId = $this->resolveRootFolder($token);
+        foreach ($segments as $folder) {
+            $parentId = $this->findChildFolderId($token, $parentId, $folder);
+            if ($parentId === null) {
+                return;
+            }
+        }
+
+        foreach ($this->findChildFileIds($token, $parentId, $fileName) as $matchedId) {
+            $this->deleteDriveFile($token, $matchedId);
+        }
+    }
+
     public function backupStatus(string $fileName): array
     {
         $value = $this->rawBackupStatus($fileName);
@@ -405,6 +496,61 @@ class GoogleDriveConnectionService
         }
 
         return $payload;
+    }
+
+    private function findChildFolderId(string $token, string $parentId, string $name): ?string
+    {
+        $escapedName = str_replace("'", "\\'", $name);
+        $escapedParent = str_replace("'", "\\'", $parentId);
+        $response = Http::withToken($token)->acceptJson()->timeout(20)
+            ->get('https://www.googleapis.com/drive/v3/files', [
+                'q' => "name = '{$escapedName}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false and '{$escapedParent}' in parents",
+                'spaces' => 'drive',
+                'fields' => 'files(id)',
+                'pageSize' => 1,
+            ]);
+
+        if (! $response->successful()) {
+            $this->throwDriveApiException('Không thể tìm thư mục ứng dụng trên Google Drive.', $response->status(), $response->json());
+        }
+
+        $id = trim((string) $response->json('files.0.id'));
+
+        return $id !== '' ? $id : null;
+    }
+
+    /** @return list<string> */
+    private function findChildFileIds(string $token, string $parentId, string $name): array
+    {
+        $escapedName = str_replace("'", "\\'", $name);
+        $escapedParent = str_replace("'", "\\'", $parentId);
+        $response = Http::withToken($token)->acceptJson()->timeout(20)
+            ->get('https://www.googleapis.com/drive/v3/files', [
+                'q' => "name = '{$escapedName}' and trashed = false and '{$escapedParent}' in parents",
+                'spaces' => 'drive',
+                'fields' => 'files(id)',
+                'pageSize' => 100,
+            ]);
+
+        if (! $response->successful()) {
+            $this->throwDriveApiException('Không thể tìm file ứng dụng trên Google Drive.', $response->status(), $response->json());
+        }
+
+        return collect($response->json('files', []))
+            ->pluck('id')
+            ->filter(fn ($id) => is_string($id) && $id !== '')
+            ->values()
+            ->all();
+    }
+
+    private function deleteDriveFile(string $token, string $fileId): void
+    {
+        $response = Http::withToken($token)->timeout(20)
+            ->delete('https://www.googleapis.com/drive/v3/files/'.rawurlencode($fileId));
+
+        if (! $response->successful() && $response->status() !== 404) {
+            $this->throwDriveApiException('Không thể xóa file ứng dụng trên Google Drive.', $response->status(), $response->json());
+        }
     }
 
     private function ensureChildFolder(string $token, string $parentId, string $name): string
