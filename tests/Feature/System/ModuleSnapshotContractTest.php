@@ -173,9 +173,14 @@ class ModuleSnapshotContractTest extends TestCase
         $this->assertStringContainsString("if (\$validated['compatibility'] !== 'COMPATIBLE')", $canonical);
         $this->assertStringContainsString('\$this->readVerifiedSql(\$path)', $canonical);
 
-        $v2Branch = strstr($canonical, "if (\$formatVersion === '2.0')", true);
-        $this->assertIsString($v2Branch);
-        $this->assertStringNotContainsString('readVerifiedSql', $v2Branch);
+        $v2Start = strpos($canonical, "if (\$formatVersion === '2.0')");
+        $v2Return = strpos($canonical, 'return $validated;', $v2Start);
+        $legacySqlFallback = strpos($canonical, '$this->readVerifiedSql($path)');
+
+        $this->assertIsInt($v2Start);
+        $this->assertIsInt($v2Return);
+        $this->assertIsInt($legacySqlFallback);
+        $this->assertLessThan($legacySqlFallback, $v2Return);
     }
 
 }
