@@ -36,7 +36,8 @@ class HsspDossierEngineContractTest extends TestCase
         $this->assertStringContainsString('post_max_size', $view);
         $this->assertStringContainsString('safe_post_bytes', $storage);
         $this->assertStringContainsString('ini_get(\'upload_max_filesize\')', $storage);
-        $this->assertStringContainsString('->onQueue(\'pharma\')', $storage);
+        $this->assertStringContainsString('->onQueue($queue)', $storage);
+        $this->assertStringNotContainsString('Modules\\Pharma', $storage);
         $this->assertStringContainsString('implements ShouldQueue', $queueJob);
         $this->assertStringContainsString('string $queue = \'default\'', $queueJob);
         $this->assertStringContainsString("'remote_id' => \$uploaded['id']", $queueJob);
