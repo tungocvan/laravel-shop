@@ -156,5 +156,9 @@ class ModuleSnapshotContractTest extends TestCase
         $this->assertStringContainsString('khai báo bảng không tồn tại', $data);
         $this->assertStringContainsString('khai báo cột không tồn tại', $data);
         $this->assertStringNotContainsString("return ['name' => \$name, 'tables' => [], 'row_counts' => []];", $data);
+        $this->assertStringContainsString('assertRelatedRestoreIdentityConflicts', $data);
+        $this->assertStringContainsString('xung đột ID', $data);
+        $this->assertStringContainsString('$existingRootIds', $data);
+        $this->assertStringContainsString('whereIn($foreignKey, $existingRootIds)->delete()', $data);
     }
 }
