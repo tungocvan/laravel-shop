@@ -20,6 +20,7 @@ Route::prefix('admin/pharma')->name('admin.pharma.')->middleware(['web', 'auth:a
         Route::get('/official-facilities/import', [OfficialFacilityImportController::class, 'index'])->name('official-facilities.index');
         Route::get('/official-facilities/import/template', OfficialFacilityImportTemplateController::class)->name('official-facilities.template');
         Route::get('/official-facilities/source', [OfficialSourceSyncController::class, 'index'])->name('official-facilities.source.index');
+        Route::post('/official-facilities/source/export', [OfficialSourceSyncController::class, 'export'])->name('official-facilities.source.export');
         Route::get('/official-facilities/source/sync/{batch}', [OfficialSourceSyncController::class, 'status'])->name('official-facilities.source.sync-status');
         Route::get('/official-facilities/bhxh', [BhxhOfficialFacilityLookupController::class, 'index'])->name('official-facilities.bhxh.index');
         Route::get('/official-facilities/bhxh/captcha', [BhxhOfficialFacilityLookupController::class, 'captcha'])->name('official-facilities.bhxh.captcha');
