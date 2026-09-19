@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Invoices\Http\Controllers\InvoicePartnerSyncController;
 use Modules\Invoices\Http\Controllers\InvoiceSourceDetailExportController;
 use Modules\Invoices\Http\Controllers\InvoicesController;
 use Modules\Invoices\Http\Controllers\InvoicesDashboardController;
@@ -8,6 +9,7 @@ use Modules\Invoices\Http\Controllers\InvoicesDashboardController;
 Route::middleware(['web', 'auth:admin'])->prefix('admin/invoices')->name('admin.invoices.')->group(function () {
     Route::get('/', [InvoicesController::class, 'index'])->middleware('permission:invoices-list')->name('index');
     Route::get('/dashboard', InvoicesDashboardController::class)->middleware('permission:invoices-list')->name('dashboard');
+    Route::post('/partners/sync', InvoicePartnerSyncController::class)->middleware('permission:invoices-create')->name('partners.sync');
     Route::get('/create-token', [InvoicesController::class, 'createToken'])->middleware('permission:invoices-configure')->name('create-token');
     Route::get('/hoadon', [InvoicesController::class, 'hoadon'])->middleware('permission:invoices-create')->name('hoadon');
     Route::get('/hoadon-list', [InvoicesController::class, 'hoadonList'])->middleware('permission:invoices-list')->name('hoadon-list');
