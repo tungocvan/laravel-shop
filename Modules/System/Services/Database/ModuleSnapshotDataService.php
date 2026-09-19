@@ -109,7 +109,7 @@ class ModuleSnapshotDataService
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
 
         try {
-            $snapshotTables = array_values(array_filter((array) ($manifest['tables'] ?? []), 'is_string'));
+            $snapshotTables = array_values(array_filter((array) ($manifest['restore_tables'] ?? $manifest['tables'] ?? []), 'is_string'));
 
             foreach ($snapshotTables as $table) {
                 if (! $this->tableExists($table)) {
