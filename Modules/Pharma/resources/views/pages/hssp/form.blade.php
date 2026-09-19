@@ -28,7 +28,32 @@
         <div role="alert" class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{{ $errors->first() }}</div>
     @endif
 
-    <form method="POST" enctype="multipart/form-data" action="{{ $profile->exists ? route('admin.pharma.hssp.update', [$medicine->id, $profile->id]) : route('admin.pharma.hssp.store', $medicine->id) }}" class="space-y-5">
+    <form method="POST" enctype="multipart/form-data"
+        x-data="{
+            uploadError: '',
+            checkUpload(event) {
+                const files = Array.from(event.target.querySelectorAll('input[type=file]')).flatMap(input => Array.from(input.files || []));
+                const total = files.reduce((sum, file) => sum + file.size, 0);
+                const largest = files.reduce((max, file) => Math.max(max, file.size), 0);
+                const uploadMax = {{ (int) $uploadLimits['upload_max_bytes'] }};
+                const safePost = {{ (int) $uploadLimits['safe_post_bytes'] }};
+
+                if (uploadMax > 0 && largest > uploadMax) {
+                    event.preventDefault();
+                    this.uploadError = 'Có file vượt giới hạn {{ $uploadLimits['upload_max_label'] }} của máy chủ PHP. Vui lòng giảm dung lượng file hoặc nâng upload_max_filesize.';
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    return;
+                }
+                if (safePost > 0 && total > safePost) {
+                    event.preventDefault();
+                    this.uploadError = 'Tổng dung lượng file ' + (total / 1024 / 1024).toFixed(1) + ' MB vượt ngưỡng an toàn {{ $uploadLimits['safe_post_label'] }} (post_max_size={{ $uploadLimits['post_max_label'] }}). Vui lòng chia nhỏ hồ sơ hoặc nâng giới hạn PHP.';
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            }
+        }"
+        @submit="checkUpload($event)"
+        action="{{ $profile->exists ? route('admin.pharma.hssp.update', [$medicine->id, $profile->id]) : route('admin.pharma.hssp.store', $medicine->id) }}" class="space-y-5">
+        <div x-show="uploadError" x-cloak role="alert" class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800" x-text="uploadError"></div>
         @csrf
         @if($profile->exists) @method('PUT') @endif
 
@@ -85,7 +110,12 @@
                     <span><span class="block text-sm font-semibold text-slate-900">Google Drive</span><span class="mt-1 block text-xs text-slate-500">Laravel-Backup/Pharma/HSSP/...</span></span>
                 </label>
             </div>
-            <p class="mt-3 text-xs text-slate-500">Nếu Google Drive đã kết nối, lựa chọn mặc định là Google Drive. Bạn có thể tích thêm Local để giữ đồng thời hai bản.</p>
+            <div class="mt-3 rounded-xl bg-slate-50 px-4 py-3 text-xs text-slate-600">
+                <span class="font-semibold text-slate-700">Giới hạn máy chủ hiện tại:</span>
+                tối đa {{ $uploadLimits['upload_max_label'] }} / file; tổng POST {{ $uploadLimits['post_max_label'] }}.
+                Hệ thống cảnh báo trước khi gửi khi tổng file vượt khoảng {{ $uploadLimits['safe_post_label'] }} để tránh lỗi 413.
+            </div>
+            <p class="mt-2 text-xs text-slate-500">Nếu Google Drive đã kết nối, lựa chọn mặc định là Google Drive. Bạn có thể tích thêm Local để giữ đồng thời hai bản. Do upload hiện đi qua PHP trước khi chuyển sang Drive, Google Drive cũng chịu giới hạn POST của máy chủ ở bước nhận file.</p>
         </section>
 
         <x-dossier.editor
