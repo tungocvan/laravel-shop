@@ -13,7 +13,9 @@ class InvoiceCandidateReview extends Component
 
     private const PER_PAGE_OPTIONS = [10, 25, 50, 100];
 
-    public string $status = '';
+    public string $status = 'actionable';
+
+    public string $role = '';
 
     public string $search = '';
 
@@ -22,6 +24,12 @@ class InvoiceCandidateReview extends Component
     public ?int $selectedCandidateId = null;
 
     public array $selectedFields = [];
+
+    public array $selectedIds = [];
+
+    public bool $selectPage = false;
+
+    public ?array $bulkResult = null;
 
     public ?string $notice = null;
 
@@ -37,10 +45,17 @@ class InvoiceCandidateReview extends Component
         $this->resetPage();
     }
 
+    public function updatingRole(): void
+    {
+        $this->resetPage();
+        $this->clearRowSelection();
+    }
+
     public function updatingStatus(): void
     {
         $this->resetPage();
         $this->clearSelection();
+        $this->clearRowSelection();
     }
 
     public function updatedPerPage(): void
@@ -48,6 +63,32 @@ class InvoiceCandidateReview extends Component
         $perPage = (int) $this->perPage;
         $this->perPage = in_array($perPage, self::PER_PAGE_OPTIONS, true) ? $perPage : 10;
         $this->resetPage();
+        $this->clearRowSelection();
+    }
+
+    public function updatedSelectPage(bool $checked): void
+    {
+        $this->selectedIds = $checked ? $this->visiblePendingIds() : [];
+    }
+
+    public function updatedSelectedIds(): void
+    {
+        $pageIds = $this->visiblePendingIds();
+        $this->selectPage = $pageIds !== [] && collect($pageIds)->every(fn ($id) => in_array($id, array_map('intval', $this->selectedIds), true));
+    }
+
+    public function bulkCreate(PartnerCandidateReviewService $review): void
+    {
+        $this->authorizePermission('create_partner');
+        $ids = array_map('intval', $this->selectedIds);
+        $this->bulkResult = $review->createPartners($ids);
+        $this->clearRowSelection();
+        $this->clearSelection();
+    }
+
+    public function closeBulkResult(): void
+    {
+        $this->bulkResult = null;
     }
 
     public function selectCandidate(int $id): void
@@ -107,11 +148,13 @@ class InvoiceCandidateReview extends Component
 
     public function clearFilters(): void
     {
-        $this->status = '';
+        $this->status = 'actionable';
+        $this->role = '';
         $this->search = '';
         $this->perPage = 10;
         $this->resetPage();
         $this->clearSelection();
+        $this->clearRowSelection();
     }
 
     public function render()
@@ -129,6 +172,8 @@ class InvoiceCandidateReview extends Component
             'candidates' => $candidates,
             'selectedCandidate' => $selectedCandidate,
             'statusOptions' => PartnerSyncCandidate::STATUSES,
+            'roleOptions' => ['customer' => 'Khách hàng', 'supplier' => 'Nhà cung cấp', 'both' => 'Cả hai'],
+            'hasActiveFilters' => trim($this->search) !== '' || $this->status !== 'actionable' || $this->role !== '' || (int) $this->perPage !== 10,
             'perPageOptions' => self::PER_PAGE_OPTIONS,
         ]);
     }
@@ -138,7 +183,11 @@ class InvoiceCandidateReview extends Component
         return PartnerSyncCandidate::query()
             ->with('matchedPartner')
             ->where('source', 'invoices')
-            ->when($this->status !== '', fn ($query) => $query->where('status', $this->status))
+            ->when($this->status === 'actionable', fn ($query) => $query->whereIn('status', ['pending', 'conflict']))
+            ->when($this->status !== '' && $this->status !== 'actionable', fn ($query) => $query->where('status', $this->status))
+            ->when($this->role === 'customer', fn ($query) => $query->whereJsonContains('partner_types', 'customer'))
+            ->when($this->role === 'supplier', fn ($query) => $query->whereJsonContains('partner_types', 'supplier'))
+            ->when($this->role === 'both', fn ($query) => $query->whereJsonContains('partner_types', 'customer')->whereJsonContains('partner_types', 'supplier'))
             ->when(trim($this->search) !== '', function ($query): void {
                 $search = '%'.trim($this->search).'%';
                 $query->where(function ($nested) use ($search): void {
@@ -182,6 +231,25 @@ class InvoiceCandidateReview extends Component
         }
 
         return $selected;
+    }
+
+    private function visiblePendingIds(): array
+    {
+        return $this->candidateQuery()
+            ->where('status', 'pending')
+            ->latest('last_seen_at')
+            ->latest('id')
+            ->paginate($this->normalizedPerPage())
+            ->getCollection()
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+    }
+
+    private function clearRowSelection(): void
+    {
+        $this->selectedIds = [];
+        $this->selectPage = false;
     }
 
     private function normalizedPerPage(): int
