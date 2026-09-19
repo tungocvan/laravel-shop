@@ -4,6 +4,7 @@ namespace Modules\Pharma\Livewire\Medicine;
 
 use Exception;
 use Livewire\Component;
+use LogicException;
 use Modules\Pharma\Livewire\Concerns\AuthorizesPharmaActions;
 use Modules\Pharma\Services\MedicineService;
 
@@ -115,6 +116,8 @@ class Form extends Component
             }
 
             return redirect()->route('admin.pharma.medicines.index');
+        } catch (LogicException $e) {
+            session()->flash('error', $e->getMessage());
         } catch (Exception $e) {
             report($e);
             session()->flash('error', 'Không thể lưu thuốc. Vui lòng thử lại hoặc kiểm tra log hệ thống.');

@@ -12,6 +12,7 @@ class MedicineService
     public function __construct(
         private readonly MedicineImportExport $importExport,
         private readonly MedicineIdentityResolver $identityResolver,
+        private readonly MedicineCatalogNormalizer $normalizer,
     ) {}
 
     public function getPaginatedMedicines(
@@ -44,6 +45,7 @@ class MedicineService
                 ->orWhere('therapeutic_group', 'like', "%{$value}%")
                 ->orWhere('registration_number', 'like', "%{$value}%")
                 ->orWhere('registration_number_primary', 'like', "%{$value}%")
+                ->orWhere('registration_number_raw', 'like', "%{$value}%")
                 ->orWhere('concentration', 'like', "%{$value}%")
                 ->orWhere('manufacturing_company', 'like', "%{$value}%")
                 ->orWhere('manufacturing_country', 'like', "%{$value}%")
@@ -51,7 +53,9 @@ class MedicineService
                     ->where('sku', 'like', "%{$value}%")
                     ->orWhere('strength_text', 'like', "%{$value}%")
                     ->orWhere('presentation_text', 'like', "%{$value}%"))
-                ->orWhereHas('aliases', fn ($alias) => $alias->where('alias', 'like', "%{$value}%"))))
+                ->orWhereHas('aliases', fn ($alias) => $alias
+                    ->where('alias_value', 'like', "%{$value}%")
+                    ->orWhere('normalized_value', 'like', "%{$value}%"))))
             ->when($circularGroup, fn ($query, $value) => $query->where('circular_group', $value))
             ->when($specialControl, fn ($query, $value) => $query->where('is_special_control', $value === 'yes'))
             ->when($profileStatus, fn ($query, $value) => $query->where('profile_status', $value))
@@ -97,6 +101,7 @@ class MedicineService
         return DB::transaction(function () use ($id, $data) {
             $medicine = $this->findOrFail($id);
             $data = $this->normalizeQualityState($data, $medicine);
+            $this->guardCanonicalIdentityCollision($medicine, $data['canonical_identity_key'] ?? null);
             $medicine->update($data);
 
             return $medicine->refresh();
@@ -142,6 +147,17 @@ class MedicineService
 
     private function normalizeQualityState(array $data, ?Medicine $existing = null): array
     {
+        if (array_key_exists('registration_number', $data)) {
+            $rawRegistration = is_string($data['registration_number'])
+                ? trim($data['registration_number'])
+                : null;
+            $rawRegistration = $rawRegistration === '' ? null : $rawRegistration;
+            $primaryRegistration = $this->normalizer->registrationPrimary($rawRegistration);
+            $data['registration_number_raw'] = $rawRegistration;
+            $data['registration_number_primary'] = $primaryRegistration;
+            $data['registration_number'] = $primaryRegistration;
+        }
+
         $identityKey = $this->identityResolver->canonicalMedicineIdentity($data + ($existing?->toArray() ?? []));
         $data['canonical_identity_key'] = $identityKey;
 
@@ -180,5 +196,26 @@ class MedicineService
         }
 
         return $data;
+    }
+
+    private function guardCanonicalIdentityCollision(Medicine $medicine, ?string $identityKey): void
+    {
+        if ($identityKey === null) {
+            return;
+        }
+
+        $duplicate = Medicine::query()
+            ->where('canonical_identity_key', $identityKey)
+            ->whereKeyNot($medicine->getKey())
+            ->first(['id', 'medicine_code', 'name', 'registration_number']);
+
+        if ($duplicate) {
+            $label = $duplicate->medicine_code ?: Medicine::codeForId((int) $duplicate->id);
+
+            throw new LogicException(
+                "Không thể cập nhật vì dữ liệu định danh trùng Medicine Master {$label} – {$duplicate->name}"
+                .($duplicate->registration_number ? " (GPLH {$duplicate->registration_number})." : '.')
+            );
+        }
     }
 }

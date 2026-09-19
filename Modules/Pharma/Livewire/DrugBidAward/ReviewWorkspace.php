@@ -3,6 +3,7 @@
 namespace Modules\Pharma\Livewire\DrugBidAward;
 
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Modules\Pharma\Data\DrugBidMatchResult;
@@ -18,23 +19,46 @@ class ReviewWorkspace extends Component
     use WithPagination;
 
     public string $status = 'pending';
+
     public string $search = '';
+
     public int $perPage = 25;
+
     public array $selectedAwardIds = [];
+
     public ?int $selectedAwardId = null;
+
     public string $candidateSearch = '';
+
     public ?int $selectedMedicineId = null;
+
     public ?int $selectedVariantId = null;
+
     public ?int $selectedPackageId = null;
+
     public ?string $successMessage = null;
+
     public ?string $errorMessage = null;
+
     public bool $linkSuccessModal = false;
+
     public ?string $linkedMedicineName = null;
+
     public ?string $linkedMedicineCode = null;
+
     public ?string $confirmationAction = null;
 
-    public function updatingSearch(): void { $this->resetPage(); $this->selectedAwardIds = []; }
-    public function updatingStatus(): void { $this->resetPage(); $this->selectedAwardIds = []; }
+    public function updatingSearch(): void
+    {
+        $this->resetPage();
+        $this->selectedAwardIds = [];
+    }
+
+    public function updatingStatus(): void
+    {
+        $this->resetPage();
+        $this->selectedAwardIds = [];
+    }
 
     public function selectAward(int $awardId): void
     {
@@ -90,6 +114,20 @@ class ReviewWorkspace extends Component
         $this->confirmationAction = 'unlink';
     }
 
+    public function requestBulkUnlink(): void
+    {
+        $ids = collect($this->selectedAwardIds)->map(fn ($id) => (int) $id)->filter()->unique()->values();
+
+        if ($ids->isEmpty()) {
+            $this->errorMessage = 'Vui lòng chọn ít nhất một kết quả đã liên kết để hủy liên kết hàng loạt.';
+
+            return;
+        }
+
+        $this->errorMessage = null;
+        $this->confirmationAction = 'bulk_unlink';
+    }
+
     public function cancelConfirmation(): void { $this->confirmationAction = null; }
 
     public function confirmSelection(DrugBidAwardMatchManager $manager): void
@@ -133,6 +171,59 @@ class ReviewWorkspace extends Component
         $this->showActionSuccess($message);
     }
 
+    public function bulkUnlinkSelected(): void
+    {
+        $this->confirmationAction = null;
+        $ids = collect($this->selectedAwardIds)->map(fn ($id) => (int) $id)->filter()->unique()->values();
+
+        if ($ids->isEmpty()) {
+            $this->errorMessage = 'Vui lòng chọn ít nhất một kết quả đã liên kết để hủy liên kết hàng loạt.';
+
+            return;
+        }
+
+        $unlinked = DB::transaction(function () use ($ids): int {
+            $matches = DrugBidAwardMatch::query()
+                ->whereIn('drug_bid_award_id', $ids)
+                ->whereNotNull('medicine_id')
+                ->where('review_status', DrugBidAwardMatch::REVIEW_CONFIRMED)
+                ->lockForUpdate()
+                ->get();
+
+            foreach ($matches as $match) {
+                DrugBidAward::query()
+                    ->whereKey($match->drug_bid_award_id)
+                    ->where('medicine_id', $match->medicine_id)
+                    ->update([
+                        'medicine_id' => null,
+                        'medicine_code' => null,
+                        'medicine_match_status' => DrugBidAward::MATCH_UNRESOLVED,
+                    ]);
+
+                $match->update([
+                    'medicine_id' => null,
+                    'medicine_variant_id' => null,
+                    'medicine_package_id' => null,
+                    'match_status' => DrugBidAwardMatch::STATUS_UNMATCHED,
+                    'resolution_level' => null,
+                    'review_status' => DrugBidAwardMatch::REVIEW_PENDING,
+                    'is_manual' => false,
+                    'matched_by' => null,
+                    'matched_at' => null,
+                    'review_reason' => 'bulk_manual_unlink_requires_review',
+                ]);
+            }
+
+            return $matches->count();
+        });
+
+        $skipped = $ids->count() - $unlinked;
+        $this->selectedAwardIds = [];
+        $message = "Đã hủy liên kết hàng loạt {$unlinked} kết quả và đưa về hàng chờ Cần rà soát.";
+        if ($skipped > 0) $message .= " {$skipped} kết quả không còn ở trạng thái liên kết xác nhận nên được bỏ qua.";
+        $this->showActionSuccess($message);
+    }
+
     public function unlinkSelection(): void
     {
         $this->confirmationAction = null;
@@ -140,7 +231,14 @@ class ReviewWorkspace extends Component
         $match = $award->canonicalMatch;
         if (! $match?->medicine_id) { $this->errorMessage = 'Kết quả này hiện chưa có liên kết để hủy.'; return; }
         $oldMedicine = $match->medicine;
-        $match->update(['medicine_id' => null, 'medicine_variant_id' => null, 'medicine_package_id' => null, 'match_status' => DrugBidAwardMatch::STATUS_UNMATCHED, 'resolution_level' => null, 'review_status' => DrugBidAwardMatch::REVIEW_PENDING, 'is_manual' => false, 'matched_by' => null, 'matched_at' => null, 'review_reason' => 'manual_unlink_requires_review']);
+        DB::transaction(function () use ($award, $match): void {
+            $award->update([
+                'medicine_id' => null,
+                'medicine_code' => null,
+                'medicine_match_status' => DrugBidAward::MATCH_UNRESOLVED,
+            ]);
+            $match->update(['medicine_id' => null, 'medicine_variant_id' => null, 'medicine_package_id' => null, 'match_status' => DrugBidAwardMatch::STATUS_UNMATCHED, 'resolution_level' => null, 'review_status' => DrugBidAwardMatch::REVIEW_PENDING, 'is_manual' => false, 'matched_by' => null, 'matched_at' => null, 'review_reason' => 'manual_unlink_requires_review']);
+        });
         $this->showActionSuccess('Đã hủy liên kết. Kết quả đã được đưa trở lại hàng chờ Cần rà soát.', $oldMedicine);
     }
 

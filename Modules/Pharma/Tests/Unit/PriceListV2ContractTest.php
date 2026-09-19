@@ -146,7 +146,13 @@ class PriceListV2ContractTest extends TestCase
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/index.blade.php'));
         foreach (['Tổng bảng giá', 'Đang hiệu lực', 'Bảng giá chung', 'Theo khách hàng', 'Sắp hết hiệu lực'] as $text) $this->assertStringContainsString($text, $view);
         $this->assertStringContainsString('wire:model.live="perPage"', $view); $this->assertStringContainsString('confirmingId', $view); $this->assertStringContainsString("'delete'", $component);
-        $this->assertStringContainsString('deleteDraft', $manager); $this->assertStringContainsString('Chỉ bảng giá DRAFT mới được xóa', $manager); $this->assertStringContainsString('Xóa Draft', $view);
+        $this->assertStringContainsString('wire:model.live="selectedIds"', $view);
+        $this->assertStringContainsString('confirmBulkDelete', $component);
+        $this->assertStringContainsString('deleteSelected', $manager);
+        $this->assertStringContainsString('[PriceList::STATUS_DRAFT, PriceList::STATUS_INACTIVE]', $manager);
+        $this->assertStringContainsString('ACTIVE phải được ngưng trước khi xóa', $manager);
+        $this->assertStringContainsString('Xóa bảng giá đã chọn', $view);
+        $this->assertStringContainsString('không xóa một phần', $view);
     }
 
     #[Test]
@@ -154,10 +160,11 @@ class PriceListV2ContractTest extends TestCase
     {
         $controller = file_get_contents(base_path('Modules/Pharma/Http/Controllers/PriceListController.php'));
         $show = file_get_contents(base_path('Modules/Pharma/resources/views/pages/price-list/show.blade.php'));
-        $this->assertStringContainsString("query('items', [])", $controller);
-        $this->assertStringContainsString('if ($selected->isNotEmpty())', $controller);
+        $this->assertStringContainsString("'items'=>['nullable','array']", str_replace(' ', '', $controller));
+        $this->assertStringContainsString("\$validated['items']??[]", str_replace(' ', '', $controller));
+        $this->assertStringContainsString('if($selected->isNotEmpty())', str_replace(' ', '', $controller));
         $this->assertStringContainsString('name="items[]"', $show);
         $this->assertStringContainsString('Không chọn sản phẩm', $show);
-        $this->assertStringContainsString('Export toàn bộ', $show);
+        $this->assertStringContainsString('Không chọn sản phẩm → xuất toàn bộ', $show);
     }
 }
