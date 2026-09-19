@@ -29,6 +29,10 @@ class HsspDossierEngineContractTest extends TestCase
         $this->assertStringContainsString("'Pharma/HSSP/'", $controller);
         $this->assertStringContainsString("'storage_targets' => ['required', 'array', 'min:1']", $controller);
         $this->assertStringContainsString('Laravel-Backup/Pharma/HSSP/', $view);
+        $this->assertStringContainsString('upload_max_filesize', $view);
+        $this->assertStringContainsString('post_max_size', $view);
+        $this->assertStringContainsString('safe_post_bytes', $storage);
+        $this->assertStringContainsString('ini_get(\'upload_max_filesize\')', $storage);
     }
 
     public function test_generic_dossier_schema_is_not_owned_by_pharma(): void
