@@ -245,6 +245,62 @@ class GoogleDriveConnectionService
         ];
     }
 
+    /**
+     * Upload an application-owned file below the configured Laravel-Backup root.
+     *
+     * @param  list<string>  $folders
+     * @return array{id:string,name:string}
+     */
+    public function uploadApplicationFile(string $path, array $folders, string $fileName, string $mimeType = 'application/octet-stream'): array
+    {
+        if (! is_file($path) || ! is_readable($path)) {
+            throw new RuntimeException('File local không tồn tại hoặc không đọc được.');
+        }
+
+        $token = $this->accessToken();
+        $parentId = $this->resolveRootFolder($token);
+
+        foreach ($folders as $folder) {
+            $folder = trim((string) $folder);
+            if ($folder === '' || $folder === '.' || $folder === '..' || str_contains($folder, '/')) {
+                throw new RuntimeException('Đường dẫn thư mục Google Drive không hợp lệ.');
+            }
+            $parentId = $this->ensureChildFolder($token, $parentId, $folder);
+        }
+
+        $create = Http::withToken($token)->asJson()->acceptJson()->timeout(30)
+            ->post('https://www.googleapis.com/drive/v3/files', [
+                'name' => basename($fileName),
+                'parents' => [$parentId],
+                'mimeType' => $mimeType,
+            ]);
+
+        if (! $create->successful() || trim((string) $create->json('id')) === '') {
+            $this->throwDriveApiException('Không thể tạo file trên Google Drive.', $create->status(), $create->json());
+        }
+
+        $fileId = (string) $create->json('id');
+        $stream = fopen($path, 'rb');
+        if ($stream === false) {
+            $this->deleteCreatedFile($token, $fileId);
+            throw new RuntimeException('Không thể mở file local để upload.');
+        }
+
+        try {
+            $upload = Http::withToken($token)->withBody($stream, $mimeType)->timeout(300)
+                ->patch('https://www.googleapis.com/upload/drive/v3/files/'.rawurlencode($fileId).'?uploadType=media');
+        } finally {
+            fclose($stream);
+        }
+
+        if (! $upload->successful()) {
+            $this->deleteCreatedFile($token, $fileId);
+            $this->throwDriveApiException('Upload file lên Google Drive thất bại.', $upload->status(), $upload->json());
+        }
+
+        return ['id' => $fileId, 'name' => basename($fileName)];
+    }
+
     public function backupStatus(string $fileName): array
     {
         $value = $this->rawBackupStatus($fileName);
