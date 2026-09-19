@@ -25,7 +25,7 @@ class HsspDossierEngineContractTest extends TestCase
         $this->assertStringContainsString("'pharma-product-dossier'", $template);
         $this->assertStringContainsString("'allows_multiple_files' => true", $template);
         $this->assertStringContainsString("'pending'", $storage);
-        $this->assertStringContainsString("->onQueue('pharma')", $storage);
+        $this->assertStringContainsString('->onQueue(\'pharma\')', $storage);
         $this->assertStringContainsString("self::TARGET_GOOGLE_DRIVE", $storage);
         $this->assertStringContainsString("'Pharma/HSSP/'", $controller);
         $this->assertStringContainsString("'storage_targets' => ['required', 'array', 'min:1']", $controller);
@@ -34,9 +34,9 @@ class HsspDossierEngineContractTest extends TestCase
         $this->assertStringContainsString('post_max_size', $view);
         $this->assertStringContainsString('safe_post_bytes', $storage);
         $this->assertStringContainsString('ini_get(\'upload_max_filesize\')', $storage);
-        $this->assertStringContainsString("->onQueue('pharma')", $storage);
-        $this->assertStringContainsString("implements ShouldQueue", $queueJob);
-        $this->assertStringContainsString("onQueue('pharma')", $queueJob);
+        $this->assertStringContainsString('->onQueue(\'pharma\')', $storage);
+        $this->assertStringContainsString('implements ShouldQueue', $queueJob);
+        $this->assertStringContainsString('onQueue(\'pharma\')', $queueJob);
         $this->assertStringContainsString("'Pharma/HSSP/'.\$this->hsspFolderName(\$medicine)", $controller);
         $this->assertStringContainsString('Xác nhận lưu hồ sơ sản phẩm', $view);
         $this->assertStringContainsString('File giữ nguyên tên gốc', $view);
