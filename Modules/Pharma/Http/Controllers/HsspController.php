@@ -282,6 +282,11 @@ class HsspController extends Controller
         }
 
         $metadata = (array) $dossier->metadata;
+        if (($metadata['deletion_pending'] ?? false) === true) {
+            return redirect()->route('admin.pharma.hssp.index')
+                ->with('success', 'HSSP của thuốc '.$medicine->name.' đang được queue Pharma xử lý xóa.');
+        }
+
         $metadata['deletion_pending'] = true;
         $metadata['deletion_requested_at'] = now()->toIso8601String();
         $dossier->update(['metadata' => $metadata]);
