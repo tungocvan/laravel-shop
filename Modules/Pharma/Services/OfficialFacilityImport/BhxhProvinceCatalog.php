@@ -21,6 +21,63 @@ class BhxhProvinceCatalog
         return $unique;
     }
 
+    /**
+     * ERP business regions for the 34 province/city model.
+     * These labels are operational groupings, not official administrative regions.
+     */
+    public function regions(): array
+    {
+        return [
+            'north' => 'Miền Bắc',
+            'north_central' => 'Bắc Trung Bộ',
+            'south_central' => 'Nam Trung Bộ',
+            'central_highlands' => 'Tây Nguyên',
+            'southeast' => 'Miền Đông / Đông Nam Bộ',
+            'southwest' => 'Miền Tây / Tây Nam Bộ',
+        ];
+    }
+
+    public function regionForProvinceName(string $provinceName): ?string
+    {
+        $map = [
+            'Miền Bắc' => ['Thành phố Hà Nội', 'Thành phố Hải Phòng', 'Thành phố Quảng Ninh', 'Tỉnh Cao Bằng', 'Tỉnh Tuyên Quang', 'Tỉnh Điện Biên', 'Tỉnh Lai Châu', 'Tỉnh Sơn La', 'Tỉnh Lào Cai', 'Tỉnh Thái Nguyên', 'Tỉnh Lạng Sơn', 'Tỉnh Bắc Ninh', 'Tỉnh Phú Thọ', 'Tỉnh Hưng Yên', 'Tỉnh Ninh Bình'],
+            'Bắc Trung Bộ' => ['Tỉnh Thanh Hóa', 'Tỉnh Nghệ An', 'Tỉnh Hà Tĩnh', 'Tỉnh Quảng Trị', 'Thành phố Huế'],
+            'Nam Trung Bộ' => ['Thành phố Đà Nẵng', 'Tỉnh Quảng Ngãi', 'Tỉnh Gia Lai', 'Tỉnh Khánh Hòa'],
+            'Tây Nguyên' => ['Tỉnh Đắk Lắk', 'Tỉnh Lâm Đồng'],
+            'Miền Đông / Đông Nam Bộ' => ['Thành phố Đồng Nai', 'Thành phố Hồ Chí Minh', 'Tỉnh Tây Ninh'],
+            'Miền Tây / Tây Nam Bộ' => ['Tỉnh Đồng Tháp', 'Tỉnh Vĩnh Long', 'Tỉnh An Giang', 'Thành phố Cần Thơ', 'Tỉnh Cà Mau'],
+        ];
+
+        foreach ($map as $region => $provinces) {
+            if (in_array($provinceName, $provinces, true)) {
+                return $region;
+            }
+        }
+
+        return null;
+    }
+
+    public function regionFor(string $uiCode): ?string
+    {
+        $name = $this->provinceName($uiCode);
+
+        return $name === null ? null : $this->regionForProvinceName($name);
+    }
+
+    public function provincesByRegion(): array
+    {
+        $grouped = array_fill_keys(array_values($this->regions()), []);
+
+        foreach ($this->all() as $code => $name) {
+            $region = $this->regionForProvinceName($name);
+            if ($region !== null) {
+                $grouped[$region][$code] = $name;
+            }
+        }
+
+        return $grouped;
+    }
+
     public function codes(): array
     {
         return array_keys($this->all());
