@@ -2,13 +2,13 @@
 
 namespace App\Dossiers\Services;
 
+use App\Dossiers\Jobs\UploadDossierAttachmentToGoogleDrive;
 use App\Dossiers\Models\Dossier;
 use App\Dossiers\Models\DossierAttachment;
 use App\Dossiers\Models\DossierItem;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Modules\Pharma\Jobs\UploadHsspAttachmentToGoogleDrive;
 use Modules\System\Services\Cloud\GoogleDriveConnectionService;
 use RuntimeException;
 use Throwable;
@@ -84,6 +84,7 @@ class DossierStorageService
         string $root,
         string $kind = 'item',
         array $targets = [self::TARGET_LOCAL],
+        string $queue = 'default',
     ): DossierAttachment {
         $targets = array_values(array_unique(array_intersect($targets, [self::TARGET_LOCAL, self::TARGET_GOOGLE_DRIVE])));
         if ($targets === []) {
@@ -92,7 +93,7 @@ class DossierStorageService
 
         $keepLocal = in_array(self::TARGET_LOCAL, $targets, true);
         $useGoogleDrive = in_array(self::TARGET_GOOGLE_DRIVE, $targets, true);
-        if ($useGoogleDrive && ! $this->googleDriveConnected() && ! $keepLocal) {
+        if ($useGoogleDrive && ! $this->googleDriveConnected()) {
             throw new RuntimeException('Google Drive chưa được kết nối. Hãy chọn Local hoặc kết nối Google Drive.');
         }
 
@@ -116,15 +117,27 @@ class DossierStorageService
             'checksum' => hash_file('sha256', Storage::disk('local')->path($path)),
             'sync_status' => $useGoogleDrive ? 'pending' : 'local_only',
             'remote_path' => null,
+            'remote_id' => null,
             'uploaded_by' => auth('admin')->id(),
         ]);
 
         if ($useGoogleDrive) {
-            UploadHsspAttachmentToGoogleDrive::dispatch($attachment->id, $directory, $originalName, $keepLocal)
-                ->onQueue('pharma');
+            UploadDossierAttachmentToGoogleDrive::dispatch($attachment->id, $directory, $originalName, $keepLocal, $queue)
+                ->onQueue($queue);
         }
 
         return $attachment;
+    }
+
+    public function deleteAttachmentStorage(DossierAttachment $attachment): void
+    {
+        if ($attachment->remote_id || $attachment->remote_path) {
+            $this->googleDrive->deleteApplicationFile($attachment->remote_id, $attachment->remote_path);
+        }
+
+        if ($attachment->disk === 'local' || $attachment->sync_status === 'synced' || ! $attachment->remote_path) {
+            Storage::disk('local')->delete($attachment->path);
+        }
     }
 
     private function safeFileName(string $name): string
