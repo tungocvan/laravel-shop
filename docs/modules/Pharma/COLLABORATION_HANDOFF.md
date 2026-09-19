@@ -1,3 +1,15 @@
+## Checkpoint — Medicine Catalog group + guarded delete UX
+
+- Branch: `fix/pharma-medicine-catalog-delete-ux`
+- Based on the HSSP validity mapping branch so the previous approved Medicine/HSSP work is retained.
+- Desktop catalog adds `Nhóm thuốc` from `circular_group`; mobile detail also exposes the same field.
+- Medicine rows with any HSSP profile keep the Delete action visible but disabled/muted. Backend `MedicineService::delete()` remains the authoritative guard.
+- Eligible deletes use an explicit centered confirmation modal; success and failure are surfaced in a centered result modal instead of relying only on flash banners.
+- Medicine edit/create form adds a visible `← Quay về Danh mục thuốc chuẩn` action.
+- No migration/schema change.
+
+---
+
 ## Checkpoint — Medicine Master validity derived from HSSP
 
 - Branch: `fix/pharma-medicine-hssp-validity-sync`
