@@ -15,9 +15,25 @@ class CanonicalModuleSnapshotService extends ModuleSnapshotService
 {
     public function validatePackage(string $path, string $module, bool $enforceSchema = true): array
     {
-        // Parent validation always verifies package format, module ownership,
-        // table ownership and module.sql checksum before this fallback runs.
+        // Parent validation verifies v2 schema-aware packages directly. The
+        // canonical module.sql fallback below belongs exclusively to legacy v1.
         $validated = parent::validatePackage($path, $module, enforceSchema: false);
+        $formatVersion = (string) ($validated['manifest']['format_version'] ?? '');
+
+        if ($formatVersion === '2.0') {
+            if ($enforceSchema && $validated['compatibility'] === 'BLOCKED') {
+                $first = collect($validated['compatibility_report']['issues'] ?? [])->firstWhere('level', 'blocked');
+                $reason = is_array($first) ? (string) ($first['message'] ?? '') : '';
+
+                throw new RuntimeException(
+                    'Schema hiện tại không tương thích với module snapshot đã chọn.'.($reason !== '' ? ' '.$reason : ''),
+                );
+            }
+
+            $validated['compatibility_basis'] = 'schema_aware_v2';
+
+            return $validated;
+        }
 
         if ($validated['compatibility'] !== 'COMPATIBLE') {
             $sql = $this->readVerifiedSql($path);

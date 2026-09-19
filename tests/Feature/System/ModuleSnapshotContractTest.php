@@ -161,4 +161,25 @@ class ModuleSnapshotContractTest extends TestCase
         $this->assertStringContainsString('$existingRootIds', $data);
         $this->assertStringContainsString('whereIn($foreignKey, $existingRootIds)->delete()', $data);
     }
+
+    public function test_canonical_validator_keeps_v2_out_of_legacy_sql_fallback(): void
+    {
+        $canonical = file_get_contents(base_path('Modules/System/Services/Database/CanonicalModuleSnapshotService.php'));
+
+        $this->assertIsString($canonical);
+        $this->assertStringContainsString("\$formatVersion === '2.0'", $canonical);
+        $this->assertStringContainsString("'compatibility_basis'] = 'schema_aware_v2'", $canonical);
+        $this->assertStringContainsString("if (\$enforceSchema && \$validated['compatibility'] === 'BLOCKED')", $canonical);
+        $this->assertStringContainsString("if (\$validated['compatibility'] !== 'COMPATIBLE')", $canonical);
+        $this->assertStringContainsString('$this->readVerifiedSql($path)', $canonical);
+
+        $v2Start = strpos($canonical, "if (\$formatVersion === '2.0')");
+        $v2Return = strpos($canonical, 'return $validated;', $v2Start);
+        $legacySqlFallback = strpos($canonical, '$this->readVerifiedSql($path)');
+
+        $this->assertIsInt($v2Start);
+        $this->assertIsInt($v2Return);
+        $this->assertIsInt($legacySqlFallback);
+        $this->assertLessThan($legacySqlFallback, $v2Return);
+    }
 }
