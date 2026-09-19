@@ -59,6 +59,7 @@ class HsspController extends Controller
             'dossierTemplate' => $templates->get(),
             'dossier' => null,
             'googleDriveConnected' => $storage->googleDriveConnected(),
+            'uploadLimits' => $storage->uploadLimits(),
         ]);
     }
 
@@ -154,6 +155,7 @@ class HsspController extends Controller
             'dossierTemplate' => $templates->get(),
             'dossier' => Dossier::query()->with(['items.attachments', 'attachments'])->where('owner_type', MedicineProfile::class)->where('owner_id', $profile->id)->latest('id')->first(),
             'googleDriveConnected' => $storage->googleDriveConnected(),
+            'uploadLimits' => $storage->uploadLimits(),
         ]);
     }
 
