@@ -214,3 +214,18 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - Acceptance evidence: focused tests PASS; targeted Pint PASS; Admin dashboard 2026 data UI PASS; 2025 empty-state UI PASS; ClientPortal invoice-list pre-VAT UI PASS. Earlier admin/client revenue and partner-report surfaces were also UI PASS in this batch.
 - Focused regression files: `InvoiceDashboardClassificationContractTest.php`, `InvoiceNetRevenueReportingContractTest.php`, and `ClientPortal/InvoicesApplicationContractTest.php`.
 - Closeout: scope is ready for PR/merge after confirming the branch is clean and up to date. Do not fold unrelated Inventory baseline drift into this refactor.
+
+
+## 2026-09-19 — Invoice → Partner candidate synchronization dashboard
+
+- Branch: `feat/invoices-partner-sync-dashboard`.
+- Scope: add a Partner synchronization workspace to `/admin/invoices/dashboard` without moving Partner master-data ownership into Invoices.
+- Invoices aggregates invoice evidence by non-empty tax code before handoff. Sold invoices contribute `customer`; purchase invoices contribute `supplier`; the same tax code may carry both roles.
+- Invoice rows without a tax code are counted as missing identity and are deliberately excluded from batch intake. Bulk synchronization never falls back to normalized-name matching.
+- `InvoicePartnerCandidateService` sends one normalized candidate per tax code through the existing `PartnerCandidateIntakeService::intake('invoices', ...)` boundary. It does not create/update `partners` directly.
+- Candidate metadata preserves first/last invoice date, sold/purchase invoice counts and the latest invoice id for provenance.
+- Dashboard shows unique invoice partners, customer/supplier counts, pending/conflict state and matched state. The POST action requires `invoices-create` and returns a centered result modal.
+- Review/create/merge/ignore remains owned by Partner at `/admin/partners/sync/invoices`; Partner permissions continue to protect those mutations.
+- No schema migration is required.
+- Added focused coverage: `InvoicePartnerSyncContractTest.php` and `InvoicePartnerSyncDashboardContractTest.php`.
+- Checkpoint: implementation pushed; local focused tests, targeted Pint and manual Dashboard/Partner UI acceptance are required before PR/merge.
