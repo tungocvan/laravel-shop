@@ -1,3 +1,16 @@
+## Corrective Checkpoint — Snapshot v2 Canonical Validation
+
+- Branch: `fix/system-module-snapshot-v2-canonical-validation`
+- Scope: System Module Snapshot v2 download/validation regression.
+- Root cause: `CanonicalModuleSnapshotService` sent schema-aware v2 packages with non-`COMPATIBLE` compatibility (including warnings) through the legacy `module.sql` canonical fallback. Snapshot v2 intentionally stores schema/data in manifest + JSONL and does not require `module.sql`.
+- Fix: format `2.0` now returns through the schema-aware validation path; `BLOCKED` remains rejected when schema enforcement is requested. Legacy v1 retains the canonical `module.sql` fallback.
+- Production symptom addressed: Google Drive listing succeeded but `downloadToLocal()` failed with “Module snapshot không có SQL hợp lệ để xác minh schema canonical.”
+- Focused verification on DELL: `ModuleSnapshotContractTest` **7 passed (119 assertions)**.
+- Pint: logic files clean after applying the single test formatting correction.
+- Next gate: pull the final formatting commit, rerun focused test/Pint, then PR/merge before production deployment.
+
+---
+
 ## Module Snapshot v2 runtime checkpoint — 2026-09-19
 - Runtime Pharma v2 capture verified: 1 dossier, 1 template, 5 template items, 5 dossier items, 4 attachments, including GMP/GPLH metadata and Google Drive attachment metadata.
 - Related restore now deletes scoped child rows before root replacement and blocks ID collisions across different dossier owners/templates/children instead of overwriting shared data.
