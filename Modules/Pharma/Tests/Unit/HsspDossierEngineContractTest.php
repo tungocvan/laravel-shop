@@ -13,6 +13,7 @@ class HsspDossierEngineContractTest extends TestCase
         $template = file_get_contents(dirname(__DIR__, 4).'/Modules/Pharma/Services/HsspDossierTemplateService.php');
         $component = file_get_contents(dirname(__DIR__, 4).'/resources/views/components/dossier/editor.blade.php');
         $storage = file_get_contents(dirname(__DIR__, 4).'/app/Dossiers/Services/DossierStorageService.php');
+        $queueJob = file_get_contents(dirname(__DIR__, 4).'/Modules/Pharma/Jobs/UploadHsspAttachmentToGoogleDrive.php');
 
         $this->assertStringContainsString('DossierManager $dossiers', $controller);
         $this->assertStringContainsString("'items.gmp.effective_to' => ['required', 'date']", $controller);
@@ -33,6 +34,12 @@ class HsspDossierEngineContractTest extends TestCase
         $this->assertStringContainsString('post_max_size', $view);
         $this->assertStringContainsString('safe_post_bytes', $storage);
         $this->assertStringContainsString('ini_get(\'upload_max_filesize\')', $storage);
+        $this->assertStringContainsString("->onQueue('pharma')", $storage);
+        $this->assertStringContainsString("implements ShouldQueue", $queueJob);
+        $this->assertStringContainsString("onQueue('pharma')", $queueJob);
+        $this->assertStringContainsString("'Pharma/HSSP/'.\$this->hsspFolderName(\$medicine)", $controller);
+        $this->assertStringContainsString('Xác nhận lưu hồ sơ sản phẩm', $view);
+        $this->assertStringContainsString('File giữ nguyên tên gốc', $view);
     }
 
     public function test_generic_dossier_schema_is_not_owned_by_pharma(): void
