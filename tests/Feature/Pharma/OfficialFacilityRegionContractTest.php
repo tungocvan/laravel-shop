@@ -39,14 +39,18 @@ class OfficialFacilityRegionContractTest extends TestCase
         $this->assertStringContainsString("string('business_region')", $controller);
         $this->assertStringContainsString("whereIn('province_name', \$regionProvinceNames)", $controller);
         $this->assertStringContainsString('public function export(', $controller);
+        $this->assertStringContainsString('Excel::download(', $controller);
+        $this->assertStringContainsString(".'.xlsx'", $controller);
         $this->assertStringContainsString("'selected_ids' => ['required', 'array', 'min:1', 'max:500']", $controller);
         $this->assertStringContainsString("official-facilities/source/export", $routes);
         $this->assertStringContainsString('<x-search', $view);
         $this->assertStringContainsString('name="business_region"', $view);
         $this->assertStringContainsString('data-select-page', $view);
         $this->assertStringContainsString('name="selected_ids[]"', $view);
-        $this->assertStringContainsString('Export đã chọn', $view);
+        $this->assertStringContainsString('Xuất Excel đã chọn', $view);
         $this->assertStringContainsString('aria-label="Phân trang cơ sở KCB nguồn"', $view);
+        $this->assertStringContainsString('$facilities->url($page)', $view);
+        $this->assertStringContainsString('Tìm mã, tên cơ sở...', $view);
         $this->assertStringContainsString('border-slate-200 bg-white', $view);
         $this->assertStringContainsString('{{ $provinceRegions[$facility->province_name] ?? \'—\' }}', $view);
     }
