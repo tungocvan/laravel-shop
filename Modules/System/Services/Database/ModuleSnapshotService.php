@@ -15,7 +15,9 @@ use ZipArchive;
 
 class ModuleSnapshotService
 {
-    private const FORMAT_VERSION = '1.0';
+    private const FORMAT_VERSION = '2.0';
+
+    private const LEGACY_FORMAT_VERSION = '1.0';
 
     private const MAX_SCAN_FILES = 500;
 
@@ -24,6 +26,7 @@ class ModuleSnapshotService
     public function __construct(
         private readonly DatabaseService $database,
         private readonly ModuleDependencyService $dependencies,
+        private readonly ModuleSnapshotDataService $data,
     ) {}
 
     public function tablesForModule(string $module): array
@@ -76,13 +79,7 @@ class ModuleSnapshotService
         $this->ensureDirectory(dirname($absolutePath));
 
         try {
-            $this->runDump($tables, $sqlPath, 600);
-            $checksum = hash_file('sha256', $sqlPath);
-
-            if (! is_string($checksum) || $checksum === '') {
-                throw new RuntimeException('Không thể tính checksum cho module snapshot.');
-            }
-
+            $capture = $this->data->capture($module, $tables, $temporaryDirectory);
             $manifest = [
                 'format_version' => self::FORMAT_VERSION,
                 'snapshot_type' => $snapshotType,
@@ -92,11 +89,19 @@ class ModuleSnapshotService
                 'database_driver' => (string) config('database.default'),
                 'database_name' => (string) config('database.connections.mysql.database'),
                 'tables' => $tables,
-                'row_counts' => $this->rowCounts($module),
-                'schema_fingerprint' => $this->schemaFingerprint($tables),
+                'row_counts' => $capture['row_counts'],
+                'schema' => $capture['schema'],
+                'related_data' => $capture['related_data'],
                 'app_commit' => trim((string) env('APP_COMMIT', '')) ?: null,
             ];
-            $checksums = ['module.sql' => $checksum];
+            $checksums = [];
+            foreach ($capture['entries'] as $entry => $path) {
+                $checksum = hash_file('sha256', $path);
+                if (! is_string($checksum) || $checksum === '') {
+                    throw new RuntimeException('Không thể tính checksum cho Module Snapshot v2.');
+                }
+                $checksums[$entry] = $checksum;
+            }
 
             file_put_contents($manifestPath, json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
             file_put_contents($checksumsPath, json_encode($checksums, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
@@ -112,8 +117,8 @@ class ModuleSnapshotService
             try {
                 foreach ([
                     'manifest.json' => $manifestPath,
-                    'module.sql' => $sqlPath,
                     'checksums.json' => $checksumsPath,
+                    ...$capture['entries'],
                 ] as $entry => $path) {
                     if (! $zip->addFile($path, $entry)) {
                         throw new RuntimeException('Không thể đóng gói module snapshot.');
@@ -200,16 +205,20 @@ class ModuleSnapshotService
 
         try {
             $safety = $this->create($module, 'safety');
-            $sqlPath = $this->extractSql($snapshot['absolute_path'], $workingDirectory.'/restore.sql');
 
             try {
-                $this->runMysqlImport($sqlPath, 900);
+                if (($validated['manifest']['format_version'] ?? '') === self::FORMAT_VERSION) {
+                    $this->data->restore($snapshot['absolute_path'], $validated['manifest']);
+                } else {
+                    $sqlPath = $this->extractSql($snapshot['absolute_path'], $workingDirectory.'/restore.sql');
+                    $this->runMysqlImport($sqlPath, 900);
+                }
                 DB::purge();
                 DB::reconnect();
             } catch (\Throwable $restoreException) {
                 try {
-                    $safetySql = $this->extractSql($safety['absolute_path'], $workingDirectory.'/safety.sql');
-                    $this->runMysqlImport($safetySql, 900);
+                    $safetyValidated = $this->validatePackage($safety['absolute_path'], $module, enforceSchema: true);
+                    $this->data->restore($safety['absolute_path'], $safetyValidated['manifest']);
                     DB::purge();
                     DB::reconnect();
                 } catch (\Throwable $rollbackException) {
@@ -311,14 +320,14 @@ class ModuleSnapshotService
 
         try {
             $manifestJson = $zip->getFromName('manifest.json');
-            $sql = $zip->getFromName('module.sql');
             $checksumsJson = $zip->getFromName('checksums.json');
+            $sql = $zip->getFromName('module.sql');
         } finally {
             $zip->close();
         }
 
-        if (! is_string($manifestJson) || ! is_string($sql) || ! is_string($checksumsJson)) {
-            throw new RuntimeException('Module snapshot thiếu manifest, SQL hoặc checksum.');
+        if (! is_string($manifestJson) || ! is_string($checksumsJson)) {
+            throw new RuntimeException('Module snapshot thiếu manifest hoặc checksum.');
         }
 
         $manifest = json_decode($manifestJson, true);
@@ -328,8 +337,9 @@ class ModuleSnapshotService
             throw new RuntimeException('Manifest module snapshot không hợp lệ.');
         }
 
-        if (($manifest['format_version'] ?? '') !== self::FORMAT_VERSION || ($manifest['module'] ?? '') !== $module) {
-            throw new RuntimeException('Module snapshot không đúng Module hoặc phiên bản format.');
+        $formatVersion = (string) ($manifest['format_version'] ?? '');
+        if (! in_array($formatVersion, [self::FORMAT_VERSION, self::LEGACY_FORMAT_VERSION], true) || ($manifest['module'] ?? '') !== $module) {
+            throw new RuntimeException('Module snapshot không đúng Module hoặc phiên bản format được hỗ trợ.');
         }
 
         // Backward compatible: snapshots created before dependency metadata was added remain valid.
@@ -342,27 +352,57 @@ class ModuleSnapshotService
         $snapshotTables = array_values(array_filter((array) ($manifest['tables'] ?? []), 'is_string'));
         sort($snapshotTables, SORT_STRING);
 
-        if ($snapshotTables !== $expectedTables) {
-            throw new RuntimeException('Danh sách bảng trong snapshot không khớp ownership hiện tại của Module.');
+        if ($formatVersion === self::LEGACY_FORMAT_VERSION) {
+            if ($snapshotTables !== $expectedTables || ! is_string($sql)) {
+                throw new RuntimeException('Legacy snapshot không khớp ownership hiện tại của Module.');
+            }
+
+            $expectedChecksum = (string) ($checksums['module.sql'] ?? '');
+            if ($expectedChecksum === '' || ! hash_equals($expectedChecksum, hash('sha256', $sql))) {
+                throw new RuntimeException('Checksum legacy module snapshot không hợp lệ.');
+            }
+
+            $currentSchema = $this->schemaFingerprint($expectedTables);
+            $snapshotSchema = (string) ($manifest['schema_fingerprint'] ?? '');
+            $compatibility = hash_equals($currentSchema, $snapshotSchema) ? 'COMPATIBLE' : 'BLOCKED';
+            $compatibilityReport = ['status' => $compatibility, 'issues' => []];
+        } else {
+            $zip = new ZipArchive;
+            if ($zip->open($path) !== true) {
+                throw new RuntimeException('Không thể kiểm tra dữ liệu Module Snapshot v2.');
+            }
+            try {
+                foreach ($checksums as $entry => $expectedChecksum) {
+                    $stream = $zip->getStream((string) $entry);
+                    if (! is_resource($stream)) {
+                        throw new RuntimeException('Module Snapshot v2 thiếu data entry: '.$entry);
+                    }
+                    $context = hash_init('sha256');
+                    hash_update_stream($context, $stream);
+                    fclose($stream);
+                    if (! hash_equals((string) $expectedChecksum, hash_final($context))) {
+                        throw new RuntimeException('Checksum Module Snapshot v2 không hợp lệ: '.$entry);
+                    }
+                }
+            } finally {
+                $zip->close();
+            }
+
+            $compatibilityReport = $this->data->compatibility($manifest, $expectedTables);
+            $compatibility = $compatibilityReport['status'];
         }
 
-        $expectedChecksum = (string) ($checksums['module.sql'] ?? '');
-        if ($expectedChecksum === '' || ! hash_equals($expectedChecksum, hash('sha256', $sql))) {
-            throw new RuntimeException('Checksum module snapshot không hợp lệ.');
-        }
-
-        $currentSchema = $this->schemaFingerprint($expectedTables);
-        $snapshotSchema = (string) ($manifest['schema_fingerprint'] ?? '');
-        $compatibility = hash_equals($currentSchema, $snapshotSchema) ? 'COMPATIBLE' : 'BLOCKED';
-
-        if ($enforceSchema && $compatibility !== 'COMPATIBLE') {
-            throw new RuntimeException('Schema hiện tại không tương thích với module snapshot đã chọn.');
+        if ($enforceSchema && $compatibility === 'BLOCKED') {
+            $first = collect($compatibilityReport['issues'] ?? [])->firstWhere('level', 'blocked');
+            $reason = is_array($first) ? (string) ($first['message'] ?? '') : '';
+            throw new RuntimeException('Schema hiện tại không tương thích với module snapshot đã chọn.'.($reason !== '' ? ' '.$reason : ''));
         }
 
         return [
             'manifest' => $manifest,
             'checksums' => $checksums,
             'compatibility' => $compatibility,
+            'compatibility_report' => $compatibilityReport,
         ];
     }
 
