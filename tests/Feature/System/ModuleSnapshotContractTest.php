@@ -19,6 +19,7 @@ class ModuleSnapshotContractTest extends TestCase
         $this->assertStringContainsString("'checksums.json'", $service);
         $this->assertStringContainsString("self::LEGACY_FORMAT_VERSION", $service);
         $this->assertStringContainsString("\$this->data->compatibility(\$manifest, \$expectedTables)", $service);
+        $this->assertStringContainsString("'restore_tables'", $service);
         $this->assertStringContainsString("\$this->create(\$module, 'safety')", $service);
         $this->assertStringContainsString('flock($lock, LOCK_EX | LOCK_NB)', $service);
         $this->assertStringContainsString('Module restore and automatic rollback both failed.', $service);
