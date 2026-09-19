@@ -61,6 +61,7 @@ class OfficialSourceSyncController extends Controller
 
         $partitionOptions = OfficialSourceFacility::query()
             ->select(['source_province_code', 'province_name'])
+            ->when($regionLabel !== null, fn ($builder) => $builder->whereIn('province_name', $regionProvinceNames))
             ->when($province !== '', fn ($builder) => $builder->where('province_name', $province))
             ->distinct()
             ->orderBy('province_name')
@@ -109,7 +110,9 @@ class OfficialSourceSyncController extends Controller
 
         $filename = 'pharma-official-facilities-'.now()->format('Ymd-His').'.csv';
 
-        return response()->streamDownload(function () use ($facilities, $provinceCatalog): void {
+        $partitionLabels = $this->partitionLabels($provinceCatalog);
+
+        return response()->streamDownload(function () use ($facilities, $provinceCatalog, $partitionLabels): void {
             $handle = fopen('php://output', 'wb');
             fwrite($handle, "\xEF\xBB\xBF");
             fputcsv($handle, ['Nguồn', 'Mã CSKCB', 'Tên cơ sở', 'Vùng miền ERP', 'Tỉnh/Thành', 'Vùng nguồn BHXH', 'Mã vùng nguồn', 'Địa bàn BHXH', 'Trạng thái', 'Lần đồng bộ cuối']);
@@ -121,7 +124,7 @@ class OfficialSourceSyncController extends Controller
                     $facility->facility_name,
                     $provinceCatalog->regionForProvinceName((string) $facility->province_name) ?? '',
                     $facility->province_name,
-                    $facility->source_province_name ?? '',
+                    $partitionLabels[$facility->source_province_code] ?? $facility->source_province_code,
                     $facility->source_province_code,
                     $facility->district_name ?? '',
                     $facility->is_active ? 'ACTIVE' : 'STALE',
@@ -180,6 +183,18 @@ class OfficialSourceSyncController extends Controller
             'completed_at' => optional($batch->completed_at)->toIso8601String(),
             'error_message' => $batch->error_message,
         ]);
+    }
+
+    private function partitionLabels(BhxhProvinceCatalog $provinceCatalog): array
+    {
+        $labels = [];
+        foreach ($provinceCatalog->codes() as $uiCode) {
+            foreach ($provinceCatalog->partitionsFor($uiCode) as $partition) {
+                $labels[$partition['source_code']] = $partition['partition_name'];
+            }
+        }
+
+        return $labels;
     }
 
     private function perPage(Request $request): int
