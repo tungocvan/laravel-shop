@@ -7,6 +7,8 @@ use App\Dossiers\Models\DossierAttachment;
 use App\Dossiers\Models\DossierItem;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Modules\Pharma\Jobs\UploadHsspAttachmentToGoogleDrive;
 use Modules\System\Services\Cloud\GoogleDriveConnectionService;
 use RuntimeException;
 use Throwable;
@@ -83,77 +85,53 @@ class DossierStorageService
         string $kind = 'item',
         array $targets = [self::TARGET_LOCAL],
     ): DossierAttachment {
-        $targets = array_values(array_unique(array_intersect($targets, [
-            self::TARGET_LOCAL,
-            self::TARGET_GOOGLE_DRIVE,
-        ])));
-
+        $targets = array_values(array_unique(array_intersect($targets, [self::TARGET_LOCAL, self::TARGET_GOOGLE_DRIVE])));
         if ($targets === []) {
             throw new RuntimeException('Phải chọn ít nhất một nơi lưu hồ sơ.');
         }
 
-        $segment = $item ? sprintf('%02d-%s', max(1, $item->sort_order), $item->code) : 'master';
-        $directory = trim($root, '/').'/'.$segment;
-        $path = $file->store($directory, 'local');
+        $keepLocal = in_array(self::TARGET_LOCAL, $targets, true);
+        $useGoogleDrive = in_array(self::TARGET_GOOGLE_DRIVE, $targets, true);
+        if ($useGoogleDrive && ! $this->googleDriveConnected() && ! $keepLocal) {
+            throw new RuntimeException('Google Drive chưa được kết nối. Hãy chọn Local hoặc kết nối Google Drive.');
+        }
 
+        // Always stage first: the Pharma queue worker must be able to read the file after the HTTP request ends.
+        $directory = trim($root, '/');
+        $originalName = $this->safeFileName($file->getClientOriginalName());
+        $storedName = Str::uuid().'-'.$originalName;
+        $path = $file->storeAs($directory, $storedName, 'local');
         if (! is_string($path) || $path === '') {
             throw new RuntimeException('Không thể lưu file hồ sơ vào vùng tạm local.');
         }
 
-        $keepLocal = in_array(self::TARGET_LOCAL, $targets, true);
-        $useGoogleDrive = in_array(self::TARGET_GOOGLE_DRIVE, $targets, true);
-        $remotePath = null;
-        $syncStatus = $keepLocal ? 'local_only' : 'pending';
-        $googleUploaded = false;
-
-        if ($useGoogleDrive) {
-            if (! $this->googleDriveConnected()) {
-                if (! $keepLocal) {
-                    Storage::disk('local')->delete($path);
-                    throw new RuntimeException('Google Drive chưa được kết nối. Hãy chọn Local hoặc kết nối Google Drive.');
-                }
-
-                $syncStatus = 'sync_failed';
-            } else {
-                try {
-                    $absolutePath = Storage::disk('local')->path($path);
-                    $folders = array_values(array_filter(explode('/', trim($directory, '/'))));
-                    $this->googleDrive->uploadApplicationFile(
-                        $absolutePath,
-                        $folders,
-                        basename($path),
-                        $file->getClientMimeType() ?: 'application/octet-stream',
-                    );
-                    $remotePath = 'Laravel-Backup/'.trim($directory, '/').'/'.basename($path);
-                    $googleUploaded = true;
-                    $syncStatus = $keepLocal ? 'synced' : 'google_only';
-                } catch (Throwable $exception) {
-                    if (! $keepLocal) {
-                        Storage::disk('local')->delete($path);
-                        throw new RuntimeException('Không thể lưu hồ sơ lên Google Drive.', previous: $exception);
-                    }
-
-                    $syncStatus = 'sync_failed';
-                }
-            }
-        }
-
-        if (! $keepLocal && $googleUploaded) {
-            Storage::disk('local')->delete($path);
-        }
-
-        return $dossier->attachments()->create([
+        $attachment = $dossier->attachments()->create([
             'item_id' => $item?->id,
             'kind' => $kind,
             'disk' => $keepLocal ? 'local' : 'google_drive',
-            'path' => $keepLocal ? $path : (string) $remotePath,
+            'path' => $path,
             'original_name' => $file->getClientOriginalName(),
             'mime_type' => $file->getClientMimeType(),
             'size' => $file->getSize(),
-            'checksum' => hash_file('sha256', $file->getRealPath()),
-            'sync_status' => $syncStatus,
-            'remote_path' => $remotePath,
+            'checksum' => hash_file('sha256', Storage::disk('local')->path($path)),
+            'sync_status' => $useGoogleDrive ? 'pending' : 'local_only',
+            'remote_path' => null,
             'uploaded_by' => auth('admin')->id(),
         ]);
+
+        if ($useGoogleDrive) {
+            UploadHsspAttachmentToGoogleDrive::dispatch($attachment->id, $directory, $originalName, $keepLocal)
+                ->onQueue('pharma');
+        }
+
+        return $attachment;
     }
+
+    private function safeFileName(string $name): string
+    {
+        $name = trim(str_replace(["/", "\\", "\\0"], '-', $name));
+
+        return $name !== '' ? $name : 'document';
+    }
+
 }
