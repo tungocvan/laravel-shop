@@ -1,5 +1,29 @@
 # Pharma Collaboration Handoff
 
+## Current checkpoint — HSSP lifecycle delete + runtime Pharma queue
+
+- Module: `Pharma` with reusable dossier core under `App\\Dossiers`
+- Branch: `refactor/pharma-hssp-dossier-engine`
+- Status: **IMPLEMENTED — AWAITING LOCAL MIGRATION / TARGETED TEST / DELETE UI ACCEPTANCE**
+- Date: 2026-09-19
+
+### Current implementation
+
+- Runtime module registry publishes queue metadata only after ModuleStateResolver resolves actual enablement; `run-queue.sh` consumes the resolved registry. Operator verified Pharma is runtime-enabled and PM2 runs `default,admission-documents,pharma` with timeout 600 / tries 3.
+- Generic dossier upload job now lives under `App\\Dossiers\\Jobs`; the reusable storage engine no longer imports a Pharma upload job. Pharma selects the named `pharma` queue at its adapter boundary.
+- Dossier attachments persist Google Drive `remote_id` for deterministic lifecycle cleanup; legacy attachments without it fall back to scoped remote-path lookup.
+- HSSP delete is explicit and queued. It removes managed Google Drive files, managed Local files, dossier/items/attachments and the MedicineProfile, while preserving the Medicine Master record.
+- Cleanup is retry-safe: Drive 404/missing legacy paths are treated idempotently; failed cleanup leaves dossier/profile records available for retry instead of silently losing cleanup evidence.
+- HSSP index includes a destructive confirmation modal explaining Local/Drive cleanup and Medicine preservation.
+
+### Acceptance pending
+
+Run migrations, focused HSSP/System contracts and Pharma targeted regression. UI-test deleting the current Justone HSSP, confirm the managed Local/Drive files disappear, confirm the Medicine remains, then recreate HSSP and verify queued upload + modal workflow end-to-end.
+
+---
+
+# Pharma Collaboration Handoff
+
 ## Current checkpoint — HSSP reusable dossier engine implementation
 
 - Module: `Pharma` with reusable core under `App\\Dossiers`
