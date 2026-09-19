@@ -1,3 +1,9 @@
+## Module Snapshot v2 runtime checkpoint — 2026-09-19
+
+- Runtime Pharma snapshot exposed a contract-test gap: related graph silently returned an empty dataset when the configured owner table did not exist.
+- Fixed HSSP owner table mapping to `pharma_medicine_profiles` and changed related graph capture to fail fast on missing tables/columns or invalid reference ordering.
+- Added regression contract coverage. Next checkpoint: pull branch, run targeted System snapshot test + Pint, then create a fresh Pharma v2 snapshot and inspect related HSSP JSONL before PR/merge.
+
 
 
 ---
