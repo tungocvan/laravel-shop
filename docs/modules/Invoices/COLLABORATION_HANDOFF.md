@@ -242,3 +242,12 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - Replaced generic Livewire pagination with `partner::vendor.pagination.admin-partner`, explicitly following `.codex/standards/ADMIN_UI_STANDARD.md`: white inactive controls, indigo active page, quiet disabled controls, bounded page sizes.
 - Added `tests/Feature/Partner/InvoiceCandidateBulkReviewContractTest.php`.
 - Local checkpoint should run the Invoices partner-sync tests plus this Partner contract test and targeted Pint before UI acceptance.
+
+
+### Missing-tax review + workspace width refinement — 2026-09-19
+
+- Partner invoice review now uses the Admin shell's available content width instead of adding a second large horizontal padding layer.
+- Status and action columns have explicit room and no-wrap treatment so badges/actions do not break awkwardly.
+- Added `Định danh MST` filter with `Có MST` (default) and `Không có MST`.
+- Missing-tax mode reads the original Invoices rows because such rows are intentionally excluded from `partner_sync_candidates`; it is review-only and exposes no checkbox or Partner-create action.
+- This preserves the safety rule: Partner creation/synchronization still requires a tax-code identity.
