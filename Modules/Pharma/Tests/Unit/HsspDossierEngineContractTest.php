@@ -13,7 +13,9 @@ class HsspDossierEngineContractTest extends TestCase
         $template = file_get_contents(dirname(__DIR__, 4).'/Modules/Pharma/Services/HsspDossierTemplateService.php');
         $component = file_get_contents(dirname(__DIR__, 4).'/resources/views/components/dossier/editor.blade.php');
         $storage = file_get_contents(dirname(__DIR__, 4).'/app/Dossiers/Services/DossierStorageService.php');
-        $queueJob = file_get_contents(dirname(__DIR__, 4).'/Modules/Pharma/Jobs/UploadHsspAttachmentToGoogleDrive.php');
+        $queueJob = file_get_contents(dirname(__DIR__, 4).'/app/Dossiers/Jobs/UploadDossierAttachmentToGoogleDrive.php');
+        $deleteJob = file_get_contents(dirname(__DIR__, 4).'/Modules/Pharma/Jobs/DeleteHsspDossier.php');
+        $index = file_get_contents(dirname(__DIR__, 4).'/Modules/Pharma/resources/views/pages/hssp/index.blade.php');
 
         $this->assertStringContainsString('DossierManager $dossiers', $controller);
         $this->assertStringContainsString("'items.gmp.effective_to' => ['required', 'date']", $controller);
@@ -25,7 +27,7 @@ class HsspDossierEngineContractTest extends TestCase
         $this->assertStringContainsString("'pharma-product-dossier'", $template);
         $this->assertStringContainsString("'allows_multiple_files' => true", $template);
         $this->assertStringContainsString("'pending'", $storage);
-        $this->assertStringContainsString('->onQueue(\'pharma\')', $storage);
+        $this->assertStringContainsString('UploadDossierAttachmentToGoogleDrive::dispatch', $storage);
         $this->assertStringContainsString("self::TARGET_GOOGLE_DRIVE", $storage);
         $this->assertStringContainsString("'Pharma/HSSP/'", $controller);
         $this->assertStringContainsString("'storage_targets' => ['required', 'array', 'min:1']", $controller);
@@ -36,7 +38,12 @@ class HsspDossierEngineContractTest extends TestCase
         $this->assertStringContainsString('ini_get(\'upload_max_filesize\')', $storage);
         $this->assertStringContainsString('->onQueue(\'pharma\')', $storage);
         $this->assertStringContainsString('implements ShouldQueue', $queueJob);
-        $this->assertStringContainsString('onQueue(\'pharma\')', $queueJob);
+        $this->assertStringContainsString('string $queue = \'default\'', $queueJob);
+        $this->assertStringContainsString("'remote_id' => \$uploaded['id']", $queueJob);
+        $this->assertStringContainsString("DeleteHsspDossier::dispatch", $controller);
+        $this->assertStringContainsString("onQueue('pharma')", $deleteJob);
+        $this->assertStringContainsString('deleteAttachmentStorage', $deleteJob);
+        $this->assertStringContainsString('Xóa toàn bộ HSSP?', $index);
         $this->assertStringContainsString("'Pharma/HSSP/'.\$this->hsspFolderName(\$medicine)", $controller);
         $this->assertStringContainsString('Xác nhận lưu hồ sơ sản phẩm', $view);
         $this->assertStringContainsString('File giữ nguyên tên gốc', $view);
