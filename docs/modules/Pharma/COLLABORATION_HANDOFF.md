@@ -1,5 +1,40 @@
 # Pharma Collaboration Handoff
 
+## Current checkpoint — Medicine Master / GPLH integrity accepted
+
+- Module: `Pharma`
+- Implementation branch: `refactor/pharma-medicine-master-gplh-ui`
+- Status: **IMPLEMENTATION COMPLETE — TARGETED TEST PASS + UI PASS — READY FOR PR/MERGE**
+- Date: 2026-09-19
+- Workflow: `docs/GITHUB_COLLABORATION_WORKFLOW.md`
+- UI standard: `.codex/standards/ADMIN_UI_STANDARD.md`
+
+## Accepted scope
+
+Medicine Master now keeps GPLH/registration identity separate from the generated medicine code/SKU, preserves registration display values during edit, searches medicine aliases through the real alias schema, persists the complete owner Excel catalog metadata on import update, and guards canonical identity collisions with actionable feedback.
+
+Price List v2 now supports guarded checkbox bulk deletion for removable DRAFT/INACTIVE lists.
+
+Drug Bid Award review now supports guarded bulk unlink. Both single and bulk unlink clear the canonical match and the direct `pharma_drug_bid_awards.medicine_id / medicine_code` reference transactionally, returning `medicine_match_status` to unresolved. This prevents stale direct bid references from incorrectly blocking Medicine deletion.
+
+Operator acceptance on 2026-09-19:
+
+```text
+Targeted tests: PASS
+UI: PASS
+Pint formatting synchronized on accepted files
+```
+
+Historical local stashes may remain on operator machines. Do not bulk-pop or bulk-drop them; inspect individually only if explicitly needed.
+
+## Next authorized work after merge
+
+Create a fresh branch for the approved HSSP refactor. Target architecture: reusable Document/Dossier Set engine with configurable table-of-contents templates, dynamic metadata fields, optional per-item attachments, optional combined/master file, version/history, and local ↔ Google Drive storage synchronization. Pharma owns the HSSP adapter and requires GMP validity plus registration/GPLH validity metadata before saving/confirming the product dossier. The reusable engine must not depend on Pharma and should be suitable for other modules.
+
+---
+
+# Pharma Collaboration Handoff
+
 ## Current checkpoint — Price List v2 + Excel Designer v3.2 accepted
 
 - Module: `Pharma`
