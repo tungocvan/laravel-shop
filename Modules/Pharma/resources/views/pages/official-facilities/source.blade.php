@@ -21,8 +21,8 @@
                 <x-search
                     name="search"
                     value="{{ request('search') }}"
-                    placeholder="Tìm mã, tên cơ sở, tỉnh/thành, địa bàn BHXH..."
-                    class="lg:col-span-3"
+                    placeholder="Tìm mã, tên cơ sở..."
+                    class="lg:col-span-2"
                     data-live-search
                 />
 
@@ -67,8 +67,8 @@
                 </select>
 
                 @if (request()->hasAny(['search', 'business_region', 'source', 'province', 'partition', 'status', 'per_page']))
-                    <div class="lg:col-span-12 flex justify-end">
-                        <a href="{{ route('admin.pharma.official-facilities.source.index') }}" class="text-sm font-semibold text-slate-500 hover:text-sky-700">Xóa bộ lọc</a>
+                    <div class="flex min-h-11 items-center justify-end lg:col-span-1">
+                        <a href="{{ route('admin.pharma.official-facilities.source.index') }}" class="whitespace-nowrap text-sm font-semibold text-slate-500 hover:text-sky-700">Xóa bộ lọc</a>
                     </div>
                 @endif
             </form>
@@ -82,7 +82,7 @@
                 </div>
                 <div class="flex flex-wrap items-center gap-3">
                     <div class="text-sm font-semibold text-slate-700">{{ number_format($facilities->total()) }} cơ sở</div>
-                    <button type="submit" form="official-source-export-form" data-export-selected disabled class="inline-flex min-h-10 items-center justify-center rounded-xl border border-sky-200 bg-white px-4 py-2 text-sm font-semibold text-sky-700 disabled:cursor-not-allowed disabled:opacity-40 hover:bg-sky-50">Export đã chọn</button>
+                    <button type="submit" form="official-source-export-form" data-export-selected disabled class="inline-flex min-h-10 items-center justify-center rounded-xl border border-sky-200 bg-white px-4 py-2 text-sm font-semibold text-sky-700 disabled:cursor-not-allowed disabled:opacity-40 hover:bg-sky-50">Xuất Excel đã chọn</button>
                 </div>
             </div>
 
@@ -129,12 +129,37 @@
             @if ($facilities->hasPages())
                 <nav class="mt-4 flex flex-col gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between" aria-label="Phân trang cơ sở KCB nguồn">
                     <span>Trang {{ $facilities->currentPage() }} / {{ $facilities->lastPage() }} · {{ number_format($facilities->total()) }} cơ sở</span>
-                    <div class="flex items-center gap-2">
+                    <div class="flex flex-wrap items-center gap-1.5">
                         @if ($facilities->onFirstPage())
                             <span class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-300">Trước</span>
                         @else
                             <a href="{{ $facilities->previousPageUrl() }}" class="rounded-lg border border-slate-300 bg-white px-3 py-2 font-semibold text-slate-700 hover:bg-slate-50">Trước</a>
                         @endif
+
+                        @php
+                            $firstPage = max(1, $facilities->currentPage() - 2);
+                            $lastPage = min($facilities->lastPage(), $facilities->currentPage() + 2);
+                            if ($lastPage - $firstPage < 4) {
+                                $firstPage = max(1, $lastPage - 4);
+                                $lastPage = min($facilities->lastPage(), $firstPage + 4);
+                            }
+                        @endphp
+                        @if ($firstPage > 1)
+                            <a href="{{ $facilities->url(1) }}" class="rounded-lg border border-slate-300 bg-white px-3 py-2 font-semibold text-slate-700 hover:bg-slate-50">1</a>
+                            @if ($firstPage > 2)<span class="px-1 text-slate-400">…</span>@endif
+                        @endif
+                        @for ($page = $firstPage; $page <= $lastPage; $page++)
+                            @if ($page === $facilities->currentPage())
+                                <span aria-current="page" class="rounded-lg border border-sky-600 bg-sky-600 px-3 py-2 font-semibold text-white">{{ $page }}</span>
+                            @else
+                                <a href="{{ $facilities->url($page) }}" class="rounded-lg border border-slate-300 bg-white px-3 py-2 font-semibold text-slate-700 hover:bg-slate-50">{{ $page }}</a>
+                            @endif
+                        @endfor
+                        @if ($lastPage < $facilities->lastPage())
+                            @if ($lastPage < $facilities->lastPage() - 1)<span class="px-1 text-slate-400">…</span>@endif
+                            <a href="{{ $facilities->url($facilities->lastPage()) }}" class="rounded-lg border border-slate-300 bg-white px-3 py-2 font-semibold text-slate-700 hover:bg-slate-50">{{ $facilities->lastPage() }}</a>
+                        @endif
+
                         @if ($facilities->hasMorePages())
                             <a href="{{ $facilities->nextPageUrl() }}" class="rounded-lg border border-slate-300 bg-white px-3 py-2 font-semibold text-slate-700 hover:bg-slate-50">Sau</a>
                         @else
