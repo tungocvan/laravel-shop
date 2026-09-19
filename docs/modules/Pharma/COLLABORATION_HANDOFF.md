@@ -1,3 +1,19 @@
+## Checkpoint — Official Facilities admin integration + ERP business regions
+
+- Branch: `refactor/pharma-official-facilities-regions`
+- Base: `main` at `42510073c527ef46398d3143020116560a921d7f`.
+- Pharma Dashboard `Cơ sở KCB chính thức` now enters the Pharma-owned source repository instead of dropping operators directly into file import.
+- BHXH lookup adds an ERP business-region selector before province/city: Miền Bắc, Bắc Trung Bộ, Nam Trung Bộ, Tây Nguyên, Miền Đông / Đông Nam Bộ, Miền Tây / Tây Nam Bộ.
+- Business regions are operator/reporting groupings only. BHXH source partition codes remain durable source identities and are not rewritten.
+- Legacy BHXH geography labels remain classified so historical source partitions do not disappear from lookup.
+- Successful sync messaging explicitly states the destination is the Pharma official source repository and that records are not written directly to Partner.
+- Persistence boundary remains unchanged: `pharma_official_source_sync_batches` tracks sync runs and `pharma_official_source_facilities` stores source facilities; Partner remains a later reviewed/imported canonical boundary.
+- Added focused contract coverage: `tests/Feature/Pharma/OfficialFacilityRegionContractTest.php`.
+- No schema migration.
+- Awaiting operator targeted test + Pharma impacted regression + desktop/mobile UI smoke.
+
+---
+
 ## UI refinement — Medicine Catalog filters and columns
 
 - Filter controls are rebalanced into one desktop row. `Xóa bộ lọc` occupies the final slot only when a select/per-page value differs from its default; free-text search remains independent.
