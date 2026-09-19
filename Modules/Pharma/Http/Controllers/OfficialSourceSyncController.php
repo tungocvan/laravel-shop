@@ -5,7 +5,9 @@ namespace Modules\Pharma\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Modules\Pharma\Jobs\PersistOfficialSourceSnapshotJob;
 use Modules\Pharma\Models\OfficialSourceFacility;
 use Modules\Pharma\Models\OfficialSourceSyncBatch;
@@ -19,12 +21,19 @@ class OfficialSourceSyncController extends Controller
     {
         $search = trim((string) $request->string('search'));
         $source = trim((string) $request->string('source'));
+        $businessRegion = trim((string) $request->string('business_region'));
         $province = trim((string) $request->string('province'));
         $partition = trim((string) $request->string('partition'));
         $status = trim((string) $request->string('status'));
+        $regions = $provinceCatalog->regions();
+        $regionLabel = $regions[$businessRegion] ?? null;
+        $regionProvinceNames = $regionLabel === null
+            ? []
+            : array_values($provinceCatalog->provincesByRegion()[$regionLabel] ?? []);
 
         $query = OfficialSourceFacility::query()
             ->when($source !== '', fn ($builder) => $builder->where('source', $source))
+            ->when($regionLabel !== null, fn ($builder) => $builder->whereIn('province_name', $regionProvinceNames))
             ->when($province !== '', fn ($builder) => $builder->where('province_name', $province))
             ->when($partition !== '', fn ($builder) => $builder->where('source_province_code', $partition))
             ->when(in_array($status, ['active', 'stale'], true), fn ($builder) => $builder->where('is_active', $status === 'active'))
@@ -61,15 +70,67 @@ class OfficialSourceSyncController extends Controller
         return view('Pharma::pages.official-facilities.source', [
             'facilities' => $query->paginate($this->perPage($request))->withQueryString(),
             'batches' => OfficialSourceSyncBatch::query()->latest('id')->limit(20)->get(),
+            'businessRegions' => $regions,
+            'provinceRegions' => OfficialSourceFacility::query()
+                ->whereNotNull('province_name')
+                ->where('province_name', '<>', '')
+                ->distinct()
+                ->pluck('province_name')
+                ->mapWithKeys(fn (string $name): array => [$name => $provinceCatalog->regionForProvinceName($name)])
+                ->all(),
             'provinceOptions' => OfficialSourceFacility::query()
                 ->whereNotNull('province_name')
                 ->where('province_name', '<>', '')
+                ->when($regionLabel !== null, fn ($builder) => $builder->whereIn('province_name', $regionProvinceNames))
                 ->distinct()
                 ->orderBy('province_name')
                 ->pluck('province_name'),
             'partitionOptions' => $partitionOptions,
             'partitionLabels' => $partitionLabels,
         ]);
+    }
+
+    public function export(Request $request, BhxhProvinceCatalog $provinceCatalog): StreamedResponse|Response
+    {
+        $validated = $request->validate([
+            'selected_ids' => ['required', 'array', 'min:1', 'max:500'],
+            'selected_ids.*' => ['integer', 'distinct'],
+        ]);
+
+        $facilities = OfficialSourceFacility::query()
+            ->whereIn('id', $validated['selected_ids'])
+            ->orderBy('province_name')
+            ->orderBy('facility_name')
+            ->get();
+
+        if ($facilities->isEmpty()) {
+            return response('Không có cơ sở hợp lệ để export.', 422);
+        }
+
+        $filename = 'pharma-official-facilities-'.now()->format('Ymd-His').'.csv';
+
+        return response()->streamDownload(function () use ($facilities, $provinceCatalog): void {
+            $handle = fopen('php://output', 'wb');
+            fwrite($handle, "\xEF\xBB\xBF");
+            fputcsv($handle, ['Nguồn', 'Mã CSKCB', 'Tên cơ sở', 'Vùng miền ERP', 'Tỉnh/Thành', 'Vùng nguồn BHXH', 'Mã vùng nguồn', 'Địa bàn BHXH', 'Trạng thái', 'Lần đồng bộ cuối']);
+
+            foreach ($facilities as $facility) {
+                fputcsv($handle, [
+                    strtoupper((string) $facility->source),
+                    $facility->external_id,
+                    $facility->facility_name,
+                    $provinceCatalog->regionForProvinceName((string) $facility->province_name) ?? '',
+                    $facility->province_name,
+                    $facility->source_province_name ?? '',
+                    $facility->source_province_code,
+                    $facility->district_name ?? '',
+                    $facility->is_active ? 'ACTIVE' : 'STALE',
+                    optional($facility->last_synced_at)->format('d/m/Y H:i') ?? '',
+                ]);
+            }
+
+            fclose($handle);
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
     public function store(Request $request): JsonResponse
