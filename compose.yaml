@@ -40,7 +40,7 @@ services:
   queue:
     build: *app-build
     restart: unless-stopped
-    command: ["php", "artisan", "queue:work", "--queue=${QUEUE_NAMES:-facebook,default}", "--sleep=${QUEUE_SLEEP:-3}", "--tries=${QUEUE_TRIES:-3}", "--timeout=${QUEUE_TIMEOUT:-660}", "--max-time=${QUEUE_MAX_TIME:-3600}"]
+    command: ["php", "artisan", "queue:work", "--queue=${QUEUE_NAMES:-facebook,pharma,default}", "--sleep=${QUEUE_SLEEP:-3}", "--tries=${QUEUE_TRIES:-3}", "--timeout=${QUEUE_TIMEOUT:-660}", "--max-time=${QUEUE_MAX_TIME:-3600}"]
     stop_signal: SIGTERM
     stop_grace_period: 15s
     init: true
