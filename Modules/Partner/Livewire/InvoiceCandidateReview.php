@@ -4,6 +4,7 @@ namespace Modules\Partner\Livewire;
 
 use Livewire\Component;
 use Livewire\WithPagination;
+use Modules\Invoices\Models\Invoices;
 use Modules\Partner\Models\PartnerSyncCandidate;
 use Modules\Partner\Services\PartnerCandidateReviewService;
 
@@ -16,6 +17,8 @@ class InvoiceCandidateReview extends Component
     public string $status = 'actionable';
 
     public string $role = '';
+
+    public string $identity = 'with_tax_code';
 
     public string $search = '';
 
@@ -43,6 +46,13 @@ class InvoiceCandidateReview extends Component
     public function updatingSearch(): void
     {
         $this->resetPage();
+    }
+
+    public function updatingIdentity(): void
+    {
+        $this->resetPage();
+        $this->clearSelection();
+        $this->clearRowSelection();
     }
 
     public function updatingRole(): void
@@ -150,6 +160,7 @@ class InvoiceCandidateReview extends Component
     {
         $this->status = 'actionable';
         $this->role = '';
+        $this->identity = 'with_tax_code';
         $this->search = '';
         $this->perPage = 10;
         $this->resetPage();
@@ -159,21 +170,39 @@ class InvoiceCandidateReview extends Component
 
     public function render()
     {
-        $candidates = $this->candidateQuery()
-            ->latest('last_seen_at')
-            ->latest('id')
-            ->paginate($this->normalizedPerPage());
+        $missingIdentityMode = $this->identity === 'without_tax_code';
 
-        $selectedCandidate = $this->selectedCandidateId
+        $candidates = $missingIdentityMode
+            ? Invoices::query()
+                ->where(fn ($query) => $query->whereNull('tax_code')->orWhere('tax_code', ''))
+                ->when($this->role === 'customer', fn ($query) => $query->where('invoice_type', 'sold'))
+                ->when($this->role === 'supplier', fn ($query) => $query->where('invoice_type', 'purchase'))
+                ->when(trim($this->search) !== '', function ($query): void {
+                    $search = '%'.trim($this->search).'%';
+                    $query->where(function ($nested) use ($search): void {
+                        $nested->where('name', 'like', $search)
+                            ->orWhere('address', 'like', $search);
+                    });
+                })
+                ->latest('issued_date')
+                ->latest('id')
+                ->paginate($this->normalizedPerPage())
+            : $this->candidateQuery()
+                ->latest('last_seen_at')
+                ->latest('id')
+                ->paginate($this->normalizedPerPage());
+
+        $selectedCandidate = ! $missingIdentityMode && $this->selectedCandidateId
             ? PartnerSyncCandidate::query()->with('matchedPartner')->find($this->selectedCandidateId)
             : null;
 
         return view('partner::livewire.invoice-candidate-review', [
             'candidates' => $candidates,
             'selectedCandidate' => $selectedCandidate,
+            'missingIdentityMode' => $missingIdentityMode,
             'statusOptions' => PartnerSyncCandidate::STATUSES,
             'roleOptions' => ['customer' => 'Khách hàng', 'supplier' => 'Nhà cung cấp', 'both' => 'Cả hai'],
-            'hasActiveFilters' => trim($this->search) !== '' || $this->status !== 'actionable' || $this->role !== '' || (int) $this->perPage !== 10,
+            'hasActiveFilters' => trim($this->search) !== '' || $this->status !== 'actionable' || $this->role !== '' || $this->identity !== 'with_tax_code' || (int) $this->perPage !== 10,
             'perPageOptions' => self::PER_PAGE_OPTIONS,
         ]);
     }
@@ -235,6 +264,10 @@ class InvoiceCandidateReview extends Component
 
     private function visiblePendingIds(): array
     {
+        if ($this->identity === 'without_tax_code') {
+            return [];
+        }
+
         return $this->candidateQuery()
             ->where('status', 'pending')
             ->latest('last_seen_at')
