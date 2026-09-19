@@ -1,3 +1,14 @@
+## Regression gate — BHXH source-first contract alignment
+
+- Full Pharma regression reported by operator before this fix: 175 passed / 21 failed (1367 assertions).
+- Exactly one reported failure was in the current Official Facilities scope: `Modules/Pharma/Tests/Unit/BhxhFacilityLookupContractTest` still asserted the superseded literal `Không OCR / không bypass CAPTCHA`.
+- Updated that contract to assert the new source-first behavior: cached source data can be viewed without CAPTCHA, while a fresh BHXH request still requires a human-entered CAPTCHA before the lookup request is submitted.
+- No production behavior changed in this commit; test contract only.
+- Remaining 20 reported failures are the pre-existing/out-of-scope Pharma baseline (Medicine/Drug Award/dashboard/Price List/test-schema groups) and must remain documented rather than being mixed into this Official Facilities refactor.
+- Awaiting pull + focused BHXH/Official Facilities tests, then final Pharma regression. Expected regression gate if no new issue appears: 176 passed / 20 failed.
+
+---
+
 ## Fix — Official Source workbook helper sheets
 
 - Reproduced import incompatibility from the operator-provided workbook: the primary `Worksheet` contains the exported facility rows, while helper sheets such as `Nguon` and `Ma_dia_ban` do not carry the round-trip facility headings.
