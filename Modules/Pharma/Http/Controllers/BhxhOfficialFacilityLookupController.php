@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Modules\Pharma\Models\OfficialSourceFacility;
 use Modules\Pharma\Services\OfficialFacilityImport\BhxhFacilityLookupClient;
 use Modules\Pharma\Services\OfficialFacilityImport\BhxhProvinceCatalog;
 use RuntimeException;
@@ -70,6 +71,48 @@ class BhxhOfficialFacilityLookupController extends Controller
             'count' => count($districts),
             'source_province_code' => $sourceCode,
             'source_partition' => $this->partitionFor($uiCode, $sourceCode, $provinceCatalog),
+        ]);
+    }
+
+    public function cached(Request $request, BhxhProvinceCatalog $provinceCatalog): JsonResponse
+    {
+        $validated = $request->validate([
+            'ma_tinh' => ['required', 'string', Rule::in($provinceCatalog->codes())],
+            'source_partition' => ['nullable', 'string', 'max:20'],
+            'ma_quan_huyen' => ['nullable', 'string', 'max:50'],
+        ]);
+
+        $uiCode = trim($validated['ma_tinh']);
+        $sourceCode = $this->resolveSourcePartition($uiCode, $validated['source_partition'] ?? null, $provinceCatalog);
+
+        if ($sourceCode === null) {
+            return response()->json(['message' => 'Vùng dữ liệu BHXH không hợp lệ.', 'facilities' => []], 422);
+        }
+
+        $districtCode = filled($validated['ma_quan_huyen'] ?? null) ? trim($validated['ma_quan_huyen']) : null;
+        $query = OfficialSourceFacility::query()
+            ->where('source', 'bhxh')
+            ->where('source_province_code', $sourceCode)
+            ->when($districtCode !== null, fn ($builder) => $builder->where('source_district_code', $districtCode))
+            ->where('is_active', true)
+            ->orderBy('facility_name');
+
+        $facilities = $query->get(['external_id', 'facility_name', 'last_synced_at']);
+        $lastSyncedAt = $facilities->max('last_synced_at');
+
+        return response()->json([
+            'message' => $facilities->isEmpty()
+                ? 'Chưa có dữ liệu đã đồng bộ cho địa bàn này. Nhập CAPTCHA để tra cứu BHXH lần đầu.'
+                : 'Đang hiển thị dữ liệu đã lưu trong Kho dữ liệu nguồn Pharma.',
+            'facilities' => $facilities->map(fn (OfficialSourceFacility $facility): array => [
+                'external_id' => $facility->external_id,
+                'facility_name' => $facility->facility_name,
+            ])->values(),
+            'count' => $facilities->count(),
+            'has_cached_data' => $facilities->isNotEmpty(),
+            'last_synced_at' => optional($lastSyncedAt)->toIso8601String(),
+            'source_province_code' => $sourceCode,
+            'source_district_code' => $districtCode,
         ]);
     }
 
