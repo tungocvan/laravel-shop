@@ -6,7 +6,7 @@ use App\Modules\ModuleCatalog;
 use App\Modules\ModuleGraphValidator;
 use App\Modules\ModuleRegistry;
 use Illuminate\Support\Collection;
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 
 class ModuleRegistryQueueMetadataTest extends TestCase
 {
