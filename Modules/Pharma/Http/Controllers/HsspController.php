@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Modules\Pharma\Jobs\DeleteHsspDossier;
 use Modules\Pharma\Models\Medicine;
 use Modules\Pharma\Models\MedicineProfile;
 use Modules\Pharma\Services\HsspDossierTemplateService;
@@ -115,7 +116,7 @@ class HsspController extends Controller
         $root = 'Pharma/HSSP/'.$this->hsspFolderName($medicine);
         foreach ($dossier->items as $item) {
             foreach ($request->file('item_files.'.$item->code, []) as $file) {
-                $storage->store($dossier, $item, $file, $root, 'item', $targets);
+                $storage->store($dossier, $item, $file, $root, 'item', $targets, 'pharma');
             }
         }
 
@@ -132,12 +133,12 @@ class HsspController extends Controller
                 'metadata' => ['effective_to' => $custom['effective_to'] ?? null],
             ]);
             foreach ($request->file('custom_files.'.$index, []) as $file) {
-                $storage->store($dossier, $item, $file, $root, 'item', $targets);
+                $storage->store($dossier, $item, $file, $root, 'item', $targets, 'pharma');
             }
         }
 
         foreach ($request->file('master_files', []) as $file) {
-            $storage->store($dossier, null, $file, $root, 'master', $targets);
+            $storage->store($dossier, null, $file, $root, 'master', $targets, 'pharma');
         }
 
         return redirect()->route('admin.pharma.hssp.index')
@@ -222,7 +223,7 @@ class HsspController extends Controller
         $root = 'Pharma/HSSP/'.$this->hsspFolderName($medicine);
         foreach ($dossier->items as $item) {
             foreach ($request->file('item_files.'.$item->code, []) as $file) {
-                $storage->store($dossier, $item, $file, $root, 'item', $targets);
+                $storage->store($dossier, $item, $file, $root, 'item', $targets, 'pharma');
             }
         }
         foreach ((array) $request->input('existing_custom_items', []) as $itemId => $custom) {
@@ -235,7 +236,7 @@ class HsspController extends Controller
                 'metadata' => ['effective_to' => $custom['effective_to'] ?? null],
             ]);
             foreach ($request->file('existing_custom_files.'.$itemId, []) as $file) {
-                $storage->store($dossier, $item, $file, $root, 'item', $targets);
+                $storage->store($dossier, $item, $file, $root, 'item', $targets, 'pharma');
             }
         }
 
@@ -251,16 +252,44 @@ class HsspController extends Controller
                 'metadata' => ['effective_to' => $custom['effective_to'] ?? null],
             ]);
             foreach ($request->file('custom_files.'.$index, []) as $file) {
-                $storage->store($dossier, $item, $file, $root, 'item', $targets);
+                $storage->store($dossier, $item, $file, $root, 'item', $targets, 'pharma');
             }
         }
 
         foreach ($request->file('master_files', []) as $file) {
-            $storage->store($dossier, null, $file, $root, 'master', $targets);
+            $storage->store($dossier, null, $file, $root, 'master', $targets, 'pharma');
         }
 
         return redirect()->route('admin.pharma.hssp.index')
             ->with('success', 'Đã cập nhật HSSP của thuốc '.$medicine->name.'.');
+    }
+
+    public function destroy(Medicine $medicine, MedicineProfile $profile): RedirectResponse
+    {
+        abort_unless($profile->medicine_id === $medicine->id, 404);
+
+        $dossier = Dossier::query()
+            ->where('owner_type', MedicineProfile::class)
+            ->where('owner_id', $profile->id)
+            ->latest('id')
+            ->first();
+
+        if (! $dossier) {
+            $profile->delete();
+
+            return redirect()->route('admin.pharma.hssp.index')
+                ->with('success', 'Đã xóa HSSP không có dossier của thuốc '.$medicine->name.'.');
+        }
+
+        $metadata = (array) $dossier->metadata;
+        $metadata['deletion_pending'] = true;
+        $metadata['deletion_requested_at'] = now()->toIso8601String();
+        $dossier->update(['metadata' => $metadata]);
+
+        DeleteHsspDossier::dispatch($profile->id, $dossier->id)->onQueue('pharma');
+
+        return redirect()->route('admin.pharma.hssp.index')
+            ->with('success', 'Đã đưa yêu cầu xóa HSSP vào queue Pharma. Local, Google Drive và dữ liệu hồ sơ sẽ được dọn đồng bộ.');
     }
 
     private function hsspFolderName(Medicine $medicine): string
