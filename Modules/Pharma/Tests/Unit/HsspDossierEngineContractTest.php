@@ -25,6 +25,10 @@ class HsspDossierEngineContractTest extends TestCase
         $this->assertStringContainsString("'allows_multiple_files' => true", $template);
         $this->assertStringContainsString("'Laravel-Backup/'", $storage);
         $this->assertStringContainsString("'sync_failed'", $storage);
+        $this->assertStringContainsString("self::TARGET_GOOGLE_DRIVE", $storage);
+        $this->assertStringContainsString("'Pharma/HSSP/'", $controller);
+        $this->assertStringContainsString("'storage_targets' => ['required', 'array', 'min:1']", $controller);
+        $this->assertStringContainsString('Laravel-Backup/Pharma/HSSP/', $view);
     }
 
     public function test_generic_dossier_schema_is_not_owned_by_pharma(): void
