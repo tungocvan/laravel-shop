@@ -3,16 +3,30 @@
 namespace Modules\Pharma\Imports;
 
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Concerns\SkipsUnknownSheets;
 use Maatwebsite\Excel\Concerns\ToArray;
+use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 use Modules\Pharma\Models\OfficialSourceFacility;
 use Modules\Pharma\Services\OfficialFacilityImport\OfficialFacilityNormalizer;
 use RuntimeException;
 
-class OfficialSourceFacilitiesImport implements ToArray
+class OfficialSourceFacilitiesImport implements SkipsUnknownSheets, ToArray, WithMultipleSheets
 {
     public array $summary = ['created' => 0, 'updated' => 0, 'unchanged' => 0, 'errors' => 0];
 
     public function __construct(private readonly OfficialFacilityNormalizer $normalizer) {}
+
+    public function sheets(): array
+    {
+        return [
+            'Worksheet' => $this,
+        ];
+    }
+
+    public function onUnknownSheet($sheetName): void
+    {
+        // Export workbooks may contain helper/reference sheets. They are intentionally ignored.
+    }
 
     public function array(array $rows): void
     {
