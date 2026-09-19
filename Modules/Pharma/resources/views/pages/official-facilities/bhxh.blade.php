@@ -23,8 +23,19 @@
                 <p class="mt-1 text-sm text-slate-500">Nếu một tỉnh mới gồm nhiều vùng nguồn BHXH cũ, hãy chọn đúng vùng trước khi chọn địa bàn và nhập CAPTCHA.</p>
             </div>
 
-            <form data-bhxh-lookup-form class="grid gap-4 xl:grid-cols-5">
+            <form data-bhxh-lookup-form class="grid gap-4 xl:grid-cols-6">
                 @csrf
+                <div>
+                    <label for="business_region" class="mb-1 block text-sm font-medium text-slate-700">Vùng miền</label>
+                    <select id="business_region" name="business_region" class="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:ring-sky-500">
+                        <option value="">- Tất cả vùng miền -</option>
+                        @foreach ($bhxhRegions as $regionKey => $regionLabel)
+                            <option value="{{ $regionLabel }}" @selected($regionLabel === 'Miền Tây / Tây Nam Bộ')>{{ $regionLabel }}</option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-xs text-slate-500">Phân vùng nghiệp vụ ERP, không thay mã nguồn BHXH.</p>
+                </div>
+
                 <div>
                     <label for="ma_tinh" class="mb-1 block text-sm font-medium text-slate-700">Tỉnh/Thành <span class="text-rose-500">*</span></label>
                     <select id="ma_tinh" name="ma_tinh" required class="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:ring-sky-500">
@@ -63,7 +74,7 @@
                     </div>
                 </div>
 
-                <div class="xl:col-span-5 flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                <div class="xl:col-span-6 flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
                     <p class="text-xs text-slate-500">Không OCR / không bypass CAPTCHA. Mỗi lần tra cứu sử dụng đúng một vùng nguồn BHXH và yêu cầu CAPTCHA mới.</p>
                     <button type="submit" data-lookup-button class="min-h-11 rounded-xl bg-sky-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-slate-300">Tra cứu BHXH</button>
                 </div>
@@ -104,7 +115,10 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const partitions = @json($bhxhPartitions);
+            const provincesByRegion = @json($bhxhProvincesByRegion);
+            const allProvinces = @json($bhxhProvinces);
             const form = document.querySelector('[data-bhxh-lookup-form]');
+            const regionSelect = document.querySelector('#business_region');
             const provinceSelect = document.querySelector('#ma_tinh');
             const partitionSelect = document.querySelector('#source_partition');
             const partitionStatus = document.querySelector('[data-partition-status]');
@@ -158,6 +172,24 @@
                     });
                     resultBody.appendChild(row);
                 });
+            };
+
+            const populateProvinces = () => {
+                const selected = provinceSelect.value;
+                const source = regionSelect.value ? (provincesByRegion[regionSelect.value] ?? {}) : allProvinces;
+                provinceSelect.innerHTML = '<option value="">- Chọn Tỉnh/Thành -</option>';
+
+                Object.entries(source).forEach(([code, name]) => {
+                    const option = document.createElement('option');
+                    option.value = code;
+                    option.textContent = name;
+                    option.selected = code === selected;
+                    provinceSelect.appendChild(option);
+                });
+
+                if (!provinceSelect.value && regionSelect.value === 'Miền Tây / Tây Nam Bộ' && Object.prototype.hasOwnProperty.call(source, '92TTT')) {
+                    provinceSelect.value = '92TTT';
+                }
             };
 
             const populatePartitions = () => {
@@ -227,7 +259,7 @@
                         window.clearTimeout(syncPollTimer);
                         syncPollTimer = null;
                         syncButton.textContent = 'Đồng bộ hoàn tất';
-                        showMessage(syncMessage, `Đồng bộ hoàn tất. Batch #${payload.batch_id} · ${payload.fetched_count ?? 0} cơ sở · tạo mới ${payload.created_count ?? 0} · cập nhật ${payload.updated_count ?? 0} · không đổi ${payload.unchanged_count ?? 0}.`, true);
+                        showMessage(syncMessage, `Đồng bộ hoàn tất vào Kho dữ liệu nguồn Pharma. Batch #${payload.batch_id} · ${payload.fetched_count ?? 0} cơ sở · tạo mới ${payload.created_count ?? 0} · cập nhật ${payload.updated_count ?? 0} · không đổi ${payload.unchanged_count ?? 0}. Dữ liệu chưa ghi trực tiếp vào Partner.`, true);
                         return;
                     }
 
@@ -258,6 +290,12 @@
                 renderRows([]);
             };
 
+            regionSelect.addEventListener('change', () => {
+                resetLookupState();
+                populateProvinces();
+                populatePartitions();
+                loadDistricts();
+            });
             provinceSelect.addEventListener('change', () => {
                 resetLookupState();
                 populatePartitions();
@@ -272,6 +310,7 @@
             });
             refreshCaptcha.addEventListener('click', reloadCaptcha);
 
+            populateProvinces();
             populatePartitions();
             loadDistricts();
 
