@@ -182,5 +182,4 @@ class ModuleSnapshotContractTest extends TestCase
         $this->assertIsInt($legacySqlFallback);
         $this->assertLessThan($legacySqlFallback, $v2Return);
     }
-
 }
