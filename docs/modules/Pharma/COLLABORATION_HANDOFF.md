@@ -1,3 +1,9 @@
+## HSSP Module Snapshot v2 checkpoint — 2026-09-19
+
+- Pharma HSSP related snapshot graph now points at the actual `pharma_medicine_profiles` owner table.
+- Invalid related graph declarations now fail backup instead of silently producing an apparently successful snapshot without Dossier/HSSP data.
+- Fresh end-to-end Pharma snapshot verification remains required before PR/merge.
+
 # Pharma Collaboration Handoff
 
 ## Current checkpoint — HSSP lifecycle delete + runtime Pharma queue
