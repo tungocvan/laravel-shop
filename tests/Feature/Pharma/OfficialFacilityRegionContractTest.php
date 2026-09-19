@@ -65,4 +65,15 @@ class OfficialFacilityRegionContractTest extends TestCase
         $this->assertStringContainsString('border-slate-200 bg-white', $view);
         $this->assertStringContainsString('{{ $provinceRegions[$facility->province_name] ?? \'—\' }}', $view);
     }
+    public function test_source_workbook_import_reads_only_export_data_sheet_and_skips_helper_sheets(): void
+    {
+        $import = file_get_contents(base_path('Modules/Pharma/Imports/OfficialSourceFacilitiesImport.php'));
+
+        $this->assertStringContainsString('WithMultipleSheets', $import);
+        $this->assertStringContainsString('SkipsUnknownSheets', $import);
+        $this->assertStringContainsString("'Worksheet' => \$this", $import);
+        $this->assertStringContainsString('public function onUnknownSheet(', $import);
+        $this->assertStringContainsString('helper/reference sheets', $import);
+    }
+
 }
