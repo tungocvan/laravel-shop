@@ -50,23 +50,28 @@
                                             @if ($snapshot['snapshot_type'] === 'safety')<span class="rounded-full bg-amber-50 px-2 py-0.5 font-semibold text-amber-700">SAFETY</span>@endif
                                             @if ($snapshot['compatibility'] === 'COMPATIBLE')
                                                 <span class="rounded-full bg-emerald-50 px-2 py-0.5 font-semibold text-emerald-700">COMPATIBLE</span>
+                                            @elseif ($snapshot['compatibility'] === 'WARNING')
+                                                <span class="rounded-full bg-amber-50 px-2 py-0.5 font-semibold text-amber-700">WARNING</span>
                                             @else
-                                                <span class="rounded-full bg-red-50 px-2 py-0.5 font-semibold text-red-700">SCHEMA KHÔNG TƯƠNG THÍCH</span>
+                                                <span class="rounded-full bg-red-50 px-2 py-0.5 font-semibold text-red-700">BLOCKED</span>
                                             @endif
                                             @if ($remoteMatch)<span class="rounded-full bg-sky-50 px-2 py-0.5 font-semibold text-sky-700">LOCAL + DRIVE</span>@else<span class="rounded-full bg-gray-100 px-2 py-0.5 font-semibold text-gray-600">LOCAL ONLY</span>@endif
                                         </div>
-                                        @if ($snapshot['compatibility'] !== 'COMPATIBLE')
+                                        @if ($snapshot['compatibility'] === 'WARNING')
+                                            <div class="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-xs leading-5 text-amber-900">
+                                                <p class="font-bold">Snapshot có cảnh báo schema nhưng vẫn có thể Restore.</p>
+                                                <p class="mt-1">Snapshot v2 sẽ dùng schema production hiện tại cho các cột tương thích có khác biệt kiểu dữ liệu. Mở Restore để xem Preflight trước khi xác nhận.</p>
+                                            </div>
+                                        @elseif ($snapshot['compatibility'] === 'BLOCKED')
                                             <div class="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-3 text-xs leading-5 text-red-800">
-                                                <p class="font-bold">Không thể Restore Module: schema hiện tại khác schema lúc snapshot được tạo.</p>
-                                                <p class="mt-1"><span class="font-semibold">Đã xác minh:</span> package ZIP, manifest, đúng Module/format, ownership bảng và checksum SQL đều hợp lệ. Snapshot chỉ bị khóa ở bước so sánh schema fingerprint.</p>
-                                                <p class="mt-1"><span class="font-semibold">Gợi ý khắc phục:</span> bảo đảm máy tạo snapshot và máy hiện tại dùng cùng branch/commit, kiểm tra <code class="rounded bg-white px-1">php artisan migrate:status</code> và migration của Module {{ $moduleFilter }}. Nếu migration đều đã Ran nhưng vẫn bị khóa, schema thực tế đã lệch; cần so sánh cấu trúc bảng trước khi restore, không nên ép bỏ qua validation.</p>
-                                                <p class="mt-1 text-red-700">Snapshot format hiện tại chỉ lưu fingerprint tổng nên snapshot cũ chưa thể chỉ ra chính xác cột/index nào khác.</p>
+                                                <p class="font-bold">Không thể Restore Module: Preflight phát hiện khác biệt schema không an toàn.</p>
+                                                <p class="mt-1">Kiểm tra chi tiết compatibility report và migration trước khi phục hồi. Không nên ép bỏ qua validation.</p>
                                             </div>
                                         @endif
                                     </div>
                                     <div class="flex shrink-0 flex-wrap gap-2">
                                         @if ($canBackup && $moduleDriveConnected && ! $remoteMatch)<button type="button" wire:click="uploadModuleSnapshot('{{ $snapshot['reference'] }}')" wire:loading.attr="disabled" class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 disabled:opacity-50">Upload Drive</button>@endif
-                                        @if ($canRestore && $snapshot['compatibility'] === 'COMPATIBLE')<button type="button" wire:click="openModuleRestoreModal('{{ $snapshot['reference'] }}')" wire:loading.attr="disabled" class="rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Restore Module</button>@endif
+                                        @if ($canRestore && in_array($snapshot['compatibility'], ['COMPATIBLE', 'WARNING'], true))<button type="button" wire:click="openModuleRestoreModal('{{ $snapshot['reference'] }}')" wire:loading.attr="disabled" class="rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Restore Module</button>@endif
                                         @if ($canDestroy)<button type="button" wire:click="deleteLocalModuleSnapshot('{{ $snapshot['reference'] }}')" wire:confirm="Xóa vĩnh viễn Local Snapshot {{ $snapshot['name'] }}? Bản Google Drive nếu có sẽ KHÔNG bị xóa." wire:loading.attr="disabled" class="rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-50 disabled:opacity-50">Xóa Local</button>@endif
                                     </div>
                                 </div>
@@ -105,12 +110,16 @@
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true"><div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"><h2 class="text-lg font-bold text-red-600">Restore Module {{ $moduleFilter }}</h2><p class="mt-2 text-sm leading-6 text-gray-600">Hệ thống sẽ tạo Safety Snapshot của toàn bộ bảng thuộc Module trước khi restore. Nếu import thất bại, Safety Snapshot sẽ được dùng rollback tự động.</p>@if ($selectedModuleSnapshot)<div class="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700"><div class="font-semibold text-gray-900">{{ $selectedModuleSnapshot['name'] }}</div><div class="mt-2 grid grid-cols-2 gap-2 text-xs text-gray-500"><span>Tables: {{ count($selectedModuleSnapshot['tables']) }}</span><span>Size: {{ number_format($selectedModuleSnapshot['size'] / 1024 / 1024, 2) }} MB</span><span>Compatibility: {{ $selectedModuleSnapshot['compatibility'] }}</span><span>Scope: {{ $moduleFilter }}</span></div></div>@endif
             <div class="mt-4 rounded-xl border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-800">Snapshot v2 phục hồi các bảng thuộc ownership Module và related data đã được Module khai báo rõ ràng. Shared table không được backup toàn bảng; chỉ các row liên quan được đưa vào package.</div>
             @if ($selectedModulePreflight !== [])
-                <div class="mt-4 rounded-xl border {{ ($selectedModulePreflight['status'] ?? '') === 'WARNING' ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50' }} p-4 text-sm">
+                <div class="mt-4 rounded-xl border {{ ($selectedModulePreflight['status'] ?? '') === 'BLOCKED' ? 'border-red-200 bg-red-50' : (($selectedModulePreflight['status'] ?? '') === 'WARNING' ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50') }} p-4 text-sm">
                     <div class="font-semibold text-gray-900">Preflight Restore: {{ $selectedModulePreflight['status'] ?? 'UNKNOWN' }}</div>
                     @if (!empty($selectedModulePreflight['issues']))
+                        @php($preflightIssues = collect($selectedModulePreflight['issues']))
+                        @php($preflightGroups = $preflightIssues->groupBy(fn ($issue) => ($issue['level'] ?? 'info').'|'.($issue['message'] ?? ''))->sortByDesc->count())
+                        <p class="mt-1 text-xs text-gray-600">{{ $preflightIssues->count() }} cảnh báo/ghi chú. Các mục giống nhau được gom nhóm để dễ kiểm tra.</p>
                         <div class="mt-2 max-h-40 space-y-1 overflow-auto text-xs text-gray-700">
-                            @foreach ($selectedModulePreflight['issues'] as $issue)
-                                <div><span class="font-semibold">{{ strtoupper($issue['level'] ?? 'info') }}</span> · {{ $issue['table'] ?? 'schema' }}@if(!empty($issue['column'])).{{ $issue['column'] }}@endif — {{ $issue['message'] ?? '' }}</div>
+                            @foreach ($preflightGroups as $key => $issues)
+                                @php([$level, $message] = array_pad(explode('|', $key, 2), 2, ''))
+                                <div><span class="font-semibold">{{ strtoupper($level) }}</span> · {{ $issues->count() }} cột — {{ $message }}</div>
                             @endforeach
                         </div>
                     @else
