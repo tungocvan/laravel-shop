@@ -57,6 +57,27 @@
             </details>
         @endforeach
 
+        @foreach(($dossier?->items ?? collect())->whereNull('template_item_id') as $customItem)
+            <div class="rounded-2xl border border-indigo-100 bg-white p-5 shadow-sm">
+                <div class="grid gap-4 md:grid-cols-2">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700">Tên mục hồ sơ bổ sung</label>
+                        <input name="existing_custom_items[{{ $customItem->id }}][title]" value="{{ old('existing_custom_items.'.$customItem->id.'.title', $customItem->title) }}" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-4 py-2.5">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700">Hiệu lực đến (nếu có)</label>
+                        <input type="date" name="existing_custom_items[{{ $customItem->id }}][effective_to]" value="{{ old('existing_custom_items.'.$customItem->id.'.effective_to', $customItem->metadata['effective_to'] ?? '') }}" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-4 py-2.5">
+                    </div>
+                    <div class="md:col-span-2">
+                        <input type="file" multiple name="existing_custom_files[{{ $customItem->id }}][]" class="block w-full text-sm text-slate-600">
+                        @foreach($customItem->attachments as $attachment)
+                            <div class="mt-2 text-xs text-slate-600">✓ {{ $attachment->original_name }} · {{ $attachment->sync_status }}</div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+        @endforeach
+
         <template x-for="(item, index) in customItems" :key="index">
             <div class="rounded-2xl border border-indigo-200 bg-white p-5 shadow-sm">
                 <div class="flex items-start gap-3">
