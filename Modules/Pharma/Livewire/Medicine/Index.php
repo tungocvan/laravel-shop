@@ -33,6 +33,14 @@ class Index extends Component
 
     public bool $selectPage = false;
 
+    public ?int $confirmingDeleteId = null;
+
+    public ?string $confirmingDeleteName = null;
+
+    public ?string $deleteResultType = null;
+
+    public ?string $deleteResultMessage = null;
+
     protected $listeners = ['refreshComponent' => '$refresh'];
 
     public function mount(): void
@@ -104,6 +112,44 @@ class Index extends Component
         $this->clearSelection();
     }
 
+    public function confirmDelete(int $id): void
+    {
+        $this->authorizePharmaDelete();
+        $medicine = Medicine::query()->withCount('profiles')->findOrFail($id);
+
+        if ($medicine->profiles_count > 0) {
+            $this->showDeleteResult('error', 'Không thể xóa thuốc vì đã có Hồ sơ sản phẩm (HSSP). Hãy xóa HSSP trước nếu thực sự muốn xóa Medicine.');
+
+            return;
+        }
+
+        $this->confirmingDeleteId = $id;
+        $this->confirmingDeleteName = $medicine->name;
+        $this->deleteResultType = null;
+        $this->deleteResultMessage = null;
+    }
+
+    public function cancelDelete(): void
+    {
+        $this->confirmingDeleteId = null;
+        $this->confirmingDeleteName = null;
+    }
+
+    public function closeDeleteResult(): void
+    {
+        $this->deleteResultType = null;
+        $this->deleteResultMessage = null;
+    }
+
+    public function deleteConfirmed(MedicineService $medicineService): void
+    {
+        if ($this->confirmingDeleteId === null) {
+            return;
+        }
+
+        $this->deleteMedicine($medicineService, $this->confirmingDeleteId);
+    }
+
     public function deleteMedicine(MedicineService $medicineService, int $id): void
     {
         $this->authorizePharmaDelete();
@@ -111,12 +157,14 @@ class Index extends Component
         try {
             $medicineService->delete($id);
             $this->clearSelection();
-            session()->flash('success', 'Đã xóa thuốc và dữ liệu catalog nội bộ liên quan khỏi Medicine Master.');
+            $this->showDeleteResult('success', 'Đã xóa thuốc khỏi Medicine Master thành công.');
         } catch (LogicException $exception) {
-            session()->flash('error', $exception->getMessage());
+            $this->showDeleteResult('error', $exception->getMessage());
         } catch (Exception $exception) {
             report($exception);
-            session()->flash('error', 'Không thể xóa bản ghi này. Vui lòng kiểm tra log hệ thống.');
+            $this->showDeleteResult('error', 'Không thể xóa thuốc do lỗi hệ thống. Vui lòng kiểm tra log.');
+        } finally {
+            $this->cancelDelete();
         }
     }
 
@@ -212,6 +260,12 @@ class Index extends Component
     {
         $this->selectedIds = [];
         $this->selectPage = false;
+    }
+
+    private function showDeleteResult(string $type, string $message): void
+    {
+        $this->deleteResultType = $type;
+        $this->deleteResultMessage = $message;
     }
 
     private function normalizePerPage(mixed $value): int
