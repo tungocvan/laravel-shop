@@ -251,3 +251,12 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - Added `Định danh MST` filter with `Có MST` (default) and `Không có MST`.
 - Missing-tax mode reads the original Invoices rows because such rows are intentionally excluded from `partner_sync_candidates`; it is review-only and exposes no checkbox or Partner-create action.
 - This preserves the safety rule: Partner creation/synchronization still requires a tax-code identity.
+
+
+### Acceptance checkpoint — 2026-09-19
+
+- User acceptance: UI PASS.
+- Focused/impacted tests: PASS on the user's environment.
+- Targeted Pint completed; the only local changes reported were import ordering in `Modules/Invoices/routes/web.php` and quote normalization in `InvoicePartnerSyncDashboardContractTest.php`. Those exact formatting changes are committed to this branch.
+- No additional regression run is required for the formatting-only synchronization.
+- Feature scope is ready for PR/merge closeout.
