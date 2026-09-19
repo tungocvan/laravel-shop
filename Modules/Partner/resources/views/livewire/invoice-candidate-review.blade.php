@@ -15,7 +15,7 @@
             </div>
             <div>
                 <label class="text-sm font-medium text-gray-700">Trạng thái</label>
-                <select wire:model.live="status" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                <select wire:model.live="status" @disabled($missingIdentityMode) class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
                     <option value="actionable">Cần xử lý</option>
                     <option value="">Tất cả</option>
                     @foreach ($statusOptions as $value => $label)
