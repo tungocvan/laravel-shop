@@ -1,5 +1,34 @@
 # Pharma Collaboration Handoff
 
+## Current checkpoint — HSSP reusable dossier engine implementation
+
+- Module: `Pharma` with reusable core under `App\\Dossiers`
+- Branch: `refactor/pharma-hssp-dossier-engine`
+- Status: **IMPLEMENTED — AWAITING LOCAL MIGRATION / TARGETED TEST / UI ACCEPTANCE**
+- Date: 2026-09-19
+- Parent checkpoint: Medicine Master/GPLH refactor merged to `main` via PR #204.
+
+### Implemented scope
+
+- Generic dossier templates, template items, dossier instances, items and attachments.
+- Reusable Blade component `<x-dossier.editor>` driven by template metadata schema.
+- Pharma default HSSP template: GMP, GPLH decision, HDSD, label and product-change sections.
+- GMP expiry and registration/GPLH expiry are required; per-item uploads remain optional.
+- Operators can append custom dossier items with optional validity date and attachments.
+- Optional combined/master files are supported.
+- Attachments are local-first and mirror through the existing System Google Drive OAuth connection under the configured `Laravel-Backup` root.
+- Attachment records retain checksum, local path, remote path and sync status.
+- Existing HSSP MedicineProfile remains the Pharma owner; dossier engine does not create a second Medicine identity.
+- HSSP create/edit now composes the reusable dossier editor.
+
+### Acceptance pending
+
+Run the new migration, focused HSSP dossier contract test, impacted System Google Drive upload contract test, then Pharma module regression appropriate to the changed HSSP boundary. Perform desktop/mobile UI smoke for create/edit, required validity validation, optional item upload, custom item, master upload and Drive sync status.
+
+---
+
+# Pharma Collaboration Handoff
+
 ## Current checkpoint — Medicine Master / GPLH integrity accepted
 
 - Module: `Pharma`
