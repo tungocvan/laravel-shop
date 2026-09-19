@@ -1,3 +1,15 @@
+## Final acceptance — Official Facilities source regions / BHXH / XLSX round-trip
+
+- Operator acceptance: focused tests PASS and UI PASS, including the exported workbook import flow.
+- Final Pharma regression after aligning the BHXH source-first contract: **176 passed / 20 failed (1374 assertions)**.
+- Compared with the immediately preceding regression (175 passed / 21 failed), the only Official Facilities failure was removed. Remaining 20 failures are documented pre-existing/out-of-scope Pharma baseline groups (Medicine UI/contracts, dashboard contracts, Drug Award SQLite test schema/import-export, Price List contracts).
+- Branch review against `main`: branch is 37 commits ahead and 0 behind at closeout review; changes are scoped to Official Facilities/BHXH/source export-import plus this handoff, with the existing dashboard link adjustment.
+- Official Facilities regression attributable to this branch at closeout: **0**.
+- No schema migration was added by the final XLSX/source-first fixes.
+- Ready for PR and merge to `main`.
+
+---
+
 ## Regression gate — BHXH source-first contract alignment
 
 - Full Pharma regression reported by operator before this fix: 175 passed / 21 failed (1367 assertions).
