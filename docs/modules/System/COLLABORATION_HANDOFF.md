@@ -1,3 +1,60 @@
+## Module Snapshot v2 runtime checkpoint — 2026-09-19
+- Runtime Pharma v2 capture verified: 1 dossier, 1 template, 5 template items, 5 dossier items, 4 attachments, including GMP/GPLH metadata and Google Drive attachment metadata.
+- Related restore now deletes scoped child rows before root replacement and blocks ID collisions across different dossier owners/templates/children instead of overwriting shared data.
+
+- Runtime Pharma snapshot exposed a contract-test gap: related graph silently returned an empty dataset when the configured owner table did not exist.
+- Fixed HSSP owner table mapping to `pharma_medicine_profiles` and changed related graph capture to fail fast on missing tables/columns or invalid reference ordering.
+- Added regression contract coverage. Next checkpoint: pull branch, run targeted System snapshot test + Pint, then create a fresh Pharma v2 snapshot and inspect related HSSP JSONL before PR/merge.
+
+
+
+---
+
+## Active Phase — Module Snapshot v2 / Schema-Aware Recovery
+
+- Module: `System`
+- Delivery branch: `refactor/system-module-backup-v2`
+- Base: `main@d224daf7`
+- Status: **IMPLEMENTATION CHECKPOINT — AWAITING TARGETED TEST / UI SMOKE**
+- Trigger: Pharma HSSP restore retained `medicine_profiles` but lost generic Dossier rows because the previous snapshot engine only captured migration-owned Module tables and required exact schema fingerprints.
+
+### Implemented
+
+- Snapshot format v2 stores row data as JSONL using the live database schema instead of restoring table DDL from `mysqldump`.
+- Manifest v2 records per-column schema metadata, owned row counts, related-data graph metadata and checksums for every data entry.
+- Restore projects snapshot rows onto columns that still exist in the current production schema.
+- New nullable/default/generated columns are accepted and use the current database default/null behavior.
+- Removed legacy columns are ignored with a preflight notice.
+- Type changes are surfaced as warnings and production schema remains authoritative.
+- A new required column without default/null blocks restore with a concrete reason.
+- New Module-owned tables absent from an older v2 snapshot are preserved rather than truncated.
+- Tables no longer owned by the Module are excluded from the v2 restore set.
+- Legacy format v1 packages remain readable/restorable only under their original exact-schema compatibility rule.
+- Related/shared data is explicit and declarative in Module config; the generic System engine does not import Pharma classes.
+- Pharma declares the HSSP Dossier graph: `dossiers`, `dossier_templates`, `dossier_template_items`, `dossier_items`, `dossier_attachments`, scoped to `MedicineProfile` owners.
+- Shared Dossier tables are not truncated wholesale. Restore deletes/replaces only rows related to the restored Pharma profiles and upserts referenced template rows.
+- Restore modal now exposes schema-aware preflight status/issues instead of a generic compatibility label only.
+- Existing Safety Snapshot + rollback, local/Drive package transport, lock and checksum boundaries remain in place.
+
+### Required checkpoint
+
+Run only directly impacted tests plus Pint:
+
+```bash
+git fetch origin
+git switch refactor/system-module-backup-v2
+git pull --ff-only origin refactor/system-module-backup-v2
+
+php artisan test tests/Feature/System/ModuleSnapshotContractTest.php
+./vendor/bin/pint \
+  Modules/System/Services/Database/ModuleSnapshotDataService.php \
+  Modules/System/Services/Database/ModuleSnapshotService.php \
+  Modules/System/Livewire/Database/TableList.php \
+  Modules/Pharma/config/module.php \
+  tests/Feature/System/ModuleSnapshotContractTest.php
+```
+
+After PASS, create a fresh Pharma Module Snapshot on local and verify its package/restore round-trip restores MedicineProfile #2 with Dossier #2 and the GMP/GPLH metadata before PR/merge.
 # System Collaboration Handoff
 
 ## Current Status — Dashboard Information Architecture Refactor

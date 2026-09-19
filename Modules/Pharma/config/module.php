@@ -1,5 +1,7 @@
 <?php
 
+use Modules\Pharma\Models\MedicineProfile;
+
 return [
     'name' => 'Pharma',
     'type' => 'domain',
@@ -7,6 +9,40 @@ return [
     'depends' => [
         'Shared',
         'Partner',
+    ],
+    'snapshot' => [
+        'related' => [
+            [
+                'name' => 'hssp_dossier_engine',
+                'root' => [
+                    'table' => 'dossiers',
+                    'key' => 'id',
+                    'where_column' => 'owner_type',
+                    'where_value' => MedicineProfile::class,
+                    'owner_table' => 'pharma_medicine_profiles',
+                    'owner_key' => 'id',
+                    'owner_foreign_key' => 'owner_id',
+                ],
+                'references' => [
+                    [
+                        'source_table' => 'dossiers',
+                        'source_column' => 'template_id',
+                        'target_table' => 'dossier_templates',
+                        'target_column' => 'id',
+                    ],
+                    [
+                        'source_table' => 'dossier_templates',
+                        'source_column' => 'id',
+                        'target_table' => 'dossier_template_items',
+                        'target_column' => 'template_id',
+                    ],
+                ],
+                'children' => [
+                    ['table' => 'dossier_items', 'foreign_key' => 'dossier_id'],
+                    ['table' => 'dossier_attachments', 'foreign_key' => 'dossier_id'],
+                ],
+            ],
+        ],
     ],
     'queues' => [
         [

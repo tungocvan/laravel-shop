@@ -1,3 +1,10 @@
+## HSSP Module Snapshot v2 checkpoint — 2026-09-19
+- Fresh Pharma Snapshot v2 runtime capture verified HSSP graph: dossier=1, template=1, template_items=5, items=5, attachments=4. GMP/GPLH metadata and Google Drive attachment metadata are present in the ZIP.
+
+- Pharma HSSP related snapshot graph now points at the actual `pharma_medicine_profiles` owner table.
+- Invalid related graph declarations now fail backup instead of silently producing an apparently successful snapshot without Dossier/HSSP data.
+- Fresh end-to-end Pharma snapshot verification remains required before PR/merge.
+
 # Pharma Collaboration Handoff
 
 ## Current checkpoint — HSSP lifecycle delete + runtime Pharma queue
