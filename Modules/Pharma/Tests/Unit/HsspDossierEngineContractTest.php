@@ -28,7 +28,7 @@ class HsspDossierEngineContractTest extends TestCase
         $this->assertStringContainsString("'allows_multiple_files' => true", $template);
         $this->assertStringContainsString("'pending'", $storage);
         $this->assertStringContainsString('UploadDossierAttachmentToGoogleDrive::dispatch', $storage);
-        $this->assertStringContainsString("self::TARGET_GOOGLE_DRIVE", $storage);
+        $this->assertStringContainsString('self::TARGET_GOOGLE_DRIVE', $storage);
         $this->assertStringContainsString("'Pharma/HSSP/'", $controller);
         $this->assertStringContainsString("'storage_targets' => ['required', 'array', 'min:1']", $controller);
         $this->assertStringContainsString('Laravel-Backup/Pharma/HSSP/', $view);
@@ -41,7 +41,7 @@ class HsspDossierEngineContractTest extends TestCase
         $this->assertStringContainsString('implements ShouldQueue', $queueJob);
         $this->assertStringContainsString('string $queue = \'default\'', $queueJob);
         $this->assertStringContainsString("'remote_id' => \$uploaded['id']", $queueJob);
-        $this->assertStringContainsString("DeleteHsspDossier::dispatch", $controller);
+        $this->assertStringContainsString('DeleteHsspDossier::dispatch', $controller);
         $this->assertStringContainsString("onQueue('pharma')", $deleteJob);
         $this->assertStringContainsString('deleteAttachmentStorage', $deleteJob);
         $this->assertStringContainsString('Xóa toàn bộ HSSP?', $index);
