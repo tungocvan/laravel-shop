@@ -1,3 +1,17 @@
+## Checkpoint — Price List pagination selection identity
+
+- Branch: `fix/pharma-price-list-pagination-selection`.
+- Base: `main` at `cf06ebca1381f7a1679f6c261479cb2255d7bd17`.
+- Route: `/admin/pharma/price-lists/create`, step 2 (`Chọn thuốc`).
+- Root cause: product rows did not have a stable Livewire DOM key. When pagination replaced the dataset, Livewire could reuse checkbox nodes by row position and visually carry checked state onto unrelated products on the next page while the server-side `selectedRows` count remained correct.
+- Fix: each catalog row now uses the canonical variant/package row key as `wire:key`; each checkbox also has a matching stable HTML id. Selection remains server-owned and persists only for the exact selected SKU/package keys.
+- Selection semantics remain unchanged: the header checkbox is page-scoped, while `Chọn tất cả kết quả` remains an explicit separate action.
+- No schema migration and no Price List business-rule change.
+- Static diff/whitespace validation: PASS (`git diff --check`).
+- Automated tests were not run in the implementation workspace because PHP is unavailable there; operator focused/module tests and manual UI acceptance remain pending at this checkpoint.
+
+---
+
 ## Final acceptance — Official Facilities source regions / BHXH / XLSX round-trip
 
 - Operator acceptance: focused tests PASS and UI PASS, including the exported workbook import flow.

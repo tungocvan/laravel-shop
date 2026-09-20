@@ -123,6 +123,16 @@ class PriceListV2ContractTest extends TestCase
     }
 
     #[Test]
+    public function catalog_rows_have_stable_livewire_identity_across_pagination(): void
+    {
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/create.blade.php'));
+
+        $this->assertStringContainsString('wire:key="catalog-row-{{ $row->key }}"', $view);
+        $this->assertStringContainsString('id="catalog-row-checkbox-{{ $row->key }}"', $view);
+        $this->assertStringContainsString('wire:model.live="selectedRows" value="{{ $row->key }}"', $view);
+    }
+
+    #[Test]
     public function persistence_contract_contains_snapshot_and_duplicate_protection(): void
     {
         $migration = file_get_contents(base_path('Modules/Pharma/database/migrations/2026_09_14_140000_create_price_lists_v2_tables.php'));
