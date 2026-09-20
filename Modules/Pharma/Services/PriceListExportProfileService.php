@@ -64,6 +64,7 @@ class PriceListExportProfileService
         'actual_receivable_price' => ['label' => 'Giá thu thực tế', 'group' => 'pricing', 'align' => 'right', 'width' => 120, 'type' => 'number'],
         'invoice_price' => ['label' => 'Giá xuất hóa đơn', 'group' => 'pricing', 'align' => 'right', 'width' => 120, 'type' => 'number'],
         'partner' => ['label' => 'Khách hàng / loại', 'group' => 'commercial', 'align' => 'left', 'width' => 200, 'type' => 'auto'],
+        'manager' => ['label' => 'Người phụ trách', 'group' => 'commercial', 'align' => 'left', 'width' => 170, 'type' => 'auto'],
         'effective' => ['label' => 'Hiệu lực', 'group' => 'commercial', 'align' => 'center', 'width' => 170, 'type' => 'auto'],
         'status' => ['label' => 'Trạng thái', 'group' => 'commercial', 'align' => 'center', 'width' => 100, 'type' => 'auto'],
         'note' => ['label' => 'Ghi chú', 'group' => 'commercial', 'align' => 'left', 'width' => 200, 'type' => 'auto'],

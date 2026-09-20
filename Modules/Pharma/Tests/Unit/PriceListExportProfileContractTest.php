@@ -14,6 +14,7 @@ class PriceListExportProfileContractTest extends TestCase
         $service = file_get_contents(base_path('Modules/Pharma/Services/PriceListExportProfileService.php'));
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/export-configurator.blade.php'));
         $controller = file_get_contents(base_path('Modules/Pharma/Http/Controllers/PriceListController.php'));
+        $layout = file_get_contents(base_path('Modules/Pharma/Services/PriceListExcelDocumentLayout.php'));
 
         $this->assertStringContainsString("Schema::create('pharma_price_list_export_profiles'", $migration);
         $this->assertStringContainsString('header_footer', $migration);
@@ -26,5 +27,7 @@ class PriceListExportProfileContractTest extends TestCase
         $this->assertStringContainsString('export_profile_id', $controller);
         $this->assertStringContainsString('setFitToWidth', $controller);
         $this->assertStringContainsString('setHorizontalCentered', $controller);
+        $this->assertStringContainsString("\$dateText = trim((string) (\$hf['footer_year'] ?? ''));", $layout);
+        $this->assertStringNotContainsString("'ngày.....tháng.....năm '.\$year", $layout);
     }
 }

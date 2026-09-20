@@ -1,3 +1,24 @@
+## Checkpoint — Price List manager/time filters + Excel recipient/export refinements — 2026-09-20
+
+- Branch: `feat/pharma-price-list-manager-time-filters`; based on merged `main` from PR #214. Pre-handoff compare: ahead 26, behind 0.
+- Price List index now exposes the assigned `Người phụ trách` column and manager filter. Manager relation is eager-loaded and the filter options are bounded to users actually assigned to Price Lists.
+- Effective-date filtering is explicit: date inputs default visually to the current date, but querying occurs only after `Áp dụng`. `Xóa bộ lọc` clears active criteria. Effective-from/effective-to sorting supports ascending/descending direction.
+- Price List workspace was widened toward the admin sidebar and the filter area was reorganized into a professional two-level desktop layout with responsive wrapping.
+- Row actions use direct `Xem` / `Sửa` actions plus a compact `Thêm` menu. The menu uses Alpine `x-teleport="body"` with fixed viewport positioning so it opens downward outside the table's horizontal overflow clipping context.
+- Excel Designer group `Bảng giá & khách hàng` now includes `Người phụ trách`.
+- Excel `Khách hàng / loại` now resolves the actual customer source: Global → `Bảng giá chung`; Partner → partner name; Official Facility → facility name; missing customer identity → `Chưa chỉ định`.
+- Excel footer date text no longer prepends a second `ngày...tháng...năm`; configured date text is emitted exactly once.
+- Excel header recipient semantics: configured `Kính gửi` wins when non-empty; when blank, it falls back to the same resolved `Khách hàng / loại` label. The fallback is passed as the fifth `PriceListExcelDocumentLayout::header()` argument, preserving the integer `startRow` argument.
+- Operator acceptance: UI PASS for widened layout, manager/time filters, sorting/reset controls, overflow-safe downward action menu, Excel Designer manager field, customer label export, footer date, and configured/fallback recipient behavior.
+- Focused Price List regression: PASS — 23 tests / 365 assertions across `PriceListV2ContractTest`, `PriceListExcelExportContractTest`, `PriceListExportProfileContractTest`, and `PriceListBidProfessionalUiContractTest`.
+- Operator working tree after acceptance: clean (`git status --short` returned no output).
+- Schema migration: none in this batch.
+- Full Pharma/project regression: not run for this follow-up; scope is Price List index/export.
+- Production boundary: no schema migration or feature flag; normal application deployment/cache lifecycle only.
+- Status: **IMPLEMENTATION + FOCUSED REGRESSION + UI/EXPORT ACCEPTANCE COMPLETE — READY FOR PR GATE; DO NOT MERGE UNTIL REVIEWED.**
+
+---
+
 ## Checkpoint — Price List customer sources / lifecycle / export UX — 2026-09-20
 
 - Branch: `feature/pharma-price-list-customer-sources`.

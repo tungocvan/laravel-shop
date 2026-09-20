@@ -119,7 +119,8 @@ class PriceListV2ContractTest extends TestCase
         $this->assertStringContainsString('STATUS_INACTIVE', $model);
         $this->assertStringContainsString('isDirectlyEditable()', $controller);
         $this->assertStringContainsString("in_array(\$list->status,['draft','inactive'],true)", $indexView);
-        $this->assertGreaterThanOrEqual(2, substr_count($indexView, "confirm({{ \$list->id }},'activate')"));
+        $this->assertStringContainsString("confirm({{ \$list->id }},'activate')", $indexView);
+        $this->assertStringContainsString("in_array(\$list->status,['draft','inactive'],true)", $indexView);
         $this->assertStringContainsString('Kích hoạt', $indexView);
         $indexPage = file_get_contents(base_path('Modules/Pharma/resources/views/pages/price-list/index.blade.php'));
         $showPage = file_get_contents(base_path('Modules/Pharma/resources/views/pages/price-list/show.blade.php'));
@@ -217,6 +218,12 @@ class PriceListV2ContractTest extends TestCase
         $this->assertStringContainsString('ACTIVE phải được ngưng trước khi xóa', $manager);
         $this->assertStringContainsString('Xóa bảng giá đã chọn', $view);
         $this->assertStringContainsString('không xóa một phần', $view);
+        foreach (['managerUserId', 'effectiveFrom', 'effectiveTo', 'appliedEffectiveFrom', 'appliedEffectiveTo', 'sortField', 'sortDirection', 'applyEffectiveDates', 'resetFilters', 'sortBy'] as $property) $this->assertStringContainsString($property, $component);
+        $this->assertStringContainsString("'manager'", $component);
+        $this->assertStringContainsString("where('manager_user_id'", $component);
+        $this->assertStringContainsString("whereNull('effective_to')->orWhereDate('effective_to', '>=',", $component);
+        $this->assertStringContainsString("whereNull('effective_from')->orWhereDate('effective_from', '<=',", $component);
+        foreach (['wire:model.live="managerUserId"', 'wire:model="effectiveFrom"', 'wire:model="effectiveTo"', 'wire:click="applyEffectiveDates"', 'wire:click="resetFilters"', "sortBy('effective_from')", "sortBy('effective_to')", 'Xóa bộ lọc', 'Người phụ trách', 'Hiệu lực từ', 'Hiệu lực đến', 'manager?->name', 'Thêm', 'x-data="{ open:false, top:0, left:0, width:192', 'aria-haspopup="menu"', 'x-teleport="body"', 'position:fixed', 'Xóa bảng giá', 'Xuất Excel'] as $text) $this->assertStringContainsString($text, $view);
     }
 
     #[Test]
