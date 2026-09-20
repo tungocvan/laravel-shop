@@ -88,6 +88,27 @@ class PriceListV2ContractTest extends TestCase
     }
 
     #[Test]
+    public function customer_builder_supports_partner_or_official_facility_and_manages_purposes(): void
+    {
+        $livewire = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/Create.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/create.blade.php'));
+        $manager = file_get_contents(base_path('Modules/Pharma/Services/PriceListManager.php'));
+        $model = file_get_contents(base_path('Modules/Pharma/Models/PriceList.php'));
+
+        foreach (['CUSTOMER_SOURCE_PARTNER', 'CUSTOMER_SOURCE_OFFICIAL_FACILITY', 'official_facility_id', 'customer_source'] as $text) {
+            $this->assertStringContainsString($text, $model.$livewire.$manager);
+        }
+        $this->assertStringContainsString('<x-select-search id="price-list-partner"', $view);
+        $this->assertStringContainsString('<x-select-search id="price-list-official-facility"', $view);
+        $this->assertStringContainsString('facility_name', $livewire);
+        $this->assertStringContainsString('editPurpose', $livewire);
+        $this->assertStringContainsString('deletePurpose', $livewire);
+        $this->assertStringContainsString('priceLists()->exists()', $livewire);
+        $this->assertStringContainsString('Đổi tên', $view);
+        $this->assertStringContainsString('wire:confirm=', $view);
+    }
+
+    #[Test]
     public function builder_defaults_dates_formats_money_and_can_exclude_seeded_skus(): void
     {
         $livewire = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/Create.php'));
