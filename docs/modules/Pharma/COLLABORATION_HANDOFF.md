@@ -9,6 +9,8 @@
 - No schema migration and no Price List business-rule change.
 - Static diff/whitespace validation: PASS (`git diff --check`).
 - Automated tests were not run in the implementation workspace because PHP is unavailable there; operator focused/module tests and manual UI acceptance remain pending at this checkpoint.
+- Operator Test 1 (`PriceListV2ContractTest`): PASS (inferred from progression to Test 2 under the agreed stop-on-failure gate).
+- Initial Price List regression: 57 passed / 2 failed (596 assertions). Both failures were stale assertions in `PharmaPriceListPipelineTest`: one still required the removed legacy-workbook `analysisSummary()` helper; the other prohibited the accepted explicit `Chọn tất cả kết quả` action. The contract now asserts the current database-backed paginator and the distinct page/all-result selection controls, including stable catalog row identity. Re-run pending.
 
 ---
 
