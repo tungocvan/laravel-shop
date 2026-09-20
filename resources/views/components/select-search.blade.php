@@ -34,6 +34,8 @@ function selectSearchComponent(config) {
 
             this.instance = new TomSelect('#' + config.id, {
                 plugins: ['dropdown_input'],
+                searchField: ['text'],
+                shouldOpen: true,
                 placeholder: config.placeholder,
                 create: false,
                 allowEmptyOption: true,
@@ -94,6 +96,20 @@ function selectSearchComponent(config) {
 /* Dropdown is portalled to body so parent cards/stacking contexts cannot cover it. */
 body > .ts-dropdown {
     z-index: 99999 !important;
+}
+body > .ts-dropdown .dropdown-input-wrap {
+    display: block !important;
+    padding: .5rem !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+}
+body > .ts-dropdown .dropdown-input {
+    display: block !important;
+    width: 100% !important;
+    min-height: 2.5rem !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: .625rem !important;
+    padding: .5rem .75rem !important;
+    background: #fff !important;
 }
 </style>
 @endonce
