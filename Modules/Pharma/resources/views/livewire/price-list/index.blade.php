@@ -46,7 +46,7 @@
                         <td class="px-4 py-4 text-center"><input type="checkbox" wire:model.live="selectedIds" value="{{ $list->id }}" aria-label="Chọn bảng giá {{ $list->name }}" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"></td>
                         <td class="px-5 py-4"><a href="{{ route('admin.pharma.price-lists.show',$list) }}" class="font-bold text-gray-900 hover:text-indigo-700">{{ $list->name }}</a><div class="mt-1 font-mono text-xs text-gray-500">{{ $list->code }}</div></td>
                         <td class="px-4 py-4"><span class="rounded-lg bg-gray-100 px-2.5 py-1 text-xs font-bold text-gray-700">{{ $list->type === 'global' ? 'GLOBAL' : 'CUSTOMER' }}</span></td>
-                        <td class="max-w-[220px] px-4 py-4 font-medium text-gray-700">{{ $list->partner?->name ?? '—' }}</td>
+                        <td class="max-w-[220px] px-4 py-4 font-medium text-gray-700">{{ $list->customer_source === 'official_facility' ? ($list->officialFacility?->facility_name ?? '—') : ($list->partner?->name ?? '—') }}</td>
                         <td class="px-4 py-4 text-xs text-gray-600"><div>{{ $list->effective_from?->format('d/m/Y') ?? 'Không giới hạn' }}</div><div class="mt-1 text-gray-400">đến {{ $list->effective_to?->format('d/m/Y') ?? 'không giới hạn' }}</div></td>
                         <td class="px-4 py-4 text-center font-bold text-gray-900">{{ $list->items_count }}</td>
                         <td class="px-4 py-4"><span class="rounded-full px-2.5 py-1 text-[11px] font-bold {{ $list->status==='active'?'bg-emerald-100 text-emerald-700':($list->status==='draft'?'bg-amber-100 text-amber-700':'bg-gray-100 text-gray-600') }}">{{ strtoupper($list->status) }}</span></td>
