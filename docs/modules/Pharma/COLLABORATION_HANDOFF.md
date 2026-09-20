@@ -15,7 +15,10 @@
 - First manual UI re-check still reproduced positional checkbox carry-over. Row-level keys alone were insufficient for the checkbox DOM property, so the follow-up fix keys the complete catalog page body by current page + rendered row identities, keys each checkbox directly, and renders its checked state explicitly from `selectedRows`. Follow-up automated and UI acceptance pending.
 - CLI/Tinker diagnosis confirmed page 1 and page 2 row identities are disjoint. Browser component inspection then identified the real owner as `pharma.price-list.workspace`, proving the earlier view target was incorrect. The actual desktop `tbody` and mobile list now use Livewire 3's canonical `wire:replace` directive so checkbox children are replaced on page changes instead of retaining positional input state.
 - Final operator acceptance for pagination selection: automated tests PASS and UI PASS.
-- Follow-up detail-view refinement (`/admin/pharma/price-lists/{priceList}`): remove duplicate page-level horizontal padding so the Admin shell width is used, show only `circular_group` as `Nhóm thuốc theo thông tư`, shorten the package column, and reserve explicit wider columns for declared/company prices. Automated and UI acceptance pending.
+- Follow-up detail-view refinement (`/admin/pharma/price-lists/{priceList}`): removed duplicate page-level horizontal padding so the Admin shell width is used, shows only `circular_group` as `Nhóm thuốc theo thông tư`, shortens the package column, and reserves explicit wider columns for declared/company prices.
+- Final operator acceptance: focused Price List tests PASS, Price List regression PASS, pagination-selection UI PASS, and detail-view width/column UI PASS.
+- Full-project regression: NOT APPLICABLE — module-scoped Price List UI/Livewire change.
+- Schema migration / production enablement: NOT APPLICABLE.
 
 ---
 
