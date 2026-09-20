@@ -103,4 +103,9 @@ class PriceList extends Model
     {
         return $this->status === self::STATUS_DRAFT;
     }
+
+    public function isDirectlyEditable(): bool
+    {
+        return in_array($this->status, [self::STATUS_DRAFT, self::STATUS_INACTIVE], true);
+    }
 }
