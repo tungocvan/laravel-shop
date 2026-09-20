@@ -1,3 +1,26 @@
+## Checkpoint — Price List customer sources / lifecycle / export UX — 2026-09-20
+
+- Branch: `feature/pharma-price-list-customer-sources`.
+- Base: `main` at `2216671aef09b5cf6a0cc85798c9aef4ff557ddb`; final pre-PR compare: ahead 39, behind 0 before this handoff commit.
+- Route ownership verified: `/admin/pharma/price-lists/create` renders `pharma.price-list.workspace` / `workspace-bid.blade.php`; contracts now target the runtime workspace rather than the legacy create view.
+- Customer Price Lists support exactly one customer source: Partner Master or Pharma Official Facility source. Official Facility identity is persisted separately through `customer_source` + `official_facility_id`; facility IDs are never stored as Partner IDs.
+- Customer lookup UI uses an Alpine + Livewire searchable combobox with a visible search input and independent Partner/Official Facility instances. Operator UI acceptance: PASS.
+- Reusable Price List purposes can be added, renamed and deleted when unused; referenced purposes are protected. Operator UI acceptance: PASS.
+- DRAFT and INACTIVE Price Lists are directly editable; editing INACTIVE preserves INACTIVE status. ACTIVE remains protected and should be cloned for editing. INACTIVE lists can be activated again through the existing guarded manager flow.
+- Step 3 includes `Áp dụng tất cả` to enable/disable all selected price rows. Commercial money inputs display vi-VN thousand separators while server normalization persists numeric values.
+- Price List index displays the correct Partner or Official Facility customer.
+- Excel Designer/configuration is now a shared Price List management concern on `/admin/pharma/price-lists`. Price List detail replaces the configurator button with a `Mẫu bảng báo giá` profile combobox; selected/default profile is passed to the existing Excel export.
+- Schema migration: `2026_09_20_124500_add_customer_source_to_price_lists.php`. Operator reported `php artisan migrate`: nothing pending after synchronization.
+- Focused Price List acceptance: PASS, including `PriceListV2ContractTest`, `PriceListBidProfessionalUiContractTest`, and updated `PriceListExcelExportContractTest`.
+- Manual UI acceptance: PASS for customer source switching/search, purpose management, DRAFT/INACTIVE editing, select-all pricing, formatted commercial prices, INACTIVE reactivation, shared Excel configuration and detail export-profile selection.
+- Pharma module regression before final contract alignment: 136 passed / 2 failed (1095 assertions). One failure was an in-scope stale Excel export contract and was fixed; focused Price List regression then PASS. The remaining `MedicineCatalogImportUiContractTest` failure requiring literal `SKU hệ thống tự sinh` is a pre-existing/out-of-scope Medicine contract drift and was intentionally not masked by this Price List branch.
+- Operator working tree after acceptance: clean (`git status --short` returned no output).
+- Full-project regression: NOT RUN; module-scoped Pharma work.
+- Production boundary: run migrations during normal deployment; no runtime feature-enable change is required.
+- Status: **PRICE LIST IMPLEMENTATION + FOCUSED TEST + UI ACCEPTED — READY FOR PR REVIEW; DO NOT MERGE UNTIL PR GATE IS APPROVED.**
+
+---
+
 ## Checkpoint — Price List pagination selection identity
 
 - Branch: `fix/pharma-price-list-pagination-selection`.
