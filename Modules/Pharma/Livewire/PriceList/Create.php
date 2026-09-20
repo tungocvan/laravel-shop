@@ -12,6 +12,7 @@ use Livewire\Component;
 use Modules\Partner\Models\Partner;
 use Modules\Pharma\Livewire\Concerns\AuthorizesPharmaActions;
 use Modules\Pharma\Models\DrugBidAward;
+use Modules\Pharma\Models\OfficialSourceFacility;
 use Modules\Pharma\Models\PriceList;
 use Modules\Pharma\Models\PriceListPurpose;
 use Modules\Pharma\Services\BidPriceIntelligenceService;
@@ -30,10 +31,13 @@ class Create extends Component
     public string $name = '';
     public string $code = '';
     public string $type = PriceList::TYPE_GLOBAL;
+    public string $customerSource = PriceList::CUSTOMER_SOURCE_PARTNER;
     public ?int $partnerId = null;
+    public ?int $officialFacilityId = null;
     public ?int $managerUserId = null;
     public ?int $purposeId = null;
     public bool $purposeModalOpen = false;
+    public ?int $editingPurposeId = null;
     public string $newPurposeName = '';
     public string $newPurposeDescription = '';
     public string $effectiveFrom = '';
@@ -91,7 +95,9 @@ class Create extends Component
         $this->name = $list->name;
         $this->code = $list->code;
         $this->type = $list->type;
+        $this->customerSource = $list->customer_source ?: PriceList::CUSTOMER_SOURCE_PARTNER;
         $this->partnerId = $list->partner_id;
+        $this->officialFacilityId = $list->official_facility_id;
         $this->managerUserId = $list->manager_user_id ?: auth('admin')->id();
         $this->purposeId = $list->purpose_id;
         $this->effectiveFrom = $list->effective_from?->toDateString() ?? '';
@@ -119,21 +125,41 @@ class Create extends Component
     {
         if ($value === PriceList::TYPE_GLOBAL) {
             $this->partnerId = null;
+            $this->officialFacilityId = null;
             $this->managerUserId = null;
             $this->purposeId = null;
             $this->sourceGlobalPriceListId = null;
             return;
         }
+        $this->customerSource = $this->customerSource ?: PriceList::CUSTOMER_SOURCE_PARTNER;
         $this->managerUserId ??= auth('admin')->id();
     }
 
-    public function openPurposeModal(): void { $this->resetValidation(['newPurposeName', 'newPurposeDescription']); $this->newPurposeName = ''; $this->newPurposeDescription = ''; $this->purposeModalOpen = true; }
-    public function closePurposeModal(): void { $this->purposeModalOpen = false; $this->resetValidation(['newPurposeName', 'newPurposeDescription']); }
+    public function updatedCustomerSource(string $value): void
+    {
+        if ($value === PriceList::CUSTOMER_SOURCE_PARTNER) $this->officialFacilityId = null;
+        if ($value === PriceList::CUSTOMER_SOURCE_OFFICIAL_FACILITY) $this->partnerId = null;
+        $this->resetValidation(['partnerId', 'officialFacilityId']);
+    }
+
+    public function openPurposeModal(): void { $this->resetValidation(['newPurposeName', 'newPurposeDescription']); $this->editingPurposeId = null; $this->newPurposeName = ''; $this->newPurposeDescription = ''; $this->purposeModalOpen = true; }
+    public function editPurpose(int $id): void { $purpose = PriceListPurpose::query()->whereKey($id)->where('is_active', true)->firstOrFail(); $this->editingPurposeId = $purpose->id; $this->newPurposeName = $purpose->name; $this->newPurposeDescription = $purpose->description ?? ''; $this->purposeModalOpen = true; }
+    public function closePurposeModal(): void { $this->purposeModalOpen = false; $this->editingPurposeId = null; $this->resetValidation(['newPurposeName', 'newPurposeDescription']); }
 
     public function createPurpose(): void
     {
         $this->authorizePharmaCreate();
         $this->validate(['newPurposeName' => ['required', 'string', 'max:120'], 'newPurposeDescription' => ['nullable', 'string', 'max:500']]);
+        if ($this->editingPurposeId) {
+            $purpose = PriceListPurpose::query()->whereKey($this->editingPurposeId)->where('is_active', true)->firstOrFail();
+            $purpose->update(['name' => trim($this->newPurposeName), 'description' => trim($this->newPurposeDescription) ?: null]);
+            $this->purposeId = $purpose->id;
+            $this->purposeModalOpen = false;
+            $this->editingPurposeId = null;
+            $this->successMessage = 'Đã cập nhật mục đích “'.$purpose->name.'”.';
+            return;
+        }
+
         $base = Str::slug($this->newPurposeName, '_') ?: 'purpose';
         $code = $base;
         $suffix = 2;
@@ -142,6 +168,19 @@ class Create extends Component
         $this->purposeId = $purpose->id;
         $this->purposeModalOpen = false;
         $this->successMessage = 'Đã thêm mục đích “'.$purpose->name.'” và chọn cho bảng giá này.';
+    }
+
+    public function deletePurpose(int $id): void
+    {
+        $this->authorizePharmaEdit();
+        $purpose = PriceListPurpose::query()->whereKey($id)->where('is_active', true)->firstOrFail();
+        if ($purpose->priceLists()->exists()) {
+            $this->addError('purposeId', 'Mục đích đã được dùng trong bảng giá nên không thể xóa.');
+            return;
+        }
+        $purpose->delete();
+        if ($this->purposeId === $id) $this->purposeId = null;
+        $this->successMessage = 'Đã xóa mục đích “'.$purpose->name.'”.';
     }
 
     public function updatedSearch(): void { $this->resetProductPage(); }
@@ -316,7 +355,8 @@ class Create extends Component
 
     public function render()
     {
-        $customers = Partner::query()->where('status', 'active')->whereJsonContains('partner_types', 'customer')->orderBy('name')->get(['id', 'name', 'tax_code', 'address']);
+        $customers = Partner::query()->where('status', 'active')->whereJsonContains('partner_types', 'customer')->orderBy('name')->limit(500)->get(['id', 'name', 'tax_code', 'address']);
+        $officialFacilities = OfficialSourceFacility::query()->where('is_active', true)->orderBy('facility_name')->limit(500)->get(['id', 'facility_name', 'external_id', 'province_name']);
         $users = User::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'email']);
         $purposes = PriceListPurpose::query()->where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(['id', 'name', 'description']);
         $globalPriceLists = PriceList::query()->where('type', PriceList::TYPE_GLOBAL)->where('status', PriceList::STATUS_ACTIVE)->activeAt(today())->orderByDesc('priority')->orderByDesc('effective_from')->orderBy('name')->get(['id', 'code', 'name', 'effective_from', 'effective_to']);
@@ -325,7 +365,7 @@ class Create extends Component
         $declared = $this->declaredPricesForKeys($this->includedRows);
         $missingSale = collect($this->includedRows)->filter(fn (string $key): bool => ($this->prices[$key]['company'] ?? '') === '')->count();
         $overCeiling = collect($this->includedRows)->filter(fn (string $key): bool => ($this->prices[$key]['company'] ?? '') !== '' && ($declared[$key] ?? null) !== null && (float) $this->prices[$key]['company'] > (float) $declared[$key])->count();
-        return view('Pharma::livewire.price-list.create', compact('customers', 'users', 'purposes', 'globalPriceLists', 'products', 'selectedProducts') + ['perPageOptions' => self::PER_PAGE_OPTIONS, 'missingSaleCount' => $missingSale, 'overCeilingCount' => $overCeiling]);
+        return view('Pharma::livewire.price-list.create', compact('customers', 'officialFacilities', 'users', 'purposes', 'globalPriceLists', 'products', 'selectedProducts') + ['perPageOptions' => self::PER_PAGE_OPTIONS, 'missingSaleCount' => $missingSale, 'overCeilingCount' => $overCeiling]);
     }
 
     private function refreshBidIntelligence(): void
@@ -353,15 +393,15 @@ class Create extends Component
 
     private function headerIsValid(): bool
     {
-        $this->resetValidation(['name', 'code', 'type', 'partnerId', 'managerUserId', 'purposeId', 'effectiveFrom', 'effectiveTo', 'currency', 'priority']);
-        $this->validate(['name' => ['required', 'string', 'max:255'], 'code' => ['required', 'string', 'max:80'], 'type' => ['required', 'in:global,customer'], 'partnerId' => [$this->type === PriceList::TYPE_CUSTOMER ? 'required' : 'nullable', 'integer'], 'managerUserId' => [$this->type === PriceList::TYPE_CUSTOMER ? 'required' : 'nullable', 'integer'], 'purposeId' => [$this->type === PriceList::TYPE_CUSTOMER ? 'required' : 'nullable', 'integer'], 'effectiveFrom' => ['nullable', 'date'], 'effectiveTo' => ['nullable', 'date', 'after_or_equal:effectiveFrom'], 'currency' => ['required', 'string', 'size:3'], 'priority' => ['integer']]);
+        $this->resetValidation(['name', 'code', 'type', 'customerSource', 'partnerId', 'officialFacilityId', 'managerUserId', 'purposeId', 'effectiveFrom', 'effectiveTo', 'currency', 'priority']);
+        $this->validate(['name' => ['required', 'string', 'max:255'], 'code' => ['required', 'string', 'max:80'], 'type' => ['required', 'in:global,customer'], 'customerSource' => [$this->type === PriceList::TYPE_CUSTOMER ? 'required' : 'nullable', 'in:partner,official_facility'], 'partnerId' => [$this->type === PriceList::TYPE_CUSTOMER && $this->customerSource === PriceList::CUSTOMER_SOURCE_PARTNER ? 'required' : 'nullable', 'integer'], 'officialFacilityId' => [$this->type === PriceList::TYPE_CUSTOMER && $this->customerSource === PriceList::CUSTOMER_SOURCE_OFFICIAL_FACILITY ? 'required' : 'nullable', 'integer'], 'managerUserId' => [$this->type === PriceList::TYPE_CUSTOMER ? 'required' : 'nullable', 'integer'], 'purposeId' => [$this->type === PriceList::TYPE_CUSTOMER ? 'required' : 'nullable', 'integer'], 'effectiveFrom' => ['nullable', 'date'], 'effectiveTo' => ['nullable', 'date', 'after_or_equal:effectiveFrom'], 'currency' => ['required', 'string', 'size:3'], 'priority' => ['integer']]);
         try { $this->manager->validateHeader($this->headerPayload()); } catch (Throwable $exception) { $this->errorMessage = $exception->getMessage(); return false; }
         return true;
     }
 
     private function headerPayload(): array
     {
-        return ['name' => $this->name, 'code' => $this->code, 'type' => $this->type, 'partner_id' => $this->partnerId, 'manager_user_id' => $this->managerUserId, 'purpose_id' => $this->purposeId, 'effective_from' => $this->effectiveFrom ?: null, 'effective_to' => $this->effectiveTo ?: null, 'currency' => strtoupper($this->currency), 'priority' => $this->priority, 'notes' => $this->notes ?: null];
+        return ['name' => $this->name, 'code' => $this->code, 'type' => $this->type, 'customer_source' => $this->type === PriceList::TYPE_CUSTOMER ? $this->customerSource : null, 'partner_id' => $this->partnerId, 'official_facility_id' => $this->officialFacilityId, 'manager_user_id' => $this->managerUserId, 'purpose_id' => $this->purposeId, 'effective_from' => $this->effectiveFrom ?: null, 'effective_to' => $this->effectiveTo ?: null, 'currency' => strtoupper($this->currency), 'priority' => $this->priority, 'notes' => $this->notes ?: null];
     }
 
     private function productPaginator(): LengthAwarePaginator
