@@ -113,7 +113,7 @@ class Index extends Component
 
     public function render()
     {
-        $query = PriceList::query()->with('partner')->withCount('items')
+        $query = PriceList::query()->with(['partner', 'officialFacility'])->withCount('items')
             ->when($this->search !== '', fn ($q) => $q->where(fn ($inner) => $inner->where('code', 'like', '%'.$this->search.'%')->orWhere('name', 'like', '%'.$this->search.'%')))
             ->when($this->type !== 'all', fn ($q) => $q->where('type', $this->type))
             ->when($this->status !== 'all', fn ($q) => $q->where('status', $this->status))

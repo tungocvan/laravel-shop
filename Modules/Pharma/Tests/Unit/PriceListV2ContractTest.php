@@ -88,6 +88,55 @@ class PriceListV2ContractTest extends TestCase
     }
 
     #[Test]
+    public function customer_builder_supports_partner_or_official_facility_and_manages_purposes(): void
+    {
+        $livewire = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/Create.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/workspace-bid.blade.php'));
+        $manager = file_get_contents(base_path('Modules/Pharma/Services/PriceListManager.php'));
+        $model = file_get_contents(base_path('Modules/Pharma/Models/PriceList.php'));
+
+        foreach (['CUSTOMER_SOURCE_PARTNER', 'CUSTOMER_SOURCE_OFFICIAL_FACILITY', 'official_facility_id', 'customer_source'] as $text) {
+            $this->assertStringContainsString($text, $model.$livewire.$manager);
+        }
+        $this->assertStringContainsString('placeholder="Tìm khách hàng..."', $view);
+        $this->assertStringContainsString('placeholder="Tìm cơ sở KCB..."', $view);
+        $this->assertStringContainsString('facility_name', $livewire);
+        $this->assertStringContainsString('x-data="{ open:false', $view);
+        $this->assertStringContainsString('editPurpose', $livewire);
+        $this->assertStringContainsString('deletePurpose', $livewire);
+        $this->assertStringContainsString('priceLists()->exists()', $livewire);
+        $this->assertStringContainsString('Đổi tên', $view);
+        $this->assertStringContainsString('wire:confirm=', $view);
+        $indexView = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/index.blade.php'));
+        $indexClass = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/Index.php'));
+        $this->assertStringContainsString("route('admin.pharma.price-lists.edit',\$list)", $indexView);
+        $this->assertStringContainsString("status==='draft'", $indexView);
+        $this->assertStringContainsString('officialFacility?->facility_name', $indexView);
+        $this->assertStringContainsString("'officialFacility'", $indexClass);
+        $model = file_get_contents(base_path('Modules/Pharma/Models/PriceList.php'));
+        $controller = file_get_contents(base_path('Modules/Pharma/Http/Controllers/PriceListController.php'));
+        $this->assertStringContainsString('isDirectlyEditable', $model);
+        $this->assertStringContainsString('STATUS_INACTIVE', $model);
+        $this->assertStringContainsString('isDirectlyEditable()', $controller);
+        $this->assertStringContainsString("in_array(\$list->status,['draft','inactive'],true)", $indexView);
+        $this->assertGreaterThanOrEqual(2, substr_count($indexView, "confirm({{ \$list->id }},'activate')"));
+        $this->assertStringContainsString('Kích hoạt', $indexView);
+        $indexPage = file_get_contents(base_path('Modules/Pharma/resources/views/pages/price-list/index.blade.php'));
+        $showPage = file_get_contents(base_path('Modules/Pharma/resources/views/pages/price-list/show.blade.php'));
+        $controller = file_get_contents(base_path('Modules/Pharma/Http/Controllers/PriceListController.php'));
+        $this->assertStringContainsString("@livewire('pharma.price-list.export-configurator')", $indexPage);
+        $this->assertStringNotContainsString("@livewire('pharma.price-list.export-configurator')", $showPage);
+        $this->assertStringContainsString('Mẫu bảng báo giá', $showPage);
+        $this->assertStringContainsString('pharma-export-profile-id', $showPage);
+        $this->assertStringContainsString('profilesForUser', $controller);
+        $workspace = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/workspace-bid.blade.php'));
+        $this->assertStringContainsString('wire:model.live="includeAll"', $workspace);
+        $this->assertStringContainsString('Áp dụng tất cả', $workspace);
+        $page = file_get_contents(base_path('Modules/Pharma/resources/views/pages/price-list/create.blade.php'));
+        $this->assertStringContainsString("@livewire('pharma.price-list.workspace')", $page);
+    }
+
+    #[Test]
     public function builder_defaults_dates_formats_money_and_can_exclude_seeded_skus(): void
     {
         $livewire = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/Create.php'));

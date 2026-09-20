@@ -86,6 +86,7 @@ function selectSearchComponent(config) {
     border: 1px solid #d1d5db !important;
 }
 
+
 .ts-wrapper.focus .ts-control {
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
     border-color: #6366f1 !important;
