@@ -33,7 +33,6 @@ function selectSearchComponent(config) {
             }
 
             this.instance = new TomSelect('#' + config.id, {
-                plugins: ['dropdown_input'],
                 searchField: ['text'],
                 shouldOpen: true,
                 placeholder: config.placeholder,
@@ -86,6 +85,17 @@ function selectSearchComponent(config) {
     border-radius: 0.75rem !important;
     padding: 0.75rem !important;
     border: 1px solid #d1d5db !important;
+}
+
+
+.ts-control > input {
+    display: inline-block !important;
+    min-width: 12rem !important;
+    opacity: 1 !important;
+    position: static !important;
+}
+.ts-control > input::placeholder {
+    color: #94a3b8 !important;
 }
 
 .ts-wrapper.focus .ts-control {
