@@ -107,6 +107,12 @@ class PriceListV2ContractTest extends TestCase
         $this->assertStringContainsString('priceLists()->exists()', $livewire);
         $this->assertStringContainsString('Đổi tên', $view);
         $this->assertStringContainsString('wire:confirm=', $view);
+        $indexView = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/index.blade.php'));
+        $indexClass = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/Index.php'));
+        $this->assertStringContainsString("route('admin.pharma.price-lists.edit',\$list)", $indexView);
+        $this->assertStringContainsString("status==='draft'", $indexView);
+        $this->assertStringContainsString('officialFacility?->facility_name', $indexView);
+        $this->assertStringContainsString("'officialFacility'", $indexClass);
         $page = file_get_contents(base_path('Modules/Pharma/resources/views/pages/price-list/create.blade.php'));
         $this->assertStringContainsString("@livewire('pharma.price-list.workspace')", $page);
     }
