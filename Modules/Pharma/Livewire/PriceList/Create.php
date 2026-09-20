@@ -91,7 +91,7 @@ class Create extends Component
         }
 
         $list = PriceList::query()->with(['items.bidEvidence'])->findOrFail($priceListId);
-        abort_unless($list->isDraft(), 422, 'Chỉ bảng giá Draft mới được chỉnh trực tiếp.');
+        abort_unless($list->isDirectlyEditable(), 422, 'Chỉ bảng giá Draft hoặc Inactive mới được chỉnh trực tiếp.');
         $this->name = $list->name;
         $this->code = $list->code;
         $this->type = $list->type;
@@ -314,9 +314,9 @@ class Create extends Component
             DB::transaction(function (): void {
                 $header = $this->manager->validateHeader($this->headerPayload());
                 $list = $this->priceListId ? PriceList::query()->findOrFail($this->priceListId) : new PriceList(['status' => PriceList::STATUS_DRAFT, 'created_by' => auth('admin')->id()]);
-                abort_unless(! $list->exists || $list->isDraft(), 422, 'Chỉ bảng giá Draft mới được sửa.');
+                abort_unless(! $list->exists || $list->isDirectlyEditable(), 422, 'Chỉ bảng giá Draft hoặc Inactive mới được sửa.');
                 $list->fill($header);
-                $list->status = PriceList::STATUS_DRAFT;
+                if (! $list->exists) $list->status = PriceList::STATUS_DRAFT;
                 $list->save();
                 $list->items()->delete();
 
