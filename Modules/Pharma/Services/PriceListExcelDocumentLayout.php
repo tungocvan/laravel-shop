@@ -16,7 +16,7 @@ class PriceListExcelDocumentLayout
     private const DEFAULT_SIGNATURE_WIDTH_CM = 4.00;
     private const DEFAULT_SIGNATURE_HEIGHT_CM = 3.60;
 
-    public function header(Worksheet $sheet, array $profile, int $columnCount, int $startRow = 1): int
+    public function header(Worksheet $sheet, array $profile, int $columnCount, int $startRow = 1, ?string $fallbackRecipient = null): int
     {
         $hf = $profile['header_footer'] ?? [];
         if (! (bool) ($hf['enabled'] ?? true)) {
@@ -63,9 +63,13 @@ class PriceListExcelDocumentLayout
         $sheet->getRowDimension($row)->setRowHeight(26);
 
         $row++;
-        if (($hf['recipient'] ?? '') !== '') {
+        $recipient = trim((string) ($hf['recipient'] ?? ''));
+        if ($recipient === '') {
+            $recipient = trim((string) $fallbackRecipient);
+        }
+        if ($recipient !== '') {
             $sheet->mergeCells("A{$row}:{$lastColumn}{$row}");
-            $sheet->setCellValue("A{$row}", 'Kính gửi: '.$hf['recipient']);
+            $sheet->setCellValue("A{$row}", 'Kính gửi: '.$recipient);
             $sheet->getStyle("A{$row}")->getFont()->setBold(true);
             $row++;
         }
