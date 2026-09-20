@@ -273,6 +273,7 @@ class Create extends Component
     public function updatePrice(string $key, string $field, mixed $value): void
     {
         if (! in_array($key, $this->selectedRows, true) || ! in_array($field, ['company', 'receivable', 'invoice'], true)) return;
+        if (is_string($value)) $value = preg_replace('/[^0-9]/', '', $value);
         $this->prices[$key][$field] = $this->normalizePriceInput($value);
     }
 
