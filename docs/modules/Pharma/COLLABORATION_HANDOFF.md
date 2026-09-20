@@ -13,6 +13,7 @@
 - Initial Price List regression: 57 passed / 2 failed (596 assertions). Both failures were stale assertions in `PharmaPriceListPipelineTest`: one still required the removed legacy-workbook `analysisSummary()` helper; the other prohibited the accepted explicit `Chọn tất cả kết quả` action. The contract now asserts the current database-backed paginator and the distinct page/all-result selection controls, including stable catalog row identity. Re-run pending.
 - Operator regression after aligning stale contracts: 59 passed (598 assertions).
 - First manual UI re-check still reproduced positional checkbox carry-over. Row-level keys alone were insufficient for the checkbox DOM property, so the follow-up fix keys the complete catalog page body by current page + rendered row identities, keys each checkbox directly, and renders its checked state explicitly from `selectedRows`. Follow-up automated and UI acceptance pending.
+- CLI/Tinker diagnosis confirmed page 1 and page 2 row identities are disjoint, proving the carry-over is client-side Livewire morph state rather than duplicated server keys. The catalog `tbody` now uses Livewire 3's canonical `wire:replace` directive so all checkbox children are replaced on page changes instead of retaining positional input state.
 
 ---
 
