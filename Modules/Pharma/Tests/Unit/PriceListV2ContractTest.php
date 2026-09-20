@@ -217,12 +217,12 @@ class PriceListV2ContractTest extends TestCase
         $this->assertStringContainsString('ACTIVE phải được ngưng trước khi xóa', $manager);
         $this->assertStringContainsString('Xóa bảng giá đã chọn', $view);
         $this->assertStringContainsString('không xóa một phần', $view);
-        foreach (['managerUserId', 'effectiveFrom', 'effectiveTo'] as $property) $this->assertStringContainsString($property, $component);
+        foreach (['managerUserId', 'effectiveFrom', 'effectiveTo', 'appliedEffectiveFrom', 'appliedEffectiveTo', 'sortField', 'sortDirection', 'applyEffectiveDates', 'resetFilters', 'sortBy'] as $property) $this->assertStringContainsString($property, $component);
         $this->assertStringContainsString("'manager'", $component);
         $this->assertStringContainsString("where('manager_user_id'", $component);
         $this->assertStringContainsString("whereNull('effective_to')->orWhereDate('effective_to', '>=',", $component);
         $this->assertStringContainsString("whereNull('effective_from')->orWhereDate('effective_from', '<=',", $component);
-        foreach (['wire:model.live="managerUserId"', 'wire:model.live="effectiveFrom"', 'wire:model.live="effectiveTo"', 'Người phụ trách', 'Hiệu lực từ', 'Hiệu lực đến', 'manager?->name'] as $text) $this->assertStringContainsString($text, $view);
+        foreach (['wire:model.live="managerUserId"', 'wire:model="effectiveFrom"', 'wire:model="effectiveTo"', 'wire:click="applyEffectiveDates"', 'wire:click="resetFilters"', "sortBy('effective_from')", "sortBy('effective_to')", 'Xóa bộ lọc', 'Người phụ trách', 'Hiệu lực từ', 'Hiệu lực đến', 'manager?->name', 'Thao tác', 'x-data="{ open:false }"'] as $text) $this->assertStringContainsString($text, $view);
     }
 
     #[Test]
