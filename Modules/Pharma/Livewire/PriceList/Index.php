@@ -17,13 +17,16 @@ class Index extends Component
     public string $search = '';
     public string $type = 'all';
     public string $status = 'all';
+    public string $managerUserId = 'all';
+    public string $effectiveFrom = '';
+    public string $effectiveTo = '';
     public int $perPage = 10;
     public ?int $confirmingId = null;
     public ?string $confirmingAction = null;
     public ?string $errorMessage = null;
     public array $selectedIds = [];
 
-    protected $queryString = ['search' => ['except' => ''], 'type' => ['except' => 'all'], 'status' => ['except' => 'all'], 'perPage' => ['except' => 10]];
+    protected $queryString = ['search' => ['except' => ''], 'type' => ['except' => 'all'], 'status' => ['except' => 'all'], 'managerUserId' => ['except' => 'all'], 'effectiveFrom' => ['except' => ''], 'effectiveTo' => ['except' => ''], 'perPage' => ['except' => 10]];
 
     public function mount(): void
     {
@@ -41,6 +44,21 @@ class Index extends Component
     }
 
     public function updatedStatus(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedManagerUserId(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedEffectiveFrom(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedEffectiveTo(): void
     {
         $this->resetPage();
     }
@@ -113,10 +131,13 @@ class Index extends Component
 
     public function render()
     {
-        $query = PriceList::query()->with(['partner', 'officialFacility'])->withCount('items')
+        $query = PriceList::query()->with(['partner', 'officialFacility', 'manager'])->withCount('items')
             ->when($this->search !== '', fn ($q) => $q->where(fn ($inner) => $inner->where('code', 'like', '%'.$this->search.'%')->orWhere('name', 'like', '%'.$this->search.'%')))
             ->when($this->type !== 'all', fn ($q) => $q->where('type', $this->type))
             ->when($this->status !== 'all', fn ($q) => $q->where('status', $this->status))
+            ->when($this->managerUserId !== 'all', fn ($q) => $q->where('manager_user_id', (int) $this->managerUserId))
+            ->when($this->effectiveFrom !== '', fn ($q) => $q->where(fn ($dates) => $dates->whereNull('effective_to')->orWhereDate('effective_to', '>=', $this->effectiveFrom)))
+            ->when($this->effectiveTo !== '', fn ($q) => $q->where(fn ($dates) => $dates->whereNull('effective_from')->orWhereDate('effective_from', '<=', $this->effectiveTo)))
             ->latest('updated_at');
 
         $perPage = in_array($this->perPage, [10, 25, 50, 100], true) ? $this->perPage : 10;
@@ -128,6 +149,11 @@ class Index extends Component
             'expiring' => PriceList::query()->where('status', PriceList::STATUS_ACTIVE)->whereBetween('effective_to', [today(), today()->addDays(30)])->count(),
         ];
 
-        return view('Pharma::livewire.price-list.index', ['priceLists' => $query->paginate($perPage), 'kpis' => $kpis]);
+        $managers = \App\Models\User::query()
+            ->whereIn('id', PriceList::query()->whereNotNull('manager_user_id')->select('manager_user_id'))
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        return view('Pharma::livewire.price-list.index', ['priceLists' => $query->paginate($perPage), 'kpis' => $kpis, 'managers' => $managers]);
     }
 }
