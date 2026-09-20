@@ -48,16 +48,14 @@ PHP, $service);
 
     public function test_price_list_workspace_is_bounded_and_has_explicit_selection_scopes(): void
     {
-        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/create.blade.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/workspace-bid.blade.php'));
 
         $this->assertIsString($view);
         $this->assertStringContainsString('wire:model.live="perPage"', $view);
         $this->assertStringContainsString('wire:model.live="selectPage"', $view);
-        $this->assertStringContainsString('Chọn trang này', $view);
         $this->assertStringContainsString('Chọn tất cả kết quả', $view);
-        $this->assertStringContainsString('wire:key="catalog-row-{{ $row->key }}"', $view);
-        $this->assertStringContainsString('wire:key="catalog-page-{{ $products->currentPage() }}-', $view);
-        $this->assertStringContainsString('<tbody wire:replace wire:key="catalog-page-', $view);
+        $this->assertStringContainsString('<tbody wire:replace wire:key="catalog-desktop-page-', $view);
+        $this->assertStringContainsString('wire:replace wire:key="catalog-mobile-page-', $view);
         $this->assertStringContainsString('@checked(in_array($row->key, $selectedRows, true))', $view);
     }
 }

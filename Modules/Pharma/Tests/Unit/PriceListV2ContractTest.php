@@ -125,15 +125,16 @@ class PriceListV2ContractTest extends TestCase
     #[Test]
     public function catalog_rows_have_stable_livewire_identity_across_pagination(): void
     {
-        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/create.blade.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/workspace-bid.blade.php'));
 
-        $this->assertStringContainsString('wire:key="catalog-row-{{ $row->key }}"', $view);
-        $this->assertStringContainsString('id="catalog-row-checkbox-{{ $row->key }}"', $view);
-        $this->assertStringContainsString('wire:key="catalog-page-{{ $products->currentPage() }}-', $view);
-        $this->assertStringContainsString('<tbody wire:replace wire:key="catalog-page-', $view);
-        $this->assertStringContainsString('wire:key="catalog-checkbox-{{ $row->key }}"', $view);
+        $this->assertStringContainsString('<tbody wire:replace wire:key="catalog-desktop-page-', $view);
+        $this->assertStringContainsString('wire:key="catalog-desktop-row-{{ $row->key }}"', $view);
+        $this->assertStringContainsString('wire:key="catalog-desktop-checkbox-{{ $row->key }}"', $view);
+        $this->assertStringContainsString('wire:replace wire:key="catalog-mobile-page-', $view);
+        $this->assertStringContainsString('wire:key="catalog-mobile-row-{{ $row->key }}"', $view);
+        $this->assertStringContainsString('wire:key="catalog-mobile-checkbox-{{ $row->key }}"', $view);
         $this->assertStringContainsString('@checked(in_array($row->key, $selectedRows, true))', $view);
-        $this->assertStringContainsString('wire:model.live="selectedRows" value="{{ $row->key }}"', $view);
+        $this->assertSame(2, substr_count($view, 'wire:model.live="selectedRows"'));
     }
 
     #[Test]

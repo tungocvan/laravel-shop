@@ -3,8 +3,8 @@
 - Branch: `fix/pharma-price-list-pagination-selection`.
 - Base: `main` at `cf06ebca1381f7a1679f6c261479cb2255d7bd17`.
 - Route: `/admin/pharma/price-lists/create`, step 2 (`Chọn thuốc`).
-- Root cause: product rows did not have a stable Livewire DOM key. When pagination replaced the dataset, Livewire could reuse checkbox nodes by row position and visually carry checked state onto unrelated products on the next page while the server-side `selectedRows` count remained correct.
-- Fix: each catalog row now uses the canonical variant/package row key as `wire:key`; each checkbox also has a matching stable HTML id. Selection remains server-owned and persists only for the exact selected SKU/package keys.
+- Root cause: the route renders `pharma.price-list.workspace` / `workspace-bid.blade.php`, which contains separate desktop and mobile product checkbox trees without stable Livewire DOM identity. Earlier changes targeted the inherited legacy `create.blade.php` view, which this workspace does not render.
+- Fix: both actual desktop and mobile catalog surfaces now replace their page children instead of morphing positional inputs, and use canonical variant/package keys for every row and checkbox. Checked state is rendered from server-owned `selectedRows`.
 - Selection semantics remain unchanged: the header checkbox is page-scoped, while `Chọn tất cả kết quả` remains an explicit separate action.
 - No schema migration and no Price List business-rule change.
 - Static diff/whitespace validation: PASS (`git diff --check`).
@@ -13,7 +13,7 @@
 - Initial Price List regression: 57 passed / 2 failed (596 assertions). Both failures were stale assertions in `PharmaPriceListPipelineTest`: one still required the removed legacy-workbook `analysisSummary()` helper; the other prohibited the accepted explicit `Chọn tất cả kết quả` action. The contract now asserts the current database-backed paginator and the distinct page/all-result selection controls, including stable catalog row identity. Re-run pending.
 - Operator regression after aligning stale contracts: 59 passed (598 assertions).
 - First manual UI re-check still reproduced positional checkbox carry-over. Row-level keys alone were insufficient for the checkbox DOM property, so the follow-up fix keys the complete catalog page body by current page + rendered row identities, keys each checkbox directly, and renders its checked state explicitly from `selectedRows`. Follow-up automated and UI acceptance pending.
-- CLI/Tinker diagnosis confirmed page 1 and page 2 row identities are disjoint, proving the carry-over is client-side Livewire morph state rather than duplicated server keys. The catalog `tbody` now uses Livewire 3's canonical `wire:replace` directive so all checkbox children are replaced on page changes instead of retaining positional input state.
+- CLI/Tinker diagnosis confirmed page 1 and page 2 row identities are disjoint. Browser component inspection then identified the real owner as `pharma.price-list.workspace`, proving the earlier view target was incorrect. The actual desktop `tbody` and mobile list now use Livewire 3's canonical `wire:replace` directive so checkbox children are replaced on page changes instead of retaining positional input state.
 
 ---
 
