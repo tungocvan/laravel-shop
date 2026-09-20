@@ -8,6 +8,7 @@ use Illuminate\Validation\ValidationException;
 use Modules\Partner\Models\Partner;
 use Modules\Pharma\Models\MedicinePackage;
 use Modules\Pharma\Models\MedicineVariant;
+use Modules\Pharma\Models\OfficialSourceFacility;
 use Modules\Pharma\Models\PriceList;
 use Modules\Pharma\Models\PriceListItem;
 use Modules\Pharma\Models\PriceListPurpose;
@@ -17,7 +18,9 @@ class PriceListManager
     public function validateHeader(array $data, ?PriceList $priceList = null): array
     {
         $type = (string) ($data['type'] ?? PriceList::TYPE_GLOBAL);
+        $customerSource = $data['customer_source'] ?? ($type === PriceList::TYPE_CUSTOMER ? PriceList::CUSTOMER_SOURCE_PARTNER : null);
         $partnerId = $data['partner_id'] ?? null;
+        $officialFacilityId = $data['official_facility_id'] ?? null;
         $managerUserId = $data['manager_user_id'] ?? null;
         $purposeId = $data['purpose_id'] ?? null;
 
@@ -25,15 +28,28 @@ class PriceListManager
             throw ValidationException::withMessages(['type' => 'Loại bảng giá không hợp lệ.']);
         }
         if ($type === PriceList::TYPE_GLOBAL) {
+            $customerSource = null;
             $partnerId = null;
+            $officialFacilityId = null;
             $managerUserId = null;
             $purposeId = null;
         }
         if ($type === PriceList::TYPE_CUSTOMER) {
-            $partner = Partner::query()->find($partnerId);
-            $types = $partner?->partner_types ?? [];
-            if (! $partner || $partner->status !== 'active' || ! in_array('customer', $types, true)) {
-                throw ValidationException::withMessages(['partner_id' => 'Khách hàng phải là Partner đang hoạt động và có loại customer.']);
+            if (! in_array($customerSource, [PriceList::CUSTOMER_SOURCE_PARTNER, PriceList::CUSTOMER_SOURCE_OFFICIAL_FACILITY], true)) {
+                throw ValidationException::withMessages(['customer_source' => 'Nguồn khách hàng không hợp lệ.']);
+            }
+            if ($customerSource === PriceList::CUSTOMER_SOURCE_PARTNER) {
+                $partner = Partner::query()->find($partnerId);
+                $types = $partner?->partner_types ?? [];
+                if (! $partner || $partner->status !== 'active' || ! in_array('customer', $types, true)) {
+                    throw ValidationException::withMessages(['partner_id' => 'Khách hàng phải là Partner đang hoạt động và có loại customer.']);
+                }
+                $officialFacilityId = null;
+            } else {
+                if (! $officialFacilityId || ! OfficialSourceFacility::query()->whereKey($officialFacilityId)->where('is_active', true)->exists()) {
+                    throw ValidationException::withMessages(['official_facility_id' => 'Cơ sở KCB phải tồn tại và đang hoạt động trong kho dữ liệu nguồn.']);
+                }
+                $partnerId = null;
             }
             if (! $managerUserId || ! User::query()->whereKey($managerUserId)->where('is_active', true)->exists()) {
                 throw ValidationException::withMessages(['manager_user_id' => 'Người phụ trách phải là user đang hoạt động.']);
@@ -50,7 +66,9 @@ class PriceListManager
         }
 
         return array_merge($data, [
+            'customer_source' => $customerSource,
             'partner_id' => $partnerId,
+            'official_facility_id' => $officialFacilityId,
             'manager_user_id' => $managerUserId,
             'purpose_id' => $purposeId,
         ]);
@@ -112,7 +130,12 @@ class PriceListManager
         }
 
         $overlap = PriceList::query()->whereKeyNot($priceList->id)->where('status', PriceList::STATUS_ACTIVE)->where('type', $priceList->type)
-            ->when($priceList->type === PriceList::TYPE_CUSTOMER, fn ($query) => $query->where('partner_id', $priceList->partner_id), fn ($query) => $query->whereNull('partner_id'))
+            ->when($priceList->type === PriceList::TYPE_CUSTOMER, function ($query) use ($priceList): void {
+                $query->where('customer_source', $priceList->customer_source);
+                $priceList->customer_source === PriceList::CUSTOMER_SOURCE_OFFICIAL_FACILITY
+                    ? $query->where('official_facility_id', $priceList->official_facility_id)
+                    : $query->where('partner_id', $priceList->partner_id);
+            }, fn ($query) => $query->whereNull('partner_id')->whereNull('official_facility_id'))
             ->where(function ($query) use ($priceList): void {
                 $query->whereNull('effective_to')->orWhereDate('effective_to', '>=', $priceList->effective_from ?? '1000-01-01');
             })
