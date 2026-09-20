@@ -56,5 +56,7 @@ PHP, $service);
         $this->assertStringContainsString('Chọn trang này', $view);
         $this->assertStringContainsString('Chọn tất cả kết quả', $view);
         $this->assertStringContainsString('wire:key="catalog-row-{{ $row->key }}"', $view);
+        $this->assertStringContainsString('wire:key="catalog-page-{{ $products->currentPage() }}-', $view);
+        $this->assertStringContainsString('@checked(in_array($row->key, $selectedRows, true))', $view);
     }
 }
