@@ -33,8 +33,7 @@ function selectSearchComponent(config) {
             }
 
             this.instance = new TomSelect('#' + config.id, {
-                searchField: ['text'],
-                shouldOpen: true,
+                plugins: ['dropdown_input'],
                 placeholder: config.placeholder,
                 create: false,
                 allowEmptyOption: true,
@@ -88,16 +87,6 @@ function selectSearchComponent(config) {
 }
 
 
-.ts-control > input {
-    display: inline-block !important;
-    min-width: 12rem !important;
-    opacity: 1 !important;
-    position: static !important;
-}
-.ts-control > input::placeholder {
-    color: #94a3b8 !important;
-}
-
 .ts-wrapper.focus .ts-control {
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
     border-color: #6366f1 !important;
@@ -106,20 +95,6 @@ function selectSearchComponent(config) {
 /* Dropdown is portalled to body so parent cards/stacking contexts cannot cover it. */
 body > .ts-dropdown {
     z-index: 99999 !important;
-}
-body > .ts-dropdown .dropdown-input-wrap {
-    display: block !important;
-    padding: .5rem !important;
-    border-bottom: 1px solid #e2e8f0 !important;
-}
-body > .ts-dropdown .dropdown-input {
-    display: block !important;
-    width: 100% !important;
-    min-height: 2.5rem !important;
-    border: 1px solid #cbd5e1 !important;
-    border-radius: .625rem !important;
-    padding: .5rem .75rem !important;
-    background: #fff !important;
 }
 </style>
 @endonce
