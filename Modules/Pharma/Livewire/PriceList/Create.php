@@ -135,6 +135,15 @@ class Create extends Component
         $this->managerUserId ??= auth('admin')->id();
     }
 
+    public function setCustomerSource(string $value): void
+    {
+        if (! in_array($value, [PriceList::CUSTOMER_SOURCE_PARTNER, PriceList::CUSTOMER_SOURCE_OFFICIAL_FACILITY], true)) return;
+        $this->customerSource = $value;
+        $this->partnerId = null;
+        $this->officialFacilityId = null;
+        $this->resetValidation(['customerSource', 'partnerId', 'officialFacilityId']);
+    }
+
     public function updatedCustomerSource(string $value): void
     {
         if ($value === PriceList::CUSTOMER_SOURCE_PARTNER) $this->officialFacilityId = null;
