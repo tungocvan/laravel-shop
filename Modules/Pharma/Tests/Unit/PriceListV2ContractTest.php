@@ -113,6 +113,15 @@ class PriceListV2ContractTest extends TestCase
         $this->assertStringContainsString("status==='draft'", $indexView);
         $this->assertStringContainsString('officialFacility?->facility_name', $indexView);
         $this->assertStringContainsString("'officialFacility'", $indexClass);
+        $model = file_get_contents(base_path('Modules/Pharma/Models/PriceList.php'));
+        $controller = file_get_contents(base_path('Modules/Pharma/Http/Controllers/PriceListController.php'));
+        $this->assertStringContainsString('isDirectlyEditable', $model);
+        $this->assertStringContainsString('STATUS_INACTIVE', $model);
+        $this->assertStringContainsString('isDirectlyEditable()', $controller);
+        $this->assertStringContainsString("in_array(\$list->status,['draft','inactive'],true)", $indexView);
+        $workspace = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/workspace-bid.blade.php'));
+        $this->assertStringContainsString('wire:model.live="includeAll"', $workspace);
+        $this->assertStringContainsString('Áp dụng tất cả', $workspace);
         $page = file_get_contents(base_path('Modules/Pharma/resources/views/pages/price-list/create.blade.php'));
         $this->assertStringContainsString("@livewire('pharma.price-list.workspace')", $page);
     }
