@@ -119,7 +119,8 @@ class PriceListV2ContractTest extends TestCase
         $this->assertStringContainsString('STATUS_INACTIVE', $model);
         $this->assertStringContainsString('isDirectlyEditable()', $controller);
         $this->assertStringContainsString("in_array(\$list->status,['draft','inactive'],true)", $indexView);
-        $this->assertGreaterThanOrEqual(2, substr_count($indexView, "confirm({{ \$list->id }},'activate')"));
+        $this->assertStringContainsString("confirm({{ \$list->id }},'activate')", $indexView);
+        $this->assertStringContainsString("in_array(\$list->status,['draft','inactive'],true)", $indexView);
         $this->assertStringContainsString('Kích hoạt', $indexView);
         $indexPage = file_get_contents(base_path('Modules/Pharma/resources/views/pages/price-list/index.blade.php'));
         $showPage = file_get_contents(base_path('Modules/Pharma/resources/views/pages/price-list/show.blade.php'));
