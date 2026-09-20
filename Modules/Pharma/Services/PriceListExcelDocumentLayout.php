@@ -93,11 +93,8 @@ class PriceListExcelDocumentLayout
         $last = Coordinate::stringFromColumnIndex($lastIndex);
         $row = $afterRow + 2;
         $location = trim((string) ($hf['footer_location'] ?? ''));
-        $year = trim((string) ($hf['footer_year'] ?? ''));
-        $locationLine = $location;
-        if ($year !== '') {
-            $locationLine .= ($locationLine !== '' ? ', ' : '').'ngày.....tháng.....năm '.$year;
-        }
+        $dateText = trim((string) ($hf['footer_year'] ?? ''));
+        $locationLine = trim($location.($location !== '' && $dateText !== '' ? ', ' : '').$dateText);
 
         $this->mergedFooterCell($sheet, $first, $last, $row, $locationLine, false, true);
         $this->mergedFooterCell($sheet, $first, $last, ++$row, (string) ($hf['signatory_title'] ?? ''), true, false);
