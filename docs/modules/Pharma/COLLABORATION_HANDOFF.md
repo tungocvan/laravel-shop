@@ -19,6 +19,7 @@
 - Final operator acceptance: focused Price List tests PASS, Price List regression PASS, pagination-selection UI PASS, and detail-view width/column UI PASS.
 - Full-project regression: NOT APPLICABLE — module-scoped Price List UI/Livewire change.
 - Schema migration / production enablement: NOT APPLICABLE.
+- Reusable lesson captured in `.codex/standards/ADMIN_UI_STANDARD.md`: route/view ownership verification, stable domain keys, duplicate desktop/mobile checkbox trees, state-vs-DOM diagnosis and bounded `wire:replace` escalation for Livewire pagination selection.
 
 ---
 
