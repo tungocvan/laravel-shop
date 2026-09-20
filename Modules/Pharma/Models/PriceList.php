@@ -15,6 +15,10 @@ class PriceList extends Model
 
     public const TYPE_CUSTOMER = 'customer';
 
+    public const CUSTOMER_SOURCE_PARTNER = 'partner';
+
+    public const CUSTOMER_SOURCE_OFFICIAL_FACILITY = 'official_facility';
+
     public const STATUS_DRAFT = 'draft';
 
     public const STATUS_ACTIVE = 'active';
@@ -29,7 +33,9 @@ class PriceList extends Model
         'code',
         'name',
         'type',
+        'customer_source',
         'partner_id',
+        'official_facility_id',
         'manager_user_id',
         'purpose_id',
         'source_price_list_id',
@@ -59,6 +65,11 @@ class PriceList extends Model
     public function partner(): BelongsTo
     {
         return $this->belongsTo(Partner::class, 'partner_id');
+    }
+
+    public function officialFacility(): BelongsTo
+    {
+        return $this->belongsTo(OfficialSourceFacility::class, 'official_facility_id');
     }
 
     public function manager(): BelongsTo
