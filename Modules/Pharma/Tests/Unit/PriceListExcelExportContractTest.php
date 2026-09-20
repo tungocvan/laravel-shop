@@ -11,7 +11,8 @@ class PriceListExcelExportContractTest extends TestCase
     public function price_list_detail_exposes_designer_and_requested_table_layout(): void
     {
         $view=file_get_contents(base_path('Modules/Pharma/resources/views/pages/price-list/show.blade.php'));$config=file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/export-configurator.blade.php'));
-        foreach(['submitPriceListExport()','name="items[]"',"@livewire('pharma.price-list.export-configurator')",'Nhóm thuốc','KQ trúng thầu'] as$needle)$this->assertStringContainsString($needle,$view);
+        foreach(['submitPriceListExport()','name="items[]"','Mẫu bảng báo giá','pharma-export-profile-id','Nhóm thuốc','KQ trúng thầu'] as$needle)$this->assertStringContainsString($needle,$view);
+        $index=file_get_contents(base_path('Modules/Pharma/resources/views/pages/price-list/index.blade.php'));$this->assertStringContainsString("@livewire('pharma.price-list.export-configurator')",$index);$this->assertStringNotContainsString("@livewire('pharma.price-list.export-configurator')",$view);
         $this->assertStringNotContainsString('>Giá thu<',$view);$this->assertStringNotContainsString('>Giá xuất HĐ<',$view);
         foreach(['Excel Designer','Bố cục xuất Bảng giá','Cột dữ liệu','Trang in'] as$needle)$this->assertStringContainsString($needle,$config);$this->assertStringNotContainsString('localStorage',$config);
     }
