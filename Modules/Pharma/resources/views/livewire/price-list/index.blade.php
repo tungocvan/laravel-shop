@@ -19,14 +19,32 @@
 
 <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
     <div class="border-b border-gray-100 bg-gray-50/60 p-4">
-        <div class="grid gap-3 lg:grid-cols-[minmax(320px,1fr)_190px_190px_130px]">
-            <label class="relative block">
+        <div class="grid gap-3 lg:grid-cols-12">
+            <label class="relative block lg:col-span-5">
                 <span class="sr-only">Tìm bảng giá</span>
                 <input type="search" wire:model.live.debounce.300ms="search" placeholder="Tìm theo mã hoặc tên bảng giá..." class="min-h-11 w-full rounded-xl border-gray-300 pl-4 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
             </label>
-            <select wire:model.live="type" class="min-h-11 rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"><option value="all">Tất cả loại</option><option value="global">Bảng giá chung</option><option value="customer">Theo khách hàng</option></select>
-            <select wire:model.live="status" class="min-h-11 rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"><option value="all">Tất cả trạng thái</option><option value="draft">Draft</option><option value="active">Active</option><option value="inactive">Inactive</option><option value="archived">Archived</option></select>
-            <select wire:model.live="perPage" class="min-h-11 rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"><option value="10">10 dòng</option><option value="25">25 dòng</option><option value="50">50 dòng</option><option value="100">100 dòng</option></select>
+            <select wire:model.live="type" class="min-h-11 rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 lg:col-span-2"><option value="all">Tất cả loại</option><option value="global">Bảng giá chung</option><option value="customer">Theo khách hàng</option></select>
+            <select wire:model.live="status" class="min-h-11 rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 lg:col-span-2"><option value="all">Tất cả trạng thái</option><option value="draft">Draft</option><option value="active">Active</option><option value="inactive">Inactive</option><option value="archived">Archived</option></select>
+            <select wire:model.live="perPage" class="min-h-11 rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 lg:col-span-3"><option value="10">10 dòng</option><option value="25">25 dòng</option><option value="50">50 dòng</option><option value="100">100 dòng</option></select>
+
+            <label class="block lg:col-span-4">
+                <span class="mb-1 block text-xs font-semibold text-gray-500">Người phụ trách</span>
+                <select wire:model.live="managerUserId" class="min-h-11 w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    <option value="all">Tất cả người phụ trách</option>
+                    @foreach($managers as $manager)
+                        <option value="{{ $manager->id }}">{{ $manager->name }}</option>
+                    @endforeach
+                </select>
+            </label>
+            <label class="block lg:col-span-3">
+                <span class="mb-1 block text-xs font-semibold text-gray-500">Hiệu lực từ</span>
+                <input type="date" wire:model.live="effectiveFrom" class="min-h-11 w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+            </label>
+            <label class="block lg:col-span-3">
+                <span class="mb-1 block text-xs font-semibold text-gray-500">Hiệu lực đến</span>
+                <input type="date" wire:model.live="effectiveTo" class="min-h-11 w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+            </label>
         </div>
     </div>
 
@@ -36,9 +54,9 @@
     </div>
 
     <div class="overflow-x-auto">
-        <table class="w-full min-w-[1120px] text-left text-sm">
+        <table class="w-full min-w-[1240px] text-left text-sm">
             <thead class="border-b border-gray-200 bg-white text-[11px] font-bold uppercase tracking-wide text-gray-500">
-                <tr><th class="w-12 px-4 py-3 text-center"><span class="sr-only">Chọn</span></th><th class="px-5 py-3">Bảng giá</th><th class="px-4 py-3">Phạm vi</th><th class="px-4 py-3">Khách hàng</th><th class="px-4 py-3">Hiệu lực</th><th class="px-4 py-3 text-center">SKU</th><th class="px-4 py-3">Trạng thái</th><th class="px-4 py-3">Cập nhật</th><th class="px-5 py-3 text-right">Thao tác</th></tr>
+                <tr><th class="w-12 px-4 py-3 text-center"><span class="sr-only">Chọn</span></th><th class="px-5 py-3">Bảng giá</th><th class="px-4 py-3">Phạm vi</th><th class="px-4 py-3">Khách hàng</th><th class="px-4 py-3">Người phụ trách</th><th class="px-4 py-3">Hiệu lực</th><th class="px-4 py-3 text-center">SKU</th><th class="px-4 py-3">Trạng thái</th><th class="px-4 py-3">Cập nhật</th><th class="px-5 py-3 text-right">Thao tác</th></tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
                 @forelse($priceLists as $list)
@@ -47,6 +65,7 @@
                         <td class="px-5 py-4"><a href="{{ route('admin.pharma.price-lists.show',$list) }}" class="font-bold text-gray-900 hover:text-indigo-700">{{ $list->name }}</a><div class="mt-1 font-mono text-xs text-gray-500">{{ $list->code }}</div></td>
                         <td class="px-4 py-4"><span class="rounded-lg bg-gray-100 px-2.5 py-1 text-xs font-bold text-gray-700">{{ $list->type === 'global' ? 'GLOBAL' : 'CUSTOMER' }}</span></td>
                         <td class="max-w-[220px] px-4 py-4 font-medium text-gray-700">{{ $list->customer_source === 'official_facility' ? ($list->officialFacility?->facility_name ?? '—') : ($list->partner?->name ?? '—') }}</td>
+                        <td class="max-w-[180px] px-4 py-4 text-sm font-medium text-gray-700">{{ $list->manager?->name ?? '—' }}</td>
                         <td class="px-4 py-4 text-xs text-gray-600"><div>{{ $list->effective_from?->format('d/m/Y') ?? 'Không giới hạn' }}</div><div class="mt-1 text-gray-400">đến {{ $list->effective_to?->format('d/m/Y') ?? 'không giới hạn' }}</div></td>
                         <td class="px-4 py-4 text-center font-bold text-gray-900">{{ $list->items_count }}</td>
                         <td class="px-4 py-4"><span class="rounded-full px-2.5 py-1 text-[11px] font-bold {{ $list->status==='active'?'bg-emerald-100 text-emerald-700':($list->status==='draft'?'bg-amber-100 text-amber-700':'bg-gray-100 text-gray-600') }}">{{ strtoupper($list->status) }}</span></td>
@@ -54,7 +73,7 @@
                         <td class="px-5 py-4"><div class="flex items-center justify-end gap-2"><a href="{{ route('admin.pharma.price-lists.show',$list) }}" class="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50">Xem</a>@if(in_array($list->status,['draft','inactive'],true))<a href="{{ route('admin.pharma.price-lists.edit',$list) }}" class="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50">Sửa</a>@if($list->status==='draft')<button type="button" wire:click="confirm({{ $list->id }},'activate')" class="rounded-lg border border-emerald-200 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50">Kích hoạt</button><button type="button" wire:click="confirm({{ $list->id }},'delete')" class="rounded-lg border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50">Xóa</button>@else<button type="button" wire:click="confirm({{ $list->id }},'activate')" class="rounded-lg border border-emerald-200 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50">Kích hoạt</button><button type="button" wire:click="confirm({{ $list->id }},'delete')" class="rounded-lg border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50">Xóa</button>@endif @elseif($list->status==='active')<button type="button" wire:click="confirm({{ $list->id }},'deactivate')" class="rounded-lg border border-amber-200 px-3 py-2 text-xs font-semibold text-amber-700 hover:bg-amber-50">Ngưng</button>@endif<button type="button" wire:click="confirm({{ $list->id }},'clone')" class="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50">Nhân bản</button><a href="{{ route('admin.pharma.price-lists.export',$list) }}" class="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50">Excel</a></div></td>
                     </tr>
                 @empty
-                    <tr><td colspan="9" class="px-6 py-16 text-center"><p class="font-semibold text-gray-700">Chưa có bảng giá phù hợp</p><p class="mt-1 text-sm text-gray-500">Thay đổi bộ lọc hoặc tạo bảng giá mới.</p></td></tr>
+                    <tr><td colspan="10" class="px-6 py-16 text-center"><p class="font-semibold text-gray-700">Chưa có bảng giá phù hợp</p><p class="mt-1 text-sm text-gray-500">Thay đổi bộ lọc hoặc tạo bảng giá mới.</p></td></tr>
                 @endforelse
             </tbody>
         </table>
