@@ -17,7 +17,7 @@
     @endforeach
 </div>
 
-<section class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+<section class="rounded-2xl border border-gray-200 bg-white shadow-sm">
     <div class="border-b border-gray-100 bg-gray-50/70 p-4">
         <div class="flex flex-col gap-4">
             <div class="flex flex-col gap-3 xl:flex-row xl:items-end">
@@ -68,19 +68,23 @@
                         <td class="px-4 py-4"><span class="rounded-full px-2.5 py-1 text-[11px] font-bold {{ $list->status==='active'?'bg-emerald-100 text-emerald-700':($list->status==='draft'?'bg-amber-100 text-amber-700':'bg-gray-100 text-gray-600') }}">{{ strtoupper($list->status) }}</span></td>
                         <td class="px-4 py-4 text-xs text-gray-500">{{ $list->updated_at?->format('d/m/Y') }}<div>{{ $list->updated_at?->format('H:i') }}</div></td>
                         <td class="px-5 py-4 text-right">
-                            <div x-data="{ open:false }" class="relative inline-block text-left">
-                                <button type="button" @click="open=!open" @keydown.escape.window="open=false" class="inline-flex min-h-10 items-center justify-center rounded-xl border border-gray-300 bg-white px-3 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50" aria-label="Mở thao tác cho {{ $list->name }}">Thao tác <span class="ml-2">▾</span></button>
-                                <div x-cloak x-show="open" @click.outside="open=false" class="absolute right-0 z-30 mt-2 w-44 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 text-left shadow-xl">
-                                    <a href="{{ route('admin.pharma.price-lists.show',$list) }}" class="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">Xem</a>
-                                    @if(in_array($list->status,['draft','inactive'],true))
-                                        <a href="{{ route('admin.pharma.price-lists.edit',$list) }}" class="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">Sửa</a>
-                                        <button type="button" wire:click="confirm({{ $list->id }},'activate')" @click="open=false" class="block w-full px-4 py-2.5 text-left text-sm font-medium text-emerald-700 hover:bg-emerald-50">Kích hoạt</button>
-                                        <button type="button" wire:click="confirm({{ $list->id }},'delete')" @click="open=false" class="block w-full px-4 py-2.5 text-left text-sm font-medium text-rose-700 hover:bg-rose-50">Xóa</button>
-                                    @elseif($list->status==='active')
-                                        <button type="button" wire:click="confirm({{ $list->id }},'deactivate')" @click="open=false" class="block w-full px-4 py-2.5 text-left text-sm font-medium text-amber-700 hover:bg-amber-50">Ngưng</button>
-                                    @endif
-                                    <button type="button" wire:click="confirm({{ $list->id }},'clone')" @click="open=false" class="block w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50">Nhân bản</button>
-                                    <a href="{{ route('admin.pharma.price-lists.export',$list) }}" class="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">Xuất Excel</a>
+                            <div class="flex items-center justify-end gap-1.5">
+                                <a href="{{ route('admin.pharma.price-lists.show',$list) }}" class="inline-flex min-h-9 items-center rounded-lg border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-700 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700">Xem</a>
+                                @if(in_array($list->status,['draft','inactive'],true))
+                                    <a href="{{ route('admin.pharma.price-lists.edit',$list) }}" class="inline-flex min-h-9 items-center rounded-lg border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-700 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700">Sửa</a>
+                                @endif
+                                <div x-data="{ open:false }" class="relative inline-block text-left">
+                                    <button type="button" @click="open=!open" @keydown.escape.window="open=false" class="inline-flex min-h-9 items-center rounded-lg border border-gray-300 bg-white px-3 text-xs font-semibold text-gray-700 shadow-sm hover:bg-gray-50" aria-haspopup="menu" :aria-expanded="open" aria-label="Thao tác khác cho {{ $list->name }}">Thêm <svg class="ml-1.5 h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51a.75.75 0 01-1.08 0l-4.25-4.51a.75.75 0 01.02-1.06z" clip-rule="evenodd"/></svg></button>
+                                    <div x-cloak x-show="open" x-transition.origin.top.right @click.outside="open=false" class="absolute right-0 z-50 mt-2 w-48 rounded-xl border border-gray-200 bg-white p-1.5 text-left shadow-2xl" role="menu">
+                                        @if(in_array($list->status,['draft','inactive'],true))
+                                            <button type="button" wire:click="confirm({{ $list->id }},'activate')" @click="open=false" class="flex w-full items-center rounded-lg px-3 py-2.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-50" role="menuitem">Kích hoạt</button>
+                                            <button type="button" wire:click="confirm({{ $list->id }},'delete')" @click="open=false" class="flex w-full items-center rounded-lg px-3 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-50" role="menuitem">Xóa bảng giá</button>
+                                        @elseif($list->status==='active')
+                                            <button type="button" wire:click="confirm({{ $list->id }},'deactivate')" @click="open=false" class="flex w-full items-center rounded-lg px-3 py-2.5 text-sm font-semibold text-amber-700 hover:bg-amber-50" role="menuitem">Ngưng hiệu lực</button>
+                                        @endif
+                                        <button type="button" wire:click="confirm({{ $list->id }},'clone')" @click="open=false" class="flex w-full items-center rounded-lg px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">Nhân bản</button>
+                                        <a href="{{ route('admin.pharma.price-lists.export',$list) }}" class="flex items-center rounded-lg px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">Xuất Excel</a>
+                                    </div>
                                 </div>
                             </div>
                         </td>
