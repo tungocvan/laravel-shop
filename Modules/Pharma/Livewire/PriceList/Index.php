@@ -20,17 +20,24 @@ class Index extends Component
     public string $managerUserId = 'all';
     public string $effectiveFrom = '';
     public string $effectiveTo = '';
+    public string $appliedEffectiveFrom = '';
+    public string $appliedEffectiveTo = '';
+    public string $sortField = 'updated_at';
+    public string $sortDirection = 'desc';
     public int $perPage = 10;
     public ?int $confirmingId = null;
     public ?string $confirmingAction = null;
     public ?string $errorMessage = null;
     public array $selectedIds = [];
 
-    protected $queryString = ['search' => ['except' => ''], 'type' => ['except' => 'all'], 'status' => ['except' => 'all'], 'managerUserId' => ['except' => 'all'], 'effectiveFrom' => ['except' => ''], 'effectiveTo' => ['except' => ''], 'perPage' => ['except' => 10]];
+    protected $queryString = ['search' => ['except' => ''], 'type' => ['except' => 'all'], 'status' => ['except' => 'all'], 'managerUserId' => ['except' => 'all'], 'appliedEffectiveFrom' => ['except' => ''], 'appliedEffectiveTo' => ['except' => ''], 'sortField' => ['except' => 'updated_at'], 'sortDirection' => ['except' => 'desc'], 'perPage' => ['except' => 10]];
 
     public function mount(): void
     {
         $this->authorizePharmaView();
+        $today = now()->toDateString();
+        $this->effectiveFrom = $this->appliedEffectiveFrom !== '' ? $this->appliedEffectiveFrom : $today;
+        $this->effectiveTo = $this->appliedEffectiveTo !== '' ? $this->appliedEffectiveTo : $today;
     }
 
     public function updatedSearch(): void
@@ -53,13 +60,44 @@ class Index extends Component
         $this->resetPage();
     }
 
-    public function updatedEffectiveFrom(): void
+    public function applyEffectiveDates(): void
     {
+        $this->appliedEffectiveFrom = $this->effectiveFrom;
+        $this->appliedEffectiveTo = $this->effectiveTo;
+        $this->selectedIds = [];
         $this->resetPage();
     }
 
-    public function updatedEffectiveTo(): void
+    public function resetFilters(): void
     {
+        $today = now()->toDateString();
+        $this->search = '';
+        $this->type = 'all';
+        $this->status = 'all';
+        $this->managerUserId = 'all';
+        $this->effectiveFrom = $today;
+        $this->effectiveTo = $today;
+        $this->appliedEffectiveFrom = '';
+        $this->appliedEffectiveTo = '';
+        $this->sortField = 'updated_at';
+        $this->sortDirection = 'desc';
+        $this->selectedIds = [];
+        $this->resetPage();
+    }
+
+    public function sortBy(string $field): void
+    {
+        if (! in_array($field, ['effective_from', 'effective_to'], true)) {
+            return;
+        }
+
+        if ($this->sortField === $field) {
+            $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->sortField = $field;
+            $this->sortDirection = 'asc';
+        }
+
         $this->resetPage();
     }
 
@@ -136,9 +174,11 @@ class Index extends Component
             ->when($this->type !== 'all', fn ($q) => $q->where('type', $this->type))
             ->when($this->status !== 'all', fn ($q) => $q->where('status', $this->status))
             ->when($this->managerUserId !== 'all', fn ($q) => $q->where('manager_user_id', (int) $this->managerUserId))
-            ->when($this->effectiveFrom !== '', fn ($q) => $q->where(fn ($dates) => $dates->whereNull('effective_to')->orWhereDate('effective_to', '>=', $this->effectiveFrom)))
-            ->when($this->effectiveTo !== '', fn ($q) => $q->where(fn ($dates) => $dates->whereNull('effective_from')->orWhereDate('effective_from', '<=', $this->effectiveTo)))
-            ->latest('updated_at');
+            ->when($this->appliedEffectiveFrom !== '', fn ($q) => $q->where(fn ($dates) => $dates->whereNull('effective_to')->orWhereDate('effective_to', '>=', $this->appliedEffectiveFrom)))
+            ->when($this->appliedEffectiveTo !== '', fn ($q) => $q->where(fn ($dates) => $dates->whereNull('effective_from')->orWhereDate('effective_from', '<=', $this->appliedEffectiveTo)))
+            ->orderBy(in_array($this->sortField, ['effective_from', 'effective_to'], true) ? $this->sortField : 'updated_at', $this->sortDirection === 'asc' ? 'asc' : 'desc');
+
+        $hasActiveFilters = $this->search !== '' || $this->type !== 'all' || $this->status !== 'all' || $this->managerUserId !== 'all' || $this->appliedEffectiveFrom !== '' || $this->appliedEffectiveTo !== '' || $this->sortField !== 'updated_at';
 
         $perPage = in_array($this->perPage, [10, 25, 50, 100], true) ? $this->perPage : 10;
         $kpis = [
@@ -154,6 +194,6 @@ class Index extends Component
             ->orderBy('name')
             ->get(['id', 'name']);
 
-        return view('Pharma::livewire.price-list.index', ['priceLists' => $query->paginate($perPage), 'kpis' => $kpis, 'managers' => $managers]);
+        return view('Pharma::livewire.price-list.index', ['priceLists' => $query->paginate($perPage), 'kpis' => $kpis, 'managers' => $managers, 'hasActiveFilters' => $hasActiveFilters]);
     }
 }
