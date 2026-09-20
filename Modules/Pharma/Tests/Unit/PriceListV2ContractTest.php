@@ -121,6 +121,14 @@ class PriceListV2ContractTest extends TestCase
         $this->assertStringContainsString("in_array(\$list->status,['draft','inactive'],true)", $indexView);
         $this->assertGreaterThanOrEqual(2, substr_count($indexView, "confirm({{ \$list->id }},'activate')"));
         $this->assertStringContainsString('Kích hoạt', $indexView);
+        $indexPage = file_get_contents(base_path('Modules/Pharma/resources/views/pages/price-list/index.blade.php'));
+        $showPage = file_get_contents(base_path('Modules/Pharma/resources/views/pages/price-list/show.blade.php'));
+        $controller = file_get_contents(base_path('Modules/Pharma/Http/Controllers/PriceListController.php'));
+        $this->assertStringContainsString("@livewire('pharma.price-list.export-configurator')", $indexPage);
+        $this->assertStringNotContainsString("@livewire('pharma.price-list.export-configurator')", $showPage);
+        $this->assertStringContainsString('Mẫu bảng báo giá', $showPage);
+        $this->assertStringContainsString('pharma-export-profile-id', $showPage);
+        $this->assertStringContainsString('profilesForUser', $controller);
         $workspace = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/workspace-bid.blade.php'));
         $this->assertStringContainsString('wire:model.live="includeAll"', $workspace);
         $this->assertStringContainsString('Áp dụng tất cả', $workspace);
