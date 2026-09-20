@@ -15,7 +15,7 @@ class PharmaPriceListPipelineTest extends TestCase
         $this->assertStringNotContainsString('selectAllProducts', $source);
         $this->assertStringContainsString('private const PER_PAGE_OPTIONS = [10, 25, 50, 100];', $source);
         $this->assertStringContainsString('public bool $selectPage = false;', $source);
-        $this->assertStringContainsString('private function analysisSummary', $source);
+        $this->assertStringContainsString('private function productPaginator', $source);
     }
 
     public function test_price_list_generation_uses_service_as_single_validation_boundary(): void
@@ -46,15 +46,16 @@ PHP, $service);
         $this->assertStringContainsString('@unlink($outputPath)', $service);
     }
 
-    public function test_price_list_workspace_is_bounded_and_page_scoped(): void
+    public function test_price_list_workspace_is_bounded_and_has_explicit_selection_scopes(): void
     {
-        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/create.blade.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/workspace-bid.blade.php'));
 
         $this->assertIsString($view);
         $this->assertStringContainsString('wire:model.live="perPage"', $view);
         $this->assertStringContainsString('wire:model.live="selectPage"', $view);
-        $this->assertStringContainsString('Chỉ chọn theo trang hiện tại', $view);
-        $this->assertStringNotContainsString('Chọn tất cả', $view);
-        $this->assertStringContainsString('wire:loading.attr="disabled"', $view);
+        $this->assertStringContainsString('Chọn tất cả kết quả', $view);
+        $this->assertStringContainsString('<tbody wire:replace wire:key="catalog-desktop-page-', $view);
+        $this->assertStringContainsString('wire:replace wire:key="catalog-mobile-page-', $view);
+        $this->assertStringContainsString('@checked(in_array($row->key, $selectedRows, true))', $view);
     }
 }

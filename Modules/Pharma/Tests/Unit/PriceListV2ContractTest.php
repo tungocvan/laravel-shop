@@ -123,6 +123,21 @@ class PriceListV2ContractTest extends TestCase
     }
 
     #[Test]
+    public function catalog_rows_have_stable_livewire_identity_across_pagination(): void
+    {
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/workspace-bid.blade.php'));
+
+        $this->assertStringContainsString('<tbody wire:replace wire:key="catalog-desktop-page-', $view);
+        $this->assertStringContainsString('wire:key="catalog-desktop-row-{{ $row->key }}"', $view);
+        $this->assertStringContainsString('wire:key="catalog-desktop-checkbox-{{ $row->key }}"', $view);
+        $this->assertStringContainsString('wire:replace wire:key="catalog-mobile-page-', $view);
+        $this->assertStringContainsString('wire:key="catalog-mobile-row-{{ $row->key }}"', $view);
+        $this->assertStringContainsString('wire:key="catalog-mobile-checkbox-{{ $row->key }}"', $view);
+        $this->assertStringContainsString('@checked(in_array($row->key, $selectedRows, true))', $view);
+        $this->assertSame(2, substr_count($view, 'wire:model.live="selectedRows"'));
+    }
+
+    #[Test]
     public function persistence_contract_contains_snapshot_and_duplicate_protection(): void
     {
         $migration = file_get_contents(base_path('Modules/Pharma/database/migrations/2026_09_14_140000_create_price_lists_v2_tables.php'));

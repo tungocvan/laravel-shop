@@ -1,3 +1,28 @@
+## Checkpoint — Price List pagination selection identity
+
+- Branch: `fix/pharma-price-list-pagination-selection`.
+- Base: `main` at `cf06ebca1381f7a1679f6c261479cb2255d7bd17`.
+- Route: `/admin/pharma/price-lists/create`, step 2 (`Chọn thuốc`).
+- Root cause: the route renders `pharma.price-list.workspace` / `workspace-bid.blade.php`, which contains separate desktop and mobile product checkbox trees without stable Livewire DOM identity. Earlier changes targeted the inherited legacy `create.blade.php` view, which this workspace does not render.
+- Fix: both actual desktop and mobile catalog surfaces now replace their page children instead of morphing positional inputs, and use canonical variant/package keys for every row and checkbox. Checked state is rendered from server-owned `selectedRows`.
+- Selection semantics remain unchanged: the header checkbox is page-scoped, while `Chọn tất cả kết quả` remains an explicit separate action.
+- No schema migration and no Price List business-rule change.
+- Static diff/whitespace validation: PASS (`git diff --check`).
+- Automated tests were not run in the implementation workspace because PHP is unavailable there; operator focused/module tests and manual UI acceptance remain pending at this checkpoint.
+- Operator Test 1 (`PriceListV2ContractTest`): PASS (inferred from progression to Test 2 under the agreed stop-on-failure gate).
+- Initial Price List regression: 57 passed / 2 failed (596 assertions). Both failures were stale assertions in `PharmaPriceListPipelineTest`: one still required the removed legacy-workbook `analysisSummary()` helper; the other prohibited the accepted explicit `Chọn tất cả kết quả` action. The contract now asserts the current database-backed paginator and the distinct page/all-result selection controls, including stable catalog row identity. Re-run pending.
+- Operator regression after aligning stale contracts: 59 passed (598 assertions).
+- First manual UI re-check still reproduced positional checkbox carry-over. Row-level keys alone were insufficient for the checkbox DOM property, so the follow-up fix keys the complete catalog page body by current page + rendered row identities, keys each checkbox directly, and renders its checked state explicitly from `selectedRows`. Follow-up automated and UI acceptance pending.
+- CLI/Tinker diagnosis confirmed page 1 and page 2 row identities are disjoint. Browser component inspection then identified the real owner as `pharma.price-list.workspace`, proving the earlier view target was incorrect. The actual desktop `tbody` and mobile list now use Livewire 3's canonical `wire:replace` directive so checkbox children are replaced on page changes instead of retaining positional input state.
+- Final operator acceptance for pagination selection: automated tests PASS and UI PASS.
+- Follow-up detail-view refinement (`/admin/pharma/price-lists/{priceList}`): removed duplicate page-level horizontal padding so the Admin shell width is used, shows only `circular_group` as `Nhóm thuốc theo thông tư`, shortens the package column, and reserves explicit wider columns for declared/company prices.
+- Final operator acceptance: focused Price List tests PASS, Price List regression PASS, pagination-selection UI PASS, and detail-view width/column UI PASS.
+- Full-project regression: NOT APPLICABLE — module-scoped Price List UI/Livewire change.
+- Schema migration / production enablement: NOT APPLICABLE.
+- Reusable lesson captured in `.codex/standards/ADMIN_UI_STANDARD.md`: route/view ownership verification, stable domain keys, duplicate desktop/mobile checkbox trees, state-vs-DOM diagnosis and bounded `wire:replace` escalation for Livewire pagination selection.
+
+---
+
 ## Final acceptance — Official Facilities source regions / BHXH / XLSX round-trip
 
 - Operator acceptance: focused tests PASS and UI PASS, including the exported workbook import flow.

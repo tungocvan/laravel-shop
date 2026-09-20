@@ -297,6 +297,27 @@ When checkboxes are present:
 - Loading/disabled state must prevent duplicate execution.
 - Authorization must be enforced server-side for the action; hiding the button is not sufficient.
 
+### Livewire checkbox identity across pagination
+
+Paginated or filtered checkbox lists must preserve selection by stable record identity, never by rendered row position.
+
+Implementation requirements:
+
+- Verify the actual route, registered Livewire component and final Blade view before editing. An inherited component may override `render()` and use a different view from its parent.
+- Every repeated row/card and its checkbox must use a stable domain key such as the record ID or canonical composite identity. Do not use the loop index or current row position.
+- When desktop and mobile variants are both present in the DOM and merely hidden with responsive CSS, treat them as two independent checkbox trees. Give each surface unique DOM/`wire:key` prefixes while binding both to the same server-owned selection property.
+- The checked state must be derived from the owning selection array. Pagination may change visible records, but must not add the new page's records to selection implicitly.
+- Header selection remains page-scoped unless the UI exposes a separate, explicit “select all matching results” action.
+- If Livewire morphing demonstrably carries native input state onto unrelated rows despite stable keys, use `wire:replace` on the smallest list-body wrapper that owns the affected inputs. Do not apply broad component replacement as the first fix because it discards useful DOM state and increases rendering work.
+
+Diagnosis requirements before escalating to `wire:replace`:
+
+1. Confirm the deployed commit, clean working tree and actual rendered component/view.
+2. Compare current-page record keys across pages and prove whether identities overlap.
+3. Inspect both Livewire state and browser DOM state. A correct selected count with unrelated visible checkboxes checked indicates a client-side morph/input-state problem.
+4. Check for duplicate responsive checkbox trees, stale compiled views and custom JavaScript that may mutate `checked`.
+5. Add focused contract coverage for the real runtime view, then require manual desktop/mobile pagination acceptance. Static string tests alone do not prove checkbox behavior.
+
 ## Import / Export UI
 
 When Import/Export is applicable, reuse:

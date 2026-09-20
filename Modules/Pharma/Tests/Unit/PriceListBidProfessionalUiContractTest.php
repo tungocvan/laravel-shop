@@ -51,4 +51,17 @@ class PriceListBidProfessionalUiContractTest extends TestCase
         $this->assertStringContainsString('w-full', $edit);
         $this->assertStringNotContainsString('max-w-[1600px]', $edit);
     }
+
+    #[Test]
+    public function price_list_detail_uses_shell_width_and_prioritizes_circular_group_and_prices(): void
+    {
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/pages/price-list/show.blade.php'));
+
+        $this->assertStringContainsString('class="w-full space-y-6 py-5"', $view);
+        $this->assertStringContainsString('min-w-[1380px] table-fixed', $view);
+        $this->assertStringContainsString('Nhóm thuốc theo thông tư', $view);
+        $this->assertStringContainsString("medicine?->circular_group ? 'Nhóm '", $view);
+        $this->assertStringNotContainsString('medicine?->therapeutic_group', $view);
+        $this->assertSame(2, substr_count($view, 'whitespace-nowrap px-4 py-4 text-right'));
+    }
 }
