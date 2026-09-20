@@ -98,9 +98,10 @@ class PriceListV2ContractTest extends TestCase
         foreach (['CUSTOMER_SOURCE_PARTNER', 'CUSTOMER_SOURCE_OFFICIAL_FACILITY', 'official_facility_id', 'customer_source'] as $text) {
             $this->assertStringContainsString($text, $model.$livewire.$manager);
         }
-        $this->assertStringContainsString('<x-select-search id="workspace-price-list-partner"', $view);
-        $this->assertStringContainsString('<x-select-search id="workspace-price-list-official-facility"', $view);
+        $this->assertStringContainsString('<x-search list="workspace-price-list-partner-options"', $view);
+        $this->assertStringContainsString('<x-search list="workspace-price-list-facility-options"', $view);
         $this->assertStringContainsString('facility_name', $livewire);
+        $this->assertStringContainsString('border border-slate-300 bg-white p-2', $view);
         $this->assertStringContainsString('editPurpose', $livewire);
         $this->assertStringContainsString('deletePurpose', $livewire);
         $this->assertStringContainsString('priceLists()->exists()', $livewire);
