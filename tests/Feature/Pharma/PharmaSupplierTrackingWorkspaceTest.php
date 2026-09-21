@@ -57,7 +57,7 @@ class PharmaSupplierTrackingWorkspaceTest extends TestCase
         $this->assertStringContainsString("'supplier_name_normalized'", $service);
         $this->assertStringContainsString('guardBusinessKey(', $service);
         $this->assertStringContainsString('DuplicateSupplierTrackingException', $service);
-        $this->assertStringContainsString('protected array $uniqueBy = [\'medicine_id\', \'supplier_name_normalized\', \'working_date\'];', $importExport);
+        $this->assertStringContainsString("protected array \$uniqueBy = ['medicine_id', 'partner_id', 'working_date'];", $importExport);
         $this->assertStringContainsString('supplier_trackings_business_key_unique', $migration);
         $this->assertStringContainsString("->whereNotNull('working_date')", $migration);
         $this->assertStringContainsString('Resolve duplicate Medicine + Supplier + Working Date records', $migration);
