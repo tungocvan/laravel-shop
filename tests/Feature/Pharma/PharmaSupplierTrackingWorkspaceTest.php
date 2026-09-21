@@ -121,7 +121,8 @@ class PharmaSupplierTrackingWorkspaceTest extends TestCase
         $this->assertStringContainsString('Nhà cung cấp', $medicineView);
         $this->assertStringContainsString('Khả năng xóa', $medicineView);
         $this->assertStringContainsString('Có thể xóa', $medicineView);
-        $this->assertStringContainsString('<details class="relative inline-block text-left">', $medicineView);
+        $this->assertStringContainsString('x-teleport="body"', $medicineView);
+        $this->assertStringContainsString('x-ref="trigger"', $medicineView);
         $this->assertStringContainsString('Điều kiện NCC', $medicineView);
         $this->assertStringContainsString('supplier_tracking_partner_business_key_unique', $migration);
         $this->assertStringContainsString('pharma_supplier_tracking_facilities', $migration);
