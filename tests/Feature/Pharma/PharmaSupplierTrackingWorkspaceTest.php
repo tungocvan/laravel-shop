@@ -25,8 +25,8 @@ class PharmaSupplierTrackingWorkspaceTest extends TestCase
         $component = file_get_contents(base_path('Modules/Pharma/Livewire/SupplierTrackings/Index.php'));
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/supplier-trackings/index.blade.php'));
 
-        $this->assertStringContainsString('public string $workingDateFrom', $component);
-        $this->assertStringContainsString('public string $workingDateTo', $component);
+        $this->assertStringNotContainsString('public string $workingDateFrom', $component);
+        $this->assertStringNotContainsString('public string $workingDateTo', $component);
         $this->assertStringContainsString("@can('create_pharma')", $view);
         $this->assertStringContainsString("@can('edit_pharma')", $view);
         $this->assertStringContainsString("@can('delete_pharma')", $view);
@@ -201,25 +201,29 @@ class PharmaSupplierTrackingWorkspaceTest extends TestCase
         $this->assertStringNotContainsString('truncate()', $command);
         $this->assertStringNotContainsString('migrate:fresh', $command);
     }
-    public function test_supplier_tracking_index_has_supplier_filter_and_explicit_date_apply(): void
+    public function test_supplier_tracking_index_uses_searchable_supplier_and_product_filters_without_date_filter(): void
     {
         $component = file_get_contents(base_path('Modules/Pharma/Livewire/SupplierTrackings/Index.php'));
         $service = file_get_contents(base_path('Modules/Pharma/Services/SupplierTrackingService.php'));
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/supplier-trackings/index.blade.php'));
+        $page = file_get_contents(base_path('Modules/Pharma/resources/views/pages/supplier-trackings/index.blade.php'));
 
         $this->assertStringContainsString("public string \$supplierId = '';", $component);
-        $this->assertStringContainsString("public string \$workingDateFromDraft = '';", $component);
-        $this->assertStringContainsString('public function applyDateFilters(): void', $component);
+        $this->assertStringContainsString("public string \$medicineId = '';", $component);
+        $this->assertStringContainsString("#[On('supplier-filter-search')]", $component);
+        $this->assertStringContainsString("#[On('medicine-filter-search')]", $component);
         $this->assertStringContainsString("'partner_id' => \$this->supplierId", $component);
-        $this->assertStringContainsString("supplierFilterCandidates(", $service);
-        $this->assertStringContainsString("where('partner_id', (int) \$partnerId)", $service);
-        $this->assertStringContainsString('wire:model.live="supplierId"', $view);
-        $this->assertStringContainsString('wire:model="workingDateFromDraft"', $view);
-        $this->assertStringContainsString('wire:model="workingDateToDraft"', $view);
-        $this->assertStringContainsString('wire:click="applyDateFilters"', $view);
-        $this->assertStringContainsString('>Áp dụng</button>', $view);
-        $this->assertStringNotContainsString('wire:model.live="workingDateFrom"', $view);
-        $this->assertStringNotContainsString('wire:model.live="workingDateTo"', $view);
+        $this->assertStringContainsString("'medicine_id' => \$this->medicineId", $component);
+        $this->assertStringContainsString('supplierFilterCandidates(', $service);
+        $this->assertStringContainsString('medicineFilterCandidates(', $service);
+        $this->assertStringContainsString('search-event="supplier-filter-search"', $view);
+        $this->assertStringContainsString('search-event="medicine-filter-search"', $view);
+        $this->assertStringContainsString('<x-select-search id="supplier-filter"', $view);
+        $this->assertStringContainsString('<x-select-search id="medicine-filter"', $view);
+        $this->assertStringNotContainsString('supplier-date-from', $view);
+        $this->assertStringNotContainsString('supplier-date-to', $view);
+        $this->assertStringNotContainsString('LN thực tế', $view);
+        $this->assertStringContainsString("@section('admin_container', 'full')", $page);
+        $this->assertStringContainsString('<div class="w-full space-y-5">', $view);
     }
-
 }
