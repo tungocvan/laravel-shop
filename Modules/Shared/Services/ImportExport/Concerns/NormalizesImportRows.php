@@ -75,13 +75,18 @@ trait NormalizesImportRows
 
             $value = trim((string) $value);
 
-            foreach (['d/m/Y', 'j/n/Y', 'd-m-Y', 'j-n-Y', 'Y-m-d'] as $format) {
-                $date = Carbon::createFromFormat('!'.$format, $value);
-                $errors = Carbon::getLastErrors();
+            if (preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $value) === 1) {
+                return Carbon::createFromFormat('Y-m-d', $value)->format('Y-m-d');
+            }
 
-                if ($date !== false && ($errors === false || ($errors['warning_count'] === 0 && $errors['error_count'] === 0))) {
-                    return $date->format('Y-m-d');
+            if (preg_match('/^\\d{1,2}[\\/-]\\d{1,2}[\\/-]\\d{4}$/', $value) === 1) {
+                [$day, $month, $year] = preg_split('/[\\/-]/', $value);
+
+                if (checkdate((int) $month, (int) $day, (int) $year)) {
+                    return sprintf('%04d-%02d-%02d', (int) $year, (int) $month, (int) $day);
                 }
+
+                return null;
             }
 
             return Carbon::parse($value)->format('Y-m-d');
