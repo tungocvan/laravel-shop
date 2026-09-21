@@ -8,8 +8,11 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Modules\Pharma\Exceptions\DuplicateSupplierTrackingException;
+use Modules\Partner\Models\Partner;
 use Modules\Pharma\Models\Medicine;
+use Modules\Pharma\Models\OfficialSourceFacility;
 use Modules\Pharma\Models\SupplierTracking;
+use Modules\Pharma\Services\OfficialFacilityImport\BhxhProvinceCatalog;
 
 class SupplierTrackingService
 {
@@ -20,7 +23,7 @@ class SupplierTrackingService
         $perPage = $this->normalizePerPage($perPage);
 
         return $this->queryForFilters($filters)
-            ->with('medicine')
+            ->with(['medicine', 'partner', 'facilities'])
             ->latest('id')
             ->paginate($perPage, ['*'], 'page', max(1, $page));
     }
@@ -55,9 +58,59 @@ class SupplierTrackingService
         return $candidates->unique('id')->values();
     }
 
+    public function supplierCandidates(string $search = '', ?int $selectedId = null, int $limit = 25): Collection
+    {
+        $limit = max(1, min(25, $limit));
+        $search = trim($search);
+
+        $query = Partner::query()
+            ->where('status', 'active')
+            ->whereJsonContains('partner_types', 'supplier')
+            ->when($search !== '', fn (Builder $query) => $query->where(function (Builder $nested) use ($search): void {
+                $nested->where('name', 'like', "%{$search}%")
+                    ->orWhere('tax_code', 'like', "%{$search}%");
+            }))
+            ->orderBy('name')
+            ->limit($limit);
+
+        $candidates = $query->get(['id', 'name', 'tax_code', 'contact_person']);
+
+        if ($selectedId && ! $candidates->contains('id', $selectedId)) {
+            $selected = Partner::query()->find($selectedId, ['id', 'name', 'tax_code', 'contact_person']);
+            if ($selected) {
+                $candidates->prepend($selected);
+            }
+        }
+
+        return $candidates->unique('id')->values();
+    }
+
+    public function facilityCandidates(string $search = '', array $selectedIds = [], int $limit = 25): Collection
+    {
+        $search = trim($search);
+        $query = OfficialSourceFacility::query()->where('is_active', true)
+            ->when($search !== '', fn (Builder $query) => $query->where(function (Builder $nested) use ($search): void {
+                $nested->where('facility_name', 'like', "%{$search}%")
+                    ->orWhere('external_id', 'like', "%{$search}%")
+                    ->orWhere('province_name', 'like', "%{$search}%");
+            }))
+            ->orderBy('facility_name')->limit(max(1, min(25, $limit)));
+
+        $items = $query->get(['id', 'facility_name', 'external_id', 'province_name']);
+        $selected = OfficialSourceFacility::query()->whereIn('id', $selectedIds)
+            ->get(['id', 'facility_name', 'external_id', 'province_name']);
+
+        return $selected->concat($items)->unique('id')->values();
+    }
+
+    public function distributionRegions(): array
+    {
+        return app(BhxhProvinceCatalog::class)->regions();
+    }
+
     public function find(int $id): SupplierTracking
     {
-        return SupplierTracking::query()->with('medicine')->findOrFail($id);
+        return SupplierTracking::query()->with(['medicine', 'partner', 'facilities'])->findOrFail($id);
     }
 
     public function create(array $data): SupplierTracking
@@ -66,7 +119,12 @@ class SupplierTrackingService
             $prepared = $this->prepare($data);
             $this->guardBusinessKey($prepared);
 
-            return SupplierTracking::query()->create($prepared);
+            $facilityIds = $prepared['facility_ids'] ?? [];
+            unset($prepared['facility_ids']);
+            $tracking = SupplierTracking::query()->create($prepared);
+            $tracking->facilities()->sync($facilityIds);
+
+            return $tracking->load(['medicine', 'partner', 'facilities']);
         });
     }
 
@@ -76,9 +134,12 @@ class SupplierTrackingService
             $tracking = $this->find($id);
             $prepared = $this->prepare($data);
             $this->guardBusinessKey($prepared, $tracking->id);
+            $facilityIds = $prepared['facility_ids'] ?? [];
+            unset($prepared['facility_ids']);
             $tracking->update($prepared);
+            $tracking->facilities()->sync($facilityIds);
 
-            return $tracking->refresh()->load('medicine');
+            return $tracking->refresh()->load(['medicine', 'partner', 'facilities']);
         });
     }
 
@@ -133,6 +194,18 @@ class SupplierTrackingService
 
     private function prepare(array $data): array
     {
+        if (! empty($data['partner_id'])) {
+            $partner = Partner::query()->findOrFail((int) $data['partner_id']);
+            $data['supplier_name'] = $partner->name;
+            $data['supplier_representative'] = $partner->contact_person;
+        }
+
+        $scope = $data['distribution_scope'] ?? 'all';
+        $data['distribution_regions'] = $scope === 'regions' ? array_values($data['distribution_regions'] ?? []) : null;
+        $data['facility_ids'] = $scope === 'facilities'
+            ? OfficialSourceFacility::query()->where('is_active', true)->whereIn('id', $data['facility_ids'] ?? [])->pluck('id')->all()
+            : [];
+
         $data['supplier_name'] = Str::of((string) ($data['supplier_name'] ?? ''))->trim()->squish()->toString();
         $data['supplier_name_normalized'] = $this->normalizeSupplierName($data['supplier_name']);
 
