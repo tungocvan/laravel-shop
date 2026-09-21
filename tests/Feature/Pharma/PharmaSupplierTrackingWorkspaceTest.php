@@ -271,7 +271,7 @@ class PharmaSupplierTrackingWorkspaceTest extends TestCase
         $this->assertStringContainsString("->when(\$filters['medicine_id']", $service);
         $this->assertStringNotContainsString("'Chênh lệch hóa đơn' =>", $service);
         $this->assertStringNotContainsString("'% lợi nhuận thực tế' =>", $service);
-        $this->assertStringContainsString('File Excel chuẩn A–V; các cột công thức được hệ thống tự tính lại.', $view);
+        $this->assertStringContainsString('File Excel chuẩn round-trip A–U: file xuất ra có thể import lại; các giá trị tính toán do hệ thống quản lý.', $view);
     }
 
 }
