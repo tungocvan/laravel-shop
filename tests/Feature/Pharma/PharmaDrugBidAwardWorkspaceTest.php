@@ -152,6 +152,8 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString('public string $provinceCode', $productComponent);
         $this->assertStringContainsString('public array $selectedFacilityIds', $productComponent);
         $this->assertStringContainsString('saveDistributionScope', $productComponent);
+        $this->assertStringContainsString("public function updatedProvinceCode(): void", $productComponent);
+        $this->assertStringNotContainsString("updatedProvinceCode(): void\n    {\n        \$this->selectedFacilityIds = [];\n        \$this->dispatch('filters-reset');", $productComponent);
         $this->assertStringContainsString('Phạm vi & hiệu lực phân bổ', $productView);
         $this->assertStringContainsString('Tỉnh/Thành trúng thầu', $productView);
         $this->assertStringContainsString('Cơ sở KCB được phân bổ', $productView);
