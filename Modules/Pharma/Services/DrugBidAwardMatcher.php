@@ -93,7 +93,7 @@ class DrugBidAwardMatcher
     {
         $registration = $this->normalizer->registration($award->registration_or_import_license);
         if ($registration !== null) {
-            $matches = Medicine::query()->where(function ($query) use ($registration): void {
+            $matches = Medicine::query()->where('profile_status', Medicine::PROFILE_VERIFIED)->where(function ($query) use ($registration): void {
                 $query->where('registration_number_primary', 'like', '%'.$registration.'%')
                     ->orWhere('registration_number', 'like', '%'.$registration.'%');
             })->get()->filter(fn (Medicine $medicine) => in_array($registration, array_filter([
@@ -115,7 +115,7 @@ class DrugBidAwardMatcher
             return new DrugBidMatchResult(null, null, null, DrugBidAwardMatch::STATUS_UNMATCHED, 'insufficient_identity', 0, null, 'medicine_unmatched');
         }
 
-        $nameMatches = Medicine::query()->where('name', 'like', '%'.trim((string) $award->medicine_name).'%')->get()
+        $nameMatches = Medicine::query()->where('profile_status', Medicine::PROFILE_VERIFIED)->where('name', 'like', '%'.trim((string) $award->medicine_name).'%')->get()
             ->filter(fn (Medicine $medicine) => $this->normalizer->text($medicine->name) === $name)
             ->values();
 
