@@ -85,17 +85,48 @@ class SupplierTrackingService
         return $candidates->unique('id')->values();
     }
 
-    public function supplierFilterCandidates(?int $selectedId = null): Collection
+    public function supplierFilterCandidates(string $search = '', ?int $selectedId = null, int $limit = 25): Collection
     {
+        $search = trim($search);
         $ids = SupplierTracking::query()->whereNotNull('partner_id')->distinct()->pluck('partner_id');
 
         $items = Partner::query()
             ->whereIn('id', $ids)
+            ->when($search !== '', fn (Builder $query) => $query->where(function (Builder $nested) use ($search): void {
+                $nested->where('name', 'like', "%{$search}%")
+                    ->orWhere('tax_code', 'like', "%{$search}%");
+            }))
             ->orderBy('name')
+            ->limit(max(1, min(25, $limit)))
             ->get(['id', 'name', 'tax_code']);
 
         if ($selectedId && ! $items->contains('id', $selectedId)) {
             $selected = Partner::query()->find($selectedId, ['id', 'name', 'tax_code']);
+            if ($selected) {
+                $items->prepend($selected);
+            }
+        }
+
+        return $items->unique('id')->values();
+    }
+
+    public function medicineFilterCandidates(string $search = '', ?int $selectedId = null, int $limit = 25): Collection
+    {
+        $search = trim($search);
+        $ids = SupplierTracking::query()->whereNotNull('medicine_id')->distinct()->pluck('medicine_id');
+
+        $items = Medicine::query()
+            ->whereIn('id', $ids)
+            ->when($search !== '', fn (Builder $query) => $query->where(function (Builder $nested) use ($search): void {
+                $nested->where('name', 'like', "%{$search}%")
+                    ->orWhere('registration_number', 'like', "%{$search}%");
+            }))
+            ->orderBy('name')
+            ->limit(max(1, min(25, $limit)))
+            ->get(['id', 'name', 'registration_number']);
+
+        if ($selectedId && ! $items->contains('id', $selectedId)) {
+            $selected = Medicine::query()->find($selectedId, ['id', 'name', 'registration_number']);
             if ($selected) {
                 $items->prepend($selected);
             }
@@ -221,8 +252,7 @@ class SupplierTrackingService
             }))
             ->when($filters['status'] ?? null, fn (Builder $query, string $status) => $query->where('status', $status))
             ->when($filters['partner_id'] ?? null, fn (Builder $query, $partnerId) => $query->where('partner_id', (int) $partnerId))
-            ->when($filters['working_date_from'] ?? null, fn (Builder $query, string $date) => $query->whereDate('working_date', '>=', $date))
-            ->when($filters['working_date_to'] ?? null, fn (Builder $query, string $date) => $query->whereDate('working_date', '<=', $date));
+            ->when($filters['medicine_id'] ?? null, fn (Builder $query, $medicineId) => $query->where('medicine_id', (int) $medicineId));
     }
 
     private function prepare(array $data): array
