@@ -243,7 +243,7 @@ class Index extends Component
 
     private function paginated(DrugBidAwardService $service)
     {
-        return $service->getPaginated(
+        return $service->getResultGroupsPaginated(
             $this->search,
             $this->filterInvestor,
             $this->filterCompany,
