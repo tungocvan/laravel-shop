@@ -60,4 +60,17 @@ class PharmaMedicineGovernanceContractTest extends TestCase
         $this->assertStringContainsString('Chưa có GPLH', $view);
         $this->assertStringContainsString('price_list_items_count', $view);
     }
+
+    #[Test]
+    public function medicine_edit_save_stays_on_page_and_opens_verification_modal(): void
+    {
+        $form = file_get_contents(base_path('Modules/Pharma/Livewire/Medicine/Form.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/medicine/form.blade.php'));
+
+        $this->assertStringContainsString("dispatch('medicine-master-saved'", $form);
+        $this->assertStringContainsString('return;', $form);
+        $this->assertStringContainsString('x-on:medicine-master-saved.window', $view);
+        $this->assertStringContainsString('Lưu Medicine Master thành công', $view);
+        $this->assertStringContainsString('Tiếp tục xác minh', $view);
+    }
 }
