@@ -234,8 +234,8 @@ class PharmaSupplierTrackingWorkspaceTest extends TestCase
         $indexView = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/supplier-trackings/index.blade.php'));
         $dashboard = file_get_contents(base_path('Modules/Pharma/resources/views/pages/dashboard.blade.php'));
 
-        $this->assertStringContainsString("public string $medicineSearch = '';", $form);
-        $this->assertStringContainsString("public array \\$medicineOptions = [];", $form);
+        $this->assertStringContainsString('public string $medicineSearch = \'\';', $form);
+        $this->assertStringContainsString('public array $medicineOptions = [];', $form);
         $this->assertStringContainsString("#[On('medicine-search')]", $form);
         $this->assertStringContainsString('updatedMedicineId($value)', $form);
         $this->assertStringContainsString('$this->form[\'unit\'] = (string) ($medicine?->unit ?? \'\');', $form);
@@ -245,8 +245,8 @@ class PharmaSupplierTrackingWorkspaceTest extends TestCase
         $this->assertStringContainsString("'active' => 'Đang hiệu lực'", $index);
         $this->assertStringContainsString('Hiệu lực từ', $indexView);
         $this->assertStringContainsString('Hiệu lực đến', $indexView);
-        $this->assertStringContainsString("$item->start_date?->format('d/m/Y')", $indexView);
-        $this->assertStringContainsString("$item->end_date?->format('d/m/Y')", $indexView);
+        $this->assertStringContainsString('$item->start_date?->format(\'d/m/Y\')', $indexView);
+        $this->assertStringContainsString('$item->end_date?->format(\'d/m/Y\')', $indexView);
         $this->assertStringContainsString("route('admin.pharma.supplier-trackings.index')", $dashboard);
         $this->assertStringContainsString('Supplier Commercial', $dashboard);
     }
