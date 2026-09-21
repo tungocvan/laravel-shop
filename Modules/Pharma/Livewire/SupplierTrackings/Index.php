@@ -17,9 +17,15 @@ class Index extends Component
 
     public string $status = '';
 
+    public string $supplierId = '';
+
     public string $workingDateFrom = '';
 
     public string $workingDateTo = '';
+
+    public string $workingDateFromDraft = '';
+
+    public string $workingDateToDraft = '';
 
     public int $perPage = 10;
 
@@ -38,6 +44,7 @@ class Index extends Component
     protected $queryString = [
         'search' => ['except' => ''],
         'status' => ['except' => ''],
+        'supplierId' => ['except' => ''],
         'workingDateFrom' => ['except' => ''],
         'workingDateTo' => ['except' => ''],
         'perPage' => ['except' => 10],
@@ -48,6 +55,8 @@ class Index extends Component
     {
         $this->authorizePharmaView();
         $this->perPage = $this->normalizePerPage($this->perPage);
+        $this->workingDateFromDraft = $this->workingDateFrom;
+        $this->workingDateToDraft = $this->workingDateTo;
     }
 
     public function updatedSearch(): void
@@ -61,13 +70,15 @@ class Index extends Component
         $this->resetWorkspacePage();
     }
 
-    public function updatedWorkingDateFrom(): void
+    public function updatedSupplierId(): void
     {
         $this->resetWorkspacePage();
     }
 
-    public function updatedWorkingDateTo(): void
+    public function applyDateFilters(): void
     {
+        $this->workingDateFrom = $this->workingDateFromDraft;
+        $this->workingDateTo = $this->workingDateToDraft;
         $this->resetWorkspacePage();
     }
 
@@ -98,7 +109,7 @@ class Index extends Component
 
     public function resetFilters(): void
     {
-        $this->reset(['search', 'status', 'workingDateFrom', 'workingDateTo']);
+        $this->reset(['search', 'status', 'supplierId', 'workingDateFrom', 'workingDateTo', 'workingDateFromDraft', 'workingDateToDraft']);
         $this->perPage = 10;
         $this->page = 1;
         $this->expandedFinancialId = null;
@@ -202,6 +213,7 @@ class Index extends Component
         return view('Pharma::livewire.supplier-trackings.index', [
             'items' => $items,
             'statuses' => $this->statuses(),
+            'supplierFilters' => $service->supplierFilterCandidates($this->supplierId !== '' ? (int) $this->supplierId : null),
             'perPageOptions' => self::PER_PAGE_OPTIONS,
         ]);
     }
@@ -224,6 +236,7 @@ class Index extends Component
         return [
             'search' => trim($this->search),
             'status' => $this->status,
+            'partner_id' => $this->supplierId,
             'working_date_from' => $this->workingDateFrom,
             'working_date_to' => $this->workingDateTo,
         ];
