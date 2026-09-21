@@ -28,10 +28,11 @@ class DrugBidAwardCommercialPolicyService
                 if ($value < 0 || $value > 100) {
                     throw ValidationException::withMessages(["productPolicies.$awardId" => 'Chính sách % phải từ 0 đến 100.']);
                 }
-                DrugBidAwardProductPolicy::query()->updateOrCreate(
-                    ['drug_bid_award_id' => $awardId],
-                    ['commission_percentage' => $value, 'updated_by' => $actorId, 'created_by' => DB::raw('COALESCE(created_by, '.((int) ($actorId ?? 0)).')')]
-                );
+                $policy = DrugBidAwardProductPolicy::query()->firstOrNew(['drug_bid_award_id' => $awardId]);
+                if (! $policy->exists) $policy->created_by = $actorId;
+                $policy->commission_percentage = $value;
+                $policy->updated_by = $actorId;
+                $policy->save();
             }
         }, 3);
     }
