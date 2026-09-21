@@ -60,6 +60,25 @@ class DrugBidAwardCommercialPolicyService
         );
     }
 
+    public function assignManagers(DrugBidAward $contextAward, array $awardIds, int $partnerId, int $userId, ?int $actorId): void
+    {
+        DB::transaction(function () use ($contextAward, $awardIds, $partnerId, $userId, $actorId) {
+            foreach (array_unique(array_map('intval', $awardIds)) as $awardId) {
+                $this->assignManager($contextAward, $awardId, $partnerId, $userId, $actorId);
+            }
+        }, 3);
+    }
+
+    public function removeManagers(DrugBidAward $contextAward, array $awardIds, int $partnerId): void
+    {
+        $validIds = $this->groups->awardsQuery($contextAward)->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $ids = array_values(array_intersect($validIds, array_unique(array_map('intval', $awardIds))));
+        DrugBidAwardManagementAssignment::query()
+            ->whereIn('drug_bid_award_id', $ids)
+            ->where('partner_id', $partnerId)
+            ->delete();
+    }
+
     public function removeManager(DrugBidAward $contextAward, int $assignmentId): void
     {
         $validIds = $this->groups->awardsQuery($contextAward)->pluck('id');
