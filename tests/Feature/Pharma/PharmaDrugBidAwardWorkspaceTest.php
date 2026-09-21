@@ -154,6 +154,10 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString('Phạm vi & hiệu lực phân bổ', $productView);
         $this->assertStringContainsString('Tỉnh/Thành trúng thầu', $productView);
         $this->assertStringContainsString('Bệnh viện được phân bổ', $productView);
+        $this->assertStringContainsString('OfficialSourceFacility::query()', $productComponent);
+        $this->assertStringContainsString("where('province_name', \$this->provinceCode)", $productComponent);
+        $this->assertStringContainsString('Kho dữ liệu cơ sở KCB nguồn', $productView);
+        $this->assertStringContainsString('OfficialSourceFacility::query()', $allocationService);
         $this->assertStringContainsString("whereIn('id', \$allowedPartnerIds)", $allocationComponent);
         $this->assertStringNotContainsString('wire:model="effectiveFrom"', $allocationView);
         $this->assertStringNotContainsString('wire:model="effectiveUntil"', $allocationView);
