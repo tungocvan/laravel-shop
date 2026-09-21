@@ -3,6 +3,7 @@
 namespace Modules\Pharma\Livewire\SupplierTrackings;
 
 use Livewire\Component;
+use Livewire\Attributes\On;
 use Livewire\WithFileUploads;
 use Modules\Pharma\Exceptions\DuplicateSupplierTrackingException;
 use Modules\Pharma\Livewire\Concerns\AuthorizesPharmaActions;
@@ -52,10 +53,10 @@ class Form extends Component
         }
     }
 
-    public function updatedSupplierSearch(): void
+    #[On('supplier-search')]
+    public function searchSuppliers(string $search = ''): void
     {
-        $this->partner_id = null;
-        $this->resetValidation('partner_id');
+        $this->supplierSearch = trim($search);
     }
 
     public function updatedFormDistributionScope(): void
@@ -180,6 +181,11 @@ class Form extends Component
         return view('Pharma::livewire.supplier-trackings.form', [
             'medicine' => $this->medicine_id ? Medicine::query()->find($this->medicine_id) : null,
             'suppliers' => $service->supplierCandidates($this->supplierSearch, $this->partner_id),
+            'supplierOptions' => $service->supplierCandidates($this->supplierSearch, $this->partner_id)
+                ->map(fn ($supplier) => [
+                    'id' => $supplier->id,
+                    'label' => $supplier->name.($supplier->tax_code ? ' · MST '.$supplier->tax_code : ''),
+                ])->values()->all(),
             'facilities' => $service->facilityCandidates($this->facilitySearch, $this->facility_ids),
             'regions' => $service->distributionRegions(),
             'provincesByRegion' => $service->distributionProvincesByRegion(),
