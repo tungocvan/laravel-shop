@@ -126,4 +126,45 @@ class MedicineCanonicalIdentityTest extends TestCase
         ]);
     }
 
+    #[Test]
+    public function medicine_master_verification_requires_complete_registration_identity(): void
+    {
+        $medicine = Medicine::query()->create([
+            'name' => 'Verification candidate',
+            'registration_number' => null,
+            'profile_status' => Medicine::PROFILE_INCOMPLETE,
+        ]);
+
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('Giấy phép lưu hành');
+
+        app(MedicineService::class)->verifyMaster($medicine->id);
+    }
+
+    #[Test]
+    public function complete_medicine_master_can_be_verified_for_bid_linking(): void
+    {
+        $medicine = Medicine::query()->create([
+            'name' => 'Verified candidate',
+            'registration_number' => 'VD-TEST-01',
+            'active_ingredients' => 'Paracetamol',
+            'concentration' => '500mg',
+            'dosage_form' => 'Viên nén',
+            'route_of_administration' => 'Uống',
+            'unit' => 'Viên',
+            'packaging_specification' => 'Hộp 10 vỉ x 10 viên',
+            'shelf_life' => '36 tháng',
+            'registered_company' => 'Registrant',
+            'manufacturing_company' => 'Manufacturer',
+            'manufacturing_country' => 'Việt Nam',
+            'profile_status' => Medicine::PROFILE_COMPLETE,
+        ]);
+
+        $verified = app(MedicineService::class)->verifyMaster($medicine->id);
+
+        $this->assertSame(Medicine::PROFILE_VERIFIED, $verified->profile_status);
+        $this->assertSame(Medicine::IDENTITY_VERIFIED_REGISTRATION, $verified->identity_status);
+        $this->assertNotNull($verified->last_verified_at);
+    }
+
 }
