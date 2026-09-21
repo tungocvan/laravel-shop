@@ -131,6 +131,11 @@ class Medicine extends Model
             ->latestOfMany();
     }
 
+    public function priceListItems(): HasMany
+    {
+        return $this->hasMany(PriceListItem::class, 'medicine_id');
+    }
+
     public function supplierTrackings(): HasMany
     {
         return $this->hasMany(SupplierTracking::class, 'medicine_id');
