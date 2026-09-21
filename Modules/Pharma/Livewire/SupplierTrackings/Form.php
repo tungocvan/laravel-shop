@@ -137,10 +137,8 @@ class Form extends Component
             'depositReceipt' => ['nullable', 'file', 'mimes:pdf,doc,docx,jpg,jpeg,png', 'max:10240'],
         ]);
 
-        if ($this->form['distribution_scope'] === 'regions' && empty($this->form['distribution_regions'])) {
-            $this->addError('form.distribution_regions', 'Chọn ít nhất một vùng được phép bán.');
-            return null;
-        }
+        // Distribution scope is progressive metadata: it may be completed later.
+        // Keep only valid selections, but never block the minimal commercial record.
         if ($this->form['distribution_scope'] === 'regions') {
             $provinceMap = $service->distributionProvincesByRegion();
             $allowedProvinceCodes = collect($provinceMap)
@@ -148,21 +146,11 @@ class Form extends Component
                 ->flatMap(fn (array $provinces) => array_keys($provinces))
                 ->map(fn ($code) => (string) $code)
                 ->all();
-            $selectedProvinceCodes = array_map('strval', $this->form['distribution_provinces'] ?? []);
 
-            if (empty($selectedProvinceCodes)) {
-                $this->addError('form.distribution_provinces', 'Chọn ít nhất một Tỉnh/Thành thuộc vùng miền đã chọn.');
-                return null;
-            }
-
-            if (array_diff($selectedProvinceCodes, $allowedProvinceCodes) !== []) {
-                $this->addError('form.distribution_provinces', 'Tỉnh/Thành đã chọn không thuộc vùng miền được phép bán.');
-                return null;
-            }
-        }
-        if ($this->form['distribution_scope'] === 'facilities' && empty($this->facility_ids)) {
-            $this->addError('facility_ids', 'Chọn ít nhất một cơ sở khám chữa bệnh.');
-            return null;
+            $this->form['distribution_provinces'] = array_values(array_intersect(
+                array_map('strval', $this->form['distribution_provinces'] ?? []),
+                $allowedProvinceCodes
+            ));
         }
 
         if ($this->contractFile) {
