@@ -114,7 +114,40 @@ class MedicineCatalogImportStager
             }
         }
 
+        $possibleDuplicates = $this->possibleExistingMedicines($normalized);
+        if ($possibleDuplicates->count() === 1) {
+            return [MedicineImportRow::CLASS_NEEDS_REVIEW, 'possible_existing_medicine_identity', $possibleDuplicates->first()->id, null];
+        }
+        if ($possibleDuplicates->count() > 1) {
+            return [MedicineImportRow::CLASS_NEEDS_REVIEW, 'possible_existing_medicine_ambiguous', null, null];
+        }
+
         return [MedicineImportRow::CLASS_NEW, 'new_medicine_and_variant', null, null];
+    }
+
+    private function possibleExistingMedicines(array $normalized)
+    {
+        $name = $this->mapper->normalizeIdentityText($normalized['name'] ?? null);
+        if ($name === null) {
+            return collect();
+        }
+
+        return Medicine::query()->where('name', 'like', '%'.trim((string) $normalized['name']).'%')->get()
+            ->filter(function (Medicine $medicine) use ($normalized, $name): bool {
+                if ($this->mapper->normalizeIdentityText($medicine->name) !== $name) {
+                    return false;
+                }
+
+                foreach (['active_ingredients', 'concentration', 'dosage_form', 'manufacturing_company'] as $field) {
+                    $incoming = $this->mapper->normalizeIdentityText($normalized[$field] ?? null);
+                    $existing = $this->mapper->normalizeIdentityText($medicine->getAttribute($field));
+                    if ($incoming !== null && $existing !== null && $incoming !== $existing) {
+                        return false;
+                    }
+                }
+
+                return true;
+            })->values();
     }
 
     private function presentation(array $normalized): ?string
