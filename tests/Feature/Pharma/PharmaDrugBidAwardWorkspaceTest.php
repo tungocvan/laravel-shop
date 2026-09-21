@@ -145,6 +145,7 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $allocationComponent = file_get_contents(base_path('Modules/Pharma/Livewire/DrugBidAward/AllocationWorkspace.php'));
         $allocationView = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/drug-bid-award/allocation-workspace.blade.php'));
         $allocationService = file_get_contents(base_path('Modules/Pharma/Services/DrugBidAwardAllocationService.php'));
+        $distributionScopeService = file_get_contents(base_path('Modules/Pharma/Services/DrugBidAwardDistributionScopeService.php'));
 
         $this->assertStringContainsString('pharma_drug_bid_award_distribution_scopes', $migration);
         $this->assertStringContainsString('pharma_drug_bid_award_distribution_scope_partners', $migration);
@@ -157,7 +158,9 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString('OfficialSourceFacility::query()', $productComponent);
         $this->assertStringContainsString("where('province_name', \$this->provinceCode)", $productComponent);
         $this->assertStringContainsString('Kho dữ liệu cơ sở KCB nguồn', $productView);
-        $this->assertStringContainsString('OfficialSourceFacility::query()', $allocationService);
+        $this->assertStringContainsString('OfficialSourceFacility::query()', $distributionScopeService);
+        $this->assertStringContainsString("where('province_name', \$provinceCode)", $distributionScopeService);
+        $this->assertStringContainsString("whereHas('sourceReferences'", $distributionScopeService);
         $this->assertStringContainsString("whereIn('id', \$allowedPartnerIds)", $allocationComponent);
         $this->assertStringNotContainsString('wire:model="effectiveFrom"', $allocationView);
         $this->assertStringNotContainsString('wire:model="effectiveUntil"', $allocationView);
