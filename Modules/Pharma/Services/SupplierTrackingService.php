@@ -65,7 +65,7 @@ class SupplierTrackingService
 
         $query = Partner::query()
             ->where('status', 'active')
-            ->whereJsonContains('partner_types', 'supplier')
+            ->withPartnerType('supplier')
             ->when($search !== '', fn (Builder $query) => $query->where(function (Builder $nested) use ($search): void {
                 $nested->where('name', 'like', "%{$search}%")
                     ->orWhere('tax_code', 'like', "%{$search}%");
