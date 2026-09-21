@@ -45,4 +45,19 @@ class PharmaMedicineGovernanceContractTest extends TestCase
         $this->assertStringContainsString('Chỉ được liên kết kết quả thầu với Medicine Master có Chất lượng master = Đã xác minh.', $manager);
         $this->assertStringContainsString("where('profile_status', Medicine::PROFILE_VERIFIED)", $review);
     }
+
+    #[Test]
+    public function unverified_medicine_cleanup_detaches_only_legacy_bid_links_and_keeps_hard_business_guards(): void
+    {
+        $service = file_get_contents(base_path('Modules/Pharma/Services/MedicineService.php'));
+        $livewire = file_get_contents(base_path('Modules/Pharma/Livewire/Medicine/Index.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/medicine/index.blade.php'));
+
+        $this->assertStringContainsString("priceListItems()->exists()", $service);
+        $this->assertStringContainsString("profile_status === Medicine::PROFILE_VERIFIED", $service);
+        $this->assertStringContainsString("drugBidAwards()->update(['medicine_id' => null])", $service);
+        $this->assertStringContainsString("filterRegistration", $livewire);
+        $this->assertStringContainsString('Chưa có GPLH', $view);
+        $this->assertStringContainsString('price_list_items_count', $view);
+    }
 }
