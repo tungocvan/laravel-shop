@@ -49,7 +49,7 @@
                 </div>
                 @if($form['distribution_scope'] === 'regions')
                     <div class="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                        @foreach($regions as $code=>$label)<label class="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5"><input type="checkbox" wire:model="form.distribution_regions" value="{{ $code }}" class="rounded border-slate-300 text-indigo-600"><span class="text-sm text-slate-700">{{ $label }}</span></label>@endforeach
+                        @foreach($regions as $code=>$label)<label class="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5"><input type="checkbox" wire:model.live="form.distribution_regions" value="{{ $code }}" class="rounded border-slate-300 text-indigo-600"><span class="text-sm text-slate-700">{{ $label }}</span></label>@endforeach
                     </div>
                     @error('form.distribution_regions')<p class="mt-2 text-sm text-rose-600">{{ $message }}</p>@enderror
 
