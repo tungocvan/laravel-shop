@@ -113,6 +113,7 @@ class PharmaSupplierTrackingWorkspaceTest extends TestCase
         $this->assertStringContainsString('Giá vốn NCC', $view);
         $this->assertStringContainsString('Theo vùng miền', $view);
         $this->assertStringContainsString('Tỉnh/Thành thuộc vùng miền', $view);
+        $this->assertStringContainsString('wire:model.live="form.distribution_regions"', $view);
         $this->assertStringContainsString('distribution_provinces', $form);
         $this->assertStringContainsString('distributionProvincesByRegion()', $service);
         $this->assertStringContainsString('Chọn từng cơ sở', $view);
