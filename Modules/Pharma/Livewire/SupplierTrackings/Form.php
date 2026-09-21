@@ -23,7 +23,7 @@ class Form extends Component
     public $depositReceipt = null;
 
     public array $form = [
-        'working_date' => '', 'distribution_scope' => 'all', 'distribution_regions' => [],
+        'working_date' => '', 'distribution_scope' => 'all', 'distribution_regions' => [], 'distribution_provinces' => [],
         'import_price' => 0, 'invoice_price' => 0, 'committed_quantity' => '', 'unit' => '',
         'deposit_amount' => '', 'start_date' => '', 'end_date' => '', 'status' => 'active', 'note' => '',
         'contract_file_path' => null, 'deposit_receipt_path' => null,
@@ -44,6 +44,7 @@ class Form extends Component
             $this->form['start_date'] = optional($tracking->start_date)->format('Y-m-d');
             $this->form['end_date'] = optional($tracking->end_date)->format('Y-m-d');
             $this->form['distribution_regions'] = $tracking->distribution_regions ?? [];
+            $this->form['distribution_provinces'] = $tracking->distribution_provinces ?? [];
         } elseif ($medicineId && ($medicine = Medicine::query()->find((int) $medicineId))) {
             $this->medicine_id = (int) $medicineId;
             $this->form['unit'] = (string) ($medicine->unit ?? '');
@@ -54,10 +55,29 @@ class Form extends Component
     {
         if ($this->form['distribution_scope'] !== 'regions') {
             $this->form['distribution_regions'] = [];
+            $this->form['distribution_provinces'] = [];
         }
         if ($this->form['distribution_scope'] !== 'facilities') {
             $this->facility_ids = [];
         }
+    }
+
+    public function updatedFormDistributionRegions(): void
+    {
+        if ($this->form['distribution_scope'] !== 'regions') {
+            return;
+        }
+
+        $allowed = collect(app(SupplierTrackingService::class)->distributionProvincesByRegion())
+            ->only($this->form['distribution_regions'])
+            ->flatMap(fn (array $provinces) => array_keys($provinces))
+            ->map(fn ($code) => (string) $code)
+            ->all();
+
+        $this->form['distribution_provinces'] = array_values(array_intersect(
+            array_map('strval', $this->form['distribution_provinces'] ?? []),
+            $allowed
+        ));
     }
 
     public function save(SupplierTrackingService $service)
@@ -79,6 +99,8 @@ class Form extends Component
             'form.distribution_scope' => ['required', 'in:all,regions,facilities'],
             'form.distribution_regions' => ['array'],
             'form.distribution_regions.*' => ['string', 'max:50'],
+            'form.distribution_provinces' => ['array'],
+            'form.distribution_provinces.*' => ['string', 'max:20'],
             'form.import_price' => ['required', 'numeric', 'min:0'],
             'form.invoice_price' => ['nullable', 'numeric', 'min:0'],
             'form.committed_quantity' => ['nullable', 'numeric', 'min:0'],
@@ -95,6 +117,25 @@ class Form extends Component
         if ($this->form['distribution_scope'] === 'regions' && empty($this->form['distribution_regions'])) {
             $this->addError('form.distribution_regions', 'Chọn ít nhất một vùng được phép bán.');
             return null;
+        }
+        if ($this->form['distribution_scope'] === 'regions') {
+            $provinceMap = $service->distributionProvincesByRegion();
+            $allowedProvinceCodes = collect($provinceMap)
+                ->only($this->form['distribution_regions'])
+                ->flatMap(fn (array $provinces) => array_keys($provinces))
+                ->map(fn ($code) => (string) $code)
+                ->all();
+            $selectedProvinceCodes = array_map('strval', $this->form['distribution_provinces'] ?? []);
+
+            if (empty($selectedProvinceCodes)) {
+                $this->addError('form.distribution_provinces', 'Chọn ít nhất một Tỉnh/Thành thuộc vùng miền đã chọn.');
+                return null;
+            }
+
+            if (array_diff($selectedProvinceCodes, $allowedProvinceCodes) !== []) {
+                $this->addError('form.distribution_provinces', 'Tỉnh/Thành đã chọn không thuộc vùng miền được phép bán.');
+                return null;
+            }
         }
         if ($this->form['distribution_scope'] === 'facilities' && empty($this->facility_ids)) {
             $this->addError('facility_ids', 'Chọn ít nhất một cơ sở khám chữa bệnh.');
@@ -134,6 +175,7 @@ class Form extends Component
             'suppliers' => $service->supplierCandidates('', $this->partner_id),
             'facilities' => $service->facilityCandidates($this->facilitySearch, $this->facility_ids),
             'regions' => $service->distributionRegions(),
+            'provincesByRegion' => $service->distributionProvincesByRegion(),
         ]);
     }
 }
