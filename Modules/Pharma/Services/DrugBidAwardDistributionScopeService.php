@@ -12,11 +12,11 @@ use Modules\Pharma\Models\OfficialSourceFacility;
 
 class DrugBidAwardDistributionScopeService
 {
+    public function __construct(private readonly DrugBidAwardResultGroupService $groups) {}
+
     public function resultKey(DrugBidAward $award): string
     {
-        return $award->bidding_notice_code
-            ? 'tbmt:'.trim($award->bidding_notice_code)
-            : 'award:'.$award->id;
+        return $this->groups->resultKey($award);
     }
 
     public function findForAward(DrugBidAward $award): ?DrugBidAwardDistributionScope

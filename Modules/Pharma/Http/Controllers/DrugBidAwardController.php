@@ -32,6 +32,11 @@ class DrugBidAwardController extends Controller
         return view('Pharma::pages.drug-bid-award.products', compact('id'));
     }
 
+    public function commercialPolicy(int $id): View
+    {
+        return view('Pharma::pages.drug-bid-award.commercial-policy', compact('id'));
+    }
+
     public function allocationDetail(int $id): View
     {
         return view('Pharma::pages.drug-bid-award.allocations', compact('id'));

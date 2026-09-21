@@ -3,6 +3,7 @@
     $canCreate = $admin?->can('create_pharma') ?? false;
     $canEdit = $admin?->can('edit_pharma') ?? false;
     $canViewAllocations = $admin?->can('view_pharma_allocations') ?? false;
+    $canViewCommercialPolicies = $admin?->can('view_pharma_commercial_policies') ?? false;
     $currentPage = $awards->currentPage();
     $lastPage = $awards->lastPage();
     $fmtQty = fn ($value) => rtrim(rtrim(number_format((float) $value, 4, ',', '.'), '0'), ',');
@@ -63,7 +64,7 @@
                     <td class="px-4 py-4 text-right text-lg font-bold text-slate-950">{{ number_format((int) $award->product_count) }}</td>
                     <td class="px-4 py-4 text-right font-semibold">{{ $fmtQty($award->total_quantity) }}</td>
                     <td class="px-4 py-4 text-right font-semibold text-indigo-700">{{ number_format((float) $award->total_value, 0, ',', '.') }} VNĐ</td>
-                    <td class="px-4 py-4 text-right">@if ($canViewAllocations)<a href="{{ route('admin.pharma.drug-bid-awards.allocations', $award->representative_id) }}" class="inline-flex min-h-10 items-center rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700">Xem sản phẩm / Phân bổ</a>@endif</td>
+                    <td class="px-4 py-4 text-right"><div class="flex justify-end gap-2">@if ($canViewAllocations)<a href="{{ route('admin.pharma.drug-bid-awards.allocations', $award->representative_id) }}" class="inline-flex min-h-10 items-center rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700">Xem sản phẩm / Phân bổ</a>@endif @if($canViewCommercialPolicies)<a href="{{ route('admin.pharma.drug-bid-awards.commercial-policy', $award->representative_id) }}" class="inline-flex min-h-10 items-center rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-xs font-semibold text-indigo-700">Chính sách kinh doanh</a>@endif</div></td>
                 </tr>
             @empty
                 <tr><td colspan="8" class="px-6 py-12 text-center text-slate-500">Không có kết quả phù hợp.</td></tr>
