@@ -138,12 +138,19 @@ class Form extends Component
 
         try {
             if ($this->isEditMode) {
-                $medicineService->update($this->medicineId, $validatedData);
-                session()->flash('success', 'Cập nhật Medicine Master thành công.');
-            } else {
-                $medicineService->store($validatedData);
-                session()->flash('success', 'Đã thêm thuốc vào Medicine Master. HSSP có thể được bổ sung sau.');
+                $medicine = $medicineService->update($this->medicineId, $validatedData);
+                $this->fill($medicine->only([
+                    'profile_status',
+                    'last_verified_at',
+                ]));
+                $this->last_verified_at = $medicine->last_verified_at?->format('Y-m-d H:i:s');
+                $this->dispatch('medicine-master-saved', message: 'Đã lưu Medicine Master. Bạn có thể xác minh ngay trên trang này.');
+
+                return;
             }
+
+            $medicineService->store($validatedData);
+            session()->flash('success', 'Đã thêm thuốc vào Medicine Master. HSSP có thể được bổ sung sau.');
 
             return redirect()->route('admin.pharma.medicines.index');
         } catch (LogicException $e) {
