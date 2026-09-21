@@ -3,7 +3,9 @@
 namespace Modules\Pharma\Livewire\DrugBidAward;
 
 use Livewire\Component;
+use Modules\Partner\Models\Partner;
 use Modules\Pharma\Models\DrugBidAward;
+use Modules\Pharma\Services\DrugBidAwardDistributionScopeService;
 
 class ProductWorkspace extends Component
 {
@@ -13,6 +15,10 @@ class ProductWorkspace extends Component
     public string $search = '';
     public int $perPage = 10;
     public int $page = 1;
+    public string $provinceCode = '';
+    public array $selectedPartnerIds = [];
+    public string $effectiveFrom = '';
+    public string $effectiveUntil = '';
 
     protected $queryString = [
         'search' => ['except' => ''],
@@ -26,9 +32,39 @@ class ProductWorkspace extends Component
         DrugBidAward::query()->findOrFail($awardId);
         $this->awardId = $awardId;
         $this->perPage = $this->normalizePerPage($this->perPage);
+        $this->loadDistributionScope();
     }
 
     public function updatedSearch(): void { $this->page = 1; }
+
+    public function updatedProvinceCode(): void
+    {
+        $this->selectedPartnerIds = [];
+        $this->dispatch('filters-reset');
+    }
+
+    public function saveDistributionScope(DrugBidAwardDistributionScopeService $service): void
+    {
+        abort_unless(auth('admin')->user()?->can('manage_pharma_allocations'), 403);
+        $data = $this->validate([
+            'provinceCode' => ['required', 'string', 'max:50'],
+            'selectedPartnerIds' => ['required', 'array', 'min:1'],
+            'selectedPartnerIds.*' => ['integer'],
+            'effectiveFrom' => ['required', 'date'],
+            'effectiveUntil' => ['required', 'date', 'after_or_equal:effectiveFrom'],
+        ]);
+
+        $award = DrugBidAward::query()->findOrFail($this->awardId);
+        $service->save($award, [
+            'province_code' => $data['provinceCode'],
+            'partner_ids' => $data['selectedPartnerIds'],
+            'effective_from' => $data['effectiveFrom'],
+            'effective_until' => $data['effectiveUntil'],
+        ], auth('admin')->id());
+
+        session()->flash('success', 'Đã lưu phạm vi và hiệu lực phân bổ cho kết quả trúng thầu.');
+        $this->loadDistributionScope();
+    }
     public function updatedPerPage(mixed $value): void
     {
         $this->perPage = $this->normalizePerPage($value);
@@ -53,11 +89,40 @@ class ProductWorkspace extends Component
 
         $products = $query->paginate($this->perPage, ['*'], 'page', max(1, $this->page));
 
+        $provinceOptions = Partner::query()
+            ->where('legal_type', 'hospital')->where('status', 'active')
+            ->whereNotNull('province_code')->where('province_code', '!=', '')
+            ->distinct()->orderBy('province_code')->pluck('province_code');
+
+        $partners = collect();
+        if ($this->provinceCode !== '') {
+            $partners = Partner::query()
+                ->where('legal_type', 'hospital')->where('status', 'active')
+                ->where('province_code', $this->provinceCode)
+                ->orderBy('name')->get(['id', 'name', 'tax_code', 'province_code']);
+        }
+
         return view('Pharma::livewire.drug-bid-award.product-workspace', [
             'result' => $result,
             'products' => $products,
             'perPageOptions' => self::PER_PAGE_OPTIONS,
+            'provinceOptions' => $provinceOptions,
+            'partners' => $partners,
         ]);
+    }
+
+    private function loadDistributionScope(): void
+    {
+        $award = DrugBidAward::query()->findOrFail($this->awardId);
+        $scope = app(DrugBidAwardDistributionScopeService::class)->findForAward($award);
+        if (! $scope) {
+            return;
+        }
+
+        $this->provinceCode = (string) ($scope->province_code ?? '');
+        $this->selectedPartnerIds = $scope->partners->pluck('id')->map(fn ($id) => (string) $id)->all();
+        $this->effectiveFrom = $scope->effective_from?->format('Y-m-d') ?? '';
+        $this->effectiveUntil = $scope->effective_until?->format('Y-m-d') ?? '';
     }
 
     private function normalizePerPage(mixed $value): int
