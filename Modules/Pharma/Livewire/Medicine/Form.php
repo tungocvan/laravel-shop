@@ -17,6 +17,10 @@ class Form extends Component
 
     public bool $isEditMode = false;
 
+    public ?string $profile_status = null;
+
+    public ?string $last_verified_at = null;
+
     public $circular_order_number;
 
     public $circular_group;
@@ -103,6 +107,27 @@ class Form extends Component
             if ($this->gmp_certification_date) {
                 $this->gmp_certification_date = date('Y-m-d', strtotime($this->gmp_certification_date));
             }
+        }
+    }
+
+    public function verifyMaster(MedicineService $medicineService): void
+    {
+        $this->authorizePharmaEdit();
+
+        if (! $this->isEditMode || ! $this->medicineId) {
+            return;
+        }
+
+        try {
+            $medicine = $medicineService->verifyMaster($this->medicineId);
+            $this->profile_status = $medicine->profile_status;
+            $this->last_verified_at = $medicine->last_verified_at?->format('Y-m-d H:i:s');
+            session()->flash('success', 'Medicine Master đã được xác minh và có thể dùng để liên kết kết quả trúng thầu.');
+        } catch (LogicException $e) {
+            session()->flash('error', $e->getMessage());
+        } catch (Exception $e) {
+            report($e);
+            session()->flash('error', 'Không thể xác minh Medicine Master. Vui lòng thử lại hoặc kiểm tra log hệ thống.');
         }
     }
 
