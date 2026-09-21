@@ -74,7 +74,7 @@ class ReviewWorkspace extends Component
 
     public function chooseMedicine(int $medicineId): void
     {
-        $medicine = Medicine::query()->with(['variants.packages'])->findOrFail($medicineId);
+        $medicine = Medicine::query()->where('profile_status', Medicine::PROFILE_VERIFIED)->with(['variants.packages'])->findOrFail($medicineId);
         $this->selectedMedicineId = $medicine->id;
         $this->selectedVariantId = null;
         $this->selectedPackageId = null;
@@ -293,7 +293,7 @@ class ReviewWorkspace extends Component
 
     private function candidateMedicines(DrugBidAward $award): EloquentCollection
     {
-        $query = Medicine::query()->with(['variants.packages']);
+        $query = Medicine::query()->where('profile_status', Medicine::PROFILE_VERIFIED)->with(['variants.packages']);
         $search = trim($this->candidateSearch);
         if ($search !== '') { $term = '%'.$search.'%'; $query->where(fn ($inner) => $inner->where('name', 'like', $term)->orWhere('registration_number', 'like', $term)->orWhere('medicine_code', 'like', $term)); }
         elseif ($award->registration_or_import_license) $query->where('registration_number', $award->registration_or_import_license);
@@ -304,8 +304,8 @@ class ReviewWorkspace extends Component
     private function applyDeterministicDefault(DrugBidAward $award): void
     {
         $candidates = collect();
-        if ($award->registration_or_import_license) $candidates = Medicine::query()->with(['variants.packages'])->where('registration_number', $award->registration_or_import_license)->limit(2)->get();
-        if ($candidates->isEmpty()) $candidates = Medicine::query()->with(['variants.packages'])->where('name', $award->medicine_name)->limit(2)->get();
+        if ($award->registration_or_import_license) $candidates = Medicine::query()->where('profile_status', Medicine::PROFILE_VERIFIED)->with(['variants.packages'])->where('registration_number', $award->registration_or_import_license)->limit(2)->get();
+        if ($candidates->isEmpty()) $candidates = Medicine::query()->where('profile_status', Medicine::PROFILE_VERIFIED)->with(['variants.packages'])->where('name', $award->medicine_name)->limit(2)->get();
         if ($candidates->count() === 1) $this->chooseMedicine($candidates->first()->id);
     }
 
