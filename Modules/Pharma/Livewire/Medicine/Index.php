@@ -33,6 +33,8 @@ class Index extends Component
 
     public string $filterDeletable = '';
 
+    public string $filterRegistration = '';
+
     public array $selectedIds = [];
 
     public bool $selectPage = false;
@@ -74,6 +76,14 @@ class Index extends Component
             $this->filterHssp = '';
         }
 
+        $this->resetWorkspacePage();
+    }
+
+    public function updatedFilterRegistration(): void
+    {
+        if (! in_array($this->filterRegistration, ['', 'with', 'without'], true)) {
+            $this->filterRegistration = '';
+        }
         $this->resetWorkspacePage();
     }
 
@@ -124,12 +134,13 @@ class Index extends Component
             || $this->filterHssp !== ''
             || $this->filterSupplier !== ''
             || $this->filterDeletable !== ''
+            || $this->filterRegistration !== ''
             || $this->perPage !== 10;
     }
 
     public function resetFilters(): void
     {
-        $this->reset(['filterCircularGroup', 'filterSpecialControl', 'filterProfileStatus', 'filterHssp', 'filterSupplier', 'filterDeletable']);
+        $this->reset(['filterCircularGroup', 'filterSpecialControl', 'filterProfileStatus', 'filterHssp', 'filterSupplier', 'filterDeletable', 'filterRegistration']);
         $this->perPage = 10;
         $this->page = 1;
         $this->clearSelection();
@@ -271,6 +282,7 @@ class Index extends Component
             $this->filterHssp ?: null,
             $this->filterSupplier !== '' ? (int) $this->filterSupplier : null,
             $this->filterDeletable ?: null,
+            $this->filterRegistration ?: null,
         );
     }
 
