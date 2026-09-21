@@ -3,7 +3,6 @@
 namespace Modules\Pharma\Livewire\DrugBidAward;
 
 use Livewire\Component;
-use Modules\Partner\Models\Partner;
 use Modules\Pharma\Models\DrugBidAward;
 use Modules\Pharma\Models\OfficialSourceFacility;
 use Modules\Pharma\Services\DrugBidAwardDistributionScopeService;
@@ -17,7 +16,8 @@ class ProductWorkspace extends Component
     public int $perPage = 10;
     public int $page = 1;
     public string $provinceCode = '';
-    public array $selectedPartnerIds = [];
+    public array $selectedFacilityIds = [];
+    public string $facilitySearch = '';
     public string $effectiveFrom = '';
     public string $effectiveUntil = '';
 
@@ -40,7 +40,7 @@ class ProductWorkspace extends Component
 
     public function updatedProvinceCode(): void
     {
-        $this->selectedPartnerIds = [];
+        $this->selectedFacilityIds = [];
         $this->dispatch('filters-reset');
     }
 
@@ -49,8 +49,8 @@ class ProductWorkspace extends Component
         abort_unless(auth('admin')->user()?->can('manage_pharma_allocations'), 403);
         $data = $this->validate([
             'provinceCode' => ['required', 'string', 'max:50'],
-            'selectedPartnerIds' => ['required', 'array', 'min:1'],
-            'selectedPartnerIds.*' => ['integer'],
+            'selectedFacilityIds' => ['required', 'array', 'min:1'],
+            'selectedFacilityIds.*' => ['integer'],
             'effectiveFrom' => ['required', 'date'],
             'effectiveUntil' => ['required', 'date', 'after_or_equal:effectiveFrom'],
         ]);
@@ -58,7 +58,7 @@ class ProductWorkspace extends Component
         $award = DrugBidAward::query()->findOrFail($this->awardId);
         $service->save($award, [
             'province_code' => $data['provinceCode'],
-            'partner_ids' => $data['selectedPartnerIds'],
+            'facility_ids' => $data['selectedFacilityIds'],
             'effective_from' => $data['effectiveFrom'],
             'effective_until' => $data['effectiveUntil'],
         ], auth('admin')->id());
@@ -95,18 +95,18 @@ class ProductWorkspace extends Component
             ->whereNotNull('province_name')->where('province_name', '!=', '')
             ->distinct()->orderBy('province_name')->pluck('province_name');
 
-        $partners = collect();
+        $facilities = collect();
         if ($this->provinceCode !== '') {
-            $officialFacilityIds = OfficialSourceFacility::query()
+            $facilities = OfficialSourceFacility::query()
                 ->where('is_active', true)
                 ->where('province_name', $this->provinceCode)
-                ->whereNotNull('external_id')->where('external_id', '!=', '')
-                ->pluck('external_id');
-
-            $partners = Partner::query()
-                ->where('legal_type', 'hospital')->where('status', 'active')
-                ->whereHas('sourceReferences', fn ($query) => $query->whereIn('external_id', $officialFacilityIds))
-                ->orderBy('name')->get(['id', 'name', 'tax_code', 'province_code']);
+                ->when(trim($this->facilitySearch) !== '', function ($query) {
+                    $like = '%'.trim($this->facilitySearch).'%';
+                    $query->where(fn ($nested) => $nested->where('facility_name', 'like', $like)->orWhere('external_id', 'like', $like));
+                })
+                ->orderBy('facility_name')
+                ->limit(300)
+                ->get(['id', 'external_id', 'facility_name', 'district_name', 'province_name']);
         }
 
         return view('Pharma::livewire.drug-bid-award.product-workspace', [
@@ -114,7 +114,7 @@ class ProductWorkspace extends Component
             'products' => $products,
             'perPageOptions' => self::PER_PAGE_OPTIONS,
             'provinceOptions' => $provinceOptions,
-            'partners' => $partners,
+            'facilities' => $facilities,
         ]);
     }
 
@@ -127,7 +127,10 @@ class ProductWorkspace extends Component
         }
 
         $this->provinceCode = (string) ($scope->province_code ?? '');
-        $this->selectedPartnerIds = $scope->partners->pluck('id')->map(fn ($id) => (string) $id)->all();
+        $externalIds = $scope->partners->flatMap(fn ($partner) => $partner->sourceReferences
+            ->where('source', 'official_source_facility')->pluck('external_id'))->filter()->all();
+        $this->selectedFacilityIds = OfficialSourceFacility::query()
+            ->whereIn('external_id', $externalIds)->pluck('id')->map(fn ($id) => (string) $id)->all();
         $this->effectiveFrom = $scope->effective_from?->format('Y-m-d') ?? '';
         $this->effectiveUntil = $scope->effective_until?->format('Y-m-d') ?? '';
     }
