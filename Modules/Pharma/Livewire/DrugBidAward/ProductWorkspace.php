@@ -41,7 +41,7 @@ class ProductWorkspace extends Component
     public function updatedProvinceCode(): void
     {
         $this->selectedFacilityIds = [];
-        $this->dispatch('filters-reset');
+        $this->facilitySearch = '';
     }
 
     public function saveDistributionScope(DrugBidAwardDistributionScopeService $service): void
