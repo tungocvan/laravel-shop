@@ -23,10 +23,12 @@ class MedicineService
         ?string $specialControl = null,
         ?string $profileStatus = null,
         ?string $hsspStatus = null,
+        ?int $supplierId = null,
     ): LengthAwarePaginator {
         return Medicine::query()
             ->with([
                 'variants:id,medicine_id,sku,strength_text,presentation_text,status,is_default',
+                'supplierTrackings' => fn ($query) => $query->select(['id', 'medicine_id', 'partner_id', 'status'])->with('partner:id,name'),
                 'currentProfile' => fn ($query) => $query->select([
                     'pharma_medicine_profiles.id',
                     'pharma_medicine_profiles.medicine_id',
@@ -61,6 +63,7 @@ class MedicineService
             ->when($profileStatus, fn ($query, $value) => $query->where('profile_status', $value))
             ->when($hsspStatus === 'with', fn ($query) => $query->whereHas('currentProfile'))
             ->when($hsspStatus === 'without', fn ($query) => $query->whereDoesntHave('currentProfile'))
+            ->when($supplierId, fn ($query, $value) => $query->whereHas('supplierTrackings', fn ($tracking) => $tracking->where('partner_id', $value)))
             ->latest()
             ->paginate($perPage, ['*'], 'page', $page);
     }
@@ -72,6 +75,17 @@ class MedicineService
             ->where('circular_group', '!=', '')
             ->distinct()
             ->pluck('circular_group')
+            ->all();
+    }
+
+    public function getSupplierOptions(): array
+    {
+        return \Modules\Partner\Models\Partner::query()
+            ->where('status', 'active')
+            ->whereJsonContains('partner_types', 'supplier')
+            ->whereHas('supplierTrackings')
+            ->orderBy('name')
+            ->pluck('name', 'id')
             ->all();
     }
 
