@@ -23,8 +23,12 @@ return new class extends Migration
 
         Schema::create('pharma_drug_bid_award_distribution_scope_partners', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('distribution_scope_id')->constrained('pharma_drug_bid_award_distribution_scopes')->cascadeOnDelete();
-            $table->foreignId('partner_id')->constrained('partners')->cascadeOnDelete();
+            $table->unsignedBigInteger('distribution_scope_id');
+            $table->foreign('distribution_scope_id', 'drug_award_scope_partner_scope_fk')
+                ->references('id')->on('pharma_drug_bid_award_distribution_scopes')->cascadeOnDelete();
+            $table->unsignedBigInteger('partner_id');
+            $table->foreign('partner_id', 'drug_award_scope_partner_partner_fk')
+                ->references('id')->on('partners')->cascadeOnDelete();
             $table->timestamps();
             $table->unique(['distribution_scope_id', 'partner_id'], 'drug_award_scope_partner_unique');
         });
