@@ -57,6 +57,49 @@ class DrugBidAwardService
             ->paginate($perPage, ['*'], 'page', max(1, $page));
     }
 
+    public function getResultGroupsPaginated(
+        ?string $search = null,
+        ?string $investor = null,
+        ?string $company = null,
+        int $perPage = 10,
+        int $page = 1,
+        ?string $sourceType = null,
+        ?string $matchStatus = null,
+        ?string $tbmt = null,
+    ): LengthAwarePaginator {
+        $groupKey = "COALESCE(NULLIF(bidding_notice_code, ''), CONCAT('award-', id))";
+
+        return DrugBidAward::query()
+            ->selectRaw("{$groupKey} as result_key")
+            ->selectRaw('MAX(id) as representative_id')
+            ->selectRaw('MAX(bidding_notice_code) as bidding_notice_code')
+            ->selectRaw('MAX(investor_name) as investor_name')
+            ->selectRaw('MAX(investor_code) as investor_code')
+            ->selectRaw('MAX(decision_number) as decision_number')
+            ->selectRaw('MAX(decision_date) as decision_date')
+            ->selectRaw('COUNT(*) as product_count')
+            ->selectRaw('SUM(COALESCE(quantity, 0)) as total_quantity')
+            ->selectRaw('SUM(COALESCE(amount, COALESCE(winning_price, unit_price, 0) * COALESCE(quantity, 0))) as total_value')
+            ->selectRaw('COUNT(DISTINCT NULLIF(winning_company_name, \'\')) as contractor_count')
+            ->selectRaw('MAX(winning_company_name) as winning_company_name')
+            ->selectRaw('MAX(published_at) as latest_published_at')
+            ->when($search, fn ($query, $value) => $query->where(fn ($nested) => $nested
+                ->where('medicine_name', 'like', "%{$value}%")
+                ->orWhere('active_ingredient', 'like', "%{$value}%")
+                ->orWhere('medicine_code', 'like', "%{$value}%")
+                ->orWhere('lot_name', 'like', "%{$value}%")
+                ->orWhere('decision_number', 'like', "%{$value}%")))
+            ->when($tbmt, fn ($query, $value) => $query->where('bidding_notice_code', 'like', "%{$value}%"))
+            ->when($investor, fn ($query, $value) => $query->where('investor_name', 'like', "%{$value}%"))
+            ->when($company, fn ($query, $value) => $query->where('winning_company_name', 'like', "%{$value}%"))
+            ->when($sourceType, fn ($query, $value) => $query->where('source_type', $value))
+            ->when($matchStatus, fn ($query, $value) => $query->where('medicine_match_status', $value))
+            ->groupByRaw($groupKey)
+            ->orderByDesc('latest_published_at')
+            ->orderByDesc('representative_id')
+            ->paginate($perPage, ['*'], 'page', max(1, $page));
+    }
+
     public function findOrFail(int $id): DrugBidAward
     {
         return DrugBidAward::query()->findOrFail($id);
