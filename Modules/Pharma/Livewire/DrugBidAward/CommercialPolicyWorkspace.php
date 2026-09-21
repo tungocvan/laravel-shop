@@ -5,139 +5,120 @@ namespace Modules\Pharma\Livewire\DrugBidAward;
 use App\Models\User;
 use Livewire\Component;
 use Modules\Pharma\Models\DrugBidAward;
-use Modules\Pharma\Models\DrugBidAwardCommercialAssignment;
-use Modules\Pharma\Models\DrugBidAwardCommercialPolicy;
+use Modules\Pharma\Models\DrugBidAwardAllocation;
+use Modules\Pharma\Models\DrugBidAwardManagementAssignment;
+use Modules\Pharma\Models\DrugBidAwardProductPolicy;
 use Modules\Pharma\Services\DrugBidAwardCommercialPolicyService;
-use Modules\Pharma\Services\DrugBidAwardDistributionScopeService;
 use Modules\Pharma\Services\DrugBidAwardResultGroupService;
 
 class CommercialPolicyWorkspace extends Component
 {
     public int $awardId;
-    public string $name = '';
-    public string $commissionType = 'percentage';
-    public string $commissionValue = '';
-    public string $commissionBasis = 'stock_out_revenue';
-    public string $effectiveFrom = '';
-    public string $effectiveUntil = '';
-    public string $notes = '';
-    public array $selectedAwardIds = [];
-    public string $userSearch = '';
+    public array $productPolicies = [];
+    public string $bulkPercentage = '';
+    public array $selectedPolicyAwardIds = [];
+    public string $selectedPartnerId = '';
     public string $selectedUserId = '';
-    public string $sharePercentage = '100';
-    public string $assignmentFrom = '';
-    public string $assignmentUntil = '';
+    public string $userSearch = '';
     public string $productSearch = '';
 
     public function mount(int $awardId): void
     {
         abort_unless(auth('admin')->user()?->can('view_pharma_commercial_policies'), 403);
-        $award = DrugBidAward::query()->findOrFail($awardId);
         $this->awardId = $awardId;
-        $policy = app(DrugBidAwardCommercialPolicyService::class)->currentForAward($award);
-        if ($policy) {
-            $this->name = $policy->name;
-            $this->commissionType = $policy->commission_type;
-            $this->commissionValue = (string) $policy->commission_value;
-            $this->commissionBasis = $policy->commission_basis;
-            $this->effectiveFrom = $policy->effective_from?->format('Y-m-d') ?? '';
-            $this->effectiveUntil = $policy->effective_until?->format('Y-m-d') ?? '';
-            $this->notes = (string) $policy->notes;
-        } else {
-            $scope = app(DrugBidAwardDistributionScopeService::class)->findForAward($award);
-            $this->effectiveFrom = $scope?->effective_from?->format('Y-m-d') ?? '';
-            $this->effectiveUntil = $scope?->effective_until?->format('Y-m-d') ?? '';
+        $this->award();
+        $this->loadPolicyValues();
+    }
+
+    public function applyBulkPercentage(): void
+    {
+        $this->authorizeManage();
+        $this->validate([
+            'bulkPercentage' => ['required', 'numeric', 'min:0', 'max:100'],
+            'selectedPolicyAwardIds' => ['required', 'array', 'min:1'],
+        ]);
+        foreach ($this->selectedPolicyAwardIds as $id) $this->productPolicies[(int) $id] = $this->bulkPercentage;
+    }
+
+    public function saveProductPolicies(DrugBidAwardCommercialPolicyService $service): void
+    {
+        $this->authorizeManage();
+        foreach ($this->productPolicies as $id => $value) {
+            if ($value === '' || $value === null) continue;
+            if (! is_numeric($value) || (float) $value < 0 || (float) $value > 100) {
+                $this->addError("productPolicies.$id", 'Chính sách % phải từ 0 đến 100.');
+                return;
+            }
         }
-        $this->assignmentFrom = $this->effectiveFrom;
-        $this->assignmentUntil = $this->effectiveUntil;
+        $service->saveProductPolicies($this->award(), $this->productPolicies, auth('admin')->id());
+        $this->loadPolicyValues();
+        session()->flash('success', 'Đã lưu chính sách % theo sản phẩm.');
     }
 
-    public function saveDraft(DrugBidAwardCommercialPolicyService $service): void
+    public function assignManager(int $awardId, DrugBidAwardCommercialPolicyService $service): void
     {
         $this->authorizeManage();
         $data = $this->validate([
-            'name' => ['required','string','max:255'],
-            'commissionType' => ['required','in:percentage,amount_per_unit,fixed'],
-            'commissionValue' => ['required','numeric','min:0'],
-            'commissionBasis' => ['required','in:stock_out_revenue,collected_revenue,other'],
-            'effectiveFrom' => ['required','date'],
-            'effectiveUntil' => ['nullable','date','after_or_equal:effectiveFrom'],
-            'notes' => ['nullable','string','max:5000'],
+            'selectedPartnerId' => ['required', 'integer', 'exists:partners,id'],
+            'selectedUserId' => ['required', 'integer', 'exists:users,id'],
         ]);
-        if ($data['commissionType'] === 'percentage' && (float) $data['commissionValue'] > 100) $this->addError('commissionValue', 'Hoa hồng phần trăm không được vượt 100%.');
-        if ($this->getErrorBag()->has('commissionValue')) return;
-        $service->saveDraft($this->award(), [
-            'name'=>$data['name'],'commission_type'=>$data['commissionType'],'commission_value'=>$data['commissionValue'],
-            'commission_basis'=>$data['commissionBasis'],'effective_from'=>$data['effectiveFrom'],
-            'effective_until'=>$data['effectiveUntil'] ?: null,'notes'=>$data['notes'] ?: null,
-        ], auth('admin')->id());
-        session()->flash('success', 'Đã lưu bản nháp chính sách kinh doanh.');
+        $service->assignManager($this->award(), $awardId, (int) $data['selectedPartnerId'], (int) $data['selectedUserId'], auth('admin')->id());
+        session()->flash('success', 'Đã lưu User quản lý bệnh viện/sản phẩm.');
     }
 
-    public function assignSelected(DrugBidAwardCommercialPolicyService $service): void
+    public function removeManager(int $assignmentId, DrugBidAwardCommercialPolicyService $service): void
     {
         $this->authorizeManage();
-        $data = $this->validate([
-            'selectedAwardIds'=>['required','array','min:1'],'selectedAwardIds.*'=>['integer'],
-            'selectedUserId'=>['required','integer','exists:users,id'],'sharePercentage'=>['required','numeric','gt:0','lte:100'],
-            'assignmentFrom'=>['required','date'],'assignmentUntil'=>['nullable','date','after_or_equal:assignmentFrom'],
-        ]);
-        $policy = $this->policy();
-        if (! $policy) { $this->addError('assignment', 'Hãy lưu chính sách Draft trước khi phân công User.'); return; }
-        $service->assign($this->award(), $policy, $data['selectedAwardIds'], (int)$data['selectedUserId'], (float)$data['sharePercentage'], $data['assignmentFrom'], $data['assignmentUntil'] ?: null, auth('admin')->id());
-        $this->selectedAwardIds = [];
-        session()->flash('success', 'Đã phân công User cho sản phẩm đã chọn.');
+        $service->removeManager($this->award(), $assignmentId);
+        session()->flash('success', 'Đã bỏ phân công User.');
     }
 
-    public function endAssignment(int $assignmentId, DrugBidAwardCommercialPolicyService $service): void
+    public function updatedSelectedPartnerId(): void
     {
-        $this->authorizeManage();
-        $assignment = DrugBidAwardCommercialAssignment::query()->with('policy')->findOrFail($assignmentId);
-        abort_unless($assignment->policy?->result_key === app(DrugBidAwardResultGroupService::class)->resultKey($this->award()), 404);
-        $service->endAssignment($assignment, 'Thay đổi phân công từ workspace chính sách kinh doanh.', auth('admin')->id());
-        session()->flash('success', 'Đã kết thúc phân công và giữ lại lịch sử.');
-    }
-
-    public function activate(DrugBidAwardCommercialPolicyService $service): void
-    {
-        $this->authorizeManage();
-        $policy = $this->policy();
-        if (! $policy) { $this->addError('activation', 'Chưa có chính sách Draft để kích hoạt.'); return; }
-        $service->activate($this->award(), $policy, auth('admin')->id());
-        session()->flash('success', 'Đã kích hoạt chính sách kinh doanh.');
-    }
-
-    public function archive(DrugBidAwardCommercialPolicyService $service): void
-    {
-        $this->authorizeManage();
-        $policy = $this->policy();
-        if (! $policy) return;
-        $service->archive($this->award(), $policy, auth('admin')->id());
-        $this->reset(['name','commissionValue','notes','selectedAwardIds','selectedUserId']);
-        session()->flash('success', 'Đã lưu trữ chính sách. Có thể tạo Draft mới mà không mất lịch sử.');
+        $this->selectedUserId = '';
     }
 
     public function render()
     {
         $award = $this->award();
         $group = app(DrugBidAwardResultGroupService::class);
+        $awardIds = $group->awardsQuery($award)->pluck('id');
+
         $products = $group->awardsQuery($award)
-            ->with(['allocations'=>fn($q)=>$q->where('status','active')])
+            ->with(['allocations' => fn ($q) => $q->where('status', DrugBidAwardAllocation::STATUS_ACTIVE)->with('partner')])
             ->when(trim($this->productSearch) !== '', function ($query) {
                 $like = '%'.trim($this->productSearch).'%';
-                $query->where(fn($q)=>$q->where('medicine_name','like',$like)->orWhere('active_ingredient','like',$like)->orWhere('lot_name','like',$like));
+                $query->where(fn ($q) => $q->where('medicine_name', 'like', $like)->orWhere('medicine_code', 'like', $like)->orWhere('lot_name', 'like', $like));
             })->orderBy('id')->limit(200)->get();
-        $policy = $this->policy();
-        $assignments = $policy ? $policy->assignments()->with('user')->where('status','active')->get()->groupBy('drug_bid_award_id') : collect();
-        $users = User::query()->where('is_active', true)
-            ->when(trim($this->userSearch) !== '', function($q){$like='%'.trim($this->userSearch).'%';$q->where(fn($n)=>$n->where('name','like',$like)->orWhere('email','like',$like));})
-            ->orderBy('name')->limit(50)->get(['id','name','email']);
-        $issues = $policy ? app(DrugBidAwardCommercialPolicyService::class)->activationIssues($award,$policy) : [];
 
-        return view('Pharma::livewire.drug-bid-award.commercial-policy-workspace', compact('award','products','policy','assignments','users','issues'));
+        $partners = DrugBidAwardAllocation::query()
+            ->with('partner')
+            ->whereIn('drug_bid_award_id', $awardIds)
+            ->where('status', DrugBidAwardAllocation::STATUS_ACTIVE)
+            ->get()->pluck('partner')->filter()->unique('id')->sortBy('name')->values();
+
+        $assignments = DrugBidAwardManagementAssignment::query()
+            ->with(['user', 'partner'])
+            ->whereIn('drug_bid_award_id', $awardIds)
+            ->where('status', DrugBidAwardManagementAssignment::STATUS_ACTIVE)
+            ->get()->keyBy(fn ($row) => $row->drug_bid_award_id.':'.$row->partner_id);
+
+        $users = User::query()->where('is_active', true)
+            ->when(trim($this->userSearch) !== '', function ($q) {
+                $like = '%'.trim($this->userSearch).'%';
+                $q->where(fn ($n) => $n->where('name', 'like', $like)->orWhere('email', 'like', $like));
+            })->orderBy('name')->limit(50)->get(['id', 'name', 'email']);
+
+        return view('Pharma::livewire.drug-bid-award.commercial-policy-workspace', compact('award', 'products', 'partners', 'assignments', 'users'));
+    }
+
+    private function loadPolicyValues(): void
+    {
+        $ids = app(DrugBidAwardResultGroupService::class)->awardsQuery($this->award())->pluck('id');
+        $this->productPolicies = DrugBidAwardProductPolicy::query()->whereIn('drug_bid_award_id', $ids)
+            ->pluck('commission_percentage', 'drug_bid_award_id')->map(fn ($v) => (string) $v)->all();
     }
 
     private function award(): DrugBidAward { return DrugBidAward::query()->findOrFail($this->awardId); }
-    private function policy(): ?DrugBidAwardCommercialPolicy { return app(DrugBidAwardCommercialPolicyService::class)->currentForAward($this->award()); }
     private function authorizeManage(): void { abort_unless(auth('admin')->user()?->can('manage_pharma_commercial_policies'), 403); }
 }
