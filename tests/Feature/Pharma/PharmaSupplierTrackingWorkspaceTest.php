@@ -141,6 +141,7 @@ class PharmaSupplierTrackingWorkspaceTest extends TestCase
 
         $this->assertStringContainsString("'distribution_provinces' => 'array'", $model);
         $this->assertStringContainsString("form.distribution_provinces", $form);
+        $this->assertStringContainsString('updatedFormDistributionRegions($value = null, $key = null)', $form);
         $this->assertStringContainsString('Chọn ít nhất một Tỉnh/Thành thuộc vùng miền đã chọn.', $form);
         $this->assertStringContainsString('Tỉnh/Thành đã chọn không thuộc vùng miền được phép bán.', $form);
         $this->assertStringContainsString("['distribution_provinces']", $service);
