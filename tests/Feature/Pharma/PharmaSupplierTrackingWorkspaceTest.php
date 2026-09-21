@@ -107,6 +107,10 @@ class PharmaSupplierTrackingWorkspaceTest extends TestCase
         $this->assertStringContainsString('use WithFileUploads;', $form);
         $this->assertStringContainsString("'distribution_scope' => 'all'", $form);
         $this->assertStringContainsString('supplierCandidates(', $service);
+        $this->assertStringContainsString("public string \$supplierSearch = '';", $form);
+        $this->assertStringContainsString("supplierCandidates(\$this->supplierSearch, \$this->partner_id)", $form);
+        $this->assertStringContainsString('wire:model.live.debounce.300ms="supplierSearch"', $view);
+        $this->assertStringContainsString('Tìm theo tên nhà cung cấp hoặc mã số thuế', $view);
         $this->assertStringContainsString("->withPartnerType('supplier')", $service);
         $this->assertStringContainsString('facilityCandidates(', $service);
         $this->assertStringContainsString('Supplier Commercial Workspace', $view);
