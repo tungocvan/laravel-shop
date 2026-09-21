@@ -10,6 +10,7 @@ use Modules\Pharma\Models\DrugBidAwardContract;
 use Modules\Pharma\Services\DrugBidAwardAllocationService;
 use Modules\Pharma\Services\DrugBidAwardAllocationSummaryService;
 use Modules\Pharma\Services\DrugBidAwardContractService;
+use Modules\Pharma\Services\DrugBidAwardDistributionScopeService;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AllocationWorkspace extends Component
@@ -117,15 +118,11 @@ class AllocationWorkspace extends Component
         $data = $this->validate([
             'partnerId' => ['required', 'integer'],
             'allocatedQuantity' => ['required', 'numeric', 'gt:0'],
-            'effectiveFrom' => ['nullable', 'date'],
-            'effectiveUntil' => ['nullable', 'date', 'after_or_equal:effectiveFrom'],
             'notes' => ['nullable', 'string', 'max:3000'],
         ]);
         $service->save($this->awardId, $this->editingAllocationId, [
             'partner_id' => $data['partnerId'],
             'allocated_quantity' => $data['allocatedQuantity'],
-            'effective_from' => $data['effectiveFrom'] ?: null,
-            'effective_until' => $data['effectiveUntil'] ?: null,
             'notes' => $data['notes'] ?: null,
         ], auth('admin')->id());
         $this->resetAllocationForm();
@@ -275,17 +272,22 @@ class AllocationWorkspace extends Component
     {
         $award = DrugBidAward::query()->findOrFail($this->awardId);
 
-        return view('Pharma::livewire.drug-bid-award.allocation-workspace', [
+        $distributionScope = app(DrugBidAwardDistributionScopeService::class)->findForAward($award);
+        $allowedPartnerIds = $distributionScope?->partners->pluck('id')->all() ?? [];
+
+                return view('Pharma::livewire.drug-bid-award.allocation-workspace', [
             'award' => $award,
             'allocations' => $this->filteredQuery()->with(['partner', 'contracts'])->paginate($this->perPage, ['*'], 'page', $this->page),
             'summary' => $summaryService->forAward($award),
             'partners' => Partner::query()
                 ->where('legal_type', 'hospital')
                 ->where('status', 'active')
+                ->whereIn('id', $allowedPartnerIds)
                 ->orderBy('name')
                 ->limit(500)
                 ->get(['id', 'name', 'tax_code']),
             'perPageOptions' => self::PER_PAGE_OPTIONS,
+            'distributionScope' => $distributionScope,
         ]);
     }
 
