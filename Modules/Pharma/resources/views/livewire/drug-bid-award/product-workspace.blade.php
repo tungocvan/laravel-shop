@@ -46,7 +46,23 @@
                 <div class="mt-3 max-h-64 overflow-y-auto rounded-xl border border-slate-200">@forelse ($facilities as $facility)<label wire:key="award-facility-{{ $facility->id }}" class="flex cursor-pointer items-start gap-3 border-b border-slate-100 px-3 py-2.5 last:border-0 hover:bg-slate-50"><input type="checkbox" wire:model.live="selectedFacilityIds" value="{{ $facility->id }}" class="mt-1 h-4 w-4 rounded border-slate-300 text-indigo-600"><span class="min-w-0"><span class="block text-sm font-semibold text-slate-900">{{ $facility->facility_name }}</span><span class="block text-xs text-slate-500">Mã CSKCB: {{ $facility->external_id ?: '—' }}{{ $facility->district_name ? ' · '.$facility->district_name : '' }}</span></span></label>@empty<p class="px-4 py-8 text-center text-sm text-slate-500">{{ $provinceCode ? 'Không có cơ sở KCB nguồn phù hợp.' : 'Chọn Tỉnh/Thành để tải danh sách cơ sở KCB.' }}</p>@endforelse</div>
             </div>
         </div>
-        <div class="mt-4 flex justify-end"><button type="button" wire:click="saveDistributionScope" wire:loading.attr="disabled" wire:target="saveDistributionScope" class="min-h-11 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">Lưu thiết lập phân bổ</button></div>
+        <div class="mt-4 rounded-xl border border-slate-200 bg-white p-4">
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div><p class="text-xs font-bold uppercase tracking-wide text-indigo-600">Bước 3 · Kiểm tra trước khi lưu</p><h3 class="mt-1 text-sm font-bold text-slate-950">Cơ sở KCB đã chọn</h3><p class="mt-1 text-xs text-slate-500">Danh sách này luôn hiển thị đầy đủ các cơ sở đã chọn, không phụ thuộc bộ lọc tìm kiếm ở Bước 2.</p></div>
+                <span class="inline-flex w-fit rounded-full bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-700">{{ $selectedFacilities->count() }} cơ sở</span>
+            </div>
+            <div class="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                @forelse ($selectedFacilities as $facility)
+                    <div wire:key="selected-award-facility-{{ $facility->id }}" class="flex min-w-0 items-start justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+                        <div class="min-w-0"><p class="truncate text-sm font-semibold text-slate-900">{{ $facility->facility_name }}</p><p class="mt-1 text-xs text-slate-500">Mã CSKCB: {{ $facility->external_id ?: '—' }}{{ $facility->district_name ? ' · '.$facility->district_name : '' }}</p></div>
+                        <button type="button" wire:click="removeSelectedFacility({{ $facility->id }})" class="shrink-0 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:border-rose-300 hover:text-rose-700">Bỏ chọn</button>
+                    </div>
+                @empty
+                    <div class="md:col-span-2 xl:col-span-3 rounded-xl border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500">Chưa có cơ sở KCB nào được chọn. Chọn cơ sở ở Bước 2 để kiểm tra tại đây trước khi lưu.</div>
+                @endforelse
+            </div>
+            <div class="mt-4 flex justify-end"><button type="button" wire:click="saveDistributionScope" wire:loading.attr="disabled" wire:target="saveDistributionScope" @disabled($selectedFacilities->isEmpty()) class="min-h-11 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">Lưu thiết lập phân bổ</button></div>
+        </div>
     </section>
 
     <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
