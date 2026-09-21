@@ -235,7 +235,7 @@ class PharmaSupplierTrackingWorkspaceTest extends TestCase
         $dashboard = file_get_contents(base_path('Modules/Pharma/resources/views/pages/dashboard.blade.php'));
 
         $this->assertStringContainsString("public string $medicineSearch = '';", $form);
-        $this->assertStringContainsString("public array $medicineOptions = [];", $form);
+        $this->assertStringContainsString("public array \\$medicineOptions = [];", $form);
         $this->assertStringContainsString("#[On('medicine-search')]", $form);
         $this->assertStringContainsString('updatedMedicineId($value)', $form);
         $this->assertStringContainsString('$this->form[\'unit\'] = (string) ($medicine?->unit ?? \'\');', $form);
