@@ -42,7 +42,8 @@ class PharmaSupplierTrackingWorkspaceTest extends TestCase
         $this->assertStringContainsString('medicineCandidates(', $service);
         $this->assertStringContainsString('min(25, $limit)', $service);
         $this->assertStringContainsString("->orWhere('active_ingredients', 'like'", $service);
-        $this->assertStringContainsString('public string $medicineSearch', $form);
+        $this->assertStringContainsString('public ?int $medicine_id = null;', $form);
+        $this->assertStringContainsString('Medicine::query()->whereKey((int) $medicineId)->exists()', $form);
         $this->assertStringNotContainsString('medicinesForSelect()', $form);
     }
 
