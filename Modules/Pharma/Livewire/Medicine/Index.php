@@ -29,6 +29,8 @@ class Index extends Component
 
     public string $filterHssp = '';
 
+    public string $filterSupplier = '';
+
     public array $selectedIds = [];
 
     public bool $selectPage = false;
@@ -73,6 +75,11 @@ class Index extends Component
         $this->resetWorkspacePage();
     }
 
+    public function updatedFilterSupplier(): void
+    {
+        $this->resetWorkspacePage();
+    }
+
     public function updatedFilterProfileStatus(): void
     {
         $this->filterProfileStatus = array_key_exists($this->filterProfileStatus, $this->profileStatusOptions())
@@ -105,12 +112,13 @@ class Index extends Component
             || $this->filterSpecialControl !== ''
             || $this->filterProfileStatus !== ''
             || $this->filterHssp !== ''
+            || $this->filterSupplier !== ''
             || $this->perPage !== 10;
     }
 
     public function resetFilters(): void
     {
-        $this->reset(['filterCircularGroup', 'filterSpecialControl', 'filterProfileStatus', 'filterHssp']);
+        $this->reset(['filterCircularGroup', 'filterSpecialControl', 'filterProfileStatus', 'filterHssp', 'filterSupplier']);
         $this->perPage = 10;
         $this->page = 1;
         $this->clearSelection();
@@ -236,6 +244,7 @@ class Index extends Component
             'circularGroups' => $medicineService->getUniqueCircularGroups(),
             'perPageOptions' => self::PER_PAGE_OPTIONS,
             'profileStatusOptions' => $this->profileStatusOptions(),
+            'supplierOptions' => $medicineService->getSupplierOptions(),
         ]);
     }
 
@@ -249,6 +258,7 @@ class Index extends Component
             $this->filterSpecialControl,
             $this->filterProfileStatus ?: null,
             $this->filterHssp ?: null,
+            $this->filterSupplier !== '' ? (int) $this->filterSupplier : null,
         );
     }
 
