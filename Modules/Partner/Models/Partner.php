@@ -4,6 +4,8 @@ namespace Modules\Partner\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Modules\Pharma\Models\SupplierTracking;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Partner extends Model
 {
@@ -78,5 +80,9 @@ class Partner extends Model
         return collect($this->partner_types ?? [])
             ->map(fn ($type) => self::PARTNER_TYPES[$type] ?? $type)
             ->implode(', ');
+    }
+    public function supplierTrackings(): HasMany
+    {
+        return $this->hasMany(SupplierTracking::class, 'partner_id');
     }
 }
