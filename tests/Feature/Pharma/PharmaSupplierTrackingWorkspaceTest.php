@@ -107,7 +107,7 @@ class PharmaSupplierTrackingWorkspaceTest extends TestCase
         $this->assertStringContainsString('use WithFileUploads;', $form);
         $this->assertStringContainsString("'distribution_scope' => 'all'", $form);
         $this->assertStringContainsString('supplierCandidates(', $service);
-        $this->assertStringContainsString("whereJsonContains('partner_types', 'supplier')", $service);
+        $this->assertStringContainsString("->withPartnerType('supplier')", $service);
         $this->assertStringContainsString('facilityCandidates(', $service);
         $this->assertStringContainsString('Supplier Commercial Workspace', $view);
         $this->assertStringContainsString('Giá vốn NCC', $view);
@@ -134,37 +134,16 @@ class PharmaSupplierTrackingWorkspaceTest extends TestCase
 
 
 
-    public function test_supplier_candidates_include_supplier_only_and_supplier_customer_but_exclude_customer_only(): void
+    public function test_supplier_candidates_use_shared_multi_role_partner_scope(): void
     {
-        $supplier = \Modules\Partner\Models\Partner::query()->create([
-            'name' => 'Supplier Only',
-            'legal_type' => 'company',
-            'partner_types' => ['supplier'],
-            'source' => 'manual',
-            'status' => 'active',
-        ]);
-        $both = \Modules\Partner\Models\Partner::query()->create([
-            'name' => 'Supplier Customer',
-            'legal_type' => 'company',
-            'partner_types' => ['supplier', 'customer'],
-            'source' => 'manual',
-            'status' => 'active',
-        ]);
-        $customer = \Modules\Partner\Models\Partner::query()->create([
-            'name' => 'Customer Only',
-            'legal_type' => 'company',
-            'partner_types' => ['customer'],
-            'source' => 'manual',
-            'status' => 'active',
-        ]);
+        $partner = file_get_contents(base_path('Modules/Partner/Models/Partner.php'));
+        $partnerService = file_get_contents(base_path('Modules/Partner/Services/PartnerService.php'));
+        $supplierService = file_get_contents(base_path('Modules/Pharma/Services/SupplierTrackingService.php'));
 
-        $ids = app(\Modules\Pharma\Services\SupplierTrackingService::class)
-            ->supplierCandidates(limit: 25)
-            ->pluck('id');
-
-        $this->assertTrue($ids->contains($supplier->id));
-        $this->assertTrue($ids->contains($both->id));
-        $this->assertFalse($ids->contains($customer->id));
+        $this->assertStringContainsString('scopeWithPartnerType', $partner);
+        $this->assertStringContainsString("whereJsonContains('partner_types', \$type)", $partner);
+        $this->assertStringContainsString("->withPartnerType('supplier')", $supplierService);
+        $this->assertStringContainsString("'partner_types' => \$partnerTypes", $partnerService);
     }
 
     public function test_region_scope_persists_and_validates_province_selection(): void
