@@ -85,6 +85,25 @@ class SupplierTrackingService
         return $candidates->unique('id')->values();
     }
 
+    public function supplierFilterCandidates(?int $selectedId = null): Collection
+    {
+        $ids = SupplierTracking::query()->whereNotNull('partner_id')->distinct()->pluck('partner_id');
+
+        $items = Partner::query()
+            ->whereIn('id', $ids)
+            ->orderBy('name')
+            ->get(['id', 'name', 'tax_code']);
+
+        if ($selectedId && ! $items->contains('id', $selectedId)) {
+            $selected = Partner::query()->find($selectedId, ['id', 'name', 'tax_code']);
+            if ($selected) {
+                $items->prepend($selected);
+            }
+        }
+
+        return $items->unique('id')->values();
+    }
+
     public function facilityCandidates(string $search = '', array $selectedIds = [], int $limit = 25): Collection
     {
         $search = trim($search);
@@ -201,6 +220,7 @@ class SupplierTrackingService
                         ->orWhere('registration_number', 'like', "%{$search}%"));
             }))
             ->when($filters['status'] ?? null, fn (Builder $query, string $status) => $query->where('status', $status))
+            ->when($filters['partner_id'] ?? null, fn (Builder $query, $partnerId) => $query->where('partner_id', (int) $partnerId))
             ->when($filters['working_date_from'] ?? null, fn (Builder $query, string $date) => $query->whereDate('working_date', '>=', $date))
             ->when($filters['working_date_to'] ?? null, fn (Builder $query, string $date) => $query->whereDate('working_date', '<=', $date));
     }
