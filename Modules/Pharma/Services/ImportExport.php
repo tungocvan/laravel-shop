@@ -24,7 +24,7 @@ class ImportExport extends BaseImportExportService
 
     protected array $rules = [
         'medicine_id' => ['required', 'integer', 'exists:pharma_medicines,id'],
-        'working_date' => ['required', 'date'],
+        'working_date' => ['nullable', 'date'],
         'partner_id' => ['required', 'integer', 'exists:partners,id'],
         'supplier_name' => ['required', 'string', 'max:255'],
         'supplier_name_normalized' => ['required', 'string', 'max:255'],
@@ -203,6 +203,8 @@ class ImportExport extends BaseImportExportService
                     ->where('name', 'like', "%{$search}%")
                     ->orWhere('registration_number', 'like', "%{$search}%"))))
             ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
+            ->when($filters['partner_id'] ?? null, fn ($query, $partnerId) => $query->where('partner_id', (int) $partnerId))
+            ->when($filters['medicine_id'] ?? null, fn ($query, $medicineId) => $query->where('medicine_id', (int) $medicineId))
             ->when($filters['working_date_from'] ?? null, fn ($query, $date) => $query->whereDate('working_date', '>=', $date))
             ->when($filters['working_date_to'] ?? null, fn ($query, $date) => $query->whereDate('working_date', '<=', $date))
             ->latest('id')
