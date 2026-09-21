@@ -24,6 +24,7 @@ class MedicineService
         ?string $profileStatus = null,
         ?string $hsspStatus = null,
         ?int $supplierId = null,
+        ?string $deletable = null,
     ): LengthAwarePaginator {
         return Medicine::query()
             ->with([
@@ -64,6 +65,8 @@ class MedicineService
             ->when($hsspStatus === 'with', fn ($query) => $query->whereHas('currentProfile'))
             ->when($hsspStatus === 'without', fn ($query) => $query->whereDoesntHave('currentProfile'))
             ->when($supplierId, fn ($query, $value) => $query->whereHas('supplierTrackings', fn ($tracking) => $tracking->where('partner_id', $value)))
+            ->when($deletable === 'yes', fn ($query) => $query->whereDoesntHave('profiles')->whereDoesntHave('drugBidAwards')->whereDoesntHave('supplierTrackings'))
+            ->when($deletable === 'no', fn ($query) => $query->where(fn ($nested) => $nested->whereHas('profiles')->orWhereHas('drugBidAwards')->orWhereHas('supplierTrackings')))
             ->latest()
             ->paginate($perPage, ['*'], 'page', $page);
     }
@@ -130,8 +133,8 @@ class MedicineService
             // Variants, packages, aliases and source provenance are owned catalog data
             // and are configured to cascade with the medicine. Only external/business
             // references must protect the canonical record from hard deletion.
-            if ($medicine->profiles()->exists() || $medicine->drugBidAwards()->exists()) {
-                throw new LogicException('Không thể xóa thuốc vì đã có HSSP hoặc dữ liệu kết quả lựa chọn nhà thầu tham chiếu.');
+            if ($medicine->profiles()->exists() || $medicine->drugBidAwards()->exists() || $medicine->supplierTrackings()->exists()) {
+                throw new LogicException('Không thể xóa thuốc vì đã có HSSP, dữ liệu kết quả lựa chọn nhà thầu hoặc điều kiện thương mại nhà cung cấp tham chiếu.');
             }
 
             return (bool) $medicine->delete();
