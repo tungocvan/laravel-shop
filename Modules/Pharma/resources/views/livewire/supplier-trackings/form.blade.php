@@ -17,12 +17,17 @@
                 <div class="grid gap-4 md:grid-cols-2">
                     <div class="md:col-span-2">
                         <label class="text-sm font-semibold text-slate-700">Nhà cung cấp *</label>
-                        <input type="search" wire:model.live.debounce.300ms="supplierSearch" placeholder="Tìm theo tên nhà cung cấp hoặc mã số thuế..." class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5">
-                        <select wire:model="partner_id" class="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5">
-                            <option value="">-- Chọn nhà cung cấp --</option>
+                        <x-select-search
+                            id="supplier-partner-id"
+                            wire:model="partner_id"
+                            options-wire="supplierOptions"
+                            search-event="supplier-search"
+                            placeholder="-- Chọn hoặc tìm nhà cung cấp --"
+                        >
+                            <option value="">-- Chọn hoặc tìm nhà cung cấp --</option>
                             @foreach($suppliers as $supplier)<option value="{{ $supplier->id }}">{{ $supplier->name }}{{ $supplier->tax_code ? ' · MST '.$supplier->tax_code : '' }}</option>@endforeach
-                        </select>
-                        <p class="mt-1 text-xs text-slate-500">Hiển thị Partner đang hoạt động có vai trò Nhà cung cấp, bao gồm đối tác vừa là Nhà cung cấp vừa là Khách hàng.</p>
+                        </x-select-search>
+                        <p class="mt-1 text-xs text-slate-500">Nhấn vào ô và nhập tên hoặc MST để tìm Nhà cung cấp, bao gồm đối tác vừa là Nhà cung cấp vừa là Khách hàng.</p>
                         @error('partner_id')<p class="mt-1 text-sm text-rose-600">{{ $message }}</p>@enderror
                     </div>
                     <div><label class="text-sm font-semibold text-slate-700">Hiệu lực từ</label><input type="date" wire:model="form.start_date" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5"></div>
