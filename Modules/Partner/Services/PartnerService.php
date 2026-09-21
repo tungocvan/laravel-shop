@@ -74,11 +74,35 @@ class PartnerService
 
     private function normalizeData(array $data): array
     {
+        $partnerTypes = collect($data['partner_types'] ?? [])
+            ->flatMap(function ($value): array {
+                if (is_array($value)) {
+                    return $value;
+                }
+
+                $value = trim((string) $value);
+                if ($value === '') {
+                    return [];
+                }
+
+                $decoded = json_decode($value, true);
+                if (is_array($decoded)) {
+                    return $decoded;
+                }
+
+                return preg_split('/[,;|]+/', $value) ?: [$value];
+            })
+            ->map(fn ($type) => strtolower(trim((string) $type)))
+            ->filter(fn ($type) => array_key_exists($type, Partner::PARTNER_TYPES))
+            ->unique()
+            ->values()
+            ->all();
+
         return [
             'tax_code' => $data['tax_code'] ?: null,
             'name' => trim($data['name']),
             'legal_type' => $data['legal_type'],
-            'partner_types' => array_values($data['partner_types'] ?? []),
+            'partner_types' => $partnerTypes,
             'phone' => $data['phone'] ?: null,
             'email' => $data['email'] ?: null,
             'contact_person' => $data['contact_person'] ?: null,
