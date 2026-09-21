@@ -7,6 +7,7 @@ use Illuminate\Validation\ValidationException;
 use Modules\Partner\Models\Partner;
 use Modules\Pharma\Models\DrugBidAward;
 use Modules\Pharma\Models\DrugBidAwardDistributionScope;
+use Modules\Pharma\Models\OfficialSourceFacility;
 
 class DrugBidAwardDistributionScopeService
 {
@@ -31,18 +32,24 @@ class DrugBidAwardDistributionScopeService
             $partnerIds = array_values(array_unique(array_map('intval', $data['partner_ids'] ?? [])));
             $provinceCode = trim((string) $data['province_code']);
 
+            $officialFacilityIds = OfficialSourceFacility::query()
+                ->where('is_active', true)
+                ->where('province_name', $provinceCode)
+                ->whereNotNull('external_id')->where('external_id', '!=', '')
+                ->pluck('external_id');
+
             $validPartners = Partner::query()
                 ->whereIn('id', $partnerIds)
                 ->where('legal_type', 'hospital')
                 ->where('status', 'active')
-                ->where('province_code', $provinceCode)
+                ->whereHas('sourceReferences', fn ($query) => $query->whereIn('external_id', $officialFacilityIds))
                 ->pluck('id')
                 ->map(fn ($id) => (int) $id)
                 ->all();
 
             if (count($validPartners) !== count($partnerIds)) {
                 throw ValidationException::withMessages([
-                    'selectedPartnerIds' => 'Chỉ được chọn bệnh viện đang hoạt động thuộc Tỉnh/Thành đã chọn.',
+                    'selectedPartnerIds' => 'Chỉ được chọn bệnh viện đang hoạt động đã liên kết với Kho dữ liệu cơ sở KCB nguồn thuộc Tỉnh/Thành đã chọn.',
                 ]);
             }
 
