@@ -13,7 +13,7 @@
             id: '{{ $id }}',
             model: '{{ $attributes->wire('model')->value() }}',
             placeholder: '{{ $placeholder }}',
-            optionsWire: '{{ $attributes->get('options-wire') }}',
+            optionsWire: @js($attributes->get('options-wire')),
             searchEvent: @js($searchEvent)
         })"
     >
@@ -60,13 +60,12 @@ function selectSearchComponent(config) {
             // ✅ CHỈ watch khi có options-wire
             if (config.optionsWire) {
                 this.$watch('$wire.' + config.optionsWire, (newOptions) => {
-
                     if (!this.instance) return;
 
+                    const selected = this.instance.getValue();
                     this.instance.clearOptions();
 
                     if (newOptions && Object.keys(newOptions).length > 0) {
-
                         const formatted = Object.values(newOptions).map(item => ({
                             value: item.id ?? item.value ?? item.ward_name ?? item.name ?? item,
                             text: item.label ?? item.ward_name ?? item.name ?? item
@@ -75,6 +74,9 @@ function selectSearchComponent(config) {
                         this.instance.addOptions(formatted);
                     }
 
+                    if (selected) {
+                        this.instance.setValue(selected, true);
+                    }
                     this.instance.refreshOptions(false);
                 });
             }
