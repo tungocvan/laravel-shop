@@ -113,6 +113,9 @@ class PharmaSupplierTrackingWorkspaceTest extends TestCase
         $this->assertStringContainsString('options-wire="supplierOptions"', $view);
         $this->assertStringContainsString('Chọn hoặc tìm nhà cung cấp', $view);
         $this->assertStringContainsString("#[On('supplier-search')]", $form);
+        $selectSearch = file_get_contents(base_path('resources/views/components/select-search.blade.php'));
+        $this->assertStringContainsString("optionsWire: @js(\$attributes->get('options-wire'))", $selectSearch);
+        $this->assertStringNotContainsString("optionsWire: '{{ \$attributes->get('options-wire') }}'", $selectSearch);
         $this->assertStringContainsString("->withPartnerType('supplier')", $service);
         $this->assertStringContainsString('facilityCandidates(', $service);
         $this->assertStringContainsString('Supplier Commercial Workspace', $view);
