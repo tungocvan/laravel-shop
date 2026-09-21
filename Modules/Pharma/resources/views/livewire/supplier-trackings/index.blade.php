@@ -63,36 +63,39 @@
     <div class="rounded-2xl border border-gray-200 bg-white shadow-sm">
         <div class="p-5">
             <div class="grid gap-4 lg:grid-cols-12">
-                <div class="lg:col-span-4">
+                <div class="lg:col-span-3">
                     <label for="supplier-search" class="text-sm font-medium text-gray-700">Tìm kiếm</label>
-                    <input id="supplier-search" type="text" wire:model.live.debounce.400ms="search"
-                        placeholder="Tên thuốc, SĐK, NCC, đại diện, khu vực..."
-                        class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
+                    <input id="supplier-search" type="text" wire:model.live.debounce.400ms="search" placeholder="Tên thuốc, SĐK, NCC, đại diện, khu vực..." class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm shadow-sm">
+                </div>
+                <div class="lg:col-span-3">
+                    <label for="supplier-filter" class="text-sm font-medium text-gray-700">Nhà cung cấp</label>
+                    <select id="supplier-filter" wire:model.live="supplierId" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm shadow-sm">
+                        <option value="">Tất cả nhà cung cấp</option>
+                        @foreach($supplierFilters as $supplier)
+                            <option value="{{ $supplier->id }}">{{ $supplier->name }}{{ $supplier->tax_code ? ' · MST '.$supplier->tax_code : '' }}</option>
+                        @endforeach
+                    </select>
                 </div>
                 <div class="lg:col-span-2">
                     <label for="supplier-status" class="text-sm font-medium text-gray-700">Trạng thái</label>
-                    <select id="supplier-status" wire:model.live="status" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
-                        <option value="">Tất cả</option>
-                        @foreach ($statuses as $value => $label)
-                            <option value="{{ $value }}">{{ $label }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="lg:col-span-2">
-                    <label for="supplier-date-from" class="text-sm font-medium text-gray-700">Từ ngày</label>
-                    <input id="supplier-date-from" type="date" wire:model.live="workingDateFrom" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
-                </div>
-                <div class="lg:col-span-2">
-                    <label for="supplier-date-to" class="text-sm font-medium text-gray-700">Đến ngày</label>
-                    <input id="supplier-date-to" type="date" wire:model.live="workingDateTo" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
+                    <select id="supplier-status" wire:model.live="status" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm shadow-sm"><option value="">Tất cả</option>@foreach ($statuses as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select>
                 </div>
                 <div class="lg:col-span-2">
                     <label for="supplier-per-page" class="text-sm font-medium text-gray-700">Hiển thị</label>
-                    <select id="supplier-per-page" wire:model.live="perPage" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
-                        @foreach ($perPageOptions as $option)
-                            <option value="{{ $option }}">{{ $option }} dòng</option>
-                        @endforeach
-                    </select>
+                    <select id="supplier-per-page" wire:model.live="perPage" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm shadow-sm">@foreach ($perPageOptions as $option)<option value="{{ $option }}">{{ $option }} dòng</option>@endforeach</select>
+                </div>
+                <div class="lg:col-span-12">
+                    <div class="flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+                        <div>
+                            <label for="supplier-date-from" class="text-sm font-medium text-gray-700">Từ ngày</label>
+                            <input id="supplier-date-from" type="date" wire:model="workingDateFromDraft" class="mt-1 min-h-10 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm">
+                        </div>
+                        <div>
+                            <label for="supplier-date-to" class="text-sm font-medium text-gray-700">Đến ngày</label>
+                            <input id="supplier-date-to" type="date" wire:model="workingDateToDraft" class="mt-1 min-h-10 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm">
+                        </div>
+                        <button type="button" wire:click="applyDateFilters" class="min-h-10 rounded-xl bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700">Áp dụng</button>
+                    </div>
                 </div>
             </div>
         </div>
