@@ -58,4 +58,27 @@ class PharmaDrugAwardCommercialPolicyContractTest extends TestCase
         $this->assertStringNotContainsString('sharePercentage', $component);
         $this->assertStringNotContainsString('activationIssues', $component);
     }
+
+    public function test_workspace_supports_select_all_bulk_management_winning_price_and_excel_round_trip(): void
+    {
+        $component = file_get_contents(base_path('Modules/Pharma/Livewire/DrugBidAward/CommercialPolicyWorkspace.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/drug-bid-award/commercial-policy-workspace.blade.php'));
+        $service = file_get_contents(base_path('Modules/Pharma/Services/DrugBidAwardCommercialPolicyService.php'));
+
+        $this->assertStringContainsString('selectAllPolicies', $component);
+        $this->assertStringContainsString('selectAllManagement', $component);
+        $this->assertStringContainsString('assignSelectedManagers', $component);
+        $this->assertStringContainsString('removeSelectedManagers', $component);
+        $this->assertStringContainsString('exportExcel', $component);
+        $this->assertStringContainsString('importExcel', $component);
+        $this->assertStringContainsString('Excel::download', $component);
+        $this->assertStringContainsString('Excel::toArray', $component);
+        $this->assertStringContainsString('Đơn giá trúng', $view);
+        $this->assertStringContainsString('Export Excel', $view);
+        $this->assertStringContainsString('Import Excel', $view);
+        $this->assertStringContainsString('Gán User cho đã chọn', $view);
+        $this->assertStringContainsString('Gỡ User đã chọn', $view);
+        $this->assertStringContainsString('assignManagers', $service);
+        $this->assertStringContainsString('removeManagers', $service);
+    }
 }
