@@ -140,6 +140,50 @@ class MedicineService
         });
     }
 
+    public function verifyMaster(int $id): Medicine
+    {
+        return DB::transaction(function () use ($id): Medicine {
+            $medicine = $this->findOrFail($id);
+
+            $required = [
+                'registration_number' => 'Giấy phép lưu hành',
+                'active_ingredients' => 'Tên hoạt chất',
+                'concentration' => 'Nồng độ / Hàm lượng',
+                'dosage_form' => 'Dạng bào chế',
+                'route_of_administration' => 'Đường dùng',
+                'unit' => 'Đơn vị tính',
+                'packaging_specification' => 'Quy cách đóng gói',
+                'shelf_life' => 'Hạn dùng',
+                'registered_company' => 'Cơ sở đăng ký',
+                'manufacturing_company' => 'Cơ sở sản xuất',
+                'manufacturing_country' => 'Nước sản xuất',
+            ];
+
+            $missing = collect($required)
+                ->filter(fn (string $label, string $field) => blank($medicine->getAttribute($field)))
+                ->values()
+                ->all();
+
+            if ($missing !== []) {
+                throw new LogicException(
+                    'Chưa thể xác minh Medicine Master. Vui lòng bổ sung: '.implode(', ', $missing).'.'
+                );
+            }
+
+            $identityKey = $this->identityResolver->canonicalMedicineIdentity($medicine->toArray());
+            $this->guardCanonicalIdentityCollision($medicine, $identityKey);
+
+            $medicine->forceFill([
+                'canonical_identity_key' => $identityKey,
+                'identity_status' => Medicine::IDENTITY_VERIFIED_REGISTRATION,
+                'profile_status' => Medicine::PROFILE_VERIFIED,
+                'last_verified_at' => now(),
+            ])->save();
+
+            return $medicine->refresh();
+        });
+    }
+
     public function delete(int $id): bool
     {
         return DB::transaction(function () use ($id): bool {
