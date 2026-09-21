@@ -16,6 +16,21 @@
                 <div class="mb-4"><h2 class="text-base font-bold text-slate-950">1. Nhà cung cấp & hiệu lực</h2><p class="mt-1 text-sm text-slate-500">Nhà cung cấp chỉ lấy từ Partner Master có loại Nhà cung cấp.</p></div>
                 <div class="grid gap-4 md:grid-cols-2">
                     <div class="md:col-span-2">
+                        <label class="text-sm font-semibold text-slate-700">Sản phẩm *</label>
+                        <x-select-search
+                            id="supplier-medicine-id"
+                            wire:model="medicine_id"
+                            options-wire="medicineOptions"
+                            search-event="medicine-search"
+                            placeholder="-- Chọn hoặc tìm sản phẩm --"
+                        >
+                            <option value="">-- Chọn hoặc tìm sản phẩm --</option>
+                            @foreach($medicineOptions as $option)<option value="{{ $option['id'] }}">{{ $option['label'] }}</option>@endforeach
+                        </x-select-search>
+                        <p class="mt-1 text-xs text-slate-500">Tìm theo tên thuốc, SĐK hoặc hoạt chất. Nếu mở từ Danh mục thuốc chuẩn, sản phẩm được chọn sẵn.</p>
+                        @error('medicine_id')<p class="mt-1 text-sm text-rose-600">{{ $message }}</p>@enderror
+                    </div>
+                    <div class="md:col-span-2">
                         <label class="text-sm font-semibold text-slate-700">Nhà cung cấp *</label>
                         <x-select-search
                             id="supplier-partner-id"
@@ -111,7 +126,7 @@
                 @if($medicine)
                     <div class="mt-4 space-y-3 text-sm"><div><p class="text-xs font-semibold uppercase text-slate-500">Tên thuốc</p><p class="mt-1 font-bold text-slate-950">{{ $medicine->name }}</p></div><div class="grid grid-cols-2 gap-3"><div><p class="text-xs text-slate-500">Mã thuốc</p><p class="font-semibold">{{ $medicine->medicine_code ?: '—' }}</p></div><div><p class="text-xs text-slate-500">SĐK</p><p class="font-semibold">{{ $medicine->registration_number ?: '—' }}</p></div></div><div><p class="text-xs text-slate-500">Hoạt chất / hàm lượng</p><p class="font-medium">{{ $medicine->active_ingredients ?: '—' }}{{ $medicine->concentration ? ' · '.$medicine->concentration : '' }}</p></div><div><p class="text-xs text-slate-500">Quy cách</p><p class="font-medium">{{ $medicine->packaging_specification ?: '—' }}</p></div></div>
                 @else
-                    <p class="mt-3 text-sm text-rose-700">Chưa xác định thuốc. Hãy mở workspace từ Danh mục thuốc chuẩn.</p>
+                    <p class="mt-3 text-sm text-rose-700">Chưa chọn sản phẩm. Hãy tìm và chọn Sản phẩm ở biểu mẫu bên trái.</p>
                 @endif
             </section>
 
