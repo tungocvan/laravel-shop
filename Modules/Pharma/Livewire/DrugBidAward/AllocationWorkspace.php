@@ -275,7 +275,7 @@ class AllocationWorkspace extends Component
         $distributionScope = app(DrugBidAwardDistributionScopeService::class)->findForAward($award);
         $allowedPartnerIds = $distributionScope?->partners->pluck('id')->all() ?? [];
 
-                return view('Pharma::livewire.drug-bid-award.allocation-workspace', [
+        return view('Pharma::livewire.drug-bid-award.allocation-workspace', [
             'award' => $award,
             'allocations' => $this->filteredQuery()->with(['partner', 'contracts'])->paginate($this->perPage, ['*'], 'page', $this->page),
             'summary' => $summaryService->forAward($award),
@@ -331,7 +331,7 @@ class AllocationWorkspace extends Component
 
     private function resetAllocationForm(): void
     {
-        $this->reset(['editingAllocationId', 'partnerId', 'allocatedQuantity', 'effectiveFrom', 'effectiveUntil', 'notes']);
+        $this->reset(['editingAllocationId', 'partnerId', 'allocatedQuantity', 'notes']);
         $this->dispatch('filters-reset');
         $this->resetValidation();
     }
