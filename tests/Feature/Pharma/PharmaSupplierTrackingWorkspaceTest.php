@@ -274,4 +274,30 @@ class PharmaSupplierTrackingWorkspaceTest extends TestCase
         $this->assertStringContainsString('File Excel chuẩn round-trip A–U: file xuất ra có thể import lại; các giá trị tính toán do hệ thống quản lý.', $view);
     }
 
+
+    public function test_supplier_round_trip_accepts_vietnamese_and_excel_dates_with_optional_region_columns(): void
+    {
+        $normalizer = new class extends \Modules\Pharma\Services\ImportExport {
+            public function normalizeDateForTest(mixed $value): ?string
+            {
+                return $this->cleanDate($value);
+            }
+        };
+
+        $this->assertSame('2026-09-21', $normalizer->normalizeDateForTest('21/09/2026'));
+        $this->assertSame('2026-10-05', $normalizer->normalizeDateForTest('5/10/2026'));
+        $this->assertSame('2026-09-21', $normalizer->normalizeDateForTest('2026-09-21'));
+        $this->assertSame(
+            '2026-09-21',
+            $normalizer->normalizeDateForTest(new \DateTimeImmutable('2026-09-21 00:00:00'))
+        );
+
+        $service = file_get_contents(base_path('Modules/Pharma/Services/ImportExport.php'));
+        $this->assertStringContainsString("\$regions = \$scope === 'regions'", $service);
+        $this->assertStringContainsString("\$provinces = \$scope === 'regions'", $service);
+        $this->assertStringContainsString("default => 'all'", $service);
+        $this->assertStringContainsString("'distribution_regions' => ['nullable', 'array']", $service);
+        $this->assertStringContainsString("'distribution_provinces' => ['nullable', 'array']", $service);
+    }
+
 }
