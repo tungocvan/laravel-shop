@@ -159,8 +159,8 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringNotContainsString('wire:model="effectiveUntil"', $allocationView);
         $this->assertStringContainsString('Hiệu lực chung', $allocationView);
         $this->assertStringContainsString('Bệnh viện chưa nằm trong phạm vi phân bổ', $allocationService);
-        $this->assertStringContainsString("'effective_from' => $scope->effective_from", $allocationService);
-        $this->assertStringContainsString("'effective_until' => $scope->effective_until", $allocationService);
+        $this->assertStringContainsString("'effective_from' => \$scope->effective_from", $allocationService);
+        $this->assertStringContainsString("'effective_until' => \$scope->effective_until", $allocationService);
     }
 
 }
