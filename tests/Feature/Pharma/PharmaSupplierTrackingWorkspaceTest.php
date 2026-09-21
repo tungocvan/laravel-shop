@@ -112,6 +112,9 @@ class PharmaSupplierTrackingWorkspaceTest extends TestCase
         $this->assertStringContainsString('Supplier Commercial Workspace', $view);
         $this->assertStringContainsString('Giá vốn NCC', $view);
         $this->assertStringContainsString('Theo vùng miền', $view);
+        $this->assertStringContainsString('Tỉnh/Thành thuộc vùng miền', $view);
+        $this->assertStringContainsString('distribution_provinces', $form);
+        $this->assertStringContainsString('distributionProvincesByRegion()', $service);
         $this->assertStringContainsString('Chọn từng cơ sở', $view);
         $this->assertStringContainsString('Hợp đồng hai bên', $view);
         $this->assertStringContainsString('Biên bản / chứng từ cọc', $view);
@@ -126,6 +129,22 @@ class PharmaSupplierTrackingWorkspaceTest extends TestCase
         $this->assertStringContainsString('Điều kiện NCC', $medicineView);
         $this->assertStringContainsString('supplier_tracking_partner_business_key_unique', $migration);
         $this->assertStringContainsString('pharma_supplier_tracking_facilities', $migration);
+    }
+
+
+    public function test_region_scope_persists_and_validates_province_selection(): void
+    {
+        $model = file_get_contents(base_path('Modules/Pharma/Models/SupplierTracking.php'));
+        $form = file_get_contents(base_path('Modules/Pharma/Livewire/SupplierTrackings/Form.php'));
+        $service = file_get_contents(base_path('Modules/Pharma/Services/SupplierTrackingService.php'));
+        $migration = file_get_contents(base_path('Modules/Pharma/database/migrations/2026_09_21_124500_add_distribution_provinces_to_supplier_trackings.php'));
+
+        $this->assertStringContainsString("'distribution_provinces' => 'array'", $model);
+        $this->assertStringContainsString("form.distribution_provinces", $form);
+        $this->assertStringContainsString('Chọn ít nhất một Tỉnh/Thành thuộc vùng miền đã chọn.', $form);
+        $this->assertStringContainsString('Tỉnh/Thành đã chọn không thuộc vùng miền được phép bán.', $form);
+        $this->assertStringContainsString("['distribution_provinces']", $service);
+        $this->assertStringContainsString("json('distribution_provinces')", $migration);
     }
 
     public function test_demo_command_is_local_only_and_has_repeatable_dataset_scope(): void
