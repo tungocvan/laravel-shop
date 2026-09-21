@@ -24,6 +24,8 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringNotContainsString('wire:model.live="selectedIds"', $view);
         $this->assertStringContainsString("name('allocation-detail')", $routes);
         $this->assertStringContainsString("view('Pharma::pages.drug-bid-award.products'", $controller);
+        $productComponent = file_get_contents(base_path('Modules/Pharma/Livewire/DrugBidAward/ProductWorkspace.php'));
+        $this->assertStringContainsString("->when(\$result->bidding_notice_code", $productComponent);
         $this->assertStringContainsString("route('admin.pharma.drug-bid-awards.allocation-detail'", $products);
         $this->assertStringContainsString('Đã phân bổ', $products);
         $this->assertStringContainsString('Còn lại', $products);
