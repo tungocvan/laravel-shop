@@ -158,6 +158,20 @@ class PharmaSupplierTrackingWorkspaceTest extends TestCase
         $this->assertStringContainsString("'partner_types' => \$partnerTypes", $partnerService);
     }
 
+    public function test_minimal_supplier_commercial_record_only_requires_supplier_and_cost(): void
+    {
+        $form = file_get_contents(base_path('Modules/Pharma/Livewire/SupplierTrackings/Form.php'));
+        $service = file_get_contents(base_path('Modules/Pharma/Services/SupplierTrackingService.php'));
+
+        $this->assertStringContainsString("'partner_id' => ['required', 'exists:partners,id']", $form);
+        $this->assertStringContainsString("'form.import_price' => ['required', 'numeric', 'min:0']", $form);
+        $this->assertStringNotContainsString('Chọn ít nhất một vùng được phép bán.', $form);
+        $this->assertStringNotContainsString('Chọn ít nhất một Tỉnh/Thành thuộc vùng miền đã chọn.', $form);
+        $this->assertStringNotContainsString('Chọn ít nhất một cơ sở khám chữa bệnh.', $form);
+        $this->assertStringContainsString("A commercial condition is valid with Supplier + supplier cost only.", $service);
+        $this->assertStringContainsString("\$data['working_date'] = \$data['working_date'] ?: null;", $service);
+    }
+
     public function test_region_scope_persists_and_validates_province_selection(): void
     {
         $model = file_get_contents(base_path('Modules/Pharma/Models/SupplierTracking.php'));
