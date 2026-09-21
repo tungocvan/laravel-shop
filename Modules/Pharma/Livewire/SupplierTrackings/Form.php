@@ -20,6 +20,7 @@ class Form extends Component
     public ?int $partner_id = null;
     public string $facilitySearch = '';
     public string $supplierSearch = '';
+    public array $supplierOptions = [];
     public array $facility_ids = [];
     public $contractFile = null;
     public $depositReceipt = null;
@@ -51,12 +52,26 @@ class Form extends Component
             $this->medicine_id = (int) $medicineId;
             $this->form['unit'] = (string) ($medicine->unit ?? '');
         }
+
+        $this->refreshSupplierOptions($service);
     }
 
     #[On('supplier-search')]
-    public function searchSuppliers(string $search = ''): void
+    public function searchSuppliers(SupplierTrackingService $service, string $search = ''): void
     {
         $this->supplierSearch = trim($search);
+        $this->refreshSupplierOptions($service);
+    }
+
+    private function refreshSupplierOptions(SupplierTrackingService $service): void
+    {
+        $this->supplierOptions = $service->supplierCandidates($this->supplierSearch, $this->partner_id)
+            ->map(fn ($supplier) => [
+                'id' => $supplier->id,
+                'label' => $supplier->name.($supplier->tax_code ? ' · MST '.$supplier->tax_code : ''),
+            ])
+            ->values()
+            ->all();
     }
 
     public function updatedFormDistributionScope(): void
@@ -181,11 +196,6 @@ class Form extends Component
         return view('Pharma::livewire.supplier-trackings.form', [
             'medicine' => $this->medicine_id ? Medicine::query()->find($this->medicine_id) : null,
             'suppliers' => $service->supplierCandidates($this->supplierSearch, $this->partner_id),
-            'supplierOptions' => $service->supplierCandidates($this->supplierSearch, $this->partner_id)
-                ->map(fn ($supplier) => [
-                    'id' => $supplier->id,
-                    'label' => $supplier->name.($supplier->tax_code ? ' · MST '.$supplier->tax_code : ''),
-                ])->values()->all(),
             'facilities' => $service->facilityCandidates($this->facilitySearch, $this->facility_ids),
             'regions' => $service->distributionRegions(),
             'provincesByRegion' => $service->distributionProvincesByRegion(),
