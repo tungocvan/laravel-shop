@@ -133,6 +133,40 @@ class PharmaSupplierTrackingWorkspaceTest extends TestCase
     }
 
 
+
+    public function test_supplier_candidates_include_supplier_only_and_supplier_customer_but_exclude_customer_only(): void
+    {
+        $supplier = \Modules\Partner\Models\Partner::query()->create([
+            'name' => 'Supplier Only',
+            'legal_type' => 'company',
+            'partner_types' => ['supplier'],
+            'source' => 'manual',
+            'status' => 'active',
+        ]);
+        $both = \Modules\Partner\Models\Partner::query()->create([
+            'name' => 'Supplier Customer',
+            'legal_type' => 'company',
+            'partner_types' => ['supplier', 'customer'],
+            'source' => 'manual',
+            'status' => 'active',
+        ]);
+        $customer = \Modules\Partner\Models\Partner::query()->create([
+            'name' => 'Customer Only',
+            'legal_type' => 'company',
+            'partner_types' => ['customer'],
+            'source' => 'manual',
+            'status' => 'active',
+        ]);
+
+        $ids = app(\Modules\Pharma\Services\SupplierTrackingService::class)
+            ->supplierCandidates(limit: 25)
+            ->pluck('id');
+
+        $this->assertTrue($ids->contains($supplier->id));
+        $this->assertTrue($ids->contains($both->id));
+        $this->assertFalse($ids->contains($customer->id));
+    }
+
     public function test_region_scope_persists_and_validates_province_selection(): void
     {
         $model = file_get_contents(base_path('Modules/Pharma/Models/SupplierTracking.php'));
