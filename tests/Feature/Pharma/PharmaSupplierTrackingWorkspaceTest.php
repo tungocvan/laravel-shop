@@ -251,4 +251,27 @@ class PharmaSupplierTrackingWorkspaceTest extends TestCase
         $this->assertStringContainsString('Supplier Commercial', $dashboard);
     }
 
+
+    public function test_supplier_import_export_uses_one_round_trip_schema(): void
+    {
+        $service = file_get_contents(base_path('Modules/Pharma/Services/ImportExport.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/supplier-trackings/index.blade.php'));
+
+        $this->assertStringContainsString("protected array \$uniqueBy = ['medicine_id', 'partner_id', 'working_date'];", $service);
+        $this->assertStringContainsString("'E' => 'supplier_tax_code'", $service);
+        $this->assertStringContainsString("'H' => 'distribution_scope'", $service);
+        $this->assertStringContainsString("'K' => 'facility_codes'", $service);
+        $this->assertStringContainsString("'Mã số thuế NCC' => \$model->partner?->tax_code", $service);
+        $this->assertStringContainsString("'Phạm vi phân phối' => \$model->distribution_scope", $service);
+        $this->assertStringContainsString("'Mã cơ sở' => \$model->facilities->pluck('external_id')", $service);
+        $this->assertStringContainsString('findSupplier(', $service);
+        $this->assertStringContainsString('facilityIdsFromCodes(', $service);
+        $this->assertStringContainsString("\$model->facilities()->sync(\$facilityIds);", $service);
+        $this->assertStringContainsString("->when(\$filters['partner_id']", $service);
+        $this->assertStringContainsString("->when(\$filters['medicine_id']", $service);
+        $this->assertStringNotContainsString("'Chênh lệch hóa đơn' =>", $service);
+        $this->assertStringNotContainsString("'% lợi nhuận thực tế' =>", $service);
+        $this->assertStringContainsString('File Excel chuẩn A–V; các cột công thức được hệ thống tự tính lại.', $view);
+    }
+
 }
