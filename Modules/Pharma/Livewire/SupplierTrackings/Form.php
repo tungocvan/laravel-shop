@@ -62,7 +62,7 @@ class Form extends Component
         }
     }
 
-    public function updatedFormDistributionRegions(): void
+    public function updatedFormDistributionRegions($value = null, $key = null): void
     {
         if ($this->form['distribution_scope'] !== 'regions') {
             return;
