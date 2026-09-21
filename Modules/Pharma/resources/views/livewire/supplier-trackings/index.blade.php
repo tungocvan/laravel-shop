@@ -7,7 +7,7 @@
     $lastPage = $items->lastPage();
     $startPage = max(1, $currentPage - 2);
     $endPage = min($lastPage, $currentPage + 2);
-    $tableColumns = 7 + ($canSelect ? 1 : 0);
+    $tableColumns = 9 + ($canSelect ? 1 : 0);
 @endphp
 
 <div class="w-full space-y-5">
@@ -127,6 +127,8 @@
                         <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Giá mua → bán</th>
                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Cam kết</th>
                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Hợp đồng</th>
+                        <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">Hiệu lực từ</th>
+                        <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">Hiệu lực đến</th>
                         <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">Trạng thái</th>
                         <th class="w-28 px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Thao tác</th>
                     </tr>
@@ -145,6 +147,8 @@
                             <td class="px-4 py-4 text-right align-top tabular-nums"><div class="whitespace-nowrap font-medium text-gray-900">{{ $this->money($item->import_price) }} <span class="px-1 text-gray-300">→</span> {{ $this->money($item->selling_price) }}</div><button type="button" wire:click="toggleFinancialDetails({{ $item->id }})" class="mt-1 text-xs font-semibold text-indigo-600 hover:text-indigo-500">{{ $expandedFinancialId === $item->id ? 'Ẩn chi tiết' : 'Chi tiết giá' }}</button></td>
                             <td class="px-4 py-4 align-top"><div class="whitespace-nowrap font-medium text-gray-800">{{ $item->committed_quantity ? $this->money($item->committed_quantity) : '---' }} {{ $item->unit }}</div><div class="mt-1 whitespace-nowrap text-xs text-gray-500">Cọc: {{ $item->deposit_amount ? $this->money($item->deposit_amount) : '---' }}</div></td>
                             <td class="px-4 py-4 align-top"><div class="whitespace-nowrap text-xs text-gray-500">{{ $item->start_date?->format('d/m/Y') ?? '---' }} → {{ $item->end_date?->format('d/m/Y') ?? '---' }}</div>@if ($item->contract_url)<a href="{{ $item->contract_url }}" target="_blank" rel="noopener noreferrer" class="mt-1 inline-flex whitespace-nowrap text-xs font-semibold text-indigo-600 hover:text-indigo-500">Xem hợp đồng ↗</a>@else<span class="mt-1 block text-xs text-gray-400">Chưa có liên kết</span>@endif</td>
+                            <td class="px-4 py-4 text-center align-top whitespace-nowrap text-sm text-gray-700">{{ $item->start_date?->format('d/m/Y') ?? '—' }}</td>
+                            <td class="px-4 py-4 text-center align-top whitespace-nowrap text-sm text-gray-700">{{ $item->end_date?->format('d/m/Y') ?? '—' }}</td>
                             <td class="px-4 py-4 text-center align-top"><span class="inline-flex whitespace-nowrap rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700">{{ $statuses[$item->status] ?? $item->status }}</span></td>
                             <td class="px-4 py-4 text-right align-top"><div class="flex justify-end gap-3 whitespace-nowrap">@can('edit_pharma')<a href="{{ route('admin.pharma.supplier-trackings.edit', $item->id) }}" class="text-sm font-semibold text-indigo-600 hover:text-indigo-500">Sửa</a>@endcan @can('delete_pharma')<button type="button" wire:click="delete({{ $item->id }})" wire:confirm="Bạn chắc chắn muốn xóa dòng này?" class="text-sm font-semibold text-red-600 hover:text-red-500">Xóa</button>@endcan</div></td>
                         </tr>
