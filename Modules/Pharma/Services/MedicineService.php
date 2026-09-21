@@ -166,7 +166,7 @@ class MedicineService
 
             if ($missing !== []) {
                 throw new LogicException(
-                    'Chưa thể xác minh Medicine Master. Vui lòng bổ sung: '.implode(', ', $missing).'.'
+                    'Chưa thể xác minh Medicine Master. Hãy lưu lại đầy đủ thông tin Nhà sản xuất & thông tin quản lý rồi xác nhận lại.'
                 );
             }
 
