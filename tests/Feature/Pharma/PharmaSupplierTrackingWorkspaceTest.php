@@ -201,4 +201,25 @@ class PharmaSupplierTrackingWorkspaceTest extends TestCase
         $this->assertStringNotContainsString('truncate()', $command);
         $this->assertStringNotContainsString('migrate:fresh', $command);
     }
+    public function test_supplier_tracking_index_has_supplier_filter_and_explicit_date_apply(): void
+    {
+        $component = file_get_contents(base_path('Modules/Pharma/Livewire/SupplierTrackings/Index.php'));
+        $service = file_get_contents(base_path('Modules/Pharma/Services/SupplierTrackingService.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/supplier-trackings/index.blade.php'));
+
+        $this->assertStringContainsString("public string \$supplierId = '';", $component);
+        $this->assertStringContainsString("public string \$workingDateFromDraft = '';", $component);
+        $this->assertStringContainsString('public function applyDateFilters(): void', $component);
+        $this->assertStringContainsString("'partner_id' => \$this->supplierId", $component);
+        $this->assertStringContainsString("supplierFilterCandidates(", $service);
+        $this->assertStringContainsString("where('partner_id', (int) \$partnerId)", $service);
+        $this->assertStringContainsString('wire:model.live="supplierId"', $view);
+        $this->assertStringContainsString('wire:model="workingDateFromDraft"', $view);
+        $this->assertStringContainsString('wire:model="workingDateToDraft"', $view);
+        $this->assertStringContainsString('wire:click="applyDateFilters"', $view);
+        $this->assertStringContainsString('>Áp dụng</button>', $view);
+        $this->assertStringNotContainsString('wire:model.live="workingDateFrom"', $view);
+        $this->assertStringNotContainsString('wire:model.live="workingDateTo"', $view);
+    }
+
 }
