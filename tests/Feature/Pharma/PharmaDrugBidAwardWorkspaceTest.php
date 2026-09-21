@@ -136,4 +136,31 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         }
     }
 
+
+    public function test_award_distribution_scope_is_shared_by_products_and_restricts_hospitals(): void
+    {
+        $migration = file_get_contents(base_path('Modules/Pharma/database/migrations/2026_09_21_160000_create_drug_bid_award_distribution_scopes.php'));
+        $productComponent = file_get_contents(base_path('Modules/Pharma/Livewire/DrugBidAward/ProductWorkspace.php'));
+        $productView = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/drug-bid-award/product-workspace.blade.php'));
+        $allocationComponent = file_get_contents(base_path('Modules/Pharma/Livewire/DrugBidAward/AllocationWorkspace.php'));
+        $allocationView = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/drug-bid-award/allocation-workspace.blade.php'));
+        $allocationService = file_get_contents(base_path('Modules/Pharma/Services/DrugBidAwardAllocationService.php'));
+
+        $this->assertStringContainsString('pharma_drug_bid_award_distribution_scopes', $migration);
+        $this->assertStringContainsString('pharma_drug_bid_award_distribution_scope_partners', $migration);
+        $this->assertStringContainsString('public string $provinceCode', $productComponent);
+        $this->assertStringContainsString('public array $selectedPartnerIds', $productComponent);
+        $this->assertStringContainsString('saveDistributionScope', $productComponent);
+        $this->assertStringContainsString('Phạm vi & hiệu lực phân bổ', $productView);
+        $this->assertStringContainsString('Tỉnh/Thành trúng thầu', $productView);
+        $this->assertStringContainsString('Bệnh viện được phân bổ', $productView);
+        $this->assertStringContainsString("whereIn('id', $allowedPartnerIds)", $allocationComponent);
+        $this->assertStringNotContainsString('wire:model="effectiveFrom"', $allocationView);
+        $this->assertStringNotContainsString('wire:model="effectiveUntil"', $allocationView);
+        $this->assertStringContainsString('Hiệu lực chung', $allocationView);
+        $this->assertStringContainsString('Bệnh viện chưa nằm trong phạm vi phân bổ', $allocationService);
+        $this->assertStringContainsString("'effective_from' => $scope->effective_from", $allocationService);
+        $this->assertStringContainsString("'effective_until' => $scope->effective_until", $allocationService);
+    }
+
 }
