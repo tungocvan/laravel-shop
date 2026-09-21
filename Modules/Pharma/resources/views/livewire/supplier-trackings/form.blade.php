@@ -16,10 +16,6 @@
                 <div class="mb-4"><h2 class="text-base font-bold text-slate-950">1. Nhà cung cấp & hiệu lực</h2><p class="mt-1 text-sm text-slate-500">Nhà cung cấp chỉ lấy từ Partner Master có loại Nhà cung cấp.</p></div>
                 <div class="grid gap-4 md:grid-cols-2">
                     <div class="md:col-span-2">
-                        <label class="text-sm font-semibold text-slate-700">Tìm nhà cung cấp *</label>
-                        <input type="search" wire:model.live.debounce.350ms="supplierSearch" placeholder="Tên nhà cung cấp hoặc mã số thuế..." class="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
-                    </div>
-                    <div class="md:col-span-2">
                         <label class="text-sm font-semibold text-slate-700">Nhà cung cấp *</label>
                         <x-select-search id="supplier-partner-id" wire:model="partner_id" placeholder="-- Chọn nhà cung cấp --">
                             <option value="">-- Chọn nhà cung cấp --</option>
@@ -40,7 +36,7 @@
                     <div><label class="text-sm font-semibold text-slate-700">Giá vốn NCC *</label><input type="number" min="0" step="0.01" wire:model="form.import_price" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5">@error('form.import_price')<p class="mt-1 text-sm text-rose-600">{{ $message }}</p>@enderror</div>
                     <div><label class="text-sm font-semibold text-slate-700">Giá xuất hóa đơn NCC</label><input type="number" min="0" step="0.01" wire:model="form.invoice_price" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5"></div>
                     <div><label class="text-sm font-semibold text-slate-700">Số lượng cam kết</label><input type="number" min="0" step="0.01" wire:model="form.committed_quantity" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5"></div>
-                    <div><label class="text-sm font-semibold text-slate-700">Đơn vị</label><input type="text" wire:model="form.unit" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5"></div>
+                    <div><label class="text-sm font-semibold text-slate-700">Đơn vị tính</label><input type="text" wire:model="form.unit" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5"></div>
                 </div>
             </section>
 
