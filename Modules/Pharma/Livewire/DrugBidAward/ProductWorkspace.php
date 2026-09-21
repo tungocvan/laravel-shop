@@ -41,7 +41,7 @@ class ProductWorkspace extends Component
         $result = DrugBidAward::query()->findOrFail($this->awardId);
         $query = DrugBidAward::query()
             ->with(['medicine', 'allocations' => fn ($query) => $query->where('status', 'active')])
-            ->where('bidding_notice_code', $result->bidding_notice_code)
+            ->when($result->bidding_notice_code, fn ($query, $code) => $query->where('bidding_notice_code', $code), fn ($query) => $query->whereKey($result->id))
             ->when($this->search, fn ($query, $search) => $query->where(fn ($nested) => $nested
                 ->where('medicine_name', 'like', "%{$search}%")
                 ->orWhere('active_ingredient', 'like', "%{$search}%")
