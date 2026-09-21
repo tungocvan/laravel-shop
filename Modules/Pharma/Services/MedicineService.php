@@ -25,6 +25,7 @@ class MedicineService
         ?string $hsspStatus = null,
         ?int $supplierId = null,
         ?string $deletable = null,
+        ?string $registration = null,
     ): LengthAwarePaginator {
         return Medicine::query()
             ->with([
@@ -65,6 +66,8 @@ class MedicineService
             ->when($hsspStatus === 'with', fn ($query) => $query->whereHas('currentProfile'))
             ->when($hsspStatus === 'without', fn ($query) => $query->whereDoesntHave('currentProfile'))
             ->when($supplierId, fn ($query, $value) => $query->whereHas('supplierTrackings', fn ($tracking) => $tracking->where('partner_id', $value)))
+            ->when($registration === 'with', fn ($query) => $query->whereNotNull('registration_number')->where('registration_number', '!=', ''))
+            ->when($registration === 'without', fn ($query) => $query->where(fn ($nested) => $nested->whereNull('registration_number')->orWhere('registration_number', '')))
             ->when($deletable === 'yes', fn ($query) => $query
                 ->whereDoesntHave('profiles')
                 ->whereDoesntHave('supplierTrackings')
