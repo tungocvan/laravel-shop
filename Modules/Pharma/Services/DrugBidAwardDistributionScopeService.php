@@ -22,7 +22,7 @@ class DrugBidAwardDistributionScopeService
     public function findForAward(DrugBidAward $award): ?DrugBidAwardDistributionScope
     {
         return DrugBidAwardDistributionScope::query()
-            ->with('partners')
+            ->with('partners.sourceReferences')
             ->where('result_key', $this->resultKey($award))
             ->first();
     }
