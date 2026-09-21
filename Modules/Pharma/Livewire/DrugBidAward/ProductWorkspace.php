@@ -5,6 +5,7 @@ namespace Modules\Pharma\Livewire\DrugBidAward;
 use Livewire\Component;
 use Modules\Partner\Models\Partner;
 use Modules\Pharma\Models\DrugBidAward;
+use Modules\Pharma\Models\OfficialSourceFacility;
 use Modules\Pharma\Services\DrugBidAwardDistributionScopeService;
 
 class ProductWorkspace extends Component
@@ -89,16 +90,22 @@ class ProductWorkspace extends Component
 
         $products = $query->paginate($this->perPage, ['*'], 'page', max(1, $this->page));
 
-        $provinceOptions = Partner::query()
-            ->where('legal_type', 'hospital')->where('status', 'active')
-            ->whereNotNull('province_code')->where('province_code', '!=', '')
-            ->distinct()->orderBy('province_code')->pluck('province_code');
+        $provinceOptions = OfficialSourceFacility::query()
+            ->where('is_active', true)
+            ->whereNotNull('province_name')->where('province_name', '!=', '')
+            ->distinct()->orderBy('province_name')->pluck('province_name');
 
         $partners = collect();
         if ($this->provinceCode !== '') {
+            $officialFacilityIds = OfficialSourceFacility::query()
+                ->where('is_active', true)
+                ->where('province_name', $this->provinceCode)
+                ->whereNotNull('external_id')->where('external_id', '!=', '')
+                ->pluck('external_id');
+
             $partners = Partner::query()
                 ->where('legal_type', 'hospital')->where('status', 'active')
-                ->where('province_code', $this->provinceCode)
+                ->whereHas('sourceReferences', fn ($query) => $query->whereIn('external_id', $officialFacilityIds))
                 ->orderBy('name')->get(['id', 'name', 'tax_code', 'province_code']);
         }
 
