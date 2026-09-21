@@ -11,7 +11,8 @@ return new class extends Migration
         Schema::create('pharma_drug_bid_award_distribution_scopes', function (Blueprint $table) {
             $table->id();
             $table->string('result_key')->unique();
-            $table->string('bidding_notice_code')->nullable()->index();
+            $table->string('bidding_notice_code')->nullable();
+            $table->index('bidding_notice_code', 'drug_award_scope_tbmt_idx');
             $table->string('province_code', 50)->nullable()->index();
             $table->date('effective_from')->nullable();
             $table->date('effective_until')->nullable();
