@@ -6,19 +6,27 @@ use Tests\TestCase;
 
 class PharmaDrugBidAwardWorkspaceTest extends TestCase
 {
-    public function test_workspace_uses_bounded_page_sizes_and_page_scoped_selection(): void
+    public function test_workspace_groups_by_bidding_notice_and_drills_into_products_before_allocation(): void
     {
         $component = file_get_contents(base_path('Modules/Pharma/Livewire/DrugBidAward/Index.php'));
+        $service = file_get_contents(base_path('Modules/Pharma/Services/DrugBidAwardService.php'));
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/drug-bid-award/index.blade.php'));
+        $routes = file_get_contents(base_path('Modules/Pharma/routes/web.php'));
+        $controller = file_get_contents(base_path('Modules/Pharma/Http/Controllers/DrugBidAwardController.php'));
+        $products = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/drug-bid-award/product-workspace.blade.php'));
 
         $this->assertStringContainsString('private const PER_PAGE_OPTIONS = [10, 25, 50, 100];', $component);
-        $this->assertStringNotContainsString("'All'", $component);
-        $this->assertStringNotContainsString('999999', $component);
-        $this->assertStringContainsString('public bool $selectPage = false;', $component);
-        $this->assertStringContainsString('$this->selectedIds = $value ? $this->currentPageIds() : [];', $component);
-        $this->assertStringContainsString("array_intersect(array_map('strval', \$this->selectedIds), \$pageIds)", $component);
-        $this->assertStringContainsString('@foreach ($perPageOptions as $option)', $view);
-        $this->assertStringNotContainsString('Hiển thị tất cả', $view);
+        $this->assertStringContainsString('getResultGroupsPaginated(', $component);
+        $this->assertStringContainsString("COALESCE(NULLIF(bidding_notice_code, ''), CONCAT('award-', id))", $service);
+        $this->assertStringContainsString("COUNT(*) as product_count", $service);
+        $this->assertStringContainsString('Mỗi dòng là một mã thông báo mời thầu', $view);
+        $this->assertStringContainsString('Xem sản phẩm / Phân bổ', $view);
+        $this->assertStringNotContainsString('wire:model.live="selectedIds"', $view);
+        $this->assertStringContainsString("name('allocation-detail')", $routes);
+        $this->assertStringContainsString("view('Pharma::pages.drug-bid-award.products'", $controller);
+        $this->assertStringContainsString("route('admin.pharma.drug-bid-awards.allocation-detail'", $products);
+        $this->assertStringContainsString('Đã phân bổ', $products);
+        $this->assertStringContainsString('Còn lại', $products);
     }
 
     public function test_workspace_exposes_multi_source_provenance_and_hssp_enrichment(): void
@@ -35,9 +43,7 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString("->with('medicine')", $service);
         $this->assertStringContainsString("->with('sources')", $service);
         $this->assertStringContainsString("orWhereHas('sources'", $service);
-        $this->assertStringContainsString('Bổ sung từ HSSP', $view);
-        $this->assertStringContainsString('lineage', $view);
-        $this->assertStringContainsString('Mua sắm công', $view);
+        $this->assertStringContainsString('Đối soát HSSP', $view);
     }
 
     public function test_kqlcnt_sync_is_explicit_bounded_and_permission_guarded(): void
@@ -105,18 +111,27 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString("where('winning_company_name', 'like'", $service);
     }
 
-    public function test_export_controls_preserve_selected_all_and_intelligence_filters(): void
+    public function test_export_controls_preserve_detail_schema_and_intelligence_filters(): void
     {
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/drug-bid-award/index.blade.php'));
         $export = file_get_contents(base_path('Modules/Pharma/Services/DrugBidAwardImportExport.php'));
 
         $this->assertStringContainsString("\$canEdit = \$admin?->can('edit_pharma') ?? false;", $view);
         $this->assertStringContainsString("'permission' => 'edit_pharma'", $view);
-        $this->assertStringContainsString("'selected_ids' => \$selectedIds", $view);
+        $this->assertStringNotContainsString("'selected_ids' => \$selectedIds", $view);
         $this->assertStringContainsString("'medicine_match_status' => \$filterMatchStatus", $view);
         $this->assertStringContainsString('$selectedIds = $this->selectedIds($filters);', $export);
         $this->assertStringContainsString("when(\$filters['medicine_match_status'] ?? null", $export);
         $this->assertStringContainsString("'Nguồn dữ liệu' => \$model->source_type", $export);
         $this->assertStringNotContainsString('raw_payload', $export);
     }
+
+    public function test_drug_award_pages_use_canonical_full_width_admin_container(): void
+    {
+        foreach (['index.blade.php', 'products.blade.php', 'allocations.blade.php'] as $page) {
+            $view = file_get_contents(base_path('Modules/Pharma/resources/views/pages/drug-bid-award/'.$page));
+            $this->assertStringContainsString("@section('admin_container', 'full')", $view);
+        }
+    }
+
 }
