@@ -136,7 +136,7 @@ class MedicineCanonicalIdentityTest extends TestCase
         ]);
 
         $this->expectException(LogicException::class);
-        $this->expectExceptionMessage('Giấy phép lưu hành');
+        $this->expectExceptionMessage('Hãy lưu lại đầy đủ thông tin Nhà sản xuất & thông tin quản lý rồi xác nhận lại.');
 
         app(MedicineService::class)->verifyMaster($medicine->id);
     }
