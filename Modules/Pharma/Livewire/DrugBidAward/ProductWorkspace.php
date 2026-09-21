@@ -38,6 +38,14 @@ class ProductWorkspace extends Component
 
     public function updatedSearch(): void { $this->page = 1; }
 
+    public function removeSelectedFacility(int $facilityId): void
+    {
+        $this->selectedFacilityIds = array_values(array_filter(
+            $this->selectedFacilityIds,
+            fn ($id) => (int) $id !== $facilityId
+        ));
+    }
+
     public function updatedProvinceCode(): void
     {
         $this->selectedFacilityIds = [];
@@ -109,12 +117,20 @@ class ProductWorkspace extends Component
                 ->get(['id', 'external_id', 'facility_name', 'district_name', 'province_name']);
         }
 
+        $selectedFacilities = $this->selectedFacilityIds === []
+            ? collect()
+            : OfficialSourceFacility::query()
+                ->whereIn('id', array_map('intval', $this->selectedFacilityIds))
+                ->orderBy('facility_name')
+                ->get(['id', 'external_id', 'facility_name', 'district_name', 'province_name']);
+
         return view('Pharma::livewire.drug-bid-award.product-workspace', [
             'result' => $result,
             'products' => $products,
             'perPageOptions' => self::PER_PAGE_OPTIONS,
             'provinceOptions' => $provinceOptions,
             'facilities' => $facilities,
+            'selectedFacilities' => $selectedFacilities,
         ]);
     }
 
