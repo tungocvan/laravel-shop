@@ -2,6 +2,7 @@
     'placeholder' => 'Chọn một mục...',
     'id',
     'options' => [],
+    'searchEvent' => null,
 ])
 
 <div wire:ignore class="w-full">
@@ -12,7 +13,8 @@
             id: '{{ $id }}',
             model: '{{ $attributes->wire('model')->value() }}',
             placeholder: '{{ $placeholder }}',
-            optionsWire: '{{ $attributes->get('options-wire') }}'
+            optionsWire: '{{ $attributes->get('options-wire') }}',
+            searchEvent: @js($searchEvent)
         })"
     >
         {{ $slot }}
@@ -43,6 +45,11 @@ function selectSearchComponent(config) {
                     if (config.model) {
                         @this.set(config.model, value);
                     }
+                },
+                onType: (query) => {
+                    if (config.searchEvent) {
+                        this.$wire.dispatch(config.searchEvent, { search: query || '' });
+                    }
                 }
             });
             window.addEventListener('filters-reset', () => {
@@ -61,8 +68,8 @@ function selectSearchComponent(config) {
                     if (newOptions && Object.keys(newOptions).length > 0) {
 
                         const formatted = Object.values(newOptions).map(item => ({
-                            value: item.ward_name || item.name || item,
-                            text: item.ward_name || item.name || item
+                            value: item.id ?? item.value ?? item.ward_name ?? item.name ?? item,
+                            text: item.label ?? item.ward_name ?? item.name ?? item
                         }));
 
                         this.instance.addOptions(formatted);
