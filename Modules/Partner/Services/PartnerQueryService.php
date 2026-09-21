@@ -28,7 +28,7 @@ class PartnerQueryService
         }
 
         if ($partnerType = $filters['partner_type'] ?? null) {
-            $query->whereJsonContains('partner_types', $partnerType);
+            $query->withPartnerType($partnerType);
         }
 
         return $query;
