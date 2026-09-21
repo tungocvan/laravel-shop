@@ -40,7 +40,7 @@ class MedicineService
                     'pharma_medicine_profiles.is_current',
                 ]),
             ])
-            ->withCount(['sources', 'drugBidAwards', 'variants', 'profiles'])
+            ->withCount(['sources', 'drugBidAwards', 'variants', 'profiles', 'supplierTrackings', 'priceListItems'])
             ->when($search, fn ($query, $value) => $query->where(fn ($nested) => $nested
                 ->where('name', 'like', "%{$value}%")
                 ->orWhere('medicine_code', 'like', "%{$value}%")
@@ -65,8 +65,20 @@ class MedicineService
             ->when($hsspStatus === 'with', fn ($query) => $query->whereHas('currentProfile'))
             ->when($hsspStatus === 'without', fn ($query) => $query->whereDoesntHave('currentProfile'))
             ->when($supplierId, fn ($query, $value) => $query->whereHas('supplierTrackings', fn ($tracking) => $tracking->where('partner_id', $value)))
-            ->when($deletable === 'yes', fn ($query) => $query->whereDoesntHave('profiles')->whereDoesntHave('drugBidAwards')->whereDoesntHave('supplierTrackings'))
-            ->when($deletable === 'no', fn ($query) => $query->where(fn ($nested) => $nested->whereHas('profiles')->orWhereHas('drugBidAwards')->orWhereHas('supplierTrackings')))
+            ->when($deletable === 'yes', fn ($query) => $query
+                ->whereDoesntHave('profiles')
+                ->whereDoesntHave('supplierTrackings')
+                ->whereDoesntHave('priceListItems')
+                ->where(fn ($nested) => $nested
+                    ->where('profile_status', '!=', Medicine::PROFILE_VERIFIED)
+                    ->orWhereDoesntHave('drugBidAwards')))
+            ->when($deletable === 'no', fn ($query) => $query->where(fn ($nested) => $nested
+                ->whereHas('profiles')
+                ->orWhereHas('supplierTrackings')
+                ->orWhereHas('priceListItems')
+                ->orWhere(fn ($verified) => $verified
+                    ->where('profile_status', Medicine::PROFILE_VERIFIED)
+                    ->whereHas('drugBidAwards'))))
             ->latest()
             ->paginate($perPage, ['*'], 'page', $page);
     }
@@ -133,8 +145,19 @@ class MedicineService
             // Variants, packages, aliases and source provenance are owned catalog data
             // and are configured to cascade with the medicine. Only external/business
             // references must protect the canonical record from hard deletion.
-            if ($medicine->profiles()->exists() || $medicine->drugBidAwards()->exists() || $medicine->supplierTrackings()->exists()) {
-                throw new LogicException('Không thể xóa thuốc vì đã có HSSP, dữ liệu kết quả lựa chọn nhà thầu hoặc điều kiện thương mại nhà cung cấp tham chiếu.');
+            if ($medicine->profiles()->exists() || $medicine->supplierTrackings()->exists() || $medicine->priceListItems()->exists()) {
+                throw new LogicException('Không thể xóa thuốc vì đã có HSSP, bảng giá hoặc điều kiện thương mại nhà cung cấp tham chiếu.');
+            }
+
+            if ($medicine->profile_status === Medicine::PROFILE_VERIFIED && $medicine->drugBidAwards()->exists()) {
+                throw new LogicException('Không thể xóa Medicine Master đã xác minh khi còn dữ liệu kết quả lựa chọn nhà thầu tham chiếu.');
+            }
+
+            // Legacy bid links to an unverified master are no longer valid under the
+            // verified-only matching rule. Preserve the award, but detach the stale
+            // canonical pointer before deleting the unverified duplicate.
+            if ($medicine->profile_status !== Medicine::PROFILE_VERIFIED) {
+                $medicine->drugBidAwards()->update(['medicine_id' => null]);
             }
 
             return (bool) $medicine->delete();
