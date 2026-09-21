@@ -20,7 +20,9 @@ class Form extends Component
     public ?int $partner_id = null;
     public string $facilitySearch = '';
     public string $supplierSearch = '';
+    public string $medicineSearch = '';
     public array $supplierOptions = [];
+    public array $medicineOptions = [];
     public array $facility_ids = [];
     public $contractFile = null;
     public $depositReceipt = null;
@@ -54,6 +56,33 @@ class Form extends Component
         }
 
         $this->refreshSupplierOptions($service);
+        $this->refreshMedicineOptions($service);
+    }
+
+    #[On('medicine-search')]
+    public function searchMedicines(SupplierTrackingService $service, string $search = ''): void
+    {
+        $this->medicineSearch = trim($search);
+        $this->refreshMedicineOptions($service);
+    }
+
+    public function updatedMedicineId($value): void
+    {
+        $medicine = $value ? Medicine::query()->find((int) $value) : null;
+        $this->medicine_id = $medicine?->id;
+        $this->form['unit'] = (string) ($medicine?->unit ?? '');
+        $this->refreshMedicineOptions(app(SupplierTrackingService::class));
+    }
+
+    private function refreshMedicineOptions(SupplierTrackingService $service): void
+    {
+        $this->medicineOptions = $service->medicineCandidates($this->medicineSearch, $this->medicine_id)
+            ->map(fn ($medicine) => [
+                'id' => $medicine->id,
+                'label' => $medicine->name.($medicine->registration_number ? ' · SĐK '.$medicine->registration_number : ''),
+            ])
+            ->values()
+            ->all();
     }
 
     #[On('supplier-search')]
