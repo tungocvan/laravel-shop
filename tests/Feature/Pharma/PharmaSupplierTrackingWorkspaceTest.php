@@ -90,6 +90,33 @@ class PharmaSupplierTrackingWorkspaceTest extends TestCase
         $this->assertSame(0.0, $zeroSellingPrice['gross_profit_percent']);
     }
 
+
+    public function test_commercial_workspace_uses_partner_facility_scope_and_document_uploads(): void
+    {
+        $medicineView = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/medicine/index.blade.php'));
+        $form = file_get_contents(base_path('Modules/Pharma/Livewire/SupplierTrackings/Form.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/supplier-trackings/form.blade.php'));
+        $service = file_get_contents(base_path('Modules/Pharma/Services/SupplierTrackingService.php'));
+        $migration = file_get_contents(base_path('Modules/Pharma/database/migrations/2026_09_21_101500_refactor_supplier_trackings_as_commercial_workspace.php'));
+
+        $this->assertStringContainsString('Cập nhật NCC', $medicineView);
+        $this->assertStringContainsString("['medicine_id' => $medicine->id]", $medicineView);
+        $this->assertStringContainsString('public ?int $partner_id = null;', $form);
+        $this->assertStringContainsString('use WithFileUploads;', $form);
+        $this->assertStringContainsString("'distribution_scope' => 'all'", $form);
+        $this->assertStringContainsString('supplierCandidates(', $service);
+        $this->assertStringContainsString("whereJsonContains('partner_types', 'supplier')", $service);
+        $this->assertStringContainsString('facilityCandidates(', $service);
+        $this->assertStringContainsString('Supplier Commercial Workspace', $view);
+        $this->assertStringContainsString('Giá vốn NCC', $view);
+        $this->assertStringContainsString('Theo vùng miền', $view);
+        $this->assertStringContainsString('Chọn từng cơ sở', $view);
+        $this->assertStringContainsString('Hợp đồng hai bên', $view);
+        $this->assertStringContainsString('Biên bản / chứng từ cọc', $view);
+        $this->assertStringContainsString('supplier_tracking_partner_business_key_unique', $migration);
+        $this->assertStringContainsString('pharma_supplier_tracking_facilities', $migration);
+    }
+
     public function test_demo_command_is_local_only_and_has_repeatable_dataset_scope(): void
     {
         $command = file_get_contents(base_path('Modules/Pharma/Console/Commands/ResetSupplierTrackingDemoCommand.php'));
