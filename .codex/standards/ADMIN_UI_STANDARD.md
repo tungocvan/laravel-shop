@@ -617,3 +617,13 @@ Before UI work is complete, verify:
 - Targeted Admin tests pass before merge.
 - Full `tests/Feature/Admin` regression passes before merge.
 - A rendered UI pass has been explicitly completed.
+
+
+## Database migration naming guardrail (MySQL)
+
+- MySQL identifiers (including index, unique constraint, and foreign-key constraint names) are limited to **64 characters**.
+- For long table names, do **not** rely on Laravel's auto-generated index / foreign-key names when the generated identifier can approach this limit.
+- Give indexes and constraints explicit, concise, descriptive names, for example:
+  `$table->index('bidding_notice_code', 'drug_award_scope_tbmt_idx');`
+  and `$table->foreign('partner_id', 'drug_award_scope_partner_partner_fk')...`.
+- Review the final generated identifier length before committing a migration with long module/table/column names.
