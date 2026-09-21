@@ -150,7 +150,7 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString('pharma_drug_bid_award_distribution_scopes', $migration);
         $this->assertStringContainsString('pharma_drug_bid_award_distribution_scope_partners', $migration);
         $this->assertStringContainsString('public string $provinceCode', $productComponent);
-        $this->assertStringContainsString('public array $selectedPartnerIds', $productComponent);
+        $this->assertStringContainsString('public array $selectedFacilityIds', $productComponent);
         $this->assertStringContainsString('saveDistributionScope', $productComponent);
         $this->assertStringContainsString('Phạm vi & hiệu lực phân bổ', $productView);
         $this->assertStringContainsString('Tỉnh/Thành trúng thầu', $productView);
@@ -160,7 +160,9 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString('Kho dữ liệu cơ sở KCB nguồn', $productView);
         $this->assertStringContainsString('OfficialSourceFacility::query()', $distributionScopeService);
         $this->assertStringContainsString("where('province_name', \$provinceCode)", $distributionScopeService);
-        $this->assertStringContainsString("whereHas('sourceReferences'", $distributionScopeService);
+        $this->assertStringContainsString("PartnerSourceReference::query()", $distributionScopeService);
+        $this->assertStringContainsString("'facility_ids' => \$data['selectedFacilityIds']", $productComponent);
+        $this->assertStringContainsString('Cơ sở KCB được phân bổ', $productView);
         $this->assertStringContainsString("whereIn('id', \$allowedPartnerIds)", $allocationComponent);
         $this->assertStringNotContainsString('wire:model="effectiveFrom"', $allocationView);
         $this->assertStringNotContainsString('wire:model="effectiveUntil"', $allocationView);
