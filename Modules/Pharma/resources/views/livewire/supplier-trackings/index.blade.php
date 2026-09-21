@@ -50,12 +50,13 @@
                     'filters' => [
                         'search' => $search,
                         'status' => $status,
+                        'partner_id' => $supplierId,
                         'working_date_from' => $workingDateFrom,
                         'working_date_to' => $workingDateTo,
                         'selected_ids' => $selectedIds,
                     ],
                     'permission' => 'edit_pharma',
-                ], key('supplier-tracking-import-export-' . md5(json_encode([$search, $status, $workingDateFrom, $workingDateTo]))))
+                ], key('supplier-tracking-import-export-' . md5(json_encode([$search, $status, $supplierId, $workingDateFrom, $workingDateTo]))))
             </div>
         @endif
     @endcan
