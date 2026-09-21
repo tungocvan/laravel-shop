@@ -75,8 +75,8 @@ trait NormalizesImportRows
 
             $value = trim((string) $value);
 
-            foreach (['!d/m/Y', '!j/n/Y', '!d-m-Y', '!j-n-Y', '!Y-m-d'] as $format) {
-                $date = Carbon::createFromFormat($format, $value);
+            foreach (['d/m/Y', 'j/n/Y', 'd-m-Y', 'j-n-Y', 'Y-m-d'] as $format) {
+                $date = Carbon::createFromFormat('!'.$format, $value);
                 $errors = Carbon::getLastErrors();
 
                 if ($date !== false && ($errors === false || ($errors['warning_count'] === 0 && $errors['error_count'] === 0))) {
