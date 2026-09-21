@@ -226,4 +226,29 @@ class PharmaSupplierTrackingWorkspaceTest extends TestCase
         $this->assertStringContainsString("@section('admin_container', 'full')", $page);
         $this->assertStringContainsString('<div class="w-full space-y-5">', $view);
     }
+    public function test_supplier_workspace_create_supports_product_picker_validity_columns_and_dashboard_entry(): void
+    {
+        $form = file_get_contents(base_path('Modules/Pharma/Livewire/SupplierTrackings/Form.php'));
+        $formView = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/supplier-trackings/form.blade.php'));
+        $index = file_get_contents(base_path('Modules/Pharma/Livewire/SupplierTrackings/Index.php'));
+        $indexView = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/supplier-trackings/index.blade.php'));
+        $dashboard = file_get_contents(base_path('Modules/Pharma/resources/views/pages/dashboard.blade.php'));
+
+        $this->assertStringContainsString("public string $medicineSearch = '';", $form);
+        $this->assertStringContainsString("public array $medicineOptions = [];", $form);
+        $this->assertStringContainsString("#[On('medicine-search')]", $form);
+        $this->assertStringContainsString('updatedMedicineId($value)', $form);
+        $this->assertStringContainsString('$this->form[\'unit\'] = (string) ($medicine?->unit ?? \'\');', $form);
+        $this->assertStringContainsString('options-wire="medicineOptions"', $formView);
+        $this->assertStringContainsString('search-event="medicine-search"', $formView);
+        $this->assertStringContainsString('Chọn hoặc tìm sản phẩm', $formView);
+        $this->assertStringContainsString("'active' => 'Đang hiệu lực'", $index);
+        $this->assertStringContainsString('Hiệu lực từ', $indexView);
+        $this->assertStringContainsString('Hiệu lực đến', $indexView);
+        $this->assertStringContainsString("$item->start_date?->format('d/m/Y')", $indexView);
+        $this->assertStringContainsString("$item->end_date?->format('d/m/Y')", $indexView);
+        $this->assertStringContainsString("route('admin.pharma.supplier-trackings.index')", $dashboard);
+        $this->assertStringContainsString('Supplier Commercial', $dashboard);
+    }
+
 }
