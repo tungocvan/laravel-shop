@@ -13,6 +13,30 @@
     </div>
 
     @if(session()->has('success'))<div class="bg-emerald-50 border border-emerald-200 text-emerald-700 p-4 rounded-xl text-sm">{{ session('success') }}</div>@endif
+    <div
+        x-data="{ open: false, message: '' }"
+        x-on:medicine-master-saved.window="message = $event.detail.message; open = true"
+        x-on:keydown.escape.window="open = false"
+    >
+        <template x-teleport="body">
+            <div x-show="open" x-cloak class="fixed inset-0 z-[110] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="medicine-save-modal-title">
+                <div class="absolute inset-0 bg-slate-950/40" @click="open = false"></div>
+                <div class="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
+                    <div class="flex items-start gap-4">
+                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-lg font-bold text-emerald-700">✓</div>
+                        <div class="min-w-0">
+                            <h2 id="medicine-save-modal-title" class="text-lg font-semibold text-slate-900">Lưu Medicine Master thành công</h2>
+                            <p class="mt-2 text-sm leading-6 text-slate-600" x-text="message"></p>
+                        </div>
+                    </div>
+                    <div class="mt-6 flex justify-end">
+                        <button type="button" @click="open = false" class="inline-flex min-h-10 items-center justify-center rounded-xl bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Tiếp tục xác minh</button>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </div>
+
     @if(session()->has('error'))<div class="bg-rose-50 border border-rose-200 text-rose-700 p-4 rounded-xl text-sm">{{ session('error') }}</div>@endif
 
     <form wire:submit="save" class="space-y-6">
