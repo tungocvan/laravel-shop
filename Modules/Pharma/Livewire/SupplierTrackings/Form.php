@@ -17,7 +17,6 @@ class Form extends Component
     public ?int $trackingId = null;
     public ?int $medicine_id = null;
     public ?int $partner_id = null;
-    public string $supplierSearch = '';
     public string $facilitySearch = '';
     public array $facility_ids = [];
     public $contractFile = null;
@@ -39,15 +38,15 @@ class Form extends Component
             $tracking = $service->find($this->trackingId);
             $this->medicine_id = $tracking->medicine_id;
             $this->partner_id = $tracking->partner_id;
-            $this->supplierSearch = $tracking->partner?->name ?? $tracking->supplier_name;
             $this->facility_ids = $tracking->facilities->pluck('id')->map(fn ($id) => (string) $id)->all();
             $this->form = array_merge($this->form, $tracking->only(array_keys($this->form)));
             $this->form['working_date'] = optional($tracking->working_date)->format('Y-m-d');
             $this->form['start_date'] = optional($tracking->start_date)->format('Y-m-d');
             $this->form['end_date'] = optional($tracking->end_date)->format('Y-m-d');
             $this->form['distribution_regions'] = $tracking->distribution_regions ?? [];
-        } elseif ($medicineId && Medicine::query()->whereKey((int) $medicineId)->exists()) {
+        } elseif ($medicineId && ($medicine = Medicine::query()->find((int) $medicineId))) {
             $this->medicine_id = (int) $medicineId;
+            $this->form['unit'] = (string) ($medicine->unit ?? '');
         }
     }
 
@@ -132,7 +131,7 @@ class Form extends Component
     {
         return view('Pharma::livewire.supplier-trackings.form', [
             'medicine' => $this->medicine_id ? Medicine::query()->find($this->medicine_id) : null,
-            'suppliers' => $service->supplierCandidates($this->supplierSearch, $this->partner_id),
+            'suppliers' => $service->supplierCandidates('', $this->partner_id),
             'facilities' => $service->facilityCandidates($this->facilitySearch, $this->facility_ids),
             'regions' => $service->distributionRegions(),
         ]);
