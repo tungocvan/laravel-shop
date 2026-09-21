@@ -220,6 +220,16 @@ class SupplierTrackingService
             ? OfficialSourceFacility::query()->where('is_active', true)->whereIn('id', $data['facility_ids'] ?? [])->pluck('id')->all()
             : [];
 
+        // A commercial condition is valid with Supplier + supplier cost only.
+        // Everything else is enrichment and receives safe persistence defaults.
+        $data['working_date'] = $data['working_date'] ?: null;
+        $data['invoice_price'] = $data['invoice_price'] === '' || $data['invoice_price'] === null ? 0 : $data['invoice_price'];
+        $data['committed_quantity'] = $data['committed_quantity'] === '' ? null : ($data['committed_quantity'] ?? null);
+        $data['deposit_amount'] = $data['deposit_amount'] === '' ? null : ($data['deposit_amount'] ?? null);
+        $data['start_date'] = $data['start_date'] ?: null;
+        $data['end_date'] = $data['end_date'] ?: null;
+        $data['status'] = $data['status'] ?: 'active';
+
         $data['supplier_name'] = Str::of((string) ($data['supplier_name'] ?? ''))->trim()->squish()->toString();
         $data['supplier_name_normalized'] = $this->normalizeSupplierName($data['supplier_name']);
 
