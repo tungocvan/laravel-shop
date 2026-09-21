@@ -214,14 +214,21 @@ class SupplierTrackingService
 
     private function guardBusinessKey(array $data, ?int $ignoreId = null): void
     {
-        if (empty($data['working_date']) || empty($data['supplier_name_normalized']) || empty($data['medicine_id'])) {
+        if (empty($data['working_date']) || empty($data['medicine_id'])) {
             return;
         }
 
         $query = SupplierTracking::query()
             ->where('medicine_id', (int) $data['medicine_id'])
-            ->where('supplier_name_normalized', $data['supplier_name_normalized'])
             ->whereDate('working_date', $data['working_date']);
+
+        if (! empty($data['partner_id'])) {
+            $query->where('partner_id', (int) $data['partner_id']);
+        } elseif (! empty($data['supplier_name_normalized'])) {
+            $query->whereNull('partner_id')->where('supplier_name_normalized', $data['supplier_name_normalized']);
+        } else {
+            return;
+        }
 
         if ($ignoreId !== null) {
             $query->where((new SupplierTracking)->getKeyName(), '!=', $ignoreId);
