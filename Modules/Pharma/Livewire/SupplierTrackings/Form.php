@@ -18,6 +18,7 @@ class Form extends Component
     public ?int $medicine_id = null;
     public ?int $partner_id = null;
     public string $facilitySearch = '';
+    public string $supplierSearch = '';
     public array $facility_ids = [];
     public $contractFile = null;
     public $depositReceipt = null;
@@ -49,6 +50,12 @@ class Form extends Component
             $this->medicine_id = (int) $medicineId;
             $this->form['unit'] = (string) ($medicine->unit ?? '');
         }
+    }
+
+    public function updatedSupplierSearch(): void
+    {
+        $this->partner_id = null;
+        $this->resetValidation('partner_id');
     }
 
     public function updatedFormDistributionScope(): void
@@ -172,7 +179,7 @@ class Form extends Component
     {
         return view('Pharma::livewire.supplier-trackings.form', [
             'medicine' => $this->medicine_id ? Medicine::query()->find($this->medicine_id) : null,
-            'suppliers' => $service->supplierCandidates('', $this->partner_id),
+            'suppliers' => $service->supplierCandidates($this->supplierSearch, $this->partner_id),
             'facilities' => $service->facilityCandidates($this->facilitySearch, $this->facility_ids),
             'regions' => $service->distributionRegions(),
             'provincesByRegion' => $service->distributionProvincesByRegion(),
