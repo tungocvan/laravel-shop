@@ -24,6 +24,27 @@
         <div><p class="text-xs font-semibold uppercase text-slate-500">Số sản phẩm</p><p class="mt-1 text-2xl font-bold text-slate-950">{{ number_format($products->total()) }}</p><p class="mt-1 text-xs text-slate-500">Theo mã TBMT hiện tại</p></div>
     </section>
 
+    @if (session()->has('success'))
+        <div role="status" class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('success') }}</div>
+    @endif
+    @if ($errors->any())
+        <div role="alert" class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"><ul class="list-disc pl-5">@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
+    @endif
+
+    <section class="rounded-2xl border border-indigo-200 bg-indigo-50/30 p-5 shadow-sm">
+        <div class="flex flex-col gap-2 xl:flex-row xl:items-start xl:justify-between">
+            <div><p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Thiết lập chung</p><h2 class="mt-1 text-lg font-bold text-slate-950">Phạm vi & hiệu lực phân bổ</h2><p class="mt-1 text-sm text-slate-600">Thiết lập một lần cho toàn bộ sản phẩm thuộc TBMT. Mỗi sản phẩm chỉ được phân bổ cho các bệnh viện đã duyệt bên dưới.</p></div>
+            <div class="rounded-xl bg-white px-4 py-2 text-xs font-medium text-slate-600 shadow-sm">{{ count($selectedPartnerIds) }} bệnh viện được chọn</div>
+        </div>
+        <div class="mt-5 grid gap-4 xl:grid-cols-12">
+            <div class="xl:col-span-3"><label class="block text-sm font-semibold text-slate-700">Tỉnh/Thành trúng thầu *</label><div class="mt-1"><x-select-search id="drug-award-scope-province" wire:model="provinceCode" placeholder="Chọn Tỉnh/Thành..."><option value="">Chọn Tỉnh/Thành</option>@foreach ($provinceOptions as $province)<option value="{{ $province }}">{{ $province }}</option>@endforeach</x-select-search></div><p class="mt-1 text-xs text-slate-500">Theo province_code của Partner Master.</p></div>
+            <div class="xl:col-span-5"><label class="block text-sm font-semibold text-slate-700">Bệnh viện được phân bổ *</label><div class="mt-2 max-h-44 overflow-y-auto rounded-xl border border-slate-200 bg-white p-3">@forelse ($partners as $partner)<label class="flex items-start gap-3 border-b border-slate-100 py-2 last:border-0"><input type="checkbox" wire:model="selectedPartnerIds" value="{{ $partner->id }}" class="mt-1 h-4 w-4 rounded border-slate-300 text-indigo-600"><span><span class="block text-sm font-medium text-slate-900">{{ $partner->name }}</span><span class="text-xs text-slate-500">{{ $partner->tax_code ?: 'Không MST' }}</span></span></label>@empty<p class="py-4 text-center text-sm text-slate-500">{{ $provinceCode ? 'Chưa có bệnh viện hoạt động thuộc Tỉnh/Thành này.' : 'Chọn Tỉnh/Thành trước để lấy danh sách bệnh viện.' }}</p>@endforelse</div></div>
+            <div class="xl:col-span-2"><label class="block text-sm font-semibold text-slate-700">Từ ngày *</label><input type="date" wire:model="effectiveFrom" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"></div>
+            <div class="xl:col-span-2"><label class="block text-sm font-semibold text-slate-700">Đến ngày *</label><input type="date" wire:model="effectiveUntil" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"></div>
+        </div>
+        <div class="mt-4 flex justify-end"><button type="button" wire:click="saveDistributionScope" wire:loading.attr="disabled" wire:target="saveDistributionScope" class="min-h-11 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">Lưu thiết lập phân bổ</button></div>
+    </section>
+
     <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px]">
             <label class="block text-sm font-medium text-slate-700">Tìm sản phẩm<input type="search" wire:model.live.debounce.300ms="search" placeholder="Tên thuốc, hoạt chất, lô, số đăng ký..." class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"></label>
