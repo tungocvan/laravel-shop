@@ -52,6 +52,40 @@
                         @foreach($regions as $code=>$label)<label class="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5"><input type="checkbox" wire:model="form.distribution_regions" value="{{ $code }}" class="rounded border-slate-300 text-indigo-600"><span class="text-sm text-slate-700">{{ $label }}</span></label>@endforeach
                     </div>
                     @error('form.distribution_regions')<p class="mt-2 text-sm text-rose-600">{{ $message }}</p>@enderror
+
+                    @php
+                        $selectedProvinceGroups = collect($form['distribution_regions'])
+                            ->mapWithKeys(fn ($regionCode) => isset($provincesByRegion[$regionCode])
+                                ? [$regionCode => $provincesByRegion[$regionCode]]
+                                : []);
+                    @endphp
+                    @if($selectedProvinceGroups->isNotEmpty())
+                        <div class="mt-5 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                            <div class="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                                <div>
+                                    <h3 class="text-sm font-bold text-slate-900">Tỉnh/Thành thuộc vùng miền *</h3>
+                                    <p class="mt-1 text-xs text-slate-500">Chỉ các Tỉnh/Thành thuộc vùng đã chọn được hiển thị và lưu vào phạm vi bán.</p>
+                                </div>
+                                <span class="text-xs font-semibold text-indigo-600">{{ count($form['distribution_provinces'] ?? []) }} Tỉnh/Thành đã chọn</span>
+                            </div>
+                            <div class="mt-4 space-y-4">
+                                @foreach($selectedProvinceGroups as $regionCode => $provinceOptions)
+                                    <div>
+                                        <p class="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">{{ $regions[$regionCode] ?? $regionCode }}</p>
+                                        <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                                            @foreach($provinceOptions as $provinceCode => $provinceName)
+                                                <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5">
+                                                    <input type="checkbox" wire:model="form.distribution_provinces" value="{{ $provinceCode }}" class="rounded border-slate-300 text-indigo-600">
+                                                    <span class="text-sm text-slate-700">{{ $provinceName }}</span>
+                                                </label>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+                    @error('form.distribution_provinces')<p class="mt-2 text-sm text-rose-600">{{ $message }}</p>@enderror
                 @elseif($form['distribution_scope'] === 'facilities')
                     <div class="mt-4">
                         <input type="search" wire:model.live.debounce.350ms="facilitySearch" placeholder="Tìm tên cơ sở, mã CSKCB hoặc tỉnh/thành..." class="w-full rounded-xl border border-slate-300 px-4 py-2.5">
