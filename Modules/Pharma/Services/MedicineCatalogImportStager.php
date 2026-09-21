@@ -14,6 +14,7 @@ class MedicineCatalogImportStager
         private readonly MedicineCatalogImportMapper $mapper,
         private readonly MedicineSkuGenerator $skuGenerator,
         private readonly MedicineIdentityResolver $identityResolver,
+        private readonly MedicineCatalogNormalizer $normalizer,
     ) {}
 
     public function stage(iterable $rows, ?string $sourceFile = null, ?int $createdBy = null): MedicineImportBatch
@@ -127,20 +128,20 @@ class MedicineCatalogImportStager
 
     private function possibleExistingMedicines(array $normalized)
     {
-        $name = $this->mapper->normalizeIdentityText($normalized['name'] ?? null);
+        $name = $this->normalizer->text($normalized['name'] ?? null);
         if ($name === null) {
             return collect();
         }
 
         return Medicine::query()->where('name', 'like', '%'.trim((string) $normalized['name']).'%')->get()
             ->filter(function (Medicine $medicine) use ($normalized, $name): bool {
-                if ($this->mapper->normalizeIdentityText($medicine->name) !== $name) {
+                if ($this->normalizer->text($medicine->name) !== $name) {
                     return false;
                 }
 
                 foreach (['active_ingredients', 'concentration', 'dosage_form', 'manufacturing_company'] as $field) {
-                    $incoming = $this->mapper->normalizeIdentityText($normalized[$field] ?? null);
-                    $existing = $this->mapper->normalizeIdentityText($medicine->getAttribute($field));
+                    $incoming = $this->normalizer->text($normalized[$field] ?? null);
+                    $existing = $this->normalizer->text($medicine->getAttribute($field));
                     if ($incoming !== null && $existing !== null && $incoming !== $existing) {
                         return false;
                     }
