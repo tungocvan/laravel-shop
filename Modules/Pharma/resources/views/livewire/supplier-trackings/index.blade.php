@@ -46,7 +46,7 @@
                 @livewire('shared.import-export.panel', [
                     'serviceClass' => \Modules\Pharma\Services\ImportExport::class,
                     'title' => 'Import / Export theo dõi nhà cung cấp',
-                    'description' => 'File Excel chuẩn A–V; các cột công thức được hệ thống tự tính lại.',
+                    'description' => 'File Excel chuẩn round-trip A–U: file xuất ra có thể import lại; các giá trị tính toán do hệ thống quản lý.',
                     'filters' => [
                         'search' => $search,
                         'status' => $status,
