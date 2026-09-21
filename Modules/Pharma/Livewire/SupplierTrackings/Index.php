@@ -297,7 +297,7 @@ class Index extends Component
     private function statuses(): array
     {
         return [
-            'active' => 'Đang theo dõi',
+            'active' => 'Đang hiệu lực',
             'completed' => 'Hoàn tất',
             'paused' => 'Tạm dừng',
             'cancelled' => 'Hủy',
