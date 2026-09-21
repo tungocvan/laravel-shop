@@ -114,6 +114,10 @@ class PharmaSupplierTrackingWorkspaceTest extends TestCase
         $this->assertStringContainsString('Chọn từng cơ sở', $view);
         $this->assertStringContainsString('Hợp đồng hai bên', $view);
         $this->assertStringContainsString('Biên bản / chứng từ cọc', $view);
+        $this->assertStringContainsString('Đơn vị tính', $view);
+        $this->assertStringNotContainsString('Tìm nhà cung cấp *', $view);
+        $this->assertStringContainsString("filterSupplier", $medicineView);
+        $this->assertStringContainsString('Nhà cung cấp', $medicineView);
         $this->assertStringContainsString('supplier_tracking_partner_business_key_unique', $migration);
         $this->assertStringContainsString('pharma_supplier_tracking_facilities', $migration);
     }
