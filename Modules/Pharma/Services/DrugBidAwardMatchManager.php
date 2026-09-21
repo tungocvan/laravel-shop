@@ -4,7 +4,9 @@ namespace Modules\Pharma\Services;
 
 use Modules\Pharma\Data\DrugBidMatchResult;
 use Modules\Pharma\Models\DrugBidAward;
+use Illuminate\Validation\ValidationException;
 use Modules\Pharma\Models\DrugBidAwardMatch;
+use Modules\Pharma\Models\Medicine;
 
 class DrugBidAwardMatchManager
 {
@@ -32,6 +34,12 @@ class DrugBidAwardMatchManager
 
     public function confirm(DrugBidAward $award, DrugBidMatchResult $result, ?int $userId = null): DrugBidAwardMatch
     {
+        if ($result->medicine && $result->medicine->profile_status !== Medicine::PROFILE_VERIFIED) {
+            throw ValidationException::withMessages([
+                'medicine_id' => 'Chỉ được liên kết kết quả thầu với Medicine Master có Chất lượng master = Đã xác minh.',
+            ]);
+        }
+
         $match = $this->persist($award, $result, $this->matcher->sourceIdentityHash($award));
         $match->update([
             'is_manual' => true,
