@@ -11,6 +11,7 @@ use Modules\Pharma\Services\DrugBidAwardAllocationService;
 use Modules\Pharma\Services\DrugBidAwardAllocationSummaryService;
 use Modules\Pharma\Services\DrugBidAwardContractService;
 use Modules\Pharma\Services\DrugBidAwardDistributionScopeService;
+use Rap2hpoutre\FastExcel\FastExcel;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AllocationWorkspace extends Component
@@ -231,41 +232,97 @@ class AllocationWorkspace extends Component
     public function exportAllocations(): StreamedResponse
     {
         $this->authorizePermission('view_pharma_allocations');
-        $rows = $this->exportAllocationQuery()->with('partner')->get();
+        $award = DrugBidAward::query()->findOrFail($this->awardId);
+        $rows = $this->exportAllocationQuery()->with(['partner', 'contracts'])->get();
+        $distributionScope = app(DrugBidAwardDistributionScopeService::class)->findForAward($award);
 
-        return response()->streamDownload(function () use ($rows) {
-            $out = fopen('php://output', 'w');
-            fputcsv($out, ['TBMT', 'Lo', 'Thuoc', 'Chu dau tu TBMT', 'Benh vien', 'So luong phan bo', 'Trang thai', 'Tu ngay', 'Den ngay']);
-            $award = DrugBidAward::query()->findOrFail($this->awardId);
+        return (new FastExcel($rows))->download("pharma-award-{$this->awardId}-allocations.xlsx", function (DrugBidAwardAllocation $row) use ($award, $distributionScope) {
+            $committed = $row->contracts
+                ->whereIn('status', DrugBidAwardContract::COMMITTED_STATUSES)
+                ->sum(fn ($contract) => (float) $contract->contract_quantity);
 
-            foreach ($rows as $row) {
-                fputcsv($out, [$award->bidding_notice_code, $award->lot_no, $award->medicine_name, $award->investor_name, $row->partner?->name, $row->allocated_quantity, $row->status, $row->effective_from?->format('Y-m-d'), $row->effective_until?->format('Y-m-d')]);
-            }
-
-            fclose($out);
-        }, "pharma-award-{$this->awardId}-allocations.csv");
+            return [
+                'Mã TBMT' => $award->bidding_notice_code,
+                'Số quyết định' => $award->decision_number,
+                'Ngày quyết định' => $award->decision_date?->format('d/m/Y'),
+                'Số lô' => $award->lot_no,
+                'Tên lô' => $award->lot_name,
+                'Tên thuốc' => $award->medicine_name,
+                'Hoạt chất' => $award->active_ingredient,
+                'Nồng độ/Hàm lượng' => $award->concentration,
+                'Dạng bào chế' => $award->dosage_form,
+                'Đường dùng' => $award->route,
+                'Đơn vị tính' => $award->unit,
+                'Số lượng trúng' => (float) $award->quantity,
+                'Đơn giá trúng' => (float) ($award->winning_price ?? $award->unit_price ?? 0),
+                'Nhà thầu trúng' => $award->winning_company_name,
+                'Mã nhà thầu' => $award->contractor_code,
+                'Chủ đầu tư TBMT' => $award->investor_name,
+                'Mã chủ đầu tư' => $award->investor_code,
+                'Tỉnh/Thành trúng thầu' => $distributionScope?->province_code,
+                'Cơ sở KCB nhận phân bổ' => $row->partner?->name,
+                'MST cơ sở KCB' => $row->partner?->tax_code,
+                'Địa chỉ cơ sở KCB' => $row->partner?->address,
+                'Số lượng phân bổ' => (float) $row->allocated_quantity,
+                'Đã cam kết hợp đồng' => $committed,
+                'Còn lại chưa cam kết' => (float) $row->allocated_quantity - $committed,
+                'Hiệu lực từ' => $row->effective_from?->format('d/m/Y'),
+                'Hiệu lực đến' => $row->effective_until?->format('d/m/Y'),
+                'Trạng thái phân bổ' => $row->status,
+                'Ghi chú phân bổ' => $row->notes,
+            ];
+        });
     }
 
     public function exportContracts(): StreamedResponse
     {
         $this->authorizePermission('view_pharma_contracts');
+        $award = DrugBidAward::query()->findOrFail($this->awardId);
         $allocationIds = $this->exportAllocationQuery()->pluck('id');
+        $distributionScope = app(DrugBidAwardDistributionScopeService::class)->findForAward($award);
         $rows = DrugBidAwardContract::query()
             ->with('allocation.partner')
             ->whereIn('drug_bid_award_allocation_id', $allocationIds)
             ->orderBy('id')
             ->get();
 
-        return response()->streamDownload(function () use ($rows) {
-            $out = fopen('php://output', 'w');
-            fputcsv($out, ['Benh vien', 'So hop dong', 'Ngay ky hop dong', 'So luong mat hang', 'Gia tri', 'Tu ngay', 'Den ngay', 'Trang thai']);
+        return (new FastExcel($rows))->download("pharma-award-{$this->awardId}-contracts.xlsx", function (DrugBidAwardContract $row) use ($award, $distributionScope) {
+            $allocation = $row->allocation;
 
-            foreach ($rows as $row) {
-                fputcsv($out, [$row->allocation?->partner?->name, $row->contract_number, $row->contract_date?->format('Y-m-d'), $row->contract_quantity, $row->contract_value, $row->start_date?->format('Y-m-d'), $row->end_date?->format('Y-m-d'), $row->status]);
-            }
-
-            fclose($out);
-        }, "pharma-award-{$this->awardId}-contracts.csv");
+            return [
+                'Mã TBMT' => $award->bidding_notice_code,
+                'Số quyết định' => $award->decision_number,
+                'Ngày quyết định' => $award->decision_date?->format('d/m/Y'),
+                'Số lô' => $award->lot_no,
+                'Tên lô' => $award->lot_name,
+                'Tên thuốc' => $award->medicine_name,
+                'Hoạt chất' => $award->active_ingredient,
+                'Nồng độ/Hàm lượng' => $award->concentration,
+                'Dạng bào chế' => $award->dosage_form,
+                'Đường dùng' => $award->route,
+                'Đơn vị tính' => $award->unit,
+                'Số lượng trúng' => (float) $award->quantity,
+                'Đơn giá trúng' => (float) ($award->winning_price ?? $award->unit_price ?? 0),
+                'Nhà thầu trúng' => $award->winning_company_name,
+                'Mã nhà thầu' => $award->contractor_code,
+                'Chủ đầu tư TBMT' => $award->investor_name,
+                'Tỉnh/Thành trúng thầu' => $distributionScope?->province_code,
+                'Cơ sở KCB' => $allocation?->partner?->name,
+                'MST cơ sở KCB' => $allocation?->partner?->tax_code,
+                'Địa chỉ cơ sở KCB' => $allocation?->partner?->address,
+                'Số lượng phân bổ' => (float) ($allocation?->allocated_quantity ?? 0),
+                'Hiệu lực phân bổ từ' => $allocation?->effective_from?->format('d/m/Y'),
+                'Hiệu lực phân bổ đến' => $allocation?->effective_until?->format('d/m/Y'),
+                'Số hợp đồng' => $row->contract_number,
+                'Ngày ký hợp đồng' => $row->contract_date?->format('d/m/Y'),
+                'Số lượng hợp đồng' => (float) $row->contract_quantity,
+                'Giá trị hợp đồng' => $row->contract_value === null ? null : (float) $row->contract_value,
+                'Hợp đồng từ ngày' => $row->start_date?->format('d/m/Y'),
+                'Hợp đồng đến ngày' => $row->end_date?->format('d/m/Y'),
+                'Trạng thái hợp đồng' => $row->status,
+                'Ghi chú hợp đồng' => $row->notes,
+            ];
+        });
     }
 
     public function render(DrugBidAwardAllocationSummaryService $summaryService)
