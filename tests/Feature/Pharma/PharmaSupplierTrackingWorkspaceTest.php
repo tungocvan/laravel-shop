@@ -100,7 +100,7 @@ class PharmaSupplierTrackingWorkspaceTest extends TestCase
         $migration = file_get_contents(base_path('Modules/Pharma/database/migrations/2026_09_21_101500_refactor_supplier_trackings_as_commercial_workspace.php'));
 
         $this->assertStringContainsString('Cập nhật NCC', $medicineView);
-        $this->assertStringContainsString("['medicine_id' => $medicine->id]", $medicineView);
+        $this->assertStringContainsString("['medicine_id' => \$medicine->id]", $medicineView);
         $this->assertStringContainsString('public ?int $partner_id = null;', $form);
         $this->assertStringContainsString('use WithFileUploads;', $form);
         $this->assertStringContainsString("'distribution_scope' => 'all'", $form);
