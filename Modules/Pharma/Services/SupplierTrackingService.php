@@ -108,6 +108,19 @@ class SupplierTrackingService
         return app(BhxhProvinceCatalog::class)->regions();
     }
 
+    public function distributionProvincesByRegion(): array
+    {
+        $catalog = app(BhxhProvinceCatalog::class);
+        $grouped = $catalog->provincesByRegion();
+        $result = [];
+
+        foreach ($catalog->regions() as $regionCode => $regionLabel) {
+            $result[$regionCode] = $grouped[$regionLabel] ?? [];
+        }
+
+        return $result;
+    }
+
     public function find(int $id): SupplierTracking
     {
         return SupplierTracking::query()->with(['medicine', 'partner', 'facilities'])->findOrFail($id);
@@ -202,6 +215,7 @@ class SupplierTrackingService
 
         $scope = $data['distribution_scope'] ?? 'all';
         $data['distribution_regions'] = $scope === 'regions' ? array_values($data['distribution_regions'] ?? []) : null;
+        $data['distribution_provinces'] = $scope === 'regions' ? array_values($data['distribution_provinces'] ?? []) : null;
         $data['facility_ids'] = $scope === 'facilities'
             ? OfficialSourceFacility::query()->where('is_active', true)->whereIn('id', $data['facility_ids'] ?? [])->pluck('id')->all()
             : [];
