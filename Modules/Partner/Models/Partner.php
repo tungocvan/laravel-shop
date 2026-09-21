@@ -5,7 +5,6 @@ namespace Modules\Partner\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Modules\Pharma\Models\SupplierTracking;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Partner extends Model
 {
