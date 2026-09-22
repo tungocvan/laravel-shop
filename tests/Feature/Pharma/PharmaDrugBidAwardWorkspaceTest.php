@@ -201,6 +201,14 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString("where('bidding_notice_code', \$representative->bidding_notice_code)", $service);
         $this->assertStringContainsString("->with('medicine')", $service);
         $this->assertStringContainsString('findProductInResultGroupOrFail', $service);
+        $this->assertStringContainsString("medicine_match_status'] = DrugBidAward::MATCH_VERIFIED", $service);
+        $this->assertStringContainsString("medicine_code'] = $medicine->medicine_code", $service);
+        $this->assertStringContainsString('productSaveModal', $component);
+        $this->assertStringContainsString('Đã lưu sản phẩm', $view);
+        $this->assertStringContainsString('Lưu sản phẩm thất bại', $view);
+        $this->assertStringContainsString("number_format((float)$quantity, 0, ',', '.')", $view);
+        $this->assertStringContainsString("number_format((float)$unit_price, 0, ',', '.')", $view);
+        $this->assertStringContainsString('border border-gray-300', $view);
     }
 
     public function test_award_distribution_scope_is_shared_by_products_and_restricts_hospitals(): void
