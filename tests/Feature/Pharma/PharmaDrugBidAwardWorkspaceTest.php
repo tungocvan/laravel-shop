@@ -209,6 +209,11 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString("number_format((float)\$quantity, 0, ',', '.')", $view);
         $this->assertStringContainsString("number_format((float)\$unit_price, 0, ',', '.')", $view);
         $this->assertStringContainsString('border border-gray-300', $view);
+        $this->assertStringContainsString("catch (\\Illuminate\\Validation\\ValidationException \\$exception)", $component);
+        $this->assertStringContainsString("@error('medicine_id')", $view);
+        $this->assertStringContainsString('focus-within:border-indigo-500', $view);
+        $selectSearch = file_get_contents(base_path('resources/views/components/select-search.blade.php'));
+        $this->assertStringContainsString('@this.set(config.model, value, false)', $selectSearch);
     }
 
     public function test_award_distribution_scope_is_shared_by_products_and_restricts_hospitals(): void
