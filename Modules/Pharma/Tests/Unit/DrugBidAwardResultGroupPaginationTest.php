@@ -87,6 +87,18 @@ class DrugBidAwardResultGroupPaginationTest extends TestCase
         );
     }
 
+    #[Test]
+    public function dashboard_metrics_do_not_group_by_the_raw_result_key_expression(): void
+    {
+        $component = file_get_contents(
+            dirname(__DIR__, 2).'/Livewire/DrugBidAward/Index.php'
+        );
+
+        $this->assertStringNotContainsString('->groupByRaw($groupKey)', $component);
+        $this->assertStringContainsString('->distinct()', $component);
+        $this->assertStringContainsString("->value('total_value')", $component);
+    }
+
     private function award(array $overrides = []): DrugBidAward
     {
         static $sequence = 0;
