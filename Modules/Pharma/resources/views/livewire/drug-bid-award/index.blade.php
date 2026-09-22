@@ -108,7 +108,7 @@
             <tbody class="divide-y divide-slate-100">
             @forelse ($awards as $award)
                 <tr wire:key="award-group-{{ $award->id }}" class="align-top hover:bg-slate-50">
-                    <td class="px-4 py-4 text-center"><input type="checkbox" wire:click="toggleAwardSelection({{ $award->id }})" @checked(in_array((string) $award->id, array_map('strval', $selectedIds), true)) aria-label="Chọn TBMT {{ $award->bidding_notice_code ?: $award->id }}" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"></td>
+                    <td class="px-4 py-4 text-center"><input type="checkbox" wire:model.live="selectedIds" value="{{ $award->id }}" aria-label="Chọn TBMT {{ $award->bidding_notice_code ?: $award->id }}" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"></td>
                     <td class="px-4 py-4"><div class="font-mono text-sm font-bold text-slate-950">{{ $award->bidding_notice_code ?: 'Hồ sơ #' . $award->representative_id }}</div></td>
                     <td class="min-w-64 px-4 py-4"><div class="font-medium text-slate-900">{{ $award->investor_name ?: '—' }}</div><div class="mt-1 text-xs text-slate-500">{{ $award->investor_code ?: '—' }}</div></td>
                     <td class="px-4 py-4"><div class="font-medium">{{ $award->decision_number ?: '—' }}</div><div class="mt-1 text-xs text-slate-500">{{ $award->decision_date ? \Carbon\Carbon::parse($award->decision_date)->format('d/m/Y') : '—' }}</div></td>
