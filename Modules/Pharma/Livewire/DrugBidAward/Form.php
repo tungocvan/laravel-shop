@@ -180,7 +180,7 @@ class Form extends Component
         }
 
         try {
-            $this->quantity = $this->normalizeLocalizedNumber($this->quantity);
+            $this->quantity = $this->normalizeAwardQuantity($this->quantity);
             $this->unit_price = $this->normalizeLocalizedNumber($this->unit_price);
 
             $data = $this->validate([
@@ -299,6 +299,29 @@ class Form extends Component
         }
 
         return $candidates->unique('id')->values();
+    }
+
+    private function normalizeAwardQuantity(mixed $value): mixed
+    {
+        if (is_int($value)) {
+            return $value;
+        }
+
+        if (is_float($value)) {
+            return (int) round($value);
+        }
+
+        if (! is_string($value)) {
+            return $value;
+        }
+
+        $normalized = $this->normalizeLocalizedNumber($value);
+
+        if (is_numeric($normalized)) {
+            return (int) round((float) $normalized);
+        }
+
+        return $normalized;
     }
 
     private function normalizeLocalizedNumber(mixed $value): mixed
