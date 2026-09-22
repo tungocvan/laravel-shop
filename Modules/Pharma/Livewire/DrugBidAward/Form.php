@@ -69,16 +69,16 @@ class Form extends Component
         $award = app(DrugBidAwardService::class)->findOrFail($id);
 
         $this->medicine_id = $award->medicine_id;
-        $this->medicine_name = $award->medicine_name;
-        $this->packaging_specification = $award->packaging_specification;
+        $this->medicine_name = $award->medicine_name ?? '';
+        $this->packaging_specification = $award->packaging_specification ?? '';
         $this->quantity = $award->quantity;
         $this->unit_price = $award->unit_price;
-        $this->bidding_notice_code = $award->bidding_notice_code;
-        $this->investor_name = $award->investor_name;
-        $this->decision_number = $award->decision_number;
+        $this->bidding_notice_code = $award->bidding_notice_code ?? '';
+        $this->investor_name = $award->investor_name ?? '';
+        $this->decision_number = $award->decision_number ?? '';
         $this->decision_date = $award->decision_date?->format('Y-m-d') ?? '';
         $this->contract_duration_months = $award->contract_duration_months;
-        $this->winning_company_name = $award->winning_company_name;
+        $this->winning_company_name = $award->winning_company_name ?? '';
         $this->decision_document_url = $award->decision_document_url ?? '';
         $this->sourceType = $award->source_type ?: DrugBidAward::SOURCE_MANUAL;
         $this->medicineSearch = $award->medicine?->name ?? '';
@@ -157,11 +157,11 @@ class Form extends Component
 
         $this->editingProductId = $product->id;
         $this->medicine_id = $product->medicine_id;
-        $this->medicine_name = $product->medicine_name;
-        $this->packaging_specification = $product->packaging_specification;
+        $this->medicine_name = $product->medicine_name ?? '';
+        $this->packaging_specification = $product->packaging_specification ?? '';
         $this->quantity = $product->quantity;
         $this->unit_price = $product->unit_price;
-        $this->winning_company_name = $product->winning_company_name;
+        $this->winning_company_name = $product->winning_company_name ?? '';
         $this->medicineSearch = $product->medicine?->name ?? $product->medicine_name;
     }
 
