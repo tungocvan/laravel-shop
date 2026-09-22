@@ -218,8 +218,8 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString('contract_duration_months', $service);
         $this->assertStringContainsString('allocated_product_count', $service);
         $this->assertStringContainsString('managed_product_count', $service);
-        $this->assertStringContainsString("a.drug_bid_award_id = pharma_drug_bid_awards.id", $service);
-        $this->assertStringContainsString("m.drug_bid_award_id = pharma_drug_bid_awards.id", $service);
+        $this->assertStringContainsString("a.drug_bid_award_id = award_rows.id", $service);
+        $this->assertStringContainsString("m.drug_bid_award_id = award_rows.id", $service);
         $this->assertStringNotContainsString('management_assignment_count', $service);
         $this->assertStringContainsString("in_array(\$unit, ['d', 'day', 'days'], true)", $view);
         $this->assertStringContainsString("round(\$period / 30.4375)", $view);
