@@ -82,19 +82,15 @@ class PharmaDrugAwardMultiSourceProjectionTest extends TestCase
         $this->assertSame(2, DrugBidAwardSource::query()->count());
     }
 
-    public function test_strong_unmatched_source_creates_provisional_hssp_without_copying_unknown_license_semantics(): void
+    public function test_strong_unmatched_source_remains_unresolved_without_creating_master_medicine(): void
     {
         $award = app(DrugAwardProjectionService::class)->project($this->sourceData(
             sourceRecordKey: 'new-drug',
             registration: 'GPNK-UNKNOWN-TYPE',
         ));
 
-        $medicine = $award->medicine;
-
-        $this->assertNotNull($medicine);
-        $this->assertSame(Medicine::IDENTITY_PROVISIONAL, $medicine->identity_status);
-        $this->assertSame(Medicine::PROFILE_NEEDS_REVIEW, $medicine->profile_status);
-        $this->assertNull($medicine->registration_number);
+        $this->assertNull($award->medicine);
+        $this->assertSame(DrugBidAward::MATCH_UNRESOLVED, $award->medicine_match_status);
         $this->assertSame('GPNK-UNKNOWN-TYPE', $award->registration_or_import_license);
     }
 
