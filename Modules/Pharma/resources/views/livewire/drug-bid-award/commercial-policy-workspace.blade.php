@@ -64,6 +64,21 @@
         <h2 class="mt-1 text-lg font-bold text-slate-950">Thiết lập User quản lý bệnh viện</h2>
         <p class="mt-1 text-sm text-slate-500">Chọn bệnh viện đã được phân bổ trong TBMT. Chỉ các sản phẩm thực sự phân bổ cho bệnh viện đó mới xuất hiện để phân công.</p>
     </div>
+    @if($canManage)
+    <div class="mt-4 rounded-2xl border border-indigo-200 bg-indigo-50/60 p-4">
+        <div class="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+            <div class="max-w-2xl">
+                <p class="text-sm font-bold text-indigo-950">Gán nhanh User cho toàn bộ TBMT</p>
+                <p class="mt-1 text-sm text-indigo-800">Chọn User bên dưới rồi áp dụng một lần cho tất cả cặp Bệnh viện × Sản phẩm đang có phân bổ thực tế. Không tạo phân công cho sản phẩm chưa phân bổ.</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <button wire:click="assignManagerToAll" wire:confirm="Gán User đã chọn cho tất cả Bệnh viện × Sản phẩm đang được phân bổ trong TBMT? Các phân công hiện có sẽ được cập nhật." @disabled(!$selectedUserId) class="min-h-11 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">Áp dụng cho tất cả</button>
+                <button wire:click="removeManagerFromAll" wire:confirm="Gỡ tất cả phân công của User đã chọn trong TBMT? Các User khác không bị ảnh hưởng." @disabled(!$selectedUserId) class="min-h-11 rounded-xl border border-rose-200 bg-white px-4 text-sm font-semibold text-rose-700 disabled:cursor-not-allowed disabled:opacity-50">Gỡ tất cả của User này</button>
+            </div>
+        </div>
+    </div>
+    @endif
+
     <div class="mt-4 grid gap-3 md:grid-cols-3">
         <label class="text-sm font-semibold text-slate-700">Bệnh viện
             <select wire:model.live="selectedPartnerId" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3"><option value="">Chọn bệnh viện</option>@foreach($partners as $partner)<option value="{{ $partner->id }}">{{ $partner->name }}</option>@endforeach</select>
