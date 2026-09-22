@@ -23,6 +23,12 @@ class Index extends Component
 
     public string $filterCompany = '';
 
+    public string $valueSort = '';
+
+    public bool $showImportExport = false;
+
+    public bool $showFilters = true;
+
     public string $filterSource = '';
 
     public string $filterMatchStatus = '';
@@ -45,9 +51,9 @@ class Index extends Component
         'search' => ['except' => ''],
         'filterTbmt' => ['except' => ''],
         'filterInvestor' => ['except' => ''],
-        'filterCompany' => ['except' => ''],
         'filterSource' => ['except' => ''],
         'filterMatchStatus' => ['except' => ''],
+        'valueSort' => ['except' => ''],
         'perPage' => ['except' => 10],
         'page' => ['except' => 1],
     ];
@@ -73,8 +79,9 @@ class Index extends Component
         $this->resetWorkspacePage();
     }
 
-    public function updatedFilterCompany(): void
+    public function updatedValueSort(): void
     {
+        $this->valueSort = in_array($this->valueSort, ['', 'desc', 'asc'], true) ? $this->valueSort : '';
         $this->resetWorkspacePage();
     }
 
@@ -118,7 +125,7 @@ class Index extends Component
 
     public function resetFilters(): void
     {
-        $this->reset(['search', 'filterTbmt', 'filterInvestor', 'filterCompany', 'filterSource', 'filterMatchStatus']);
+        $this->reset(['search', 'filterTbmt', 'filterInvestor', 'filterSource', 'filterMatchStatus', 'valueSort']);
         $this->page = 1;
         $this->clearSelection();
         $this->dispatch('filters-reset');
@@ -221,12 +228,14 @@ class Index extends Component
             $awards = $this->paginated($service);
         }
 
+        $dashboard = $this->dashboardMetrics();
+
         return view('Pharma::livewire.drug-bid-award.index', [
             'awards' => $awards,
+            'dashboard' => $dashboard,
             'perPageOptions' => self::PER_PAGE_OPTIONS,
             'tbmtOptions' => $this->distinctOptions('bidding_notice_code'),
             'investorOptions' => $this->distinctOptions('investor_name'),
-            'companyOptions' => $this->distinctOptions('winning_company_name'),
             'medicineOptions' => $this->distinctOptions('medicine_name'),
             'sourceOptions' => [
                 DrugBidAward::SOURCE_MANUAL => 'Nhập thủ công',
@@ -246,13 +255,41 @@ class Index extends Component
         return $service->getResultGroupsPaginated(
             $this->search,
             $this->filterInvestor,
-            $this->filterCompany,
+            null,
             $this->perPage,
             $this->page,
             $this->filterSource ?: null,
             $this->filterMatchStatus ?: null,
             $this->filterTbmt,
+            $this->valueSort,
         );
+    }
+
+    private function dashboardMetrics(): array
+    {
+        $groupKey = "COALESCE(NULLIF(bidding_notice_code, ''), CONCAT('award-', id))";
+        $groups = DrugBidAward::query()
+            ->selectRaw("{$groupKey} as result_key")
+            ->selectRaw('SUM(COALESCE(amount, COALESCE(winning_price, unit_price, 0) * COALESCE(quantity, 0))) as total_value')
+            ->groupByRaw($groupKey)
+            ->get();
+
+        $totalGroups = $groups->count();
+        $totalValue = (float) $groups->sum('total_value');
+        $allocatedGroups = DrugBidAward::query()
+            ->whereHas('allocations', fn ($query) => $query->where('status', 'active'))
+            ->selectRaw($groupKey.' as result_key')->distinct()->get()->count();
+        $commercialGroups = DrugBidAward::query()
+            ->whereHas('allocations.managementAssignments', fn ($query) => $query->where('status', 'active'))
+            ->selectRaw($groupKey.' as result_key')->distinct()->get()->count();
+
+        return [
+            'total' => $totalGroups,
+            'value' => $totalValue,
+            'allocated' => $allocatedGroups,
+            'commercial' => $commercialGroups,
+            'pending' => max(0, $totalGroups - min($allocatedGroups, $commercialGroups)),
+        ];
     }
 
     private function currentPageIds(): array
