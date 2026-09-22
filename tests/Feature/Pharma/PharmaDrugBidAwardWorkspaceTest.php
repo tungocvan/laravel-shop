@@ -21,10 +21,10 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString("COUNT(*) as product_count", $service);
         $this->assertStringContainsString('Mỗi dòng là một mã thông báo mời thầu', $view);
         $this->assertStringContainsString('Sản phẩm / Phân bổ', $view);
-        $this->assertStringContainsString('wire:click="toggleAwardSelection({{ $award->id }})"', $view);
-        $this->assertStringContainsString('public function toggleAwardSelection(mixed $id = null): void', $component);
-        $this->assertStringContainsString("if (! is_numeric(\$id))", $component);
-        $this->assertStringContainsString('@checked(in_array((string) $award->id', $view);
+        $this->assertStringContainsString('wire:model.live="selectedIds"', $view);
+        $this->assertStringContainsString('value="{{ $award->id }}"', $view);
+        $this->assertStringContainsString('public function updatedSelectedIds(): void', $component);
+        $this->assertStringNotContainsString('toggleAwardSelection', $component);
         $this->assertStringContainsString('wire:model.live="selectPage"', $view);
         $this->assertStringContainsString('Chọn tất cả TBMT trên trang', $view);
         $this->assertStringContainsString("name('allocation-detail')", $routes);
@@ -186,6 +186,8 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString('aria-label="Thêm thao tác"', $view);
         $this->assertStringContainsString('Export Excel', $view);
         $this->assertStringContainsString('wire:click="clearAwardSelection"', $view);
+        $this->assertStringContainsString('@if($selectedIds !== [])', $view);
+        $this->assertStringContainsString('Đã chọn {{ count($selectedIds) }} TBMT', $view);
         $this->assertStringNotContainsString('Sẵn sàng dùng cho Export/Import', $view);
         $this->assertStringContainsString('>Thiết lập</th>', $view);
         $this->assertStringContainsString('Phân bổ:', $view);
