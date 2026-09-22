@@ -23,6 +23,8 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString('Sản phẩm / Phân bổ', $view);
         $this->assertStringContainsString('wire:model.live="selectedIds"', $view);
         $this->assertStringContainsString('value="{{ $award->id }}"', $view);
+        $this->assertStringContainsString('wire:key="award-checkbox-{{ $award->id }}"', $view);
+        $this->assertStringContainsString('@checked(in_array((string) $award->id, array_map(\'strval\', $selectedIds), true))', $view);
         $this->assertStringContainsString('public function updatedSelectedIds(): void', $component);
         $this->assertStringNotContainsString('toggleAwardSelection', $component);
         $this->assertStringContainsString('wire:model.live="selectPage"', $view);
