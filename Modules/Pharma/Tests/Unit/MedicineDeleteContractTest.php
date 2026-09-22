@@ -16,9 +16,10 @@ class MedicineDeleteContractTest extends TestCase
         $workspace = file_get_contents(base_path('Modules/Pharma/Livewire/Medicine/Index.php'));
 
         $this->assertIsString($service);
-        $this->assertStringContainsString('$medicine->profiles()->exists() || $medicine->drugBidAwards()->exists()', $service);
+        $this->assertStringContainsString('$medicine->profiles()->exists() || $medicine->supplierTrackings()->exists() || $medicine->priceListItems()->exists()', $service);
         $this->assertStringNotContainsString('$medicine->variants()->exists()', $service);
         $this->assertStringNotContainsString('$medicine->sources()->exists()', $service);
+        $this->assertStringContainsString("$medicine->profile_status === Medicine::PROFILE_VERIFIED && $medicine->drugBidAwards()->exists()", $service);
         $this->assertStringContainsString("constrained('pharma_medicines')->cascadeOnDelete()", $canonicalMigration);
         $this->assertStringContainsString("constrained('pharma_medicine_variants')->cascadeOnDelete()", $canonicalMigration);
         $this->assertStringContainsString("constrained('pharma_medicines')->cascadeOnDelete()", $sourceMigration);
