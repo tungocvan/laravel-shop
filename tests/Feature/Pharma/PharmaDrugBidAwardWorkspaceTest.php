@@ -183,6 +183,26 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString("valueSort === 'desc'", $service);
     }
 
+    public function test_award_edit_models_tbmt_as_shared_legal_info_with_editable_product_rows(): void
+    {
+        $component = file_get_contents(base_path('Modules/Pharma/Livewire/DrugBidAward/Form.php'));
+        $service = file_get_contents(base_path('Modules/Pharma/Services/DrugBidAwardService.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/drug-bid-award/form.blade.php'));
+
+        $this->assertStringContainsString('1. Thông tin hồ sơ trúng thầu', $view);
+        $this->assertStringContainsString('2. Danh sách sản phẩm trúng thầu', $view);
+        $this->assertStringContainsString('Sản phẩm / Mã sản phẩm', $view);
+        $this->assertStringContainsString('wire:click="editProduct({{ $product->id }})"', $view);
+        $this->assertStringContainsString('wire:click="saveProduct"', $view);
+        $this->assertStringContainsString('Chưa đối soát', $view);
+        $this->assertStringContainsString('productsForResultGroup', $component);
+        $this->assertStringContainsString('updateResultGroupLegalInfo', $component);
+        $this->assertStringContainsString('updateProductInResultGroup', $component);
+        $this->assertStringContainsString("where('bidding_notice_code', $representative->bidding_notice_code)", $service);
+        $this->assertStringContainsString("->with('medicine')", $service);
+        $this->assertStringContainsString('findProductInResultGroupOrFail', $service);
+    }
+
     public function test_award_distribution_scope_is_shared_by_products_and_restricts_hospitals(): void
     {
         $migration = file_get_contents(base_path('Modules/Pharma/database/migrations/2026_09_21_160000_create_drug_bid_award_distribution_scopes.php'));
