@@ -71,8 +71,24 @@ class DrugBidAwardService
     ): LengthAwarePaginator {
         $groupKey = "COALESCE(NULLIF(bidding_notice_code, ''), CONCAT('award-', id))";
 
-        return DrugBidAward::query()
+        $baseQuery = DrugBidAward::query()
+            ->select('pharma_drug_bid_awards.*')
             ->selectRaw("{$groupKey} as result_key")
+            ->when($search, fn ($query, $value) => $query->where(fn ($nested) => $nested
+                ->where('medicine_name', 'like', "%{$value}%")
+                ->orWhere('active_ingredient', 'like', "%{$value}%")
+                ->orWhere('medicine_code', 'like', "%{$value}%")
+                ->orWhere('lot_name', 'like', "%{$value}%")
+                ->orWhere('decision_number', 'like', "%{$value}%")))
+            ->when($tbmt, fn ($query, $value) => $query->where('bidding_notice_code', 'like', "%{$value}%"))
+            ->when($investor, fn ($query, $value) => $query->where('investor_name', 'like', "%{$value}%"))
+            ->when($company, fn ($query, $value) => $query->where('winning_company_name', 'like', "%{$value}%"))
+            ->when($sourceType, fn ($query, $value) => $query->where('source_type', $value))
+            ->when($matchStatus, fn ($query, $value) => $query->where('medicine_match_status', $value));
+
+        $query = DrugBidAward::query()
+            ->fromSub($baseQuery->toBase(), 'award_rows')
+            ->select('result_key')
             ->selectRaw('MAX(id) as representative_id')
             ->selectRaw('MAX(bidding_notice_code) as bidding_notice_code')
             ->selectRaw('MAX(investor_name) as investor_name')
@@ -90,25 +106,29 @@ class DrugBidAwardService
             ->selectRaw('MAX(contract_period) as contract_period')
             ->selectRaw('MAX(contract_period_unit) as contract_period_unit')
             ->selectRaw('MAX(contract_period_text) as contract_period_text')
-            ->selectRaw("SUM(CASE WHEN EXISTS (SELECT 1 FROM pharma_drug_bid_award_allocations a WHERE a.drug_bid_award_id = pharma_drug_bid_awards.id AND a.status = 'active') THEN 1 ELSE 0 END) as allocated_product_count")
-            ->selectRaw("SUM(CASE WHEN EXISTS (SELECT 1 FROM pharma_drug_bid_award_management_assignments m WHERE m.drug_bid_award_id = pharma_drug_bid_awards.id AND m.status = 'active') THEN 1 ELSE 0 END) as managed_product_count")
-            ->when($search, fn ($query, $value) => $query->where(fn ($nested) => $nested
-                ->where('medicine_name', 'like', "%{$value}%")
-                ->orWhere('active_ingredient', 'like', "%{$value}%")
-                ->orWhere('medicine_code', 'like', "%{$value}%")
-                ->orWhere('lot_name', 'like', "%{$value}%")
-                ->orWhere('decision_number', 'like', "%{$value}%")))
-            ->when($tbmt, fn ($query, $value) => $query->where('bidding_notice_code', 'like', "%{$value}%"))
-            ->when($investor, fn ($query, $value) => $query->where('investor_name', 'like', "%{$value}%"))
-            ->when($company, fn ($query, $value) => $query->where('winning_company_name', 'like', "%{$value}%"))
-            ->when($sourceType, fn ($query, $value) => $query->where('source_type', $value))
-            ->when($matchStatus, fn ($query, $value) => $query->where('medicine_match_status', $value))
-            ->groupByRaw($groupKey)
+            ->selectRaw("SUM(CASE WHEN EXISTS (SELECT 1 FROM pharma_drug_bid_award_allocations a WHERE a.drug_bid_award_id = award_rows.id AND a.status = 'active') THEN 1 ELSE 0 END) as allocated_product_count")
+            ->selectRaw("SUM(CASE WHEN EXISTS (SELECT 1 FROM pharma_drug_bid_award_management_assignments m WHERE m.drug_bid_award_id = award_rows.id AND m.status = 'active') THEN 1 ELSE 0 END) as managed_product_count")
+            ->groupBy('result_key')
             ->when($valueSort === 'desc', fn ($query) => $query->orderByDesc('total_value'))
             ->when($valueSort === 'asc', fn ($query) => $query->orderBy('total_value'))
             ->orderByDesc('latest_published_at')
-            ->orderByDesc('representative_id')
-            ->paginate($perPage, ['*'], 'page', max(1, $page));
+            ->orderByDesc('representative_id');
+
+        $countQuery = (clone $baseQuery);
+        $countQuery->getQuery()->columns = [DB::raw("{$groupKey} as result_key")];
+        $countQuery->distinct();
+
+        $total = DB::query()
+            ->fromSub($countQuery->toBase(), 'result_groups')
+            ->count();
+
+        return $query->paginate(
+            $perPage,
+            ['*'],
+            'page',
+            max(1, $page),
+            $total,
+        );
     }
 
     public function findOrFail(int $id): DrugBidAward

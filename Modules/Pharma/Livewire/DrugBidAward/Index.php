@@ -342,14 +342,14 @@ class Index extends Component
     private function dashboardMetrics(): array
     {
         $groupKey = "COALESCE(NULLIF(bidding_notice_code, ''), CONCAT('award-', id))";
-        $groups = DrugBidAward::query()
+        $totalGroups = DrugBidAward::query()
             ->selectRaw("{$groupKey} as result_key")
+            ->distinct()
+            ->get()
+            ->count();
+        $totalValue = (float) (DrugBidAward::query()
             ->selectRaw('SUM(COALESCE(amount, COALESCE(winning_price, unit_price, 0) * COALESCE(quantity, 0))) as total_value')
-            ->groupByRaw($groupKey)
-            ->get();
-
-        $totalGroups = $groups->count();
-        $totalValue = (float) $groups->sum('total_value');
+            ->value('total_value') ?? 0);
         $allocatedGroups = DrugBidAward::query()
             ->whereHas('allocations', fn ($query) => $query->where('status', 'active'))
             ->selectRaw($groupKey.' as result_key')->distinct()->get()->count();
