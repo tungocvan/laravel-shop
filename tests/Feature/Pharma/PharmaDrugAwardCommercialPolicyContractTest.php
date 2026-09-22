@@ -59,6 +59,23 @@ class PharmaDrugAwardCommercialPolicyContractTest extends TestCase
         $this->assertStringNotContainsString('activationIssues', $component);
     }
 
+    public function test_workspace_supports_tbmt_wide_quick_manager_assignment_without_fake_allocations(): void
+    {
+        $component = file_get_contents(base_path('Modules/Pharma/Livewire/DrugBidAward/CommercialPolicyWorkspace.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/drug-bid-award/commercial-policy-workspace.blade.php'));
+        $service = file_get_contents(base_path('Modules/Pharma/Services/DrugBidAwardCommercialPolicyService.php'));
+
+        $this->assertStringContainsString('assignManagerToAll', $component);
+        $this->assertStringContainsString('removeManagerFromAll', $component);
+        $this->assertStringContainsString('Gán nhanh User cho toàn bộ TBMT', $view);
+        $this->assertStringContainsString('Áp dụng cho tất cả', $view);
+        $this->assertStringContainsString('Gỡ tất cả của User này', $view);
+        $this->assertStringContainsString('assignManagerToAllAllocations', $service);
+        $this->assertStringContainsString('removeManagerFromAllAllocations', $service);
+        $this->assertStringContainsString("where('status', DrugBidAwardAllocation::STATUS_ACTIVE)", $service);
+        $this->assertStringContainsString("get(['drug_bid_award_id', 'partner_id'])", $service);
+    }
+
     public function test_workspace_supports_select_all_bulk_management_winning_price_and_excel_round_trip(): void
     {
         $component = file_get_contents(base_path('Modules/Pharma/Livewire/DrugBidAward/CommercialPolicyWorkspace.php'));
