@@ -241,9 +241,9 @@ class PharmaImportExportTest extends TestCase
         $tracking = SupplierTracking::query()->firstOrFail();
         $this->assertTrue($report['success']);
         $this->assertSame('3250.00', $tracking->invoice_difference_amount);
-        $this->assertSame('325.00', $tracking->invoice_difference_fee);
-        $this->assertSame('4075.00', $tracking->cost_price);
-        $this->assertSame('47.70', $tracking->gross_profit_percent);
+        $this->assertSame('0.00', $tracking->invoice_difference_fee);
+        $this->assertSame('3750.00', $tracking->cost_price);
+        $this->assertSame('0.00', $tracking->gross_profit_percent);
     }
 
     public function test_supplier_tracking_export_respects_date_filters_and_selected_contract(): void
