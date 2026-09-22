@@ -33,6 +33,10 @@ class PharmaImportExportTest extends TestCase
         (require base_path('Modules/Pharma/database/migrations/2026_05_23_141810_create_supplier_trackings_table.php'))->up();
         (require base_path('Modules/Pharma/database/migrations/2026_08_30_010000_add_source_identity_to_drug_bid_awards_table.php'))->up();
         (require base_path('Modules/Pharma/database/migrations/2026_08_30_020000_add_business_key_to_supplier_trackings_table.php'))->up();
+        (require base_path('Modules/Pharma/database/migrations/2026_09_05_010000_add_intelligence_fields_to_medicines_table.php'))->up();
+        (require base_path('Modules/Pharma/database/migrations/2026_09_05_012000_add_intelligence_fields_to_drug_bid_awards_table.php'))->up();
+        (require base_path('Modules/Pharma/database/migrations/2026_09_05_014000_relax_legacy_drug_award_constraints.php'))->up();
+        (require base_path('Modules/Pharma/database/migrations/2026_09_14_100000_create_canonical_medicine_catalog_tables.php'))->up();
     }
 
     public function test_medicine_excel_fixture_passes_dry_run(): void
