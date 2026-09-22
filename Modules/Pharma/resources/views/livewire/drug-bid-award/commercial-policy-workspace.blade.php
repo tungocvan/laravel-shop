@@ -35,7 +35,7 @@
     </div>
     <div class="mt-4 overflow-x-auto">
         <table class="min-w-[850px] w-full divide-y divide-slate-200 text-sm">
-            <thead class="bg-slate-50 text-xs uppercase text-slate-600"><tr><th class="px-3 py-3 text-left"><button type="button" wire:click="{{ count($selectedPolicyAwardIds) ? 'clearAllPolicies' : 'selectAllPolicies' }}" class="font-bold text-indigo-700">{{ count($selectedPolicyAwardIds) ? 'Bỏ tất cả' : 'Tất cả' }}</button></th><th class="px-3 py-3 text-left">Sản phẩm / Mã hàng</th><th class="px-3 py-3 text-right">SL trúng</th><th class="px-3 py-3 text-right">Đơn giá trúng</th><th class="px-3 py-3 text-right">Đã phân bổ</th><th class="px-3 py-3 text-left">Chính sách (%)</th></tr></thead>
+            <thead class="bg-slate-50 text-xs uppercase text-slate-600"><tr><th class="px-3 py-3 text-left"><button type="button" wire:click="{{ count($selectedPolicyAwardIds) ? 'clearAllPolicies' : 'selectAllPolicies' }}" class="font-bold text-indigo-700">{{ count($selectedPolicyAwardIds) ? 'Bỏ tất cả' : 'Tất cả' }}</button></th><th class="px-3 py-3 text-left">Sản phẩm / Mã sản phẩm</th><th class="px-3 py-3 text-right">SL trúng</th><th class="px-3 py-3 text-right">Đơn giá trúng</th><th class="px-3 py-3 text-right">Đã phân bổ</th><th class="px-3 py-3 text-left">Chính sách (%)</th></tr></thead>
             <tbody class="divide-y divide-slate-100">
             @foreach($products as $product)
                 <tr>
