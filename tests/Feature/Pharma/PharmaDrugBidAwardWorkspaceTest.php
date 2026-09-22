@@ -164,7 +164,14 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringNotContainsString('<th class="px-4 py-3">Nhà thầu trúng</th>', $view);
         $this->assertStringNotContainsString('<th class="px-4 py-3 text-right">Tổng SL</th>', $view);
         $this->assertStringContainsString('contract_duration_months', $service);
-        $this->assertStringContainsString('management_assignment_count', $service);
+        $this->assertStringContainsString('allocated_product_count', $service);
+        $this->assertStringContainsString('managed_product_count', $service);
+        $this->assertStringContainsString("a.drug_bid_award_id = pharma_drug_bid_awards.id", $service);
+        $this->assertStringContainsString("m.drug_bid_award_id = pharma_drug_bid_awards.id", $service);
+        $this->assertStringNotContainsString('management_assignment_count', $service);
+        $this->assertStringContainsString("in_array(\$unit, ['d', 'day', 'days'], true)", $view);
+        $this->assertStringContainsString("round(\$period / 30.4375)", $view);
+        $this->assertStringContainsString("\$remainingContractMonths(\$award, true)", $view);
         $this->assertStringContainsString("valueSort === 'desc'", $service);
     }
 
