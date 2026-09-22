@@ -151,6 +151,14 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString("'A' => 'bidding_notice_code'", $export);
         $this->assertStringContainsString("'N' => 'decision_document_url'", $export);
         $this->assertStringNotContainsString('raw_payload', $export);
+        $this->assertStringContainsString("setTitle('Sản phẩm trúng thầu')", $export);
+        $this->assertStringContainsString("setTitle('Phân bổ bệnh viện')", $export);
+        $this->assertStringContainsString("->where('status', DrugBidAwardAllocation::STATUS_ACTIVE)", $export);
+        $this->assertStringContainsString("'Partner ID' => \$allocation->partner_id", $export);
+        $this->assertStringContainsString("'Số lượng phân bổ' => \$this->exportNumeric(\$allocation->allocated_quantity)", $export);
+        $this->assertStringContainsString("getSheetByName('Phân bổ bệnh viện')", $export);
+        $this->assertStringContainsString('DrugBidAwardAllocationService::class', $export);
+        $this->assertStringContainsString("\$allocationService->save(\$award->id", $export);
     }
 
     public function test_drug_award_pages_use_canonical_full_width_admin_container(): void
