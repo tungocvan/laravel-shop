@@ -212,6 +212,9 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString('catch (\\Illuminate\\Validation\\ValidationException $exception)', $component);
         $this->assertStringContainsString("@error('medicine_id')", $view);
         $this->assertStringContainsString('focus-within:border-indigo-500', $view);
+        $this->assertStringContainsString('normalizeLocalizedNumber', $component);
+        $this->assertStringContainsString("$this->quantity = $this->normalizeLocalizedNumber($this->quantity);", $component);
+        $this->assertStringContainsString('min-h-14', $view);
         $selectSearch = file_get_contents(base_path('resources/views/components/select-search.blade.php'));
         $this->assertStringContainsString('@this.set(config.model, value, false)', $selectSearch);
     }
