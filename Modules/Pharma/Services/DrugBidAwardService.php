@@ -84,6 +84,7 @@ class DrugBidAwardService
             ->selectRaw('COUNT(DISTINCT NULLIF(winning_company_name, \'\')) as contractor_count')
             ->selectRaw('MAX(winning_company_name) as winning_company_name')
             ->selectRaw('MAX(published_at) as latest_published_at')
+            ->selectRaw('MAX(published_at) as published_at')
             ->selectRaw('MAX(contract_duration_months) as contract_duration_months')
             ->selectRaw('MAX(contract_period) as contract_period')
             ->selectRaw('MAX(contract_period_unit) as contract_period_unit')
