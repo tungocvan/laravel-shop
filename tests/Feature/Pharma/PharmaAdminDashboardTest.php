@@ -42,7 +42,7 @@ class PharmaAdminDashboardTest extends TestCase
     {
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/pages/dashboard.blade.php'));
 
-        $this->assertStringContainsString("@if (\$capabilities['create'])", $view);
+        $this->assertStringContainsString("@if(\$capabilities['create'])", $view);
         $this->assertStringContainsString("route('admin.pharma.price-lists.create')", $view);
         $this->assertStringContainsString("@if(\$capabilities['edit'])", $view);
         $this->assertStringContainsString("@if(\$capabilities['official_facilities'])", $view);
