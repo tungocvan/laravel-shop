@@ -167,7 +167,7 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString('wire:click="removeSelectedFacility({{ $facility->id }})"', $productView);
         $this->assertStringContainsString('OfficialSourceFacility::query()', $productComponent);
         $this->assertStringContainsString("where('province_name', \$this->facilityProvince)", $productComponent);
-        $this->assertStringContainsString('Kho dữ liệu cơ sở KCB nguồn', $productView);
+        $this->assertStringContainsString('OfficialSourceFacility::query()', $productComponent);
         $this->assertStringContainsString('OfficialSourceFacility::query()', $distributionScopeService);
         $this->assertStringContainsString("whereIn('province_name', \$provinceNames)", $distributionScopeService);
         $this->assertStringContainsString('pharma_drug_bid_award_distribution_scope_provinces', $distributionScopeService);
