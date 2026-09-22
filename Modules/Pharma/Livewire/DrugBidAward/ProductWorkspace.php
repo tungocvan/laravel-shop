@@ -2,6 +2,7 @@
 
 namespace Modules\Pharma\Livewire\DrugBidAward;
 
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Modules\Pharma\Models\DrugBidAward;
 use Modules\Pharma\Models\OfficialSourceFacility;
@@ -15,7 +16,8 @@ class ProductWorkspace extends Component
     public string $search = '';
     public int $perPage = 10;
     public int $page = 1;
-    public string $provinceCode = '';
+    public array $selectedProvinces = [];
+    public string $facilityProvince = '';
     public array $selectedFacilityIds = [];
     public string $facilitySearch = '';
     public string $effectiveFrom = '';
@@ -46,9 +48,12 @@ class ProductWorkspace extends Component
         ));
     }
 
-    public function updatedProvinceCode(): void
+    public function updatedSelectedProvinces(): void
     {
-        $this->selectedFacilityIds = [];
+        $this->selectedProvinces = array_values(array_unique(array_filter(array_map('strval', $this->selectedProvinces))));
+        if ($this->facilityProvince !== '' && ! in_array($this->facilityProvince, $this->selectedProvinces, true)) {
+            $this->facilityProvince = $this->selectedProvinces[0] ?? '';
+        }
         $this->facilitySearch = '';
     }
 
@@ -56,7 +61,8 @@ class ProductWorkspace extends Component
     {
         abort_unless(auth('admin')->user()?->can('manage_pharma_allocations'), 403);
         $data = $this->validate([
-            'provinceCode' => ['required', 'string', 'max:50'],
+            'selectedProvinces' => ['required', 'array', 'min:1'],
+            'selectedProvinces.*' => ['string', 'max:100'],
             'selectedFacilityIds' => ['required', 'array', 'min:1'],
             'selectedFacilityIds.*' => ['integer'],
             'effectiveFrom' => ['required', 'date'],
@@ -65,7 +71,7 @@ class ProductWorkspace extends Component
 
         $award = DrugBidAward::query()->findOrFail($this->awardId);
         $service->save($award, [
-            'province_code' => $data['provinceCode'],
+            'province_names' => $data['selectedProvinces'],
             'facility_ids' => $data['selectedFacilityIds'],
             'effective_from' => $data['effectiveFrom'],
             'effective_until' => $data['effectiveUntil'],
@@ -104,10 +110,13 @@ class ProductWorkspace extends Component
             ->distinct()->orderBy('province_name')->pluck('province_name');
 
         $facilities = collect();
-        if ($this->provinceCode !== '') {
+        if ($this->selectedProvinces !== []) {
+            if ($this->facilityProvince === '' || ! in_array($this->facilityProvince, $this->selectedProvinces, true)) {
+                $this->facilityProvince = $this->selectedProvinces[0] ?? '';
+            }
             $facilities = OfficialSourceFacility::query()
                 ->where('is_active', true)
-                ->where('province_name', $this->provinceCode)
+                ->where('province_name', $this->facilityProvince)
                 ->when(trim($this->facilitySearch) !== '', function ($query) {
                     $like = '%'.trim($this->facilitySearch).'%';
                     $query->where(fn ($nested) => $nested->where('facility_name', 'like', $like)->orWhere('external_id', 'like', $like));
@@ -142,7 +151,12 @@ class ProductWorkspace extends Component
             return;
         }
 
-        $this->provinceCode = (string) ($scope->province_code ?? '');
+        $this->selectedProvinces = DB::table('pharma_drug_bid_award_distribution_scope_provinces')
+            ->where('distribution_scope_id', $scope->id)->orderBy('province_name')->pluck('province_name')->all();
+        if ($this->selectedProvinces === [] && filled($scope->province_code)) {
+            $this->selectedProvinces = [(string) $scope->province_code];
+        }
+        $this->facilityProvince = $this->selectedProvinces[0] ?? '';
         $externalIds = $scope->partners->flatMap(fn ($partner) => $partner->sourceReferences
             ->where('source', 'official_source_facility')->pluck('external_id'))->filter()->all();
         $this->selectedFacilityIds = OfficialSourceFacility::query()
