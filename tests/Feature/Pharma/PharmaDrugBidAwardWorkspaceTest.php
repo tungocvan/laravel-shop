@@ -25,8 +25,10 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString('x-model="selected"', $view);
         $this->assertStringContainsString("x-on:change=\"\$wire.call('setAwardSelected', {{ \$award->id }}, \$event.target.checked)\"", $view);
         $this->assertStringContainsString('public function setAwardSelected(mixed $id, bool $selected): void', $component);
-        $this->assertStringContainsString('wire:key="award-checkbox-{{ $award->id }}-', $view);
+        $this->assertStringContainsString('wire:key="award-checkbox-{{ $award->representative_id }}-', $view);
         $this->assertStringContainsString('public function updatedSelectedIds(): void', $component);
+        $this->assertStringContainsString('(string) $award->representative_id', $component);
+        $this->assertStringContainsString('wire:key="award-group-{{ $award->representative_id }}"', $view);
         $this->assertStringNotContainsString('toggleAwardSelection', $component);
         $this->assertStringContainsString('wire:model.live="selectPage"', $view);
         $this->assertStringContainsString('Chọn tất cả TBMT trên trang', $view);
