@@ -83,6 +83,14 @@ class DrugBidAwardImportExport extends BaseImportExportService
             'decision_document_url' => $this->cleanString($row['decision_document_url'] ?? null),
         ];
 
+        if ($data['unit_price'] !== null) {
+            $data['winning_price'] = $data['unit_price'];
+        }
+
+        if ($data['quantity'] !== null && $data['unit_price'] !== null) {
+            $data['amount'] = $data['quantity'] * $data['unit_price'];
+        }
+
         $existing = $this->existingRecord($data);
         if ($existing) {
             foreach ($data as $field => $value) {
