@@ -125,7 +125,7 @@ class CommercialPolicyWorkspace extends Component
     public function exportExcel()
     {
         $award=$this->award(); $ids=app(DrugBidAwardResultGroupService::class)->awardsQuery($award)->pluck('id');
-        $products=DrugBidAward::query()->whereIn('id',$ids)->with(['allocations'=>fn($q)=>$q->where('status',DrugBidAwardAllocation::STATUS_ACTIVE)->with('partner')])->orderBy('id')->get();
+        $products=DrugBidAward::query()->whereIn('id',$ids)->with(['medicine','allocations'=>fn($q)=>$q->where('status',DrugBidAwardAllocation::STATUS_ACTIVE)->with('partner')])->orderBy('id')->get();
         $policies=DrugBidAwardProductPolicy::query()->whereIn('drug_bid_award_id',$ids)->pluck('commission_percentage','drug_bid_award_id');
         $assignments=DrugBidAwardManagementAssignment::query()->with('user')->whereIn('drug_bid_award_id',$ids)->get()->keyBy(fn($x)=>$x->drug_bid_award_id.':'.$x->partner_id);
         $rows=collect();
@@ -134,7 +134,7 @@ class CommercialPolicyWorkspace extends Component
             foreach($allocations as $allocation){
                 $assignment=$allocation?$assignments->get($product->id.':'.$allocation->partner_id):null;
                 $rows->push([
-                    'Mã TBMT'=>$product->bidding_notice_code,'Award ID'=>$product->id,'Mã hàng'=>$product->medicine_code,
+                    'Mã TBMT'=>$product->bidding_notice_code,'Award ID'=>$product->id,'Mã thuốc chuẩn'=>$product->medicine?->medicine_code,
                     'Sản phẩm'=>$product->medicine_name,'Số lượng trúng'=>(float)$product->quantity,'Đơn giá trúng'=>(float)($product->winning_price ?? $product->unit_price ?? 0),
                     'Chính sách (%)'=>isset($policies[$product->id])?(float)$policies[$product->id]:null,
                     'Bệnh viện ID'=>$allocation?->partner_id,'Bệnh viện'=>$allocation?->partner?->name,
@@ -186,9 +186,24 @@ class CommercialPolicyWorkspace extends Component
         $award=$this->award(); $group=app(DrugBidAwardResultGroupService::class); $awardIds=$group->awardsQuery($award)->pluck('id');
         $products=$this->productsQuery()->with(['allocations'=>fn($q)=>$q->where('status',DrugBidAwardAllocation::STATUS_ACTIVE)->with('partner')])->get();
         $partners=DrugBidAwardAllocation::query()->with('partner')->whereIn('drug_bid_award_id',$awardIds)->where('status',DrugBidAwardAllocation::STATUS_ACTIVE)->get()->pluck('partner')->filter()->unique('id')->sortBy('name')->values();
-        $assignments=DrugBidAwardManagementAssignment::query()->with(['user','partner'])->whereIn('drug_bid_award_id',$awardIds)->where('status',DrugBidAwardManagementAssignment::STATUS_ACTIVE)->get()->keyBy(fn($row)=>$row->drug_bid_award_id.':'.$row->partner_id);
+        $assignmentRows=DrugBidAwardManagementAssignment::query()->with(['user','partner'])->whereIn('drug_bid_award_id',$awardIds)->where('status',DrugBidAwardManagementAssignment::STATUS_ACTIVE)->get();
+        $assignments=$assignmentRows->keyBy(fn($row)=>$row->drug_bid_award_id.':'.$row->partner_id);
+        $activeAllocationCount=DrugBidAwardAllocation::query()->whereIn('drug_bid_award_id',$awardIds)->where('status',DrugBidAwardAllocation::STATUS_ACTIVE)->count();
+        $assignmentSummary=[
+            'assigned'=>$assignmentRows->count(),
+            'total'=>$activeAllocationCount,
+            'users'=>$assignmentRows->pluck('user_id')->unique()->count(),
+            'hospitals'=>$assignmentRows->pluck('partner_id')->unique()->count(),
+        ];
+        $assignmentGroups=$assignmentRows->groupBy('user_id')->map(function($rows){
+            return [
+                'user'=>$rows->first()?->user,
+                'assignments'=>$rows->count(),
+                'hospitals'=>$rows->pluck('partner_id')->unique()->count(),
+            ];
+        })->values();
         $users=User::query()->where('is_active',true)->when(trim($this->userSearch)!=='',function($q){$like='%'.trim($this->userSearch).'%';$q->where(fn($n)=>$n->where('name','like',$like)->orWhere('email','like',$like));})->orderBy('name')->limit(50)->get(['id','name','email']);
-        return view('Pharma::livewire.drug-bid-award.commercial-policy-workspace',compact('award','products','partners','assignments','users'));
+        return view('Pharma::livewire.drug-bid-award.commercial-policy-workspace',compact('award','products','partners','assignments','users','assignmentSummary','assignmentGroups'));
     }
 
     private function productsQuery()
