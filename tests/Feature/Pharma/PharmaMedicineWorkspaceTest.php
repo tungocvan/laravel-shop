@@ -66,8 +66,8 @@ class PharmaMedicineWorkspaceTest extends TestCase
         $this->assertStringContainsString("\$canDelete = \$admin?->can('delete_pharma') ?? false;", $view);
         $this->assertStringContainsString('wire:confirm="Xóa các thuốc được chọn?"', $view);
         $this->assertStringContainsString('$canSelect = $canEdit || $canDelete;', $view);
-        $this->assertStringContainsString("'selected_ids' => \$selectedIds", $view);
-        $this->assertStringContainsString("'profile_status' => \$filterProfileStatus", $view);
+        $this->assertStringContainsString('wire:model.live="selectedIds"', $view);
+        $this->assertStringContainsString('wire:model.live="filterProfileStatus"', $view);
     }
 
     public function test_workspace_preserves_existing_named_routes_and_admin_navigation(): void
