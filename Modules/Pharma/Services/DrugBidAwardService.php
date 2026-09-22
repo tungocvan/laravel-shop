@@ -168,6 +168,18 @@ class DrugBidAwardService
     {
         return DB::transaction(function () use ($representativeId, $productId, $data): DrugBidAward {
             $product = $this->findProductInResultGroupOrFail($representativeId, $productId);
+
+            if (array_key_exists('medicine_id', $data)) {
+                if ($data['medicine_id']) {
+                    $medicine = \Modules\Pharma\Models\Medicine::query()->findOrFail((int) $data['medicine_id']);
+                    $data['medicine_code'] = $medicine->medicine_code;
+                    $data['medicine_match_status'] = DrugBidAward::MATCH_VERIFIED;
+                } else {
+                    $data['medicine_code'] = null;
+                    $data['medicine_match_status'] = DrugBidAward::MATCH_UNRESOLVED;
+                }
+            }
+
             $product->update($data);
 
             return $product->refresh();
