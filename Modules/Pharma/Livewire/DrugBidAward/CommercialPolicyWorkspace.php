@@ -184,7 +184,7 @@ class CommercialPolicyWorkspace extends Component
     public function render()
     {
         $award=$this->award(); $group=app(DrugBidAwardResultGroupService::class); $awardIds=$group->awardsQuery($award)->pluck('id');
-        $products=$this->productsQuery()->with(['allocations'=>fn($q)=>$q->where('status',DrugBidAwardAllocation::STATUS_ACTIVE)->with('partner')])->get();
+        $products=$this->productsQuery()->with(['medicine','canonicalMatch.medicine','allocations'=>fn($q)=>$q->where('status',DrugBidAwardAllocation::STATUS_ACTIVE)->with('partner')])->get();
         $partners=DrugBidAwardAllocation::query()->with('partner')->whereIn('drug_bid_award_id',$awardIds)->where('status',DrugBidAwardAllocation::STATUS_ACTIVE)->get()->pluck('partner')->filter()->unique('id')->sortBy('name')->values();
         $assignmentRows=DrugBidAwardManagementAssignment::query()->with(['user','partner'])->whereIn('drug_bid_award_id',$awardIds)->where('status',DrugBidAwardManagementAssignment::STATUS_ACTIVE)->get();
         $assignments=$assignmentRows->keyBy(fn($row)=>$row->drug_bid_award_id.':'.$row->partner_id);
