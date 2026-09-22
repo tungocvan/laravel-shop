@@ -25,10 +25,14 @@
         if ($durationOnly) {
             return $durationMonths;
         }
-        if (! $award->decision_date || ! $durationMonths) {
+        if (! $durationMonths) {
             return null;
         }
-        $endDate = \Carbon\Carbon::parse($award->decision_date)->addMonthsNoOverflow($durationMonths)->endOfDay();
+        $contractStart = $award->decision_date ?: $award->published_at;
+        if (! $contractStart) {
+            return null;
+        }
+        $endDate = \Carbon\Carbon::parse($contractStart)->addMonthsNoOverflow($durationMonths)->endOfDay();
         if (now()->greaterThanOrEqualTo($endDate)) {
             return 0;
         }
@@ -87,8 +91,14 @@
 
     <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4"><div><h2 class="font-semibold text-slate-950">Danh sách kết quả trúng thầu</h2><p class="mt-1 text-xs text-slate-500">{{ number_format($awards->total()) }} mã TBMT · Trang {{ $currentPage }}/{{ max(1, $lastPage) }}</p></div><div wire:loading class="text-sm font-semibold text-indigo-600">Đang tải...</div></div>
+        @if($selectedIds !== [])
+            <div class="flex items-center justify-between border-b border-indigo-100 bg-indigo-50/60 px-4 py-3 text-sm">
+                <span class="font-semibold text-indigo-900">Đã chọn {{ count($selectedIds) }} TBMT trên trang hiện tại</span>
+                <span class="text-xs text-indigo-700">Sẵn sàng dùng cho Export/Import và thao tác hàng loạt ở bước tiếp theo.</span>
+            </div>
+        @endif
         <div class="overflow-x-auto"><table class="min-w-[1180px] w-full divide-y divide-slate-200 text-left text-sm">
-            <thead class="bg-slate-50 text-xs font-semibold uppercase text-slate-600"><tr><th class="px-4 py-3">Mã TBMT</th><th class="px-4 py-3">Chủ đầu tư</th><th class="px-4 py-3">Quyết định</th><th class="px-4 py-3 text-right">Sản phẩm</th><th class="px-4 py-3 text-right">Giá trị</th><th class="px-4 py-3">Thời gian HĐ</th><th class="px-4 py-3">Còn lại HĐ</th><th class="px-4 py-3">Trạng thái thiết lập</th><th class="px-4 py-3 text-right">Thao tác</th></tr></thead>
+            <thead class="bg-slate-50 text-xs font-semibold uppercase text-slate-600"><tr><th class="w-12 px-4 py-3 text-center"><input type="checkbox" wire:model.live="selectPage" aria-label="Chọn tất cả TBMT trên trang" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"></th><th class="px-4 py-3">Mã TBMT</th><th class="px-4 py-3">Chủ đầu tư</th><th class="px-4 py-3">Quyết định</th><th class="px-4 py-3 text-right">Sản phẩm</th><th class="px-4 py-3 text-right">Giá trị</th><th class="px-4 py-3">Thời gian HĐ</th><th class="px-4 py-3">Còn lại HĐ</th><th class="px-4 py-3">Trạng thái thiết lập</th><th class="px-4 py-3 text-right">Thao tác</th></tr></thead>
             <tbody class="divide-y divide-slate-100">
             @forelse ($awards as $award)
                 <tr class="align-top hover:bg-slate-50">
@@ -99,17 +109,17 @@
                     <td class="px-4 py-4 text-right font-semibold text-indigo-700">{{ number_format((float) $award->total_value, 0, ',', '.') }} VNĐ</td>
                     <td class="px-4 py-4"><div class="font-semibold text-slate-800">{{ ($duration = $remainingContractMonths($award, true)) !== null ? $duration.' tháng' : ($award->contract_period_text ?: '—') }}</div></td>
                     @php($remainingMonths = $remainingContractMonths($award))
-                    <td class="px-4 py-4" title="Ước tính từ ngày quyết định và thời gian thực hiện hợp đồng">
+                    <td class="px-4 py-4" title="Ước tính từ ngày quyết định; nếu nguồn không có ngày quyết định thì dùng ngày công bố và thời gian thực hiện hợp đồng">
                         @if($remainingMonths === null)<span class="text-slate-400">—</span>
                         @elseif($remainingMonths === 0)<span class="inline-flex rounded-full bg-rose-100 px-2.5 py-1 text-xs font-bold text-rose-800">Hết hiệu lực HĐ</span>
                         @elseif($remainingMonths <= 3)<span class="inline-flex rounded-full bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-700">{{ str_pad((string)$remainingMonths, 2, '0', STR_PAD_LEFT) }} tháng</span>
                         @else<span class="font-semibold text-slate-700">{{ str_pad((string)$remainingMonths, 2, '0', STR_PAD_LEFT) }} tháng</span>@endif
                     </td>
                     <td class="px-4 py-4"><div class="flex flex-col items-start gap-1.5"><span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ (int)$award->allocated_product_count > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600' }}">Phân bổ: {{ (int)$award->allocated_product_count > 0 ? 'Đã thiết lập' : 'Chưa thiết lập' }}</span><span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ (int)$award->managed_product_count > 0 ? 'bg-sky-50 text-sky-700' : 'bg-slate-100 text-slate-600' }}">CSKD: {{ (int)$award->managed_product_count > 0 ? 'Đã thiết lập' : 'Chưa thiết lập' }}</span></div></td>
-                    <td class="px-4 py-4 text-right"><div class="flex justify-end gap-2">@if ($canViewAllocations)<a href="{{ route('admin.pharma.drug-bid-awards.allocations', $award->representative_id) }}" class="inline-flex min-h-10 items-center rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700">Xem sản phẩm / Phân bổ</a>@endif @if($canViewCommercialPolicies)<a href="{{ route('admin.pharma.drug-bid-awards.commercial-policy', $award->representative_id) }}" class="inline-flex min-h-10 items-center rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-xs font-semibold text-indigo-700">Chính sách kinh doanh</a>@endif</div></td>
+                    <td class="px-4 py-4 text-right"><div class="flex flex-wrap justify-end gap-2">@if($canEdit)<button type="button" wire:click="editResultGroup({{ $award->id }})" class="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-100">Sửa</button>@endif@if ($canViewAllocations)<a href="{{ route('admin.pharma.drug-bid-awards.allocations', $award->representative_id) }}" class="inline-flex min-h-10 items-center rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700">Xem sản phẩm / Phân bổ</a>@endif @if($canViewCommercialPolicies)<a href="{{ route('admin.pharma.drug-bid-awards.commercial-policy', $award->representative_id) }}" class="inline-flex min-h-10 items-center rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-xs font-semibold text-indigo-700">Chính sách kinh doanh</a>@endif</div></td>
                 </tr>
             @empty
-                <tr><td colspan="9" class="px-6 py-12 text-center text-slate-500">Không có kết quả phù hợp.</td></tr>
+                <tr><td colspan="10" class="px-6 py-12 text-center text-slate-500">Không có kết quả phù hợp.</td></tr>
             @endforelse
             </tbody>
         </table></div>
