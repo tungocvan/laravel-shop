@@ -179,20 +179,25 @@ class Form extends Component
             return;
         }
 
-        $data = $this->validate([
-            'medicine_id' => 'nullable|exists:pharma_medicines,id',
-            'medicine_name' => 'required|string|max:255',
-            'packaging_specification' => 'required|string|max:255',
-            'quantity' => 'required|integer|min:1',
-            'unit_price' => 'required|numeric|min:0',
-            'winning_company_name' => 'required|string|max:255',
-        ]);
-
         try {
+            $data = $this->validate([
+                'medicine_id' => 'nullable|exists:pharma_medicines,id',
+                'medicine_name' => 'required|string|max:255',
+                'packaging_specification' => 'required|string|max:255',
+                'quantity' => 'required|integer|min:1',
+                'unit_price' => 'required|numeric|min:0',
+                'winning_company_name' => 'required|string|max:255',
+            ]);
+
             $service->updateProductInResultGroup($this->awardId, $this->editingProductId, $data);
             $this->editingProductId = null;
             $this->productSaveModalType = 'success';
             $this->productSaveModalMessage = 'Cập nhật sản phẩm trúng thầu thành công.';
+            $this->productSaveModal = true;
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $this->productSaveModalType = 'error';
+            $this->productSaveModalMessage = collect($exception->errors())->flatten()->first()
+                ?? 'Dữ liệu sản phẩm chưa hợp lệ. Vui lòng kiểm tra lại.';
             $this->productSaveModal = true;
         } catch (Exception $exception) {
             report($exception);
