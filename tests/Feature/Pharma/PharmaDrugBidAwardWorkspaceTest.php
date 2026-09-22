@@ -129,11 +129,19 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
 
         $this->assertStringContainsString("\$canEdit = \$admin?->can('edit_pharma') ?? false;", $view);
         $this->assertStringContainsString("'permission' => 'edit_pharma'", $view);
-        $this->assertStringNotContainsString("'selected_ids' => \$selectedIds", $view);
+        $this->assertStringContainsString("'selected_ids' => \$selectedIds", $view);
         $this->assertStringContainsString("'medicine_match_status' => \$filterMatchStatus", $view);
         $this->assertStringContainsString('$selectedIds = $this->selectedIds($filters);', $export);
         $this->assertStringContainsString("when(\$filters['medicine_match_status'] ?? null", $export);
-        $this->assertStringContainsString("'Nguồn dữ liệu' => \$model->source_type", $export);
+        $this->assertStringContainsString("'Mã TBMT' => \$model->bidding_notice_code", $export);
+        $this->assertStringContainsString("'Mã sản phẩm chuẩn' => \$medicineCode", $export);
+        $this->assertStringContainsString("'Số lượng trúng' =>", $export);
+        $this->assertStringContainsString("'Đơn giá trúng' =>", $export);
+        $this->assertStringContainsString("'Giá trị' =>", $export);
+        $this->assertStringContainsString("whereIn('bidding_notice_code', \$tbmtCodes)", $export);
+        $this->assertStringContainsString("where('medicine_code', \$medicineCode)", $export);
+        $this->assertStringContainsString("'A' => 'bidding_notice_code'", $export);
+        $this->assertStringContainsString("'N' => 'decision_document_url'", $export);
         $this->assertStringNotContainsString('raw_payload', $export);
     }
 
