@@ -186,7 +186,7 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString('Export Excel', $view);
         $this->assertStringContainsString('wire:click="clearAwardSelection"', $view);
         $this->assertStringNotContainsString('Sẵn sàng dùng cho Export/Import', $view);
-        $this->assertStringContainsString('Trạng thái thiết lập', $view);
+        $this->assertStringContainsString('>Thiết lập</th>', $view);
         $this->assertStringContainsString('Phân bổ:', $view);
         $this->assertStringContainsString('CSKD:', $view);
         $this->assertStringNotContainsString('<th class="px-4 py-3">Nhà thầu trúng</th>', $view);
