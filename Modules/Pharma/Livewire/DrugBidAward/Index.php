@@ -8,6 +8,7 @@ use Modules\Pharma\Integrations\Muasamcong\MuasamcongDrugAwardSyncService;
 use Modules\Pharma\Livewire\Concerns\AuthorizesPharmaActions;
 use Modules\Pharma\Models\DrugBidAward;
 use Modules\Pharma\Services\DrugBidAwardService;
+use Modules\Pharma\Services\DrugBidAwardImportExport;
 
 class Index extends Component
 {
@@ -146,6 +147,27 @@ class Index extends Component
     {
         $this->clearSelection();
     }
+
+    public function exportSelectedAwards(DrugBidAwardImportExport $exportService)
+    {
+        $this->authorizePharmaEdit();
+        $this->updatedSelectedIds();
+
+        if ($this->selectedIds === []) {
+            session()->flash('error', 'Vui lòng chọn ít nhất một TBMT để export.');
+
+            return null;
+        }
+
+        $path = $exportService->export([
+            'selected_ids' => $this->selectedIds,
+        ]);
+
+        return response()
+            ->download($exportService->exportAbsolutePath($path), basename($path))
+            ->deleteFileAfterSend(true);
+    }
+
 
     public function editResultGroup(int $representativeId)
     {
