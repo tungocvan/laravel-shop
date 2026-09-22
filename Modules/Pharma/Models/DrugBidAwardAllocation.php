@@ -5,6 +5,7 @@ namespace Modules\Pharma\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Modules\Pharma\Models\DrugBidAwardManagementAssignment;
 use Modules\Partner\Models\Partner;
 
 class DrugBidAwardAllocation extends Model
@@ -36,6 +37,12 @@ class DrugBidAwardAllocation extends Model
     public function partner(): BelongsTo
     {
         return $this->belongsTo(Partner::class, 'partner_id');
+    }
+
+    public function managementAssignments(): HasMany
+    {
+        return $this->hasMany(DrugBidAwardManagementAssignment::class, 'partner_id', 'partner_id')
+            ->whereColumn('pharma_drug_bid_award_management_assignments.drug_bid_award_id', 'pharma_drug_bid_award_allocations.drug_bid_award_id');
     }
 
     public function contracts(): HasMany
