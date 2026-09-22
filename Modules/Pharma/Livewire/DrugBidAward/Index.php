@@ -248,6 +248,21 @@ class Index extends Component
         }
     }
 
+    public function deleteResultGroup(DrugBidAwardService $service, int $representativeId): void
+    {
+        $this->authorizePharmaDelete();
+
+        try {
+            $deleted = $service->deleteResultGroup($representativeId);
+            $this->page = 1;
+            $this->clearSelection();
+            session()->flash('success', "Đã xóa TBMT và {$deleted} sản phẩm trúng thầu liên quan.");
+        } catch (Exception $exception) {
+            report($exception);
+            session()->flash('error', 'Không thể xóa TBMT này. Vui lòng kiểm tra dữ liệu phân bổ hoặc dữ liệu liên quan.');
+        }
+    }
+
     public function deleteSelected(DrugBidAwardService $service): void
     {
         $this->authorizePharmaDelete();
