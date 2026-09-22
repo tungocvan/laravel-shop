@@ -3,6 +3,7 @@
 namespace Modules\Pharma\Services;
 
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use LogicException;
@@ -121,6 +122,56 @@ class DrugBidAwardService
         $data['source_id'] = null;
 
         return DB::transaction(fn () => DrugBidAward::query()->create($data));
+    }
+
+    public function productsForResultGroup(int $representativeId): Collection
+    {
+        $representative = $this->findOrFail($representativeId);
+
+        return DrugBidAward::query()
+            ->with('medicine')
+            ->when(
+                filled($representative->bidding_notice_code),
+                fn ($query) => $query->where('bidding_notice_code', $representative->bidding_notice_code),
+                fn ($query) => $query->whereKey($representative->id)
+            )
+            ->orderByRaw("CASE WHEN lot_no IS NULL OR lot_no = '' THEN 1 ELSE 0 END")
+            ->orderBy('lot_no')
+            ->orderBy('id')
+            ->get();
+    }
+
+    public function findProductInResultGroupOrFail(int $representativeId, int $productId): DrugBidAward
+    {
+        $product = $this->productsForResultGroup($representativeId)->firstWhere('id', $productId);
+
+        abort_unless($product, 404);
+
+        return $product;
+    }
+
+    public function updateResultGroupLegalInfo(int $representativeId, array $data): void
+    {
+        DB::transaction(function () use ($representativeId, $data): void {
+            $representative = $this->findOrFail($representativeId);
+            DrugBidAward::query()
+                ->when(
+                    filled($representative->bidding_notice_code),
+                    fn ($query) => $query->where('bidding_notice_code', $representative->bidding_notice_code),
+                    fn ($query) => $query->whereKey($representative->id)
+                )
+                ->update($data);
+        });
+    }
+
+    public function updateProductInResultGroup(int $representativeId, int $productId, array $data): DrugBidAward
+    {
+        return DB::transaction(function () use ($representativeId, $productId, $data): DrugBidAward {
+            $product = $this->findProductInResultGroupOrFail($representativeId, $productId);
+            $product->update($data);
+
+            return $product->refresh();
+        });
     }
 
     public function update(int $id, array $data): DrugBidAward
