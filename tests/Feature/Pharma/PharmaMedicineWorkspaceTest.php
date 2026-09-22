@@ -15,7 +15,7 @@ class PharmaMedicineWorkspaceTest extends TestCase
         $this->assertStringNotContainsString("'All'", $component);
         $this->assertStringNotContainsString('999999', $component);
         $this->assertStringNotContainsString('Hiển thị tất cả', $view);
-        $this->assertStringContainsString('@foreach ($perPageOptions as $option)', $view);
+        $this->assertStringContainsString('@foreach($perPageOptions as $option)', $view);
     }
 
     public function test_selection_is_page_scoped_and_resets_when_workspace_context_changes(): void
@@ -38,11 +38,11 @@ class PharmaMedicineWorkspaceTest extends TestCase
         $this->assertStringContainsString('public string $filterProfileStatus =', $component);
         $this->assertStringContainsString('Medicine::PROFILE_INCOMPLETE', $component);
         $this->assertStringContainsString('Medicine::PROFILE_NEEDS_REVIEW', $component);
-        $this->assertStringContainsString("->withCount(['sources', 'drugBidAwards'])", $service);
+        $this->assertStringContainsString("->withCount(['sources', 'drugBidAwards', 'variants', 'profiles', 'supplierTrackings', 'priceListItems'])", $service);
         $this->assertStringContainsString("->when(\$profileStatus", $service);
-        $this->assertStringContainsString('Data Quality filters', $view);
+        $this->assertStringContainsString('Chất lượng master', $view);
         $this->assertStringContainsString('{{ $medicine->sources_count }} nguồn', $view);
-        $this->assertStringContainsString('{{ $medicine->drug_bid_awards_count }} kết quả trúng thầu', $view);
+        $this->assertStringContainsString('{{ $medicine->drug_bid_awards_count }} awards', $view);
     }
 
     public function test_workspace_search_covers_product_identity_fields(): void
@@ -54,8 +54,8 @@ class PharmaMedicineWorkspaceTest extends TestCase
         $this->assertStringContainsString("orWhere('concentration', 'like'", $service);
         $this->assertStringContainsString("orWhere('manufacturing_company', 'like'", $service);
         $this->assertStringContainsString("orWhere('manufacturing_country', 'like'", $service);
-        $this->assertStringContainsString('SĐK', $view);
-        $this->assertStringContainsString('NSX', $view);
+        $this->assertStringContainsString('GPLH', $view);
+        $this->assertStringContainsString('Nhà cung cấp', $view);
     }
 
     public function test_destructive_and_export_controls_are_permission_aware(): void
@@ -64,7 +64,7 @@ class PharmaMedicineWorkspaceTest extends TestCase
 
         $this->assertStringContainsString("\$canEdit = \$admin?->can('edit_pharma') ?? false;", $view);
         $this->assertStringContainsString("\$canDelete = \$admin?->can('delete_pharma') ?? false;", $view);
-        $this->assertStringContainsString('wire:confirm="Xóa vĩnh viễn các hồ sơ thuốc đã chọn trên trang hiện tại?"', $view);
+        $this->assertStringContainsString('wire:confirm="Xóa các thuốc được chọn?"', $view);
         $this->assertStringContainsString("'permission' => 'edit_pharma'", $view);
         $this->assertStringContainsString("'selected_ids' => \$selectedIds", $view);
         $this->assertStringContainsString("'profile_status' => \$filterProfileStatus", $view);
@@ -76,8 +76,8 @@ class PharmaMedicineWorkspaceTest extends TestCase
         $page = file_get_contents(base_path('Modules/Pharma/resources/views/pages/index.blade.php'));
 
         $this->assertStringContainsString("route('admin.pharma.hssp.create')", $view);
-        $this->assertStringContainsString("route('admin.pharma.hssp.edit', \$medicine->id)", $view);
-        $this->assertStringContainsString('MedicineImportExport::class', $view);
+        $this->assertStringContainsString("route('admin.pharma.hssp.edit', [\$medicine->id, \$medicine->currentProfile->id])", $view);
+        $this->assertStringContainsString("route('admin.pharma.medicines.import.index')", $view);
         $this->assertStringContainsString("route('admin.pharma.dashboard')", $page);
         $this->assertStringContainsString('Quay về Dashboard Pharma', $page);
     }
@@ -95,7 +95,7 @@ class PharmaMedicineWorkspaceTest extends TestCase
             'Modules/Pharma/resources/views/pages/supplier-trackings/create.blade.php',
             'Modules/Pharma/resources/views/pages/supplier-trackings/edit.blade.php',
             'Modules/Pharma/resources/views/pages/supplier-trackings/show.blade.php',
-            'Modules/Pharma/resources/views/pages/price-list/create.blade.php',
+            'Modules/Pharma/resources/views/pages/price-list/index.blade.php',
         ];
 
         $this->assertStringContainsString("route('admin.pharma.dashboard')", $partial);
