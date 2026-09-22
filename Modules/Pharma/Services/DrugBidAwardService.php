@@ -66,6 +66,7 @@ class DrugBidAwardService
         ?string $sourceType = null,
         ?string $matchStatus = null,
         ?string $tbmt = null,
+        ?string $valueSort = null,
     ): LengthAwarePaginator {
         $groupKey = "COALESCE(NULLIF(bidding_notice_code, ''), CONCAT('award-', id))";
 
@@ -83,6 +84,12 @@ class DrugBidAwardService
             ->selectRaw('COUNT(DISTINCT NULLIF(winning_company_name, \'\')) as contractor_count')
             ->selectRaw('MAX(winning_company_name) as winning_company_name')
             ->selectRaw('MAX(published_at) as latest_published_at')
+            ->selectRaw('MAX(contract_duration_months) as contract_duration_months')
+            ->selectRaw('MAX(contract_period) as contract_period')
+            ->selectRaw('MAX(contract_period_unit) as contract_period_unit')
+            ->selectRaw('MAX(contract_period_text) as contract_period_text')
+            ->selectRaw('(SELECT COUNT(*) FROM pharma_drug_bid_award_allocations a WHERE a.drug_bid_award_id IN (SELECT x.id FROM pharma_drug_bid_awards x WHERE COALESCE(NULLIF(x.bidding_notice_code, \'\'), CONCAT(\'award-\', x.id)) = '.$groupKey.') AND a.status = \'active\') as allocation_count')
+            ->selectRaw('(SELECT COUNT(*) FROM pharma_drug_bid_award_management_assignments m WHERE m.drug_bid_award_id IN (SELECT x.id FROM pharma_drug_bid_awards x WHERE COALESCE(NULLIF(x.bidding_notice_code, \'\'), CONCAT(\'award-\', x.id)) = '.$groupKey.') AND m.status = \'active\') as management_assignment_count')
             ->when($search, fn ($query, $value) => $query->where(fn ($nested) => $nested
                 ->where('medicine_name', 'like', "%{$value}%")
                 ->orWhere('active_ingredient', 'like', "%{$value}%")
@@ -95,6 +102,8 @@ class DrugBidAwardService
             ->when($sourceType, fn ($query, $value) => $query->where('source_type', $value))
             ->when($matchStatus, fn ($query, $value) => $query->where('medicine_match_status', $value))
             ->groupByRaw($groupKey)
+            ->when($valueSort === 'desc', fn ($query) => $query->orderByDesc('total_value'))
+            ->when($valueSort === 'asc', fn ($query) => $query->orderBy('total_value'))
             ->orderByDesc('latest_published_at')
             ->orderByDesc('representative_id')
             ->paginate($perPage, ['*'], 'page', max(1, $page));
