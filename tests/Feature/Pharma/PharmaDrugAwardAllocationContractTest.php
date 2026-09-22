@@ -73,7 +73,7 @@ class PharmaDrugAwardAllocationContractTest extends TestCase
         $this->assertStringContainsString('$this->selectedIds = $value ? $this->currentPageIds() : [];', $component);
         $this->assertStringContainsString('can:view_pharma_allocations', $route);
         $this->assertStringContainsString("can('view_pharma_allocations')", $index);
-        $this->assertStringContainsString('Xem sản phẩm / Phân bổ', $index);
+        $this->assertStringContainsString('Sản phẩm / Phân bổ', $index);
         $this->assertStringNotContainsString('Hiển thị tất cả', $component);
     }
 
