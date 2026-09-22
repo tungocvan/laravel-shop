@@ -190,6 +190,12 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString('Sản phẩm / Phân bổ', $view);
         $this->assertStringContainsString('aria-label="Thêm thao tác"', $view);
         $this->assertStringContainsString('Export Excel', $view);
+        $this->assertStringContainsString('wire:click="exportSelectedAwards"', $view);
+        $this->assertStringContainsString('wire:target="exportSelectedAwards"', $view);
+        $this->assertStringContainsString('exportSelectedAwards(DrugBidAwardImportExport $exportService)', $component);
+        $this->assertStringContainsString("'selected_ids' => \$this->selectedIds", $component);
+        $this->assertStringContainsString('->download($exportService->exportAbsolutePath($path), basename($path))', $component);
+        $this->assertStringNotContainsString('wire:click="$set(\'showImportExport\', true)" class="inline-flex min-h-10', $view);
         $this->assertStringContainsString('wire:click="clearAwardSelection"', $view);
         $this->assertStringContainsString('@if($selectedIds !== [])', $view);
         $this->assertStringContainsString('Đã chọn {{ count($selectedIds) }} TBMT', $view);
