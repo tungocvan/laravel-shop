@@ -6,8 +6,13 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
+use Modules\Partner\Models\Partner;
 use Modules\Pharma\Models\DrugBidAward;
+use Modules\Pharma\Models\DrugBidAwardAllocation;
 use Modules\Pharma\Models\Medicine;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Modules\Shared\Services\ImportExport\BaseImportExportService;
 
 class DrugBidAwardImportExport extends BaseImportExportService
@@ -63,6 +68,153 @@ class DrugBidAwardImportExport extends BaseImportExportService
             'M' => 'medicine_match_status',
             'N' => 'decision_document_url',
         ];
+    }
+
+    public function export(array $filters = []): string
+    {
+        $path = $this->makeExportPath(class_basename($this->modelClass()));
+        $awards = $this->exportRows($filters);
+
+        $spreadsheet = new Spreadsheet;
+        $productSheet = $spreadsheet->getActiveSheet();
+        $productSheet->setTitle('Sản phẩm trúng thầu');
+
+        $productRows = $awards->map(fn (DrugBidAward $award): array => $this->mapExportRow($award))->values();
+        $this->writeWorksheet($productSheet, $productRows);
+
+        $awardIds = $awards->pluck('id')->map(fn ($id): int => (int) $id)->all();
+        $allocations = $awardIds === []
+            ? collect()
+            : DrugBidAwardAllocation::query()
+                ->with(['award.medicine', 'partner'])
+                ->whereIn('drug_bid_award_id', $awardIds)
+                ->orderBy('drug_bid_award_id')
+                ->orderBy('partner_id')
+                ->get();
+
+        if ($allocations->isNotEmpty()) {
+            $allocationSheet = $spreadsheet->createSheet();
+            $allocationSheet->setTitle('Phân bổ bệnh viện');
+            $allocationRows = $allocations->map(fn (DrugBidAwardAllocation $allocation): array => $this->mapAllocationExportRow($allocation))->values();
+            $this->writeWorksheet($allocationSheet, $allocationRows);
+        }
+
+        (new Xlsx($spreadsheet))->save($this->exportAbsolutePath($path));
+        $spreadsheet->disconnectWorksheets();
+
+        return $path;
+    }
+
+    public function import(string $filePath, array $options = []): array
+    {
+        $report = parent::import($filePath, $options);
+
+        if (($report['success'] ?? false) !== true
+            || (bool) ($options['dry_run'] ?? false)
+            || strtolower(pathinfo($filePath, PATHINFO_EXTENSION)) !== 'xlsx') {
+            return $report;
+        }
+
+        try {
+            $spreadsheet = IOFactory::load($filePath);
+            $sheet = $spreadsheet->getSheetByName('Phân bổ bệnh viện');
+
+            if (! $sheet) {
+                $spreadsheet->disconnectWorksheets();
+
+                return $report;
+            }
+
+            $rows = $sheet->toArray(null, true, true, false);
+            $headers = array_map(fn ($value): string => trim((string) $value), array_shift($rows) ?? []);
+            $allocationService = app(DrugBidAwardAllocationService::class);
+            $adminId = auth('admin')->id();
+
+            foreach ($rows as $index => $values) {
+                if (count(array_filter($values, fn ($value) => $value !== null && $value !== '')) === 0) {
+                    continue;
+                }
+
+                $row = array_combine($headers, array_pad($values, count($headers), null));
+                $tbmt = trim((string) ($row['Mã TBMT'] ?? ''));
+                $medicineCode = trim((string) ($row['Mã sản phẩm chuẩn'] ?? ''));
+                $medicineName = trim((string) ($row['Tên sản phẩm'] ?? ''));
+                $partnerId = (int) ($row['Partner ID'] ?? 0);
+                $quantity = $this->vietnameseNumber($row['Số lượng phân bổ'] ?? null);
+
+                $award = DrugBidAward::query()
+                    ->where('bidding_notice_code', $tbmt)
+                    ->when(
+                        $medicineCode !== '',
+                        fn ($query) => $query->where('medicine_code', $medicineCode),
+                        fn ($query) => $query->where('medicine_name', $medicineName)
+                    )
+                    ->first();
+
+                $partner = $partnerId > 0 ? Partner::query()->find($partnerId) : null;
+
+                if (! $award || ! $partner || $quantity === null || $quantity <= 0) {
+                    throw new \RuntimeException('Dòng '.($index + 2).' của sheet Phân bổ bệnh viện không xác định được sản phẩm, bệnh viện hoặc số lượng.');
+                }
+
+                $existingAllocationId = DrugBidAwardAllocation::query()
+                    ->where('drug_bid_award_id', $award->id)
+                    ->where('partner_id', $partner->id)
+                    ->value('id');
+
+                $allocationService->save($award->id, $existingAllocationId ? (int) $existingAllocationId : null, [
+                    'partner_id' => $partner->id,
+                    'allocated_quantity' => $quantity,
+                    'notes' => $row['Ghi chú'] ?? null,
+                ], $adminId);
+            }
+
+            $spreadsheet->disconnectWorksheets();
+
+            return $report;
+        } catch (\Throwable $exception) {
+            report($exception);
+            $this->addError('Phân bổ bệnh viện', null, null, 'Import sản phẩm thành công nhưng không thể import đầy đủ sheet phân bổ: '.$exception->getMessage());
+
+            return $this->report(false);
+        }
+    }
+
+    private function mapAllocationExportRow(DrugBidAwardAllocation $allocation): array
+    {
+        $award = $allocation->award;
+        $medicineCode = $award?->medicine?->medicine_code ?: $award?->medicine_code;
+
+        return [
+            'Mã TBMT' => $award?->bidding_notice_code,
+            'Mã sản phẩm chuẩn' => $medicineCode,
+            'Tên sản phẩm' => $award?->medicine_name,
+            'Partner ID' => $allocation->partner_id,
+            'Tên bệnh viện' => $allocation->partner?->name,
+            'Số lượng trúng' => $this->exportNumeric($award?->quantity),
+            'Số lượng phân bổ' => $this->exportNumeric($allocation->allocated_quantity),
+            'Trạng thái phân bổ' => $allocation->status,
+            'Hiệu lực từ' => $allocation->effective_from?->format('Y-m-d'),
+            'Hiệu lực đến' => $allocation->effective_until?->format('Y-m-d'),
+            'Ghi chú' => $allocation->notes,
+        ];
+    }
+
+    private function writeWorksheet(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet, Collection $rows): void
+    {
+        if ($rows->isEmpty()) {
+            return;
+        }
+
+        $headers = array_keys($rows->first());
+        $sheet->fromArray($headers, null, 'A1');
+
+        foreach ($rows as $index => $row) {
+            $sheet->fromArray(array_values($row), null, 'A'.($index + 2));
+        }
+
+        $sheet->freezePane('A2');
+        $sheet->setAutoFilter($sheet->calculateWorksheetDimension());
     }
 
     protected function normalizeRow(array $row): array
