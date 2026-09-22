@@ -35,7 +35,7 @@ class PharmaAdminDashboardTest extends TestCase
         $this->assertStringContainsString('DrugBidAward::class', $service);
         $this->assertStringContainsString('SupplierTracking::class', $service);
         $this->assertStringContainsString('PriceList::class', $service);
-        $this->assertStringContainsString("'price_lists' => $this->priceListSummary()", $service);
+        $this->assertStringContainsString("'price_lists' => \$this->priceListSummary()", $service);
     }
 
     public function test_quick_actions_are_permission_aware(): void
