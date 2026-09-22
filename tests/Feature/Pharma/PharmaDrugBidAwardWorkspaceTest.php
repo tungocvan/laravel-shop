@@ -20,7 +20,7 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString("COALESCE(NULLIF(bidding_notice_code, ''), CONCAT('award-', id))", $service);
         $this->assertStringContainsString("COUNT(*) as product_count", $service);
         $this->assertStringContainsString('Mỗi dòng là một mã thông báo mời thầu', $view);
-        $this->assertStringContainsString('Xem sản phẩm / Phân bổ', $view);
+        $this->assertStringContainsString('Sản phẩm / Phân bổ', $view);
         $this->assertStringContainsString('wire:click="toggleAwardSelection({{ $award->id }})"', $view);
         $this->assertStringContainsString('public function toggleAwardSelection(int $id): void', $component);
         $this->assertStringContainsString('@checked(in_array((string) $award->id', $view);
@@ -168,8 +168,8 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString('Tổng TBMT', $view);
         $this->assertStringContainsString('Tổng giá trị', $view);
         $this->assertStringContainsString('Cần hoàn thiện', $view);
-        $this->assertStringContainsString('Thời gian HĐ', $view);
-        $this->assertStringContainsString('Còn lại HĐ', $view);
+        $this->assertStringContainsString('>HĐ</th>', $view);
+        $this->assertStringContainsString('>Còn lại</th>', $view);
         $this->assertStringContainsString('$remainingContractMonths', $view);
         $this->assertStringContainsString('addMonthsNoOverflow', $view);
         $this->assertStringContainsString('$remainingMonths <= 3', $view);
