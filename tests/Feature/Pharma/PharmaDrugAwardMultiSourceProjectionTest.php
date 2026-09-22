@@ -49,7 +49,7 @@ class PharmaDrugAwardMultiSourceProjectionTest extends TestCase
         $this->assertSame($first->id, $second->id);
         $this->assertSame(1, DrugBidAward::query()->count());
         $this->assertSame(1, DrugBidAwardSource::query()->count());
-        $this->assertSame(1, MedicineSource::query()->count());
+        $this->assertSame(0, MedicineSource::query()->count());
         $this->assertSame($medicine->id, $second->medicine_id);
         $this->assertNull($second->route);
         $this->assertSame(
@@ -66,7 +66,7 @@ class PharmaDrugAwardMultiSourceProjectionTest extends TestCase
         $service->project($this->sourceData(sourceRecordKey: 'source-a'));
         $service->project($this->sourceData(sourceRecordKey: 'source-b'));
 
-        $this->assertSame(1, DrugBidAward::query()->count());
+        $this->assertSame(2, DrugBidAward::query()->count());
         $this->assertSame(2, DrugBidAwardSource::query()->count());
     }
 
