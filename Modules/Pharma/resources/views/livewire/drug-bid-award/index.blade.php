@@ -97,7 +97,7 @@
                 @if($selectedIds !== [])
                     <span class="rounded-full bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-800">Đã chọn {{ count($selectedIds) }} TBMT</span>
                     @if($canEdit)
-                        <button type="button" wire:click="$set('showImportExport', true)" class="inline-flex min-h-10 items-center rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700">Export Excel</button>
+                        <button type="button" wire:click="exportSelectedAwards" wire:loading.attr="disabled" wire:target="exportSelectedAwards" class="inline-flex min-h-10 items-center rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:cursor-wait disabled:opacity-60"><span wire:loading.remove wire:target="exportSelectedAwards">Export Excel</span><span wire:loading wire:target="exportSelectedAwards">Đang xuất...</span></button>
                     @endif
                     <button type="button" wire:click="clearAwardSelection" class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Bỏ chọn</button>
                 @endif
