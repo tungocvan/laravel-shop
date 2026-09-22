@@ -23,7 +23,7 @@
     </div>
     <div class="mt-4 flex flex-col gap-3 lg:flex-row lg:items-end">
         <label class="text-sm font-semibold text-slate-700 lg:w-64">Tìm sản phẩm
-            <input wire:model.live.debounce.300ms="productSearch" placeholder="Tên / mã hàng..." class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3">
+            <input wire:model.live.debounce.300ms="productSearch" placeholder="Tên / mã sản phẩm..." class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3">
         </label>
         @if($canManage)
         <label class="text-sm font-semibold text-slate-700 lg:w-48">Áp dụng nhanh (%)
@@ -40,7 +40,7 @@
             @foreach($products as $product)
                 <tr>
                     <td class="px-3 py-3"><input type="checkbox" wire:model="selectedPolicyAwardIds" value="{{ $product->id }}"></td>
-                    <td class="px-3 py-3"><p class="font-semibold text-slate-950">{{ $product->medicine_name ?: '—' }}</p><p class="text-xs text-slate-500">{{ $product->medicine_code ?: 'Chưa có mã hàng' }} · {{ $product->active_ingredient ?: '—' }}</p></td>
+                    <td class="px-3 py-3"><p class="font-semibold text-slate-950">{{ $product->medicine_name ?: '—' }}</p><p class="text-xs text-slate-500">{{ $product->medicine?->medicine_code ?? $product->canonicalMatch?->medicine?->medicine_code ?? 'Chưa có mã sản phẩm' }} · {{ $product->active_ingredient ?: '—' }}</p></td>
                     <td class="px-3 py-3 text-right font-semibold">{{ rtrim(rtrim(number_format((float)$product->quantity,4,',','.'),'0'),',') }}</td>
                     <td class="px-3 py-3 text-right font-semibold">{{ number_format((float)($product->winning_price ?? $product->unit_price ?? 0), 0, ',', '.') }}</td>
                     <td class="px-3 py-3 text-right font-semibold text-indigo-700">{{ rtrim(rtrim(number_format((float)$product->allocations->sum('allocated_quantity'),4,',','.'),'0'),',') }}</td>
@@ -123,7 +123,7 @@
                     @php($assignment = $assignments->get($product->id.':'.(int)$selectedPartnerId))
                     <tr>
                         <td class="px-3 py-3"><input type="checkbox" wire:model="selectedManagementAwardIds" value="{{ $product->id }}"></td>
-                        <td class="px-3 py-3"><p class="font-semibold text-slate-950">{{ $product->medicine_name ?: '—' }}</p><p class="text-xs text-slate-500">{{ $product->medicine_code ?: 'Chưa có mã hàng' }}</p></td>
+                        <td class="px-3 py-3"><p class="font-semibold text-slate-950">{{ $product->medicine_name ?: '—' }}</p><p class="text-xs text-slate-500">{{ $product->medicine?->medicine_code ?? $product->canonicalMatch?->medicine?->medicine_code ?? 'Chưa có mã sản phẩm' }}</p></td>
                         <td class="px-3 py-3 font-semibold">{{ isset($productPolicies[$product->id]) ? rtrim(rtrim(number_format((float)$productPolicies[$product->id],4,',','.'),'0'),',').'%' : 'Chưa thiết lập' }}</td>
                         <td class="px-3 py-3">@if($assignment)<span class="font-semibold text-slate-950">{{ $assignment->user?->name ?: 'User #'.$assignment->user_id }}</span>@else<span class="text-amber-700">Chưa phân công</span>@endif</td>
                         <td class="px-3 py-3 text-right">@if($canManage)<button wire:click="assignManager({{ $product->id }})" class="text-sm font-semibold text-indigo-700">{{ $assignment ? 'Đổi User' : 'Gán User' }}</button>@if($assignment)<button wire:click="removeManager({{ $assignment->id }})" wire:confirm="Bỏ phân công User này?" class="ml-3 text-sm font-semibold text-rose-700">Bỏ gán</button>@endif @endif</td>
