@@ -7,20 +7,23 @@
     $currentPage = $awards->currentPage();
     $lastPage = $awards->lastPage();
     $fmtQty = fn ($value) => rtrim(rtrim(number_format((float) $value, 4, ',', '.'), '0'), ',');
-    $remainingContractMonths = function ($award): ?int {
+    $remainingContractMonths = function ($award, bool $durationOnly = false): ?int {
         $durationMonths = null;
         if ((int) $award->contract_duration_months > 0) {
             $durationMonths = (int) $award->contract_duration_months;
         } elseif ((int) $award->contract_period > 0) {
             $unit = mb_strtolower(trim((string) $award->contract_period_unit));
             $period = (int) $award->contract_period;
-            if ($unit === '' || str_contains($unit, 'tháng') || str_contains($unit, 'month')) {
+            if ($unit === '' || in_array($unit, ['m', 'mo'], true) || str_contains($unit, 'tháng') || str_contains($unit, 'month')) {
                 $durationMonths = $period;
-            } elseif (str_contains($unit, 'năm') || str_contains($unit, 'year')) {
+            } elseif (in_array($unit, ['y', 'yr'], true) || str_contains($unit, 'năm') || str_contains($unit, 'year')) {
                 $durationMonths = $period * 12;
-            } elseif (str_contains($unit, 'ngày') || str_contains($unit, 'day')) {
-                $durationMonths = (int) ceil($period / 30);
+            } elseif (in_array($unit, ['d', 'day', 'days'], true) || str_contains($unit, 'ngày')) {
+                $durationMonths = max(1, (int) round($period / 30.4375));
             }
+        }
+        if ($durationOnly) {
+            return $durationMonths;
         }
         if (! $award->decision_date || ! $durationMonths) {
             return null;
@@ -94,7 +97,7 @@
                     <td class="px-4 py-4"><div class="font-medium">{{ $award->decision_number ?: '—' }}</div><div class="mt-1 text-xs text-slate-500">{{ $award->decision_date ? \Carbon\Carbon::parse($award->decision_date)->format('d/m/Y') : '—' }}</div></td>
                     <td class="px-4 py-4 text-right text-lg font-bold text-slate-950">{{ number_format((int) $award->product_count) }}</td>
                     <td class="px-4 py-4 text-right font-semibold text-indigo-700">{{ number_format((float) $award->total_value, 0, ',', '.') }} VNĐ</td>
-                    <td class="px-4 py-4"><div class="font-semibold text-slate-800">{{ $award->contract_duration_months ? $award->contract_duration_months.' tháng' : ($award->contract_period ? $award->contract_period.' '.($award->contract_period_unit ?: '') : ($award->contract_period_text ?: '—')) }}</div></td>
+                    <td class="px-4 py-4"><div class="font-semibold text-slate-800">{{ ($duration = $remainingContractMonths($award, true)) !== null ? $duration.' tháng' : ($award->contract_period_text ?: '—') }}</div></td>
                     @php($remainingMonths = $remainingContractMonths($award))
                     <td class="px-4 py-4" title="Ước tính từ ngày quyết định và thời gian thực hiện hợp đồng">
                         @if($remainingMonths === null)<span class="text-slate-400">—</span>
@@ -102,7 +105,7 @@
                         @elseif($remainingMonths <= 3)<span class="inline-flex rounded-full bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-700">{{ str_pad((string)$remainingMonths, 2, '0', STR_PAD_LEFT) }} tháng</span>
                         @else<span class="font-semibold text-slate-700">{{ str_pad((string)$remainingMonths, 2, '0', STR_PAD_LEFT) }} tháng</span>@endif
                     </td>
-                    <td class="px-4 py-4"><div class="flex flex-col items-start gap-1.5"><span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ (int)$award->allocation_count > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600' }}">Phân bổ: {{ (int)$award->allocation_count > 0 ? 'Đã thiết lập' : 'Chưa thiết lập' }}</span><span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ (int)$award->management_assignment_count > 0 ? 'bg-sky-50 text-sky-700' : 'bg-slate-100 text-slate-600' }}">CSKD: {{ (int)$award->management_assignment_count > 0 ? 'Đã thiết lập' : 'Chưa thiết lập' }}</span></div></td>
+                    <td class="px-4 py-4"><div class="flex flex-col items-start gap-1.5"><span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ (int)$award->allocated_product_count > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600' }}">Phân bổ: {{ (int)$award->allocated_product_count > 0 ? 'Đã thiết lập' : 'Chưa thiết lập' }}</span><span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ (int)$award->managed_product_count > 0 ? 'bg-sky-50 text-sky-700' : 'bg-slate-100 text-slate-600' }}">CSKD: {{ (int)$award->managed_product_count > 0 ? 'Đã thiết lập' : 'Chưa thiết lập' }}</span></div></td>
                     <td class="px-4 py-4 text-right"><div class="flex justify-end gap-2">@if ($canViewAllocations)<a href="{{ route('admin.pharma.drug-bid-awards.allocations', $award->representative_id) }}" class="inline-flex min-h-10 items-center rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700">Xem sản phẩm / Phân bổ</a>@endif @if($canViewCommercialPolicies)<a href="{{ route('admin.pharma.drug-bid-awards.commercial-policy', $award->representative_id) }}" class="inline-flex min-h-10 items-center rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-xs font-semibold text-indigo-700">Chính sách kinh doanh</a>@endif</div></td>
                 </tr>
             @empty
