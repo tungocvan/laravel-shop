@@ -102,6 +102,17 @@ class DrugAwardProjectionService
 
     private function awardIdentity(DrugAwardProjectionData $source, $medicine): string
     {
+        if ($source->sourceSystem === DrugBidAward::SOURCE_MUASAMCONG
+            && $source->sourceRecordType === 'kqlcnt_award_item'
+            && trim($source->sourceRecordKey) !== '') {
+            return hash('sha256', implode('|', [
+                'source',
+                $source->sourceSystem,
+                $source->sourceRecordType,
+                trim($source->sourceRecordKey),
+            ]));
+        }
+
         $drugIdentity = $source->medicineCode ?? ($medicine?->canonical_identity_key ?: $this->normalize(implode('|', array_filter([
             $source->medicineName, $source->activeIngredient, $source->concentration, $source->manufacturer,
         ]))));
