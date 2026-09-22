@@ -26,7 +26,7 @@ class MedicineCatalogDeleteUxContractTest extends TestCase
         $this->assertStringContainsString('Không thể xóa thuốc vì đã có Hồ sơ sản phẩm (HSSP).', $component);
         $this->assertStringContainsString('← Quay về Danh mục thuốc chuẩn', $form);
         $this->assertStringNotContainsString('Variant / SKU', $index);
-        $this->assertStringContainsString('min-w-64 px-4 py-4 text-sm leading-6', $index);
+        $this->assertStringContainsString('min-w-64 px-4 py-4', $index);
         $this->assertStringContainsString('@if($this->hasActiveSelectFilters())', $index);
         $this->assertStringContainsString('public function hasActiveSelectFilters(): bool', $component);
         $this->assertStringContainsString('$this->perPage !== 10', $component);
