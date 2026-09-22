@@ -198,7 +198,7 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString('productsForResultGroup', $component);
         $this->assertStringContainsString('updateResultGroupLegalInfo', $component);
         $this->assertStringContainsString('updateProductInResultGroup', $component);
-        $this->assertStringContainsString("where('bidding_notice_code', $representative->bidding_notice_code)", $service);
+        $this->assertStringContainsString("where('bidding_notice_code', \$representative->bidding_notice_code)", $service);
         $this->assertStringContainsString("->with('medicine')", $service);
         $this->assertStringContainsString('findProductInResultGroupOrFail', $service);
     }
