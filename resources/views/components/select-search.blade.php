@@ -43,7 +43,9 @@ function selectSearchComponent(config) {
 
                 onChange: (value) => {
                     if (config.model) {
-                        @this.set(config.model, value);
+                        // Wait for Livewire to persist the selected value before a following
+                        // action (for example Save) can be sent from the same component.
+                        @this.set(config.model, value, false);
                     }
                 },
                 onType: (query) => {
