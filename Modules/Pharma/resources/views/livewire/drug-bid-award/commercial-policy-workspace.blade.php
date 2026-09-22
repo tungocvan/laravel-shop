@@ -64,6 +64,20 @@
         <h2 class="mt-1 text-lg font-bold text-slate-950">Thiết lập User quản lý bệnh viện</h2>
         <p class="mt-1 text-sm text-slate-500">Chọn bệnh viện đã được phân bổ trong TBMT. Chỉ các sản phẩm thực sự phân bổ cho bệnh viện đó mới xuất hiện để phân công.</p>
     </div>
+    <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"><p class="text-xs font-semibold uppercase text-slate-500">Đã phân công</p><p class="mt-1 text-lg font-bold text-slate-950">{{ $assignmentSummary['assigned'] }}/{{ $assignmentSummary['total'] }}</p></div>
+        <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"><p class="text-xs font-semibold uppercase text-slate-500">User quản lý</p><p class="mt-1 text-lg font-bold text-slate-950">{{ $assignmentSummary['users'] }}</p></div>
+        <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"><p class="text-xs font-semibold uppercase text-slate-500">Bệnh viện đã có User</p><p class="mt-1 text-lg font-bold text-slate-950">{{ $assignmentSummary['hospitals'] }}</p></div>
+        <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"><p class="text-xs font-semibold uppercase text-slate-500">Trạng thái</p><p class="mt-1 text-sm font-bold {{ $assignmentSummary['total'] > 0 && $assignmentSummary['assigned'] >= $assignmentSummary['total'] ? 'text-emerald-700' : 'text-amber-700' }}">{{ $assignmentSummary['total'] > 0 && $assignmentSummary['assigned'] >= $assignmentSummary['total'] ? 'Đã phân công đầy đủ' : 'Còn phân công chưa thiết lập' }}</p></div>
+    </div>
+    @if($assignmentGroups->isNotEmpty())
+    <div class="mt-3 flex flex-wrap gap-2">
+        @foreach($assignmentGroups as $group)
+        <span class="rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-800">{{ $group['user']?->name ?: 'User chưa xác định' }} · {{ $group['assignments'] }} sản phẩm/BV · {{ $group['hospitals'] }} bệnh viện</span>
+        @endforeach
+    </div>
+    @endif
+
     @if($canManage)
     <div class="mt-4 rounded-2xl border border-indigo-200 bg-indigo-50/60 p-4">
         <div class="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
