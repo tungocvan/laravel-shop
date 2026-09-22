@@ -100,7 +100,6 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
 
         $this->assertStringContainsString("'tbmtOptions' => \$this->distinctOptions('bidding_notice_code')", $component);
         $this->assertStringContainsString("'investorOptions' => \$this->distinctOptions('investor_name')", $component);
-        $this->assertStringContainsString("'companyOptions' => \$this->distinctOptions('winning_company_name')", $component);
         $this->assertStringContainsString("'medicineOptions' => \$this->distinctOptions('medicine_name')", $component);
         $this->assertStringContainsString('->distinct()', $component);
         $this->assertStringContainsString('->limit(500)', $component);
@@ -108,7 +107,10 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString('new TomSelect', $selectSearch);
         $this->assertStringContainsString('drug-award-filter-tbmt', $view);
         $this->assertStringContainsString('drug-award-filter-investor', $view);
-        $this->assertStringContainsString('drug-award-filter-company', $view);
+        $this->assertStringNotContainsString('drug-award-filter-company', $view);
+        $this->assertStringContainsString('wire:model.live="valueSort"', $view);
+        $this->assertStringContainsString('Cao nhất → thấp nhất', $view);
+        $this->assertStringContainsString('Thấp nhất → cao nhất', $view);
         $this->assertStringContainsString("where('investor_name', 'like'", $service);
         $this->assertStringContainsString("where('winning_company_name', 'like'", $service);
     }
@@ -136,6 +138,29 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         }
     }
 
+
+    public function test_award_index_is_a_management_dashboard_with_setup_status_and_collapsible_tools(): void
+    {
+        $component = file_get_contents(base_path('Modules/Pharma/Livewire/DrugBidAward/Index.php'));
+        $service = file_get_contents(base_path('Modules/Pharma/Services/DrugBidAwardService.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/drug-bid-award/index.blade.php'));
+
+        $this->assertStringContainsString('dashboardMetrics()', $component);
+        $this->assertStringContainsString('showImportExport', $component);
+        $this->assertStringContainsString('showFilters', $component);
+        $this->assertStringContainsString('Tổng TBMT', $view);
+        $this->assertStringContainsString('Tổng giá trị', $view);
+        $this->assertStringContainsString('Cần hoàn thiện', $view);
+        $this->assertStringContainsString('Thời gian HĐ', $view);
+        $this->assertStringContainsString('Trạng thái thiết lập', $view);
+        $this->assertStringContainsString('Phân bổ:', $view);
+        $this->assertStringContainsString('CSKD:', $view);
+        $this->assertStringNotContainsString('<th class="px-4 py-3">Nhà thầu trúng</th>', $view);
+        $this->assertStringNotContainsString('<th class="px-4 py-3 text-right">Tổng SL</th>', $view);
+        $this->assertStringContainsString('contract_duration_months', $service);
+        $this->assertStringContainsString('management_assignment_count', $service);
+        $this->assertStringContainsString("valueSort === 'desc'", $service);
+    }
 
     public function test_award_distribution_scope_is_shared_by_products_and_restricts_hospitals(): void
     {
