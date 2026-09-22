@@ -101,7 +101,8 @@
             <thead class="bg-slate-50 text-xs font-semibold uppercase text-slate-600"><tr><th class="w-12 px-4 py-3 text-center"><input type="checkbox" wire:model.live="selectPage" aria-label="Chọn tất cả TBMT trên trang" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"></th><th class="px-4 py-3">Mã TBMT</th><th class="px-4 py-3">Chủ đầu tư</th><th class="px-4 py-3">Quyết định</th><th class="px-4 py-3 text-right">Sản phẩm</th><th class="px-4 py-3 text-right">Giá trị</th><th class="px-4 py-3">Thời gian HĐ</th><th class="px-4 py-3">Còn lại HĐ</th><th class="px-4 py-3">Trạng thái thiết lập</th><th class="px-4 py-3 text-right">Thao tác</th></tr></thead>
             <tbody class="divide-y divide-slate-100">
             @forelse ($awards as $award)
-                <tr class="align-top hover:bg-slate-50">
+                <tr wire:key="award-group-{{ $award->id }}" class="align-top hover:bg-slate-50">
+                    <td class="px-4 py-4 text-center"><input type="checkbox" wire:model.live="selectedIds" value="{{ $award->id }}" aria-label="Chọn TBMT {{ $award->bidding_notice_code ?: $award->id }}" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"></td>
                     <td class="px-4 py-4"><div class="font-mono text-sm font-bold text-slate-950">{{ $award->bidding_notice_code ?: 'Hồ sơ #' . $award->representative_id }}</div></td>
                     <td class="min-w-64 px-4 py-4"><div class="font-medium text-slate-900">{{ $award->investor_name ?: '—' }}</div><div class="mt-1 text-xs text-slate-500">{{ $award->investor_code ?: '—' }}</div></td>
                     <td class="px-4 py-4"><div class="font-medium">{{ $award->decision_number ?: '—' }}</div><div class="mt-1 text-xs text-slate-500">{{ $award->decision_date ? \Carbon\Carbon::parse($award->decision_date)->format('d/m/Y') : '—' }}</div></td>
