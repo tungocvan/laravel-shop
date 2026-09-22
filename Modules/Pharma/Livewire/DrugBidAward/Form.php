@@ -50,6 +50,12 @@ class Form extends Component
 
     public ?int $editingProductId = null;
 
+    public bool $productSaveModal = false;
+
+    public string $productSaveModalType = 'success';
+
+    public string $productSaveModalMessage = '';
+
     public function mount(?int $id = null): void
     {
         $id ? $this->authorizePharmaEdit() : $this->authorizePharmaCreate();
@@ -182,9 +188,23 @@ class Form extends Component
             'winning_company_name' => 'required|string|max:255',
         ]);
 
-        $service->updateProductInResultGroup($this->awardId, $this->editingProductId, $data);
-        $this->editingProductId = null;
-        session()->flash('success', 'Cập nhật sản phẩm trúng thầu thành công.');
+        try {
+            $service->updateProductInResultGroup($this->awardId, $this->editingProductId, $data);
+            $this->editingProductId = null;
+            $this->productSaveModalType = 'success';
+            $this->productSaveModalMessage = 'Cập nhật sản phẩm trúng thầu thành công.';
+            $this->productSaveModal = true;
+        } catch (Exception $exception) {
+            report($exception);
+            $this->productSaveModalType = 'error';
+            $this->productSaveModalMessage = 'Không thể cập nhật sản phẩm. Vui lòng thử lại hoặc kiểm tra log hệ thống.';
+            $this->productSaveModal = true;
+        }
+    }
+
+    public function closeProductSaveModal(): void
+    {
+        $this->productSaveModal = false;
     }
 
     public function save(DrugBidAwardService $service)
