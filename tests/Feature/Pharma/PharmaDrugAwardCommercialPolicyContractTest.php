@@ -101,6 +101,10 @@ class PharmaDrugAwardCommercialPolicyContractTest extends TestCase
         $this->assertStringContainsString('Bệnh viện đã có User', $view);
         $this->assertStringContainsString('Đơn giá trúng', $view);
         $this->assertStringContainsString('Sản phẩm / Mã sản phẩm', $view);
+        $this->assertStringContainsString("\$product->medicine?->medicine_code ?? \$product->canonicalMatch?->medicine?->medicine_code ?? 'Chưa có mã sản phẩm'", $view);
+        $this->assertStringContainsString("with(['medicine','canonicalMatch.medicine','allocations'", $component);
+        $this->assertStringContainsString('Tên / mã sản phẩm...', $view);
+        $this->assertStringNotContainsString('Chưa có mã hàng', $view);
         $this->assertStringNotContainsString('Sản phẩm / Mã hàng', $view);
         $this->assertStringContainsString('Export Excel', $view);
         $this->assertStringContainsString('Import Excel', $view);
