@@ -19,7 +19,7 @@ class MedicineDeleteContractTest extends TestCase
         $this->assertStringContainsString('$medicine->profiles()->exists() || $medicine->supplierTrackings()->exists() || $medicine->priceListItems()->exists()', $service);
         $this->assertStringNotContainsString('$medicine->variants()->exists()', $service);
         $this->assertStringNotContainsString('$medicine->sources()->exists()', $service);
-        $this->assertStringContainsString("$medicine->profile_status === Medicine::PROFILE_VERIFIED && $medicine->drugBidAwards()->exists()", $service);
+        $this->assertStringContainsString('$medicine->profile_status === Medicine::PROFILE_VERIFIED && $medicine->drugBidAwards()->exists()', $service);
         $this->assertStringContainsString("constrained('pharma_medicines')->cascadeOnDelete()", $canonicalMigration);
         $this->assertStringContainsString("constrained('pharma_medicine_variants')->cascadeOnDelete()", $canonicalMigration);
         $this->assertStringContainsString("constrained('pharma_medicines')->cascadeOnDelete()", $sourceMigration);
