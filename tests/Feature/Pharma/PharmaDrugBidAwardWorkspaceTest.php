@@ -172,6 +172,10 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString("whereIn('province_name', \$provinceNames)", $distributionScopeService);
         $this->assertStringContainsString('pharma_drug_bid_award_distribution_scope_provinces', $distributionScopeService);
         $this->assertStringContainsString('wire:model.live="selectedProvinces"', $productView);
+        $this->assertStringContainsString('public string $provinceSearch', $productComponent);
+        $this->assertStringContainsString('wire:model.live.debounce.250ms="provinceSearch"', $productView);
+        $this->assertStringContainsString('Tìm Tỉnh/Thành...', $productView);
+        $this->assertStringContainsString("where('province_name', 'like'", $productComponent);
         $this->assertStringContainsString('wire:model.live="facilityProvince"', $productView);
         $this->assertStringContainsString("PartnerSourceReference::query()", $distributionScopeService);
         $this->assertStringContainsString("'facility_ids' => \$data['selectedFacilityIds']", $productComponent);
