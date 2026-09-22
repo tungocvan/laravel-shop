@@ -24,6 +24,8 @@ class Form extends Component
 
     public string $medicineSearch = '';
 
+    public int $medicineSearchRevision = 0;
+
     public string $medicine_name = '';
 
     public string $packaging_specification = '';
@@ -120,6 +122,8 @@ class Form extends Component
 
     public function updatedMedicineSearch(): void
     {
+        $this->medicineSearchRevision++;
+
         if ($this->medicine_id && ! $this->selectedMedicineMatchesSearch()) {
             $this->medicine_id = null;
         }
@@ -265,6 +269,7 @@ class Form extends Component
             'id',
             'name',
             'registration_number',
+            'medicine_code',
             'active_ingredients',
             'concentration',
             'packaging_specification',
@@ -275,6 +280,7 @@ class Form extends Component
                 $like = "%{$search}%";
                 $nested->where('name', 'like', $like)
                     ->orWhere('registration_number', 'like', $like)
+                    ->orWhere('medicine_code', 'like', $like)
                     ->orWhere('active_ingredients', 'like', $like);
             });
         } else {
@@ -365,6 +371,7 @@ class Form extends Component
                 $like = "%{$search}%";
                 $query->where('name', 'like', $like)
                     ->orWhere('registration_number', 'like', $like)
+                    ->orWhere('medicine_code', 'like', $like)
                     ->orWhere('active_ingredients', 'like', $like);
             })
             ->exists();
