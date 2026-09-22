@@ -34,6 +34,8 @@ class PharmaDrugAwardMultiSourceProjectionTest extends TestCase
         (require base_path('Modules/Pharma/database/migrations/2026_09_05_012000_add_intelligence_fields_to_drug_bid_awards_table.php'))->up();
         (require base_path('Modules/Pharma/database/migrations/2026_09_05_013000_create_drug_bid_award_sources_table.php'))->up();
         (require base_path('Modules/Pharma/database/migrations/2026_09_05_014000_relax_legacy_drug_award_constraints.php'))->up();
+        (require base_path('Modules/Pharma/database/migrations/2026_09_14_100000_create_canonical_medicine_catalog_tables.php'))->up();
+        (require base_path('Modules/Pharma/database/migrations/2026_09_15_160000_create_drug_bid_award_matches_table.php'))->up();
     }
 
     public function test_projection_is_idempotent_and_preserves_hssp_fallback_provenance(): void
