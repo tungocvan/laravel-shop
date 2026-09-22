@@ -30,18 +30,18 @@ class DrugBidAwardDistributionScopeService
     public function save(DrugBidAward $award, array $data, ?int $adminId): DrugBidAwardDistributionScope
     {
         return DB::transaction(function () use ($award, $data, $adminId) {
-            $provinceCode = trim((string) $data['province_code']);
+            $provinceNames = array_values(array_unique(array_filter(array_map(fn ($value) => trim((string) $value), $data['province_names'] ?? []))));
 
             $facilityIds = array_values(array_unique(array_map('intval', $data['facility_ids'] ?? [])));
             $facilities = OfficialSourceFacility::query()
                 ->whereIn('id', $facilityIds)
                 ->where('is_active', true)
-                ->where('province_name', $provinceCode)
+                ->whereIn('province_name', $provinceNames)
                 ->get();
 
             if ($facilities->count() !== count($facilityIds)) {
                 throw ValidationException::withMessages([
-                    'selectedFacilityIds' => 'Chỉ được chọn cơ sở KCB đang hoạt động thuộc Tỉnh/Thành đã chọn.',
+                    'selectedFacilityIds' => 'Chỉ được chọn cơ sở KCB đang hoạt động thuộc các Tỉnh/Thành đã chọn.',
                 ]);
             }
 
@@ -84,7 +84,7 @@ class DrugBidAwardDistributionScopeService
             ]);
             $scope->fill([
                 'bidding_notice_code' => $award->bidding_notice_code,
-                'province_code' => $provinceCode,
+                'province_code' => $provinceNames[0] ?? null,
                 'effective_from' => $data['effective_from'],
                 'effective_until' => $data['effective_until'],
                 'updated_by' => $adminId,
@@ -93,6 +93,15 @@ class DrugBidAwardDistributionScopeService
                 $scope->created_by = $adminId;
             }
             $scope->save();
+            DB::table('pharma_drug_bid_award_distribution_scope_provinces')->where('distribution_scope_id', $scope->id)->delete();
+            foreach ($provinceNames as $provinceName) {
+                DB::table('pharma_drug_bid_award_distribution_scope_provinces')->insert([
+                    'distribution_scope_id' => $scope->id,
+                    'province_name' => $provinceName,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
             $scope->partners()->sync($validPartners);
 
             return $scope->fresh('partners');
