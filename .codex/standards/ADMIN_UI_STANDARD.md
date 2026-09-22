@@ -361,6 +361,38 @@ Recommended principles:
 - Previous/next navigation should remain discoverable without creating large empty layout rows.
 - Images must be responsive; code blocks must not force the entire page to overflow horizontally.
 
+## Checkbox / Bulk Selection Reliability
+
+Checkbox regressions in Livewire tables are high-cost UI defects and MUST be treated as state/identity problems first, not as CSS or click-handler problems.
+
+Required implementation rules:
+
+- Verify the route's actual rendered Livewire component and Blade before changing checkbox behavior. Do not patch a legacy/inherited view that the route does not render.
+- Selection state is server-owned and keyed by a stable domain identifier. Never use loop position, visible row number, array offset, or an ambiguous grouped-query `id`.
+- Grouped/aggregated queries must expose and consistently use an explicit stable representative key (for example `representative_id`) across `wire:key`, checkbox value/state, row actions, current-page ID calculation and bulk actions.
+- Every repeated row and checkbox must have stable, unique Livewire DOM identity. Desktop and mobile renderings of the same dataset are separate DOM trees and both require unique keys.
+- A checked visual DOM property is not proof of server selection state. On pagination/filter/sort changes, verify both rendered checkbox state and the backing selected-ID collection.
+- Page-scoped `Chọn tất cả` must operate only on the IDs rendered on the current page. Dataset-wide selection must be a separate, explicit action such as `Chọn tất cả kết quả`; never silently equate the two.
+- Header checkbox state must be derived from current-page IDs versus selected IDs and must correctly represent checked / unchecked / indeterminate state when supported.
+- Changing page, page size, filter, search or sort must not transfer a checked state to a different row merely because it occupies the same DOM position.
+- When Livewire morphing retains stale native checkbox state despite stable row keys, first key the checkbox itself and render `checked` from server state. If the defect persists, use bounded `wire:replace` on the smallest repeated page/list container whose children must be replaced. Do not replace an entire workspace unnecessarily.
+- Bulk actions must normalize/deduplicate selected IDs and re-authorize/revalidate them server-side. Never trust checkbox IDs as authorization or existence proof.
+- Selection controls must follow the permission of the action they enable. Export selection must not disappear merely because the operator lacks delete permission.
+- After a successful destructive/bulk mutation, reconcile or clear stale selection and provide explicit feedback. Long-running bulk actions must disable their trigger while loading to prevent duplicate submissions.
+- For duplicated desktop/mobile controls, acceptance must test both surfaces when both are rendered by the component.
+
+Mandatory checkbox regression scenarios for paginated/filterable tables:
+
+1. Select one or more rows on page 1, move to page 2, and verify unrelated rows are not visually selected.
+2. Return to page 1 and verify the intended selection semantics are preserved.
+3. Exercise header select-all and deselect-all on a partially selected page.
+4. Change filter/search/sort/page-size after selecting rows and verify no positional carry-over.
+5. Execute the relevant bulk/export action and verify the backend receives exactly the intended stable IDs.
+6. When the query is grouped, verify the same representative key is used by the row, checkbox and action.
+7. Inspect browser/Livewire behavior after pagination; automated string/contract tests alone do not prove checkbox correctness.
+
+A checkbox bug that reproduces only after pagination or filtering is not considered fixed until an actual rendered UI pass covers the transition that originally failed.
+
 ## Loading and Mutation UX
 
 Actions such as save, delete, bulk actions, import and export should expose loading/disabled state when they can take noticeable time or can be double-submitted.
