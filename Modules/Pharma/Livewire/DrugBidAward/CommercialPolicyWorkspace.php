@@ -91,6 +91,22 @@ class CommercialPolicyWorkspace extends Component
         session()->flash('success','Đã gán User hàng loạt cho các sản phẩm đã chọn.');
     }
 
+    public function assignManagerToAll(DrugBidAwardCommercialPolicyService $service): void
+    {
+        $this->authorizeManage();
+        $data = $this->validate(['selectedUserId' => ['required', 'integer', 'exists:users,id']]);
+        $count = $service->assignManagerToAllAllocations($this->award(), (int) $data['selectedUserId'], auth('admin')->id());
+        session()->flash('success', "Đã gán User cho {$count} phân công Bệnh viện × Sản phẩm thực tế trong TBMT.");
+    }
+
+    public function removeManagerFromAll(DrugBidAwardCommercialPolicyService $service): void
+    {
+        $this->authorizeManage();
+        $data = $this->validate(['selectedUserId' => ['required', 'integer', 'exists:users,id']]);
+        $count = $service->removeManagerFromAllAllocations($this->award(), (int) $data['selectedUserId']);
+        session()->flash('success', "Đã gỡ {$count} phân công của User này trong TBMT.");
+    }
+
     public function removeSelectedManagers(DrugBidAwardCommercialPolicyService $service): void
     {
         $this->authorizeManage();
