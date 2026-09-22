@@ -8,6 +8,7 @@ use Modules\Partner\Models\Partner;
 use Modules\Pharma\Models\DrugBidAward;
 use Modules\Pharma\Models\DrugBidAwardAllocation;
 use Modules\Pharma\Models\DrugBidAwardContract;
+use Modules\Pharma\Models\DrugBidAwardDistributionScope;
 
 class DrugBidAwardAllocationService
 {
@@ -21,6 +22,14 @@ class DrugBidAwardAllocationService
             if ($partner->legal_type !== 'hospital' || $partner->status !== 'active') {
                 throw ValidationException::withMessages([
                     'partner_id' => 'Chỉ được phân bổ cho bệnh viện đang hoạt động trong Partner Master.',
+                ]);
+            }
+
+            $scopeKey = $award->bidding_notice_code ? 'tbmt:'.trim($award->bidding_notice_code) : 'award:'.$award->id;
+            $scope = DrugBidAwardDistributionScope::query()->where('result_key', $scopeKey)->first();
+            if (! $scope || ! $scope->partners()->whereKey($partnerId)->exists()) {
+                throw ValidationException::withMessages([
+                    'partner_id' => 'Bệnh viện chưa nằm trong phạm vi phân bổ đã thiết lập cho kết quả trúng thầu.',
                 ]);
             }
 
@@ -73,8 +82,8 @@ class DrugBidAwardAllocationService
                 'partner_id' => $partnerId,
                 'allocated_quantity' => $quantity,
                 'status' => DrugBidAwardAllocation::STATUS_ACTIVE,
-                'effective_from' => $data['effective_from'] ?? null,
-                'effective_until' => $data['effective_until'] ?? null,
+                'effective_from' => $scope->effective_from,
+                'effective_until' => $scope->effective_until,
                 'notes' => $data['notes'] ?? null,
                 'updated_by' => $adminId,
             ]);

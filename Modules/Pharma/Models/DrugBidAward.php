@@ -40,6 +40,7 @@ class DrugBidAward extends Model
 
     public function medicine(): BelongsTo { return $this->belongsTo(Medicine::class, 'medicine_id'); }
     public function sources(): HasMany { return $this->hasMany(DrugBidAwardSource::class, 'drug_bid_award_id'); }
+    public function allocations(): HasMany { return $this->hasMany(DrugBidAwardAllocation::class, 'drug_bid_award_id'); }
     public function canonicalMatch(): HasOne { return $this->hasOne(DrugBidAwardMatch::class, 'drug_bid_award_id'); }
 
     public function isExternalSource(): bool

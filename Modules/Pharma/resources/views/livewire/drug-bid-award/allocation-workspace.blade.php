@@ -41,10 +41,19 @@
         <div role="alert" class="rounded-xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800">Dữ liệu đang OVER_ALLOCATED. Không tăng hoặc tạo thêm phân bổ cho đến khi được đối soát.</div>
     @endif
 
+    <section class="rounded-2xl border border-indigo-200 bg-indigo-50/30 p-4 shadow-sm">
+        <div class="grid gap-4 md:grid-cols-3">
+            <div><p class="text-xs font-semibold uppercase text-indigo-600">Tỉnh/Thành trúng thầu</p><p class="mt-1 font-semibold text-slate-950">{{ $distributionScope?->province_code ?: 'Chưa thiết lập' }}</p></div>
+            <div><p class="text-xs font-semibold uppercase text-indigo-600">Hiệu lực chung</p><p class="mt-1 font-semibold text-slate-950">{{ $distributionScope?->effective_from?->format('d/m/Y') ?: '—' }} → {{ $distributionScope?->effective_until?->format('d/m/Y') ?: '—' }}</p></div>
+            <div><p class="text-xs font-semibold uppercase text-indigo-600">Bệnh viện được phép nhận</p><p class="mt-1 font-semibold text-slate-950">{{ $distributionScope?->partners?->count() ?? 0 }} bệnh viện</p></div>
+        </div>
+        @if (!$distributionScope)<p class="mt-3 text-sm font-medium text-amber-700">Hãy quay lại “Danh sách sản phẩm” để thiết lập phạm vi phân bổ trước khi tạo phân bổ số lượng.</p>@endif
+    </section>
+
     @if ($canManageAllocation)
         <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div><h2 class="text-lg font-semibold text-slate-950">{{ $editingAllocationId ? 'Sửa phân bổ' : 'Thêm phân bổ' }}</h2><p class="mt-1 text-sm text-slate-500">Chỉ hiển thị bệnh viện đang hoạt động trong Partner Master.</p></div>
+                <div><h2 class="text-lg font-semibold text-slate-950">{{ $editingAllocationId ? 'Sửa phân bổ' : 'Thêm phân bổ' }}</h2><p class="mt-1 text-sm text-slate-500">Chỉ hiển thị các bệnh viện đã được duyệt trong phạm vi phân bổ của TBMT.</p></div>
                 <div wire:loading wire:target="saveAllocation" class="text-sm font-semibold text-indigo-600">Đang lưu...</div>
             </div>
             <div class="mt-4 grid gap-4 lg:grid-cols-12">
@@ -57,11 +66,9 @@
                     @endif
                 </div>
                 <div class="lg:col-span-2"><label class="block text-sm font-medium text-slate-700">Số lượng phân bổ</label><input type="number" step="0.0001" min="0.0001" wire:model="allocatedQuantity" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm shadow-sm"></div>
-                <div class="lg:col-span-2"><label class="block text-sm font-medium text-slate-700">Từ ngày</label><input type="date" wire:model="effectiveFrom" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm shadow-sm"></div>
-                <div class="lg:col-span-2"><label class="block text-sm font-medium text-slate-700">Đến ngày</label><input type="date" wire:model="effectiveUntil" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm shadow-sm"></div>
-                <div class="lg:col-span-2"><label class="block text-sm font-medium text-slate-700">Ghi chú</label><input type="text" wire:model="notes" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm shadow-sm"></div>
+                <div class="lg:col-span-4"><label class="block text-sm font-medium text-slate-700">Ghi chú</label><input type="text" wire:model="notes" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm shadow-sm"></div>
             </div>
-            <div class="mt-4 flex justify-end"><button type="button" wire:click="saveAllocation" wire:loading.attr="disabled" wire:target="saveAllocation" @disabled($summary['status'] === 'OVER_ALLOCATED' && !$editingAllocationId) class="min-h-11 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">Lưu phân bổ</button></div>
+            <div class="mt-4 flex justify-end"><button type="button" wire:click="saveAllocation" wire:loading.attr="disabled" wire:target="saveAllocation" @disabled(!$distributionScope || ($summary['status'] === 'OVER_ALLOCATED' && !$editingAllocationId)) class="min-h-11 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">Lưu phân bổ</button></div>
         </section>
     @endif
 

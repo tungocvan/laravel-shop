@@ -27,12 +27,21 @@ class PharmaImportExportTest extends TestCase
         Schema::dropIfExists('pharma_drug_bid_awards');
         Schema::dropIfExists('pharma_supplier_trackings');
         Schema::dropIfExists('pharma_medicines');
+        Schema::dropIfExists('partners');
 
         (require base_path('Modules/Pharma/database/migrations/2026_05_21_145242_create_medicines_table.php'))->up();
         (require base_path('Modules/Pharma/database/migrations/2026_05_22_135028_create_drug_bid_awards_table.php'))->up();
         (require base_path('Modules/Pharma/database/migrations/2026_05_23_141810_create_supplier_trackings_table.php'))->up();
         (require base_path('Modules/Pharma/database/migrations/2026_08_30_010000_add_source_identity_to_drug_bid_awards_table.php'))->up();
         (require base_path('Modules/Pharma/database/migrations/2026_08_30_020000_add_business_key_to_supplier_trackings_table.php'))->up();
+        (require base_path('Modules/Pharma/database/migrations/2026_09_05_010000_add_intelligence_fields_to_medicines_table.php'))->up();
+        (require base_path('Modules/Pharma/database/migrations/2026_09_05_012000_add_intelligence_fields_to_drug_bid_awards_table.php'))->up();
+        (require base_path('Modules/Pharma/database/migrations/2026_09_05_014000_relax_legacy_drug_award_constraints.php'))->up();
+        (require base_path('Modules/Pharma/database/migrations/2026_09_14_100000_create_canonical_medicine_catalog_tables.php'))->up();
+        (require base_path('Modules/Partner/database/migrations/2026_05_26_095912_partners.php'))->up();
+        (require base_path('Modules/Pharma/database/migrations/2026_09_21_101500_refactor_supplier_trackings_as_commercial_workspace.php'))->up();
+        (require base_path('Modules/Pharma/database/migrations/2026_09_21_124500_add_distribution_provinces_to_supplier_trackings.php'))->up();
+        (require base_path('Modules/Pharma/database/migrations/2026_09_06_081000_create_official_source_facilities_table.php'))->up();
     }
 
     public function test_medicine_excel_fixture_passes_dry_run(): void
@@ -192,6 +201,11 @@ class PharmaImportExportTest extends TestCase
     public function test_supplier_tracking_import_uses_a_to_v_and_recalculates_derived_fields(): void
     {
         Medicine::query()->create($this->medicineData());
+        \Modules\Partner\Models\Partner::query()->create([
+            'tax_code' => '0312345678',
+            'name' => 'Công ty ABC',
+            'partner_types' => ['supplier'],
+        ]);
 
         $path = sys_get_temp_dir().'/supplier-import-'.uniqid('', true).'.xlsx';
         (new FastExcel(collect([[
@@ -199,16 +213,15 @@ class PharmaImportExportTest extends TestCase
             'Tên thuốc' => 'Trosicam 15mg',
             'Số đăng ký' => 'VN-20104-16',
             'Nhà cung cấp' => 'Công ty ABC',
+            'Mã số thuế NCC' => '0312345678',
             'Người đại diện' => 'Nguyễn Văn A',
             'Khu vực' => 'Miền Nam',
-            'Giá nhập' => 3750,
-            'Giá bán' => 7791,
-            'Giá hóa đơn' => 7000,
-            'Chênh lệch hóa đơn' => 999999,
-            '% phí chênh lệch' => 10,
-            'Phí chênh lệch' => 999999,
-            'Giá vốn' => 999999,
-            '% lợi nhuận thực tế' => 999999,
+            'Phạm vi phân phối' => 'all',
+            'Vùng miền' => null,
+            'Tỉnh/Thành' => null,
+            'Mã cơ sở' => null,
+            'Giá vốn NCC' => 3750,
+            'Giá hóa đơn NCC' => 7000,
             'Số lượng cam kết' => 500000,
             'Đơn vị' => 'Viên',
             'Tiền cọc' => 50000000,
@@ -228,9 +241,9 @@ class PharmaImportExportTest extends TestCase
         $tracking = SupplierTracking::query()->firstOrFail();
         $this->assertTrue($report['success']);
         $this->assertSame('3250.00', $tracking->invoice_difference_amount);
-        $this->assertSame('325.00', $tracking->invoice_difference_fee);
-        $this->assertSame('4075.00', $tracking->cost_price);
-        $this->assertSame('47.70', $tracking->gross_profit_percent);
+        $this->assertSame('0.00', $tracking->invoice_difference_fee);
+        $this->assertSame('3750.00', $tracking->cost_price);
+        $this->assertSame('0.00', $tracking->gross_profit_percent);
     }
 
     public function test_supplier_tracking_export_respects_date_filters_and_selected_contract(): void
@@ -313,17 +326,19 @@ class PharmaImportExportTest extends TestCase
         string $company
     ): array {
         return [
-            'STT' => 1,
-            'Tên thuốc' => $medicineName,
-            'Quy cách đóng gói' => $packaging,
-            'Số lượng' => 1000,
-            'Đơn giá trúng thầu' => 5000,
-            'Mã thông báo mời thầu' => $noticeCode,
-            'Tên Chủ đầu tư' => 'Bệnh viện A',
+            'Mã TBMT' => $noticeCode,
+            'Chủ đầu tư' => 'Bệnh viện A',
             'Số quyết định' => 'QD-001',
-            'Ngày ban hành quyết định' => '01/05/2026',
-            'Thời hạn hiệu lực' => 12,
-            'Công ty trúng thầu' => $company,
+            'Ngày quyết định' => '01/05/2026',
+            'Thời gian HĐ (tháng)' => 12,
+            'Tên sản phẩm trúng thầu' => $medicineName,
+            'Mã sản phẩm chuẩn' => null,
+            'Quy cách' => $packaging,
+            'Số lượng trúng' => 1000,
+            'Đơn giá trúng' => 5000,
+            'Giá trị' => 5000000,
+            'Nhà thầu' => $company,
+            'Trạng thái đối soát HSSP' => null,
             'Link quyết định trúng thầu' => null,
         ];
     }

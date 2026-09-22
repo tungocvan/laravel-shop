@@ -29,6 +29,12 @@ class Index extends Component
 
     public string $filterHssp = '';
 
+    public string $filterSupplier = '';
+
+    public string $filterDeletable = '';
+
+    public string $filterRegistration = '';
+
     public array $selectedIds = [];
 
     public bool $selectPage = false;
@@ -73,6 +79,27 @@ class Index extends Component
         $this->resetWorkspacePage();
     }
 
+    public function updatedFilterRegistration(): void
+    {
+        if (! in_array($this->filterRegistration, ['', 'with', 'without'], true)) {
+            $this->filterRegistration = '';
+        }
+        $this->resetWorkspacePage();
+    }
+
+    public function updatedFilterDeletable(): void
+    {
+        if (! in_array($this->filterDeletable, ['', 'yes', 'no'], true)) {
+            $this->filterDeletable = '';
+        }
+        $this->resetWorkspacePage();
+    }
+
+    public function updatedFilterSupplier(): void
+    {
+        $this->resetWorkspacePage();
+    }
+
     public function updatedFilterProfileStatus(): void
     {
         $this->filterProfileStatus = array_key_exists($this->filterProfileStatus, $this->profileStatusOptions())
@@ -105,12 +132,15 @@ class Index extends Component
             || $this->filterSpecialControl !== ''
             || $this->filterProfileStatus !== ''
             || $this->filterHssp !== ''
+            || $this->filterSupplier !== ''
+            || $this->filterDeletable !== ''
+            || $this->filterRegistration !== ''
             || $this->perPage !== 10;
     }
 
     public function resetFilters(): void
     {
-        $this->reset(['filterCircularGroup', 'filterSpecialControl', 'filterProfileStatus', 'filterHssp']);
+        $this->reset(['filterCircularGroup', 'filterSpecialControl', 'filterProfileStatus', 'filterHssp', 'filterSupplier', 'filterDeletable', 'filterRegistration']);
         $this->perPage = 10;
         $this->page = 1;
         $this->clearSelection();
@@ -236,6 +266,7 @@ class Index extends Component
             'circularGroups' => $medicineService->getUniqueCircularGroups(),
             'perPageOptions' => self::PER_PAGE_OPTIONS,
             'profileStatusOptions' => $this->profileStatusOptions(),
+            'supplierOptions' => $medicineService->getSupplierOptions(),
         ]);
     }
 
@@ -249,6 +280,9 @@ class Index extends Component
             $this->filterSpecialControl,
             $this->filterProfileStatus ?: null,
             $this->filterHssp ?: null,
+            $this->filterSupplier !== '' ? (int) $this->filterSupplier : null,
+            $this->filterDeletable ?: null,
+            $this->filterRegistration ?: null,
         );
     }
 

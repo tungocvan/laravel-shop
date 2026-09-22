@@ -5,32 +5,39 @@ namespace Modules\Pharma\Services;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use Modules\Partner\Models\Partner;
 use Modules\Pharma\Models\Medicine;
+use Modules\Pharma\Models\OfficialSourceFacility;
 use Modules\Pharma\Models\SupplierTracking;
 use Modules\Shared\Services\ImportExport\BaseImportExportService;
 
 class ImportExport extends BaseImportExportService
 {
+    private array $pendingFacilityIds = [];
     protected string $defaultSheetName = 'Theo_doi_nha_cung_cap';
 
     protected string $mode = 'update_or_create';
 
     protected bool $ignoreNullValuesOnUpdate = true;
 
-    protected array $uniqueBy = ['medicine_id', 'supplier_name_normalized', 'working_date'];
+    protected array $uniqueBy = ['medicine_id', 'partner_id', 'working_date'];
 
     protected array $rules = [
         'medicine_id' => ['required', 'integer', 'exists:pharma_medicines,id'],
-        'working_date' => ['required', 'date'],
+        'working_date' => ['nullable', 'date'],
+        'partner_id' => ['required', 'integer', 'exists:partners,id'],
         'supplier_name' => ['required', 'string', 'max:255'],
         'supplier_name_normalized' => ['required', 'string', 'max:255'],
+        'distribution_scope' => ['required', 'in:all,regions,facilities'],
+        'distribution_regions' => ['nullable', 'array'],
+        'distribution_provinces' => ['nullable', 'array'],
         'supplier_representative' => ['nullable', 'string', 'max:255'],
         'area' => ['nullable', 'string', 'max:255'],
         'import_price' => ['required', 'numeric', 'min:0'],
-        'selling_price' => ['required', 'numeric', 'min:0'],
+        'selling_price' => ['nullable', 'numeric', 'min:0'],
         'invoice_price' => ['required', 'numeric', 'min:0'],
         'invoice_difference_amount' => ['required', 'numeric'],
-        'invoice_difference_percent' => ['required', 'numeric', 'min:0'],
+        'invoice_difference_percent' => ['nullable', 'numeric', 'min:0'],
         'invoice_difference_fee' => ['required', 'numeric'],
         'cost_price' => ['required', 'numeric'],
         'gross_profit_percent' => ['required', 'numeric'],
@@ -61,24 +68,23 @@ class ImportExport extends BaseImportExportService
             'B' => 'medicine_name',
             'C' => 'registration_number',
             'D' => 'supplier_name',
-            'E' => 'supplier_representative',
-            'F' => 'area',
-            'G' => 'import_price',
-            'H' => 'selling_price',
-            'I' => 'invoice_price',
-            'J' => 'invoice_difference_amount',
-            'K' => 'invoice_difference_percent',
-            'L' => 'invoice_difference_fee',
-            'M' => 'cost_price',
-            'N' => 'gross_profit_percent',
-            'O' => 'committed_quantity',
-            'P' => 'unit',
-            'Q' => 'deposit_amount',
-            'R' => 'start_date',
-            'S' => 'end_date',
-            'T' => 'contract_url',
-            'U' => 'status',
-            'V' => 'note',
+            'E' => 'supplier_tax_code',
+            'F' => 'supplier_representative',
+            'G' => 'area',
+            'H' => 'distribution_scope',
+            'I' => 'distribution_regions',
+            'J' => 'distribution_provinces',
+            'K' => 'facility_codes',
+            'L' => 'import_price',
+            'M' => 'invoice_price',
+            'N' => 'committed_quantity',
+            'O' => 'unit',
+            'P' => 'deposit_amount',
+            'Q' => 'start_date',
+            'R' => 'end_date',
+            'S' => 'contract_url',
+            'T' => 'status',
+            'U' => 'note',
         ];
     }
 
@@ -93,22 +99,38 @@ class ImportExport extends BaseImportExportService
             throw new \RuntimeException('Không tìm thấy thuốc theo số đăng ký hoặc tên thuốc.');
         }
 
-        $supplierName = Str::of((string) ($this->cleanString($row['supplier_name'] ?? null) ?? ''))
-            ->trim()
-            ->squish()
-            ->toString();
+        $partner = $this->findSupplier(
+            $this->cleanString($row['supplier_tax_code'] ?? null),
+            $this->cleanString($row['supplier_name'] ?? null)
+        );
+
+        if (! $partner) {
+            throw new \RuntimeException('Không tìm thấy nhà cung cấp theo mã số thuế hoặc tên nhà cung cấp.');
+        }
+
+        $scope = $this->normalizeDistributionScope($row['distribution_scope'] ?? null);
+        $regions = $scope === 'regions' ? $this->stringList($row['distribution_regions'] ?? null) : null;
+        $provinces = $scope === 'regions' ? $this->stringList($row['distribution_provinces'] ?? null) : null;
+        $facilityIds = $scope === 'facilities'
+            ? $this->facilityIdsFromCodes($this->stringList($row['facility_codes'] ?? null))
+            : [];
 
         $data = [
             'medicine_id' => $medicine->id,
+            'partner_id' => $partner->id,
             'working_date' => $this->cleanDate($row['working_date'] ?? null),
-            'supplier_name' => $supplierName,
-            'supplier_name_normalized' => Str::of($supplierName)->lower()->toString(),
-            'supplier_representative' => $this->cleanString($row['supplier_representative'] ?? null),
+            'supplier_name' => $partner->name,
+            'supplier_name_normalized' => Str::of($partner->name)->trim()->squish()->lower()->toString(),
+            'supplier_representative' => $partner->contact_person ?: $this->cleanString($row['supplier_representative'] ?? null),
             'area' => $this->cleanString($row['area'] ?? null),
+            'distribution_scope' => $scope,
+            'distribution_regions' => $regions,
+            'distribution_provinces' => $provinces,
+            'facility_ids' => $facilityIds,
             'import_price' => $this->vietnameseNumber($row['import_price'] ?? null),
-            'selling_price' => $this->vietnameseNumber($row['selling_price'] ?? null),
+            'selling_price' => 0,
             'invoice_price' => $this->vietnameseNumber($row['invoice_price'] ?? null),
-            'invoice_difference_percent' => $this->vietnameseNumber($row['invoice_difference_percent'] ?? null),
+            'invoice_difference_percent' => 0,
             'committed_quantity' => $this->vietnameseNumber($row['committed_quantity'] ?? null),
             'unit' => $this->cleanString($row['unit'] ?? null),
             'deposit_amount' => $this->vietnameseNumber($row['deposit_amount'] ?? null),
@@ -121,21 +143,42 @@ class ImportExport extends BaseImportExportService
 
         $existing = $this->existingRecord($data);
         if ($existing) {
+            foreach (['selling_price', 'invoice_difference_percent'] as $field) {
+                $data[$field] = $existing->getAttribute($field) ?? $data[$field];
+            }
             foreach ($data as $field => $value) {
-                if ($value === null) {
+                if ($value === null && ! in_array($field, ['distribution_regions', 'distribution_provinces'], true)) {
                     $data[$field] = $existing->getAttribute($field);
                 }
             }
         } else {
             $data['import_price'] ??= 0;
-            $data['selling_price'] ??= 0;
             $data['invoice_price'] ??= 0;
-            $data['invoice_difference_percent'] ??= 0;
             $data['unit'] ??= $medicine->unit;
             $data['status'] ??= 'active';
         }
 
         return $this->calculate($data);
+    }
+
+    protected function beforePersist(array $data, array $row, int $rowNumber, string $sheet): array
+    {
+        $facilityIds = $data['facility_ids'] ?? [];
+        unset($data['facility_ids']);
+
+        $this->pendingFacilityIds[$this->businessKey($data)] = $facilityIds;
+
+        return $data;
+    }
+
+    protected function persistRow(array $data, string $mode): Model
+    {
+        $model = parent::persistRow($data, $mode);
+        $facilityIds = $this->pendingFacilityIds[$this->businessKey($data)] ?? [];
+        $model->facilities()->sync($facilityIds);
+        unset($this->pendingFacilityIds[$this->businessKey($data)]);
+
+        return $model;
     }
 
     protected function exportRows(array $filters = []): Collection
@@ -144,14 +187,14 @@ class ImportExport extends BaseImportExportService
 
         if ($selectedIds !== []) {
             return SupplierTracking::query()
-                ->with('medicine')
+                ->with(['medicine', 'partner', 'facilities'])
                 ->whereKey($selectedIds)
                 ->latest('id')
                 ->get();
         }
 
         return SupplierTracking::query()
-            ->with('medicine')
+            ->with(['medicine', 'partner', 'facilities'])
             ->when($filters['search'] ?? null, fn ($query, $search) => $query->where(fn ($nested) => $nested
                 ->where('supplier_name', 'like', "%{$search}%")
                 ->orWhere('supplier_representative', 'like', "%{$search}%")
@@ -160,6 +203,8 @@ class ImportExport extends BaseImportExportService
                     ->where('name', 'like', "%{$search}%")
                     ->orWhere('registration_number', 'like', "%{$search}%"))))
             ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
+            ->when($filters['partner_id'] ?? null, fn ($query, $partnerId) => $query->where('partner_id', (int) $partnerId))
+            ->when($filters['medicine_id'] ?? null, fn ($query, $medicineId) => $query->where('medicine_id', (int) $medicineId))
             ->when($filters['working_date_from'] ?? null, fn ($query, $date) => $query->whereDate('working_date', '>=', $date))
             ->when($filters['working_date_to'] ?? null, fn ($query, $date) => $query->whereDate('working_date', '<=', $date))
             ->latest('id')
@@ -172,17 +217,16 @@ class ImportExport extends BaseImportExportService
             'Ngày làm việc' => $model->working_date?->format('d/m/Y'),
             'Tên thuốc' => $model->medicine?->name,
             'Số đăng ký' => $model->medicine?->registration_number,
-            'Nhà cung cấp' => $model->supplier_name,
-            'Người đại diện' => $model->supplier_representative,
+            'Nhà cung cấp' => $model->partner?->name ?? $model->supplier_name,
+            'Mã số thuế NCC' => $model->partner?->tax_code,
+            'Người đại diện' => $model->partner?->contact_person ?? $model->supplier_representative,
             'Khu vực' => $model->area,
-            'Giá nhập' => $model->import_price,
-            'Giá bán' => $model->selling_price,
-            'Giá hóa đơn' => $model->invoice_price,
-            'Chênh lệch hóa đơn' => $model->invoice_difference_amount,
-            '% phí chênh lệch' => $model->invoice_difference_percent,
-            'Phí chênh lệch' => $model->invoice_difference_fee,
-            'Giá vốn' => $model->cost_price,
-            '% lợi nhuận thực tế' => $model->gross_profit_percent,
+            'Phạm vi phân phối' => $model->distribution_scope ?: 'all',
+            'Vùng miền' => $this->joinList($model->distribution_regions),
+            'Tỉnh/Thành' => $this->joinList($model->distribution_provinces),
+            'Mã cơ sở' => $model->facilities->pluck('external_id')->filter()->implode('; '),
+            'Giá vốn NCC' => $model->import_price,
+            'Giá hóa đơn NCC' => $model->invoice_price,
             'Số lượng cam kết' => $model->committed_quantity,
             'Đơn vị' => $model->unit,
             'Tiền cọc' => $model->deposit_amount,
@@ -201,16 +245,15 @@ class ImportExport extends BaseImportExportService
             'Tên thuốc' => 'Trosicam 15mg',
             'Số đăng ký' => 'VN-20104-16',
             'Nhà cung cấp' => 'Công ty TNHH Dược Phẩm ABC',
+            'Mã số thuế NCC' => '0312345678',
             'Người đại diện' => 'Nguyễn Văn A',
             'Khu vực' => 'Miền Nam',
-            'Giá nhập' => 3750,
-            'Giá bán' => 7791,
-            'Giá hóa đơn' => 7000,
-            'Chênh lệch hóa đơn' => 'Hệ thống tự tính',
-            '% phí chênh lệch' => 10,
-            'Phí chênh lệch' => 'Hệ thống tự tính',
-            'Giá vốn' => 'Hệ thống tự tính',
-            '% lợi nhuận thực tế' => 'Hệ thống tự tính',
+            'Phạm vi phân phối' => 'all',
+            'Vùng miền' => null,
+            'Tỉnh/Thành' => null,
+            'Mã cơ sở' => null,
+            'Giá vốn NCC' => 3750,
+            'Giá hóa đơn NCC' => 7000,
             'Số lượng cam kết' => 500000,
             'Đơn vị' => 'Viên',
             'Tiền cọc' => 50000000,
@@ -224,13 +267,13 @@ class ImportExport extends BaseImportExportService
 
     private function existingRecord(array $data): ?SupplierTracking
     {
-        if (! $data['medicine_id'] || ! $data['supplier_name_normalized'] || ! $data['working_date']) {
+        if (! $data['medicine_id'] || ! $data['partner_id'] || ! $data['working_date']) {
             return null;
         }
 
         return SupplierTracking::query()->where([
             'medicine_id' => $data['medicine_id'],
-            'supplier_name_normalized' => $data['supplier_name_normalized'],
+            'partner_id' => $data['partner_id'],
             'working_date' => $data['working_date'],
         ])->first();
     }
@@ -250,6 +293,77 @@ class ImportExport extends BaseImportExportService
         return $medicineName
             ? Medicine::query()->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower($medicineName)])->first()
             : null;
+    }
+
+    private function findSupplier(?string $taxCode, ?string $supplierName): ?Partner
+    {
+        if ($taxCode) {
+            $partner = Partner::query()
+                ->withPartnerType('supplier')
+                ->whereRaw('LOWER(TRIM(tax_code)) = ?', [mb_strtolower($taxCode)])
+                ->first();
+
+            if ($partner) {
+                return $partner;
+            }
+        }
+
+        return $supplierName
+            ? Partner::query()->withPartnerType('supplier')
+                ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower($supplierName)])
+                ->first()
+            : null;
+    }
+
+    private function normalizeDistributionScope(mixed $scope): string
+    {
+        $scope = mb_strtolower(trim((string) $scope));
+
+        return match ($scope) {
+            'regions', 'region', 'vùng miền', 'vung mien' => 'regions',
+            'facilities', 'facility', 'cơ sở', 'co so' => 'facilities',
+            default => 'all',
+        };
+    }
+
+    private function stringList(mixed $value): array
+    {
+        if (is_array($value)) {
+            return array_values(array_filter(array_map('trim', $value), fn ($item) => $item !== ''));
+        }
+
+        return collect(preg_split('/[;,\\n]+/u', trim((string) $value)) ?: [])
+            ->map(fn ($item) => trim((string) $item))
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    private function facilityIdsFromCodes(array $codes): array
+    {
+        if ($codes === []) {
+            return [];
+        }
+
+        return OfficialSourceFacility::query()
+            ->whereIn('external_id', $codes)
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+    }
+
+    private function joinList(mixed $value): string
+    {
+        return collect($value ?? [])->filter()->implode('; ');
+    }
+
+    private function businessKey(array $data): string
+    {
+        return implode('|', [
+            (string) ($data['medicine_id'] ?? ''),
+            (string) ($data['partner_id'] ?? ''),
+            (string) ($data['working_date'] ?? ''),
+        ]);
     }
 
     private function normalizeStatus(mixed $status): ?string

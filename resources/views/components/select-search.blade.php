@@ -2,6 +2,7 @@
     'placeholder' => 'Chọn một mục...',
     'id',
     'options' => [],
+    'searchEvent' => null,
 ])
 
 <div wire:ignore class="w-full">
@@ -12,7 +13,8 @@
             id: '{{ $id }}',
             model: '{{ $attributes->wire('model')->value() }}',
             placeholder: '{{ $placeholder }}',
-            optionsWire: '{{ $attributes->get('options-wire') }}'
+            optionsWire: @js($attributes->get('options-wire')),
+            searchEvent: @js($searchEvent)
         })"
     >
         {{ $slot }}
@@ -41,7 +43,14 @@ function selectSearchComponent(config) {
 
                 onChange: (value) => {
                     if (config.model) {
-                        @this.set(config.model, value);
+                        // Wait for Livewire to persist the selected value before a following
+                        // action (for example Save) can be sent from the same component.
+                        @this.set(config.model, value, false);
+                    }
+                },
+                onType: (query) => {
+                    if (config.searchEvent) {
+                        this.$wire.dispatch(config.searchEvent, { search: query || '' });
                     }
                 }
             });
@@ -53,21 +62,23 @@ function selectSearchComponent(config) {
             // ✅ CHỈ watch khi có options-wire
             if (config.optionsWire) {
                 this.$watch('$wire.' + config.optionsWire, (newOptions) => {
-
                     if (!this.instance) return;
 
+                    const selected = this.instance.getValue();
                     this.instance.clearOptions();
 
                     if (newOptions && Object.keys(newOptions).length > 0) {
-
                         const formatted = Object.values(newOptions).map(item => ({
-                            value: item.ward_name || item.name || item,
-                            text: item.ward_name || item.name || item
+                            value: item.id ?? item.value ?? item.ward_name ?? item.name ?? item,
+                            text: item.label ?? item.ward_name ?? item.name ?? item
                         }));
 
                         this.instance.addOptions(formatted);
                     }
 
+                    if (selected) {
+                        this.instance.setValue(selected, true);
+                    }
                     this.instance.refreshOptions(false);
                 });
             }

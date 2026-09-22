@@ -8,6 +8,7 @@ use Modules\Pharma\Integrations\Muasamcong\MuasamcongDrugAwardSyncService;
 use Modules\Pharma\Livewire\Concerns\AuthorizesPharmaActions;
 use Modules\Pharma\Models\DrugBidAward;
 use Modules\Pharma\Services\DrugBidAwardService;
+use Modules\Pharma\Services\DrugBidAwardImportExport;
 
 class Index extends Component
 {
@@ -22,6 +23,12 @@ class Index extends Component
     public string $filterInvestor = '';
 
     public string $filterCompany = '';
+
+    public string $valueSort = '';
+
+    public bool $showImportExport = false;
+
+    public bool $showFilters = true;
 
     public string $filterSource = '';
 
@@ -45,9 +52,9 @@ class Index extends Component
         'search' => ['except' => ''],
         'filterTbmt' => ['except' => ''],
         'filterInvestor' => ['except' => ''],
-        'filterCompany' => ['except' => ''],
         'filterSource' => ['except' => ''],
         'filterMatchStatus' => ['except' => ''],
+        'valueSort' => ['except' => ''],
         'perPage' => ['except' => 10],
         'page' => ['except' => 1],
     ];
@@ -73,8 +80,9 @@ class Index extends Component
         $this->resetWorkspacePage();
     }
 
-    public function updatedFilterCompany(): void
+    public function updatedValueSort(): void
     {
+        $this->valueSort = in_array($this->valueSort, ['', 'desc', 'asc'], true) ? $this->valueSort : '';
         $this->resetWorkspacePage();
     }
 
@@ -110,6 +118,64 @@ class Index extends Component
         $this->selectPage = $pageIds !== [] && count($this->selectedIds) === count($pageIds);
     }
 
+    public function setAwardSelected(mixed $id, bool $selected): void
+    {
+        if (! is_numeric($id)) {
+            return;
+        }
+
+        $value = (string) ((int) $id);
+        $pageIds = $this->currentPageIds();
+
+        if (! in_array($value, $pageIds, true)) {
+            return;
+        }
+
+        $selectedIds = array_values(array_intersect(array_map('strval', $this->selectedIds), $pageIds));
+
+        if ($selected) {
+            $selectedIds[] = $value;
+        } else {
+            $selectedIds = array_values(array_diff($selectedIds, [$value]));
+        }
+
+        $this->selectedIds = array_values(array_unique($selectedIds));
+        $this->selectPage = $pageIds !== [] && count($this->selectedIds) === count($pageIds);
+    }
+
+    public function clearAwardSelection(): void
+    {
+        $this->clearSelection();
+    }
+
+    public function exportSelectedAwards(DrugBidAwardImportExport $exportService)
+    {
+        $this->authorizePharmaEdit();
+        $this->updatedSelectedIds();
+
+        if ($this->selectedIds === []) {
+            session()->flash('error', 'Vui lòng chọn ít nhất một TBMT để export.');
+
+            return null;
+        }
+
+        $path = $exportService->export([
+            'selected_ids' => $this->selectedIds,
+        ]);
+
+        return response()
+            ->download($exportService->exportAbsolutePath($path), basename($path))
+            ->deleteFileAfterSend(true);
+    }
+
+
+    public function editResultGroup(int $representativeId)
+    {
+        $this->authorizePharmaEdit();
+
+        return $this->redirectRoute('admin.pharma.drug-bid-awards.edit', ['id' => $representativeId], navigate: false);
+    }
+
     public function gotoPage(mixed $page): void
     {
         $this->page = max(1, (int) $page);
@@ -118,7 +184,7 @@ class Index extends Component
 
     public function resetFilters(): void
     {
-        $this->reset(['search', 'filterTbmt', 'filterInvestor', 'filterCompany', 'filterSource', 'filterMatchStatus']);
+        $this->reset(['search', 'filterTbmt', 'filterInvestor', 'filterSource', 'filterMatchStatus', 'valueSort']);
         $this->page = 1;
         $this->clearSelection();
         $this->dispatch('filters-reset');
@@ -182,6 +248,21 @@ class Index extends Component
         }
     }
 
+    public function deleteResultGroup(DrugBidAwardService $service, int $representativeId): void
+    {
+        $this->authorizePharmaDelete();
+
+        try {
+            $deleted = $service->deleteResultGroup($representativeId);
+            $this->page = 1;
+            $this->clearSelection();
+            session()->flash('success', "Đã xóa TBMT và {$deleted} sản phẩm trúng thầu liên quan.");
+        } catch (Exception $exception) {
+            report($exception);
+            session()->flash('error', 'Không thể xóa TBMT này. Vui lòng kiểm tra dữ liệu phân bổ hoặc dữ liệu liên quan.');
+        }
+    }
+
     public function deleteSelected(DrugBidAwardService $service): void
     {
         $this->authorizePharmaDelete();
@@ -221,12 +302,14 @@ class Index extends Component
             $awards = $this->paginated($service);
         }
 
+        $dashboard = $this->dashboardMetrics();
+
         return view('Pharma::livewire.drug-bid-award.index', [
             'awards' => $awards,
+            'dashboard' => $dashboard,
             'perPageOptions' => self::PER_PAGE_OPTIONS,
             'tbmtOptions' => $this->distinctOptions('bidding_notice_code'),
             'investorOptions' => $this->distinctOptions('investor_name'),
-            'companyOptions' => $this->distinctOptions('winning_company_name'),
             'medicineOptions' => $this->distinctOptions('medicine_name'),
             'sourceOptions' => [
                 DrugBidAward::SOURCE_MANUAL => 'Nhập thủ công',
@@ -243,22 +326,50 @@ class Index extends Component
 
     private function paginated(DrugBidAwardService $service)
     {
-        return $service->getPaginated(
+        return $service->getResultGroupsPaginated(
             $this->search,
             $this->filterInvestor,
-            $this->filterCompany,
+            null,
             $this->perPage,
             $this->page,
             $this->filterSource ?: null,
             $this->filterMatchStatus ?: null,
             $this->filterTbmt,
+            $this->valueSort,
         );
+    }
+
+    private function dashboardMetrics(): array
+    {
+        $groupKey = "COALESCE(NULLIF(bidding_notice_code, ''), CONCAT('award-', id))";
+        $groups = DrugBidAward::query()
+            ->selectRaw("{$groupKey} as result_key")
+            ->selectRaw('SUM(COALESCE(amount, COALESCE(winning_price, unit_price, 0) * COALESCE(quantity, 0))) as total_value')
+            ->groupByRaw($groupKey)
+            ->get();
+
+        $totalGroups = $groups->count();
+        $totalValue = (float) $groups->sum('total_value');
+        $allocatedGroups = DrugBidAward::query()
+            ->whereHas('allocations', fn ($query) => $query->where('status', 'active'))
+            ->selectRaw($groupKey.' as result_key')->distinct()->get()->count();
+        $commercialGroups = DrugBidAward::query()
+            ->whereHas('allocations.managementAssignments', fn ($query) => $query->where('status', 'active'))
+            ->selectRaw($groupKey.' as result_key')->distinct()->get()->count();
+
+        return [
+            'total' => $totalGroups,
+            'value' => $totalValue,
+            'allocated' => $allocatedGroups,
+            'commercial' => $commercialGroups,
+            'pending' => max(0, $totalGroups - min($allocatedGroups, $commercialGroups)),
+        ];
     }
 
     private function currentPageIds(): array
     {
         return collect($this->paginated(app(DrugBidAwardService::class))->items())
-            ->map(fn (DrugBidAward $award): string => (string) $award->id)
+            ->map(fn (DrugBidAward $award): string => (string) $award->representative_id)
             ->values()
             ->all();
     }

@@ -70,6 +70,8 @@ Route::prefix('admin/pharma')->name('admin.pharma.')->middleware(['web', 'auth:a
         Route::get('/review', [DrugBidAwardController::class, 'review'])->middleware('can:edit_pharma')->name('review');
         Route::get('/create', [DrugBidAwardController::class, 'create'])->middleware('can:create_pharma')->name('create');
         Route::get('/{id}/allocations', [DrugBidAwardController::class, 'allocations'])->middleware('can:view_pharma_allocations')->name('allocations');
+        Route::get('/{id}/allocation-detail', [DrugBidAwardController::class, 'allocationDetail'])->middleware('can:view_pharma_allocations')->name('allocation-detail');
+        Route::get('/{id}/commercial-policy', [DrugBidAwardController::class, 'commercialPolicy'])->middleware('can:view_pharma_commercial_policies')->name('commercial-policy');
         Route::get('/{id}/edit', [DrugBidAwardController::class, 'edit'])->middleware('can:edit_pharma')->name('edit');
     });
 

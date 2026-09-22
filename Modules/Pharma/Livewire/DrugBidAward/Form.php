@@ -24,6 +24,8 @@ class Form extends Component
 
     public string $medicineSearch = '';
 
+    public int $medicineSearchRevision = 0;
+
     public string $medicine_name = '';
 
     public string $packaging_specification = '';
@@ -48,6 +50,14 @@ class Form extends Component
 
     public string $sourceType = DrugBidAward::SOURCE_MANUAL;
 
+    public ?int $editingProductId = null;
+
+    public bool $productSaveModal = false;
+
+    public string $productSaveModalType = 'success';
+
+    public string $productSaveModalMessage = '';
+
     public function mount(?int $id = null): void
     {
         $id ? $this->authorizePharmaEdit() : $this->authorizePharmaCreate();
@@ -61,16 +71,16 @@ class Form extends Component
         $award = app(DrugBidAwardService::class)->findOrFail($id);
 
         $this->medicine_id = $award->medicine_id;
-        $this->medicine_name = $award->medicine_name;
-        $this->packaging_specification = $award->packaging_specification;
+        $this->medicine_name = $award->medicine_name ?? '';
+        $this->packaging_specification = $award->packaging_specification ?? '';
         $this->quantity = $award->quantity;
         $this->unit_price = $award->unit_price;
-        $this->bidding_notice_code = $award->bidding_notice_code;
-        $this->investor_name = $award->investor_name;
-        $this->decision_number = $award->decision_number;
+        $this->bidding_notice_code = $award->bidding_notice_code ?? '';
+        $this->investor_name = $award->investor_name ?? '';
+        $this->decision_number = $award->decision_number ?? '';
         $this->decision_date = $award->decision_date?->format('Y-m-d') ?? '';
         $this->contract_duration_months = $award->contract_duration_months;
-        $this->winning_company_name = $award->winning_company_name;
+        $this->winning_company_name = $award->winning_company_name ?? '';
         $this->decision_document_url = $award->decision_document_url ?? '';
         $this->sourceType = $award->source_type ?: DrugBidAward::SOURCE_MANUAL;
         $this->medicineSearch = $award->medicine?->name ?? '';
@@ -112,6 +122,8 @@ class Form extends Component
 
     public function updatedMedicineSearch(): void
     {
+        $this->medicineSearchRevision++;
+
         if ($this->medicine_id && ! $this->selectedMedicineMatchesSearch()) {
             $this->medicine_id = null;
         }
@@ -142,14 +154,96 @@ class Form extends Component
         }
     }
 
+    public function editProduct(int $productId, DrugBidAwardService $service): void
+    {
+        $this->authorizePharmaEdit();
+        $product = $service->findProductInResultGroupOrFail($this->awardId, $productId);
+
+        $this->editingProductId = $product->id;
+        $this->medicine_id = $product->medicine_id;
+        $this->medicine_name = $product->medicine_name ?? '';
+        $this->packaging_specification = $product->packaging_specification ?? '';
+        $this->quantity = $product->quantity;
+        $this->unit_price = $product->unit_price;
+        $this->winning_company_name = $product->winning_company_name ?? '';
+        $this->medicineSearch = $product->medicine?->name ?? $product->medicine_name;
+    }
+
+    public function cancelProductEdit(): void
+    {
+        $this->editingProductId = null;
+        $this->resetValidation();
+    }
+
+    public function saveProduct(DrugBidAwardService $service): void
+    {
+        $this->authorizePharmaEdit();
+
+        if (! $this->editingProductId) {
+            return;
+        }
+
+        try {
+            $this->quantity = $this->normalizeAwardQuantity($this->quantity);
+            $this->unit_price = $this->normalizeLocalizedNumber($this->unit_price);
+
+            $data = $this->validate([
+                'medicine_id' => 'nullable|exists:pharma_medicines,id',
+                'medicine_name' => 'required|string|max:255',
+                'packaging_specification' => 'required|string|max:255',
+                'quantity' => 'required|integer|min:1',
+                'unit_price' => 'required|numeric|min:0',
+                'winning_company_name' => 'required|string|max:255',
+            ]);
+
+            $service->updateProductInResultGroup($this->awardId, $this->editingProductId, $data);
+            $this->editingProductId = null;
+            $this->productSaveModalType = 'success';
+            $this->productSaveModalMessage = 'Cập nhật sản phẩm trúng thầu thành công.';
+            $this->productSaveModal = true;
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $this->productSaveModalType = 'error';
+            $this->productSaveModalMessage = collect($exception->errors())->flatten()->first()
+                ?? 'Dữ liệu sản phẩm chưa hợp lệ. Vui lòng kiểm tra lại.';
+            $this->productSaveModal = true;
+        } catch (Exception $exception) {
+            report($exception);
+            $this->productSaveModalType = 'error';
+            $this->productSaveModalMessage = 'Không thể cập nhật sản phẩm. Vui lòng thử lại hoặc kiểm tra log hệ thống.';
+            $this->productSaveModal = true;
+        }
+    }
+
+    public function closeProductSaveModal(): void
+    {
+        $this->productSaveModal = false;
+    }
+
     public function save(DrugBidAwardService $service)
     {
         $this->isEditMode ? $this->authorizePharmaEdit() : $this->authorizePharmaCreate();
-        $data = $this->validate();
+
+        $data = $this->isEditMode
+            ? $this->validate([
+                'bidding_notice_code' => 'required|string|max:100',
+                'investor_name' => 'required|string|max:255',
+                'decision_number' => 'required|string|max:100',
+                'decision_date' => 'required|date',
+                'contract_duration_months' => 'required|integer|min:1',
+                'decision_document_url' => 'nullable|url|max:255',
+            ])
+            : $this->validate();
 
         try {
             if ($this->isEditMode) {
-                $service->update($this->awardId, $data);
+                $service->updateResultGroupLegalInfo($this->awardId, [
+                    'bidding_notice_code' => $data['bidding_notice_code'],
+                    'investor_name' => $data['investor_name'],
+                    'decision_number' => $data['decision_number'],
+                    'decision_date' => $data['decision_date'],
+                    'contract_duration_months' => $data['contract_duration_months'],
+                    'decision_document_url' => $data['decision_document_url'] ?? null,
+                ]);
                 session()->flash('success', 'Cập nhật thông tin trúng thầu thành công.');
             } else {
                 $service->store($data);
@@ -167,6 +261,7 @@ class Form extends Component
     {
         return view('Pharma::livewire.drug-bid-award.form', [
             'medicines' => $this->medicineCandidates(),
+            'resultProducts' => $this->isEditMode ? app(DrugBidAwardService::class)->productsForResultGroup($this->awardId) : collect(),
             'medicineResultLimit' => self::MEDICINE_RESULT_LIMIT,
         ]);
     }
@@ -184,6 +279,7 @@ class Form extends Component
             'id',
             'name',
             'registration_number',
+            'medicine_code',
             'active_ingredients',
             'concentration',
             'packaging_specification',
@@ -194,6 +290,7 @@ class Form extends Component
                 $like = "%{$search}%";
                 $nested->where('name', 'like', $like)
                     ->orWhere('registration_number', 'like', $like)
+                    ->orWhere('medicine_code', 'like', $like)
                     ->orWhere('active_ingredients', 'like', $like);
             });
         } else {
@@ -220,6 +317,52 @@ class Form extends Component
         return $candidates->unique('id')->values();
     }
 
+    private function normalizeAwardQuantity(mixed $value): mixed
+    {
+        if (is_int($value)) {
+            return $value;
+        }
+
+        if (is_float($value)) {
+            return (int) round($value);
+        }
+
+        if (! is_string($value)) {
+            return $value;
+        }
+
+        $normalized = $this->normalizeLocalizedNumber($value);
+
+        if (is_numeric($normalized)) {
+            return (int) round((float) $normalized);
+        }
+
+        return $normalized;
+    }
+
+    private function normalizeLocalizedNumber(mixed $value): mixed
+    {
+        if (! is_string($value)) {
+            return $value;
+        }
+
+        $value = trim($value);
+
+        if ($value === '') {
+            return $value;
+        }
+
+        if (preg_match('/^-?\\d{1,3}(?:\\.\\d{3})+$/', $value) === 1) {
+            return str_replace('.', '', $value);
+        }
+
+        if (preg_match('/^-?\\d{1,3}(?:,\\d{3})+$/', $value) === 1) {
+            return str_replace(',', '', $value);
+        }
+
+        return $value;
+    }
+
     private function selectedMedicineMatchesSearch(): bool
     {
         if (! $this->medicine_id) {
@@ -238,6 +381,7 @@ class Form extends Component
                 $like = "%{$search}%";
                 $query->where('name', 'like', $like)
                     ->orWhere('registration_number', 'like', $like)
+                    ->orWhere('medicine_code', 'like', $like)
                     ->orWhere('active_ingredients', 'like', $like);
             })
             ->exists();

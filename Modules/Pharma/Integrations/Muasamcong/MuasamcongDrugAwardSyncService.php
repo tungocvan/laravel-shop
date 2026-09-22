@@ -9,6 +9,7 @@ use Modules\Pharma\Services\DrugAwardProjectionService;
 
 class MuasamcongDrugAwardSyncService
 {
+    private const COMPANY_CONTRACTOR_CODE = 'vn0314492345';
     public function __construct(
         private readonly MuasamcongKqlcntAwardAdapter $adapter,
         private readonly DrugAwardProjectionService $projectionService,
@@ -29,7 +30,10 @@ class MuasamcongDrugAwardSyncService
         $failed = 0;
         $lastId = null;
 
-        $items = KqlcntAwardItem::query()
+        $companyItems = fn () => KqlcntAwardItem::query()
+            ->whereRaw('LOWER(TRIM(contractor_code)) = ?', [self::COMPANY_CONTRACTOR_CODE]);
+
+        $items = $companyItems()
             ->when($afterId, fn ($query) => $query->whereKey('>', $afterId))
             ->orderBy('id')
             ->limit($limit)
@@ -48,7 +52,7 @@ class MuasamcongDrugAwardSyncService
             }
         }
 
-        $hasMore = $lastId !== null && KqlcntAwardItem::query()->whereKey('>', $lastId)->exists();
+        $hasMore = $lastId !== null && $companyItems()->whereKey('>', $lastId)->exists();
 
         return [
             'processed' => $processed,

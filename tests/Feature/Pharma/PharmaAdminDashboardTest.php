@@ -3,7 +3,6 @@
 namespace Tests\Feature\Pharma;
 
 use Modules\Pharma\Services\PharmaDashboardService;
-use Modules\Pharma\Services\PriceListService;
 use Tests\TestCase;
 
 class PharmaAdminDashboardTest extends TestCase
@@ -28,25 +27,24 @@ class PharmaAdminDashboardTest extends TestCase
         $this->assertStringContainsString("route('admin.pharma.price-lists.create')", $view);
     }
 
-    public function test_dashboard_service_exposes_lightweight_metrics_and_workbook_readiness(): void
+    public function test_dashboard_service_exposes_database_backed_metrics_and_price_list_summary(): void
     {
         $service = file_get_contents(base_path('Modules/Pharma/Services/PharmaDashboardService.php'));
 
         $this->assertStringContainsString('Medicine::class', $service);
         $this->assertStringContainsString('DrugBidAward::class', $service);
         $this->assertStringContainsString('SupplierTracking::class', $service);
-        $this->assertStringContainsString('PriceListService::DEFAULT_SOURCE', $service);
-        $this->assertStringContainsString("'ready' => is_file(\$path) && is_readable(\$path)", $service);
-        $this->assertSame('excel/BANG_GIA_TONG_HOP.xlsx', PriceListService::DEFAULT_SOURCE);
+        $this->assertStringContainsString('PriceList::class', $service);
+        $this->assertStringContainsString("'price_lists' => \$this->priceListSummary()", $service);
     }
 
     public function test_quick_actions_are_permission_aware(): void
     {
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/pages/dashboard.blade.php'));
 
-        $this->assertStringContainsString("@if (\$capabilities['create'])", $view);
-        $this->assertStringContainsString("route('admin.pharma.hssp.create')", $view);
-        $this->assertStringContainsString("route('admin.pharma.drug-bid-awards.create')", $view);
-        $this->assertStringContainsString("route('admin.pharma.supplier-trackings.create')", $view);
+        $this->assertStringContainsString("@if(\$capabilities['create'])", $view);
+        $this->assertStringContainsString("route('admin.pharma.price-lists.create')", $view);
+        $this->assertStringContainsString("@if(\$capabilities['edit'])", $view);
+        $this->assertStringContainsString("@if(\$capabilities['official_facilities'])", $view);
     }
 }

@@ -73,7 +73,7 @@ class PharmaDrugAwardAllocationContractTest extends TestCase
         $this->assertStringContainsString('$this->selectedIds = $value ? $this->currentPageIds() : [];', $component);
         $this->assertStringContainsString('can:view_pharma_allocations', $route);
         $this->assertStringContainsString("can('view_pharma_allocations')", $index);
-        $this->assertStringContainsString('>Phân bổ</a>', $index);
+        $this->assertStringContainsString('Sản phẩm / Phân bổ', $index);
         $this->assertStringNotContainsString('Hiển thị tất cả', $component);
     }
 
@@ -116,6 +116,16 @@ class PharmaDrugAwardAllocationContractTest extends TestCase
         $this->assertStringContainsString("\$query->whereIn('id', array_map('intval', \$this->selectedIds));", $component);
         $this->assertStringContainsString('exportAllocations(): StreamedResponse', $component);
         $this->assertStringContainsString('exportContracts(): StreamedResponse', $component);
+        $this->assertStringContainsString('use Rap2hpoutre\\FastExcel\\FastExcel;', $component);
+        $this->assertStringContainsString('allocations.xlsx', $component);
+        $this->assertStringContainsString('contracts.xlsx', $component);
+        $this->assertStringNotContainsString('fputcsv(', $component);
+        $this->assertStringNotContainsString('.csv"', $component);
+        $this->assertStringContainsString("'Cơ sở KCB nhận phân bổ'", $component);
+        $this->assertStringContainsString("'Đã cam kết hợp đồng'", $component);
+        $this->assertStringContainsString("'Còn lại chưa cam kết'", $component);
+        $this->assertStringContainsString("'Số hợp đồng'", $component);
+        $this->assertStringContainsString("'Giá trị hợp đồng'", $component);
     }
 
     public function test_cancellation_is_soft_lifecycle_with_reason_and_audit_metadata(): void

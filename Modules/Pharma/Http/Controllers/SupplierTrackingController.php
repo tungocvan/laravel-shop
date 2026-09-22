@@ -3,6 +3,7 @@
 namespace Modules\Pharma\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
 
 class SupplierTrackingController extends Controller
 {
@@ -11,9 +12,11 @@ class SupplierTrackingController extends Controller
         return view('Pharma::pages.supplier-trackings.index');
     }
 
-    public function create() 
+    public function create(Request $request)
     {
-        return view('Pharma::pages.supplier-trackings.create');
+        return view('Pharma::pages.supplier-trackings.create', [
+            'medicineId' => $request->integer('medicine_id') ?: null,
+        ]);
     }
 
     public function edit(int $id)

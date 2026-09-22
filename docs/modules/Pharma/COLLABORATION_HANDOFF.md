@@ -1,3 +1,22 @@
+## Checkpoint — Supplier commercial workspace + Drug Bid Award closeout — 2026-09-22
+
+- Branch: `feat/pharma-supplier-commercial-workspace`.
+- Operator acceptance: latest focused tests PASS and UI PASS.
+- Drug Bid Award KQLCNT synchronization is scoped to contractor code `vn0314492345` using normalized contractor-code comparison; pagination/has-more uses the same scope.
+- TBMT list supports permission-aware, confirmed deletion of a complete result group rather than deleting only a grouped representative row.
+- KQLCNT projection identity now preserves each `kqlcnt_award_item` source identity so distinct winning products in the same TBMT/contractor cannot collapse into one Pharma award. This corrects the observed two-source/one-award collision for TBMT `IB2500361132`.
+- Drug Bid Award legal/TBMT edit validates only TBMT legal fields; hidden/product-edit fields no longer block `Lưu thông tin TBMT`.
+- Drug Bid Award direct Excel export and two-sheet product/allocation XLSX round-trip were accepted earlier in this branch; allocation import continues to pass through the existing allocation service/business rules.
+- Shared distribution scope, product/allocation workspace, commercial policy, manager assignment, allocation/detail XLSX and grouped TBMT index/edit UX are included in this branch's accepted implementation.
+- UI reliability lessons were promoted to `.codex/standards/ADMIN_UI_STANDARD.md`, especially Livewire checkbox route ownership, stable representative IDs, duplicate desktop/mobile DOM trees, server-state versus native checked state, pagination/filter carry-over diagnosis, page-scoped versus dataset-wide selection and bounded `wire:replace` escalation.
+- Schema: no new migration is required by the final checkbox/sync/projection/edit fixes. Existing branch migrations were already applied during implementation.
+- Production boundary: normal deployment/cache lifecycle; no new feature flag or runtime enablement step introduced by the closeout fixes.
+- Remaining pre-merge gate: synchronize this documentation commit locally, run the final Pharma module-scoped regression selected for this branch, verify working tree clean, then create/review/merge the PR.
+- Full-project regression: NOT APPLICABLE — changes are scoped to Pharma/Muasamcong integration and Pharma Admin UI; module/impacted regression is the merge gate.
+- Status: **IMPLEMENTATION COMPLETE — FOCUSED TEST PASS + UI PASS — FINAL MODULE REGRESSION / GIT-CLEAN / PR GATE PENDING.**
+
+---
+
 ## Checkpoint — Price List manager/time filters + Excel recipient/export refinements — 2026-09-20
 
 - Branch: `feat/pharma-price-list-manager-time-filters`; based on merged `main` from PR #214. Pre-handoff compare: ahead 26, behind 0.

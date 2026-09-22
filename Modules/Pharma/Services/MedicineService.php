@@ -23,10 +23,14 @@ class MedicineService
         ?string $specialControl = null,
         ?string $profileStatus = null,
         ?string $hsspStatus = null,
+        ?int $supplierId = null,
+        ?string $deletable = null,
+        ?string $registration = null,
     ): LengthAwarePaginator {
         return Medicine::query()
             ->with([
                 'variants:id,medicine_id,sku,strength_text,presentation_text,status,is_default',
+                'supplierTrackings' => fn ($query) => $query->select(['id', 'medicine_id', 'partner_id', 'status'])->with('partner:id,name'),
                 'currentProfile' => fn ($query) => $query->select([
                     'pharma_medicine_profiles.id',
                     'pharma_medicine_profiles.medicine_id',
@@ -37,7 +41,7 @@ class MedicineService
                     'pharma_medicine_profiles.is_current',
                 ]),
             ])
-            ->withCount(['sources', 'drugBidAwards', 'variants', 'profiles'])
+            ->withCount(['sources', 'drugBidAwards', 'variants', 'profiles', 'supplierTrackings', 'priceListItems'])
             ->when($search, fn ($query, $value) => $query->where(fn ($nested) => $nested
                 ->where('name', 'like', "%{$value}%")
                 ->orWhere('medicine_code', 'like', "%{$value}%")
@@ -61,6 +65,23 @@ class MedicineService
             ->when($profileStatus, fn ($query, $value) => $query->where('profile_status', $value))
             ->when($hsspStatus === 'with', fn ($query) => $query->whereHas('currentProfile'))
             ->when($hsspStatus === 'without', fn ($query) => $query->whereDoesntHave('currentProfile'))
+            ->when($supplierId, fn ($query, $value) => $query->whereHas('supplierTrackings', fn ($tracking) => $tracking->where('partner_id', $value)))
+            ->when($registration === 'with', fn ($query) => $query->whereNotNull('registration_number')->where('registration_number', '!=', ''))
+            ->when($registration === 'without', fn ($query) => $query->where(fn ($nested) => $nested->whereNull('registration_number')->orWhere('registration_number', '')))
+            ->when($deletable === 'yes', fn ($query) => $query
+                ->whereDoesntHave('profiles')
+                ->whereDoesntHave('supplierTrackings')
+                ->whereDoesntHave('priceListItems')
+                ->where(fn ($nested) => $nested
+                    ->where('profile_status', '!=', Medicine::PROFILE_VERIFIED)
+                    ->orWhereDoesntHave('drugBidAwards')))
+            ->when($deletable === 'no', fn ($query) => $query->where(fn ($nested) => $nested
+                ->whereHas('profiles')
+                ->orWhereHas('supplierTrackings')
+                ->orWhereHas('priceListItems')
+                ->orWhere(fn ($verified) => $verified
+                    ->where('profile_status', Medicine::PROFILE_VERIFIED)
+                    ->whereHas('drugBidAwards'))))
             ->latest()
             ->paginate($perPage, ['*'], 'page', $page);
     }
@@ -72,6 +93,17 @@ class MedicineService
             ->where('circular_group', '!=', '')
             ->distinct()
             ->pluck('circular_group')
+            ->all();
+    }
+
+    public function getSupplierOptions(): array
+    {
+        return \Modules\Partner\Models\Partner::query()
+            ->where('status', 'active')
+            ->whereJsonContains('partner_types', 'supplier')
+            ->whereHas('supplierTrackings')
+            ->orderBy('name')
+            ->pluck('name', 'id')
             ->all();
     }
 
@@ -108,6 +140,50 @@ class MedicineService
         });
     }
 
+    public function verifyMaster(int $id): Medicine
+    {
+        return DB::transaction(function () use ($id): Medicine {
+            $medicine = $this->findOrFail($id);
+
+            $required = [
+                'registration_number' => 'Giấy phép lưu hành',
+                'active_ingredients' => 'Tên hoạt chất',
+                'concentration' => 'Nồng độ / Hàm lượng',
+                'dosage_form' => 'Dạng bào chế',
+                'route_of_administration' => 'Đường dùng',
+                'unit' => 'Đơn vị tính',
+                'packaging_specification' => 'Quy cách đóng gói',
+                'shelf_life' => 'Hạn dùng',
+                'registered_company' => 'Cơ sở đăng ký',
+                'manufacturing_company' => 'Cơ sở sản xuất',
+                'manufacturing_country' => 'Nước sản xuất',
+            ];
+
+            $missing = collect($required)
+                ->filter(fn (string $label, string $field) => blank($medicine->getAttribute($field)))
+                ->values()
+                ->all();
+
+            if ($missing !== []) {
+                throw new LogicException(
+                    'Chưa thể xác minh Medicine Master. Hãy lưu lại đầy đủ thông tin Nhà sản xuất & thông tin quản lý rồi xác nhận lại.'
+                );
+            }
+
+            $identityKey = $this->identityResolver->canonicalMedicineIdentity($medicine->toArray());
+            $this->guardCanonicalIdentityCollision($medicine, $identityKey);
+
+            $medicine->forceFill([
+                'canonical_identity_key' => $identityKey,
+                'identity_status' => Medicine::IDENTITY_VERIFIED_REGISTRATION,
+                'profile_status' => Medicine::PROFILE_VERIFIED,
+                'last_verified_at' => now(),
+            ])->save();
+
+            return $medicine->refresh();
+        });
+    }
+
     public function delete(int $id): bool
     {
         return DB::transaction(function () use ($id): bool {
@@ -116,8 +192,19 @@ class MedicineService
             // Variants, packages, aliases and source provenance are owned catalog data
             // and are configured to cascade with the medicine. Only external/business
             // references must protect the canonical record from hard deletion.
-            if ($medicine->profiles()->exists() || $medicine->drugBidAwards()->exists()) {
-                throw new LogicException('Không thể xóa thuốc vì đã có HSSP hoặc dữ liệu kết quả lựa chọn nhà thầu tham chiếu.');
+            if ($medicine->profiles()->exists() || $medicine->supplierTrackings()->exists() || $medicine->priceListItems()->exists()) {
+                throw new LogicException('Không thể xóa thuốc vì đã có HSSP, bảng giá hoặc điều kiện thương mại nhà cung cấp tham chiếu.');
+            }
+
+            if ($medicine->profile_status === Medicine::PROFILE_VERIFIED && $medicine->drugBidAwards()->exists()) {
+                throw new LogicException('Không thể xóa Medicine Master đã xác minh khi còn dữ liệu kết quả lựa chọn nhà thầu tham chiếu.');
+            }
+
+            // Legacy bid links to an unverified master are no longer valid under the
+            // verified-only matching rule. Preserve the award, but detach the stale
+            // canonical pointer before deleting the unverified duplicate.
+            if ($medicine->profile_status !== Medicine::PROFILE_VERIFIED) {
+                $medicine->drugBidAwards()->update(['medicine_id' => null]);
             }
 
             return (bool) $medicine->delete();

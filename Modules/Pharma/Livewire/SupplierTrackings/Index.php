@@ -2,6 +2,7 @@
 
 namespace Modules\Pharma\Livewire\SupplierTrackings;
 
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Modules\Pharma\Livewire\Concerns\AuthorizesPharmaActions;
 use Modules\Pharma\Models\SupplierTracking;
@@ -17,9 +18,13 @@ class Index extends Component
 
     public string $status = '';
 
-    public string $workingDateFrom = '';
+    public string $supplierId = '';
 
-    public string $workingDateTo = '';
+    public string $medicineId = '';
+
+    public array $supplierFilterOptions = [];
+
+    public array $medicineFilterOptions = [];
 
     public int $perPage = 10;
 
@@ -38,8 +43,8 @@ class Index extends Component
     protected $queryString = [
         'search' => ['except' => ''],
         'status' => ['except' => ''],
-        'workingDateFrom' => ['except' => ''],
-        'workingDateTo' => ['except' => ''],
+        'supplierId' => ['except' => ''],
+        'medicineId' => ['except' => ''],
         'perPage' => ['except' => 10],
         'page' => ['except' => 1],
     ];
@@ -48,6 +53,9 @@ class Index extends Component
     {
         $this->authorizePharmaView();
         $this->perPage = $this->normalizePerPage($this->perPage);
+        $service = app(SupplierTrackingService::class);
+        $this->refreshSupplierFilterOptions($service);
+        $this->refreshMedicineFilterOptions($service);
     }
 
     public function updatedSearch(): void
@@ -61,14 +69,26 @@ class Index extends Component
         $this->resetWorkspacePage();
     }
 
-    public function updatedWorkingDateFrom(): void
+    public function updatedSupplierId(): void
     {
         $this->resetWorkspacePage();
     }
 
-    public function updatedWorkingDateTo(): void
+    public function updatedMedicineId(): void
     {
         $this->resetWorkspacePage();
+    }
+
+    #[On('supplier-filter-search')]
+    public function searchSupplierFilter(string $search = ''): void
+    {
+        $this->refreshSupplierFilterOptions(app(SupplierTrackingService::class), $search);
+    }
+
+    #[On('medicine-filter-search')]
+    public function searchMedicineFilter(string $search = ''): void
+    {
+        $this->refreshMedicineFilterOptions(app(SupplierTrackingService::class), $search);
     }
 
     public function updatedPerPage(mixed $value): void
@@ -98,7 +118,11 @@ class Index extends Component
 
     public function resetFilters(): void
     {
-        $this->reset(['search', 'status', 'workingDateFrom', 'workingDateTo']);
+        $this->reset(['search', 'status', 'supplierId', 'medicineId']);
+        $service = app(SupplierTrackingService::class);
+        $this->refreshSupplierFilterOptions($service);
+        $this->refreshMedicineFilterOptions($service);
+        $this->dispatch('filters-reset');
         $this->perPage = 10;
         $this->page = 1;
         $this->expandedFinancialId = null;
@@ -224,9 +248,29 @@ class Index extends Component
         return [
             'search' => trim($this->search),
             'status' => $this->status,
-            'working_date_from' => $this->workingDateFrom,
-            'working_date_to' => $this->workingDateTo,
+            'partner_id' => $this->supplierId,
+            'medicine_id' => $this->medicineId,
         ];
+    }
+
+    private function refreshSupplierFilterOptions(SupplierTrackingService $service, string $search = ''): void
+    {
+        $this->supplierFilterOptions = $service
+            ->supplierFilterCandidates($search, $this->supplierId !== '' ? (int) $this->supplierId : null)
+            ->map(fn ($partner): array => [
+                'id' => $partner->id,
+                'label' => $partner->name.($partner->tax_code ? ' · MST '.$partner->tax_code : ''),
+            ])->all();
+    }
+
+    private function refreshMedicineFilterOptions(SupplierTrackingService $service, string $search = ''): void
+    {
+        $this->medicineFilterOptions = $service
+            ->medicineFilterCandidates($search, $this->medicineId !== '' ? (int) $this->medicineId : null)
+            ->map(fn ($medicine): array => [
+                'id' => $medicine->id,
+                'label' => $medicine->name.($medicine->registration_number ? ' · SĐK '.$medicine->registration_number : ''),
+            ])->all();
     }
 
     private function normalizePerPage(mixed $value): int
@@ -253,7 +297,7 @@ class Index extends Component
     private function statuses(): array
     {
         return [
-            'active' => 'Đang theo dõi',
+            'active' => 'Đang hiệu lực',
             'completed' => 'Hoàn tất',
             'paused' => 'Tạm dừng',
             'cancelled' => 'Hủy',

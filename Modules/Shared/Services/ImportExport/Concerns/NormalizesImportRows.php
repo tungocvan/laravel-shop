@@ -63,6 +63,10 @@ trait NormalizesImportRows
         }
 
         try {
+            if ($value instanceof \DateTimeInterface) {
+                return Carbon::instance(\DateTimeImmutable::createFromInterface($value))->format('Y-m-d');
+            }
+
             if (is_numeric($value)) {
                 return Carbon::instance(
                     ExcelDate::excelToDateTimeObject((float) $value)
@@ -71,12 +75,18 @@ trait NormalizesImportRows
 
             $value = trim((string) $value);
 
-            foreach (['d/m/Y', 'd-m-Y', 'Y-m-d', 'm/d/Y'] as $format) {
-                $date = Carbon::createFromFormat($format, $value);
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) === 1) {
+                [$year, $month, $day] = array_map('intval', explode('-', $value));
 
-                if ($date !== false) {
-                    return $date->format('Y-m-d');
-                }
+                return checkdate($month, $day, $year) ? $value : null;
+            }
+
+            if (preg_match('/^\d{1,2}[\/-]\d{1,2}[\/-]\d{4}$/', $value) === 1) {
+                [$day, $month, $year] = array_map('intval', preg_split('/[\/-]/', $value));
+
+                return checkdate($month, $day, $year)
+                    ? sprintf('%04d-%02d-%02d', $year, $month, $day)
+                    : null;
             }
 
             return Carbon::parse($value)->format('Y-m-d');

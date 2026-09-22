@@ -7,10 +7,10 @@
     $lastPage = $items->lastPage();
     $startPage = max(1, $currentPage - 2);
     $endPage = min($lastPage, $currentPage + 2);
-    $tableColumns = 8 + ($canSelect ? 1 : 0);
+    $tableColumns = 9 + ($canSelect ? 1 : 0);
 @endphp
 
-<div class="mx-auto max-w-7xl space-y-5">
+<div class="w-full space-y-5">
     <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
             <h1 class="text-2xl font-bold tracking-tight text-gray-900">Theo dõi nhà cung cấp</h1>
@@ -46,16 +46,16 @@
                 @livewire('shared.import-export.panel', [
                     'serviceClass' => \Modules\Pharma\Services\ImportExport::class,
                     'title' => 'Import / Export theo dõi nhà cung cấp',
-                    'description' => 'File Excel chuẩn A–V; các cột công thức được hệ thống tự tính lại.',
+                    'description' => 'File Excel chuẩn round-trip A–U: file xuất ra có thể import lại; các giá trị tính toán do hệ thống quản lý.',
                     'filters' => [
                         'search' => $search,
                         'status' => $status,
-                        'working_date_from' => $workingDateFrom,
-                        'working_date_to' => $workingDateTo,
+                        'partner_id' => $supplierId,
+                        'medicine_id' => $medicineId,
                         'selected_ids' => $selectedIds,
                     ],
                     'permission' => 'edit_pharma',
-                ], key('supplier-tracking-import-export-' . md5(json_encode([$search, $status, $workingDateFrom, $workingDateTo]))))
+                ], key('supplier-tracking-import-export-' . md5(json_encode([$search, $status, $supplierId, $medicineId]))))
             </div>
         @endif
     @endcan
@@ -63,36 +63,35 @@
     <div class="rounded-2xl border border-gray-200 bg-white shadow-sm">
         <div class="p-5">
             <div class="grid gap-4 lg:grid-cols-12">
-                <div class="lg:col-span-4">
+                <div class="lg:col-span-3">
                     <label for="supplier-search" class="text-sm font-medium text-gray-700">Tìm kiếm</label>
-                    <input id="supplier-search" type="text" wire:model.live.debounce.400ms="search"
-                        placeholder="Tên thuốc, SĐK, NCC, đại diện, khu vực..."
-                        class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
+                    <input id="supplier-search" type="text" wire:model.live.debounce.400ms="search" placeholder="SĐK, đại diện, khu vực..." class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm shadow-sm">
+                </div>
+                <div class="lg:col-span-3">
+                    <label for="supplier-filter" class="text-sm font-medium text-gray-700">Nhà cung cấp</label>
+                    <div class="mt-1">
+                        <x-select-search id="supplier-filter" wire:model="supplierId" :options="$supplierFilterOptions" options-wire="supplierFilterOptions" search-event="supplier-filter-search" placeholder="Tất cả nhà cung cấp">
+                            <option value="">Tất cả nhà cung cấp</option>
+                            @foreach($supplierFilterOptions as $option)<option value="{{ $option['id'] }}">{{ $option['label'] }}</option>@endforeach
+                        </x-select-search>
+                    </div>
+                </div>
+                <div class="lg:col-span-3">
+                    <label for="medicine-filter" class="text-sm font-medium text-gray-700">Sản phẩm</label>
+                    <div class="mt-1">
+                        <x-select-search id="medicine-filter" wire:model="medicineId" :options="$medicineFilterOptions" options-wire="medicineFilterOptions" search-event="medicine-filter-search" placeholder="Tất cả sản phẩm">
+                            <option value="">Tất cả sản phẩm</option>
+                            @foreach($medicineFilterOptions as $option)<option value="{{ $option['id'] }}">{{ $option['label'] }}</option>@endforeach
+                        </x-select-search>
+                    </div>
                 </div>
                 <div class="lg:col-span-2">
                     <label for="supplier-status" class="text-sm font-medium text-gray-700">Trạng thái</label>
-                    <select id="supplier-status" wire:model.live="status" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
-                        <option value="">Tất cả</option>
-                        @foreach ($statuses as $value => $label)
-                            <option value="{{ $value }}">{{ $label }}</option>
-                        @endforeach
-                    </select>
+                    <select id="supplier-status" wire:model.live="status" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm shadow-sm"><option value="">Tất cả</option>@foreach ($statuses as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select>
                 </div>
-                <div class="lg:col-span-2">
-                    <label for="supplier-date-from" class="text-sm font-medium text-gray-700">Từ ngày</label>
-                    <input id="supplier-date-from" type="date" wire:model.live="workingDateFrom" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
-                </div>
-                <div class="lg:col-span-2">
-                    <label for="supplier-date-to" class="text-sm font-medium text-gray-700">Đến ngày</label>
-                    <input id="supplier-date-to" type="date" wire:model.live="workingDateTo" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
-                </div>
-                <div class="lg:col-span-2">
+                <div class="lg:col-span-1">
                     <label for="supplier-per-page" class="text-sm font-medium text-gray-700">Hiển thị</label>
-                    <select id="supplier-per-page" wire:model.live="perPage" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
-                        @foreach ($perPageOptions as $option)
-                            <option value="{{ $option }}">{{ $option }} dòng</option>
-                        @endforeach
-                    </select>
+                    <select id="supplier-per-page" wire:model.live="perPage" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm shadow-sm">@foreach ($perPageOptions as $option)<option value="{{ $option }}">{{ $option }}</option>@endforeach</select>
                 </div>
             </div>
         </div>
@@ -126,9 +125,10 @@
                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">HSSP / Ngày làm việc</th>
                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Nhà cung cấp</th>
                         <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Giá mua → bán</th>
-                        <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">LN thực tế</th>
                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Cam kết</th>
                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Hợp đồng</th>
+                        <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">Hiệu lực từ</th>
+                        <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">Hiệu lực đến</th>
                         <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">Trạng thái</th>
                         <th class="w-28 px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Thao tác</th>
                     </tr>
@@ -145,9 +145,10 @@
                             </td>
                             <td class="px-4 py-4 align-top"><div class="max-w-[220px] font-semibold text-gray-900">{{ $item->supplier_name }}</div><div class="mt-1 text-xs text-gray-500">{{ $item->supplier_representative ?: 'Chưa có đại diện' }}</div><div class="mt-0.5 text-xs text-gray-400">{{ $item->area ?: 'Chưa có khu vực' }}</div></td>
                             <td class="px-4 py-4 text-right align-top tabular-nums"><div class="whitespace-nowrap font-medium text-gray-900">{{ $this->money($item->import_price) }} <span class="px-1 text-gray-300">→</span> {{ $this->money($item->selling_price) }}</div><button type="button" wire:click="toggleFinancialDetails({{ $item->id }})" class="mt-1 text-xs font-semibold text-indigo-600 hover:text-indigo-500">{{ $expandedFinancialId === $item->id ? 'Ẩn chi tiết' : 'Chi tiết giá' }}</button></td>
-                            <td class="px-4 py-4 text-right align-top tabular-nums"><span class="inline-flex whitespace-nowrap rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">{{ $this->percent($item->gross_profit_percent) }}</span></td>
                             <td class="px-4 py-4 align-top"><div class="whitespace-nowrap font-medium text-gray-800">{{ $item->committed_quantity ? $this->money($item->committed_quantity) : '---' }} {{ $item->unit }}</div><div class="mt-1 whitespace-nowrap text-xs text-gray-500">Cọc: {{ $item->deposit_amount ? $this->money($item->deposit_amount) : '---' }}</div></td>
-                            <td class="px-4 py-4 align-top"><div class="whitespace-nowrap text-xs text-gray-500">{{ $item->start_date?->format('d/m/Y') ?? '---' }} → {{ $item->end_date?->format('d/m/Y') ?? '---' }}</div>@if ($item->contract_url)<a href="{{ $item->contract_url }}" target="_blank" rel="noopener noreferrer" class="mt-1 inline-flex whitespace-nowrap text-xs font-semibold text-indigo-600 hover:text-indigo-500">Xem hợp đồng ↗</a>@else<span class="mt-1 block text-xs text-gray-400">Chưa có liên kết</span>@endif</td>
+                            <td class="px-4 py-4 align-top">@if ($item->contract_url)<a href="{{ $item->contract_url }}" target="_blank" rel="noopener noreferrer" class="mt-1 inline-flex whitespace-nowrap text-xs font-semibold text-indigo-600 hover:text-indigo-500">Xem hợp đồng ↗</a>@else<span class="mt-1 block text-xs text-gray-400">Chưa có liên kết</span>@endif</td>
+                            <td class="px-4 py-4 text-center align-top whitespace-nowrap text-sm text-gray-700">{{ $item->start_date?->format('d/m/Y') ?? '—' }}</td>
+                            <td class="px-4 py-4 text-center align-top whitespace-nowrap text-sm text-gray-700">{{ $item->end_date?->format('d/m/Y') ?? '—' }}</td>
                             <td class="px-4 py-4 text-center align-top"><span class="inline-flex whitespace-nowrap rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700">{{ $statuses[$item->status] ?? $item->status }}</span></td>
                             <td class="px-4 py-4 text-right align-top"><div class="flex justify-end gap-3 whitespace-nowrap">@can('edit_pharma')<a href="{{ route('admin.pharma.supplier-trackings.edit', $item->id) }}" class="text-sm font-semibold text-indigo-600 hover:text-indigo-500">Sửa</a>@endcan @can('delete_pharma')<button type="button" wire:click="delete({{ $item->id }})" wire:confirm="Bạn chắc chắn muốn xóa dòng này?" class="text-sm font-semibold text-red-600 hover:text-red-500">Xóa</button>@endcan</div></td>
                         </tr>

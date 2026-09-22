@@ -21,6 +21,7 @@ class MedicineIdentityResolver
 
         if ($registration !== null) {
             $matches = Medicine::query()
+                ->where('profile_status', Medicine::PROFILE_VERIFIED)
                 ->whereNotNull('registration_number')
                 ->get()
                 ->filter(fn (Medicine $medicine) => $this->normalize($medicine->registration_number) === $registration
@@ -45,6 +46,7 @@ class MedicineIdentityResolver
         $identity = $this->compositeIdentity($source);
         if ($identity !== null) {
             $matches = Medicine::query()
+                ->where('profile_status', Medicine::PROFILE_VERIFIED)
                 ->get()
                 ->filter(fn (Medicine $medicine) => $this->medicineCompositeIdentity($medicine) === $identity)
                 ->values();

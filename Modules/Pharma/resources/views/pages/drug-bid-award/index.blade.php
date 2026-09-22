@@ -1,5 +1,7 @@
 @extends('Admin::layouts.master')
 
+@section('admin_container', 'full')
+
 @section('title', 'Pharma')
 
 @section('content')

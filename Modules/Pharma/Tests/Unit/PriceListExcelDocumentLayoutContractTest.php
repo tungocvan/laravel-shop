@@ -74,7 +74,7 @@ class PriceListExcelDocumentLayoutContractTest extends TestCase
         $controller = file_get_contents(base_path('Modules/Pharma/Http/Controllers/PriceListController.php'));
 
         $this->assertStringContainsString('PriceListExcelDocumentLayout $layout', $controller);
-        $this->assertStringContainsString('$layout->header($sheet,$profile,count($columns))', str_replace(' ', '', $controller));
+        $this->assertStringContainsString('$layout->header($sheet,$profile,count($columns),1,$customerLabel)', str_replace(' ', '', $controller));
         $this->assertStringContainsString('$layout->footer($sheet,$profile,count($columns),$headerRow+$items->count())', str_replace(' ', '', $controller));
     }
 }

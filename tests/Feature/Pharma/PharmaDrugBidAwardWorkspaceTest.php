@@ -6,19 +6,39 @@ use Tests\TestCase;
 
 class PharmaDrugBidAwardWorkspaceTest extends TestCase
 {
-    public function test_workspace_uses_bounded_page_sizes_and_page_scoped_selection(): void
+    public function test_workspace_groups_by_bidding_notice_and_drills_into_products_before_allocation(): void
     {
         $component = file_get_contents(base_path('Modules/Pharma/Livewire/DrugBidAward/Index.php'));
+        $service = file_get_contents(base_path('Modules/Pharma/Services/DrugBidAwardService.php'));
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/drug-bid-award/index.blade.php'));
+        $routes = file_get_contents(base_path('Modules/Pharma/routes/web.php'));
+        $controller = file_get_contents(base_path('Modules/Pharma/Http/Controllers/DrugBidAwardController.php'));
+        $products = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/drug-bid-award/product-workspace.blade.php'));
 
         $this->assertStringContainsString('private const PER_PAGE_OPTIONS = [10, 25, 50, 100];', $component);
-        $this->assertStringNotContainsString("'All'", $component);
-        $this->assertStringNotContainsString('999999', $component);
-        $this->assertStringContainsString('public bool $selectPage = false;', $component);
-        $this->assertStringContainsString('$this->selectedIds = $value ? $this->currentPageIds() : [];', $component);
-        $this->assertStringContainsString("array_intersect(array_map('strval', \$this->selectedIds), \$pageIds)", $component);
-        $this->assertStringContainsString('@foreach ($perPageOptions as $option)', $view);
-        $this->assertStringNotContainsString('Hiển thị tất cả', $view);
+        $this->assertStringContainsString('getResultGroupsPaginated(', $component);
+        $this->assertStringContainsString("COALESCE(NULLIF(bidding_notice_code, ''), CONCAT('award-', id))", $service);
+        $this->assertStringContainsString("COUNT(*) as product_count", $service);
+        $this->assertStringContainsString('Mỗi dòng là một mã thông báo mời thầu', $view);
+        $this->assertStringContainsString('Sản phẩm / Phân bổ', $view);
+        $this->assertStringNotContainsString('wire:model.live="selectedIds"', $view);
+        $this->assertStringContainsString('x-model="selected"', $view);
+        $this->assertStringContainsString("x-on:change=\"\$wire.call('setAwardSelected', {{ \$award->representative_id }}, \$event.target.checked)\"", $view);
+        $this->assertStringContainsString('public function setAwardSelected(mixed $id, bool $selected): void', $component);
+        $this->assertStringContainsString('wire:key="award-checkbox-{{ $award->representative_id }}-', $view);
+        $this->assertStringContainsString('public function updatedSelectedIds(): void', $component);
+        $this->assertStringContainsString('(string) $award->representative_id', $component);
+        $this->assertStringContainsString('wire:key="award-group-{{ $award->representative_id }}"', $view);
+        $this->assertStringNotContainsString('toggleAwardSelection', $component);
+        $this->assertStringContainsString('wire:model.live="selectPage"', $view);
+        $this->assertStringContainsString('Chọn tất cả TBMT trên trang', $view);
+        $this->assertStringContainsString("name('allocation-detail')", $routes);
+        $this->assertStringContainsString("view('Pharma::pages.drug-bid-award.products'", $controller);
+        $productComponent = file_get_contents(base_path('Modules/Pharma/Livewire/DrugBidAward/ProductWorkspace.php'));
+        $this->assertStringContainsString("->when(\$result->bidding_notice_code", $productComponent);
+        $this->assertStringContainsString("route('admin.pharma.drug-bid-awards.allocation-detail'", $products);
+        $this->assertStringContainsString('Đã phân bổ', $products);
+        $this->assertStringContainsString('Còn lại', $products);
     }
 
     public function test_workspace_exposes_multi_source_provenance_and_hssp_enrichment(): void
@@ -35,9 +55,7 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString("->with('medicine')", $service);
         $this->assertStringContainsString("->with('sources')", $service);
         $this->assertStringContainsString("orWhereHas('sources'", $service);
-        $this->assertStringContainsString('Bổ sung từ HSSP', $view);
-        $this->assertStringContainsString('lineage', $view);
-        $this->assertStringContainsString('Mua sắm công', $view);
+        $this->assertStringContainsString('Đối soát HSSP', $view);
     }
 
     public function test_kqlcnt_sync_is_explicit_bounded_and_permission_guarded(): void
@@ -79,6 +97,11 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString('registration_number', $component);
         $this->assertStringContainsString('active_ingredients', $component);
         $this->assertStringContainsString('wire:model.live.debounce.300ms="medicineSearch"', $view);
+        $this->assertStringContainsString('medicineSearchRevision', $component);
+        $this->assertStringContainsString('medicine-search-results-', $view);
+        $this->assertStringContainsString("orWhere('medicine_code', 'like', \$like)", $component);
+        $this->assertStringContainsString('Đang tìm HSSP...', $view);
+        $this->assertStringContainsString('Tên thuốc, mã sản phẩm, số đăng ký hoặc hoạt chất...', $view);
         $this->assertStringContainsString('Chưa liên kết HSSP', $view);
         $this->assertStringContainsString('snapshot', $view);
     }
@@ -92,7 +115,6 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
 
         $this->assertStringContainsString("'tbmtOptions' => \$this->distinctOptions('bidding_notice_code')", $component);
         $this->assertStringContainsString("'investorOptions' => \$this->distinctOptions('investor_name')", $component);
-        $this->assertStringContainsString("'companyOptions' => \$this->distinctOptions('winning_company_name')", $component);
         $this->assertStringContainsString("'medicineOptions' => \$this->distinctOptions('medicine_name')", $component);
         $this->assertStringContainsString('->distinct()', $component);
         $this->assertStringContainsString('->limit(500)', $component);
@@ -100,12 +122,15 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString('new TomSelect', $selectSearch);
         $this->assertStringContainsString('drug-award-filter-tbmt', $view);
         $this->assertStringContainsString('drug-award-filter-investor', $view);
-        $this->assertStringContainsString('drug-award-filter-company', $view);
+        $this->assertStringNotContainsString('drug-award-filter-company', $view);
+        $this->assertStringContainsString('wire:model.live="valueSort"', $view);
+        $this->assertStringContainsString('Cao nhất → thấp nhất', $view);
+        $this->assertStringContainsString('Thấp nhất → cao nhất', $view);
         $this->assertStringContainsString("where('investor_name', 'like'", $service);
         $this->assertStringContainsString("where('winning_company_name', 'like'", $service);
     }
 
-    public function test_export_controls_preserve_selected_all_and_intelligence_filters(): void
+    public function test_export_controls_preserve_detail_schema_and_intelligence_filters(): void
     {
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/drug-bid-award/index.blade.php'));
         $export = file_get_contents(base_path('Modules/Pharma/Services/DrugBidAwardImportExport.php'));
@@ -116,7 +141,179 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString("'medicine_match_status' => \$filterMatchStatus", $view);
         $this->assertStringContainsString('$selectedIds = $this->selectedIds($filters);', $export);
         $this->assertStringContainsString("when(\$filters['medicine_match_status'] ?? null", $export);
-        $this->assertStringContainsString("'Nguồn dữ liệu' => \$model->source_type", $export);
+        $this->assertStringContainsString("'Mã TBMT' => \$model->bidding_notice_code", $export);
+        $this->assertStringContainsString("'Mã sản phẩm chuẩn' => \$medicineCode", $export);
+        $this->assertStringContainsString("'Số lượng trúng' =>", $export);
+        $this->assertStringContainsString("'Đơn giá trúng' =>", $export);
+        $this->assertStringContainsString("'Giá trị' =>", $export);
+        $this->assertStringContainsString("whereIn('bidding_notice_code', \$tbmtCodes)", $export);
+        $this->assertStringContainsString("where('medicine_code', \$medicineCode)", $export);
+        $this->assertStringContainsString("'A' => 'bidding_notice_code'", $export);
+        $this->assertStringContainsString("'N' => 'decision_document_url'", $export);
         $this->assertStringNotContainsString('raw_payload', $export);
+        $this->assertStringContainsString("setTitle('Sản phẩm trúng thầu')", $export);
+        $this->assertStringContainsString("setTitle('Phân bổ bệnh viện')", $export);
+        $this->assertStringContainsString("->where('status', DrugBidAwardAllocation::STATUS_ACTIVE)", $export);
+        $this->assertStringContainsString("'Partner ID' => \$allocation->partner_id", $export);
+        $this->assertStringContainsString("'Số lượng trúng' => \$award?->quantity !== null ? (float) \$award->quantity : null", $export);
+        $this->assertStringContainsString("'Số lượng phân bổ' => \$allocation->allocated_quantity !== null ? (float) \$allocation->allocated_quantity : null", $export);
+        $this->assertStringNotContainsString('exportNumeric(', $export);
+        $this->assertStringContainsString("getSheetByName('Phân bổ bệnh viện')", $export);
+        $this->assertStringContainsString('DrugBidAwardAllocationService::class', $export);
+        $this->assertStringContainsString("\$allocationService->save(\$award->id", $export);
     }
+
+    public function test_drug_award_pages_use_canonical_full_width_admin_container(): void
+    {
+        foreach (['index.blade.php', 'products.blade.php', 'allocations.blade.php'] as $page) {
+            $view = file_get_contents(base_path('Modules/Pharma/resources/views/pages/drug-bid-award/'.$page));
+            $this->assertStringContainsString("@section('admin_container', 'full')", $view);
+        }
+    }
+
+
+    public function test_award_index_is_a_management_dashboard_with_setup_status_and_collapsible_tools(): void
+    {
+        $component = file_get_contents(base_path('Modules/Pharma/Livewire/DrugBidAward/Index.php'));
+        $service = file_get_contents(base_path('Modules/Pharma/Services/DrugBidAwardService.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/drug-bid-award/index.blade.php'));
+
+        $this->assertStringContainsString('dashboardMetrics()', $component);
+        $this->assertStringContainsString('showImportExport', $component);
+        $this->assertStringContainsString('showFilters', $component);
+        $this->assertStringContainsString('Tổng TBMT', $view);
+        $this->assertStringContainsString('Tổng giá trị', $view);
+        $this->assertStringContainsString('Cần hoàn thiện', $view);
+        $this->assertStringContainsString('>HĐ</th>', $view);
+        $this->assertStringContainsString('>Còn lại</th>', $view);
+        $this->assertStringContainsString('$remainingContractMonths', $view);
+        $this->assertStringContainsString('addMonthsNoOverflow', $view);
+        $this->assertStringContainsString('$remainingMonths <= 3', $view);
+        $this->assertStringContainsString('Hết hiệu lực HĐ', $view);
+        $this->assertStringContainsString('nếu nguồn không có ngày quyết định thì dùng ngày công bố', $view);
+        $this->assertStringContainsString('$award->decision_date ?: $award->published_at', $view);
+        $this->assertStringContainsString('editResultGroup', $component);
+        $this->assertStringContainsString("redirectRoute('admin.pharma.drug-bid-awards.edit'", $component);
+        $this->assertStringContainsString('editResultGroup({{ $award->representative_id }})', $view);
+        $this->assertStringContainsString("MAX(published_at) as published_at", $service);
+        $this->assertStringContainsString('Sửa hồ sơ', $view);
+        $this->assertStringContainsString('Sản phẩm / Phân bổ', $view);
+        $this->assertStringContainsString('aria-label="Thêm thao tác"', $view);
+        $this->assertStringContainsString('Export Excel', $view);
+        $this->assertStringContainsString('wire:click="exportSelectedAwards"', $view);
+        $this->assertStringContainsString('wire:target="exportSelectedAwards"', $view);
+        $this->assertStringContainsString('exportSelectedAwards(DrugBidAwardImportExport $exportService)', $component);
+        $this->assertStringContainsString("'selected_ids' => \$this->selectedIds", $component);
+        $this->assertStringContainsString('->download($exportService->exportAbsolutePath($path), basename($path))', $component);
+        $this->assertStringNotContainsString('wire:click="$set(\'showImportExport\', true)" class="inline-flex min-h-10', $view);
+        $this->assertStringContainsString('wire:click="clearAwardSelection"', $view);
+        $this->assertStringContainsString('@if($selectedIds !== [])', $view);
+        $this->assertStringContainsString('Đã chọn {{ count($selectedIds) }} TBMT', $view);
+        $this->assertStringNotContainsString('Sẵn sàng dùng cho Export/Import', $view);
+        $this->assertStringContainsString('>Thiết lập</th>', $view);
+        $this->assertStringContainsString('Phân bổ:', $view);
+        $this->assertStringContainsString('CSKD:', $view);
+        $this->assertStringNotContainsString('<th class="px-4 py-3">Nhà thầu trúng</th>', $view);
+        $this->assertStringNotContainsString('<th class="px-4 py-3 text-right">Tổng SL</th>', $view);
+        $this->assertStringContainsString('contract_duration_months', $service);
+        $this->assertStringContainsString('allocated_product_count', $service);
+        $this->assertStringContainsString('managed_product_count', $service);
+        $this->assertStringContainsString("a.drug_bid_award_id = pharma_drug_bid_awards.id", $service);
+        $this->assertStringContainsString("m.drug_bid_award_id = pharma_drug_bid_awards.id", $service);
+        $this->assertStringNotContainsString('management_assignment_count', $service);
+        $this->assertStringContainsString("in_array(\$unit, ['d', 'day', 'days'], true)", $view);
+        $this->assertStringContainsString("round(\$period / 30.4375)", $view);
+        $this->assertStringContainsString("\$remainingContractMonths(\$award, true)", $view);
+        $this->assertStringContainsString("valueSort === 'desc'", $service);
+    }
+
+    public function test_award_edit_models_tbmt_as_shared_legal_info_with_editable_product_rows(): void
+    {
+        $component = file_get_contents(base_path('Modules/Pharma/Livewire/DrugBidAward/Form.php'));
+        $service = file_get_contents(base_path('Modules/Pharma/Services/DrugBidAwardService.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/drug-bid-award/form.blade.php'));
+
+        $this->assertStringContainsString('1. Thông tin hồ sơ trúng thầu', $view);
+        $this->assertStringContainsString('2. Danh sách sản phẩm trúng thầu', $view);
+        $this->assertStringContainsString('Sản phẩm / Mã sản phẩm', $view);
+        $this->assertStringContainsString('wire:click="editProduct({{ $product->id }})"', $view);
+        $this->assertStringContainsString('wire:click="saveProduct"', $view);
+        $this->assertStringContainsString('Chưa đối soát', $view);
+        $this->assertStringContainsString('productsForResultGroup', $component);
+        $this->assertStringContainsString('updateResultGroupLegalInfo', $component);
+        $this->assertStringContainsString('updateProductInResultGroup', $component);
+        $this->assertStringContainsString("where('bidding_notice_code', \$representative->bidding_notice_code)", $service);
+        $this->assertStringContainsString("->with('medicine')", $service);
+        $this->assertStringContainsString('findProductInResultGroupOrFail', $service);
+        $this->assertStringContainsString("medicine_match_status'] = DrugBidAward::MATCH_VERIFIED", $service);
+        $this->assertStringContainsString("medicine_code'] = \$medicine->medicine_code", $service);
+        $this->assertStringContainsString('productSaveModal', $component);
+        $this->assertStringContainsString('Đã lưu sản phẩm', $view);
+        $this->assertStringContainsString('Lưu sản phẩm thất bại', $view);
+        $this->assertStringContainsString("number_format((float)\$quantity, 0, ',', '.')", $view);
+        $this->assertStringContainsString("number_format((float)\$unit_price, 0, ',', '.')", $view);
+        $this->assertStringContainsString('border border-gray-300', $view);
+        $this->assertStringContainsString('catch (\\Illuminate\\Validation\\ValidationException $exception)', $component);
+        $this->assertStringContainsString("@error('medicine_id')", $view);
+        $this->assertStringContainsString('focus-within:border-indigo-500', $view);
+        $this->assertStringContainsString('normalizeLocalizedNumber', $component);
+        $this->assertStringContainsString('$this->quantity = $this->normalizeAwardQuantity($this->quantity);', $component);
+        $this->assertStringContainsString('return (int) round((float) $normalized);', $component);
+        $this->assertStringContainsString('min-h-14', $view);
+        $selectSearch = file_get_contents(base_path('resources/views/components/select-search.blade.php'));
+        $this->assertStringContainsString('@this.set(config.model, value, false)', $selectSearch);
+    }
+
+    public function test_award_distribution_scope_is_shared_by_products_and_restricts_hospitals(): void
+    {
+        $migration = file_get_contents(base_path('Modules/Pharma/database/migrations/2026_09_21_160000_create_drug_bid_award_distribution_scopes.php'));
+        $productComponent = file_get_contents(base_path('Modules/Pharma/Livewire/DrugBidAward/ProductWorkspace.php'));
+        $productView = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/drug-bid-award/product-workspace.blade.php'));
+        $allocationComponent = file_get_contents(base_path('Modules/Pharma/Livewire/DrugBidAward/AllocationWorkspace.php'));
+        $allocationView = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/drug-bid-award/allocation-workspace.blade.php'));
+        $allocationService = file_get_contents(base_path('Modules/Pharma/Services/DrugBidAwardAllocationService.php'));
+        $distributionScopeService = file_get_contents(base_path('Modules/Pharma/Services/DrugBidAwardDistributionScopeService.php'));
+
+        $this->assertStringContainsString('pharma_drug_bid_award_distribution_scopes', $migration);
+        $this->assertStringContainsString('pharma_drug_bid_award_distribution_scope_partners', $migration);
+        $this->assertStringContainsString('public array $selectedProvinces', $productComponent);
+        $this->assertStringContainsString('public string $facilityProvince', $productComponent);
+        $this->assertStringContainsString('public array $selectedFacilityIds', $productComponent);
+        $this->assertStringContainsString('saveDistributionScope', $productComponent);
+        $this->assertStringContainsString("public function updatedSelectedProvinces(): void", $productComponent);
+        $this->assertStringNotContainsString("\$this->selectedFacilityIds = [];", $productComponent);
+        $this->assertStringContainsString('Phạm vi & hiệu lực phân bổ', $productView);
+        $this->assertStringContainsString('Tỉnh/Thành trúng thầu', $productView);
+        $this->assertStringContainsString('Cơ sở KCB được phân bổ', $productView);
+        $this->assertStringContainsString('wire:key="award-facility-{{ $facility->id }}"', $productView);
+        $this->assertStringContainsString('wire:model.live="selectedFacilityIds"', $productView);
+        $this->assertStringContainsString('removeSelectedFacility', $productComponent);
+        $this->assertStringContainsString("'selectedFacilities' => \$selectedFacilities", $productComponent);
+        $this->assertStringContainsString('Bước 3 · Kiểm tra trước khi lưu', $productView);
+        $this->assertStringContainsString('Cơ sở KCB đã chọn', $productView);
+        $this->assertStringContainsString('wire:click="removeSelectedFacility({{ $facility->id }})"', $productView);
+        $this->assertStringContainsString('OfficialSourceFacility::query()', $productComponent);
+        $this->assertStringContainsString("where('province_name', \$this->facilityProvince)", $productComponent);
+        $this->assertStringContainsString('OfficialSourceFacility::query()', $productComponent);
+        $this->assertStringContainsString('OfficialSourceFacility::query()', $distributionScopeService);
+        $this->assertStringContainsString("whereIn('province_name', \$provinceNames)", $distributionScopeService);
+        $this->assertStringContainsString('pharma_drug_bid_award_distribution_scope_provinces', $distributionScopeService);
+        $this->assertStringContainsString('wire:model.live="selectedProvinces"', $productView);
+        $this->assertStringContainsString('public string $provinceSearch', $productComponent);
+        $this->assertStringContainsString('wire:model.live.debounce.250ms="provinceSearch"', $productView);
+        $this->assertStringContainsString('Tìm Tỉnh/Thành...', $productView);
+        $this->assertStringContainsString("where('province_name', 'like'", $productComponent);
+        $this->assertStringContainsString('wire:model.live="facilityProvince"', $productView);
+        $this->assertStringContainsString("PartnerSourceReference::query()", $distributionScopeService);
+        $this->assertStringContainsString("'facility_ids' => \$data['selectedFacilityIds']", $productComponent);
+        $this->assertStringContainsString('Cơ sở KCB được phân bổ', $productView);
+        $this->assertStringContainsString("whereIn('id', \$allowedPartnerIds)", $allocationComponent);
+        $this->assertStringNotContainsString('wire:model="effectiveFrom"', $allocationView);
+        $this->assertStringNotContainsString('wire:model="effectiveUntil"', $allocationView);
+        $this->assertStringContainsString('Hiệu lực chung', $allocationView);
+        $this->assertStringContainsString('Bệnh viện chưa nằm trong phạm vi phân bổ', $allocationService);
+        $this->assertStringContainsString("'effective_from' => \$scope->effective_from", $allocationService);
+        $this->assertStringContainsString("'effective_until' => \$scope->effective_until", $allocationService);
+    }
+
 }

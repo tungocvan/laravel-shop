@@ -17,6 +17,10 @@ class Form extends Component
 
     public bool $isEditMode = false;
 
+    public ?string $profile_status = null;
+
+    public ?string $last_verified_at = null;
+
     public $circular_order_number;
 
     public $circular_group;
@@ -106,6 +110,27 @@ class Form extends Component
         }
     }
 
+    public function verifyMaster(MedicineService $medicineService): void
+    {
+        $this->authorizePharmaEdit();
+
+        if (! $this->isEditMode || ! $this->medicineId) {
+            return;
+        }
+
+        try {
+            $medicine = $medicineService->verifyMaster($this->medicineId);
+            $this->profile_status = $medicine->profile_status;
+            $this->last_verified_at = $medicine->last_verified_at?->format('Y-m-d H:i:s');
+            session()->flash('success', 'Medicine Master đã được xác minh và có thể dùng để liên kết kết quả trúng thầu.');
+        } catch (LogicException $e) {
+            session()->flash('error', $e->getMessage());
+        } catch (Exception $e) {
+            report($e);
+            session()->flash('error', 'Không thể xác minh Medicine Master. Vui lòng thử lại hoặc kiểm tra log hệ thống.');
+        }
+    }
+
     public function save(MedicineService $medicineService)
     {
         $this->isEditMode ? $this->authorizePharmaEdit() : $this->authorizePharmaCreate();
@@ -113,12 +138,19 @@ class Form extends Component
 
         try {
             if ($this->isEditMode) {
-                $medicineService->update($this->medicineId, $validatedData);
-                session()->flash('success', 'Cập nhật Medicine Master thành công.');
-            } else {
-                $medicineService->store($validatedData);
-                session()->flash('success', 'Đã thêm thuốc vào Medicine Master. HSSP có thể được bổ sung sau.');
+                $medicine = $medicineService->update($this->medicineId, $validatedData);
+                $this->fill($medicine->only([
+                    'profile_status',
+                    'last_verified_at',
+                ]));
+                $this->last_verified_at = $medicine->last_verified_at?->format('Y-m-d H:i:s');
+                $this->dispatch('medicine-master-saved', message: 'Đã lưu Medicine Master. Bạn có thể xác minh ngay trên trang này.');
+
+                return;
             }
+
+            $medicineService->store($validatedData);
+            session()->flash('success', 'Đã thêm thuốc vào Medicine Master. HSSP có thể được bổ sung sau.');
 
             return redirect()->route('admin.pharma.medicines.index');
         } catch (LogicException $e) {
