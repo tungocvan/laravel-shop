@@ -48,6 +48,8 @@ class Form extends Component
 
     public string $sourceType = DrugBidAward::SOURCE_MANUAL;
 
+    public ?int $editingProductId = null;
+
     public function mount(?int $id = null): void
     {
         $id ? $this->authorizePharmaEdit() : $this->authorizePharmaCreate();
@@ -142,6 +144,49 @@ class Form extends Component
         }
     }
 
+    public function editProduct(int $productId, DrugBidAwardService $service): void
+    {
+        $this->authorizePharmaEdit();
+        $product = $service->findProductInResultGroupOrFail($this->awardId, $productId);
+
+        $this->editingProductId = $product->id;
+        $this->medicine_id = $product->medicine_id;
+        $this->medicine_name = $product->medicine_name;
+        $this->packaging_specification = $product->packaging_specification;
+        $this->quantity = $product->quantity;
+        $this->unit_price = $product->unit_price;
+        $this->winning_company_name = $product->winning_company_name;
+        $this->medicineSearch = $product->medicine?->name ?? $product->medicine_name;
+    }
+
+    public function cancelProductEdit(): void
+    {
+        $this->editingProductId = null;
+        $this->resetValidation();
+    }
+
+    public function saveProduct(DrugBidAwardService $service): void
+    {
+        $this->authorizePharmaEdit();
+
+        if (! $this->editingProductId) {
+            return;
+        }
+
+        $data = $this->validate([
+            'medicine_id' => 'nullable|exists:pharma_medicines,id',
+            'medicine_name' => 'required|string|max:255',
+            'packaging_specification' => 'required|string|max:255',
+            'quantity' => 'required|integer|min:1',
+            'unit_price' => 'required|numeric|min:0',
+            'winning_company_name' => 'required|string|max:255',
+        ]);
+
+        $service->updateProductInResultGroup($this->awardId, $this->editingProductId, $data);
+        $this->editingProductId = null;
+        session()->flash('success', 'Cập nhật sản phẩm trúng thầu thành công.');
+    }
+
     public function save(DrugBidAwardService $service)
     {
         $this->isEditMode ? $this->authorizePharmaEdit() : $this->authorizePharmaCreate();
@@ -149,7 +194,14 @@ class Form extends Component
 
         try {
             if ($this->isEditMode) {
-                $service->update($this->awardId, $data);
+                $service->updateResultGroupLegalInfo($this->awardId, [
+                    'bidding_notice_code' => $data['bidding_notice_code'],
+                    'investor_name' => $data['investor_name'],
+                    'decision_number' => $data['decision_number'],
+                    'decision_date' => $data['decision_date'],
+                    'contract_duration_months' => $data['contract_duration_months'],
+                    'decision_document_url' => $data['decision_document_url'] ?? null,
+                ]);
                 session()->flash('success', 'Cập nhật thông tin trúng thầu thành công.');
             } else {
                 $service->store($data);
@@ -167,6 +219,7 @@ class Form extends Component
     {
         return view('Pharma::livewire.drug-bid-award.form', [
             'medicines' => $this->medicineCandidates(),
+            'resultProducts' => $this->isEditMode ? app(DrugBidAwardService::class)->productsForResultGroup($this->awardId) : collect(),
             'medicineResultLimit' => self::MEDICINE_RESULT_LIMIT,
         ]);
     }
