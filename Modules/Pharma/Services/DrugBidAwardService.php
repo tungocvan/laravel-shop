@@ -109,12 +109,10 @@ class DrugBidAwardService
             ->orderByDesc('latest_published_at')
             ->orderByDesc('representative_id');
 
-        $countQuery = (clone $query)
-            ->reorder()
-            ->selectRaw("{$groupKey} as result_key")
-            ->groupByRaw($groupKey);
-
+        $countQuery = (clone $query)->reorder();
         $countQuery->getQuery()->columns = [DB::raw("{$groupKey} as result_key")];
+        $countQuery->getQuery()->groups = null;
+        $countQuery->distinct();
 
         $total = DB::query()
             ->fromSub($countQuery->toBase(), 'result_groups')
