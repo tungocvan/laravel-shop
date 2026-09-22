@@ -88,6 +88,7 @@ class DrugBidAwardImportExport extends BaseImportExportService
             : DrugBidAwardAllocation::query()
                 ->with(['award.medicine', 'partner'])
                 ->whereIn('drug_bid_award_id', $awardIds)
+                ->where('status', DrugBidAwardAllocation::STATUS_ACTIVE)
                 ->orderBy('drug_bid_award_id')
                 ->orderBy('partner_id')
                 ->get();
