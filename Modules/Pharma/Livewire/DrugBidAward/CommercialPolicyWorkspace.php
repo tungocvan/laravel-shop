@@ -125,7 +125,7 @@ class CommercialPolicyWorkspace extends Component
     public function exportExcel()
     {
         $award=$this->award(); $ids=app(DrugBidAwardResultGroupService::class)->awardsQuery($award)->pluck('id');
-        $products=DrugBidAward::query()->whereIn('id',$ids)->with(['medicine','allocations'=>fn($q)=>$q->where('status',DrugBidAwardAllocation::STATUS_ACTIVE)->with('partner')])->orderBy('id')->get();
+        $products=DrugBidAward::query()->whereIn('id',$ids)->with(['medicine','canonicalMatch.medicine','allocations'=>fn($q)=>$q->where('status',DrugBidAwardAllocation::STATUS_ACTIVE)->with('partner')])->orderBy('id')->get();
         $policies=DrugBidAwardProductPolicy::query()->whereIn('drug_bid_award_id',$ids)->pluck('commission_percentage','drug_bid_award_id');
         $assignments=DrugBidAwardManagementAssignment::query()->with('user')->whereIn('drug_bid_award_id',$ids)->get()->keyBy(fn($x)=>$x->drug_bid_award_id.':'.$x->partner_id);
         $rows=collect();
@@ -134,7 +134,7 @@ class CommercialPolicyWorkspace extends Component
             foreach($allocations as $allocation){
                 $assignment=$allocation?$assignments->get($product->id.':'.$allocation->partner_id):null;
                 $rows->push([
-                    'Mã TBMT'=>$product->bidding_notice_code,'Award ID'=>$product->id,'Mã thuốc chuẩn'=>$product->medicine?->medicine_code,
+                    'Mã TBMT'=>$product->bidding_notice_code,'Award ID'=>$product->id,'Mã thuốc chuẩn'=>$product->medicine?->medicine_code ?? $product->canonicalMatch?->medicine?->medicine_code,
                     'Sản phẩm'=>$product->medicine_name,'Số lượng trúng'=>(float)$product->quantity,'Đơn giá trúng'=>(float)($product->winning_price ?? $product->unit_price ?? 0),
                     'Chính sách (%)'=>isset($policies[$product->id])?(float)$policies[$product->id]:null,
                     'Bệnh viện ID'=>$allocation?->partner_id,'Bệnh viện'=>$allocation?->partner?->name,
