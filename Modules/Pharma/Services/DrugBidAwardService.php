@@ -88,8 +88,8 @@ class DrugBidAwardService
             ->selectRaw('MAX(contract_period) as contract_period')
             ->selectRaw('MAX(contract_period_unit) as contract_period_unit')
             ->selectRaw('MAX(contract_period_text) as contract_period_text')
-            ->selectRaw('(SELECT COUNT(*) FROM pharma_drug_bid_award_allocations a WHERE a.drug_bid_award_id IN (SELECT x.id FROM pharma_drug_bid_awards x WHERE COALESCE(NULLIF(x.bidding_notice_code, \'\'), CONCAT(\'award-\', x.id)) = '.$groupKey.') AND a.status = \'active\') as allocation_count')
-            ->selectRaw('(SELECT COUNT(*) FROM pharma_drug_bid_award_management_assignments m WHERE m.drug_bid_award_id IN (SELECT x.id FROM pharma_drug_bid_awards x WHERE COALESCE(NULLIF(x.bidding_notice_code, \'\'), CONCAT(\'award-\', x.id)) = '.$groupKey.') AND m.status = \'active\') as management_assignment_count')
+            ->selectRaw("SUM(CASE WHEN EXISTS (SELECT 1 FROM pharma_drug_bid_award_allocations a WHERE a.drug_bid_award_id = pharma_drug_bid_awards.id AND a.status = 'active') THEN 1 ELSE 0 END) as allocated_product_count")
+            ->selectRaw("SUM(CASE WHEN EXISTS (SELECT 1 FROM pharma_drug_bid_award_management_assignments m WHERE m.drug_bid_award_id = pharma_drug_bid_awards.id AND m.status = 'active') THEN 1 ELSE 0 END) as managed_product_count")
             ->when($search, fn ($query, $value) => $query->where(fn ($nested) => $nested
                 ->where('medicine_name', 'like', "%{$value}%")
                 ->orWhere('active_ingredient', 'like', "%{$value}%")
