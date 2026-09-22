@@ -180,6 +180,9 @@ class Form extends Component
         }
 
         try {
+            $this->quantity = $this->normalizeLocalizedNumber($this->quantity);
+            $this->unit_price = $this->normalizeLocalizedNumber($this->unit_price);
+
             $data = $this->validate([
                 'medicine_id' => 'nullable|exists:pharma_medicines,id',
                 'medicine_name' => 'required|string|max:255',
@@ -296,6 +299,29 @@ class Form extends Component
         }
 
         return $candidates->unique('id')->values();
+    }
+
+    private function normalizeLocalizedNumber(mixed $value): mixed
+    {
+        if (! is_string($value)) {
+            return $value;
+        }
+
+        $value = trim($value);
+
+        if ($value === '') {
+            return $value;
+        }
+
+        if (preg_match('/^-?\\d{1,3}(?:\\.\\d{3})+$/', $value) === 1) {
+            return str_replace('.', '', $value);
+        }
+
+        if (preg_match('/^-?\\d{1,3}(?:,\\d{3})+$/', $value) === 1) {
+            return str_replace(',', '', $value);
+        }
+
+        return $value;
     }
 
     private function selectedMedicineMatchesSearch(): bool
