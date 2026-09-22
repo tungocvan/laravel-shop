@@ -71,7 +71,7 @@ class DrugBidAwardService
     ): LengthAwarePaginator {
         $groupKey = "COALESCE(NULLIF(bidding_notice_code, ''), CONCAT('award-', id))";
 
-        return DrugBidAward::query()
+        $query = DrugBidAward::query()
             ->selectRaw("{$groupKey} as result_key")
             ->selectRaw('MAX(id) as representative_id')
             ->selectRaw('MAX(bidding_notice_code) as bidding_notice_code')
@@ -107,8 +107,21 @@ class DrugBidAwardService
             ->when($valueSort === 'desc', fn ($query) => $query->orderByDesc('total_value'))
             ->when($valueSort === 'asc', fn ($query) => $query->orderBy('total_value'))
             ->orderByDesc('latest_published_at')
-            ->orderByDesc('representative_id')
-            ->paginate($perPage, ['*'], 'page', max(1, $page));
+            ->orderByDesc('representative_id');
+
+        $countQuery = (clone $query)->reorder();
+
+        $total = DB::query()
+            ->fromSub($countQuery->toBase(), 'result_groups')
+            ->count();
+
+        return $query->paginate(
+            $perPage,
+            ['*'],
+            'page',
+            max(1, $page),
+            $total,
+        );
     }
 
     public function findOrFail(int $id): DrugBidAward
