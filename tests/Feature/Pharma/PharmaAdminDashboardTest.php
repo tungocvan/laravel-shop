@@ -44,7 +44,7 @@ class PharmaAdminDashboardTest extends TestCase
 
         $this->assertStringContainsString("@if (\$capabilities['create'])", $view);
         $this->assertStringContainsString("route('admin.pharma.price-lists.create')", $view);
-        $this->assertStringContainsString("@if($capabilities['edit'])", $view);
-        $this->assertStringContainsString("@if($capabilities['official_facilities'])", $view);
+        $this->assertStringContainsString("@if(\$capabilities['edit'])", $view);
+        $this->assertStringContainsString("@if(\$capabilities['official_facilities'])", $view);
     }
 }
