@@ -332,7 +332,7 @@ class Index extends Component
     private function currentPageIds(): array
     {
         return collect($this->paginated(app(DrugBidAwardService::class))->items())
-            ->map(fn (DrugBidAward $award): string => (string) $award->id)
+            ->map(fn (DrugBidAward $award): string => (string) $award->representative_id)
             ->values()
             ->all();
     }
