@@ -48,16 +48,27 @@ class DrugBidAwardImportExport extends BaseImportExportService
     public function columnMapping(): array
     {
         return [
-            'B' => 'medicine_name', 'C' => 'packaging_specification', 'D' => 'quantity',
-            'E' => 'unit_price', 'F' => 'bidding_notice_code', 'G' => 'investor_name',
-            'H' => 'decision_number', 'I' => 'decision_date', 'J' => 'contract_duration_months',
-            'K' => 'winning_company_name', 'L' => 'decision_document_url',
+            'A' => 'bidding_notice_code',
+            'B' => 'investor_name',
+            'C' => 'decision_number',
+            'D' => 'decision_date',
+            'E' => 'contract_duration_months',
+            'F' => 'medicine_name',
+            'G' => 'medicine_code',
+            'H' => 'packaging_specification',
+            'I' => 'quantity',
+            'J' => 'unit_price',
+            'K' => 'amount',
+            'L' => 'winning_company_name',
+            'M' => 'medicine_match_status',
+            'N' => 'decision_document_url',
         ];
     }
 
     protected function normalizeRow(array $row): array
     {
         $data = [
+            'medicine_code' => $this->cleanString($row['medicine_code'] ?? null),
             'medicine_name' => $this->cleanString($row['medicine_name'] ?? null),
             'packaging_specification' => $this->cleanString($row['packaging_specification'] ?? null),
             'quantity' => $this->vietnameseInteger($row['quantity'] ?? null),
@@ -70,6 +81,8 @@ class DrugBidAwardImportExport extends BaseImportExportService
             'winning_company_name' => $this->cleanString($row['winning_company_name'] ?? null),
             'decision_document_url' => $this->cleanString($row['decision_document_url'] ?? null),
         ];
+
+        unset($data['medicine_code']);
 
         $existing = $this->existingRecord($data);
         if ($existing) {
@@ -91,9 +104,26 @@ class DrugBidAwardImportExport extends BaseImportExportService
         $lineageAvailable = Schema::hasTable('pharma_drug_bid_award_sources');
 
         if ($selectedIds !== []) {
-            return $this->awardQuery($lineageAvailable)
+            $representatives = DrugBidAward::query()
                 ->whereKey($selectedIds)
-                ->latest('id')
+                ->get(['id', 'bidding_notice_code']);
+
+            $tbmtCodes = $representatives->pluck('bidding_notice_code')->filter()->unique()->values();
+            $standaloneIds = $representatives->whereNull('bidding_notice_code')->pluck('id')->values();
+
+            return $this->awardQuery($lineageAvailable)
+                ->where(function ($query) use ($tbmtCodes, $standaloneIds): void {
+                    if ($tbmtCodes->isNotEmpty()) {
+                        $query->whereIn('bidding_notice_code', $tbmtCodes);
+                    }
+
+                    if ($standaloneIds->isNotEmpty()) {
+                        $method = $tbmtCodes->isNotEmpty() ? 'orWhereIn' : 'whereIn';
+                        $query->{$method}('id', $standaloneIds);
+                    }
+                })
+                ->orderBy('bidding_notice_code')
+                ->orderBy('id')
                 ->get();
         }
 
@@ -125,52 +155,46 @@ class DrugBidAwardImportExport extends BaseImportExportService
 
     protected function mapExportRow(Model $model): array
     {
-        $name = $model->effectiveMedicineAttribute('medicine_name');
-        $ingredient = $model->effectiveMedicineAttribute('active_ingredient');
-        $strength = $model->effectiveMedicineAttribute('concentration');
-        $route = $model->effectiveMedicineAttribute('route');
-        $dosage = $model->effectiveMedicineAttribute('dosage_form');
+        $medicineCode = $model->medicine?->medicine_code ?: $model->medicine_code;
+        $unitPrice = $model->winning_price ?? $model->unit_price;
+        $amount = $model->amount ?? ((float) $model->quantity * (float) $unitPrice);
 
         return [
-            'Tên thuốc' => $name['value'],
-            'Nguồn tên thuốc hiệu lực' => $name['origin'],
-            'Hoạt chất' => $ingredient['value'],
-            'Hàm lượng / nồng độ' => $strength['value'],
-            'Dạng bào chế' => $dosage['value'],
-            'Đường dùng' => $route['value'],
-            'Quy cách đóng gói' => $model->packaging_specification,
-            'Số lượng' => $model->quantity,
-            'Đơn vị' => $model->unit,
-            'Giá kế hoạch' => $model->price_plan,
-            'Đơn giá trúng thầu' => $model->winning_price ?? $model->unit_price,
-            'Thành tiền' => $model->amount,
-            'Mã thông báo mời thầu' => $model->bidding_notice_code,
-            'Số lô' => $model->lot_no,
-            'Tên lô' => $model->lot_name,
-            'Mã Chủ đầu tư' => $model->investor_code,
-            'Tên Chủ đầu tư' => $model->investor_name,
-            'Mã nhà thầu' => $model->contractor_code,
-            'Công ty trúng thầu' => $model->winning_company_name,
+            'Mã TBMT' => $model->bidding_notice_code,
+            'Chủ đầu tư' => $model->investor_name,
             'Số quyết định' => $model->decision_number,
-            'Ngày ban hành quyết định' => $model->decision_date?->format('d/m/Y'),
-            'Số hợp đồng' => $model->contract_no,
-            'Thời hạn hợp đồng' => $model->contract_period_text ?: ($model->contract_duration_months ? $model->contract_duration_months.' tháng' : null),
-            'Nguồn dữ liệu' => $model->source_type,
+            'Ngày quyết định' => $model->decision_date?->format('Y-m-d'),
+            'Thời gian HĐ (tháng)' => $model->contract_duration_months,
+            'Tên sản phẩm trúng thầu' => $model->medicine_name,
+            'Mã sản phẩm chuẩn' => $medicineCode,
+            'Quy cách' => $model->packaging_specification,
+            'Số lượng trúng' => $model->quantity === null ? null : (int) round((float) $model->quantity),
+            'Đơn giá trúng' => $unitPrice === null ? null : (float) $unitPrice,
+            'Giá trị' => (float) $amount,
+            'Nhà thầu' => $model->winning_company_name,
             'Trạng thái đối soát HSSP' => $model->medicine_match_status,
-            'Số nguồn lineage' => $model->relationLoaded('sources') ? $model->sources->count() : 0,
             'Link quyết định trúng thầu' => $model->decision_document_url,
         ];
     }
 
     protected function templateSampleRow(): array
     {
-        return ['STT' => 1] + $this->mapExportRow(new DrugBidAward([
-            'medicine_name' => 'Trosicam 15mg', 'packaging_specification' => 'Hộp 3 vỉ x 10 viên',
-            'quantity' => 600000, 'unit_price' => 7791, 'bidding_notice_code' => 'IB0123456789',
-            'investor_name' => 'Bệnh viện Quân y 175', 'decision_number' => '4927/QĐ-BV',
-            'decision_date' => '2025-10-13', 'contract_duration_months' => 24,
-            'winning_company_name' => 'Công ty TNHH Dược phẩm ABC',
-        ]));
+        return [
+            'Mã TBMT' => 'IB0123456789',
+            'Chủ đầu tư' => 'Bệnh viện Quân y 175',
+            'Số quyết định' => '4927/QĐ-BV',
+            'Ngày quyết định' => '2025-10-13',
+            'Thời gian HĐ (tháng)' => 24,
+            'Tên sản phẩm trúng thầu' => 'Trosicam 15mg',
+            'Mã sản phẩm chuẩn' => null,
+            'Quy cách' => 'Hộp 3 vỉ x 10 viên',
+            'Số lượng trúng' => 600000,
+            'Đơn giá trúng' => 7791,
+            'Giá trị' => 4674600000,
+            'Nhà thầu' => 'Công ty TNHH Dược phẩm ABC',
+            'Trạng thái đối soát HSSP' => DrugBidAward::MATCH_UNRESOLVED,
+            'Link quyết định trúng thầu' => null,
+        ];
     }
 
     private function awardQuery(bool $lineageAvailable): Builder
