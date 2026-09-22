@@ -69,6 +69,45 @@ class DrugBidAwardCommercialPolicyService
         }, 3);
     }
 
+    public function assignManagerToAllAllocations(DrugBidAward $contextAward, int $userId, ?int $actorId): int
+    {
+        $validAwardIds = $this->groups->awardsQuery($contextAward)->pluck('id');
+
+        $allocations = DrugBidAwardAllocation::query()
+            ->whereIn('drug_bid_award_id', $validAwardIds)
+            ->where('status', DrugBidAwardAllocation::STATUS_ACTIVE)
+            ->get(['drug_bid_award_id', 'partner_id'])
+            ->unique(fn ($allocation) => $allocation->drug_bid_award_id.':'.$allocation->partner_id);
+
+        DB::transaction(function () use ($allocations, $userId, $actorId) {
+            foreach ($allocations as $allocation) {
+                $assignment = DrugBidAwardManagementAssignment::query()->firstOrNew([
+                    'drug_bid_award_id' => $allocation->drug_bid_award_id,
+                    'partner_id' => $allocation->partner_id,
+                ]);
+                if (! $assignment->exists) {
+                    $assignment->created_by = $actorId;
+                }
+                $assignment->user_id = $userId;
+                $assignment->status = DrugBidAwardManagementAssignment::STATUS_ACTIVE;
+                $assignment->updated_by = $actorId;
+                $assignment->save();
+            }
+        }, 3);
+
+        return $allocations->count();
+    }
+
+    public function removeManagerFromAllAllocations(DrugBidAward $contextAward, int $userId): int
+    {
+        $validAwardIds = $this->groups->awardsQuery($contextAward)->pluck('id');
+
+        return DrugBidAwardManagementAssignment::query()
+            ->whereIn('drug_bid_award_id', $validAwardIds)
+            ->where('user_id', $userId)
+            ->delete();
+    }
+
     public function removeManagers(DrugBidAward $contextAward, array $awardIds, int $partnerId): void
     {
         $validIds = $this->groups->awardsQuery($contextAward)->pluck('id')->map(fn ($id) => (int) $id)->all();
