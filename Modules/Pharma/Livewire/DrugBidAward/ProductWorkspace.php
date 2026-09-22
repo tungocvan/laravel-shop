@@ -18,6 +18,7 @@ class ProductWorkspace extends Component
     public int $page = 1;
     public array $selectedProvinces = [];
     public string $facilityProvince = '';
+    public string $provinceSearch = '';
     public array $selectedFacilityIds = [];
     public string $facilitySearch = '';
     public string $effectiveFrom = '';
@@ -107,6 +108,7 @@ class ProductWorkspace extends Component
         $provinceOptions = OfficialSourceFacility::query()
             ->where('is_active', true)
             ->whereNotNull('province_name')->where('province_name', '!=', '')
+            ->when(trim($this->provinceSearch) !== '', fn ($query) => $query->where('province_name', 'like', '%'.trim($this->provinceSearch).'%'))
             ->distinct()->orderBy('province_name')->pluck('province_name');
 
         $facilities = collect();
