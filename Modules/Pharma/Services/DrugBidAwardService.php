@@ -240,6 +240,21 @@ class DrugBidAwardService
         return DB::transaction(fn () => (bool) $this->findOrFail($id)->delete());
     }
 
+    public function deleteResultGroup(int $representativeId): int
+    {
+        return DB::transaction(function () use ($representativeId): int {
+            $representative = $this->findOrFail($representativeId);
+
+            return DrugBidAward::query()
+                ->when(
+                    filled($representative->bidding_notice_code),
+                    fn ($query) => $query->where('bidding_notice_code', $representative->bidding_notice_code),
+                    fn ($query) => $query->whereKey($representative->id)
+                )
+                ->delete();
+        });
+    }
+
     public function importFromCsv(string $filePath): int
     {
         $report = $this->importExport->import($filePath, ['mode' => 'update_or_create']);
