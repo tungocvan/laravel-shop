@@ -152,6 +152,12 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString('Tổng giá trị', $view);
         $this->assertStringContainsString('Cần hoàn thiện', $view);
         $this->assertStringContainsString('Thời gian HĐ', $view);
+        $this->assertStringContainsString('Còn lại HĐ', $view);
+        $this->assertStringContainsString('$remainingContractMonths', $view);
+        $this->assertStringContainsString('addMonthsNoOverflow', $view);
+        $this->assertStringContainsString('$remainingMonths <= 3', $view);
+        $this->assertStringContainsString('Hết hiệu lực HĐ', $view);
+        $this->assertStringContainsString('Ước tính từ ngày quyết định và thời gian thực hiện hợp đồng', $view);
         $this->assertStringContainsString('Trạng thái thiết lập', $view);
         $this->assertStringContainsString('Phân bổ:', $view);
         $this->assertStringContainsString('CSKD:', $view);
