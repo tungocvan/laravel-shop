@@ -91,6 +91,13 @@ class PharmaDrugAwardCommercialPolicyContractTest extends TestCase
         $this->assertStringContainsString('Excel::download', $component);
         $this->assertStringContainsString('Excel::toArray', $component);
         $this->assertStringContainsString("'Số lượng phân bổ'=>\$allocation === null ? null : (float)\$allocation->allocated_quantity", $component);
+        $this->assertStringContainsString("'Mã thuốc chuẩn'=>\$product->medicine?->medicine_code", $component);
+        $this->assertStringContainsString("with(['medicine','allocations'", $component);
+        $this->assertStringContainsString("'assigned'=>\$assignmentRows->count()", $component);
+        $this->assertStringContainsString("'total'=>\$activeAllocationCount", $component);
+        $this->assertStringContainsString('Đã phân công', $view);
+        $this->assertStringContainsString('Đã phân công đầy đủ', $view);
+        $this->assertStringContainsString('Bệnh viện đã có User', $view);
         $this->assertStringContainsString('Đơn giá trúng', $view);
         $this->assertStringContainsString('Export Excel', $view);
         $this->assertStringContainsString('Import Excel', $view);
