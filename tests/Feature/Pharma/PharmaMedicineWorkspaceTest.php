@@ -65,7 +65,7 @@ class PharmaMedicineWorkspaceTest extends TestCase
         $this->assertStringContainsString("\$canEdit = \$admin?->can('edit_pharma') ?? false;", $view);
         $this->assertStringContainsString("\$canDelete = \$admin?->can('delete_pharma') ?? false;", $view);
         $this->assertStringContainsString('wire:confirm="Xóa các thuốc được chọn?"', $view);
-        $this->assertStringContainsString("route('admin.pharma.medicines.export')", $view);
+        $this->assertStringContainsString('$canSelect = $canEdit || $canDelete;', $view);
         $this->assertStringContainsString("'selected_ids' => \$selectedIds", $view);
         $this->assertStringContainsString("'profile_status' => \$filterProfileStatus", $view);
     }
