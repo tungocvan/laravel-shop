@@ -22,7 +22,8 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString('Mỗi dòng là một mã thông báo mời thầu', $view);
         $this->assertStringContainsString('Sản phẩm / Phân bổ', $view);
         $this->assertStringContainsString('wire:click="toggleAwardSelection({{ $award->id }})"', $view);
-        $this->assertStringContainsString('public function toggleAwardSelection(int $id): void', $component);
+        $this->assertStringContainsString('public function toggleAwardSelection(mixed $id = null): void', $component);
+        $this->assertStringContainsString("if (! is_numeric(\$id))", $component);
         $this->assertStringContainsString('@checked(in_array((string) $award->id', $view);
         $this->assertStringContainsString('wire:model.live="selectPage"', $view);
         $this->assertStringContainsString('Chọn tất cả TBMT trên trang', $view);
