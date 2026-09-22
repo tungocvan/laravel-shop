@@ -65,7 +65,7 @@ class PharmaMedicineWorkspaceTest extends TestCase
         $this->assertStringContainsString("\$canEdit = \$admin?->can('edit_pharma') ?? false;", $view);
         $this->assertStringContainsString("\$canDelete = \$admin?->can('delete_pharma') ?? false;", $view);
         $this->assertStringContainsString('wire:confirm="Xóa các thuốc được chọn?"', $view);
-        $this->assertStringContainsString("'permission' => 'edit_pharma'", $view);
+        $this->assertStringContainsString("route('admin.pharma.medicines.export')", $view);
         $this->assertStringContainsString("'selected_ids' => \$selectedIds", $view);
         $this->assertStringContainsString("'profile_status' => \$filterProfileStatus", $view);
     }
@@ -75,7 +75,7 @@ class PharmaMedicineWorkspaceTest extends TestCase
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/medicine/index.blade.php'));
         $page = file_get_contents(base_path('Modules/Pharma/resources/views/pages/index.blade.php'));
 
-        $this->assertStringContainsString("route('admin.pharma.hssp.create')", $view);
+        $this->assertStringContainsString("route('admin.pharma.hssp.create', \$medicine->id)", $view);
         $this->assertStringContainsString("route('admin.pharma.hssp.edit', [\$medicine->id, \$medicine->currentProfile->id])", $view);
         $this->assertStringContainsString("route('admin.pharma.medicines.import.index')", $view);
         $this->assertStringContainsString("route('admin.pharma.dashboard')", $page);
