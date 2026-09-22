@@ -138,6 +138,7 @@ class CommercialPolicyWorkspace extends Component
                     'Sản phẩm'=>$product->medicine_name,'Số lượng trúng'=>(float)$product->quantity,'Đơn giá trúng'=>(float)($product->winning_price ?? $product->unit_price ?? 0),
                     'Chính sách (%)'=>isset($policies[$product->id])?(float)$policies[$product->id]:null,
                     'Bệnh viện ID'=>$allocation?->partner_id,'Bệnh viện'=>$allocation?->partner?->name,
+                    'Số lượng phân bổ'=>$allocation === null ? null : (float)$allocation->allocated_quantity,
                     'User ID'=>$assignment?->user_id,'User email'=>$assignment?->user?->email,
                 ]);
             }
