@@ -117,31 +117,6 @@ class Index extends Component
         $this->selectPage = $pageIds !== [] && count($this->selectedIds) === count($pageIds);
     }
 
-    public function toggleAwardSelection(mixed $id = null): void
-    {
-        if (! is_numeric($id)) {
-            return;
-        }
-
-        $value = (string) ((int) $id);
-        $pageIds = $this->currentPageIds();
-
-        if (! in_array($value, $pageIds, true)) {
-            return;
-        }
-
-        $selected = array_map('strval', $this->selectedIds);
-
-        if (in_array($value, $selected, true)) {
-            $selected = array_values(array_diff($selected, [$value]));
-        } else {
-            $selected[] = $value;
-        }
-
-        $this->selectedIds = array_values(array_intersect(array_unique($selected), $pageIds));
-        $this->selectPage = $pageIds !== [] && count($this->selectedIds) === count($pageIds);
-    }
-
     public function clearAwardSelection(): void
     {
         $this->clearSelection();
