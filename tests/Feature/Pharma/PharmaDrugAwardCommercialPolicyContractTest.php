@@ -93,7 +93,7 @@ class PharmaDrugAwardCommercialPolicyContractTest extends TestCase
         $this->assertStringContainsString("'Số lượng phân bổ'=>\$allocation === null ? null : (float)\$allocation->allocated_quantity", $component);
         $this->assertStringContainsString("'Mã thuốc chuẩn'=>\$product->medicine?->medicine_code ?? \$product->canonicalMatch?->medicine?->medicine_code", $component);
         $this->assertStringContainsString("'canonicalMatch.medicine'", $component);
-        $this->assertStringContainsString("with(['medicine','allocations'", $component);
+        $this->assertStringContainsString("with(['medicine','canonicalMatch.medicine','allocations'", $component);
         $this->assertStringContainsString("'assigned'=>\$assignmentRows->count()", $component);
         $this->assertStringContainsString("'total'=>\$activeAllocationCount", $component);
         $this->assertStringContainsString('Đã phân công', $view);
