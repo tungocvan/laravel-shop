@@ -162,7 +162,9 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString('nếu nguồn không có ngày quyết định thì dùng ngày công bố', $view);
         $this->assertStringContainsString('$award->decision_date ?: $award->published_at', $view);
         $this->assertStringContainsString('editResultGroup', $component);
-        $this->assertStringContainsString("route('admin.pharma.drug-bid-awards.edit'", $component);
+        $this->assertStringContainsString("redirectRoute('admin.pharma.drug-bid-awards.edit'", $component);
+        $this->assertStringContainsString('editResultGroup({{ $award->representative_id }})', $view);
+        $this->assertStringContainsString("MAX(published_at) as published_at", $service);
         $this->assertStringContainsString('>Sửa</button>', $view);
         $this->assertStringContainsString('Trạng thái thiết lập', $view);
         $this->assertStringContainsString('Phân bổ:', $view);
