@@ -21,7 +21,9 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString("COUNT(*) as product_count", $service);
         $this->assertStringContainsString('Mỗi dòng là một mã thông báo mời thầu', $view);
         $this->assertStringContainsString('Xem sản phẩm / Phân bổ', $view);
-        $this->assertStringNotContainsString('wire:model.live="selectedIds"', $view);
+        $this->assertStringContainsString('wire:model.live="selectedIds"', $view);
+        $this->assertStringContainsString('wire:model.live="selectPage"', $view);
+        $this->assertStringContainsString('Chọn tất cả TBMT trên trang', $view);
         $this->assertStringContainsString("name('allocation-detail')", $routes);
         $this->assertStringContainsString("view('Pharma::pages.drug-bid-award.products'", $controller);
         $productComponent = file_get_contents(base_path('Modules/Pharma/Livewire/DrugBidAward/ProductWorkspace.php'));
@@ -157,7 +159,11 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString('addMonthsNoOverflow', $view);
         $this->assertStringContainsString('$remainingMonths <= 3', $view);
         $this->assertStringContainsString('Hết hiệu lực HĐ', $view);
-        $this->assertStringContainsString('Ước tính từ ngày quyết định và thời gian thực hiện hợp đồng', $view);
+        $this->assertStringContainsString('nếu nguồn không có ngày quyết định thì dùng ngày công bố', $view);
+        $this->assertStringContainsString('$award->decision_date ?: $award->published_at', $view);
+        $this->assertStringContainsString('editResultGroup', $component);
+        $this->assertStringContainsString("route('admin.pharma.drug-bid-awards.edit'", $component);
+        $this->assertStringContainsString('>Sửa</button>', $view);
         $this->assertStringContainsString('Trạng thái thiết lập', $view);
         $this->assertStringContainsString('Phân bổ:', $view);
         $this->assertStringContainsString('CSKD:', $view);
