@@ -117,6 +117,13 @@ class Index extends Component
         $this->selectPage = $pageIds !== [] && count($this->selectedIds) === count($pageIds);
     }
 
+    public function editResultGroup(int $awardId)
+    {
+        $this->authorizePharmaEdit();
+
+        return redirect()->route('admin.pharma.drug-bid-awards.edit', ['id' => $awardId]);
+    }
+
     public function gotoPage(mixed $page): void
     {
         $this->page = max(1, (int) $page);
