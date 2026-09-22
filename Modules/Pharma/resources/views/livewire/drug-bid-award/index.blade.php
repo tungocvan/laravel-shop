@@ -7,6 +7,30 @@
     $currentPage = $awards->currentPage();
     $lastPage = $awards->lastPage();
     $fmtQty = fn ($value) => rtrim(rtrim(number_format((float) $value, 4, ',', '.'), '0'), ',');
+    $remainingContractMonths = function ($award): ?int {
+        $durationMonths = null;
+        if ((int) $award->contract_duration_months > 0) {
+            $durationMonths = (int) $award->contract_duration_months;
+        } elseif ((int) $award->contract_period > 0) {
+            $unit = mb_strtolower(trim((string) $award->contract_period_unit));
+            $period = (int) $award->contract_period;
+            if ($unit === '' || str_contains($unit, 'tháng') || str_contains($unit, 'month')) {
+                $durationMonths = $period;
+            } elseif (str_contains($unit, 'năm') || str_contains($unit, 'year')) {
+                $durationMonths = $period * 12;
+            } elseif (str_contains($unit, 'ngày') || str_contains($unit, 'day')) {
+                $durationMonths = (int) ceil($period / 30);
+            }
+        }
+        if (! $award->decision_date || ! $durationMonths) {
+            return null;
+        }
+        $endDate = \Carbon\Carbon::parse($award->decision_date)->addMonthsNoOverflow($durationMonths)->endOfDay();
+        if (now()->greaterThanOrEqualTo($endDate)) {
+            return 0;
+        }
+        return max(1, (int) ceil(now()->diffInDays($endDate) / 30.4375));
+    };
 @endphp
 
 <div class="space-y-6">
@@ -61,7 +85,7 @@
     <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4"><div><h2 class="font-semibold text-slate-950">Danh sách kết quả trúng thầu</h2><p class="mt-1 text-xs text-slate-500">{{ number_format($awards->total()) }} mã TBMT · Trang {{ $currentPage }}/{{ max(1, $lastPage) }}</p></div><div wire:loading class="text-sm font-semibold text-indigo-600">Đang tải...</div></div>
         <div class="overflow-x-auto"><table class="min-w-[1180px] w-full divide-y divide-slate-200 text-left text-sm">
-            <thead class="bg-slate-50 text-xs font-semibold uppercase text-slate-600"><tr><th class="px-4 py-3">Mã TBMT</th><th class="px-4 py-3">Chủ đầu tư</th><th class="px-4 py-3">Quyết định</th><th class="px-4 py-3 text-right">Sản phẩm</th><th class="px-4 py-3 text-right">Giá trị</th><th class="px-4 py-3">Thời gian HĐ</th><th class="px-4 py-3">Trạng thái thiết lập</th><th class="px-4 py-3 text-right">Thao tác</th></tr></thead>
+            <thead class="bg-slate-50 text-xs font-semibold uppercase text-slate-600"><tr><th class="px-4 py-3">Mã TBMT</th><th class="px-4 py-3">Chủ đầu tư</th><th class="px-4 py-3">Quyết định</th><th class="px-4 py-3 text-right">Sản phẩm</th><th class="px-4 py-3 text-right">Giá trị</th><th class="px-4 py-3">Thời gian HĐ</th><th class="px-4 py-3">Còn lại HĐ</th><th class="px-4 py-3">Trạng thái thiết lập</th><th class="px-4 py-3 text-right">Thao tác</th></tr></thead>
             <tbody class="divide-y divide-slate-100">
             @forelse ($awards as $award)
                 <tr class="align-top hover:bg-slate-50">
@@ -71,11 +95,18 @@
                     <td class="px-4 py-4 text-right text-lg font-bold text-slate-950">{{ number_format((int) $award->product_count) }}</td>
                     <td class="px-4 py-4 text-right font-semibold text-indigo-700">{{ number_format((float) $award->total_value, 0, ',', '.') }} VNĐ</td>
                     <td class="px-4 py-4"><div class="font-semibold text-slate-800">{{ $award->contract_duration_months ? $award->contract_duration_months.' tháng' : ($award->contract_period ? $award->contract_period.' '.($award->contract_period_unit ?: '') : ($award->contract_period_text ?: '—')) }}</div></td>
+                    @php($remainingMonths = $remainingContractMonths($award))
+                    <td class="px-4 py-4" title="Ước tính từ ngày quyết định và thời gian thực hiện hợp đồng">
+                        @if($remainingMonths === null)<span class="text-slate-400">—</span>
+                        @elseif($remainingMonths === 0)<span class="inline-flex rounded-full bg-rose-100 px-2.5 py-1 text-xs font-bold text-rose-800">Hết hiệu lực HĐ</span>
+                        @elseif($remainingMonths <= 3)<span class="inline-flex rounded-full bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-700">{{ str_pad((string)$remainingMonths, 2, '0', STR_PAD_LEFT) }} tháng</span>
+                        @else<span class="font-semibold text-slate-700">{{ str_pad((string)$remainingMonths, 2, '0', STR_PAD_LEFT) }} tháng</span>@endif
+                    </td>
                     <td class="px-4 py-4"><div class="flex flex-col items-start gap-1.5"><span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ (int)$award->allocation_count > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600' }}">Phân bổ: {{ (int)$award->allocation_count > 0 ? 'Đã thiết lập' : 'Chưa thiết lập' }}</span><span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ (int)$award->management_assignment_count > 0 ? 'bg-sky-50 text-sky-700' : 'bg-slate-100 text-slate-600' }}">CSKD: {{ (int)$award->management_assignment_count > 0 ? 'Đã thiết lập' : 'Chưa thiết lập' }}</span></div></td>
                     <td class="px-4 py-4 text-right"><div class="flex justify-end gap-2">@if ($canViewAllocations)<a href="{{ route('admin.pharma.drug-bid-awards.allocations', $award->representative_id) }}" class="inline-flex min-h-10 items-center rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700">Xem sản phẩm / Phân bổ</a>@endif @if($canViewCommercialPolicies)<a href="{{ route('admin.pharma.drug-bid-awards.commercial-policy', $award->representative_id) }}" class="inline-flex min-h-10 items-center rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-xs font-semibold text-indigo-700">Chính sách kinh doanh</a>@endif</div></td>
                 </tr>
             @empty
-                <tr><td colspan="8" class="px-6 py-12 text-center text-slate-500">Không có kết quả phù hợp.</td></tr>
+                <tr><td colspan="9" class="px-6 py-12 text-center text-slate-500">Không có kết quả phù hợp.</td></tr>
             @endforelse
             </tbody>
         </table></div>
