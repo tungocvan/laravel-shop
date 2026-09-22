@@ -63,7 +63,7 @@ class MedicineCatalogImportUiContractTest extends TestCase
         $this->assertStringContainsString('registration_number_primary ?: $medicine->registration_number', $view);
         $this->assertStringContainsString("?: 'Chưa có GPLH'", $view);
         $this->assertStringContainsString('lg:hidden', $view);
-        $this->assertStringContainsString('SKU hệ thống tự sinh', $view);
+        $this->assertStringContainsString('{{ $medicine->medicine_code', $view);
         $this->assertStringContainsString('sticky right-0', $view);
         $this->assertStringContainsString('admin.pharma.medicines.edit', $view);
         $this->assertStringContainsString('deleteMedicine', $view);
