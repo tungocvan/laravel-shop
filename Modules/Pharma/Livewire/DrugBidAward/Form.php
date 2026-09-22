@@ -222,7 +222,17 @@ class Form extends Component
     public function save(DrugBidAwardService $service)
     {
         $this->isEditMode ? $this->authorizePharmaEdit() : $this->authorizePharmaCreate();
-        $data = $this->validate();
+
+        $data = $this->isEditMode
+            ? $this->validate([
+                'bidding_notice_code' => 'required|string|max:100',
+                'investor_name' => 'required|string|max:255',
+                'decision_number' => 'required|string|max:100',
+                'decision_date' => 'required|date',
+                'contract_duration_months' => 'required|integer|min:1',
+                'decision_document_url' => 'nullable|url|max:255',
+            ])
+            : $this->validate();
 
         try {
             if ($this->isEditMode) {
