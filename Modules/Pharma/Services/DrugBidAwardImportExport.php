@@ -67,8 +67,9 @@ class DrugBidAwardImportExport extends BaseImportExportService
 
     protected function normalizeRow(array $row): array
     {
+        $medicineCode = $this->cleanString($row['medicine_code'] ?? null);
+
         $data = [
-            'medicine_code' => $this->cleanString($row['medicine_code'] ?? null),
             'medicine_name' => $this->cleanString($row['medicine_name'] ?? null),
             'packaging_specification' => $this->cleanString($row['packaging_specification'] ?? null),
             'quantity' => $this->vietnameseInteger($row['quantity'] ?? null),
@@ -82,8 +83,6 @@ class DrugBidAwardImportExport extends BaseImportExportService
             'decision_document_url' => $this->cleanString($row['decision_document_url'] ?? null),
         ];
 
-        unset($data['medicine_code']);
-
         $existing = $this->existingRecord($data);
         if ($existing) {
             foreach ($data as $field => $value) {
@@ -93,7 +92,12 @@ class DrugBidAwardImportExport extends BaseImportExportService
             }
         }
 
-        $data['medicine_id'] = $existing?->medicine_id ?? $this->resolveMedicineId($data);
+        $data['medicine_id'] = $existing?->medicine_id ?? $this->resolveMedicineId($data, $medicineCode);
+
+        if ($data['medicine_id']) {
+            $data['medicine_match_status'] = DrugBidAward::MATCH_VERIFIED;
+            $data['medicine_code'] = Medicine::query()->whereKey($data['medicine_id'])->value('medicine_code');
+        }
 
         return $data;
     }
@@ -219,8 +223,16 @@ class DrugBidAwardImportExport extends BaseImportExportService
         return DrugBidAward::query()->where(collect($this->uniqueBy)->mapWithKeys(fn ($field) => [$field => $data[$field]])->all())->first();
     }
 
-    private function resolveMedicineId(array $data): ?int
+    private function resolveMedicineId(array $data, ?string $medicineCode = null): ?int
     {
+        if ($medicineCode) {
+            $medicineId = Medicine::query()->where('medicine_code', $medicineCode)->value('id');
+
+            if ($medicineId) {
+                return (int) $medicineId;
+            }
+        }
+
         if (! $data['medicine_name']) {
             return null;
         }
@@ -245,6 +257,11 @@ class DrugBidAwardImportExport extends BaseImportExportService
         if ($value === null || trim((string) $value) === '') {
             return null;
         }
+
+        if (is_int($value) || is_float($value)) {
+            return (float) $value;
+        }
+
         $normalized = str_replace(['.', ',', ' '], '', trim((string) $value));
 
         return is_numeric($normalized) ? (float) $normalized : null;
