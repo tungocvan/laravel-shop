@@ -21,7 +21,9 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString("COUNT(*) as product_count", $service);
         $this->assertStringContainsString('Mỗi dòng là một mã thông báo mời thầu', $view);
         $this->assertStringContainsString('Xem sản phẩm / Phân bổ', $view);
-        $this->assertStringContainsString('wire:model.live="selectedIds"', $view);
+        $this->assertStringContainsString('wire:click="toggleAwardSelection({{ $award->id }})"', $view);
+        $this->assertStringContainsString('public function toggleAwardSelection(int $id): void', $component);
+        $this->assertStringContainsString('@checked(in_array((string) $award->id', $view);
         $this->assertStringContainsString('wire:model.live="selectPage"', $view);
         $this->assertStringContainsString('Chọn tất cả TBMT trên trang', $view);
         $this->assertStringContainsString("name('allocation-detail')", $routes);
@@ -178,7 +180,12 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString("redirectRoute('admin.pharma.drug-bid-awards.edit'", $component);
         $this->assertStringContainsString('editResultGroup({{ $award->representative_id }})', $view);
         $this->assertStringContainsString("MAX(published_at) as published_at", $service);
-        $this->assertStringContainsString('>Sửa</button>', $view);
+        $this->assertStringContainsString('Sửa hồ sơ', $view);
+        $this->assertStringContainsString('Sản phẩm / Phân bổ', $view);
+        $this->assertStringContainsString('aria-label="Thêm thao tác"', $view);
+        $this->assertStringContainsString('Export Excel', $view);
+        $this->assertStringContainsString('wire:click="clearAwardSelection"', $view);
+        $this->assertStringNotContainsString('Sẵn sàng dùng cho Export/Import', $view);
         $this->assertStringContainsString('Trạng thái thiết lập', $view);
         $this->assertStringContainsString('Phân bổ:', $view);
         $this->assertStringContainsString('CSKD:', $view);
