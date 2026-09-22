@@ -89,6 +89,11 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString('registration_number', $component);
         $this->assertStringContainsString('active_ingredients', $component);
         $this->assertStringContainsString('wire:model.live.debounce.300ms="medicineSearch"', $view);
+        $this->assertStringContainsString('medicineSearchRevision', $component);
+        $this->assertStringContainsString('medicine-search-results-', $view);
+        $this->assertStringContainsString("orWhere('medicine_code', 'like', \$like)", $component);
+        $this->assertStringContainsString('Đang tìm HSSP...', $view);
+        $this->assertStringContainsString('Tên thuốc, mã sản phẩm, số đăng ký hoặc hoạt chất...', $view);
         $this->assertStringContainsString('Chưa liên kết HSSP', $view);
         $this->assertStringContainsString('snapshot', $view);
     }
