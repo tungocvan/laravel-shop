@@ -201,6 +201,11 @@ class PharmaImportExportTest extends TestCase
     public function test_supplier_tracking_import_uses_a_to_v_and_recalculates_derived_fields(): void
     {
         Medicine::query()->create($this->medicineData());
+        \Modules\Partner\Models\Partner::query()->create([
+            'tax_code' => '0312345678',
+            'name' => 'Công ty ABC',
+            'partner_types' => ['supplier'],
+        ]);
 
         $path = sys_get_temp_dir().'/supplier-import-'.uniqid('', true).'.xlsx';
         (new FastExcel(collect([[
@@ -208,16 +213,15 @@ class PharmaImportExportTest extends TestCase
             'Tên thuốc' => 'Trosicam 15mg',
             'Số đăng ký' => 'VN-20104-16',
             'Nhà cung cấp' => 'Công ty ABC',
+            'Mã số thuế NCC' => '0312345678',
             'Người đại diện' => 'Nguyễn Văn A',
             'Khu vực' => 'Miền Nam',
-            'Giá nhập' => 3750,
-            'Giá bán' => 7791,
-            'Giá hóa đơn' => 7000,
-            'Chênh lệch hóa đơn' => 999999,
-            '% phí chênh lệch' => 10,
-            'Phí chênh lệch' => 999999,
-            'Giá vốn' => 999999,
-            '% lợi nhuận thực tế' => 999999,
+            'Phạm vi phân phối' => 'all',
+            'Vùng miền' => null,
+            'Tỉnh/Thành' => null,
+            'Mã cơ sở' => null,
+            'Giá vốn NCC' => 3750,
+            'Giá hóa đơn NCC' => 7000,
             'Số lượng cam kết' => 500000,
             'Đơn vị' => 'Viên',
             'Tiền cọc' => 50000000,
@@ -322,17 +326,19 @@ class PharmaImportExportTest extends TestCase
         string $company
     ): array {
         return [
-            'STT' => 1,
-            'Tên thuốc' => $medicineName,
-            'Quy cách đóng gói' => $packaging,
-            'Số lượng' => 1000,
-            'Đơn giá trúng thầu' => 5000,
-            'Mã thông báo mời thầu' => $noticeCode,
-            'Tên Chủ đầu tư' => 'Bệnh viện A',
+            'Mã TBMT' => $noticeCode,
+            'Chủ đầu tư' => 'Bệnh viện A',
             'Số quyết định' => 'QD-001',
-            'Ngày ban hành quyết định' => '01/05/2026',
-            'Thời hạn hiệu lực' => 12,
-            'Công ty trúng thầu' => $company,
+            'Ngày quyết định' => '01/05/2026',
+            'Thời gian HĐ (tháng)' => 12,
+            'Tên sản phẩm trúng thầu' => $medicineName,
+            'Mã sản phẩm chuẩn' => null,
+            'Quy cách' => $packaging,
+            'Số lượng trúng' => 1000,
+            'Đơn giá trúng' => 5000,
+            'Giá trị' => 5000000,
+            'Nhà thầu' => $company,
+            'Trạng thái đối soát HSSP' => null,
             'Link quyết định trúng thầu' => null,
         ];
     }
