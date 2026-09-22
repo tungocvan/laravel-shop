@@ -155,7 +155,9 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString("setTitle('Phân bổ bệnh viện')", $export);
         $this->assertStringContainsString("->where('status', DrugBidAwardAllocation::STATUS_ACTIVE)", $export);
         $this->assertStringContainsString("'Partner ID' => \$allocation->partner_id", $export);
-        $this->assertStringContainsString("'Số lượng phân bổ' => \$this->exportNumeric(\$allocation->allocated_quantity)", $export);
+        $this->assertStringContainsString("'Số lượng trúng' => \$award?->quantity !== null ? (float) \$award->quantity : null", $export);
+        $this->assertStringContainsString("'Số lượng phân bổ' => \$allocation->allocated_quantity !== null ? (float) \$allocation->allocated_quantity : null", $export);
+        $this->assertStringNotContainsString('exportNumeric(', $export);
         $this->assertStringContainsString("getSheetByName('Phân bổ bệnh viện')", $export);
         $this->assertStringContainsString('DrugBidAwardAllocationService::class', $export);
         $this->assertStringContainsString("\$allocationService->save(\$award->id", $export);
