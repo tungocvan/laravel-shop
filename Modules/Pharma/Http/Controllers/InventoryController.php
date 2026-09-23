@@ -262,6 +262,13 @@ final class InventoryController extends Controller
     }
 
     public function postReceipt(InventoryReceipt $receipt, InventoryService $inventory): RedirectResponse { $inventory->postReceipt($receipt,auth('admin')->id()); return back()->with('success',"Đã ghi sổ {$receipt->number}."); }
+
+    public function revertReceipt(InventoryReceipt $receipt, InventoryService $inventory): RedirectResponse
+    {
+        $this->guardReceiptWarehouse($receipt,$inventory);
+        $inventory->revertReceipt($receipt,auth('admin')->id());
+        return redirect()->route('admin.pharma.inventory.receipts.index')->with('success',"Đã hoàn tác ghi sổ {$receipt->number}; tồn kho đã được cập nhật và phiếu trở về nháp.");
+    }
     public function createIssue(InventoryService $inventory): View
     {
         $warehouse=$inventory->defaultWarehouse();
