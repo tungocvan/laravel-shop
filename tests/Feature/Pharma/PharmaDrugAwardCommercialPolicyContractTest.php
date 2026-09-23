@@ -70,7 +70,7 @@ class PharmaDrugAwardCommercialPolicyContractTest extends TestCase
         $this->assertStringContainsString('Phân công User theo sản phẩm', $view);
         $this->assertStringContainsString('Gán User cho {{ count($selectedManagementAwardIds) }} sản phẩm đã chọn', $view);
         $this->assertStringContainsString('Số bệnh viện có phân bổ', $view);
-        $this->assertStringContainsString("{{ $group['products'] }} sản phẩm · {{ $group['hospitals'] }} bệnh viện", $view);
+        $this->assertStringContainsString("{{ \$group['products'] }} sản phẩm · {{ \$group['hospitals'] }} bệnh viện", $view);
         $this->assertStringContainsString('assignManagerToProductAllocations', $service);
         $this->assertStringContainsString("where('status', DrugBidAwardAllocation::STATUS_ACTIVE)", $service);
         $this->assertStringContainsString("get(['drug_bid_award_id', 'partner_id'])", $service);
