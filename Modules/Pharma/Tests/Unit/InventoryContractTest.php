@@ -129,5 +129,8 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("new TomSelect(select", $receipt);
         $this->assertStringContainsString("Partner::query()->withPartnerType('supplier')->where('status','active')", $controller);
         $this->assertStringContainsString("'partners'=>\$partners", $controller);
+        $searchSelect=file_get_contents(base_path('resources/views/components/select-search.blade.php'));
+        $this->assertStringNotContainsString('@this.set(', $searchSelect);
+        $this->assertStringContainsString('this.$wire.set(config.model, value, false);', $searchSelect);
     }
 }
