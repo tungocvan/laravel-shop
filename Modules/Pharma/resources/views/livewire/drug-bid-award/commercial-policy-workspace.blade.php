@@ -106,7 +106,7 @@
 
     <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"><p class="text-xs font-semibold uppercase text-slate-500">Đã phân công</p><p class="mt-1 text-lg font-bold text-slate-950">{{ $assignmentSummary['assigned'] }}/{{ $assignmentSummary['total'] }}</p></div>
-        <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"><p class="text-xs font-semibold uppercase text-slate-500">Bệnh viện đã có User</p><p class="mt-1 text-lg font-bold text-slate-950">{{ $assignmentSummary['hospitals'] }}</p></div>
+        <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"><p class="text-xs font-semibold uppercase text-slate-500">Số lượng Bệnh viện</p><p class="mt-1 text-lg font-bold text-slate-950">{{ $assignmentSummary['hospitals'] }}</p></div>
         <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"><p class="text-xs font-semibold uppercase text-slate-500">User quản lý</p><p class="mt-1 text-lg font-bold text-slate-950">{{ $assignmentSummary['users'] }}</p></div>
         <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"><p class="text-xs font-semibold uppercase text-slate-500">Trạng thái</p><p class="mt-1 text-sm font-bold {{ $assignmentSummary['total'] > 0 && $assignmentSummary['assigned'] >= $assignmentSummary['total'] ? 'text-emerald-700' : 'text-amber-700' }}">{{ $assignmentSummary['total'] > 0 && $assignmentSummary['assigned'] >= $assignmentSummary['total'] ? 'Đã phân công đầy đủ' : 'Còn phân công chưa thiết lập' }}</p></div>
     </div>
@@ -151,9 +151,9 @@
             <label class="text-sm font-semibold text-slate-700">Tìm User
                 <input wire:model.live.debounce.300ms="userSearch" placeholder="Tên / email..." class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3">
             </label>
-            <label class="text-sm font-semibold text-slate-700">User quản lý
-                <select wire:model="selectedUserId" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3"><option value="">Chọn User</option>@foreach($users as $user)<option value="{{ $user->id }}">{{ $user->name }}{{ $user->email ? ' · '.$user->email : '' }}</option>@endforeach</select>
-            </label>
+            <div class="text-sm font-semibold text-slate-700">User quản lý
+                <div class="mt-1"><x-select-search id="commercial-policy-bulk-user" wire:model.live="selectedUserId" placeholder="Tìm và chọn User..."><option value="">Chọn User</option>@foreach($users as $user)<option value="{{ $user->id }}" @selected((int)$selectedUserId === $user->id)>{{ $user->name }}{{ $user->email ? ' · '.$user->email : '' }}</option>@endforeach</x-select-search></div>
+            </div>
             <button type="button" wire:click="assignManagerToAll" wire:confirm="Gán User đã chọn cho toàn bộ Bệnh viện × Sản phẩm đang được phân bổ trong TBMT? Phân công hiện có sẽ được thay thế." @disabled(!$selectedUserId) class="min-h-11 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">Gán cho toàn bộ TBMT</button>
         </div>
     </div>
@@ -167,9 +167,9 @@
                 <select wire:model.live="selectedPartnerId" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3"><option value="">Chọn bệnh viện</option>@foreach($partners as $partner)<option value="{{ $partner->id }}">{{ $partner->name }}</option>@endforeach</select>
             </label>
             @if($canManage)
-            <label class="text-sm font-semibold text-slate-700">User mới / thay thế
-                <select wire:model="selectedUserId" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3"><option value="">Chọn User</option>@foreach($users as $user)<option value="{{ $user->id }}">{{ $user->name }}{{ $user->email ? ' · '.$user->email : '' }}</option>@endforeach</select>
-            </label>
+            <div class="text-sm font-semibold text-slate-700">User mới / thay thế
+                <div class="mt-1"><x-select-search id="commercial-policy-hospital-user" wire:model.live="selectedUserId" placeholder="Tìm và chọn User..."><option value="">Chọn User</option>@foreach($users as $user)<option value="{{ $user->id }}" @selected((int)$selectedUserId === $user->id)>{{ $user->name }}{{ $user->email ? ' · '.$user->email : '' }}</option>@endforeach</x-select-search></div>
+            </div>
             @endif
         </div>
 
