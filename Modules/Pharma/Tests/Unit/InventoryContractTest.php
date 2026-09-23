@@ -42,11 +42,11 @@ class InventoryContractTest extends TestCase
 
         $this->assertNotEmpty($compiled);
         token_get_all($compiled, TOKEN_PARSE);
-        foreach (['issue-form.blade.php','documents.blade.php'] as $file) {
+        foreach (['issue-form.blade.php','documents.blade.php','receipt-show.blade.php','receipt-edit.blade.php'] as $file) {
             $candidate=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/'.$file));
             token_get_all(Blade::compileString($candidate), TOKEN_PARSE);
         }
-        $this->addToAssertionCount(3);
+        $this->addToAssertionCount(5);
     }
 
     public function test_inventory_admin_ui_and_permissions_follow_pharma_conventions(): void
@@ -156,5 +156,27 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('Xác nhận ghi sổ', $documents);
         $this->assertStringContainsString("request('per_page',25)", $documents);
         $this->assertStringContainsString('[25,50,100] as $size', $documents);
+        $receiptForm=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/receipt-form.blade.php'));
+        $receiptShow=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/receipt-show.blade.php'));
+        $receiptEdit=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/receipt-edit.blade.php'));
+        $this->assertStringContainsString("name('receipts.show')", $routes);
+        $this->assertStringContainsString("name('receipts.edit')", $routes);
+        $this->assertStringContainsString("name('receipts.update')", $routes);
+        $this->assertStringContainsString("name('receipts.destroy')", $routes);
+        $this->assertStringContainsString("'supplier_name'=>'required|string|max:255'", $controller);
+        $this->assertStringContainsString("redirect()->route('admin.pharma.inventory.receipts.index')", $controller);
+        $this->assertStringContainsString('function showReceipt', $controller);
+        $this->assertStringContainsString('function editReceipt', $controller);
+        $this->assertStringContainsString('function updateReceipt', $controller);
+        $this->assertStringContainsString('function destroyReceipt', $controller);
+        $this->assertStringContainsString('Chỉ phiếu nhập nháp mới được xóa.', $controller);
+        $this->assertStringContainsString('quantity * unit_price_ex_vat', $controller);
+        $this->assertStringContainsString('Tổng giá trị', $documents);
+        $this->assertStringContainsString('Xác nhận xóa', $documents);
+        $this->assertStringContainsString('Thành tiền', $receiptShow);
+        $this->assertStringContainsString('Tổng giá trị', $receiptShow);
+        $this->assertStringContainsString('chỉ cập nhật thông tin chứng từ', $receiptEdit);
+        $this->assertStringContainsString('Nhà cung cấp *', $receiptForm);
+        $this->assertLessThan(strpos($index,'Import / Export Excel'),strpos($index,'Phiếu nhập gần đây'));
     }
 }
