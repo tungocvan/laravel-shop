@@ -78,5 +78,14 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("whereNull('end_date')", $controller);
         $this->assertStringContainsString("'lt6'", $controller);
         $this->assertStringContainsString("'Gia von NCC trung binh'", $controller);
+        $this->assertStringContainsString('cost_status', $index);
+        $this->assertStringContainsString('Chưa có giá vốn', $index);
+        $this->assertStringContainsString('value_sort', $index);
+        $this->assertStringContainsString('Giá trị tồn: lớn nhất', $index);
+        $this->assertStringContainsString("leftJoinSub", $controller);
+        $this->assertStringContainsString("inventory_value", $controller);
+        $this->assertStringContainsString("'unpriced'", $controller);
+        $this->assertStringContainsString("number_format((float) \$row->opening_quantity, 0", $index);
+        $this->assertStringContainsString("number_format((float) \$row->quantity_on_hand, 0", $index);
     }
 }
