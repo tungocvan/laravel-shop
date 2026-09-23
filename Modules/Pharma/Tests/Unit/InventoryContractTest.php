@@ -285,9 +285,9 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("@section('admin_container','full')", $show);
         $this->assertStringContainsString('Đơn giá xuất', $show);
         $this->assertStringContainsString('Bảng giá áp dụng', $show);
-        $this->assertStringContainsString('Người lập phiếu', $show);
-        $this->assertStringContainsString('Người giao hàng', $show);
-        $this->assertStringContainsString('Người nhận hàng', $show);
+        $this->assertStringContainsString('$settings->issuer_label', $show);
+        $this->assertStringContainsString('$settings->deliverer_label', $show);
+        $this->assertStringContainsString('$settings->receiver_label', $show);
         $this->assertStringNotContainsString('Giá vốn', $show);
     }
 
@@ -313,10 +313,44 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('Tóm tắt phiếu', $show);
         $this->assertStringContainsString('PHIẾU XUẤT KHO', $pdf);
         $this->assertStringContainsString('@page{margin:16mm 12mm}', $pdf);
-        $this->assertStringContainsString('Người giao hàng', $pdf);
-        $this->assertStringContainsString('Người nhận hàng', $pdf);
+        $this->assertStringContainsString('$settings->deliverer_label', $pdf);
+        $this->assertStringContainsString('$settings->receiver_label', $pdf);
+        $this->assertStringNotContainsString('Tổng số lượng:', $pdf);
+        $this->assertStringNotContainsString('$totalQuantity', $pdf);
+        $this->assertStringNotContainsString('$totalQuantity', $print);
         $this->assertStringContainsString('window.print()', $print);
         $this->assertStringContainsString('@media print', $print);
+    }
+
+
+    public function test_issue_document_settings_contracts(): void
+    {
+        $routes=file_get_contents(base_path('Modules/Pharma/routes/web.php'));
+        $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
+        $documents=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/documents.blade.php'));
+        $settingsView=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-settings.blade.php'));
+        $model=file_get_contents(base_path('Modules/Pharma/Models/InventoryIssueDocumentSetting.php'));
+        $migration=file_get_contents(base_path('Modules/Pharma/database/migrations/2026_09_23_164500_create_pharma_inventory_issue_document_settings_table.php'));
+
+        $this->assertStringContainsString("name('issues.settings')", $routes);
+        $this->assertStringContainsString("name('issues.settings.update')", $routes);
+        $this->assertStringContainsString("middleware('can:edit_pharma')", $routes);
+        $this->assertStringContainsString('⚙ Cấu hình phiếu xuất', $documents);
+        $this->assertStringContainsString('function issueDocumentSettings', $controller);
+        $this->assertStringContainsString('function updateIssueDocumentSettings', $controller);
+        $this->assertStringContainsString('InventoryIssueDocumentSetting::current()', $controller);
+        $this->assertStringContainsString("pharma_inventory_issue_document_settings", $migration);
+        $this->assertStringContainsString('organization_name', $settingsView);
+        $this->assertStringContainsString('warehouse_name', $settingsView);
+        $this->assertStringContainsString('show_unit_price', $settingsView);
+        $this->assertStringContainsString('show_total_value', $settingsView);
+        $this->assertStringContainsString('issuer_label', $model);
+
+        foreach (['issue-settings.blade.php','issue-show.blade.php','issue-pdf.blade.php','issue-print.blade.php'] as $file) {
+            $candidate=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/'.$file));
+            token_get_all(Blade::compileString($candidate), TOKEN_PARSE);
+        }
+        $this->addToAssertionCount(4);
     }
 
 }
