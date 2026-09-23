@@ -29,8 +29,8 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("'expiry_date'", $service);
         $this->assertStringContainsString("public const DRAFT='draft'", $receipt);
         $this->assertStringContainsString("public const POSTED='posted'", $issue);
-        $this->assertStringContainsString('if ($after < 0)', $service);
-        $this->assertStringContainsString('Không đủ tồn', $service);
+        $this->assertStringNotContainsString('if ($after < 0)', $service);
+        $this->assertStringNotContainsString('Không đủ tồn cho lô', $service);
         $this->assertStringContainsString('Tồn đầu kỳ', $view);
         $this->assertStringContainsString('Sắp hết hạn', $view);
     }
@@ -184,8 +184,16 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('Bảng giá xuất', $issueForm);
         $this->assertStringContainsString('name="price_list_id"', $issueForm);
         $this->assertStringContainsString('CUSTOMER · ACTIVE', $issueForm);
-        $this->assertStringContainsString('max-w-[1500px]', $issueForm);
+        $this->assertStringContainsString("@section('admin_container','full')", $issueForm);
+        $this->assertStringNotContainsString('max-w-[1500px]', $issueForm);
         $this->assertStringContainsString('medicineIdsForSelectedPriceList', $issueForm);
+        $this->assertStringContainsString('applyPriceListToRow(row,false)', $issueForm);
+        $this->assertStringNotContainsString('if(priceListSelect.value) refreshRowsForPriceList();', $issueForm);
+        $this->assertStringContainsString('issue-stock-warning', $issueForm);
+        $this->assertStringContainsString('Vượt tồn', $issueForm);
+        $this->assertStringContainsString('tồn sau xuất', $issueForm);
+        $this->assertStringContainsString("classList.toggle('border-rose-500',isNegative)", $issueForm);
+        $this->assertStringContainsString('min-h-11 items-center justify-end', $issueForm);
         $this->assertStringContainsString("'price_list_id'=>'required|integer|exists:pharma_price_lists,id'", $controller);
         $this->assertStringContainsString("where('type',PriceList::TYPE_CUSTOMER)->activeAt", $controller);
         $this->assertStringContainsString("'price_list_id'=>\$data['price_list_id']", $controller);
