@@ -101,6 +101,7 @@ Route::prefix('admin/pharma')->name('admin.pharma.')->middleware(['web', 'auth:a
         Route::put('/receipts/{receipt}', [InventoryController::class, 'updateReceipt'])->middleware('can:edit_pharma')->name('receipts.update');
         Route::delete('/receipts/{receipt}', [InventoryController::class, 'destroyReceipt'])->middleware('can:edit_pharma')->name('receipts.destroy');
         Route::post('/receipts/{receipt}/post', [InventoryController::class, 'postReceipt'])->middleware('can:edit_pharma')->name('receipts.post');
+        Route::post('/receipts/{receipt}/revert', [InventoryController::class, 'revertReceipt'])->middleware('can:delete_pharma')->name('receipts.revert');
         Route::get('/issues', [InventoryController::class, 'issues'])->name('issues.index');
         Route::get('/issues/create', [InventoryController::class, 'createIssue'])->middleware('can:create_pharma')->name('issues.create');
         Route::post('/issues', [InventoryController::class, 'storeIssue'])->middleware('can:create_pharma')->name('issues.store');
