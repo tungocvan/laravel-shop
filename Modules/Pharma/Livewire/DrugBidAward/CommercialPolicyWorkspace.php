@@ -49,11 +49,47 @@ class CommercialPolicyWorkspace extends Component
     }
     public function clearAllManagement(): void { $this->selectedManagementAwardIds = []; }
 
-    public function applyBulkPercentage(): void
+    public function applyBulkPercentage(DrugBidAwardCommercialPolicyService $service): void
     {
         $this->authorizeManage();
         $this->validate(['bulkPercentage' => ['required','numeric','min:0','max:100'], 'selectedPolicyAwardIds' => ['required','array','min:1']]);
-        foreach ($this->selectedPolicyAwardIds as $id) $this->productPolicies[(int) $id] = $this->bulkPercentage;
+        $changes = [];
+        foreach ($this->selectedPolicyAwardIds as $id) {
+            $changes[(int) $id] = $this->bulkPercentage;
+            $this->productPolicies[(int) $id] = $this->formatPercentage($this->bulkPercentage);
+        }
+        $service->saveProductPolicies($this->award(), $changes, auth('admin')->id());
+        session()->flash('success', 'Đã áp dụng và lưu chính sách cho các sản phẩm đã chọn.');
+    }
+
+    public function applyBulkPercentageToAll(DrugBidAwardCommercialPolicyService $service): void
+    {
+        $this->authorizeManage();
+        $this->validate(['bulkPercentage' => ['required','numeric','min:0','max:100']]);
+        $changes = [];
+        foreach ($this->allProductIds() as $id) {
+            $changes[(int) $id] = $this->bulkPercentage;
+            $this->productPolicies[(int) $id] = $this->formatPercentage($this->bulkPercentage);
+        }
+        $service->saveProductPolicies($this->award(), $changes, auth('admin')->id());
+        session()->flash('success', 'Đã áp dụng và lưu chính sách cho toàn bộ sản phẩm trong TBMT.');
+    }
+
+    public function updatedProductPolicies($value, $awardId): void
+    {
+        $this->authorizeManage();
+        if ($value === '' || $value === null) return;
+        if (! is_numeric($value) || (float) $value < 0 || (float) $value > 100) {
+            $this->addError("productPolicies.$awardId", 'Chính sách % phải từ 0 đến 100.');
+            return;
+        }
+        app(DrugBidAwardCommercialPolicyService::class)->saveProductPolicies(
+            $this->award(),
+            [(int) $awardId => $value],
+            auth('admin')->id()
+        );
+        $this->productPolicies[(int) $awardId] = $this->formatPercentage($value);
+        $this->resetErrorBag("productPolicies.$awardId");
     }
 
     public function saveProductPolicies(DrugBidAwardCommercialPolicyService $service): void
@@ -105,6 +141,19 @@ class CommercialPolicyWorkspace extends Component
         $data = $this->validate(['selectedUserId' => ['required', 'integer', 'exists:users,id']]);
         $count = $service->removeManagerFromAllAllocations($this->award(), (int) $data['selectedUserId']);
         session()->flash('success', "Đã gỡ {$count} phân công của User này trong TBMT.");
+    }
+
+    public function removeManagerGroup(int $userId, DrugBidAwardCommercialPolicyService $service): void
+    {
+        $this->authorizeManage();
+        $count = $service->removeManagerFromAllAllocations($this->award(), $userId);
+        if ((int) $this->selectedUserId === $userId) $this->selectedUserId = '';
+        session()->flash('success', "Đã gỡ {$count} phân công của User khỏi TBMT.");
+    }
+
+    public function selectManagementUser(int $userId): void
+    {
+        $this->selectedUserId = (string) $userId;
     }
 
     public function removeSelectedManagers(DrugBidAwardCommercialPolicyService $service): void
@@ -213,8 +262,10 @@ class CommercialPolicyWorkspace extends Component
             ->orderBy('id')->limit(200);
     }
     private function visibleProductIds(): array{return $this->productsQuery()->pluck('id')->map(fn($v)=>(string)$v)->all();}
+    private function allProductIds(): array{return app(DrugBidAwardResultGroupService::class)->awardsQuery($this->award())->pluck('id')->map(fn($v)=>(string)$v)->all();}
     private function allocatedProductIds(int $partnerId): array{return DrugBidAwardAllocation::query()->whereIn('drug_bid_award_id',app(DrugBidAwardResultGroupService::class)->awardsQuery($this->award())->pluck('id'))->where('partner_id',$partnerId)->where('status',DrugBidAwardAllocation::STATUS_ACTIVE)->pluck('drug_bid_award_id')->map(fn($v)=>(string)$v)->all();}
-    private function loadPolicyValues(): void{$ids=app(DrugBidAwardResultGroupService::class)->awardsQuery($this->award())->pluck('id');$this->productPolicies=DrugBidAwardProductPolicy::query()->whereIn('drug_bid_award_id',$ids)->pluck('commission_percentage','drug_bid_award_id')->map(fn($v)=>(string)$v)->all();}
+    private function loadPolicyValues(): void{$ids=app(DrugBidAwardResultGroupService::class)->awardsQuery($this->award())->pluck('id');$this->productPolicies=DrugBidAwardProductPolicy::query()->whereIn('drug_bid_award_id',$ids)->pluck('commission_percentage','drug_bid_award_id')->map(fn($v)=>$this->formatPercentage($v))->all();}
+    private function formatPercentage($value): string{return rtrim(rtrim(number_format((float)$value,4,'.',''),'0'),'.');}
     private function award(): DrugBidAward{return DrugBidAward::query()->findOrFail($this->awardId);}
     private function authorizeManage(): void{abort_unless(auth('admin')->user()?->can('manage_pharma_commercial_policies'),403);}
 }
