@@ -120,5 +120,14 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("showModal()", $index);
         $this->assertStringContainsString('Lưu thay đổi', $index);
         $this->assertStringContainsString('Xác nhận xóa', $index);
+        $receipt=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/receipt-form.blade.php'));
+        $this->assertStringContainsString('<x-select-search id="receipt-supplier"', $receipt);
+        $this->assertStringContainsString('Tìm nhà cung cấp...', $receipt);
+        $this->assertStringContainsString('Tên thuốc / Mã thuốc', $receipt);
+        $this->assertStringContainsString('Giá nhập chưa VAT', $receipt);
+        $this->assertStringContainsString("placeholder: 'Tìm mã hoặc tên thuốc...'", $receipt);
+        $this->assertStringContainsString("new TomSelect(select", $receipt);
+        $this->assertStringContainsString("Partner::query()->withPartnerType('supplier')->where('status','active')", $controller);
+        $this->assertStringContainsString("'partners'=>\$partners", $controller);
     }
 }
