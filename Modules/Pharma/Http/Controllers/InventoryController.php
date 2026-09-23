@@ -12,6 +12,7 @@ use Modules\Pharma\Models\InventoryBalance;
 use Modules\Pharma\Models\InventoryIssue;
 use Modules\Pharma\Models\InventoryReceipt;
 use Modules\Pharma\Models\Medicine;
+use Modules\Pharma\Models\SupplierTracking;
 use Modules\Pharma\Services\InventoryService;
 use Rap2hpoutre\FastExcel\FastExcel;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -21,13 +22,26 @@ final class InventoryController extends Controller
     public function index(Request $request, InventoryService $inventory): View
     {
         $warehouse=$inventory->defaultWarehouse();
-        $balances=InventoryBalance::query()->with('medicine')->where('warehouse_id',$warehouse->id)
+        $costs=$this->activeSupplierCosts();
+        $query=InventoryBalance::query()->with('medicine')->where('warehouse_id',$warehouse->id)
             ->when($request->filled('q'),fn($q)=>$q->whereHas('medicine',fn($m)=>$m->where('medicine_code','like','%'.$request->q.'%')->orWhere('name','like','%'.$request->q.'%')))
-            ->when($request->boolean('in_stock'),fn($q)=>$q->where('quantity_on_hand','>',0))
-            ->orderBy('expiry_date')->paginate(25)->withQueryString();
+            ->when($request->boolean('in_stock'),fn($q)=>$q->where('quantity_on_hand','>',0));
+        $this->applyExpiryFilter($query,(string)$request->input('expiry_warning',''));
+        $balances=$query->orderBy('expiry_date')->paginate(25)->withQueryString();
+        $balances->getCollection()->each(function(InventoryBalance $row)use($costs){
+            $cost=$costs->get($row->medicine_id);
+            $row->setAttribute('average_cost_price',$cost?->average_cost_price !== null ? (float)$cost->average_cost_price : null);
+            $row->setAttribute('supplier_cost_count',(int)($cost?->supplier_cost_count ?? 0));
+        });
+        $allBalances=InventoryBalance::query()->where('warehouse_id',$warehouse->id)->where('quantity_on_hand','>',0)->get(['medicine_id','quantity_on_hand']);
+        $totalInventoryValue=$allBalances->sum(function(InventoryBalance $row)use($costs){
+            $cost=$costs->get($row->medicine_id);
+            return $cost?->average_cost_price === null ? 0 : (float)$row->quantity_on_hand*(float)$cost->average_cost_price;
+        });
+        $unpricedBalanceCount=$allBalances->filter(fn(InventoryBalance $row)=>!$costs->has($row->medicine_id))->count();
         $receipts=InventoryReceipt::query()->withCount('items')->latest()->limit(10)->get();
         $issues=InventoryIssue::query()->withCount('items')->latest()->limit(10)->get();
-        return view('Pharma::pages.inventory.index',compact('warehouse','balances','receipts','issues'));
+        return view('Pharma::pages.inventory.index',compact('warehouse','balances','receipts','issues','totalInventoryValue','unpricedBalanceCount'));
     }
 
     public function template(): StreamedResponse
@@ -41,16 +55,24 @@ final class InventoryController extends Controller
     public function export(InventoryService $inventory): StreamedResponse
     {
         $warehouse=$inventory->defaultWarehouse();
+        $costs=$this->activeSupplierCosts();
         $rows=InventoryBalance::query()->with('medicine')->where('warehouse_id',$warehouse->id)->orderBy('expiry_date')->get()
-            ->map(fn(InventoryBalance $row)=>[
-                'Ma thuoc'=>$row->medicine->medicine_code,
-                'Ten thuoc'=>$row->medicine->name,
-                'Don vi'=>$row->medicine->unit,
-                'So lo'=>$row->batch_number,
-                'Han dung'=>$row->expiry_date->format('d/m/Y'),
-                'Ton dau ky'=>(float)$row->opening_quantity,
-                'Ton hien tai'=>(float)$row->quantity_on_hand,
-            ]);
+            ->map(function(InventoryBalance $row)use($costs){
+                $cost=$costs->get($row->medicine_id);
+                $average=$cost?->average_cost_price !== null ? (float)$cost->average_cost_price : null;
+                return [
+                    'Ma thuoc'=>$row->medicine->medicine_code,
+                    'Ten thuoc'=>$row->medicine->name,
+                    'Don vi'=>$row->medicine->unit,
+                    'So lo'=>$row->batch_number,
+                    'Han dung'=>$row->expiry_date->format('d/m/Y'),
+                    'Ton dau ky'=>(float)$row->opening_quantity,
+                    'Ton hien tai'=>(float)$row->quantity_on_hand,
+                    'Gia von NCC trung binh'=>$average,
+                    'So nguon gia von'=>(int)($cost?->supplier_cost_count ?? 0),
+                    'Gia tri ton'=>$average === null ? null : (float)$row->quantity_on_hand*$average,
+                ];
+            });
         return (new FastExcel($rows))->download('pharma-ton-kho-'.now()->format('Ymd-His').'.xlsx');
     }
 
@@ -120,6 +142,30 @@ final class InventoryController extends Controller
         return redirect()->route('admin.pharma.inventory.index')->with('success',"Đã tạo phiếu xuất {$issue->number} ở trạng thái nháp.");
     }
     public function postIssue(InventoryIssue $issue, InventoryService $inventory): RedirectResponse { $inventory->postIssue($issue,auth('admin')->id()); return back()->with('success',"Đã ghi sổ {$issue->number}."); }
+
+    private function activeSupplierCosts()
+    {
+        $today=now()->toDateString();
+        return SupplierTracking::query()
+            ->select('medicine_id',DB::raw('AVG(cost_price) as average_cost_price'),DB::raw('COUNT(cost_price) as supplier_cost_count'))
+            ->where('status','active')->whereNotNull('cost_price')
+            ->where(fn($q)=>$q->whereNull('start_date')->orWhereDate('start_date','<=',$today))
+            ->where(fn($q)=>$q->whereNull('end_date')->orWhereDate('end_date','>=',$today))
+            ->groupBy('medicine_id')->get()->keyBy('medicine_id');
+    }
+
+    private function applyExpiryFilter($query,string $warning): void
+    {
+        $today=now()->startOfDay();
+        match($warning){
+            'expired'=>$query->whereDate('expiry_date','<',$today),
+            'lt1'=>$query->whereDate('expiry_date','>=',$today)->whereDate('expiry_date','<',$today->copy()->addMonth()),
+            'lt3'=>$query->whereDate('expiry_date','>=',$today)->whereDate('expiry_date','<',$today->copy()->addMonths(3)),
+            'lt6'=>$query->whereDate('expiry_date','>=',$today)->whereDate('expiry_date','<',$today->copy()->addMonths(6)),
+            'safe'=>$query->whereDate('expiry_date','>=',$today->copy()->addMonths(6)),
+            default=>null,
+        };
+    }
 
     private function excelDate(mixed $value,int $line): string
     {
