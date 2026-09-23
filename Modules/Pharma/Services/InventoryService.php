@@ -140,7 +140,6 @@ final class InventoryService
     {
         $balance=$this->lockedBalance($warehouseId,$medicineId,$batch,$expiry);
         $after=(float)$balance->quantity_on_hand+$delta;
-        if ($after < 0) throw ValidationException::withMessages(['stock'=>"Không đủ tồn cho lô {$batch}."]);
         $balance->update(['quantity_on_hand'=>$after]);
         InventoryTransaction::create(['warehouse_id'=>$warehouseId,'medicine_id'=>$medicineId,'batch_number'=>$batch,'expiry_date'=>$expiry,'type'=>$type,'quantity_delta'=>$delta,'balance_after'=>$after,'source_type'=>$source::class,'source_id'=>$source->getKey(),'created_by'=>$userId]);
     }
