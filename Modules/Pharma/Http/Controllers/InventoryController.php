@@ -12,6 +12,7 @@ use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\Response;
 use Modules\Pharma\Models\InventoryBalance;
 use Modules\Pharma\Models\InventoryIssue;
+use Modules\Pharma\Models\InventoryIssueDocumentSetting;
 use Modules\Pharma\Models\InventoryReceipt;
 use Modules\Pharma\Models\Medicine;
 use Modules\Pharma\Models\PriceList;
@@ -318,6 +319,29 @@ final class InventoryController extends Controller
             'type'=>'issue','title'=>'Phiếu xuất kho','documents'=>$query->paginate($this->documentPerPage($request))->withQueryString(),
         ]);
     }
+    public function issueDocumentSettings(): View
+    {
+        $settings=InventoryIssueDocumentSetting::current();
+        return view('Pharma::pages.inventory.issue-settings',compact('settings'));
+    }
+
+    public function updateIssueDocumentSettings(Request $request): RedirectResponse
+    {
+        $data=$request->validate([
+            'organization_name'=>'nullable|string|max:255','organization_address'=>'nullable|string|max:500',
+            'tax_code'=>'nullable|string|max:50','phone'=>'nullable|string|max:50',
+            'document_title'=>'required|string|max:120','document_subtitle'=>'nullable|string|max:255',
+            'warehouse_name'=>'required|string|max:120','issuer_label'=>'required|string|max:120',
+            'deliverer_label'=>'required|string|max:120','receiver_label'=>'required|string|max:120',
+            'footer_note'=>'nullable|string|max:1000',
+        ]);
+        foreach(['show_price_list','show_unit_price','show_total_value','show_notes'] as $field){
+            $data[$field]=$request->boolean($field);
+        }
+        InventoryIssueDocumentSetting::current()->update($data);
+        return back()->with('success','Đã lưu cấu hình phiếu xuất kho.');
+    }
+
     public function storeIssue(Request $request, InventoryService $inventory): RedirectResponse
     {
         $data=$request->validate([
@@ -360,14 +384,16 @@ final class InventoryController extends Controller
     {
         $this->guardIssueWarehouse($issue,$inventory);
         $issue->load(['items.medicine','priceList.manager']);
-        return view('Pharma::pages.inventory.issue-show',compact('issue'));
+        $settings=InventoryIssueDocumentSetting::current();
+        return view('Pharma::pages.inventory.issue-show',compact('issue','settings'));
     }
 
     public function issuePdf(InventoryIssue $issue, InventoryService $inventory): Response
     {
         $this->guardIssueWarehouse($issue,$inventory);
         $issue->load(['items.medicine','priceList.manager']);
-        $pdf=Pdf::loadView('Pharma::pages.inventory.issue-pdf',compact('issue'))->setPaper('a4','portrait');
+        $settings=InventoryIssueDocumentSetting::current();
+        $pdf=Pdf::loadView('Pharma::pages.inventory.issue-pdf',compact('issue','settings'))->setPaper('a4','portrait');
         return $pdf->download("phieu-xuat-kho-{$issue->number}.pdf");
     }
 
@@ -375,7 +401,8 @@ final class InventoryController extends Controller
     {
         $this->guardIssueWarehouse($issue,$inventory);
         $issue->load(['items.medicine','priceList.manager']);
-        return view('Pharma::pages.inventory.issue-print',compact('issue'));
+        $settings=InventoryIssueDocumentSetting::current();
+        return view('Pharma::pages.inventory.issue-print',compact('issue','settings'));
     }
 
     public function editIssue(InventoryIssue $issue, InventoryService $inventory): View
