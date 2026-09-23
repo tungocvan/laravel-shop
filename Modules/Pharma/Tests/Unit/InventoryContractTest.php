@@ -191,7 +191,8 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('$balance->delete()', $service);
         $this->assertStringContainsString("@can('delete_pharma')", $documents);
         $this->assertStringContainsString('Hoàn tác ghi sổ', $documents);
-        $this->assertStringContainsString('Xác nhận hoàn tác', $documents);
+        $this->assertStringContainsString('Hoàn tác ghi sổ?', $documents);
+        $this->assertStringContainsString('>Hoàn tác ghi sổ</button>', $documents);
         $this->assertStringContainsString('m-auto w-[calc(100%-2rem)] max-w-lg', $documents);
         $this->assertStringContainsString('backdrop:backdrop-blur-[2px]', $documents);
         $this->assertStringContainsString('aria-label="Đóng"', $documents);
