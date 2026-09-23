@@ -59,7 +59,10 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("name('opening.template')", $routes);
         $this->assertStringContainsString("name('opening.import')", $routes);
         $this->assertStringContainsString("name('export')", $routes);
-        $this->assertStringContainsString('FastExcel', file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php')));
+        $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
+        $this->assertStringContainsString('FastExcel', $controller);
+        $this->assertStringContainsString('StreamedResponse', $controller);
+        $this->assertStringNotContainsString('BinaryFileResponse', $controller);
         $index=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/index.blade.php'));
         $this->assertStringContainsString("route('admin.pharma.dashboard')", $index);
         $this->assertStringContainsString('Import tồn đầu kỳ', $index);
