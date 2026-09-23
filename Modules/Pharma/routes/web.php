@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\Pharma\Http\Controllers\BhxhOfficialFacilityLookupController;
 use Modules\Pharma\Http\Controllers\DrugBidAwardController;
 use Modules\Pharma\Http\Controllers\HsspController;
+use Modules\Pharma\Http\Controllers\InventoryController;
 use Modules\Pharma\Http\Controllers\MedicineCatalogImportController;
 use Modules\Pharma\Http\Controllers\OfficialFacilityImportController;
 use Modules\Pharma\Http\Controllers\OfficialFacilityImportTemplateController;
@@ -79,6 +80,17 @@ Route::prefix('admin/pharma')->name('admin.pharma.')->middleware(['web', 'auth:a
         Route::get('/', [SupplierTrackingController::class, 'index'])->middleware('can:view_pharma')->name('index');
         Route::get('/create', [SupplierTrackingController::class, 'create'])->middleware('can:create_pharma')->name('create');
         Route::get('/{id}/edit', [SupplierTrackingController::class, 'edit'])->middleware('can:edit_pharma')->name('edit');
+    });
+
+
+    Route::prefix('inventory')->name('inventory.')->middleware('can:view_pharma')->group(function () {
+        Route::get('/', [InventoryController::class, 'index'])->name('index');
+        Route::get('/receipts/create', [InventoryController::class, 'createReceipt'])->middleware('can:create_pharma')->name('receipts.create');
+        Route::post('/receipts', [InventoryController::class, 'storeReceipt'])->middleware('can:create_pharma')->name('receipts.store');
+        Route::post('/receipts/{receipt}/post', [InventoryController::class, 'postReceipt'])->middleware('can:edit_pharma')->name('receipts.post');
+        Route::get('/issues/create', [InventoryController::class, 'createIssue'])->middleware('can:create_pharma')->name('issues.create');
+        Route::post('/issues', [InventoryController::class, 'storeIssue'])->middleware('can:create_pharma')->name('issues.store');
+        Route::post('/issues/{issue}/post', [InventoryController::class, 'postIssue'])->middleware('can:edit_pharma')->name('issues.post');
     });
 
     Route::prefix('price-lists')->name('price-lists.')->group(function () {
