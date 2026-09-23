@@ -106,7 +106,7 @@
 
     <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"><p class="text-xs font-semibold uppercase text-slate-500">Đã phân công</p><p class="mt-1 text-lg font-bold text-slate-950">{{ $assignmentSummary['assigned'] }}/{{ $assignmentSummary['total'] }}</p></div>
-        <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"><p class="text-xs font-semibold uppercase text-slate-500">Bệnh viện</p><p class="mt-1 text-lg font-bold text-slate-950">{{ $assignmentSummary['hospitals'] }}</p></div>
+        <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"><p class="text-xs font-semibold uppercase text-slate-500">Bệnh viện đã có User</p><p class="mt-1 text-lg font-bold text-slate-950">{{ $assignmentSummary['hospitals'] }}</p></div>
         <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"><p class="text-xs font-semibold uppercase text-slate-500">User quản lý</p><p class="mt-1 text-lg font-bold text-slate-950">{{ $assignmentSummary['users'] }}</p></div>
         <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"><p class="text-xs font-semibold uppercase text-slate-500">Trạng thái</p><p class="mt-1 text-sm font-bold {{ $assignmentSummary['total'] > 0 && $assignmentSummary['assigned'] >= $assignmentSummary['total'] ? 'text-emerald-700' : 'text-amber-700' }}">{{ $assignmentSummary['total'] > 0 && $assignmentSummary['assigned'] >= $assignmentSummary['total'] ? 'Đã phân công đầy đủ' : 'Còn phân công chưa thiết lập' }}</p></div>
     </div>
