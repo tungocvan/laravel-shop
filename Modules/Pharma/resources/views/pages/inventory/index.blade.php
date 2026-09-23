@@ -47,7 +47,7 @@
         @endcan
     </section>
 
-    <section class="grid gap-4 md:grid-cols-2">
+    <section class="grid gap-4 md:grid-cols-3">
         <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
             <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Giá trị tồn theo giá vốn NCC</p>
             <p class="mt-2 text-2xl font-bold text-emerald-950">{{ number_format($totalInventoryValue, 0, ',', '.') }} đ</p>
@@ -57,6 +57,11 @@
             <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">Lô chưa định giá</p>
             <p class="mt-2 text-2xl font-bold text-amber-950">{{ number_format($unpricedBalanceCount) }}</p>
             <p class="mt-1 text-xs text-amber-700">Các lô còn tồn nhưng chưa có giá vốn NCC đang hiệu lực.</p>
+        </div>
+        <div class="rounded-2xl border border-rose-200 bg-rose-50 p-5">
+            <p class="text-xs font-semibold uppercase tracking-wide text-rose-700">Giá trị hàng đã hết hạn</p>
+            <p class="mt-2 text-2xl font-bold text-rose-950">{{ number_format($expiredInventoryValue, 0, ',', '.') }} đ</p>
+            <p class="mt-1 text-xs text-rose-700">Giá trị các lô còn tồn đã quá hạn dùng.</p>
         </div>
     </section>
 
