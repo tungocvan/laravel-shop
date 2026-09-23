@@ -1,5 +1,6 @@
 @extends('Admin::layouts.master')
 @section('title','Lập phiếu xuất kho')
+@section('admin_container','full')
 @section('content')
 @php
     $issueMedicines=$availableBalances->pluck('medicine')->unique('id')->sortBy('name')->values();
@@ -10,7 +11,7 @@
     ])->values();
     $priceListManagers=$customerPriceLists->pluck('manager')->filter()->unique('id')->sortBy('name')->values();
 @endphp
-<div class="w-full max-w-[1500px] space-y-6">
+<div class="w-full space-y-6">
     <header>
         <a href="{{ route('admin.pharma.inventory.index') }}" class="text-sm font-semibold text-indigo-700">← Quay về Tồn kho</a>
         <a href="{{ route('admin.pharma.inventory.issues.index') }}" class="ml-4 text-sm font-semibold text-slate-600">Danh sách phiếu xuất</a>
@@ -77,7 +78,7 @@
 </div>
 
 <template id="issue-row-template">
-    <div class="issue-item-row grid grid-cols-12 gap-3 rounded-xl border border-slate-200 p-3">
+    <div class="issue-item-row grid grid-cols-12 items-start gap-3 rounded-xl border border-slate-200 p-3">
         <div class="col-span-3">
             <select class="issue-medicine-select w-full" required>
                 <option value="">Chọn thuốc</option>
@@ -91,15 +92,16 @@
         </div>
         <div class="col-span-1">
             <input type="number" step="0.001" min="0.001" data-field="quantity" required placeholder="Số lượng xuất" class="issue-quantity min-h-11 w-full rounded-xl border border-slate-300 px-3">
+            <p class="issue-stock-warning mt-1 hidden text-[11px] font-semibold text-rose-600"></p>
         </div>
         <div class="col-span-2">
             <input type="number" step="0.01" min="0" data-field="unit_price" required value="0" placeholder="Đơn giá xuất" class="issue-unit-price min-h-11 w-full rounded-xl border border-slate-300 px-3 text-right">
             <p class="issue-price-source mt-1 text-[11px] text-slate-500">Chưa có Giá bán CT · có thể nhập tay</p>
         </div>
-        <div class="col-span-2 flex items-center justify-end pr-2">
+        <div class="col-span-2 flex min-h-11 items-center justify-end pr-2">
             <span class="issue-line-total text-sm font-semibold text-slate-800">0 đ</span>
         </div>
-        <div class="col-span-1 flex items-center justify-end">
+        <div class="col-span-1 flex min-h-11 items-center justify-end">
             <button type="button" class="remove-issue-row text-sm font-semibold text-rose-700">Xóa</button>
         </div>
     </div>
@@ -192,26 +194,28 @@ document.addEventListener('DOMContentLoaded', () => {
         ).map((candidate)=>String(candidate.medicine_id)))];
     }
 
-    function refreshRowsForPriceList() {
+    function applyPriceListToRow(row,preserveSelection=true) {
         const allowed=medicineIdsForSelectedPriceList();
-        container.querySelectorAll('.issue-item-row').forEach((row)=>{
-            const tom=row._medicineTom;
-            if(!tom) return;
-            const current=tom.getValue();
-            tom.clear(true);
-            tom.clearOptions();
-            @foreach($issueMedicines as $medicine)
-            if(allowed.includes('{{ $medicine->id }}')) tom.addOption({value:'{{ $medicine->id }}',text:@json($medicine->medicine_code.' — '.$medicine->name)});
-            @endforeach
-            tom.refreshOptions(false);
-            tom.disable();
-            if(priceListSelect.value){
-                tom.enable();
-                if(allowed.includes(String(current))) tom.setValue(current,true);
-            }
-            fillLots(row,tom.getValue());
-            refreshPrice(row);
-        });
+        const tom=row._medicineTom;
+        if(!tom) return;
+        const current=preserveSelection ? tom.getValue() : '';
+        tom.clear(true);
+        tom.clearOptions();
+        @foreach($issueMedicines as $medicine)
+        if(allowed.includes('{{ $medicine->id }}')) tom.addOption({value:'{{ $medicine->id }}',text:@json($medicine->medicine_code.' — '.$medicine->name)});
+        @endforeach
+        tom.refreshOptions(false);
+        tom.disable();
+        if(priceListSelect.value){
+            tom.enable();
+            if(current && allowed.includes(String(current))) tom.setValue(current,true);
+        }
+        if(!current || !allowed.includes(String(current))) fillLots(row,tom.getValue());
+        refreshPrice(row);
+    }
+
+    function refreshRowsForPriceList() {
+        container.querySelectorAll('.issue-item-row').forEach((row)=>applyPriceListToRow(row,true));
     }
 
     function refreshPrice(row) {
@@ -231,6 +235,25 @@ document.addEventListener('DOMContentLoaded', () => {
         const quantity=Number(row.querySelector('.issue-quantity')?.value || 0);
         const price=Number(row.querySelector('.issue-unit-price')?.value || 0);
         row.querySelector('.issue-line-total').textContent=new Intl.NumberFormat('vi-VN',{maximumFractionDigits:0}).format(quantity*price)+' đ';
+        updateStockWarning(row);
+    }
+
+    function updateStockWarning(row) {
+        const quantityInput=row.querySelector('.issue-quantity');
+        const lotSelect=row.querySelector('.issue-balance-select');
+        const warning=row.querySelector('.issue-stock-warning');
+        const balance=balances.find((item)=>String(item.id)===String(lotSelect?.value || ''));
+        const quantity=Number(quantityInput?.value || 0);
+        const available=Number(balance?.quantity || 0);
+        const after=available-quantity;
+        const isNegative=Boolean(balance) && quantity>available;
+        quantityInput.classList.toggle('border-rose-500',isNegative);
+        quantityInput.classList.toggle('bg-rose-50',isNegative);
+        quantityInput.classList.toggle('text-rose-700',isNegative);
+        warning.classList.toggle('hidden',!isNegative);
+        warning.textContent=isNegative
+            ? `Vượt tồn ${new Intl.NumberFormat('vi-VN',{maximumFractionDigits:3}).format(quantity-available)} · tồn sau xuất ${new Intl.NumberFormat('vi-VN',{maximumFractionDigits:3}).format(after)}`
+            : '';
     }
 
     function refreshAllPrices() {
@@ -263,9 +286,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         row._medicineTom=medicineTom;
         medicineTom.disable();
-        if(priceListSelect.value) refreshRowsForPriceList();
+        if(priceListSelect.value) applyPriceListToRow(row,false);
         medicineSelect.addEventListener('change',(event)=>{ fillLots(row,event.target.value); refreshPrice(row); });
         row.querySelector('.issue-quantity').addEventListener('input',()=>updateLineTotal(row));
+        row.querySelector('.issue-balance-select').addEventListener('change',()=>updateStockWarning(row));
         row.querySelector('.issue-unit-price').addEventListener('input',()=>updateLineTotal(row));
         renumberRows();
     }
