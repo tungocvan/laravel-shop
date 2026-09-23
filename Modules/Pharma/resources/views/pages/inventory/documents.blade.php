@@ -63,7 +63,13 @@
                                             <a href="{{ route('admin.pharma.inventory.receipts.edit',$doc) }}" class="text-xs font-semibold text-indigo-700">{{ $doc->status === 'draft' ? 'Sửa' : 'Cập nhật' }}</a>
                                             @if($doc->status === 'draft')
                                                 <button type="button" onclick="document.getElementById('post-{{ $type }}-{{ $doc->id }}').showModal()" class="text-xs font-semibold text-emerald-700">Ghi sổ</button>
+                                            @endif
+                                        @endcan
+                                        @can('delete_pharma')
+                                            @if($doc->status === 'draft')
                                                 <button type="button" onclick="document.getElementById('delete-receipt-{{ $doc->id }}').showModal()" class="text-xs font-semibold text-rose-700">Xóa</button>
+                                            @elseif($doc->status === 'posted')
+                                                <button type="button" onclick="document.getElementById('revert-receipt-{{ $doc->id }}').showModal()" class="text-xs font-semibold text-amber-700">Hoàn tác ghi sổ</button>
                                             @endif
                                         @endcan
                                     @else
@@ -87,6 +93,18 @@
                                     </div>
                                 </form>
                             </dialog>
+                        @endif
+                        @if($type === 'receipt' && $doc->status === 'posted')
+                            @can('delete_pharma')
+                                <dialog id="revert-receipt-{{ $doc->id }}" class="w-full max-w-md rounded-2xl p-0 shadow-2xl backdrop:bg-slate-950/40">
+                                    <form method="POST" action="{{ route('admin.pharma.inventory.receipts.revert',$doc) }}" class="p-6">@csrf
+                                        <h3 class="text-lg font-bold text-amber-700">Hoàn tác ghi sổ {{ $doc->number }}?</h3>
+                                        <p class="mt-2 text-sm text-slate-600">Hệ thống sẽ rút đúng số lượng của phiếu này khỏi tồn kho và chuyển phiếu về trạng thái Nháp.</p>
+                                        <p class="mt-2 text-sm font-medium text-rose-700">Nếu tồn hiện tại của bất kỳ lô nào không đủ để hoàn tác, toàn bộ thao tác sẽ bị hủy và tồn kho không thay đổi.</p>
+                                        <div class="mt-6 flex justify-end gap-2"><button type="button" onclick="this.closest('dialog').close()" class="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold">Hủy</button><button class="rounded-xl bg-amber-600 px-4 py-2 text-sm font-semibold text-white">Xác nhận hoàn tác</button></div>
+                                    </form>
+                                </dialog>
+                            @endcan
                         @endif
                         @if($type === 'receipt' && $doc->status === 'draft')
                             <dialog id="delete-receipt-{{ $doc->id }}" class="w-full max-w-md rounded-2xl p-0 shadow-2xl backdrop:bg-slate-950/40">
