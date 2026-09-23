@@ -2,15 +2,19 @@
 namespace Modules\Pharma\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Modules\Pharma\Models\InventoryBalance;
 use Modules\Pharma\Models\InventoryIssue;
 use Modules\Pharma\Models\InventoryReceipt;
 use Modules\Pharma\Models\Medicine;
 use Modules\Pharma\Services\InventoryService;
+use Rap2hpoutre\FastExcel\FastExcel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 final class InventoryController extends Controller
 {
@@ -25,6 +29,65 @@ final class InventoryController extends Controller
         $issues=InventoryIssue::query()->withCount('items')->latest()->limit(10)->get();
         return view('Pharma::pages.inventory.index',compact('warehouse','balances','receipts','issues'));
     }
+
+    public function template(): BinaryFileResponse
+    {
+        $rows=collect([
+            ['Ma thuoc'=>'MED-000001','So lo'=>'LO-001','Han dung'=>'31/12/2027','Ton dau ky'=>100],
+        ]);
+        return (new FastExcel($rows))->download('pharma-ton-dau-ky-mau.xlsx');
+    }
+
+    public function export(InventoryService $inventory): BinaryFileResponse
+    {
+        $warehouse=$inventory->defaultWarehouse();
+        $rows=InventoryBalance::query()->with('medicine')->where('warehouse_id',$warehouse->id)->orderBy('expiry_date')->get()
+            ->map(fn(InventoryBalance $row)=>[
+                'Ma thuoc'=>$row->medicine->medicine_code,
+                'Ten thuoc'=>$row->medicine->name,
+                'Don vi'=>$row->medicine->unit,
+                'So lo'=>$row->batch_number,
+                'Han dung'=>$row->expiry_date->format('d/m/Y'),
+                'Ton dau ky'=>(float)$row->opening_quantity,
+                'Ton hien tai'=>(float)$row->quantity_on_hand,
+            ]);
+        return (new FastExcel($rows))->download('pharma-ton-kho-'.now()->format('Ymd-His').'.xlsx');
+    }
+
+    public function importOpening(Request $request, InventoryService $inventory): RedirectResponse
+    {
+        $request->validate(['file'=>'required|file|mimes:xlsx,xls,csv|max:10240']);
+        $rows=(new FastExcel)->import($request->file('file')->getRealPath());
+        if($rows->isEmpty()) throw ValidationException::withMessages(['file'=>'File import không có dữ liệu.']);
+
+        $normalized=$rows->values()->map(function(array $row,int $index): array {
+            $line=$index+2;
+            $code=trim((string)($row['Ma thuoc']??''));
+            $batch=trim((string)($row['So lo']??''));
+            $expiry=$this->excelDate($row['Han dung']??null,$line);
+            $quantity=$row['Ton dau ky']??null;
+            if($code===''||$batch===''||!is_numeric($quantity)||(float)$quantity<=0){
+                throw ValidationException::withMessages(['file'=>"Dòng {$line}: Mã thuốc, Số lô và Tồn đầu kỳ (> 0) là bắt buộc."]);
+            }
+            return ['line'=>$line,'medicine_code'=>$code,'batch_number'=>$batch,'expiry_date'=>$expiry,'quantity'=>(float)$quantity];
+        });
+
+        $duplicates=$normalized->groupBy(fn($r)=>$r['medicine_code'].'|'.$r['batch_number'].'|'.$r['expiry_date'])->filter(fn($g)=>$g->count()>1);
+        if($duplicates->isNotEmpty()) throw ValidationException::withMessages(['file'=>'File có dòng trùng Mã thuốc + Số lô + Hạn dùng.']);
+
+        $medicines=Medicine::query()->whereIn('medicine_code',$normalized->pluck('medicine_code')->unique())->get()->keyBy('medicine_code');
+        $missing=$normalized->pluck('medicine_code')->unique()->reject(fn($code)=>$medicines->has($code))->values();
+        if($missing->isNotEmpty()) throw ValidationException::withMessages(['file'=>'Không tìm thấy mã thuốc trong Medicine Master: '.$missing->join(', ')]);
+
+        $warehouse=$inventory->defaultWarehouse();
+        DB::transaction(function()use($normalized,$medicines,$warehouse,$inventory){
+            foreach($normalized as $row){
+                $inventory->setOpeningBalance($warehouse->id,$medicines[$row['medicine_code']]->id,$row['batch_number'],$row['expiry_date'],$row['quantity'],auth('admin')->id());
+            }
+        });
+        return redirect()->route('admin.pharma.inventory.index')->with('success',"Đã import {$normalized->count()} dòng tồn đầu kỳ.");
+    }
+
     public function createOpening(InventoryService $inventory): View { return view('Pharma::pages.inventory.opening-form',['warehouse'=>$inventory->defaultWarehouse(),'medicines'=>$this->medicines()]); }
     public function storeOpening(Request $request, InventoryService $inventory): RedirectResponse
     {
@@ -57,6 +120,19 @@ final class InventoryController extends Controller
         return redirect()->route('admin.pharma.inventory.index')->with('success',"Đã tạo phiếu xuất {$issue->number} ở trạng thái nháp.");
     }
     public function postIssue(InventoryIssue $issue, InventoryService $inventory): RedirectResponse { $inventory->postIssue($issue,auth('admin')->id()); return back()->with('success',"Đã ghi sổ {$issue->number}."); }
+
+    private function excelDate(mixed $value,int $line): string
+    {
+        try {
+            if($value instanceof \DateTimeInterface) return Carbon::instance($value)->toDateString();
+            $text=trim((string)$value);
+            if($text==='') throw new \RuntimeException();
+            foreach(['d/m/Y','Y-m-d'] as $format){
+                try { return Carbon::createFromFormat($format,$text)->startOfDay()->toDateString(); } catch(\Throwable) {}
+            }
+        } catch(\Throwable) {}
+        throw ValidationException::withMessages(['file'=>"Dòng {$line}: Hạn dùng không hợp lệ, dùng định dạng dd/mm/yyyy."]);
+    }
     private function medicines(){ return Medicine::query()->orderBy('name')->limit(500)->get(['id','medicine_code','name','unit']); }
     private function number(string $prefix): string { return $prefix.'-'.now()->format('Ymd-His').'-'.str_pad((string)random_int(1,999),3,'0',STR_PAD_LEFT); }
 }
