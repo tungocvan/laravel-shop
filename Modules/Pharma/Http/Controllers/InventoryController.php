@@ -357,16 +357,24 @@ final class InventoryController extends Controller
     public function showIssue(InventoryIssue $issue, InventoryService $inventory): View
     {
         $this->guardIssueWarehouse($issue,$inventory);
-        $issue->load('items.medicine');
+        $issue->load(['items.medicine','priceList.manager']);
         return view('Pharma::pages.inventory.issue-show',compact('issue'));
     }
 
     public function editIssue(InventoryIssue $issue, InventoryService $inventory): View
     {
         $this->guardIssueWarehouse($issue,$inventory);
-        $issue->load('items');
+        $issue->load(['items.medicine','priceList.manager']);
+        $warehouse=$inventory->defaultWarehouse();
+        $availableBalances=InventoryBalance::query()->with('medicine')->where('warehouse_id',$warehouse->id)
+            ->whereDate('expiry_date','>=',now()->toDateString())->orderBy('expiry_date')->orderBy('medicine_id')->get();
         $partners=Partner::query()->withPartnerType('customer')->where('status','active')->orderBy('name')->get(['id','name','tax_code']);
-        return view('Pharma::pages.inventory.issue-edit',compact('issue','partners'));
+        $customerPriceLists=PriceList::query()->with('manager:id,name')->where('type',PriceList::TYPE_CUSTOMER)
+            ->where('status',PriceList::STATUS_ACTIVE)->orderBy('manager_user_id')->orderByDesc('priority')->orderBy('name')->get([
+                'id','code','name','manager_user_id','partner_id','effective_from','effective_to','priority',
+            ]);
+        $issueSalePrices=$this->issueSalePriceCandidates();
+        return view('Pharma::pages.inventory.issue-edit',compact('issue','warehouse','availableBalances','partners','customerPriceLists','issueSalePrices'));
     }
 
     public function updateIssue(Request $request, InventoryIssue $issue, InventoryService $inventory): RedirectResponse
@@ -377,7 +385,31 @@ final class InventoryController extends Controller
             $issue->update($metadata);
             return redirect()->route('admin.pharma.inventory.issues.index')->with('success',"Đã cập nhật thông tin {$issue->number}. Dữ liệu hàng hóa đã ghi sổ được giữ nguyên.");
         }
-        return redirect()->route('admin.pharma.inventory.issues.edit',$issue)->withErrors(['items'=>'Phiếu nháp cần chỉnh hàng hóa tại màn hình lập phiếu; chức năng sửa chi tiết sẽ giữ nguyên kiểm soát lô tồn khả dụng.']);
+        $data=$request->validate([
+            'recipient_partner_id'=>'nullable|integer|exists:partners,id','price_list_id'=>'required|integer|exists:pharma_price_lists,id',
+            'items'=>'required|array|min:1','items.*.balance_id'=>'required|exists:pharma_inventory_balances,id',
+            'items.*.quantity'=>'required|numeric|gt:0','items.*.unit_price'=>'required|numeric|min:0',
+        ]);
+        $priceList=PriceList::query()->whereKey($data['price_list_id'])->where('type',PriceList::TYPE_CUSTOMER)->activeAt($metadata['issue_date'])->firstOrFail();
+        if($priceList->partner_id !== null && (int)$priceList->partner_id !== (int)($data['recipient_partner_id'] ?? 0)){
+            throw ValidationException::withMessages(['price_list_id'=>'Bảng giá này chỉ áp dụng cho khách hàng đã liên kết.']);
+        }
+        $allowedMedicineIds=PriceListItem::query()->where('price_list_id',$priceList->id)->where('status','active')->pluck('medicine_id')->filter()->map(fn($id)=>(int)$id)->unique();
+        $warehouse=$inventory->defaultWarehouse();
+        if(!empty($data['recipient_partner_id'])) $metadata['recipient_name']=Partner::query()->whereKey($data['recipient_partner_id'])->where('status','active')->firstOrFail()->name;
+        $items=collect($data['items'])->map(function(array $item)use($warehouse,$allowedMedicineIds){
+            $balance=InventoryBalance::query()->where('warehouse_id',$warehouse->id)->whereKey($item['balance_id'])->firstOrFail();
+            if(! $allowedMedicineIds->contains((int)$balance->medicine_id)) throw ValidationException::withMessages(['items'=>'Thuốc đã chọn không thuộc bảng giá CUSTOMER.']);
+            return ['medicine_id'=>$balance->medicine_id,'batch_number'=>$balance->batch_number,'expiry_date'=>$balance->expiry_date->toDateString(),'quantity'=>$item['quantity'],'unit_price'=>(float)$item['unit_price']];
+        })->all();
+        DB::transaction(function()use($issue,$metadata,$data,$items){
+            $locked=InventoryIssue::query()->whereKey($issue->id)->lockForUpdate()->firstOrFail();
+            if($locked->status!==InventoryIssue::DRAFT) throw ValidationException::withMessages(['issue'=>'Phiếu không còn ở trạng thái nháp.']);
+            $locked->update(array_merge($metadata,['price_list_id'=>$data['price_list_id']]));
+            $locked->items()->delete();
+            $locked->items()->createMany($items);
+        });
+        return redirect()->route('admin.pharma.inventory.issues.show',$issue)->with('success',"Đã cập nhật đầy đủ phiếu nháp {$issue->number}.");
     }
 
     public function destroyIssue(InventoryIssue $issue, InventoryService $inventory): RedirectResponse
