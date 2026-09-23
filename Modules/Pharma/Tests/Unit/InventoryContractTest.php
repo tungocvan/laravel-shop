@@ -1,0 +1,49 @@
+<?php
+namespace Modules\Pharma\Tests\Unit;
+
+use Tests\TestCase;
+
+class InventoryContractTest extends TestCase
+{
+    public function test_inventory_is_pharma_owned_and_uses_medicine_master(): void
+    {
+        $routes=file_get_contents(base_path('Modules/Pharma/routes/web.php'));
+        $migration=file_get_contents(base_path('Modules/Pharma/database/migrations/2026_09_23_110000_create_pharma_inventory_tables.php'));
+        $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
+        $this->assertStringContainsString("prefix('inventory')", $routes);
+        $this->assertStringContainsString("admin.pharma.inventory", $controller);
+        $this->assertStringContainsString("constrained('pharma_medicines')", $migration);
+        $this->assertStringContainsString('pharma_inventory_balances', $migration);
+        $this->assertStringContainsString('pharma_inventory_transactions', $migration);
+        $this->assertStringNotContainsString('Modules\\Inventory', $routes.$controller.$migration);
+    }
+
+    public function test_inventory_has_batch_expiry_document_lifecycle_and_negative_stock_guard(): void
+    {
+        $service=file_get_contents(base_path('Modules/Pharma/Services/InventoryService.php'));
+        $receipt=file_get_contents(base_path('Modules/Pharma/Models/InventoryReceipt.php'));
+        $issue=file_get_contents(base_path('Modules/Pharma/Models/InventoryIssue.php'));
+        $view=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/index.blade.php'));
+        $this->assertStringContainsString("'batch_number'", $service);
+        $this->assertStringContainsString("'expiry_date'", $service);
+        $this->assertStringContainsString("public const DRAFT='draft'", $receipt);
+        $this->assertStringContainsString("public const POSTED='posted'", $issue);
+        $this->assertStringContainsString('if ($after < 0)', $service);
+        $this->assertStringContainsString('Không đủ tồn', $service);
+        $this->assertStringContainsString('Tồn đầu kỳ', $view);
+        $this->assertStringContainsString('Sắp hết hạn', $view);
+    }
+
+    public function test_inventory_admin_ui_and_permissions_follow_pharma_conventions(): void
+    {
+        $routes=file_get_contents(base_path('Modules/Pharma/routes/web.php'));
+        $dashboard=file_get_contents(base_path('Modules/Pharma/resources/views/pages/dashboard.blade.php'));
+        $receipt=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/receipt-form.blade.php'));
+        $this->assertStringContainsString("middleware('can:view_pharma')", $routes);
+        $this->assertStringContainsString("middleware('can:create_pharma')", $routes);
+        $this->assertStringContainsString("middleware('can:edit_pharma')", $routes);
+        $this->assertStringContainsString("route('admin.pharma.inventory.index')", $dashboard);
+        $this->assertStringContainsString("@extends('Admin::layouts.master')", $receipt);
+        $this->assertStringContainsString('unit_price_ex_vat', $receipt);
+    }
+}
