@@ -15,8 +15,8 @@
             <label class="text-sm font-medium">Ngày nhập
                 <input type="date" name="receipt_date" value="{{ old('receipt_date',now()->toDateString()) }}" required class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3">
             </label>
-            <label class="text-sm font-medium">Nhà cung cấp
-                <x-select-search id="receipt-supplier" name="supplier_name" placeholder="Tìm nhà cung cấp...">
+            <label class="text-sm font-medium">Nhà cung cấp *
+                <x-select-search id="receipt-supplier" name="supplier_name" placeholder="Tìm nhà cung cấp..." required>
                     <option value="">Chọn nhà cung cấp</option>
                     @foreach($partners as $partner)
                         <option value="{{ $partner->name }}" @selected(old('supplier_name') === $partner->name)>
