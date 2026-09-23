@@ -48,12 +48,49 @@ class CommercialPolicyWorkspace extends Component
         $this->selectedManagementAwardIds = $this->allocatedProductIds((int) $this->selectedPartnerId);
     }
     public function clearAllManagement(): void { $this->selectedManagementAwardIds = []; }
+    public function selectAllPoliciesForManagement(): void { $this->selectedManagementAwardIds = $this->unassignedProductIds(); }
 
-    public function applyBulkPercentage(): void
+    public function applyBulkPercentage(DrugBidAwardCommercialPolicyService $service): void
     {
         $this->authorizeManage();
         $this->validate(['bulkPercentage' => ['required','numeric','min:0','max:100'], 'selectedPolicyAwardIds' => ['required','array','min:1']]);
-        foreach ($this->selectedPolicyAwardIds as $id) $this->productPolicies[(int) $id] = $this->bulkPercentage;
+        $changes = [];
+        foreach ($this->selectedPolicyAwardIds as $id) {
+            $changes[(int) $id] = $this->bulkPercentage;
+            $this->productPolicies[(int) $id] = $this->formatPercentage($this->bulkPercentage);
+        }
+        $service->saveProductPolicies($this->award(), $changes, auth('admin')->id());
+        session()->flash('success', 'Đã áp dụng và lưu chính sách cho các sản phẩm đã chọn.');
+    }
+
+    public function applyBulkPercentageToAll(DrugBidAwardCommercialPolicyService $service): void
+    {
+        $this->authorizeManage();
+        $this->validate(['bulkPercentage' => ['required','numeric','min:0','max:100']]);
+        $changes = [];
+        foreach ($this->allProductIds() as $id) {
+            $changes[(int) $id] = $this->bulkPercentage;
+            $this->productPolicies[(int) $id] = $this->formatPercentage($this->bulkPercentage);
+        }
+        $service->saveProductPolicies($this->award(), $changes, auth('admin')->id());
+        session()->flash('success', 'Đã áp dụng và lưu chính sách cho toàn bộ sản phẩm trong TBMT.');
+    }
+
+    public function updatedProductPolicies($value, $awardId): void
+    {
+        $this->authorizeManage();
+        if ($value === '' || $value === null) return;
+        if (! is_numeric($value) || (float) $value < 0 || (float) $value > 100) {
+            $this->addError("productPolicies.$awardId", 'Chính sách % phải từ 0 đến 100.');
+            return;
+        }
+        app(DrugBidAwardCommercialPolicyService::class)->saveProductPolicies(
+            $this->award(),
+            [(int) $awardId => $value],
+            auth('admin')->id()
+        );
+        $this->productPolicies[(int) $awardId] = $this->formatPercentage($value);
+        $this->resetErrorBag("productPolicies.$awardId");
     }
 
     public function saveProductPolicies(DrugBidAwardCommercialPolicyService $service): void
@@ -91,6 +128,24 @@ class CommercialPolicyWorkspace extends Component
         session()->flash('success','Đã gán User hàng loạt cho các sản phẩm đã chọn.');
     }
 
+    public function assignManagerToSelectedProducts(DrugBidAwardCommercialPolicyService $service): void
+    {
+        $this->authorizeManage();
+        $data = $this->validate([
+            'selectedUserId' => ['required', 'integer', 'exists:users,id'],
+            'selectedManagementAwardIds' => ['required', 'array', 'min:1'],
+        ]);
+        $count = $service->assignManagerToProductAllocations(
+            $this->award(),
+            $data['selectedManagementAwardIds'],
+            (int) $data['selectedUserId'],
+            auth('admin')->id()
+        );
+        $productCount = count(array_unique(array_map('intval', $data['selectedManagementAwardIds'])));
+        $this->selectedManagementAwardIds = [];
+        session()->flash('success', "Đã gán User cho {$productCount} sản phẩm trên {$count} phân bổ bệnh viện thực tế.");
+    }
+
     public function assignManagerToAll(DrugBidAwardCommercialPolicyService $service): void
     {
         $this->authorizeManage();
@@ -105,6 +160,19 @@ class CommercialPolicyWorkspace extends Component
         $data = $this->validate(['selectedUserId' => ['required', 'integer', 'exists:users,id']]);
         $count = $service->removeManagerFromAllAllocations($this->award(), (int) $data['selectedUserId']);
         session()->flash('success', "Đã gỡ {$count} phân công của User này trong TBMT.");
+    }
+
+    public function removeManagerGroup(int $userId, DrugBidAwardCommercialPolicyService $service): void
+    {
+        $this->authorizeManage();
+        $count = $service->removeManagerFromAllAllocations($this->award(), $userId);
+        if ((int) $this->selectedUserId === $userId) $this->selectedUserId = '';
+        session()->flash('success', "Đã gỡ {$count} phân công của User khỏi TBMT.");
+    }
+
+    public function selectManagementUser(int $userId): void
+    {
+        $this->selectedUserId = (string) $userId;
     }
 
     public function removeSelectedManagers(DrugBidAwardCommercialPolicyService $service): void
@@ -188,6 +256,12 @@ class CommercialPolicyWorkspace extends Component
         $partners=DrugBidAwardAllocation::query()->with('partner')->whereIn('drug_bid_award_id',$awardIds)->where('status',DrugBidAwardAllocation::STATUS_ACTIVE)->get()->pluck('partner')->filter()->unique('id')->sortBy('name')->values();
         $assignmentRows=DrugBidAwardManagementAssignment::query()->with(['user','partner'])->whereIn('drug_bid_award_id',$awardIds)->where('status',DrugBidAwardManagementAssignment::STATUS_ACTIVE)->get();
         $assignments=$assignmentRows->keyBy(fn($row)=>$row->drug_bid_award_id.':'.$row->partner_id);
+        $allocationCounts=DrugBidAwardAllocation::query()->whereIn('drug_bid_award_id',$awardIds)->where('status',DrugBidAwardAllocation::STATUS_ACTIVE)->selectRaw('drug_bid_award_id, COUNT(DISTINCT partner_id) as allocation_count')->groupBy('drug_bid_award_id')->pluck('allocation_count','drug_bid_award_id');
+        $assignmentCounts=$assignmentRows->groupBy('drug_bid_award_id')->map(fn($rows)=>$rows->pluck('partner_id')->unique()->count());
+        $unassignedProducts=$products->filter(function($product) use ($allocationCounts,$assignmentCounts){
+            $allocationCount=(int)($allocationCounts[$product->id] ?? 0);
+            return $allocationCount > 0 && (int)($assignmentCounts[$product->id] ?? 0) < $allocationCount;
+        })->values();
         $activeAllocationCount=DrugBidAwardAllocation::query()->whereIn('drug_bid_award_id',$awardIds)->where('status',DrugBidAwardAllocation::STATUS_ACTIVE)->count();
         $assignmentSummary=[
             'assigned'=>$assignmentRows->count(),
@@ -199,11 +273,12 @@ class CommercialPolicyWorkspace extends Component
             return [
                 'user'=>$rows->first()?->user,
                 'assignments'=>$rows->count(),
+                'products'=>$rows->pluck('drug_bid_award_id')->unique()->count(),
                 'hospitals'=>$rows->pluck('partner_id')->unique()->count(),
             ];
         })->values();
         $users=User::query()->where('is_active',true)->when(trim($this->userSearch)!=='',function($q){$like='%'.trim($this->userSearch).'%';$q->where(fn($n)=>$n->where('name','like',$like)->orWhere('email','like',$like));})->orderBy('name')->limit(50)->get(['id','name','email']);
-        return view('Pharma::livewire.drug-bid-award.commercial-policy-workspace',compact('award','products','partners','assignments','users','assignmentSummary','assignmentGroups'));
+        return view('Pharma::livewire.drug-bid-award.commercial-policy-workspace',compact('award','products','unassignedProducts','partners','assignments','users','assignmentSummary','assignmentGroups'));
     }
 
     private function productsQuery()
@@ -213,8 +288,17 @@ class CommercialPolicyWorkspace extends Component
             ->orderBy('id')->limit(200);
     }
     private function visibleProductIds(): array{return $this->productsQuery()->pluck('id')->map(fn($v)=>(string)$v)->all();}
+    private function unassignedProductIds(): array
+    {
+        $awardIds=app(DrugBidAwardResultGroupService::class)->awardsQuery($this->award())->pluck('id');
+        $allocationCounts=DrugBidAwardAllocation::query()->whereIn('drug_bid_award_id',$awardIds)->where('status',DrugBidAwardAllocation::STATUS_ACTIVE)->selectRaw('drug_bid_award_id, COUNT(DISTINCT partner_id) as allocation_count')->groupBy('drug_bid_award_id')->pluck('allocation_count','drug_bid_award_id');
+        $assignmentCounts=DrugBidAwardManagementAssignment::query()->whereIn('drug_bid_award_id',$awardIds)->where('status',DrugBidAwardManagementAssignment::STATUS_ACTIVE)->get(['drug_bid_award_id','partner_id'])->groupBy('drug_bid_award_id')->map(fn($rows)=>$rows->pluck('partner_id')->unique()->count());
+        return $this->visibleProductIds() === [] ? [] : collect($this->visibleProductIds())->filter(fn($id)=>(int)($allocationCounts[(int)$id] ?? 0) > 0 && (int)($assignmentCounts[(int)$id] ?? 0) < (int)($allocationCounts[(int)$id] ?? 0))->values()->all();
+    }
+    private function allProductIds(): array{return app(DrugBidAwardResultGroupService::class)->awardsQuery($this->award())->pluck('id')->map(fn($v)=>(string)$v)->all();}
     private function allocatedProductIds(int $partnerId): array{return DrugBidAwardAllocation::query()->whereIn('drug_bid_award_id',app(DrugBidAwardResultGroupService::class)->awardsQuery($this->award())->pluck('id'))->where('partner_id',$partnerId)->where('status',DrugBidAwardAllocation::STATUS_ACTIVE)->pluck('drug_bid_award_id')->map(fn($v)=>(string)$v)->all();}
-    private function loadPolicyValues(): void{$ids=app(DrugBidAwardResultGroupService::class)->awardsQuery($this->award())->pluck('id');$this->productPolicies=DrugBidAwardProductPolicy::query()->whereIn('drug_bid_award_id',$ids)->pluck('commission_percentage','drug_bid_award_id')->map(fn($v)=>(string)$v)->all();}
+    private function loadPolicyValues(): void{$ids=app(DrugBidAwardResultGroupService::class)->awardsQuery($this->award())->pluck('id');$this->productPolicies=DrugBidAwardProductPolicy::query()->whereIn('drug_bid_award_id',$ids)->pluck('commission_percentage','drug_bid_award_id')->map(fn($v)=>$this->formatPercentage($v))->all();}
+    private function formatPercentage($value): string{return rtrim(rtrim(number_format((float)$value,4,'.',''),'0'),'.');}
     private function award(): DrugBidAward{return DrugBidAward::query()->findOrFail($this->awardId);}
     private function authorizeManage(): void{abort_unless(auth('admin')->user()?->can('manage_pharma_commercial_policies'),403);}
 }
