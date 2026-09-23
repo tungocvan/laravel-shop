@@ -47,8 +47,29 @@
         @endcan
     </section>
 
-    <form method="GET" class="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[minmax(0,1fr)_auto_auto]">
+    <section class="grid gap-4 md:grid-cols-2">
+        <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+            <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Giá trị tồn theo giá vốn NCC</p>
+            <p class="mt-2 text-2xl font-bold text-emerald-950">{{ number_format($totalInventoryValue, 0, ',', '.') }} đ</p>
+            <p class="mt-1 text-xs text-emerald-700">Giá vốn trung bình từ Supplier Tracking đang hiệu lực.</p>
+        </div>
+        <div class="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+            <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">Lô chưa định giá</p>
+            <p class="mt-2 text-2xl font-bold text-amber-950">{{ number_format($unpricedBalanceCount) }}</p>
+            <p class="mt-1 text-xs text-amber-700">Các lô còn tồn nhưng chưa có giá vốn NCC đang hiệu lực.</p>
+        </div>
+    </section>
+
+    <form method="GET" class="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
         <input name="q" value="{{ request('q') }}" placeholder="Tìm mã thuốc / tên thuốc" class="min-h-11 rounded-xl border border-slate-300 px-3 text-sm">
+        <select name="expiry_warning" class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm">
+            <option value="">Tất cả cảnh báo</option>
+            <option value="expired" @selected(request('expiry_warning') === 'expired')>Đã hết hạn</option>
+            <option value="lt1" @selected(request('expiry_warning') === 'lt1')>Còn dưới 1 tháng</option>
+            <option value="lt3" @selected(request('expiry_warning') === 'lt3')>Còn dưới 3 tháng</option>
+            <option value="lt6" @selected(request('expiry_warning') === 'lt6')>Còn dưới 6 tháng</option>
+            <option value="safe" @selected(request('expiry_warning') === 'safe')>Không cảnh báo (≥ 6 tháng)</option>
+        </select>
         <label class="flex min-h-11 items-center gap-2 rounded-xl border border-slate-300 px-3 text-sm">
             <input type="checkbox" name="in_stock" value="1" @checked(request('in_stock'))> Chỉ còn tồn
         </label>
@@ -62,7 +83,7 @@
                     <tr>
                         <th class="px-4 py-3">Mã thuốc</th><th class="px-4 py-3">Thuốc</th><th class="px-4 py-3">Số lô</th>
                         <th class="px-4 py-3">Hạn dùng</th><th class="px-4 py-3 text-right">Tồn đầu</th>
-                        <th class="px-4 py-3 text-right">Tồn cuối</th><th class="px-4 py-3">Cảnh báo</th>
+                        <th class="px-4 py-3 text-right">Tồn cuối</th><th class="px-4 py-3 text-right">Giá vốn NCC TB</th><th class="px-4 py-3 text-right">Giá trị tồn</th><th class="px-4 py-3">Cảnh báo</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -77,18 +98,41 @@
                             <td class="px-4 py-4">{{ $row->expiry_date->format('d/m/Y') }}</td>
                             <td class="px-4 py-4 text-right">{{ number_format((float) $row->opening_quantity, 3, ',', '.') }}</td>
                             <td class="px-4 py-4 text-right font-bold">{{ number_format((float) $row->quantity_on_hand, 3, ',', '.') }}</td>
+                            <td class="px-4 py-4 text-right">
+                                @if($row->average_cost_price !== null)
+                                    <div class="font-semibold">{{ number_format($row->average_cost_price, 0, ',', '.') }} đ</div>
+                                    <div class="text-xs text-slate-500">{{ $row->supplier_cost_count }} nguồn</div>
+                                @else
+                                    <a href="{{ route('admin.pharma.supplier-trackings.index', ['medicineId' => $row->medicine_id]) }}" class="text-xs font-semibold text-amber-700 underline">Chưa có giá vốn</a>
+                                @endif
+                            </td>
+                            <td class="px-4 py-4 text-right font-semibold">
+                                @if($row->average_cost_price !== null)
+                                    {{ number_format((float) $row->quantity_on_hand * $row->average_cost_price, 0, ',', '.') }} đ
+                                @else
+                                    <span class="text-slate-400">—</span>
+                                @endif
+                            </td>
                             <td class="px-4 py-4">
-                                @if($row->expiry_date->isPast())
+                                @php
+                                    $today = now()->startOfDay();
+                                    $expiry = $row->expiry_date->copy()->startOfDay();
+                                    $daysLeft = $today->diffInDays($expiry, false);
+                                    $monthsLeft = (int) floor($today->floatDiffInMonths($expiry, false));
+                                @endphp
+                                @if($daysLeft < 0)
                                     <span class="rounded-full bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-700">Đã hết hạn</span>
-                                @elseif($row->expiry_date->lte(now()->addMonths(6)))
-                                    <span class="rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700">Sắp hết hạn</span>
+                                @elseif($expiry->lt($today->copy()->addMonths(6)))
+                                    <span class="rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700">
+                                        Sắp hết hạn · {{ $monthsLeft < 1 ? 'còn '.max(0, (int) ceil($daysLeft)).' ngày' : 'còn '.$monthsLeft.' tháng' }}
+                                    </span>
                                 @else
                                     <span class="text-xs text-slate-400">—</span>
                                 @endif
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="7" class="px-6 py-12 text-center text-slate-500">Chưa có tồn kho. Hãy lập và ghi sổ phiếu nhập.</td></tr>
+                        <tr><td colspan="9" class="px-6 py-12 text-center text-slate-500">Chưa có tồn kho. Hãy lập và ghi sổ phiếu nhập.</td></tr>
                     @endforelse
                 </tbody>
             </table>
