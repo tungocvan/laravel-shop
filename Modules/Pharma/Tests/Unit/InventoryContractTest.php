@@ -67,5 +67,16 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("route('admin.pharma.dashboard')", $index);
         $this->assertStringContainsString('Import tồn đầu kỳ', $index);
         $this->assertStringContainsString('Export tồn kho', $index);
+        $this->assertStringContainsString('expiry_warning', $index);
+        $this->assertStringContainsString('Sắp hết hạn ·', $index);
+        $this->assertStringContainsString('Giá vốn NCC TB', $index);
+        $this->assertStringContainsString('Giá trị tồn', $index);
+        $this->assertStringContainsString("route('admin.pharma.supplier-trackings.index'", $index);
+        $this->assertStringContainsString("AVG(cost_price) as average_cost_price", $controller);
+        $this->assertStringContainsString("where('status','active')", $controller);
+        $this->assertStringContainsString("whereNull('start_date')", $controller);
+        $this->assertStringContainsString("whereNull('end_date')", $controller);
+        $this->assertStringContainsString("'lt6'", $controller);
+        $this->assertStringContainsString("'Gia von NCC trung binh'", $controller);
     }
 }
