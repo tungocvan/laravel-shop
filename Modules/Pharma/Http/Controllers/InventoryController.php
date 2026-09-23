@@ -279,8 +279,14 @@ final class InventoryController extends Controller
             ->whereDate('expiry_date','>=',now()->toDateString())
             ->orderBy('expiry_date')->orderBy('medicine_id')->get();
         $partners=Partner::query()->withPartnerType('customer')->where('status','active')->orderBy('name')->get(['id','name','tax_code']);
+        $customerPriceLists=PriceList::query()->with('manager:id,name')
+            ->where('type',PriceList::TYPE_CUSTOMER)->where('status',PriceList::STATUS_ACTIVE)
+            ->whereHas('items',fn($q)=>$q->where('status','active')->whereNotNull('medicine_id'))
+            ->orderBy('manager_user_id')->orderByDesc('priority')->orderBy('name')->get([
+                'id','code','name','manager_user_id','partner_id','effective_from','effective_to','priority',
+            ]);
         $issueSalePrices=$this->issueSalePriceCandidates();
-        return view('Pharma::pages.inventory.issue-form',compact('warehouse','availableBalances','partners','issueSalePrices'));
+        return view('Pharma::pages.inventory.issue-form',compact('warehouse','availableBalances','partners','customerPriceLists','issueSalePrices'));
     }
 
     public function receipts(Request $request, InventoryService $inventory): View
@@ -314,22 +320,35 @@ final class InventoryController extends Controller
     {
         $data=$request->validate([
             'issue_date'=>'required|date','recipient_name'=>'nullable|string|max:255','recipient_partner_id'=>'nullable|integer|exists:partners,id',
-            'notes'=>'nullable|string','items'=>'required|array|min:1','items.*.balance_id'=>'required|exists:pharma_inventory_balances,id',
-            'items.*.quantity'=>'required|numeric|gt:0','items.*.unit_price'=>'required|numeric|min:0',
+            'price_list_id'=>'required|integer|exists:pharma_price_lists,id','notes'=>'nullable|string','items'=>'required|array|min:1',
+            'items.*.balance_id'=>'required|exists:pharma_inventory_balances,id','items.*.quantity'=>'required|numeric|gt:0',
+            'items.*.unit_price'=>'required|numeric|min:0',
         ]);
+        $priceList=PriceList::query()->whereKey($data['price_list_id'])
+            ->where('type',PriceList::TYPE_CUSTOMER)->activeAt($data['issue_date'])->firstOrFail();
+        if($priceList->partner_id !== null && (int)$priceList->partner_id !== (int)($data['recipient_partner_id'] ?? 0)){
+            throw ValidationException::withMessages(['price_list_id'=>'Bảng giá này chỉ áp dụng cho khách hàng đã liên kết.']);
+        }
+        $allowedMedicineIds=PriceListItem::query()->where('price_list_id',$priceList->id)->where('status','active')
+            ->where(fn($q)=>$q->whereNull('effective_from')->orWhereDate('effective_from','<=',$data['issue_date']))
+            ->where(fn($q)=>$q->whereNull('effective_to')->orWhereDate('effective_to','>=',$data['issue_date']))
+            ->pluck('medicine_id')->filter()->map(fn($id)=>(int)$id)->unique();
         $warehouse=$inventory->defaultWarehouse();
         if(!empty($data['recipient_partner_id'])){
             $partner=Partner::query()->whereKey($data['recipient_partner_id'])->where('status','active')->firstOrFail();
             $data['recipient_name']=$partner->name;
         }
-        $items=collect($data['items'])->map(function(array $item) use ($warehouse): array {
+        $items=collect($data['items'])->map(function(array $item) use ($warehouse,$allowedMedicineIds): array {
             $balance=InventoryBalance::query()->where('warehouse_id',$warehouse->id)->whereKey($item['balance_id'])->where('quantity_on_hand','>',0)->firstOrFail();
+            if(! $allowedMedicineIds->contains((int)$balance->medicine_id)){
+                throw ValidationException::withMessages(['items'=>'Thuốc đã chọn không thuộc bảng giá CUSTOMER hoặc giá không còn hiệu lực.']);
+            }
             return ['medicine_id'=>$balance->medicine_id,'batch_number'=>$balance->batch_number,'expiry_date'=>$balance->expiry_date->toDateString(),'quantity'=>$item['quantity'],'unit_price'=>(float)$item['unit_price']];
         })->all();
         $issue=DB::transaction(function()use($data,$inventory,$items){
             $warehouse=$inventory->defaultWarehouse();
             DB::table('pharma_inventory_warehouses')->where('id',$warehouse->id)->lockForUpdate()->first();
-            $i=InventoryIssue::create(['warehouse_id'=>$warehouse->id,'number'=>$this->nextDocumentNumber(InventoryIssue::class,'PX'),'issue_date'=>$data['issue_date'],'recipient_name'=>$data['recipient_name']??null,'notes'=>$data['notes']??null,'created_by'=>auth('admin')->id()]);
+            $i=InventoryIssue::create(['warehouse_id'=>$warehouse->id,'number'=>$this->nextDocumentNumber(InventoryIssue::class,'PX'),'issue_date'=>$data['issue_date'],'recipient_name'=>$data['recipient_name']??null,'price_list_id'=>$data['price_list_id'],'notes'=>$data['notes']??null,'created_by'=>auth('admin')->id()]);
             $i->items()->createMany($items);
             return $i;
         });
@@ -403,7 +422,7 @@ final class InventoryController extends Controller
             ->join('pharma_price_lists','pharma_price_lists.id','=','pharma_price_list_items.price_list_id')
             ->where('pharma_price_lists.status',PriceList::STATUS_ACTIVE)
             ->where('pharma_price_list_items.status','active')
-            ->whereIn('pharma_price_lists.type',[PriceList::TYPE_CUSTOMER,PriceList::TYPE_GLOBAL])
+            ->where('pharma_price_lists.type',PriceList::TYPE_CUSTOMER)
             ->whereNotNull('pharma_price_list_items.medicine_id')
             ->orderByDesc('pharma_price_lists.priority')
             ->orderByDesc('pharma_price_lists.effective_from')
@@ -412,7 +431,7 @@ final class InventoryController extends Controller
                 'pharma_price_list_items.medicine_id','pharma_price_list_items.company_sale_price',
                 'pharma_price_list_items.effective_from as item_effective_from','pharma_price_list_items.effective_to as item_effective_to',
                 'pharma_price_lists.id as price_list_id','pharma_price_lists.code as price_list_code','pharma_price_lists.name as price_list_name',
-                'pharma_price_lists.type as price_list_type','pharma_price_lists.partner_id','pharma_price_lists.priority',
+                'pharma_price_lists.type as price_list_type','pharma_price_lists.partner_id','pharma_price_lists.manager_user_id','pharma_price_lists.priority',
                 'pharma_price_lists.effective_from as list_effective_from','pharma_price_lists.effective_to as list_effective_to',
             ]);
     }
