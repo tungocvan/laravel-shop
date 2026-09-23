@@ -60,9 +60,11 @@
         </div>
     </section>
 
-    <form method="GET" class="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[minmax(240px,1fr)_auto_auto_auto_auto_auto]">
-        <input name="q" value="{{ request('q') }}" placeholder="Tìm mã thuốc / tên thuốc" class="min-h-11 rounded-xl border border-slate-300 px-3 text-sm">
-        <select name="expiry_warning" class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm">
+    <form method="GET"
+          x-data="{ searchTimer: null, submitFilters() { this.$el.requestSubmit() }, searchChanged() { clearTimeout(this.searchTimer); this.searchTimer = setTimeout(() => this.submitFilters(), 450) } }"
+          class="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[minmax(240px,1fr)_auto_auto_auto_auto_auto]">
+        <input name="q" value="{{ request('q') }}" @input="searchChanged()" placeholder="Tìm mã thuốc / tên thuốc" class="min-h-11 rounded-xl border border-slate-300 px-3 text-sm">
+        <select name="expiry_warning" @change="submitFilters()" class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm">
             <option value="">Tất cả cảnh báo</option>
             <option value="expired" @selected(request('expiry_warning') === 'expired')>Đã hết hạn</option>
             <option value="lt1" @selected(request('expiry_warning') === 'lt1')>Còn dưới 1 tháng</option>
@@ -70,20 +72,20 @@
             <option value="lt6" @selected(request('expiry_warning') === 'lt6')>Còn dưới 6 tháng</option>
             <option value="safe" @selected(request('expiry_warning') === 'safe')>Không cảnh báo (≥ 6 tháng)</option>
         </select>
-        <select name="cost_status" class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm">
+        <select name="cost_status" @change="submitFilters()" class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm">
             <option value="">Tất cả giá vốn</option>
             <option value="priced" @selected(request('cost_status') === 'priced')>Đã có giá vốn</option>
             <option value="unpriced" @selected(request('cost_status') === 'unpriced')>Chưa có giá vốn</option>
         </select>
-        <select name="value_sort" class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm">
+        <select name="value_sort" @change="submitFilters()" class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm">
             <option value="">Sắp xếp mặc định</option>
             <option value="value_desc" @selected(request('value_sort') === 'value_desc')>Giá trị tồn: lớn nhất</option>
             <option value="value_asc" @selected(request('value_sort') === 'value_asc')>Giá trị tồn: nhỏ nhất</option>
         </select>
         <label class="flex min-h-11 items-center gap-2 rounded-xl border border-slate-300 px-3 text-sm">
-            <input type="checkbox" name="in_stock" value="1" @checked(request('in_stock'))> Chỉ còn tồn
+            <input type="checkbox" name="in_stock" value="1" @change="submitFilters()" @checked(request('in_stock'))> Chỉ còn tồn
         </label>
-        <button class="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white">Lọc</button>
+        <a href="{{ route('admin.pharma.inventory.index') }}" class="flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">Xóa bộ lọc</a>
     </form>
 
     <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
