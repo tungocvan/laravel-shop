@@ -192,6 +192,12 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("@can('delete_pharma')", $documents);
         $this->assertStringContainsString('Hoàn tác ghi sổ', $documents);
         $this->assertStringContainsString('Xác nhận hoàn tác', $documents);
+        $this->assertStringContainsString('m-auto w-[calc(100%-2rem)] max-w-lg', $documents);
+        $this->assertStringContainsString('backdrop:backdrop-blur-[2px]', $documents);
+        $this->assertStringContainsString('aria-label="Đóng"', $documents);
+        $this->assertStringContainsString('Kiểm tra tồn kho:', $documents);
+        $this->assertStringContainsString('flex flex-col-reverse gap-2 border-t', $documents);
+        $this->assertStringContainsString('m-auto w-[calc(100%-2rem)] max-w-lg', $index);
         $this->assertLessThan(strpos($index,'Import / Export Excel'),strpos($index,'Phiếu nhập gần đây'));
     }
 }
