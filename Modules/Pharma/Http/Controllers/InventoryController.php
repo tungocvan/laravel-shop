@@ -196,7 +196,7 @@ final class InventoryController extends Controller
     }
     public function storeReceipt(Request $request, InventoryService $inventory): RedirectResponse
     {
-        $data=$request->validate(['receipt_date'=>'required|date','supplier_name'=>'nullable|string|max:255','invoice_number'=>'nullable|string|max:100','invoice_date'=>'nullable|date','notes'=>'nullable|string','items'=>'required|array|min:1','items.*.medicine_id'=>'required|exists:pharma_medicines,id','items.*.batch_number'=>'required|string|max:100','items.*.expiry_date'=>'required|date','items.*.quantity'=>'required|numeric|gt:0','items.*.unit_price_ex_vat'=>'required|numeric|min:0','items.*.vat_rate'=>'nullable|numeric|min:0|max:100']);
+        $data=$request->validate(['receipt_date'=>'required|date','supplier_name'=>'required|string|max:255','invoice_number'=>'nullable|string|max:100','invoice_date'=>'nullable|date','notes'=>'nullable|string','items'=>'required|array|min:1','items.*.medicine_id'=>'required|exists:pharma_medicines,id','items.*.batch_number'=>'required|string|max:100','items.*.expiry_date'=>'required|date','items.*.quantity'=>'required|numeric|gt:0','items.*.unit_price_ex_vat'=>'required|numeric|min:0','items.*.vat_rate'=>'nullable|numeric|min:0|max:100']);
         $receipt=DB::transaction(function()use($data,$inventory){
             $warehouse=$inventory->defaultWarehouse();
             DB::table('pharma_inventory_warehouses')->where('id',$warehouse->id)->lockForUpdate()->first();
@@ -204,8 +204,63 @@ final class InventoryController extends Controller
             $r->items()->createMany($data['items']);
             return $r;
         });
-        return redirect()->route('admin.pharma.inventory.index')->with('success',"Đã tạo phiếu nhập {$receipt->number} ở trạng thái nháp.");
+        return redirect()->route('admin.pharma.inventory.receipts.index')->with('success',"Đã tạo phiếu nhập {$receipt->number} ở trạng thái nháp.");
     }
+    public function showReceipt(InventoryReceipt $receipt, InventoryService $inventory): View
+    {
+        $this->guardReceiptWarehouse($receipt,$inventory);
+        $receipt->load('items.medicine');
+        return view('Pharma::pages.inventory.receipt-show',compact('receipt'));
+    }
+
+    public function editReceipt(InventoryReceipt $receipt, InventoryService $inventory): View
+    {
+        $this->guardReceiptWarehouse($receipt,$inventory);
+        $receipt->load('items');
+        $partners=Partner::query()->withPartnerType('supplier')->where('status','active')->orderBy('name')->get(['id','name','tax_code']);
+        return view('Pharma::pages.inventory.receipt-edit',compact('receipt','partners'));
+    }
+
+    public function updateReceipt(Request $request, InventoryReceipt $receipt, InventoryService $inventory): RedirectResponse
+    {
+        $this->guardReceiptWarehouse($receipt,$inventory);
+        $metadata=$request->validate([
+            'receipt_date'=>'required|date','supplier_name'=>'required|string|max:255',
+            'invoice_number'=>'nullable|string|max:100','invoice_date'=>'nullable|date','notes'=>'nullable|string',
+        ]);
+        if($receipt->status===InventoryReceipt::POSTED){
+            $receipt->update($metadata);
+            return redirect()->route('admin.pharma.inventory.receipts.index')->with('success',"Đã cập nhật thông tin {$receipt->number}. Dữ liệu hàng hóa đã ghi sổ được giữ nguyên.");
+        }
+
+        $data=$request->validate([
+            'items'=>'required|array|min:1','items.*.medicine_id'=>'required|exists:pharma_medicines,id',
+            'items.*.batch_number'=>'required|string|max:100','items.*.expiry_date'=>'required|date',
+            'items.*.quantity'=>'required|numeric|gt:0','items.*.unit_price_ex_vat'=>'required|numeric|min:0',
+            'items.*.vat_rate'=>'nullable|numeric|min:0|max:100',
+        ]);
+        DB::transaction(function()use($receipt,$metadata,$data){
+            $locked=InventoryReceipt::query()->whereKey($receipt->id)->lockForUpdate()->firstOrFail();
+            if($locked->status!==InventoryReceipt::DRAFT) throw ValidationException::withMessages(['receipt'=>'Phiếu không còn ở trạng thái nháp.']);
+            $locked->update($metadata);
+            $locked->items()->delete();
+            $locked->items()->createMany($data['items']);
+        });
+        return redirect()->route('admin.pharma.inventory.receipts.index')->with('success',"Đã cập nhật phiếu nháp {$receipt->number}.");
+    }
+
+    public function destroyReceipt(InventoryReceipt $receipt, InventoryService $inventory): RedirectResponse
+    {
+        $this->guardReceiptWarehouse($receipt,$inventory);
+        DB::transaction(function()use($receipt){
+            $locked=InventoryReceipt::query()->whereKey($receipt->id)->lockForUpdate()->firstOrFail();
+            if($locked->status!==InventoryReceipt::DRAFT) throw ValidationException::withMessages(['receipt'=>'Chỉ phiếu nhập nháp mới được xóa.']);
+            $locked->items()->delete();
+            $locked->delete();
+        });
+        return redirect()->route('admin.pharma.inventory.receipts.index')->with('success','Đã xóa phiếu nhập nháp.');
+    }
+
     public function postReceipt(InventoryReceipt $receipt, InventoryService $inventory): RedirectResponse { $inventory->postReceipt($receipt,auth('admin')->id()); return back()->with('success',"Đã ghi sổ {$receipt->number}."); }
     public function createIssue(InventoryService $inventory): View
     {
@@ -219,7 +274,9 @@ final class InventoryController extends Controller
     public function receipts(Request $request, InventoryService $inventory): View
     {
         $warehouse=$inventory->defaultWarehouse();
-        $query=InventoryReceipt::query()->withCount('items')->withSum('items','quantity')->where('warehouse_id',$warehouse->id)
+        $query=InventoryReceipt::query()->withCount('items')
+            ->withSum(['items as total_value'=>fn($q)=>$q->select(DB::raw('COALESCE(SUM(quantity * unit_price_ex_vat),0)'))],'unit_price_ex_vat')
+            ->where('warehouse_id',$warehouse->id)
             ->when($request->filled('q'),fn($q)=>$q->where(fn($x)=>$x->where('number','like','%'.$request->q.'%')->orWhere('supplier_name','like','%'.$request->q.'%')))
             ->when(in_array($request->status,['draft','posted'],true),fn($q)=>$q->where('status',$request->status))
             ->latest('receipt_date')->latest('id');
@@ -257,6 +314,11 @@ final class InventoryController extends Controller
         return redirect()->route('admin.pharma.inventory.index')->with('success',"Đã tạo phiếu xuất {$issue->number} ở trạng thái nháp.");
     }
     public function postIssue(InventoryIssue $issue, InventoryService $inventory): RedirectResponse { $inventory->postIssue($issue,auth('admin')->id()); return back()->with('success',"Đã ghi sổ {$issue->number}."); }
+
+    private function guardReceiptWarehouse(InventoryReceipt $receipt, InventoryService $inventory): void
+    {
+        abort_unless((int)$receipt->warehouse_id===(int)$inventory->defaultWarehouse()->id,404);
+    }
 
     private function activeSupplierCostSubquery()
     {
