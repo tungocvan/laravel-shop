@@ -48,6 +48,7 @@ class CommercialPolicyWorkspace extends Component
         $this->selectedManagementAwardIds = $this->allocatedProductIds((int) $this->selectedPartnerId);
     }
     public function clearAllManagement(): void { $this->selectedManagementAwardIds = []; }
+    public function selectAllPoliciesForManagement(): void { $this->selectedManagementAwardIds = $this->visibleProductIds(); }
 
     public function applyBulkPercentage(DrugBidAwardCommercialPolicyService $service): void
     {
