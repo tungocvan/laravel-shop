@@ -409,7 +409,8 @@ final class InventoryController extends Controller
             $locked->items()->delete();
             $locked->items()->createMany($items);
         });
-        return redirect()->route('admin.pharma.inventory.issues.show',$issue)->with('success',"Đã cập nhật đầy đủ phiếu nháp {$issue->number}.");
+        $route=$request->input('after_save')==='view' ? 'admin.pharma.inventory.issues.show' : 'admin.pharma.inventory.issues.edit';
+        return redirect()->route($route,$issue)->with('success',"Đã cập nhật đầy đủ phiếu nháp {$issue->number}.");
     }
 
     public function destroyIssue(InventoryIssue $issue, InventoryService $inventory): RedirectResponse
