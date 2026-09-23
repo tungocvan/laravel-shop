@@ -105,7 +105,13 @@ Route::prefix('admin/pharma')->name('admin.pharma.')->middleware(['web', 'auth:a
         Route::get('/issues', [InventoryController::class, 'issues'])->name('issues.index');
         Route::get('/issues/create', [InventoryController::class, 'createIssue'])->middleware('can:create_pharma')->name('issues.create');
         Route::post('/issues', [InventoryController::class, 'storeIssue'])->middleware('can:create_pharma')->name('issues.store');
+        Route::get('/issues/export', [InventoryController::class, 'exportIssues'])->name('issues.export');
+        Route::get('/issues/{issue}', [InventoryController::class, 'showIssue'])->name('issues.show');
+        Route::get('/issues/{issue}/edit', [InventoryController::class, 'editIssue'])->middleware('can:edit_pharma')->name('issues.edit');
+        Route::put('/issues/{issue}', [InventoryController::class, 'updateIssue'])->middleware('can:edit_pharma')->name('issues.update');
+        Route::delete('/issues/{issue}', [InventoryController::class, 'destroyIssue'])->middleware('can:delete_pharma')->name('issues.destroy');
         Route::post('/issues/{issue}/post', [InventoryController::class, 'postIssue'])->middleware('can:edit_pharma')->name('issues.post');
+        Route::post('/issues/{issue}/revert', [InventoryController::class, 'revertIssue'])->middleware('can:delete_pharma')->name('issues.revert');
     });
 
     Route::prefix('price-lists')->name('price-lists.')->group(function () {
