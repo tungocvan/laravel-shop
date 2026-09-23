@@ -8,6 +8,7 @@ File này không thay thế canonical workflow:
 
 ```text
 docs/GITHUB_COLLABORATION_WORKFLOW.md
+
 ```
 
 Nếu có mâu thuẫn, canonical workflow và repository reality được ưu tiên.
@@ -79,6 +80,7 @@ Phải đọc toàn bộ:
 
 ```text
 docs/GITHUB_COLLABORATION_WORKFLOW.md
+.codex/standards/ADMIN_UI_STANDARD.md
 ```
 
 Áp dụng đặc biệt:
@@ -90,8 +92,8 @@ docs/GITHUB_COLLABORATION_WORKFLOW.md
 ### 2. Hiểu đúng bối cảnh chuyển máy
 
 Mặc định:
-
-- máy đích đã có repository
+- Repository: tungocvan/laravel-shop 
+- hoặc máy đích đã có repository
 - GitHub authentication/remote đã được cấu hình
 - output `git status` đến từ máy người dùng muốn tiếp tục làm việc
 - mục tiêu trước tiên là bảo toàn local source rồi đồng bộ an toàn

@@ -68,6 +68,7 @@ Phải đọc toàn bộ:
 
 ```text
 docs/GITHUB_COLLABORATION_WORKFLOW.md
+.codex/standards/ADMIN_UI_STANDARD.md
 ```
 
 Áp dụng đặc biệt mục 16 về bootstrap và bàn giao công việc theo Module, cùng các safety/test/merge gates applicable.
