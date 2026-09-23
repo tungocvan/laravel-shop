@@ -291,4 +291,32 @@ class InventoryContractTest extends TestCase
         $this->assertStringNotContainsString('Giá vốn', $show);
     }
 
+
+    public function test_issue_document_pdf_and_print_contracts(): void
+    {
+        $routes=file_get_contents(base_path('Modules/Pharma/routes/web.php'));
+        $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
+        $show=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-show.blade.php'));
+        $pdf=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-pdf.blade.php'));
+        $print=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-print.blade.php'));
+
+        $this->assertStringContainsString("name('issues.pdf')", $routes);
+        $this->assertStringContainsString("name('issues.print')", $routes);
+        $this->assertStringContainsString('function issuePdf', $controller);
+        $this->assertStringContainsString("Pdf::loadView('Pharma::pages.inventory.issue-pdf'", $controller);
+        $this->assertStringContainsString("setPaper('a4','portrait')", $controller);
+        $this->assertStringContainsString('function issuePrint', $controller);
+        $this->assertStringContainsString('↓ Tải PDF', $show);
+        $this->assertStringContainsString('▣ In trực tiếp', $show);
+        $this->assertStringContainsString('Thông tin chứng từ', $show);
+        $this->assertStringContainsString('Chi tiết hàng xuất', $show);
+        $this->assertStringContainsString('Tóm tắt phiếu', $show);
+        $this->assertStringContainsString('PHIẾU XUẤT KHO', $pdf);
+        $this->assertStringContainsString('@page{margin:16mm 12mm}', $pdf);
+        $this->assertStringContainsString('Người giao hàng', $pdf);
+        $this->assertStringContainsString('Người nhận hàng', $pdf);
+        $this->assertStringContainsString('window.print()', $print);
+        $this->assertStringContainsString('@media print', $print);
+    }
+
 }
