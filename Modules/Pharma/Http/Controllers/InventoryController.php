@@ -43,15 +43,19 @@ final class InventoryController extends Controller
             $row->setAttribute('average_cost_price',$cost?->average_cost_price !== null ? (float)$cost->average_cost_price : null);
             $row->setAttribute('supplier_cost_count',(int)($cost?->supplier_cost_count ?? 0));
         });
-        $allBalances=InventoryBalance::query()->where('warehouse_id',$warehouse->id)->where('quantity_on_hand','>',0)->get(['medicine_id','quantity_on_hand']);
+        $allBalances=InventoryBalance::query()->where('warehouse_id',$warehouse->id)->where('quantity_on_hand','>',0)->get(['medicine_id','quantity_on_hand','expiry_date']);
         $totalInventoryValue=$allBalances->sum(function(InventoryBalance $row)use($costs){
             $cost=$costs->get($row->medicine_id);
             return $cost?->average_cost_price === null ? 0 : (float)$row->quantity_on_hand*(float)$cost->average_cost_price;
         });
         $unpricedBalanceCount=$allBalances->filter(fn(InventoryBalance $row)=>!$costs->has($row->medicine_id))->count();
+        $expiredInventoryValue=$allBalances->filter(fn(InventoryBalance $row)=>$row->expiry_date->lt(now()->startOfDay()))->sum(function(InventoryBalance $row)use($costs){
+            $cost=$costs->get($row->medicine_id);
+            return $cost?->average_cost_price === null ? 0 : (float)$row->quantity_on_hand*(float)$cost->average_cost_price;
+        });
         $receipts=InventoryReceipt::query()->withCount('items')->latest()->limit(10)->get();
         $issues=InventoryIssue::query()->withCount('items')->latest()->limit(10)->get();
-        return view('Pharma::pages.inventory.index',compact('warehouse','balances','receipts','issues','totalInventoryValue','unpricedBalanceCount'));
+        return view('Pharma::pages.inventory.index',compact('warehouse','balances','receipts','issues','totalInventoryValue','unpricedBalanceCount','expiredInventoryValue'));
     }
 
     public function template(): StreamedResponse
