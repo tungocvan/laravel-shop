@@ -24,12 +24,13 @@
                 <input type="date" name="issue_date" value="{{ old('issue_date',now()->toDateString()) }}" required class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3">
             </label>
             <label class="text-sm font-medium">Khách hàng / nơi nhận
-                <x-select-search id="issue-recipient" name="recipient_name" placeholder="Tìm khách hàng / nơi nhận...">
+                <x-select-search id="issue-recipient" name="recipient_partner_id" placeholder="Tìm khách hàng / nơi nhận...">
                     <option value="">Chọn khách hàng</option>
                     @foreach($partners as $partner)
-                        <option value="{{ $partner->name }}" @selected(old('recipient_name')===$partner->name)>{{ $partner->name }}{{ $partner->tax_code ? ' · MST '.$partner->tax_code : '' }}</option>
+                        <option value="{{ $partner->id }}" @selected((string)old('recipient_partner_id')===(string)$partner->id)>{{ $partner->name }}{{ $partner->tax_code ? ' · MST '.$partner->tax_code : '' }}</option>
                     @endforeach
                 </x-select-search>
+                <input type="hidden" name="recipient_name" id="issue-recipient-name" value="{{ old('recipient_name') }}">
             </label>
         </div>
 
@@ -42,12 +43,14 @@
                 <button type="button" id="add-issue-row" class="rounded-lg border border-indigo-200 px-3 py-2 text-sm font-semibold text-indigo-700">+ Thêm dòng</button>
             </div>
             <div class="mt-4 overflow-x-auto">
-                <div class="min-w-[950px]">
+                <div class="min-w-[1180px]">
                     <div class="grid grid-cols-12 gap-3 border-b border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                        <div class="col-span-4">Tên thuốc / Mã thuốc</div>
-                        <div class="col-span-4">Số lô · Hạn dùng · Tồn khả dụng</div>
+                        <div class="col-span-3">Tên thuốc / Mã thuốc</div>
+                        <div class="col-span-3">Số lô · Hạn dùng · Tồn khả dụng</div>
                         <div class="col-span-2">Số lượng xuất</div>
-                        <div class="col-span-2 text-right">Thao tác</div>
+                        <div class="col-span-2">Đơn giá xuất</div>
+                        <div class="col-span-1">Thành tiền</div>
+                        <div class="col-span-1 text-right">Thao tác</div>
                     </div>
                     <div id="issue-items" class="space-y-3 pt-3"></div>
                 </div>
@@ -61,21 +64,28 @@
 
 <template id="issue-row-template">
     <div class="issue-item-row grid grid-cols-12 gap-3 rounded-xl border border-slate-200 p-3">
-        <div class="col-span-4">
+        <div class="col-span-3">
             <select class="issue-medicine-select w-full" required>
                 <option value="">Chọn thuốc</option>
                 @foreach($issueMedicines as $medicine)<option value="{{ $medicine->id }}">{{ $medicine->medicine_code }} — {{ $medicine->name }}</option>@endforeach
             </select>
         </div>
-        <div class="col-span-4">
+        <div class="col-span-3">
             <select data-field="balance_id" class="issue-balance-select min-h-11 w-full rounded-xl border border-slate-300 px-3" required disabled>
                 <option value="">Chọn thuốc trước</option>
             </select>
         </div>
         <div class="col-span-2">
-            <input type="number" step="0.001" min="0.001" data-field="quantity" required placeholder="Số lượng xuất" class="min-h-11 w-full rounded-xl border border-slate-300 px-3">
+            <input type="number" step="0.001" min="0.001" data-field="quantity" required placeholder="Số lượng xuất" class="issue-quantity min-h-11 w-full rounded-xl border border-slate-300 px-3">
         </div>
-        <div class="col-span-2 flex items-center justify-end">
+        <div class="col-span-2">
+            <input type="number" step="0.01" min="0" data-field="unit_price" required value="0" placeholder="Đơn giá xuất" class="issue-unit-price min-h-11 w-full rounded-xl border border-slate-300 px-3 text-right">
+            <p class="issue-price-source mt-1 text-[11px] text-slate-500">Chưa có Giá bán CT · có thể nhập tay</p>
+        </div>
+        <div class="col-span-1 flex items-center justify-end">
+            <span class="issue-line-total text-sm font-semibold text-slate-800">0 đ</span>
+        </div>
+        <div class="col-span-1 flex items-center justify-end">
             <button type="button" class="remove-issue-row text-sm font-semibold text-rose-700">Xóa</button>
         </div>
     </div>
@@ -84,6 +94,11 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const balances = @json($balanceOptions);
+    const priceCandidates = @json($issueSalePrices);
+    const partners = @json($partners->map(fn($partner)=>['id'=>$partner->id,'name'=>$partner->name])->values());
+    const recipientSelect = document.querySelector('[name="recipient_partner_id"]');
+    const recipientName = document.getElementById('issue-recipient-name');
+    const issueDate = document.querySelector('[name="issue_date"]');
     const container = document.getElementById('issue-items');
     const template = document.getElementById('issue-row-template');
 
@@ -91,6 +106,44 @@ document.addEventListener('DOMContentLoaded', () => {
         container.querySelectorAll('.issue-item-row').forEach((row,index) => {
             row.querySelectorAll('[data-field]').forEach((field) => field.name = `items[${index}][${field.dataset.field}]`);
         });
+    }
+
+    function isEffective(candidate,date) {
+        const from=candidate.item_effective_from || candidate.list_effective_from;
+        const to=candidate.item_effective_to || candidate.list_effective_to;
+        return (!from || from<=date) && (!to || to>=date);
+    }
+
+    function resolveSalePrice(medicineId) {
+        const partnerId=recipientSelect?.value || '';
+        const date=issueDate?.value || new Date().toISOString().slice(0,10);
+        const eligible=priceCandidates.filter((candidate)=>String(candidate.medicine_id)===String(medicineId) && isEffective(candidate,date));
+        const customer=partnerId ? eligible.find((candidate)=>candidate.price_list_type==='customer' && String(candidate.partner_id)===String(partnerId)) : null;
+        const selected=customer || eligible.find((candidate)=>candidate.price_list_type==='global');
+        return selected || null;
+    }
+
+    function refreshPrice(row) {
+        const medicineId=row.querySelector('.issue-medicine-select')?.value;
+        const input=row.querySelector('.issue-unit-price');
+        const source=row.querySelector('.issue-price-source');
+        const candidate=resolveSalePrice(medicineId);
+        const price=candidate?.company_sale_price === null || candidate?.company_sale_price === undefined ? 0 : Number(candidate.company_sale_price);
+        input.value=Number.isFinite(price) ? price : 0;
+        source.textContent=candidate
+            ? `Giá bán CT · ${candidate.price_list_code || candidate.price_list_name || 'Bảng giá active'}${price===0?' · giá 0, có thể nhập tay':''}`
+            : 'Chưa có Giá bán CT · mặc định 0, có thể nhập tay';
+        updateLineTotal(row);
+    }
+
+    function updateLineTotal(row) {
+        const quantity=Number(row.querySelector('.issue-quantity')?.value || 0);
+        const price=Number(row.querySelector('.issue-unit-price')?.value || 0);
+        row.querySelector('.issue-line-total').textContent=new Intl.NumberFormat('vi-VN',{maximumFractionDigits:0}).format(quantity*price)+' đ';
+    }
+
+    function refreshAllPrices() {
+        container.querySelectorAll('.issue-item-row').forEach(refreshPrice);
     }
 
     function fillLots(row, medicineId) {
@@ -115,13 +168,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const medicineTom=new TomSelect(medicineSelect,{
             plugins:['dropdown_input'],placeholder:'Tìm mã hoặc tên thuốc...',create:false,
             allowEmptyOption:true,dropdownParent:'body',
-            onChange:(value)=>fillLots(row,value)
+            onChange:(value)=>{ fillLots(row,value); refreshPrice(row); }
         });
-        medicineSelect.addEventListener('change',(event)=>fillLots(row,event.target.value));
+        medicineSelect.addEventListener('change',(event)=>{ fillLots(row,event.target.value); refreshPrice(row); });
+        row.querySelector('.issue-quantity').addEventListener('input',()=>updateLineTotal(row));
+        row.querySelector('.issue-unit-price').addEventListener('input',()=>updateLineTotal(row));
         renumberRows();
     }
 
     document.getElementById('add-issue-row').addEventListener('click',addRow);
+    recipientSelect?.addEventListener('change',()=>{
+        const partner=partners.find((item)=>String(item.id)===String(recipientSelect.value));
+        recipientName.value=partner?.name || '';
+        refreshAllPrices();
+    });
+    issueDate?.addEventListener('change',refreshAllPrices);
     container.addEventListener('click',(event)=>{
         const button=event.target.closest('.remove-issue-row');
         if(!button || container.querySelectorAll('.issue-item-row').length===1) return;
