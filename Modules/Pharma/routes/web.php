@@ -106,6 +106,8 @@ Route::prefix('admin/pharma')->name('admin.pharma.')->middleware(['web', 'auth:a
         Route::get('/issues/create', [InventoryController::class, 'createIssue'])->middleware('can:create_pharma')->name('issues.create');
         Route::post('/issues', [InventoryController::class, 'storeIssue'])->middleware('can:create_pharma')->name('issues.store');
         Route::get('/issues/export', [InventoryController::class, 'exportIssues'])->name('issues.export');
+        Route::get('/issues/{issue}/pdf', [InventoryController::class, 'issuePdf'])->name('issues.pdf');
+        Route::get('/issues/{issue}/print', [InventoryController::class, 'issuePrint'])->name('issues.print');
         Route::get('/issues/{issue}', [InventoryController::class, 'showIssue'])->name('issues.show');
         Route::get('/issues/{issue}/edit', [InventoryController::class, 'editIssue'])->middleware('can:edit_pharma')->name('issues.edit');
         Route::put('/issues/{issue}', [InventoryController::class, 'updateIssue'])->middleware('can:edit_pharma')->name('issues.update');
