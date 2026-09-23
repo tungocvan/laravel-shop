@@ -24,6 +24,13 @@ final class InventoryController extends Controller
         $issues=InventoryIssue::query()->withCount('items')->latest()->limit(10)->get();
         return view('Pharma::pages.inventory.index',compact('warehouse','balances','receipts','issues'));
     }
+    public function createOpening(InventoryService $inventory): View { return view('Pharma::pages.inventory.opening-form',['warehouse'=>$inventory->defaultWarehouse(),'medicines'=>$this->medicines()]); }
+    public function storeOpening(Request $request, InventoryService $inventory): RedirectResponse
+    {
+        $data=$request->validate(['medicine_id'=>'required|exists:pharma_medicines,id','batch_number'=>'required|string|max:100','expiry_date'=>'required|date','quantity'=>'required|numeric|gt:0']);
+        $inventory->setOpeningBalance($inventory->defaultWarehouse()->id,(int)$data['medicine_id'],$data['batch_number'],$data['expiry_date'],(float)$data['quantity'],auth('admin')->id());
+        return redirect()->route('admin.pharma.inventory.index')->with('success','Đã ghi nhận tồn đầu kỳ.');
+    }
     public function createReceipt(InventoryService $inventory): View { return view('Pharma::pages.inventory.receipt-form',['warehouse'=>$inventory->defaultWarehouse(),'medicines'=>$this->medicines()]); }
     public function storeReceipt(Request $request, InventoryService $inventory): RedirectResponse
     {
