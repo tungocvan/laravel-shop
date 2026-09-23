@@ -67,9 +67,10 @@ class PharmaDrugAwardCommercialPolicyContractTest extends TestCase
 
         $this->assertStringContainsString('assignManagerToAll', $component);
         $this->assertStringContainsString('removeManagerFromAll', $component);
-        $this->assertStringContainsString('Gán nhanh User cho toàn bộ TBMT', $view);
-        $this->assertStringContainsString('Áp dụng cho tất cả', $view);
-        $this->assertStringContainsString('Gỡ tất cả của User này', $view);
+        $this->assertStringContainsString('Phân công hàng loạt', $view);
+        $this->assertStringContainsString('Gán cho toàn bộ TBMT', $view);
+        $this->assertStringContainsString('User đang quản lý', $view);
+        $this->assertStringContainsString('Gỡ phân công', $view);
         $this->assertStringContainsString('assignManagerToAllAllocations', $service);
         $this->assertStringContainsString('removeManagerFromAllAllocations', $service);
         $this->assertStringContainsString("where('status', DrugBidAwardAllocation::STATUS_ACTIVE)", $service);
@@ -108,6 +109,12 @@ class PharmaDrugAwardCommercialPolicyContractTest extends TestCase
         $this->assertStringNotContainsString('Sản phẩm / Mã hàng', $view);
         $this->assertStringContainsString('Export Excel', $view);
         $this->assertStringContainsString('Import Excel', $view);
+        $this->assertStringContainsString('applyBulkPercentageToAll', $component);
+        $this->assertStringContainsString('updatedProductPolicies', $component);
+        $this->assertStringContainsString('wire:model.blur="productPolicies.', $view);
+        $this->assertStringContainsString('Áp dụng tất cả', $view);
+        $this->assertStringContainsString('Chính sách từng sản phẩm tự lưu', $view);
+        $this->assertStringNotContainsString('wire:click="saveProductPolicies"', $view);
         $this->assertStringContainsString('Gán User cho đã chọn', $view);
         $this->assertStringContainsString('Gỡ User đã chọn', $view);
         $this->assertStringContainsString('assignManagers', $service);
