@@ -61,7 +61,7 @@
                             </div>
                         </div>
                         @if($doc->status === 'draft')
-                            <dialog id="post-{{ $panel['type'] }}-{{ $doc->id }}" class="m-auto w-[calc(100%-2rem)] max-w-lg overflow-hidden rounded-2xl border-0 bg-transparent p-0 shadow-2xl backdrop:bg-slate-950/50 backdrop:backdrop-blur-[2px]">
+                            <dialog id="post-{{ $panel['type'] }}-{{ $doc->id }}" class="m-auto w-[calc(100%-2rem)] max-w-lg overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-2xl ring-1 ring-slate-200 backdrop:bg-slate-950/65 backdrop:backdrop-blur-[3px]">
                                 <form method="POST" action="{{ $postRoute }}" class="overflow-hidden rounded-2xl bg-white">
                                     @csrf
                                     <div class="flex items-start gap-4 p-6">
@@ -239,8 +239,8 @@
         <div class="border-t border-slate-200 p-4">{{ $balances->links() }}</div>
     </section>
 
-    <dialog id="inventory-export-modal" class="m-auto w-[calc(100%-2rem)] max-w-lg overflow-hidden rounded-2xl border-0 bg-transparent p-0 shadow-2xl backdrop:bg-slate-950/50 backdrop:backdrop-blur-[2px]">
-        <form method="POST" action="{{ route('admin.pharma.inventory.export-selected') }}" class="p-6" onsubmit="prepareInventoryExport(this)">
+    <dialog id="inventory-export-modal" class="m-auto w-[calc(100%-2rem)] max-w-lg overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-2xl ring-1 ring-slate-200 backdrop:bg-slate-950/65 backdrop:backdrop-blur-[3px]">
+        <form method="POST" action="{{ route('admin.pharma.inventory.export-selected') }}" class="rounded-2xl bg-white p-6" onsubmit="prepareInventoryExport(this)">
             @csrf
             <div id="inventory-export-ids"></div>
             <h3 class="text-lg font-bold text-slate-950">Xuất Excel các dòng đã chọn?</h3>
@@ -254,8 +254,8 @@
 
     @can('edit_pharma')
         @foreach($balances as $row)
-            <dialog id="edit-balance-{{ $row->id }}" class="m-auto w-[calc(100%-2rem)] max-w-lg overflow-hidden rounded-2xl border-0 bg-transparent p-0 shadow-2xl backdrop:bg-slate-950/50 backdrop:backdrop-blur-[2px]">
-                <form method="POST" action="{{ route('admin.pharma.inventory.balances.update', $row) }}" class="p-6">
+            <dialog id="edit-balance-{{ $row->id }}" class="m-auto w-[calc(100%-2rem)] max-w-lg overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-2xl ring-1 ring-slate-200 backdrop:bg-slate-950/65 backdrop:backdrop-blur-[3px]">
+                <form method="POST" action="{{ route('admin.pharma.inventory.balances.update', $row) }}" class="rounded-2xl bg-white p-6">
                     @csrf
                     @method('PUT')
                     <h3 class="text-lg font-bold text-slate-950">Sửa thông tin lô</h3>
@@ -275,8 +275,8 @@
                     </div>
                 </form>
             </dialog>
-            <dialog id="delete-balance-{{ $row->id }}" class="m-auto w-[calc(100%-2rem)] max-w-lg overflow-hidden rounded-2xl border-0 bg-transparent p-0 shadow-2xl backdrop:bg-slate-950/50 backdrop:backdrop-blur-[2px]">
-                <form method="POST" action="{{ route('admin.pharma.inventory.balances.destroy', $row) }}" class="p-6">
+            <dialog id="delete-balance-{{ $row->id }}" class="m-auto w-[calc(100%-2rem)] max-w-lg overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-2xl ring-1 ring-slate-200 backdrop:bg-slate-950/65 backdrop:backdrop-blur-[3px]">
+                <form method="POST" action="{{ route('admin.pharma.inventory.balances.destroy', $row) }}" class="rounded-2xl bg-white p-6">
                     @csrf
                     @method('DELETE')
                     <h3 class="text-lg font-bold text-rose-700">Xóa lô tồn kho?</h3>
