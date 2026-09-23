@@ -101,5 +101,23 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('Giá trị hàng đã hết hạn', $index);
         $this->assertStringContainsString('number_format($expiredInventoryValue', $index);
         $this->assertStringContainsString('md:grid-cols-3', $index);
+        $this->assertStringContainsString("in_array((int)\$request->input('per_page',25),[25,50,100],true)", $controller);
+        $this->assertStringContainsString('name="per_page"', $index);
+        $this->assertStringContainsString('inventory-select-all', $index);
+        $this->assertStringContainsString('inventory-row-checkbox', $index);
+        $this->assertStringContainsString('Xuất Excel đã chọn', $index);
+        $this->assertStringContainsString("name('export-selected')", $routes);
+        $this->assertStringContainsString("name('balances.update')", $routes);
+        $this->assertStringContainsString("name('balances.destroy')", $routes);
+        $this->assertStringContainsString('function exportSelected', $controller);
+        $this->assertStringContainsString("'ids'=>'required|array|min:1|max:100'", $controller);
+        $this->assertStringContainsString('function updateBalance', $controller);
+        $this->assertStringContainsString('function destroyBalance', $controller);
+        $this->assertStringContainsString('Không thể xóa lô đã có lịch sử giao dịch kho.', $controller);
+        $this->assertStringContainsString('Import / Export Excel', $index);
+        $this->assertStringContainsString('<dialog id="inventory-export-modal"', $index);
+        $this->assertStringContainsString("showModal()", $index);
+        $this->assertStringContainsString('Lưu thay đổi', $index);
+        $this->assertStringContainsString('Xác nhận xóa', $index);
     }
 }
