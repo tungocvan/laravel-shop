@@ -40,7 +40,7 @@ class InventoryContractTest extends TestCase
         $compiled = Blade::compileString($view);
 
         $this->assertNotEmpty($compiled);
-        token_get_all('<?php '.$compiled, TOKEN_PARSE);
+        token_get_all($compiled, TOKEN_PARSE);
         $this->addToAssertionCount(1);
     }
 
