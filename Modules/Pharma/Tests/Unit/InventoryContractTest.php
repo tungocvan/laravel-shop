@@ -87,9 +87,11 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("'unpriced'", $controller);
         $this->assertStringContainsString("number_format((float) \$row->opening_quantity, 0", $index);
         $this->assertStringContainsString("number_format((float) \$row->quantity_on_hand, 0", $index);
-        $this->assertStringContainsString('@change="submitFilters()"', $index);
-        $this->assertStringContainsString('@input="searchChanged()"', $index);
-        $this->assertStringContainsString('setTimeout(() => this.submitFilters(), 450)', $index);
+        $this->assertStringContainsString('onchange="this.form.submit()"', $index);
+        $this->assertStringContainsString('oninput="window.clearTimeout', $index);
+        $this->assertStringContainsString('window.setTimeout(() => this.form.submit(), 450)', $index);
+        $this->assertStringNotContainsString('x-data=', $index);
+        $this->assertStringNotContainsString('@change="submitFilters()"', $index);
         $this->assertStringContainsString('Xóa bộ lọc', $index);
         $this->assertStringContainsString("href=\"{{ route('admin.pharma.inventory.index') }}\"", $index);
         $this->assertStringNotContainsString('>Lọc</button>', $index);
