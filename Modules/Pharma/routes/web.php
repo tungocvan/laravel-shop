@@ -93,9 +93,11 @@ Route::prefix('admin/pharma')->name('admin.pharma.')->middleware(['web', 'auth:a
         Route::delete('/balances/{balance}', [InventoryController::class, 'destroyBalance'])->middleware('can:edit_pharma')->name('balances.destroy');
         Route::get('/opening/create', [InventoryController::class, 'createOpening'])->middleware('can:create_pharma')->name('opening.create');
         Route::post('/opening', [InventoryController::class, 'storeOpening'])->middleware('can:create_pharma')->name('opening.store');
+        Route::get('/receipts', [InventoryController::class, 'receipts'])->name('receipts.index');
         Route::get('/receipts/create', [InventoryController::class, 'createReceipt'])->middleware('can:create_pharma')->name('receipts.create');
         Route::post('/receipts', [InventoryController::class, 'storeReceipt'])->middleware('can:create_pharma')->name('receipts.store');
         Route::post('/receipts/{receipt}/post', [InventoryController::class, 'postReceipt'])->middleware('can:edit_pharma')->name('receipts.post');
+        Route::get('/issues', [InventoryController::class, 'issues'])->name('issues.index');
         Route::get('/issues/create', [InventoryController::class, 'createIssue'])->middleware('can:create_pharma')->name('issues.create');
         Route::post('/issues', [InventoryController::class, 'storeIssue'])->middleware('can:create_pharma')->name('issues.store');
         Route::post('/issues/{issue}/post', [InventoryController::class, 'postIssue'])->middleware('can:edit_pharma')->name('issues.post');
