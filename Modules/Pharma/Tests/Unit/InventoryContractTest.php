@@ -56,5 +56,13 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("route('admin.pharma.inventory.index')", $dashboard);
         $this->assertStringContainsString("@extends('Admin::layouts.master')", $receipt);
         $this->assertStringContainsString('unit_price_ex_vat', $receipt);
+        $this->assertStringContainsString("name('opening.template')", $routes);
+        $this->assertStringContainsString("name('opening.import')", $routes);
+        $this->assertStringContainsString("name('export')", $routes);
+        $this->assertStringContainsString('FastExcel', file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php')));
+        $index=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/index.blade.php'));
+        $this->assertStringContainsString("route('admin.pharma.dashboard')", $index);
+        $this->assertStringContainsString('Import tồn đầu kỳ', $index);
+        $this->assertStringContainsString('Export tồn kho', $index);
     }
 }
