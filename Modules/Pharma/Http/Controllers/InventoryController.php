@@ -37,7 +37,8 @@ final class InventoryController extends Controller
         $this->applyCostFilter($query,(string)$request->input('cost_status',''));
         $sort=(string)$request->input('value_sort','');
         $sort === 'value_desc' ? $query->orderByDesc('inventory_value') : ($sort === 'value_asc' ? $query->orderByRaw('inventory_value IS NULL, inventory_value ASC') : $query->orderBy('pharma_inventory_balances.expiry_date'));
-        $balances=$query->paginate(25)->withQueryString();
+        $perPage=in_array((int)$request->input('per_page',25),[25,50,100],true) ? (int)$request->input('per_page',25) : 25;
+        $balances=$query->paginate($perPage)->withQueryString();
         $balances->getCollection()->each(function(InventoryBalance $row)use($costs){
             $cost=$costs->get($row->medicine_id);
             $row->setAttribute('average_cost_price',$cost?->average_cost_price !== null ? (float)$cost->average_cost_price : null);
@@ -70,24 +71,74 @@ final class InventoryController extends Controller
     {
         $warehouse=$inventory->defaultWarehouse();
         $costs=$this->activeSupplierCosts();
-        $rows=InventoryBalance::query()->with('medicine')->where('warehouse_id',$warehouse->id)->orderBy('expiry_date')->get()
-            ->map(function(InventoryBalance $row)use($costs){
-                $cost=$costs->get($row->medicine_id);
-                $average=$cost?->average_cost_price !== null ? (float)$cost->average_cost_price : null;
-                return [
-                    'Ma thuoc'=>$row->medicine->medicine_code,
-                    'Ten thuoc'=>$row->medicine->name,
-                    'Don vi'=>$row->medicine->unit,
-                    'So lo'=>$row->batch_number,
-                    'Han dung'=>$row->expiry_date->format('d/m/Y'),
-                    'Ton dau ky'=>(float)$row->opening_quantity,
-                    'Ton hien tai'=>(float)$row->quantity_on_hand,
-                    'Gia von NCC trung binh'=>$average,
-                    'So nguon gia von'=>(int)($cost?->supplier_cost_count ?? 0),
-                    'Gia tri ton'=>$average === null ? null : (float)$row->quantity_on_hand*$average,
-                ];
-            });
+        $balances=InventoryBalance::query()->with('medicine')->where('warehouse_id',$warehouse->id)->orderBy('expiry_date')->get();
+        $rows=$this->exportRows($balances,$costs);
         return (new FastExcel($rows))->download('pharma-ton-kho-'.now()->format('Ymd-His').'.xlsx');
+    }
+
+    public function exportSelected(Request $request, InventoryService $inventory): StreamedResponse
+    {
+        $data=$request->validate(['ids'=>'required|array|min:1|max:100','ids.*'=>'integer|distinct|exists:pharma_inventory_balances,id']);
+        $warehouse=$inventory->defaultWarehouse();
+        $costs=$this->activeSupplierCosts();
+        $rows=InventoryBalance::query()->with('medicine')
+            ->where('warehouse_id',$warehouse->id)->whereIn('id',$data['ids'])->orderBy('expiry_date')->get();
+        return (new FastExcel($this->exportRows($rows,$costs)))->download('pharma-ton-kho-da-chon-'.now()->format('Ymd-His').'.xlsx');
+    }
+
+    public function updateBalance(Request $request, InventoryBalance $balance, InventoryService $inventory): RedirectResponse
+    {
+        $warehouse=$inventory->defaultWarehouse();
+        abort_unless((int)$balance->warehouse_id===(int)$warehouse->id,404);
+        $data=$request->validate(['batch_number'=>'required|string|max:100','expiry_date'=>'required|date']);
+        $duplicate=InventoryBalance::query()->where('warehouse_id',$balance->warehouse_id)->where('medicine_id',$balance->medicine_id)
+            ->where('batch_number',$data['batch_number'])->whereDate('expiry_date',$data['expiry_date'])->whereKeyNot($balance->id)->exists();
+        if($duplicate) throw ValidationException::withMessages(['batch_number'=>'Số lô và hạn dùng này đã tồn tại cho thuốc.']);
+
+        DB::transaction(function()use($balance,$data){
+            $oldBatch=$balance->batch_number;
+            $oldExpiry=$balance->expiry_date->toDateString();
+            DB::table('pharma_inventory_transactions')->where('warehouse_id',$balance->warehouse_id)->where('medicine_id',$balance->medicine_id)
+                ->where('batch_number',$oldBatch)->whereDate('expiry_date',$oldExpiry)
+                ->update(['batch_number'=>$data['batch_number'],'expiry_date'=>$data['expiry_date'],'updated_at'=>now()]);
+            DB::table('pharma_inventory_receipt_items')->where('medicine_id',$balance->medicine_id)->where('batch_number',$oldBatch)->whereDate('expiry_date',$oldExpiry)
+                ->update(['batch_number'=>$data['batch_number'],'expiry_date'=>$data['expiry_date'],'updated_at'=>now()]);
+            DB::table('pharma_inventory_issue_items')->where('medicine_id',$balance->medicine_id)->where('batch_number',$oldBatch)->whereDate('expiry_date',$oldExpiry)
+                ->update(['batch_number'=>$data['batch_number'],'expiry_date'=>$data['expiry_date'],'updated_at'=>now()]);
+            $balance->update(['batch_number'=>$data['batch_number'],'expiry_date'=>$data['expiry_date']]);
+        });
+        return back()->with('success','Đã cập nhật số lô và hạn dùng, đồng bộ lịch sử kho liên quan.');
+    }
+
+    public function destroyBalance(InventoryBalance $balance, InventoryService $inventory): RedirectResponse
+    {
+        $warehouse=$inventory->defaultWarehouse();
+        abort_unless((int)$balance->warehouse_id===(int)$warehouse->id,404);
+        $hasLedger=DB::table('pharma_inventory_transactions')->where('warehouse_id',$balance->warehouse_id)->where('medicine_id',$balance->medicine_id)
+            ->where('batch_number',$balance->batch_number)->whereDate('expiry_date',$balance->expiry_date->toDateString())->exists();
+        if($hasLedger) throw ValidationException::withMessages(['inventory'=>'Không thể xóa lô đã có lịch sử giao dịch kho.']);
+        $balance->delete();
+        return back()->with('success','Đã xóa lô tồn kho chưa phát sinh giao dịch.');
+    }
+
+    private function exportRows($balances,$costs)
+    {
+        return $balances->map(function(InventoryBalance $row)use($costs){
+            $cost=$costs->get($row->medicine_id);
+            $average=$cost?->average_cost_price !== null ? (float)$cost->average_cost_price : null;
+            return [
+                'Ma thuoc'=>$row->medicine->medicine_code,
+                'Ten thuoc'=>$row->medicine->name,
+                'Don vi'=>$row->medicine->unit,
+                'So lo'=>$row->batch_number,
+                'Han dung'=>$row->expiry_date->format('d/m/Y'),
+                'Ton dau ky'=>(float)$row->opening_quantity,
+                'Ton hien tai'=>(float)$row->quantity_on_hand,
+                'Gia von NCC trung binh'=>$average,
+                'So nguon gia von'=>(int)($cost?->supplier_cost_count ?? 0),
+                'Gia tri ton'=>$average === null ? null : (float)$row->quantity_on_hand*$average,
+            ];
+        });
     }
 
     public function importOpening(Request $request, InventoryService $inventory): RedirectResponse
