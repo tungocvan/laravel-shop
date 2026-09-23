@@ -24,7 +24,12 @@
                 <input type="date" name="issue_date" value="{{ old('issue_date',now()->toDateString()) }}" required class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3">
             </label>
             <label class="text-sm font-medium">Khách hàng / nơi nhận
-                <input name="recipient_name" value="{{ old('recipient_name') }}" placeholder="Nhập đơn vị hoặc bộ phận nhận" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3">
+                <x-select-search id="issue-recipient" name="recipient_name" placeholder="Tìm khách hàng / nơi nhận...">
+                    <option value="">Chọn khách hàng</option>
+                    @foreach($partners as $partner)
+                        <option value="{{ $partner->name }}" @selected(old('recipient_name')===$partner->name)>{{ $partner->name }}{{ $partner->tax_code ? ' · MST '.$partner->tax_code : '' }}</option>
+                    @endforeach
+                </x-select-search>
             </label>
         </div>
 
@@ -57,7 +62,7 @@
 <template id="issue-row-template">
     <div class="issue-item-row grid grid-cols-12 gap-3 rounded-xl border border-slate-200 p-3">
         <div class="col-span-4">
-            <select class="issue-medicine-select min-h-11 w-full rounded-xl border border-slate-300 px-3" required>
+            <select class="issue-medicine-select w-full" required>
                 <option value="">Chọn thuốc</option>
                 @foreach($issueMedicines as $medicine)<option value="{{ $medicine->id }}">{{ $medicine->medicine_code }} — {{ $medicine->name }}</option>@endforeach
             </select>
@@ -87,26 +92,35 @@ document.addEventListener('DOMContentLoaded', () => {
             row.querySelectorAll('[data-field]').forEach((field) => field.name = `items[${index}][${field.dataset.field}]`);
         });
     }
+
     function fillLots(row, medicineId) {
         const lotSelect=row.querySelector('.issue-balance-select');
         lotSelect.innerHTML='<option value="">Chọn lô còn tồn</option>';
-        balances.filter((item)=>String(item.medicine_id)===String(medicineId)).forEach((item)=>{
+        const matching=balances.filter((item)=>String(item.medicine_id)===String(medicineId));
+        matching.forEach((item)=>{
             const option=document.createElement('option');
             option.value=item.id;
             option.textContent=`Lô ${item.batch} · HSD ${item.expiry_label} · Tồn ${new Intl.NumberFormat('vi-VN',{maximumFractionDigits:3}).format(item.quantity)}`;
             lotSelect.appendChild(option);
         });
-        lotSelect.disabled=!medicineId;
+        lotSelect.disabled=!medicineId || matching.length===0;
+        if (medicineId && matching.length===0) lotSelect.innerHTML='<option value="">Không còn lô khả dụng</option>';
     }
+
     function addRow() {
         const fragment=template.content.cloneNode(true);
         const row=fragment.querySelector('.issue-item-row');
         container.appendChild(fragment);
         const medicineSelect=row.querySelector('.issue-medicine-select');
-        const medicineTom=new TomSelect(medicineSelect,{plugins:['dropdown_input'],placeholder:'Tìm mã hoặc tên thuốc...',create:false,allowEmptyOption:true,dropdownParent:'body'});
-        medicineTom.on('change',(value)=>fillLots(row,value));
+        const medicineTom=new TomSelect(medicineSelect,{
+            plugins:['dropdown_input'],placeholder:'Tìm mã hoặc tên thuốc...',create:false,
+            allowEmptyOption:true,dropdownParent:'body',
+            onChange:(value)=>fillLots(row,value)
+        });
+        medicineSelect.addEventListener('change',(event)=>fillLots(row,event.target.value));
         renumberRows();
     }
+
     document.getElementById('add-issue-row').addEventListener('click',addRow);
     container.addEventListener('click',(event)=>{
         const button=event.target.closest('.remove-issue-row');
