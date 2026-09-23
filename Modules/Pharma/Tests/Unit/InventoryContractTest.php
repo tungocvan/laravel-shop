@@ -151,6 +151,12 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('Xem tất cả →', $index);
         $this->assertStringContainsString('Tên thuốc / Mã thuốc', $issueForm);
         $this->assertStringContainsString('Số lô · Hạn dùng · Tồn khả dụng', $issueForm);
+        $this->assertStringContainsString('<x-select-search id="issue-recipient"', $issueForm);
+        $this->assertStringContainsString("withPartnerType('customer')", $controller);
+        $this->assertStringContainsString("whereDate('expiry_date','>=',now()->toDateString())", $controller);
+        $this->assertStringContainsString("onChange:(value)=>fillLots(row,value)", $issueForm);
+        $this->assertStringContainsString("medicineSelect.addEventListener('change'", $issueForm);
+        $this->assertStringContainsString('Không còn lô khả dụng', $issueForm);
         $this->assertStringContainsString("placeholder:'Tìm mã hoặc tên thuốc...'", $issueForm);
         $this->assertStringContainsString('Chọn lô còn tồn', $issueForm);
         $this->assertStringContainsString('Xác nhận ghi sổ', $documents);
@@ -194,7 +200,8 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('Hoàn tác ghi sổ?', $documents);
         $this->assertStringContainsString('>Hoàn tác ghi sổ</button>', $documents);
         $this->assertStringContainsString('m-auto w-[calc(100%-2rem)] max-w-lg', $documents);
-        $this->assertStringContainsString('backdrop:backdrop-blur-[2px]', $documents);
+        $this->assertStringContainsString('bg-white p-0 shadow-2xl ring-1 ring-slate-200 backdrop:bg-slate-950/65', $documents);
+        $this->assertStringContainsString('backdrop:backdrop-blur-[3px]', $documents);
         $this->assertStringContainsString('aria-label="Đóng"', $documents);
         $this->assertStringContainsString('Kiểm tra tồn kho:', $documents);
         $this->assertStringContainsString('flex flex-col-reverse gap-2 border-t', $documents);
