@@ -274,8 +274,10 @@ final class InventoryController extends Controller
         $warehouse=$inventory->defaultWarehouse();
         $availableBalances=InventoryBalance::query()->with('medicine')
             ->where('warehouse_id',$warehouse->id)->where('quantity_on_hand','>',0)
+            ->whereDate('expiry_date','>=',now()->toDateString())
             ->orderBy('expiry_date')->orderBy('medicine_id')->get();
-        return view('Pharma::pages.inventory.issue-form',compact('warehouse','availableBalances'));
+        $partners=Partner::query()->withPartnerType('customer')->where('status','active')->orderBy('name')->get(['id','name','tax_code']);
+        return view('Pharma::pages.inventory.issue-form',compact('warehouse','availableBalances','partners'));
     }
 
     public function receipts(Request $request, InventoryService $inventory): View
