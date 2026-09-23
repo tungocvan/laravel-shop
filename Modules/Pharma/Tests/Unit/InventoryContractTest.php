@@ -1,6 +1,7 @@
 <?php
 namespace Modules\Pharma\Tests\Unit;
 
+use Illuminate\Support\Facades\Blade;
 use Tests\TestCase;
 
 class InventoryContractTest extends TestCase
