@@ -109,11 +109,13 @@
 document.addEventListener('DOMContentLoaded', () => {
     const balances = @json($balanceOptions);
     const priceCandidates = @json($issueSalePrices);
-    const priceLists = @json($customerPriceLists->map(fn($list)=>[
-        'id'=>$list->id,'code'=>$list->code,'name'=>$list->name,'manager_user_id'=>$list->manager_user_id,
-        'partner_id'=>$list->partner_id,'effective_from'=>$list->effective_from?->format('Y-m-d'),
-        'effective_to'=>$list->effective_to?->format('Y-m-d'),'priority'=>$list->priority,
-    ])->values());
+    const priceLists = @json($customerPriceLists->map(function ($list) {
+        return [
+            'id'=>$list->id,'code'=>$list->code,'name'=>$list->name,'manager_user_id'=>$list->manager_user_id,
+            'partner_id'=>$list->partner_id,'effective_from'=>$list->effective_from?->format('Y-m-d'),
+            'effective_to'=>$list->effective_to?->format('Y-m-d'),'priority'=>$list->priority,
+        ];
+    })->values());
     const partners = @json($partners->map(fn($partner)=>['id'=>$partner->id,'name'=>$partner->name])->values());
     const recipientSelect = document.querySelector('[name="recipient_partner_id"]');
     const recipientName = document.getElementById('issue-recipient-name');
