@@ -32,5 +32,9 @@ class PriceListCustomerContextContractTest extends TestCase
         $this->assertStringContainsString('Khách hàng <span class="text-xs font-normal text-slate-400">(không bắt buộc)</span>', $createView);
         $this->assertStringContainsString('Để trống = bảng giá chung cho nhiều khách hàng', $createView);
         $this->assertStringContainsString('Không chọn · áp dụng chung nhiều khách hàng', $createView);
+        $manager = file_get_contents(base_path('Modules/Pharma/Services/PriceListManager.php'));
+        $this->assertStringContainsString('if ($partnerId !== null)', $manager);
+        $this->assertStringContainsString('if ($officialFacilityId !== null', $manager);
+        $this->assertStringNotContainsString('if (! $officialFacilityId || ! OfficialSourceFacility::query()', $manager);
     }
 }
