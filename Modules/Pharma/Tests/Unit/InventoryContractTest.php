@@ -348,7 +348,11 @@ class InventoryContractTest extends TestCase
 
         foreach (['issue-settings.blade.php','issue-show.blade.php','issue-pdf.blade.php','issue-print.blade.php'] as $file) {
             $candidate=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/'.$file));
-            token_get_all(Blade::compileString($candidate), TOKEN_PARSE);
+            try {
+                token_get_all(Blade::compileString($candidate), TOKEN_PARSE);
+            } catch (\ParseError $error) {
+                $this->fail($file.' failed Blade compilation: '.$error->getMessage());
+            }
         }
         $this->addToAssertionCount(4);
     }
