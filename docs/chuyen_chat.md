@@ -148,6 +148,41 @@ Nếu mục tiêu yêu cầu thay đổi:
 
 Không biến câu “áp dụng” hoặc `HANDOFF` thành quyền sửa code/merge/xóa branch.
 
+## Test strategy theo vòng đời branch
+
+Để giữ vòng lặp phát triển nhanh nhưng vẫn có regression gate đầy đủ, áp dụng quy ước sau:
+
+### Feature branch / implementation checkpoint
+
+- Chỉ chạy các test liên quan trực tiếp đến phạm vi vừa thay đổi.
+- Với Unit tests, chỉ chạy các file/test suite trong `Tests/Unit` có liên quan đến feature hoặc bug đang xử lý.
+- Không yêu cầu chạy toàn bộ test suite của Module ở mỗi checkpoint trên feature branch.
+- Nếu focused test fail, dừng tại checkpoint và xử lý lỗi trước khi tiếp tục.
+- Có thể chạy thêm test liên quan khi thay đổi chạm vào dependency dùng chung hoặc có nguy cơ regression rõ ràng.
+
+Ví dụ:
+
+```bash
+php artisan test Modules/<Module>/Tests/Unit/<RelevantTest>.php
+```
+
+### Sau khi merge vào `main`
+
+- Sau khi PR/feature branch đã merge vào `main`, mới chạy regression test toàn bộ Module.
+- Phải cập nhật local `main` bằng `git pull --ff-only` trước khi chạy.
+- Full Module regression là post-merge integration gate, dùng để xác nhận thay đổi đã tích hợp an toàn với toàn bộ Module.
+- Nếu Module regression fail sau merge, phân loại lỗi là regression mới hay lỗi pre-existing trước khi quyết định corrective action.
+
+Ví dụ:
+
+```bash
+git switch main
+git pull --ff-only
+php artisan test Modules/<Module>/Tests
+```
+
+Quy ước này không loại bỏ focused test bắt buộc trước merge và không thay thế các test/UI acceptance gate khác được yêu cầu riêng bởi task hoặc canonical workflow.
+
 ## Mutation boundary
 
 Trước khi người dùng phê duyệt đề xuất, chưa được tự:
