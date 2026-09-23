@@ -39,14 +39,16 @@ class PriceListManager
                 throw ValidationException::withMessages(['customer_source' => 'Nguồn khách hàng không hợp lệ.']);
             }
             if ($customerSource === PriceList::CUSTOMER_SOURCE_PARTNER) {
-                $partner = Partner::query()->find($partnerId);
-                $types = $partner?->partner_types ?? [];
-                if (! $partner || $partner->status !== 'active' || ! in_array('customer', $types, true)) {
-                    throw ValidationException::withMessages(['partner_id' => 'Khách hàng phải là Partner đang hoạt động và có loại customer.']);
+                if ($partnerId !== null) {
+                    $partner = Partner::query()->find($partnerId);
+                    $types = $partner?->partner_types ?? [];
+                    if (! $partner || $partner->status !== 'active' || ! in_array('customer', $types, true)) {
+                        throw ValidationException::withMessages(['partner_id' => 'Khách hàng phải là Partner đang hoạt động và có loại customer.']);
+                    }
                 }
                 $officialFacilityId = null;
             } else {
-                if (! $officialFacilityId || ! OfficialSourceFacility::query()->whereKey($officialFacilityId)->where('is_active', true)->exists()) {
+                if ($officialFacilityId !== null && ! OfficialSourceFacility::query()->whereKey($officialFacilityId)->where('is_active', true)->exists()) {
                     throw ValidationException::withMessages(['official_facility_id' => 'Cơ sở KCB phải tồn tại và đang hoạt động trong kho dữ liệu nguồn.']);
                 }
                 $partnerId = null;
