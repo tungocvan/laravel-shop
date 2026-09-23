@@ -99,7 +99,9 @@ class PharmaDrugAwardCommercialPolicyContractTest extends TestCase
         $this->assertStringContainsString("'total'=>\$activeAllocationCount", $component);
         $this->assertStringContainsString('Đã phân công', $view);
         $this->assertStringContainsString('Đã phân công đầy đủ', $view);
-        $this->assertStringContainsString('Bệnh viện đã có User', $view);
+        $this->assertStringContainsString('Số lượng Bệnh viện', $view);
+        $this->assertStringContainsString('<x-select-search id="commercial-policy-bulk-user" wire:model.live="selectedUserId"', $view);
+        $this->assertStringContainsString('<x-select-search id="commercial-policy-hospital-user" wire:model.live="selectedUserId"', $view);
         $this->assertStringContainsString('Đơn giá trúng', $view);
         $this->assertStringContainsString('Sản phẩm / Mã sản phẩm', $view);
         $this->assertStringContainsString("\$product->medicine?->medicine_code ?? \$product->canonicalMatch?->medicine?->medicine_code ?? 'Chưa có mã sản phẩm'", $view);
