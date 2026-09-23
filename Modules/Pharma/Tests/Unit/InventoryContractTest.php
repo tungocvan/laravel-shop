@@ -155,7 +155,7 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('<x-select-search id="issue-recipient"', $issueForm);
         $this->assertStringContainsString("withPartnerType('customer')", $controller);
         $this->assertStringContainsString("whereDate('expiry_date','>=',now()->toDateString())", $controller);
-        $this->assertStringContainsString("onChange:(value)=>fillLots(row,value)", $issueForm);
+        $this->assertStringContainsString("onChange:(value)=>{ fillLots(row,value); refreshPrice(row); }", $issueForm);
         $this->assertStringContainsString("medicineSelect.addEventListener('change'", $issueForm);
         $this->assertStringContainsString('Không còn lô khả dụng', $issueForm);
         $issueShow=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-show.blade.php'));
