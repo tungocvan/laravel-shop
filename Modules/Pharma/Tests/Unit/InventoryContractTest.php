@@ -155,6 +155,6 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('Chọn lô còn tồn', $issueForm);
         $this->assertStringContainsString('Xác nhận ghi sổ', $documents);
         $this->assertStringContainsString("request('per_page',25)", $documents);
-        $this->assertStringContainsString("[25,50,100] as $size", $documents);
+        $this->assertStringContainsString('[25,50,100] as $size', $documents);
     }
 }
