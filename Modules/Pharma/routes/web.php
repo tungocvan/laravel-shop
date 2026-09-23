@@ -88,6 +88,9 @@ Route::prefix('admin/pharma')->name('admin.pharma.')->middleware(['web', 'auth:a
         Route::get('/opening/template', [InventoryController::class, 'template'])->name('opening.template');
         Route::post('/opening/import', [InventoryController::class, 'importOpening'])->middleware('can:create_pharma')->name('opening.import');
         Route::get('/export', [InventoryController::class, 'export'])->name('export');
+        Route::post('/export-selected', [InventoryController::class, 'exportSelected'])->name('export-selected');
+        Route::put('/balances/{balance}', [InventoryController::class, 'updateBalance'])->middleware('can:edit_pharma')->name('balances.update');
+        Route::delete('/balances/{balance}', [InventoryController::class, 'destroyBalance'])->middleware('can:edit_pharma')->name('balances.destroy');
         Route::get('/opening/create', [InventoryController::class, 'createOpening'])->middleware('can:create_pharma')->name('opening.create');
         Route::post('/opening', [InventoryController::class, 'storeOpening'])->middleware('can:create_pharma')->name('opening.store');
         Route::get('/receipts/create', [InventoryController::class, 'createReceipt'])->middleware('can:create_pharma')->name('receipts.create');
