@@ -138,6 +138,7 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('this.$wire.set(config.model, value, false);', $searchSelect);
         $issueForm=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-form.blade.php'));
         $documents=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/documents.blade.php'));
+        $service=file_get_contents(base_path('Modules/Pharma/Services/InventoryService.php'));
         $this->assertStringContainsString("name('receipts.index')", $routes);
         $this->assertStringContainsString("name('issues.index')", $routes);
         $this->assertStringContainsString('function receipts(', $controller);
@@ -202,7 +203,6 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('Tổng giá trị', $receiptShow);
         $this->assertStringContainsString('chỉ cập nhật thông tin chứng từ', $receiptEdit);
         $this->assertStringContainsString('Nhà cung cấp *', $receiptForm);
-        $service=file_get_contents(base_path('Modules/Pharma/Services/InventoryService.php'));
         $moduleConfig=file_get_contents(base_path('Modules/Pharma/config/module.php'));
         $this->assertStringContainsString("'delete_pharma'", $moduleConfig);
         $this->assertStringContainsString("can:delete_pharma", $routes);
