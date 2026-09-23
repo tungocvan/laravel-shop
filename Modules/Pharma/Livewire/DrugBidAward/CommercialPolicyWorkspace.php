@@ -127,6 +127,24 @@ class CommercialPolicyWorkspace extends Component
         session()->flash('success','Đã gán User hàng loạt cho các sản phẩm đã chọn.');
     }
 
+    public function assignManagerToSelectedProducts(DrugBidAwardCommercialPolicyService $service): void
+    {
+        $this->authorizeManage();
+        $data = $this->validate([
+            'selectedUserId' => ['required', 'integer', 'exists:users,id'],
+            'selectedManagementAwardIds' => ['required', 'array', 'min:1'],
+        ]);
+        $count = $service->assignManagerToProductAllocations(
+            $this->award(),
+            $data['selectedManagementAwardIds'],
+            (int) $data['selectedUserId'],
+            auth('admin')->id()
+        );
+        $productCount = count(array_unique(array_map('intval', $data['selectedManagementAwardIds'])));
+        $this->selectedManagementAwardIds = [];
+        session()->flash('success', "Đã gán User cho {$productCount} sản phẩm trên {$count} phân bổ bệnh viện thực tế.");
+    }
+
     public function assignManagerToAll(DrugBidAwardCommercialPolicyService $service): void
     {
         $this->authorizeManage();
@@ -248,6 +266,7 @@ class CommercialPolicyWorkspace extends Component
             return [
                 'user'=>$rows->first()?->user,
                 'assignments'=>$rows->count(),
+                'products'=>$rows->pluck('drug_bid_award_id')->unique()->count(),
                 'hospitals'=>$rows->pluck('partner_id')->unique()->count(),
             ];
         })->values();
