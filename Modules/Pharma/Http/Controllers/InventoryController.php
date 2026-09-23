@@ -23,11 +23,21 @@ final class InventoryController extends Controller
     {
         $warehouse=$inventory->defaultWarehouse();
         $costs=$this->activeSupplierCosts();
-        $query=InventoryBalance::query()->with('medicine')->where('warehouse_id',$warehouse->id)
+        $costSubquery=$this->activeSupplierCostSubquery();
+        $query=InventoryBalance::query()
+            ->with('medicine')
+            ->leftJoinSub($costSubquery,'supplier_costs',fn($join)=>$join->on('supplier_costs.medicine_id','=','pharma_inventory_balances.medicine_id'))
+            ->select('pharma_inventory_balances.*')
+            ->selectRaw('supplier_costs.average_cost_price as query_average_cost_price')
+            ->selectRaw('(pharma_inventory_balances.quantity_on_hand * supplier_costs.average_cost_price) as inventory_value')
+            ->where('pharma_inventory_balances.warehouse_id',$warehouse->id)
             ->when($request->filled('q'),fn($q)=>$q->whereHas('medicine',fn($m)=>$m->where('medicine_code','like','%'.$request->q.'%')->orWhere('name','like','%'.$request->q.'%')))
-            ->when($request->boolean('in_stock'),fn($q)=>$q->where('quantity_on_hand','>',0));
+            ->when($request->boolean('in_stock'),fn($q)=>$q->where('pharma_inventory_balances.quantity_on_hand','>',0));
         $this->applyExpiryFilter($query,(string)$request->input('expiry_warning',''));
-        $balances=$query->orderBy('expiry_date')->paginate(25)->withQueryString();
+        $this->applyCostFilter($query,(string)$request->input('cost_status',''));
+        $sort=(string)$request->input('value_sort','');
+        $sort === 'value_desc' ? $query->orderByDesc('inventory_value') : ($sort === 'value_asc' ? $query->orderByRaw('inventory_value IS NULL, inventory_value ASC') : $query->orderBy('pharma_inventory_balances.expiry_date'));
+        $balances=$query->paginate(25)->withQueryString();
         $balances->getCollection()->each(function(InventoryBalance $row)use($costs){
             $cost=$costs->get($row->medicine_id);
             $row->setAttribute('average_cost_price',$cost?->average_cost_price !== null ? (float)$cost->average_cost_price : null);
@@ -142,6 +152,26 @@ final class InventoryController extends Controller
         return redirect()->route('admin.pharma.inventory.index')->with('success',"Đã tạo phiếu xuất {$issue->number} ở trạng thái nháp.");
     }
     public function postIssue(InventoryIssue $issue, InventoryService $inventory): RedirectResponse { $inventory->postIssue($issue,auth('admin')->id()); return back()->with('success',"Đã ghi sổ {$issue->number}."); }
+
+    private function activeSupplierCostSubquery()
+    {
+        $today=now()->toDateString();
+        return SupplierTracking::query()
+            ->select('medicine_id',DB::raw('AVG(cost_price) as average_cost_price'))
+            ->where('status','active')->whereNotNull('cost_price')
+            ->where(fn($q)=>$q->whereNull('start_date')->orWhereDate('start_date','<=',$today))
+            ->where(fn($q)=>$q->whereNull('end_date')->orWhereDate('end_date','>=',$today))
+            ->groupBy('medicine_id');
+    }
+
+    private function applyCostFilter($query,string $status): void
+    {
+        match($status){
+            'priced'=>$query->whereNotNull('supplier_costs.average_cost_price'),
+            'unpriced'=>$query->whereNull('supplier_costs.average_cost_price'),
+            default=>null,
+        };
+    }
 
     private function activeSupplierCosts()
     {
