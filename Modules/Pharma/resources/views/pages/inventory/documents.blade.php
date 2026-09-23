@@ -81,7 +81,7 @@
                             </td>
                         </tr>
                         @if($doc->status === 'draft')
-                            <dialog id="post-{{ $type }}-{{ $doc->id }}" class="m-auto w-[calc(100%-2rem)] max-w-lg overflow-hidden rounded-2xl border-0 bg-transparent p-0 shadow-2xl backdrop:bg-slate-950/50 backdrop:backdrop-blur-[2px]">
+                            <dialog id="post-{{ $type }}-{{ $doc->id }}" class="m-auto w-[calc(100%-2rem)] max-w-lg overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-2xl ring-1 ring-slate-200 backdrop:bg-slate-950/65 backdrop:backdrop-blur-[3px]">
                                 <form method="POST" action="{{ $postRoute }}" class="overflow-hidden rounded-2xl bg-white">
                                     @csrf
                                     <div class="flex items-start gap-4 p-6">
@@ -98,7 +98,7 @@
                         @endif
                         @if($type === 'receipt' && $doc->status === 'posted')
                             @can('delete_pharma')
-                                <dialog id="revert-receipt-{{ $doc->id }}" class="m-auto w-[calc(100%-2rem)] max-w-lg overflow-hidden rounded-2xl border-0 bg-transparent p-0 shadow-2xl backdrop:bg-slate-950/50 backdrop:backdrop-blur-[2px]">
+                                <dialog id="revert-receipt-{{ $doc->id }}" class="m-auto w-[calc(100%-2rem)] max-w-lg overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-2xl ring-1 ring-slate-200 backdrop:bg-slate-950/65 backdrop:backdrop-blur-[3px]">
                                     <form method="POST" action="{{ route('admin.pharma.inventory.receipts.revert',$doc) }}" class="overflow-hidden rounded-2xl bg-white">@csrf
                                         <div class="flex items-start gap-4 p-6">
                                             <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-amber-100 text-xl font-bold text-amber-700">!</div>
@@ -114,7 +114,7 @@
                             @endcan
                         @endif
                         @if($type === 'receipt' && $doc->status === 'draft')
-                            <dialog id="delete-receipt-{{ $doc->id }}" class="m-auto w-[calc(100%-2rem)] max-w-lg overflow-hidden rounded-2xl border-0 bg-transparent p-0 shadow-2xl backdrop:bg-slate-950/50 backdrop:backdrop-blur-[2px]">
+                            <dialog id="delete-receipt-{{ $doc->id }}" class="m-auto w-[calc(100%-2rem)] max-w-lg overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-2xl ring-1 ring-slate-200 backdrop:bg-slate-950/65 backdrop:backdrop-blur-[3px]">
                                 <form method="POST" action="{{ route('admin.pharma.inventory.receipts.destroy',$doc) }}" class="overflow-hidden rounded-2xl bg-white">@csrf @method('DELETE')
                                     <div class="flex items-start gap-4 p-6">
                                         <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-rose-100 text-xl font-bold text-rose-700">×</div>
