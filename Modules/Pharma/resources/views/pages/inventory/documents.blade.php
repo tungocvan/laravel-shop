@@ -81,37 +81,47 @@
                             </td>
                         </tr>
                         @if($doc->status === 'draft')
-                            <dialog id="post-{{ $type }}-{{ $doc->id }}" class="w-full max-w-md rounded-2xl p-0 shadow-2xl backdrop:bg-slate-950/40">
-                                <form method="POST" action="{{ $postRoute }}" class="p-6">
+                            <dialog id="post-{{ $type }}-{{ $doc->id }}" class="m-auto w-[calc(100%-2rem)] max-w-lg overflow-hidden rounded-2xl border-0 bg-transparent p-0 shadow-2xl backdrop:bg-slate-950/50 backdrop:backdrop-blur-[2px]">
+                                <form method="POST" action="{{ $postRoute }}" class="overflow-hidden rounded-2xl bg-white">
                                     @csrf
-                                    <h3 class="text-lg font-bold text-slate-950">Xác nhận ghi sổ {{ $doc->number }}?</h3>
-                                    <p class="mt-2 text-sm text-slate-600">Phiếu có {{ $doc->items_count }} mặt hàng, tổng số lượng {{ number_format((float)$doc->items_sum_quantity,0,',','.') }}. Ghi sổ sẽ cập nhật tồn kho thực tế.</p>
-                                    @if($type === 'issue')<p class="mt-2 text-sm font-medium text-amber-700">Hệ thống sẽ kiểm tra tồn khả dụng trước khi xuất.</p>@endif
-                                    <div class="mt-6 flex justify-end gap-2">
-                                        <button type="button" onclick="this.closest('dialog').close()" class="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold">Hủy</button>
-                                        <button class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white">Xác nhận ghi sổ</button>
+                                    <div class="flex items-start gap-4 p-6">
+                                        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xl text-emerald-700">✓</div>
+                                        <div class="min-w-0 flex-1">
+                                            <div class="flex items-start justify-between gap-3"><div><h3 class="text-lg font-bold text-slate-950">Xác nhận ghi sổ?</h3><p class="mt-0.5 break-all font-mono text-xs font-semibold text-slate-500">{{ $doc->number }}</p></div><button type="button" onclick="this.closest('dialog').close()" class="rounded-lg p-1.5 text-xl leading-none text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Đóng">×</button></div>
+                                            <p class="mt-4 text-sm leading-6 text-slate-600">Phiếu có <strong>{{ $doc->items_count }} mặt hàng</strong>, tổng số lượng <strong>{{ number_format((float)$doc->items_sum_quantity,0,',','.') }}</strong>. Sau khi xác nhận, tồn kho thực tế sẽ được cập nhật.</p>
+                                            @if($type === 'issue')<div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm leading-5 text-amber-800"><strong>Kiểm tra tồn kho:</strong> hệ thống sẽ kiểm tra tồn khả dụng trước khi xuất.</div>@endif
+                                        </div>
                                     </div>
+                                    <div class="flex flex-col-reverse gap-2 border-t border-slate-100 bg-slate-50 px-6 py-4 sm:flex-row sm:justify-end"><button type="button" onclick="this.closest('dialog').close()" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">Hủy</button><button class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm">Xác nhận ghi sổ</button></div>
                                 </form>
                             </dialog>
                         @endif
                         @if($type === 'receipt' && $doc->status === 'posted')
                             @can('delete_pharma')
-                                <dialog id="revert-receipt-{{ $doc->id }}" class="w-full max-w-md rounded-2xl p-0 shadow-2xl backdrop:bg-slate-950/40">
-                                    <form method="POST" action="{{ route('admin.pharma.inventory.receipts.revert',$doc) }}" class="p-6">@csrf
-                                        <h3 class="text-lg font-bold text-amber-700">Hoàn tác ghi sổ {{ $doc->number }}?</h3>
-                                        <p class="mt-2 text-sm text-slate-600">Hệ thống sẽ rút đúng số lượng của phiếu này khỏi tồn kho và chuyển phiếu về trạng thái Nháp.</p>
-                                        <p class="mt-2 text-sm font-medium text-rose-700">Nếu tồn hiện tại của bất kỳ lô nào không đủ để hoàn tác, toàn bộ thao tác sẽ bị hủy và tồn kho không thay đổi.</p>
-                                        <div class="mt-6 flex justify-end gap-2"><button type="button" onclick="this.closest('dialog').close()" class="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold">Hủy</button><button class="rounded-xl bg-amber-600 px-4 py-2 text-sm font-semibold text-white">Xác nhận hoàn tác</button></div>
+                                <dialog id="revert-receipt-{{ $doc->id }}" class="m-auto w-[calc(100%-2rem)] max-w-lg overflow-hidden rounded-2xl border-0 bg-transparent p-0 shadow-2xl backdrop:bg-slate-950/50 backdrop:backdrop-blur-[2px]">
+                                    <form method="POST" action="{{ route('admin.pharma.inventory.receipts.revert',$doc) }}" class="overflow-hidden rounded-2xl bg-white">@csrf
+                                        <div class="flex items-start gap-4 p-6">
+                                            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-amber-100 text-xl font-bold text-amber-700">!</div>
+                                            <div class="min-w-0 flex-1">
+                                                <div class="flex items-start justify-between gap-3"><div><h3 class="text-lg font-bold text-slate-950">Hoàn tác ghi sổ?</h3><p class="mt-0.5 break-all font-mono text-xs font-semibold text-slate-500">{{ $doc->number }}</p></div><button type="button" onclick="this.closest('dialog').close()" class="rounded-lg p-1.5 text-xl leading-none text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Đóng">×</button></div>
+                                                <p class="mt-4 text-sm leading-6 text-slate-600">Phiếu sẽ được chuyển về <strong>Nháp</strong> và đúng số lượng đã nhập của phiếu này sẽ được rút khỏi tồn kho.</p>
+                                                <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm leading-5 text-amber-900"><strong>Kiểm tra tồn kho:</strong> nếu bất kỳ lô nào không đủ tồn để hoàn tác, hệ thống sẽ hủy toàn bộ thao tác và không thay đổi tồn kho.</div>
+                                            </div>
+                                        </div>
+                                        <div class="flex flex-col-reverse gap-2 border-t border-slate-100 bg-slate-50 px-6 py-4 sm:flex-row sm:justify-end"><button type="button" onclick="this.closest('dialog').close()" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">Hủy</button><button class="rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm">Hoàn tác ghi sổ</button></div>
                                     </form>
                                 </dialog>
                             @endcan
                         @endif
                         @if($type === 'receipt' && $doc->status === 'draft')
-                            <dialog id="delete-receipt-{{ $doc->id }}" class="w-full max-w-md rounded-2xl p-0 shadow-2xl backdrop:bg-slate-950/40">
-                                <form method="POST" action="{{ route('admin.pharma.inventory.receipts.destroy',$doc) }}" class="p-6">@csrf @method('DELETE')
-                                    <h3 class="text-lg font-bold text-rose-700">Xóa phiếu nháp {{ $doc->number }}?</h3>
-                                    <p class="mt-2 text-sm text-slate-600">Phiếu và toàn bộ chi tiết hàng hóa nháp sẽ bị xóa. Thao tác này không ảnh hưởng tồn kho vì phiếu chưa ghi sổ.</p>
-                                    <div class="mt-6 flex justify-end gap-2"><button type="button" onclick="this.closest('dialog').close()" class="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold">Hủy</button><button class="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white">Xác nhận xóa</button></div>
+                            <dialog id="delete-receipt-{{ $doc->id }}" class="m-auto w-[calc(100%-2rem)] max-w-lg overflow-hidden rounded-2xl border-0 bg-transparent p-0 shadow-2xl backdrop:bg-slate-950/50 backdrop:backdrop-blur-[2px]">
+                                <form method="POST" action="{{ route('admin.pharma.inventory.receipts.destroy',$doc) }}" class="overflow-hidden rounded-2xl bg-white">@csrf @method('DELETE')
+                                    <div class="flex items-start gap-4 p-6">
+                                        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-rose-100 text-xl font-bold text-rose-700">×</div>
+                                        <div class="min-w-0 flex-1"><div class="flex items-start justify-between gap-3"><div><h3 class="text-lg font-bold text-slate-950">Xóa phiếu nhập nháp?</h3><p class="mt-0.5 break-all font-mono text-xs font-semibold text-slate-500">{{ $doc->number }}</p></div><button type="button" onclick="this.closest('dialog').close()" class="rounded-lg p-1.5 text-xl leading-none text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Đóng">×</button></div>
+                                        <p class="mt-4 text-sm leading-6 text-slate-600">Phiếu và toàn bộ chi tiết hàng hóa nháp sẽ bị xóa. Phiếu chưa ghi sổ nên thao tác này không làm thay đổi tồn kho.</p></div>
+                                    </div>
+                                    <div class="flex flex-col-reverse gap-2 border-t border-slate-100 bg-slate-50 px-6 py-4 sm:flex-row sm:justify-end"><button type="button" onclick="this.closest('dialog').close()" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">Hủy</button><button class="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm">Xác nhận xóa</button></div>
                                 </form>
                             </dialog>
                         @endif
