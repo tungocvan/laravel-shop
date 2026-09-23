@@ -20,7 +20,9 @@ final class InventoryController extends Controller
             ->when($request->filled('q'),fn($q)=>$q->whereHas('medicine',fn($m)=>$m->where('medicine_code','like','%'.$request->q.'%')->orWhere('name','like','%'.$request->q.'%')))
             ->when($request->boolean('in_stock'),fn($q)=>$q->where('quantity_on_hand','>',0))
             ->orderBy('expiry_date')->paginate(25)->withQueryString();
-        return view('Pharma::pages.inventory.index',compact('warehouse','balances'));
+        $receipts=InventoryReceipt::query()->withCount('items')->latest()->limit(10)->get();
+        $issues=InventoryIssue::query()->withCount('items')->latest()->limit(10)->get();
+        return view('Pharma::pages.inventory.index',compact('warehouse','balances','receipts','issues'));
     }
     public function createReceipt(InventoryService $inventory): View { return view('Pharma::pages.inventory.receipt-form',['warehouse'=>$inventory->defaultWarehouse(),'medicines'=>$this->medicines()]); }
     public function storeReceipt(Request $request, InventoryService $inventory): RedirectResponse
