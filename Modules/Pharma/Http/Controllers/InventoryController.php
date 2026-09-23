@@ -12,6 +12,8 @@ use Modules\Pharma\Models\InventoryBalance;
 use Modules\Pharma\Models\InventoryIssue;
 use Modules\Pharma\Models\InventoryReceipt;
 use Modules\Pharma\Models\Medicine;
+use Modules\Pharma\Models\PriceList;
+use Modules\Pharma\Models\PriceListItem;
 use Modules\Pharma\Models\SupplierTracking;
 use Modules\Pharma\Services\InventoryService;
 use Modules\Partner\Models\Partner;
@@ -277,7 +279,8 @@ final class InventoryController extends Controller
             ->whereDate('expiry_date','>=',now()->toDateString())
             ->orderBy('expiry_date')->orderBy('medicine_id')->get();
         $partners=Partner::query()->withPartnerType('customer')->where('status','active')->orderBy('name')->get(['id','name','tax_code']);
-        return view('Pharma::pages.inventory.issue-form',compact('warehouse','availableBalances','partners'));
+        $issueSalePrices=$this->issueSalePriceCandidates();
+        return view('Pharma::pages.inventory.issue-form',compact('warehouse','availableBalances','partners','issueSalePrices'));
     }
 
     public function receipts(Request $request, InventoryService $inventory): View
@@ -309,14 +312,19 @@ final class InventoryController extends Controller
     }
     public function storeIssue(Request $request, InventoryService $inventory): RedirectResponse
     {
-        $data=$request->validate(['issue_date'=>'required|date','recipient_name'=>'nullable|string|max:255','notes'=>'nullable|string','items'=>'required|array|min:1','items.*.balance_id'=>'required|exists:pharma_inventory_balances,id','items.*.quantity'=>'required|numeric|gt:0']);
+        $data=$request->validate([
+            'issue_date'=>'required|date','recipient_name'=>'nullable|string|max:255','recipient_partner_id'=>'nullable|integer|exists:partners,id',
+            'notes'=>'nullable|string','items'=>'required|array|min:1','items.*.balance_id'=>'required|exists:pharma_inventory_balances,id',
+            'items.*.quantity'=>'required|numeric|gt:0','items.*.unit_price'=>'required|numeric|min:0',
+        ]);
         $warehouse=$inventory->defaultWarehouse();
-        $costs=$this->activeSupplierCosts();
-        $items=collect($data['items'])->map(function(array $item) use ($warehouse,$costs): array {
+        if(!empty($data['recipient_partner_id'])){
+            $partner=Partner::query()->whereKey($data['recipient_partner_id'])->where('status','active')->firstOrFail();
+            $data['recipient_name']=$partner->name;
+        }
+        $items=collect($data['items'])->map(function(array $item) use ($warehouse): array {
             $balance=InventoryBalance::query()->where('warehouse_id',$warehouse->id)->whereKey($item['balance_id'])->where('quantity_on_hand','>',0)->firstOrFail();
-            $cost=$costs->get($balance->medicine_id);
-            if($cost?->average_cost_price === null) throw ValidationException::withMessages(['items'=>'Thuốc '.$balance->medicine_id.' chưa có giá vốn NCC đang hiệu lực.']);
-            return ['medicine_id'=>$balance->medicine_id,'batch_number'=>$balance->batch_number,'expiry_date'=>$balance->expiry_date->toDateString(),'quantity'=>$item['quantity'],'unit_price'=>(float)$cost->average_cost_price];
+            return ['medicine_id'=>$balance->medicine_id,'batch_number'=>$balance->batch_number,'expiry_date'=>$balance->expiry_date->toDateString(),'quantity'=>$item['quantity'],'unit_price'=>(float)$item['unit_price']];
         })->all();
         $issue=DB::transaction(function()use($data,$inventory,$items){
             $warehouse=$inventory->defaultWarehouse();
@@ -375,7 +383,7 @@ final class InventoryController extends Controller
             'Ma phieu'=>$issue->number,'Ngay xuat'=>$issue->issue_date->format('d/m/Y'),'Khach hang / noi nhan'=>$issue->recipient_name,
             'Trang thai'=>$issue->status,'Ma thuoc'=>$item->medicine->medicine_code,'Ten thuoc'=>$item->medicine->name,
             'So lo'=>$item->batch_number,'Han dung'=>$item->expiry_date->format('d/m/Y'),'So luong'=>(float)$item->quantity,
-            'Gia von'=>(float)$item->unit_price,'Thanh tien'=>(float)$item->quantity*(float)$item->unit_price,
+            'Don gia xuat'=>(float)$item->unit_price,'Thanh tien'=>(float)$item->quantity*(float)$item->unit_price,
         ]));
         return (new FastExcel($rows))->download('pharma-phieu-xuat-'.now()->format('Ymd-His').'.xlsx');
     }
@@ -388,6 +396,26 @@ final class InventoryController extends Controller
     }
 
     public function postIssue(InventoryIssue $issue, InventoryService $inventory): RedirectResponse { $inventory->postIssue($issue,auth('admin')->id()); return back()->with('success',"Đã ghi sổ {$issue->number}."); }
+
+    private function issueSalePriceCandidates()
+    {
+        return PriceListItem::query()
+            ->join('pharma_price_lists','pharma_price_lists.id','=','pharma_price_list_items.price_list_id')
+            ->where('pharma_price_lists.status',PriceList::STATUS_ACTIVE)
+            ->where('pharma_price_list_items.status','active')
+            ->whereIn('pharma_price_lists.type',[PriceList::TYPE_CUSTOMER,PriceList::TYPE_GLOBAL])
+            ->whereNotNull('pharma_price_list_items.medicine_id')
+            ->orderByDesc('pharma_price_lists.priority')
+            ->orderByDesc('pharma_price_lists.effective_from')
+            ->orderByDesc('pharma_price_lists.id')
+            ->get([
+                'pharma_price_list_items.medicine_id','pharma_price_list_items.company_sale_price',
+                'pharma_price_list_items.effective_from as item_effective_from','pharma_price_list_items.effective_to as item_effective_to',
+                'pharma_price_lists.id as price_list_id','pharma_price_lists.code as price_list_code','pharma_price_lists.name as price_list_name',
+                'pharma_price_lists.type as price_list_type','pharma_price_lists.partner_id','pharma_price_lists.priority',
+                'pharma_price_lists.effective_from as list_effective_from','pharma_price_lists.effective_to as list_effective_to',
+            ]);
+    }
 
     private function guardIssueWarehouse(InventoryIssue $issue, InventoryService $inventory): void
     {
