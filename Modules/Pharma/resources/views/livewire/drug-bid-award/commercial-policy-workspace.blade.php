@@ -174,7 +174,7 @@
     @endif
 
     <div class="mt-5 border-t border-slate-200 pt-5">
-        <details class="group">
+        <details class="group" @if($selectedPartnerId) open @endif>
         <summary class="cursor-pointer list-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
             <span class="text-sm font-bold text-slate-950">Điều chỉnh phân công theo bệnh viện</span>
             <span class="ml-2 text-xs font-normal text-slate-500">Ngoại lệ · mở khi cần thay/gỡ User tại một bệnh viện cụ thể</span>
