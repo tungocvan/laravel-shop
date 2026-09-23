@@ -66,7 +66,8 @@ class InventoryContractTest extends TestCase
         $index=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/index.blade.php'));
         $this->assertStringContainsString("route('admin.pharma.dashboard')", $index);
         $this->assertStringContainsString('Import tồn đầu kỳ', $index);
-        $this->assertStringContainsString('Export tồn kho', $index);
+        $this->assertStringContainsString('Export toàn bộ', $index);
+        $this->assertStringContainsString('Xuất Excel đã chọn', $index);
         $this->assertStringContainsString('expiry_warning', $index);
         $this->assertStringContainsString('Sắp hết hạn ·', $index);
         $this->assertStringContainsString('Giá vốn NCC TB', $index);
