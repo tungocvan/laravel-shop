@@ -2,12 +2,14 @@
 namespace Modules\Pharma\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\Response;
 use Modules\Pharma\Models\InventoryBalance;
 use Modules\Pharma\Models\InventoryIssue;
 use Modules\Pharma\Models\InventoryReceipt;
@@ -359,6 +361,21 @@ final class InventoryController extends Controller
         $this->guardIssueWarehouse($issue,$inventory);
         $issue->load(['items.medicine','priceList.manager']);
         return view('Pharma::pages.inventory.issue-show',compact('issue'));
+    }
+
+    public function issuePdf(InventoryIssue $issue, InventoryService $inventory): Response
+    {
+        $this->guardIssueWarehouse($issue,$inventory);
+        $issue->load(['items.medicine','priceList.manager']);
+        $pdf=Pdf::loadView('Pharma::pages.inventory.issue-pdf',compact('issue'))->setPaper('a4','portrait');
+        return $pdf->download("phieu-xuat-kho-{$issue->number}.pdf");
+    }
+
+    public function issuePrint(InventoryIssue $issue, InventoryService $inventory): View
+    {
+        $this->guardIssueWarehouse($issue,$inventory);
+        $issue->load(['items.medicine','priceList.manager']);
+        return view('Pharma::pages.inventory.issue-print',compact('issue'));
     }
 
     public function editIssue(InventoryIssue $issue, InventoryService $inventory): View
