@@ -39,11 +39,20 @@ final class InventoryController extends Controller
         return redirect()->route('admin.pharma.inventory.index')->with('success',"Đã tạo phiếu nhập {$receipt->number} ở trạng thái nháp.");
     }
     public function postReceipt(InventoryReceipt $receipt, InventoryService $inventory): RedirectResponse { $inventory->postReceipt($receipt,auth('admin')->id()); return back()->with('success',"Đã ghi sổ {$receipt->number}."); }
-    public function createIssue(InventoryService $inventory): View { return view('Pharma::pages.inventory.issue-form',['warehouse'=>$inventory->defaultWarehouse(),'medicines'=>$this->medicines()]); }
+    public function createIssue(InventoryService $inventory): View {
+        $warehouse=$inventory->defaultWarehouse();
+        $availableBalances=InventoryBalance::query()->with('medicine')->where('warehouse_id',$warehouse->id)->where('quantity_on_hand','>',0)->orderBy('expiry_date')->get();
+        return view('Pharma::pages.inventory.issue-form',compact('warehouse','availableBalances'));
+    }
     public function storeIssue(Request $request, InventoryService $inventory): RedirectResponse
     {
-        $data=$request->validate(['issue_date'=>'required|date','recipient_name'=>'nullable|string|max:255','notes'=>'nullable|string','items'=>'required|array|min:1','items.*.medicine_id'=>'required|exists:pharma_medicines,id','items.*.batch_number'=>'required|string|max:100','items.*.expiry_date'=>'required|date','items.*.quantity'=>'required|numeric|gt:0','items.*.unit_price'=>'nullable|numeric|min:0']);
-        $issue=DB::transaction(function()use($data,$inventory){$i=InventoryIssue::create(['warehouse_id'=>$inventory->defaultWarehouse()->id,'number'=>$this->number('PX'),'issue_date'=>$data['issue_date'],'recipient_name'=>$data['recipient_name']??null,'notes'=>$data['notes']??null,'created_by'=>auth('admin')->id()]);$i->items()->createMany($data['items']);return $i;});
+        $data=$request->validate(['issue_date'=>'required|date','recipient_name'=>'nullable|string|max:255','notes'=>'nullable|string','items'=>'required|array|min:1','items.*.balance_id'=>'required|exists:pharma_inventory_balances,id','items.*.quantity'=>'required|numeric|gt:0']);
+        $warehouse=$inventory->defaultWarehouse();
+        $items=collect($data['items'])->map(function(array $item) use ($warehouse): array {
+            $balance=InventoryBalance::query()->where('warehouse_id',$warehouse->id)->whereKey($item['balance_id'])->where('quantity_on_hand','>',0)->firstOrFail();
+            return ['medicine_id'=>$balance->medicine_id,'batch_number'=>$balance->batch_number,'expiry_date'=>$balance->expiry_date->toDateString(),'quantity'=>$item['quantity'],'unit_price'=>0];
+        })->all();
+        $issue=DB::transaction(function()use($data,$inventory,$items){$i=InventoryIssue::create(['warehouse_id'=>$inventory->defaultWarehouse()->id,'number'=>$this->number('PX'),'issue_date'=>$data['issue_date'],'recipient_name'=>$data['recipient_name']??null,'notes'=>$data['notes']??null,'created_by'=>auth('admin')->id()]);$i->items()->createMany($items);return $i;});
         return redirect()->route('admin.pharma.inventory.index')->with('success',"Đã tạo phiếu xuất {$issue->number} ở trạng thái nháp.");
     }
     public function postIssue(InventoryIssue $issue, InventoryService $inventory): RedirectResponse { $inventory->postIssue($issue,auth('admin')->id()); return back()->with('success',"Đã ghi sổ {$issue->number}."); }
