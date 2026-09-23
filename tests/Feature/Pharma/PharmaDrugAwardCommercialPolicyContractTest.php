@@ -51,7 +51,7 @@ class PharmaDrugAwardCommercialPolicyContractTest extends TestCase
         $this->assertStringContainsString('Bước 1', $view);
         $this->assertStringContainsString('Thiết lập chính sách theo sản phẩm', $view);
         $this->assertStringContainsString('Bước 2', $view);
-        $this->assertStringContainsString('Thiết lập User quản lý bệnh viện', $view);
+        $this->assertStringContainsString('Phân công User quản lý', $view);
         $this->assertStringContainsString('Áp dụng cho đã chọn', $view);
         $this->assertStringContainsString('không thực hiện tính hoa hồng', $view);
         $this->assertStringNotContainsString('Kích hoạt chính sách', $view);
