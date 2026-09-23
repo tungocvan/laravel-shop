@@ -42,7 +42,11 @@ class InventoryContractTest extends TestCase
 
         $this->assertNotEmpty($compiled);
         token_get_all($compiled, TOKEN_PARSE);
-        $this->addToAssertionCount(1);
+        foreach (['issue-form.blade.php','documents.blade.php'] as $file) {
+            $candidate=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/'.$file));
+            token_get_all(Blade::compileString($candidate), TOKEN_PARSE);
+        }
+        $this->addToAssertionCount(3);
     }
 
     public function test_inventory_admin_ui_and_permissions_follow_pharma_conventions(): void
@@ -132,5 +136,24 @@ class InventoryContractTest extends TestCase
         $searchSelect=file_get_contents(base_path('resources/views/components/select-search.blade.php'));
         $this->assertStringNotContainsString('@this.set(', $searchSelect);
         $this->assertStringContainsString('this.$wire.set(config.model, value, false);', $searchSelect);
+        $issueForm=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-form.blade.php'));
+        $documents=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/documents.blade.php'));
+        $this->assertStringContainsString("name('receipts.index')", $routes);
+        $this->assertStringContainsString("name('issues.index')", $routes);
+        $this->assertStringContainsString('function receipts(', $controller);
+        $this->assertStringContainsString('function issues(', $controller);
+        $this->assertStringContainsString("nextDocumentNumber(InventoryReceipt::class,'PN')", $controller);
+        $this->assertStringContainsString("nextDocumentNumber(InventoryIssue::class,'PX')", $controller);
+        $this->assertStringContainsString("lockForUpdate()", $controller);
+        $this->assertStringContainsString("format('ymd')", $controller);
+        $this->assertStringContainsString('Xác nhận ghi sổ', $index);
+        $this->assertStringNotContainsString("return confirm('Ghi sổ", $index);
+        $this->assertStringContainsString('Xem tất cả →', $index);
+        $this->assertStringContainsString('Tên thuốc / Mã thuốc', $issueForm);
+        $this->assertStringContainsString('Số lô · Hạn dùng · Tồn khả dụng', $issueForm);
+        $this->assertStringContainsString("placeholder:'Tìm mã hoặc tên thuốc...'", $issueForm);
+        $this->assertStringContainsString('Chọn lô còn tồn', $issueForm);
+        $this->assertStringContainsString('Xác nhận ghi sổ', $documents);
+        $this->assertStringContainsString('25 / trang', $documents);
     }
 }
