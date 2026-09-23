@@ -297,7 +297,9 @@ final class InventoryController extends Controller
     public function issues(Request $request, InventoryService $inventory): View
     {
         $warehouse=$inventory->defaultWarehouse();
-        $query=InventoryIssue::query()->withCount('items')->withSum('items','quantity')->where('warehouse_id',$warehouse->id)
+        $query=InventoryIssue::query()->withCount('items')
+            ->withSum(['items as total_value'=>fn($q)=>$q->select(DB::raw('COALESCE(SUM(quantity * unit_price),0)'))],'unit_price')
+            ->where('warehouse_id',$warehouse->id)
             ->when($request->filled('q'),fn($q)=>$q->where(fn($x)=>$x->where('number','like','%'.$request->q.'%')->orWhere('recipient_name','like','%'.$request->q.'%')))
             ->when(in_array($request->status,['draft','posted'],true),fn($q)=>$q->where('status',$request->status))
             ->latest('issue_date')->latest('id');
@@ -309,9 +311,12 @@ final class InventoryController extends Controller
     {
         $data=$request->validate(['issue_date'=>'required|date','recipient_name'=>'nullable|string|max:255','notes'=>'nullable|string','items'=>'required|array|min:1','items.*.balance_id'=>'required|exists:pharma_inventory_balances,id','items.*.quantity'=>'required|numeric|gt:0']);
         $warehouse=$inventory->defaultWarehouse();
-        $items=collect($data['items'])->map(function(array $item) use ($warehouse): array {
+        $costs=$this->activeSupplierCosts();
+        $items=collect($data['items'])->map(function(array $item) use ($warehouse,$costs): array {
             $balance=InventoryBalance::query()->where('warehouse_id',$warehouse->id)->whereKey($item['balance_id'])->where('quantity_on_hand','>',0)->firstOrFail();
-            return ['medicine_id'=>$balance->medicine_id,'batch_number'=>$balance->batch_number,'expiry_date'=>$balance->expiry_date->toDateString(),'quantity'=>$item['quantity'],'unit_price'=>0];
+            $cost=$costs->get($balance->medicine_id);
+            if($cost?->average_cost_price === null) throw ValidationException::withMessages(['items'=>'Thuốc '.$balance->medicine_id.' chưa có giá vốn NCC đang hiệu lực.']);
+            return ['medicine_id'=>$balance->medicine_id,'batch_number'=>$balance->batch_number,'expiry_date'=>$balance->expiry_date->toDateString(),'quantity'=>$item['quantity'],'unit_price'=>(float)$cost->average_cost_price];
         })->all();
         $issue=DB::transaction(function()use($data,$inventory,$items){
             $warehouse=$inventory->defaultWarehouse();
@@ -320,9 +325,74 @@ final class InventoryController extends Controller
             $i->items()->createMany($items);
             return $i;
         });
-        return redirect()->route('admin.pharma.inventory.index')->with('success',"Đã tạo phiếu xuất {$issue->number} ở trạng thái nháp.");
+        return redirect()->route('admin.pharma.inventory.issues.index')->with('success',"Đã tạo phiếu xuất {$issue->number} ở trạng thái nháp.");
     }
+    public function showIssue(InventoryIssue $issue, InventoryService $inventory): View
+    {
+        $this->guardIssueWarehouse($issue,$inventory);
+        $issue->load('items.medicine');
+        return view('Pharma::pages.inventory.issue-show',compact('issue'));
+    }
+
+    public function editIssue(InventoryIssue $issue, InventoryService $inventory): View
+    {
+        $this->guardIssueWarehouse($issue,$inventory);
+        $issue->load('items');
+        $partners=Partner::query()->withPartnerType('customer')->where('status','active')->orderBy('name')->get(['id','name','tax_code']);
+        return view('Pharma::pages.inventory.issue-edit',compact('issue','partners'));
+    }
+
+    public function updateIssue(Request $request, InventoryIssue $issue, InventoryService $inventory): RedirectResponse
+    {
+        $this->guardIssueWarehouse($issue,$inventory);
+        $metadata=$request->validate(['issue_date'=>'required|date','recipient_name'=>'nullable|string|max:255','notes'=>'nullable|string']);
+        if($issue->status===InventoryIssue::POSTED){
+            $issue->update($metadata);
+            return redirect()->route('admin.pharma.inventory.issues.index')->with('success',"Đã cập nhật thông tin {$issue->number}. Dữ liệu hàng hóa đã ghi sổ được giữ nguyên.");
+        }
+        return redirect()->route('admin.pharma.inventory.issues.edit',$issue)->withErrors(['items'=>'Phiếu nháp cần chỉnh hàng hóa tại màn hình lập phiếu; chức năng sửa chi tiết sẽ giữ nguyên kiểm soát lô tồn khả dụng.']);
+    }
+
+    public function destroyIssue(InventoryIssue $issue, InventoryService $inventory): RedirectResponse
+    {
+        $this->guardIssueWarehouse($issue,$inventory);
+        DB::transaction(function()use($issue){
+            $locked=InventoryIssue::query()->whereKey($issue->id)->lockForUpdate()->firstOrFail();
+            if($locked->status!==InventoryIssue::DRAFT) throw ValidationException::withMessages(['issue'=>'Chỉ phiếu xuất nháp mới được xóa.']);
+            $locked->items()->delete(); $locked->delete();
+        });
+        return redirect()->route('admin.pharma.inventory.issues.index')->with('success','Đã xóa phiếu xuất nháp.');
+    }
+
+    public function exportIssues(Request $request, InventoryService $inventory): StreamedResponse
+    {
+        $warehouse=$inventory->defaultWarehouse();
+        $issues=InventoryIssue::query()->with('items.medicine')->where('warehouse_id',$warehouse->id)
+            ->when($request->filled('q'),fn($q)=>$q->where(fn($x)=>$x->where('number','like','%'.$request->q.'%')->orWhere('recipient_name','like','%'.$request->q.'%')))
+            ->when(in_array($request->status,['draft','posted'],true),fn($q)=>$q->where('status',$request->status))
+            ->latest('issue_date')->latest('id')->get();
+        $rows=$issues->flatMap(fn(InventoryIssue $issue)=>$issue->items->map(fn($item)=>[
+            'Ma phieu'=>$issue->number,'Ngay xuat'=>$issue->issue_date->format('d/m/Y'),'Khach hang / noi nhan'=>$issue->recipient_name,
+            'Trang thai'=>$issue->status,'Ma thuoc'=>$item->medicine->medicine_code,'Ten thuoc'=>$item->medicine->name,
+            'So lo'=>$item->batch_number,'Han dung'=>$item->expiry_date->format('d/m/Y'),'So luong'=>(float)$item->quantity,
+            'Gia von'=>(float)$item->unit_price,'Thanh tien'=>(float)$item->quantity*(float)$item->unit_price,
+        ]));
+        return (new FastExcel($rows))->download('pharma-phieu-xuat-'.now()->format('Ymd-His').'.xlsx');
+    }
+
+    public function revertIssue(InventoryIssue $issue, InventoryService $inventory): RedirectResponse
+    {
+        $this->guardIssueWarehouse($issue,$inventory);
+        $inventory->revertIssue($issue,auth('admin')->id());
+        return redirect()->route('admin.pharma.inventory.issues.index')->with('success',"Đã hoàn tác ghi sổ {$issue->number}; hàng đã được cộng trả tồn kho và phiếu trở về nháp.");
+    }
+
     public function postIssue(InventoryIssue $issue, InventoryService $inventory): RedirectResponse { $inventory->postIssue($issue,auth('admin')->id()); return back()->with('success',"Đã ghi sổ {$issue->number}."); }
+
+    private function guardIssueWarehouse(InventoryIssue $issue, InventoryService $inventory): void
+    {
+        abort_unless((int)$issue->warehouse_id===(int)$inventory->defaultWarehouse()->id,404);
+    }
 
     private function guardReceiptWarehouse(InventoryReceipt $receipt, InventoryService $inventory): void
     {
