@@ -95,5 +95,11 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('Xóa bộ lọc', $index);
         $this->assertStringContainsString("href=\"{{ route('admin.pharma.inventory.index') }}\"", $index);
         $this->assertStringNotContainsString('>Lọc</button>', $index);
+        $this->assertStringContainsString('expiredInventoryValue', $controller);
+        $this->assertStringContainsString("get(['medicine_id','quantity_on_hand','expiry_date'])", $controller);
+        $this->assertStringContainsString("expiry_date->lt(now()->startOfDay())", $controller);
+        $this->assertStringContainsString('Giá trị hàng đã hết hạn', $index);
+        $this->assertStringContainsString('number_format($expiredInventoryValue', $index);
+        $this->assertStringContainsString('md:grid-cols-3', $index);
     }
 }
