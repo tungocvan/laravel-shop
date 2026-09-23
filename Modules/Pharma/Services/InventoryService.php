@@ -62,6 +62,6 @@ final class InventoryService
     private function lockedBalance(int $warehouseId,int $medicineId,string $batch,string $expiry): InventoryBalance
     {
         InventoryBalance::query()->firstOrCreate(['warehouse_id'=>$warehouseId,'medicine_id'=>$medicineId,'batch_number'=>$batch,'expiry_date'=>$expiry],['opening_quantity'=>0,'quantity_on_hand'=>0]);
-        return InventoryBalance::query()->where(compact('warehouseId'))->where('warehouse_id',$warehouseId)->where('medicine_id',$medicineId)->where('batch_number',$batch)->whereDate('expiry_date',$expiry)->lockForUpdate()->firstOrFail();
+        return InventoryBalance::query()->where('warehouse_id',$warehouseId)->where('medicine_id',$medicineId)->where('batch_number',$batch)->whereDate('expiry_date',$expiry)->lockForUpdate()->firstOrFail();
     }
 }
