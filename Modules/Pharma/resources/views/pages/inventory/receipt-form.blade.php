@@ -4,7 +4,7 @@
 <div class="mx-auto max-w-7xl space-y-6">
     <header>
         <a href="{{ route('admin.pharma.inventory.index') }}" class="text-sm font-semibold text-indigo-700">← Quay về Tồn kho</a>
-        <a href="{{ route('admin.pharma.dashboard') }}" class="ml-4 text-sm font-semibold text-slate-600">Pharma</a>
+        <a href="{{ route('admin.pharma.inventory.receipts.index') }}" class="ml-4 text-sm font-semibold text-slate-600">Danh sách phiếu nhập</a>
         <h1 class="mt-3 text-2xl font-bold text-slate-950">Lập phiếu nhập kho</h1>
         <p class="mt-1 text-sm text-slate-500">{{ $warehouse->name }} · Phiếu mới được lưu ở trạng thái DRAFT.</p>
     </header>
