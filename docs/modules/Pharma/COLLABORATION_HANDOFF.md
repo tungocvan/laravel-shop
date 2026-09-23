@@ -1,3 +1,26 @@
+## Checkpoint — Pharma Inventory MVP — 2026-09-23
+
+- Branch: `feat/pharma-inventory`, based on current `main`.
+- Scope is owned entirely by `Modules/Pharma`; no inventory Module outside Pharma is referenced.
+- Canonical product identity is `pharma_medicines.id`; UI displays Medicine Master `medicine_code`. No duplicate Pharma product master was introduced.
+- New route root: `/admin/pharma/inventory`, linked from Pharma Dashboard.
+- Persistence: warehouse, receipt/items, issue/items, batch/expiry balance and immutable movement ledger. Composite balance identity is warehouse + medicine + batch + expiry.
+- Default warehouse is materialized as `MAIN / Kho chính`; schema remains multi-warehouse-ready.
+- Opening balance is an explicit ledger movement and cannot be entered twice after the lot has stock activity.
+- Receipt/issue documents are created as DRAFT. Stock changes only when an edit-authorized operator posts the document.
+- Posting uses DB transactions + row locks. Issue posting rejects negative stock.
+- Issue UI only offers balances with positive stock and orders them by expiry date, supporting FEFO-oriented selection without forcing automatic allocation.
+- Receipt captures batch, expiry, quantity, unit price excluding VAT and VAT rate.
+- Permissions reuse existing `view_pharma`, `create_pharma`, `edit_pharma` conventions; no new permission namespace was invented.
+- Migration: `2026_09_23_110000_create_pharma_inventory_tables.php`; operator must run `php artisan migrate`.
+- Added focused contract test: `Modules/Pharma/Tests/Unit/InventoryContractTest.php`.
+- Automated PHP tests have NOT been run in the GitHub implementation environment; operator pull/migrate/focused test + Pharma module regression are the next gate.
+- Manual UI acceptance remains pending for inventory list, opening balance, receipt draft/post, issue draft/post and negative-stock validation.
+- Full-project regression: NOT APPLICABLE at this checkpoint; change is Module-scoped.
+- Status: **IMPLEMENTATION COMPLETE — OPERATOR MIGRATION / TEST / UI ACCEPTANCE PENDING.**
+
+---
+
 ## Checkpoint — Supplier commercial workspace + Drug Bid Award closeout — 2026-09-22
 
 - Branch: `feat/pharma-supplier-commercial-workspace`.

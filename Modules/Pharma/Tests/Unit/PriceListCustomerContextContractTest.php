@@ -25,5 +25,16 @@ class PriceListCustomerContextContractTest extends TestCase
         $this->assertStringContainsString("'purpose_id'", $priceList);
         $this->assertStringContainsString('function purpose()', $priceList);
         $this->assertStringContainsString('function manager()', $priceList);
+        $createComponent = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/Create.php'));
+        $createView = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/create.blade.php'));
+        $this->assertStringContainsString("'partnerId' => ['nullable', 'integer', 'exists:partners,id']", $createComponent);
+        $this->assertStringNotContainsString("CUSTOMER_SOURCE_PARTNER ? 'required' : 'nullable'", $createComponent);
+        $this->assertStringContainsString('Khách hàng <span class="text-xs font-normal text-slate-400">(không bắt buộc)</span>', $createView);
+        $this->assertStringContainsString('Để trống = bảng giá chung cho nhiều khách hàng', $createView);
+        $this->assertStringContainsString('Không chọn · áp dụng chung nhiều khách hàng', $createView);
+        $manager = file_get_contents(base_path('Modules/Pharma/Services/PriceListManager.php'));
+        $this->assertStringContainsString('if ($partnerId !== null)', $manager);
+        $this->assertStringContainsString('if ($officialFacilityId !== null', $manager);
+        $this->assertStringNotContainsString('if (! $officialFacilityId || ! OfficialSourceFacility::query()', $manager);
     }
 }

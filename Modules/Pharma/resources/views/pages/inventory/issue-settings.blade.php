@@ -1,0 +1,46 @@
+@extends('Admin::layouts.master')
+@section('title','Cấu hình phiếu xuất kho')
+@section('content')
+<div class="mx-auto max-w-6xl space-y-5">
+ <header class="flex flex-wrap items-end justify-between gap-3"><div><a href="{{ route('admin.pharma.inventory.issues.index') }}" class="text-sm font-semibold text-indigo-700">← Danh sách phiếu xuất</a><h1 class="mt-2 text-2xl font-bold text-slate-950">Cấu hình phiếu xuất kho</h1><p class="mt-1 text-sm text-slate-500">Thiết lập thông tin dùng chung cho màn xem, PDF A4 và bản in giao khách ký nhận.</p></div><span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">Áp dụng toàn bộ phiếu xuất</span></header>
+ @if(session('success'))<div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{{ session('success') }}</div>@endif
+ <form method="POST" action="{{ route('admin.pharma.inventory.issues.settings.update') }}" class="space-y-5">@csrf @method('PUT')
+  <section class="rounded-2xl border border-slate-200 bg-white shadow-sm"><div class="border-b border-slate-100 px-5 py-4"><h2 class="font-bold">Đơn vị xuất hàng</h2><p class="mt-1 text-xs text-slate-500">Thông tin đầu phiếu của đơn vị phát hành chứng từ.</p></div><div class="grid gap-4 p-5 md:grid-cols-2">
+   <label class="text-sm font-medium">Tên công ty / đơn vị<input name="organization_name" value="{{ old('organization_name',$settings->organization_name) }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"></label>
+   <label class="text-sm font-medium">Mã số thuế<input name="tax_code" value="{{ old('tax_code',$settings->tax_code) }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"></label>
+   <label class="text-sm font-medium md:col-span-2">Địa chỉ<input name="organization_address" value="{{ old('organization_address',$settings->organization_address) }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"></label>
+   <label class="text-sm font-medium">Điện thoại<input name="phone" value="{{ old('phone',$settings->phone) }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"></label>
+   <label class="text-sm font-medium">Tên kho<input name="warehouse_name" required value="{{ old('warehouse_name',$settings->warehouse_name) }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"></label>
+  </div></section>
+  <section class="rounded-2xl border border-slate-200 bg-white shadow-sm"><div class="border-b border-slate-100 px-5 py-4"><h2 class="font-bold">Nội dung chứng từ</h2><p class="mt-1 text-xs text-slate-500">Tiêu đề, chữ ký và nội dung cuối phiếu.</p></div><div class="grid gap-4 p-5 md:grid-cols-2">
+   <label class="text-sm font-medium">Tiêu đề phiếu<input name="document_title" required value="{{ old('document_title',$settings->document_title) }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm"></label>
+   <label class="text-sm font-medium">Dòng mô tả<input name="document_subtitle" value="{{ old('document_subtitle',$settings->document_subtitle) }}" placeholder="Ví dụ: Chứng từ giao nhận hàng hóa" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm"></label>
+   <label class="text-sm font-medium">Chữ ký 1<input name="issuer_label" required value="{{ old('issuer_label',$settings->issuer_label) }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm"></label>
+   <label class="text-sm font-medium">Chữ ký 2<input name="deliverer_label" required value="{{ old('deliverer_label',$settings->deliverer_label) }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm"></label>
+   <label class="text-sm font-medium">Chữ ký 3<input name="receiver_label" required value="{{ old('receiver_label',$settings->receiver_label) }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm"></label>
+   <label class="text-sm font-medium md:col-span-2">Ghi chú cuối phiếu<textarea name="footer_note" rows="3" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm">{{ old('footer_note',$settings->footer_note) }}</textarea></label>
+  </div></section>
+  <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+   <h2 class="font-bold">Thông tin hiển thị</h2>
+   <p class="mt-1 text-xs text-slate-500">Bật/tắt các thông tin thương mại trên View, PDF và Print.</p>
+   @php
+       $displayOptions = [
+           'show_price_list' => 'Bảng giá áp dụng',
+           'show_unit_price' => 'Đơn giá xuất',
+           'show_total_value' => 'Thành tiền / tổng giá trị',
+           'show_notes' => 'Ghi chú',
+       ];
+   @endphp
+   <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    @foreach($displayOptions as $field => $label)
+     <label class="flex items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm font-medium">
+      <input type="checkbox" name="{{ $field }}" value="1" @checked((bool) old($field, $settings->{$field})) class="h-4 w-4 rounded border-slate-300 text-indigo-600">
+      {{ $label }}
+     </label>
+    @endforeach
+   </div>
+  </section>
+  <div class="flex justify-end gap-3"><a href="{{ route('admin.pharma.inventory.issues.index') }}" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold">Hủy</a><button class="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white">Lưu cấu hình</button></div>
+ </form>
+</div>
+@endsection
