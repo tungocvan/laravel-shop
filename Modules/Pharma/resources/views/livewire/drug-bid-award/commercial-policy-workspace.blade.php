@@ -104,8 +104,7 @@
         <p class="mt-1 text-sm text-slate-500">Xem rõ User đang phụ trách, phạm vi bệnh viện/sản phẩm và thay hoặc gỡ phân công khi cần.</p>
     </div>
 
-    <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"><p class="text-xs font-semibold uppercase text-slate-500">Đã phân công</p><p class="mt-1 text-lg font-bold text-slate-950">{{ $assignmentSummary['assigned'] }}/{{ $assignmentSummary['total'] }}</p></div>
+    <div class="mt-4 grid gap-3 sm:grid-cols-3">
         <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"><p class="text-xs font-semibold uppercase text-slate-500">Số lượng Bệnh viện</p><p class="mt-1 text-lg font-bold text-slate-950">{{ $assignmentSummary['hospitals'] }}</p></div>
         <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"><p class="text-xs font-semibold uppercase text-slate-500">User quản lý</p><p class="mt-1 text-lg font-bold text-slate-950">{{ $assignmentSummary['users'] }}</p></div>
         <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"><p class="text-xs font-semibold uppercase text-slate-500">Trạng thái</p><p class="mt-1 text-sm font-bold {{ $assignmentSummary['total'] > 0 && $assignmentSummary['assigned'] >= $assignmentSummary['total'] ? 'text-emerald-700' : 'text-amber-700' }}">{{ $assignmentSummary['total'] > 0 && $assignmentSummary['assigned'] >= $assignmentSummary['total'] ? 'Đã phân công đầy đủ' : 'Còn phân công chưa thiết lập' }}</p></div>
@@ -126,7 +125,7 @@
                     <div>
                         <p class="font-bold text-slate-950">{{ $group['user']?->name ?: 'User #'.$group['user']?->id }}</p>
                         @if($group['user']?->email)<p class="mt-0.5 text-xs text-slate-500">{{ $group['user']->email }}</p>@endif
-                        <p class="mt-1 text-sm text-slate-600">{{ $group['assignments'] }} phân công · {{ $group['hospitals'] }} bệnh viện</p>
+                        <p class="mt-1 text-sm text-slate-600">{{ $group['products'] }} sản phẩm · {{ $group['hospitals'] }} bệnh viện</p>
                     </div>
                     @if($canManage && $group['user'])
                     <div class="flex flex-wrap gap-2">
@@ -145,16 +144,27 @@
 
     @if($canManage)
     <div class="mt-5 rounded-2xl border border-indigo-200 bg-indigo-50/60 p-4">
-        <p class="text-sm font-bold text-indigo-950">Phân công hàng loạt</p>
-        <p class="mt-1 text-sm text-indigo-800">Chọn User rồi gán cho toàn bộ các cặp Bệnh viện × Sản phẩm đang có phân bổ thực tế. Không tạo phân công giả cho sản phẩm chưa phân bổ.</p>
-        <div class="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end">
-            <label class="text-sm font-semibold text-slate-700">Tìm User
-                <input wire:model.live.debounce.300ms="userSearch" placeholder="Tên / email..." class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3">
-            </label>
+        <p class="text-sm font-bold text-indigo-950">Phân công User theo sản phẩm</p>
+        <p class="mt-1 text-sm text-indigo-800">Chọn một hoặc nhiều sản phẩm, sau đó gán User cho tất cả bệnh viện đang có phân bổ thực tế của các sản phẩm đó.</p>
+        <div class="mt-3 overflow-x-auto rounded-xl border border-indigo-100 bg-white">
+            <table class="w-full min-w-[720px] divide-y divide-slate-200 text-sm">
+                <thead class="bg-slate-50 text-xs uppercase text-slate-600"><tr><th class="w-12 px-3 py-3 text-left"><input type="checkbox" aria-label="Chọn tất cả sản phẩm để phân công User" @checked($products->isNotEmpty() && count($selectedManagementAwardIds) === $products->count()) wire:click="{{ count($selectedManagementAwardIds) === $products->count() && $products->isNotEmpty() ? 'clearAllManagement' : 'selectAllPoliciesForManagement' }}"></th><th class="px-3 py-3 text-left">Sản phẩm</th><th class="px-3 py-3 text-right">Số bệnh viện có phân bổ</th></tr></thead>
+                <tbody class="divide-y divide-slate-100">
+                @foreach($products as $product)
+                    <tr wire:key="commercial-bulk-manager-product-{{ $product->id }}">
+                        <td class="px-3 py-3"><input type="checkbox" wire:model.live="selectedManagementAwardIds" value="{{ $product->id }}"></td>
+                        <td class="px-3 py-3"><p class="font-semibold text-slate-950">{{ $product->medicine_name ?: '—' }}</p><p class="text-xs text-slate-500">{{ $product->medicine?->medicine_code ?? $product->canonicalMatch?->medicine?->medicine_code ?? 'Chưa có mã sản phẩm' }}</p></td>
+                        <td class="px-3 py-3 text-right font-semibold">{{ $product->allocations->pluck('partner_id')->unique()->count() }}</td>
+                    </tr>
+                @endforeach
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
             <div class="text-sm font-semibold text-slate-700">User quản lý
-                <div class="mt-1"><x-select-search id="commercial-policy-bulk-user" wire:model.live="selectedUserId" placeholder="Tìm và chọn User..."><option value="">Chọn User</option>@foreach($users as $user)<option value="{{ $user->id }}" @selected((int)$selectedUserId === $user->id)>{{ $user->name }}{{ $user->email ? ' · '.$user->email : '' }}</option>@endforeach</x-select-search></div>
+                <div class="mt-1"><x-select-search id="commercial-policy-product-user" wire:model.live="selectedUserId" placeholder="Tìm và chọn User..."><option value="">Chọn User</option>@foreach($users as $user)<option value="{{ $user->id }}" @selected((int)$selectedUserId === $user->id)>{{ $user->name }}{{ $user->email ? ' · '.$user->email : '' }}</option>@endforeach</x-select-search></div>
             </div>
-            <button type="button" wire:click="assignManagerToAll" wire:confirm="Gán User đã chọn cho toàn bộ Bệnh viện × Sản phẩm đang được phân bổ trong TBMT? Phân công hiện có sẽ được thay thế." @disabled(!$selectedUserId) class="min-h-11 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">Gán cho toàn bộ TBMT</button>
+            <button type="button" wire:click="assignManagerToSelectedProducts" wire:confirm="Gán User đã chọn cho tất cả bệnh viện có phân bổ thực tế của các sản phẩm đã chọn?" @disabled(!$selectedUserId || !count($selectedManagementAwardIds)) class="min-h-11 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">Gán User cho {{ count($selectedManagementAwardIds) }} sản phẩm đã chọn</button>
         </div>
     </div>
     @endif
