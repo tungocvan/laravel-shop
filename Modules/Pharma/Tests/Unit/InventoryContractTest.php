@@ -271,7 +271,14 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("'items'=>'required|array|min:1'", $controller);
         $this->assertStringContainsString("\$locked->items()->delete()", $controller);
         $this->assertStringContainsString("\$locked->items()->createMany(\$items)", $controller);
-        $this->assertStringContainsString('Lưu toàn bộ phiếu nháp', $edit);
+        $this->assertStringContainsString('Lưu phiếu nháp', $edit);
+        $this->assertStringContainsString('Lưu & xem phiếu', $edit);
+        $this->assertStringContainsString('Tóm tắt phiếu', $edit);
+        $this->assertStringContainsString('Tổng số lượng', $edit);
+        $this->assertStringContainsString('Tổng giá trị', $edit);
+        $this->assertStringContainsString('refreshSummary()', $edit);
+        $this->assertStringContainsString('⚠ Tồn sau xuất:', $edit);
+        $this->assertStringContainsString("\$request->input('after_save')==='view'", $controller);
         $this->assertStringContainsString('name="price_list_id"', $edit);
         $this->assertStringContainsString('Chi tiết hàng xuất', $edit);
         $this->assertStringContainsString('+ Thêm dòng', $edit);
