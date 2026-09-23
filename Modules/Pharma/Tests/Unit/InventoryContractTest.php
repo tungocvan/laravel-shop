@@ -177,6 +177,21 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('Tổng giá trị', $receiptShow);
         $this->assertStringContainsString('chỉ cập nhật thông tin chứng từ', $receiptEdit);
         $this->assertStringContainsString('Nhà cung cấp *', $receiptForm);
+        $service=file_get_contents(base_path('Modules/Pharma/Services/InventoryService.php'));
+        $moduleConfig=file_get_contents(base_path('Modules/Pharma/config/module.php'));
+        $this->assertStringContainsString("'delete_pharma'", $moduleConfig);
+        $this->assertStringContainsString("can:delete_pharma", $routes);
+        $this->assertStringContainsString("name('receipts.revert')", $routes);
+        $this->assertStringContainsString('function revertReceipt', $controller);
+        $this->assertStringContainsString('public function revertReceipt', $service);
+        $this->assertStringContainsString("whereIn('type',['receipt','receipt_reversal'])", $service);
+        $this->assertStringContainsString("havingRaw('SUM(quantity_delta) > 0')", $service);
+        $this->assertStringContainsString("'type'=>'receipt_reversal'", $service);
+        $this->assertStringContainsString("'status'=>InventoryReceipt::DRAFT,'posted_by'=>null,'posted_at'=>null", $service);
+        $this->assertStringContainsString('$balance->delete()', $service);
+        $this->assertStringContainsString("@can('delete_pharma')", $documents);
+        $this->assertStringContainsString('Hoàn tác ghi sổ', $documents);
+        $this->assertStringContainsString('Xác nhận hoàn tác', $documents);
         $this->assertLessThan(strpos($index,'Import / Export Excel'),strpos($index,'Phiếu nhập gần đây'));
     }
 }
