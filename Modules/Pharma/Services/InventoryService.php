@@ -39,8 +39,9 @@ final class InventoryService
             $postedMovements=InventoryTransaction::query()
                 ->where('source_type',InventoryReceipt::class)
                 ->where('source_id',$receipt->getKey())
-                ->where('type','receipt')
+                ->whereIn('type',['receipt','receipt_reversal'])
                 ->selectRaw('warehouse_id, medicine_id, batch_number, expiry_date, SUM(quantity_delta) as quantity_delta')
+                ->havingRaw('SUM(quantity_delta) > 0')
                 ->groupBy('warehouse_id','medicine_id','batch_number','expiry_date')
                 ->get();
 
