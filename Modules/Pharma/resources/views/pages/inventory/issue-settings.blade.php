@@ -20,7 +20,26 @@
    <label class="text-sm font-medium">Chữ ký 3<input name="receiver_label" required value="{{ old('receiver_label',$settings->receiver_label) }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm"></label>
    <label class="text-sm font-medium md:col-span-2">Ghi chú cuối phiếu<textarea name="footer_note" rows="3" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm">{{ old('footer_note',$settings->footer_note) }}</textarea></label>
   </div></section>
-  <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h2 class="font-bold">Thông tin hiển thị</h2><p class="mt-1 text-xs text-slate-500">Bật/tắt các thông tin thương mại trên View, PDF và Print.</p><div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">@foreach(['show_price_list'=>'Bảng giá áp dụng','show_unit_price'=>'Đơn giá xuất','show_total_value'=>'Thành tiền / tổng giá trị','show_notes'=>'Ghi chú'] as $field=>$label)<label class="flex items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm font-medium"><input type="checkbox" name="{{ $field }}" value="1" @checked(old($field,$settings->$field)) class="h-4 w-4 rounded border-slate-300 text-indigo-600"> {{ $label }}</label>@endforeach</div></section>
+  <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+   <h2 class="font-bold">Thông tin hiển thị</h2>
+   <p class="mt-1 text-xs text-slate-500">Bật/tắt các thông tin thương mại trên View, PDF và Print.</p>
+   @php
+       $displayOptions = [
+           'show_price_list' => 'Bảng giá áp dụng',
+           'show_unit_price' => 'Đơn giá xuất',
+           'show_total_value' => 'Thành tiền / tổng giá trị',
+           'show_notes' => 'Ghi chú',
+       ];
+   @endphp
+   <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    @foreach($displayOptions as $field => $label)
+     <label class="flex items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm font-medium">
+      <input type="checkbox" name="{{ $field }}" value="1" @checked((bool) old($field, $settings->{$field})) class="h-4 w-4 rounded border-slate-300 text-indigo-600">
+      {{ $label }}
+     </label>
+    @endforeach
+   </div>
+  </section>
   <div class="flex justify-end gap-3"><a href="{{ route('admin.pharma.inventory.issues.index') }}" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold">Hủy</a><button class="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white">Lưu cấu hình</button></div>
  </form>
 </div>
