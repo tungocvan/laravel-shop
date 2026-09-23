@@ -73,6 +73,7 @@ class PharmaDrugAwardCommercialPolicyContractTest extends TestCase
         $this->assertStringContainsString('unassignedProducts', $component);
         $this->assertStringContainsString('Tất cả sản phẩm đã được phân công User quản lý đầy đủ.', $view);
         $this->assertStringContainsString('Điều chỉnh phân công theo bệnh viện', $view);
+        $this->assertStringContainsString('<details class="group" @if($selectedPartnerId) open @endif>', $view);
         $this->assertStringContainsString('Chỉ sử dụng khi cần thay User quản lý cho một hoặc một số sản phẩm tại một bệnh viện cụ thể.', $view);
         $this->assertStringContainsString("{{ \$group['products'] }} sản phẩm · {{ \$group['hospitals'] }} bệnh viện", $view);
         $this->assertStringContainsString('assignManagerToProductAllocations', $service);
