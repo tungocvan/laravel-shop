@@ -28,6 +28,63 @@ final class InventoryService
         });
     }
 
+    public function revertReceipt(InventoryReceipt $receipt, ?int $userId): void
+    {
+        DB::transaction(function () use ($receipt,$userId): void {
+            $receipt=InventoryReceipt::query()->lockForUpdate()->findOrFail($receipt->getKey());
+            if ($receipt->status !== InventoryReceipt::POSTED) {
+                throw ValidationException::withMessages(['status'=>'Chỉ phiếu đã ghi sổ mới được hoàn tác.']);
+            }
+
+            $postedMovements=InventoryTransaction::query()
+                ->where('source_type',InventoryReceipt::class)
+                ->where('source_id',$receipt->getKey())
+                ->where('type','receipt')
+                ->selectRaw('warehouse_id, medicine_id, batch_number, expiry_date, SUM(quantity_delta) as quantity_delta')
+                ->groupBy('warehouse_id','medicine_id','batch_number','expiry_date')
+                ->get();
+
+            if ($postedMovements->isEmpty()) {
+                throw ValidationException::withMessages(['stock'=>'Không tìm thấy bút toán nhập kho của phiếu để hoàn tác.']);
+            }
+
+            foreach ($postedMovements as $movement) {
+                $expiry=$movement->expiry_date instanceof \DateTimeInterface
+                    ? $movement->expiry_date->format('Y-m-d')
+                    : (string)$movement->expiry_date;
+                $balance=InventoryBalance::query()
+                    ->where('warehouse_id',$movement->warehouse_id)
+                    ->where('medicine_id',$movement->medicine_id)
+                    ->where('batch_number',$movement->batch_number)
+                    ->whereDate('expiry_date',$expiry)
+                    ->lockForUpdate()->first();
+
+                $quantity=(float)$movement->quantity_delta;
+                if (! $balance || (float)$balance->quantity_on_hand < $quantity) {
+                    throw ValidationException::withMessages([
+                        'stock'=>"Không thể hoàn tác lô {$movement->batch_number}: tồn hiện tại không đủ để rút lại ".number_format($quantity,3,'.','').'.',
+                    ]);
+                }
+
+                $after=(float)$balance->quantity_on_hand-$quantity;
+                $balance->update(['quantity_on_hand'=>$after]);
+                InventoryTransaction::create([
+                    'warehouse_id'=>$movement->warehouse_id,'medicine_id'=>$movement->medicine_id,
+                    'batch_number'=>$movement->batch_number,'expiry_date'=>$expiry,'type'=>'receipt_reversal',
+                    'quantity_delta'=>-$quantity,'balance_after'=>$after,'source_type'=>InventoryReceipt::class,
+                    'source_id'=>$receipt->getKey(),'created_by'=>$userId,
+                    'notes'=>"Hoàn tác ghi sổ {$receipt->number}",
+                ]);
+
+                if ($after === 0.0 && (float)$balance->opening_quantity === 0.0) {
+                    $balance->delete();
+                }
+            }
+
+            $receipt->update(['status'=>InventoryReceipt::DRAFT,'posted_by'=>null,'posted_at'=>null]);
+        });
+    }
+
     public function postIssue(InventoryIssue $issue, ?int $userId): void
     {
         DB::transaction(function () use ($issue,$userId): void {
