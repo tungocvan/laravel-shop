@@ -34,6 +34,16 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('Sắp hết hạn', $view);
     }
 
+    public function test_inventory_index_blade_compiles_to_valid_php(): void
+    {
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/index.blade.php'));
+        $compiled = Blade::compileString($view);
+
+        $this->assertNotEmpty($compiled);
+        token_get_all('<?php '.$compiled, TOKEN_PARSE);
+        $this->addToAssertionCount(1);
+    }
+
     public function test_inventory_admin_ui_and_permissions_follow_pharma_conventions(): void
     {
         $routes=file_get_contents(base_path('Modules/Pharma/routes/web.php'));
