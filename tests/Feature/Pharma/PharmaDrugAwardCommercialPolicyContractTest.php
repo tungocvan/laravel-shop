@@ -59,22 +59,22 @@ class PharmaDrugAwardCommercialPolicyContractTest extends TestCase
         $this->assertStringNotContainsString('activationIssues', $component);
     }
 
-    public function test_workspace_supports_tbmt_wide_quick_manager_assignment_without_fake_allocations(): void
+    public function test_workspace_assigns_managers_by_selected_products_without_fake_allocations(): void
     {
         $component = file_get_contents(base_path('Modules/Pharma/Livewire/DrugBidAward/CommercialPolicyWorkspace.php'));
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/drug-bid-award/commercial-policy-workspace.blade.php'));
         $service = file_get_contents(base_path('Modules/Pharma/Services/DrugBidAwardCommercialPolicyService.php'));
 
-        $this->assertStringContainsString('assignManagerToAll', $component);
-        $this->assertStringContainsString('removeManagerFromAll', $component);
-        $this->assertStringContainsString('Phân công hàng loạt', $view);
-        $this->assertStringContainsString('Gán cho toàn bộ TBMT', $view);
-        $this->assertStringContainsString('User đang quản lý', $view);
-        $this->assertStringContainsString('Gỡ phân công', $view);
-        $this->assertStringContainsString('assignManagerToAllAllocations', $service);
-        $this->assertStringContainsString('removeManagerFromAllAllocations', $service);
+        $this->assertStringContainsString('assignManagerToSelectedProducts', $component);
+        $this->assertStringContainsString('selectAllPoliciesForManagement', $component);
+        $this->assertStringContainsString('Phân công User theo sản phẩm', $view);
+        $this->assertStringContainsString('Gán User cho {{ count($selectedManagementAwardIds) }} sản phẩm đã chọn', $view);
+        $this->assertStringContainsString('Số bệnh viện có phân bổ', $view);
+        $this->assertStringContainsString("{{ $group['products'] }} sản phẩm · {{ $group['hospitals'] }} bệnh viện", $view);
+        $this->assertStringContainsString('assignManagerToProductAllocations', $service);
         $this->assertStringContainsString("where('status', DrugBidAwardAllocation::STATUS_ACTIVE)", $service);
         $this->assertStringContainsString("get(['drug_bid_award_id', 'partner_id'])", $service);
+        $this->assertStringNotContainsString('Gán cho toàn bộ TBMT', $view);
     }
 
     public function test_workspace_supports_select_all_bulk_management_winning_price_and_excel_round_trip(): void
@@ -97,10 +97,9 @@ class PharmaDrugAwardCommercialPolicyContractTest extends TestCase
         $this->assertStringContainsString("with(['medicine','canonicalMatch.medicine','allocations'", $component);
         $this->assertStringContainsString("'assigned'=>\$assignmentRows->count()", $component);
         $this->assertStringContainsString("'total'=>\$activeAllocationCount", $component);
-        $this->assertStringContainsString('Đã phân công', $view);
         $this->assertStringContainsString('Đã phân công đầy đủ', $view);
         $this->assertStringContainsString('Số lượng Bệnh viện', $view);
-        $this->assertStringContainsString('<x-select-search id="commercial-policy-bulk-user" wire:model.live="selectedUserId"', $view);
+        $this->assertStringContainsString('<x-select-search id="commercial-policy-product-user" wire:model.live="selectedUserId"', $view);
         $this->assertStringContainsString('<x-select-search id="commercial-policy-hospital-user" wire:model.live="selectedUserId"', $view);
         $this->assertStringContainsString('Đơn giá trúng', $view);
         $this->assertStringContainsString('Sản phẩm / Mã sản phẩm', $view);
