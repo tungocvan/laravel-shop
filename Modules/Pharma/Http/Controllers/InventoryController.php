@@ -14,6 +14,7 @@ use Modules\Pharma\Models\InventoryReceipt;
 use Modules\Pharma\Models\Medicine;
 use Modules\Pharma\Models\SupplierTracking;
 use Modules\Pharma\Services\InventoryService;
+use Modules\Partner\Models\Partner;
 use Rap2hpoutre\FastExcel\FastExcel;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -184,7 +185,15 @@ final class InventoryController extends Controller
         $inventory->setOpeningBalance($inventory->defaultWarehouse()->id,(int)$data['medicine_id'],$data['batch_number'],$data['expiry_date'],(float)$data['quantity'],auth('admin')->id());
         return redirect()->route('admin.pharma.inventory.index')->with('success','Đã ghi nhận tồn đầu kỳ.');
     }
-    public function createReceipt(InventoryService $inventory): View { return view('Pharma::pages.inventory.receipt-form',['warehouse'=>$inventory->defaultWarehouse(),'medicines'=>$this->medicines()]); }
+    public function createReceipt(InventoryService $inventory): View
+    {
+        $partners=Partner::query()->withPartnerType('supplier')->where('status','active')->orderBy('name')->get(['id','name','tax_code']);
+        return view('Pharma::pages.inventory.receipt-form',[
+            'warehouse'=>$inventory->defaultWarehouse(),
+            'medicines'=>$this->medicines(),
+            'partners'=>$partners,
+        ]);
+    }
     public function storeReceipt(Request $request, InventoryService $inventory): RedirectResponse
     {
         $data=$request->validate(['receipt_date'=>'required|date','supplier_name'=>'nullable|string|max:255','invoice_number'=>'nullable|string|max:100','invoice_date'=>'nullable|date','notes'=>'nullable|string','items'=>'required|array|min:1','items.*.medicine_id'=>'required|exists:pharma_medicines,id','items.*.batch_number'=>'required|string|max:100','items.*.expiry_date'=>'required|date','items.*.quantity'=>'required|numeric|gt:0','items.*.unit_price_ex_vat'=>'required|numeric|min:0','items.*.vat_rate'=>'nullable|numeric|min:0|max:100']);
