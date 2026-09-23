@@ -260,4 +260,28 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('m-auto w-[calc(100%-2rem)] max-w-lg', $index);
         $this->assertLessThan(strpos($index,'Import / Export Excel'),strpos($index,'Phiếu nhập gần đây'));
     }
+
+    public function test_issue_draft_editor_and_delivery_document_contracts(): void
+    {
+        $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
+        $edit=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-edit.blade.php'));
+        $show=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-show.blade.php'));
+
+        $this->assertStringContainsString("['items.medicine','priceList.manager']", $controller);
+        $this->assertStringContainsString("'items'=>'required|array|min:1'", $controller);
+        $this->assertStringContainsString("\$locked->items()->delete()", $controller);
+        $this->assertStringContainsString("\$locked->items()->createMany(\$items)", $controller);
+        $this->assertStringContainsString('Lưu toàn bộ phiếu nháp', $edit);
+        $this->assertStringContainsString('name="price_list_id"', $edit);
+        $this->assertStringContainsString('Chi tiết hàng xuất', $edit);
+        $this->assertStringContainsString('+ Thêm dòng', $edit);
+        $this->assertStringContainsString("@section('admin_container','full')", $show);
+        $this->assertStringContainsString('Đơn giá xuất', $show);
+        $this->assertStringContainsString('Bảng giá áp dụng', $show);
+        $this->assertStringContainsString('Người lập phiếu', $show);
+        $this->assertStringContainsString('Người giao hàng', $show);
+        $this->assertStringContainsString('Người nhận hàng', $show);
+        $this->assertStringNotContainsString('Giá vốn', $show);
+    }
+
 }
