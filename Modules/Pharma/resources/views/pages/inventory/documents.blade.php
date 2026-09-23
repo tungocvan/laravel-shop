@@ -33,7 +33,7 @@
                     <tr>
                         <th class="px-4 py-3">Mã phiếu</th><th class="px-4 py-3">Ngày</th>
                         <th class="px-4 py-3">{{ $type === 'receipt' ? 'Nhà cung cấp' : 'Nơi nhận' }}</th>
-                        <th class="px-4 py-3 text-right">Mặt hàng</th><th class="px-4 py-3 text-right">Tổng SL</th>
+                        <th class="px-4 py-3 text-right">Mặt hàng</th><th class="px-4 py-3 text-right">{{ $type === 'receipt' ? 'Tổng giá trị' : 'Tổng SL' }}</th>
                         <th class="px-4 py-3">Trạng thái</th><th class="px-4 py-3 text-right">Thao tác</th>
                     </tr>
                 </thead>
@@ -49,20 +49,29 @@
                             <td class="px-4 py-4">{{ $date->format('d/m/Y') }}</td>
                             <td class="px-4 py-4">{{ $party ?: '—' }}</td>
                             <td class="px-4 py-4 text-right">{{ $doc->items_count }}</td>
-                            <td class="px-4 py-4 text-right font-semibold">{{ number_format((float)$doc->items_sum_quantity,0,',','.') }}</td>
+                            <td class="px-4 py-4 text-right font-semibold">{{ $type === 'receipt' ? number_format((float)$doc->total_value,0,',','.').' đ' : number_format((float)$doc->items_sum_quantity,0,',','.') }}</td>
                             <td class="px-4 py-4">
                                 <span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $doc->status === 'posted' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }}">
                                     {{ $doc->status === 'posted' ? 'Đã ghi sổ' : 'Nháp' }}
                                 </span>
                             </td>
                             <td class="px-4 py-4 text-right">
-                                @can('edit_pharma')
-                                    @if($doc->status === 'draft')
-                                        <button type="button" onclick="document.getElementById('post-{{ $type }}-{{ $doc->id }}').showModal()" class="text-xs font-semibold text-emerald-700">Ghi sổ</button>
+                                <div class="flex flex-wrap justify-end gap-2">
+                                    @if($type === 'receipt')
+                                        <a href="{{ route('admin.pharma.inventory.receipts.show',$doc) }}" class="text-xs font-semibold text-slate-700">Xem</a>
+                                        @can('edit_pharma')
+                                            <a href="{{ route('admin.pharma.inventory.receipts.edit',$doc) }}" class="text-xs font-semibold text-indigo-700">{{ $doc->status === 'draft' ? 'Sửa' : 'Cập nhật' }}</a>
+                                            @if($doc->status === 'draft')
+                                                <button type="button" onclick="document.getElementById('post-{{ $type }}-{{ $doc->id }}').showModal()" class="text-xs font-semibold text-emerald-700">Ghi sổ</button>
+                                                <button type="button" onclick="document.getElementById('delete-receipt-{{ $doc->id }}').showModal()" class="text-xs font-semibold text-rose-700">Xóa</button>
+                                            @endif
+                                        @endcan
                                     @else
-                                        <span class="text-xs text-slate-400">Hoàn tất</span>
+                                        @can('edit_pharma')
+                                            @if($doc->status === 'draft')<button type="button" onclick="document.getElementById('post-{{ $type }}-{{ $doc->id }}').showModal()" class="text-xs font-semibold text-emerald-700">Ghi sổ</button>@else<span class="text-xs text-slate-400">Hoàn tất</span>@endif
+                                        @endcan
                                     @endif
-                                @endcan
+                                </div>
                             </td>
                         </tr>
                         @if($doc->status === 'draft')
@@ -76,6 +85,15 @@
                                         <button type="button" onclick="this.closest('dialog').close()" class="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold">Hủy</button>
                                         <button class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white">Xác nhận ghi sổ</button>
                                     </div>
+                                </form>
+                            </dialog>
+                        @endif
+                        @if($type === 'receipt' && $doc->status === 'draft')
+                            <dialog id="delete-receipt-{{ $doc->id }}" class="w-full max-w-md rounded-2xl p-0 shadow-2xl backdrop:bg-slate-950/40">
+                                <form method="POST" action="{{ route('admin.pharma.inventory.receipts.destroy',$doc) }}" class="p-6">@csrf @method('DELETE')
+                                    <h3 class="text-lg font-bold text-rose-700">Xóa phiếu nháp {{ $doc->number }}?</h3>
+                                    <p class="mt-2 text-sm text-slate-600">Phiếu và toàn bộ chi tiết hàng hóa nháp sẽ bị xóa. Thao tác này không ảnh hưởng tồn kho vì phiếu chưa ghi sổ.</p>
+                                    <div class="mt-6 flex justify-end gap-2"><button type="button" onclick="this.closest('dialog').close()" class="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold">Hủy</button><button class="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white">Xác nhận xóa</button></div>
                                 </form>
                             </dialog>
                         @endif
