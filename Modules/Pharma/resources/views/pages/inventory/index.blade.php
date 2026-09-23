@@ -60,7 +60,7 @@
         </div>
     </section>
 
-    <form method="GET" class="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
+    <form method="GET" class="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[minmax(240px,1fr)_auto_auto_auto_auto_auto]">
         <input name="q" value="{{ request('q') }}" placeholder="Tìm mã thuốc / tên thuốc" class="min-h-11 rounded-xl border border-slate-300 px-3 text-sm">
         <select name="expiry_warning" class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm">
             <option value="">Tất cả cảnh báo</option>
@@ -69,6 +69,16 @@
             <option value="lt3" @selected(request('expiry_warning') === 'lt3')>Còn dưới 3 tháng</option>
             <option value="lt6" @selected(request('expiry_warning') === 'lt6')>Còn dưới 6 tháng</option>
             <option value="safe" @selected(request('expiry_warning') === 'safe')>Không cảnh báo (≥ 6 tháng)</option>
+        </select>
+        <select name="cost_status" class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm">
+            <option value="">Tất cả giá vốn</option>
+            <option value="priced" @selected(request('cost_status') === 'priced')>Đã có giá vốn</option>
+            <option value="unpriced" @selected(request('cost_status') === 'unpriced')>Chưa có giá vốn</option>
+        </select>
+        <select name="value_sort" class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm">
+            <option value="">Sắp xếp mặc định</option>
+            <option value="value_desc" @selected(request('value_sort') === 'value_desc')>Giá trị tồn: lớn nhất</option>
+            <option value="value_asc" @selected(request('value_sort') === 'value_asc')>Giá trị tồn: nhỏ nhất</option>
         </select>
         <label class="flex min-h-11 items-center gap-2 rounded-xl border border-slate-300 px-3 text-sm">
             <input type="checkbox" name="in_stock" value="1" @checked(request('in_stock'))> Chỉ còn tồn
@@ -96,8 +106,8 @@
                             </td>
                             <td class="px-4 py-4 font-mono">{{ $row->batch_number }}</td>
                             <td class="px-4 py-4">{{ $row->expiry_date->format('d/m/Y') }}</td>
-                            <td class="px-4 py-4 text-right">{{ number_format((float) $row->opening_quantity, 3, ',', '.') }}</td>
-                            <td class="px-4 py-4 text-right font-bold">{{ number_format((float) $row->quantity_on_hand, 3, ',', '.') }}</td>
+                            <td class="px-4 py-4 text-right">{{ number_format((float) $row->opening_quantity, 0, ',', '.') }}</td>
+                            <td class="px-4 py-4 text-right font-bold">{{ number_format((float) $row->quantity_on_hand, 0, ',', '.') }}</td>
                             <td class="px-4 py-4 text-right">
                                 @if($row->average_cost_price !== null)
                                     <div class="font-semibold">{{ number_format($row->average_cost_price, 0, ',', '.') }} đ</div>
