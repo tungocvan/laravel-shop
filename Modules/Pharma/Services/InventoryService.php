@@ -19,7 +19,7 @@ final class InventoryService
     public function postReceipt(InventoryReceipt $receipt, ?int $userId): void
     {
         DB::transaction(function () use ($receipt,$userId): void {
-            $receipt->lockForUpdate()->first();
+            $receipt=InventoryReceipt::query()->lockForUpdate()->findOrFail($receipt->getKey());
             if ($receipt->status !== InventoryReceipt::DRAFT) throw ValidationException::withMessages(['status'=>'Chỉ phiếu nháp mới được ghi sổ.']);
             $receipt->load('items');
             if ($receipt->items->isEmpty()) throw ValidationException::withMessages(['items'=>'Phiếu nhập phải có ít nhất một dòng.']);
@@ -31,7 +31,7 @@ final class InventoryService
     public function postIssue(InventoryIssue $issue, ?int $userId): void
     {
         DB::transaction(function () use ($issue,$userId): void {
-            $issue->lockForUpdate()->first();
+            $issue=InventoryIssue::query()->lockForUpdate()->findOrFail($issue->getKey());
             if ($issue->status !== InventoryIssue::DRAFT) throw ValidationException::withMessages(['status'=>'Chỉ phiếu nháp mới được ghi sổ.']);
             $issue->load('items');
             if ($issue->items->isEmpty()) throw ValidationException::withMessages(['items'=>'Phiếu xuất phải có ít nhất một dòng.']);
