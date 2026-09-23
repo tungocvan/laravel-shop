@@ -101,9 +101,11 @@ final class InventoryController extends Controller
             DB::table('pharma_inventory_transactions')->where('warehouse_id',$balance->warehouse_id)->where('medicine_id',$balance->medicine_id)
                 ->where('batch_number',$oldBatch)->whereDate('expiry_date',$oldExpiry)
                 ->update(['batch_number'=>$data['batch_number'],'expiry_date'=>$data['expiry_date'],'updated_at'=>now()]);
-            DB::table('pharma_inventory_receipt_items')->where('medicine_id',$balance->medicine_id)->where('batch_number',$oldBatch)->whereDate('expiry_date',$oldExpiry)
+            DB::table('pharma_inventory_receipt_items')->whereIn('receipt_id',DB::table('pharma_inventory_receipts')->select('id')->where('warehouse_id',$balance->warehouse_id))
+                ->where('medicine_id',$balance->medicine_id)->where('batch_number',$oldBatch)->whereDate('expiry_date',$oldExpiry)
                 ->update(['batch_number'=>$data['batch_number'],'expiry_date'=>$data['expiry_date'],'updated_at'=>now()]);
-            DB::table('pharma_inventory_issue_items')->where('medicine_id',$balance->medicine_id)->where('batch_number',$oldBatch)->whereDate('expiry_date',$oldExpiry)
+            DB::table('pharma_inventory_issue_items')->whereIn('issue_id',DB::table('pharma_inventory_issues')->select('id')->where('warehouse_id',$balance->warehouse_id))
+                ->where('medicine_id',$balance->medicine_id)->where('batch_number',$oldBatch)->whereDate('expiry_date',$oldExpiry)
                 ->update(['batch_number'=>$data['batch_number'],'expiry_date'=>$data['expiry_date'],'updated_at'=>now()]);
             $balance->update(['batch_number'=>$data['batch_number'],'expiry_date'=>$data['expiry_date']]);
         });
