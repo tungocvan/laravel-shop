@@ -42,11 +42,11 @@ class InventoryContractTest extends TestCase
 
         $this->assertNotEmpty($compiled);
         token_get_all($compiled, TOKEN_PARSE);
-        foreach (['issue-form.blade.php','documents.blade.php','receipt-show.blade.php','receipt-edit.blade.php'] as $file) {
+        foreach (['issue-form.blade.php','documents.blade.php','receipt-show.blade.php','receipt-edit.blade.php','issue-show.blade.php','issue-edit.blade.php'] as $file) {
             $candidate=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/'.$file));
             token_get_all(Blade::compileString($candidate), TOKEN_PARSE);
         }
-        $this->addToAssertionCount(5);
+        $this->addToAssertionCount(7);
     }
 
     public function test_inventory_admin_ui_and_permissions_follow_pharma_conventions(): void
@@ -157,6 +157,25 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("onChange:(value)=>fillLots(row,value)", $issueForm);
         $this->assertStringContainsString("medicineSelect.addEventListener('change'", $issueForm);
         $this->assertStringContainsString('Không còn lô khả dụng', $issueForm);
+        $issueShow=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-show.blade.php'));
+        $issueEdit=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-edit.blade.php'));
+        $this->assertStringContainsString("redirect()->route('admin.pharma.inventory.issues.index')", $controller);
+        $this->assertStringContainsString("name('issues.show')", $routes);
+        $this->assertStringContainsString("name('issues.edit')", $routes);
+        $this->assertStringContainsString("name('issues.update')", $routes);
+        $this->assertStringContainsString("name('issues.destroy')", $routes);
+        $this->assertStringContainsString("name('issues.revert')", $routes);
+        $this->assertStringContainsString("name('issues.export')", $routes);
+        $this->assertStringContainsString('function exportIssues', $controller);
+        $this->assertStringContainsString("'unit_price'=>(float)\$cost->average_cost_price", $controller);
+        $this->assertStringContainsString('public function revertIssue', $service);
+        $this->assertStringContainsString("'type'=>'issue_reversal'", $service);
+        $this->assertStringContainsString('Tổng giá trị', $documents);
+        $this->assertStringNotContainsString('Tổng SL', $documents);
+        $this->assertStringContainsString('Export Excel', $documents);
+        $this->assertStringContainsString('Thành tiền', $issueShow);
+        $this->assertStringContainsString('Tổng giá trị', $issueShow);
+        $this->assertStringContainsString('<x-select-search id="issue-edit-recipient"', $issueEdit);
         $this->assertStringContainsString("placeholder:'Tìm mã hoặc tên thuốc...'", $issueForm);
         $this->assertStringContainsString('Chọn lô còn tồn', $issueForm);
         $this->assertStringContainsString('Xác nhận ghi sổ', $documents);
