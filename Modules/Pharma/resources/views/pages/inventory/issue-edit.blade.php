@@ -6,10 +6,18 @@
     $priceListManagers=$customerPriceLists->pluck('manager')->filter()->unique('id')->sortBy('name')->values();
     $selectedPriceList=$issue->priceList;
     $selectedManagerId=$selectedPriceList?->manager_user_id;
-    $initialItems=$issue->items->map(fn($item)=>[
-        'medicine_id'=>$item->medicine_id,'batch_number'=>$item->batch_number,'expiry_date'=>$item->expiry_date->format('Y-m-d'),
-        'quantity'=>(float)$item->quantity,'unit_price'=>(float)$item->unit_price,
-    ])->values();
+    $initialItems=$issue->items->map(function ($item) {
+        return [
+            'medicine_id'=>$item->medicine_id,'batch_number'=>$item->batch_number,'expiry_date'=>$item->expiry_date->format('Y-m-d'),
+            'quantity'=>(float)$item->quantity,'unit_price'=>(float)$item->unit_price,
+        ];
+    })->values();
+    $balanceOptions=$availableBalances->map(function ($balance) {
+        return ['id'=>$balance->id,'medicine_id'=>$balance->medicine_id,'batch'=>$balance->batch_number,'expiry'=>$balance->expiry_date->format('Y-m-d'),'quantity'=>(float)$balance->quantity_on_hand];
+    })->values();
+    $medicineOptions=$availableBalances->pluck('medicine')->unique('id')->values()->map(function ($medicine) {
+        return ['id'=>$medicine->id,'text'=>$medicine->medicine_code.' — '.$medicine->name];
+    })->values();
 @endphp
 <div class="w-full space-y-5">
     <div class="flex flex-wrap items-start justify-between gap-3">
@@ -19,7 +27,7 @@
     <form method="POST" action="{{ route('admin.pharma.inventory.issues.update',$issue) }}" class="space-y-5">@csrf @method('PUT')
         <section class="grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 md:grid-cols-2 xl:grid-cols-4">
             <label class="text-sm font-medium">Ngày xuất<input id="issue-date" type="date" name="issue_date" value="{{ old('issue_date',$issue->issue_date->format('Y-m-d')) }}" required class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3"></label>
-            <label class="text-sm font-medium">Khách hàng / nơi nhận<select id="recipient" name="recipient_partner_id" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3"><option value="">Chọn khách hàng</option>@foreach($partners as $partner)<option value="{{ $partner->id }}" @selected($issue->recipient_name===$partner->name)>{{ $partner->name }}</option>@endforeach</select><input type="hidden" name="recipient_name" value="{{ $issue->recipient_name }}"></label>
+            <label class="text-sm font-medium">Khách hàng / nơi nhận<x-select-search id="issue-edit-recipient" name="recipient_partner_id" placeholder="Tìm khách hàng / nơi nhận..."><option value="">Chọn khách hàng</option>@foreach($partners as $partner)<option value="{{ $partner->id }}" @selected($issue->recipient_name===$partner->name)>{{ $partner->name }}{{ $partner->tax_code ? ' · MST '.$partner->tax_code : '' }}</option>@endforeach</x-select-search><input type="hidden" name="recipient_name" value="{{ $issue->recipient_name }}"></label>
             <label class="text-sm font-medium">Người phụ trách<select id="manager" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3"><option value="">Chọn người phụ trách</option>@foreach($priceListManagers as $manager)<option value="{{ $manager->id }}" @selected((string)$selectedManagerId===(string)$manager->id)>{{ $manager->name }}</option>@endforeach</select></label>
             <label class="text-sm font-medium">Bảng giá xuất <span class="text-rose-600">*</span><select id="price-list" name="price_list_id" required class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3">@foreach($customerPriceLists as $list)<option value="{{ $list->id }}" data-manager="{{ $list->manager_user_id }}" @selected($issue->price_list_id===$list->id)>{{ $list->code }} — {{ $list->name }}</option>@endforeach</select><span class="mt-1 block text-xs text-slate-500">Chỉ bảng giá CUSTOMER đang hoạt động.</span></label>
         </section>
@@ -33,8 +41,8 @@
 </div>
 <script>
 document.addEventListener('DOMContentLoaded',()=>{
-const balances=@json($availableBalances->map(fn($b)=>['id'=>$b->id,'medicine_id'=>$b->medicine_id,'batch'=>$b->batch_number,'expiry'=>$b->expiry_date->format('Y-m-d'),'quantity'=>(float)$b->quantity_on_hand])->values());
-const medicines=@json($availableBalances->pluck('medicine')->unique('id')->values()->map(fn($m)=>['id'=>$m->id,'text'=>$m->medicine_code.' — '.$m->name])->values());
+const balances=@json($balanceOptions);
+const medicines=@json($medicineOptions);
 const initial=@json($initialItems); let index=0; const rows=document.getElementById('rows');
 function addRow(item={}){const tr=document.createElement('tr');tr.className='border-t align-top';const meds=medicines.map(m=>`<option value="${m.id}" ${String(m.id)===String(item.medicine_id||'')?'selected':''}>${m.text}</option>`).join('');tr.innerHTML=`<td class="p-3"><select class="medicine min-h-11 w-full rounded-xl border px-3"><option value="">Chọn thuốc</option>${meds}</select></td><td class="p-3"><select class="lot min-h-11 w-full rounded-xl border px-3"></select></td><td class="stock p-3 text-right font-semibold">—</td><td class="p-3"><input name="items[${index}][quantity]" value="${item.quantity??''}" type="number" step="0.001" min="0.001" required class="qty min-h-11 w-full rounded-xl border px-3 text-right"><p class="warn mt-1 hidden text-xs font-semibold text-rose-600"></p></td><td class="p-3"><input name="items[${index}][unit_price]" value="${item.unit_price??0}" type="number" min="0" step="0.01" required class="price min-h-11 w-full rounded-xl border px-3 text-right"></td><td class="total p-3 text-right font-bold">0 đ</td><td class="p-3 text-right"><button type="button" class="remove text-sm font-semibold text-rose-600">Xóa</button></td>`;rows.appendChild(tr);index++;fillLots(tr,item);tr.querySelector('.medicine').addEventListener('change',()=>fillLots(tr,{}));tr.querySelector('.lot').addEventListener('change',()=>update(tr));tr.querySelector('.qty').addEventListener('input',()=>update(tr));tr.querySelector('.price').addEventListener('input',()=>update(tr));tr.querySelector('.remove').addEventListener('click',()=>tr.remove());}
 function fillLots(tr,item){const medicine=tr.querySelector('.medicine').value;const lots=balances.filter(b=>String(b.medicine_id)===String(medicine));const select=tr.querySelector('.lot');select.innerHTML='<option value="">Chọn lô</option>'+lots.map(b=>`<option value="${b.id}" ${b.batch===item.batch_number&&b.expiry===item.expiry_date?'selected':''}>${b.batch} · HSD ${b.expiry} · tồn ${b.quantity}</option>`).join('');select.name=`items[${[...rows.children].indexOf(tr)}][balance_id]`;update(tr);}
