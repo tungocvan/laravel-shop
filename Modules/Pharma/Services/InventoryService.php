@@ -98,6 +98,34 @@ final class InventoryService
         });
     }
 
+    public function revertIssue(InventoryIssue $issue, ?int $userId): void
+    {
+        DB::transaction(function () use ($issue,$userId): void {
+            $issue=InventoryIssue::query()->lockForUpdate()->findOrFail($issue->getKey());
+            if ($issue->status !== InventoryIssue::POSTED) throw ValidationException::withMessages(['status'=>'Chỉ phiếu xuất đã ghi sổ mới được hoàn tác.']);
+            $movements=InventoryTransaction::query()
+                ->where('source_type',InventoryIssue::class)->where('source_id',$issue->getKey())
+                ->whereIn('type',['issue','issue_reversal'])
+                ->selectRaw('warehouse_id, medicine_id, batch_number, expiry_date, SUM(quantity_delta) as quantity_delta')
+                ->groupBy('warehouse_id','medicine_id','batch_number','expiry_date')
+                ->havingRaw('SUM(quantity_delta) < 0')->get();
+            if($movements->isEmpty()) throw ValidationException::withMessages(['stock'=>'Không tìm thấy bút toán xuất kho của phiếu để hoàn tác.']);
+            foreach($movements as $movement){
+                $expiry=$movement->expiry_date instanceof \DateTimeInterface ? $movement->expiry_date->format('Y-m-d') : (string)$movement->expiry_date;
+                $quantity=abs((float)$movement->quantity_delta);
+                $balance=$this->lockedBalance((int)$movement->warehouse_id,(int)$movement->medicine_id,(string)$movement->batch_number,$expiry);
+                $after=(float)$balance->quantity_on_hand+$quantity;
+                $balance->update(['quantity_on_hand'=>$after]);
+                InventoryTransaction::create([
+                    'warehouse_id'=>$movement->warehouse_id,'medicine_id'=>$movement->medicine_id,'batch_number'=>$movement->batch_number,
+                    'expiry_date'=>$expiry,'type'=>'issue_reversal','quantity_delta'=>$quantity,'balance_after'=>$after,
+                    'source_type'=>InventoryIssue::class,'source_id'=>$issue->getKey(),'created_by'=>$userId,'notes'=>"Hoàn tác ghi sổ {$issue->number}",
+                ]);
+            }
+            $issue->update(['status'=>InventoryIssue::DRAFT,'posted_by'=>null,'posted_at'=>null]);
+        });
+    }
+
     public function setOpeningBalance(int $warehouseId,int $medicineId,string $batch,string $expiry,float $quantity,?int $userId): void
     {
         DB::transaction(function () use ($warehouseId,$medicineId,$batch,$expiry,$quantity,$userId): void {
