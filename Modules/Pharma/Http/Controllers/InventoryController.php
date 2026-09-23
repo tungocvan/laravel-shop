@@ -14,7 +14,7 @@ use Modules\Pharma\Models\InventoryReceipt;
 use Modules\Pharma\Models\Medicine;
 use Modules\Pharma\Services\InventoryService;
 use Rap2hpoutre\FastExcel\FastExcel;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class InventoryController extends Controller
 {
@@ -30,7 +30,7 @@ final class InventoryController extends Controller
         return view('Pharma::pages.inventory.index',compact('warehouse','balances','receipts','issues'));
     }
 
-    public function template(): BinaryFileResponse
+    public function template(): StreamedResponse
     {
         $rows=collect([
             ['Ma thuoc'=>'MED-000001','So lo'=>'LO-001','Han dung'=>'31/12/2027','Ton dau ky'=>100],
@@ -38,7 +38,7 @@ final class InventoryController extends Controller
         return (new FastExcel($rows))->download('pharma-ton-dau-ky-mau.xlsx');
     }
 
-    public function export(InventoryService $inventory): BinaryFileResponse
+    public function export(InventoryService $inventory): StreamedResponse
     {
         $warehouse=$inventory->defaultWarehouse();
         $rows=InventoryBalance::query()->with('medicine')->where('warehouse_id',$warehouse->id)->orderBy('expiry_date')->get()
