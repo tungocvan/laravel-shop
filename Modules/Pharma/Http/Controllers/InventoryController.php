@@ -577,6 +577,7 @@ final class InventoryController extends Controller
         DB::transaction(function()use($issue){
             $locked=InventoryIssue::query()->whereKey($issue->id)->lockForUpdate()->firstOrFail();
             if($locked->status!==InventoryIssue::DRAFT) throw ValidationException::withMessages(['issue'=>'Chỉ phiếu xuất nháp mới được xóa.']);
+            if(InventoryIssueCommission::query()->where('issue_id',$locked->id)->exists()) throw ValidationException::withMessages(['issue'=>'Phiếu đã từng ghi sổ và phát sinh nhật ký hoa hồng; chỉ được hoàn tác, không được xóa để bảo toàn lịch sử kiểm toán.']);
             $locked->items()->delete(); $locked->delete();
         });
         return redirect()->route('admin.pharma.inventory.issues.index')->with('success','Đã xóa phiếu xuất nháp.');
