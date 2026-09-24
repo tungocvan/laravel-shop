@@ -478,6 +478,12 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('Duyệt & ghi sổ', $bidEdit);
         $this->assertStringContainsString('FEFO là gợi ý ưu tiên', $bidEdit);
         $this->assertStringContainsString('+ Thêm sản phẩm trúng thầu', $bidEdit);
+        $this->assertStringContainsString('Sản phẩm trong phiếu', $bidEdit);
+        $this->assertStringContainsString('bid-product-count', $bidEdit);
+        $this->assertStringContainsString('bid-pending-products', $bidEdit);
+        $this->assertStringContainsString('Mới thêm', $bidEdit);
+        $this->assertStringContainsString('Chờ lưu nháp', $bidEdit);
+        $this->assertStringContainsString("panel.classList.add('hidden')", $bidEdit);
         $this->assertStringContainsString('Tìm sản phẩm trúng thầu', $bidEdit);
         $this->assertStringContainsString("name='add_allocations[]'", str_replace('"', "'", $bidEdit));
         $this->assertStringContainsString('add_quantities[', $bidEdit);
