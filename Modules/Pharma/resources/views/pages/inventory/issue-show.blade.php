@@ -20,9 +20,9 @@ $signatures=collect([
   <div class="border-b border-slate-100 px-5 py-4"><h2 class="font-bold text-slate-900">Thông tin chứng từ</h2><p class="mt-0.5 text-xs text-slate-500">Thông tin giao hàng và chính sách giá tại thời điểm lập phiếu.</p></div>
   <div class="grid gap-px bg-slate-100 md:grid-cols-4">
    <div class="bg-white p-5"><p class="text-[11px] font-bold uppercase tracking-wide text-slate-400">Số phiếu</p><p class="mt-2 font-mono font-bold">{{ $issue->number }}</p></div>
-   <div class="bg-white p-5"><p class="text-[11px] font-bold uppercase tracking-wide text-slate-400">Ngày xuất</p><p class="mt-2 font-bold">{{ $issue->issue_date->format('d/m/Y') }}</p></div>
-   <div class="bg-white p-5"><p class="text-[11px] font-bold uppercase tracking-wide text-slate-400">Trạng thái</p><p class="mt-2 font-bold">{{ $issue->status==='posted'?'Đã ghi sổ':'Nháp' }}</p>@if($issue->posted_at)<p class="mt-1 text-xs text-slate-500">{{ $issue->posted_at->format('d/m/Y H:i') }}</p>@endif</div>
-   <div class="bg-white p-5"><p class="text-[11px] font-bold uppercase tracking-wide text-slate-400">Kho xuất</p><p class="mt-2 font-bold">{{ $settings->warehouse_name }}</p></div>
+   <div class="bg-white p-5"><p class="text-[11px] font-bold uppercase tracking-wide text-slate-400">Ngày lên đơn</p><p class="mt-2 font-bold">{{ $issue->issue_date->format('d/m/Y') }}</p></div>
+   <div class="bg-white p-5"><p class="text-[11px] font-bold uppercase tracking-wide text-slate-400">Trạng thái</p><p class="mt-2 font-bold">{{ $issue->status==='posted'?'Đã ghi sổ':'Nháp' }}</p></div>
+   <div class="bg-white p-5"><p class="text-[11px] font-bold uppercase tracking-wide text-slate-400">{{ $issue->posted_at ? 'Ngày ghi sổ' : 'Kho xuất' }}</p><p class="mt-2 font-bold">{{ $issue->posted_at ? $issue->posted_at->format('d/m/Y H:i') : $settings->warehouse_name }}</p>@if($issue->posted_at)<p class="mt-1 text-xs text-slate-500">{{ $settings->warehouse_name }}</p>@endif</div>
   </div>
   <div class="grid gap-4 border-t border-slate-100 bg-slate-50/70 p-5 md:grid-cols-4">
    <div><p class="text-[11px] font-bold uppercase text-slate-400">Khách hàng / nơi nhận</p><p class="mt-1 font-semibold">{{ $issue->recipient_name ?: 'Chưa xác định' }}</p></div>
