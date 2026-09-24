@@ -1,4 +1,4 @@
-@extends('adminlte::page')
+@extends('Admin::layouts.master')
 @section('title','Cấu hình phiếu nhập kho')
 @section('content')
 <div class="mx-auto max-w-6xl space-y-5 py-4">
