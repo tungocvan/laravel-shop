@@ -1,20 +1,21 @@
 @extends('Admin::layouts.master')
 @section('title', $title)
+@section('admin_container','full')
 @section('content')
-<div class="mx-auto max-w-7xl space-y-5">
-    <header class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+<div class="mx-auto w-full max-w-[1580px] space-y-6">
+    <header class="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
             <a href="{{ route('admin.pharma.inventory.index') }}" class="text-sm font-semibold text-indigo-700">← Quay về Tồn kho</a>
             <h1 class="mt-2 text-2xl font-bold text-slate-950">{{ $title }}</h1>
             <p class="mt-1 text-sm text-slate-500">Tra cứu chứng từ, trạng thái và ghi sổ phiếu nháp.</p>
         </div>
-        <div class="flex gap-2">
+        <div class="flex flex-wrap gap-2">
             @if($type === 'issue')@can('edit_pharma')<a href="{{ route('admin.pharma.inventory.issues.settings') }}" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">⚙ Cấu hình phiếu xuất</a>@endcan<a href="{{ route('admin.pharma.inventory.issues.export',request()->only(['q','status'])) }}" class="rounded-xl border border-emerald-300 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-700">Export Excel</a>@endif
             <a href="{{ route($type === 'receipt' ? 'admin.pharma.inventory.receipts.create' : 'admin.pharma.inventory.issues.create') }}" class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white">+ {{ $type === 'receipt' ? 'Lập phiếu nhập' : 'Lập phiếu xuất' }}</a>
         </div>
     </header>
 
-    <form method="GET" class="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 md:grid-cols-[1fr_auto_auto_auto]">
+    <form method="GET" class="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[minmax(260px,1fr)_auto_auto_auto]">
         <input name="q" value="{{ request('q') }}" placeholder="{{ $type === 'receipt' ? 'Tìm mã phiếu / nhà cung cấp' : 'Tìm mã phiếu / nơi nhận' }}" class="min-h-11 rounded-xl border border-slate-300 px-3 text-sm">
         <select name="status" onchange="this.form.submit()" class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm">
             <option value="">Tất cả trạng thái</option>
@@ -29,13 +30,13 @@
 
     <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div class="overflow-x-auto">
-            <table class="min-w-[900px] w-full text-left text-sm">
+            <table class="{{ $type === 'issue' ? 'min-w-[1120px]' : 'min-w-[900px]' }} w-full table-fixed text-left text-sm">
                 <thead class="bg-slate-50 text-xs uppercase text-slate-600">
                     <tr>
-                        <th class="px-4 py-3">Mã phiếu</th><th class="px-4 py-3">Ngày</th>
-                        <th class="px-4 py-3">{{ $type === 'receipt' ? 'Nhà cung cấp' : 'Nơi nhận' }}</th>
-                        <th class="px-4 py-3 text-right">Mặt hàng</th><th class="px-4 py-3 text-right">Tổng giá trị</th>
-                        <th class="px-4 py-3">Trạng thái</th><th class="px-4 py-3 text-right">Thao tác</th>
+                        <th class="w-[180px] px-4 py-3">Mã phiếu</th><th class="w-[110px] px-4 py-3">Ngày</th>
+                        <th class="px-4 py-3">{{ $type === 'receipt' ? 'Nhà cung cấp' : 'Khách hàng / Nơi nhận' }}</th>
+                        <th class="w-[100px] px-4 py-3 text-right">Mặt hàng</th><th class="w-[160px] px-4 py-3 text-right">Tổng giá trị</th>
+                        <th class="w-[125px] px-4 py-3">Trạng thái</th><th class="{{ $type === 'issue' ? 'w-[150px]' : 'w-[230px]' }} px-4 py-3 text-right">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -45,10 +46,10 @@
                             $party=$type === 'receipt' ? $doc->supplier_name : $doc->recipient_name;
                             $postRoute=$type === 'receipt' ? route('admin.pharma.inventory.receipts.post',$doc) : route('admin.pharma.inventory.issues.post',$doc);
                         @endphp
-                        <tr>
-                            <td class="px-4 py-4 font-mono font-bold text-indigo-700">{{ $doc->number }}</td>
-                            <td class="px-4 py-4">{{ $date->format('d/m/Y') }}</td>
-                            <td class="px-4 py-4">{{ $party ?: '—' }}</td>
+                        <tr class="transition hover:bg-slate-50/70">
+                            <td class="whitespace-nowrap px-4 py-4 font-mono font-bold text-indigo-700">{{ $doc->number }}</td>
+                            <td class="whitespace-nowrap px-4 py-4 text-slate-600">{{ $date->format('d/m/Y') }}</td>
+                            <td class="px-4 py-4"><div class="truncate font-semibold text-slate-800" title="{{ $party ?: '—' }}">{{ $party ?: '—' }}</div>@if($type === 'issue' && $doc->priceList?->manager)<div class="mt-1 truncate text-xs text-slate-500">{{ $doc->priceList->manager->name }}</div>@endif</td>
                             <td class="px-4 py-4 text-right">{{ $doc->items_count }}</td>
                             <td class="px-4 py-4 text-right font-semibold">{{ number_format((float)$doc->total_value,0,',','.').' đ' }}</td>
                             <td class="px-4 py-4">
@@ -74,15 +75,23 @@
                                             @endif
                                         @endcan
                                     @else
-                                        <a href="{{ route('admin.pharma.inventory.issues.show',$doc) }}" class="text-xs font-semibold text-slate-700">Xem</a>
-                                        @can('edit_pharma')
-                                            <a href="{{ route('admin.pharma.inventory.issues.edit',$doc) }}" class="text-xs font-semibold text-indigo-700">{{ $doc->status === 'draft' ? 'Sửa' : 'Cập nhật' }}</a>
-                                            @if($doc->status === 'draft')<button type="button" onclick="document.getElementById('post-{{ $type }}-{{ $doc->id }}').showModal()" class="text-xs font-semibold text-emerald-700">Ghi sổ</button>@endif
-                                        @endcan
-                                        @can('delete_pharma')
-                                            @if($doc->status === 'draft')<button type="button" onclick="document.getElementById('delete-issue-{{ $doc->id }}').showModal()" class="text-xs font-semibold text-rose-700">Xóa</button>
-                                            @elseif($doc->status === 'posted')<button type="button" onclick="document.getElementById('revert-issue-{{ $doc->id }}').showModal()" class="text-xs font-semibold text-amber-700">Hoàn tác ghi sổ</button>@endif
-                                        @endcan
+                                        <a href="{{ route('admin.pharma.inventory.issues.show',$doc) }}" class="inline-flex min-h-9 items-center rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50">Xem</a>
+                                        <details class="relative">
+                                            <summary class="flex min-h-9 cursor-pointer list-none items-center rounded-lg border border-slate-300 bg-white px-3 text-base font-bold leading-none text-slate-600 hover:bg-slate-50" aria-label="Thao tác khác">⋯</summary>
+                                            <div class="absolute right-0 z-20 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-left shadow-xl">
+                                                @can('edit_pharma')
+                                                    <a href="{{ route('admin.pharma.inventory.issues.edit',$doc) }}" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">{{ $doc->status === 'draft' ? 'Sửa phiếu' : 'Cập nhật phiếu' }}</a>
+                                                    @if($doc->status === 'draft')<button type="button" onclick="this.closest('details').removeAttribute('open'); document.getElementById('post-{{ $type }}-{{ $doc->id }}').showModal()" class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-emerald-700 hover:bg-emerald-50">Ghi sổ</button>@endif
+                                                @endcan
+                                                <a href="{{ route('admin.pharma.inventory.issues.pdf',$doc) }}" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Tải PDF</a>
+                                                <a href="{{ route('admin.pharma.inventory.issues.print',$doc) }}" target="_blank" rel="noopener" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">In trực tiếp</a>
+                                                @can('delete_pharma')
+                                                    <div class="my-1 border-t border-slate-100"></div>
+                                                    @if($doc->status === 'draft')<button type="button" onclick="this.closest('details').removeAttribute('open'); document.getElementById('delete-issue-{{ $doc->id }}').showModal()" class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-rose-700 hover:bg-rose-50">Xóa phiếu</button>
+                                                    @elseif($doc->status === 'posted')<button type="button" onclick="this.closest('details').removeAttribute('open'); document.getElementById('revert-issue-{{ $doc->id }}').showModal()" class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-amber-700 hover:bg-amber-50">Hoàn tác ghi sổ</button>@endif
+                                                @endcan
+                                            </div>
+                                        </details>
                                     @endif
                                 </div>
                             </td>
