@@ -42,8 +42,8 @@ final class InventoryMovementSummaryService
             ->selectRaw('COALESCE(pre.opening_quantity,0)+COALESCE(mov.net_quantity,0) as period_closing')
             ->orderBy('m.name')->orderBy('b.expiry_date');
 
-        $allRows=(clone $query)->get();
-        $rows=$perPage ? $query->paginate($perPage)->withQueryString() : $allRows;
+        $allRows=(clone $rows)->get();
+        $rows=$perPage ? $rows->paginate($perPage)->withQueryString() : $allRows;
         $visibleRows=$rows instanceof LengthAwarePaginator ? $rows->getCollection() : $rows;
 
         $costs=$this->effectiveCosts($allRows);
