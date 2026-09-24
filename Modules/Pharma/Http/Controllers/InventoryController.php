@@ -42,8 +42,8 @@ final class InventoryController extends Controller
             ->with('medicine')
             ->leftJoinSub($costSubquery,'supplier_costs',fn($join)=>$join->on('supplier_costs.medicine_id','=','pharma_inventory_balances.medicine_id'))
             ->select('pharma_inventory_balances.*')
-            ->selectRaw('supplier_costs.average_cost_price as query_average_cost_price')
-            ->selectRaw('(pharma_inventory_balances.quantity_on_hand * supplier_costs.average_cost_price) as inventory_value')
+            ->selectRaw('COALESCE(pharma_inventory_balances.manual_cost_price, supplier_costs.average_cost_price) as query_average_cost_price')
+            ->selectRaw('(pharma_inventory_balances.quantity_on_hand * COALESCE(pharma_inventory_balances.manual_cost_price, supplier_costs.average_cost_price)) as inventory_value')
             ->where('pharma_inventory_balances.warehouse_id',$warehouse->id)
             ->when($request->filled('q'),fn($q)=>$q->whereHas('medicine',fn($m)=>$m->where('medicine_code','like','%'.$request->q.'%')->orWhere('name','like','%'.$request->q.'%')))
             ->when($request->boolean('in_stock'),fn($q)=>$q->where('pharma_inventory_balances.quantity_on_hand','>',0));
@@ -55,20 +55,25 @@ final class InventoryController extends Controller
         $balances=$query->paginate($perPage)->withQueryString();
         $balances->getCollection()->each(function(InventoryBalance $row)use($costs){
             $cost=$costs->get($row->medicine_id);
-            $row->setAttribute('average_cost_price',$cost?->average_cost_price !== null ? (float)$cost->average_cost_price : null);
+            $supplierAverage=$cost?->average_cost_price !== null ? (float)$cost->average_cost_price : null;
+            $manual=$row->manual_cost_price !== null ? (float)$row->manual_cost_price : null;
+            $row->setAttribute('average_cost_price',$manual ?? $supplierAverage);
+            $row->setAttribute('cost_source',$manual !== null ? 'manual' : ($supplierAverage !== null ? 'supplier' : 'unpriced'));
             $row->setAttribute('supplier_cost_count',(int)($cost?->supplier_cost_count ?? 0));
         });
-        $allBalances=InventoryBalance::query()->where('warehouse_id',$warehouse->id)->where('quantity_on_hand','>',0)->get(['medicine_id','quantity_on_hand','expiry_date']);
+        $allBalances=InventoryBalance::query()->where('warehouse_id',$warehouse->id)->where('quantity_on_hand','>',0)->get(['medicine_id','quantity_on_hand','expiry_date','manual_cost_price']);
         $totalInventoryValue=$allBalances->sum(function(InventoryBalance $row)use($costs){
             $cost=$costs->get($row->medicine_id);
-            return $cost?->average_cost_price === null ? 0 : (float)$row->quantity_on_hand*(float)$cost->average_cost_price;
+            $effective=$row->manual_cost_price !== null ? (float)$row->manual_cost_price : ($cost?->average_cost_price !== null ? (float)$cost->average_cost_price : null);
+            return $effective === null ? 0 : (float)$row->quantity_on_hand*$effective;
         });
-        $unpricedBalanceCount=$allBalances->filter(fn(InventoryBalance $row)=>!$costs->has($row->medicine_id))->count();
+        $unpricedBalanceCount=$allBalances->filter(fn(InventoryBalance $row)=>$row->manual_cost_price === null && $costs->get($row->medicine_id)?->average_cost_price === null)->count();
         $expiredBalances=$allBalances->filter(fn(InventoryBalance $row)=>$row->expiry_date->lt(now()->startOfDay()));
         $expiredBalanceCount=$expiredBalances->count();
         $expiredInventoryValue=$expiredBalances->sum(function(InventoryBalance $row)use($costs){
             $cost=$costs->get($row->medicine_id);
-            return $cost?->average_cost_price === null ? 0 : (float)$row->quantity_on_hand*(float)$cost->average_cost_price;
+            $effective=$row->manual_cost_price !== null ? (float)$row->manual_cost_price : ($cost?->average_cost_price !== null ? (float)$cost->average_cost_price : null);
+            return $effective === null ? 0 : (float)$row->quantity_on_hand*$effective;
         });
         return view('Pharma::pages.inventory.index',compact('warehouse','balances','totalInventoryValue','unpricedBalanceCount','expiredInventoryValue','expiredBalanceCount'));
     }
@@ -138,7 +143,13 @@ final class InventoryController extends Controller
     {
         $warehouse=$inventory->defaultWarehouse();
         abort_unless((int)$balance->warehouse_id===(int)$warehouse->id,404);
-        $data=$request->validate(['batch_number'=>'required|string|max:100','expiry_date'=>'required|date']);
+        $data=$request->validate([
+            'batch_number'=>'required|string|max:100',
+            'expiry_date'=>'required|date',
+            'cost_mode'=>'required|in:supplier,manual',
+            'manual_cost_price'=>'nullable|required_if:cost_mode,manual|numeric|min:0|max:9999999999999999.99',
+            'cost_adjustment_reason'=>'nullable|required_if:cost_mode,manual|string|max:500',
+        ]);
         $duplicate=InventoryBalance::query()->where('warehouse_id',$balance->warehouse_id)->where('medicine_id',$balance->medicine_id)
             ->where('batch_number',$data['batch_number'])->whereDate('expiry_date',$data['expiry_date'])->whereKeyNot($balance->id)->exists();
         if($duplicate) throw ValidationException::withMessages(['batch_number'=>'Số lô và hạn dùng này đã tồn tại cho thuốc.']);
@@ -155,9 +166,27 @@ final class InventoryController extends Controller
             DB::table('pharma_inventory_issue_items')->whereIn('issue_id',DB::table('pharma_inventory_issues')->select('id')->where('warehouse_id',$balance->warehouse_id))
                 ->where('medicine_id',$balance->medicine_id)->where('batch_number',$oldBatch)->whereDate('expiry_date',$oldExpiry)
                 ->update(['batch_number'=>$data['batch_number'],'expiry_date'=>$data['expiry_date'],'updated_at'=>now()]);
-            $balance->update(['batch_number'=>$data['batch_number'],'expiry_date'=>$data['expiry_date']]);
+            $oldManual=$balance->manual_cost_price !== null ? (float)$balance->manual_cost_price : null;
+            $newManual=$data['cost_mode']==='manual' ? (float)$data['manual_cost_price'] : null;
+            $costChanged=$oldManual !== $newManual;
+            $balance->update([
+                'batch_number'=>$data['batch_number'],
+                'expiry_date'=>$data['expiry_date'],
+                'manual_cost_price'=>$newManual,
+            ]);
+            if($costChanged){
+                DB::table('pharma_inventory_cost_adjustments')->insert([
+                    'inventory_balance_id'=>$balance->id,
+                    'old_manual_cost_price'=>$oldManual,
+                    'new_manual_cost_price'=>$newManual,
+                    'reason'=>trim((string)($data['cost_adjustment_reason'] ?? ($newManual === null ? 'Chuyển về giá vốn NCC tự động.' : 'Điều chỉnh giá vốn thủ công.'))),
+                    'adjusted_by'=>auth('admin')->id(),
+                    'created_at'=>now(),
+                    'updated_at'=>now(),
+                ]);
+            }
         });
-        return back()->with('success','Đã cập nhật số lô và hạn dùng, đồng bộ lịch sử kho liên quan.');
+        return back()->with('success','Đã cập nhật thông tin lô và giá vốn. Số lượng tồn không thay đổi.');
     }
 
     public function destroyBalance(InventoryBalance $balance, InventoryService $inventory): RedirectResponse
@@ -982,8 +1011,8 @@ final class InventoryController extends Controller
     private function applyCostFilter($query,string $status): void
     {
         match($status){
-            'priced'=>$query->whereNotNull('supplier_costs.average_cost_price'),
-            'unpriced'=>$query->whereNull('supplier_costs.average_cost_price'),
+            'priced'=>$query->where(fn($q)=>$q->whereNotNull('pharma_inventory_balances.manual_cost_price')->orWhereNotNull('supplier_costs.average_cost_price')),
+            'unpriced'=>$query->whereNull('pharma_inventory_balances.manual_cost_price')->whereNull('supplier_costs.average_cost_price'),
             default=>null,
         };
     }
