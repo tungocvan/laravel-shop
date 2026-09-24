@@ -434,6 +434,8 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('days_remaining', $controller);
         $this->assertStringContainsString('Vui lòng nhập số lượng xuất cho ít nhất một sản phẩm.', $controller);
         $this->assertStringContainsString("filter(fn(\$quantity)=>(float)\$quantity>0)", $controller);
+        $this->assertStringContainsString("'bid_partner_id'=>\$partner->id", $controller);
+        $this->assertStringNotContainsString("'recipient_partner_id'=>\$partner->id", $controller);
         $this->assertStringNotContainsString('name="allocation_ids[]"', $workspace);
         $this->assertStringContainsString('Tạo phiếu nháp', $workspace);
         $this->assertStringContainsString('chưa trừ tồn kho', $workspace);
