@@ -41,7 +41,7 @@ class MedicineCatalogMetadataCommitTest extends TestCase
         $this->assertSame('1250.50', $medicine->declared_price);
     }
     #[Test]
-    public function existing_medicine_receives_all_owner_excel_business_columns_on_update(): void
+    public function different_packaging_creates_distinct_medicine_and_preserves_owner_excel_metadata(): void
     {
         $initial = app(MedicineCatalogImportStager::class)->stage([[
             '_source_row' => 2,
@@ -87,7 +87,11 @@ class MedicineCatalogMetadataCommitTest extends TestCase
 
         app(MedicineCatalogImportCommitter::class)->commit($updated);
 
-        $medicine = Medicine::query()->where('registration_number', '840110178923')->firstOrFail();
+        $medicines = Medicine::query()->where('registration_number', '840110178923')->orderBy('id')->get();
+        $this->assertCount(2, $medicines);
+        $this->assertSame('548', $medicines->first()->circular_order_number);
+        $this->assertSame('Hộp 1 vỉ x 7 viên', $medicines->first()->packaging_specification);
+        $medicine = $medicines->last();
 
         $this->assertSame('549', $medicine->circular_order_number);
         $this->assertSame('2', $medicine->circular_group);
