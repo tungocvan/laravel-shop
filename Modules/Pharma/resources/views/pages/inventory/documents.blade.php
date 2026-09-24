@@ -28,10 +28,10 @@
         <button class="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white">Tìm</button>
     </form>
 
-    <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div class="overflow-x-auto">
+    <section class="rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div class="max-h-[calc(100vh-330px)] min-h-[420px] overflow-auto rounded-t-2xl">
             <table class="{{ $type === 'issue' ? 'min-w-[1120px]' : 'min-w-[900px]' }} w-full table-fixed text-left text-sm">
-                <thead class="bg-slate-50 text-xs uppercase text-slate-600">
+                <thead class="sticky top-0 z-10 bg-slate-50 text-xs uppercase text-slate-600 shadow-[0_1px_0_0_rgb(226_232_240)]">
                     <tr>
                         <th class="w-[180px] px-4 py-3">Mã phiếu</th><th class="w-[110px] px-4 py-3">Ngày</th>
                         <th class="px-4 py-3">{{ $type === 'receipt' ? 'Nhà cung cấp' : 'Khách hàng / Nơi nhận' }}</th>
@@ -76,9 +76,9 @@
                                         @endcan
                                     @else
                                         <a href="{{ route('admin.pharma.inventory.issues.show',$doc) }}" class="inline-flex min-h-9 items-center rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50">Xem</a>
-                                        <details class="relative">
+                                        <details class="relative static">
                                             <summary class="flex min-h-9 cursor-pointer list-none items-center rounded-lg border border-slate-300 bg-white px-3 text-base font-bold leading-none text-slate-600 hover:bg-slate-50" aria-label="Thao tác khác">⋯</summary>
-                                            <div class="absolute right-0 z-20 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-left shadow-xl">
+                                            <div class="absolute right-4 z-30 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-left shadow-xl">
                                                 @can('edit_pharma')
                                                     <a href="{{ route('admin.pharma.inventory.issues.edit',$doc) }}" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">{{ $doc->status === 'draft' ? 'Sửa phiếu' : 'Cập nhật phiếu' }}</a>
                                                     @if($doc->status === 'draft')<button type="button" onclick="this.closest('details').removeAttribute('open'); document.getElementById('post-{{ $type }}-{{ $doc->id }}').showModal()" class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-emerald-700 hover:bg-emerald-50">Ghi sổ</button>@endif
