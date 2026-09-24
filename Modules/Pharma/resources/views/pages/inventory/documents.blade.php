@@ -77,7 +77,7 @@
                                         @endcan
                                     @else
                                         <a href="{{ route('admin.pharma.inventory.issues.show',$doc) }}" class="inline-flex min-h-9 items-center rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50">Xem</a>
-                                        <details class="relative">
+                                        <details class="relative" data-document-actions>
                                             <summary class="flex min-h-9 cursor-pointer list-none items-center rounded-lg border border-slate-300 bg-white px-3 text-base font-bold leading-none text-slate-600 hover:bg-slate-50" aria-label="Thao tác khác">⋯</summary>
                                             <div class="absolute right-0 z-30 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-left shadow-xl">
                                                 @can('edit_pharma')
@@ -168,4 +168,22 @@
         <div class="border-t border-slate-200 p-4">{{ $documents->links() }}</div>
     </section>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const actionMenus = Array.from(document.querySelectorAll('details[data-document-actions]'));
+    actionMenus.forEach((menu) => {
+        menu.addEventListener('toggle', () => {
+            if (!menu.open) return;
+            actionMenus.forEach((other) => {
+                if (other !== menu) other.removeAttribute('open');
+            });
+        });
+    });
+    document.addEventListener('click', (event) => {
+        actionMenus.forEach((menu) => {
+            if (menu.open && !menu.contains(event.target)) menu.removeAttribute('open');
+        });
+    });
+});
+</script>
 @endsection
