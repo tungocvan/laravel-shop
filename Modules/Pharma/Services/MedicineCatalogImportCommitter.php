@@ -73,6 +73,8 @@ class MedicineCatalogImportCommitter
                 'dosage_form' => $data['dosage_form'] ?? null,
                 'route_of_administration' => $data['route_of_administration'] ?? null,
                 'unit' => $data['unit'] ?? null,
+                // Medicine keeps a representative presentation for legacy consumers.
+                // Variant/package below is the authoritative SKU-level presentation.
                 'packaging_specification' => $data['packaging_specification'] ?? null,
                 'registration_number_raw' => $data['registration_number_raw'] ?? null,
                 'registration_number_primary' => $data['registration_number_primary'] ?? null,
@@ -95,14 +97,14 @@ class MedicineCatalogImportCommitter
                 'dosage_form' => $data['dosage_form'] ?? null,
                 'route_of_administration' => $data['route_of_administration'] ?? null,
                 'unit' => $data['unit'] ?? null,
-                'packaging_specification' => $data['packaging_specification'] ?? null,
+                // Do not overwrite SKU-level presentation/price when another package
+                // of the same canonical medicine is committed later in the batch.
                 'registration_number_raw' => $data['registration_number_raw'] ?? null,
                 'registration_number_primary' => $data['registration_number_primary'] ?? null,
                 'registration_number' => $data['registration_number'] ?? null,
                 'shelf_life' => $data['shelf_life'] ?? null,
                 'manufacturing_company' => $data['manufacturing_company'] ?? null,
                 'manufacturing_country' => $data['manufacturing_country'] ?? null,
-                'declared_price' => $data['declared_price'] ?? null,
                 'is_special_control' => array_key_exists('is_special_control', $data)
                     ? (bool) $data['is_special_control']
                     : null,
@@ -132,11 +134,18 @@ class MedicineCatalogImportCommitter
                 'presentation_text' => $presentation,
                 'presentation_normalized' => $this->normalizer->text($presentation),
                 'base_unit' => $data['unit'] ?? null,
+                'declared_price' => $data['declared_price'] ?? null,
                 'sku_basis_hash' => $skuData['basis_hash'],
                 'status' => 'active',
                 'is_default' => false,
             ],
         );
+
+        // A repeated import of the same SKU may carry a newer declared price.
+        // Price is mutable commercial data and intentionally is not part of identity.
+        if (array_key_exists('declared_price', $data)) {
+            $variant->forceFill(['declared_price' => $data['declared_price']])->save();
+        }
 
         $packageText = $data['packaging_specification'] ?? null;
         if ($packageText !== null) {
