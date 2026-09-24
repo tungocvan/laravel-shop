@@ -516,7 +516,8 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("'add_allocations'=>'nullable|array'", $controller);
         $this->assertStringContainsString('Sản phẩm trúng thầu đã có trong phiếu.', $controller);
         $this->assertStringContainsString('Có sản phẩm không còn thuộc phân bổ hợp lệ của Chủ đầu tư/Bệnh viện này.', $controller);
-        $this->assertStringContainsString('$stockReady=$rows->every', $bidEdit);
+        $this->assertStringContainsString('$hasPostableStock=$rows->contains', $bidEdit);
+        $this->assertStringContainsString('$stockReady=$hasPostableStock && !$hasUnresolvedShortage', $bidEdit);
         $this->assertStringContainsString('@disabled(!$stockReady)', $bidEdit);
         $this->assertStringContainsString('Chưa thể duyệt vì có mặt hàng chưa có lô tồn khả dụng', $bidEdit);
         $this->assertStringContainsString('Xóa khỏi đơn', $bidEdit);
