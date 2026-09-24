@@ -126,7 +126,7 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("fullUrlWithQuery(['expiry_warning' => 'lt6'", $index);
         $this->assertStringContainsString('number_format($expiredBalanceCount)', $index);
         $this->assertStringContainsString('number_format($expiredInventoryValue', $index);
-        $this->assertStringContainsString('md:grid-cols-3', $index);
+        $this->assertStringContainsString('md:grid-cols-2 xl:grid-cols-4', $index);
         $this->assertStringContainsString("in_array((int)\$request->input('per_page',25),[25,50,100],true)", $controller);
         $this->assertStringContainsString('name="per_page"', $index);
         $this->assertStringContainsString('inventory-select-all', $index);
