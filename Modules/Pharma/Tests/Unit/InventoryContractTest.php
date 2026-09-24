@@ -385,7 +385,8 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("show_notes && filled(\$issue->notes)", $print);
         $this->assertStringContainsString("show_notes && filled(\$issue->notes)", $show);
         $this->assertStringNotContainsString('Không có ghi chú.', $pdf);
-        $this->assertStringContainsString("'receiver'=>true", $pdf);
+        $this->assertStringContainsString("['show'=>\$settings->show_receiver_signature,'label'=>\$settings->receiver_label,'show_date'=>false]", $pdf);
+        $this->assertStringContainsString("['show'=>\$settings->show_keeper_signature,'label'=>\$settings->keeper_label,'show_date'=>true]", $pdf);
         $this->assertStringContainsString('Ngày ..... tháng ..... năm .....', $pdf);
         $this->assertStringContainsString('Ngày ..... tháng ..... năm .....', $print);
         $this->assertStringContainsString('Ngày ..... tháng ..... năm .....', $show);
