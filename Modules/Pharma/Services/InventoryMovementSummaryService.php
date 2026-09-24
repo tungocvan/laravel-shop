@@ -9,7 +9,7 @@ use Modules\Pharma\Models\InventoryWarehouse;
 
 final class InventoryMovementSummaryService
 {
-    public function summarize(InventoryWarehouse $warehouse, CarbonInterface $from, CarbonInterface $to): array
+    public function summarize(InventoryWarehouse $warehouse, CarbonInterface $from, CarbonInterface $to, ?int $medicineId=null, array $balanceIds=[]): array
     {
         $before=DB::table('pharma_inventory_transactions')
             ->where('warehouse_id',$warehouse->id)->where('created_at','<',$from)
@@ -30,6 +30,8 @@ final class InventoryMovementSummaryService
             ->leftJoinSub($before,'pre',fn($join)=>$join->on('pre.medicine_id','=','b.medicine_id')->on('pre.batch_number','=','b.batch_number')->on('pre.expiry_date','=','b.expiry_date'))
             ->leftJoinSub($period,'mov',fn($join)=>$join->on('mov.medicine_id','=','b.medicine_id')->on('mov.batch_number','=','b.batch_number')->on('mov.expiry_date','=','b.expiry_date'))
             ->where('b.warehouse_id',$warehouse->id)
+            ->when($medicineId,fn($query)=>$query->where('b.medicine_id',$medicineId))
+            ->when($balanceIds,fn($query)=>$query->whereIn('b.id',$balanceIds))
             ->select(['b.id','b.medicine_id','b.batch_number','b.expiry_date','m.medicine_code','m.name','m.unit'])
             ->selectRaw('COALESCE(pre.opening_quantity,0) as period_opening')
             ->selectRaw('COALESCE(mov.opening_import,0) as opening_import')
