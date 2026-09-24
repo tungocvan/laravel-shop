@@ -204,7 +204,9 @@ final class InventoryController extends Controller
     {
         return $balances->map(function(InventoryBalance $row)use($costs){
             $cost=$costs->get($row->medicine_id);
-            $average=$cost?->average_cost_price !== null ? (float)$cost->average_cost_price : null;
+            $supplierAverage=$cost?->average_cost_price !== null ? (float)$cost->average_cost_price : null;
+            $average=$row->manual_cost_price !== null ? (float)$row->manual_cost_price : $supplierAverage;
+            $costSource=$row->manual_cost_price !== null ? 'Điều chỉnh thủ công' : ($supplierAverage !== null ? 'Supplier Tracking' : 'Chưa có giá vốn');
             return [
                 'Ma thuoc'=>$row->medicine->medicine_code,
                 'Ten thuoc'=>$row->medicine->name,
@@ -213,8 +215,9 @@ final class InventoryController extends Controller
                 'Han dung'=>$row->expiry_date->format('d/m/Y'),
                 'Ton dau ky'=>(float)$row->opening_quantity,
                 'Ton hien tai'=>(float)$row->quantity_on_hand,
-                'Gia von NCC trung binh'=>$average,
-                'So nguon gia von'=>(int)($cost?->supplier_cost_count ?? 0),
+                'Gia von'=>$average,
+                'Nguon gia von'=>$costSource,
+                'So nguon gia von NCC'=>(int)($cost?->supplier_cost_count ?? 0),
                 'Gia tri ton'=>$average === null ? null : (float)$row->quantity_on_hand*$average,
             ];
         });
