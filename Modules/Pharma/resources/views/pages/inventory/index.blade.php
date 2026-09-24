@@ -11,6 +11,8 @@
             <p class="mt-2 text-sm text-slate-600">{{ $warehouse->name }} · Medicine Master là nguồn mã thuốc duy nhất.</p>
         </div>
         <div class="flex flex-wrap gap-2">
+            <a href="{{ route('admin.pharma.inventory.movements.index') }}" class="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm font-semibold text-indigo-700">Xuất–Nhập–Tồn</a>
+            <a href="{{ route('admin.pharma.inventory.export') }}" class="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-800">Export tồn kho</a>
             @can('create_pharma')
                 <a href="{{ route('admin.pharma.inventory.opening.create') }}" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">Tồn đầu kỳ</a>
                 <a href="{{ route('admin.pharma.inventory.receipts.create') }}" class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white">+ Phiếu nhập</a>
@@ -27,101 +29,35 @@
         <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800">{{ $errors->first() }}</div>
     @endif
 
-    <div class="grid gap-5 xl:grid-cols-2">
-        @foreach([['type'=>'receipt','title'=>'Phiếu nhập gần đây','docs'=>$receipts,'index'=>'admin.pharma.inventory.receipts.index'],['type'=>'issue','title'=>'Phiếu xuất gần đây','docs'=>$issues,'index'=>'admin.pharma.inventory.issues.index']] as $panel)
-            <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div class="flex items-center justify-between gap-3">
-                    <h2 class="font-semibold text-slate-950">{{ $panel['title'] }}</h2>
-                    <a href="{{ route($panel['index']) }}" class="text-xs font-semibold text-indigo-700">Xem tất cả →</a>
-                </div>
-                <div class="mt-3 divide-y divide-slate-100">
-                    @forelse($panel['docs'] as $doc)
-                        @php
-                            $isReceipt=$panel['type']==='receipt';
-                            $date=$isReceipt ? $doc->receipt_date : $doc->issue_date;
-                            $party=$isReceipt ? $doc->supplier_name : $doc->recipient_name;
-                            $postRoute=$isReceipt ? route('admin.pharma.inventory.receipts.post',$doc) : route('admin.pharma.inventory.issues.post',$doc);
-                        @endphp
-                        <div class="py-3 first:pt-0 last:pb-0">
-                            <div class="flex items-start justify-between gap-3">
-                                <div class="min-w-0">
-                                    <div class="flex flex-wrap items-center gap-2">
-                                        <span class="font-mono text-sm font-bold text-slate-950">{{ $doc->number }}</span>
-                                        <span class="rounded-full px-2 py-0.5 text-[11px] font-semibold {{ $doc->status === 'posted' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }}">{{ $doc->status === 'posted' ? 'Đã ghi sổ' : 'Nháp' }}</span>
-                                    </div>
-                                    <p class="mt-1 truncate text-xs text-slate-600">{{ $date->format('d/m/Y') }} · {{ $party ?: ($isReceipt ? 'Chưa chọn NCC' : 'Chưa nhập nơi nhận') }}</p>
-                                    <p class="mt-1 text-xs text-slate-500">{{ $doc->items_count }} mặt hàng · Tổng SL {{ number_format((float)$doc->items_sum_quantity,0,',','.') }}</p>
-                                    @if($isReceipt && $doc->invoice_number)<p class="mt-1 text-xs text-slate-500">HĐ: {{ $doc->invoice_number }}{{ $doc->invoice_date ? ' · '.$doc->invoice_date->format('d/m/Y') : '' }}</p>@endif
-                                </div>
-                                @can('edit_pharma')
-                                    @if($doc->status === 'draft')
-                                        <button type="button" onclick="document.getElementById('post-{{ $panel['type'] }}-{{ $doc->id }}').showModal()" class="shrink-0 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white">Ghi sổ</button>
-                                    @endif
-                                @endcan
-                            </div>
-                        </div>
-                        @if($doc->status === 'draft')
-                            <dialog id="post-{{ $panel['type'] }}-{{ $doc->id }}" class="m-auto w-[calc(100%-2rem)] max-w-lg overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-2xl ring-1 ring-slate-200 backdrop:bg-slate-950/65 backdrop:backdrop-blur-[3px]">
-                                <form method="POST" action="{{ $postRoute }}" class="overflow-hidden rounded-2xl bg-white">
-                                    @csrf
-                                    <div class="flex items-start gap-4 p-6">
-                                        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xl text-emerald-700">✓</div>
-                                        <div class="min-w-0 flex-1">
-                                            <div class="flex items-start justify-between gap-3"><div><h3 class="text-lg font-bold text-slate-950">Xác nhận ghi sổ?</h3><p class="mt-0.5 break-all font-mono text-xs font-semibold text-slate-500">{{ $doc->number }}</p></div><button type="button" onclick="this.closest('dialog').close()" class="rounded-lg p-1.5 text-xl leading-none text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Đóng">×</button></div>
-                                            <p class="mt-4 text-sm leading-6 text-slate-600">Phiếu có <strong>{{ $doc->items_count }} mặt hàng</strong>, tổng số lượng <strong>{{ number_format((float)$doc->items_sum_quantity,0,',','.') }}</strong>. Sau khi xác nhận, tồn kho thực tế sẽ được cập nhật.</p>
-                                            @if(!$isReceipt)<div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><strong>Kiểm tra tồn kho:</strong> hệ thống sẽ kiểm tra tồn khả dụng trước khi xuất.</div>@endif
-                                        </div>
-                                    </div>
-                                    <div class="flex flex-col-reverse gap-2 border-t border-slate-100 bg-slate-50 px-6 py-4 sm:flex-row sm:justify-end"><button type="button" onclick="this.closest('dialog').close()" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">Hủy</button><button class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm">Xác nhận ghi sổ</button></div>
-                                </form>
-                            </dialog>
-                        @endif
-                    @empty
-                        <p class="py-4 text-sm text-slate-500">{{ $panel['type'] === 'receipt' ? 'Chưa có phiếu nhập.' : 'Chưa có phiếu xuất.' }}</p>
-                    @endforelse
-                </div>
-            </section>
-        @endforeach
-    </div>
 
-    <details class="rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <summary class="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-slate-800">Import / Export Excel ▾</summary>
-        <div class="border-t border-slate-100 p-4">
-            <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                <div>
-                    <h2 class="font-semibold text-slate-950">Excel tồn kho</h2>
-                    <p class="mt-1 text-sm text-slate-500">Tải file mẫu, nhập tồn đầu kỳ hoặc xuất toàn bộ tồn kho.</p>
-                </div>
-                <div class="flex flex-wrap gap-2">
-                    <a href="{{ route('admin.pharma.inventory.opening.template') }}" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">Tải file mẫu</a>
-                    <a href="{{ route('admin.pharma.inventory.export') }}" class="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-800">Export toàn bộ</a>
-                </div>
-            </div>
-            @can('create_pharma')
-                <form method="POST" action="{{ route('admin.pharma.inventory.opening.import') }}" enctype="multipart/form-data" class="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 md:flex-row md:items-center">
-                    @csrf
-                    <input type="file" name="file" accept=".xlsx,.xls,.csv" required class="min-h-11 flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm">
-                    <button class="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white">Import tồn đầu kỳ</button>
-                </form>
-            @endcan
-        </div>
-    </details>
 
-    <section class="grid gap-4 md:grid-cols-3">
+    <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
-            <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Giá trị tồn theo giá vốn NCC</p>
+            <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Giá trị tồn theo giá vốn</p>
             <p class="mt-2 text-2xl font-bold text-emerald-950">{{ number_format($totalInventoryValue, 0, ',', '.') }} đ</p>
-            <p class="mt-1 text-xs text-emerald-700">Giá vốn trung bình từ Supplier Tracking đang hiệu lực.</p>
+            <p class="mt-1 text-xs text-emerald-700">Tổng giá trị tồn, bao gồm cả hàng còn hạn và đã hết hạn.</p>
+            <div class="mt-3 border-t border-emerald-200 pt-3">
+                <div class="flex items-baseline justify-between gap-3">
+                    <span class="text-xs font-semibold text-emerald-800">Trong đó còn hạn</span>
+                    <span class="whitespace-nowrap text-base font-bold text-emerald-950">{{ number_format($validInventoryValue, 0, ',', '.') }} đ</span>
+                </div>
+                <p class="mt-1 text-xs text-emerald-700">{{ number_format($validBalanceCount) }} lô còn tồn chưa quá hạn.</p>
+            </div>
         </div>
         <div class="rounded-2xl border border-amber-200 bg-amber-50 p-5">
             <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">Lô chưa định giá</p>
             <p class="mt-2 text-2xl font-bold text-amber-950">{{ number_format($unpricedBalanceCount) }}</p>
-            <p class="mt-1 text-xs text-amber-700">Các lô còn tồn nhưng chưa có giá vốn NCC đang hiệu lực.</p>
+            <p class="mt-1 text-xs text-amber-700">Các lô còn tồn chưa có cả giá vốn điều chỉnh và giá vốn NCC đang hiệu lực.</p>
         </div>
+        <a href="{{ request()->fullUrlWithQuery(['expiry_warning' => 'lt6', 'page' => null]) }}" class="block rounded-2xl border border-orange-200 bg-orange-50 p-5 transition hover:border-orange-300 hover:shadow-sm">
+            <p class="text-xs font-semibold uppercase tracking-wide text-orange-700">Giá trị hàng cận hạn ≤ 6 tháng</p>
+            <p class="mt-2 text-2xl font-bold text-orange-950">{{ number_format($nearExpiryInventoryValue, 0, ',', '.') }} đ</p>
+            <p class="mt-1 text-xs font-semibold text-orange-700">{{ number_format($nearExpiryBalanceCount) }} lô còn tồn · Không tính hàng đã hết hạn.</p>
+        </a>
         <div class="rounded-2xl border border-rose-200 bg-rose-50 p-5">
-            <p class="text-xs font-semibold uppercase tracking-wide text-rose-700">Giá trị hàng đã hết hạn</p>
+            <p class="text-xs font-semibold uppercase tracking-wide text-rose-700">Hàng hết hạn còn tồn</p>
             <p class="mt-2 text-2xl font-bold text-rose-950">{{ number_format($expiredInventoryValue, 0, ',', '.') }} đ</p>
-            <p class="mt-1 text-xs text-rose-700">Giá trị các lô còn tồn đã quá hạn dùng.</p>
+            <p class="mt-1 text-xs font-semibold text-rose-700">{{ number_format($expiredBalanceCount) }} lô còn tồn đã quá hạn dùng.</p>
         </div>
     </section>
 
@@ -173,7 +109,7 @@
                         <th class="px-4 py-3"><input id="inventory-select-all" type="checkbox" onchange="toggleInventoryPage(this.checked)" aria-label="Chọn tất cả dòng trên trang"></th>
                         <th class="px-4 py-3">Mã thuốc</th><th class="px-4 py-3">Thuốc</th><th class="px-4 py-3">Số lô</th>
                         <th class="px-4 py-3">Hạn dùng</th><th class="px-4 py-3 text-right">Tồn đầu</th>
-                        <th class="px-4 py-3 text-right">Tồn cuối</th><th class="px-4 py-3 text-right">Giá vốn NCC TB</th><th class="px-4 py-3 text-right">Giá trị tồn</th><th class="px-4 py-3">Cảnh báo</th><th class="px-4 py-3 text-right">Thao tác</th>
+                        <th class="px-4 py-3 text-right">Tồn cuối</th><th class="px-4 py-3 text-right">Giá vốn</th><th class="px-4 py-3 text-right">Giá trị tồn</th><th class="px-4 py-3">Cảnh báo</th><th class="px-4 py-3 text-right">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -192,9 +128,13 @@
                             <td class="px-4 py-4 text-right">
                                 @if($row->average_cost_price !== null)
                                     <div class="font-semibold">{{ number_format($row->average_cost_price, 0, ',', '.') }} đ</div>
-                                    <div class="text-xs text-slate-500">{{ $row->supplier_cost_count }} nguồn</div>
+                                    @if($row->cost_source === 'manual')
+                                        <div class="text-xs font-medium text-indigo-600">Điều chỉnh thủ công</div>
+                                    @else
+                                        <div class="text-xs text-slate-500">NCC · {{ $row->supplier_cost_count }} nguồn</div>
+                                    @endif
                                 @else
-                                    <a href="{{ route('admin.pharma.supplier-trackings.index', ['medicineId' => $row->medicine_id]) }}" class="text-xs font-semibold text-amber-700 underline">Chưa có giá vốn</a>
+                                    <div class="text-xs font-semibold text-amber-700">Chưa có giá vốn</div>
                                 @endif
                             </td>
                             <td class="px-4 py-4 text-right font-semibold">
@@ -267,8 +207,23 @@
                         <label class="block text-sm font-semibold text-slate-700">Hạn dùng
                             <input type="date" name="expiry_date" value="{{ $row->expiry_date->format('Y-m-d') }}" required class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 font-normal">
                         </label>
+                        <label class="block text-sm font-semibold text-slate-700">Nguồn giá vốn
+                            <select name="cost_mode" onchange="const manual=this.value==='manual'; const box=this.closest('form').querySelector('[data-manual-cost]'); box.classList.toggle('hidden',!manual); box.querySelectorAll('input,textarea').forEach(el=>el.disabled=!manual)" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 font-normal">
+                                <option value="supplier" @selected($row->manual_cost_price === null)>Tự động từ Supplier Tracking</option>
+                                <option value="manual" @selected($row->manual_cost_price !== null)>Điều chỉnh thủ công theo lô</option>
+                            </select>
+                        </label>
+                        <div data-manual-cost @class(['space-y-4','hidden'=>$row->manual_cost_price === null])>
+                            <label class="block text-sm font-semibold text-slate-700">Giá vốn
+                                <div class="mt-1 flex items-center gap-2"><input type="number" name="manual_cost_price" min="0" step="0.01" value="{{ $row->manual_cost_price !== null ? (float)$row->manual_cost_price : '' }}" @disabled($row->manual_cost_price === null) class="min-h-11 w-full rounded-xl border border-slate-300 px-3 font-normal"><span class="text-sm text-slate-500">đ</span></div>
+                                <span class="mt-1 block text-xs font-normal text-slate-500">Nhập 0 để lưu đúng giá vốn 0 đ. Không có giá thủ công thì chọn nguồn tự động phía trên.</span>
+                            </label>
+                            <label class="block text-sm font-semibold text-slate-700">Lý do điều chỉnh
+                                <textarea name="cost_adjustment_reason" maxlength="500" rows="2" @disabled($row->manual_cost_price === null) class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 font-normal" placeholder="Ví dụ: điều chỉnh theo chứng từ / xác nhận kế toán"></textarea>
+                            </label>
+                        </div>
                     </div>
-                    <p class="mt-4 text-xs text-slate-500">Không thay đổi Tồn đầu/Tồn cuối. Lịch sử kho liên quan sẽ được đồng bộ số lô và hạn dùng.</p>
+                    <p class="mt-4 text-xs text-slate-500">Không thay đổi Tồn đầu/Tồn cuối. Giá vốn thủ công được lưu riêng theo lô và có lịch sử điều chỉnh; số lô/hạn dùng vẫn đồng bộ với lịch sử kho.</p>
                     <div class="mt-6 flex justify-end gap-2">
                         <button type="button" onclick="this.closest('dialog').close()" class="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold">Hủy</button>
                         <button type="submit" class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">Lưu thay đổi</button>

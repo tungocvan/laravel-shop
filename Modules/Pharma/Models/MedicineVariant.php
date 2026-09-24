@@ -18,6 +18,7 @@ class MedicineVariant extends Model
         'presentation_text',
         'presentation_normalized',
         'base_unit',
+        'declared_price',
         'content_value',
         'content_uom',
         'variant_identity_key',
@@ -27,6 +28,7 @@ class MedicineVariant extends Model
     ];
 
     protected $casts = [
+        'declared_price' => 'decimal:2',
         'content_value' => 'decimal:4',
         'is_default' => 'boolean',
     ];

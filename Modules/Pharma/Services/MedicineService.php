@@ -29,7 +29,7 @@ class MedicineService
     ): LengthAwarePaginator {
         return Medicine::query()
             ->with([
-                'variants:id,medicine_id,sku,strength_text,presentation_text,status,is_default',
+                'variants:id,medicine_id,sku,strength_text,presentation_text,declared_price,status,is_default',
                 'supplierTrackings' => fn ($query) => $query->select(['id', 'medicine_id', 'partner_id', 'status'])->with('partner:id,name'),
                 'currentProfile' => fn ($query) => $query->select([
                     'pharma_medicine_profiles.id',

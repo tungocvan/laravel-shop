@@ -4,7 +4,15 @@ namespace Modules\Pharma\Services;
 
 use Illuminate\Support\Facades\Log;
 use Modules\Pharma\Models\DrugBidAward;
+use Modules\Pharma\Models\DrugBidAwardManagementAssignment;
+use Modules\Pharma\Models\DrugBidAwardMatch;
+use Modules\Pharma\Models\DrugBidAwardProductPolicy;
+use Modules\Pharma\Models\InventoryBalance;
+use Modules\Pharma\Models\InventoryIssue;
+use Modules\Pharma\Models\InventoryIssueCommission;
+use Modules\Pharma\Models\InventoryIssueDeferredSupply;
 use Modules\Pharma\Models\Medicine;
+use Modules\Pharma\Models\MedicineProfile;
 use Modules\Pharma\Models\PriceList;
 use Modules\Pharma\Models\SupplierTracking;
 use Throwable;
@@ -15,53 +23,138 @@ final class PharmaDashboardService
     {
         return [
             'generated_at' => now()->toIso8601String(),
-            'capabilities' => [
-                'view' => $this->can($user, 'view_pharma'),
-                'create' => $this->can($user, 'create_pharma'),
-                'edit' => $this->can($user, 'edit_pharma'),
-                'delete' => $this->can($user, 'delete_pharma'),
-                'official_facilities' => $this->can($user, 'view_pharma_official_facilities'),
-            ],
-            'metrics' => [
-                'medicines' => $this->count(Medicine::class, 'medicines'),
-                'drug_bid_awards' => $this->count(DrugBidAward::class, 'drug_bid_awards'),
-                'supplier_trackings' => $this->count(SupplierTracking::class, 'supplier_trackings'),
-                'price_lists' => $this->count(PriceList::class, 'price_lists'),
-            ],
+            'capabilities' => $this->capabilities($user),
+            'master_data' => $this->masterDataSummary(),
+            'inventory' => $this->inventorySummary(),
+            'commercial' => $this->commercialSummary(),
+            'sales' => $this->salesSummary(),
+            'attention' => $this->attentionSummary(),
             'price_lists' => $this->priceListSummary(),
         ];
     }
 
-    private function count(string $modelClass, string $section): array
+    private function capabilities(mixed $user): array
     {
-        try {
-            return ['available' => true, 'count' => $modelClass::query()->count()];
-        } catch (Throwable $exception) {
-            Log::warning('Pharma Dashboard metric is unavailable.', [
-                'section' => $section,
-                'exception_class' => $exception::class,
-            ]);
+        return [
+            'view' => $this->can($user, 'view_pharma'),
+            'create' => $this->can($user, 'create_pharma'),
+            'edit' => $this->can($user, 'edit_pharma'),
+            'delete' => $this->can($user, 'delete_pharma'),
+            'official_facilities' => $this->can($user, 'view_pharma_official_facilities'),
+            'allocations' => $this->can($user, 'view_pharma_allocations'),
+            'commercial_policies' => $this->can($user, 'view_pharma_commercial_policies'),
+            'approve_issue' => $this->can($user, 'approve_pharma_inventory_issue'),
+        ];
+    }
 
-            return ['available' => false, 'count' => 0];
-        }
+    private function masterDataSummary(): array
+    {
+        return $this->section('master_data', function (): array {
+            return [
+                'available' => true,
+                'medicines' => Medicine::query()->count(),
+                'hssp_current' => MedicineProfile::query()->where('is_current', true)->count(),
+                'hssp_attention' => MedicineProfile::query()->where('is_current', true)
+                    ->whereIn('profile_status', [MedicineProfile::STATUS_NEEDS_REVIEW, MedicineProfile::STATUS_EXPIRED, MedicineProfile::STATUS_INCOMPLETE])->count(),
+                'bid_awards' => DrugBidAward::query()->count(),
+                'bid_unlinked' => DrugBidAward::query()->where(fn($query)=>$query->whereDoesntHave('canonicalMatch')->orWhereHas('canonicalMatch',fn($match)=>$match->whereIn('review_status',[DrugBidAwardMatch::REVIEW_PENDING,DrugBidAwardMatch::REVIEW_STALE])))->count(),
+                'supplier_trackings' => SupplierTracking::query()->count(),
+            ];
+        });
+    }
+
+    private function inventorySummary(): array
+    {
+        return $this->section('inventory', function (): array {
+            return [
+                'available' => true,
+                'stock_quantity' => (float) InventoryBalance::query()->where('quantity_on_hand', '>', 0)->sum('quantity_on_hand'),
+                'stock_lots' => InventoryBalance::query()->where('quantity_on_hand', '>', 0)->count(),
+                'expiring_lots' => InventoryBalance::query()->where('quantity_on_hand', '>', 0)
+                    ->whereNotNull('expiry_date')->whereDate('expiry_date', '<=', now()->addDays(90))->count(),
+                'draft_issues' => InventoryIssue::query()->where('status', InventoryIssue::DRAFT)->count(),
+                'deferred_supply' => InventoryIssueDeferredSupply::query()->where('status', InventoryIssueDeferredSupply::PENDING)->count(),
+            ];
+        });
+    }
+
+    private function commercialSummary(): array
+    {
+        return $this->section('commercial', function (): array {
+            $activeAssignments = DrugBidAwardManagementAssignment::query()
+                ->where('status', DrugBidAwardManagementAssignment::STATUS_ACTIVE);
+
+            return [
+                'available' => true,
+                'active_assignments' => (clone $activeAssignments)->count(),
+                'managed_hospitals' => (clone $activeAssignments)->distinct()->count('partner_id'),
+                'managed_users' => (clone $activeAssignments)->distinct()->count('user_id'),
+                'product_policies' => DrugBidAwardProductPolicy::query()->whereNotNull('commission_percentage')->count(),
+                'draft_price_lists' => PriceList::query()->where('status', PriceList::STATUS_DRAFT)->count(),
+            ];
+        });
+    }
+
+    private function salesSummary(): array
+    {
+        return $this->section('sales', function (): array {
+            $from = now()->startOfMonth();
+            $to = now()->endOfMonth();
+            $commissions = InventoryIssueCommission::query()->whereBetween('calculated_at', [$from, $to]);
+
+            return [
+                'available' => true,
+                'period_from' => $from->toDateString(),
+                'period_to' => $to->toDateString(),
+                'revenue' => (float) (clone $commissions)->sum('revenue_amount'),
+                'commission' => (float) (clone $commissions)->sum('commission_amount'),
+                'unresolved_commissions' => (clone $commissions)->where('status', InventoryIssueCommission::STATUS_UNRESOLVED)->count(),
+                'posted_bid_issues' => InventoryIssue::query()->where('issue_source', 'bid')
+                    ->where('status', InventoryIssue::POSTED)->whereBetween('posted_at', [$from, $to])->count(),
+            ];
+        });
+    }
+
+    private function attentionSummary(): array
+    {
+        return $this->section('attention', function (): array {
+            return [
+                'available' => true,
+                'bid_unlinked' => DrugBidAward::query()->where(fn($query)=>$query->whereDoesntHave('canonicalMatch')->orWhereHas('canonicalMatch',fn($match)=>$match->whereIn('review_status',[DrugBidAwardMatch::REVIEW_PENDING,DrugBidAwardMatch::REVIEW_STALE])))->count(),
+                'hssp_attention' => MedicineProfile::query()->where('is_current', true)
+                    ->whereIn('profile_status', [MedicineProfile::STATUS_NEEDS_REVIEW, MedicineProfile::STATUS_EXPIRED, MedicineProfile::STATUS_INCOMPLETE])->count(),
+                'expiring_lots' => InventoryBalance::query()->where('quantity_on_hand', '>', 0)
+                    ->whereNotNull('expiry_date')->whereDate('expiry_date', '<=', now()->addDays(90))->count(),
+                'deferred_supply' => InventoryIssueDeferredSupply::query()->where('status', InventoryIssueDeferredSupply::PENDING)->count(),
+                'unresolved_commissions' => InventoryIssueCommission::query()->where('status', InventoryIssueCommission::STATUS_UNRESOLVED)->count(),
+                'draft_price_lists' => PriceList::query()->where('status', PriceList::STATUS_DRAFT)->count(),
+            ];
+        });
     }
 
     private function priceListSummary(): array
     {
+        return $this->section('price_lists', fn (): array => [
+            'available' => true,
+            'total' => PriceList::query()->count(),
+            'active' => PriceList::query()->where('status', PriceList::STATUS_ACTIVE)->count(),
+            'draft' => PriceList::query()->where('status', PriceList::STATUS_DRAFT)->count(),
+            'customer' => PriceList::query()->where('type', PriceList::TYPE_CUSTOMER)->count(),
+            'global' => PriceList::query()->where('type', PriceList::TYPE_GLOBAL)->count(),
+        ]);
+    }
+
+    private function section(string $section, callable $resolver): array
+    {
         try {
-            return [
-                'available' => true,
-                'active' => PriceList::query()->where('status', PriceList::STATUS_ACTIVE)->count(),
-                'draft' => PriceList::query()->where('status', PriceList::STATUS_DRAFT)->count(),
-                'customer' => PriceList::query()->where('type', PriceList::TYPE_CUSTOMER)->count(),
-                'global' => PriceList::query()->where('type', PriceList::TYPE_GLOBAL)->count(),
-            ];
+            return $resolver();
         } catch (Throwable $exception) {
-            Log::warning('Pharma Dashboard price-list summary is unavailable.', [
+            Log::warning('Pharma Dashboard section is unavailable.', [
+                'section' => $section,
                 'exception_class' => $exception::class,
             ]);
 
-            return ['available' => false, 'active' => 0, 'draft' => 0, 'customer' => 0, 'global' => 0];
+            return ['available' => false];
         }
     }
 

@@ -41,7 +41,7 @@ $signatureWidth=$signatures->count() > 0 ? (100 / $signatures->count()) : 100;
 @if($settings->show_total_value)
 <th>Thành tiền</th>
 @endif</tr></thead><tbody>
-@foreach($issue->items as $item)<tr><td class="center">{{ $loop->iteration }}</td><td>{{ $item->medicine->medicine_code }}</td><td><span class="name">{{ $item->medicine->name }}</span>@if($item->medicine->packaging_specification)<br><span class="small">{{ $item->medicine->packaging_specification }}</span>@endif</td><td class="center">{{ $item->medicine->unit ?: '—' }}</td><td>{{ $item->batch_number }}</td><td class="center">{{ $item->expiry_date->format('d/m/Y') }}</td><td class="right">{{ number_format((float)$item->quantity,0,',','.') }}</td>
+@foreach($issue->items as $item)<tr><td class="center">{{ $loop->iteration }}</td><td>{{ $item->medicine->medicine_code }}</td><td><span class="name">{{ $item->medicine->name }}</span>@if($item->medicine->packaging_specification)<br><span class="small">{{ $item->medicine->packaging_specification }}</span>@endif</td><td class="center">{{ $item->medicine->unit ?: '—' }}</td><td>{{ $item->batch_number ?: 'Chưa chọn lô' }}</td><td class="center">{{ $item->expiry_date?->format('d/m/Y') ?: '—' }}</td><td class="right">{{ number_format((float)$item->quantity,0,',','.') }}</td>
 @if($settings->show_unit_price)
 <td class="right">{{ number_format((float)$item->unit_price,0,',','.') }}</td>
 @endif

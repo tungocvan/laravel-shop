@@ -21,6 +21,7 @@ final class InventoryService
         DB::transaction(function () use ($receipt,$userId): void {
             $receipt=InventoryReceipt::query()->lockForUpdate()->findOrFail($receipt->getKey());
             if ($receipt->status !== InventoryReceipt::DRAFT) throw ValidationException::withMessages(['status'=>'Chỉ phiếu nháp mới được ghi sổ.']);
+            $this->assertDocumentDateAfterOpeningCutoff($receipt->warehouse_id,$receipt->receipt_date,'Ngày phiếu nhập');
             $receipt->load('items');
             if ($receipt->items->isEmpty()) throw ValidationException::withMessages(['items'=>'Phiếu nhập phải có ít nhất một dòng.']);
             foreach ($receipt->items as $item) $this->move($receipt->warehouse_id,$item->medicine_id,$item->batch_number,$item->expiry_date->toDateString(),(float)$item->quantity,'receipt',$receipt,$userId);
@@ -91,8 +92,14 @@ final class InventoryService
         DB::transaction(function () use ($issue,$userId): void {
             $issue=InventoryIssue::query()->lockForUpdate()->findOrFail($issue->getKey());
             if ($issue->status !== InventoryIssue::DRAFT) throw ValidationException::withMessages(['status'=>'Chỉ phiếu nháp mới được ghi sổ.']);
+            $this->assertDocumentDateAfterOpeningCutoff($issue->warehouse_id,$issue->issue_date,'Ngày phiếu xuất');
             $issue->load('items');
             if ($issue->items->isEmpty()) throw ValidationException::withMessages(['items'=>'Phiếu xuất phải có ít nhất một dòng.']);
+            foreach ($issue->items as $item) {
+                if(blank($item->batch_number) || !$item->expiry_date) throw ValidationException::withMessages(['stock'=>'Phiếu có mặt hàng chưa chọn lô/HSD, chưa thể ghi sổ.']);
+                $balance=$this->lockedBalance($issue->warehouse_id,$item->medicine_id,$item->batch_number,$item->expiry_date->toDateString());
+                if((float)$balance->quantity_on_hand < (float)$item->quantity) throw ValidationException::withMessages(['stock'=>"Không đủ tồn cho lô {$item->batch_number}. Tồn khả dụng: ".number_format((float)$balance->quantity_on_hand,3,'.','').', cần xuất: '.number_format((float)$item->quantity,3,'.','').'.']);
+            }
             foreach ($issue->items as $item) $this->move($issue->warehouse_id,$item->medicine_id,$item->batch_number,$item->expiry_date->toDateString(),-(float)$item->quantity,'issue',$issue,$userId);
             $issue->update(['status'=>InventoryIssue::POSTED,'posted_by'=>$userId,'posted_at'=>now()]);
         });
@@ -129,11 +136,24 @@ final class InventoryService
     public function setOpeningBalance(int $warehouseId,int $medicineId,string $batch,string $expiry,float $quantity,?int $userId): void
     {
         DB::transaction(function () use ($warehouseId,$medicineId,$batch,$expiry,$quantity,$userId): void {
+            $warehouse=InventoryWarehouse::query()->lockForUpdate()->findOrFail($warehouseId);
+            if(!$warehouse->opening_cutoff_at) $warehouse->update(['opening_cutoff_at'=>now()]);
             $balance=$this->lockedBalance($warehouseId,$medicineId,$batch,$expiry);
             if ((float)$balance->opening_quantity !== 0.0 || (float)$balance->quantity_on_hand !== 0.0) throw ValidationException::withMessages(['quantity'=>'Lô đã phát sinh tồn, không thể nhập tồn đầu kỳ lần nữa.']);
             $balance->update(['opening_quantity'=>$quantity,'quantity_on_hand'=>$quantity]);
             InventoryTransaction::create(['warehouse_id'=>$warehouseId,'medicine_id'=>$medicineId,'batch_number'=>$batch,'expiry_date'=>$expiry,'type'=>'opening','quantity_delta'=>$quantity,'balance_after'=>$quantity,'created_by'=>$userId]);
         });
+    }
+
+    private function assertDocumentDateAfterOpeningCutoff(int $warehouseId, mixed $documentDate, string $label): void
+    {
+        $warehouse=InventoryWarehouse::query()->findOrFail($warehouseId);
+        if(!$warehouse->opening_cutoff_at) return;
+        $cutoffDate=$warehouse->opening_cutoff_at->toDateString();
+        $date=$documentDate instanceof \DateTimeInterface ? $documentDate->format('Y-m-d') : (string)$documentDate;
+        if($date < $cutoffDate) throw ValidationException::withMessages([
+            'date'=>"{$label} không được trước ngày bắt đầu sổ kho ".$warehouse->opening_cutoff_at->format('d/m/Y H:i').'.',
+        ]);
     }
 
     private function move(int $warehouseId,int $medicineId,string $batch,string $expiry,float $delta,string $type,object $source,?int $userId): void

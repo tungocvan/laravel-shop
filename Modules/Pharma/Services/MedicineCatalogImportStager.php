@@ -113,9 +113,19 @@ class MedicineCatalogImportStager
             if ($medicine) {
                 return [MedicineImportRow::CLASS_NEW, 'new_variant_for_existing_medicine', $medicine->id, null];
             }
+
+            // Legacy v2 masters may share registration/name across packages. Match
+            // only when packaging also matches; another package must become a new MED.
+            $legacyPackageMatch = $this->possibleExistingMedicines($normalized)
+                ->first(fn (Medicine $candidate): bool => $this->samePackaging($candidate, $normalized));
+            if ($legacyPackageMatch) {
+                return [MedicineImportRow::CLASS_NEW, 'legacy_medicine_same_packaging', $legacyPackageMatch->id, null];
+            }
         }
 
-        $possibleDuplicates = $this->possibleExistingMedicines($normalized);
+        $possibleDuplicates = $this->possibleExistingMedicines($normalized)
+            ->filter(fn (Medicine $candidate): bool => $this->samePackaging($candidate, $normalized))
+            ->values();
         if ($possibleDuplicates->count() === 1) {
             return [MedicineImportRow::CLASS_NEEDS_REVIEW, 'possible_existing_medicine_identity', $possibleDuplicates->first()->id, null];
         }
@@ -149,6 +159,14 @@ class MedicineCatalogImportStager
 
                 return true;
             })->values();
+    }
+
+    private function samePackaging(Medicine $medicine, array $normalized): bool
+    {
+        $incoming = $this->normalizer->text($normalized['packaging_specification'] ?? null);
+        $existing = $this->normalizer->text($medicine->packaging_specification);
+
+        return $incoming !== null && $existing !== null && $incoming === $existing;
     }
 
     private function presentation(array $normalized): ?string

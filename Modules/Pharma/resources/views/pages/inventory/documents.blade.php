@@ -11,6 +11,7 @@
         </div>
         <div class="flex flex-wrap gap-2">
             @if($type === 'issue')@can('edit_pharma')<a href="{{ route('admin.pharma.inventory.issues.settings') }}" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">⚙ Cấu hình phiếu xuất</a>@endcan<a href="{{ route('admin.pharma.inventory.issues.export',request()->only(['q','status'])) }}" class="rounded-xl border border-emerald-300 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-700">Export Excel</a>@endif
+            @if($type === 'issue')<a href="{{ route('admin.pharma.inventory.issues.bid-sales.create') }}" class="rounded-xl border border-indigo-300 bg-indigo-50 px-4 py-2.5 text-sm font-semibold text-indigo-700">+ Xuất bán hàng thầu</a>@endif
             <a href="{{ route($type === 'receipt' ? 'admin.pharma.inventory.receipts.create' : 'admin.pharma.inventory.issues.create') }}" class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white">+ {{ $type === 'receipt' ? 'Lập phiếu nhập' : 'Lập phiếu xuất' }}</a>
         </div>
     </header>
@@ -47,7 +48,7 @@
                             $postRoute=$type === 'receipt' ? route('admin.pharma.inventory.receipts.post',$doc) : route('admin.pharma.inventory.issues.post',$doc);
                         @endphp
                         <tr class="transition hover:bg-slate-50/70">
-                            <td class="whitespace-nowrap px-4 py-4 font-mono font-bold text-indigo-700">{{ $doc->number }}</td>
+                            <td class="whitespace-nowrap px-4 py-4"><div class="font-mono font-bold text-indigo-700">{{ $doc->number }}</div>@if($type === 'issue' && ($doc->issue_source ?? 'normal') === 'bid')<span class="mt-1 inline-flex rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-bold uppercase text-violet-700">Hàng thầu</span>@endif</td>
                             <td class="whitespace-nowrap px-4 py-4 text-slate-600">{{ $date->format('d/m/Y') }}</td>
                             <td class="px-4 py-4"><div class="truncate font-semibold text-slate-800" title="{{ $party ?: '—' }}">{{ $party ?: '—' }}</div>@if($type === 'issue' && $doc->priceList?->manager)<div class="mt-1 truncate text-xs text-slate-500">{{ $doc->priceList->manager->name }}</div>@endif</td>
                             <td class="px-4 py-4 text-right">{{ $doc->items_count }}</td>
@@ -76,12 +77,19 @@
                                         @endcan
                                     @else
                                         <a href="{{ route('admin.pharma.inventory.issues.show',$doc) }}" class="inline-flex min-h-9 items-center rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50">Xem</a>
-                                        <details class="relative">
+                                        <details class="relative" data-document-actions>
                                             <summary class="flex min-h-9 cursor-pointer list-none items-center rounded-lg border border-slate-300 bg-white px-3 text-base font-bold leading-none text-slate-600 hover:bg-slate-50" aria-label="Thao tác khác">⋯</summary>
                                             <div class="absolute right-0 z-30 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-left shadow-xl">
                                                 @can('edit_pharma')
-                                                    <a href="{{ route('admin.pharma.inventory.issues.edit',$doc) }}" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">{{ $doc->status === 'draft' ? 'Sửa phiếu' : 'Cập nhật phiếu' }}</a>
-                                                    @if($doc->status === 'draft')<button type="button" onclick="this.closest('details').removeAttribute('open'); document.getElementById('post-{{ $type }}-{{ $doc->id }}').showModal()" class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-emerald-700 hover:bg-emerald-50">Ghi sổ</button>@endif
+                                                    @if(($doc->issue_source ?? 'normal') === 'bid' && $doc->status === 'draft')
+                                                        <a href="{{ route('admin.pharma.inventory.issues.bid-sales.edit',$doc) }}" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Sửa đơn hàng thầu</a>
+                                                    @else
+                                                        <a href="{{ route('admin.pharma.inventory.issues.edit',$doc) }}" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">{{ $doc->status === 'draft' ? 'Sửa phiếu' : 'Cập nhật phiếu' }}</a>
+                                                    @endif
+                                                    @if($doc->status === 'draft' && ($doc->issue_source ?? 'normal') !== 'bid')
+                                                        @if($doc->can_post_stock)<button type="button" onclick="this.closest('details').removeAttribute('open'); document.getElementById('post-{{ $type }}-{{ $doc->id }}').showModal()" class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-emerald-700 hover:bg-emerald-50">Ghi sổ</button>
+                                                        @else<button type="button" disabled title="Không đủ tồn kho để ghi sổ" class="block w-full cursor-not-allowed px-4 py-2.5 text-left text-xs font-semibold text-slate-400">Ghi sổ · Không đủ tồn</button>@endif
+                                                    @endif
                                                 @endcan
                                                 <a href="{{ route('admin.pharma.inventory.issues.pdf',$doc) }}" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Tải PDF</a>
                                                 <a href="{{ route('admin.pharma.inventory.issues.print',$doc) }}" target="_blank" rel="noopener" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">In trực tiếp</a>
@@ -96,7 +104,7 @@
                                 </div>
                             </td>
                         </tr>
-                        @if($doc->status === 'draft')
+                        @if($doc->status === 'draft' && !($type === 'issue' && ($doc->issue_source ?? 'normal') === 'bid') && ($type !== 'issue' || $doc->can_post_stock))
                             <dialog id="post-{{ $type }}-{{ $doc->id }}" class="m-auto w-[calc(100%-2rem)] max-w-lg overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-2xl ring-1 ring-slate-200 backdrop:bg-slate-950/65 backdrop:backdrop-blur-[3px]">
                                 <form method="POST" action="{{ $postRoute }}" class="overflow-hidden rounded-2xl bg-white">
                                     @csrf
@@ -160,4 +168,22 @@
         <div class="border-t border-slate-200 p-4">{{ $documents->links() }}</div>
     </section>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const actionMenus = Array.from(document.querySelectorAll('details[data-document-actions]'));
+    actionMenus.forEach((menu) => {
+        menu.addEventListener('toggle', () => {
+            if (!menu.open) return;
+            actionMenus.forEach((other) => {
+                if (other !== menu) other.removeAttribute('open');
+            });
+        });
+    });
+    document.addEventListener('click', (event) => {
+        actionMenus.forEach((menu) => {
+            if (menu.open && !menu.contains(event.target)) menu.removeAttribute('open');
+        });
+    });
+});
+</script>
 @endsection

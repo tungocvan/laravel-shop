@@ -7,5 +7,6 @@ class InventoryIssue extends Model {
  public const DRAFT='draft'; public const POSTED='posted'; public const CANCELLED='cancelled';
  protected $table='pharma_inventory_issues'; protected $guarded=[]; protected $casts=['issue_date'=>'date','posted_at'=>'datetime'];
  public function items(): HasMany { return $this->hasMany(InventoryIssueItem::class,'issue_id'); }
+ public function deferredSupplies(): HasMany { return $this->hasMany(InventoryIssueDeferredSupply::class,'issue_id'); }
  public function priceList(): BelongsTo { return $this->belongsTo(PriceList::class,'price_list_id'); }
 }

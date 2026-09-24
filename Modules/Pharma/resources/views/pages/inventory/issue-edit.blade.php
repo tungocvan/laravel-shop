@@ -8,12 +8,12 @@
     $selectedManagerId=$selectedPriceList?->manager_user_id;
     $initialItems=$issue->items->map(function ($item) {
         return [
-            'medicine_id'=>$item->medicine_id,'batch_number'=>$item->batch_number,'expiry_date'=>$item->expiry_date->format('Y-m-d'),
+            'medicine_id'=>$item->medicine_id,'batch_number'=>$item->batch_number,'expiry_date'=>$item->expiry_date?->format('Y-m-d'),
             'quantity'=>(float)$item->quantity,'unit_price'=>(float)$item->unit_price,
         ];
     })->values();
     $balanceOptions=$availableBalances->map(function ($balance) {
-        return ['id'=>$balance->id,'medicine_id'=>$balance->medicine_id,'batch'=>$balance->batch_number,'expiry'=>$balance->expiry_date->format('Y-m-d'),'quantity'=>(float)$balance->quantity_on_hand];
+        return ['id'=>$balance->id,'medicine_id'=>$balance->medicine_id,'batch'=>$balance->batch_number,'expiry'=>$balance->expiry_date?->format('Y-m-d'),'quantity'=>(float)$balance->quantity_on_hand];
     })->values();
     $medicineOptions=$availableBalances->pluck('medicine')->unique('id')->values()->map(function ($medicine) {
         return ['id'=>$medicine->id,'text'=>$medicine->medicine_code.' — '.$medicine->name];
