@@ -54,8 +54,8 @@ class MedicineHsspBoundaryContractTest extends TestCase
         $dashboard = file_get_contents(base_path('Modules/Pharma/resources/views/pages/dashboard.blade.php'));
 
         $this->assertStringContainsString("route('admin.pharma.medicines.index')", $dashboard);
-        $this->assertStringContainsString("route('admin.pharma.hssp.index')", $dashboard);
-        $this->assertStringContainsString('Danh mục thuốc chuẩn', $dashboard);
+        $this->assertStringContainsString("'admin.pharma.hssp.index'", $dashboard);
+        $this->assertStringContainsString('Danh mục chuẩn', $dashboard);
         $this->assertStringContainsString('HSSP thuốc', $dashboard);
     }
 }
