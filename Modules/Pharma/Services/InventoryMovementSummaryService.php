@@ -6,6 +6,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Modules\Pharma\Models\InventoryWarehouse;
+use Modules\Pharma\Models\InventoryBalance;
 
 final class InventoryMovementSummaryService
 {
@@ -40,6 +41,17 @@ final class InventoryMovementSummaryService
             ->selectRaw('COALESCE(pre.opening_quantity,0)+COALESCE(mov.net_quantity,0) as period_closing')
             ->orderBy('m.name')->orderBy('b.expiry_date')->get();
 
+        $costs=$this->effectiveCosts($rows);
+        foreach($rows as $row){
+            $cost=$costs->get((int)$row->id);
+            $row->effective_cost_price=$cost;
+            $row->opening_value=$cost === null ? null : (float)$row->period_opening*$cost;
+            $row->in_value=$cost === null ? null : (float)$row->period_in*$cost;
+            $row->out_value=$cost === null ? null : (float)$row->period_out*$cost;
+            $row->closing_value=$cost === null ? null : (float)$row->period_closing*$cost;
+        }
+        $unpriced=$rows->filter(fn($row)=>$row->effective_cost_price === null || $row->effective_cost_price <= 0);
+
         return [
             'rows'=>$rows,
             'opening'=>(float)$rows->sum('period_opening'),
@@ -47,6 +59,44 @@ final class InventoryMovementSummaryService
             'in'=>(float)$rows->sum('period_in'),
             'out'=>(float)$rows->sum('period_out'),
             'closing'=>(float)$rows->sum('period_closing'),
+            'opening_value'=>(float)$rows->sum(fn($row)=>(float)($row->opening_value ?? 0)),
+            'in_value'=>(float)$rows->sum(fn($row)=>(float)($row->in_value ?? 0)),
+            'out_value'=>(float)$rows->sum(fn($row)=>(float)($row->out_value ?? 0)),
+            'closing_value'=>(float)$rows->sum(fn($row)=>(float)($row->closing_value ?? 0)),
+            'unpriced_count'=>$unpriced->count(),
         ];
     }
+
+    /**
+     * The current ledger does not snapshot cost on each movement. Until it does,
+     * movement valuation uses the same effective lot cost as the stock dashboard:
+     * manual lot cost first, then active Supplier Tracking average.
+     */
+    private function effectiveCosts(Collection $rows): Collection
+    {
+        $balanceIds=$rows->pluck('id')->map(fn($id)=>(int)$id)->all();
+        if($balanceIds === []) return collect();
+
+        $balances=InventoryBalance::query()->whereIn('id',$balanceIds)->get(['id','medicine_id','manual_cost_price']);
+        $medicineIds=$balances->pluck('medicine_id')->unique()->values()->all();
+        $today=now()->toDateString();
+        $supplierCosts=DB::table('pharma_supplier_trackings')
+            ->whereIn('medicine_id',$medicineIds)
+            ->where('status','active')
+            ->where(fn($query)=>$query->whereNull('effective_from')->orWhereDate('effective_from','<=',$today))
+            ->where(fn($query)=>$query->whereNull('effective_to')->orWhereDate('effective_to','>=',$today))
+            ->whereNotNull('cost_price')
+            ->groupBy('medicine_id')
+            ->selectRaw('medicine_id, AVG(cost_price) as average_cost_price')
+            ->pluck('average_cost_price','medicine_id');
+
+        return $balances->mapWithKeys(function(InventoryBalance $balance)use($supplierCosts){
+            $supplier=$supplierCosts->get($balance->medicine_id);
+            $cost=$balance->manual_cost_price !== null
+                ? (float)$balance->manual_cost_price
+                : ($supplier !== null ? (float)$supplier : null);
+            return [(int)$balance->id=>$cost];
+        });
+    }
+
 }
