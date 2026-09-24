@@ -12,6 +12,7 @@ use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\Response;
 use Modules\Pharma\Models\DrugBidAward;
 use Modules\Pharma\Models\DrugBidAwardAllocation;
+use Modules\Pharma\Models\DrugBidAwardManagementAssignment;
 use Modules\Pharma\Models\InventoryBalance;
 use Modules\Pharma\Models\InventoryIssue;
 use Modules\Pharma\Models\InventoryIssueDocumentSetting;
@@ -607,15 +608,20 @@ final class InventoryController extends Controller
         abort_unless(($issue->issue_source ?? 'normal')==='bid' && $issue->status===InventoryIssue::DRAFT,404);
         $issue->load(['items.medicine']);
         $allocationIds=$issue->items->pluck('drug_bid_award_allocation_id')->filter();
-        $allocations=DrugBidAwardAllocation::query()->with(['partner','award.medicine','managementAssignments.user'])
+        $allocations=DrugBidAwardAllocation::query()->with(['partner','award.medicine'])
             ->whereIn('id',$allocationIds)->get()->keyBy('id');
+        $assignments=DrugBidAwardManagementAssignment::query()->with('user:id,name')
+            ->where('status',DrugBidAwardManagementAssignment::STATUS_ACTIVE)
+            ->whereIn('drug_bid_award_id',$allocations->pluck('drug_bid_award_id')->filter()->unique())
+            ->whereIn('partner_id',$allocations->pluck('partner_id')->filter()->unique())
+            ->get()->groupBy(fn($assignment)=>$assignment->drug_bid_award_id.'|'.$assignment->partner_id);
         $posted=DB::table('pharma_inventory_issue_items as ii')->join('pharma_inventory_issues as i','i.id','=','ii.issue_id')
             ->where('i.issue_source','bid')->where('i.status',InventoryIssue::POSTED)->whereIn('ii.drug_bid_award_allocation_id',$allocationIds)
             ->groupBy('ii.drug_bid_award_allocation_id')->selectRaw('ii.drug_bid_award_allocation_id, SUM(ii.quantity) as qty')
             ->pluck('qty','ii.drug_bid_award_allocation_id');
         $stock=InventoryBalance::query()->where('warehouse_id',$issue->warehouse_id)->whereIn('medicine_id',$issue->items->pluck('medicine_id'))
             ->whereDate('expiry_date','>=',now()->toDateString())->groupBy('medicine_id')->selectRaw('medicine_id, SUM(quantity_on_hand) as qty')->pluck('qty','medicine_id');
-        $rows=$issue->items->map(function($item)use($allocations,$posted,$stock){
+        $rows=$issue->items->map(function($item)use($allocations,$assignments,$posted,$stock){
             $allocation=$allocations[$item->drug_bid_award_allocation_id]??null; $award=$allocation?->award;
             $issued=(float)($posted[$allocation?->id]??0); $remaining=max(0,(float)($allocation?->allocated_quantity??0)-$issued);
             return ['item_id'=>$item->id,'allocation_id'=>$allocation?->id,'medicine_code'=>$item->medicine?->medicine_code ?? $award?->medicine_code,
@@ -623,7 +629,7 @@ final class InventoryController extends Controller
                 'allocated_quantity'=>(float)($allocation?->allocated_quantity??0),'issued_quantity'=>$issued,'remaining_quantity'=>$remaining,
                 'available_stock'=>(float)($stock[$item->medicine_id]??0),'winning_price'=>(float)$item->unit_price,'quantity'=>(float)$item->quantity,
                 'effective_until'=>$allocation?->effective_until?->format('Y-m-d'),
-                'manager_names'=>$allocation?->managementAssignments->where('status',DrugBidAwardManagementAssignment::STATUS_ACTIVE)->pluck('user.name')->filter()->unique()->values()->implode(', ')];
+                'manager_names'=>$allocation ? ($assignments[$allocation->drug_bid_award_id.'|'.$allocation->partner_id] ?? collect())->pluck('user.name')->filter()->unique()->values()->implode(', ') : ''];
         });
         return view('Pharma::pages.inventory.bid-sale-edit',compact('issue','rows'));
     }
