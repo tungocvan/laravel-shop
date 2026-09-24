@@ -11,6 +11,7 @@
         </div>
         <div class="flex flex-wrap gap-2">
             @if($type === 'issue')@can('edit_pharma')<a href="{{ route('admin.pharma.inventory.issues.settings') }}" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">⚙ Cấu hình phiếu xuất</a>@endcan<a href="{{ route('admin.pharma.inventory.issues.export',request()->only(['q','status'])) }}" class="rounded-xl border border-emerald-300 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-700">Export Excel</a>@endif
+            @if($type === 'issue')<a href="{{ route('admin.pharma.inventory.issues.bid-sales.create') }}" class="rounded-xl border border-indigo-300 bg-indigo-50 px-4 py-2.5 text-sm font-semibold text-indigo-700">+ Xuất bán hàng thầu</a>@endif
             <a href="{{ route($type === 'receipt' ? 'admin.pharma.inventory.receipts.create' : 'admin.pharma.inventory.issues.create') }}" class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white">+ {{ $type === 'receipt' ? 'Lập phiếu nhập' : 'Lập phiếu xuất' }}</a>
         </div>
     </header>
@@ -47,7 +48,7 @@
                             $postRoute=$type === 'receipt' ? route('admin.pharma.inventory.receipts.post',$doc) : route('admin.pharma.inventory.issues.post',$doc);
                         @endphp
                         <tr class="transition hover:bg-slate-50/70">
-                            <td class="whitespace-nowrap px-4 py-4 font-mono font-bold text-indigo-700">{{ $doc->number }}</td>
+                            <td class="whitespace-nowrap px-4 py-4"><div class="font-mono font-bold text-indigo-700">{{ $doc->number }}</div>@if($type === 'issue' && ($doc->issue_source ?? 'normal') === 'bid')<span class="mt-1 inline-flex rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-bold uppercase text-violet-700">Hàng thầu</span>@endif</td>
                             <td class="whitespace-nowrap px-4 py-4 text-slate-600">{{ $date->format('d/m/Y') }}</td>
                             <td class="px-4 py-4"><div class="truncate font-semibold text-slate-800" title="{{ $party ?: '—' }}">{{ $party ?: '—' }}</div>@if($type === 'issue' && $doc->priceList?->manager)<div class="mt-1 truncate text-xs text-slate-500">{{ $doc->priceList->manager->name }}</div>@endif</td>
                             <td class="px-4 py-4 text-right">{{ $doc->items_count }}</td>
