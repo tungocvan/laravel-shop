@@ -18,6 +18,7 @@
    <label class="text-sm font-medium">Chữ ký 1<input name="issuer_label" required value="{{ old('issuer_label',$settings->issuer_label) }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm"></label>
    <label class="text-sm font-medium">Chữ ký 2<input name="deliverer_label" required value="{{ old('deliverer_label',$settings->deliverer_label) }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm"></label>
    <label class="text-sm font-medium">Chữ ký 3<input name="receiver_label" required value="{{ old('receiver_label',$settings->receiver_label) }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm"></label>
+   <label class="text-sm font-medium">Chữ ký 4<input name="keeper_label" required value="{{ old('keeper_label',$settings->keeper_label) }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm"></label>
    <label class="text-sm font-medium md:col-span-2">Ghi chú cuối phiếu<textarea name="footer_note" rows="3" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm">{{ old('footer_note',$settings->footer_note) }}</textarea></label>
   </div></section>
   <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -29,6 +30,10 @@
            'show_unit_price' => 'Đơn giá xuất',
            'show_total_value' => 'Thành tiền / tổng giá trị',
            'show_notes' => 'Ghi chú',
+           'show_issuer_signature' => 'Chữ ký: Người lập phiếu',
+           'show_deliverer_signature' => 'Chữ ký: Người giao hàng',
+           'show_receiver_signature' => 'Chữ ký: Người nhận hàng',
+           'show_keeper_signature' => 'Chữ ký: Thủ kho',
        ];
    @endphp
    <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
