@@ -4,7 +4,7 @@
 @section('content')
 @php
 $hasPostableStock=$rows->contains(fn($row)=>$balances->get($issue->items->firstWhere('id',$row['item_id'])?->medicine_id,collect())->isNotEmpty());
-$hasUnresolvedShortage=$rows->contains(fn($row)=>$balances->get($issue->items->firstWhere('id',$row['item_id'])?->medicine_id,collect())->isEmpty());
+$hasUnresolvedShortage=$rows->contains(fn($row)=>$balances->get($issue->items->firstWhere('id',$row['item_id'])?->medicine_id,collect())->isEmpty() && !$savedDeferred->has($row['allocation_id']));
 $stockReady=$hasPostableStock && !$hasUnresolvedShortage;
 @endphp
 <div class="mx-auto w-full max-w-[1480px] space-y-5">
@@ -58,12 +58,13 @@ $stockReady=$hasPostableStock && !$hasUnresolvedShortage;
      @empty
      <tr data-shortage-row="{{ $row['item_id'] }}"><td colspan="5" class="px-4 py-5">
       <div class="mx-auto max-w-3xl rounded-xl border border-amber-200 bg-amber-50 p-4 text-left">
+       @php($savedSupply=$savedDeferred->get($row['allocation_id']))
        <div class="flex flex-wrap items-start justify-between gap-3"><div><p class="font-bold text-amber-900">Hiện kho đang hết hàng</p><p class="mt-1 text-sm text-amber-800">Mặt hàng chưa có lô tồn khả dụng. Có thể ghi nhận chờ cung cấp để vẫn ghi sổ các mặt hàng đang có tồn.</p></div>
-       <button type="button" data-defer-toggle="{{ $row['item_id'] }}" class="rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-bold text-amber-800 hover:bg-amber-100">Ghi nhận chờ cung cấp</button></div>
-       <div data-defer-panel="{{ $row['item_id'] }}" class="mt-4 hidden grid gap-3 border-t border-amber-200 pt-4 md:grid-cols-[180px_minmax(0,1fr)]">
-        <input type="hidden" data-defer-enabled="{{ $row['item_id'] }}" name="deferred[{{ $row['item_id'] }}][enabled]" value="0">
-        <label class="text-xs font-bold text-slate-600">Dự kiến cung cấp lại<input type="date" name="deferred[{{ $row['item_id'] }}][expected_supply_date]" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"></label>
-        <label class="text-xs font-bold text-slate-600">Ghi chú *<input type="text" name="deferred[{{ $row['item_id'] }}][note]" value="Hiện kho đang hết hàng. Đơn hàng dự kiến cung cấp lại." class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" maxlength="2000"></label>
+       <button type="button" data-defer-toggle="{{ $row['item_id'] }}" class="rounded-lg border border-amber-300 {{ $savedSupply ? 'bg-amber-100' : 'bg-white' }} px-3 py-2 text-xs font-bold text-amber-800 hover:bg-amber-100">{{ $savedSupply ? '✓ Đã lưu chờ cung cấp' : 'Ghi nhận chờ cung cấp' }}</button></div>
+       <div data-defer-panel="{{ $row['item_id'] }}" class="mt-4 {{ $savedSupply ? '' : 'hidden' }} grid gap-3 border-t border-amber-200 pt-4 md:grid-cols-[180px_minmax(0,1fr)]">
+        <input type="hidden" data-defer-enabled="{{ $row['item_id'] }}" name="deferred[{{ $row['item_id'] }}][enabled]" value="{{ $savedSupply ? '1' : '0' }}">
+        <label class="text-xs font-bold text-slate-600">Dự kiến cung cấp lại<input type="date" name="deferred[{{ $row['item_id'] }}][expected_supply_date]" value="{{ old('deferred.'.$row['item_id'].'.expected_supply_date',$savedSupply?->expected_supply_date?->format('Y-m-d')) }}" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"></label>
+        <label class="text-xs font-bold text-slate-600">Ghi chú *<input type="text" name="deferred[{{ $row['item_id'] }}][note]" value="{{ old('deferred.'.$row['item_id'].'.note',$savedSupply?->note ?: 'Hiện kho đang hết hàng. Đơn hàng dự kiến cung cấp lại.') }}" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" maxlength="2000"></label>
         <div class="md:col-span-2 flex flex-wrap items-center justify-between gap-3"><p class="text-xs text-slate-500">Phần thiếu không trừ tồn kho. Nhật ký này được lưu cùng phiếu để người lên đơn nhận biết và theo dõi cấp bổ sung.</p><button type="button" data-defer-save="{{ $row['item_id'] }}" class="rounded-lg bg-amber-600 px-4 py-2 text-xs font-bold text-white hover:bg-amber-700">Lưu ghi chú chờ cấp</button></div>
        </div>
       </div>
@@ -109,8 +110,9 @@ document.addEventListener('DOMContentLoaded', () => {
   if(!note.value.trim()){ alert('Vui lòng nhập ghi chú chờ cung cấp.'); note.focus(); return; }
   enabled.value='1';
   const toggle=document.querySelector('[data-defer-toggle="'+id+'"]');
-  toggle.textContent='✓ Đã ghi nhận chờ cung cấp'; toggle.classList.add('bg-amber-100');
-  save.textContent='✓ Đã lưu ghi chú'; refreshPostState();
+  toggle.textContent='✓ Chờ lưu phiếu nháp'; toggle.classList.add('bg-amber-100');
+  save.textContent='✓ Đã xác nhận · Hãy lưu phiếu nháp';
+  if(postButton){ postButton.disabled=true; postButton.classList.add('cursor-not-allowed','bg-slate-300','text-slate-500'); postButton.classList.remove('bg-emerald-600','hover:bg-emerald-700'); postButton.title='Hãy lưu phiếu nháp để lưu nhật ký chờ cung cấp trước khi duyệt'; }
  }));
  refreshPostState();
  document.getElementById('bid-add-button')?.addEventListener('click',()=>{
