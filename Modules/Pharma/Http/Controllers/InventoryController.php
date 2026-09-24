@@ -67,7 +67,11 @@ final class InventoryController extends Controller
             $effective=$row->manual_cost_price !== null ? (float)$row->manual_cost_price : ($cost?->average_cost_price !== null ? (float)$cost->average_cost_price : null);
             return $effective === null ? 0 : (float)$row->quantity_on_hand*$effective;
         });
-        $unpricedBalanceCount=$allBalances->filter(fn(InventoryBalance $row)=>$row->manual_cost_price === null && $costs->get($row->medicine_id)?->average_cost_price === null)->count();
+        $unpricedBalanceCount=$allBalances->filter(function(InventoryBalance $row)use($costs){
+            $supplier=$costs->get($row->medicine_id)?->average_cost_price;
+            $effective=$row->manual_cost_price !== null ? (float)$row->manual_cost_price : ($supplier !== null ? (float)$supplier : null);
+            return $effective === null || $effective <= 0;
+        })->count();
         $expiredBalances=$allBalances->filter(fn(InventoryBalance $row)=>$row->expiry_date->lt(now()->startOfDay()));
         $expiredBalanceCount=$expiredBalances->count();
         $expiredInventoryValue=$expiredBalances->sum(function(InventoryBalance $row)use($costs){
@@ -1019,8 +1023,11 @@ final class InventoryController extends Controller
     private function applyCostFilter($query,string $status): void
     {
         match($status){
-            'priced'=>$query->where(fn($q)=>$q->whereNotNull('pharma_inventory_balances.manual_cost_price')->orWhereNotNull('supplier_costs.average_cost_price')),
-            'unpriced'=>$query->whereNull('pharma_inventory_balances.manual_cost_price')->whereNull('supplier_costs.average_cost_price'),
+            'priced'=>$query->whereRaw('COALESCE(pharma_inventory_balances.manual_cost_price, supplier_costs.average_cost_price) > 0'),
+            'unpriced'=>$query->where(fn($q)=>$q
+                ->whereNull('pharma_inventory_balances.manual_cost_price')
+                ->whereNull('supplier_costs.average_cost_price')
+                ->orWhereRaw('COALESCE(pharma_inventory_balances.manual_cost_price, supplier_costs.average_cost_price) <= 0')),
             default=>null,
         };
     }
