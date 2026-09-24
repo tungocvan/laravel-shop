@@ -49,5 +49,26 @@ class InventoryPeriodContractTest extends TestCase
         $this->assertStringContainsString('Nhập trong kỳ', $view);
         $this->assertStringContainsString('Xuất trong kỳ', $view);
         $this->assertStringContainsString('Tồn cuối kỳ', $view);
+        $this->assertStringContainsString('inventory-movement-medicine', $view);
+        $this->assertStringContainsString('movement_medicine_id', $view);
+        $this->assertStringContainsString('movement-select-all', $view);
+        $this->assertStringContainsString('data-movement-check', $view);
+        $this->assertStringContainsString('Export theo bộ lọc', $view);
+        $this->assertStringContainsString('Export đã chọn', $view);
+        $this->assertStringContainsString('Import tồn đầu kỳ', $view);
+    }
+
+    public function test_period_export_is_filter_and_selection_aware(): void
+    {
+        $routes=file_get_contents(base_path('Modules/Pharma/routes/web.php'));
+        $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
+        $service=file_get_contents(base_path('Modules/Pharma/Services/InventoryMovementSummaryService.php'));
+
+        $this->assertStringContainsString("Route::get('/movements/export'", $routes);
+        $this->assertStringContainsString('exportMovements', $controller);
+        $this->assertStringContainsString("'ids'=>'nullable|array|max:500'", $controller);
+        $this->assertStringContainsString("'movement_medicine_id'=>'nullable|integer|exists:pharma_medicines,id'", $controller);
+        $this->assertStringContainsString('when($medicineId', $service);
+        $this->assertStringContainsString('when($balanceIds', $service);
     }
 }
