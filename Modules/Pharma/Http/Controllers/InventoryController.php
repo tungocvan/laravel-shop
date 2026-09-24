@@ -631,7 +631,10 @@ final class InventoryController extends Controller
                 'effective_until'=>$allocation?->effective_until?->format('Y-m-d'),
                 'manager_names'=>$allocation ? ($assignments[$allocation->drug_bid_award_id.'|'.$allocation->partner_id] ?? collect())->pluck('user.name')->filter()->unique()->values()->implode(', ') : ''];
         });
-        return view('Pharma::pages.inventory.bid-sale-edit',compact('issue','rows'));
+        $balances=InventoryBalance::query()->where('warehouse_id',$issue->warehouse_id)
+            ->whereIn('medicine_id',$issue->items->pluck('medicine_id'))->where('quantity_on_hand','>',0)
+            ->whereDate('expiry_date','>=',now()->toDateString())->orderBy('medicine_id')->orderBy('expiry_date')->get()->groupBy('medicine_id');
+        return view('Pharma::pages.inventory.bid-sale-edit',compact('issue','rows','balances'));
     }
 
     public function updateBidSaleIssue(Request $request, InventoryIssue $issue, InventoryService $inventory): RedirectResponse
@@ -677,26 +680,41 @@ final class InventoryController extends Controller
     {
         $this->guardIssueWarehouse($issue,$inventory);
         abort_unless(($issue->issue_source ?? 'normal')==='bid' && $issue->status===InventoryIssue::DRAFT,404);
-        $data=$request->validate(['batches'=>'required|array','batches.*'=>'required|array|min:1']);
+        $data=$request->validate([
+            'issue_date'=>'required|date','notes'=>'nullable|string','quantities'=>'required|array',
+            'quantities.*'=>'required|numeric|min:0.001','batches'=>'required|array','batches.*'=>'required|array|min:1',
+        ]);
         DB::transaction(function()use($issue,$data,$inventory){
-            $issue=InventoryIssue::query()->lockForUpdate()->findOrFail($issue->id); $issue->load('items');
+            $issue=InventoryIssue::query()->lockForUpdate()->findOrFail($issue->id); $issue->load('items.medicine');
+            if($issue->status!==InventoryIssue::DRAFT || ($issue->issue_source ?? 'normal')!=='bid') throw ValidationException::withMessages(['issue'=>'Phiếu hàng thầu không còn ở trạng thái nháp.']);
+            $posted=DB::table('pharma_inventory_issue_items as ii')->join('pharma_inventory_issues as i','i.id','=','ii.issue_id')
+                ->where('i.issue_source','bid')->where('i.status',InventoryIssue::POSTED)->whereIn('ii.drug_bid_award_allocation_id',$issue->items->pluck('drug_bid_award_allocation_id'))
+                ->groupBy('ii.drug_bid_award_allocation_id')->selectRaw('ii.drug_bid_award_allocation_id, SUM(ii.quantity) as qty')->pluck('qty','ii.drug_bid_award_allocation_id');
+            $newItems=[];
             foreach($issue->items as $item){
-                $parts=$data['batches'][$item->id]??[]; $total=0; $newItems=[];
+                $requested=(float)($data['quantities'][$item->id]??0);
+                $allocation=DrugBidAwardAllocation::query()->whereKey($item->drug_bid_award_allocation_id)->where('status',DrugBidAwardAllocation::STATUS_ACTIVE)->firstOrFail();
+                $remaining=max(0,(float)$allocation->allocated_quantity-(float)($posted[$allocation->id]??0));
+                if($requested>$remaining+0.00005) throw ValidationException::withMessages(['quantities'=>"Số lượng duyệt của {$item->medicine?->name} vượt phân bổ còn lại."]);
+                $parts=$data['batches'][$item->id]??[]; $lotTotal=0;
                 foreach($parts as $part){
                     $quantity=(float)($part['quantity']??0); if($quantity<=0) continue;
                     $balance=InventoryBalance::query()->where('warehouse_id',$issue->warehouse_id)->where('medicine_id',$item->medicine_id)
                         ->whereKey((int)($part['balance_id']??0))->where('quantity_on_hand','>',0)->lockForUpdate()->firstOrFail();
-                    $total+=$quantity;
+                    if($quantity>(float)$balance->quantity_on_hand+0.00005) throw ValidationException::withMessages(['batches'=>"Lô {$balance->batch_number} không đủ tồn để xuất ".number_format($quantity,3,'.','').'.']);
+                    $lotTotal+=$quantity;
                     $newItems[]=['medicine_id'=>$item->medicine_id,'drug_bid_award_id'=>$item->drug_bid_award_id,
                         'drug_bid_award_allocation_id'=>$item->drug_bid_award_allocation_id,'batch_number'=>$balance->batch_number,
                         'expiry_date'=>$balance->expiry_date,'quantity'=>$quantity,'unit_price'=>$item->unit_price];
                 }
-                if(abs($total-(float)$item->quantity)>0.00005) throw ValidationException::withMessages(['batches'=>"Tổng số lượng chia lô của {$item->medicine?->name} phải bằng ".number_format((float)$item->quantity,3,'.','').'.']);
-                $item->delete(); $issue->items()->createMany($newItems);
+                if(abs($lotTotal-$requested)>0.00005) throw ValidationException::withMessages(['batches'=>"Tổng số lượng chia lô của {$item->medicine?->name} phải bằng số lượng duyệt ".number_format($requested,3,'.','').'.']);
             }
+            if(!$newItems) throw ValidationException::withMessages(['batches'=>'Vui lòng chọn ít nhất một lô có số lượng xuất lớn hơn 0.']);
+            $issue->items()->delete(); $issue->items()->createMany($newItems);
+            $issue->update(['issue_date'=>$data['issue_date'],'notes'=>$data['notes']??null]);
             $inventory->postIssue($issue->fresh('items'),auth('admin')->id());
         });
-        return redirect()->route('admin.pharma.inventory.issues.show',$issue)->with('success',"Đã chọn lô và ghi sổ {$issue->number}.");
+        return redirect()->route('admin.pharma.inventory.issues.show',$issue)->with('success',"Đã duyệt lô và ghi sổ {$issue->number}.");
     }
 
     private function issueSalePriceCandidates()
