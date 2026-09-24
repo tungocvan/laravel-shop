@@ -71,6 +71,11 @@ class InventoryPeriodContractTest extends TestCase
         $this->assertStringContainsString('data-movement-check', $view);
         $this->assertStringContainsString('Export theo bộ lọc', $view);
         $this->assertStringContainsString('Export đã chọn', $view);
+        $this->assertStringContainsString("name=\"per_page\"", $view);
+        $this->assertStringContainsString("@foreach([25,50,100] as \$size)", $view);
+        $this->assertStringContainsString("movement['rows']->links()", $view);
+        $this->assertStringContainsString("documentPerPage(\$request)", $controller);
+        $this->assertStringContainsString("summarize(\$warehouse,\$from,\$to,\$movementMedicineId,[],\$movementPerPage)", $controller);
         $this->assertStringNotContainsString('Import tồn đầu kỳ', $view);
     }
 
@@ -86,6 +91,9 @@ class InventoryPeriodContractTest extends TestCase
         $this->assertStringContainsString("'movement_medicine_id'=>'nullable|integer|exists:pharma_medicines,id'", $controller);
         $this->assertStringContainsString('when($medicineId', $service);
         $this->assertStringContainsString('when($balanceIds', $service);
+        $this->assertStringContainsString("?int \$perPage=null", $service);
+        $this->assertStringContainsString("paginate(\$perPage)->withQueryString()", $service);
+        $this->assertStringContainsString("'opening_value'=>(float)\$allRows->sum", $service);
     }
     public function test_current_stock_and_period_movements_are_separate_workspaces(): void
     {
