@@ -207,6 +207,19 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('Tổng giá trị', $documents);
         $this->assertStringNotContainsString('Tổng SL', $documents);
         $this->assertStringContainsString('Export Excel', $documents);
+        $this->assertStringContainsString("@section('admin_container','full')", $documents);
+        $this->assertStringContainsString("max-w-[1580px]", $documents);
+        $this->assertStringContainsString("min-w-[1120px]", $documents);
+        $this->assertStringContainsString('Khách hàng / Nơi nhận', $documents);
+        $this->assertStringContainsString('Tải PDF', $documents);
+        $this->assertStringContainsString('In trực tiếp', $documents);
+        $this->assertStringContainsString('aria-label="Thao tác khác"', $documents);
+        $this->assertStringContainsString('min-h-[calc(100vh-7.5rem)]', $documents);
+        $this->assertStringContainsString('flex min-h-0 flex-1 flex-col', $documents);
+        $this->assertStringContainsString('min-h-[420px] flex-1 overflow-auto', $documents);
+        $this->assertStringContainsString('sticky top-0 z-10', $documents);
+        $this->assertStringContainsString('absolute right-0 z-30', $documents);
+        $this->assertStringContainsString('truncate font-semibold text-slate-800', $documents);
         $this->assertStringContainsString('Thành tiền', $issueShow);
         $this->assertStringContainsString('Tổng giá trị', $issueShow);
         $this->assertStringContainsString('<x-select-search id="issue-edit-recipient"', $issueEdit);
@@ -331,6 +344,10 @@ class InventoryContractTest extends TestCase
         $settingsView=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-settings.blade.php'));
         $model=file_get_contents(base_path('Modules/Pharma/Models/InventoryIssueDocumentSetting.php'));
         $migration=file_get_contents(base_path('Modules/Pharma/database/migrations/2026_09_23_164500_create_pharma_inventory_issue_document_settings_table.php'));
+        $signatureMigration=file_get_contents(base_path('Modules/Pharma/database/migrations/2026_09_24_091500_add_signature_options_to_pharma_inventory_issue_document_settings.php'));
+        $pdf=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-pdf.blade.php'));
+        $print=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-print.blade.php'));
+        $show=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-show.blade.php'));
 
         $this->assertStringContainsString("name('issues.settings')", $routes);
         $this->assertStringContainsString("name('issues.settings.update')", $routes);
@@ -345,6 +362,34 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('show_unit_price', $settingsView);
         $this->assertStringContainsString('show_total_value', $settingsView);
         $this->assertStringContainsString('issuer_label', $model);
+        $this->assertStringContainsString('keeper_label', $model);
+        $this->assertStringContainsString('show_keeper_signature', $model);
+        $this->assertStringContainsString("string('keeper_label')->default('Thủ kho')", $signatureMigration);
+        $this->assertStringContainsString("boolean('show_issuer_signature')->default(true)", $signatureMigration);
+        $this->assertStringContainsString("boolean('show_keeper_signature')->default(true)", $signatureMigration);
+        $this->assertStringContainsString('show_issuer_signature', $settingsView);
+        $this->assertStringContainsString('show_deliverer_signature', $settingsView);
+        $this->assertStringContainsString('show_receiver_signature', $settingsView);
+        $this->assertStringContainsString('show_keeper_signature', $settingsView);
+        $this->assertStringContainsString("'keeper_label'=>'required|string|max:120'", $controller);
+        $this->assertStringContainsString("'show_keeper_signature'", $controller);
+        $this->assertStringContainsString("class=\"label\">Bảng giá áp dụng:", $pdf);
+        $this->assertStringContainsString('$settings->keeper_label', $pdf);
+        $this->assertStringContainsString('$settings->keeper_label', $print);
+        $this->assertStringContainsString('$settings->keeper_label', $show);
+        $this->assertStringContainsString("number_format((float)\$item->quantity,0,',','.')", $pdf);
+        $this->assertStringContainsString("number_format((float)\$item->quantity,0,',','.')", $print);
+        $this->assertStringContainsString("number_format((float)\$item->quantity,0,',','.')", $show);
+        $this->assertStringNotContainsString("number_format((float)\$item->quantity,3,',','.')", $pdf);
+        $this->assertStringContainsString("show_notes && filled(\$issue->notes)", $pdf);
+        $this->assertStringContainsString("show_notes && filled(\$issue->notes)", $print);
+        $this->assertStringContainsString("show_notes && filled(\$issue->notes)", $show);
+        $this->assertStringNotContainsString('Không có ghi chú.', $pdf);
+        $this->assertStringContainsString("['show'=>\$settings->show_receiver_signature,'label'=>\$settings->receiver_label,'show_date'=>false]", $pdf);
+        $this->assertStringContainsString("['show'=>\$settings->show_keeper_signature,'label'=>\$settings->keeper_label,'show_date'=>true]", $pdf);
+        $this->assertStringContainsString('Ngày ..... tháng ..... năm .....', $pdf);
+        $this->assertStringContainsString('Ngày ..... tháng ..... năm .....', $print);
+        $this->assertStringContainsString('Ngày ..... tháng ..... năm .....', $show);
 
         foreach (['issue-settings.blade.php','issue-show.blade.php','issue-pdf.blade.php','issue-print.blade.php'] as $file) {
             $candidate=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/'.$file));
