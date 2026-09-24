@@ -21,7 +21,7 @@
     @if($errors->any())<div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800">{{ $errors->first() }}</div>@endif
 
     <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <form method="GET" class="grid gap-3 lg:grid-cols-[auto_auto_minmax(280px,1fr)_auto_auto] lg:items-end">
+        <form method="GET" class="grid gap-3 lg:grid-cols-[auto_auto_minmax(280px,1fr)_auto_auto_auto] lg:items-end">
             <label class="text-xs font-semibold text-slate-600">Từ ngày<input type="date" name="from" value="{{ $from->format('Y-m-d') }}" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 text-sm"></label>
             <label class="text-xs font-semibold text-slate-600">Đến ngày<input type="date" name="to" value="{{ $to->format('Y-m-d') }}" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 text-sm"></label>
             <label class="text-xs font-semibold text-slate-600">Tên thuốc
@@ -29,6 +29,11 @@
                     <option value="">Tất cả thuốc</option>
                     @foreach($movementMedicines as $medicine)<option value="{{ $medicine->id }}" @selected((int)$movementMedicineId===$medicine->id)>{{ $medicine->medicine_code }} · {{ $medicine->name }}</option>@endforeach
                 </x-select-search>
+            </label>
+            <label class="text-xs font-semibold text-slate-600">Số dòng
+                <select name="per_page" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm">
+                    @foreach([25,50,100] as $size)<option value="{{ $size }}" @selected($movementPerPage===$size)>{{ $size }}</option>@endforeach
+                </select>
             </label>
             <button class="min-h-11 rounded-xl bg-indigo-600 px-4 text-sm font-bold text-white">Lọc dữ liệu</button>
             <a href="{{ route('admin.pharma.inventory.movements.index') }}" class="flex min-h-11 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-semibold text-slate-700">Xóa bộ lọc</a>
@@ -91,6 +96,11 @@
                 </tbody>
             </table>
         </div>
+        @if($movement['rows']->hasPages())
+            <div class="border-t border-slate-100 px-4 py-3">
+                {{ $movement['rows']->links() }}
+            </div>
+        @endif
     </section>
 </div>
 <script>
