@@ -29,7 +29,7 @@ class InventoryPeriodContractTest extends TestCase
         $this->assertStringContainsString("whereBetween('created_at',[\$from,\$to])", $service);
         $this->assertStringContainsString("type='receipt_reversal' THEN quantity_delta", $service);
         $this->assertStringContainsString("type='issue_reversal' THEN -quantity_delta", $service);
-        $this->assertStringContainsString('period_opening', $service);
+        $this->assertStringContainsString("COALESCE(pre.opening_quantity,0)+COALESCE(mov.opening_import,0) as period_opening", $service);
         $this->assertStringContainsString('period_closing', $service);
     }
 
