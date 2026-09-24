@@ -2,6 +2,7 @@
 @section('title','Sửa & duyệt đơn hàng thầu')
 @section('admin_container','full')
 @section('content')
+@php($canApprove=$rows->every(fn($row)=>(float)$row['available_stock'] > 0 && $balances->get($issue->items->firstWhere('id',$row['item_id'])?->medicine_id,collect())->isNotEmpty()))
 <div class="mx-auto w-full max-w-[1480px] space-y-5">
  <header><a href="{{ route('admin.pharma.inventory.issues.show',$issue) }}" class="text-sm font-semibold text-indigo-700">← {{ $issue->number }}</a><div class="mt-2 flex flex-wrap items-center gap-2"><h1 class="text-2xl font-bold text-slate-950">Sửa & duyệt đơn hàng thầu</h1><span class="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700">NHÁP</span></div><p class="mt-1 text-sm text-slate-500">Người duyệt có thể giảm số lượng thực xuất theo khả năng cấp hàng và chia số lượng đó vào một hoặc nhiều lô. Chỉ “Duyệt & ghi sổ” mới trừ tồn kho.</p></header>
  @if($errors->any())<div class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-700">{{ $errors->first() }}</div>@endif
@@ -30,7 +31,7 @@
     </tbody></table></div>
    </section>
   @endforeach
-  <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><label class="text-sm font-semibold">Ghi chú<textarea name="notes" rows="3" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2">{{ old('notes',$issue->notes) }}</textarea></label><div class="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between"><p class="text-sm text-slate-500">FEFO là gợi ý ưu tiên. Có thể chia một thuốc qua nhiều lô; tổng SL lô phải bằng <b>SL duyệt</b>.</p><div class="flex gap-2"><a href="{{ route('admin.pharma.inventory.issues.show',$issue) }}" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold">Hủy</a><button type="submit" class="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white">Duyệt & ghi sổ</button></div></div></section>
+  <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><label class="text-sm font-semibold">Ghi chú<textarea name="notes" rows="3" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2">{{ old('notes',$issue->notes) }}</textarea></label><div class="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between"><p class="text-sm text-slate-500">FEFO là gợi ý ưu tiên. Có thể chia một thuốc qua nhiều lô; tổng SL lô phải bằng <b>SL duyệt</b>.</p><div class="flex gap-2"><a href="{{ route('admin.pharma.inventory.issues.index') }}" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold">Hủy</a><button type="submit" @disabled(!$canApprove) class="rounded-xl px-5 py-2.5 text-sm font-bold text-white {{ $canApprove ? 'bg-emerald-600 hover:bg-emerald-700' : 'cursor-not-allowed bg-slate-300 text-slate-500' }}" @if(!$canApprove) title="Chưa thể duyệt vì có mặt hàng chưa có lô tồn khả dụng" @endif>Duyệt & ghi sổ</button></div></div></section>
  </form>
 </div>
 @endsection
