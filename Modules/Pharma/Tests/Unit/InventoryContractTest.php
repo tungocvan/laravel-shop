@@ -402,4 +402,41 @@ class InventoryContractTest extends TestCase
         $this->addToAssertionCount(4);
     }
 
+    public function test_receipt_document_workspace_contracts(): void
+    {
+        $routes=file_get_contents(base_path('Modules/Pharma/routes/web.php'));
+        $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
+        $documents=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/documents.blade.php'));
+        $settings=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/receipt-settings.blade.php'));
+        $show=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/receipt-show.blade.php'));
+        $pdf=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/receipt-pdf.blade.php'));
+        $print=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/receipt-print.blade.php'));
+        $model=file_get_contents(base_path('Modules/Pharma/Models/InventoryReceiptDocumentSetting.php'));
+        $migration=file_get_contents(base_path('Modules/Pharma/database/migrations/2026_09_24_104500_create_pharma_inventory_receipt_document_settings_table.php'));
+
+        $this->assertStringContainsString("receipts/settings/document", $routes);
+        $this->assertStringContainsString("receipts/{receipt}/pdf", $routes);
+        $this->assertStringContainsString("receipts/{receipt}/print", $routes);
+        $this->assertStringContainsString('InventoryReceiptDocumentSetting', $controller);
+        $this->assertStringContainsString('Cấu hình phiếu nhập', $documents);
+        $this->assertStringContainsString('Tải PDF', $documents);
+        $this->assertStringContainsString('In trực tiếp', $documents);
+        $this->assertStringContainsString('aria-label="Thao tác phiếu nhập"', $documents);
+        $this->assertStringContainsString('PHIẾU NHẬP KHO', $model);
+        $this->assertStringContainsString('pharma_inventory_receipt_document_settings', $migration);
+        $this->assertStringContainsString('show_manager_signature', $settings);
+        $this->assertStringContainsString("number_format((float)\$item->quantity,0,',','.')", $show);
+        $this->assertStringContainsString("number_format((float)\$item->quantity,0,',','.')", $pdf);
+        $this->assertStringContainsString('show_notes && filled($receipt->notes)', $pdf);
+        $this->assertStringContainsString('$settings->manager_label', $pdf);
+
+        foreach(['receipt-settings.blade.php','receipt-show.blade.php','receipt-pdf.blade.php','receipt-print.blade.php'] as $file){
+            $candidate=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/'.$file));
+            try { token_get_all(Blade::compileString($candidate), TOKEN_PARSE); }
+            catch (\ParseError $error) { $this->fail($file.' failed Blade compilation: '.$error->getMessage()); }
+        }
+        $this->addToAssertionCount(4);
+    }
+
+
 }
