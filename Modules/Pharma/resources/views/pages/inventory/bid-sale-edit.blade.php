@@ -55,7 +55,7 @@
     </tbody></table></div>@else<div class="px-5 py-4 text-sm text-slate-500">Bạn có thể chỉnh sửa phiếu nháp. Chọn lô và ghi sổ yêu cầu quyền <b>phê duyệt xuất kho</b>.</div>@endif
    </section>
   @endforeach
-  <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><label class="text-sm font-semibold">Ghi chú<textarea name="notes" rows="3" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2">{{ old('notes',$issue->notes) }}</textarea></label><div class="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between"><p class="text-sm text-slate-500">FEFO là gợi ý ưu tiên. Có thể chia một thuốc qua nhiều lô; tổng SL lô phải bằng <b>SL duyệt</b>.</p><div class="flex flex-wrap gap-2"><a href="{{ route('admin.pharma.inventory.issues.index') }}" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold">Hủy</a><button type="submit" form="bid-draft-form" class="rounded-xl border border-indigo-200 bg-white px-4 py-2.5 text-sm font-bold text-indigo-700 hover:bg-indigo-50">Lưu phiếu nháp</button>@if($canApprove)<button type="submit" form="bid-draft-form" formaction="{{ route('admin.pharma.inventory.issues.bid-sales.post',$issue) }}" formmethod="POST" @disabled(!$stockReady) class="rounded-xl px-5 py-2.5 text-sm font-bold text-white {{ $stockReady ? 'bg-emerald-600 hover:bg-emerald-700' : 'cursor-not-allowed bg-slate-300 text-slate-500' }}" @if(!$stockReady) title="Chưa thể duyệt vì có mặt hàng chưa có lô tồn khả dụng" @endif>Duyệt & ghi sổ</button>@endif</div></div></section>
+  <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><label class="text-sm font-semibold">Ghi chú<textarea name="notes" rows="3" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2">{{ old('notes',$issue->notes) }}</textarea></label><div class="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between"><p class="text-sm text-slate-500">FEFO là gợi ý ưu tiên. Có thể chia một thuốc qua nhiều lô; tổng SL lô phải bằng <b>SL duyệt</b>.</p><div class="flex flex-wrap gap-2"><a href="{{ route('admin.pharma.inventory.issues.index') }}" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold">Hủy</a><button type="submit" form="bid-draft-form" class="rounded-xl border border-indigo-200 bg-white px-4 py-2.5 text-sm font-bold text-indigo-700 hover:bg-indigo-50">Lưu phiếu nháp</button>@if($canApprove)<button id="bid-post-button" type="submit" form="bid-draft-form" formaction="{{ route('admin.pharma.inventory.issues.bid-sales.post',$issue) }}" formmethod="POST" data-stock-ready="{{ $stockReady ? '1' : '0' }}" @disabled(!$stockReady) class="rounded-xl px-5 py-2.5 text-sm font-bold text-white {{ $stockReady ? 'bg-emerald-600 hover:bg-emerald-700' : 'cursor-not-allowed bg-slate-300 text-slate-500' }}" @if(!$stockReady) title="Chưa thể duyệt vì có mặt hàng chưa có lô tồn khả dụng" @endif>Duyệt & ghi sổ</button>@endif</div></div></section>
  </form>
 </div>
 @if($addableAllocations->isNotEmpty())
@@ -63,10 +63,21 @@
 document.addEventListener('DOMContentLoaded', () => {
  const panel=document.getElementById('bid-add-panel'), toggle=document.getElementById('toggle-bid-add');
  const select=document.getElementById('bid-add-allocation'), qty=document.getElementById('bid-add-quantity');
- const pending=document.getElementById('bid-pending-products'), count=document.getElementById('bid-product-count');
+ const pending=document.getElementById('bid-pending-products'), count=document.getElementById('bid-product-count'), postButton=document.getElementById('bid-post-button');
  toggle?.addEventListener('click',()=>panel.classList.toggle('hidden'));
  if(select && window.TomSelect) new TomSelect(select,{create:false,allowEmptyOption:true,placeholder:'Tìm mã hoặc tên thuốc...'});
  const refreshCount=()=>{ if(count) count.textContent=(Number(count.dataset.baseCount||0)+pending.children.length)+' sản phẩm'; };
+ const refreshPostState=()=>{
+  if(!postButton) return;
+  const hasPending=pending.children.length>0, stockReady=postButton.dataset.stockReady==='1';
+  postButton.disabled=hasPending || !stockReady;
+  postButton.classList.toggle('bg-emerald-600',!postButton.disabled);
+  postButton.classList.toggle('hover:bg-emerald-700',!postButton.disabled);
+  postButton.classList.toggle('bg-slate-300',postButton.disabled);
+  postButton.classList.toggle('text-slate-500',postButton.disabled);
+  postButton.classList.toggle('cursor-not-allowed',postButton.disabled);
+  postButton.title=hasPending ? 'Hãy lưu phiếu nháp để hệ thống tải tồn kho/lô thực tế trước khi duyệt' : (!stockReady ? 'Chưa thể duyệt vì có mặt hàng chưa có lô tồn khả dụng' : '');
+ };
  document.getElementById('bid-add-button')?.addEventListener('click',()=>{
   const id=select.value, option=select.options[select.selectedIndex], quantity=parseFloat(qty.value||'0'), max=parseFloat(option?.dataset.max||'0');
   if(!id){ alert('Vui lòng chọn sản phẩm trúng thầu.'); return; }
@@ -86,8 +97,8 @@ document.addEventListener('DOMContentLoaded', () => {
    '<div class="rounded-xl bg-white p-3 text-xs text-slate-500">Trạng thái<div class="mt-1 text-sm font-bold text-indigo-700">Chờ lưu nháp</div></div>'+
    '<div class="rounded-xl border border-indigo-200 bg-white p-3 text-xs font-bold text-indigo-800">SL thêm<div class="mt-1 text-right text-sm font-bold text-slate-900">'+quantity.toLocaleString('vi-VN')+'</div></div></div></div>'+
    '<div class="px-5 py-3 text-xs text-slate-500">Sau khi lưu phiếu nháp, hệ thống sẽ tải tồn kho/lô thực tế và áp dụng quy trình phê duyệt như các sản phẩm khác.</div>';
-  card.querySelector('[data-remove-pending]').addEventListener('click',()=>{card.remove(); refreshCount();});
-  pending.appendChild(card); refreshCount(); qty.value=''; panel.classList.add('hidden');
+  card.querySelector('[data-remove-pending]').addEventListener('click',()=>{card.remove(); refreshCount(); refreshPostState();});
+  pending.appendChild(card); refreshCount(); refreshPostState(); qty.value=''; panel.classList.add('hidden');
  });
 });
 </script>
