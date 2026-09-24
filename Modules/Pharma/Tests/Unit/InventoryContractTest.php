@@ -207,6 +207,14 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('Tổng giá trị', $documents);
         $this->assertStringNotContainsString('Tổng SL', $documents);
         $this->assertStringContainsString('Export Excel', $documents);
+        $this->assertStringContainsString("@section('admin_container','full')", $documents);
+        $this->assertStringContainsString("max-w-[1580px]", $documents);
+        $this->assertStringContainsString("min-w-[1120px]", $documents);
+        $this->assertStringContainsString('Khách hàng / Nơi nhận', $documents);
+        $this->assertStringContainsString('Tải PDF', $documents);
+        $this->assertStringContainsString('In trực tiếp', $documents);
+        $this->assertStringContainsString('aria-label="Thao tác khác"', $documents);
+        $this->assertStringContainsString('truncate font-semibold text-slate-800', $documents);
         $this->assertStringContainsString('Thành tiền', $issueShow);
         $this->assertStringContainsString('Tổng giá trị', $issueShow);
         $this->assertStringContainsString('<x-select-search id="issue-edit-recipient"', $issueEdit);
