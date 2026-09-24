@@ -10,7 +10,13 @@
             <p class="mt-1 text-sm text-slate-500">Tra cứu chứng từ, trạng thái và ghi sổ phiếu nháp.</p>
         </div>
         <div class="flex flex-wrap gap-2">
-            @can('edit_pharma')<a href="{{ route($type === 'receipt' ? 'admin.pharma.inventory.receipts.settings' : 'admin.pharma.inventory.issues.settings') }}" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">⚙ {{ $type === 'receipt' ? 'Cấu hình phiếu nhập' : 'Cấu hình phiếu xuất' }}</a>@endcan
+            @can('edit_pharma')
+                @if($type === 'receipt')
+                    <a href="{{ route('admin.pharma.inventory.receipts.settings') }}" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">⚙ Cấu hình phiếu nhập</a>
+                @else
+                    <a href="{{ route('admin.pharma.inventory.issues.settings') }}" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">⚙ Cấu hình phiếu xuất</a>
+                @endif
+            @endcan
             @if($type === 'issue')<a href="{{ route('admin.pharma.inventory.issues.export',request()->only(['q','status'])) }}" class="rounded-xl border border-emerald-300 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-700">Export Excel</a>@endif
             <a href="{{ route($type === 'receipt' ? 'admin.pharma.inventory.receipts.create' : 'admin.pharma.inventory.issues.create') }}" class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white">+ {{ $type === 'receipt' ? 'Lập phiếu nhập' : 'Lập phiếu xuất' }}</a>
         </div>
