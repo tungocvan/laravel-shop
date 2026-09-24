@@ -601,6 +601,61 @@ final class InventoryController extends Controller
         return back()->with('success',"Đã ghi sổ {$issue->number}.");
     }
 
+    public function editBidSaleIssue(InventoryIssue $issue, InventoryService $inventory): View
+    {
+        $this->guardIssueWarehouse($issue,$inventory);
+        abort_unless(($issue->issue_source ?? 'normal')==='bid' && $issue->status===InventoryIssue::DRAFT,404);
+        $issue->load(['items.medicine']);
+        $allocationIds=$issue->items->pluck('drug_bid_award_allocation_id')->filter();
+        $allocations=DrugBidAwardAllocation::query()->with(['partner','award.medicine','managementAssignments.user'])
+            ->whereIn('id',$allocationIds)->get()->keyBy('id');
+        $posted=DB::table('pharma_inventory_issue_items as ii')->join('pharma_inventory_issues as i','i.id','=','ii.issue_id')
+            ->where('i.issue_source','bid')->where('i.status',InventoryIssue::POSTED)->whereIn('ii.drug_bid_award_allocation_id',$allocationIds)
+            ->groupBy('ii.drug_bid_award_allocation_id')->selectRaw('ii.drug_bid_award_allocation_id, SUM(ii.quantity) as qty')
+            ->pluck('qty','ii.drug_bid_award_allocation_id');
+        $stock=InventoryBalance::query()->where('warehouse_id',$issue->warehouse_id)->whereIn('medicine_id',$issue->items->pluck('medicine_id'))
+            ->whereDate('expiry_date','>=',now()->toDateString())->groupBy('medicine_id')->selectRaw('medicine_id, SUM(quantity_on_hand) as qty')->pluck('qty','medicine_id');
+        $rows=$issue->items->map(function($item)use($allocations,$posted,$stock){
+            $allocation=$allocations[$item->drug_bid_award_allocation_id]??null; $award=$allocation?->award;
+            $issued=(float)($posted[$allocation?->id]??0); $remaining=max(0,(float)($allocation?->allocated_quantity??0)-$issued);
+            return ['item_id'=>$item->id,'allocation_id'=>$allocation?->id,'medicine_code'=>$item->medicine?->medicine_code ?? $award?->medicine_code,
+                'medicine_name'=>$item->medicine?->name ?? $award?->medicine_name,'unit'=>$item->medicine?->unit ?? $award?->unit,
+                'allocated_quantity'=>(float)($allocation?->allocated_quantity??0),'issued_quantity'=>$issued,'remaining_quantity'=>$remaining,
+                'available_stock'=>(float)($stock[$item->medicine_id]??0),'winning_price'=>(float)$item->unit_price,'quantity'=>(float)$item->quantity,
+                'effective_until'=>$allocation?->effective_until?->format('Y-m-d'),
+                'manager_names'=>$allocation?->managementAssignments->where('status',DrugBidAwardManagementAssignment::STATUS_ACTIVE)->pluck('user.name')->filter()->unique()->values()->implode(', ')];
+        });
+        return view('Pharma::pages.inventory.bid-sale-edit',compact('issue','rows'));
+    }
+
+    public function updateBidSaleIssue(Request $request, InventoryIssue $issue, InventoryService $inventory): RedirectResponse
+    {
+        $this->guardIssueWarehouse($issue,$inventory);
+        abort_unless(($issue->issue_source ?? 'normal')==='bid' && $issue->status===InventoryIssue::DRAFT,404);
+        $data=$request->validate(['issue_date'=>'required|date','quantities'=>'required|array','quantities.*'=>'nullable|numeric|min:0','notes'=>'nullable|string'],[
+            'quantities.required'=>'Vui lòng nhập số lượng xuất cho ít nhất một sản phẩm.','quantities.*.numeric'=>'Số lượng xuất phải là số.','quantities.*.min'=>'Số lượng xuất không được âm.',
+        ]);
+        DB::transaction(function()use($issue,$data){
+            $locked=InventoryIssue::query()->whereKey($issue->id)->lockForUpdate()->firstOrFail();
+            if($locked->status!==InventoryIssue::DRAFT || ($locked->issue_source ?? 'normal')!=='bid') throw ValidationException::withMessages(['issue'=>'Phiếu hàng thầu không còn ở trạng thái nháp.']);
+            $items=$locked->items()->get(); $posted=DB::table('pharma_inventory_issue_items as ii')->join('pharma_inventory_issues as i','i.id','=','ii.issue_id')
+                ->where('i.issue_source','bid')->where('i.status',InventoryIssue::POSTED)->whereIn('ii.drug_bid_award_allocation_id',$items->pluck('drug_bid_award_allocation_id'))
+                ->groupBy('ii.drug_bid_award_allocation_id')->selectRaw('ii.drug_bid_award_allocation_id, SUM(ii.quantity) as qty')->pluck('qty','ii.drug_bid_award_allocation_id');
+            $kept=0;
+            foreach($items as $item){
+                $quantity=(float)($data['quantities'][$item->id]??0);
+                if($quantity<=0){$item->delete();continue;}
+                $allocation=DrugBidAwardAllocation::query()->whereKey($item->drug_bid_award_allocation_id)->where('status',DrugBidAwardAllocation::STATUS_ACTIVE)->firstOrFail();
+                $remaining=max(0,(float)$allocation->allocated_quantity-(float)($posted[$allocation->id]??0));
+                if($quantity>$remaining+0.00005) throw ValidationException::withMessages(['quantities'=>"Số lượng xuất vượt phân bổ còn lại."]);
+                $item->update(['quantity'=>$quantity]); $kept++;
+            }
+            if($kept===0) throw ValidationException::withMessages(['quantities'=>'Vui lòng giữ ít nhất một sản phẩm có số lượng xuất lớn hơn 0.']);
+            $locked->update(['issue_date'=>$data['issue_date'],'notes'=>$data['notes']??null]);
+        });
+        return redirect()->route('admin.pharma.inventory.issues.show',$issue)->with('success',"Đã cập nhật đơn hàng thầu {$issue->number}.");
+    }
+
     public function bidSaleBatches(InventoryIssue $issue, InventoryService $inventory): View
     {
         $this->guardIssueWarehouse($issue,$inventory);
