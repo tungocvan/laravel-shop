@@ -3,6 +3,7 @@
 namespace Modules\Pharma\Services;
 
 use Carbon\CarbonInterface;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Modules\Pharma\Models\InventoryWarehouse;
@@ -10,7 +11,7 @@ use Modules\Pharma\Models\InventoryBalance;
 
 final class InventoryMovementSummaryService
 {
-    public function summarize(InventoryWarehouse $warehouse, CarbonInterface $from, CarbonInterface $to, ?int $medicineId=null, array $balanceIds=[]): array
+    public function summarize(InventoryWarehouse $warehouse, CarbonInterface $from, CarbonInterface $to, ?int $medicineId=null, array $balanceIds=[], ?int $perPage=null): array
     {
         $before=DB::table('pharma_inventory_transactions')
             ->where('warehouse_id',$warehouse->id)->where('created_at','<',$from)
@@ -39,10 +40,14 @@ final class InventoryMovementSummaryService
             ->selectRaw('COALESCE(mov.inbound_quantity,0) as period_in')
             ->selectRaw('COALESCE(mov.outbound_quantity,0) as period_out')
             ->selectRaw('COALESCE(pre.opening_quantity,0)+COALESCE(mov.net_quantity,0) as period_closing')
-            ->orderBy('m.name')->orderBy('b.expiry_date')->get();
+            ->orderBy('m.name')->orderBy('b.expiry_date');
 
-        $costs=$this->effectiveCosts($rows);
-        foreach($rows as $row){
+        $allRows=(clone $query)->get();
+        $rows=$perPage ? $query->paginate($perPage)->withQueryString() : $allRows;
+        $visibleRows=$rows instanceof LengthAwarePaginator ? $rows->getCollection() : $rows;
+
+        $costs=$this->effectiveCosts($allRows);
+        foreach($allRows as $row){
             $cost=$costs->get((int)$row->id);
             $row->effective_cost_price=$cost;
             $row->opening_value=$cost === null ? null : (float)$row->period_opening*$cost;
@@ -50,19 +55,23 @@ final class InventoryMovementSummaryService
             $row->out_value=$cost === null ? null : (float)$row->period_out*$cost;
             $row->closing_value=$cost === null ? null : (float)$row->period_closing*$cost;
         }
-        $unpriced=$rows->filter(fn($row)=>$row->effective_cost_price === null || $row->effective_cost_price <= 0);
+        if($rows instanceof LengthAwarePaginator){
+            $valuedById=$allRows->keyBy('id');
+            $visibleRows->transform(fn($row)=>$valuedById->get($row->id,$row));
+        }
+        $unpriced=$allRows->filter(fn($row)=>$row->effective_cost_price === null || $row->effective_cost_price <= 0);
 
         return [
             'rows'=>$rows,
-            'opening'=>(float)$rows->sum('period_opening'),
-            'opening_import'=>(float)$rows->sum('opening_import'),
-            'in'=>(float)$rows->sum('period_in'),
-            'out'=>(float)$rows->sum('period_out'),
-            'closing'=>(float)$rows->sum('period_closing'),
-            'opening_value'=>(float)$rows->sum(fn($row)=>(float)($row->opening_value ?? 0)),
-            'in_value'=>(float)$rows->sum(fn($row)=>(float)($row->in_value ?? 0)),
-            'out_value'=>(float)$rows->sum(fn($row)=>(float)($row->out_value ?? 0)),
-            'closing_value'=>(float)$rows->sum(fn($row)=>(float)($row->closing_value ?? 0)),
+            'opening'=>(float)$allRows->sum('period_opening'),
+            'opening_import'=>(float)$allRows->sum('opening_import'),
+            'in'=>(float)$allRows->sum('period_in'),
+            'out'=>(float)$allRows->sum('period_out'),
+            'closing'=>(float)$allRows->sum('period_closing'),
+            'opening_value'=>(float)$allRows->sum(fn($row)=>(float)($row->opening_value ?? 0)),
+            'in_value'=>(float)$allRows->sum(fn($row)=>(float)($row->in_value ?? 0)),
+            'out_value'=>(float)$allRows->sum(fn($row)=>(float)($row->out_value ?? 0)),
+            'closing_value'=>(float)$allRows->sum(fn($row)=>(float)($row->closing_value ?? 0)),
             'unpriced_count'=>$unpriced->count(),
         ];
     }
