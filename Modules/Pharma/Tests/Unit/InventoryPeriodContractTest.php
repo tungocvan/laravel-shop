@@ -92,7 +92,9 @@ class InventoryPeriodContractTest extends TestCase
         $this->assertStringContainsString('when($medicineId', $service);
         $this->assertStringContainsString('when($balanceIds', $service);
         $this->assertStringContainsString("?int \$perPage=null", $service);
-        $this->assertStringContainsString("paginate(\$perPage)->withQueryString()", $service);
+        $this->assertStringContainsString("\$allRows=(clone \$rows)->get()", $service);
+        $this->assertStringContainsString("\$rows=\$perPage ? \$rows->paginate(\$perPage)->withQueryString() : \$allRows", $service);
+        $this->assertStringNotContainsString("\$allRows=(clone \$query)->get()", $service);
         $this->assertStringContainsString("'opening_value'=>(float)\$allRows->sum", $service);
     }
     public function test_current_stock_and_period_movements_are_separate_workspaces(): void
