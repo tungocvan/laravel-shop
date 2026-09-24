@@ -123,9 +123,11 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('function updateBalance', $controller);
         $this->assertStringContainsString('function destroyBalance', $controller);
         $this->assertStringContainsString('Không thể xóa lô đã có lịch sử giao dịch kho.', $controller);
-        $this->assertStringContainsString('Import / Export Excel', $index);
-        $this->assertStringContainsString('<dialog id="inventory-export-modal"', $index);
-        $this->assertStringContainsString("showModal()", $index);
+        $this->assertStringNotContainsString('Import / Export Excel', $index);
+        $this->assertStringNotContainsString('<dialog id="inventory-export-modal"', $index);
+        $this->assertStringContainsString('Export tồn kho', $index);
+        $this->assertStringContainsString("route('admin.pharma.inventory.movements.index')", $index);
+        $this->assertStringContainsString('Import hàng loạt', $opening);
         $this->assertStringContainsString('Lưu thay đổi', $index);
         $this->assertStringContainsString('Xác nhận xóa', $index);
         $receipt=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/receipt-form.blade.php'));
