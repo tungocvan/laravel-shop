@@ -824,20 +824,42 @@ final class InventoryController extends Controller
         $from=$request->filled('from') ? Carbon::parse($request->input('from'))->startOfDay() : now()->startOfMonth();
         $to=$request->filled('to') ? Carbon::parse($request->input('to'))->endOfDay() : now()->endOfMonth();
         $userId=$request->integer('user_id');
+        $partnerId=$request->integer('partner_id');
+        $medicineId=$request->integer('medicine_id');
 
         $base=InventoryIssueCommission::query()
             ->whereBetween('calculated_at',[$from,$to])
-            ->when($userId>0,fn($q)=>$q->where('user_id',$userId));
+            ->when($userId>0,fn($q)=>$q->where('user_id',$userId))
+            ->when($partnerId>0,fn($q)=>$q->where('partner_id',$partnerId))
+            ->when($medicineId>0,fn($q)=>$q->where('medicine_id',$medicineId));
 
         $totals=(clone $base)->selectRaw('COALESCE(SUM(revenue_amount),0) as revenue, COALESCE(SUM(commission_amount),0) as commission')->first();
         $unresolved=(clone $base)->where('entry_type',InventoryIssueCommission::TYPE_EARNED)
             ->where('status',InventoryIssueCommission::STATUS_UNRESOLVED)->count();
         $rows=(clone $base)->with(['issue','medicine','user','partner'])
             ->orderByDesc('calculated_at')->orderByDesc('id')->paginate(50)->withQueryString();
-        $users=User::query()->whereIn('id',InventoryIssueCommission::query()->whereNotNull('user_id')->distinct()->pluck('user_id'))
+
+        $assignments=DrugBidAwardManagementAssignment::query()
+            ->where('status',DrugBidAwardManagementAssignment::STATUS_ACTIVE)
+            ->when($userId>0,fn($q)=>$q->where('user_id',$userId));
+
+        $users=User::query()->whereIn('id',DrugBidAwardManagementAssignment::query()
+            ->where('status',DrugBidAwardManagementAssignment::STATUS_ACTIVE)->distinct()->pluck('user_id'))
             ->orderBy('name')->get(['id','name']);
 
-        return view('Pharma::pages.inventory.commissions',compact('rows','totals','unresolved','users','from','to','userId'));
+        $partners=Partner::query()->whereIn('id',(clone $assignments)->distinct()->pluck('partner_id'))
+            ->orderBy('name')->get(['id','name']);
+
+        $assignedAwardIds=(clone $assignments)
+            ->when($partnerId>0,fn($q)=>$q->where('partner_id',$partnerId))
+            ->distinct()->pluck('drug_bid_award_id');
+        $medicineIds=DrugBidAward::query()->whereIn('id',$assignedAwardIds)
+            ->whereNotNull('medicine_id')->distinct()->pluck('medicine_id');
+        $medicines=Medicine::query()->whereIn('id',$medicineIds)->orderBy('name')->get(['id','medicine_code','name']);
+
+        return view('Pharma::pages.inventory.commissions',compact(
+            'rows','totals','unresolved','users','partners','medicines','from','to','userId','partnerId','medicineId'
+        ));
     }
 
     private function issueSalePriceCandidates()
