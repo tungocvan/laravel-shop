@@ -377,15 +377,13 @@ final class InventoryController extends Controller
             $award=$allocation->award;
             $issued=(float)($posted[$allocation->id]??0);
             $remaining=max(0,(float)$allocation->allocated_quantity-$issued);
-            $balances=InventoryBalance::query()->where('warehouse_id',$warehouse->id)->where('medicine_id',$award->medicine_id)
-                ->where('quantity_on_hand','>',0)->orderBy('expiry_date')->get(['id','batch_number','expiry_date','quantity_on_hand']);
-            return [
+             return [
                 'allocation_id'=>$allocation->id,'partner_id'=>$allocation->partner_id,'partner_name'=>$allocation->partner?->name,
                 'award_id'=>$award->id,'medicine_id'=>$award->medicine_id,'medicine_code'=>$award->medicine?->medicine_code ?? $award->medicine_code,
                 'medicine_name'=>$award->medicine?->name ?? $award->medicine_name,'unit'=>$award->medicine?->unit ?? $award->unit,
                 'allocated_quantity'=>(float)$allocation->allocated_quantity,'issued_quantity'=>$issued,'remaining_quantity'=>$remaining,
                 'winning_price'=>(float)($award->winning_price ?? $award->unit_price ?? 0),
-                'investor_code'=>$award->investor_code,'investor_name'=>$award->investor_name,'balances'=>$balances,
+                'investor_code'=>$award->investor_code,'investor_name'=>$award->investor_name,
             ];
         })->filter(fn($row)=>$row['medicine_id'] && $row['remaining_quantity']>0)->values();
         return response()->json(['data'=>$rows]);
@@ -395,7 +393,7 @@ final class InventoryController extends Controller
     {
         $data=$request->validate([
             'issue_date'=>'required|date','allocation_ids'=>'required|array|min:1','allocation_ids.*'=>'required|integer|distinct',
-            'quantities'=>'required|array','balance_ids'=>'required|array','notes'=>'nullable|string',
+            'quantities'=>'required|array','notes'=>'nullable|string',
         ]);
         $allocationIds=array_map('intval',$data['allocation_ids']);
         $allocations=DrugBidAwardAllocation::query()->with(['partner','award'])->whereIn('id',$allocationIds)
@@ -414,13 +412,12 @@ final class InventoryController extends Controller
         $items=[];
         foreach($allocationIds as $allocationId){
             $allocation=$allocations[$allocationId]; $award=$allocation->award;
-            $quantity=(float)($data['quantities'][$allocationId]??0); $balanceId=(int)($data['balance_ids'][$allocationId]??0);
+            $quantity=(float)($data['quantities'][$allocationId]??0);
             if($quantity<=0) throw ValidationException::withMessages(['quantities'=>"Số lượng xuất phải lớn hơn 0."]);
             $remaining=(float)$allocation->allocated_quantity-(float)($posted[$allocationId]??0);
             if($quantity>$remaining+0.00005) throw ValidationException::withMessages(['quantities'=>"Số lượng xuất vượt quá phân bổ còn lại của {$award->medicine_name}."]);
-            $balance=InventoryBalance::query()->where('warehouse_id',$warehouse->id)->where('medicine_id',$award->medicine_id)->findOrFail($balanceId);
             $items[]=['medicine_id'=>$award->medicine_id,'drug_bid_award_id'=>$award->id,'drug_bid_award_allocation_id'=>$allocation->id,
-                'batch_number'=>$balance->batch_number,'expiry_date'=>$balance->expiry_date,'quantity'=>$quantity,
+                'batch_number'=>null,'expiry_date'=>null,'quantity'=>$quantity,
                 'unit_price'=>(float)($award->winning_price ?? $award->unit_price ?? 0)];
         }
         $first=$allocations->first(); $partner=$first->partner()->firstOrFail(); $award=$first->award;
@@ -583,7 +580,51 @@ final class InventoryController extends Controller
         return redirect()->route('admin.pharma.inventory.issues.index')->with('success',"Đã hoàn tác ghi sổ {$issue->number}; hàng đã được cộng trả tồn kho và phiếu trở về nháp.");
     }
 
-    public function postIssue(InventoryIssue $issue, InventoryService $inventory): RedirectResponse { $inventory->postIssue($issue,auth('admin')->id()); return back()->with('success',"Đã ghi sổ {$issue->number}."); }
+    public function postIssue(InventoryIssue $issue, InventoryService $inventory): RedirectResponse
+    {
+        if(($issue->issue_source ?? 'normal')==='bid' && $issue->status===InventoryIssue::DRAFT){
+            return redirect()->route('admin.pharma.inventory.issues.bid-sales.batches',$issue);
+        }
+        $inventory->postIssue($issue,auth('admin')->id());
+        return back()->with('success',"Đã ghi sổ {$issue->number}.");
+    }
+
+    public function bidSaleBatches(InventoryIssue $issue, InventoryService $inventory): View
+    {
+        $this->guardIssueWarehouse($issue,$inventory);
+        abort_unless(($issue->issue_source ?? 'normal')==='bid' && $issue->status===InventoryIssue::DRAFT,404);
+        $issue->load('items.medicine');
+        $balances=InventoryBalance::query()->where('warehouse_id',$issue->warehouse_id)
+            ->whereIn('medicine_id',$issue->items->pluck('medicine_id'))->where('quantity_on_hand','>',0)
+            ->whereDate('expiry_date','>=',now()->toDateString())->orderBy('medicine_id')->orderBy('expiry_date')->get()->groupBy('medicine_id');
+        return view('Pharma::pages.inventory.bid-sale-batches',compact('issue','balances'));
+    }
+
+    public function postBidSaleIssue(Request $request, InventoryIssue $issue, InventoryService $inventory): RedirectResponse
+    {
+        $this->guardIssueWarehouse($issue,$inventory);
+        abort_unless(($issue->issue_source ?? 'normal')==='bid' && $issue->status===InventoryIssue::DRAFT,404);
+        $data=$request->validate(['batches'=>'required|array','batches.*'=>'required|array|min:1']);
+        DB::transaction(function()use($issue,$data,$inventory){
+            $issue=InventoryIssue::query()->lockForUpdate()->findOrFail($issue->id); $issue->load('items');
+            foreach($issue->items as $item){
+                $parts=$data['batches'][$item->id]??[]; $total=0; $newItems=[];
+                foreach($parts as $part){
+                    $quantity=(float)($part['quantity']??0); if($quantity<=0) continue;
+                    $balance=InventoryBalance::query()->where('warehouse_id',$issue->warehouse_id)->where('medicine_id',$item->medicine_id)
+                        ->whereKey((int)($part['balance_id']??0))->where('quantity_on_hand','>',0)->lockForUpdate()->firstOrFail();
+                    $total+=$quantity;
+                    $newItems[]=['medicine_id'=>$item->medicine_id,'drug_bid_award_id'=>$item->drug_bid_award_id,
+                        'drug_bid_award_allocation_id'=>$item->drug_bid_award_allocation_id,'batch_number'=>$balance->batch_number,
+                        'expiry_date'=>$balance->expiry_date,'quantity'=>$quantity,'unit_price'=>$item->unit_price];
+                }
+                if(abs($total-(float)$item->quantity)>0.00005) throw ValidationException::withMessages(['batches'=>"Tổng số lượng chia lô của {$item->medicine?->name} phải bằng ".number_format((float)$item->quantity,3,'.','').'.']);
+                $item->delete(); $issue->items()->createMany($newItems);
+            }
+            $inventory->postIssue($issue->fresh('items'),auth('admin')->id());
+        });
+        return redirect()->route('admin.pharma.inventory.issues.show',$issue)->with('success',"Đã chọn lô và ghi sổ {$issue->number}.");
+    }
 
     private function issueSalePriceCandidates()
     {
