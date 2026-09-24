@@ -51,27 +51,11 @@ final class DrugBidCommissionService
     {
         if (($issue->issue_source ?? 'normal') !== 'bid') return;
 
-        DB::transaction(function () use ($issue,$actorId): void {
-            $earned=InventoryIssueCommission::query()
-                ->where('issue_id',$issue->id)->where('entry_type',InventoryIssueCommission::TYPE_EARNED)
-                ->whereIn('status',[InventoryIssueCommission::STATUS_EARNED,InventoryIssueCommission::STATUS_UNRESOLVED])
-                ->lockForUpdate()->get();
-
-            foreach($earned as $row){
-                InventoryIssueCommission::query()->updateOrCreate(
-                    ['issue_item_id'=>$row->issue_item_id,'entry_type'=>InventoryIssueCommission::TYPE_REVERSAL],
-                    [
-                        'issue_id'=>$row->issue_id,'original_commission_id'=>$row->id,'drug_bid_award_id'=>$row->drug_bid_award_id,
-                        'drug_bid_award_allocation_id'=>$row->drug_bid_award_allocation_id,'partner_id'=>$row->partner_id,
-                        'medicine_id'=>$row->medicine_id,'user_id'=>$row->user_id,'quantity'=>-$row->quantity,
-                        'unit_price'=>$row->unit_price,'revenue_amount'=>-$row->revenue_amount,
-                        'commission_percentage'=>$row->commission_percentage,'commission_amount'=>-$row->commission_amount,
-                        'status'=>InventoryIssueCommission::STATUS_REVERSED,'resolution_note'=>'Hoàn tác theo phiếu xuất kho.',
-                        'calculated_at'=>now(),'created_by'=>$actorId,
-                    ]
-                );
-                $row->update(['status'=>InventoryIssueCommission::STATUS_REVERSED]);
-            }
+        DB::transaction(function () use ($issue): void {
+            InventoryIssueCommission::query()
+                ->where('issue_id',$issue->id)
+                ->lockForUpdate()
+                ->delete();
         },3);
     }
 }
