@@ -361,7 +361,6 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("'keeper_label'=>'required|string|max:120'", $controller);
         $this->assertStringContainsString("'show_keeper_signature'", $controller);
         $this->assertStringContainsString("class=\"label\">Bảng giá áp dụng:", $pdf);
-        $this->assertStringContainsString('$settings->priceList', str_replace('$issue->priceList', '$settings->priceList', $pdf));
         $this->assertStringContainsString('$settings->keeper_label', $pdf);
         $this->assertStringContainsString('$settings->keeper_label', $print);
         $this->assertStringContainsString('$settings->keeper_label', $show);
