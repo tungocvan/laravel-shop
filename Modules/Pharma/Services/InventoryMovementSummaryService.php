@@ -20,8 +20,8 @@ final class InventoryMovementSummaryService
             ->where('warehouse_id',$warehouse->id)->whereBetween('created_at',[$from,$to])
             ->selectRaw("medicine_id,batch_number,expiry_date,
                 SUM(CASE WHEN type='opening' THEN quantity_delta ELSE 0 END) as opening_import,
-                SUM(CASE WHEN type IN ('receipt','issue_reversal') THEN quantity_delta ELSE 0 END) as inbound_quantity,
-                SUM(CASE WHEN type IN ('issue','receipt_reversal') THEN ABS(quantity_delta) ELSE 0 END) as outbound_quantity,
+                SUM(CASE WHEN type='receipt' THEN quantity_delta WHEN type='receipt_reversal' THEN quantity_delta ELSE 0 END) as inbound_quantity,
+                SUM(CASE WHEN type='issue' THEN ABS(quantity_delta) WHEN type='issue_reversal' THEN -quantity_delta ELSE 0 END) as outbound_quantity,
                 SUM(quantity_delta) as net_quantity")
             ->groupBy('medicine_id','batch_number','expiry_date');
 
