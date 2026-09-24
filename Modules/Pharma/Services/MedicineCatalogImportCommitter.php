@@ -57,6 +57,12 @@ class MedicineCatalogImportCommitter
             $medicine = Medicine::query()->where('canonical_identity_key', $row->medicine_identity_key)->first();
         }
 
+        // Never reuse a matched legacy master for a different package. Packaging is
+        // now part of the Medicine identity and therefore owns its own MED code.
+        if ($medicine && ! $this->samePackaging($medicine, $data)) {
+            $medicine = null;
+        }
+
         $createdMedicine = false;
         if (! $medicine) {
             $medicine = Medicine::query()->create([
@@ -191,4 +197,12 @@ class MedicineCatalogImportCommitter
 
         return 'MED-'.str_pad((string) $nextId, 6, '0', STR_PAD_LEFT);
     }
+    private function samePackaging(Medicine $medicine, array $data): bool
+    {
+        $incoming = $this->normalizer->text($data['packaging_specification'] ?? null);
+        $existing = $this->normalizer->text($medicine->packaging_specification);
+
+        return $incoming !== null && $existing !== null && $incoming === $existing;
+    }
+
 }
