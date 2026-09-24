@@ -670,7 +670,8 @@ final class InventoryController extends Controller
     {
         $this->guardIssueWarehouse($issue,$inventory);
         abort_unless(($issue->issue_source ?? 'normal')==='bid' && $issue->status===InventoryIssue::DRAFT,404);
-        $data=$request->validate(['issue_date'=>'required|date','quantities'=>'required|array','quantities.*'=>'nullable|numeric|min:0','notes'=>'nullable|string'],[
+        $data=$request->validate(['issue_date'=>'required|date','quantities'=>'required|array','quantities.*'=>'nullable|numeric|min:0',
+            'add_allocations'=>'nullable|array','add_allocations.*'=>'integer|distinct','add_quantities'=>'nullable|array','add_quantities.*'=>'nullable|numeric|min:0','notes'=>'nullable|string'],[
             'quantities.required'=>'Vui lòng nhập số lượng xuất cho ít nhất một sản phẩm.','quantities.*.numeric'=>'Số lượng xuất phải là số.','quantities.*.min'=>'Số lượng xuất không được âm.',
         ]);
         DB::transaction(function()use($issue,$data,$request){
@@ -690,7 +691,31 @@ final class InventoryController extends Controller
                 if($quantity>$remaining+0.00005) throw ValidationException::withMessages(['quantities'=>"Số lượng xuất vượt phân bổ còn lại."]);
                 $item->update(['quantity'=>$quantity]); $kept++;
             }
-            if($kept===0) throw ValidationException::withMessages(['quantities'=>'Vui lòng giữ ít nhất một sản phẩm có số lượng xuất lớn hơn 0.']);
+            $addIds=collect($data['add_allocations']??[])->map(fn($id)=>(int)$id)->unique()->values();
+            if($addIds->isNotEmpty()){
+                $existingAllocationIds=$locked->items()->pluck('drug_bid_award_allocation_id')->filter()->map(fn($id)=>(int)$id);
+                if($addIds->intersect($existingAllocationIds)->isNotEmpty()) throw ValidationException::withMessages(['add_allocations'=>'Sản phẩm trúng thầu đã có trong phiếu.']);
+                $investorKey=$locked->bid_investor_code ?: $locked->bid_investor_name;
+                $newAllocations=DrugBidAwardAllocation::query()->with('award')->whereIn('id',$addIds)
+                    ->where('status',DrugBidAwardAllocation::STATUS_ACTIVE)->where('partner_id',$locked->bid_partner_id)
+                    ->whereHas('award',fn($q)=>$q->where(fn($x)=>$x->where('investor_code',$investorKey)->orWhere('investor_name',$investorKey)))
+                    ->where(fn($q)=>$q->whereNull('effective_from')->orWhereDate('effective_from','<=',now()))
+                    ->where(fn($q)=>$q->whereNull('effective_until')->orWhereDate('effective_until','>=',now()))->get()->keyBy('id');
+                if($newAllocations->count()!==$addIds->count()) throw ValidationException::withMessages(['add_allocations'=>'Có sản phẩm không còn thuộc phân bổ hợp lệ của Chủ đầu tư/Bệnh viện này.']);
+                $newPosted=DB::table('pharma_inventory_issue_items as ii')->join('pharma_inventory_issues as i','i.id','=','ii.issue_id')
+                    ->where('i.issue_source','bid')->where('i.status',InventoryIssue::POSTED)->whereIn('ii.drug_bid_award_allocation_id',$addIds)
+                    ->groupBy('ii.drug_bid_award_allocation_id')->selectRaw('ii.drug_bid_award_allocation_id, SUM(ii.quantity) as qty')->pluck('qty','ii.drug_bid_award_allocation_id');
+                foreach($addIds as $allocationId){
+                    $allocation=$newAllocations[$allocationId]; $award=$allocation->award;
+                    $quantity=(float)($data['add_quantities'][$allocationId]??0);
+                    $remaining=max(0,(float)$allocation->allocated_quantity-(float)($newPosted[$allocationId]??0));
+                    if($quantity<=0 || $quantity>$remaining+0.00005) throw ValidationException::withMessages(['add_quantities'=>"Số lượng thêm của {$award->medicine_name} phải lớn hơn 0 và không vượt phân bổ còn lại."]);
+                    $locked->items()->create(['medicine_id'=>$award->medicine_id,'drug_bid_award_id'=>$award->id,'drug_bid_award_allocation_id'=>$allocation->id,
+                        'batch_number'=>null,'expiry_date'=>null,'quantity'=>$quantity,'unit_price'=>(float)($award->winning_price ?? $award->unit_price ?? 0)]);
+                    $kept++;
+                }
+            }
+            if($kept===0) throw ValidationException::withMessages(['quantities'=>'Vui lòng giữ hoặc thêm ít nhất một sản phẩm có số lượng xuất lớn hơn 0.']);
             $locked->update(['issue_date'=>$data['issue_date'],'notes'=>$data['notes']??null]);
         });
         return redirect()->route('admin.pharma.inventory.issues.bid-sales.edit',$issue)->with('success',"Đã lưu phiếu nháp {$issue->number}.");
