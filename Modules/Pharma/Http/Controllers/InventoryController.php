@@ -73,6 +73,14 @@ final class InventoryController extends Controller
             return $effective === null || $effective <= 0;
         })->count();
         $today=now()->startOfDay();
+        $validBalances=$allBalances->filter(fn(InventoryBalance $row)=>$row->expiry_date->gte($today));
+        $validInventoryValue=$validBalances->sum(function(InventoryBalance $row)use($costs){
+            $cost=$costs->get($row->medicine_id);
+            $effective=$row->manual_cost_price !== null ? (float)$row->manual_cost_price : ($cost?->average_cost_price !== null ? (float)$cost->average_cost_price : null);
+            return $effective === null ? 0 : (float)$row->quantity_on_hand*$effective;
+        });
+        $validBalanceCount=$validBalances->count();
+
         $expiredBalances=$allBalances->filter(fn(InventoryBalance $row)=>$row->expiry_date->lt($today));
         $expiredBalanceCount=$expiredBalances->count();
         $expiredInventoryValue=$expiredBalances->sum(function(InventoryBalance $row)use($costs){
@@ -96,6 +104,7 @@ final class InventoryController extends Controller
 
         return view('Pharma::pages.inventory.index',compact(
             'warehouse','balances','totalInventoryValue','unpricedBalanceCount',
+            'validInventoryValue','validBalanceCount',
             'nearExpiryInventoryValue','nearExpiryBalanceCount',
             'expiredInventoryValue','expiredBalanceCount'
         ));
