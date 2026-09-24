@@ -42,7 +42,8 @@ final class InventoryController extends Controller
         $movementMedicineId=$request->filled('movement_medicine_id') ? $request->integer('movement_medicine_id') : null;
         if($movementMedicineId && !Medicine::query()->whereKey($movementMedicineId)->exists()) throw ValidationException::withMessages(['movement_medicine_id'=>'Thuốc được chọn không tồn tại trong Medicine Master.']);
         $movement=$movementSummary->summarize($warehouse,$from,$to,$movementMedicineId);
-        $movementMedicines=Medicine::query()->whereHas('inventoryBalances',fn($q)=>$q->where('warehouse_id',$warehouse->id))->orderBy('name')->get(['id','medicine_code','name']);
+        $movementMedicineIds=InventoryBalance::query()->where('warehouse_id',$warehouse->id)->distinct()->pluck('medicine_id');
+        $movementMedicines=Medicine::query()->whereIn('id',$movementMedicineIds)->orderBy('name')->get(['id','medicine_code','name']);
         $costs=$this->activeSupplierCosts();
         $costSubquery=$this->activeSupplierCostSubquery();
         $query=InventoryBalance::query()
