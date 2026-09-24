@@ -25,6 +25,7 @@ use Modules\Pharma\Models\PriceList;
 use Modules\Pharma\Models\PriceListItem;
 use Modules\Pharma\Models\SupplierTracking;
 use Modules\Pharma\Services\InventoryService;
+use Modules\Pharma\Services\InventoryMovementSummaryService;
 use Modules\Pharma\Services\DrugBidCommissionService;
 use Modules\Partner\Models\Partner;
 use Rap2hpoutre\FastExcel\FastExcel;
@@ -32,9 +33,13 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class InventoryController extends Controller
 {
-    public function index(Request $request, InventoryService $inventory): View
+    public function index(Request $request, InventoryService $inventory, InventoryMovementSummaryService $movementSummary): View
     {
         $warehouse=$inventory->defaultWarehouse();
+        $from=$request->filled('from') ? Carbon::parse($request->input('from'))->startOfDay() : now()->startOfMonth();
+        $to=$request->filled('to') ? Carbon::parse($request->input('to'))->endOfDay() : now()->endOfMonth();
+        if($from->gt($to)) throw ValidationException::withMessages(['from'=>'Từ ngày không được sau Đến ngày.']);
+        $movement=$movementSummary->summarize($warehouse,$from,$to);
         $costs=$this->activeSupplierCosts();
         $costSubquery=$this->activeSupplierCostSubquery();
         $query=InventoryBalance::query()
@@ -69,7 +74,7 @@ final class InventoryController extends Controller
         });
         $receipts=InventoryReceipt::query()->withCount('items')->withSum('items','quantity')->latest()->limit(5)->get();
         $issues=InventoryIssue::query()->withCount('items')->withSum('items','quantity')->latest()->limit(5)->get();
-        return view('Pharma::pages.inventory.index',compact('warehouse','balances','receipts','issues','totalInventoryValue','unpricedBalanceCount','expiredInventoryValue'));
+        return view('Pharma::pages.inventory.index',compact('warehouse','balances','receipts','issues','totalInventoryValue','unpricedBalanceCount','expiredInventoryValue','from','to','movement'));
     }
 
     public function template(): StreamedResponse
