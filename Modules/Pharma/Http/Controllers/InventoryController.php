@@ -148,11 +148,16 @@ final class InventoryController extends Controller
             'expiry_date'=>'required|date',
             'cost_mode'=>'required|in:supplier,manual',
             'manual_cost_price'=>'nullable|required_if:cost_mode,manual|numeric|min:0|max:9999999999999999.99',
-            'cost_adjustment_reason'=>'nullable|required_if:cost_mode,manual|string|max:500',
+            'cost_adjustment_reason'=>'nullable|string|max:500',
         ]);
         $duplicate=InventoryBalance::query()->where('warehouse_id',$balance->warehouse_id)->where('medicine_id',$balance->medicine_id)
             ->where('batch_number',$data['batch_number'])->whereDate('expiry_date',$data['expiry_date'])->whereKeyNot($balance->id)->exists();
         if($duplicate) throw ValidationException::withMessages(['batch_number'=>'Số lô và hạn dùng này đã tồn tại cho thuốc.']);
+        $requestedManual=$data['cost_mode']==='manual' ? (float)$data['manual_cost_price'] : null;
+        $currentManual=$balance->manual_cost_price !== null ? (float)$balance->manual_cost_price : null;
+        if($requestedManual !== $currentManual && $requestedManual !== null && blank($data['cost_adjustment_reason'] ?? null)){
+            throw ValidationException::withMessages(['cost_adjustment_reason'=>'Vui lòng nhập lý do khi thay đổi giá vốn thủ công.']);
+        }
 
         DB::transaction(function()use($balance,$data){
             $oldBatch=$balance->batch_number;
