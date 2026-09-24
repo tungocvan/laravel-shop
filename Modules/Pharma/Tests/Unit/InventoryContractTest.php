@@ -286,7 +286,10 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('Kiểm tra tồn kho:', $documents);
         $this->assertStringContainsString('flex flex-col-reverse gap-2 border-t', $documents);
         $this->assertStringContainsString('m-auto w-[calc(100%-2rem)] max-w-lg', $index);
-        $this->assertLessThan(strpos($index,'Import / Export Excel'),strpos($index,'Phiếu nhập gần đây'));
+        $this->assertStringNotContainsString('Import / Export Excel', $index);
+        $this->assertStringNotContainsString('Phiếu nhập gần đây', $index);
+        $this->assertStringNotContainsString('Phiếu xuất gần đây', $index);
+        $this->assertStringContainsString("route('admin.pharma.inventory.movements.index')", $index);
     }
 
     public function test_issue_draft_editor_and_delivery_document_contracts(): void
