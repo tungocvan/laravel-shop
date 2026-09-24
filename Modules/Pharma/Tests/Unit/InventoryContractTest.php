@@ -331,6 +331,10 @@ class InventoryContractTest extends TestCase
         $settingsView=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-settings.blade.php'));
         $model=file_get_contents(base_path('Modules/Pharma/Models/InventoryIssueDocumentSetting.php'));
         $migration=file_get_contents(base_path('Modules/Pharma/database/migrations/2026_09_23_164500_create_pharma_inventory_issue_document_settings_table.php'));
+        $signatureMigration=file_get_contents(base_path('Modules/Pharma/database/migrations/2026_09_24_091500_add_signature_options_to_pharma_inventory_issue_document_settings.php'));
+        $pdf=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-pdf.blade.php'));
+        $print=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-print.blade.php'));
+        $show=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-show.blade.php'));
 
         $this->assertStringContainsString("name('issues.settings')", $routes);
         $this->assertStringContainsString("name('issues.settings.update')", $routes);
@@ -345,6 +349,22 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('show_unit_price', $settingsView);
         $this->assertStringContainsString('show_total_value', $settingsView);
         $this->assertStringContainsString('issuer_label', $model);
+        $this->assertStringContainsString('keeper_label', $model);
+        $this->assertStringContainsString('show_keeper_signature', $model);
+        $this->assertStringContainsString("string('keeper_label')->default('Thủ kho')", $signatureMigration);
+        $this->assertStringContainsString("boolean('show_issuer_signature')->default(true)", $signatureMigration);
+        $this->assertStringContainsString("boolean('show_keeper_signature')->default(true)", $signatureMigration);
+        $this->assertStringContainsString('show_issuer_signature', $settingsView);
+        $this->assertStringContainsString('show_deliverer_signature', $settingsView);
+        $this->assertStringContainsString('show_receiver_signature', $settingsView);
+        $this->assertStringContainsString('show_keeper_signature', $settingsView);
+        $this->assertStringContainsString("'keeper_label'=>'required|string|max:120'", $controller);
+        $this->assertStringContainsString("'show_keeper_signature'", $controller);
+        $this->assertStringContainsString("class=\"label\">Bảng giá áp dụng:", $pdf);
+        $this->assertStringContainsString('$settings->priceList', str_replace('$issue->priceList', '$settings->priceList', $pdf));
+        $this->assertStringContainsString('$settings->keeper_label', $pdf);
+        $this->assertStringContainsString('$settings->keeper_label', $print);
+        $this->assertStringContainsString('$settings->keeper_label', $show);
 
         foreach (['issue-settings.blade.php','issue-show.blade.php','issue-pdf.blade.php','issue-print.blade.php'] as $file) {
             $candidate=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/'.$file));
