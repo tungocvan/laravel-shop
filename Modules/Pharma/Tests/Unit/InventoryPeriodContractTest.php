@@ -55,7 +55,7 @@ class InventoryPeriodContractTest extends TestCase
         $this->assertStringContainsString('data-movement-check', $view);
         $this->assertStringContainsString('Export theo bộ lọc', $view);
         $this->assertStringContainsString('Export đã chọn', $view);
-        $this->assertStringContainsString('Import tồn đầu kỳ', $view);
+        $this->assertStringNotContainsString('Import tồn đầu kỳ', $view);
     }
 
     public function test_period_export_is_filter_and_selection_aware(): void
