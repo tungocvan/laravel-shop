@@ -118,10 +118,11 @@ final class InventoryController extends Controller
         if($from->gt($to)) throw ValidationException::withMessages(['from'=>'Từ ngày không được sau Đến ngày.']);
         $movementMedicineId=$request->filled('movement_medicine_id') ? $request->integer('movement_medicine_id') : null;
         if($movementMedicineId && !Medicine::query()->whereKey($movementMedicineId)->exists()) throw ValidationException::withMessages(['movement_medicine_id'=>'Thuốc được chọn không tồn tại trong Medicine Master.']);
-        $movement=$movementSummary->summarize($warehouse,$from,$to,$movementMedicineId);
+        $movementPerPage=$this->documentPerPage($request);
+        $movement=$movementSummary->summarize($warehouse,$from,$to,$movementMedicineId,[],$movementPerPage);
         $movementMedicineIds=InventoryBalance::query()->where('warehouse_id',$warehouse->id)->distinct()->pluck('medicine_id');
         $movementMedicines=Medicine::query()->whereIn('id',$movementMedicineIds)->orderBy('name')->get(['id','medicine_code','name']);
-        return view('Pharma::pages.inventory.movements',compact('warehouse','from','to','movement','movementMedicineId','movementMedicines'));
+        return view('Pharma::pages.inventory.movements',compact('warehouse','from','to','movement','movementMedicineId','movementMedicines','movementPerPage'));
     }
 
     public function template(): StreamedResponse
