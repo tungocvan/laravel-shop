@@ -383,6 +383,10 @@ final class InventoryController extends Controller
                 'medicine_name'=>$award->medicine?->name ?? $award->medicine_name,'unit'=>$award->medicine?->unit ?? $award->unit,
                 'allocated_quantity'=>(float)$allocation->allocated_quantity,'issued_quantity'=>$issued,'remaining_quantity'=>$remaining,
                 'winning_price'=>(float)($award->winning_price ?? $award->unit_price ?? 0),
+                'active_ingredient'=>$award->effectiveMedicineAttribute('active_ingredient')['value'],
+                'effective_from'=>$allocation->effective_from?->format('Y-m-d'),
+                'effective_until'=>$allocation->effective_until?->format('Y-m-d'),
+                'days_remaining'=>$allocation->effective_until ? now()->startOfDay()->diffInDays($allocation->effective_until->copy()->startOfDay(),false) : null,
                 'investor_code'=>$award->investor_code,'investor_name'=>$award->investor_name,
             ];
         })->filter(fn($row)=>$row['medicine_id'] && $row['remaining_quantity']>0)->values();
@@ -392,10 +396,14 @@ final class InventoryController extends Controller
     public function storeBidSaleIssue(Request $request, InventoryService $inventory): RedirectResponse
     {
         $data=$request->validate([
-            'issue_date'=>'required|date','allocation_ids'=>'required|array|min:1','allocation_ids.*'=>'required|integer|distinct',
-            'quantities'=>'required|array','notes'=>'nullable|string',
+            'issue_date'=>'required|date','quantities'=>'required|array','quantities.*'=>'nullable|numeric|min:0','notes'=>'nullable|string',
+        ],[
+            'quantities.required'=>'Vui lòng nhập số lượng xuất cho ít nhất một sản phẩm.',
+            'quantities.*.numeric'=>'Số lượng xuất phải là số.',
+            'quantities.*.min'=>'Số lượng xuất không được âm.',
         ]);
-        $allocationIds=array_map('intval',$data['allocation_ids']);
+        $allocationIds=collect($data['quantities'])->filter(fn($quantity)=>(float)$quantity>0)->keys()->map(fn($id)=>(int)$id)->values()->all();
+        if(empty($allocationIds)) throw ValidationException::withMessages(['quantities'=>'Vui lòng nhập số lượng xuất cho ít nhất một sản phẩm.']);
         $allocations=DrugBidAwardAllocation::query()->with(['partner','award'])->whereIn('id',$allocationIds)
             ->where('status',DrugBidAwardAllocation::STATUS_ACTIVE)->get()->keyBy('id');
         if($allocations->count()!==count($allocationIds)) throw ValidationException::withMessages(['allocation_ids'=>'Phân bổ hàng thầu không còn hợp lệ.']);
