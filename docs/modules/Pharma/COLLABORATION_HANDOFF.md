@@ -1,3 +1,21 @@
+## Checkpoint — Dashboard Operations Hub pre-merge regression alignment — 2026-09-24
+
+- Branch: `feat/pharma-dashboard-operations-hub`.
+- Operator acceptance before final regression: inventory dashboard/X-N-T focused tests PASS and manual UI PASS, including monetary X-N-T KPIs and bounded `25 / 50 / 100` movement pagination.
+- The branch had already been merged once into `main` as PR #224 at `43ab1b18`; the subsequent Pharma module regression exposed four stale contract expectations rather than new runtime defects.
+- Medicine identity contracts are aligned with the accepted ownership rule: different packaging is a distinct Medicine/MED identity; the duplicate-edit test now uses the same packaging when asserting a true duplicate canonical identity.
+- Medicine catalog metadata regression now expects different packaging to create two Medicine records and verifies owner Excel metadata on the newly created package-specific Medicine instead of overwriting the first package.
+- Dashboard HSSP boundary contract now recognizes the current Operations Hub route-array representation while still requiring distinct Medicine Master and HSSP entries.
+- Reported regression progression: initial Pharma regression `173 passed / 4 failed`; after aligning the three Medicine-related stale contracts, the remaining reported failure was the stale HSSP dashboard literal contract (`3 passed / 1 failed` in its focused rerun). That HSSP contract is now aligned on the remote feature branch.
+- No production behavior, schema, migration, inventory calculation, or UI was changed by this regression-alignment batch; changes are tests/documentation only.
+- Git topology note: remote `main` contains merge commit `43ab1b18`, while this feature branch continues from its pre-merge head. Therefore `main...feat/pharma-dashboard-operations-hub` is expected to report a one-commit divergence until the post-merge regression-fix PR is merged. Do not pull the feature branch into a checked-out `main` with `--ff-only`.
+- Required next gate: switch to the feature branch, synchronize it from origin, run the four focused Medicine/HSSP contracts, then run the full `Modules/Pharma` regression and verify `git status --short` is clean.
+- Manual UI: PASS for the runtime feature scope; no additional UI change in this test-only batch.
+- Full-project regression: NOT APPLICABLE; this follow-up is Pharma contract alignment only.
+- Status: **POST-MERGE REGRESSION CONTRACT ALIGNMENT COMPLETE — OPERATOR FOCUSED + FULL PHARMA REGRESSION / GIT-CLEAN GATE PENDING.**
+
+---
+
 ## Checkpoint — Pharma Inventory MVP — 2026-09-23
 
 - Branch: `feat/pharma-inventory`, based on current `main`.
