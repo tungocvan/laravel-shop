@@ -57,5 +57,15 @@ class CommissionContractTest extends TestCase
         $this->assertStringContainsString("commission-partner-filter", $view);
         $this->assertStringContainsString("partner.value=''", $view);
         $this->assertStringContainsString("medicine.value=''", $view);
+        $this->assertStringContainsString("Route::get('/commissions/export'", $routes);
+        $this->assertStringContainsString('exportCommissions', $controller);
+        $this->assertStringContainsString("'ids'=>'nullable|array|max:500'", $controller);
+        $this->assertStringContainsString("'Hoa hồng'=>(float)\$row->commission_amount", $controller);
+        $this->assertStringContainsString('Xóa bộ lọc', $view);
+        $this->assertStringContainsString('Xuất Excel theo bộ lọc', $view);
+        $this->assertStringContainsString('Xuất Excel đã chọn', $view);
+        $this->assertStringContainsString('commission-check-all', $view);
+        $this->assertStringContainsString('name="ids[]"', $view);
+        $this->assertStringNotContainsString('Chỉ hiển thị bệnh viện đang được phân công cho User đã chọn.', $view);
     }
 }
