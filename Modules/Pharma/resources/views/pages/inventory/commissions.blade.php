@@ -9,17 +9,40 @@
   <p class="mt-1 text-sm text-slate-500">Tổng hợp snapshot hoa hồng đã phát sinh khi phiếu bán hàng thầu được ghi sổ. Chính sách lịch sử không bị tính lại khi cấu hình hiện tại thay đổi.</p>
  </div>
 
- <form method="GET" class="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[180px_180px_minmax(220px,1fr)_auto] md:items-end">
+ <form method="GET" id="commission-filter-form" class="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-2 xl:grid-cols-[150px_150px_minmax(190px,1fr)_minmax(220px,1.2fr)_minmax(220px,1.2fr)_auto] xl:items-end">
   <label class="text-sm font-semibold text-slate-700">Từ ngày<input type="date" name="from" value="{{ $from->format('Y-m-d') }}" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3"></label>
   <label class="text-sm font-semibold text-slate-700">Đến ngày<input type="date" name="to" value="{{ $to->format('Y-m-d') }}" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3"></label>
   <label class="text-sm font-semibold text-slate-700">User phụ trách
-   <select name="user_id" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3">
+   <select name="user_id" id="commission-user-filter" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3">
     <option value="">Tất cả User</option>
     @foreach($users as $user)<option value="{{ $user->id }}" @selected((int)$userId===$user->id)>{{ $user->name }}</option>@endforeach
    </select>
   </label>
+  <label class="text-sm font-semibold text-slate-700">Bệnh viện
+   <select name="partner_id" id="commission-partner-filter" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3">
+    <option value="">Tất cả bệnh viện</option>
+    @foreach($partners as $partner)<option value="{{ $partner->id }}" @selected((int)$partnerId===$partner->id)>{{ $partner->name }}</option>@endforeach
+   </select>
+   @if($userId)<span class="mt-1 block text-xs font-normal text-slate-500">Chỉ hiển thị bệnh viện đang được phân công cho User đã chọn.</span>@endif
+  </label>
+  <label class="text-sm font-semibold text-slate-700">Sản phẩm
+   <select name="medicine_id" id="commission-medicine-filter" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3">
+    <option value="">Tất cả sản phẩm</option>
+    @foreach($medicines as $medicine)<option value="{{ $medicine->id }}" @selected((int)$medicineId===$medicine->id)>{{ $medicine->name }} · {{ $medicine->medicine_code }}</option>@endforeach
+   </select>
+  </label>
   <button class="min-h-11 rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white">Lọc dữ liệu</button>
  </form>
+ <script>
+ document.addEventListener('DOMContentLoaded',()=>{
+   const form=document.getElementById('commission-filter-form');
+   const user=document.getElementById('commission-user-filter');
+   const partner=document.getElementById('commission-partner-filter');
+   const medicine=document.getElementById('commission-medicine-filter');
+   user?.addEventListener('change',()=>{ if(partner) partner.value=''; if(medicine) medicine.value=''; form?.submit(); });
+   partner?.addEventListener('change',()=>{ if(medicine) medicine.value=''; form?.submit(); });
+ });
+ </script>
 
  <div class="grid gap-4 md:grid-cols-3">
   <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-bold uppercase text-slate-500">Doanh thu tính hoa hồng</p><p class="mt-2 text-2xl font-bold text-slate-950">{{ number_format((float)$totals->revenue,0,',','.') }} đ</p></div>
