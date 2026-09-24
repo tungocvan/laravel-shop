@@ -214,10 +214,11 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('Tải PDF', $documents);
         $this->assertStringContainsString('In trực tiếp', $documents);
         $this->assertStringContainsString('aria-label="Thao tác khác"', $documents);
-        $this->assertStringContainsString('max-h-[calc(100vh-330px)]', $documents);
-        $this->assertStringContainsString('min-h-[420px]', $documents);
+        $this->assertStringContainsString('min-h-[calc(100vh-7.5rem)]', $documents);
+        $this->assertStringContainsString('flex min-h-0 flex-1 flex-col', $documents);
+        $this->assertStringContainsString('min-h-[420px] flex-1 overflow-auto', $documents);
         $this->assertStringContainsString('sticky top-0 z-10', $documents);
-        $this->assertStringContainsString('right-4 z-30', $documents);
+        $this->assertStringContainsString('absolute right-0 z-30', $documents);
         $this->assertStringContainsString('truncate font-semibold text-slate-800', $documents);
         $this->assertStringContainsString('Thành tiền', $issueShow);
         $this->assertStringContainsString('Tổng giá trị', $issueShow);
