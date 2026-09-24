@@ -76,7 +76,6 @@ $stockReady=$hasPostableStock && !$hasUnresolvedShortage;
   <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><label class="text-sm font-semibold">Ghi chú<textarea name="notes" rows="3" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2">{{ old('notes',$issue->notes) }}</textarea></label><div class="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between"><p class="text-sm text-slate-500">FEFO là gợi ý ưu tiên. Có thể chia một thuốc qua nhiều lô; tổng SL lô phải bằng <b>SL duyệt</b>.</p><div class="flex flex-wrap gap-2"><a href="{{ route('admin.pharma.inventory.issues.index') }}" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold">Hủy</a><button type="submit" form="bid-draft-form" class="rounded-xl border border-indigo-200 bg-white px-4 py-2.5 text-sm font-bold text-indigo-700 hover:bg-indigo-50">Lưu phiếu nháp</button>@if($canApprove)<button id="bid-post-button" type="submit" form="bid-draft-form" formaction="{{ route('admin.pharma.inventory.issues.bid-sales.post',$issue) }}" formmethod="POST" data-stock-ready="{{ $stockReady ? '1' : '0' }}" data-has-postable-stock="{{ $hasPostableStock ? '1' : '0' }}" @disabled(!$stockReady) class="rounded-xl px-5 py-2.5 text-sm font-bold text-white {{ $stockReady ? 'bg-emerald-600 hover:bg-emerald-700' : 'cursor-not-allowed bg-slate-300 text-slate-500' }}" @if(!$stockReady) title="Chưa thể duyệt vì có mặt hàng chưa có lô tồn khả dụng" @endif>Duyệt & ghi sổ</button>@endif</div></div></section>
  </form>
 </div>
-@if($addableAllocations->isNotEmpty())
 <script>
 document.addEventListener('DOMContentLoaded', () => {
  const panel=document.getElementById('bid-add-panel'), toggle=document.getElementById('toggle-bid-add');
@@ -84,10 +83,10 @@ document.addEventListener('DOMContentLoaded', () => {
  const pending=document.getElementById('bid-pending-products'), count=document.getElementById('bid-product-count'), postButton=document.getElementById('bid-post-button');
  toggle?.addEventListener('click',()=>panel.classList.toggle('hidden'));
  if(select && window.TomSelect) new TomSelect(select,{create:false,allowEmptyOption:true,placeholder:'Tìm mã hoặc tên thuốc...'});
- const refreshCount=()=>{ if(count) count.textContent=(Number(count.dataset.baseCount||0)+pending.children.length)+' sản phẩm'; };
+ const refreshCount=()=>{ if(count && pending) count.textContent=(Number(count.dataset.baseCount||0)+pending.children.length)+' sản phẩm'; };
  const refreshPostState=()=>{
   if(!postButton) return;
-  const hasPending=pending.children.length>0, hasPostableStock=postButton.dataset.hasPostableStock==='1';
+  const hasPending=pending ? pending.children.length>0 : false, hasPostableStock=postButton.dataset.hasPostableStock==='1';
   const unresolved=[...document.querySelectorAll('[data-shortage-row]')].some(row=>{
    const id=row.dataset.shortageRow, enabled=document.querySelector('[data-defer-enabled="'+id+'"]');
    return !enabled || enabled.value!=='1';
@@ -116,6 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
  }));
  refreshPostState();
  document.getElementById('bid-add-button')?.addEventListener('click',()=>{
+  if(!select || !qty || !pending || !panel) return;
   const id=select.value, option=select.options[select.selectedIndex], quantity=parseFloat(qty.value||'0'), max=parseFloat(option?.dataset.max||'0');
   if(!id){ alert('Vui lòng chọn sản phẩm trúng thầu.'); return; }
   if(!(quantity>0) || quantity>max){ alert('Số lượng thêm phải lớn hơn 0 và không vượt phân bổ còn lại.'); return; }
@@ -139,5 +139,4 @@ document.addEventListener('DOMContentLoaded', () => {
  });
 });
 </script>
-@endif
 @endsection
