@@ -22,16 +22,17 @@ class CommissionContractTest extends TestCase
         $this->assertStringNotContainsString("foreignId('issue_item_id')", $migration);
     }
 
-    public function test_commission_reversal_preserves_audit_history(): void
+    public function test_reverting_bid_issue_removes_commission_cost(): void
     {
         $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
         $service=file_get_contents(base_path('Modules/Pharma/Services/DrugBidCommissionService.php'));
 
         $this->assertStringContainsString('reverseIssue', $controller);
         $this->assertStringContainsString('Phiếu đã từng ghi sổ và phát sinh nhật ký hoa hồng', $controller);
-        $this->assertStringContainsString('TYPE_REVERSAL', $service);
-        $this->assertStringContainsString("'commission_amount'=>-\$row->commission_amount", $service);
-        $this->assertStringContainsString("'status'=>InventoryIssueCommission::STATUS_REVERSED", $service);
+        $this->assertStringContainsString("->where('issue_id',\$issue->id)", $service);
+        $this->assertStringContainsString('->lockForUpdate()', $service);
+        $this->assertStringContainsString('->delete();', $service);
+        $this->assertStringNotContainsString('TYPE_REVERSAL', $service);
     }
 
     public function test_commission_route_only_aggregates_snapshot_ledger(): void
