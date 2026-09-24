@@ -18,7 +18,9 @@ class PharmaDashboardContractTest extends TestCase
         $this->assertStringContainsString("whereDate('expiry_date', '<=', now()->addDays(90))", $service);
         $this->assertStringContainsString("InventoryIssueDeferredSupply::PENDING", $service);
         $this->assertStringContainsString("InventoryIssueCommission::STATUS_UNRESOLVED", $service);
-        $this->assertStringContainsString("whereNull('medicine_id')", $service);
+        $this->assertStringContainsString("DrugBidAwardMatch::REVIEW_PENDING", $service);
+        $this->assertStringContainsString("DrugBidAwardMatch::REVIEW_STALE", $service);
+        $this->assertStringContainsString("whereDoesntHave('canonicalMatch')", $service);
         $this->assertStringContainsString("where('is_current', true)", $service);
     }
 
