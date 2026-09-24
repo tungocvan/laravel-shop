@@ -17,12 +17,12 @@ class MedicineCanonicalIdentityTest extends TestCase
     use RefreshDatabase;
 
     #[Test]
-    public function same_registration_and_name_can_have_distinct_strength_variants(): void
+    public function same_registration_and_name_with_distinct_packaging_have_distinct_medicine_identities(): void
     {
         $resolver = new MedicineIdentityResolver;
         $first = ['registration_number' => '893110138900', 'name' => 'Pitamsol', 'strength_text' => '2.400mg; 7,2ml', 'dosage_form' => 'Dung dịch uống', 'presentation_text' => '7,2ml'];
         $second = ['registration_number' => '893110138900', 'name' => 'Pitamsol', 'strength_text' => '2.400mg; 24ml', 'dosage_form' => 'Dung dịch uống', 'presentation_text' => '24ml'];
-        $this->assertSame($resolver->canonicalMedicineIdentity($first), $resolver->canonicalMedicineIdentity($second));
+        $this->assertNotSame($resolver->canonicalMedicineIdentity($first), $resolver->canonicalMedicineIdentity($second));
         $this->assertNotSame($resolver->canonicalVariantIdentity($first), $resolver->canonicalVariantIdentity($second));
     }
 
@@ -90,27 +90,32 @@ class MedicineCanonicalIdentityTest extends TestCase
         $first = Medicine::query()->create([
             'name' => 'Medicine A',
             'registration_number' => 'REG-A',
+            'packaging_specification' => 'Hộp 10 viên',
             'registration_number_raw' => 'REG-A',
             'registration_number_primary' => 'REG-A',
             'canonical_identity_key' => app(MedicineIdentityResolver::class)->canonicalMedicineIdentity([
                 'name' => 'Medicine A',
                 'registration_number' => 'REG-A',
+                'packaging_specification' => 'Hộp 10 viên',
             ]),
         ]);
         $second = Medicine::query()->create([
             'name' => 'Medicine B',
             'registration_number' => 'REG-B',
+            'packaging_specification' => 'Hộp 20 viên',
             'registration_number_raw' => 'REG-B',
             'registration_number_primary' => 'REG-B',
             'canonical_identity_key' => app(MedicineIdentityResolver::class)->canonicalMedicineIdentity([
                 'name' => 'Medicine B',
                 'registration_number' => 'REG-B',
+                'packaging_specification' => 'Hộp 20 viên',
             ]),
         ]);
 
         $updated = app(MedicineService::class)->update($first->id, [
             'name' => 'Medicine A',
             'registration_number' => " REG-C\n",
+            'packaging_specification' => 'Hộp 10 viên',
         ]);
 
         $this->assertSame('REG-C', $updated->registration_number);
@@ -123,6 +128,7 @@ class MedicineCanonicalIdentityTest extends TestCase
         app(MedicineService::class)->update($updated->id, [
             'name' => $second->name,
             'registration_number' => $second->registration_number,
+            'packaging_specification' => $second->packaging_specification,
         ]);
     }
 
