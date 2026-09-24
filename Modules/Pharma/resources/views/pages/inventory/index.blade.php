@@ -31,7 +31,7 @@
 
 
 
-    <section class="grid gap-4 md:grid-cols-3">
+    <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
             <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Giá trị tồn theo giá vốn</p>
             <p class="mt-2 text-2xl font-bold text-emerald-950">{{ number_format($totalInventoryValue, 0, ',', '.') }} đ</p>
@@ -42,6 +42,11 @@
             <p class="mt-2 text-2xl font-bold text-amber-950">{{ number_format($unpricedBalanceCount) }}</p>
             <p class="mt-1 text-xs text-amber-700">Các lô còn tồn chưa có cả giá vốn điều chỉnh và giá vốn NCC đang hiệu lực.</p>
         </div>
+        <a href="{{ request()->fullUrlWithQuery(['expiry_warning' => 'lt6', 'page' => null]) }}" class="block rounded-2xl border border-orange-200 bg-orange-50 p-5 transition hover:border-orange-300 hover:shadow-sm">
+            <p class="text-xs font-semibold uppercase tracking-wide text-orange-700">Giá trị hàng cận hạn ≤ 6 tháng</p>
+            <p class="mt-2 text-2xl font-bold text-orange-950">{{ number_format($nearExpiryInventoryValue, 0, ',', '.') }} đ</p>
+            <p class="mt-1 text-xs font-semibold text-orange-700">{{ number_format($nearExpiryBalanceCount) }} lô còn tồn · Không tính hàng đã hết hạn.</p>
+        </a>
         <div class="rounded-2xl border border-rose-200 bg-rose-50 p-5">
             <p class="text-xs font-semibold uppercase tracking-wide text-rose-700">Hàng hết hạn còn tồn</p>
             <p class="mt-2 text-2xl font-bold text-rose-950">{{ number_format($expiredInventoryValue, 0, ',', '.') }} đ</p>
