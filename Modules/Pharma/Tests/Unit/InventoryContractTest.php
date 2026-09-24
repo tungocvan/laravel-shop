@@ -435,6 +435,13 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('Vui lòng nhập số lượng xuất cho ít nhất một sản phẩm.', $controller);
         $this->assertStringContainsString("filter(fn(\$quantity)=>(float)\$quantity>0)", $controller);
         $this->assertStringContainsString("'bid_partner_id'=>\$partner->id", $controller);
+        $issueShow=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-show.blade.php'));
+        $issuePdf=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-pdf.blade.php'));
+        $issuePrint=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-print.blade.php'));
+        foreach([\$issueShow,\$issuePdf,\$issuePrint] as \$documentView){
+            $this->assertStringContainsString("expiry_date?->format('d/m/Y')", \$documentView);
+        }
+        $this->assertStringContainsString('Chưa chọn lô', $issueShow);
         $this->assertStringNotContainsString("'recipient_partner_id'=>\$partner->id", $controller);
         $this->assertStringNotContainsString('name="allocation_ids[]"', $workspace);
         $this->assertStringContainsString('Tạo phiếu nháp', $workspace);
