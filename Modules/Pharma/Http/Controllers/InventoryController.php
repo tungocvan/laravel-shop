@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\Response;
+use Modules\Pharma\Models\DrugBidAward;
+use Modules\Pharma\Models\DrugBidAwardAllocation;
 use Modules\Pharma\Models\InventoryBalance;
 use Modules\Pharma\Models\InventoryIssue;
 use Modules\Pharma\Models\InventoryIssueDocumentSetting;
@@ -340,6 +342,96 @@ final class InventoryController extends Controller
         }
         InventoryIssueDocumentSetting::current()->update($data);
         return back()->with('success','Đã lưu cấu hình phiếu xuất kho.');
+    }
+
+    public function createBidSaleIssue(InventoryService $inventory): View
+    {
+        $warehouse=$inventory->defaultWarehouse();
+        $investors=DrugBidAwardAllocation::query()
+            ->join('pharma_drug_bid_awards as awards','awards.id','=','pharma_drug_bid_award_allocations.drug_bid_award_id')
+            ->where('pharma_drug_bid_award_allocations.status',DrugBidAwardAllocation::STATUS_ACTIVE)
+            ->whereNotNull('awards.investor_name')
+            ->select('awards.investor_code','awards.investor_name')->distinct()->orderBy('awards.investor_name')->get();
+        return view('Pharma::pages.inventory.bid-sale-create',compact('warehouse','investors'));
+    }
+
+    public function bidSaleAllocations(Request $request, InventoryService $inventory)
+    {
+        $data=$request->validate(['investor'=>'required|string|max:255','partner_id'=>'nullable|integer']);
+        $warehouse=$inventory->defaultWarehouse();
+        $query=DrugBidAwardAllocation::query()
+            ->with(['partner','award.medicine'])
+            ->where('status',DrugBidAwardAllocation::STATUS_ACTIVE)
+            ->whereHas('award',fn($q)=>$q->where(fn($x)=>$x->where('investor_code',$data['investor'])->orWhere('investor_name',$data['investor'])))
+            ->when(!empty($data['partner_id']),fn($q)=>$q->where('partner_id',$data['partner_id']))
+            ->where(fn($q)=>$q->whereNull('effective_from')->orWhereDate('effective_from','<=',now()))
+            ->where(fn($q)=>$q->whereNull('effective_until')->orWhereDate('effective_until','>=',now()));
+        $allocations=$query->get();
+        $posted=DB::table('pharma_inventory_issue_items as ii')
+            ->join('pharma_inventory_issues as i','i.id','=','ii.issue_id')
+            ->where('i.issue_source','bid')->where('i.status',InventoryIssue::POSTED)
+            ->whereIn('ii.drug_bid_award_allocation_id',$allocations->pluck('id'))
+            ->groupBy('ii.drug_bid_award_allocation_id')->selectRaw('ii.drug_bid_award_allocation_id, SUM(ii.quantity) as qty')
+            ->pluck('qty','ii.drug_bid_award_allocation_id');
+        $rows=$allocations->map(function($allocation)use($posted,$warehouse){
+            $award=$allocation->award;
+            $issued=(float)($posted[$allocation->id]??0);
+            $remaining=max(0,(float)$allocation->allocated_quantity-$issued);
+            $balances=InventoryBalance::query()->where('warehouse_id',$warehouse->id)->where('medicine_id',$award->medicine_id)
+                ->where('quantity_on_hand','>',0)->orderBy('expiry_date')->get(['id','batch_number','expiry_date','quantity_on_hand']);
+            return [
+                'allocation_id'=>$allocation->id,'partner_id'=>$allocation->partner_id,'partner_name'=>$allocation->partner?->name,
+                'award_id'=>$award->id,'medicine_id'=>$award->medicine_id,'medicine_code'=>$award->medicine?->medicine_code ?? $award->medicine_code,
+                'medicine_name'=>$award->medicine?->name ?? $award->medicine_name,'unit'=>$award->medicine?->unit ?? $award->unit,
+                'allocated_quantity'=>(float)$allocation->allocated_quantity,'issued_quantity'=>$issued,'remaining_quantity'=>$remaining,
+                'winning_price'=>(float)($award->winning_price ?? $award->unit_price ?? 0),
+                'investor_code'=>$award->investor_code,'investor_name'=>$award->investor_name,'balances'=>$balances,
+            ];
+        })->filter(fn($row)=>$row['medicine_id'] && $row['remaining_quantity']>0)->values();
+        return response()->json(['data'=>$rows]);
+    }
+
+    public function storeBidSaleIssue(Request $request, InventoryService $inventory): RedirectResponse
+    {
+        $data=$request->validate([
+            'issue_date'=>'required|date','allocation_ids'=>'required|array|min:1','allocation_ids.*'=>'required|integer|distinct',
+            'quantities'=>'required|array','balance_ids'=>'required|array','notes'=>'nullable|string',
+        ]);
+        $allocationIds=array_map('intval',$data['allocation_ids']);
+        $allocations=DrugBidAwardAllocation::query()->with(['partner','award'])->whereIn('id',$allocationIds)
+            ->where('status',DrugBidAwardAllocation::STATUS_ACTIVE)->get()->keyBy('id');
+        if($allocations->count()!==count($allocationIds)) throw ValidationException::withMessages(['allocation_ids'=>'Phân bổ hàng thầu không còn hợp lệ.']);
+        $partnerIds=$allocations->pluck('partner_id')->unique();
+        if($partnerIds->count()!==1) throw ValidationException::withMessages(['allocation_ids'=>'Một phiếu chỉ được xuất cho một khách hàng/bệnh viện.']);
+        $investorKeys=$allocations->map(fn($a)=>$a->award->investor_code ?: $a->award->investor_name)->unique();
+        if($investorKeys->count()!==1) throw ValidationException::withMessages(['allocation_ids'=>'Một phiếu chỉ được thuộc một chủ đầu tư.']);
+
+        $warehouse=$inventory->defaultWarehouse();
+        $posted=DB::table('pharma_inventory_issue_items as ii')->join('pharma_inventory_issues as i','i.id','=','ii.issue_id')
+            ->where('i.issue_source','bid')->where('i.status',InventoryIssue::POSTED)->whereIn('ii.drug_bid_award_allocation_id',$allocationIds)
+            ->groupBy('ii.drug_bid_award_allocation_id')->selectRaw('ii.drug_bid_award_allocation_id, SUM(ii.quantity) as qty')
+            ->pluck('qty','ii.drug_bid_award_allocation_id');
+        $items=[];
+        foreach($allocationIds as $allocationId){
+            $allocation=$allocations[$allocationId]; $award=$allocation->award;
+            $quantity=(float)($data['quantities'][$allocationId]??0); $balanceId=(int)($data['balance_ids'][$allocationId]??0);
+            if($quantity<=0) throw ValidationException::withMessages(['quantities'=>"Số lượng xuất phải lớn hơn 0."]);
+            $remaining=(float)$allocation->allocated_quantity-(float)($posted[$allocationId]??0);
+            if($quantity>$remaining+0.00005) throw ValidationException::withMessages(['quantities'=>"Số lượng xuất vượt quá phân bổ còn lại của {$award->medicine_name}."]);
+            $balance=InventoryBalance::query()->where('warehouse_id',$warehouse->id)->where('medicine_id',$award->medicine_id)->findOrFail($balanceId);
+            $items[]=['medicine_id'=>$award->medicine_id,'drug_bid_award_id'=>$award->id,'drug_bid_award_allocation_id'=>$allocation->id,
+                'batch_number'=>$balance->batch_number,'expiry_date'=>$balance->expiry_date,'quantity'=>$quantity,
+                'unit_price'=>(float)($award->winning_price ?? $award->unit_price ?? 0)];
+        }
+        $first=$allocations->first(); $partner=$first->partner()->firstOrFail(); $award=$first->award;
+        $issue=DB::transaction(function()use($warehouse,$data,$items,$partner,$award){
+            $issue=InventoryIssue::create(['warehouse_id'=>$warehouse->id,'number'=>'PX-'.now()->format('Ymd-His').'-'.random_int(100,999),
+                'issue_date'=>$data['issue_date'],'recipient_name'=>$partner->name,'recipient_partner_id'=>$partner->id,
+                'issue_source'=>'bid','bid_partner_id'=>$partner->id,'bid_investor_code'=>$award->investor_code,'bid_investor_name'=>$award->investor_name,
+                'status'=>InventoryIssue::DRAFT,'notes'=>$data['notes']??null,'created_by'=>auth('admin')->id()]);
+            $issue->items()->createMany($items); return $issue;
+        });
+        return redirect()->route('admin.pharma.inventory.issues.show',$issue)->with('success',"Đã tạo phiếu xuất bán hàng thầu {$issue->number}.");
     }
 
     public function storeIssue(Request $request, InventoryService $inventory): RedirectResponse
