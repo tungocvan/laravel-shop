@@ -35,7 +35,14 @@
         <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
             <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Giá trị tồn theo giá vốn</p>
             <p class="mt-2 text-2xl font-bold text-emerald-950">{{ number_format($totalInventoryValue, 0, ',', '.') }} đ</p>
-            <p class="mt-1 text-xs text-emerald-700">Ưu tiên giá vốn điều chỉnh theo lô; nếu chưa có sẽ dùng Supplier Tracking đang hiệu lực.</p>
+            <p class="mt-1 text-xs text-emerald-700">Tổng giá trị tồn, bao gồm cả hàng còn hạn và đã hết hạn.</p>
+            <div class="mt-3 border-t border-emerald-200 pt-3">
+                <div class="flex items-baseline justify-between gap-3">
+                    <span class="text-xs font-semibold text-emerald-800">Trong đó còn hạn</span>
+                    <span class="whitespace-nowrap text-base font-bold text-emerald-950">{{ number_format($validInventoryValue, 0, ',', '.') }} đ</span>
+                </div>
+                <p class="mt-1 text-xs text-emerald-700">{{ number_format($validBalanceCount) }} lô còn tồn chưa quá hạn.</p>
+            </div>
         </div>
         <div class="rounded-2xl border border-amber-200 bg-amber-50 p-5">
             <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">Lô chưa định giá</p>
