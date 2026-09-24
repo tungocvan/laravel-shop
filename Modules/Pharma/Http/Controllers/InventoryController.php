@@ -615,7 +615,8 @@ final class InventoryController extends Controller
     {
         $this->guardIssueWarehouse($issue,$inventory);
         abort_unless(($issue->issue_source ?? 'normal')==='bid' && $issue->status===InventoryIssue::DRAFT,404);
-        $issue->load(['items.medicine']);
+        $issue->load(['items.medicine','deferredSupplies']);
+        $savedDeferred=$issue->deferredSupplies->where('status',InventoryIssueDeferredSupply::PENDING)->keyBy('drug_bid_award_allocation_id');
         $allocationIds=$issue->items->pluck('drug_bid_award_allocation_id')->filter();
         $allocations=DrugBidAwardAllocation::query()->with(['partner','award.medicine'])
             ->whereIn('id',$allocationIds)->get()->keyBy('id');
@@ -664,7 +665,7 @@ final class InventoryController extends Controller
             ->whereIn('medicine_id',$issue->items->pluck('medicine_id'))->where('quantity_on_hand','>',0)
             ->whereDate('expiry_date','>=',now()->toDateString())->orderBy('medicine_id')->orderBy('expiry_date')->get()->groupBy('medicine_id');
         $canApprove=auth('admin')->user()?->can('approve_pharma_inventory_issue') ?? false;
-        return view('Pharma::pages.inventory.bid-sale-edit',compact('issue','rows','balances','canApprove','addableAllocations'));
+        return view('Pharma::pages.inventory.bid-sale-edit',compact('issue','rows','balances','canApprove','addableAllocations','savedDeferred'));
     }
 
     public function updateBidSaleIssue(Request $request, InventoryIssue $issue, InventoryService $inventory): RedirectResponse
