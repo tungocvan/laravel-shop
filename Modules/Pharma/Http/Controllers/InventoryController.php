@@ -72,14 +72,33 @@ final class InventoryController extends Controller
             $effective=$row->manual_cost_price !== null ? (float)$row->manual_cost_price : ($supplier !== null ? (float)$supplier : null);
             return $effective === null || $effective <= 0;
         })->count();
-        $expiredBalances=$allBalances->filter(fn(InventoryBalance $row)=>$row->expiry_date->lt(now()->startOfDay()));
+        $today=now()->startOfDay();
+        $expiredBalances=$allBalances->filter(fn(InventoryBalance $row)=>$row->expiry_date->lt($today));
         $expiredBalanceCount=$expiredBalances->count();
         $expiredInventoryValue=$expiredBalances->sum(function(InventoryBalance $row)use($costs){
             $cost=$costs->get($row->medicine_id);
             $effective=$row->manual_cost_price !== null ? (float)$row->manual_cost_price : ($cost?->average_cost_price !== null ? (float)$cost->average_cost_price : null);
             return $effective === null ? 0 : (float)$row->quantity_on_hand*$effective;
         });
-        return view('Pharma::pages.inventory.index',compact('warehouse','balances','totalInventoryValue','unpricedBalanceCount','expiredInventoryValue','expiredBalanceCount'));
+
+        // Near-expiry is intentionally exclusive of expired stock to avoid
+        // double-counting the red expired KPI.
+        $nearExpiryEnd=$today->copy()->addMonths(6);
+        $nearExpiryBalances=$allBalances->filter(fn(InventoryBalance $row)=>
+            $row->expiry_date->gte($today) && $row->expiry_date->lte($nearExpiryEnd)
+        );
+        $nearExpiryBalanceCount=$nearExpiryBalances->count();
+        $nearExpiryInventoryValue=$nearExpiryBalances->sum(function(InventoryBalance $row)use($costs){
+            $cost=$costs->get($row->medicine_id);
+            $effective=$row->manual_cost_price !== null ? (float)$row->manual_cost_price : ($cost?->average_cost_price !== null ? (float)$cost->average_cost_price : null);
+            return $effective === null ? 0 : (float)$row->quantity_on_hand*$effective;
+        });
+
+        return view('Pharma::pages.inventory.index',compact(
+            'warehouse','balances','totalInventoryValue','unpricedBalanceCount',
+            'nearExpiryInventoryValue','nearExpiryBalanceCount',
+            'expiredInventoryValue','expiredBalanceCount'
+        ));
     }
 
     public function movements(Request $request, InventoryService $inventory, InventoryMovementSummaryService $movementSummary): View
