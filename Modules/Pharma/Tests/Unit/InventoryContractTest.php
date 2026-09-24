@@ -476,7 +476,7 @@ class InventoryContractTest extends TestCase
         $this->assertStringNotContainsString('Bảng giá xuất', $bidEdit);
         $this->assertStringContainsString("batch_number'=>null", $controller);
         $this->assertStringContainsString("issue_source ?? 'normal')==='bid'", $controller);
-        $this->assertStringContainsString('Phiếu hàng thầu được chỉnh số lượng từ nghiệp vụ phân bổ', $controller);
+        $this->assertStringNotContainsString("return redirect()->route('admin.pharma.inventory.issues.show',\$issue)", substr($controller, strpos($controller, 'public function showIssue'), strpos($controller, 'public function issuePdf') - strpos($controller, 'public function showIssue')));
         $issueEdit=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-edit.blade.php'));
         $this->assertStringContainsString("'expiry_date'=>\$item->expiry_date?->format('Y-m-d')", $issueEdit);
         $batchWorkspace=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/bid-sale-batches.blade.php'));
