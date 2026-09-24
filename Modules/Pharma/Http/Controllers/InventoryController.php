@@ -16,6 +16,7 @@ use Modules\Pharma\Models\DrugBidAwardManagementAssignment;
 use Modules\Pharma\Models\InventoryBalance;
 use Modules\Pharma\Models\InventoryIssue;
 use Modules\Pharma\Models\InventoryIssueDocumentSetting;
+use Modules\Pharma\Models\InventoryIssueDeferredSupply;
 use Modules\Pharma\Models\InventoryReceipt;
 use Modules\Pharma\Models\Medicine;
 use Modules\Pharma\Models\PriceList;
@@ -493,7 +494,7 @@ final class InventoryController extends Controller
     public function showIssue(InventoryIssue $issue, InventoryService $inventory): View
     {
         $this->guardIssueWarehouse($issue,$inventory);
-        $issue->load(['items.medicine','priceList.manager']);
+        $issue->load(['items.medicine','priceList.manager','deferredSupplies.medicine']);
         $settings=InventoryIssueDocumentSetting::current();
         return view('Pharma::pages.inventory.issue-show',compact('issue','settings'));
     }
@@ -741,7 +742,9 @@ final class InventoryController extends Controller
         }
         $data=$request->validate([
             'issue_date'=>'required|date','notes'=>'nullable|string','quantities'=>'required|array',
-            'quantities.*'=>'required|numeric|min:0.001','batches'=>'required|array','batches.*'=>'required|array|min:1',
+            'quantities.*'=>'required|numeric|min:0.001','batches'=>'nullable|array','batches.*'=>'nullable|array',
+            'deferred'=>'nullable|array','deferred.*.enabled'=>'nullable|boolean',
+            'deferred.*.expected_supply_date'=>'nullable|date','deferred.*.note'=>'nullable|string|max:2000',
         ]);
         DB::transaction(function()use($issue,$data,$inventory){
             $issue=InventoryIssue::query()->lockForUpdate()->findOrFail($issue->id); $issue->load('items.medicine');
@@ -766,9 +769,22 @@ final class InventoryController extends Controller
                         'drug_bid_award_allocation_id'=>$item->drug_bid_award_allocation_id,'batch_number'=>$balance->batch_number,
                         'expiry_date'=>$balance->expiry_date,'quantity'=>$quantity,'unit_price'=>$item->unit_price];
                 }
-                if(abs($lotTotal-$requested)>0.00005) throw ValidationException::withMessages(['batches'=>"Tổng số lượng chia lô của {$item->medicine?->name} phải bằng số lượng duyệt ".number_format($requested,3,'.','').'.']);
+                if($lotTotal>$requested+0.00005) throw ValidationException::withMessages(['batches'=>"Tổng số lượng chia lô của {$item->medicine?->name} không được vượt số lượng duyệt ".number_format($requested,3,'.','').'.']);
+                $deferredQuantity=max(0,$requested-$lotTotal);
+                if($deferredQuantity>0.00005){
+                    $deferred=$data['deferred'][$item->id]??[];
+                    if(!filter_var($deferred['enabled']??false,FILTER_VALIDATE_BOOLEAN)) throw ValidationException::withMessages(['deferred'=>"{$item->medicine?->name} còn thiếu ".number_format($deferredQuantity,3,'.','').". Hãy ghi nhận chờ cung cấp trước khi duyệt."]);
+                    $note=trim((string)($deferred['note']??''));
+                    if($note==='') throw ValidationException::withMessages(['deferred'=>"Vui lòng nhập ghi chú chờ cung cấp cho {$item->medicine?->name}."]);
+                    InventoryIssueDeferredSupply::create([
+                        'issue_id'=>$issue->id,'medicine_id'=>$item->medicine_id,'drug_bid_award_id'=>$item->drug_bid_award_id,
+                        'drug_bid_award_allocation_id'=>$item->drug_bid_award_allocation_id,'quantity'=>$deferredQuantity,
+                        'expected_supply_date'=>$deferred['expected_supply_date']??null,'note'=>$note,
+                        'status'=>InventoryIssueDeferredSupply::PENDING,'created_by'=>auth('admin')->id(),
+                    ]);
+                }
             }
-            if(!$newItems) throw ValidationException::withMessages(['batches'=>'Vui lòng chọn ít nhất một lô có số lượng xuất lớn hơn 0.']);
+            if(!$newItems) throw ValidationException::withMessages(['batches'=>'Chưa có hàng thực xuất. Phiếu chỉ được ghi sổ khi có ít nhất một lô có số lượng xuất lớn hơn 0.']);
             $issue->items()->delete(); $issue->items()->createMany($newItems);
             $issue->update(['issue_date'=>$data['issue_date'],'notes'=>$data['notes']??null]);
             $inventory->postIssue($issue->fresh('items'),auth('admin')->id());
