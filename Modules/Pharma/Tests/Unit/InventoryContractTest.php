@@ -453,6 +453,15 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('issues/{issue}/bid-sale-batches', $routes);
         $this->assertStringContainsString('function bidSaleBatches', $controller);
         $this->assertStringContainsString('function postBidSaleIssue', $controller);
+        $this->assertStringContainsString('function editBidSaleIssue', $controller);
+        $this->assertStringContainsString('function updateBidSaleIssue', $controller);
+        $this->assertStringContainsString('issues/{issue}/bid-sale-edit', $routes);
+        $this->assertStringContainsString('Sửa đơn hàng thầu', $documents);
+        $bidEdit=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/bid-sale-edit.blade.php'));
+        $this->assertStringContainsString('Người phụ trách', $bidEdit);
+        $this->assertStringContainsString('Tồn khả dụng', $bidEdit);
+        $this->assertStringContainsString('Đơn giá trúng thầu', $bidEdit);
+        $this->assertStringNotContainsString('Bảng giá xuất', $bidEdit);
         $this->assertStringContainsString("batch_number'=>null", $controller);
         $this->assertStringContainsString("issue_source ?? 'normal')==='bid'", $controller);
         $this->assertStringContainsString('Phiếu hàng thầu được chỉnh số lượng từ nghiệp vụ phân bổ', $controller);
@@ -465,12 +474,12 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('issue_source', $migration);
         $this->assertStringContainsString('drug_bid_award_allocation_id', $migration);
 
-        foreach(['bid-sale-create.blade.php','bid-sale-batches.blade.php'] as $file){
+        foreach(['bid-sale-create.blade.php','bid-sale-edit.blade.php','bid-sale-batches.blade.php'] as $file){
             $candidate=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/'.$file));
             try { token_get_all(Blade::compileString($candidate), TOKEN_PARSE); }
             catch (\ParseError $error) { $this->fail($file.' failed Blade compilation: '.$error->getMessage()); }
         }
-        $this->addToAssertionCount(2);
+        $this->addToAssertionCount(3);
     }
 
 
