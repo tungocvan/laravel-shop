@@ -727,7 +727,7 @@ final class InventoryController extends Controller
                 if($note==='') throw ValidationException::withMessages(['deferred'=>"Vui lòng nhập ghi chú chờ cung cấp cho {$draftItem->medicine?->name}."]);
                 $activeDeferredAllocationIds[]=(int)$draftItem->drug_bid_award_allocation_id;
                 InventoryIssueDeferredSupply::updateOrCreate(
-                    ['issue_id'=>$locked->id,'drug_bid_award_allocation_id'=>$draftItem->drug_bid_award_allocation_id],
+                    ['issue_id'=>$locked->id,'drug_bid_award_allocation_id'=>$draftItem->drug_bid_award_allocation_id,'status'=>InventoryIssueDeferredSupply::PENDING],
                     ['medicine_id'=>$draftItem->medicine_id,'drug_bid_award_id'=>$draftItem->drug_bid_award_id,'quantity'=>(float)$draftItem->quantity,
                      'expected_supply_date'=>$deferred['expected_supply_date']??null,'note'=>$note,'status'=>InventoryIssueDeferredSupply::PENDING,
                      'created_by'=>auth('admin')->id()]
@@ -796,7 +796,7 @@ final class InventoryController extends Controller
                     $note=trim((string)($deferred['note']??''));
                     if($note==='') throw ValidationException::withMessages(['deferred'=>"Vui lòng nhập ghi chú chờ cung cấp cho {$item->medicine?->name}."]);
                     InventoryIssueDeferredSupply::updateOrCreate(
-                        ['issue_id'=>$issue->id,'drug_bid_award_allocation_id'=>$item->drug_bid_award_allocation_id],
+                        ['issue_id'=>$issue->id,'drug_bid_award_allocation_id'=>$item->drug_bid_award_allocation_id,'status'=>InventoryIssueDeferredSupply::PENDING],
                         ['medicine_id'=>$item->medicine_id,'drug_bid_award_id'=>$item->drug_bid_award_id,'quantity'=>$deferredQuantity,
                          'expected_supply_date'=>$deferred['expected_supply_date']??null,'note'=>$note,
                          'status'=>InventoryIssueDeferredSupply::PENDING,'created_by'=>auth('admin')->id()]
