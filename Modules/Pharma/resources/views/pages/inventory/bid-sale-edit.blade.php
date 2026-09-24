@@ -13,6 +13,25 @@
    <div><p class="text-sm font-semibold">Khách hàng / Bệnh viện</p><div class="mt-1 min-h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-semibold">{{ $issue->recipient_name }}</div></div>
    <div><p class="text-sm font-semibold">Người phụ trách</p><div class="mt-1 min-h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-semibold">{{ $rows->pluck('manager_names')->filter()->unique()->implode(', ') ?: 'Chưa phân công' }}</div></div>
   </div></section>
+  <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+   <div class="flex flex-wrap items-start justify-between gap-3"><div><h2 class="font-bold text-slate-900">Hàng hóa trúng thầu</h2><p class="mt-1 text-xs text-slate-500">Hoàn thiện cùng một phiếu nháp. Chỉ có thể bổ sung sản phẩm còn phân bổ của đúng Chủ đầu tư và Bệnh viện hiện tại.</p></div>
+   @if($addableAllocations->isNotEmpty())<button type="button" id="toggle-bid-add" class="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-bold text-indigo-700 hover:bg-indigo-100">+ Thêm sản phẩm trúng thầu</button>@endif</div>
+   @if($addableAllocations->isNotEmpty())
+   <div id="bid-add-panel" class="mt-4 hidden rounded-xl border border-indigo-100 bg-indigo-50/40 p-4">
+    <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_auto] lg:items-end">
+     <div><label class="text-xs font-bold uppercase tracking-wide text-slate-500">Tìm sản phẩm trúng thầu</label>
+      <select id="bid-add-allocation" class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5">
+       <option value="">Chọn mã / tên thuốc...</option>
+       @foreach($addableAllocations as $candidate)<option value="{{ $candidate['id'] }}" data-max="{{ $candidate['remaining_quantity'] }}">{{ $candidate['medicine_code'] }} · {{ $candidate['medicine_name'] }} · Còn {{ number_format($candidate['remaining_quantity'],0,',','.') }} {{ $candidate['unit'] }} · {{ number_format($candidate['winning_price'],0,',','.') }} đ{{ $candidate['effective_until'] ? ' · HĐ đến '.$candidate['effective_until'] : '' }}</option>@endforeach
+      </select>
+     </div>
+     <label class="text-xs font-bold uppercase tracking-wide text-slate-500">SL thêm<input id="bid-add-quantity" type="number" min="0.001" step="0.001" class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-right text-sm font-bold" placeholder="0"></label>
+     <button type="button" id="bid-add-button" class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-indigo-700">Thêm vào phiếu</button>
+    </div>
+    <div id="bid-add-selected" class="mt-3 space-y-2"></div>
+   </div>
+   @else<p class="mt-3 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-500">Không còn sản phẩm trúng thầu hợp lệ để bổ sung cho Chủ đầu tư/Bệnh viện này.</p>@endif
+  </section>
   @foreach($rows as $row)
    @php($lots=$balances->get($issue->items->firstWhere('id',$row['item_id'])?->medicine_id,collect()))
    <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -38,4 +57,26 @@
   <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><label class="text-sm font-semibold">Ghi chú<textarea name="notes" rows="3" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2">{{ old('notes',$issue->notes) }}</textarea></label><div class="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between"><p class="text-sm text-slate-500">FEFO là gợi ý ưu tiên. Có thể chia một thuốc qua nhiều lô; tổng SL lô phải bằng <b>SL duyệt</b>.</p><div class="flex flex-wrap gap-2"><a href="{{ route('admin.pharma.inventory.issues.index') }}" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold">Hủy</a><button type="submit" form="bid-draft-form" class="rounded-xl border border-indigo-200 bg-white px-4 py-2.5 text-sm font-bold text-indigo-700 hover:bg-indigo-50">Lưu phiếu nháp</button>@if($canApprove)<button type="submit" form="bid-draft-form" formaction="{{ route('admin.pharma.inventory.issues.bid-sales.post',$issue) }}" formmethod="POST" @disabled(!$stockReady) class="rounded-xl px-5 py-2.5 text-sm font-bold text-white {{ $stockReady ? 'bg-emerald-600 hover:bg-emerald-700' : 'cursor-not-allowed bg-slate-300 text-slate-500' }}" @if(!$stockReady) title="Chưa thể duyệt vì có mặt hàng chưa có lô tồn khả dụng" @endif>Duyệt & ghi sổ</button>@endif</div></div></section>
  </form>
 </div>
+@if($addableAllocations->isNotEmpty())
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+ const panel=document.getElementById('bid-add-panel'), toggle=document.getElementById('toggle-bid-add');
+ const select=document.getElementById('bid-add-allocation'), qty=document.getElementById('bid-add-quantity'), selected=document.getElementById('bid-add-selected');
+ toggle?.addEventListener('click',()=>panel.classList.toggle('hidden'));
+ if(select && window.TomSelect) new TomSelect(select,{create:false,allowEmptyOption:true,placeholder:'Tìm mã hoặc tên thuốc...'});
+ document.getElementById('bid-add-button')?.addEventListener('click',()=>{
+  const id=select.value, option=select.options[select.selectedIndex], quantity=parseFloat(qty.value||'0'), max=parseFloat(option?.dataset.max||'0');
+  if(!id){ alert('Vui lòng chọn sản phẩm trúng thầu.'); return; }
+  if(!(quantity>0) || quantity>max){ alert('Số lượng thêm phải lớn hơn 0 và không vượt phân bổ còn lại.'); return; }
+  if(selected.querySelector('[data-allocation-id="'+id+'"]')){ alert('Sản phẩm này đã được chọn thêm.'); return; }
+  const row=document.createElement('div'); row.dataset.allocationId=id; row.className='flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm';
+  const label=document.createElement('span'); label.className='min-w-0 flex-1 truncate font-semibold text-slate-700'; label.textContent=option.textContent.trim()+' · SL thêm '+quantity.toLocaleString('vi-VN');
+  const allocation=document.createElement('input'); allocation.type='hidden'; allocation.name='add_allocations[]'; allocation.value=id;
+  const amount=document.createElement('input'); amount.type='hidden'; amount.name='add_quantities['+id+']'; amount.value=quantity;
+  const remove=document.createElement('button'); remove.type='button'; remove.className='font-bold text-rose-600'; remove.textContent='Bỏ'; remove.addEventListener('click',()=>row.remove());
+  row.append(label,allocation,amount,remove); selected.appendChild(row); qty.value='';
+ });
+});
+</script>
+@endif
 @endsection
