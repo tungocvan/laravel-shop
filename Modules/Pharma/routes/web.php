@@ -111,6 +111,8 @@ Route::prefix('admin/pharma')->name('admin.pharma.')->middleware(['web', 'auth:a
         Route::get('/issues/create', [InventoryController::class, 'createIssue'])->middleware('can:create_pharma')->name('issues.create');
         Route::post('/issues', [InventoryController::class, 'storeIssue'])->middleware('can:create_pharma')->name('issues.store');
         Route::get('/issues/export', [InventoryController::class, 'exportIssues'])->name('issues.export');
+        Route::get('/issues/{issue}/bid-sale-edit', [InventoryController::class, 'editBidSaleIssue'])->middleware('can:edit_pharma')->name('issues.bid-sales.edit');
+        Route::put('/issues/{issue}/bid-sale', [InventoryController::class, 'updateBidSaleIssue'])->middleware('can:edit_pharma')->name('issues.bid-sales.update');
         Route::get('/issues/{issue}/bid-sale-batches', [InventoryController::class, 'bidSaleBatches'])->middleware('can:edit_pharma')->name('issues.bid-sales.batches');
         Route::post('/issues/{issue}/bid-sale-post', [InventoryController::class, 'postBidSaleIssue'])->middleware('can:edit_pharma')->name('issues.bid-sales.post');
         Route::get('/issues/{issue}/pdf', [InventoryController::class, 'issuePdf'])->name('issues.pdf');
