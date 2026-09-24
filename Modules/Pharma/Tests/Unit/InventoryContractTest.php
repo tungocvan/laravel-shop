@@ -228,6 +228,9 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('Chọn lô còn tồn', $issueForm);
         $this->assertStringContainsString('Xác nhận ghi sổ', $documents);
         $this->assertStringContainsString('Ghi sổ · Không đủ tồn', $documents);
+        $this->assertStringContainsString('data-document-actions', $documents);
+        $this->assertStringContainsString("other.removeAttribute('open')", $documents);
+        $this->assertStringContainsString("!menu.contains(event.target)", $documents);
         $this->assertStringContainsString('Không đủ tồn kho để ghi sổ', $documents);
         $this->assertStringContainsString('$doc->can_post_stock', $documents);
         $this->assertStringContainsString('$issue->can_post_stock=', $controller);
