@@ -14,7 +14,7 @@ class InventoryPeriodContractTest extends TestCase
 
         $this->assertStringContainsString('opening_cutoff_at', $migration);
         $this->assertStringContainsString("where('type','opening')->min('created_at')", $migration);
-        $this->assertStringContainsString("if(!$warehouse->opening_cutoff_at) $warehouse->update(['opening_cutoff_at'=>now()])", $service);
+        $this->assertStringContainsString("if(!\$warehouse->opening_cutoff_at) \$warehouse->update(['opening_cutoff_at'=>now()])", $service);
         $this->assertStringContainsString('assertDocumentDateAfterOpeningCutoff', $service);
         $this->assertStringContainsString('Ngày phiếu nhập', $service);
         $this->assertStringContainsString('Ngày phiếu xuất', $service);
@@ -25,8 +25,8 @@ class InventoryPeriodContractTest extends TestCase
     {
         $service=file_get_contents(base_path('Modules/Pharma/Services/InventoryMovementSummaryService.php'));
 
-        $this->assertStringContainsString("where('created_at','<',$from)", $service);
-        $this->assertStringContainsString("whereBetween('created_at',[$from,$to])", $service);
+        $this->assertStringContainsString("where('created_at','<',\$from)", $service);
+        $this->assertStringContainsString("whereBetween('created_at',[\$from,\$to])", $service);
         $this->assertStringContainsString("type='receipt_reversal' THEN quantity_delta", $service);
         $this->assertStringContainsString("type='issue_reversal' THEN -quantity_delta", $service);
         $this->assertStringContainsString('period_opening', $service);
