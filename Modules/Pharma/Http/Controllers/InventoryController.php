@@ -33,17 +33,9 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class InventoryController extends Controller
 {
-    public function index(Request $request, InventoryService $inventory, InventoryMovementSummaryService $movementSummary): View
+    public function index(Request $request, InventoryService $inventory): View
     {
         $warehouse=$inventory->defaultWarehouse();
-        $from=$request->filled('from') ? Carbon::parse($request->input('from'))->startOfDay() : now()->startOfMonth();
-        $to=$request->filled('to') ? Carbon::parse($request->input('to'))->endOfDay() : now()->endOfMonth();
-        if($from->gt($to)) throw ValidationException::withMessages(['from'=>'Từ ngày không được sau Đến ngày.']);
-        $movementMedicineId=$request->filled('movement_medicine_id') ? $request->integer('movement_medicine_id') : null;
-        if($movementMedicineId && !Medicine::query()->whereKey($movementMedicineId)->exists()) throw ValidationException::withMessages(['movement_medicine_id'=>'Thuốc được chọn không tồn tại trong Medicine Master.']);
-        $movement=$movementSummary->summarize($warehouse,$from,$to,$movementMedicineId);
-        $movementMedicineIds=InventoryBalance::query()->where('warehouse_id',$warehouse->id)->distinct()->pluck('medicine_id');
-        $movementMedicines=Medicine::query()->whereIn('id',$movementMedicineIds)->orderBy('name')->get(['id','medicine_code','name']);
         $costs=$this->activeSupplierCosts();
         $costSubquery=$this->activeSupplierCostSubquery();
         $query=InventoryBalance::query()
@@ -72,13 +64,27 @@ final class InventoryController extends Controller
             return $cost?->average_cost_price === null ? 0 : (float)$row->quantity_on_hand*(float)$cost->average_cost_price;
         });
         $unpricedBalanceCount=$allBalances->filter(fn(InventoryBalance $row)=>!$costs->has($row->medicine_id))->count();
-        $expiredInventoryValue=$allBalances->filter(fn(InventoryBalance $row)=>$row->expiry_date->lt(now()->startOfDay()))->sum(function(InventoryBalance $row)use($costs){
+        $expiredBalances=$allBalances->filter(fn(InventoryBalance $row)=>$row->expiry_date->lt(now()->startOfDay()));
+        $expiredBalanceCount=$expiredBalances->count();
+        $expiredInventoryValue=$expiredBalances->sum(function(InventoryBalance $row)use($costs){
             $cost=$costs->get($row->medicine_id);
             return $cost?->average_cost_price === null ? 0 : (float)$row->quantity_on_hand*(float)$cost->average_cost_price;
         });
-        $receipts=InventoryReceipt::query()->withCount('items')->withSum('items','quantity')->latest()->limit(5)->get();
-        $issues=InventoryIssue::query()->withCount('items')->withSum('items','quantity')->latest()->limit(5)->get();
-        return view('Pharma::pages.inventory.index',compact('warehouse','balances','receipts','issues','totalInventoryValue','unpricedBalanceCount','expiredInventoryValue','from','to','movement','movementMedicineId','movementMedicines'));
+        return view('Pharma::pages.inventory.index',compact('warehouse','balances','totalInventoryValue','unpricedBalanceCount','expiredInventoryValue','expiredBalanceCount'));
+    }
+
+    public function movements(Request $request, InventoryService $inventory, InventoryMovementSummaryService $movementSummary): View
+    {
+        $warehouse=$inventory->defaultWarehouse();
+        $from=$request->filled('from') ? Carbon::parse($request->input('from'))->startOfDay() : now()->startOfMonth();
+        $to=$request->filled('to') ? Carbon::parse($request->input('to'))->endOfDay() : now()->endOfMonth();
+        if($from->gt($to)) throw ValidationException::withMessages(['from'=>'Từ ngày không được sau Đến ngày.']);
+        $movementMedicineId=$request->filled('movement_medicine_id') ? $request->integer('movement_medicine_id') : null;
+        if($movementMedicineId && !Medicine::query()->whereKey($movementMedicineId)->exists()) throw ValidationException::withMessages(['movement_medicine_id'=>'Thuốc được chọn không tồn tại trong Medicine Master.']);
+        $movement=$movementSummary->summarize($warehouse,$from,$to,$movementMedicineId);
+        $movementMedicineIds=InventoryBalance::query()->where('warehouse_id',$warehouse->id)->distinct()->pluck('medicine_id');
+        $movementMedicines=Medicine::query()->whereIn('id',$movementMedicineIds)->orderBy('name')->get(['id','medicine_code','name']);
+        return view('Pharma::pages.inventory.movements',compact('warehouse','from','to','movement','movementMedicineId','movementMedicines'));
     }
 
     public function template(): StreamedResponse
