@@ -21,7 +21,7 @@
      <div class="text-right text-xs text-slate-500">Đã xuất<div class="mt-1 text-sm font-bold text-slate-900">{{ number_format($row['issued_quantity'],0,',','.') }}</div></div>
      <div class="text-right text-xs text-slate-500">Còn lại<div class="mt-1 text-sm font-bold text-emerald-700">{{ number_format($row['remaining_quantity'],0,',','.') }}</div></div>
      <div class="text-right text-xs text-slate-500">Tồn khả dụng<div class="mt-1 text-sm font-bold">{{ number_format($row['available_stock'],0,',','.') }}</div></div>
-     <div class="text-right text-xs text-slate-500">Giá trúng thầu<div class="mt-1 text-sm font-bold">{{ number_format($row['winning_price'],0,',','.') }} đ</div></div>
+     <div class="text-right text-xs text-slate-500">Đơn giá trúng thầu<div class="mt-1 text-sm font-bold">{{ number_format($row['winning_price'],0,',','.') }} đ</div></div>
      <label class="text-xs font-semibold text-slate-600">SL duyệt<input type="number" min="0.001" max="{{ $row['remaining_quantity'] }}" step="0.001" name="quantities[{{ $row['item_id'] }}]" value="{{ old('quantities.'.$row['item_id'],$row['quantity']) }}" class="mt-1 w-32 rounded-lg border border-slate-300 px-3 py-2 text-right font-bold"></label>
     </div>
     <div class="overflow-auto"><table class="min-w-[760px] w-full text-sm"><thead class="bg-slate-50 text-xs uppercase text-slate-500"><tr><th class="w-24 px-4 py-2 text-center">Ưu tiên</th><th class="px-4 py-2 text-left">Lô</th><th class="px-4 py-2 text-center">HSD</th><th class="px-4 py-2 text-right">Tồn lô</th><th class="w-48 px-4 py-2 text-right">SL lấy từ lô</th></tr></thead><tbody class="divide-y divide-slate-100">
