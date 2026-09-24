@@ -1,36 +1,22 @@
 @extends('Admin::layouts.master')
-@section('title','Chi tiết phiếu nhập')
+@section('title','Phiếu nhập '.$receipt->number)
+@section('admin_container','full')
 @section('content')
-@php $total=$receipt->items->sum(fn($item)=>(float)$item->quantity*(float)$item->unit_price_ex_vat); @endphp
-<div class="mx-auto max-w-6xl space-y-5">
-    <header class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-        <div>
-            <a href="{{ route('admin.pharma.inventory.receipts.index') }}" class="text-sm font-semibold text-indigo-700">← Danh sách phiếu nhập</a>
-            <div class="mt-2 flex flex-wrap items-center gap-3">
-                <h1 class="font-mono text-2xl font-bold text-slate-950">{{ $receipt->number }}</h1>
-                <span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $receipt->status === 'posted' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }}">{{ $receipt->status === 'posted' ? 'Đã ghi sổ' : 'Nháp' }}</span>
-            </div>
-        </div>
-        @can('edit_pharma')<a href="{{ route('admin.pharma.inventory.receipts.edit',$receipt) }}" class="rounded-xl border border-indigo-200 px-4 py-2.5 text-sm font-semibold text-indigo-700">{{ $receipt->status === 'draft' ? 'Sửa phiếu' : 'Cập nhật thông tin' }}</a>@endcan
-    </header>
-    <section class="grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 md:grid-cols-4">
-        <div><div class="text-xs font-semibold uppercase text-slate-500">Ngày nhập</div><div class="mt-1 font-semibold">{{ $receipt->receipt_date->format('d/m/Y') }}</div></div>
-        <div><div class="text-xs font-semibold uppercase text-slate-500">Nhà cung cấp</div><div class="mt-1 font-semibold">{{ $receipt->supplier_name }}</div></div>
-        <div><div class="text-xs font-semibold uppercase text-slate-500">Số hóa đơn</div><div class="mt-1">{{ $receipt->invoice_number ?: '—' }}</div></div>
-        <div><div class="text-xs font-semibold uppercase text-slate-500">Ngày hóa đơn</div><div class="mt-1">{{ $receipt->invoice_date?->format('d/m/Y') ?: '—' }}</div></div>
-    </section>
-    <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-        <div class="overflow-x-auto"><table class="min-w-[850px] w-full text-left text-sm">
-            <thead class="bg-slate-50 text-xs uppercase text-slate-600"><tr><th class="px-4 py-3">Thuốc</th><th class="px-4 py-3">Số lô</th><th class="px-4 py-3">HSD</th><th class="px-4 py-3 text-right">SL</th><th class="px-4 py-3 text-right">Giá nhập chưa VAT</th><th class="px-4 py-3 text-right">Thành tiền</th></tr></thead>
-            <tbody class="divide-y divide-slate-100">@foreach($receipt->items as $item)<tr>
-                <td class="px-4 py-4"><div class="font-semibold">{{ $item->medicine->name }}</div><div class="font-mono text-xs text-indigo-700">{{ $item->medicine->medicine_code }}</div></td>
-                <td class="px-4 py-4 font-mono">{{ $item->batch_number }}</td><td class="px-4 py-4">{{ $item->expiry_date->format('d/m/Y') }}</td>
-                <td class="px-4 py-4 text-right">{{ number_format((float)$item->quantity,0,',','.') }}</td>
-                <td class="px-4 py-4 text-right">{{ number_format((float)$item->unit_price_ex_vat,0,',','.') }} đ</td>
-                <td class="px-4 py-4 text-right font-semibold">{{ number_format((float)$item->quantity*(float)$item->unit_price_ex_vat,0,',','.') }} đ</td>
-            </tr>@endforeach</tbody>
-            <tfoot class="bg-slate-50"><tr><td colspan="5" class="px-4 py-4 text-right font-semibold">Tổng giá trị</td><td class="px-4 py-4 text-right text-base font-bold">{{ number_format($total,0,',','.') }} đ</td></tr></tfoot>
-        </table></div>
-    </section>
+@php
+$totalValue=$receipt->items->sum(fn($i)=>(float)$i->quantity*(float)$i->unit_price_ex_vat);
+$signatures=collect([
+ ['show'=>$settings->show_issuer_signature,'label'=>$settings->issuer_label],
+ ['show'=>$settings->show_deliverer_signature,'label'=>$settings->deliverer_label],
+ ['show'=>$settings->show_keeper_signature,'label'=>$settings->keeper_label],
+ ['show'=>$settings->show_manager_signature,'label'=>$settings->manager_label],
+])->where('show',true)->values();
+@endphp
+<div class="mx-auto max-w-[1580px] space-y-5 py-4">
+ <header class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"><div><a href="{{ route('admin.pharma.inventory.receipts.index') }}" class="text-sm font-semibold text-indigo-600">← Danh sách phiếu nhập</a><h1 class="mt-2 text-2xl font-bold text-slate-900">Phiếu nhập kho</h1><div class="mt-1 flex items-center gap-2"><span class="font-mono text-sm font-bold text-indigo-700">{{ $receipt->number }}</span><span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $receipt->status==='posted'?'bg-emerald-50 text-emerald-700':'bg-amber-50 text-amber-700' }}">{{ $receipt->status==='posted'?'Đã ghi sổ':'Nháp' }}</span></div></div>
+ <div class="flex flex-wrap gap-2"><a href="{{ route('admin.pharma.inventory.receipts.pdf',$receipt) }}" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">Tải PDF</a><a target="_blank" rel="noopener" href="{{ route('admin.pharma.inventory.receipts.print',$receipt) }}" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">In trực tiếp</a>@can('edit_pharma')<a href="{{ route('admin.pharma.inventory.receipts.edit',$receipt) }}" class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white">{{ $receipt->status==='draft'?'Sửa phiếu':'Cập nhật' }}</a>@endcan</div></header>
+ <section class="grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:grid-cols-2 xl:grid-cols-4"><div><p class="text-[11px] font-bold uppercase text-slate-400">Ngày nhập</p><p class="mt-1 font-semibold">{{ $receipt->receipt_date->format('d/m/Y') }}</p></div><div><p class="text-[11px] font-bold uppercase text-slate-400">Nhập tại kho</p><p class="mt-1 font-semibold">{{ $settings->warehouse_name }}</p></div><div><p class="text-[11px] font-bold uppercase text-slate-400">Nhà cung cấp</p><p class="mt-1 font-semibold">{{ $receipt->supplier_name }}</p></div>@if($settings->show_invoice)<div><p class="text-[11px] font-bold uppercase text-slate-400">Hóa đơn</p><p class="mt-1 font-semibold">{{ $receipt->invoice_number ?: '—' }} @if($receipt->invoice_date) · {{ $receipt->invoice_date->format('d/m/Y') }}@endif</p></div>@endif</section>
+ <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"><div class="overflow-x-auto"><table class="min-w-[1050px] w-full text-left text-sm"><thead class="bg-slate-50 text-xs uppercase text-slate-500"><tr><th class="px-4 py-3">STT</th><th class="px-4 py-3">Mã thuốc</th><th class="px-4 py-3">Tên thuốc</th><th class="px-4 py-3">Số lô</th><th class="px-4 py-3">HSD</th><th class="px-4 py-3 text-right">SL</th>@if($settings->show_unit_price)<th class="px-4 py-3 text-right">Đơn giá</th>@endif@if($settings->show_total_value)<th class="px-4 py-3 text-right">Thành tiền</th>@endif</tr></thead><tbody class="divide-y divide-slate-100">@foreach($receipt->items as $item)<tr><td class="px-4 py-4">{{ $loop->iteration }}</td><td class="px-4 py-4 font-mono">{{ $item->medicine?->medicine_code }}</td><td class="px-4 py-4 font-semibold">{{ $item->medicine?->name }}</td><td class="px-4 py-4">{{ $item->batch_number }}</td><td class="px-4 py-4">{{ $item->expiry_date->format('d/m/Y') }}</td><td class="px-4 py-4 text-right">{{ number_format((float)$item->quantity,0,',','.') }}</td>@if($settings->show_unit_price)<td class="px-4 py-4 text-right">{{ number_format((float)$item->unit_price_ex_vat,0,',','.') }}</td>@endif@if($settings->show_total_value)<td class="px-4 py-4 text-right font-semibold">{{ number_format((float)$item->quantity*(float)$item->unit_price_ex_vat,0,',','.') }} đ</td>@endif</tr>@endforeach</tbody></table></div></section>
+ <section class="grid gap-4 md:grid-cols-2"><div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">@if($settings->show_notes && filled($receipt->notes))<p class="text-[11px] font-bold uppercase text-slate-400">Ghi chú</p><p class="mt-2 text-sm">{{ $receipt->notes }}</p>@else<p class="text-sm text-slate-400">Thông tin chứng từ nhập kho</p>@endif</div><div class="rounded-2xl border border-slate-200 bg-white p-5 text-right shadow-sm"><p class="text-[11px] font-bold uppercase text-slate-400">Số mặt hàng</p><p class="mt-1 text-xl font-bold">{{ $receipt->items->count() }}</p>@if($settings->show_total_value)<p class="mt-3 text-[11px] font-bold uppercase text-slate-400">Tổng giá trị</p><p class="mt-1 text-xl font-bold text-indigo-700">{{ number_format($totalValue,0,',','.') }} đ</p>@endif</div></section>
+ <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h2 class="font-bold">Người liên quan</h2>@if($signatures->isNotEmpty())<div class="mt-5 grid gap-6 text-center" style="grid-template-columns:repeat({{ $signatures->count() }},minmax(0,1fr));">@foreach($signatures as $signature)<div><p class="font-semibold">{{ $signature['label'] }}</p><p class="mt-1 text-xs text-slate-400">Ký, ghi rõ họ tên</p><div class="h-16"></div></div>@endforeach</div>@endif</section>
 </div>
 @endsection
