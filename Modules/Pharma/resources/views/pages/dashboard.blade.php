@@ -49,7 +49,7 @@
    <div class="grid gap-3 p-4 md:grid-cols-2">
     @php
      $tasks=[
-      ['Kết quả thầu chưa liên kết Medicine',$v($attention,'bid_unlinked'),'admin.pharma.drug-bid-awards.review','Đối chiếu dữ liệu canonical'],
+      ['Kết quả thầu chưa liên kết Medicine',$v($attention,'bid_unlinked'),$cap['edit']?'admin.pharma.drug-bid-awards.review':'admin.pharma.drug-bid-awards.index','Đối chiếu dữ liệu canonical'],
       ['HSSP cần rà soát',$v($attention,'hssp_attention'),'admin.pharma.hssp.index','Thiếu, hết hiệu lực hoặc cần xác minh'],
       ['Lô sắp/hết hạn trong 90 ngày',$v($attention,'expiring_lots'),'admin.pharma.inventory.index','Chỉ tính lô đang còn tồn'],
       ['Hàng chờ cung cấp',$v($attention,'deferred_supply'),'admin.pharma.inventory.issues.index','Đơn hàng thầu chưa có hàng thực xuất'],
