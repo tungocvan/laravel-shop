@@ -485,7 +485,7 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('Chờ lưu nháp', $bidEdit);
         $this->assertStringContainsString("panel.classList.add('hidden')", $bidEdit);
         $this->assertStringContainsString('id="bid-post-button"', $bidEdit);
-        $this->assertStringContainsString("const hasPending=pending.children.length>0", $bidEdit);
+        $this->assertStringContainsString("const hasPending=pending ? pending.children.length>0 : false", $bidEdit);
         $this->assertStringContainsString("postButton.disabled=hasPending || !hasPostableStock || unresolved", $bidEdit);
         $this->assertStringContainsString('Hãy lưu phiếu nháp để hệ thống tải tồn kho/lô thực tế trước khi duyệt', $bidEdit);
         $this->assertStringContainsString("if(\$request->filled('add_allocations') || \$request->filled('add_quantities'))", $controller);
