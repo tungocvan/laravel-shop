@@ -377,6 +377,18 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('$settings->keeper_label', $pdf);
         $this->assertStringContainsString('$settings->keeper_label', $print);
         $this->assertStringContainsString('$settings->keeper_label', $show);
+        $this->assertStringContainsString("number_format((float)\$item->quantity,0,',','.')", $pdf);
+        $this->assertStringContainsString("number_format((float)\$item->quantity,0,',','.')", $print);
+        $this->assertStringContainsString("number_format((float)\$item->quantity,0,',','.')", $show);
+        $this->assertStringNotContainsString("number_format((float)\$item->quantity,3,',','.')", $pdf);
+        $this->assertStringContainsString("show_notes && filled(\$issue->notes)", $pdf);
+        $this->assertStringContainsString("show_notes && filled(\$issue->notes)", $print);
+        $this->assertStringContainsString("show_notes && filled(\$issue->notes)", $show);
+        $this->assertStringNotContainsString('Không có ghi chú.', $pdf);
+        $this->assertStringContainsString("'receiver'=>true", $pdf);
+        $this->assertStringContainsString('Ngày ..... tháng ..... năm .....', $pdf);
+        $this->assertStringContainsString('Ngày ..... tháng ..... năm .....', $print);
+        $this->assertStringContainsString('Ngày ..... tháng ..... năm .....', $show);
 
         foreach (['issue-settings.blade.php','issue-show.blade.php','issue-pdf.blade.php','issue-print.blade.php'] as $file) {
             $candidate=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/'.$file));
