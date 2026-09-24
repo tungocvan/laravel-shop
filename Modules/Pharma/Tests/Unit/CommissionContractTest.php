@@ -27,6 +27,7 @@ class CommissionContractTest extends TestCase
         $service=file_get_contents(base_path('Modules/Pharma/Services/DrugBidCommissionService.php'));
 
         $this->assertStringContainsString('reverseIssue', $controller);
+        $this->assertStringContainsString('Phiếu đã từng ghi sổ và phát sinh nhật ký hoa hồng', $controller);
         $this->assertStringContainsString('TYPE_REVERSAL', $service);
         $this->assertStringContainsString("'commission_amount'=>-\$row->commission_amount", $service);
         $this->assertStringContainsString("'status'=>InventoryIssueCommission::STATUS_REVERSED", $service);
