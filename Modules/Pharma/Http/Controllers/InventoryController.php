@@ -672,7 +672,8 @@ final class InventoryController extends Controller
         $this->guardIssueWarehouse($issue,$inventory);
         abort_unless(($issue->issue_source ?? 'normal')==='bid' && $issue->status===InventoryIssue::DRAFT,404);
         $data=$request->validate(['issue_date'=>'required|date','quantities'=>'required|array','quantities.*'=>'nullable|numeric|min:0',
-            'add_allocations'=>'nullable|array','add_allocations.*'=>'integer|distinct','add_quantities'=>'nullable|array','add_quantities.*'=>'nullable|numeric|min:0','notes'=>'nullable|string'],[
+            'add_allocations'=>'nullable|array','add_allocations.*'=>'integer|distinct','add_quantities'=>'nullable|array','add_quantities.*'=>'nullable|numeric|min:0','notes'=>'nullable|string',
+            'deferred'=>'nullable|array','deferred.*.enabled'=>'nullable|boolean','deferred.*.expected_supply_date'=>'nullable|date','deferred.*.note'=>'nullable|string|max:2000'],[
             'quantities.required'=>'Vui lòng nhập số lượng xuất cho ít nhất một sản phẩm.','quantities.*.numeric'=>'Số lượng xuất phải là số.','quantities.*.min'=>'Số lượng xuất không được âm.',
         ]);
         DB::transaction(function()use($issue,$data,$request){
@@ -717,6 +718,19 @@ final class InventoryController extends Controller
                 }
             }
             if($kept===0) throw ValidationException::withMessages(['quantities'=>'Vui lòng giữ hoặc thêm ít nhất một sản phẩm có số lượng xuất lớn hơn 0.']);
+            $locked->deferredSupplies()->where('status',InventoryIssueDeferredSupply::PENDING)->delete();
+            foreach($locked->items()->get() as $draftItem){
+                $deferred=$data['deferred'][$draftItem->id]??[];
+                if(!filter_var($deferred['enabled']??false,FILTER_VALIDATE_BOOLEAN)) continue;
+                $note=trim((string)($deferred['note']??''));
+                if($note==='') throw ValidationException::withMessages(['deferred'=>"Vui lòng nhập ghi chú chờ cung cấp cho {$draftItem->medicine?->name}."]);
+                InventoryIssueDeferredSupply::create([
+                    'issue_id'=>$locked->id,'medicine_id'=>$draftItem->medicine_id,'drug_bid_award_id'=>$draftItem->drug_bid_award_id,
+                    'drug_bid_award_allocation_id'=>$draftItem->drug_bid_award_allocation_id,'quantity'=>(float)$draftItem->quantity,
+                    'expected_supply_date'=>$deferred['expected_supply_date']??null,'note'=>$note,
+                    'status'=>InventoryIssueDeferredSupply::PENDING,'created_by'=>auth('admin')->id(),
+                ]);
+            }
             $locked->update(['issue_date'=>$data['issue_date'],'notes'=>$data['notes']??null]);
         });
         return redirect()->route('admin.pharma.inventory.issues.bid-sales.edit',$issue)->with('success',"Đã lưu phiếu nháp {$issue->number}.");
