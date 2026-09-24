@@ -4,6 +4,12 @@
 @section('content')
 @php
 $totalValue=$issue->items->sum(fn($i)=>(float)$i->quantity*(float)$i->unit_price);
+$signatures=collect([
+ ['show'=>$settings->show_issuer_signature,'label'=>$settings->issuer_label],
+ ['show'=>$settings->show_deliverer_signature,'label'=>$settings->deliverer_label],
+ ['show'=>$settings->show_receiver_signature,'label'=>$settings->receiver_label],
+ ['show'=>$settings->show_keeper_signature,'label'=>$settings->keeper_label],
+])->where('show',true)->values();
 @endphp
 <div class="mx-auto w-full max-w-[1580px] space-y-6">
  <div class="flex flex-wrap items-end justify-between gap-4">
@@ -31,7 +37,17 @@ $totalValue=$issue->items->sum(fn($i)=>(float)$i->quantity*(float)$i->unit_price
  </section>
  <div class="grid gap-5 lg:grid-cols-[360px_minmax(0,1fr)]">
   <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h2 class="font-bold">Tóm tắt phiếu</h2><dl class="mt-4 space-y-3 text-sm"><div class="flex justify-between"><dt class="text-slate-500">Số mặt hàng</dt><dd class="font-bold">{{ $issue->items->count() }}</dd></div>@if($settings->show_total_value)<div class="border-t pt-3"><dt class="text-slate-500">Tổng giá trị</dt><dd class="mt-1 text-2xl font-bold text-indigo-700">{{ number_format($totalValue,0,',','.') }} đ</dd></div>@endif</dl></section>
-  <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h2 class="font-bold">Người liên quan</h2><div class="mt-5 grid gap-6 text-center sm:grid-cols-3"><div><p class="font-semibold">{{ $settings->issuer_label }}</p><p class="mt-1 text-xs text-slate-400">Ký, ghi rõ họ tên</p><div class="h-16"></div></div><div><p class="font-semibold">{{ $settings->deliverer_label }}</p><p class="mt-1 text-xs text-slate-400">Ký, ghi rõ họ tên</p><div class="h-16"></div></div><div><p class="font-semibold">{{ $settings->receiver_label }}</p><p class="mt-1 text-xs text-slate-400">Ký, ghi rõ họ tên</p><div class="h-16"></div></div></div></section>
+  <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h2 class="font-bold">Người liên quan</h2>
+   @if($signatures->isNotEmpty())
+   <div class="mt-5 grid gap-6 text-center" style="grid-template-columns: repeat({{ $signatures->count() }}, minmax(0, 1fr));">
+    @foreach($signatures as $signature)
+    <div><p class="font-semibold">{{ $signature['label'] }}</p><p class="mt-1 text-xs text-slate-400">Ký, ghi rõ họ tên</p><div class="h-16"></div></div>
+    @endforeach
+   </div>
+   @else
+   <p class="mt-4 text-sm text-slate-500">Không hiển thị khu vực chữ ký theo cấu hình hiện tại.</p>
+   @endif
+  </section>
  </div>
 </div>
 @endsection
