@@ -55,6 +55,7 @@ return [
         'view_pharma',
         'create_pharma',
         'edit_pharma',
+        'approve_pharma_inventory_issue',
         'delete_pharma',
         'view_pharma_allocations',
         'manage_pharma_allocations',
