@@ -33,14 +33,14 @@
 
     <section class="grid gap-4 md:grid-cols-3">
         <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
-            <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Giá trị tồn theo giá vốn NCC</p>
+            <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Giá trị tồn theo giá vốn</p>
             <p class="mt-2 text-2xl font-bold text-emerald-950">{{ number_format($totalInventoryValue, 0, ',', '.') }} đ</p>
-            <p class="mt-1 text-xs text-emerald-700">Giá vốn trung bình từ Supplier Tracking đang hiệu lực.</p>
+            <p class="mt-1 text-xs text-emerald-700">Ưu tiên giá vốn điều chỉnh theo lô; nếu chưa có sẽ dùng Supplier Tracking đang hiệu lực.</p>
         </div>
         <div class="rounded-2xl border border-amber-200 bg-amber-50 p-5">
             <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">Lô chưa định giá</p>
             <p class="mt-2 text-2xl font-bold text-amber-950">{{ number_format($unpricedBalanceCount) }}</p>
-            <p class="mt-1 text-xs text-amber-700">Các lô còn tồn nhưng chưa có giá vốn NCC đang hiệu lực.</p>
+            <p class="mt-1 text-xs text-amber-700">Các lô còn tồn chưa có cả giá vốn điều chỉnh và giá vốn NCC đang hiệu lực.</p>
         </div>
         <div class="rounded-2xl border border-rose-200 bg-rose-50 p-5">
             <p class="text-xs font-semibold uppercase tracking-wide text-rose-700">Hàng hết hạn còn tồn</p>
@@ -97,7 +97,7 @@
                         <th class="px-4 py-3"><input id="inventory-select-all" type="checkbox" onchange="toggleInventoryPage(this.checked)" aria-label="Chọn tất cả dòng trên trang"></th>
                         <th class="px-4 py-3">Mã thuốc</th><th class="px-4 py-3">Thuốc</th><th class="px-4 py-3">Số lô</th>
                         <th class="px-4 py-3">Hạn dùng</th><th class="px-4 py-3 text-right">Tồn đầu</th>
-                        <th class="px-4 py-3 text-right">Tồn cuối</th><th class="px-4 py-3 text-right">Giá vốn NCC TB</th><th class="px-4 py-3 text-right">Giá trị tồn</th><th class="px-4 py-3">Cảnh báo</th><th class="px-4 py-3 text-right">Thao tác</th>
+                        <th class="px-4 py-3 text-right">Tồn cuối</th><th class="px-4 py-3 text-right">Giá vốn</th><th class="px-4 py-3 text-right">Giá trị tồn</th><th class="px-4 py-3">Cảnh báo</th><th class="px-4 py-3 text-right">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -116,9 +116,13 @@
                             <td class="px-4 py-4 text-right">
                                 @if($row->average_cost_price !== null)
                                     <div class="font-semibold">{{ number_format($row->average_cost_price, 0, ',', '.') }} đ</div>
-                                    <div class="text-xs text-slate-500">{{ $row->supplier_cost_count }} nguồn</div>
+                                    @if($row->cost_source === 'manual')
+                                        <div class="text-xs font-medium text-indigo-600">Điều chỉnh thủ công</div>
+                                    @else
+                                        <div class="text-xs text-slate-500">NCC · {{ $row->supplier_cost_count }} nguồn</div>
+                                    @endif
                                 @else
-                                    <a href="{{ route('admin.pharma.supplier-trackings.index', ['medicineId' => $row->medicine_id]) }}" class="text-xs font-semibold text-amber-700 underline">Chưa có giá vốn</a>
+                                    <div class="text-xs font-semibold text-amber-700">Chưa có giá vốn</div>
                                 @endif
                             </td>
                             <td class="px-4 py-4 text-right font-semibold">
@@ -191,8 +195,23 @@
                         <label class="block text-sm font-semibold text-slate-700">Hạn dùng
                             <input type="date" name="expiry_date" value="{{ $row->expiry_date->format('Y-m-d') }}" required class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 font-normal">
                         </label>
+                        <label class="block text-sm font-semibold text-slate-700">Nguồn giá vốn
+                            <select name="cost_mode" onchange="const manual=this.value==='manual'; const box=this.closest('form').querySelector('[data-manual-cost]'); box.classList.toggle('hidden',!manual); box.querySelectorAll('input,textarea').forEach(el=>el.disabled=!manual)" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 font-normal">
+                                <option value="supplier" @selected($row->manual_cost_price === null)>Tự động từ Supplier Tracking</option>
+                                <option value="manual" @selected($row->manual_cost_price !== null)>Điều chỉnh thủ công theo lô</option>
+                            </select>
+                        </label>
+                        <div data-manual-cost @class(['space-y-4','hidden'=>$row->manual_cost_price === null])>
+                            <label class="block text-sm font-semibold text-slate-700">Giá vốn
+                                <div class="mt-1 flex items-center gap-2"><input type="number" name="manual_cost_price" min="0" step="0.01" value="{{ $row->manual_cost_price !== null ? (float)$row->manual_cost_price : '' }}" @disabled($row->manual_cost_price === null) class="min-h-11 w-full rounded-xl border border-slate-300 px-3 font-normal"><span class="text-sm text-slate-500">đ</span></div>
+                                <span class="mt-1 block text-xs font-normal text-slate-500">Nhập 0 để lưu đúng giá vốn 0 đ. Không có giá thủ công thì chọn nguồn tự động phía trên.</span>
+                            </label>
+                            <label class="block text-sm font-semibold text-slate-700">Lý do điều chỉnh
+                                <textarea name="cost_adjustment_reason" maxlength="500" rows="2" @disabled($row->manual_cost_price === null) class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 font-normal" placeholder="Ví dụ: điều chỉnh theo chứng từ / xác nhận kế toán"></textarea>
+                            </label>
+                        </div>
                     </div>
-                    <p class="mt-4 text-xs text-slate-500">Không thay đổi Tồn đầu/Tồn cuối. Lịch sử kho liên quan sẽ được đồng bộ số lô và hạn dùng.</p>
+                    <p class="mt-4 text-xs text-slate-500">Không thay đổi Tồn đầu/Tồn cuối. Giá vốn thủ công được lưu riêng theo lô và có lịch sử điều chỉnh; số lô/hạn dùng vẫn đồng bộ với lịch sử kho.</p>
                     <div class="mt-6 flex justify-end gap-2">
                         <button type="button" onclick="this.closest('dialog').close()" class="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold">Hủy</button>
                         <button type="submit" class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">Lưu thay đổi</button>
