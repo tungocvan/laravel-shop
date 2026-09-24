@@ -124,7 +124,8 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('function destroyBalance', $controller);
         $this->assertStringContainsString('Không thể xóa lô đã có lịch sử giao dịch kho.', $controller);
         $this->assertStringNotContainsString('Import / Export Excel', $index);
-        $this->assertStringNotContainsString('<dialog id="inventory-export-modal"', $index);
+        $this->assertStringContainsString('<dialog id="inventory-export-modal"', $index);
+        $this->assertStringContainsString('File chỉ chứa các dòng đang được chọn trên trang hiện tại.', $index);
         $this->assertStringContainsString('Export tồn kho', $index);
         $this->assertStringContainsString("route('admin.pharma.inventory.movements.index')", $index);
         $this->assertStringContainsString('Import hàng loạt', $opening);
