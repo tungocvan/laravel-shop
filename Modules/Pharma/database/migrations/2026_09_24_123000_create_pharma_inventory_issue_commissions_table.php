@@ -10,7 +10,7 @@ return new class extends Migration {
         Schema::create('pharma_inventory_issue_commissions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('issue_id')->constrained('pharma_inventory_issues')->cascadeOnDelete();
-            $table->foreignId('issue_item_id')->constrained('pharma_inventory_issue_items')->cascadeOnDelete();
+            $table->unsignedBigInteger('issue_item_id');
             $table->unsignedBigInteger('original_commission_id')->nullable();
             $table->unsignedBigInteger('drug_bid_award_id')->nullable();
             $table->unsignedBigInteger('drug_bid_award_allocation_id')->nullable();
