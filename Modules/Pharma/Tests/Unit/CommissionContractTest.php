@@ -13,6 +13,7 @@ class CommissionContractTest extends TestCase
         $migration=file_get_contents(base_path('Modules/Pharma/database/migrations/2026_09_24_123000_create_pharma_inventory_issue_commissions_table.php'));
 
         $this->assertStringContainsString('snapshotPostedIssue', $controller);
+        $this->assertStringContainsString('function()use($issue,$data,$inventory,$commissions)', $controller);
         $this->assertStringContainsString('DrugBidAwardManagementAssignment::query()', $service);
         $this->assertStringContainsString('DrugBidAwardProductPolicy::query()', $service);
         $this->assertStringContainsString('round($revenue*$percentage/100,2)', $service);
