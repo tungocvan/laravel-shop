@@ -3,10 +3,10 @@
 <div class="sheet">@php
 $totalValue=$issue->items->sum(fn($i)=>(float)$i->quantity*(float)$i->unit_price);
 $signatures=collect([
- ['show'=>$settings->show_issuer_signature,'label'=>$settings->issuer_label,'receiver'=>false],
- ['show'=>$settings->show_deliverer_signature,'label'=>$settings->deliverer_label,'receiver'=>false],
- ['show'=>$settings->show_receiver_signature,'label'=>$settings->receiver_label,'receiver'=>true],
- ['show'=>$settings->show_keeper_signature,'label'=>$settings->keeper_label,'receiver'=>false],
+ ['show'=>$settings->show_issuer_signature,'label'=>$settings->issuer_label,'show_date'=>false],
+ ['show'=>$settings->show_deliverer_signature,'label'=>$settings->deliverer_label,'show_date'=>false],
+ ['show'=>$settings->show_receiver_signature,'label'=>$settings->receiver_label,'show_date'=>false],
+ ['show'=>$settings->show_keeper_signature,'label'=>$settings->keeper_label,'show_date'=>true],
 ])->where('show',true)->values();
 $signatureWidth=$signatures->count() > 0 ? (100 / $signatures->count()) : 100;
 @endphp
@@ -28,7 +28,7 @@ $signatureWidth=$signatures->count() > 0 ? (100 / $signatures->count()) : 100;
 @if($signatures->isNotEmpty())
 <table class="sign"><tr>
 @foreach($signatures as $signature)
-<td style="width: {{ $signatureWidth }}%">{{ $signature['label'] }}@if($signature['receiver'])<br><span class="muted">Ngày ..... tháng ..... năm .....</span>@endif<br><span class="muted">(Ký, ghi rõ họ tên)</span><div class="space"></div></td>
+<td style="width: {{ $signatureWidth }}%">{{ $signature['label'] }}@if($signature['show_date'])<br><span class="muted">Ngày ..... tháng ..... năm .....</span>@endif<br><span class="muted">(Ký, ghi rõ họ tên)</span><div class="space"></div></td>
 @endforeach
 </tr></table>
 @endif
