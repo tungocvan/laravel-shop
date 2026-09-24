@@ -426,13 +426,25 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('Đã xuất', $workspace);
         $this->assertStringContainsString('Còn lại', $workspace);
         $this->assertStringContainsString('Đơn giá trúng thầu', $workspace);
-        $this->assertStringContainsString('Lô tồn FEFO', $workspace);
+        $this->assertStringNotContainsString('Lô tồn FEFO', $workspace);
+        $this->assertStringNotContainsString('balance_ids[', $workspace);
+        $this->assertStringContainsString('issues/{issue}/bid-sale-batches', $routes);
+        $this->assertStringContainsString('function bidSaleBatches', $controller);
+        $this->assertStringContainsString('function postBidSaleIssue', $controller);
+        $this->assertStringContainsString("batch_number'=>null", $controller);
+        $batchWorkspace=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/bid-sale-batches.blade.php'));
+        $this->assertStringContainsString('Chọn lô & ghi sổ hàng thầu', $batchWorkspace);
+        $this->assertStringContainsString('tồn kho chỉ được trừ sau khi xác nhận ghi sổ', $batchWorkspace);
+        $this->assertStringContainsString('FEFO', $batchWorkspace);
         $this->assertStringContainsString('issue_source', $migration);
         $this->assertStringContainsString('drug_bid_award_allocation_id', $migration);
 
-        try { token_get_all(Blade::compileString($workspace), TOKEN_PARSE); }
-        catch (\ParseError $error) { $this->fail('bid-sale-create.blade.php failed Blade compilation: '.$error->getMessage()); }
-        $this->addToAssertionCount(1);
+        foreach(['bid-sale-create.blade.php','bid-sale-batches.blade.php'] as $file){
+            $candidate=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/'.$file));
+            try { token_get_all(Blade::compileString($candidate), TOKEN_PARSE); }
+            catch (\ParseError $error) { $this->fail($file.' failed Blade compilation: '.$error->getMessage()); }
+        }
+        $this->addToAssertionCount(2);
     }
 
 
