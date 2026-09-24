@@ -31,6 +31,14 @@ class InventoryPeriodContractTest extends TestCase
         $this->assertStringContainsString("type='issue_reversal' THEN -quantity_delta", $service);
         $this->assertStringContainsString("COALESCE(pre.opening_quantity,0)+COALESCE(mov.opening_import,0) as period_opening", $service);
         $this->assertStringContainsString('period_closing', $service);
+        $this->assertStringContainsString('effectiveCosts', $service);
+        $this->assertStringContainsString("'opening_value'", $service);
+        $this->assertStringContainsString("'in_value'", $service);
+        $this->assertStringContainsString("'out_value'", $service);
+        $this->assertStringContainsString("'closing_value'", $service);
+        $this->assertStringContainsString("'unpriced_count'", $service);
+        $this->assertStringContainsString('manual_cost_price', $service);
+        $this->assertStringContainsString("AVG(cost_price) as average_cost_price", $service);
     }
 
     public function test_inventory_ui_exposes_period_filters_and_xnt_columns(): void
@@ -45,10 +53,14 @@ class InventoryPeriodContractTest extends TestCase
         $this->assertStringContainsString('Mốc bắt đầu sổ kho', $view);
         $this->assertStringContainsString('name="from"', $view);
         $this->assertStringContainsString('name="to"', $view);
-        $this->assertStringContainsString('Tồn đầu kỳ', $view);
-        $this->assertStringContainsString('Nhập trong kỳ', $view);
-        $this->assertStringContainsString('Xuất trong kỳ', $view);
-        $this->assertStringContainsString('Tồn cuối kỳ', $view);
+        $this->assertStringContainsString('Giá trị tồn đầu kỳ', $view);
+        $this->assertStringContainsString('Giá trị nhập trong kỳ', $view);
+        $this->assertStringContainsString('Giá trị xuất trong kỳ', $view);
+        $this->assertStringContainsString('Giá trị tồn cuối kỳ', $view);
+        $this->assertStringContainsString("movement['opening_value']", $view);
+        $this->assertStringContainsString("movement['closing_value']", $view);
+        $this->assertStringContainsString("movement['unpriced_count']", $view);
+        $this->assertStringContainsString('lô chưa định giá hoặc giá vốn 0 đ', $view);
         $this->assertStringContainsString('inventory-movement-medicine', $view);
         $this->assertStringContainsString('movement_medicine_id', $view);
         $this->assertStringContainsString('movement-select-all', $view);
