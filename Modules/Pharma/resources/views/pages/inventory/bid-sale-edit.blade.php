@@ -12,7 +12,7 @@ $stockReady=$hasPostableStock && !$hasUnresolvedShortage;
  @if($errors->any())<div class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-700">{{ $errors->first() }}</div>@endif
  <form id="bid-draft-form" method="POST" action="{{ route('admin.pharma.inventory.issues.bid-sales.update',$issue) }}" class="space-y-5">@csrf @method('PUT')
   <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div class="grid gap-4 lg:grid-cols-4">
-   <label class="text-sm font-semibold">Ngày xuất<input type="date" name="issue_date" value="{{ old('issue_date',$issue->issue_date->format('Y-m-d')) }}" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3"></label>
+   <div><p class="text-sm font-semibold">Ngày lên đơn</p><div class="mt-1 min-h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-semibold">{{ $issue->issue_date->format('d/m/Y') }}</div><input type="hidden" name="issue_date" value="{{ $issue->issue_date->format('Y-m-d') }}"></div>
    <div><p class="text-sm font-semibold">Chủ đầu tư</p><div class="mt-1 min-h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-semibold">{{ $issue->bid_investor_name ?: $issue->bid_investor_code }}</div></div>
    <div><p class="text-sm font-semibold">Khách hàng / Bệnh viện</p><div class="mt-1 min-h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-semibold">{{ $issue->recipient_name }}</div></div>
    <div><p class="text-sm font-semibold">Người phụ trách</p><div class="mt-1 min-h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-semibold">{{ $rows->pluck('manager_names')->filter()->unique()->implode(', ') ?: 'Chưa phân công' }}</div></div>
