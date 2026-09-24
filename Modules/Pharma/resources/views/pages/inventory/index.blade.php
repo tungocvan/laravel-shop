@@ -216,13 +216,6 @@
     @endcan
 
     <script>
-        document.addEventListener('DOMContentLoaded',()=>{
-            const all=document.getElementById('movement-select-all'), boxes=[...document.querySelectorAll('[data-movement-check]')];
-            const button=document.getElementById('movement-export-selected'), summary=document.getElementById('movement-selection-summary');
-            const sync=()=>{ const count=boxes.filter(box=>box.checked).length; if(all){ all.checked=boxes.length>0&&count===boxes.length; all.indeterminate=count>0&&count<boxes.length; } if(button) button.disabled=count===0; if(summary) summary.textContent=count ? 'Đã chọn '+count+' dòng X-N-T' : 'Chưa chọn dòng nào'; };
-            all?.addEventListener('change',()=>{ boxes.forEach(box=>box.checked=all.checked); sync(); });
-            boxes.forEach(box=>box.addEventListener('change',sync)); sync();
-        });
         function inventoryCheckboxes() { return Array.from(document.querySelectorAll('.inventory-row-checkbox')); }
         function selectedInventoryIds() { return inventoryCheckboxes().filter((box) => box.checked).map((box) => box.value); }
         function syncInventorySelection() {
