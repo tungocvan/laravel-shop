@@ -105,6 +105,9 @@ Route::prefix('admin/pharma')->name('admin.pharma.')->middleware(['web', 'auth:a
         Route::get('/issues', [InventoryController::class, 'issues'])->name('issues.index');
         Route::get('/issues/settings/document', [InventoryController::class, 'issueDocumentSettings'])->middleware('can:edit_pharma')->name('issues.settings');
         Route::put('/issues/settings/document', [InventoryController::class, 'updateIssueDocumentSettings'])->middleware('can:edit_pharma')->name('issues.settings.update');
+        Route::get('/issues/bid-sales/create', [InventoryController::class, 'createBidSaleIssue'])->middleware('can:create_pharma')->name('issues.bid-sales.create');
+        Route::get('/issues/bid-sales/allocations', [InventoryController::class, 'bidSaleAllocations'])->middleware('can:create_pharma')->name('issues.bid-sales.allocations');
+        Route::post('/issues/bid-sales', [InventoryController::class, 'storeBidSaleIssue'])->middleware('can:create_pharma')->name('issues.bid-sales.store');
         Route::get('/issues/create', [InventoryController::class, 'createIssue'])->middleware('can:create_pharma')->name('issues.create');
         Route::post('/issues', [InventoryController::class, 'storeIssue'])->middleware('can:create_pharma')->name('issues.store');
         Route::get('/issues/export', [InventoryController::class, 'exportIssues'])->name('issues.export');
