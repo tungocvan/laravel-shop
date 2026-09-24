@@ -454,6 +454,8 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('function bidSaleBatches', $controller);
         $this->assertStringContainsString('function postBidSaleIssue', $controller);
         $this->assertStringContainsString("batch_number'=>null", $controller);
+        $this->assertStringContainsString("issue_source ?? 'normal')==='bid'", $controller);
+        $this->assertStringContainsString('Phiếu hàng thầu được chỉnh số lượng từ nghiệp vụ phân bổ', $controller);
         $batchWorkspace=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/bid-sale-batches.blade.php'));
         $this->assertStringContainsString('Chọn lô & ghi sổ hàng thầu', $batchWorkspace);
         $this->assertStringContainsString('tồn kho chỉ được trừ sau khi xác nhận ghi sổ', $batchWorkspace);
