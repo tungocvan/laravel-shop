@@ -431,7 +431,7 @@ final class InventoryController extends Controller
         $first=$allocations->first(); $partner=$first->partner()->firstOrFail(); $award=$first->award;
         $issue=DB::transaction(function()use($warehouse,$data,$items,$partner,$award){
             $issue=InventoryIssue::create(['warehouse_id'=>$warehouse->id,'number'=>'PX-'.now()->format('Ymd-His').'-'.random_int(100,999),
-                'issue_date'=>$data['issue_date'],'recipient_name'=>$partner->name,'recipient_partner_id'=>$partner->id,
+                'issue_date'=>$data['issue_date'],'recipient_name'=>$partner->name,
                 'issue_source'=>'bid','bid_partner_id'=>$partner->id,'bid_investor_code'=>$award->investor_code,'bid_investor_name'=>$award->investor_name,
                 'status'=>InventoryIssue::DRAFT,'notes'=>$data['notes']??null,'created_by'=>auth('admin')->id()]);
             $issue->items()->createMany($items); return $issue;
