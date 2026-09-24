@@ -103,6 +103,7 @@ Route::prefix('admin/pharma')->name('admin.pharma.')->middleware(['web', 'auth:a
         Route::post('/receipts/{receipt}/post', [InventoryController::class, 'postReceipt'])->middleware('can:edit_pharma')->name('receipts.post');
         Route::post('/receipts/{receipt}/revert', [InventoryController::class, 'revertReceipt'])->middleware('can:delete_pharma')->name('receipts.revert');
         Route::get('/commissions', [InventoryController::class, 'commissions'])->name('commissions.index');
+        Route::get('/commissions/export', [InventoryController::class, 'exportCommissions'])->name('commissions.export');
         Route::get('/issues', [InventoryController::class, 'issues'])->name('issues.index');
         Route::get('/issues/settings/document', [InventoryController::class, 'issueDocumentSettings'])->middleware('can:edit_pharma')->name('issues.settings');
         Route::put('/issues/settings/document', [InventoryController::class, 'updateIssueDocumentSettings'])->middleware('can:edit_pharma')->name('issues.settings.update');
