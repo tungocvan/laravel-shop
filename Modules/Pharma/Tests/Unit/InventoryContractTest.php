@@ -93,6 +93,9 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("leftJoinSub", $controller);
         $this->assertStringContainsString("inventory_value", $controller);
         $this->assertStringContainsString("'unpriced'", $controller);
+        $this->assertStringContainsString("COALESCE(pharma_inventory_balances.manual_cost_price, supplier_costs.average_cost_price) <= 0", $controller);
+        $this->assertStringContainsString("COALESCE(pharma_inventory_balances.manual_cost_price, supplier_costs.average_cost_price) > 0", $controller);
+        $this->assertStringContainsString("return \$effective === null || \$effective <= 0;", $controller);
         $this->assertStringContainsString("number_format((float) \$row->opening_quantity, 0", $index);
         $this->assertStringContainsString("number_format((float) \$row->quantity_on_hand, 0", $index);
         $this->assertStringContainsString('onchange="this.form.submit()"', $index);
