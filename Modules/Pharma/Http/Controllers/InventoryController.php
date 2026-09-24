@@ -39,7 +39,10 @@ final class InventoryController extends Controller
         $from=$request->filled('from') ? Carbon::parse($request->input('from'))->startOfDay() : now()->startOfMonth();
         $to=$request->filled('to') ? Carbon::parse($request->input('to'))->endOfDay() : now()->endOfMonth();
         if($from->gt($to)) throw ValidationException::withMessages(['from'=>'Từ ngày không được sau Đến ngày.']);
-        $movement=$movementSummary->summarize($warehouse,$from,$to);
+        $movementMedicineId=$request->filled('movement_medicine_id') ? $request->integer('movement_medicine_id') : null;
+        if($movementMedicineId && !Medicine::query()->whereKey($movementMedicineId)->exists()) throw ValidationException::withMessages(['movement_medicine_id'=>'Thuốc được chọn không tồn tại trong Medicine Master.']);
+        $movement=$movementSummary->summarize($warehouse,$from,$to,$movementMedicineId);
+        $movementMedicines=Medicine::query()->whereHas('inventoryBalances',fn($q)=>$q->where('warehouse_id',$warehouse->id))->orderBy('name')->get(['id','medicine_code','name']);
         $costs=$this->activeSupplierCosts();
         $costSubquery=$this->activeSupplierCostSubquery();
         $query=InventoryBalance::query()
@@ -74,7 +77,7 @@ final class InventoryController extends Controller
         });
         $receipts=InventoryReceipt::query()->withCount('items')->withSum('items','quantity')->latest()->limit(5)->get();
         $issues=InventoryIssue::query()->withCount('items')->withSum('items','quantity')->latest()->limit(5)->get();
-        return view('Pharma::pages.inventory.index',compact('warehouse','balances','receipts','issues','totalInventoryValue','unpricedBalanceCount','expiredInventoryValue','from','to','movement'));
+        return view('Pharma::pages.inventory.index',compact('warehouse','balances','receipts','issues','totalInventoryValue','unpricedBalanceCount','expiredInventoryValue','from','to','movement','movementMedicineId','movementMedicines'));
     }
 
     public function template(): StreamedResponse
@@ -83,6 +86,26 @@ final class InventoryController extends Controller
             ['Ma thuoc'=>'MED-000001','So lo'=>'LO-001','Han dung'=>'31/12/2027','Ton dau ky'=>100],
         ]);
         return (new FastExcel($rows))->download('pharma-ton-dau-ky-mau.xlsx');
+    }
+
+    public function exportMovements(Request $request, InventoryService $inventory, InventoryMovementSummaryService $movementSummary): StreamedResponse
+    {
+        $data=$request->validate([
+            'from'=>'required|date','to'=>'required|date|after_or_equal:from',
+            'movement_medicine_id'=>'nullable|integer|exists:pharma_medicines,id',
+            'ids'=>'nullable|array|max:500','ids.*'=>'integer|distinct|exists:pharma_inventory_balances,id',
+        ]);
+        $warehouse=$inventory->defaultWarehouse();
+        $from=Carbon::parse($data['from'])->startOfDay();
+        $to=Carbon::parse($data['to'])->endOfDay();
+        $summary=$movementSummary->summarize($warehouse,$from,$to,!empty($data['movement_medicine_id'])?(int)$data['movement_medicine_id']:null,$data['ids']??[]);
+        $rows=$summary['rows']->map(fn($row)=>[
+            'Ma thuoc'=>$row->medicine_code,'Ten thuoc'=>$row->name,'So lo'=>$row->batch_number,
+            'Han dung'=>Carbon::parse($row->expiry_date)->format('d/m/Y'),
+            'Ton dau ky'=>(float)$row->period_opening,'Nhap trong ky'=>(float)$row->period_in,
+            'Xuat trong ky'=>(float)$row->period_out,'Ton cuoi ky'=>(float)$row->period_closing,
+        ]);
+        return (new FastExcel($rows))->download('pharma-xuat-nhap-ton-'.$from->format('Ymd').'-'.$to->format('Ymd').'.xlsx');
     }
 
     public function export(InventoryService $inventory): StreamedResponse
