@@ -1,7 +1,16 @@
 <!doctype html><html lang="vi"><head><meta charset="utf-8"><style>
-@page{margin:16mm 12mm}*{box-sizing:border-box}body{font-family:DejaVu Sans,sans-serif;font-size:10px;color:#111}h1{font-size:21px;text-align:center;margin:16px 0 2px}.center{text-align:center}.right{text-align:right}.muted{color:#555}.header{width:100%;margin-bottom:12px}.header td{vertical-align:top}.meta{line-height:1.65;margin:14px 0}.meta b{display:inline-block;min-width:115px}table.items{width:100%;border-collapse:collapse;margin-top:12px}table.items th,table.items td{border:1px solid #444;padding:6px 5px}table.items th{font-size:8px;background:#f3f4f6;text-transform:uppercase}.name{font-weight:bold}.small{font-size:8px}.totals{margin-top:12px;line-height:1.7}.sign{width:100%;margin-top:28px;text-align:center}.sign td{width:33.33%;vertical-align:top;font-weight:bold}.sign .space{height:70px}.note{margin-top:8px}.title-no{font-size:12px;font-weight:bold}.footer{position:fixed;bottom:-8mm;left:0;right:0;text-align:center;font-size:8px;color:#777}
+@page{margin:16mm 12mm}*{box-sizing:border-box}body{font-family:DejaVu Sans,sans-serif;font-size:10px;color:#111}h1{font-size:21px;text-align:center;margin:16px 0 2px}.center{text-align:center}.right{text-align:right}.muted{color:#555}.header{width:100%;margin-bottom:12px}.header td{vertical-align:top}.meta{width:100%;border-collapse:collapse;margin:14px 0;line-height:1.5}.meta td{border:0;padding:1px 0;vertical-align:top}.meta .label{width:128px;font-weight:bold;white-space:nowrap;padding-right:10px}table.items{width:100%;border-collapse:collapse;margin-top:12px}table.items th,table.items td{border:1px solid #444;padding:6px 5px}table.items th{font-size:8px;background:#f3f4f6;text-transform:uppercase}.name{font-weight:bold}.small{font-size:8px}.totals{margin-top:12px;line-height:1.7}.sign{width:100%;margin-top:28px;text-align:center}.sign td{width:33.33%;vertical-align:top;font-weight:bold}.sign .space{height:70px}.note{margin-top:8px}.title-no{font-size:12px;font-weight:bold}.footer{position:fixed;bottom:-8mm;left:0;right:0;text-align:center;font-size:8px;color:#777}
 </style></head><body>
-@php($totalValue=$issue->items->sum(fn($i)=>(float)$i->quantity*(float)$i->unit_price))
+@php
+$totalValue=$issue->items->sum(fn($i)=>(float)$i->quantity*(float)$i->unit_price);
+$signatures=collect([
+    ['show'=>$settings->show_issuer_signature,'label'=>$settings->issuer_label],
+    ['show'=>$settings->show_deliverer_signature,'label'=>$settings->deliverer_label],
+    ['show'=>$settings->show_receiver_signature,'label'=>$settings->receiver_label],
+    ['show'=>$settings->show_keeper_signature,'label'=>$settings->keeper_label],
+])->where('show',true)->values();
+$signatureWidth=$signatures->count() > 0 ? (100 / $signatures->count()) : 100;
+@endphp
 <table class="header"><tr><td><b>{{ $settings->organization_name ?: 'PHIẾU XUẤT KHO DƯỢC PHẨM' }}</b>@if($settings->organization_address)
 <br><span class="muted">{{ $settings->organization_address }}</span>
 @endif
@@ -16,9 +25,15 @@
 <div class="center muted">{{ $settings->document_subtitle }}</div>
 @endif
 <div class="center title-no">Số: {{ $issue->number }}</div>
-<div class="meta"><b>Ngày xuất:</b> {{ $issue->issue_date->format('d/m/Y') }}<br><b>Xuất tại kho:</b> {{ $settings->warehouse_name }}<br><b>Khách hàng / Nơi nhận:</b> {{ $issue->recipient_name ?: '—' }}<br><b>Người phụ trách:</b> {{ $issue->priceList?->manager?->name ?: '—' }}@if($settings->show_price_list)
-<br><b>Bảng giá áp dụng:</b> {{ $issue->priceList?->code ?: '—' }} {{ $issue->priceList?->name ? '('.$issue->priceList->name.')' : '' }}
-@endif</div>
+<table class="meta">
+<tr><td class="label">Ngày xuất:</td><td>{{ $issue->issue_date->format('d/m/Y') }}</td></tr>
+<tr><td class="label">Xuất tại kho:</td><td>{{ $settings->warehouse_name }}</td></tr>
+<tr><td class="label">Khách hàng / Nơi nhận:</td><td>{{ $issue->recipient_name ?: '—' }}</td></tr>
+<tr><td class="label">Người phụ trách:</td><td>{{ $issue->priceList?->manager?->name ?: '—' }}</td></tr>
+@if($settings->show_price_list)
+<tr><td class="label">Bảng giá áp dụng:</td><td>{{ $issue->priceList?->code ?: '—' }} {{ $issue->priceList?->name ? '('.$issue->priceList->name.')' : '' }}</td></tr>
+@endif
+</table>
 <table class="items"><thead><tr><th>STT</th><th>Mã thuốc</th><th>Tên thuốc / Quy cách</th><th>ĐVT</th><th>Số lô</th><th>Hạn dùng</th><th>SL</th>
 @if($settings->show_unit_price)
 <th>Đơn giá</th>
@@ -51,7 +66,13 @@
 @endif
 </div>
 @if($settings->show_notes)<div class="note"><b>Ghi chú:</b> {{ $issue->notes ?: 'Không có ghi chú.' }}</div>@endif
-<table class="sign"><tr><td>{{ $settings->issuer_label }}<br><span class="muted small">(Ký, ghi rõ họ tên)</span><div class="space"></div></td><td>{{ $settings->deliverer_label }}<br><span class="muted small">(Ký, ghi rõ họ tên)</span><div class="space"></div></td><td>{{ $settings->receiver_label }}<br><span class="muted small">(Ký, ghi rõ họ tên)</span><div class="space"></div></td></tr></table>
+@if($signatures->isNotEmpty())
+<table class="sign"><tr>
+@foreach($signatures as $signature)
+<td style="width: {{ $signatureWidth }}%">{{ $signature['label'] }}<br><span class="muted small">(Ký, ghi rõ họ tên)</span><div class="space"></div></td>
+@endforeach
+</tr></table>
+@endif
 @if($settings->footer_note)<div class="note center muted">{{ $settings->footer_note }}</div>@endif
 <div class="footer">Phiếu {{ $issue->number }} · Trạng thái: {{ $issue->status==='posted'?'Đã ghi sổ':'Nháp' }}</div>
 </body></html>
