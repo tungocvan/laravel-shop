@@ -39,6 +39,10 @@ class InventoryPeriodContractTest extends TestCase
         $this->assertStringContainsString("'unpriced_count'", $service);
         $this->assertStringContainsString('manual_cost_price', $service);
         $this->assertStringContainsString("AVG(cost_price) as average_cost_price", $service);
+        $this->assertStringContainsString("whereNull('start_date')->orWhereDate('start_date','<=',\$today)", $service);
+        $this->assertStringContainsString("whereNull('end_date')->orWhereDate('end_date','>=',\$today)", $service);
+        $this->assertStringNotContainsString("effective_from", $service);
+        $this->assertStringNotContainsString("effective_to", $service);
     }
 
     public function test_inventory_ui_exposes_period_filters_and_xnt_columns(): void
