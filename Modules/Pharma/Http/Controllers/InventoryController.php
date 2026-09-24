@@ -313,13 +313,25 @@ final class InventoryController extends Controller
     {
         $warehouse=$inventory->defaultWarehouse();
         $query=InventoryIssue::query()->withCount('items')
+            ->with(['items:id,issue_id,medicine_id,batch_number,expiry_date,quantity'])
             ->withSum(['items as total_value'=>fn($q)=>$q->select(DB::raw('COALESCE(SUM(quantity * unit_price),0)'))],'unit_price')
             ->where('warehouse_id',$warehouse->id)
             ->when($request->filled('q'),fn($q)=>$q->where(fn($x)=>$x->where('number','like','%'.$request->q.'%')->orWhere('recipient_name','like','%'.$request->q.'%')))
             ->when(in_array($request->status,['draft','posted'],true),fn($q)=>$q->where('status',$request->status))
             ->latest('issue_date')->latest('id');
+        $documents=$query->paginate($this->documentPerPage($request))->withQueryString();
+        $balanceKeys=InventoryBalance::query()->where('warehouse_id',$warehouse->id)->get()
+            ->keyBy(fn($balance)=>$balance->medicine_id.'|'.$balance->batch_number.'|'.$balance->expiry_date->format('Y-m-d'));
+        $documents->getCollection()->each(function($issue)use($balanceKeys){
+            $issue->can_post_stock=($issue->issue_source ?? 'normal')!=='bid' && $issue->status===InventoryIssue::DRAFT
+                && $issue->items->isNotEmpty() && $issue->items->every(function($item)use($balanceKeys){
+                    if(blank($item->batch_number) || !$item->expiry_date) return false;
+                    $key=$item->medicine_id.'|'.$item->batch_number.'|'.$item->expiry_date->format('Y-m-d');
+                    return (float)($balanceKeys[$key]?->quantity_on_hand ?? 0) >= (float)$item->quantity;
+                });
+        });
         return view('Pharma::pages.inventory.documents',[
-            'type'=>'issue','title'=>'Phiếu xuất kho','documents'=>$query->paginate($this->documentPerPage($request))->withQueryString(),
+            'type'=>'issue','title'=>'Phiếu xuất kho','documents'=>$documents,
         ]);
     }
     public function issueDocumentSettings(): View
