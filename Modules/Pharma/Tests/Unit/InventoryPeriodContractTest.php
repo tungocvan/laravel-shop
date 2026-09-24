@@ -27,8 +27,8 @@ class InventoryPeriodContractTest extends TestCase
 
         $this->assertStringContainsString("where('created_at','<',$from)", $service);
         $this->assertStringContainsString("whereBetween('created_at',[$from,$to])", $service);
-        $this->assertStringContainsString("type IN ('receipt','issue_reversal')", $service);
-        $this->assertStringContainsString("type IN ('issue','receipt_reversal')", $service);
+        $this->assertStringContainsString("type='receipt_reversal' THEN quantity_delta", $service);
+        $this->assertStringContainsString("type='issue_reversal' THEN -quantity_delta", $service);
         $this->assertStringContainsString('period_opening', $service);
         $this->assertStringContainsString('period_closing', $service);
     }
