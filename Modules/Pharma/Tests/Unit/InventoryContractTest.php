@@ -438,8 +438,8 @@ class InventoryContractTest extends TestCase
         $issueShow=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-show.blade.php'));
         $issuePdf=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-pdf.blade.php'));
         $issuePrint=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-print.blade.php'));
-        foreach([\$issueShow,\$issuePdf,\$issuePrint] as \$documentView){
-            $this->assertStringContainsString("expiry_date?->format('d/m/Y')", \$documentView);
+        foreach([$issueShow,$issuePdf,$issuePrint] as $documentView){
+            $this->assertStringContainsString("expiry_date?->format('d/m/Y')", $documentView);
         }
         $this->assertStringContainsString('Chưa chọn lô', $issueShow);
         $this->assertStringNotContainsString("'recipient_partner_id'=>\$partner->id", $controller);
