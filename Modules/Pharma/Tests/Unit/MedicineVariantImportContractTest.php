@@ -19,9 +19,12 @@ class MedicineVariantImportContractTest extends TestCase
         $this->assertStringContainsString("'declared_price'", $variant);
         $this->assertStringContainsString("decimal('declared_price', 18, 2)", $migration);
         $this->assertStringContainsString('presentation_text,declared_price,status,is_default', $service);
-        $this->assertStringContainsString('variants_count > 1', $view);
-        $this->assertStringContainsString('quy cách / SKU', $view);
-        $this->assertStringContainsString('variant->declared_price', $view);
+        $this->assertStringContainsString('Quy cách / SKU', $view);
+        $this->assertStringContainsString('Giá kê khai', $view);
+        $this->assertStringContainsString('SKU:', $view);
+        $this->assertStringContainsString('catalogVariant?->declared_price', $view);
+        $this->assertStringNotContainsString('variants_count > 1', $view);
+        $this->assertStringNotContainsString('variant->presentation_text', $view);
     }
 
     public function test_variant_identity_remains_package_sensitive_but_price_independent(): void
