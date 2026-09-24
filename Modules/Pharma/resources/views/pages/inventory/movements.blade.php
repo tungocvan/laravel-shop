@@ -37,14 +37,19 @@
 
     <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         @foreach([
-            ['Tồn đầu kỳ',$movement['opening']],
-            ['Nhập trong kỳ',$movement['in']],
-            ['Xuất trong kỳ',$movement['out']],
-            ['Tồn cuối kỳ',$movement['closing']],
+            ['Giá trị tồn đầu kỳ',$movement['opening_value']],
+            ['Giá trị nhập trong kỳ',$movement['in_value']],
+            ['Giá trị xuất trong kỳ',$movement['out_value']],
+            ['Giá trị tồn cuối kỳ',$movement['closing_value']],
         ] as [$label,$value])
-            <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><p class="text-xs font-bold uppercase tracking-wide text-slate-500">{{ $label }}</p><p class="mt-2 text-2xl font-extrabold text-slate-950">{{ number_format((float)$value,0,',','.') }}</p></div>
+            <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><p class="text-xs font-bold uppercase tracking-wide text-slate-500">{{ $label }}</p><p class="mt-2 text-2xl font-extrabold text-slate-950">{{ number_format((float)$value,0,',','.') }} đ</p></div>
         @endforeach
     </section>
+    @if($movement['unpriced_count'] > 0)
+        <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800">
+            Có {{ number_format($movement['unpriced_count']) }} lô chưa định giá hoặc giá vốn 0 đ; các lô này đóng góp 0 đ vào KPI giá trị. Giá trị X-N-T hiện dùng giá vốn hiệu lực theo lô tại thời điểm xem báo cáo.
+        </div>
+    @endif
 
     <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div class="flex flex-col gap-3 border-b border-slate-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
