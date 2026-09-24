@@ -2,6 +2,7 @@
 namespace Modules\Pharma\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -16,6 +17,7 @@ use Modules\Pharma\Models\DrugBidAwardManagementAssignment;
 use Modules\Pharma\Models\InventoryBalance;
 use Modules\Pharma\Models\InventoryIssue;
 use Modules\Pharma\Models\InventoryIssueDocumentSetting;
+use Modules\Pharma\Models\InventoryIssueCommission;
 use Modules\Pharma\Models\InventoryIssueDeferredSupply;
 use Modules\Pharma\Models\InventoryReceipt;
 use Modules\Pharma\Models\Medicine;
@@ -23,6 +25,7 @@ use Modules\Pharma\Models\PriceList;
 use Modules\Pharma\Models\PriceListItem;
 use Modules\Pharma\Models\SupplierTracking;
 use Modules\Pharma\Services\InventoryService;
+use Modules\Pharma\Services\DrugBidCommissionService;
 use Modules\Partner\Models\Partner;
 use Rap2hpoutre\FastExcel\FastExcel;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -595,11 +598,14 @@ final class InventoryController extends Controller
         return (new FastExcel($rows))->download('pharma-phieu-xuat-'.now()->format('Ymd-His').'.xlsx');
     }
 
-    public function revertIssue(InventoryIssue $issue, InventoryService $inventory): RedirectResponse
+    public function revertIssue(InventoryIssue $issue, InventoryService $inventory, DrugBidCommissionService $commissions): RedirectResponse
     {
         $this->guardIssueWarehouse($issue,$inventory);
-        $inventory->revertIssue($issue,auth('admin')->id());
-        return redirect()->route('admin.pharma.inventory.issues.index')->with('success',"Đã hoàn tác ghi sổ {$issue->number}; hàng đã được cộng trả tồn kho và phiếu trở về nháp.");
+        DB::transaction(function()use($issue,$inventory,$commissions){
+            $inventory->revertIssue($issue,auth('admin')->id());
+            $commissions->reverseIssue($issue->fresh(),auth('admin')->id());
+        });
+        return redirect()->route('admin.pharma.inventory.issues.index')->with('success',"Đã hoàn tác ghi sổ {$issue->number}; hàng đã được cộng trả tồn kho và hoa hồng phát sinh đã được đảo.");
     }
 
     public function postIssue(InventoryIssue $issue, InventoryService $inventory): RedirectResponse
@@ -752,7 +758,7 @@ final class InventoryController extends Controller
         return view('Pharma::pages.inventory.bid-sale-batches',compact('issue','balances'));
     }
 
-    public function postBidSaleIssue(Request $request, InventoryIssue $issue, InventoryService $inventory): RedirectResponse
+    public function postBidSaleIssue(Request $request, InventoryIssue $issue, InventoryService $inventory, DrugBidCommissionService $commissions): RedirectResponse
     {
         $this->guardIssueWarehouse($issue,$inventory);
         abort_unless(($issue->issue_source ?? 'normal')==='bid' && $issue->status===InventoryIssue::DRAFT,404);
@@ -807,8 +813,30 @@ final class InventoryController extends Controller
             $issue->items()->delete(); $issue->items()->createMany($newItems);
             $issue->update(['notes'=>$data['notes']??null]);
             $inventory->postIssue($issue->fresh('items'),auth('admin')->id());
+            $commissions->snapshotPostedIssue($issue->fresh('items'),auth('admin')->id());
         });
         return redirect()->route('admin.pharma.inventory.issues.show',$issue)->with('success',"Đã duyệt lô và ghi sổ {$issue->number}.");
+    }
+
+    public function commissions(Request $request): View
+    {
+        $from=$request->filled('from') ? Carbon::parse($request->input('from'))->startOfDay() : now()->startOfMonth();
+        $to=$request->filled('to') ? Carbon::parse($request->input('to'))->endOfDay() : now()->endOfMonth();
+        $userId=$request->integer('user_id');
+
+        $base=InventoryIssueCommission::query()
+            ->whereBetween('calculated_at',[$from,$to])
+            ->when($userId>0,fn($q)=>$q->where('user_id',$userId));
+
+        $totals=(clone $base)->selectRaw('COALESCE(SUM(revenue_amount),0) as revenue, COALESCE(SUM(commission_amount),0) as commission')->first();
+        $unresolved=(clone $base)->where('entry_type',InventoryIssueCommission::TYPE_EARNED)
+            ->where('status',InventoryIssueCommission::STATUS_UNRESOLVED)->count();
+        $rows=(clone $base)->with(['issue','medicine','user','partner'])
+            ->orderByDesc('calculated_at')->orderByDesc('id')->paginate(50)->withQueryString();
+        $users=User::query()->whereIn('id',InventoryIssueCommission::query()->whereNotNull('user_id')->distinct()->pluck('user_id'))
+            ->orderBy('name')->get(['id','name']);
+
+        return view('Pharma::pages.inventory.commissions',compact('rows','totals','unresolved','users','from','to','userId'));
     }
 
     private function issueSalePriceCandidates()
