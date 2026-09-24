@@ -108,8 +108,14 @@ class InventoryContractTest extends TestCase
         $this->assertStringNotContainsString('>Lọc</button>', $index);
         $this->assertStringContainsString('expiredInventoryValue', $controller);
         $this->assertStringContainsString("get(['medicine_id','quantity_on_hand','expiry_date','manual_cost_price'])", $controller);
-        $this->assertStringContainsString("expiry_date->lt(now()->startOfDay())", $controller);
+        $this->assertStringContainsString("expiry_date->lt(\$today)", $controller);
+        $this->assertStringContainsString("expiry_date->gte(\$today)", $controller);
         $this->assertStringContainsString('Hàng hết hạn còn tồn', $index);
+        $this->assertStringContainsString('Tổng giá trị tồn, bao gồm cả hàng còn hạn và đã hết hạn.', $index);
+        $this->assertStringContainsString('Trong đó còn hạn', $index);
+        $this->assertStringContainsString('validInventoryValue', $index);
+        $this->assertStringContainsString('validBalanceCount', $index);
+        $this->assertStringContainsString("'validInventoryValue','validBalanceCount'", $controller);
         $this->assertStringContainsString('Giá trị hàng cận hạn ≤ 6 tháng', $index);
         $this->assertStringContainsString('Không tính hàng đã hết hạn.', $index);
         $this->assertStringContainsString('nearExpiryInventoryValue', $index);
