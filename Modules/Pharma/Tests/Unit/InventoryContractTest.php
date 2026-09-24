@@ -402,4 +402,38 @@ class InventoryContractTest extends TestCase
         $this->addToAssertionCount(4);
     }
 
+    public function test_bid_sale_issue_workspace_contracts(): void
+    {
+        $routes=file_get_contents(base_path('Modules/Pharma/routes/web.php'));
+        $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
+        $documents=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/documents.blade.php'));
+        $workspace=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/bid-sale-create.blade.php'));
+        $migration=file_get_contents(base_path('Modules/Pharma/database/migrations/2026_09_24_111500_add_bid_sale_source_to_pharma_inventory_issues.php'));
+
+        $this->assertStringContainsString("issues/bid-sales/create", $routes);
+        $this->assertStringContainsString("issues/bid-sales/allocations", $routes);
+        $this->assertStringContainsString("issues/bid-sales", $routes);
+        $this->assertStringContainsString('function createBidSaleIssue', $controller);
+        $this->assertStringContainsString('function bidSaleAllocations', $controller);
+        $this->assertStringContainsString('function storeBidSaleIssue', $controller);
+        $this->assertStringContainsString("where('i.issue_source','bid')", $controller);
+        $this->assertStringContainsString('drug_bid_award_allocation_id', $controller);
+        $this->assertStringContainsString('winning_price', $controller);
+        $this->assertStringContainsString('allocated_quantity', $controller);
+        $this->assertStringContainsString('+ Xuất bán hàng thầu', $documents);
+        $this->assertStringContainsString('Hàng thầu', $documents);
+        $this->assertStringContainsString('SL phân bổ', $workspace);
+        $this->assertStringContainsString('Đã xuất', $workspace);
+        $this->assertStringContainsString('Còn lại', $workspace);
+        $this->assertStringContainsString('Đơn giá trúng thầu', $workspace);
+        $this->assertStringContainsString('Lô tồn FEFO', $workspace);
+        $this->assertStringContainsString('issue_source', $migration);
+        $this->assertStringContainsString('drug_bid_award_allocation_id', $migration);
+
+        try { token_get_all(Blade::compileString($workspace), TOKEN_PARSE); }
+        catch (\ParseError $error) { $this->fail('bid-sale-create.blade.php failed Blade compilation: '.$error->getMessage()); }
+        $this->addToAssertionCount(1);
+    }
+
+
 }
