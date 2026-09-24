@@ -88,6 +88,7 @@ Route::prefix('admin/pharma')->name('admin.pharma.')->middleware(['web', 'auth:a
         Route::get('/opening/template', [InventoryController::class, 'template'])->name('opening.template');
         Route::post('/opening/import', [InventoryController::class, 'importOpening'])->middleware('can:create_pharma')->name('opening.import');
         Route::get('/export', [InventoryController::class, 'export'])->name('export');
+        Route::get('/movements/export', [InventoryController::class, 'exportMovements'])->name('movements.export');
         Route::post('/export-selected', [InventoryController::class, 'exportSelected'])->name('export-selected');
         Route::put('/balances/{balance}', [InventoryController::class, 'updateBalance'])->middleware('can:edit_pharma')->name('balances.update');
         Route::delete('/balances/{balance}', [InventoryController::class, 'destroyBalance'])->middleware('can:edit_pharma')->name('balances.destroy');
