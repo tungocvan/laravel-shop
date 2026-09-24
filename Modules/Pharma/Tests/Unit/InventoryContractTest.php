@@ -469,6 +469,10 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('SL lấy từ lô', $bidEdit);
         $this->assertStringContainsString('Duyệt & ghi sổ', $bidEdit);
         $this->assertStringContainsString('FEFO là gợi ý ưu tiên', $bidEdit);
+        $this->assertStringContainsString('$canApprove=$rows->every', $bidEdit);
+        $this->assertStringContainsString('@disabled(!$canApprove)', $bidEdit);
+        $this->assertStringContainsString('Chưa thể duyệt vì có mặt hàng chưa có lô tồn khả dụng', $bidEdit);
+        $this->assertStringContainsString("route('admin.pharma.inventory.issues.index')", $bidEdit);
         $this->assertStringContainsString("route('admin.pharma.inventory.issues.bid-sales.post',\$issue)", $bidEdit);
         $this->assertStringContainsString("'quantities'=>'required|array'", $controller);
         $this->assertStringContainsString('Tổng số lượng chia lô', $controller);
