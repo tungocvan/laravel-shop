@@ -33,11 +33,17 @@
                 <h2 class="font-bold text-slate-950">Xuất – Nhập – Tồn theo kỳ</h2>
                 <p class="mt-1 text-sm text-slate-500">Mốc bắt đầu sổ kho: <strong>{{ $warehouse->opening_cutoff_at?->format('d/m/Y H:i') ?? 'Chưa ghi nhận tồn đầu kỳ' }}</strong></p>
             </div>
-            <form method="GET" class="grid gap-2 sm:grid-cols-[auto_auto_auto_auto]">
+            <form method="GET" class="grid gap-2 md:grid-cols-[auto_auto_minmax(280px,1fr)_auto_auto] md:items-end">
                 <label class="text-xs font-semibold text-slate-600">Từ ngày<input type="date" name="from" value="{{ $from->format('Y-m-d') }}" class="mt-1 min-h-11 rounded-xl border border-slate-300 px-3 text-sm"></label>
                 <label class="text-xs font-semibold text-slate-600">Đến ngày<input type="date" name="to" value="{{ $to->format('Y-m-d') }}" class="mt-1 min-h-11 rounded-xl border border-slate-300 px-3 text-sm"></label>
-                <button class="mt-auto min-h-11 rounded-xl bg-indigo-600 px-4 text-sm font-bold text-white">Lọc dữ liệu</button>
-                <a href="{{ route('admin.pharma.inventory.index') }}" class="mt-auto flex min-h-11 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-semibold text-slate-700">Xóa bộ lọc</a>
+                <label class="text-xs font-semibold text-slate-600">Tên thuốc
+                    <x-select-search id="inventory-movement-medicine" name="movement_medicine_id" placeholder="Tất cả thuốc">
+                        <option value="">Tất cả thuốc</option>
+                        @foreach($movementMedicines as $medicine)<option value="{{ $medicine->id }}" @selected((int)$movementMedicineId===$medicine->id)>{{ $medicine->medicine_code }} · {{ $medicine->name }}</option>@endforeach
+                    </x-select-search>
+                </label>
+                <button class="min-h-11 rounded-xl bg-indigo-600 px-4 text-sm font-bold text-white">Lọc dữ liệu</button>
+                <a href="{{ route('admin.pharma.inventory.index') }}" class="flex min-h-11 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-semibold text-slate-700">Xóa bộ lọc</a>
             </form>
         </div>
         <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -53,14 +59,26 @@
         @if((float)$movement['opening_import'] > 0)
             <p class="mt-3 text-xs text-slate-500">Trong kỳ có {{ number_format((float)$movement['opening_import'],0,',','.') }} đơn vị được ghi nhận bằng bút toán tồn đầu kỳ.</p>
         @endif
-        <div class="mt-5 overflow-x-auto rounded-xl border border-slate-200">
+        <div class="mt-4 flex flex-wrap items-center justify-between gap-2">
+            <div id="movement-selection-summary" class="text-sm font-semibold text-slate-600">Chưa chọn dòng nào</div>
+            <div class="flex flex-wrap gap-2">
+                <a href="#inventory-excel" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700">Import tồn đầu kỳ</a>
+                <a href="{{ route('admin.pharma.inventory.movements.export',['from'=>$from->format('Y-m-d'),'to'=>$to->format('Y-m-d'),'movement_medicine_id'=>$movementMedicineId]) }}" class="rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">Export theo bộ lọc</a>
+                <button type="submit" form="movement-selected-export" id="movement-export-selected" disabled class="rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">Export đã chọn</button>
+            </div>
+        </div>
+        <form id="movement-selected-export" method="GET" action="{{ route('admin.pharma.inventory.movements.export') }}">
+            <input type="hidden" name="from" value="{{ $from->format('Y-m-d') }}"><input type="hidden" name="to" value="{{ $to->format('Y-m-d') }}">
+            @if($movementMedicineId)<input type="hidden" name="movement_medicine_id" value="{{ $movementMedicineId }}">@endif
+        </form>
+        <div class="mt-3 overflow-x-auto rounded-xl border border-slate-200">
             <table class="min-w-full text-sm">
-                <thead class="bg-slate-50 text-left text-xs uppercase text-slate-500"><tr><th class="px-3 py-3">Mã thuốc</th><th class="px-3 py-3">Thuốc</th><th class="px-3 py-3">Lô / HSD</th><th class="px-3 py-3 text-right">Tồn đầu kỳ</th><th class="px-3 py-3 text-right">Nhập kỳ</th><th class="px-3 py-3 text-right">Xuất kỳ</th><th class="px-3 py-3 text-right">Tồn cuối kỳ</th></tr></thead>
+                <thead class="bg-slate-50 text-left text-xs uppercase text-slate-500"><tr><th class="w-10 px-3 py-3 text-center"><input id="movement-select-all" type="checkbox" class="h-4 w-4 rounded border-slate-300" aria-label="Chọn tất cả dòng X-N-T"></th><th class="px-3 py-3">Mã thuốc</th><th class="px-3 py-3">Thuốc</th><th class="px-3 py-3">Lô / HSD</th><th class="px-3 py-3 text-right">Tồn đầu kỳ</th><th class="px-3 py-3 text-right">Nhập kỳ</th><th class="px-3 py-3 text-right">Xuất kỳ</th><th class="px-3 py-3 text-right">Tồn cuối kỳ</th></tr></thead>
                 <tbody class="divide-y divide-slate-100">
                 @forelse($movement['rows'] as $row)
-                    <tr><td class="px-3 py-3 font-mono text-xs font-semibold">{{ $row->medicine_code }}</td><td class="px-3 py-3 font-semibold">{{ $row->name }}</td><td class="px-3 py-3">{{ $row->batch_number }}<div class="text-xs text-slate-500">{{ \Carbon\Carbon::parse($row->expiry_date)->format('d/m/Y') }}</div></td><td class="px-3 py-3 text-right">{{ number_format((float)$row->period_opening,0,',','.') }}</td><td class="px-3 py-3 text-right text-emerald-700">{{ number_format((float)$row->period_in,0,',','.') }}</td><td class="px-3 py-3 text-right text-amber-700">{{ number_format((float)$row->period_out,0,',','.') }}</td><td class="px-3 py-3 text-right font-bold">{{ number_format((float)$row->period_closing,0,',','.') }}</td></tr>
+                    <tr><td class="px-3 py-3 text-center"><input form="movement-selected-export" data-movement-check type="checkbox" name="ids[]" value="{{ $row->id }}" class="h-4 w-4 rounded border-slate-300"></td><td class="px-3 py-3 font-mono text-xs font-semibold">{{ $row->medicine_code }}</td><td class="px-3 py-3 font-semibold">{{ $row->name }}</td><td class="px-3 py-3">{{ $row->batch_number }}<div class="text-xs text-slate-500">{{ \Carbon\Carbon::parse($row->expiry_date)->format('d/m/Y') }}</div></td><td class="px-3 py-3 text-right">{{ number_format((float)$row->period_opening,0,',','.') }}</td><td class="px-3 py-3 text-right text-emerald-700">{{ number_format((float)$row->period_in,0,',','.') }}</td><td class="px-3 py-3 text-right text-amber-700">{{ number_format((float)$row->period_out,0,',','.') }}</td><td class="px-3 py-3 text-right font-bold">{{ number_format((float)$row->period_closing,0,',','.') }}</td></tr>
                 @empty
-                    <tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">Chưa có dữ liệu kho trong khoảng thời gian đã chọn.</td></tr>
+                    <tr><td colspan="8" class="px-4 py-8 text-center text-slate-500">Chưa có dữ liệu kho trong khoảng thời gian đã chọn.</td></tr>
                 @endforelse
                 </tbody>
             </table>
@@ -124,7 +142,7 @@
         @endforeach
     </div>
 
-    <details class="rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <details id="inventory-excel" class="rounded-2xl border border-slate-200 bg-white shadow-sm">
         <summary class="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-slate-800">Import / Export Excel ▾</summary>
         <div class="border-t border-slate-100 p-4">
             <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -332,6 +350,13 @@
     @endcan
 
     <script>
+        document.addEventListener('DOMContentLoaded',()=>{
+            const all=document.getElementById('movement-select-all'), boxes=[...document.querySelectorAll('[data-movement-check]')];
+            const button=document.getElementById('movement-export-selected'), summary=document.getElementById('movement-selection-summary');
+            const sync=()=>{ const count=boxes.filter(box=>box.checked).length; if(all){ all.checked=boxes.length>0&&count===boxes.length; all.indeterminate=count>0&&count<boxes.length; } if(button) button.disabled=count===0; if(summary) summary.textContent=count ? 'Đã chọn '+count+' dòng X-N-T' : 'Chưa chọn dòng nào'; };
+            all?.addEventListener('change',()=>{ boxes.forEach(box=>box.checked=all.checked); sync(); });
+            boxes.forEach(box=>box.addEventListener('change',sync)); sync();
+        });
         function inventoryCheckboxes() { return Array.from(document.querySelectorAll('.inventory-row-checkbox')); }
         function selectedInventoryIds() { return inventoryCheckboxes().filter((box) => box.checked).map((box) => box.value); }
         function syncInventorySelection() {
