@@ -5,10 +5,10 @@
 @php
 $totalValue=$issue->items->sum(fn($i)=>(float)$i->quantity*(float)$i->unit_price);
 $signatures=collect([
- ['show'=>$settings->show_issuer_signature,'label'=>$settings->issuer_label,'receiver'=>false],
- ['show'=>$settings->show_deliverer_signature,'label'=>$settings->deliverer_label,'receiver'=>false],
- ['show'=>$settings->show_receiver_signature,'label'=>$settings->receiver_label,'receiver'=>true],
- ['show'=>$settings->show_keeper_signature,'label'=>$settings->keeper_label,'receiver'=>false],
+ ['show'=>$settings->show_issuer_signature,'label'=>$settings->issuer_label,'show_date'=>false],
+ ['show'=>$settings->show_deliverer_signature,'label'=>$settings->deliverer_label,'show_date'=>false],
+ ['show'=>$settings->show_receiver_signature,'label'=>$settings->receiver_label,'show_date'=>false],
+ ['show'=>$settings->show_keeper_signature,'label'=>$settings->keeper_label,'show_date'=>true],
 ])->where('show',true)->values();
 @endphp
 <div class="mx-auto w-full max-w-[1580px] space-y-6">
@@ -41,7 +41,7 @@ $signatures=collect([
    @if($signatures->isNotEmpty())
    <div class="mt-5 grid gap-6 text-center" style="grid-template-columns: repeat({{ $signatures->count() }}, minmax(0, 1fr));">
     @foreach($signatures as $signature)
-    <div><p class="font-semibold">{{ $signature['label'] }}</p>@if($signature['receiver'])<p class="mt-1 text-xs text-slate-500">Ngày ..... tháng ..... năm .....</p>@endif<p class="mt-1 text-xs text-slate-400">Ký, ghi rõ họ tên</p><div class="h-16"></div></div>
+    <div><p class="font-semibold">{{ $signature['label'] }}</p>@if($signature['show_date'])<p class="mt-1 text-xs text-slate-500">Ngày ..... tháng ..... năm .....</p>@endif<p class="mt-1 text-xs text-slate-400">Ký, ghi rõ họ tên</p><div class="h-16"></div></div>
     @endforeach
    </div>
    @else
