@@ -30,7 +30,8 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("public const DRAFT='draft'", $receipt);
         $this->assertStringContainsString("public const POSTED='posted'", $issue);
         $this->assertStringNotContainsString('if ($after < 0)', $service);
-        $this->assertStringNotContainsString('Không đủ tồn cho lô', $service);
+        $this->assertStringContainsString('Không đủ tồn cho lô', $service);
+        $this->assertStringContainsString('$balance->quantity_on_hand < (float)$item->quantity', $service);
         $this->assertStringContainsString('Tồn đầu kỳ', $view);
         $this->assertStringContainsString('Sắp hết hạn', $view);
     }
@@ -226,6 +227,10 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("placeholder:'Tìm mã hoặc tên thuốc...'", $issueForm);
         $this->assertStringContainsString('Chọn lô còn tồn', $issueForm);
         $this->assertStringContainsString('Xác nhận ghi sổ', $documents);
+        $this->assertStringContainsString('Ghi sổ · Không đủ tồn', $documents);
+        $this->assertStringContainsString('Không đủ tồn kho để ghi sổ', $documents);
+        $this->assertStringContainsString('$doc->can_post_stock', $documents);
+        $this->assertStringContainsString('$issue->can_post_stock=', $controller);
         $this->assertStringContainsString("request('per_page',25)", $documents);
         $this->assertStringContainsString('[25,50,100] as $size', $documents);
         $receiptForm=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/receipt-form.blade.php'));
