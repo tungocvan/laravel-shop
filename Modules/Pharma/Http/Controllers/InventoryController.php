@@ -618,6 +618,26 @@ final class InventoryController extends Controller
         $allocationIds=$issue->items->pluck('drug_bid_award_allocation_id')->filter();
         $allocations=DrugBidAwardAllocation::query()->with(['partner','award.medicine'])
             ->whereIn('id',$allocationIds)->get()->keyBy('id');
+        $investorKey=$issue->bid_investor_code ?: $issue->bid_investor_name;
+        $addableAllocations=DrugBidAwardAllocation::query()->with(['partner','award.medicine'])
+            ->where('status',DrugBidAwardAllocation::STATUS_ACTIVE)->where('partner_id',$issue->bid_partner_id)
+            ->whereNotIn('id',$allocationIds)
+            ->whereHas('award',fn($q)=>$q->where(fn($x)=>$x->where('investor_code',$investorKey)->orWhere('investor_name',$investorKey)))
+            ->where(fn($q)=>$q->whereNull('effective_from')->orWhereDate('effective_from','<=',now()))
+            ->where(fn($q)=>$q->whereNull('effective_until')->orWhereDate('effective_until','>=',now()))->get();
+        $candidateIds=$addableAllocations->pluck('id');
+        $candidatePosted=DB::table('pharma_inventory_issue_items as ii')->join('pharma_inventory_issues as i','i.id','=','ii.issue_id')
+            ->where('i.issue_source','bid')->where('i.status',InventoryIssue::POSTED)->whereIn('ii.drug_bid_award_allocation_id',$candidateIds)
+            ->groupBy('ii.drug_bid_award_allocation_id')->selectRaw('ii.drug_bid_award_allocation_id, SUM(ii.quantity) as qty')
+            ->pluck('qty','ii.drug_bid_award_allocation_id');
+        $addableAllocations=$addableAllocations->filter(fn($allocation)=>(float)$allocation->allocated_quantity-(float)($candidatePosted[$allocation->id]??0)>0.00005)
+            ->map(function($allocation)use($candidatePosted){
+                $award=$allocation->award; $remaining=max(0,(float)$allocation->allocated_quantity-(float)($candidatePosted[$allocation->id]??0));
+                return ['id'=>$allocation->id,'medicine_code'=>$award?->medicine?->medicine_code ?? $award?->medicine_code,
+                    'medicine_name'=>$award?->medicine?->name ?? $award?->medicine_name,'unit'=>$award?->medicine?->unit ?? $award?->unit,
+                    'remaining_quantity'=>$remaining,'winning_price'=>(float)($award?->winning_price ?? $award?->unit_price ?? 0),
+                    'effective_until'=>$allocation->effective_until?->format('d/m/Y')];
+            })->values();
         $assignments=DrugBidAwardManagementAssignment::query()->with('user:id,name')
             ->where('status',DrugBidAwardManagementAssignment::STATUS_ACTIVE)
             ->whereIn('drug_bid_award_id',$allocations->pluck('drug_bid_award_id')->filter()->unique())
@@ -643,7 +663,7 @@ final class InventoryController extends Controller
             ->whereIn('medicine_id',$issue->items->pluck('medicine_id'))->where('quantity_on_hand','>',0)
             ->whereDate('expiry_date','>=',now()->toDateString())->orderBy('medicine_id')->orderBy('expiry_date')->get()->groupBy('medicine_id');
         $canApprove=auth('admin')->user()?->can('approve_pharma_inventory_issue') ?? false;
-        return view('Pharma::pages.inventory.bid-sale-edit',compact('issue','rows','balances','canApprove'));
+        return view('Pharma::pages.inventory.bid-sale-edit',compact('issue','rows','balances','canApprove','addableAllocations'));
     }
 
     public function updateBidSaleIssue(Request $request, InventoryIssue $issue, InventoryService $inventory): RedirectResponse
