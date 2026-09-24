@@ -64,7 +64,7 @@ $stockReady=$hasPostableStock && !$hasUnresolvedShortage;
         <input type="hidden" data-defer-enabled="{{ $row['item_id'] }}" name="deferred[{{ $row['item_id'] }}][enabled]" value="0">
         <label class="text-xs font-bold text-slate-600">Dự kiến cung cấp lại<input type="date" name="deferred[{{ $row['item_id'] }}][expected_supply_date]" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"></label>
         <label class="text-xs font-bold text-slate-600">Ghi chú *<input type="text" name="deferred[{{ $row['item_id'] }}][note]" value="Hiện kho đang hết hàng. Đơn hàng dự kiến cung cấp lại." class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" maxlength="2000"></label>
-        <p class="md:col-span-2 text-xs text-slate-500">Phần thiếu không trừ tồn kho. Nhật ký này được lưu cùng phiếu để người lên đơn nhận biết và theo dõi cấp bổ sung.</p>
+        <div class="md:col-span-2 flex flex-wrap items-center justify-between gap-3"><p class="text-xs text-slate-500">Phần thiếu không trừ tồn kho. Nhật ký này được lưu cùng phiếu để người lên đơn nhận biết và theo dõi cấp bổ sung.</p><button type="button" data-defer-save="{{ $row['item_id'] }}" class="rounded-lg bg-amber-600 px-4 py-2 text-xs font-bold text-white hover:bg-amber-700">Lưu ghi chú chờ cấp</button></div>
        </div>
       </div>
      </td></tr>
@@ -100,10 +100,17 @@ document.addEventListener('DOMContentLoaded', () => {
   postButton.title=hasPending ? 'Hãy lưu phiếu nháp để hệ thống tải tồn kho/lô thực tế trước khi duyệt' : (!hasPostableStock ? 'Chưa có hàng thực xuất để ghi sổ' : (unresolved ? 'Hãy ghi nhận chờ cung cấp cho các mặt hàng đang thiếu tồn' : ''));
  };
  document.querySelectorAll('[data-defer-toggle]').forEach(button=>button.addEventListener('click',()=>{
-  const id=button.dataset.deferToggle, panel=document.querySelector('[data-defer-panel="'+id+'"]'), enabled=document.querySelector('[data-defer-enabled="'+id+'"]');
-  const active=enabled.value!=='1'; enabled.value=active?'1':'0'; panel.classList.toggle('hidden',!active);
-  button.textContent=active?'Đã ghi nhận chờ cung cấp':'Ghi nhận chờ cung cấp';
-  button.classList.toggle('bg-amber-100',active); refreshPostState();
+  const id=button.dataset.deferToggle, panel=document.querySelector('[data-defer-panel="'+id+'"]');
+  panel.classList.toggle('hidden');
+ }));
+ document.querySelectorAll('[data-defer-save]').forEach(save=>save.addEventListener('click',()=>{
+  const id=save.dataset.deferSave, panel=document.querySelector('[data-defer-panel="'+id+'"]'), enabled=document.querySelector('[data-defer-enabled="'+id+'"]');
+  const note=panel.querySelector('[name="deferred['+id+'][note]"]');
+  if(!note.value.trim()){ alert('Vui lòng nhập ghi chú chờ cung cấp.'); note.focus(); return; }
+  enabled.value='1';
+  const toggle=document.querySelector('[data-defer-toggle="'+id+'"]');
+  toggle.textContent='✓ Đã ghi nhận chờ cung cấp'; toggle.classList.add('bg-amber-100');
+  save.textContent='✓ Đã lưu ghi chú'; refreshPostState();
  }));
  refreshPostState();
  document.getElementById('bid-add-button')?.addEventListener('click',()=>{
