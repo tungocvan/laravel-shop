@@ -36,12 +36,12 @@ class InventoryPeriodContractTest extends TestCase
     public function test_inventory_ui_exposes_period_filters_and_xnt_columns(): void
     {
         $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
-        $view=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/index.blade.php'));
+        $view=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/movements.blade.php'));
 
-        $this->assertStringContainsString('InventoryMovementSummaryService $movementSummary', $controller);
+        $this->assertStringContainsString('public function movements(Request $request, InventoryService $inventory, InventoryMovementSummaryService $movementSummary): View', $controller);
         $this->assertStringContainsString("request->input('from')", $controller);
         $this->assertStringContainsString("request->input('to')", $controller);
-        $this->assertStringContainsString('Xuất – Nhập – Tồn theo kỳ', $view);
+        $this->assertStringContainsString('Xuất – Nhập – Tồn', $view);
         $this->assertStringContainsString('Mốc bắt đầu sổ kho', $view);
         $this->assertStringContainsString('name="from"', $view);
         $this->assertStringContainsString('name="to"', $view);
@@ -71,4 +71,23 @@ class InventoryPeriodContractTest extends TestCase
         $this->assertStringContainsString('when($medicineId', $service);
         $this->assertStringContainsString('when($balanceIds', $service);
     }
+    public function test_current_stock_and_period_movements_are_separate_workspaces(): void
+    {
+        $routes=file_get_contents(base_path('Modules/Pharma/routes/web.php'));
+        $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
+        $inventory=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/index.blade.php'));
+        $movements=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/movements.blade.php'));
+        $opening=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/opening-form.blade.php'));
+
+        $this->assertStringContainsString("Route::get('/movements', [InventoryController::class, 'movements'])->name('movements.index')", $routes);
+        $this->assertStringContainsString("return view('Pharma::pages.inventory.movements'", $controller);
+        $this->assertStringContainsString("route('admin.pharma.inventory.movements.index')", $inventory);
+        $this->assertStringNotContainsString('movement-select-all', $inventory);
+        $this->assertStringNotContainsString('Phiếu nhập gần đây', $inventory);
+        $this->assertStringNotContainsString('Phiếu xuất gần đây', $inventory);
+        $this->assertStringContainsString('movement-select-all', $movements);
+        $this->assertStringContainsString('Import hàng loạt', $opening);
+        $this->assertStringContainsString("route('admin.pharma.inventory.opening.import')", $opening);
+    }
+
 }
