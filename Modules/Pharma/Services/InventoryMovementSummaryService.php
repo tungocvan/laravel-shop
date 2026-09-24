@@ -33,7 +33,7 @@ final class InventoryMovementSummaryService
             ->when($medicineId,fn($query)=>$query->where('b.medicine_id',$medicineId))
             ->when($balanceIds,fn($query)=>$query->whereIn('b.id',$balanceIds))
             ->select(['b.id','b.medicine_id','b.batch_number','b.expiry_date','m.medicine_code','m.name','m.unit'])
-            ->selectRaw('COALESCE(pre.opening_quantity,0) as period_opening')
+            ->selectRaw('COALESCE(pre.opening_quantity,0)+COALESCE(mov.opening_import,0) as period_opening')
             ->selectRaw('COALESCE(mov.opening_import,0) as opening_import')
             ->selectRaw('COALESCE(mov.inbound_quantity,0) as period_in')
             ->selectRaw('COALESCE(mov.outbound_quantity,0) as period_out')
