@@ -5,6 +5,7 @@ namespace Modules\Pharma\Services;
 use Illuminate\Support\Facades\Log;
 use Modules\Pharma\Models\DrugBidAward;
 use Modules\Pharma\Models\DrugBidAwardManagementAssignment;
+use Modules\Pharma\Models\DrugBidAwardMatch;
 use Modules\Pharma\Models\DrugBidAwardProductPolicy;
 use Modules\Pharma\Models\InventoryBalance;
 use Modules\Pharma\Models\InventoryIssue;
@@ -56,7 +57,7 @@ final class PharmaDashboardService
                 'hssp_attention' => MedicineProfile::query()->where('is_current', true)
                     ->whereIn('profile_status', [MedicineProfile::STATUS_NEEDS_REVIEW, MedicineProfile::STATUS_EXPIRED, MedicineProfile::STATUS_INCOMPLETE])->count(),
                 'bid_awards' => DrugBidAward::query()->count(),
-                'bid_unlinked' => DrugBidAward::query()->whereNull('medicine_id')->count(),
+                'bid_unlinked' => DrugBidAward::query()->where(fn($query)=>$query->whereDoesntHave('canonicalMatch')->orWhereHas('canonicalMatch',fn($match)=>$match->whereIn('review_status',[DrugBidAwardMatch::REVIEW_PENDING,DrugBidAwardMatch::REVIEW_STALE])))->count(),
                 'supplier_trackings' => SupplierTracking::query()->count(),
             ];
         });
@@ -119,7 +120,7 @@ final class PharmaDashboardService
         return $this->section('attention', function (): array {
             return [
                 'available' => true,
-                'bid_unlinked' => DrugBidAward::query()->whereNull('medicine_id')->count(),
+                'bid_unlinked' => DrugBidAward::query()->where(fn($query)=>$query->whereDoesntHave('canonicalMatch')->orWhereHas('canonicalMatch',fn($match)=>$match->whereIn('review_status',[DrugBidAwardMatch::REVIEW_PENDING,DrugBidAwardMatch::REVIEW_STALE])))->count(),
                 'hssp_attention' => MedicineProfile::query()->where('is_current', true)
                     ->whereIn('profile_status', [MedicineProfile::STATUS_NEEDS_REVIEW, MedicineProfile::STATUS_EXPIRED, MedicineProfile::STATUS_INCOMPLETE])->count(),
                 'expiring_lots' => InventoryBalance::query()->where('quantity_on_hand', '>', 0)
