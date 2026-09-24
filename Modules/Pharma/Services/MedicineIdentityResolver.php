@@ -69,30 +69,35 @@ class MedicineIdentityResolver
     }
 
     /**
-     * Medicine-level identity intentionally excludes strength and packaging.
-     * A product may have multiple strengths/presentations under one canonical medicine.
+     * Medicine Master is the operational product/SKU boundary.
+     * Different packaging must receive a different MED code even when brand and
+     * registration are identical. Price is deliberately excluded because it is
+     * mutable commercial data.
      */
     public function canonicalMedicineIdentity(array $attributes): ?string
     {
         $registration = $this->normalizer->registration($attributes['registration_number'] ?? null);
         $name = $this->normalize($attributes['name'] ?? $attributes['brand_name'] ?? null);
+        $packaging = $this->normalize($attributes['packaging_specification'] ?? $attributes['presentation_text'] ?? null);
 
-        if ($registration !== null && $name !== null) {
-            return hash('sha256', implode('|', ['medicine-v2', $registration, $name]));
+        if ($registration !== null && $name !== null && $packaging !== null) {
+            return hash('sha256', implode('|', ['medicine-v3', $registration, $name, $packaging]));
         }
 
         $parts = [
             $name,
             $this->normalize($attributes['active_ingredients'] ?? null),
+            $this->normalize($attributes['concentration'] ?? null),
             $this->normalize($attributes['dosage_form'] ?? null),
             $this->normalize($attributes['manufacturing_company'] ?? null),
+            $packaging,
         ];
 
-        if (count(array_filter($parts, fn ($value) => $value !== null)) < 3) {
+        if ($name === null || $packaging === null || count(array_filter($parts, fn ($value) => $value !== null)) < 4) {
             return null;
         }
 
-        return hash('sha256', implode('|', array_map(fn ($value) => $value ?? '-', $parts)));
+        return hash('sha256', implode('|', ['medicine-v3', ...array_map(fn ($value) => $value ?? '-', $parts)]));
     }
 
     /**
