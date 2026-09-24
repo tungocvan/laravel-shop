@@ -736,6 +736,9 @@ final class InventoryController extends Controller
     {
         $this->guardIssueWarehouse($issue,$inventory);
         abort_unless(($issue->issue_source ?? 'normal')==='bid' && $issue->status===InventoryIssue::DRAFT,404);
+        if($request->filled('add_allocations') || $request->filled('add_quantities')){
+            throw ValidationException::withMessages(['add_allocations'=>'Có sản phẩm mới chưa được lưu. Hãy lưu phiếu nháp trước khi Duyệt & ghi sổ.']);
+        }
         $data=$request->validate([
             'issue_date'=>'required|date','notes'=>'nullable|string','quantities'=>'required|array',
             'quantities.*'=>'required|numeric|min:0.001','batches'=>'required|array','batches.*'=>'required|array|min:1',
