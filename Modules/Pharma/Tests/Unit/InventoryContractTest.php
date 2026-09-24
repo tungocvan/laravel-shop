@@ -69,9 +69,11 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('StreamedResponse', $controller);
         $this->assertStringNotContainsString('BinaryFileResponse', $controller);
         $index=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/index.blade.php'));
+        $opening=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/opening-form.blade.php'));
         $this->assertStringContainsString("route('admin.pharma.dashboard')", $index);
-        $this->assertStringContainsString('Import tồn đầu kỳ', $index);
-        $this->assertStringContainsString('Export toàn bộ', $index);
+        $this->assertStringContainsString('Import tồn đầu kỳ', $opening);
+        $this->assertStringContainsString("route('admin.pharma.inventory.opening.import')", $opening);
+        $this->assertStringContainsString('Export tồn kho', $index);
         $this->assertStringContainsString('Xuất Excel đã chọn', $index);
         $this->assertStringContainsString('expiry_warning', $index);
         $this->assertStringContainsString('Sắp hết hạn ·', $index);
@@ -104,7 +106,8 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('expiredInventoryValue', $controller);
         $this->assertStringContainsString("get(['medicine_id','quantity_on_hand','expiry_date'])", $controller);
         $this->assertStringContainsString("expiry_date->lt(now()->startOfDay())", $controller);
-        $this->assertStringContainsString('Giá trị hàng đã hết hạn', $index);
+        $this->assertStringContainsString('Hàng hết hạn còn tồn', $index);
+        $this->assertStringContainsString('number_format($expiredBalanceCount)', $index);
         $this->assertStringContainsString('number_format($expiredInventoryValue', $index);
         $this->assertStringContainsString('md:grid-cols-3', $index);
         $this->assertStringContainsString("in_array((int)\$request->input('per_page',25),[25,50,100],true)", $controller);
