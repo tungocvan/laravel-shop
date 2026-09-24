@@ -48,5 +48,14 @@ class CommissionContractTest extends TestCase
         $this->assertStringContainsString('Hoa hồng kinh doanh', $view);
         $this->assertStringContainsString('Số lượng thực xuất × Đơn giá trúng thầu × Chính sách %', $view);
         $this->assertStringContainsString('Chưa đủ chính sách/phân công', $view);
+        $this->assertStringContainsString("->when(\$partnerId>0", $controller);
+        $this->assertStringContainsString("->when(\$medicineId>0", $controller);
+        $this->assertStringContainsString("DrugBidAwardManagementAssignment::query()", $controller);
+        $this->assertStringContainsString("name=\"partner_id\"", $view);
+        $this->assertStringContainsString("name=\"medicine_id\"", $view);
+        $this->assertStringContainsString("commission-user-filter", $view);
+        $this->assertStringContainsString("commission-partner-filter", $view);
+        $this->assertStringContainsString("partner.value=''", $view);
+        $this->assertStringContainsString("medicine.value=''", $view);
     }
 }
