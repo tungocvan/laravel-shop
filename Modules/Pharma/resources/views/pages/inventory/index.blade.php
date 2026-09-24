@@ -11,6 +11,8 @@
             <p class="mt-2 text-sm text-slate-600">{{ $warehouse->name }} · Medicine Master là nguồn mã thuốc duy nhất.</p>
         </div>
         <div class="flex flex-wrap gap-2">
+            <a href="{{ route('admin.pharma.inventory.movements.index') }}" class="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm font-semibold text-indigo-700">Xuất–Nhập–Tồn</a>
+            <a href="{{ route('admin.pharma.inventory.export') }}" class="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-800">Export tồn kho</a>
             @can('create_pharma')
                 <a href="{{ route('admin.pharma.inventory.opening.create') }}" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">Tồn đầu kỳ</a>
                 <a href="{{ route('admin.pharma.inventory.receipts.create') }}" class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white">+ Phiếu nhập</a>
@@ -27,143 +29,7 @@
         <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800">{{ $errors->first() }}</div>
     @endif
 
-    <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-                <h2 class="font-bold text-slate-950">Xuất – Nhập – Tồn theo kỳ</h2>
-                <p class="mt-1 text-sm text-slate-500">Mốc bắt đầu sổ kho: <strong>{{ $warehouse->opening_cutoff_at?->format('d/m/Y H:i') ?? 'Chưa ghi nhận tồn đầu kỳ' }}</strong></p>
-            </div>
-            <form method="GET" class="grid gap-2 md:grid-cols-[auto_auto_minmax(280px,1fr)_auto_auto] md:items-end">
-                <label class="text-xs font-semibold text-slate-600">Từ ngày<input type="date" name="from" value="{{ $from->format('Y-m-d') }}" class="mt-1 min-h-11 rounded-xl border border-slate-300 px-3 text-sm"></label>
-                <label class="text-xs font-semibold text-slate-600">Đến ngày<input type="date" name="to" value="{{ $to->format('Y-m-d') }}" class="mt-1 min-h-11 rounded-xl border border-slate-300 px-3 text-sm"></label>
-                <label class="text-xs font-semibold text-slate-600">Tên thuốc
-                    <x-select-search id="inventory-movement-medicine" name="movement_medicine_id" placeholder="Tất cả thuốc">
-                        <option value="">Tất cả thuốc</option>
-                        @foreach($movementMedicines as $medicine)<option value="{{ $medicine->id }}" @selected((int)$movementMedicineId===$medicine->id)>{{ $medicine->medicine_code }} · {{ $medicine->name }}</option>@endforeach
-                    </x-select-search>
-                </label>
-                <button class="min-h-11 rounded-xl bg-indigo-600 px-4 text-sm font-bold text-white">Lọc dữ liệu</button>
-                <a href="{{ route('admin.pharma.inventory.index') }}" class="flex min-h-11 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-semibold text-slate-700">Xóa bộ lọc</a>
-            </form>
-        </div>
-        <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            @foreach([
-                ['Tồn đầu kỳ',$movement['opening'],'slate'],
-                ['Nhập trong kỳ',$movement['in'],'emerald'],
-                ['Xuất trong kỳ',$movement['out'],'amber'],
-                ['Tồn cuối kỳ',$movement['closing'],'indigo'],
-            ] as [$label,$value,$tone])
-                <div class="rounded-xl border border-slate-200 bg-slate-50 p-4"><p class="text-xs font-bold uppercase text-slate-500">{{ $label }}</p><p class="mt-2 text-2xl font-extrabold text-slate-950">{{ number_format((float)$value,0,',','.') }}</p></div>
-            @endforeach
-        </div>
-        @if((float)$movement['opening_import'] > 0)
-            <p class="mt-3 text-xs text-slate-500">Trong kỳ có {{ number_format((float)$movement['opening_import'],0,',','.') }} đơn vị được ghi nhận bằng bút toán tồn đầu kỳ.</p>
-        @endif
-        <div class="mt-4 flex flex-wrap items-center justify-between gap-2">
-            <div id="movement-selection-summary" class="text-sm font-semibold text-slate-600">Chưa chọn dòng nào</div>
-            <div class="flex flex-wrap gap-2">
-                <a href="#inventory-excel" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700">Import tồn đầu kỳ</a>
-                <a href="{{ route('admin.pharma.inventory.movements.export',['from'=>$from->format('Y-m-d'),'to'=>$to->format('Y-m-d'),'movement_medicine_id'=>$movementMedicineId]) }}" class="rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">Export theo bộ lọc</a>
-                <button type="submit" form="movement-selected-export" id="movement-export-selected" disabled class="rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">Export đã chọn</button>
-            </div>
-        </div>
-        <form id="movement-selected-export" method="GET" action="{{ route('admin.pharma.inventory.movements.export') }}">
-            <input type="hidden" name="from" value="{{ $from->format('Y-m-d') }}"><input type="hidden" name="to" value="{{ $to->format('Y-m-d') }}">
-            @if($movementMedicineId)<input type="hidden" name="movement_medicine_id" value="{{ $movementMedicineId }}">@endif
-        </form>
-        <div class="mt-3 overflow-x-auto rounded-xl border border-slate-200">
-            <table class="min-w-full text-sm">
-                <thead class="bg-slate-50 text-left text-xs uppercase text-slate-500"><tr><th class="w-10 px-3 py-3 text-center"><input id="movement-select-all" type="checkbox" class="h-4 w-4 rounded border-slate-300" aria-label="Chọn tất cả dòng X-N-T"></th><th class="px-3 py-3">Mã thuốc</th><th class="px-3 py-3">Thuốc</th><th class="px-3 py-3">Lô / HSD</th><th class="px-3 py-3 text-right">Tồn đầu kỳ</th><th class="px-3 py-3 text-right">Nhập kỳ</th><th class="px-3 py-3 text-right">Xuất kỳ</th><th class="px-3 py-3 text-right">Tồn cuối kỳ</th></tr></thead>
-                <tbody class="divide-y divide-slate-100">
-                @forelse($movement['rows'] as $row)
-                    <tr><td class="px-3 py-3 text-center"><input form="movement-selected-export" data-movement-check type="checkbox" name="ids[]" value="{{ $row->id }}" class="h-4 w-4 rounded border-slate-300"></td><td class="px-3 py-3 font-mono text-xs font-semibold">{{ $row->medicine_code }}</td><td class="px-3 py-3 font-semibold">{{ $row->name }}</td><td class="px-3 py-3">{{ $row->batch_number }}<div class="text-xs text-slate-500">{{ \Carbon\Carbon::parse($row->expiry_date)->format('d/m/Y') }}</div></td><td class="px-3 py-3 text-right">{{ number_format((float)$row->period_opening,0,',','.') }}</td><td class="px-3 py-3 text-right text-emerald-700">{{ number_format((float)$row->period_in,0,',','.') }}</td><td class="px-3 py-3 text-right text-amber-700">{{ number_format((float)$row->period_out,0,',','.') }}</td><td class="px-3 py-3 text-right font-bold">{{ number_format((float)$row->period_closing,0,',','.') }}</td></tr>
-                @empty
-                    <tr><td colspan="8" class="px-4 py-8 text-center text-slate-500">Chưa có dữ liệu kho trong khoảng thời gian đã chọn.</td></tr>
-                @endforelse
-                </tbody>
-            </table>
-        </div>
-    </section>
 
-    <div class="grid gap-5 xl:grid-cols-2">
-        @foreach([['type'=>'receipt','title'=>'Phiếu nhập gần đây','docs'=>$receipts,'index'=>'admin.pharma.inventory.receipts.index'],['type'=>'issue','title'=>'Phiếu xuất gần đây','docs'=>$issues,'index'=>'admin.pharma.inventory.issues.index']] as $panel)
-            <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div class="flex items-center justify-between gap-3">
-                    <h2 class="font-semibold text-slate-950">{{ $panel['title'] }}</h2>
-                    <a href="{{ route($panel['index']) }}" class="text-xs font-semibold text-indigo-700">Xem tất cả →</a>
-                </div>
-                <div class="mt-3 divide-y divide-slate-100">
-                    @forelse($panel['docs'] as $doc)
-                        @php
-                            $isReceipt=$panel['type']==='receipt';
-                            $date=$isReceipt ? $doc->receipt_date : $doc->issue_date;
-                            $party=$isReceipt ? $doc->supplier_name : $doc->recipient_name;
-                            $postRoute=$isReceipt ? route('admin.pharma.inventory.receipts.post',$doc) : route('admin.pharma.inventory.issues.post',$doc);
-                        @endphp
-                        <div class="py-3 first:pt-0 last:pb-0">
-                            <div class="flex items-start justify-between gap-3">
-                                <div class="min-w-0">
-                                    <div class="flex flex-wrap items-center gap-2">
-                                        <span class="font-mono text-sm font-bold text-slate-950">{{ $doc->number }}</span>
-                                        <span class="rounded-full px-2 py-0.5 text-[11px] font-semibold {{ $doc->status === 'posted' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }}">{{ $doc->status === 'posted' ? 'Đã ghi sổ' : 'Nháp' }}</span>
-                                    </div>
-                                    <p class="mt-1 truncate text-xs text-slate-600">{{ $date->format('d/m/Y') }} · {{ $party ?: ($isReceipt ? 'Chưa chọn NCC' : 'Chưa nhập nơi nhận') }}</p>
-                                    <p class="mt-1 text-xs text-slate-500">{{ $doc->items_count }} mặt hàng · Tổng SL {{ number_format((float)$doc->items_sum_quantity,0,',','.') }}</p>
-                                    @if($isReceipt && $doc->invoice_number)<p class="mt-1 text-xs text-slate-500">HĐ: {{ $doc->invoice_number }}{{ $doc->invoice_date ? ' · '.$doc->invoice_date->format('d/m/Y') : '' }}</p>@endif
-                                </div>
-                                @can('edit_pharma')
-                                    @if($doc->status === 'draft')
-                                        <button type="button" onclick="document.getElementById('post-{{ $panel['type'] }}-{{ $doc->id }}').showModal()" class="shrink-0 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white">Ghi sổ</button>
-                                    @endif
-                                @endcan
-                            </div>
-                        </div>
-                        @if($doc->status === 'draft')
-                            <dialog id="post-{{ $panel['type'] }}-{{ $doc->id }}" class="m-auto w-[calc(100%-2rem)] max-w-lg overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-2xl ring-1 ring-slate-200 backdrop:bg-slate-950/65 backdrop:backdrop-blur-[3px]">
-                                <form method="POST" action="{{ $postRoute }}" class="overflow-hidden rounded-2xl bg-white">
-                                    @csrf
-                                    <div class="flex items-start gap-4 p-6">
-                                        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xl text-emerald-700">✓</div>
-                                        <div class="min-w-0 flex-1">
-                                            <div class="flex items-start justify-between gap-3"><div><h3 class="text-lg font-bold text-slate-950">Xác nhận ghi sổ?</h3><p class="mt-0.5 break-all font-mono text-xs font-semibold text-slate-500">{{ $doc->number }}</p></div><button type="button" onclick="this.closest('dialog').close()" class="rounded-lg p-1.5 text-xl leading-none text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Đóng">×</button></div>
-                                            <p class="mt-4 text-sm leading-6 text-slate-600">Phiếu có <strong>{{ $doc->items_count }} mặt hàng</strong>, tổng số lượng <strong>{{ number_format((float)$doc->items_sum_quantity,0,',','.') }}</strong>. Sau khi xác nhận, tồn kho thực tế sẽ được cập nhật.</p>
-                                            @if(!$isReceipt)<div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><strong>Kiểm tra tồn kho:</strong> hệ thống sẽ kiểm tra tồn khả dụng trước khi xuất.</div>@endif
-                                        </div>
-                                    </div>
-                                    <div class="flex flex-col-reverse gap-2 border-t border-slate-100 bg-slate-50 px-6 py-4 sm:flex-row sm:justify-end"><button type="button" onclick="this.closest('dialog').close()" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">Hủy</button><button class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm">Xác nhận ghi sổ</button></div>
-                                </form>
-                            </dialog>
-                        @endif
-                    @empty
-                        <p class="py-4 text-sm text-slate-500">{{ $panel['type'] === 'receipt' ? 'Chưa có phiếu nhập.' : 'Chưa có phiếu xuất.' }}</p>
-                    @endforelse
-                </div>
-            </section>
-        @endforeach
-    </div>
-
-    <details id="inventory-excel" class="rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <summary class="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-slate-800">Import / Export Excel ▾</summary>
-        <div class="border-t border-slate-100 p-4">
-            <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                <div>
-                    <h2 class="font-semibold text-slate-950">Excel tồn kho</h2>
-                    <p class="mt-1 text-sm text-slate-500">Tải file mẫu, nhập tồn đầu kỳ hoặc xuất toàn bộ tồn kho.</p>
-                </div>
-                <div class="flex flex-wrap gap-2">
-                    <a href="{{ route('admin.pharma.inventory.opening.template') }}" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">Tải file mẫu</a>
-                    <a href="{{ route('admin.pharma.inventory.export') }}" class="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-800">Export toàn bộ</a>
-                </div>
-            </div>
-            @can('create_pharma')
-                <form method="POST" action="{{ route('admin.pharma.inventory.opening.import') }}" enctype="multipart/form-data" class="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 md:flex-row md:items-center">
-                    @csrf
-                    <input type="file" name="file" accept=".xlsx,.xls,.csv" required class="min-h-11 flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm">
-                    <button class="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white">Import tồn đầu kỳ</button>
-                </form>
-            @endcan
-        </div>
-    </details>
 
     <section class="grid gap-4 md:grid-cols-3">
         <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
@@ -177,9 +43,9 @@
             <p class="mt-1 text-xs text-amber-700">Các lô còn tồn nhưng chưa có giá vốn NCC đang hiệu lực.</p>
         </div>
         <div class="rounded-2xl border border-rose-200 bg-rose-50 p-5">
-            <p class="text-xs font-semibold uppercase tracking-wide text-rose-700">Giá trị hàng đã hết hạn</p>
+            <p class="text-xs font-semibold uppercase tracking-wide text-rose-700">Hàng hết hạn còn tồn</p>
             <p class="mt-2 text-2xl font-bold text-rose-950">{{ number_format($expiredInventoryValue, 0, ',', '.') }} đ</p>
-            <p class="mt-1 text-xs text-rose-700">Giá trị các lô còn tồn đã quá hạn dùng.</p>
+            <p class="mt-1 text-xs font-semibold text-rose-700">{{ number_format($expiredBalanceCount) }} lô còn tồn đã quá hạn dùng.</p>
         </div>
     </section>
 
