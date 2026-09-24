@@ -257,9 +257,10 @@ final class InventoryController extends Controller
     public function editReceipt(InventoryReceipt $receipt, InventoryService $inventory): View
     {
         $this->guardReceiptWarehouse($receipt,$inventory);
-        $receipt->load('items');
+        $receipt->load('items.medicine');
         $partners=Partner::query()->withPartnerType('supplier')->where('status','active')->orderBy('name')->get(['id','name','tax_code']);
-        return view('Pharma::pages.inventory.receipt-edit',compact('receipt','partners'));
+        $medicines=$this->medicines();
+        return view('Pharma::pages.inventory.receipt-edit',compact('receipt','partners','medicines'));
     }
 
     public function updateReceipt(Request $request, InventoryReceipt $receipt, InventoryService $inventory): RedirectResponse
@@ -280,6 +281,9 @@ final class InventoryController extends Controller
             'items.*.quantity'=>'required|numeric|gt:0','items.*.unit_price_ex_vat'=>'required|numeric|min:0',
             'items.*.vat_rate'=>'nullable|numeric|min:0|max:100',
         ]);
+        $duplicateKeys=collect($data['items'])->map(fn($item)=>(int)$item['medicine_id'].'|'.mb_strtolower(trim($item['batch_number'])).'|'.Carbon::parse($item['expiry_date'])->toDateString());
+        if($duplicateKeys->duplicates()->isNotEmpty()) throw ValidationException::withMessages(['items'=>'Không được trùng Thuốc + Số lô + Hạn dùng trong cùng phiếu nhập.']);
+
         DB::transaction(function()use($receipt,$metadata,$data){
             $locked=InventoryReceipt::query()->whereKey($receipt->id)->lockForUpdate()->firstOrFail();
             if($locked->status!==InventoryReceipt::DRAFT) throw ValidationException::withMessages(['receipt'=>'Phiếu không còn ở trạng thái nháp.']);
