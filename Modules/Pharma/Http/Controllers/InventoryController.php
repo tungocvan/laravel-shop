@@ -719,20 +719,24 @@ final class InventoryController extends Controller
                 }
             }
             if($kept===0) throw ValidationException::withMessages(['quantities'=>'Vui lòng giữ hoặc thêm ít nhất một sản phẩm có số lượng xuất lớn hơn 0.']);
-            $locked->deferredSupplies()->where('status',InventoryIssueDeferredSupply::PENDING)->delete();
+            $activeDeferredAllocationIds=[];
             foreach($locked->items()->get() as $draftItem){
                 $deferred=$data['deferred'][$draftItem->id]??[];
                 if(!filter_var($deferred['enabled']??false,FILTER_VALIDATE_BOOLEAN)) continue;
                 $note=trim((string)($deferred['note']??''));
                 if($note==='') throw ValidationException::withMessages(['deferred'=>"Vui lòng nhập ghi chú chờ cung cấp cho {$draftItem->medicine?->name}."]);
-                InventoryIssueDeferredSupply::create([
-                    'issue_id'=>$locked->id,'medicine_id'=>$draftItem->medicine_id,'drug_bid_award_id'=>$draftItem->drug_bid_award_id,
-                    'drug_bid_award_allocation_id'=>$draftItem->drug_bid_award_allocation_id,'quantity'=>(float)$draftItem->quantity,
-                    'expected_supply_date'=>$deferred['expected_supply_date']??null,'note'=>$note,
-                    'status'=>InventoryIssueDeferredSupply::PENDING,'created_by'=>auth('admin')->id(),
-                ]);
+                $activeDeferredAllocationIds[]=(int)$draftItem->drug_bid_award_allocation_id;
+                InventoryIssueDeferredSupply::updateOrCreate(
+                    ['issue_id'=>$locked->id,'drug_bid_award_allocation_id'=>$draftItem->drug_bid_award_allocation_id],
+                    ['medicine_id'=>$draftItem->medicine_id,'drug_bid_award_id'=>$draftItem->drug_bid_award_id,'quantity'=>(float)$draftItem->quantity,
+                     'expected_supply_date'=>$deferred['expected_supply_date']??null,'note'=>$note,'status'=>InventoryIssueDeferredSupply::PENDING,
+                     'created_by'=>auth('admin')->id()]
+                );
             }
-            $locked->update(['issue_date'=>$data['issue_date'],'notes'=>$data['notes']??null]);
+            $locked->deferredSupplies()->where('status',InventoryIssueDeferredSupply::PENDING)
+                ->when($activeDeferredAllocationIds,fn($q)=>$q->whereNotIn('drug_bid_award_allocation_id',$activeDeferredAllocationIds))
+                ->when(!$activeDeferredAllocationIds,fn($q)=>$q)->delete();
+            $locked->update(['notes'=>$data['notes']??null]);
         });
         return redirect()->route('admin.pharma.inventory.issues.bid-sales.edit',$issue)->with('success',"Đã lưu phiếu nháp {$issue->number}.");
     }
@@ -791,17 +795,17 @@ final class InventoryController extends Controller
                     if(!filter_var($deferred['enabled']??false,FILTER_VALIDATE_BOOLEAN)) throw ValidationException::withMessages(['deferred'=>"{$item->medicine?->name} còn thiếu ".number_format($deferredQuantity,3,'.','').". Hãy ghi nhận chờ cung cấp trước khi duyệt."]);
                     $note=trim((string)($deferred['note']??''));
                     if($note==='') throw ValidationException::withMessages(['deferred'=>"Vui lòng nhập ghi chú chờ cung cấp cho {$item->medicine?->name}."]);
-                    InventoryIssueDeferredSupply::create([
-                        'issue_id'=>$issue->id,'medicine_id'=>$item->medicine_id,'drug_bid_award_id'=>$item->drug_bid_award_id,
-                        'drug_bid_award_allocation_id'=>$item->drug_bid_award_allocation_id,'quantity'=>$deferredQuantity,
-                        'expected_supply_date'=>$deferred['expected_supply_date']??null,'note'=>$note,
-                        'status'=>InventoryIssueDeferredSupply::PENDING,'created_by'=>auth('admin')->id(),
-                    ]);
+                    InventoryIssueDeferredSupply::updateOrCreate(
+                        ['issue_id'=>$issue->id,'drug_bid_award_allocation_id'=>$item->drug_bid_award_allocation_id],
+                        ['medicine_id'=>$item->medicine_id,'drug_bid_award_id'=>$item->drug_bid_award_id,'quantity'=>$deferredQuantity,
+                         'expected_supply_date'=>$deferred['expected_supply_date']??null,'note'=>$note,
+                         'status'=>InventoryIssueDeferredSupply::PENDING,'created_by'=>auth('admin')->id()]
+                    );
                 }
             }
             if(!$newItems) throw ValidationException::withMessages(['batches'=>'Chưa có hàng thực xuất. Phiếu chỉ được ghi sổ khi có ít nhất một lô có số lượng xuất lớn hơn 0.']);
             $issue->items()->delete(); $issue->items()->createMany($newItems);
-            $issue->update(['issue_date'=>$data['issue_date'],'notes'=>$data['notes']??null]);
+            $issue->update(['notes'=>$data['notes']??null]);
             $inventory->postIssue($issue->fresh('items'),auth('admin')->id());
         });
         return redirect()->route('admin.pharma.inventory.issues.show',$issue)->with('success',"Đã duyệt lô và ghi sổ {$issue->number}.");
