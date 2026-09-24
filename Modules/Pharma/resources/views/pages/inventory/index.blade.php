@@ -27,6 +27,46 @@
         <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800">{{ $errors->first() }}</div>
     @endif
 
+    <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+                <h2 class="font-bold text-slate-950">Xuất – Nhập – Tồn theo kỳ</h2>
+                <p class="mt-1 text-sm text-slate-500">Mốc bắt đầu sổ kho: <strong>{{ $warehouse->opening_cutoff_at?->format('d/m/Y H:i') ?? 'Chưa ghi nhận tồn đầu kỳ' }}</strong></p>
+            </div>
+            <form method="GET" class="grid gap-2 sm:grid-cols-[auto_auto_auto_auto]">
+                <label class="text-xs font-semibold text-slate-600">Từ ngày<input type="date" name="from" value="{{ $from->format('Y-m-d') }}" class="mt-1 min-h-11 rounded-xl border border-slate-300 px-3 text-sm"></label>
+                <label class="text-xs font-semibold text-slate-600">Đến ngày<input type="date" name="to" value="{{ $to->format('Y-m-d') }}" class="mt-1 min-h-11 rounded-xl border border-slate-300 px-3 text-sm"></label>
+                <button class="mt-auto min-h-11 rounded-xl bg-indigo-600 px-4 text-sm font-bold text-white">Lọc dữ liệu</button>
+                <a href="{{ route('admin.pharma.inventory.index') }}" class="mt-auto flex min-h-11 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-semibold text-slate-700">Xóa bộ lọc</a>
+            </form>
+        </div>
+        <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            @foreach([
+                ['Tồn đầu kỳ',$movement['opening'],'slate'],
+                ['Nhập trong kỳ',$movement['in'],'emerald'],
+                ['Xuất trong kỳ',$movement['out'],'amber'],
+                ['Tồn cuối kỳ',$movement['closing'],'indigo'],
+            ] as [$label,$value,$tone])
+                <div class="rounded-xl border border-slate-200 bg-slate-50 p-4"><p class="text-xs font-bold uppercase text-slate-500">{{ $label }}</p><p class="mt-2 text-2xl font-extrabold text-slate-950">{{ number_format((float)$value,0,',','.') }}</p></div>
+            @endforeach
+        </div>
+        @if((float)$movement['opening_import'] > 0)
+            <p class="mt-3 text-xs text-slate-500">Trong kỳ có {{ number_format((float)$movement['opening_import'],0,',','.') }} đơn vị được ghi nhận bằng bút toán tồn đầu kỳ.</p>
+        @endif
+        <div class="mt-5 overflow-x-auto rounded-xl border border-slate-200">
+            <table class="min-w-full text-sm">
+                <thead class="bg-slate-50 text-left text-xs uppercase text-slate-500"><tr><th class="px-3 py-3">Mã thuốc</th><th class="px-3 py-3">Thuốc</th><th class="px-3 py-3">Lô / HSD</th><th class="px-3 py-3 text-right">Tồn đầu kỳ</th><th class="px-3 py-3 text-right">Nhập kỳ</th><th class="px-3 py-3 text-right">Xuất kỳ</th><th class="px-3 py-3 text-right">Tồn cuối kỳ</th></tr></thead>
+                <tbody class="divide-y divide-slate-100">
+                @forelse($movement['rows'] as $row)
+                    <tr><td class="px-3 py-3 font-mono text-xs font-semibold">{{ $row->medicine_code }}</td><td class="px-3 py-3 font-semibold">{{ $row->name }}</td><td class="px-3 py-3">{{ $row->batch_number }}<div class="text-xs text-slate-500">{{ \Carbon\Carbon::parse($row->expiry_date)->format('d/m/Y') }}</div></td><td class="px-3 py-3 text-right">{{ number_format((float)$row->period_opening,0,',','.') }}</td><td class="px-3 py-3 text-right text-emerald-700">{{ number_format((float)$row->period_in,0,',','.') }}</td><td class="px-3 py-3 text-right text-amber-700">{{ number_format((float)$row->period_out,0,',','.') }}</td><td class="px-3 py-3 text-right font-bold">{{ number_format((float)$row->period_closing,0,',','.') }}</td></tr>
+                @empty
+                    <tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">Chưa có dữ liệu kho trong khoảng thời gian đã chọn.</td></tr>
+                @endforelse
+                </tbody>
+            </table>
+        </div>
+    </section>
+
     <div class="grid gap-5 xl:grid-cols-2">
         @foreach([['type'=>'receipt','title'=>'Phiếu nhập gần đây','docs'=>$receipts,'index'=>'admin.pharma.inventory.receipts.index'],['type'=>'issue','title'=>'Phiếu xuất gần đây','docs'=>$issues,'index'=>'admin.pharma.inventory.issues.index']] as $panel)
             <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
