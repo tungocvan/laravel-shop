@@ -477,6 +477,15 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('SL lấy từ lô', $bidEdit);
         $this->assertStringContainsString('Duyệt & ghi sổ', $bidEdit);
         $this->assertStringContainsString('FEFO là gợi ý ưu tiên', $bidEdit);
+        $this->assertStringContainsString('+ Thêm sản phẩm trúng thầu', $bidEdit);
+        $this->assertStringContainsString('Tìm sản phẩm trúng thầu', $bidEdit);
+        $this->assertStringContainsString("name='add_allocations[]'", str_replace('"', "'", $bidEdit));
+        $this->assertStringContainsString('add_quantities[', $bidEdit);
+        $this->assertStringContainsString("where('partner_id',\$issue->bid_partner_id)", $controller);
+        $this->assertStringContainsString("whereNotIn('id',\$allocationIds)", $controller);
+        $this->assertStringContainsString("'add_allocations'=>'nullable|array'", $controller);
+        $this->assertStringContainsString('Sản phẩm trúng thầu đã có trong phiếu.', $controller);
+        $this->assertStringContainsString('Có sản phẩm không còn thuộc phân bổ hợp lệ của Chủ đầu tư/Bệnh viện này.', $controller);
         $this->assertStringContainsString('$stockReady=$rows->every', $bidEdit);
         $this->assertStringContainsString('@disabled(!$stockReady)', $bidEdit);
         $this->assertStringContainsString('Chưa thể duyệt vì có mặt hàng chưa có lô tồn khả dụng', $bidEdit);
