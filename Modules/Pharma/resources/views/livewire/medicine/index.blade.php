@@ -69,7 +69,24 @@
                         <td class="min-w-48 px-4 py-4"><div class="font-mono text-xs font-semibold text-slate-800">{{ $medicine->registration_number_primary ?: $medicine->registration_number ?: 'Chưa có GPLH' }}</div></td>
                         <td class="min-w-28 px-4 py-4"><span class="inline-flex rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{{ $medicine->circular_group ?: '—' }}</span></td>
                         <td class="min-w-60 px-4 py-4"><div class="font-medium">{{ $medicine->active_ingredients ?: '—' }}</div><div class="mt-1 text-xs text-slate-500">{{ $medicine->concentration ?: '—' }}</div></td>
-                        <td class="w-44 max-w-44 px-3 py-4 text-sm leading-5">{{ $medicine->packaging_specification ?: '—' }}</td>
+                        <td class="min-w-64 px-3 py-4 text-sm leading-5">
+                            @if($medicine->variants->isNotEmpty())
+                                <div class="space-y-2">
+                                    @foreach($medicine->variants as $variant)
+                                        <div class="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2">
+                                            <div class="font-medium text-slate-800">{{ $variant->presentation_text ?: $medicine->packaging_specification ?: '—' }}</div>
+                                            <div class="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
+                                                <span class="font-mono">{{ $variant->sku }}</span>
+                                                @if($variant->declared_price !== null)<span class="font-semibold text-emerald-700">{{ number_format((float)$variant->declared_price, 0, ',', '.') }} đ</span>@endif
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                                @if($medicine->variants_count > 1)<div class="mt-2 text-xs font-semibold text-indigo-700">{{ $medicine->variants_count }} quy cách / SKU</div>@endif
+                            @else
+                                {{ $medicine->packaging_specification ?: '—' }}
+                            @endif
+                        </td>
                         <td class="min-w-64 px-4 py-4">@php($medicineSuppliers = $medicine->supplierTrackings->pluck('partner.name')->filter()->unique()->values()) @if($medicineSuppliers->isEmpty())<span class="text-xs text-slate-400">Chưa thiết lập</span>@else<div class="space-y-1">@foreach($medicineSuppliers->take(2) as $supplierName)<div class="text-xs font-semibold text-slate-700">{{ $supplierName }}</div>@endforeach @if($medicineSuppliers->count() > 2)<div class="text-xs text-slate-500">+{{ $medicineSuppliers->count() - 2 }} NCC khác</div>@endif</div>@endif</td>
                         <td class="min-w-44 px-4 py-4">@if($medicine->currentProfile)<span class="inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">Có HSSP · v{{ $medicine->currentProfile->profile_version }}</span><div class="mt-2 text-xs text-slate-500">{{ $medicine->currentProfile->profile_status }}</div>@else<span class="inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-200">Chưa có HSSP</span>@endif</td>
                         <td class="min-w-36 px-4 py-4"><div class="font-semibold text-slate-800">{{ $medicine->sources_count }} nguồn</div><div class="mt-1 text-xs text-slate-500">{{ $medicine->drug_bid_awards_count }} awards</div></td>
@@ -94,7 +111,7 @@
                         <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">GPLH</dt><dd class="mt-1 break-words font-mono text-xs font-semibold text-slate-800">{{ $medicine->registration_number_primary ?: $medicine->registration_number ?: 'Chưa có GPLH' }}</dd></div>
                         <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Nhóm thuốc</dt><dd class="mt-1 font-semibold text-slate-700">{{ $medicine->circular_group ?: '—' }}</dd></div>
                         <div class="col-span-2"><dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Hoạt chất / Hàm lượng</dt><dd class="mt-1 font-medium text-slate-800">{{ $medicine->active_ingredients ?: '—' }}</dd><dd class="mt-0.5 text-xs text-slate-500">{{ $medicine->concentration ?: '—' }}</dd></div>
-                        <div class="col-span-2"><dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Quy cách</dt><dd class="mt-1 text-slate-700">{{ $medicine->packaging_specification ?: '—' }}</dd></div>
+                        <div class="col-span-2"><dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Quy cách / SKU</dt><dd class="mt-1 space-y-1 text-slate-700">@forelse($medicine->variants as $variant)<div>{{ $variant->presentation_text ?: $medicine->packaging_specification ?: '—' }} @if($variant->declared_price !== null)<span class="font-semibold text-emerald-700">· {{ number_format((float)$variant->declared_price, 0, ',', '.') }} đ</span>@endif</div>@empty<div>{{ $medicine->packaging_specification ?: '—' }}</div>@endforelse</dd></div>
                         <div class="col-span-2"><dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Nhà cung cấp</dt><dd class="mt-1 text-slate-700">{{ $medicine->supplierTrackings->pluck('partner.name')->filter()->unique()->join(', ') ?: 'Chưa thiết lập' }}</dd></div>
                     </dl>
                     <div class="flex flex-wrap items-center gap-2">@if($medicine->currentProfile)<span class="inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">Có HSSP · v{{ $medicine->currentProfile->profile_version }}</span>@else<span class="inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-200">Chưa có HSSP</span>@endif<span class="text-xs text-slate-500">{{ $medicine->sources_count }} nguồn · {{ $medicine->drug_bid_awards_count }} awards</span></div>
