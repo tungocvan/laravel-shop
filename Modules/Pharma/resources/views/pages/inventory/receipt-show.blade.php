@@ -1,4 +1,4 @@
-@extends('adminlte::page')
+@extends('Admin::layouts.master')
 @section('title','Phiếu nhập '.$receipt->number)
 @section('admin_container','full')
 @section('content')
