@@ -457,6 +457,10 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('function updateBidSaleIssue', $controller);
         $this->assertStringContainsString('issues/{issue}/bid-sale-edit', $routes);
         $this->assertStringContainsString('Sửa đơn hàng thầu', $documents);
+        $this->assertStringContainsString("\$doc->status === 'draft' && (\$doc->issue_source ?? 'normal') !== 'bid'", $documents);
+        $this->assertStringContainsString("!\(\$type === 'issue' && (\$doc->issue_source ?? 'normal') === 'bid'\)", str_replace(['(',')'], ['\\(','\\)'], $documents));
+        $this->assertStringContainsString('DrugBidAwardManagementAssignment::query()', $controller);
+        $this->assertStringNotContainsString("with(['partner','award.medicine','managementAssignments.user'])", $controller);
         $bidEdit=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/bid-sale-edit.blade.php'));
         $this->assertStringContainsString('Người phụ trách', $bidEdit);
         $this->assertStringContainsString('Tồn khả dụng', $bidEdit);
