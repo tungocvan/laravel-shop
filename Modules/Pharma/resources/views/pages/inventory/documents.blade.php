@@ -30,7 +30,7 @@
 
     <section class="flex min-h-0 flex-1 flex-col rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div class="min-h-[420px] flex-1 overflow-auto rounded-t-2xl">
-            <table class="{{ $type === 'issue' ? 'min-w-[1120px]' : 'min-w-[900px]' }} w-full table-fixed text-left text-sm">
+            <table class="min-w-[1120px] w-full table-fixed text-left text-sm">
                 <thead class="sticky top-0 z-10 bg-slate-50 text-xs uppercase text-slate-600 shadow-[0_1px_0_0_rgb(226_232_240)]">
                     <tr>
                         <th class="w-[180px] px-4 py-3">Mã phiếu</th><th class="w-[110px] px-4 py-3">Ngày</th>
@@ -60,20 +60,14 @@
                             <td class="px-4 py-4 text-right">
                                 <div class="flex flex-wrap justify-end gap-2">
                                     @if($type === 'receipt')
-                                        <a href="{{ route('admin.pharma.inventory.receipts.show',$doc) }}" class="text-xs font-semibold text-slate-700">Xem</a>
-                                        @can('edit_pharma')
-                                            <a href="{{ route('admin.pharma.inventory.receipts.edit',$doc) }}" class="text-xs font-semibold text-indigo-700">{{ $doc->status === 'draft' ? 'Sửa' : 'Cập nhật' }}</a>
-                                            @if($doc->status === 'draft')
-                                                <button type="button" onclick="document.getElementById('post-{{ $type }}-{{ $doc->id }}').showModal()" class="text-xs font-semibold text-emerald-700">Ghi sổ</button>
-                                            @endif
-                                        @endcan
-                                        @can('delete_pharma')
-                                            @if($doc->status === 'draft')
-                                                <button type="button" onclick="document.getElementById('delete-receipt-{{ $doc->id }}').showModal()" class="text-xs font-semibold text-rose-700">Xóa</button>
-                                            @elseif($doc->status === 'posted')
-                                                <button type="button" onclick="document.getElementById('revert-receipt-{{ $doc->id }}').showModal()" class="text-xs font-semibold text-amber-700">Hoàn tác ghi sổ</button>
-                                            @endif
-                                        @endcan
+                                        <a href="{{ route('admin.pharma.inventory.receipts.show',$doc) }}" class="inline-flex min-h-9 items-center rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50">Xem</a>
+                                        <details class="relative"><summary class="flex min-h-9 cursor-pointer list-none items-center rounded-lg border border-slate-300 bg-white px-3 text-base font-bold leading-none text-slate-600 hover:bg-slate-50" aria-label="Thao tác phiếu nhập">⋯</summary>
+                                         <div class="absolute right-0 z-30 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-left shadow-xl">
+                                          @can('edit_pharma')<a href="{{ route('admin.pharma.inventory.receipts.edit',$doc) }}" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">{{ $doc->status === 'draft' ? 'Sửa phiếu' : 'Cập nhật phiếu' }}</a>@if($doc->status === 'draft')<button type="button" onclick="this.closest('details').removeAttribute('open'); document.getElementById('post-{{ $type }}-{{ $doc->id }}').showModal()" class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-emerald-700 hover:bg-emerald-50">Ghi sổ</button>@endif @endcan
+                                          <a href="{{ route('admin.pharma.inventory.receipts.pdf',$doc) }}" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Tải PDF</a>
+                                          <a href="{{ route('admin.pharma.inventory.receipts.print',$doc) }}" target="_blank" rel="noopener" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">In trực tiếp</a>
+                                          @can('delete_pharma')<div class="my-1 border-t border-slate-100"></div>@if($doc->status === 'draft')<button type="button" onclick="this.closest('details').removeAttribute('open'); document.getElementById('delete-receipt-{{ $doc->id }}').showModal()" class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-rose-700 hover:bg-rose-50">Xóa phiếu</button>@elseif($doc->status === 'posted')<button type="button" onclick="this.closest('details').removeAttribute('open'); document.getElementById('revert-receipt-{{ $doc->id }}').showModal()" class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-amber-700 hover:bg-amber-50">Hoàn tác ghi sổ</button>@endif @endcan
+                                         </div></details>
                                     @else
                                         <a href="{{ route('admin.pharma.inventory.issues.show',$doc) }}" class="inline-flex min-h-9 items-center rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50">Xem</a>
                                         <details class="relative">
