@@ -772,7 +772,7 @@ final class InventoryController extends Controller
             'deferred'=>'nullable|array','deferred.*.enabled'=>'nullable|boolean',
             'deferred.*.expected_supply_date'=>'nullable|date','deferred.*.note'=>'nullable|string|max:2000',
         ]);
-        DB::transaction(function()use($issue,$data,$inventory){
+        DB::transaction(function()use($issue,$data,$inventory,$commissions){
             $issue=InventoryIssue::query()->lockForUpdate()->findOrFail($issue->id); $issue->load('items.medicine');
             if($issue->status!==InventoryIssue::DRAFT || ($issue->issue_source ?? 'normal')!=='bid') throw ValidationException::withMessages(['issue'=>'Phiếu hàng thầu không còn ở trạng thái nháp.']);
             $posted=DB::table('pharma_inventory_issue_items as ii')->join('pharma_inventory_issues as i','i.id','=','ii.issue_id')
