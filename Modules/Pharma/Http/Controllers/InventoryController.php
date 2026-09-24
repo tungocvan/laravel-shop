@@ -480,6 +480,10 @@ final class InventoryController extends Controller
     public function showIssue(InventoryIssue $issue, InventoryService $inventory): View
     {
         $this->guardIssueWarehouse($issue,$inventory);
+        if(($issue->issue_source ?? 'normal')==='bid' && $issue->status===InventoryIssue::DRAFT){
+            return redirect()->route('admin.pharma.inventory.issues.show',$issue)
+                ->with('info','Phiếu hàng thầu được chỉnh số lượng từ nghiệp vụ phân bổ; lô thực xuất được chọn khi Ghi sổ.');
+        }
         $issue->load(['items.medicine','priceList.manager']);
         $settings=InventoryIssueDocumentSetting::current();
         return view('Pharma::pages.inventory.issue-show',compact('issue','settings'));
