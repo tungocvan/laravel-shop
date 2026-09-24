@@ -85,6 +85,7 @@ Route::prefix('admin/pharma')->name('admin.pharma.')->middleware(['web', 'auth:a
 
     Route::prefix('inventory')->name('inventory.')->middleware('can:view_pharma')->group(function () {
         Route::get('/', [InventoryController::class, 'index'])->name('index');
+        Route::get('/movements', [InventoryController::class, 'movements'])->name('movements.index');
         Route::get('/opening/template', [InventoryController::class, 'template'])->name('opening.template');
         Route::post('/opening/import', [InventoryController::class, 'importOpening'])->middleware('can:create_pharma')->name('opening.import');
         Route::get('/export', [InventoryController::class, 'export'])->name('export');
