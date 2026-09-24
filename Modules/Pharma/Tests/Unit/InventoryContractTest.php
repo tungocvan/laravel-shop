@@ -506,6 +506,9 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("\$locked->deferredSupplies()->where('status',InventoryIssueDeferredSupply::PENDING)->delete()", $controller);
         $this->assertStringContainsString("\$savedDeferred=\$issue->deferredSupplies", $controller);
         $this->assertStringContainsString("\$savedSupply=\$savedDeferred->get(\$row['allocation_id'])", $bidEdit);
+        $this->assertStringContainsString("document.querySelectorAll('[data-defer-toggle]').forEach", $bidEdit);
+        $this->assertStringNotContainsString("@if(\$addableAllocations->isNotEmpty())\n<script>\ndocument.addEventListener('DOMContentLoaded'", $bidEdit);
+        $this->assertStringContainsString("const hasPending=pending ? pending.children.length>0 : false", $bidEdit);
         $this->assertStringContainsString('Hiện kho đang hết hàng. Đơn hàng dự kiến cung cấp lại.', $bidEdit);
         $this->assertStringContainsString('data-defer-enabled', $bidEdit);
         $this->assertStringContainsString("postButton.disabled=hasPending || !hasPostableStock || unresolved", $bidEdit);
