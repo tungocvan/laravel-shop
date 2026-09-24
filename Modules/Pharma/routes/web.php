@@ -113,15 +113,15 @@ Route::prefix('admin/pharma')->name('admin.pharma.')->middleware(['web', 'auth:a
         Route::get('/issues/export', [InventoryController::class, 'exportIssues'])->name('issues.export');
         Route::get('/issues/{issue}/bid-sale-edit', [InventoryController::class, 'editBidSaleIssue'])->middleware('can:edit_pharma')->name('issues.bid-sales.edit');
         Route::put('/issues/{issue}/bid-sale', [InventoryController::class, 'updateBidSaleIssue'])->middleware('can:edit_pharma')->name('issues.bid-sales.update');
-        Route::get('/issues/{issue}/bid-sale-batches', [InventoryController::class, 'bidSaleBatches'])->middleware('can:edit_pharma')->name('issues.bid-sales.batches');
-        Route::post('/issues/{issue}/bid-sale-post', [InventoryController::class, 'postBidSaleIssue'])->middleware('can:edit_pharma')->name('issues.bid-sales.post');
+        Route::get('/issues/{issue}/bid-sale-batches', [InventoryController::class, 'bidSaleBatches'])->middleware('can:approve_pharma_inventory_issue')->name('issues.bid-sales.batches');
+        Route::post('/issues/{issue}/bid-sale-post', [InventoryController::class, 'postBidSaleIssue'])->middleware('can:approve_pharma_inventory_issue')->name('issues.bid-sales.post');
         Route::get('/issues/{issue}/pdf', [InventoryController::class, 'issuePdf'])->name('issues.pdf');
         Route::get('/issues/{issue}/print', [InventoryController::class, 'issuePrint'])->name('issues.print');
         Route::get('/issues/{issue}', [InventoryController::class, 'showIssue'])->name('issues.show');
         Route::get('/issues/{issue}/edit', [InventoryController::class, 'editIssue'])->middleware('can:edit_pharma')->name('issues.edit');
         Route::put('/issues/{issue}', [InventoryController::class, 'updateIssue'])->middleware('can:edit_pharma')->name('issues.update');
         Route::delete('/issues/{issue}', [InventoryController::class, 'destroyIssue'])->middleware('can:delete_pharma')->name('issues.destroy');
-        Route::post('/issues/{issue}/post', [InventoryController::class, 'postIssue'])->middleware('can:edit_pharma')->name('issues.post');
+        Route::post('/issues/{issue}/post', [InventoryController::class, 'postIssue'])->middleware('can:approve_pharma_inventory_issue')->name('issues.post');
         Route::post('/issues/{issue}/revert', [InventoryController::class, 'revertIssue'])->middleware('can:delete_pharma')->name('issues.revert');
     });
 
