@@ -74,7 +74,7 @@
                         <td class="px-3 py-3 text-center"><input form="movement-selected-export" data-movement-check type="checkbox" name="ids[]" value="{{ $row->id }}" class="h-4 w-4 rounded border-slate-300"></td>
                         <td class="px-3 py-3 font-mono text-xs font-semibold text-indigo-700">{{ $row->medicine_code }}</td>
                         <td class="px-3 py-3 font-semibold">{{ $row->name }}</td>
-                        <td class="px-3 py-3">{{ $row->batch_number }}<div class="text-xs text-slate-500">{{ CarbonCarbon::parse($row->expiry_date)->format('d/m/Y') }}</div></td>
+                        <td class="px-3 py-3">{{ $row->batch_number }}<div class="text-xs text-slate-500">{{ \Carbon\Carbon::parse($row->expiry_date)->format('d/m/Y') }}</div></td>
                         <td class="px-3 py-3 text-right">{{ number_format((float)$row->period_opening,0,',','.') }}</td>
                         <td class="px-3 py-3 text-right text-emerald-700">{{ number_format((float)$row->period_in,0,',','.') }}</td>
                         <td class="px-3 py-3 text-right text-amber-700">{{ number_format((float)$row->period_out,0,',','.') }}</td>
