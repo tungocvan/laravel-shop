@@ -154,9 +154,10 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("nextDocumentNumber(InventoryIssue::class,'PX')", $controller);
         $this->assertStringContainsString("lockForUpdate()", $controller);
         $this->assertStringContainsString("format('ymd')", $controller);
-        $this->assertStringContainsString('Xác nhận ghi sổ', $index);
-        $this->assertStringNotContainsString("return confirm('Ghi sổ", $index);
-        $this->assertStringContainsString('Xem tất cả →', $index);
+        $this->assertStringContainsString('Xác nhận ghi sổ', $documents);
+        $this->assertStringNotContainsString("return confirm('Ghi sổ", $documents);
+        $this->assertStringNotContainsString('Phiếu nhập gần đây', $index);
+        $this->assertStringNotContainsString('Phiếu xuất gần đây', $index);
         $this->assertStringContainsString('Tên thuốc / Mã thuốc', $issueForm);
         $this->assertStringContainsString('Số lô · Hạn dùng · Tồn khả dụng', $issueForm);
         $this->assertStringContainsString('<x-select-search id="issue-recipient"', $issueForm);
