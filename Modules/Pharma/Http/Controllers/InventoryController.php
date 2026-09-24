@@ -862,6 +862,43 @@ final class InventoryController extends Controller
         ));
     }
 
+    public function exportCommissions(Request $request): StreamedResponse
+    {
+        $data=$request->validate([
+            'from'=>'nullable|date','to'=>'nullable|date','user_id'=>'nullable|integer',
+            'partner_id'=>'nullable|integer','medicine_id'=>'nullable|integer',
+            'ids'=>'nullable|array|max:500','ids.*'=>'integer|distinct',
+        ]);
+        $from=!empty($data['from']) ? Carbon::parse($data['from'])->startOfDay() : now()->startOfMonth();
+        $to=!empty($data['to']) ? Carbon::parse($data['to'])->endOfDay() : now()->endOfMonth();
+
+        $query=InventoryIssueCommission::query()
+            ->with(['issue','medicine','user','partner'])
+            ->whereBetween('calculated_at',[$from,$to])
+            ->when(!empty($data['user_id']),fn($q)=>$q->where('user_id',(int)$data['user_id']))
+            ->when(!empty($data['partner_id']),fn($q)=>$q->where('partner_id',(int)$data['partner_id']))
+            ->when(!empty($data['medicine_id']),fn($q)=>$q->where('medicine_id',(int)$data['medicine_id']))
+            ->when(!empty($data['ids']),fn($q)=>$q->whereIn('id',$data['ids']))
+            ->orderBy('calculated_at')->orderBy('id');
+
+        $rows=$query->get()->map(fn(InventoryIssueCommission $row)=>[
+            'Ngày ghi sổ'=>$row->calculated_at?->format('d/m/Y H:i'),
+            'Số phiếu'=>$row->issue?->number,
+            'Bệnh viện'=>$row->partner?->name,
+            'Mã sản phẩm'=>$row->medicine?->medicine_code,
+            'Sản phẩm'=>$row->medicine?->name,
+            'User phụ trách'=>$row->user?->name ?: 'Chưa phân công',
+            'SL thực xuất'=>(float)$row->quantity,
+            'Đơn giá trúng thầu'=>(float)$row->unit_price,
+            'Doanh thu'=>(float)$row->revenue_amount,
+            '% hoa hồng'=>$row->commission_percentage !== null ? (float)$row->commission_percentage : null,
+            'Hoa hồng'=>(float)$row->commission_amount,
+            'Trạng thái'=>$row->status===InventoryIssueCommission::STATUS_UNRESOLVED ? 'Chưa đủ dữ liệu' : 'Đã tính',
+        ]);
+
+        return (new FastExcel($rows))->download('pharma-hoa-hong-'.now()->format('Ymd-His').'.xlsx');
+    }
+
     private function issueSalePriceCandidates()
     {
         return PriceListItem::query()
