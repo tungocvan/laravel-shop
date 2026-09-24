@@ -4,10 +4,10 @@
 @php
 $totalValue=$issue->items->sum(fn($i)=>(float)$i->quantity*(float)$i->unit_price);
 $signatures=collect([
-    ['show'=>$settings->show_issuer_signature,'label'=>$settings->issuer_label],
-    ['show'=>$settings->show_deliverer_signature,'label'=>$settings->deliverer_label],
-    ['show'=>$settings->show_receiver_signature,'label'=>$settings->receiver_label],
-    ['show'=>$settings->show_keeper_signature,'label'=>$settings->keeper_label],
+    ['show'=>$settings->show_issuer_signature,'label'=>$settings->issuer_label,'receiver'=>false],
+    ['show'=>$settings->show_deliverer_signature,'label'=>$settings->deliverer_label,'receiver'=>false],
+    ['show'=>$settings->show_receiver_signature,'label'=>$settings->receiver_label,'receiver'=>true],
+    ['show'=>$settings->show_keeper_signature,'label'=>$settings->keeper_label,'receiver'=>false],
 ])->where('show',true)->values();
 $signatureWidth=$signatures->count() > 0 ? (100 / $signatures->count()) : 100;
 @endphp
@@ -41,7 +41,7 @@ $signatureWidth=$signatures->count() > 0 ? (100 / $signatures->count()) : 100;
 @if($settings->show_total_value)
 <th>Thành tiền</th>
 @endif</tr></thead><tbody>
-@foreach($issue->items as $item)<tr><td class="center">{{ $loop->iteration }}</td><td>{{ $item->medicine->medicine_code }}</td><td><span class="name">{{ $item->medicine->name }}</span>@if($item->medicine->packaging_specification)<br><span class="small">{{ $item->medicine->packaging_specification }}</span>@endif</td><td class="center">{{ $item->medicine->unit ?: '—' }}</td><td>{{ $item->batch_number }}</td><td class="center">{{ $item->expiry_date->format('d/m/Y') }}</td><td class="right">{{ number_format((float)$item->quantity,3,',','.') }}</td>
+@foreach($issue->items as $item)<tr><td class="center">{{ $loop->iteration }}</td><td>{{ $item->medicine->medicine_code }}</td><td><span class="name">{{ $item->medicine->name }}</span>@if($item->medicine->packaging_specification)<br><span class="small">{{ $item->medicine->packaging_specification }}</span>@endif</td><td class="center">{{ $item->medicine->unit ?: '—' }}</td><td>{{ $item->batch_number }}</td><td class="center">{{ $item->expiry_date->format('d/m/Y') }}</td><td class="right">{{ number_format((float)$item->quantity,0,',','.') }}</td>
 @if($settings->show_unit_price)
 <td class="right">{{ number_format((float)$item->unit_price,0,',','.') }}</td>
 @endif
@@ -65,11 +65,11 @@ $signatureWidth=$signatures->count() > 0 ? (100 / $signatures->count()) : 100;
 <br><b>Tổng giá trị:</b> {{ number_format($totalValue,0,',','.') }} đồng
 @endif
 </div>
-@if($settings->show_notes)<div class="note"><b>Ghi chú:</b> {{ $issue->notes ?: 'Không có ghi chú.' }}</div>@endif
+@if($settings->show_notes && filled($issue->notes))<div class="note"><b>Ghi chú:</b> {{ $issue->notes }}</div>@endif
 @if($signatures->isNotEmpty())
 <table class="sign"><tr>
 @foreach($signatures as $signature)
-<td style="width: {{ $signatureWidth }}%">{{ $signature['label'] }}<br><span class="muted small">(Ký, ghi rõ họ tên)</span><div class="space"></div></td>
+<td style="width: {{ $signatureWidth }}%">{{ $signature['label'] }}@if($signature['receiver'])<br><span class="muted small">Ngày ..... tháng ..... năm .....</span>@endif<br><span class="muted small">(Ký, ghi rõ họ tên)</span><div class="space"></div></td>
 @endforeach
 </tr></table>
 @endif
