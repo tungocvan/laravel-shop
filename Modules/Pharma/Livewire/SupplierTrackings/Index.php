@@ -22,6 +22,8 @@ class Index extends Component
 
     public string $medicineId = '';
 
+    public string $purchasePrice = '';
+
     public array $supplierFilterOptions = [];
 
     public array $medicineFilterOptions = [];
@@ -45,6 +47,7 @@ class Index extends Component
         'status' => ['except' => ''],
         'supplierId' => ['except' => ''],
         'medicineId' => ['except' => ''],
+        'purchasePrice' => ['except' => ''],
         'perPage' => ['except' => 10],
         'page' => ['except' => 1],
     ];
@@ -76,6 +79,12 @@ class Index extends Component
 
     public function updatedMedicineId(): void
     {
+        $this->resetWorkspacePage();
+    }
+
+    public function updatedPurchasePrice(): void
+    {
+        $this->purchasePrice = in_array($this->purchasePrice, ['with', 'missing', 'zero'], true) ? $this->purchasePrice : '';
         $this->resetWorkspacePage();
     }
 
@@ -118,7 +127,7 @@ class Index extends Component
 
     public function resetFilters(): void
     {
-        $this->reset(['search', 'status', 'supplierId', 'medicineId']);
+        $this->reset(['search', 'status', 'supplierId', 'medicineId', 'purchasePrice']);
         $service = app(SupplierTrackingService::class);
         $this->refreshSupplierFilterOptions($service);
         $this->refreshMedicineFilterOptions($service);
@@ -250,6 +259,7 @@ class Index extends Component
             'status' => $this->status,
             'partner_id' => $this->supplierId,
             'medicine_id' => $this->medicineId,
+            'purchase_price' => $this->purchasePrice,
         ];
     }
 
