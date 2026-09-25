@@ -244,6 +244,7 @@ class Index extends Component
             'items' => $items,
             'statuses' => $this->statuses(),
             'perPageOptions' => self::PER_PAGE_OPTIONS,
+            'workspaceStats' => $service->workspaceStats($this->filters()),
         ]);
     }
 
