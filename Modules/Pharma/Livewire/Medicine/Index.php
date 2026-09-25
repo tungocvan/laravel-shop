@@ -3,7 +3,9 @@
 namespace Modules\Pharma\Livewire\Medicine;
 
 use Exception;
+use Livewire\Attributes\On;
 use Livewire\Component;
+use Modules\Partner\Models\Partner;
 use LogicException;
 use Modules\Pharma\Livewire\Concerns\AuthorizesPharmaActions;
 use Modules\Pharma\Models\Medicine;
@@ -31,6 +33,10 @@ class Index extends Component
 
     public string $filterSupplier = '';
 
+    public array $supplierFilterOptions = [];
+
+    public bool $showImportExport = false;
+
     public string $filterDeletable = '';
 
     public string $filterRegistration = '';
@@ -53,6 +59,7 @@ class Index extends Component
     {
         $this->authorizePharmaView();
         $this->perPage = $this->normalizePerPage($this->perPage);
+        $this->refreshSupplierFilterOptions(app(MedicineService::class));
     }
 
     public function updatedSearch(): void
@@ -100,6 +107,17 @@ class Index extends Component
         $this->resetWorkspacePage();
     }
 
+    #[On('medicine-supplier-filter-search')]
+    public function searchSupplierFilter(string $search = ''): void
+    {
+        $this->refreshSupplierFilterOptions(app(MedicineService::class), $search);
+    }
+
+    public function toggleImportExport(): void
+    {
+        $this->showImportExport = ! $this->showImportExport;
+    }
+
     public function updatedFilterProfileStatus(): void
     {
         $this->filterProfileStatus = array_key_exists($this->filterProfileStatus, $this->profileStatusOptions())
@@ -143,6 +161,8 @@ class Index extends Component
         $this->reset(['filterCircularGroup', 'filterSpecialControl', 'filterProfileStatus', 'filterHssp', 'filterSupplier', 'filterDeletable', 'filterRegistration']);
         $this->perPage = 10;
         $this->page = 1;
+        $this->refreshSupplierFilterOptions(app(MedicineService::class));
+        $this->dispatch('medicine-filters-reset');
         $this->clearSelection();
     }
 
@@ -266,7 +286,7 @@ class Index extends Component
             'circularGroups' => $medicineService->getUniqueCircularGroups(),
             'perPageOptions' => self::PER_PAGE_OPTIONS,
             'profileStatusOptions' => $this->profileStatusOptions(),
-            'supplierOptions' => $medicineService->getSupplierOptions(),
+            'catalogStats' => $medicineService->catalogStats(),
         ]);
     }
 
@@ -310,6 +330,17 @@ class Index extends Component
     {
         $this->deleteResultType = $type;
         $this->deleteResultMessage = $message;
+    }
+
+    private function refreshSupplierFilterOptions(MedicineService $service, string $search = ''): void
+    {
+        $this->supplierFilterOptions = $service
+            ->supplierFilterCandidates($search, $this->filterSupplier !== '' ? (int) $this->filterSupplier : null)
+            ->map(fn (Partner $partner): array => [
+                'id' => $partner->id,
+                'label' => $partner->name.($partner->tax_code ? ' · MST '.$partner->tax_code : ''),
+            ])
+            ->all();
     }
 
     private function normalizePerPage(mixed $value): int
