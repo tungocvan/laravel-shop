@@ -66,6 +66,12 @@ class Index extends Component
         $this->resetWorkspacePage();
     }
 
+    public function clearSearch(): void
+    {
+        $this->search = '';
+        $this->resetWorkspacePage();
+    }
+
     public function updatedStatus(): void
     {
         $this->status = in_array($this->status, array_keys($this->statuses()), true) ? $this->status : '';
@@ -74,11 +80,13 @@ class Index extends Component
 
     public function updatedSupplierId(): void
     {
+        $this->refreshSupplierFilterOptions(app(SupplierTrackingService::class));
         $this->resetWorkspacePage();
     }
 
     public function updatedMedicineId(): void
     {
+        $this->refreshMedicineFilterOptions(app(SupplierTrackingService::class));
         $this->resetWorkspacePage();
     }
 
