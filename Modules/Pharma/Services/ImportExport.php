@@ -205,6 +205,14 @@ class ImportExport extends BaseImportExportService
             ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
             ->when($filters['partner_id'] ?? null, fn ($query, $partnerId) => $query->where('partner_id', (int) $partnerId))
             ->when($filters['medicine_id'] ?? null, fn ($query, $medicineId) => $query->where('medicine_id', (int) $medicineId))
+            ->when($filters['purchase_price'] ?? null, function ($query, string $priceFilter): void {
+                match ($priceFilter) {
+                    'with' => $query->whereNotNull('import_price')->where('import_price', '>', 0),
+                    'missing' => $query->whereNull('import_price'),
+                    'zero' => $query->whereNotNull('import_price')->where('import_price', 0),
+                    default => null,
+                };
+            })
             ->when($filters['working_date_from'] ?? null, fn ($query, $date) => $query->whereDate('working_date', '>=', $date))
             ->when($filters['working_date_to'] ?? null, fn ($query, $date) => $query->whereDate('working_date', '<=', $date))
             ->latest('id')
