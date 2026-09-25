@@ -18,6 +18,7 @@
             <p class="mt-2 max-w-4xl text-sm leading-6 text-slate-600">Nguồn chuẩn thuốc dùng chung toàn ERP. Thuốc có hoặc chưa có HSSP đều nằm tại đây; Inventory, Invoices, Muasamcong và các consumer khác resolve về Medicine/Variant/SKU của Pharma.</p>
         <div class="flex flex-wrap gap-2">
             <a href="{{ route('admin.pharma.hssp.index') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Quản lý HSSP</a>
+            <a href="{{ route('admin.pharma.medicines.export') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-100">Export danh mục thuốc chuẩn</a>
             @if($canEdit)
                 <a href="{{ route('admin.pharma.medicines.import.index') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm font-semibold text-indigo-700 hover:bg-indigo-100">Import danh mục thuốc chuẩn</a>
             @endif
