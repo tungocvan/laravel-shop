@@ -6,6 +6,6 @@
     <div class="container-fluid">
         @include('Pharma::pages.partials.dashboard-back')
 
-        @livewire('pharma.supplier-trackings.form', ['medicineId' => $medicineId])
+        @livewire('pharma.supplier-trackings.form', ['id' => $existingTrackingId, 'medicineId' => $medicineId])
     </div>
 @endsection
