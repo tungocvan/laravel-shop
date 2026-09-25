@@ -21,7 +21,7 @@ class PharmaDashboardContractTest extends TestCase
         $this->assertStringContainsString("manual_cost_price", $service);
         $this->assertStringContainsString("AVG(cost_price) as average_cost_price", $service);
         $this->assertStringContainsString("defaultWarehouse()", $service);
-        $this->assertStringContainsString("whereDate('expiry_date', '<=', now()->addDays(90))", $service);
+        $this->assertStringContainsString("whereDate('expiry_date', '<=', $today->copy()->addDays(90))", $service);
         $this->assertStringContainsString("InventoryIssueDeferredSupply::PENDING", $service);
         $this->assertStringContainsString("InventoryIssueCommission::STATUS_UNRESOLVED", $service);
         $this->assertStringContainsString("DrugBidAwardMatch::REVIEW_PENDING", $service);
