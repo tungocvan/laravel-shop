@@ -29,5 +29,9 @@ class SupplierTrackingIndexUxContractTest extends TestCase
         $this->assertStringContainsString('workspaceStats', $component);
         $this->assertStringContainsString('sản phẩm', $view);
         $this->assertStringContainsString('nhà cung cấp', $view);
+        $this->assertStringContainsString('lg:grid-cols-16', $view);
+        $this->assertStringContainsString('items-end', $view);
+        $this->assertStringContainsString('h-11 w-full', $view);
+        $this->assertStringContainsString('height: 44px !important;', $selectSearch);
     }
 }
