@@ -45,7 +45,7 @@ function selectSearchComponent(config) {
                     if (config.model) {
                         // Wait for Livewire to persist the selected value before a following
                         // action (for example Save) can be sent from the same component.
-                        this.$wire.set(config.model, value, false);
+                        this.$wire.set(config.model, value);
                     }
                 },
                 onType: (query) => {
