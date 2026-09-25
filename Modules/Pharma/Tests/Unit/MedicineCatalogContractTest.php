@@ -60,6 +60,8 @@ class MedicineCatalogContractTest extends TestCase
         $this->assertStringContainsString('Export danh mục thuốc chuẩn', $view);
         $this->assertStringContainsString("'Mã thuốc' => \$medicine->medicine_code", $controller);
         $this->assertStringContainsString("'SKU' => \$variant?->sku", $controller);
+        $this->assertStringContainsString("'pharma_medicine_profiles.medicine_id'", $controller);
+        $this->assertStringContainsString("'pharma_medicine_profiles.is_current'", $controller);
         $this->assertStringContainsString("'medicine_code' => 'MED-'.str_pad", $service);
         $this->assertStringNotContainsString("medicine_code' =>", substr($service, strpos($service, 'public function update('), strpos($service, 'public function verifyMaster(') - strpos($service, 'public function update(')));
     }
