@@ -23,5 +23,11 @@ class SupplierTrackingIndexUxContractTest extends TestCase
         $this->assertStringContainsString('Đặt lại', $view);
         $this->assertStringContainsString("'purchase_price' => \$purchasePrice", $view);
         $this->assertStringContainsString("\$filters['purchase_price']", $export);
+        $selectSearch = file_get_contents(base_path('resources/views/components/select-search.blade.php'));
+        $this->assertStringContainsString('this.$wire.set(config.model, value);', $selectSearch);
+        $this->assertStringNotContainsString('this.$wire.set(config.model, value, false);', $selectSearch);
+        $this->assertStringContainsString('workspaceStats', $component);
+        $this->assertStringContainsString('sản phẩm', $view);
+        $this->assertStringContainsString('nhà cung cấp', $view);
     }
 }
