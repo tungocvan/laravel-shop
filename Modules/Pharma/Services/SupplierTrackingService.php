@@ -28,6 +28,17 @@ class SupplierTrackingService
             ->paginate($perPage, ['*'], 'page', max(1, $page));
     }
 
+    public function workspaceStats(array $filters = []): array
+    {
+        $query = $this->queryForFilters($filters);
+
+        return [
+            'trackings' => (clone $query)->count(),
+            'medicines' => (clone $query)->whereNotNull('medicine_id')->distinct()->count('medicine_id'),
+            'suppliers' => (clone $query)->whereNotNull('partner_id')->distinct()->count('partner_id'),
+        ];
+    }
+
     public function medicineCandidates(string $search = '', ?int $selectedId = null, int $limit = 25): Collection
     {
         $limit = max(1, min(25, $limit));
