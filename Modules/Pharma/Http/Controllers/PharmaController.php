@@ -4,6 +4,7 @@ namespace Modules\Pharma\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\Request;
 use Modules\Pharma\Models\Medicine;
 use Rap2hpoutre\FastExcel\FastExcel;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -24,9 +25,16 @@ class PharmaController extends Controller
         return view('Pharma::pages.index');
     }
 
-    public function export(): StreamedResponse
+    public function export(Request $request): StreamedResponse
     {
+        $selectedIds = collect(explode(',', (string) $request->query('ids', '')))
+            ->map(fn ($id) => (int) trim($id))
+            ->filter(fn (int $id) => $id > 0)
+            ->unique()
+            ->values();
+
         $rows = Medicine::query()
+            ->when($selectedIds->isNotEmpty(), fn ($query) => $query->whereKey($selectedIds->all()))
             ->with([
                 'variants:id,medicine_id,sku,declared_price,is_default',
                 'currentProfile' => fn ($query) => $query->select([
