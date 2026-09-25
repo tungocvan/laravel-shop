@@ -63,7 +63,7 @@
             <p class="text-sm font-medium text-indigo-950">Đã chọn <strong>{{ count($selectedIds) }}</strong> thuốc trên trang hiện tại.</p>
             <div class="flex flex-wrap gap-2">
                 <a href="{{ route('admin.pharma.medicines.export', ['ids' => implode(',', $selectedIds)]) }}" class="inline-flex min-h-10 items-center rounded-xl border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700">Export Excel đã chọn</a>
-                @if($canDelete)<button type="button" wire:click="deleteSelected" wire:confirm="Xóa các thuốc được chọn?" class="inline-flex min-h-10 items-center rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white">Xóa mục đã chọn</button>@endif
+                @if($canDelete && $filterDeletable === 'yes')<button type="button" wire:click="deleteSelected" wire:confirm="Xóa các thuốc được chọn?" class="inline-flex min-h-10 items-center rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white">Xóa mục đã chọn</button>@endif
             </div>
         </section>
     @endif
