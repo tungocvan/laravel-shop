@@ -78,7 +78,8 @@ class MedicineCatalogContractTest extends TestCase
         $this->assertStringContainsString('medicine-supplier-filter-search', $component);
         $this->assertStringContainsString('supplierFilterCandidates', $service);
         $this->assertStringContainsString("'special_control' => Medicine::query()->where('is_special_control', true)->count()", $service);
-        $this->assertStringContainsString('<x-search-select id="medicine-supplier-filter"', $view);
+        $this->assertStringContainsString('<x-select-search id="medicine-supplier-filter"', $view);
+        $this->assertStringNotContainsString('<x-search-select', $view);
         $this->assertStringContainsString('Danh sách theo dõi', $view);
         $this->assertStringContainsString('Import / Export', $view);
         $this->assertStringContainsString('Export Excel đã chọn', $view);
