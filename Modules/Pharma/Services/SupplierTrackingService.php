@@ -252,7 +252,15 @@ class SupplierTrackingService
             }))
             ->when($filters['status'] ?? null, fn (Builder $query, string $status) => $query->where('status', $status))
             ->when($filters['partner_id'] ?? null, fn (Builder $query, $partnerId) => $query->where('partner_id', (int) $partnerId))
-            ->when($filters['medicine_id'] ?? null, fn (Builder $query, $medicineId) => $query->where('medicine_id', (int) $medicineId));
+            ->when($filters['medicine_id'] ?? null, fn (Builder $query, $medicineId) => $query->where('medicine_id', (int) $medicineId))
+            ->when($filters['purchase_price'] ?? null, function (Builder $query, string $priceFilter): void {
+                match ($priceFilter) {
+                    'with' => $query->whereNotNull('import_price')->where('import_price', '>', 0),
+                    'missing' => $query->whereNull('import_price'),
+                    'zero' => $query->whereNotNull('import_price')->where('import_price', 0),
+                    default => null,
+                };
+            });
     }
 
     private function prepare(array $data): array
