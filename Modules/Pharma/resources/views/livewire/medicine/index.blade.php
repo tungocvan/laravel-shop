@@ -11,21 +11,27 @@
         $endPage = min($lastPage, $currentPage + 2);
     @endphp
 
-    <header class="flex flex-col gap-4 border-b border-slate-200 pb-5 lg:flex-row lg:items-end lg:justify-between">
-        <div class="min-w-0">
-            <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Pharma · Canonical Medicine Master</p>
-            <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">Danh mục thuốc chuẩn</h1>
-            <p class="mt-2 max-w-4xl text-sm leading-6 text-slate-600">Nguồn chuẩn thuốc dùng chung toàn ERP. Thuốc có hoặc chưa có HSSP đều nằm tại đây; Inventory, Invoices, Muasamcong và các consumer khác resolve về Medicine/Variant/SKU của Pharma.</p>
-        <div class="flex flex-wrap gap-2">
-            <a href="{{ route('admin.pharma.hssp.index') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Quản lý HSSP</a>
-            <a href="{{ route('admin.pharma.medicines.export') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-100">Export danh mục thuốc chuẩn</a>
-            @if($canEdit)
-                <a href="{{ route('admin.pharma.medicines.import.index') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm font-semibold text-indigo-700 hover:bg-indigo-100">Import danh mục thuốc chuẩn</a>
-            @endif
-            @if($canCreate)
-                <a href="{{ route('admin.pharma.medicines.create') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700">Thêm thuốc</a>
-            @endif
+    <header class="border-b border-slate-200 pb-5">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div class="min-w-0">
+                <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Pharma · Canonical Medicine Master</p>
+                <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">Danh mục thuốc chuẩn</h1>
+                <p class="mt-2 max-w-4xl text-sm leading-6 text-slate-600">Nguồn chuẩn thuốc dùng chung toàn ERP. Medicine/Variant/SKU là định danh dùng chung cho các nghiệp vụ Pharma.</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <a href="{{ route('admin.pharma.hssp.index') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">Quản lý HSSP</a>
+                <a href="{{ route('admin.pharma.supplier-trackings.index') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">Danh sách theo dõi</a>
+                <button type="button" wire:click="toggleImportExport" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-indigo-200 bg-indigo-50 px-4 text-sm font-semibold text-indigo-700 hover:bg-indigo-100">{{ $showImportExport ? 'Đóng Import / Export' : 'Import / Export' }}</button>
+                @if($canCreate)<a href="{{ route('admin.pharma.medicines.create') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700">Thêm thuốc</a>@endif
+            </div>
         </div>
+        @if($showImportExport)
+            <div class="mt-4 flex flex-wrap items-center gap-3 rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4">
+                @if($canEdit)<a href="{{ route('admin.pharma.medicines.import.index') }}" class="inline-flex min-h-10 items-center rounded-xl border border-indigo-200 bg-white px-4 text-sm font-semibold text-indigo-700">Import danh mục thuốc chuẩn</a>@endif
+                <a href="{{ route('admin.pharma.medicines.export') }}" class="inline-flex min-h-10 items-center rounded-xl border border-emerald-200 bg-white px-4 text-sm font-semibold text-emerald-700">Export danh mục thuốc chuẩn</a>
+                <span class="text-xs text-slate-500">Import/Export dữ liệu Medicine Master; Mã thuốc và SKU được giữ trong file export.</span>
+            </div>
+        @endif
     </header>
 
     @if(session()->has('success'))<div role="status" class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('success') }}</div>@endif
@@ -38,7 +44,7 @@
         </div>
         <div class="grid gap-3 xl:grid-cols-12 xl:items-end">
             <div class="xl:col-span-3"><label class="block text-sm font-medium text-slate-700">Tìm kiếm</label><input type="search" wire:model.live.debounce.300ms="search" placeholder="MED-..., SKU, tên thuốc, GPLH..." class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm"></div>
-            <div class="xl:col-span-2"><label class="block text-sm font-medium text-slate-700">Nhà cung cấp</label><select wire:model.live="filterSupplier" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="">Tất cả NCC</option>@foreach($supplierOptions as $supplierId => $supplierName)<option value="{{ $supplierId }}">{{ $supplierName }}</option>@endforeach</select></div>
+            <div class="xl:col-span-3"><label class="block text-sm font-medium text-slate-700">Nhà cung cấp</label><div class="mt-1"><x-search-select id="medicine-supplier-filter" wire:model="filterSupplier" :options="$supplierFilterOptions" options-wire="supplierFilterOptions" search-event="medicine-supplier-filter-search" placeholder="Tất cả nhà cung cấp"><option value="">Tất cả nhà cung cấp</option>@foreach($supplierFilterOptions as $option)<option value="{{ $option['id'] }}">{{ $option['label'] }}</option>@endforeach</x-search-select></div></div>
             <div class="xl:col-span-2"><label class="block text-sm font-medium text-slate-700">HSSP</label><select wire:model.live="filterHssp" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="">Tất cả</option><option value="with">Có HSSP</option><option value="without">Chưa có HSSP</option></select></div>
             <div class="xl:col-span-2"><label class="block text-sm font-medium text-slate-700">Chất lượng master</label><select wire:model.live="filterProfileStatus" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm">@foreach($profileStatusOptions as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select></div>
             <div class="xl:col-span-2"><label class="block text-sm font-medium text-slate-700">GPLH</label><select wire:model.live="filterRegistration" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="">Tất cả GPLH</option><option value="with">Có GPLH</option><option value="without">Chưa có GPLH</option></select></div>
@@ -52,12 +58,18 @@
         </div>
     </section>
 
-    @if($canDelete && $selectedIds !== [])
-        <section class="flex flex-col gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"><p class="text-sm font-medium text-rose-900">Đã chọn <strong>{{ count($selectedIds) }}</strong> thuốc trên trang hiện tại.</p><button type="button" wire:click="deleteSelected" wire:confirm="Xóa các thuốc được chọn?" class="inline-flex min-h-10 items-center rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white">Xóa mục đã chọn</button></section>
+    @if($selectedIds !== [])
+        <section class="flex flex-col gap-3 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <p class="text-sm font-medium text-indigo-950">Đã chọn <strong>{{ count($selectedIds) }}</strong> thuốc trên trang hiện tại.</p>
+            <div class="flex flex-wrap gap-2">
+                <a href="{{ route('admin.pharma.medicines.export', ['ids' => implode(',', $selectedIds)]) }}" class="inline-flex min-h-10 items-center rounded-xl border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700">Export Excel đã chọn</a>
+                @if($canDelete)<button type="button" wire:click="deleteSelected" wire:confirm="Xóa các thuốc được chọn?" class="inline-flex min-h-10 items-center rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white">Xóa mục đã chọn</button>@endif
+            </div>
+        </section>
     @endif
 
     <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div class="flex flex-col gap-2 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"><div><h2 class="font-semibold text-slate-950">Medicine Master Catalog</h2><p class="mt-1 text-xs text-slate-500">{{ number_format($medicines->total()) }} thuốc · Trang {{ $currentPage }}/{{ max(1, $lastPage) }}</p></div><div wire:loading class="text-sm font-medium text-indigo-600">Đang tải dữ liệu...</div></div>
+        <div class="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 lg:flex-row lg:items-center lg:justify-between"><div><h2 class="font-semibold text-slate-950">Medicine Master Catalog</h2><div class="mt-2 flex flex-wrap gap-2"><span class="rounded-lg bg-indigo-50 px-3 py-1.5 text-sm font-bold text-indigo-700">{{ number_format($medicines->total()) }} thuốc</span><span class="rounded-lg bg-amber-50 px-3 py-1.5 text-sm font-semibold text-amber-700">{{ number_format($catalogStats['special_control']) }} thuốc KSĐB</span><span class="rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-600">Trang {{ $currentPage }}/{{ max(1, $lastPage) }}</span></div></div><div wire:loading class="text-sm font-medium text-indigo-600">Đang tải dữ liệu...</div></div>
         <div class="hidden overflow-x-auto lg:block">
             <table class="min-w-[1180px] w-full divide-y divide-slate-200 text-left text-sm">
                 <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600"><tr>@if($canSelect)<th class="w-12 px-4 py-3 text-center"><input type="checkbox" wire:model.live="selectPage" class="rounded border-slate-300 text-indigo-600"></th>@endif<th class="px-4 py-3">Thuốc</th><th class="px-4 py-3">Mã thuốc</th><th class="px-4 py-3">GPLH</th><th class="px-4 py-3">Nhóm thuốc</th><th class="px-4 py-3">Hoạt chất / Hàm lượng</th><th class="px-3 py-3">Quy cách</th><th class="px-4 py-3 text-right">Giá kê khai</th><th class="min-w-64 px-4 py-3">Nhà cung cấp</th><th class="px-4 py-3">HSSP</th><th class="px-4 py-3">Nguồn</th><th class="sticky right-0 z-20 border-l border-slate-200 bg-slate-50 px-4 py-3 text-right shadow-[-8px_0_16px_-16px_rgba(15,23,42,0.45)]">Thao tác</th></tr></thead>
