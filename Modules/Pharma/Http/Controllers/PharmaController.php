@@ -29,7 +29,13 @@ class PharmaController extends Controller
         $rows = Medicine::query()
             ->with([
                 'variants:id,medicine_id,sku,declared_price,is_default',
-                'currentProfile:id,medicine_id,profile_version,profile_status,is_current',
+                'currentProfile' => fn ($query) => $query->select([
+                    'pharma_medicine_profiles.id',
+                    'pharma_medicine_profiles.medicine_id',
+                    'pharma_medicine_profiles.profile_version',
+                    'pharma_medicine_profiles.profile_status',
+                    'pharma_medicine_profiles.is_current',
+                ]),
                 'supplierTrackings' => fn ($query) => $query
                     ->select(['id', 'medicine_id', 'partner_id', 'status'])
                     ->with('partner:id,name'),
