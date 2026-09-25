@@ -63,12 +63,12 @@
 
     <div class="rounded-2xl border border-gray-200 bg-white shadow-sm">
         <div class="p-5">
-            <div class="grid gap-4 lg:grid-cols-12">
-                <div class="lg:col-span-2">
+            <div class="grid items-end gap-x-3 gap-y-4 lg:grid-cols-16">
+                <div class="lg:col-span-3">
                     <label for="supplier-search" class="text-sm font-medium text-gray-700">Tìm kiếm</label>
-                    <div class="relative mt-1"><input id="supplier-search" type="text" wire:model.live.debounce.400ms="search" placeholder="SĐK, đại diện, khu vực..." class="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 pr-10 text-sm shadow-sm">@if($search !== '')<button type="button" wire:click="clearSearch" aria-label="Xóa tìm kiếm" class="absolute inset-y-0 right-2 my-auto flex h-8 w-8 items-center justify-center rounded-lg text-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700">×</button>@endif</div>
+                    <div class="relative mt-1"><input id="supplier-search" type="text" wire:model.live.debounce.400ms="search" placeholder="SĐK, đại diện, khu vực..." class="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-2 pr-10 text-sm shadow-sm">@if($search !== '')<button type="button" wire:click="clearSearch" aria-label="Xóa tìm kiếm" class="absolute inset-y-0 right-2 my-auto flex h-8 w-8 items-center justify-center rounded-lg text-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700">×</button>@endif</div>
                 </div>
-                <div class="lg:col-span-2">
+                <div class="lg:col-span-4">
                     <label for="supplier-filter" class="text-sm font-medium text-gray-700">Nhà cung cấp</label>
                     <div class="mt-1">
                         <x-select-search id="supplier-filter" wire:model="supplierId" :options="$supplierFilterOptions" options-wire="supplierFilterOptions" search-event="supplier-filter-search" placeholder="Tất cả nhà cung cấp">
@@ -77,7 +77,7 @@
                         </x-select-search>
                     </div>
                 </div>
-                <div class="lg:col-span-2">
+                <div class="lg:col-span-3">
                     <label for="medicine-filter" class="text-sm font-medium text-gray-700">Sản phẩm</label>
                     <div class="mt-1">
                         <x-select-search id="medicine-filter" wire:model="medicineId" :options="$medicineFilterOptions" options-wire="medicineFilterOptions" search-event="medicine-filter-search" placeholder="Tất cả sản phẩm">
@@ -88,7 +88,7 @@
                 </div>
                 <div class="lg:col-span-2">
                     <label for="purchase-price-filter" class="text-sm font-medium text-gray-700">Giá mua</label>
-                    <select id="purchase-price-filter" wire:model.live="purchasePrice" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm shadow-sm">
+                    <select id="purchase-price-filter" wire:model.live="purchasePrice" class="mt-1 h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm shadow-sm">
                         <option value="">Tất cả</option>
                         <option value="with">Có giá (&gt; 0)</option>
                         <option value="missing">Chưa có giá</option>
@@ -97,14 +97,14 @@
                 </div>
                 <div class="lg:col-span-2">
                     <label for="supplier-status" class="text-sm font-medium text-gray-700">Trạng thái</label>
-                    <select id="supplier-status" wire:model.live="status" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm shadow-sm"><option value="">Tất cả</option>@foreach ($statuses as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select>
+                    <select id="supplier-status" wire:model.live="status" class="mt-1 h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm shadow-sm"><option value="">Tất cả</option>@foreach ($statuses as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select>
                 </div>
                 <div class="lg:col-span-1">
                     <label for="supplier-per-page" class="text-sm font-medium text-gray-700">Hiển thị</label>
-                    <select id="supplier-per-page" wire:model.live="perPage" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm shadow-sm">@foreach ($perPageOptions as $option)<option value="{{ $option }}">{{ $option }}</option>@endforeach</select>
+                    <select id="supplier-per-page" wire:model.live="perPage" class="mt-1 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm">@foreach ($perPageOptions as $option)<option value="{{ $option }}">{{ $option }}</option>@endforeach</select>
                 </div>
-                <div class="flex items-end lg:col-span-1">
-                    <button type="button" wire:click="resetFilters" class="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-600 shadow-sm hover:bg-slate-50">Đặt lại</button>
+                <div class="lg:col-span-1">
+                    <button type="button" wire:click="resetFilters" class="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-600 shadow-sm hover:bg-slate-50">Đặt lại</button>
                 </div>
             </div>
         </div>
