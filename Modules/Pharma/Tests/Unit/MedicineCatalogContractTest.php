@@ -83,6 +83,7 @@ class MedicineCatalogContractTest extends TestCase
         $this->assertStringContainsString('Danh sách theo dõi', $view);
         $this->assertStringContainsString('Import / Export', $view);
         $this->assertStringContainsString('Export Excel đã chọn', $view);
+        $this->assertStringContainsString("\$canDelete && \$filterDeletable === 'yes'", $view);
         $this->assertStringContainsString('thuốc KSĐB', $view);
         $this->assertStringContainsString("query('ids', '')", $controller);
         $this->assertStringContainsString('whereKey($selectedIds->all())', $controller);
