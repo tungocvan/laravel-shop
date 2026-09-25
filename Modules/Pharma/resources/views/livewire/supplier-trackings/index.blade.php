@@ -52,10 +52,11 @@
                         'status' => $status,
                         'partner_id' => $supplierId,
                         'medicine_id' => $medicineId,
+                        'purchase_price' => $purchasePrice,
                         'selected_ids' => $selectedIds,
                     ],
                     'permission' => 'edit_pharma',
-                ], key('supplier-tracking-import-export-' . md5(json_encode([$search, $status, $supplierId, $medicineId]))))
+                ], key('supplier-tracking-import-export-' . md5(json_encode([$search, $status, $supplierId, $medicineId, $purchasePrice]))))
             </div>
         @endif
     @endcan
@@ -63,11 +64,11 @@
     <div class="rounded-2xl border border-gray-200 bg-white shadow-sm">
         <div class="p-5">
             <div class="grid gap-4 lg:grid-cols-12">
-                <div class="lg:col-span-3">
+                <div class="lg:col-span-2">
                     <label for="supplier-search" class="text-sm font-medium text-gray-700">Tìm kiếm</label>
                     <input id="supplier-search" type="text" wire:model.live.debounce.400ms="search" placeholder="SĐK, đại diện, khu vực..." class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm shadow-sm">
                 </div>
-                <div class="lg:col-span-3">
+                <div class="lg:col-span-2">
                     <label for="supplier-filter" class="text-sm font-medium text-gray-700">Nhà cung cấp</label>
                     <div class="mt-1">
                         <x-select-search id="supplier-filter" wire:model="supplierId" :options="$supplierFilterOptions" options-wire="supplierFilterOptions" search-event="supplier-filter-search" placeholder="Tất cả nhà cung cấp">
@@ -76,7 +77,7 @@
                         </x-select-search>
                     </div>
                 </div>
-                <div class="lg:col-span-3">
+                <div class="lg:col-span-2">
                     <label for="medicine-filter" class="text-sm font-medium text-gray-700">Sản phẩm</label>
                     <div class="mt-1">
                         <x-select-search id="medicine-filter" wire:model="medicineId" :options="$medicineFilterOptions" options-wire="medicineFilterOptions" search-event="medicine-filter-search" placeholder="Tất cả sản phẩm">
@@ -84,6 +85,15 @@
                             @foreach($medicineFilterOptions as $option)<option value="{{ $option['id'] }}">{{ $option['label'] }}</option>@endforeach
                         </x-select-search>
                     </div>
+                </div>
+                <div class="lg:col-span-2">
+                    <label for="purchase-price-filter" class="text-sm font-medium text-gray-700">Giá mua</label>
+                    <select id="purchase-price-filter" wire:model.live="purchasePrice" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm shadow-sm">
+                        <option value="">Tất cả</option>
+                        <option value="with">Có giá (&gt; 0)</option>
+                        <option value="missing">Chưa có giá</option>
+                        <option value="zero">Giá 0 đồng</option>
+                    </select>
                 </div>
                 <div class="lg:col-span-2">
                     <label for="supplier-status" class="text-sm font-medium text-gray-700">Trạng thái</label>
