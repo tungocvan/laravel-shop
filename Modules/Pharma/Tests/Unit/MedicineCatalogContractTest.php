@@ -66,4 +66,25 @@ class MedicineCatalogContractTest extends TestCase
         $this->assertStringNotContainsString("medicine_code' =>", substr($service, strpos($service, 'public function update('), strpos($service, 'public function verifyMaster(') - strpos($service, 'public function update(')));
     }
 
+    #[Test]
+    public function medicine_master_workspace_exposes_professional_catalog_controls(): void
+    {
+        $component = file_get_contents(base_path('Modules/Pharma/Livewire/Medicine/Index.php'));
+        $service = file_get_contents(base_path('Modules/Pharma/Services/MedicineService.php'));
+        $controller = file_get_contents(base_path('Modules/Pharma/Http/Controllers/PharmaController.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/medicine/index.blade.php'));
+
+        $this->assertStringContainsString('toggleImportExport', $component);
+        $this->assertStringContainsString('medicine-supplier-filter-search', $component);
+        $this->assertStringContainsString('supplierFilterCandidates', $service);
+        $this->assertStringContainsString("'special_control' => Medicine::query()->where('is_special_control', true)->count()", $service);
+        $this->assertStringContainsString('<x-search-select id="medicine-supplier-filter"', $view);
+        $this->assertStringContainsString('Danh sách theo dõi', $view);
+        $this->assertStringContainsString('Import / Export', $view);
+        $this->assertStringContainsString('Export Excel đã chọn', $view);
+        $this->assertStringContainsString('thuốc KSĐB', $view);
+        $this->assertStringContainsString("query('ids', '')", $controller);
+        $this->assertStringContainsString('whereKey($selectedIds->all())', $controller);
+    }
+
 }
