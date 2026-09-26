@@ -31,7 +31,9 @@ class DrugBidAwardCommercialPolicyWorkspaceContractTest extends TestCase
         $view = file_get_contents(dirname(__DIR__, 2).'/resources/views/livewire/drug-bid-award/commercial-policy-workspace.blade.php');
 
         $this->assertStringContainsString('Điều chỉnh phân công theo bệnh viện', $view);
-        $this->assertStringContainsString('wire:click="selectAssignmentContext({{ $hospitalGroup[\'partner_id\'] }})"', $view);
+        $this->assertStringContainsString('wire:click="openHospitalAssignment({{ $hospitalGroup[\'partner_id\'] }})"', $view);
+        $this->assertStringContainsString("public function openHospitalAssignment(int \$partnerId): void", $component);
+        $this->assertStringContainsString("\$this->assignmentMode = 'multiple';", $component);
         $this->assertStringContainsString('wire:model.live="selectedPartnerId"', $view);
         $this->assertStringContainsString('User hiện tại', $view);
         $this->assertStringContainsString('Thay/Gán User cho đã chọn', $view);
