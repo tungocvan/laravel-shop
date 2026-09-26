@@ -113,18 +113,22 @@
 
     @if ($contractAllocationId && $canManageContracts)
         <section id="contract-editor" x-init="$nextTick(() => $el.scrollIntoView({ behavior: 'smooth', block: 'center' }))" class="rounded-2xl border border-indigo-300 bg-indigo-50/40 p-5 shadow-sm">
-            <div class="flex items-center justify-between gap-3"><h2 class="text-lg font-semibold text-slate-950">{{ $editingContractId ? 'Sửa hợp đồng' : 'Thêm hợp đồng' }} · {{ $contractPartnerName ?: 'Bệnh viện' }}</h2><button type="button" wire:click="closeContractForm" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700">Ẩn</button></div>
-            <div class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <div><label class="block text-sm font-medium">Số hợp đồng</label><input wire:model="contractNumber" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5"></div>
-                <div><label class="block text-sm font-medium">Ngày ký hợp đồng</label><input type="date" wire:model="contractDate" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5"></div>
-                <div><label class="block text-sm font-medium">Số lượng hợp đồng</label><input type="number" step="0.0001" min="0.0001" wire:model="contractQuantity" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5"><p class="mt-1 text-xs text-slate-500">Số lượng của mặt hàng trúng thầu này trong hợp đồng.</p></div>
-                <div><label class="block text-sm font-medium">Giá trị hợp đồng</label><input type="number" step="0.0001" wire:model="contractValue" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5"></div>
-                <div><label class="block text-sm font-medium">Từ ngày</label><input type="date" wire:model="contractStartDate" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5"></div>
-                <div><label class="block text-sm font-medium">Đến ngày</label><input type="date" wire:model="contractEndDate" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5"></div>
-                <div><label class="block text-sm font-medium">Trạng thái</label><select wire:model="contractStatus" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5"><option value="draft">Nháp</option><option value="signed">Đã ký</option><option value="in_progress">Đang thực hiện</option><option value="completed">Hoàn thành</option></select></div>
-                <div><label class="block text-sm font-medium">Ghi chú</label><input wire:model="contractNotes" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5"></div>
+            <div class="flex items-center justify-between gap-3"><div><h2 class="text-lg font-semibold text-slate-950">{{ $editingContractId ? 'Sửa hợp đồng' : 'Thêm hợp đồng' }} · {{ $contractPartnerName ?: 'Bệnh viện' }}</h2><p class="mt-1 text-xs text-slate-500">Quản lý thông tin ký kết và file hợp đồng đã ký.</p></div><button type="button" wire:click="closeContractForm" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700">Ẩn</button></div>
+            <div class="mt-4 grid gap-4 lg:grid-cols-12">
+                <div class="lg:col-span-2"><label class="block text-sm font-medium">Số hợp đồng</label><input wire:model="contractNumber" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5"></div>
+                <div class="lg:col-span-2"><label class="block text-sm font-medium">Ngày ký hợp đồng</label><input type="date" wire:model="contractDate" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5"></div>
+                <div class="lg:col-span-2"><label class="block text-sm font-medium">Ngày kết thúc hợp đồng</label><input type="date" wire:model="contractEndDate" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5"></div>
+                <div class="lg:col-span-2"><label class="block text-sm font-medium">Giá trị hợp đồng</label><input type="number" step="0.01" min="0" wire:model="contractValue" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5"></div>
+                <div class="lg:col-span-2"><label class="block text-sm font-medium">Trạng thái</label><select wire:model="contractStatus" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5"><option value="draft">Nháp</option><option value="signed">Đã ký</option><option value="in_progress">Đang thực hiện</option><option value="completed">Hoàn thành</option></select></div>
+                <div class="lg:col-span-2"><label class="block text-sm font-medium">Ghi chú</label><input wire:model="contractNotes" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5"></div>
+                <div class="lg:col-span-12 rounded-xl border border-slate-200 bg-white p-4">
+                    <label class="block text-sm font-semibold text-slate-800">File hợp đồng đã ký</label>
+                    <input type="file" wire:model="signedContractFile" accept=".pdf,.jpg,.jpeg,.png" class="mt-2 block w-full text-sm text-slate-600">
+                    <p class="mt-1 text-xs text-slate-500">PDF/JPG/PNG, tối đa 20 MB. Lưu private local theo Laravel-Backup/Pharma/DrugBidAwards/...; metadata sẵn sàng cho đồng bộ Google Drive sau khi cấu hình Drive được xác nhận.</p>
+                    @error('signedContractFile')<p class="mt-2 text-xs text-rose-600">{{ $message }}</p>@enderror
+                </div>
             </div>
-            <div class="mt-4 flex justify-end"><button type="button" wire:click="saveContract" wire:loading.attr="disabled" wire:target="saveContract" class="min-h-11 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">Lưu hợp đồng</button></div>
+            <div class="mt-4 flex justify-end"><button type="button" wire:click="saveContract" wire:loading.attr="disabled" wire:target="saveContract,signedContractFile" class="min-h-11 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">Lưu hợp đồng</button></div>
         </section>
     @endif
 </div>
