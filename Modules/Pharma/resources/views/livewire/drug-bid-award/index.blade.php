@@ -82,9 +82,8 @@
                 <label class="block text-xs font-semibold text-slate-700">Sản phẩm<x-select-search id="drug-award-filter-medicine" wire:model="search" placeholder="Tất cả sản phẩm" class="mt-1.5"><option value="">Tất cả sản phẩm</option>@foreach ($medicineOptions as $value)<option value="{{ $value }}">{{ $value }}</option>@endforeach</x-select-search></label>
                 <label class="block text-xs font-semibold text-slate-700">Giá trị<select wire:model.live="valueSort" class="mt-1.5 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm"><option value="">Mặc định</option><option value="desc">Cao nhất → thấp nhất</option><option value="asc">Thấp nhất → cao nhất</option></select></label>
             </div>
-            <div class="mt-4 grid gap-4 md:grid-cols-3">
+            <div class="mt-4 grid gap-4 md:grid-cols-2">
                 <label class="block text-xs font-semibold text-slate-700">Nguồn<select wire:model.live="filterSource" class="mt-1.5 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm"><option value="">Tất cả nguồn</option>@foreach ($sourceOptions as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select></label>
-                <label class="block text-xs font-semibold text-slate-700">Đối soát HSSP<select wire:model.live="filterMatchStatus" class="mt-1.5 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm"><option value="">Tất cả trạng thái</option>@foreach ($matchStatusOptions as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select></label>
                 <label class="block text-xs font-semibold text-slate-700">Hiển thị<select wire:model.live="perPage" class="mt-1.5 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm">@foreach ($perPageOptions as $option)<option value="{{ $option }}">{{ $option }} kết quả / trang</option>@endforeach</select></label>
             </div>
         </div>@endif
