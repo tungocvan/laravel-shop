@@ -277,8 +277,19 @@ class CommercialPolicyWorkspace extends Component
                 'hospitals'=>$rows->pluck('partner_id')->unique()->count(),
             ];
         })->values();
+        $productsById=$products->keyBy('id');
+        $assignmentMatrix=$assignmentRows->map(function($row) use ($productsById){
+            $product=$productsById->get($row->drug_bid_award_id);
+            return [
+                'assignment'=>$row,
+                'hospital'=>$row->partner,
+                'product'=>$product,
+                'policy'=>$this->productPolicies[$row->drug_bid_award_id] ?? null,
+                'user'=>$row->user,
+            ];
+        })->sortBy(fn($row)=>mb_strtolower(($row['hospital']?->name ?? '').'|'.($row['product']?->medicine_name ?? '')))->values();
         $users=User::query()->where('is_active',true)->when(trim($this->userSearch)!=='',function($q){$like='%'.trim($this->userSearch).'%';$q->where(fn($n)=>$n->where('name','like',$like)->orWhere('email','like',$like));})->orderBy('name')->limit(50)->get(['id','name','email']);
-        return view('Pharma::livewire.drug-bid-award.commercial-policy-workspace',compact('award','products','unassignedProducts','partners','assignments','users','assignmentSummary','assignmentGroups'));
+        return view('Pharma::livewire.drug-bid-award.commercial-policy-workspace',compact('award','products','unassignedProducts','partners','assignments','users','assignmentSummary','assignmentGroups','assignmentMatrix'));
     }
 
     private function productsQuery()
