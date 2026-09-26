@@ -28,7 +28,9 @@ class DrugBidAwardCommercialPolicyWorkspaceContractTest extends TestCase
 
     public function test_hospital_exception_editor_remains_the_single_product_level_adjustment_surface(): void
     {
-        $view = file_get_contents(dirname(__DIR__, 2).'/resources/views/livewire/drug-bid-award/commercial-policy-workspace.blade.php');
+        $root = dirname(__DIR__, 2);
+        $component = file_get_contents($root.'/Livewire/DrugBidAward/CommercialPolicyWorkspace.php');
+        $view = file_get_contents($root.'/resources/views/livewire/drug-bid-award/commercial-policy-workspace.blade.php');
 
         $this->assertStringContainsString('Điều chỉnh phân công theo bệnh viện', $view);
         $this->assertStringContainsString('wire:click="openHospitalAssignment({{ $hospitalGroup[\'partner_id\'] }})"', $view);
