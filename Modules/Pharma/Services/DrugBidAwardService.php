@@ -68,6 +68,7 @@ class DrugBidAwardService
         ?string $matchStatus = null,
         ?string $tbmt = null,
         ?string $valueSort = null,
+        ?string $businessSetup = null,
     ): LengthAwarePaginator {
         $groupKey = "COALESCE(NULLIF(bidding_notice_code, ''), CONCAT('award-', id))";
 
@@ -84,7 +85,11 @@ class DrugBidAwardService
             ->when($investor, fn ($query, $value) => $query->where('investor_name', 'like', "%{$value}%"))
             ->when($company, fn ($query, $value) => $query->where('winning_company_name', 'like', "%{$value}%"))
             ->when($sourceType, fn ($query, $value) => $query->where('source_type', $value))
-            ->when($matchStatus, fn ($query, $value) => $query->where('medicine_match_status', $value));
+            ->when($matchStatus, fn ($query, $value) => $query->where('medicine_match_status', $value))
+            ->when($businessSetup === 'commercial_missing', fn ($query) => $query->whereDoesntHave('allocations.managementAssignments', fn ($assignment) => $assignment->where('status', 'active')))
+            ->when($businessSetup === 'commercial_ready', fn ($query) => $query->whereHas('allocations.managementAssignments', fn ($assignment) => $assignment->where('status', 'active')))
+            ->when($businessSetup === 'allocation_missing', fn ($query) => $query->whereDoesntHave('allocations', fn ($allocation) => $allocation->where('status', 'active')))
+            ->when($businessSetup === 'allocation_ready', fn ($query) => $query->whereHas('allocations', fn ($allocation) => $allocation->where('status', 'active')));
 
         $query = DrugBidAward::query()
             ->fromSub($baseQuery->toBase(), 'award_rows')
