@@ -100,7 +100,7 @@ class DrugBidAwardCommercialPolicyWorkspaceContractTest extends TestCase
         $this->assertStringContainsString("\$this->selectedPartnerId = (string) \$partnerId;", $component);
         $this->assertStringContainsString('Thay User toàn bộ', $view);
         $this->assertStringContainsString('Chi tiết bệnh viện', $view);
-        $this->assertStringContainsString('chỉ xem trong chế độ Một User phụ trách toàn bộ', $view);
+        $this->assertStringContainsString('có thể điều chỉnh chính sách riêng theo từng sản phẩm', $view);
         $this->assertStringContainsString('wire:click="replaceSingleManager"', $view);
     }
 
