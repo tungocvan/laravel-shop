@@ -36,4 +36,33 @@ class DrugBidAwardCommercialPolicyWorkspaceContractTest extends TestCase
         $this->assertStringContainsString('User hiện tại', $view);
         $this->assertStringContainsString('Thay/Gán User cho đã chọn', $view);
     }
+
+    public function test_workspace_supports_single_user_multi_user_and_full_reset_flows(): void
+    {
+        $root = dirname(__DIR__, 2);
+        $component = file_get_contents($root.'/Livewire/DrugBidAward/CommercialPolicyWorkspace.php');
+        $service = file_get_contents($root.'/Services/DrugBidAwardCommercialPolicyService.php');
+        $view = file_get_contents($root.'/resources/views/livewire/drug-bid-award/commercial-policy-workspace.blade.php');
+
+        $this->assertStringContainsString("public string \$assignmentMode = 'single'", $component);
+        $this->assertStringContainsString('assignSingleManagerToAll', $component);
+        $this->assertStringContainsString('resetAllManagerAssignments', $component);
+        $this->assertStringContainsString('removeAllManagers', $service);
+        $this->assertStringContainsString('Một User phụ trách toàn bộ', $view);
+        $this->assertStringContainsString('Nhiều User phụ trách', $view);
+        $this->assertStringContainsString('Phân công toàn bộ', $view);
+        $this->assertStringContainsString('Gỡ toàn bộ phân công', $view);
+        $this->assertStringContainsString("assignmentMode === 'multiple'", $view);
+    }
+
+    public function test_assignment_completeness_requires_resolvable_user_and_partner(): void
+    {
+        $component = file_get_contents(dirname(__DIR__, 2).'/Livewire/DrugBidAward/CommercialPolicyWorkspace.php');
+
+        $this->assertStringContainsString('$validAssignmentRows=$assignmentRows->filter', $component);
+        $this->assertStringContainsString('$row->user !== null && $row->partner !== null', $component);
+        $this->assertStringContainsString("'assigned'=>\$validAssignmentRows->count()", $component);
+        $this->assertStringContainsString("'users'=>\$validAssignmentRows->pluck('user_id')->unique()->count()", $component);
+    }
+
 }
