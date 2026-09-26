@@ -30,6 +30,7 @@ class CommercialPolicyWorkspace extends Component
     public string $userSearch = '';
     public string $productSearch = '';
     public string $assignmentMode = 'single';
+    public string $persistedAssignmentMode = 'unassigned';
     public $importFile;
 
     public function mount(int $awardId): void
@@ -38,6 +39,7 @@ class CommercialPolicyWorkspace extends Component
         $this->awardId = $awardId;
         $this->award();
         $this->loadPolicyValues();
+        $this->syncAssignmentModeFromDatabase();
     }
 
     public function selectAllPolicies(): void { $this->selectedPolicyAwardIds = $this->visibleProductIds(); }
@@ -158,10 +160,13 @@ class CommercialPolicyWorkspace extends Component
     public function assignSingleManagerToAll(DrugBidAwardCommercialPolicyService $service): void
     {
         $this->authorizeManage();
+        abort_if($this->persistedAssignmentMode === 'multiple', 422, 'Hãy gỡ toàn bộ phân công trước khi chuyển sang một User phụ trách toàn bộ.');
         $data = $this->validate(['selectedUserId' => ['required','integer','exists:users,id']]);
         $count = $service->assignManagerToAllAllocations($this->award(), (int) $data['selectedUserId'], auth('admin')->id());
         $this->selectedPartnerId = '';
         $this->selectedManagementAwardIds = [];
+        $this->persistedAssignmentMode = 'single';
+        $this->assignmentMode = 'single';
         session()->flash('success', "Đã phân công User cho toàn bộ {$count} Bệnh viện × Sản phẩm có phân bổ thực tế.");
     }
 
@@ -172,6 +177,8 @@ class CommercialPolicyWorkspace extends Component
         $this->selectedUserId = '';
         $this->selectedPartnerId = '';
         $this->selectedManagementAwardIds = [];
+        $this->persistedAssignmentMode = 'unassigned';
+        $this->assignmentMode = 'single';
         session()->flash('success', "Đã gỡ toàn bộ {$count} phân công User. Có thể thiết lập lại từ đầu.");
     }
 
@@ -198,6 +205,10 @@ class CommercialPolicyWorkspace extends Component
 
     public function openHospitalAssignment(int $partnerId): void
     {
+        if ($this->persistedAssignmentMode === 'single') {
+            session()->flash('success', 'Đang dùng chế độ Một User phụ trách toàn bộ. Gỡ toàn bộ phân công trước khi chuyển sang nhiều User.');
+            return;
+        }
         $this->assignmentMode = 'multiple';
         $this->selectAssignmentContext($partnerId);
     }
@@ -282,6 +293,34 @@ class CommercialPolicyWorkspace extends Component
     }
 
     public function updatedSelectedPartnerId(): void { $this->selectedUserId=''; $this->selectedManagementAwardIds=[]; }
+
+    private function syncAssignmentModeFromDatabase(): void
+    {
+        $awardIds = app(DrugBidAwardResultGroupService::class)->awardsQuery($this->award())->pluck('id');
+        $allocationCount = DrugBidAwardAllocation::query()
+            ->whereIn('drug_bid_award_id', $awardIds)
+            ->where('status', DrugBidAwardAllocation::STATUS_ACTIVE)
+            ->count();
+        $rows = DrugBidAwardManagementAssignment::query()
+            ->with(['user','partner'])
+            ->whereIn('drug_bid_award_id', $awardIds)
+            ->where('status', DrugBidAwardManagementAssignment::STATUS_ACTIVE)
+            ->get()
+            ->filter(fn($row) => $row->user !== null && $row->partner !== null);
+
+        if ($rows->isEmpty()) {
+            $this->persistedAssignmentMode = 'unassigned';
+            $this->assignmentMode = 'single';
+            return;
+        }
+
+        $isSingleComplete = $allocationCount > 0
+            && $rows->count() >= $allocationCount
+            && $rows->pluck('user_id')->unique()->count() === 1;
+
+        $this->persistedAssignmentMode = $isSingleComplete ? 'single' : 'multiple';
+        $this->assignmentMode = $this->persistedAssignmentMode;
+    }
 
     public function render()
     {
