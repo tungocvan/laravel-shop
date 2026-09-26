@@ -224,11 +224,30 @@ class CommercialPolicyWorkspace extends Component
     public function openHospitalAssignment(int $partnerId): void
     {
         if ($this->persistedAssignmentMode === 'single') {
-            $this->selectedPartnerId = (string) $partnerId;
+            $this->selectAssignmentContext($partnerId);
             return;
         }
         $this->assignmentMode = 'multiple';
         $this->selectAssignmentContext($partnerId);
+    }
+
+    public function saveHospitalPolicyOverride(int $awardId, DrugBidAwardCommercialPolicyService $service): void
+    {
+        $this->authorizeManage();
+        $partnerId = (int) $this->selectedPartnerId;
+        abort_if($partnerId <= 0, 422, 'Chưa chọn bệnh viện.');
+        $service->saveHospitalPolicyOverride($this->award(), $awardId, $partnerId, $this->hospitalPolicyOverrides[$awardId] ?? null, auth('admin')->id());
+        session()->flash('success', 'Đã lưu chính sách riêng của bệnh viện.');
+    }
+
+    public function resetHospitalPolicyOverride(int $awardId, DrugBidAwardCommercialPolicyService $service): void
+    {
+        $this->authorizeManage();
+        $partnerId = (int) $this->selectedPartnerId;
+        abort_if($partnerId <= 0, 422, 'Chưa chọn bệnh viện.');
+        $this->hospitalPolicyOverrides[$awardId] = '';
+        $service->saveHospitalPolicyOverride($this->award(), $awardId, $partnerId, null, auth('admin')->id());
+        session()->flash('success', 'Đã đặt lại về chính sách chuẩn của sản phẩm.');
     }
 
     public function selectAssignmentContext(int $partnerId, ?int $userId = null): void
