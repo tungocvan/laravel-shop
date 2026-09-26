@@ -196,6 +196,12 @@ class CommercialPolicyWorkspace extends Component
         $this->selectedUserId = (string) $userId;
     }
 
+    public function openHospitalAssignment(int $partnerId): void
+    {
+        $this->assignmentMode = 'multiple';
+        $this->selectAssignmentContext($partnerId);
+    }
+
     public function selectAssignmentContext(int $partnerId, ?int $userId = null): void
     {
         $this->selectedPartnerId = (string) $partnerId;
