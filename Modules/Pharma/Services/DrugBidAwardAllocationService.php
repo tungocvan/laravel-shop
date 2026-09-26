@@ -40,10 +40,18 @@ class DrugBidAwardAllocationService
                     ->where('partner_id', $partnerId)
                     ->first() ?? new DrugBidAwardAllocation(['drug_bid_award_id' => $award->id]);
 
-            if ($allocation->exists && $allocation->partner_id !== $partnerId) {
-                throw ValidationException::withMessages([
-                    'partner_id' => 'Không thể đổi bệnh viện của một phân bổ đã tồn tại.',
-                ]);
+            if ($allocation->exists && (int) $allocation->partner_id !== $partnerId) {
+                $duplicate = DrugBidAwardAllocation::query()
+                    ->where('drug_bid_award_id', $award->id)
+                    ->where('partner_id', $partnerId)
+                    ->where('id', '!=', $allocation->id)
+                    ->exists();
+
+                if ($duplicate) {
+                    throw ValidationException::withMessages([
+                        'partner_id' => 'Bệnh viện đã có phân bổ cho sản phẩm trúng thầu này.',
+                    ]);
+                }
             }
 
             $quantity = round((float) $data['allocated_quantity'], 4);
