@@ -175,6 +175,13 @@ class CommercialPolicyWorkspace extends Component
         $this->selectedUserId = (string) $userId;
     }
 
+    public function selectAssignmentContext(int $partnerId, ?int $userId = null): void
+    {
+        $this->selectedPartnerId = (string) $partnerId;
+        $this->selectedUserId = $userId ? (string) $userId : '';
+        $this->selectedManagementAwardIds = [];
+    }
+
     public function removeSelectedManagers(DrugBidAwardCommercialPolicyService $service): void
     {
         $this->authorizeManage();
@@ -277,16 +284,18 @@ class CommercialPolicyWorkspace extends Component
                 'hospitals'=>$rows->pluck('partner_id')->unique()->count(),
             ];
         })->values();
-        $productsById=$products->keyBy('id');
-        $assignmentMatrix=$assignmentRows->map(function($row) use ($productsById){
-            $product=$productsById->get($row->drug_bid_award_id);
-            return [
-                'assignment'=>$row,
-                'hospital'=>$row->partner,
-                'product'=>$product,
-                'policy'=>$this->productPolicies[$row->drug_bid_award_id] ?? null,
-                'user'=>$row->user,
-            ];
+        $assignmentMatrix=$products->flatMap(function($product) use ($assignments){
+            return $product->allocations->map(function($allocation) use ($product,$assignments){
+                $assignment=$assignments->get($product->id.':'.$allocation->partner_id);
+                return [
+                    'assignment'=>$assignment,
+                    'hospital'=>$allocation->partner,
+                    'product'=>$product,
+                    'policy'=>$this->productPolicies[$product->id] ?? null,
+                    'user'=>$assignment?->user,
+                    'partner_id'=>$allocation->partner_id,
+                ];
+            });
         })->sortBy(fn($row)=>mb_strtolower(($row['hospital']?->name ?? '').'|'.($row['product']?->medicine_name ?? '')))->values();
         $users=User::query()->where('is_active',true)->when(trim($this->userSearch)!=='',function($q){$like='%'.trim($this->userSearch).'%';$q->where(fn($n)=>$n->where('name','like',$like)->orWhere('email','like',$like));})->orderBy('name')->limit(50)->get(['id','name','email']);
         return view('Pharma::livewire.drug-bid-award.commercial-policy-workspace',compact('award','products','unassignedProducts','partners','assignments','users','assignmentSummary','assignmentGroups','assignmentMatrix'));
