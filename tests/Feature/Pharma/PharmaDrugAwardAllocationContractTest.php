@@ -204,9 +204,8 @@ class PharmaDrugAwardAllocationContractTest extends TestCase
         $this->assertStringContainsString("['Pharma',", str_replace("\n            ", '', $component));
         $this->assertStringContainsString('public function downloadApplicationFile', $drive);
         $this->assertStringContainsString("'alt' => 'media'", $drive);
-        $this->assertStringContainsString("Local {{ \$hasLocalContractFile ? '✓ Đã lưu' : '— Chưa có file' }}", $view);
-        $this->assertStringContainsString("Google Drive {{ \$hasDriveContractFile ? '✓ Đã backup' : '— Chưa backup' }}", $view);
-        $this->assertStringContainsString('Backup lên Google Drive', $view);
+        $this->assertStringContainsString('Nơi lưu hợp đồng', $view);
+        $this->assertStringContainsString('Google Drive', $view);
         $this->assertStringContainsString('Khôi phục từ Drive', $view);
     }
 
@@ -215,12 +214,26 @@ class PharmaDrugAwardAllocationContractTest extends TestCase
     {
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/drug-bid-award/allocation-workspace.blade.php'));
 
-        $this->assertStringContainsString("Local {{ \$hasLocalContractFile ? '✓ Đã lưu' : '— Chưa có file' }}", $view);
-        $this->assertStringContainsString("Google Drive {{ \$hasDriveContractFile ? '✓ Đã backup' : '— Chưa backup' }}", $view);
-        $this->assertStringContainsString('Lưu hợp đồng trước để kích hoạt Backup lên Google Drive.', $view);
-        $this->assertStringContainsString('Backup lên Google Drive', $view);
+        $this->assertStringContainsString('Nơi lưu hợp đồng', $view);
+        $this->assertStringContainsString('wire:model="contractStorageTargets"', $view);
+        $this->assertStringContainsString('Google Drive {{ $googleDriveConnected', $view);
         $this->assertStringContainsString('Khôi phục từ Drive', $view);
         $this->assertStringNotContainsString('Local private: Laravel-Backup/Pharma/DrugBidAwards/', $view);
+    }
+
+
+    public function test_contract_save_stays_in_edit_mode_and_table_prefers_edit_action(): void
+    {
+        $component = file_get_contents(base_path('Modules/Pharma/Livewire/DrugBidAward/AllocationWorkspace.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/drug-bid-award/allocation-workspace.blade.php'));
+
+        $this->assertStringContainsString('$this->editContract((int) $data[\'contractAllocationId\'], $contract->id);', $component);
+        $this->assertStringContainsString('createAnotherContract', $component);
+        $this->assertStringContainsString('Sửa hợp đồng', $view);
+        $this->assertStringContainsString('+ Thêm hợp đồng khác', $view);
+        $this->assertStringContainsString("{{ \$editingContractId ? 'Lưu thay đổi' : 'Lưu hợp đồng' }}", $view);
+        $this->assertStringContainsString('contractStorageTargets', $component);
+        $this->assertStringContainsString("'google_drive'", $component);
     }
 
 }
