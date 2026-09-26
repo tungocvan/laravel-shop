@@ -53,4 +53,23 @@ class DrugBidAwardLegalInfoSaveContractTest extends TestCase
         $this->assertStringContainsString('h-11 whitespace-nowrap', $view);
     }
 
+
+    public function test_index_uses_compact_business_setup_filter_instead_of_source_filter(): void
+    {
+        $root = dirname(__DIR__, 2);
+        $view = file_get_contents($root.'/resources/views/livewire/drug-bid-award/index.blade.php');
+        $component = file_get_contents($root.'/Livewire/DrugBidAward/Index.php');
+        $service = file_get_contents($root.'/Services/DrugBidAwardService.php');
+
+        $this->assertStringContainsString('wire:model.live="filterBusinessSetup"', $view);
+        $this->assertStringContainsString('Chưa có CS kinh doanh', $view);
+        $this->assertStringContainsString('Chưa phân bổ SL', $view);
+        $this->assertStringNotContainsString('wire:model.live="filterSource"', $view);
+        $this->assertStringContainsString('minmax(145px,0.7fr)', $view);
+        $this->assertStringContainsString('minmax(105px,0.5fr)', $view);
+        $this->assertStringContainsString('public string $filterBusinessSetup', $component);
+        $this->assertStringContainsString("businessSetup === 'commercial_missing'", $service);
+        $this->assertStringContainsString("businessSetup === 'allocation_ready'", $service);
+    }
+
 }
