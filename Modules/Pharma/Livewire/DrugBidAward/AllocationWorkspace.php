@@ -123,8 +123,8 @@ class AllocationWorkspace extends Component
         if ($this->editingAllocationId) {
             $existing = DrugBidAwardAllocation::query()->where('drug_bid_award_id', $this->awardId)->findOrFail($this->editingAllocationId);
             $this->partnerId = (string) $existing->partner_id;
+            $this->allocatedQuantity = str_replace(['.', ','], ['', '.'], trim($this->allocatedQuantity));
         }
-        $this->allocatedQuantity = str_replace(['.', ','], ['', '.'], trim($this->allocatedQuantity));
         $data = $this->validate([
             'partnerId' => ['required', 'integer'],
             'allocatedQuantity' => ['required', 'numeric', 'gt:0'],
