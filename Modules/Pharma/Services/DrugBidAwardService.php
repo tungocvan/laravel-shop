@@ -161,6 +161,22 @@ class DrugBidAwardService
             ->get();
     }
 
+    public function legalInfoForResultGroup(int $representativeId): DrugBidAward
+    {
+        $representative = $this->findOrFail($representativeId);
+
+        if (! filled($representative->bidding_notice_code)) {
+            return $representative;
+        }
+
+        return DrugBidAward::query()
+            ->where('bidding_notice_code', $representative->bidding_notice_code)
+            ->orderByRaw('contract_duration_months IS NULL')
+            ->orderByDesc('contract_duration_months')
+            ->orderByDesc('id')
+            ->firstOrFail();
+    }
+
     public function findProductInResultGroupOrFail(int $representativeId, int $productId): DrugBidAward
     {
         $product = $this->productsForResultGroup($representativeId)->firstWhere('id', $productId);
