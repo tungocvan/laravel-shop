@@ -104,4 +104,32 @@ class DrugBidAwardCommercialPolicyWorkspaceContractTest extends TestCase
         $this->assertStringContainsString('wire:click="replaceSingleManager"', $view);
     }
 
+
+    public function test_hospital_policy_override_is_persisted_on_allocation_with_product_fallback(): void
+    {
+        $root = dirname(__DIR__, 2);
+        $model = file_get_contents($root.'/Models/DrugBidAwardAllocation.php');
+        $service = file_get_contents($root.'/Services/DrugBidAwardCommercialPolicyService.php');
+        $component = file_get_contents($root.'/Livewire/DrugBidAward/CommercialPolicyWorkspace.php');
+        $view = file_get_contents($root.'/resources/views/livewire/drug-bid-award/commercial-policy-workspace.blade.php');
+
+        $this->assertStringContainsString('commercial_policy_percentage', $model);
+        $this->assertStringContainsString('saveHospitalPolicyOverride', $service);
+        $this->assertStringContainsString('public array $hospitalPolicyOverrides = []', $component);
+        $this->assertStringContainsString('resetHospitalPolicyOverride', $component);
+        $this->assertStringContainsString('Chính sách chuẩn', $view);
+        $this->assertStringContainsString('Chính sách BV', $view);
+        $this->assertStringContainsString('Chính sách áp dụng', $view);
+        $this->assertStringContainsString('wire:change="saveHospitalPolicyOverride', $view);
+        $this->assertStringContainsString('Đặt lại', $view);
+    }
+
+    public function test_single_user_summary_has_no_duplicate_assignment_actions(): void
+    {
+        $view = file_get_contents(dirname(__DIR__, 2).'/resources/views/livewire/drug-bid-award/commercial-policy-workspace.blade.php');
+
+        $this->assertStringNotContainsString('wire:click="removeManagerGroup', $view);
+        $this->assertStringNotContainsString("prepareSingleManagerReplacement' : 'selectManagementUser", $view);
+    }
+
 }
