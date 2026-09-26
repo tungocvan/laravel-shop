@@ -13,6 +13,8 @@ use Modules\Pharma\Services\DrugBidAwardAllocationService;
 use Modules\Pharma\Services\DrugBidAwardAllocationSummaryService;
 use Modules\Pharma\Services\DrugBidAwardContractService;
 use Modules\Pharma\Services\DrugBidAwardDistributionScopeService;
+use Modules\System\Services\Cloud\GoogleDriveConnectionService;
+use Throwable;
 use Rap2hpoutre\FastExcel\FastExcel;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -436,6 +438,59 @@ class AllocationWorkspace extends Component
         ]);
     }
 
+    public function backupSignedContractToDrive(int $contractId, GoogleDriveConnectionService $drive): void
+    {
+        $this->authorizePermission('manage_pharma_contracts');
+        $contract = $this->signedContractForAward($contractId);
+        abort_unless($contract->signed_file_path && Storage::disk($contract->signed_file_disk ?: 'local')->exists($contract->signed_file_path), 404);
+
+        try {
+            if ($contract->signed_file_remote_id) {
+                $drive->deleteApplicationFile($contract->signed_file_remote_id, null);
+            }
+
+            $uploaded = $drive->uploadApplicationFile(
+                Storage::disk($contract->signed_file_disk ?: 'local')->path($contract->signed_file_path),
+                $this->contractDriveFolders($contract),
+                basename($contract->signed_file_path),
+                $contract->signed_file_mime ?: 'application/octet-stream',
+            );
+
+            $contract->update(['signed_file_remote_id' => $uploaded['id']]);
+            session()->flash('success', 'Đã backup file hợp đồng lên Google Drive.');
+        } catch (Throwable $e) {
+            report($e);
+            session()->flash('error', 'Backup Google Drive thất bại. Hãy kiểm tra kết nối Drive trong System.');
+        }
+    }
+
+    public function restoreSignedContractFromDrive(int $contractId, GoogleDriveConnectionService $drive): void
+    {
+        $this->authorizePermission('manage_pharma_contracts');
+        $contract = $this->signedContractForAward($contractId);
+        abort_unless((string) $contract->signed_file_remote_id !== '', 404);
+
+        try {
+            $path = $contract->signed_file_path ?: $this->contractLocalPath($contract);
+            $metadata = $drive->downloadApplicationFile(
+                (string) $contract->signed_file_remote_id,
+                Storage::disk('local')->path($path),
+            );
+
+            $contract->update([
+                'signed_file_disk' => 'local',
+                'signed_file_path' => $path,
+                'signed_file_name' => $contract->signed_file_name ?: $metadata['name'],
+                'signed_file_mime' => $metadata['mime_type'] ?: $contract->signed_file_mime,
+                'signed_file_size' => $metadata['size'],
+            ]);
+            session()->flash('success', 'Đã khôi phục file hợp đồng từ Google Drive về local.');
+        } catch (Throwable $e) {
+            report($e);
+            session()->flash('error', 'Khôi phục từ Google Drive thất bại. Hãy kiểm tra kết nối Drive trong System.');
+        }
+    }
+
     public function downloadSignedContract(int $contractId)
     {
         $this->authorizePermission('view_pharma_contracts');
@@ -445,6 +500,41 @@ class AllocationWorkspace extends Component
         abort_unless($contract->signed_file_path && Storage::disk($contract->signed_file_disk ?: 'local')->exists($contract->signed_file_path), 404);
 
         return Storage::disk($contract->signed_file_disk ?: 'local')->download($contract->signed_file_path, $contract->signed_file_name ?: basename($contract->signed_file_path));
+    }
+
+    private function signedContractForAward(int $contractId): DrugBidAwardContract
+    {
+        return DrugBidAwardContract::query()
+            ->with('allocation.award')
+            ->whereHas('allocation', fn ($query) => $query->where('drug_bid_award_id', $this->awardId))
+            ->findOrFail($contractId);
+    }
+
+    private function contractDriveFolders(DrugBidAwardContract $contract): array
+    {
+        $award = $contract->allocation?->award ?: DrugBidAward::query()->findOrFail($this->awardId);
+
+        return [
+            'Pharma',
+            'DrugBidAwards',
+            $this->safeStorageSegment((string) ($award->bidding_notice_code ?: 'TBMT-'.$award->id)),
+            'Contracts',
+            (string) $contract->drug_bid_award_allocation_id,
+            $this->safeStorageSegment($contract->contract_number),
+        ];
+    }
+
+    private function contractLocalPath(DrugBidAwardContract $contract): string
+    {
+        $folders = $this->contractDriveFolders($contract);
+        $fileName = $this->safeStorageSegment($contract->signed_file_name ?: 'signed-contract-'.$contract->id.'.pdf');
+
+        return 'Laravel-Backup/'.implode('/', $folders).'/'.$fileName;
+    }
+
+    private function safeStorageSegment(string $value): string
+    {
+        return trim((string) preg_replace('/[^A-Za-z0-9._-]+/', '-', $value), '.-') ?: 'unknown';
     }
 
     private function formatQuantityInput(mixed $value): string
