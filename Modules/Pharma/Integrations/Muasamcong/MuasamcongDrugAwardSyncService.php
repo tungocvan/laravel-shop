@@ -5,6 +5,7 @@ namespace Modules\Pharma\Integrations\Muasamcong;
 use Illuminate\Support\Facades\Schema;
 use LogicException;
 use Modules\Muasamcong\Models\KqlcntAwardItem;
+use Modules\Pharma\Models\DrugBidAward;
 use Modules\Pharma\Services\DrugAwardProjectionService;
 
 class MuasamcongDrugAwardSyncService
@@ -44,7 +45,14 @@ class MuasamcongDrugAwardSyncService
             $lastId = (int) $item->getKey();
 
             try {
-                $this->projectionService->project($this->adapter->fromModel($item));
+                $projection = $this->adapter->fromModel($item);
+                $tbmt = trim((string) $projection->notifyNo);
+
+                if ($tbmt !== '' && DrugBidAward::query()->where('bidding_notice_code', $tbmt)->exists()) {
+                    continue;
+                }
+
+                $this->projectionService->project($projection);
                 $projected++;
             } catch (\Throwable $exception) {
                 report($exception);
