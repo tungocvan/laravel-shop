@@ -1,5 +1,8 @@
 @php($canManage = auth('admin')->user()?->can('manage_pharma_commercial_policies') ?? false)
-<div class="space-y-6">
+@php($configuredPolicyCount = collect($productPolicies)->filter(fn ($value) => $value !== null && $value !== '')->count())
+@php($policyComplete = $products->count() > 0 && $configuredPolicyCount >= $products->count())
+@php($assignmentComplete = $assignmentSummary['total'] > 0 && $assignmentSummary['assigned'] >= $assignmentSummary['total'])
+<div class="space-y-6" x-data="{ commercialTab: 'policy' }">
 <header class="flex flex-col gap-3 border-b border-slate-200 pb-5 xl:flex-row xl:items-end xl:justify-between">
     <div>
         <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Pharma · Commercial Setup</p>
@@ -15,10 +18,20 @@
 @if(session()->has('success'))<div role="status" class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('success') }}</div>@endif
 @if($errors->any())<div role="alert" class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"><ul class="list-disc pl-5">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 
-<section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+<nav class="grid gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm md:grid-cols-2" aria-label="Thiết lập chính sách kinh doanh">
+    <button type="button" x-on:click="commercialTab = 'policy'" class="flex min-h-14 items-center justify-between rounded-xl px-4 text-left transition" x-bind:class="commercialTab === 'policy' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'">
+        <span><span class="block text-xs font-semibold uppercase opacity-75">Chính sách sản phẩm</span><span class="mt-0.5 block font-bold">{{ $configuredPolicyCount }}/{{ $products->count() }} đã thiết lập</span></span>
+        <span class="text-lg">{{ $policyComplete ? '✓' : '→' }}</span>
+    </button>
+    <button type="button" x-on:click="commercialTab = 'assignment'" class="flex min-h-14 items-center justify-between rounded-xl px-4 text-left transition" x-bind:class="commercialTab === 'assignment' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'">
+        <span><span class="block text-xs font-semibold uppercase opacity-75">Phân công User</span><span class="mt-0.5 block font-bold">{{ $assignmentSummary['hospitals'] }} BV · {{ $assignmentComplete ? 'Đầy đủ' : 'Cần hoàn thiện' }}</span></span>
+        <span class="text-lg">{{ $assignmentComplete ? '✓' : '→' }}</span>
+    </button>
+</nav>
+
+<section x-show="commercialTab === 'policy'" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
     <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-            <p class="text-xs font-bold uppercase text-indigo-600">Bước 1</p>
             <h2 class="mt-1 text-lg font-bold text-slate-950">Thiết lập chính sách theo sản phẩm</h2>
             <p class="mt-1 text-sm text-slate-500">Mỗi sản phẩm trúng thầu có một tỷ lệ chính sách riêng. Thay đổi từng dòng được tự động lưu.</p>
         </div>
@@ -97,9 +110,8 @@
     @endif
 </section>
 
-<section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+<section x-show="commercialTab === 'assignment'" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
     <div>
-        <p class="text-xs font-bold uppercase text-indigo-600">Bước 2</p>
         <h2 class="mt-1 text-lg font-bold text-slate-950">Phân công User quản lý</h2>
         <p class="mt-1 text-sm text-slate-500">Xem rõ User đang phụ trách, phạm vi bệnh viện/sản phẩm và thay hoặc gỡ phân công khi cần.</p>
     </div>
