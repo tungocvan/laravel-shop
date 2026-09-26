@@ -210,4 +210,17 @@ class PharmaDrugAwardAllocationContractTest extends TestCase
         $this->assertStringContainsString('Khôi phục về Local', $view);
     }
 
+
+    public function test_contract_create_form_always_exposes_local_and_google_drive_storage_state(): void
+    {
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/drug-bid-award/allocation-workspace.blade.php'));
+
+        $this->assertStringContainsString("Local {{ \$hasLocalContractFile ? '✓ Đã lưu' : '— Chưa có file' }}", $view);
+        $this->assertStringContainsString("Google Drive {{ \$hasDriveContractFile ? '✓ Đã backup' : '— Chưa backup' }}", $view);
+        $this->assertStringContainsString('Lưu hợp đồng trước để kích hoạt Backup lên Google Drive.', $view);
+        $this->assertStringContainsString('Backup lên Google Drive', $view);
+        $this->assertStringContainsString('Khôi phục từ Drive', $view);
+        $this->assertStringNotContainsString('Local private: Laravel-Backup/Pharma/DrugBidAwards/', $view);
+    }
+
 }
