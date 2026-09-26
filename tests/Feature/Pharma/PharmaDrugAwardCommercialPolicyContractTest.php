@@ -48,10 +48,17 @@ class PharmaDrugAwardCommercialPolicyContractTest extends TestCase
 
         $this->assertStringContainsString('saveProductPolicies', $component);
         $this->assertStringContainsString('assignManager', $component);
-        $this->assertStringContainsString('Bước 1', $view);
-        $this->assertStringContainsString('Thiết lập chính sách theo sản phẩm', $view);
-        $this->assertStringContainsString('Bước 2', $view);
-        $this->assertStringContainsString('Phân công User quản lý', $view);
+        $this->assertStringContainsString("x-data=\"{ commercialTab: 'policy' }\"", $view);
+        $this->assertStringContainsString("x-on:click=\"commercialTab = 'policy'\"", $view);
+        $this->assertStringContainsString("x-on:click=\"commercialTab = 'assignment'\"", $view);
+        $this->assertStringContainsString("x-show=\"commercialTab === 'policy'\"", $view);
+        $this->assertStringContainsString("x-show=\"commercialTab === 'assignment'\"", $view);
+        $this->assertStringContainsString('Chính sách sản phẩm', $view);
+        $this->assertStringContainsString('Phân công User', $view);
+        $this->assertStringContainsString('đã thiết lập', $view);
+        $this->assertStringContainsString('Cần hoàn thiện', $view);
+        $this->assertStringNotContainsString('Bước 1', $view);
+        $this->assertStringNotContainsString('Bước 2', $view);
         $this->assertStringContainsString('Áp dụng cho đã chọn', $view);
         $this->assertStringContainsString('không thực hiện tính hoa hồng', $view);
         $this->assertStringNotContainsString('Kích hoạt chính sách', $view);
