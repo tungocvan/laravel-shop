@@ -189,4 +189,25 @@ class PharmaDrugAwardAllocationContractTest extends TestCase
         $this->assertStringNotContainsString('wire:model="contractStartDate"', $view);
     }
 
+
+    public function test_signed_contract_reuses_system_google_drive_for_two_way_sync(): void
+    {
+        $component = file_get_contents(base_path('Modules/Pharma/Livewire/DrugBidAward/AllocationWorkspace.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/drug-bid-award/allocation-workspace.blade.php'));
+        $drive = file_get_contents(base_path('Modules/System/Services/Cloud/GoogleDriveConnectionService.php'));
+
+        $this->assertStringContainsString('GoogleDriveConnectionService', $component);
+        $this->assertStringContainsString('backupSignedContractToDrive', $component);
+        $this->assertStringContainsString('restoreSignedContractFromDrive', $component);
+        $this->assertStringContainsString('uploadApplicationFile(', $component);
+        $this->assertStringContainsString('downloadApplicationFile(', $component);
+        $this->assertStringContainsString("['Pharma',", str_replace("\n            ", '', $component));
+        $this->assertStringContainsString('public function downloadApplicationFile', $drive);
+        $this->assertStringContainsString("'alt' => 'media'", $drive);
+        $this->assertStringContainsString('Local {{ $editingContract->signed_file_path', $view);
+        $this->assertStringContainsString('Google Drive {{ $editingContract->signed_file_remote_id', $view);
+        $this->assertStringContainsString('Backup lên Drive', $view);
+        $this->assertStringContainsString('Khôi phục về Local', $view);
+    }
+
 }
