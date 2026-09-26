@@ -118,6 +118,34 @@
         <p class="mt-1 text-sm text-slate-500">Xem rõ User đang phụ trách, phạm vi bệnh viện/sản phẩm và thay hoặc gỡ phân công khi cần.</p>
     </div>
 
+    @if($canManage)
+    <div class="mt-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+        <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+            <div>
+                <p class="text-sm font-bold text-slate-950">Cách phân công</p>
+                <p class="mt-1 text-xs text-slate-500">Chọn một User cho toàn bộ TBMT hoặc quản lý nhiều User theo từng bệnh viện/sản phẩm.</p>
+            </div>
+            <button type="button" wire:click="resetAllManagerAssignments" wire:confirm="Gỡ TOÀN BỘ phân công User của TBMT này? Chính sách % và dữ liệu phân bổ bệnh viện/sản phẩm vẫn được giữ nguyên." class="min-h-10 rounded-xl border border-rose-200 bg-white px-4 text-sm font-semibold text-rose-700">Gỡ toàn bộ phân công</button>
+        </div>
+        <div class="mt-4 flex flex-wrap gap-2">
+            <button type="button" wire:click="$set('assignmentMode', 'single')" class="min-h-10 rounded-xl border px-4 text-sm font-semibold {{ $assignmentMode === 'single' ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300 bg-white text-slate-700' }}">Một User phụ trách toàn bộ</button>
+            <button type="button" wire:click="$set('assignmentMode', 'multiple')" class="min-h-10 rounded-xl border px-4 text-sm font-semibold {{ $assignmentMode === 'multiple' ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300 bg-white text-slate-700' }}">Nhiều User phụ trách</button>
+        </div>
+
+        @if($assignmentMode === 'single')
+        <div class="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+            <div class="text-sm font-semibold text-slate-700">User phụ trách toàn bộ
+                <div class="mt-1"><x-select-search id="commercial-policy-single-user" wire:model.live="selectedUserId" placeholder="Tìm và chọn User..."><option value="">Chọn User</option>@foreach($users as $user)<option value="{{ $user->id }}" @selected((int)$selectedUserId === $user->id)>{{ $user->name }}{{ $user->email ? ' · '.$user->email : '' }}</option>@endforeach</x-select-search></div>
+            </div>
+            <button type="button" wire:click="assignSingleManagerToAll" wire:confirm="Phân công User này cho toàn bộ bệnh viện và sản phẩm có phân bổ thực tế trong TBMT?" @disabled(!$selectedUserId) class="min-h-11 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">Phân công toàn bộ</button>
+        </div>
+        <p class="mt-2 text-xs text-slate-500">Thao tác này cập nhật User cho toàn bộ cặp Bệnh viện × Sản phẩm có phân bổ thực tế; không tạo thêm phân bổ mới.</p>
+        @else
+        <div class="mt-4 rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm text-indigo-800">Chế độ nhiều User: sử dụng bảng bệnh viện và khu vực điều chỉnh bên dưới để gán hoặc thay User theo từng phạm vi.</div>
+        @endif
+    </div>
+    @endif
+
     <div class="mt-4 grid gap-3 sm:grid-cols-3">
         <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"><p class="text-xs font-semibold uppercase text-slate-500">Số lượng Bệnh viện</p><p class="mt-1 text-lg font-bold text-slate-950">{{ $assignmentSummary['hospitals'] }}</p></div>
         <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"><p class="text-xs font-semibold uppercase text-slate-500">User quản lý</p><p class="mt-1 text-lg font-bold text-slate-950">{{ $assignmentSummary['users'] }}</p></div>
@@ -198,7 +226,7 @@
         @endif
     </div>
 
-    @if($canManage)
+    @if($canManage && $assignmentMode === 'multiple')
     <div class="mt-5 rounded-2xl border border-indigo-200 bg-indigo-50/60 p-4">
         <p class="text-sm font-bold text-indigo-950">Phân công User theo sản phẩm</p>
         <p class="mt-1 text-sm text-indigo-800">Chọn một hoặc nhiều sản phẩm, sau đó gán User cho tất cả bệnh viện đang có phân bổ thực tế của các sản phẩm đó.</p>
@@ -229,6 +257,7 @@
     </div>
     @endif
 
+    @if($assignmentMode === 'multiple')
     <div class="mt-5 border-t border-slate-200 pt-5">
         <details class="group" @if($selectedPartnerId) open @endif>
         <summary class="cursor-pointer list-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
@@ -280,6 +309,7 @@
         @endif
         </details>
     </div>
+    @endif
 </section>
 
 <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
