@@ -103,7 +103,7 @@ class PharmaDrugAwardCommercialPolicyContractTest extends TestCase
         $this->assertStringContainsString('User phụ trách', $view);
         $this->assertStringContainsString('Xem / Điều chỉnh', $view);
         $this->assertStringContainsString('Tổng hợp theo User', $view);
-        $this->assertStringContainsString('Cần phân công', $view);
+        $this->assertStringContainsString('Chưa phân công', $view);
         $this->assertStringContainsString('flex flex-wrap items-center gap-2 rounded-2xl', $view);
 
         $toolbarPosition = strpos($view, 'Import Excel');
