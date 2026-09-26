@@ -88,4 +88,20 @@ class DrugBidAwardCommercialPolicyWorkspaceContractTest extends TestCase
         $this->assertStringContainsString('Gỡ toàn bộ phân công để đổi cách phân công.', $view);
     }
 
+
+    public function test_single_mode_keeps_review_and_whole_manager_replacement_available(): void
+    {
+        $root = dirname(__DIR__, 2);
+        $component = file_get_contents($root.'/Livewire/DrugBidAward/CommercialPolicyWorkspace.php');
+        $view = file_get_contents($root.'/resources/views/livewire/drug-bid-award/commercial-policy-workspace.blade.php');
+
+        $this->assertStringContainsString('prepareSingleManagerReplacement', $component);
+        $this->assertStringContainsString('replaceSingleManager', $component);
+        $this->assertStringContainsString("\$this->selectedPartnerId = (string) \$partnerId;", $component);
+        $this->assertStringContainsString('Thay User toàn bộ', $view);
+        $this->assertStringContainsString('Chi tiết bệnh viện', $view);
+        $this->assertStringContainsString('chỉ xem trong chế độ Một User phụ trách toàn bộ', $view);
+        $this->assertStringContainsString('wire:click="replaceSingleManager"', $view);
+    }
+
 }
