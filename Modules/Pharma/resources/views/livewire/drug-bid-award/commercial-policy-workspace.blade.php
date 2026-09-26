@@ -162,12 +162,12 @@
         </div>
         <div class="mt-3 overflow-x-auto rounded-xl border border-slate-200">
             <table class="w-full min-w-[860px] divide-y divide-slate-200 text-sm">
-                <thead class="bg-slate-50 text-xs uppercase text-slate-600"><tr><th class="px-3 py-3 text-left">Bệnh viện</th><th class="px-3 py-3 text-center">Sản phẩm phân bổ</th><th class="px-3 py-3 text-left">User phụ trách</th><th class="px-3 py-3 text-left">Trạng thái</th><th class="px-3 py-3 text-right">Thao tác</th></tr></thead>
+                <thead class="bg-slate-50 text-xs uppercase text-slate-600"><tr><th class="px-3 py-3 text-left">Bệnh viện</th><th class="px-3 py-3 text-center">Phân công sản phẩm</th><th class="px-3 py-3 text-left">User phụ trách</th><th class="px-3 py-3 text-left">Trạng thái</th><th class="px-3 py-3 text-right">Thao tác</th></tr></thead>
                 <tbody class="divide-y divide-slate-100">
                 @forelse($hospitalGroups as $hospitalGroup)
                     <tr wire:key="commercial-hospital-scope-{{ $hospitalGroup['partner_id'] }}">
                         <td class="px-3 py-3"><p class="font-semibold text-slate-950">{{ $hospitalGroup['hospital']->name }}</p>@if($hospitalGroup['hospital']->tax_code)<p class="text-xs text-slate-500">MST {{ $hospitalGroup['hospital']->tax_code }}</p>@endif</td>
-                        <td class="px-3 py-3 text-center"><span class="font-bold text-slate-950">{{ $hospitalGroup['assigned'] }}/{{ $hospitalGroup['products'] }}</span><p class="text-xs text-slate-500">đã có User</p></td>
+                        <td class="px-3 py-3 text-center"><span class="font-bold text-slate-950">{{ $hospitalGroup['assigned'] }}/{{ $hospitalGroup['products'] }} sản phẩm</span><p class="text-xs text-slate-500">{{ $hospitalGroup['assigned'] >= $hospitalGroup['products'] ? 'đã phân công User đầy đủ' : 'đã được gán User' }}</p></td>
                         <td class="px-3 py-3">
                             @if($hospitalGroup['users']->isNotEmpty())
                                 <div class="flex flex-wrap gap-1.5">@foreach($hospitalGroup['users'] as $manager)<span class="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700">{{ $manager->name ?: 'User #'.$manager->id }}</span>@endforeach</div>
