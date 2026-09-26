@@ -128,16 +128,23 @@
             <button type="button" wire:click="resetAllManagerAssignments" wire:confirm="Gỡ TOÀN BỘ phân công User của TBMT này? Chính sách % và dữ liệu phân bổ bệnh viện/sản phẩm vẫn được giữ nguyên." class="min-h-10 rounded-xl border border-rose-200 bg-white px-4 text-sm font-semibold text-rose-700">Gỡ toàn bộ phân công</button>
         </div>
         <div class="mt-4 flex flex-wrap gap-2">
-            <button type="button" wire:click="$set('assignmentMode', 'single')" class="min-h-10 rounded-xl border px-4 text-sm font-semibold {{ $assignmentMode === 'single' ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300 bg-white text-slate-700' }}">Một User phụ trách toàn bộ</button>
-            <button type="button" wire:click="$set('assignmentMode', 'multiple')" class="min-h-10 rounded-xl border px-4 text-sm font-semibold {{ $assignmentMode === 'multiple' ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300 bg-white text-slate-700' }}">Nhiều User phụ trách</button>
+            <button type="button" wire:click="$set('assignmentMode', 'single')" @disabled($persistedAssignmentMode === 'multiple') class="min-h-10 rounded-xl border px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40 {{ $assignmentMode === 'single' ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300 bg-white text-slate-700' }}">Một User phụ trách toàn bộ</button>
+            <button type="button" wire:click="$set('assignmentMode', 'multiple')" @disabled($persistedAssignmentMode === 'single') class="min-h-10 rounded-xl border px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40 {{ $assignmentMode === 'multiple' ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300 bg-white text-slate-700' }}">Nhiều User phụ trách</button>
         </div>
+        @if($persistedAssignmentMode !== 'unassigned')
+        <div class="mt-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
+            <span class="font-semibold">Chế độ hiện tại:</span>
+            {{ $persistedAssignmentMode === 'single' ? 'Một User phụ trách toàn bộ' : 'Nhiều User phụ trách' }}.
+            <span class="text-slate-500">Gỡ toàn bộ phân công để đổi cách phân công.</span>
+        </div>
+        @endif
 
         @if($assignmentMode === 'single')
         <div class="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
             <div class="text-sm font-semibold text-slate-700">User phụ trách toàn bộ
                 <div class="mt-1"><x-select-search id="commercial-policy-single-user" wire:model.live="selectedUserId" placeholder="Tìm và chọn User..."><option value="">Chọn User</option>@foreach($users as $user)<option value="{{ $user->id }}" @selected((int)$selectedUserId === $user->id)>{{ $user->name }}{{ $user->email ? ' · '.$user->email : '' }}</option>@endforeach</x-select-search></div>
             </div>
-            <button type="button" wire:click="assignSingleManagerToAll" wire:confirm="Phân công User này cho toàn bộ bệnh viện và sản phẩm có phân bổ thực tế trong TBMT?" @disabled(!$selectedUserId) class="min-h-11 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">Phân công toàn bộ</button>
+            <button type="button" wire:click="assignSingleManagerToAll" wire:confirm="Phân công User này cho toàn bộ bệnh viện và sản phẩm có phân bổ thực tế trong TBMT?" @disabled(!$selectedUserId || $persistedAssignmentMode === 'single') class="min-h-11 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">Phân công toàn bộ</button>
         </div>
         <p class="mt-2 text-xs text-slate-500">Thao tác này cập nhật User cho toàn bộ cặp Bệnh viện × Sản phẩm có phân bổ thực tế; không tạo thêm phân bổ mới.</p>
         @else
