@@ -34,9 +34,22 @@ class DrugBidAwardLegalInfoSaveContractTest extends TestCase
 
         $this->assertStringContainsString('legalInfoForResultGroup', $service);
         $this->assertStringContainsString("\$legalInfo = \$service->legalInfoForResultGroup(\$id)", $component);
-        $this->assertStringContainsString("\$this->contract_duration_months = \$legalInfo->contract_duration_months", $component);
+        $this->assertStringContainsString('contractDurationMonthsForResultGroup', $service);
+        $this->assertStringContainsString("\$this->contract_duration_months = \$service->contractDurationMonthsForResultGroup(\$id)", $component);
         $this->assertStringNotContainsString('filterMatchStatus', $index);
         $this->assertStringNotContainsString('Đối soát HSSP<select', $view);
+    }
+
+
+    public function test_index_import_export_no_longer_references_removed_match_filter(): void
+    {
+        $root = dirname(__DIR__, 2);
+        $view = file_get_contents($root.'/resources/views/livewire/drug-bid-award/index.blade.php');
+
+        $this->assertStringNotContainsString('$filterMatchStatus', $view);
+        $this->assertStringContainsString("xl:grid-cols-12", $view);
+        $this->assertStringContainsString("xl:col-span-2\">Mã TBMT", $view);
+        $this->assertStringContainsString("xl:col-span-3\">Nguồn", $view);
     }
 
 }
