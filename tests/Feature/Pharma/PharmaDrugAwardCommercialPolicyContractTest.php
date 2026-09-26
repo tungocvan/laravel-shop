@@ -89,15 +89,19 @@ class PharmaDrugAwardCommercialPolicyContractTest extends TestCase
         $this->assertStringNotContainsString('Gán cho toàn bộ TBMT', $view);
     }
 
-    public function test_assignment_tab_exposes_hospital_product_user_matrix_and_global_excel_toolbar(): void
+    public function test_assignment_tab_exposes_hospital_first_scope_and_global_excel_toolbar(): void
     {
         $component = file_get_contents(base_path('Modules/Pharma/Livewire/DrugBidAward/CommercialPolicyWorkspace.php'));
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/drug-bid-award/commercial-policy-workspace.blade.php'));
 
-        $this->assertStringContainsString('assignmentMatrix', $component);
+        $this->assertStringContainsString('hospitalGroups', $component);
+        $this->assertStringNotContainsString('assignmentMatrix', $component);
         $this->assertStringContainsString('selectAssignmentContext', $component);
-        $this->assertStringContainsString('Phân bổ chính sách kinh doanh', $view);
-        $this->assertStringContainsString('Bệnh viện → Sản phẩm → Chính sách → User phụ trách', $view);
+        $this->assertStringContainsString('Phạm vi quản lý theo bệnh viện', $view);
+        $this->assertStringContainsString('Một bệnh viện một dòng', $view);
+        $this->assertStringContainsString('Sản phẩm phân bổ', $view);
+        $this->assertStringContainsString('User phụ trách', $view);
+        $this->assertStringContainsString('Xem / Điều chỉnh', $view);
         $this->assertStringContainsString('Tổng hợp theo User', $view);
         $this->assertStringContainsString('Cần phân công', $view);
         $this->assertStringContainsString('flex flex-wrap items-center gap-2 rounded-2xl', $view);
