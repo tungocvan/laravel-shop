@@ -184,7 +184,7 @@
                                 <span class="rounded-full bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700">Chưa phân công</span>
                             @endif
                         </td>
-                        <td class="px-3 py-3 text-right">@if($canManage)<button type="button" wire:click="selectAssignmentContext({{ $hospitalGroup['partner_id'] }})" class="text-sm font-semibold text-indigo-700">Xem / Điều chỉnh</button>@endif</td>
+                        <td class="px-3 py-3 text-right">@if($canManage)<button type="button" wire:click="openHospitalAssignment({{ $hospitalGroup['partner_id'] }})" class="text-sm font-semibold text-indigo-700">Xem / Điều chỉnh</button>@endif</td>
                     </tr>
                 @empty
                     <tr><td colspan="5" class="px-4 py-6 text-center text-sm text-slate-500">Chưa có bệnh viện được phân bổ thực tế cho các sản phẩm đang hiển thị.</td></tr>
