@@ -32,6 +32,8 @@ class Index extends Component
 
     public string $filterSource = '';
 
+    public string $filterBusinessSetup = '';
+
     public int $perPage = 10;
 
     public int $page = 1;
@@ -51,6 +53,7 @@ class Index extends Component
         'filterTbmt' => ['except' => ''],
         'filterInvestor' => ['except' => ''],
         'filterSource' => ['except' => ''],
+        'filterBusinessSetup' => ['except' => ''],
         'valueSort' => ['except' => ''],
         'perPage' => ['except' => 10],
         'page' => ['except' => 1],
@@ -86,6 +89,13 @@ class Index extends Component
     public function updatedFilterSource(): void
     {
         $this->filterSource = in_array($this->filterSource, $this->sourceOptions(), true) ? $this->filterSource : '';
+        $this->resetWorkspacePage();
+    }
+
+    public function updatedFilterBusinessSetup(): void
+    {
+        $allowed = ['', 'commercial_missing', 'commercial_ready', 'allocation_missing', 'allocation_ready'];
+        $this->filterBusinessSetup = in_array($this->filterBusinessSetup, $allowed, true) ? $this->filterBusinessSetup : '';
         $this->resetWorkspacePage();
     }
 
@@ -173,7 +183,7 @@ class Index extends Component
 
     public function resetFilters(): void
     {
-        $this->reset(['search', 'filterTbmt', 'filterInvestor', 'filterSource', 'valueSort']);
+        $this->reset(['search', 'filterTbmt', 'filterInvestor', 'filterSource', 'filterBusinessSetup', 'valueSort']);
         $this->page = 1;
         $this->clearSelection();
         $this->dispatch('filters-reset');
@@ -319,6 +329,7 @@ class Index extends Component
             null,
             $this->filterTbmt,
             $this->valueSort,
+            $this->filterBusinessSetup ?: null,
         );
     }
 
