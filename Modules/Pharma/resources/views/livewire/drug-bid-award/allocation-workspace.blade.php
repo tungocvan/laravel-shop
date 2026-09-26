@@ -59,11 +59,8 @@
             <div class="mt-4 grid gap-4 lg:grid-cols-12">
                 <div class="lg:col-span-4">
                     <label class="block text-sm font-medium text-slate-700">Bệnh viện</label>
-                    @if ($editingAllocationId)
-                        <select disabled class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm"><option>{{ $partners->firstWhere('id', (int) $partnerId)?->name ?: 'Bệnh viện đã chọn' }}</option></select>
-                    @else
-                        <div class="mt-1"><x-select-search id="pharma-allocation-hospital" wire:model="partnerId" placeholder="Tìm hoặc chọn bệnh viện..."><option value="">Chọn bệnh viện</option>@foreach ($partners as $partner)<option value="{{ $partner->id }}">{{ $partner->name }}{{ $partner->tax_code ? ' · '.$partner->tax_code : '' }}</option>@endforeach</x-select-search></div>
-                    @endif
+                    <div class="mt-1"><x-select-search id="pharma-allocation-hospital" wire:model="partnerId" placeholder="Tìm hoặc chọn bệnh viện..."><option value="">Chọn bệnh viện</option>@foreach ($partners as $partner)<option value="{{ $partner->id }}">{{ $partner->name }}{{ $partner->tax_code ? ' · '.$partner->tax_code : '' }}</option>@endforeach</x-select-search></div>
+                    @if ($editingAllocationId)<p class="mt-1 text-xs text-slate-500">Có thể đổi sang bệnh viện khác trong phạm vi phân bổ đã duyệt.</p>@endif
                 </div>
                 <div class="lg:col-span-2"><label class="block text-sm font-medium text-slate-700">Số lượng phân bổ</label><input type="number" step="0.0001" min="0.0001" wire:model="allocatedQuantity" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm shadow-sm"></div>
                 <div class="lg:col-span-4"><label class="block text-sm font-medium text-slate-700">Ghi chú</label><input type="text" wire:model="notes" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm shadow-sm"></div>
