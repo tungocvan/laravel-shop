@@ -2,7 +2,9 @@
 
 namespace Modules\Pharma\Livewire\DrugBidAward;
 
+use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
+use Livewire\Features\SupportFileUploads\WithFileUploads;
 use Modules\Partner\Models\Partner;
 use Modules\Pharma\Models\DrugBidAward;
 use Modules\Pharma\Models\DrugBidAwardAllocation;
@@ -16,6 +18,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AllocationWorkspace extends Component
 {
+    use WithFileUploads;
     private const PER_PAGE_OPTIONS = [10, 25, 50, 100];
 
     public int $awardId;
@@ -56,7 +59,7 @@ class AllocationWorkspace extends Component
 
     public string $contractDate = '';
 
-    public string $contractQuantity = '';
+    public $signedContractFile = null;
 
     public string $contractValue = '';
 
@@ -204,8 +207,7 @@ class AllocationWorkspace extends Component
         $this->editingContractId = $contract->id;
         $this->contractNumber = $contract->contract_number;
         $this->contractDate = $contract->contract_date?->format('Y-m-d') ?? '';
-        $this->contractQuantity = (string) $contract->contract_quantity;
-        $this->contractValue = (string) ($contract->contract_value ?? '');
+                $this->contractValue = (string) ($contract->contract_value ?? '');
         $this->contractStartDate = $contract->start_date?->format('Y-m-d') ?? '';
         $this->contractEndDate = $contract->end_date?->format('Y-m-d') ?? '';
         $this->contractStatus = $contract->status;
@@ -219,23 +221,28 @@ class AllocationWorkspace extends Component
             'contractAllocationId' => ['required', 'integer'],
             'contractNumber' => ['required', 'string', 'max:255'],
             'contractDate' => ['nullable', 'date'],
-            'contractQuantity' => ['required', 'numeric', 'gt:0'],
+            'signedContractFile' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:20480'],
             'contractValue' => ['nullable', 'numeric', 'gte:0'],
             'contractStartDate' => ['nullable', 'date'],
             'contractEndDate' => ['nullable', 'date', 'after_or_equal:contractStartDate'],
             'contractStatus' => ['required', 'in:draft,signed,in_progress,completed'],
             'contractNotes' => ['nullable', 'string', 'max:3000'],
         ]);
-        $service->save((int) $data['contractAllocationId'], $this->editingContractId, [
+        $contract = $service->save((int) $data['contractAllocationId'], $this->editingContractId, [
             'contract_number' => $data['contractNumber'],
             'contract_date' => $data['contractDate'] ?: null,
-            'contract_quantity' => $data['contractQuantity'],
+            'contract_quantity' => $this->contractCommittedQuantity((int) $data['contractAllocationId']),
             'contract_value' => $data['contractValue'] === '' ? null : $data['contractValue'],
             'start_date' => $data['contractStartDate'] ?: null,
             'end_date' => $data['contractEndDate'] ?: null,
             'status' => $data['contractStatus'],
             'contract_notes' => $data['contractNotes'] ?: null,
         ], auth('admin')->id());
+
+        if ($this->signedContractFile) {
+            $this->storeSignedContractFile($contract);
+        }
+
         $this->resetContractForm();
         session()->flash('success', 'Đã lưu hợp đồng bệnh viện.');
     }
@@ -397,6 +404,49 @@ class AllocationWorkspace extends Component
             ->all();
     }
 
+    private function contractCommittedQuantity(int $allocationId): float
+    {
+        $allocation = DrugBidAwardAllocation::query()->findOrFail($allocationId);
+        $otherCommitted = (float) DrugBidAwardContract::query()
+            ->where('drug_bid_award_allocation_id', $allocationId)
+            ->whereIn('status', DrugBidAwardContract::COMMITTED_STATUSES)
+            ->when($this->editingContractId, fn ($query) => $query->where('id', '!=', $this->editingContractId))
+            ->sum('contract_quantity');
+
+        return max(0.0001, round((float) $allocation->allocated_quantity - $otherCommitted, 4));
+    }
+
+    private function storeSignedContractFile(DrugBidAwardContract $contract): void
+    {
+        $award = DrugBidAward::query()->findOrFail($this->awardId);
+        $safeTbmt = preg_replace('/[^A-Za-z0-9._-]+/', '-', (string) ($award->bidding_notice_code ?: 'TBMT-'.$award->id));
+        $safeContract = preg_replace('/[^A-Za-z0-9._-]+/', '-', $contract->contract_number);
+        $directory = 'Laravel-Backup/Pharma/DrugBidAwards/'.$safeTbmt.'/Contracts/'.$contract->drug_bid_award_allocation_id.'/'.$safeContract;
+        $originalName = $this->signedContractFile->getClientOriginalName();
+        $storedName = now()->format('YmdHis').'-'.preg_replace('/[^A-Za-z0-9._-]+/', '-', $originalName);
+        $path = $this->signedContractFile->storeAs($directory, $storedName, 'local');
+
+        $contract->update([
+            'signed_file_disk' => 'local',
+            'signed_file_path' => $path,
+            'signed_file_name' => $originalName,
+            'signed_file_mime' => $this->signedContractFile->getMimeType(),
+            'signed_file_size' => $this->signedContractFile->getSize(),
+            'signed_file_remote_id' => null,
+        ]);
+    }
+
+    public function downloadSignedContract(int $contractId)
+    {
+        $this->authorizePermission('view_pharma_contracts');
+        $contract = DrugBidAwardContract::query()
+            ->whereHas('allocation', fn ($query) => $query->where('drug_bid_award_id', $this->awardId))
+            ->findOrFail($contractId);
+        abort_unless($contract->signed_file_path && Storage::disk($contract->signed_file_disk ?: 'local')->exists($contract->signed_file_path), 404);
+
+        return Storage::disk($contract->signed_file_disk ?: 'local')->download($contract->signed_file_path, $contract->signed_file_name ?: basename($contract->signed_file_path));
+    }
+
     private function formatQuantityInput(mixed $value): string
     {
         $number = (float) $value;
@@ -415,7 +465,7 @@ class AllocationWorkspace extends Component
 
     private function resetContractForm(): void
     {
-        $this->reset(['contractAllocationId', 'contractPartnerName', 'editingContractId', 'contractNumber', 'contractDate', 'contractQuantity', 'contractValue', 'contractStartDate', 'contractEndDate', 'contractNotes']);
+        $this->reset(['contractAllocationId', 'contractPartnerName', 'editingContractId', 'contractNumber', 'contractDate', 'signedContractFile', 'contractValue', 'contractStartDate', 'contractEndDate', 'contractNotes']);
         $this->contractStatus = DrugBidAwardContract::STATUS_DRAFT;
         $this->resetValidation();
     }
