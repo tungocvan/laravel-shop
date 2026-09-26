@@ -68,20 +68,22 @@ class Form extends Component
 
         $this->awardId = $id;
         $this->isEditMode = true;
-        $award = app(DrugBidAwardService::class)->findOrFail($id);
+        $service = app(DrugBidAwardService::class);
+        $award = $service->findOrFail($id);
+        $legalInfo = $service->legalInfoForResultGroup($id);
 
         $this->medicine_id = $award->medicine_id;
         $this->medicine_name = $award->medicine_name ?? '';
         $this->packaging_specification = $award->packaging_specification ?? '';
         $this->quantity = $award->quantity;
         $this->unit_price = $award->unit_price;
-        $this->bidding_notice_code = $award->bidding_notice_code ?? '';
-        $this->investor_name = $award->investor_name ?? '';
-        $this->decision_number = $award->decision_number ?? '';
-        $this->decision_date = $award->decision_date?->format('Y-m-d') ?? '';
-        $this->contract_duration_months = $award->contract_duration_months;
+        $this->bidding_notice_code = $legalInfo->bidding_notice_code ?? $award->bidding_notice_code ?? '';
+        $this->investor_name = $legalInfo->investor_name ?? $award->investor_name ?? '';
+        $this->decision_number = $legalInfo->decision_number ?? $award->decision_number ?? '';
+        $this->decision_date = $legalInfo->decision_date?->format('Y-m-d') ?? $award->decision_date?->format('Y-m-d') ?? '';
+        $this->contract_duration_months = $legalInfo->contract_duration_months ?? $award->contract_duration_months;
         $this->winning_company_name = $award->winning_company_name ?? '';
-        $this->decision_document_url = $award->decision_document_url ?? '';
+        $this->decision_document_url = $legalInfo->decision_document_url ?? $award->decision_document_url ?? '';
         $this->sourceType = $award->source_type ?: DrugBidAward::SOURCE_MANUAL;
         $this->medicineSearch = $award->medicine?->name ?? '';
     }
