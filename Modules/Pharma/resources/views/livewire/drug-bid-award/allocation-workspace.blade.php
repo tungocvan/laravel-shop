@@ -98,7 +98,7 @@
                         <td class="px-4 py-4"><div class="font-semibold {{ $allocation->contracts->isEmpty() ? 'text-slate-500' : 'text-slate-950' }}">{{ $allocation->contracts->isEmpty() ? 'Chưa có hợp đồng' : $allocation->contracts->count().' hợp đồng' }}</div>@foreach ($allocation->contracts->take(3) as $contract)<div class="mt-1 text-xs text-slate-500">{{ $contract->contract_number }} · {{ $fmtQty($contract->contract_quantity) }} · {{ strtoupper($contract->status) }}</div>@endforeach</td>
                         <td class="px-4 py-4"><span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $allocation->status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }}">{{ $allocation->status === 'active' ? 'ACTIVE' : 'TẠM NGƯNG' }}</span></td>
                         <td class="px-4 py-4"><input type="checkbox" @checked($allocation->status !== 'active') @disabled(($allocation->status === 'active' && !$canCancelAllocation) || ($allocation->status !== 'active' && !$canManageAllocation)) wire:change="toggleAllocationPause({{ $allocation->id }}, $event.target.checked)" class="h-4 w-4 rounded border-slate-300 text-indigo-600"><span class="ml-2 text-xs text-slate-500">Tạm ngưng</span></td>
-                        <td class="px-4 py-4 text-right"><div class="flex justify-end gap-2">@if ($canManageAllocation && $allocation->status === 'active')<button type="button" wire:click="editAllocation({{ $allocation->id }})" class="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold">Sửa</button>@endif @if ($canManageContracts && $allocation->status === 'active')<button type="button" wire:click="openContractForm({{ $allocation->id }})" class="rounded-lg border border-indigo-200 px-3 py-2 text-xs font-semibold text-indigo-700">{{ $allocation->contracts->isEmpty() ? 'Tạo hợp đồng' : 'Thêm hợp đồng' }}</button>@endif</div></td>
+                        <td class="px-4 py-4 text-right"><div class="flex justify-end gap-2">@if ($canManageAllocation && $allocation->status === 'active')<button type="button" wire:click="editAllocation({{ $allocation->id }})" class="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold">Sửa</button>@endif @if ($canManageContracts && $allocation->status === 'active')@if($allocation->contracts->isEmpty())<button type="button" wire:click="openContractForm({{ $allocation->id }})" class="rounded-lg border border-indigo-200 px-3 py-2 text-xs font-semibold text-indigo-700">Tạo hợp đồng</button>@else<button type="button" wire:click="editContract({{ $allocation->id }}, {{ $allocation->contracts->first()->id }})" class="rounded-lg border border-indigo-200 px-3 py-2 text-xs font-semibold text-indigo-700">Sửa hợp đồng</button>@endif @endif</div></td>
                     </tr>
                     @if ($canViewContracts && $allocation->contracts->isNotEmpty())
                         <tr class="bg-slate-50/70"><td></td><td colspan="7" class="px-4 py-3"><div class="flex flex-wrap gap-2">@foreach ($allocation->contracts as $contract)<span class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs"><strong>{{ $contract->contract_number }}</strong><span>{{ strtoupper($contract->status) }}</span>@if ($canManageContracts && $contract->status !== 'cancelled')<button type="button" wire:click="editContract({{ $allocation->id }}, {{ $contract->id }})" class="font-semibold text-indigo-700">Sửa</button>@endif</span>@endforeach</div></td></tr>
@@ -123,39 +123,48 @@
                 <div class="lg:col-span-2"><label class="block text-sm font-medium">Ghi chú</label><input wire:model="contractNotes" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5"></div>
                 <div class="lg:col-span-12 rounded-xl border border-slate-200 bg-white p-4">
                     @php($editingContract = $editingContractId ? $allocations->getCollection()->flatMap->contracts->firstWhere('id', $editingContractId) : null)
-                    @php($hasLocalContractFile = (bool) ($editingContract?->signed_file_path))
-                    @php($hasDriveContractFile = (bool) ($editingContract?->signed_file_remote_id))
-                    <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                        <div class="min-w-0 flex-1">
-                            <div class="flex flex-wrap items-center gap-2">
-                                <label class="block text-sm font-semibold text-slate-800">File hợp đồng đã ký</label>
-                                <span class="rounded-full px-2.5 py-1 text-xs font-bold {{ $hasLocalContractFile ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500' }}">Local {{ $hasLocalContractFile ? '✓ Đã lưu' : '— Chưa có file' }}</span>
-                                <span class="rounded-full px-2.5 py-1 text-xs font-bold {{ $hasDriveContractFile ? 'bg-sky-100 text-sky-700' : 'bg-slate-100 text-slate-500' }}">Google Drive {{ $hasDriveContractFile ? '✓ Đã backup' : '— Chưa backup' }}</span>
-                            </div>
-                            <input type="file" wire:model="signedContractFile" accept=".pdf,.jpg,.jpeg,.png" class="mt-3 block w-full text-sm text-slate-600">
-                            <p class="mt-1 text-xs text-slate-500">PDF/JPG/PNG, tối đa 20 MB. File được lưu riêng tư trên hệ thống; sau khi lưu hợp đồng có thể backup lên Google Drive.</p>
-                            @if(!$editingContractId)
-                                <p class="mt-2 text-xs font-medium text-indigo-600">Lưu hợp đồng trước để kích hoạt Backup lên Google Drive.</p>
-                            @endif
-                            @error('signedContractFile')<p class="mt-2 text-xs text-rose-600">{{ $message }}</p>@enderror
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <h3 class="text-sm font-semibold text-slate-900">Nơi lưu hợp đồng</h3>
+                            <p class="mt-1 text-xs text-slate-500">Có thể lưu Local, Google Drive hoặc đồng thời cả hai.</p>
                         </div>
-                        <div class="flex flex-wrap items-center gap-2 xl:max-w-xl xl:justify-end">
-                            @if($editingContract && $hasLocalContractFile)
-                                <button type="button" wire:click="downloadSignedContract({{ $editingContract->id }})" class="min-h-10 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700">Tải file</button>
-                                <button type="button" wire:click="backupSignedContractToDrive({{ $editingContract->id }})" wire:loading.attr="disabled" wire:target="backupSignedContractToDrive" class="min-h-10 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-semibold text-sky-700 disabled:opacity-50">{{ $hasDriveContractFile ? 'Backup lại' : 'Backup lên Google Drive' }}</button>
-                            @else
-                                <button type="button" disabled class="min-h-10 cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-400">Backup lên Google Drive</button>
-                            @endif
-                            @if($editingContract && $hasDriveContractFile)
-                                <button type="button" wire:click="restoreSignedContractFromDrive({{ $editingContract->id }})" wire:loading.attr="disabled" wire:target="restoreSignedContractFromDrive" class="min-h-10 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 disabled:opacity-50">Khôi phục từ Drive</button>
-                            @else
-                                <button type="button" disabled class="min-h-10 cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-400">Khôi phục từ Drive</button>
+                        <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $googleDriveConnected ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }}">Google Drive {{ $googleDriveConnected ? 'đã kết nối' : 'chưa kết nối' }}</span>
+                    </div>
+                    <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                        <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-3 hover:bg-slate-50">
+                            <input type="checkbox" wire:model="contractStorageTargets" value="local" class="mt-0.5 rounded border-slate-300 text-indigo-600">
+                            <span><span class="block text-sm font-semibold text-slate-900">Local</span><span class="mt-1 block text-xs text-slate-500">Giữ một bản riêng tư trên máy chủ.</span></span>
+                        </label>
+                        <label class="flex items-start gap-3 rounded-xl border border-slate-200 p-3 {{ $googleDriveConnected ? 'cursor-pointer hover:bg-slate-50' : 'cursor-not-allowed opacity-60' }}">
+                            <input type="checkbox" wire:model="contractStorageTargets" value="google_drive" @disabled(!$googleDriveConnected) class="mt-0.5 rounded border-slate-300 text-indigo-600">
+                            <span><span class="block text-sm font-semibold text-slate-900">Google Drive</span><span class="mt-1 block text-xs text-slate-500">Dùng cùng kết nối Drive của System.</span></span>
+                        </label>
+                    </div>
+                    @error('contractStorageTargets')<p class="mt-2 text-xs text-rose-600">{{ $message }}</p>@enderror
+
+                    <div class="mt-4 border-t border-slate-100 pt-4">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <label class="block text-sm font-semibold text-slate-800">File hợp đồng đã ký</label>
+                            @if($editingContract?->signed_file_path)<span class="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-700">Local ✓</span>@endif
+                            @if($editingContract?->signed_file_remote_id)<span class="rounded-full bg-sky-100 px-2.5 py-1 text-xs font-bold text-sky-700">Google Drive ✓</span>@endif
+                        </div>
+                        <div class="mt-2 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                            <div class="min-w-0 flex-1">
+                                <input type="file" wire:model="signedContractFile" accept=".pdf,.jpg,.jpeg,.png" class="block w-full text-sm text-slate-600">
+                                <p class="mt-1 text-xs text-slate-500">PDF/JPG/PNG, tối đa 20 MB. File mới sẽ được lưu vào các nơi đã chọn ở trên.</p>
+                                @error('signedContractFile')<p class="mt-2 text-xs text-rose-600">{{ $message }}</p>@enderror
+                            </div>
+                            @if($editingContract)
+                                <div class="flex flex-wrap gap-2">
+                                    @if($editingContract->signed_file_path)<button type="button" wire:click="downloadSignedContract({{ $editingContract->id }})" class="min-h-10 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold">Tải file</button>@endif
+                                    @if($editingContract->signed_file_remote_id)<button type="button" wire:click="restoreSignedContractFromDrive({{ $editingContract->id }})" class="min-h-10 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700">Khôi phục từ Drive</button>@endif
+                                </div>
                             @endif
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="mt-4 flex justify-end"><button type="button" wire:click="saveContract" wire:loading.attr="disabled" wire:target="saveContract,signedContractFile" class="min-h-11 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">Lưu hợp đồng</button></div>
+            <div class="mt-4 flex flex-wrap justify-end gap-2">@if($editingContractId)<button type="button" wire:click="createAnotherContract" class="min-h-11 rounded-xl border border-indigo-200 bg-white px-5 py-2.5 text-sm font-semibold text-indigo-700">+ Thêm hợp đồng khác</button>@endif<button type="button" wire:click="saveContract" wire:loading.attr="disabled" wire:target="saveContract,signedContractFile" class="min-h-11 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{{ $editingContractId ? 'Lưu thay đổi' : 'Lưu hợp đồng' }}</button></div>
         </section>
     @endif
 </div>
