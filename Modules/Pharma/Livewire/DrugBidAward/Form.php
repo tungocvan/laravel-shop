@@ -81,7 +81,9 @@ class Form extends Component
         $this->investor_name = $legalInfo->investor_name ?? $award->investor_name ?? '';
         $this->decision_number = $legalInfo->decision_number ?? $award->decision_number ?? '';
         $this->decision_date = $legalInfo->decision_date?->format('Y-m-d') ?? $award->decision_date?->format('Y-m-d') ?? '';
-        $this->contract_duration_months = $legalInfo->contract_duration_months ?? $award->contract_duration_months;
+        $this->contract_duration_months = $service->contractDurationMonthsForResultGroup($id)
+            ?? $legalInfo->contract_duration_months
+            ?? $award->contract_duration_months;
         $this->winning_company_name = $award->winning_company_name ?? '';
         $this->decision_document_url = $legalInfo->decision_document_url ?? $award->decision_document_url ?? '';
         $this->sourceType = $award->source_type ?: DrugBidAward::SOURCE_MANUAL;
