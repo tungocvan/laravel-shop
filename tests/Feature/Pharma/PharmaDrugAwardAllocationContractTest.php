@@ -170,4 +170,23 @@ class PharmaDrugAwardAllocationContractTest extends TestCase
         $this->assertStringContainsString('Đã chọn {{ count($selectedIds) }} bệnh viện', $view);
     }
 
+
+    public function test_contract_editor_is_compact_and_supports_private_signed_file_upload(): void
+    {
+        $component = file_get_contents(base_path('Modules/Pharma/Livewire/DrugBidAward/AllocationWorkspace.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/drug-bid-award/allocation-workspace.blade.php'));
+        $model = file_get_contents(base_path('Modules/Pharma/Models/DrugBidAwardContract.php'));
+
+        $this->assertStringContainsString('use WithFileUploads;', $component);
+        $this->assertStringContainsString('signedContractFile', $component);
+        $this->assertStringContainsString("'Laravel-Backup/Pharma/DrugBidAwards/'", $component);
+        $this->assertStringContainsString("storeAs(\$directory, \$storedName, 'local')", $component);
+        $this->assertStringContainsString('signed_file_remote_id', $model);
+        $this->assertStringContainsString('Ngày ký hợp đồng', $view);
+        $this->assertStringContainsString('Ngày kết thúc hợp đồng', $view);
+        $this->assertStringContainsString('File hợp đồng đã ký', $view);
+        $this->assertStringNotContainsString('Số lượng hợp đồng</label>', $view);
+        $this->assertStringNotContainsString('wire:model="contractStartDate"', $view);
+    }
+
 }
