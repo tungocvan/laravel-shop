@@ -34,6 +34,8 @@ class AllocationWorkspace extends Component
 
     public ?int $editingAllocationId = null;
 
+    public string $editingPartnerName = '';
+
     public string $partnerId = '';
 
     public string $allocatedQuantity = '';
@@ -45,6 +47,8 @@ class AllocationWorkspace extends Component
     public string $notes = '';
 
     public ?int $contractAllocationId = null;
+
+    public string $contractPartnerName = '';
 
     public ?int $editingContractId = null;
 
@@ -116,6 +120,11 @@ class AllocationWorkspace extends Component
     public function saveAllocation(DrugBidAwardAllocationService $service): void
     {
         $this->authorizePermission('manage_pharma_allocations');
+        if ($this->editingAllocationId) {
+            $existing = DrugBidAwardAllocation::query()->where('drug_bid_award_id', $this->awardId)->findOrFail($this->editingAllocationId);
+            $this->partnerId = (string) $existing->partner_id;
+        }
+        $this->allocatedQuantity = str_replace(['.', ','], ['', '.'], trim($this->allocatedQuantity));
         $data = $this->validate([
             'partnerId' => ['required', 'integer'],
             'allocatedQuantity' => ['required', 'numeric', 'gt:0'],
@@ -133,10 +142,11 @@ class AllocationWorkspace extends Component
     public function editAllocation(int $id): void
     {
         $this->authorizePermission('manage_pharma_allocations');
-        $allocation = DrugBidAwardAllocation::query()->where('drug_bid_award_id', $this->awardId)->findOrFail($id);
+        $allocation = DrugBidAwardAllocation::query()->with('partner')->where('drug_bid_award_id', $this->awardId)->findOrFail($id);
         $this->editingAllocationId = $allocation->id;
         $this->partnerId = (string) $allocation->partner_id;
-        $this->allocatedQuantity = (string) $allocation->allocated_quantity;
+        $this->editingPartnerName = (string) ($allocation->partner?->name ?? '');
+        $this->allocatedQuantity = $this->formatQuantityInput($allocation->allocated_quantity);
         $this->effectiveFrom = $allocation->effective_from?->format('Y-m-d') ?? '';
         $this->effectiveUntil = $allocation->effective_until?->format('Y-m-d') ?? '';
         $this->notes = (string) ($allocation->notes ?? '');
@@ -168,7 +178,8 @@ class AllocationWorkspace extends Component
     public function openContractForm(int $allocationId): void
     {
         $this->authorizePermission('manage_pharma_contracts');
-        DrugBidAwardAllocation::query()->where('drug_bid_award_id', $this->awardId)->findOrFail($allocationId);
+        $allocation = DrugBidAwardAllocation::query()->with('partner')->where('drug_bid_award_id', $this->awardId)->findOrFail($allocationId);
+        $this->contractPartnerName = (string) ($allocation->partner?->name ?? '');
 
         if ($this->contractAllocationId === $allocationId && $this->editingContractId === null) {
             $this->resetContractForm();
@@ -188,8 +199,9 @@ class AllocationWorkspace extends Component
     public function editContract(int $allocationId, int $contractId): void
     {
         $this->authorizePermission('manage_pharma_contracts');
-        $contract = DrugBidAwardContract::query()->where('drug_bid_award_allocation_id', $allocationId)->findOrFail($contractId);
+        $contract = DrugBidAwardContract::query()->with('allocation.partner')->where('drug_bid_award_allocation_id', $allocationId)->findOrFail($contractId);
         $this->contractAllocationId = $allocationId;
+        $this->contractPartnerName = (string) ($contract->allocation?->partner?->name ?? '');
         $this->editingContractId = $contract->id;
         $this->contractNumber = $contract->contract_number;
         $this->contractDate = $contract->contract_date?->format('Y-m-d') ?? '';
@@ -386,16 +398,25 @@ class AllocationWorkspace extends Component
             ->all();
     }
 
+    private function formatQuantityInput(mixed $value): string
+    {
+        $number = (float) $value;
+
+        return fmod($number, 1.0) === 0.0
+            ? number_format($number, 0, ',', '.')
+            : rtrim(rtrim(number_format($number, 4, ',', '.'), '0'), ',');
+    }
+
     private function resetAllocationForm(): void
     {
-        $this->reset(['editingAllocationId', 'partnerId', 'allocatedQuantity', 'notes']);
+        $this->reset(['editingAllocationId', 'editingPartnerName', 'partnerId', 'allocatedQuantity', 'notes']);
         $this->dispatch('filters-reset');
         $this->resetValidation();
     }
 
     private function resetContractForm(): void
     {
-        $this->reset(['contractAllocationId', 'editingContractId', 'contractNumber', 'contractDate', 'contractQuantity', 'contractValue', 'contractStartDate', 'contractEndDate', 'contractNotes']);
+        $this->reset(['contractAllocationId', 'contractPartnerName', 'editingContractId', 'contractNumber', 'contractDate', 'contractQuantity', 'contractValue', 'contractStartDate', 'contractEndDate', 'contractNotes']);
         $this->contractStatus = DrugBidAwardContract::STATUS_DRAFT;
         $this->resetValidation();
     }
