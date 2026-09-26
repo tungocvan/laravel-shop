@@ -47,9 +47,10 @@ class DrugBidAwardLegalInfoSaveContractTest extends TestCase
         $view = file_get_contents($root.'/resources/views/livewire/drug-bid-award/index.blade.php');
 
         $this->assertStringNotContainsString('$filterMatchStatus', $view);
-        $this->assertStringContainsString("xl:grid-cols-12", $view);
-        $this->assertStringContainsString("xl:col-span-2\">Mã TBMT", $view);
-        $this->assertStringContainsString("xl:col-span-3\">Nguồn", $view);
+        $this->assertStringContainsString('xl:grid-cols-[minmax(180px,0.9fr)_minmax(260px,1.55fr)_minmax(260px,1.55fr)', $view);
+        $this->assertStringContainsString('items-end gap-3', $view);
+        $this->assertStringContainsString('{{ $option }} / trang', $view);
+        $this->assertStringContainsString('h-11 whitespace-nowrap', $view);
     }
 
 }
