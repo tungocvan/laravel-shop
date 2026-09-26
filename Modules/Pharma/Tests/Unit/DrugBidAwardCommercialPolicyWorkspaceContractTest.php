@@ -69,4 +69,23 @@ class DrugBidAwardCommercialPolicyWorkspaceContractTest extends TestCase
         $this->assertStringContainsString("'users'=>\$validAssignmentRows->pluck('user_id')->unique()->count()", $component);
     }
 
+
+    public function test_persisted_assignment_mode_locks_the_opposite_flow_until_reset(): void
+    {
+        $root = dirname(__DIR__, 2);
+        $component = file_get_contents($root.'/Livewire/DrugBidAward/CommercialPolicyWorkspace.php');
+        $view = file_get_contents($root.'/resources/views/livewire/drug-bid-award/commercial-policy-workspace.blade.php');
+
+        $this->assertStringContainsString("public string \$persistedAssignmentMode = 'unassigned'", $component);
+        $this->assertStringContainsString('syncAssignmentModeFromDatabase', $component);
+        $this->assertStringContainsString("\$rows->pluck('user_id')->unique()->count() === 1", $component);
+        $this->assertStringContainsString("\$this->persistedAssignmentMode = \$isSingleComplete ? 'single' : 'multiple'", $component);
+        $this->assertStringContainsString("abort_if(\$this->persistedAssignmentMode === 'single'", $component);
+        $this->assertStringContainsString("abort_if(\$this->persistedAssignmentMode === 'multiple'", $component);
+        $this->assertStringContainsString("@disabled(\$persistedAssignmentMode === 'multiple')", $view);
+        $this->assertStringContainsString("@disabled(\$persistedAssignmentMode === 'single')", $view);
+        $this->assertStringContainsString('Chế độ hiện tại:', $view);
+        $this->assertStringContainsString('Gỡ toàn bộ phân công để đổi cách phân công.', $view);
+    }
+
 }
