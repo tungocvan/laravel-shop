@@ -206,10 +206,25 @@ class CommercialPolicyWorkspace extends Component
         $this->selectedUserId = (string) $userId;
     }
 
+    public function prepareSingleManagerReplacement(): void
+    {
+        if ($this->persistedAssignmentMode !== 'single') return;
+        $this->selectedUserId = '';
+    }
+
+    public function replaceSingleManager(DrugBidAwardCommercialPolicyService $service): void
+    {
+        $this->authorizeManage();
+        abort_unless($this->persistedAssignmentMode === 'single', 422, 'Chỉ thay User toàn bộ khi đang ở chế độ Một User phụ trách toàn bộ.');
+        $data = $this->validate(['selectedUserId' => ['required','integer','exists:users,id']]);
+        $count = $service->assignManagerToAllAllocations($this->award(), (int) $data['selectedUserId'], auth('admin')->id());
+        session()->flash('success', "Đã thay User phụ trách toàn bộ {$count} Bệnh viện × Sản phẩm.");
+    }
+
     public function openHospitalAssignment(int $partnerId): void
     {
         if ($this->persistedAssignmentMode === 'single') {
-            session()->flash('success', 'Đang dùng chế độ Một User phụ trách toàn bộ. Gỡ toàn bộ phân công trước khi chuyển sang nhiều User.');
+            $this->selectedPartnerId = (string) $partnerId;
             return;
         }
         $this->assignmentMode = 'multiple';
