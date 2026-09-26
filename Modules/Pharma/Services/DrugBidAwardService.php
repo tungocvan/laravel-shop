@@ -173,8 +173,48 @@ class DrugBidAwardService
             ->where('bidding_notice_code', $representative->bidding_notice_code)
             ->orderByRaw('contract_duration_months IS NULL')
             ->orderByDesc('contract_duration_months')
+            ->orderByDesc('decision_date')
+            ->orderByDesc('published_at')
             ->orderByDesc('id')
             ->firstOrFail();
+    }
+
+    public function contractDurationMonthsForResultGroup(int $representativeId): ?int
+    {
+        return $this->productsForResultGroup($representativeId)
+            ->map(fn (DrugBidAward $award): ?int => $this->contractDurationMonths($award))
+            ->filter(fn (?int $months): bool => $months !== null && $months > 0)
+            ->max();
+    }
+
+    private function contractDurationMonths(DrugBidAward $award): ?int
+    {
+        if ((int) $award->contract_duration_months > 0) {
+            return (int) $award->contract_duration_months;
+        }
+
+        $period = (int) $award->contract_period;
+        if ($period > 0) {
+            $unit = mb_strtolower(trim((string) $award->contract_period_unit));
+
+            if ($unit === '' || in_array($unit, ['m', 'mo'], true) || str_contains($unit, 'tháng') || str_contains($unit, 'month')) {
+                return $period;
+            }
+
+            if (in_array($unit, ['y', 'yr'], true) || str_contains($unit, 'năm') || str_contains($unit, 'year')) {
+                return $period * 12;
+            }
+
+            if (in_array($unit, ['d', 'day', 'days'], true) || str_contains($unit, 'ngày')) {
+                return max(1, (int) round($period / 30.4375));
+            }
+        }
+
+        if (preg_match('/(\\d+)\\s*(tháng|month|months)/iu', (string) $award->contract_period_text, $matches)) {
+            return (int) $matches[1];
+        }
+
+        return null;
     }
 
     public function findProductInResultGroupOrFail(int $representativeId, int $productId): DrugBidAward
