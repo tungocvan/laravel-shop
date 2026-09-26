@@ -137,13 +137,13 @@
                 <thead class="bg-slate-50 text-xs uppercase text-slate-600"><tr><th class="px-3 py-3 text-left">Bệnh viện</th><th class="px-3 py-3 text-left">Sản phẩm</th><th class="px-3 py-3 text-left">Chính sách</th><th class="px-3 py-3 text-left">User phụ trách</th><th class="px-3 py-3 text-left">Trạng thái</th><th class="px-3 py-3 text-right">Thao tác</th></tr></thead>
                 <tbody class="divide-y divide-slate-100">
                 @forelse($assignmentMatrix as $row)
-                    <tr wire:key="commercial-assignment-matrix-{{ $row['assignment']->id }}">
+                    <tr wire:key="commercial-assignment-matrix-{{ $row['product']->id }}-{{ $row['partner_id'] }}">
                         <td class="px-3 py-3"><p class="font-semibold text-slate-950">{{ $row['hospital']?->name ?: '—' }}</p>@if($row['hospital']?->tax_code)<p class="text-xs text-slate-500">{{ $row['hospital']->tax_code }}</p>@endif</td>
                         <td class="px-3 py-3"><p class="font-semibold text-slate-950">{{ $row['product']?->medicine_name ?: '—' }}</p><p class="text-xs text-slate-500">{{ $row['product']?->medicine?->medicine_code ?? $row['product']?->canonicalMatch?->medicine?->medicine_code ?? 'Chưa có mã sản phẩm' }}</p></td>
                         <td class="px-3 py-3 font-semibold">{{ $row['policy'] !== null && $row['policy'] !== '' ? $row['policy'].'%' : 'Chưa thiết lập' }}</td>
-                        <td class="px-3 py-3"><p class="font-semibold text-slate-950">{{ $row['user']?->name ?: 'User #'.$row['assignment']->user_id }}</p>@if($row['user']?->email)<p class="text-xs text-slate-500">{{ $row['user']->email }}</p>@endif</td>
-                        <td class="px-3 py-3"><span class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Đã phân công</span></td>
-                        <td class="px-3 py-3 text-right">@if($canManage)<button type="button" wire:click="selectManagementUser({{ $row['assignment']->user_id }}); $set('selectedPartnerId', '{{ $row['assignment']->partner_id }}')" class="text-sm font-semibold text-indigo-700">Điều chỉnh</button>@endif</td>
+                        <td class="px-3 py-3">@if($row['assignment'])<p class="font-semibold text-slate-950">{{ $row['user']?->name ?: 'User #'.$row['assignment']->user_id }}</p>@if($row['user']?->email)<p class="text-xs text-slate-500">{{ $row['user']->email }}</p>@endif @else <span class="font-medium text-amber-700">Chưa phân công</span>@endif</td>
+                        <td class="px-3 py-3">@if($row['assignment'])<span class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Đã phân công</span>@else<span class="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">Cần phân công</span>@endif</td>
+                        <td class="px-3 py-3 text-right">@if($canManage)<button type="button" wire:click="selectAssignmentContext({{ $row['partner_id'] }}, {{ $row['assignment']?->user_id ?? 'null' }})" class="text-sm font-semibold text-indigo-700">{{ $row['assignment'] ? 'Điều chỉnh' : 'Phân công' }}</button>@endif</td>
                     </tr>
                 @empty
                     <tr><td colspan="6" class="px-4 py-6 text-center text-sm text-slate-500">Chưa có phân công User nào để hiển thị.</td></tr>
