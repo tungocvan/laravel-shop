@@ -73,14 +73,15 @@ class DrugBidAwardLegalInfoSaveContractTest extends TestCase
     }
 
 
-    public function test_result_group_action_menu_opens_above_without_table_clipping(): void
+    public function test_result_group_action_menu_opens_downward_without_table_clipping(): void
     {
         $view = file_get_contents(dirname(__DIR__, 2).'/resources/views/livewire/drug-bid-award/index.blade.php');
 
         $this->assertStringContainsString('relative overflow-visible rounded-2xl', $view);
         $this->assertStringContainsString('overflow-x-auto overflow-y-visible', $view);
         $this->assertStringContainsString('<details class="relative z-40">', $view);
-        $this->assertStringContainsString('absolute bottom-full right-0 z-50 mb-2', $view);
+        $this->assertStringContainsString('absolute right-0 top-full z-50 mt-2', $view);
+        $this->assertStringNotContainsString('bottom-full right-0 z-50', $view);
     }
 
 }
