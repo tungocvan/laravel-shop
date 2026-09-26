@@ -204,10 +204,10 @@ class PharmaDrugAwardAllocationContractTest extends TestCase
         $this->assertStringContainsString("['Pharma',", str_replace("\n            ", '', $component));
         $this->assertStringContainsString('public function downloadApplicationFile', $drive);
         $this->assertStringContainsString("'alt' => 'media'", $drive);
-        $this->assertStringContainsString('Local {{ $editingContract->signed_file_path', $view);
-        $this->assertStringContainsString('Google Drive {{ $editingContract->signed_file_remote_id', $view);
-        $this->assertStringContainsString('Backup lên Drive', $view);
-        $this->assertStringContainsString('Khôi phục về Local', $view);
+        $this->assertStringContainsString("Local {{ \$hasLocalContractFile ? '✓ Đã lưu' : '— Chưa có file' }}", $view);
+        $this->assertStringContainsString("Google Drive {{ \$hasDriveContractFile ? '✓ Đã backup' : '— Chưa backup' }}", $view);
+        $this->assertStringContainsString('Backup lên Google Drive', $view);
+        $this->assertStringContainsString('Khôi phục từ Drive', $view);
     }
 
 
