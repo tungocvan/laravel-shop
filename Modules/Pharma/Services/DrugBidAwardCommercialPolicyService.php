@@ -37,6 +37,37 @@ class DrugBidAwardCommercialPolicyService
         }, 3);
     }
 
+    public function saveHospitalPolicyOverride(DrugBidAward $contextAward, int $awardId, int $partnerId, mixed $percentage, ?int $actorId): void
+    {
+        $validAward = $this->groups->awardsQuery($contextAward)->whereKey($awardId)->exists();
+        if (! $validAward) {
+            throw ValidationException::withMessages(['hospitalPolicyOverrides' => 'Sản phẩm không thuộc TBMT hiện tại.']);
+        }
+
+        $allocation = DrugBidAwardAllocation::query()
+            ->where('drug_bid_award_id', $awardId)
+            ->where('partner_id', $partnerId)
+            ->where('status', DrugBidAwardAllocation::STATUS_ACTIVE)
+            ->first();
+
+        if (! $allocation) {
+            throw ValidationException::withMessages(['hospitalPolicyOverrides' => 'Sản phẩm chưa được phân bổ cho bệnh viện đã chọn.']);
+        }
+
+        if ($percentage === '' || $percentage === null) {
+            $allocation->commercial_policy_percentage = null;
+        } else {
+            $value = (float) $percentage;
+            if ($value < 0 || $value > 100) {
+                throw ValidationException::withMessages(['hospitalPolicyOverrides' => 'Chính sách bệnh viện phải từ 0 đến 100%.']);
+            }
+            $allocation->commercial_policy_percentage = $value;
+        }
+
+        $allocation->updated_by = $actorId;
+        $allocation->save();
+    }
+
     public function assignManager(DrugBidAward $contextAward, int $awardId, int $partnerId, int $userId, ?int $actorId): void
     {
         $validAward = $this->groups->awardsQuery($contextAward)->whereKey($awardId)->exists();
