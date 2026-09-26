@@ -141,4 +141,33 @@ class PharmaDrugAwardAllocationContractTest extends TestCase
         $this->assertStringContainsString("authorizePermission('cancel_pharma_allocations')", $panel);
         $this->assertStringContainsString("authorizePermission('cancel_pharma_contracts')", $panel);
     }
+
+    public function test_allocation_edit_keeps_hospital_context_and_formats_quantity_for_humans(): void
+    {
+        $component = file_get_contents(base_path('Modules/Pharma/Livewire/DrugBidAward/AllocationWorkspace.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/drug-bid-award/allocation-workspace.blade.php'));
+
+        $this->assertStringContainsString('public string $editingPartnerName', $component);
+        $this->assertStringContainsString('formatQuantityInput', $component);
+        $this->assertStringContainsString("number_format(\$number, 0, ',', '.')", $component);
+        $this->assertStringContainsString('Bệnh viện được khóa khi sửa', $view);
+        $this->assertStringContainsString('Hủy sửa', $view);
+        $this->assertStringContainsString('không còn .0000', $view);
+    }
+
+    public function test_contract_editor_is_contextual_visible_and_exports_selected_rows(): void
+    {
+        $component = file_get_contents(base_path('Modules/Pharma/Livewire/DrugBidAward/AllocationWorkspace.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/drug-bid-award/allocation-workspace.blade.php'));
+
+        $this->assertStringContainsString('public string $contractPartnerName', $component);
+        $this->assertStringContainsString("with('partner')->where('drug_bid_award_id'", $component);
+        $this->assertStringContainsString('id="contract-editor"', $view);
+        $this->assertStringContainsString('scrollIntoView', $view);
+        $this->assertStringContainsString("'Tạo hợp đồng' : 'Thêm hợp đồng'", $view);
+        $this->assertStringContainsString('Chưa có hợp đồng', $view);
+        $this->assertStringContainsString("Xuất hợp đồng{{ \$selectedIds !== [] ? ' đã chọn' : '' }}", $view);
+        $this->assertStringContainsString('Đã chọn {{ count($selectedIds) }} bệnh viện', $view);
+    }
+
 }
