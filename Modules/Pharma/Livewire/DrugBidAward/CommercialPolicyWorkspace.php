@@ -284,21 +284,37 @@ class CommercialPolicyWorkspace extends Component
                 'hospitals'=>$rows->pluck('partner_id')->unique()->count(),
             ];
         })->values();
-        $assignmentMatrix=$products->flatMap(function($product) use ($assignments){
-            return $product->allocations->map(function($allocation) use ($product,$assignments){
-                $assignment=$assignments->get($product->id.':'.$allocation->partner_id);
+        // Hospital is the primary management scope. Build the overview only from
+        // allocations whose Partner still resolves, then aggregate products/users
+        // underneath each hospital instead of flattening Hospital x Product rows.
+        $hospitalGroups=$products
+            ->flatMap(fn($product) => $product->allocations
+                ->filter(fn($allocation) => $allocation->partner !== null)
+                ->map(function($allocation) use ($product,$assignments){
+                    $assignment=$assignments->get($product->id.':'.$allocation->partner_id);
+                    return [
+                        'hospital'=>$allocation->partner,
+                        'product'=>$product,
+                        'assignment'=>$assignment,
+                        'user'=>$assignment?->user,
+                        'partner_id'=>(int)$allocation->partner_id,
+                    ];
+                }))
+            ->groupBy('partner_id')
+            ->map(function($rows){
+                $assigned=$rows->filter(fn($row)=>$row['assignment'] !== null);
                 return [
-                    'assignment'=>$assignment,
-                    'hospital'=>$allocation->partner,
-                    'product'=>$product,
-                    'policy'=>$this->productPolicies[$product->id] ?? null,
-                    'user'=>$assignment?->user,
-                    'partner_id'=>$allocation->partner_id,
+                    'hospital'=>$rows->first()['hospital'],
+                    'partner_id'=>(int)$rows->first()['partner_id'],
+                    'products'=>$rows->count(),
+                    'assigned'=>$assigned->count(),
+                    'users'=>$assigned->pluck('user')->filter()->unique('id')->values(),
                 ];
-            });
-        })->sortBy(fn($row)=>mb_strtolower(($row['hospital']?->name ?? '').'|'.($row['product']?->medicine_name ?? '')))->values();
+            })
+            ->sortBy(fn($row)=>mb_strtolower((string)$row['hospital']?->name))
+            ->values();
         $users=User::query()->where('is_active',true)->when(trim($this->userSearch)!=='',function($q){$like='%'.trim($this->userSearch).'%';$q->where(fn($n)=>$n->where('name','like',$like)->orWhere('email','like',$like));})->orderBy('name')->limit(50)->get(['id','name','email']);
-        return view('Pharma::livewire.drug-bid-award.commercial-policy-workspace',compact('award','products','unassignedProducts','partners','assignments','users','assignmentSummary','assignmentGroups','assignmentMatrix'));
+        return view('Pharma::livewire.drug-bid-award.commercial-policy-workspace',compact('award','products','unassignedProducts','partners','assignments','users','assignmentSummary','assignmentGroups','hospitalGroups'));
     }
 
     private function productsQuery()
