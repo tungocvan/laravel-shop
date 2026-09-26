@@ -184,16 +184,10 @@ class AllocationWorkspace extends Component
     {
         $this->authorizePermission('manage_pharma_contracts');
         $allocation = DrugBidAwardAllocation::query()->with('partner')->where('drug_bid_award_id', $this->awardId)->findOrFail($allocationId);
-        $this->contractPartnerName = (string) ($allocation->partner?->name ?? '');
-
-        if ($this->contractAllocationId === $allocationId && $this->editingContractId === null) {
-            $this->resetContractForm();
-
-            return;
-        }
 
         $this->resetContractForm();
         $this->contractAllocationId = $allocationId;
+        $this->contractPartnerName = (string) ($allocation->partner?->name ?? '');
     }
 
     public function closeContractForm(): void
