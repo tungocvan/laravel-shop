@@ -127,26 +127,39 @@
     <div class="mt-5">
         <div class="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
             <div>
-                <h3 class="text-sm font-bold text-slate-950">Phân bổ chính sách kinh doanh</h3>
-                <p class="mt-1 text-xs text-slate-500">Đối chiếu trực tiếp Bệnh viện → Sản phẩm → Chính sách → User phụ trách.</p>
+                <h3 class="text-sm font-bold text-slate-950">Phạm vi quản lý theo bệnh viện</h3>
+                <p class="mt-1 text-xs text-slate-500">Một bệnh viện một dòng. Sản phẩm và User được tổng hợp đúng từ các phân bổ thực tế của TBMT.</p>
             </div>
-            <span class="text-xs font-semibold text-slate-500">{{ $assignmentMatrix->count() }} phân công</span>
+            <span class="text-xs font-semibold text-slate-500">{{ $hospitalGroups->count() }} bệnh viện</span>
         </div>
         <div class="mt-3 overflow-x-auto rounded-xl border border-slate-200">
-            <table class="w-full min-w-[980px] divide-y divide-slate-200 text-sm">
-                <thead class="bg-slate-50 text-xs uppercase text-slate-600"><tr><th class="px-3 py-3 text-left">Bệnh viện</th><th class="px-3 py-3 text-left">Sản phẩm</th><th class="px-3 py-3 text-left">Chính sách</th><th class="px-3 py-3 text-left">User phụ trách</th><th class="px-3 py-3 text-left">Trạng thái</th><th class="px-3 py-3 text-right">Thao tác</th></tr></thead>
+            <table class="w-full min-w-[860px] divide-y divide-slate-200 text-sm">
+                <thead class="bg-slate-50 text-xs uppercase text-slate-600"><tr><th class="px-3 py-3 text-left">Bệnh viện</th><th class="px-3 py-3 text-center">Sản phẩm phân bổ</th><th class="px-3 py-3 text-left">User phụ trách</th><th class="px-3 py-3 text-left">Trạng thái</th><th class="px-3 py-3 text-right">Thao tác</th></tr></thead>
                 <tbody class="divide-y divide-slate-100">
-                @forelse($assignmentMatrix as $row)
-                    <tr wire:key="commercial-assignment-matrix-{{ $row['product']->id }}-{{ $row['partner_id'] }}">
-                        <td class="px-3 py-3"><p class="font-semibold text-slate-950">{{ $row['hospital']?->name ?: '—' }}</p>@if($row['hospital']?->tax_code)<p class="text-xs text-slate-500">{{ $row['hospital']->tax_code }}</p>@endif</td>
-                        <td class="px-3 py-3"><p class="font-semibold text-slate-950">{{ $row['product']?->medicine_name ?: '—' }}</p><p class="text-xs text-slate-500">{{ $row['product']?->medicine?->medicine_code ?? $row['product']?->canonicalMatch?->medicine?->medicine_code ?? 'Chưa có mã sản phẩm' }}</p></td>
-                        <td class="px-3 py-3 font-semibold">{{ $row['policy'] !== null && $row['policy'] !== '' ? $row['policy'].'%' : 'Chưa thiết lập' }}</td>
-                        <td class="px-3 py-3">@if($row['assignment'])<p class="font-semibold text-slate-950">{{ $row['user']?->name ?: 'User #'.$row['assignment']->user_id }}</p>@if($row['user']?->email)<p class="text-xs text-slate-500">{{ $row['user']->email }}</p>@endif @else <span class="font-medium text-amber-700">Chưa phân công</span>@endif</td>
-                        <td class="px-3 py-3">@if($row['assignment'])<span class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Đã phân công</span>@else<span class="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">Cần phân công</span>@endif</td>
-                        <td class="px-3 py-3 text-right">@if($canManage)<button type="button" wire:click="selectAssignmentContext({{ $row['partner_id'] }}, {{ $row['assignment']?->user_id ?? 'null' }})" class="text-sm font-semibold text-indigo-700">{{ $row['assignment'] ? 'Điều chỉnh' : 'Phân công' }}</button>@endif</td>
+                @forelse($hospitalGroups as $hospitalGroup)
+                    <tr wire:key="commercial-hospital-scope-{{ $hospitalGroup['partner_id'] }}">
+                        <td class="px-3 py-3"><p class="font-semibold text-slate-950">{{ $hospitalGroup['hospital']->name }}</p>@if($hospitalGroup['hospital']->tax_code)<p class="text-xs text-slate-500">MST {{ $hospitalGroup['hospital']->tax_code }}</p>@endif</td>
+                        <td class="px-3 py-3 text-center"><span class="font-bold text-slate-950">{{ $hospitalGroup['assigned'] }}/{{ $hospitalGroup['products'] }}</span><p class="text-xs text-slate-500">đã có User</p></td>
+                        <td class="px-3 py-3">
+                            @if($hospitalGroup['users']->isNotEmpty())
+                                <div class="flex flex-wrap gap-1.5">@foreach($hospitalGroup['users'] as $manager)<span class="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700">{{ $manager->name ?: 'User #'.$manager->id }}</span>@endforeach</div>
+                            @else
+                                <span class="font-medium text-amber-700">Chưa phân công</span>
+                            @endif
+                        </td>
+                        <td class="px-3 py-3">
+                            @if($hospitalGroup['assigned'] >= $hospitalGroup['products'])
+                                <span class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Đã phân công đủ</span>
+                            @elseif($hospitalGroup['assigned'] > 0)
+                                <span class="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">Còn {{ $hospitalGroup['products'] - $hospitalGroup['assigned'] }} SP</span>
+                            @else
+                                <span class="rounded-full bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700">Chưa phân công</span>
+                            @endif
+                        </td>
+                        <td class="px-3 py-3 text-right">@if($canManage)<button type="button" wire:click="selectAssignmentContext({{ $hospitalGroup['partner_id'] }})" class="text-sm font-semibold text-indigo-700">Xem / Điều chỉnh</button>@endif</td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" class="px-4 py-6 text-center text-sm text-slate-500">Chưa có phân công User nào để hiển thị.</td></tr>
+                    <tr><td colspan="5" class="px-4 py-6 text-center text-sm text-slate-500">Chưa có bệnh viện được phân bổ thực tế cho các sản phẩm đang hiển thị.</td></tr>
                 @endforelse
                 </tbody>
             </table>
