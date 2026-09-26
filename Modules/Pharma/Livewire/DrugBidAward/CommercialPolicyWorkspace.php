@@ -22,6 +22,7 @@ class CommercialPolicyWorkspace extends Component
 
     public int $awardId;
     public array $productPolicies = [];
+    public array $hospitalPolicyOverrides = [];
     public string $bulkPercentage = '';
     public array $selectedPolicyAwardIds = [];
     public array $selectedManagementAwardIds = [];
