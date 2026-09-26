@@ -122,10 +122,24 @@
                 <div class="lg:col-span-2"><label class="block text-sm font-medium">Trạng thái</label><select wire:model="contractStatus" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5"><option value="draft">Nháp</option><option value="signed">Đã ký</option><option value="in_progress">Đang thực hiện</option><option value="completed">Hoàn thành</option></select></div>
                 <div class="lg:col-span-2"><label class="block text-sm font-medium">Ghi chú</label><input wire:model="contractNotes" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5"></div>
                 <div class="lg:col-span-12 rounded-xl border border-slate-200 bg-white p-4">
-                    <label class="block text-sm font-semibold text-slate-800">File hợp đồng đã ký</label>
-                    <input type="file" wire:model="signedContractFile" accept=".pdf,.jpg,.jpeg,.png" class="mt-2 block w-full text-sm text-slate-600">
-                    <p class="mt-1 text-xs text-slate-500">PDF/JPG/PNG, tối đa 20 MB. Lưu private local theo Laravel-Backup/Pharma/DrugBidAwards/...; metadata sẵn sàng cho đồng bộ Google Drive sau khi cấu hình Drive được xác nhận.</p>
-                    @error('signedContractFile')<p class="mt-2 text-xs text-rose-600">{{ $message }}</p>@enderror
+                    @php($editingContract = $editingContractId ? $allocations->getCollection()->flatMap->contracts->firstWhere('id', $editingContractId) : null)
+                    <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                        <div class="min-w-0 flex-1">
+                            <label class="block text-sm font-semibold text-slate-800">File hợp đồng đã ký</label>
+                            <input type="file" wire:model="signedContractFile" accept=".pdf,.jpg,.jpeg,.png" class="mt-2 block w-full text-sm text-slate-600">
+                            <p class="mt-1 text-xs text-slate-500">PDF/JPG/PNG, tối đa 20 MB · Local private: Laravel-Backup/Pharma/DrugBidAwards/... · dùng cùng kết nối Google Drive của System.</p>
+                            @error('signedContractFile')<p class="mt-2 text-xs text-rose-600">{{ $message }}</p>@enderror
+                        </div>
+                        @if($editingContract)
+                            <div class="flex flex-wrap items-center gap-2 lg:max-w-xl lg:justify-end">
+                                <span class="rounded-full px-2.5 py-1 text-xs font-bold {{ $editingContract->signed_file_path ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500' }}">Local {{ $editingContract->signed_file_path ? '✓' : '—' }}</span>
+                                <span class="rounded-full px-2.5 py-1 text-xs font-bold {{ $editingContract->signed_file_remote_id ? 'bg-sky-100 text-sky-700' : 'bg-slate-100 text-slate-500' }}">Google Drive {{ $editingContract->signed_file_remote_id ? '✓' : '—' }}</span>
+                                @if($editingContract->signed_file_path)<button type="button" wire:click="downloadSignedContract({{ $editingContract->id }})" class="min-h-10 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700">Tải file</button>@endif
+                                @if($editingContract->signed_file_path)<button type="button" wire:click="backupSignedContractToDrive({{ $editingContract->id }})" wire:loading.attr="disabled" class="min-h-10 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-semibold text-sky-700">Backup lên Drive</button>@endif
+                                @if($editingContract->signed_file_remote_id)<button type="button" wire:click="restoreSignedContractFromDrive({{ $editingContract->id }})" wire:loading.attr="disabled" class="min-h-10 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700">Khôi phục về Local</button>@endif
+                            </div>
+                        @endif
+                    </div>
                 </div>
             </div>
             <div class="mt-4 flex justify-end"><button type="button" wire:click="saveContract" wire:loading.attr="disabled" wire:target="saveContract,signedContractFile" class="min-h-11 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">Lưu hợp đồng</button></div>
