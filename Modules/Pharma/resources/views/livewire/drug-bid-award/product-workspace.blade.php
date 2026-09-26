@@ -36,7 +36,7 @@
             <div><p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Thiết lập chung</p><h2 class="mt-1 text-lg font-bold text-slate-950">Phạm vi & hiệu lực phân bổ</h2><p class="mt-1 text-sm text-slate-600">Thiết lập một lần cho toàn bộ sản phẩm thuộc TBMT. Mỗi sản phẩm chỉ được phân bổ cho các bệnh viện đã duyệt bên dưới.</p></div>
             <div class="flex flex-wrap items-center gap-2"><span class="rounded-xl bg-white px-4 py-2 text-xs font-medium text-slate-600 shadow-sm">{{ count($selectedFacilityIds) }} cơ sở được chọn</span><button type="button" x-on:click="open = !open" class="min-h-10 rounded-xl border border-indigo-200 bg-white px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50"><span x-text="open ? 'Ẩn thiết lập' : 'Hiển thị / Chỉnh sửa'"></span></button></div>
         </div>
-        <div x-show="open" x-collapse class="mt-5 grid items-start gap-4 xl:grid-cols-3">
+        <div x-show="open" class="mt-5 grid items-start gap-4 xl:grid-cols-3">
             <div class="space-y-4 rounded-xl border border-slate-200 bg-white p-4">
                 <div><p class="text-xs font-bold uppercase tracking-wide text-indigo-600">Bước 1 · Phạm vi</p><label class="mt-2 block text-sm font-semibold text-slate-700">Tỉnh/Thành trúng thầu *</label>
                     @if($selectedProvinces !== [])<div class="mt-2 flex flex-wrap gap-2">@foreach($selectedProvinces as $province)<span wire:key="selected-province-chip-{{ md5($province) }}" class="inline-flex items-center rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">{{ $province }}</span>@endforeach</div>@endif
