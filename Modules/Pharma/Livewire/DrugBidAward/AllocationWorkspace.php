@@ -152,6 +152,11 @@ class AllocationWorkspace extends Component
         $this->notes = (string) ($allocation->notes ?? '');
     }
 
+    public function cancelAllocationEdit(): void
+    {
+        $this->resetAllocationForm();
+    }
+
     public function toggleAllocationPause(int $id, bool $paused, DrugBidAwardAllocationService $service): void
     {
         $allocation = DrugBidAwardAllocation::query()->where('drug_bid_award_id', $this->awardId)->findOrFail($id);
