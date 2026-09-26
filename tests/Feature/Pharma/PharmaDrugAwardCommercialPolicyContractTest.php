@@ -89,6 +89,29 @@ class PharmaDrugAwardCommercialPolicyContractTest extends TestCase
         $this->assertStringNotContainsString('Gán cho toàn bộ TBMT', $view);
     }
 
+    public function test_assignment_tab_exposes_hospital_product_user_matrix_and_global_excel_toolbar(): void
+    {
+        $component = file_get_contents(base_path('Modules/Pharma/Livewire/DrugBidAward/CommercialPolicyWorkspace.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/drug-bid-award/commercial-policy-workspace.blade.php'));
+
+        $this->assertStringContainsString('assignmentMatrix', $component);
+        $this->assertStringContainsString('selectAssignmentContext', $component);
+        $this->assertStringContainsString('Phân bổ chính sách kinh doanh', $view);
+        $this->assertStringContainsString('Bệnh viện → Sản phẩm → Chính sách → User phụ trách', $view);
+        $this->assertStringContainsString('Tổng hợp theo User', $view);
+        $this->assertStringContainsString('Cần phân công', $view);
+        $this->assertStringContainsString('flex flex-wrap items-center gap-2 rounded-2xl', $view);
+
+        $toolbarPosition = strpos($view, 'Import Excel');
+        $navPosition = strpos($view, '<nav class=');
+        $policyPanelPosition = strpos($view, 'x-show="commercialTab === \'policy\'"');
+        $this->assertNotFalse($toolbarPosition);
+        $this->assertNotFalse($navPosition);
+        $this->assertNotFalse($policyPanelPosition);
+        $this->assertLessThan($navPosition, $toolbarPosition);
+        $this->assertLessThan($policyPanelPosition, $toolbarPosition);
+    }
+
     public function test_workspace_supports_select_all_bulk_management_winning_price_and_excel_round_trip(): void
     {
         $component = file_get_contents(base_path('Modules/Pharma/Livewire/DrugBidAward/CommercialPolicyWorkspace.php'));
