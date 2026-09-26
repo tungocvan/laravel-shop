@@ -301,6 +301,59 @@ class GoogleDriveConnectionService
         return ['id' => $fileId, 'name' => basename($fileName)];
     }
 
+    public function downloadApplicationFile(string $fileId, string $destinationPath): array
+    {
+        $fileId = trim($fileId);
+        if ($fileId === '' || $destinationPath === '') {
+            throw new RuntimeException('Thông tin file Google Drive không hợp lệ.');
+        }
+
+        $token = $this->accessToken();
+        $metadata = Http::withToken($token)->acceptJson()->timeout(20)
+            ->get('https://www.googleapis.com/drive/v3/files/'.rawurlencode($fileId), [
+                'fields' => 'id,name,mimeType,size,trashed',
+            ]);
+
+        if (! $metadata->successful() || $metadata->json('trashed') === true) {
+            $this->throwDriveApiException('Không thể đọc file ứng dụng trên Google Drive.', $metadata->status(), $metadata->json());
+        }
+
+        $directory = dirname($destinationPath);
+        if (! is_dir($directory) && ! mkdir($directory, 0755, true) && ! is_dir($directory)) {
+            throw new RuntimeException('Không thể tạo thư mục local để khôi phục file.');
+        }
+
+        $temporaryPath = $destinationPath.'.partial-'.bin2hex(random_bytes(6));
+        $stream = fopen($temporaryPath, 'wb');
+        if ($stream === false) {
+            throw new RuntimeException('Không thể tạo file local tạm để khôi phục.');
+        }
+
+        try {
+            $download = Http::withToken($token)->timeout(300)->withOptions(['sink' => $stream])
+                ->get('https://www.googleapis.com/drive/v3/files/'.rawurlencode($fileId), ['alt' => 'media']);
+        } finally {
+            fclose($stream);
+        }
+
+        if (! $download->successful()) {
+            @unlink($temporaryPath);
+            $this->throwDriveApiException('Tải file ứng dụng từ Google Drive thất bại.', $download->status(), null);
+        }
+
+        if (! rename($temporaryPath, $destinationPath)) {
+            @unlink($temporaryPath);
+            throw new RuntimeException('Không thể hoàn tất file local đã khôi phục.');
+        }
+
+        return [
+            'id' => $fileId,
+            'name' => (string) $metadata->json('name'),
+            'mime_type' => (string) $metadata->json('mimeType'),
+            'size' => (int) ($metadata->json('size') ?? filesize($destinationPath) ?: 0),
+        ];
+    }
+
     public function deleteApplicationFile(?string $fileId, ?string $remotePath): void
     {
         $token = $this->accessToken();
