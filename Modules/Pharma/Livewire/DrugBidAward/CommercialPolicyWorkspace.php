@@ -113,6 +113,7 @@ class CommercialPolicyWorkspace extends Component
     public function assignManager(int $awardId, DrugBidAwardCommercialPolicyService $service): void
     {
         $this->authorizeManage();
+        abort_if($this->persistedAssignmentMode === 'single', 422, 'Hãy gỡ toàn bộ phân công trước khi chuyển sang nhiều User phụ trách.');
         $data=$this->validate(['selectedPartnerId'=>['required','integer','exists:partners,id'],'selectedUserId'=>['required','integer','exists:users,id']]);
         $service->assignManager($this->award(),$awardId,(int)$data['selectedPartnerId'],(int)$data['selectedUserId'],auth('admin')->id());
         session()->flash('success','Đã lưu User quản lý bệnh viện/sản phẩm.');
@@ -121,6 +122,7 @@ class CommercialPolicyWorkspace extends Component
     public function assignSelectedManagers(DrugBidAwardCommercialPolicyService $service): void
     {
         $this->authorizeManage();
+        abort_if($this->persistedAssignmentMode === 'single', 422, 'Hãy gỡ toàn bộ phân công trước khi chuyển sang nhiều User phụ trách.');
         $data=$this->validate([
             'selectedPartnerId'=>['required','integer','exists:partners,id'],
             'selectedUserId'=>['required','integer','exists:users,id'],
@@ -134,6 +136,7 @@ class CommercialPolicyWorkspace extends Component
     public function assignManagerToSelectedProducts(DrugBidAwardCommercialPolicyService $service): void
     {
         $this->authorizeManage();
+        abort_if($this->persistedAssignmentMode === 'single', 422, 'Hãy gỡ toàn bộ phân công trước khi chuyển sang nhiều User phụ trách.');
         $data = $this->validate([
             'selectedUserId' => ['required', 'integer', 'exists:users,id'],
             'selectedManagementAwardIds' => ['required', 'array', 'min:1'],
