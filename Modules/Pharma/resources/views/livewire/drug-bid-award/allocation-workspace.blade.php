@@ -123,22 +123,35 @@
                 <div class="lg:col-span-2"><label class="block text-sm font-medium">Ghi chú</label><input wire:model="contractNotes" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5"></div>
                 <div class="lg:col-span-12 rounded-xl border border-slate-200 bg-white p-4">
                     @php($editingContract = $editingContractId ? $allocations->getCollection()->flatMap->contracts->firstWhere('id', $editingContractId) : null)
-                    <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    @php($hasLocalContractFile = (bool) ($editingContract?->signed_file_path))
+                    @php($hasDriveContractFile = (bool) ($editingContract?->signed_file_remote_id))
+                    <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                         <div class="min-w-0 flex-1">
-                            <label class="block text-sm font-semibold text-slate-800">File hợp đồng đã ký</label>
-                            <input type="file" wire:model="signedContractFile" accept=".pdf,.jpg,.jpeg,.png" class="mt-2 block w-full text-sm text-slate-600">
-                            <p class="mt-1 text-xs text-slate-500">PDF/JPG/PNG, tối đa 20 MB · Local private: Laravel-Backup/Pharma/DrugBidAwards/... · dùng cùng kết nối Google Drive của System.</p>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <label class="block text-sm font-semibold text-slate-800">File hợp đồng đã ký</label>
+                                <span class="rounded-full px-2.5 py-1 text-xs font-bold {{ $hasLocalContractFile ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500' }}">Local {{ $hasLocalContractFile ? '✓ Đã lưu' : '— Chưa có file' }}</span>
+                                <span class="rounded-full px-2.5 py-1 text-xs font-bold {{ $hasDriveContractFile ? 'bg-sky-100 text-sky-700' : 'bg-slate-100 text-slate-500' }}">Google Drive {{ $hasDriveContractFile ? '✓ Đã backup' : '— Chưa backup' }}</span>
+                            </div>
+                            <input type="file" wire:model="signedContractFile" accept=".pdf,.jpg,.jpeg,.png" class="mt-3 block w-full text-sm text-slate-600">
+                            <p class="mt-1 text-xs text-slate-500">PDF/JPG/PNG, tối đa 20 MB. File được lưu riêng tư trên hệ thống; sau khi lưu hợp đồng có thể backup lên Google Drive.</p>
+                            @if(!$editingContractId)
+                                <p class="mt-2 text-xs font-medium text-indigo-600">Lưu hợp đồng trước để kích hoạt Backup lên Google Drive.</p>
+                            @endif
                             @error('signedContractFile')<p class="mt-2 text-xs text-rose-600">{{ $message }}</p>@enderror
                         </div>
-                        @if($editingContract)
-                            <div class="flex flex-wrap items-center gap-2 lg:max-w-xl lg:justify-end">
-                                <span class="rounded-full px-2.5 py-1 text-xs font-bold {{ $editingContract->signed_file_path ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500' }}">Local {{ $editingContract->signed_file_path ? '✓' : '—' }}</span>
-                                <span class="rounded-full px-2.5 py-1 text-xs font-bold {{ $editingContract->signed_file_remote_id ? 'bg-sky-100 text-sky-700' : 'bg-slate-100 text-slate-500' }}">Google Drive {{ $editingContract->signed_file_remote_id ? '✓' : '—' }}</span>
-                                @if($editingContract->signed_file_path)<button type="button" wire:click="downloadSignedContract({{ $editingContract->id }})" class="min-h-10 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700">Tải file</button>@endif
-                                @if($editingContract->signed_file_path)<button type="button" wire:click="backupSignedContractToDrive({{ $editingContract->id }})" wire:loading.attr="disabled" class="min-h-10 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-semibold text-sky-700">Backup lên Drive</button>@endif
-                                @if($editingContract->signed_file_remote_id)<button type="button" wire:click="restoreSignedContractFromDrive({{ $editingContract->id }})" wire:loading.attr="disabled" class="min-h-10 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700">Khôi phục về Local</button>@endif
-                            </div>
-                        @endif
+                        <div class="flex flex-wrap items-center gap-2 xl:max-w-xl xl:justify-end">
+                            @if($editingContract && $hasLocalContractFile)
+                                <button type="button" wire:click="downloadSignedContract({{ $editingContract->id }})" class="min-h-10 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700">Tải file</button>
+                                <button type="button" wire:click="backupSignedContractToDrive({{ $editingContract->id }})" wire:loading.attr="disabled" wire:target="backupSignedContractToDrive" class="min-h-10 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-semibold text-sky-700 disabled:opacity-50">{{ $hasDriveContractFile ? 'Backup lại' : 'Backup lên Google Drive' }}</button>
+                            @else
+                                <button type="button" disabled class="min-h-10 cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-400">Backup lên Google Drive</button>
+                            @endif
+                            @if($editingContract && $hasDriveContractFile)
+                                <button type="button" wire:click="restoreSignedContractFromDrive({{ $editingContract->id }})" wire:loading.attr="disabled" wire:target="restoreSignedContractFromDrive" class="min-h-10 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 disabled:opacity-50">Khôi phục từ Drive</button>
+                            @else
+                                <button type="button" disabled class="min-h-10 cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-400">Khôi phục từ Drive</button>
+                            @endif
+                        </div>
                     </div>
                 </div>
             </div>
