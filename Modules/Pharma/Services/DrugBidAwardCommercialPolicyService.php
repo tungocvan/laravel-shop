@@ -132,6 +132,15 @@ class DrugBidAwardCommercialPolicyService
         return $allocations->count();
     }
 
+    public function removeAllManagers(DrugBidAward $contextAward): int
+    {
+        $validAwardIds = $this->groups->awardsQuery($contextAward)->pluck('id');
+
+        return DrugBidAwardManagementAssignment::query()
+            ->whereIn('drug_bid_award_id', $validAwardIds)
+            ->delete();
+    }
+
     public function removeManagerFromAllAllocations(DrugBidAward $contextAward, int $userId): int
     {
         $validAwardIds = $this->groups->awardsQuery($contextAward)->pluck('id');
