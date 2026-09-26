@@ -29,6 +29,7 @@ class CommercialPolicyWorkspace extends Component
     public string $selectedUserId = '';
     public string $userSearch = '';
     public string $productSearch = '';
+    public string $assignmentMode = 'single';
     public $importFile;
 
     public function mount(int $awardId): void
@@ -154,6 +155,26 @@ class CommercialPolicyWorkspace extends Component
         session()->flash('success', "Đã gán User cho {$count} phân công Bệnh viện × Sản phẩm thực tế trong TBMT.");
     }
 
+    public function assignSingleManagerToAll(DrugBidAwardCommercialPolicyService $service): void
+    {
+        $this->authorizeManage();
+        $data = $this->validate(['selectedUserId' => ['required','integer','exists:users,id']]);
+        $count = $service->assignManagerToAllAllocations($this->award(), (int) $data['selectedUserId'], auth('admin')->id());
+        $this->selectedPartnerId = '';
+        $this->selectedManagementAwardIds = [];
+        session()->flash('success', "Đã phân công User cho toàn bộ {$count} Bệnh viện × Sản phẩm có phân bổ thực tế.");
+    }
+
+    public function resetAllManagerAssignments(DrugBidAwardCommercialPolicyService $service): void
+    {
+        $this->authorizeManage();
+        $count = $service->removeAllManagers($this->award());
+        $this->selectedUserId = '';
+        $this->selectedPartnerId = '';
+        $this->selectedManagementAwardIds = [];
+        session()->flash('success', "Đã gỡ toàn bộ {$count} phân công User. Có thể thiết lập lại từ đầu.");
+    }
+
     public function removeManagerFromAll(DrugBidAwardCommercialPolicyService $service): void
     {
         $this->authorizeManage();
@@ -262,21 +283,22 @@ class CommercialPolicyWorkspace extends Component
         $products=$this->productsQuery()->with(['medicine','canonicalMatch.medicine','allocations'=>fn($q)=>$q->where('status',DrugBidAwardAllocation::STATUS_ACTIVE)->with('partner')])->get();
         $partners=DrugBidAwardAllocation::query()->with('partner')->whereIn('drug_bid_award_id',$awardIds)->where('status',DrugBidAwardAllocation::STATUS_ACTIVE)->get()->pluck('partner')->filter()->unique('id')->sortBy('name')->values();
         $assignmentRows=DrugBidAwardManagementAssignment::query()->with(['user','partner'])->whereIn('drug_bid_award_id',$awardIds)->where('status',DrugBidAwardManagementAssignment::STATUS_ACTIVE)->get();
-        $assignments=$assignmentRows->keyBy(fn($row)=>$row->drug_bid_award_id.':'.$row->partner_id);
+        $validAssignmentRows=$assignmentRows->filter(fn($row)=>$row->user !== null && $row->partner !== null)->values();
+        $assignments=$validAssignmentRows->keyBy(fn($row)=>$row->drug_bid_award_id.':'.$row->partner_id);
         $allocationCounts=DrugBidAwardAllocation::query()->whereIn('drug_bid_award_id',$awardIds)->where('status',DrugBidAwardAllocation::STATUS_ACTIVE)->selectRaw('drug_bid_award_id, COUNT(DISTINCT partner_id) as allocation_count')->groupBy('drug_bid_award_id')->pluck('allocation_count','drug_bid_award_id');
-        $assignmentCounts=$assignmentRows->groupBy('drug_bid_award_id')->map(fn($rows)=>$rows->pluck('partner_id')->unique()->count());
+        $assignmentCounts=$validAssignmentRows->groupBy('drug_bid_award_id')->map(fn($rows)=>$rows->pluck('partner_id')->unique()->count());
         $unassignedProducts=$products->filter(function($product) use ($allocationCounts,$assignmentCounts){
             $allocationCount=(int)($allocationCounts[$product->id] ?? 0);
             return $allocationCount > 0 && (int)($assignmentCounts[$product->id] ?? 0) < $allocationCount;
         })->values();
         $activeAllocationCount=DrugBidAwardAllocation::query()->whereIn('drug_bid_award_id',$awardIds)->where('status',DrugBidAwardAllocation::STATUS_ACTIVE)->count();
         $assignmentSummary=[
-            'assigned'=>$assignmentRows->count(),
+            'assigned'=>$validAssignmentRows->count(),
             'total'=>$activeAllocationCount,
-            'users'=>$assignmentRows->pluck('user_id')->unique()->count(),
-            'hospitals'=>$assignmentRows->pluck('partner_id')->unique()->count(),
+            'users'=>$validAssignmentRows->pluck('user_id')->unique()->count(),
+            'hospitals'=>$partners->count(),
         ];
-        $assignmentGroups=$assignmentRows->groupBy('user_id')->map(function($rows){
+        $assignmentGroups=$validAssignmentRows->groupBy('user_id')->map(function($rows){
             return [
                 'user'=>$rows->first()?->user,
                 'assignments'=>$rows->count(),
