@@ -144,7 +144,11 @@
             <div class="text-sm font-semibold text-slate-700">User phụ trách toàn bộ
                 <div class="mt-1"><x-select-search id="commercial-policy-single-user" wire:model.live="selectedUserId" placeholder="Tìm và chọn User..."><option value="">Chọn User</option>@foreach($users as $user)<option value="{{ $user->id }}" @selected((int)$selectedUserId === $user->id)>{{ $user->name }}{{ $user->email ? ' · '.$user->email : '' }}</option>@endforeach</x-select-search></div>
             </div>
-            <button type="button" wire:click="assignSingleManagerToAll" wire:confirm="Phân công User này cho toàn bộ bệnh viện và sản phẩm có phân bổ thực tế trong TBMT?" @disabled(!$selectedUserId || $persistedAssignmentMode === 'single') class="min-h-11 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">Phân công toàn bộ</button>
+            <button type="button" wire:click="assignSingleManagerToAll" wire:confirm="Phân công User này cho toàn bộ bệnh viện và sản phẩm có phân bổ thực tế trong TBMT?" @if($persistedAssignmentMode === 'single')
+            <button type="button" wire:click="replaceSingleManager" @disabled(!$selectedUserId) wire:confirm="Thay User phụ trách toàn bộ TBMT bằng User đã chọn?" class="min-h-11 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">Thay User toàn bộ</button>
+            @else
+            <button type="button" wire:click="assignSingleManagerToAll" @disabled(!$selectedUserId) wire:confirm="Phân công User này cho toàn bộ bệnh viện và sản phẩm có phân bổ thực tế trong TBMT?" class="min-h-11 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">Phân công toàn bộ</button>
+            @endif
         </div>
         <p class="mt-2 text-xs text-slate-500">Thao tác này cập nhật User cho toàn bộ cặp Bệnh viện × Sản phẩm có phân bổ thực tế; không tạo thêm phân bổ mới.</p>
         @else
@@ -220,7 +224,7 @@
                     </div>
                     @if($canManage && $group['user'])
                     <div class="flex flex-wrap gap-2">
-                        <button type="button" wire:click="selectManagementUser({{ $group['user']->id }})" class="min-h-9 rounded-lg border border-indigo-200 bg-white px-3 text-xs font-semibold text-indigo-700">Chọn để thay thế</button>
+                        <button type="button" wire:click="{{ $persistedAssignmentMode === 'single' ? 'prepareSingleManagerReplacement' : 'selectManagementUser('.$group['user']->id.')' }}" class="min-h-9 rounded-lg border border-indigo-200 bg-white px-3 text-xs font-semibold text-indigo-700">{{ $persistedAssignmentMode === 'single' ? 'Thay User toàn bộ' : 'Chọn để thay thế' }}</button>
                         <button type="button" wire:click="removeManagerGroup({{ $group['user']->id }})" wire:confirm="Gỡ toàn bộ phân công của {{ addslashes($group['user']->name) }} trong TBMT?" class="min-h-9 rounded-lg border border-rose-200 bg-white px-3 text-xs font-semibold text-rose-700">Gỡ phân công</button>
                     </div>
                     @endif
@@ -232,6 +236,30 @@
         <div class="mt-3 rounded-xl border border-dashed border-slate-300 px-4 py-5 text-sm text-slate-500">Chưa có User nào được phân công trong TBMT.</div>
         @endif
     </div>
+
+    @if($persistedAssignmentMode === 'single' && $selectedPartnerId)
+    <div class="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        @php($selectedHospital = $hospitalGroups->firstWhere('partner_id', (int)$selectedPartnerId))
+        <div class="flex items-center justify-between gap-3">
+            <div><p class="text-sm font-bold text-slate-950">Chi tiết bệnh viện</p><p class="mt-1 text-sm text-slate-600">{{ $selectedHospital['hospital']?->name ?? 'Bệnh viện' }} · chỉ xem trong chế độ Một User phụ trách toàn bộ.</p></div>
+            <button type="button" wire:click="$set('selectedPartnerId', '')" class="text-sm font-semibold text-slate-600">Đóng</button>
+        </div>
+        <div class="mt-3 overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <table class="w-full min-w-[720px] divide-y divide-slate-200 text-sm">
+                <thead class="bg-slate-50 text-xs uppercase text-slate-600"><tr><th class="px-3 py-3 text-left">Sản phẩm</th><th class="px-3 py-3 text-left">Chính sách</th><th class="px-3 py-3 text-left">User phụ trách</th></tr></thead>
+                <tbody class="divide-y divide-slate-100">
+                @foreach($products as $product)
+                    @php($allocation = $product->allocations->firstWhere('partner_id', (int)$selectedPartnerId))
+                    @if($allocation)
+                        @php($assignment = $assignments->get($product->id.':'.(int)$selectedPartnerId))
+                        <tr><td class="px-3 py-3 font-semibold text-slate-950">{{ $product->medicine_name ?: '—' }}</td><td class="px-3 py-3">{{ isset($productPolicies[$product->id]) ? $productPolicies[$product->id].'%' : 'Chưa thiết lập' }}</td><td class="px-3 py-3 font-semibold">{{ $assignment?->user?->name ?? 'Chưa phân công' }}</td></tr>
+                    @endif
+                @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+    @endif
 
     @if($canManage && $assignmentMode === 'multiple')
     <div class="mt-5 rounded-2xl border border-indigo-200 bg-indigo-50/60 p-4">
