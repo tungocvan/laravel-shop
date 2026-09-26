@@ -134,7 +134,7 @@ class PharmaDrugAwardCommercialPolicyContractTest extends TestCase
         $this->assertStringContainsString("'Mã thuốc chuẩn'=>\$product->medicine?->medicine_code ?? \$product->canonicalMatch?->medicine?->medicine_code", $component);
         $this->assertStringContainsString("'canonicalMatch.medicine'", $component);
         $this->assertStringContainsString("with(['medicine','canonicalMatch.medicine','allocations'", $component);
-        $this->assertStringContainsString("'assigned'=>\$assignmentRows->count()", $component);
+        $this->assertStringContainsString("'assigned'=>\$validAssignmentRows->count()", $component);
         $this->assertStringContainsString("'total'=>\$activeAllocationCount", $component);
         $this->assertStringContainsString('Đã phân công đầy đủ', $view);
         $this->assertStringContainsString('Số lượng Bệnh viện', $view);
