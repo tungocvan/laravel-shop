@@ -31,40 +31,40 @@
         <div role="alert" class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"><ul class="list-disc pl-5">@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
     @endif
 
-    <section class="rounded-2xl border border-indigo-200 bg-indigo-50/30 p-5 shadow-sm">
-        <div class="flex flex-col gap-2 xl:flex-row xl:items-start xl:justify-between">
+    <section x-data="{ open: {{ count($selectedFacilityIds) === 0 ? 'true' : 'false' }} }" class="rounded-2xl border border-indigo-200 bg-indigo-50/30 p-5 shadow-sm">
+        <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <div><p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Thiết lập chung</p><h2 class="mt-1 text-lg font-bold text-slate-950">Phạm vi & hiệu lực phân bổ</h2><p class="mt-1 text-sm text-slate-600">Thiết lập một lần cho toàn bộ sản phẩm thuộc TBMT. Mỗi sản phẩm chỉ được phân bổ cho các bệnh viện đã duyệt bên dưới.</p></div>
-            <div class="rounded-xl bg-white px-4 py-2 text-xs font-medium text-slate-600 shadow-sm">{{ count($selectedFacilityIds) }} cơ sở được chọn</div>
+            <div class="flex flex-wrap items-center gap-2"><span class="rounded-xl bg-white px-4 py-2 text-xs font-medium text-slate-600 shadow-sm">{{ count($selectedFacilityIds) }} cơ sở được chọn</span><button type="button" x-on:click="open = !open" class="min-h-10 rounded-xl border border-indigo-200 bg-white px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50"><span x-text="open ? 'Ẩn thiết lập' : 'Hiển thị / Chỉnh sửa'"></span></button></div>
         </div>
-        <div class="mt-5 grid gap-4 xl:grid-cols-12">
-            <div class="xl:col-span-4 space-y-4 rounded-xl border border-slate-200 bg-white p-4">
+        <div x-show="open" x-collapse class="mt-5 grid items-start gap-4 xl:grid-cols-3">
+            <div class="space-y-4 rounded-xl border border-slate-200 bg-white p-4">
                 <div><p class="text-xs font-bold uppercase tracking-wide text-indigo-600">Bước 1 · Phạm vi</p><label class="mt-2 block text-sm font-semibold text-slate-700">Tỉnh/Thành trúng thầu *</label>
                     @if($selectedProvinces !== [])<div class="mt-2 flex flex-wrap gap-2">@foreach($selectedProvinces as $province)<span wire:key="selected-province-chip-{{ md5($province) }}" class="inline-flex items-center rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">{{ $province }}</span>@endforeach</div>@endif
                     <input type="search" wire:model.live.debounce.250ms="provinceSearch" placeholder="Tìm Tỉnh/Thành..." class="mt-2 min-h-10 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm">
                     <div class="mt-2 grid max-h-40 gap-2 overflow-y-auto rounded-xl border border-slate-200 p-3">@forelse ($provinceOptions as $province)<label wire:key="award-province-{{ md5($province) }}" class="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" wire:model.live="selectedProvinces" value="{{ $province }}" class="h-4 w-4 rounded border-slate-300 text-indigo-600"><span>{{ $province }}</span></label>@empty<p class="text-xs text-slate-500">Không tìm thấy Tỉnh/Thành phù hợp.</p>@endforelse</div><p class="mt-1 text-xs text-slate-500">Có thể tìm và chọn nhiều tỉnh/thành. Tìm kiếm không làm mất các tỉnh hoặc cơ sở KCB đã chọn.</p></div>
                 <div class="grid grid-cols-2 gap-3"><div><label class="block text-sm font-semibold text-slate-700">Từ ngày *</label><input type="date" wire:model="effectiveFrom" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"></div><div><label class="block text-sm font-semibold text-slate-700">Đến ngày *</label><input type="date" wire:model="effectiveUntil" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"></div></div>
             </div>
-            <div class="xl:col-span-8 rounded-xl border border-slate-200 bg-white p-4">
+            <div class="rounded-xl border border-slate-200 bg-white p-4">
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><p class="text-xs font-bold uppercase tracking-wide text-indigo-600">Bước 2 · Cơ sở nhận phân bổ</p><label class="mt-2 block text-sm font-semibold text-slate-700">Cơ sở KCB được phân bổ *</label></div><div class="grid w-full gap-2 sm:max-w-xl sm:grid-cols-2"><select wire:model.live="facilityProvince" class="min-h-10 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"><option value="">Chọn tỉnh đang xem</option>@foreach($selectedProvinces as $province)<option value="{{ $province }}">{{ $province }}</option>@endforeach</select><input type="search" wire:model.live.debounce.300ms="facilitySearch" placeholder="Tìm tên hoặc mã cơ sở..." class="min-h-10 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"></div></div>
                 <div class="mt-3 max-h-64 overflow-y-auto rounded-xl border border-slate-200">@forelse ($facilities as $facility)<label wire:key="award-facility-{{ $facility->id }}" class="flex cursor-pointer items-start gap-3 border-b border-slate-100 px-3 py-2.5 last:border-0 hover:bg-slate-50"><input type="checkbox" wire:model.live="selectedFacilityIds" value="{{ $facility->id }}" class="mt-1 h-4 w-4 rounded border-slate-300 text-indigo-600"><span class="min-w-0"><span class="block text-sm font-semibold text-slate-900">{{ $facility->facility_name }}</span><span class="block text-xs text-slate-500">Mã CSKCB: {{ $facility->external_id ?: '—' }}{{ $facility->district_name ? ' · '.$facility->district_name : '' }}</span></span></label>@empty<p class="px-4 py-8 text-center text-sm text-slate-500">{{ $selectedProvinces !== [] ? 'Không có cơ sở KCB nguồn phù hợp.' : 'Chọn ít nhất một Tỉnh/Thành để tải danh sách cơ sở KCB.' }}</p>@endforelse</div>
             </div>
-        </div>
-        <div class="mt-4 rounded-xl border border-slate-200 bg-white p-4">
+            <div class="rounded-xl border border-slate-200 bg-white p-4">
             <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div><p class="text-xs font-bold uppercase tracking-wide text-indigo-600">Bước 3 · Kiểm tra trước khi lưu</p><h3 class="mt-1 text-sm font-bold text-slate-950">Cơ sở KCB đã chọn</h3><p class="mt-1 text-xs text-slate-500">Danh sách này luôn hiển thị đầy đủ các cơ sở đã chọn, không phụ thuộc bộ lọc tìm kiếm ở Bước 2.</p></div>
                 <span class="inline-flex w-fit rounded-full bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-700">{{ $selectedFacilities->count() }} cơ sở</span>
             </div>
-            <div class="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+            <div class="mt-3 grid max-h-64 gap-2 overflow-y-auto">
                 @forelse ($selectedFacilities as $facility)
                     <div wire:key="selected-award-facility-{{ $facility->id }}" class="flex min-w-0 items-start justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
                         <div class="min-w-0"><p class="truncate text-sm font-semibold text-slate-900">{{ $facility->facility_name }}</p><p class="mt-1 text-xs text-slate-500">Mã CSKCB: {{ $facility->external_id ?: '—' }}{{ $facility->district_name ? ' · '.$facility->district_name : '' }}{{ $facility->province_name ? ' · '.$facility->province_name : '' }}</p></div>
                         <button type="button" wire:click="removeSelectedFacility({{ $facility->id }})" class="shrink-0 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:border-rose-300 hover:text-rose-700">Bỏ chọn</button>
                     </div>
                 @empty
-                    <div class="md:col-span-2 xl:col-span-3 rounded-xl border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500">Chưa có cơ sở KCB nào được chọn. Chọn cơ sở ở Bước 2 để kiểm tra tại đây trước khi lưu.</div>
+                    <div class="rounded-xl border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500">Chưa có cơ sở KCB nào được chọn. Chọn cơ sở ở Bước 2 để kiểm tra tại đây trước khi lưu.</div>
                 @endforelse
             </div>
             <div class="mt-4 flex justify-end"><button type="button" wire:click="saveDistributionScope" wire:loading.attr="disabled" wire:target="saveDistributionScope" @disabled($selectedFacilities->isEmpty()) class="min-h-11 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">Lưu thiết lập phân bổ</button></div>
+            </div>
         </div>
     </section>
 
