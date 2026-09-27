@@ -1,0 +1,16 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaApplicationController;
+
+if ((bool) config('modules.registry.Pharma.enabled', false)) {
+    Route::middleware([
+        'web',
+        'auth:web',
+        'client.application:pharma',
+    ])->prefix('apps/pharma')->name('client.pharma.')->group(function (): void {
+        Route::get('/', [PharmaApplicationController::class, 'dashboard'])
+            ->middleware('client.feature:pharma,overview')
+            ->name('dashboard');
+    });
+}

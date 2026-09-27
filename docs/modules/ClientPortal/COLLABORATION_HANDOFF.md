@@ -1,5 +1,78 @@
 # ClientPortal Module — Collaboration Handoff
 
+## Current delivery — Pharma PWA Foundation
+
+- Last updated: 2026-09-27
+- Active branch: `feat/clientportal-pharma-pwa-foundation`
+- Base branch: `main`
+- Branch comparison at closeout: **ahead 8 / behind 0** before this handoff commit
+- Status: **IMPLEMENTED — FOCUSED/CLIENTAPPS REGRESSION PASS — DESKTOP UI PASS — READY FOR FINAL PR GATE**
+
+### Objective
+
+Establish a separate ClientPortal PWA entry point for Pharma Users without moving Pharma domain ownership into ClientPortal and without reusing Admin authentication, permissions, controllers, Blade or Livewire presentation.
+
+### Delivered foundation
+
+- application discovery through `Modules/ClientPortal/Applications/Pharma/manifest.php` with `source_module = Pharma`;
+- launcher/application contract for `/my-apps` → Pharma → `/apps/pharma`;
+- route boundary: `web`, `auth:web`, `client.application:pharma`, `client.feature:pharma,overview`;
+- ClientPortal permissions for overview, products, price lists, bid awards, commercial, inventory receipts/issues and commissions;
+- only Overview is routable in this foundation; future capabilities are visible only when authorized and remain marked `Sắp triển khai`;
+- dedicated Pharma PWA controller and responsive ClientPortal application view;
+- route availability is resolved in the controller, not by Facade calls inside Blade;
+- no Pharma migration, schema rewrite, Admin route change or business-data mutation.
+
+### Canonical ownership boundary
+
+```text
+Modules/Pharma
+  owns Pharma models/schema/business rules
+  owns canonical domain services/query contracts
+  owns Admin-only master/configuration/destructive operations
+
+Modules/ClientPortal/Applications/Pharma
+  owns PWA routes and presentation
+  owns web-guard/client application authorization
+  owns client-safe orchestration
+  consumes Pharma service/query contracts capability by capability
+```
+
+Dependency direction remains `ClientPortal Pharma adapter -> Modules/Pharma`; Pharma must not depend on ClientPortal.
+
+### Validation evidence
+
+Focused Foundation test: **PASS**.
+
+ClientPortal application regression reported by user:
+
+```text
+Tests: 120 passed (805 assertions)
+Duration: 8.21s
+```
+
+Manual Desktop UI smoke for `/apps/pharma`: **PASS**. The page renders the ClientPortal PWA shell, Overview navigation and authorized capability cards without the previous 500 error.
+
+A runtime defect found during UI smoke was corrected: the Blade expression had resolved `IlluminateSupportFacadesRoute` as a class name. Route availability now belongs to the controller and the contract test protects against direct `Route::has()` use in this Blade.
+
+### Security / data-scope boundary
+
+- Foundation permissions are `client.pharma.*` Web permissions; Admin Pharma permissions are not reused.
+- Permission does not imply unrestricted row-level Pharma access.
+- Future commercial, hospital, commission and other user-sensitive capabilities must combine feature permission with assigned business scope.
+- Admin-only master/configuration/destructive workflows remain outside the PWA.
+
+### Known issues / deferred work
+
+- Products, price lists, bid awards, commercial, inventory and commissions are intentionally not implemented in this foundation.
+- Mobile/tablet acceptance for future data-heavy capabilities is performed when each capability is implemented.
+- No PWA file download/open behavior is introduced by this foundation, so the external-file handoff gate is not applicable here.
+- Full-project regression is **NOT APPLICABLE — module-scoped ClientPortal regression strategy**.
+
+### Next step
+
+Complete final PR gate for this Foundation (working-tree clean verification and PR review/merge approval). After Foundation is merged, start the first business capability on a new branch. The planned first capability is read-only Pharma product/Medicine catalog, after inspecting current Pharma service/query boundaries and row-scope requirements.
+
 ## Current delivery — Invoices GDT Smart Sync PWA
 
 - Last updated: 2026-09-09

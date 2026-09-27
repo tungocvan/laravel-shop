@@ -1,0 +1,87 @@
+<?php
+
+return [
+    'key' => 'pharma',
+    'source_module' => 'Pharma',
+    'name' => 'Pharma',
+    'description' => 'Không gian làm việc Pharma dành cho User trên PWA, tách biệt với khu vực quản trị.',
+    'icon' => 'beaker',
+    'route' => 'client.pharma.dashboard',
+    'permission' => 'client.pharma.access',
+    'sort_order' => 20,
+    'layout' => ['mode' => 'workspace'],
+    'capabilities' => ['search', 'filter', 'background-jobs', 'export'],
+    'navigation' => [
+        'overview' => [
+            'name' => 'Tổng quan',
+            'route' => 'client.pharma.dashboard',
+            'permission' => 'client.pharma.overview.view',
+            'icon' => 'home',
+            'sort_order' => 10,
+        ],
+    ],
+    'features' => [
+        'overview' => [
+            'name' => 'Tổng quan',
+            'description' => 'Điểm vào PWA Pharma và các capability được cấp cho User.',
+            'route' => 'client.pharma.dashboard',
+            'permission' => 'client.pharma.overview.view',
+            'icon' => 'home',
+            'sort_order' => 10,
+        ],
+        'products' => [
+            'name' => 'Danh mục thuốc',
+            'description' => 'Tra cứu Medicine Master và thông tin sản phẩm theo phạm vi được cấp.',
+            'permission' => 'client.pharma.products.view',
+            'icon' => 'beaker',
+            'sort_order' => 20,
+        ],
+        'price-lists' => [
+            'name' => 'Bảng giá',
+            'description' => 'Tra cứu bảng giá thương mại phù hợp với User và khách hàng.',
+            'permission' => 'client.pharma.price-lists.view',
+            'icon' => 'document-chart-bar',
+            'sort_order' => 30,
+        ],
+        'bid-awards' => [
+            'name' => 'Trúng thầu',
+            'description' => 'Theo dõi TBMT, sản phẩm trúng thầu và phạm vi bệnh viện được giao.',
+            'permission' => 'client.pharma.bid-awards.view',
+            'icon' => 'building-library',
+            'sort_order' => 40,
+        ],
+        'commercial' => [
+            'name' => 'Chính sách kinh doanh',
+            'description' => 'Theo dõi chính sách và phân công thương mại thuộc phạm vi User.',
+            'permission' => 'client.pharma.commercial.view',
+            'icon' => 'briefcase',
+            'sort_order' => 50,
+        ],
+        'inventory' => [
+            'name' => 'Tồn kho',
+            'description' => 'Theo dõi tồn kho và các nghiệp vụ kho được cấp quyền.',
+            'permission' => 'client.pharma.inventory.view',
+            'icon' => 'archive-box',
+            'sort_order' => 60,
+            'actions' => [
+                'receipts' => [
+                    'name' => 'Phiếu nhập',
+                    'permission' => 'client.pharma.inventory.receipts',
+                    'sort_order' => 10,
+                ],
+                'issues' => [
+                    'name' => 'Phiếu xuất',
+                    'permission' => 'client.pharma.inventory.issues',
+                    'sort_order' => 20,
+                ],
+            ],
+        ],
+        'commissions' => [
+            'name' => 'Hoa hồng',
+            'description' => 'Theo dõi hoa hồng thuộc phạm vi của User.',
+            'permission' => 'client.pharma.commissions.view',
+            'icon' => 'banknotes',
+            'sort_order' => 70,
+        ],
+    ],
+];
