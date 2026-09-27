@@ -26,7 +26,7 @@
         @csrf
         <section class="rounded-2xl border border-slate-200 bg-white p-5">
             <div class="mb-4 flex items-center justify-between gap-4"><div><p class="text-xs font-bold uppercase tracking-wider text-indigo-600">Thông tin phiếu</p><h2 class="mt-1 font-semibold text-slate-950">Thiết lập nhanh phiếu xuất</h2></div><span id="issue-price-badge" class="hidden rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700"></span></div>
-            <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div class="grid gap-4 md:grid-cols-3">
                 <label class="text-sm font-medium">Ngày xuất
                     <input type="date" name="issue_date" value="{{ old('issue_date',now()->toDateString()) }}" required class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3">
                 </label>
@@ -41,15 +41,23 @@
                     <select id="issue-price-list" name="price_list_id" required disabled class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3"><option value="">Chọn người phụ trách trước</option></select>
                     <span id="issue-price-list-hint" class="mt-1 block text-xs text-slate-500">Chọn người phụ trách để xem bảng giá phù hợp.</span>
                 </label>
-                <label class="text-sm font-medium">Khách hàng / nơi nhận
-                    <x-select-search id="issue-recipient" name="recipient_partner_id" placeholder="Tìm khách hàng / nơi nhận...">
-                        <option value="">Chọn khách hàng</option>
+            </div>
+            <div class="mt-5 border-t border-slate-100 pt-4">
+                <div class="mb-2 flex items-center justify-between gap-3">
+                    <div><p class="text-sm font-semibold text-slate-900">Khách hàng / nơi nhận</p><p class="text-xs text-slate-500">Tìm theo tên khách hàng, bệnh viện hoặc mã số thuế.</p></div>
+                    <button type="button" id="issue-recipient-change" class="hidden rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-indigo-700">Thay đổi</button>
+                </div>
+                <div id="issue-recipient-picker">
+                    <x-select-search id="issue-recipient" name="recipient_partner_id" placeholder="Tìm tên khách hàng, bệnh viện, mã số thuế...">
+                        <option value="">Chọn khách hàng / nơi nhận</option>
                         @foreach($partners as $partner)<option value="{{ $partner->id }}" @selected((string)old('recipient_partner_id')===(string)$partner->id)>{{ $partner->name }}{{ $partner->tax_code ? ' · MST '.$partner->tax_code : '' }}</option>@endforeach
                     </x-select-search>
-                    <input type="hidden" name="recipient_name" id="issue-recipient-name" value="{{ old('recipient_name') }}">
-                </label>
+                </div>
+                <div id="issue-recipient-card" class="hidden rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <div class="flex items-start gap-3"><div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-sm font-bold text-indigo-700 ring-1 ring-slate-200">KH</div><div class="min-w-0"><p id="issue-recipient-card-name" class="font-semibold text-slate-950"></p><p id="issue-recipient-card-meta" class="mt-1 text-xs text-slate-500"></p></div></div>
+                </div>
+                <input type="hidden" name="recipient_name" id="issue-recipient-name" value="{{ old('recipient_name') }}">
             </div>
-            <div id="issue-context-summary" class="mt-4 hidden rounded-xl border border-indigo-100 bg-indigo-50/60 px-4 py-3 text-sm text-slate-700"></div>
         </section>
 
         <div class="rounded-2xl border border-slate-200 bg-white p-5">
@@ -126,7 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ];
         })->values();
         $partnerOptions = $partners->map(function ($partner) {
-            return ['id'=>$partner->id,'name'=>$partner->name];
+            return ['id'=>$partner->id,'name'=>$partner->name,'tax_code'=>$partner->tax_code];
         })->values();
     @endphp
     const priceLists = @json($priceListOptions);
@@ -137,7 +145,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const managerSelect = document.getElementById('issue-price-manager');
     const priceListSelect = document.getElementById('issue-price-list');
     const priceListHint = document.getElementById('issue-price-list-hint');
-    const contextSummary = document.getElementById('issue-context-summary');
+    const recipientPicker = document.getElementById('issue-recipient-picker');
+    const recipientCard = document.getElementById('issue-recipient-card');
+    const recipientCardName = document.getElementById('issue-recipient-card-name');
+    const recipientCardMeta = document.getElementById('issue-recipient-card-meta');
+    const recipientChange = document.getElementById('issue-recipient-change');
     const priceBadge = document.getElementById('issue-price-badge');
     const itemCount = document.getElementById('issue-item-count');
     const footerCount = document.getElementById('issue-footer-count');
@@ -227,13 +239,21 @@ document.addEventListener('DOMContentLoaded', () => {
         refreshPrice(row);
     }
 
+    function updateRecipientCard() {
+        const partner=partners.find((item)=>String(item.id)===String(recipientSelect?.value || ''));
+        const selected=Boolean(partner);
+        recipientPicker.classList.toggle('hidden',selected);
+        recipientCard.classList.toggle('hidden',!selected);
+        recipientChange.classList.toggle('hidden',!selected);
+        recipientCardName.textContent=partner?.name || '';
+        recipientCardMeta.textContent=partner?.tax_code ? `MST: ${partner.tax_code}` : 'Khách hàng đã chọn';
+    }
+
     function updateContextSummary() {
         const list=priceLists.find((item)=>String(item.id)===String(priceListSelect.value));
-        const partner=partners.find((item)=>String(item.id)===String(recipientSelect?.value || ''));
-        contextSummary.classList.toggle('hidden',!list);
-        contextSummary.textContent=list ? `${list.name} · ${partner?.name || 'Chưa chọn khách hàng'}` : '';
         priceBadge.classList.toggle('hidden',!list);
         priceBadge.textContent=list ? (list.type==='global' ? 'Bảng giá chung' : 'Bảng giá khách hàng') : '';
+        updateRecipientCard();
     }
 
     function refreshRowsForPriceList() {
