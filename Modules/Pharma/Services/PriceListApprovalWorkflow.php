@@ -54,6 +54,73 @@ final class PriceListApprovalWorkflow
             ->first();
     }
 
+    public function updateItemPrice(int $approverUserId, int $priceListId, int $itemId, float $companySalePrice): PriceList
+    {
+        return DB::transaction(function () use ($approverUserId, $priceListId, $itemId, $companySalePrice): PriceList {
+            $list = PriceList::query()->lockForUpdate()->with('items')->findOrFail($priceListId);
+            $this->assertPendingAndIndependent($list, $approverUserId);
+            $item = $list->items->firstWhere('id', $itemId);
+            if (! $item) {
+                throw ValidationException::withMessages(['item' => 'Sản phẩm không thuộc bảng giá đang phê duyệt.']);
+            }
+
+            $oldPrice = $item->company_sale_price;
+            $validated = $this->manager->validateItem(array_merge($item->toArray(), [
+                'company_sale_price' => $companySalePrice,
+                'actual_receivable_price' => $companySalePrice,
+                'invoice_price' => $companySalePrice,
+            ]));
+            $item->fill($validated)->save();
+
+            DB::table('pharma_price_list_approval_item_audits')->insert([
+                'price_list_id' => $list->id,
+                'price_list_item_id' => $item->id,
+                'medicine_variant_id' => $item->medicine_variant_id,
+                'action' => 'price_changed',
+                'old_company_sale_price' => $oldPrice,
+                'new_company_sale_price' => $item->company_sale_price,
+                'changed_by' => $approverUserId,
+                'changed_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            return $list->refresh()->load(['items.variant.medicine', 'items.package']);
+        });
+    }
+
+    public function removeItem(int $approverUserId, int $priceListId, int $itemId): PriceList
+    {
+        return DB::transaction(function () use ($approverUserId, $priceListId, $itemId): PriceList {
+            $list = PriceList::query()->lockForUpdate()->with('items')->findOrFail($priceListId);
+            $this->assertPendingAndIndependent($list, $approverUserId);
+            if ($list->items->count() <= 1) {
+                throw ValidationException::withMessages(['items' => 'Bảng giá phải còn ít nhất một sản phẩm để có thể phê duyệt.']);
+            }
+
+            $item = $list->items->firstWhere('id', $itemId);
+            if (! $item) {
+                throw ValidationException::withMessages(['item' => 'Sản phẩm không thuộc bảng giá đang phê duyệt.']);
+            }
+
+            DB::table('pharma_price_list_approval_item_audits')->insert([
+                'price_list_id' => $list->id,
+                'price_list_item_id' => $item->id,
+                'medicine_variant_id' => $item->medicine_variant_id,
+                'action' => 'removed',
+                'old_company_sale_price' => $item->company_sale_price,
+                'new_company_sale_price' => null,
+                'changed_by' => $approverUserId,
+                'changed_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            $item->delete();
+
+            return $list->refresh()->load(['items.variant.medicine', 'items.package']);
+        });
+    }
+
     public function approve(int $approverUserId, int $priceListId): PriceList
     {
         return DB::transaction(function () use ($approverUserId, $priceListId): PriceList {
