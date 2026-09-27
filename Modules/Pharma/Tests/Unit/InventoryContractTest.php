@@ -199,6 +199,18 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("name('issues.revert')", $routes);
         $this->assertStringContainsString("name('issues.export')", $routes);
         $this->assertStringContainsString('function exportIssues', $controller);
+        $this->assertStringContainsString('<x-select-search id="issue-manager-filter"', $documents);
+        $this->assertStringContainsString('<x-select-search id="issue-recipient-filter"', $documents);
+        $this->assertStringContainsString('Người phụ trách', $documents);
+        $this->assertStringContainsString('data-select-page', $documents);
+        $this->assertStringContainsString('data-row-select', $documents);
+        $this->assertStringContainsString('Xuất Excel đã chọn', $documents);
+        $this->assertStringContainsString("request()->only(['q','status','manager_user_id','recipient_name'])", $documents);
+        $this->assertStringContainsString("when(\$request->filled('manager_user_id')", $controller);
+        $this->assertStringContainsString("when(\$request->filled('recipient_name')", $controller);
+        $this->assertStringContainsString("collect(\$request->input('ids',[]))", $controller);
+        $this->assertStringContainsString("'Nguoi phu trach'=>\$issue->manager?->name", $controller);
+        $this->assertStringContainsString("'Nguon'=>(\$issue->issue_source ?? 'normal')==='bid'?'Hang thau':'Bang gia'", $controller);
         $this->assertStringContainsString("'items.*.unit_price'=>'required|numeric|min:0'", $controller);
         $this->assertStringContainsString("'unit_price'=>(float)\$item['unit_price']", $controller);
         $this->assertStringContainsString('issueSalePriceCandidates', $controller);
