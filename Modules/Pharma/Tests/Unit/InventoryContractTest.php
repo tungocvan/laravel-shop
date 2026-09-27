@@ -699,9 +699,9 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("pharma_price_list_users", $controller);
         $this->assertStringContainsString("whereNotNull('manager_user_id')", $controller);
         $this->assertStringContainsString("newly configured price list must be selectable", $controller);
-        $this->assertStringContainsString('<x-search-select id="commission-user-filter"', $view);
-        $this->assertStringContainsString('<x-search-select id="commission-partner-filter"', $view);
-        $this->assertStringContainsString('<x-search-select id="commission-medicine-filter"', $view);
+        $this->assertStringContainsString('<x-select-search id="commission-user-filter"', $view);
+        $this->assertStringContainsString('<x-select-search id="commission-partner-filter"', $view);
+        $this->assertStringContainsString('<x-select-search id="commission-medicine-filter"', $view);
         $this->assertStringContainsString('commission-select-all', $view);
         $this->assertStringContainsString('commission-row-checkbox', $view);
         $this->assertStringContainsString('Export Excel đã chọn', $view);
