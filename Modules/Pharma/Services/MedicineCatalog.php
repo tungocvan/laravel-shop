@@ -2,12 +2,46 @@
 
 namespace Modules\Pharma\Services;
 
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Modules\Pharma\DTOs\MedicineCatalogItem;
 use Modules\Pharma\Models\MedicineVariant;
 
 class MedicineCatalog
 {
+    public function browse(?string $search = null, int $perPage = 25, int $page = 1): LengthAwarePaginator
+    {
+        $search = trim((string) $search);
+        $perPage = in_array($perPage, [25, 50, 100], true) ? $perPage : 25;
+
+        $paginator = MedicineVariant::query()
+            ->with(['medicine', 'packages'])
+            ->whereHas('medicine')
+            ->when($search !== '', function ($query) use ($search): void {
+                $query->where(function ($nested) use ($search): void {
+                    $nested->where('sku', 'like', "%{$search}%")
+                        ->orWhere('strength_text', 'like', "%{$search}%")
+                        ->orWhere('presentation_text', 'like', "%{$search}%")
+                        ->orWhereHas('medicine', fn ($medicine) => $medicine
+                            ->where('name', 'like', "%{$search}%")
+                            ->orWhere('medicine_code', 'like', "%{$search}%")
+                            ->orWhere('active_ingredients', 'like', "%{$search}%")
+                            ->orWhere('registration_number', 'like', "%{$search}%")
+                            ->orWhere('registration_number_primary', 'like', "%{$search}%"));
+                });
+            })
+            ->orderByDesc('is_default')
+            ->orderByDesc('id')
+            ->paginate($perPage, ['*'], 'page', max(1, $page));
+
+        $paginator->setCollection(
+            $paginator->getCollection()
+                ->map(fn (MedicineVariant $variant) => MedicineCatalogItem::fromVariant($variant))
+        );
+
+        return $paginator;
+    }
+
     public function findBySku(string $sku): ?MedicineCatalogItem
     {
         $variant = MedicineVariant::query()
