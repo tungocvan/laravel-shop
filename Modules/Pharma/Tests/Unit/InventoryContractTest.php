@@ -462,6 +462,18 @@ class InventoryContractTest extends TestCase
         $this->assertStringNotContainsString('issue-reset-price hidden', $view);
     }
 
+    public function test_posted_bid_issue_does_not_route_into_draft_editor(): void
+    {
+        $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
+        $documents=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/documents.blade.php'));
+
+        $this->assertStringContainsString("if(\$issue->status===InventoryIssue::DRAFT)", $controller);
+        $this->assertStringContainsString('Phiếu hàng thầu đã ghi sổ; không thể chỉnh sửa nội dung đơn.', $controller);
+        $this->assertStringContainsString("@if((\$doc->issue_source ?? 'normal') === 'bid')", $documents);
+        $this->assertStringContainsString("@if(\$doc->status === 'draft')", $documents);
+        $this->assertStringContainsString('Sửa đơn hàng thầu', $documents);
+    }
+
     public function test_bid_issue_uses_dedicated_editor_and_assignment_manager_context(): void
     {
         $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
