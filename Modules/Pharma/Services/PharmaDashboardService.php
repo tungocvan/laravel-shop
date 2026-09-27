@@ -155,8 +155,8 @@ final class PharmaDashboardService
                 'revenue' => (float) (clone $commissions)->sum('revenue_amount'),
                 'commission' => (float) (clone $commissions)->sum('commission_amount'),
                 'unresolved_commissions' => (clone $commissions)->where('status', InventoryIssueCommission::STATUS_UNRESOLVED)->count(),
-                'posted_bid_issues' => InventoryIssue::query()->where('issue_source', 'bid')
-                    ->where('status', InventoryIssue::POSTED)->whereBetween('posted_at', [$from, $to])->count(),
+                'posted_issues' => InventoryIssue::query()->where('status', InventoryIssue::POSTED)
+                    ->whereBetween('posted_at', [$from, $to])->count(),
             ];
         });
     }
@@ -187,6 +187,8 @@ final class PharmaDashboardService
             'draft' => PriceList::query()->where('status', PriceList::STATUS_DRAFT)->count(),
             'customer' => PriceList::query()->where('type', PriceList::TYPE_CUSTOMER)->count(),
             'global' => PriceList::query()->where('type', PriceList::TYPE_GLOBAL)->count(),
+            'supplier_trackings' => SupplierTracking::query()->count(),
+            'active_supplier_trackings' => SupplierTracking::query()->where('status', 'active')->count(),
         ]);
     }
 
