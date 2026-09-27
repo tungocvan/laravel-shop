@@ -8,10 +8,78 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Modules\ClientPortal\Services\ApplicationRegistry;
 use Modules\ClientPortal\Services\ClientPortalSettingsService;
+use Modules\Pharma\Models\PriceList;
 use Modules\Pharma\Services\MedicineCatalog;
+use Modules\Pharma\Services\UserPriceListWorkspace;
 
 final class PharmaApplicationController extends Controller
 {
+    public function priceList(
+        int $priceList,
+        Request $request,
+        ApplicationRegistry $registry,
+        ClientPortalSettingsService $settings,
+        UserPriceListWorkspace $workspace,
+    ): View {
+        $application = $registry->find('pharma');
+        abort_if($application === null, 404);
+
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+
+        $list = $workspace->findManaged((int) $user->id, $priceList);
+        abort_if($list === null, 404);
+
+        return view('ClientPortal::applications.pharma.price-list-show', [
+            'application' => $application,
+            'applicationPresentation' => $settings->applicationPresentation($application),
+            'priceList' => $list,
+        ]);
+    }
+
+    public function priceLists(
+        Request $request,
+        ApplicationRegistry $registry,
+        ClientPortalSettingsService $settings,
+        UserPriceListWorkspace $workspace,
+    ): View {
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:120'],
+            'status' => ['nullable', 'in:'.implode(',', [
+                PriceList::STATUS_DRAFT,
+                PriceList::STATUS_ACTIVE,
+                PriceList::STATUS_INACTIVE,
+                PriceList::STATUS_ARCHIVED,
+            ])],
+            'per_page' => ['nullable', 'integer', 'in:25,50,100'],
+            'page' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        $application = $registry->find('pharma');
+        abort_if($application === null, 404);
+
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+
+        $status = $validated['status'] ?? null;
+
+        return view('ClientPortal::applications.pharma.price-lists', [
+            'application' => $application,
+            'applicationPresentation' => $settings->applicationPresentation($application),
+            'priceLists' => $workspace->browse(
+                userId: (int) $user->id,
+                search: $validated['q'] ?? null,
+                status: $status,
+                perPage: (int) ($validated['per_page'] ?? 25),
+                page: (int) ($validated['page'] ?? 1),
+            )->withQueryString(),
+            'counts' => $workspace->counts((int) $user->id),
+            'search' => trim((string) ($validated['q'] ?? '')),
+            'status' => $status,
+            'perPage' => (int) ($validated['per_page'] ?? 25),
+        ]);
+    }
+
     public function product(
         int $variant,
         ApplicationRegistry $registry,
