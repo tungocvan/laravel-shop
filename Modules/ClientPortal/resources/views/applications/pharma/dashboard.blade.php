@@ -23,9 +23,8 @@
 
         <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             @forelse($features as $feature)
-                @php $routeName = $feature['route'] ?? null; @endphp
-                @if($routeName && IlluminateSupportFacadesRoute::has($routeName))
-                    <a href="{{ route($routeName) }}" class="group min-w-0 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
+                @if($feature['route_available'] ?? false)
+                    <a href="{{ route($feature['route']) }}" class="group min-w-0 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
                         <div class="flex items-start justify-between gap-4">
                             <div class="min-w-0">
                                 <h3 class="font-black text-slate-950">{{ $feature['name'] }}</h3>
