@@ -45,9 +45,9 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString('paginate($perPage', $service);
         $this->assertStringContainsString('[25, 50, 100]', $service);
         $this->assertStringContainsString('MedicineCatalogItem::fromVariant', $service);
-        $this->assertStringContainsString("$filter === 'awarded'", $service);
-        $this->assertStringContainsString("$filter === 'profile'", $service);
-        $this->assertStringContainsString("$filter === 'supplier-priced' && $allowSupplierPricing", $service);
+        $this->assertStringContainsString("\$filter === 'awarded'", $service);
+        $this->assertStringContainsString("\$filter === 'profile'", $service);
+        $this->assertStringContainsString("\$filter === 'supplier-priced' && \$allowSupplierPricing", $service);
         $this->assertStringContainsString("whereNotNull('import_price')", $service);
         $this->assertStringContainsString('public function overview(int $variantId, bool $includeSupplierPricing = false): ?array', $service);
         $this->assertStringContainsString('if ($includeSupplierPricing)', $service);
@@ -66,13 +66,13 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString('MedicineCatalog $catalog', $controller);
         $this->assertStringContainsString('$catalog->browse(', $controller);
         $this->assertStringContainsString("client.pharma.products.supplier-pricing", $controller);
-        $this->assertStringContainsString("abort_if($filter === 'supplier-priced' && ! $canViewSupplierPricing, 403)", $controller);
+        $this->assertStringContainsString("abort_if(\$filter === 'supplier-priced' && ! \$canViewSupplierPricing, 403)", $controller);
         $this->assertStringContainsString('$catalog->overview($variant, $canViewSupplierPricing)', $controller);
         $this->assertStringContainsString('Danh mục thuốc · chỉ đọc', $view);
         $this->assertStringContainsString('@foreach([25, 50, 100] as $size)', $view);
         $this->assertStringContainsString('{{ $size }} / trang', $view);
         $this->assertStringContainsString('Xóa bộ lọc', $view);
-        $this->assertStringContainsString("number_format($products->total()", $view);
+        $this->assertStringContainsString('number_format($products->total()', $view);
         $this->assertStringContainsString('Đã trúng thầu', $view);
         $this->assertStringContainsString('Có HSSP', $view);
         $this->assertStringContainsString('Có giá NCC', $view);
