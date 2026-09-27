@@ -215,6 +215,15 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('Xóa bộ lọc', $documents);
         $this->assertStringContainsString("xl:grid-cols-[minmax(210px,1.15fr)_minmax(190px,.75fr)_minmax(280px,1.25fr)_130px_120px_98px_110px]", $documents);
         $this->assertStringContainsString("\$selectedManagerId=\$issue->manager_user_id ?:", $issueEdit);
+        $this->assertStringContainsString("name=\"price_list_id\" value=\"{{ \$selectedPriceList?->id }}\"", $issueEdit);
+        $this->assertStringContainsString('Đã khóa', $issueEdit);
+        $this->assertStringContainsString('Bảng giá của phiếu đã lập không thể thay đổi.', $issueEdit);
+        $this->assertStringContainsString("\$priceListManagers=\$selectedPriceList?->type==='global'", $issueEdit);
+        $this->assertStringContainsString('Chỉ User được phân công cho bảng giá này mới được phép phụ trách phiếu.', $issueEdit);
+        $this->assertStringNotContainsString('refreshEditPriceLists', $issueEdit);
+        $this->assertStringContainsString("(int)\$data['price_list_id'] !== (int)\$issue->price_list_id", $controller);
+        $this->assertStringContainsString('Bảng giá áp dụng của phiếu đã lập không được phép thay đổi.', $controller);
+        $this->assertStringContainsString("? \$priceList->globalUsers->contains", $controller);
         $this->assertStringContainsString("Bảng giá áp dụng không còn hoạt động hoặc không còn hiệu lực tại ngày xuất.", $controller);
         $this->assertStringContainsString("Khách hàng không còn hoạt động. Vui lòng chọn lại khách hàng / nơi nhận.", $controller);
         $this->assertStringContainsString("Lô tồn kho đã chọn không còn khả dụng. Vui lòng chọn lại lô.", $controller);
