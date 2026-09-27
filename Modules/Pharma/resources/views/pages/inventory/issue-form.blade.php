@@ -25,7 +25,7 @@
     <form method="POST" action="{{ route('admin.pharma.inventory.issues.store') }}" class="space-y-5">
         @csrf
         <section class="rounded-2xl border border-slate-200 bg-white p-5">
-            <div class="mb-4"><h2 class="font-semibold text-slate-950">1. Thông tin xuất hàng</h2><p class="mt-1 text-xs text-slate-500">Chọn theo thứ tự: Ngày xuất → Người phụ trách → Bảng giá → Khách hàng.</p></div>
+            <div class="mb-4 flex items-center justify-between gap-4"><div><p class="text-xs font-bold uppercase tracking-wider text-indigo-600">Thông tin phiếu</p><h2 class="mt-1 font-semibold text-slate-950">Thiết lập nhanh phiếu xuất</h2></div><span id="issue-price-badge" class="hidden rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700"></span></div>
             <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <label class="text-sm font-medium">Ngày xuất
                     <input type="date" name="issue_date" value="{{ old('issue_date',now()->toDateString()) }}" required class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3">
@@ -35,11 +35,11 @@
                         <option value="">Chọn người phụ trách</option>
                         @foreach($priceListManagers as $manager)<option value="{{ $manager->id }}" @selected((string)old('manager_user_id')===(string)$manager->id)>{{ $manager->name }}</option>@endforeach
                     </x-select-search>
-                    <span class="mt-1 block text-xs text-slate-500">Lọc bảng giá GLOBAL/CUSTOMER được phân cho User.</span>
+                    <span class="mt-1 block text-xs text-slate-500">Chỉ hiện bảng giá được phân cho người này.</span>
                 </label>
                 <label class="text-sm font-medium">Bảng giá áp dụng <span class="text-rose-600">*</span>
                     <select id="issue-price-list" name="price_list_id" required disabled class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3"><option value="">Chọn người phụ trách trước</option></select>
-                    <span id="issue-price-list-hint" class="mt-1 block text-xs text-slate-500">GLOBAL/CUSTOMER · ACTIVE · còn hiệu lực tại ngày xuất.</span>
+                    <span id="issue-price-list-hint" class="mt-1 block text-xs text-slate-500">Chọn người phụ trách để xem bảng giá phù hợp.</span>
                 </label>
                 <label class="text-sm font-medium">Khách hàng / nơi nhận
                     <x-select-search id="issue-recipient" name="recipient_partner_id" placeholder="Tìm khách hàng / nơi nhận...">
@@ -49,16 +49,16 @@
                     <input type="hidden" name="recipient_name" id="issue-recipient-name" value="{{ old('recipient_name') }}">
                 </label>
             </div>
-            <div id="issue-context-summary" class="mt-4 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">Chọn Người phụ trách và Bảng giá để bắt đầu lập phiếu.</div>
+            <div id="issue-context-summary" class="mt-4 hidden rounded-xl border border-indigo-100 bg-indigo-50/60 px-4 py-3 text-sm text-slate-700"></div>
         </section>
 
         <div class="rounded-2xl border border-slate-200 bg-white p-5">
             <div class="flex items-center justify-between gap-4">
                 <div>
-                    <h2 class="font-semibold">2. Chi tiết xuất kho</h2>
-                    <p class="mt-1 text-xs text-slate-500">Tìm thuốc nhanh, chọn lô còn tồn; danh sách lô được xếp HSD gần nhất trước.</p>
+                    <p class="text-xs font-bold uppercase tracking-wider text-indigo-600">Hàng hóa</p><h2 class="mt-1 font-semibold">Thuốc xuất kho</h2>
+                    <p class="mt-1 text-xs text-slate-500">Tìm thuốc, hệ thống ưu tiên lô có hạn dùng gần nhất (FEFO).</p>
                 </div>
-                <button type="button" id="add-issue-row" class="rounded-lg border border-indigo-200 px-3 py-2 text-sm font-semibold text-indigo-700">+ Thêm dòng</button>
+                <div class="flex items-center gap-3"><span id="issue-item-count" class="text-sm font-semibold text-slate-500">0 sản phẩm</span><button type="button" id="add-issue-row" class="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700">+ Thêm thuốc</button></div>
             </div>
             <div class="mt-4 overflow-x-auto">
                 <div class="min-w-[1260px]">
@@ -76,7 +76,10 @@
         </div>
 
         @if($errors->any())<div class="rounded-xl bg-rose-50 p-4 text-sm text-rose-700">{{ $errors->first() }}</div>@endif
-        <div class="flex justify-end"><button class="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white">Lưu phiếu xuất nháp</button></div>
+        <div class="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white/95 px-5 py-4 shadow-lg backdrop-blur">
+            <div class="flex items-baseline gap-5"><div><span id="issue-footer-count" class="text-sm font-semibold text-slate-700">0 sản phẩm</span><span id="issue-footer-quantity" class="ml-2 text-xs text-slate-500">· Tổng SL 0</span></div><div><span class="text-xs font-medium uppercase tracking-wide text-slate-500">Tổng tiền</span><strong id="issue-grand-total" class="ml-2 text-xl text-slate-950">0 đ</strong></div></div>
+            <button class="rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-sm">Lưu phiếu xuất nháp</button>
+        </div>
     </form>
 </div>
 
@@ -99,7 +102,7 @@
         </div>
         <div class="col-span-2">
             <input type="number" step="0.01" min="0" data-field="unit_price" required value="0" placeholder="Đơn giá xuất" class="issue-unit-price min-h-11 w-full rounded-xl border border-slate-300 px-3 text-right">
-            <p class="issue-price-source mt-1 text-[11px] text-slate-500">Chưa có Giá bán CT · có thể nhập tay</p>
+            <p class="issue-price-source mt-1 text-[11px] text-slate-500">Chưa có giá · có thể nhập tay</p>
         </div>
         <div class="col-span-2 flex min-h-11 items-center justify-end pr-2">
             <span class="issue-line-total text-sm font-semibold text-slate-800">0 đ</span>
@@ -135,6 +138,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const priceListSelect = document.getElementById('issue-price-list');
     const priceListHint = document.getElementById('issue-price-list-hint');
     const contextSummary = document.getElementById('issue-context-summary');
+    const priceBadge = document.getElementById('issue-price-badge');
+    const itemCount = document.getElementById('issue-item-count');
+    const footerCount = document.getElementById('issue-footer-count');
+    const footerQuantity = document.getElementById('issue-footer-quantity');
+    const grandTotal = document.getElementById('issue-grand-total');
     const container = document.getElementById('issue-items');
     const template = document.getElementById('issue-row-template');
 
@@ -185,7 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
         priceListSelect.disabled=!managerId || lists.length===0;
         if(lists.some((list)=>String(list.id)===String(current))) priceListSelect.value=current;
         priceListHint.textContent=lists.length
-            ? `${lists.length} bảng giá GLOBAL/CUSTOMER · ACTIVE · còn hiệu lực.`
+            ? `${lists.length} bảng giá phù hợp`
             : (managerId ? 'Không có bảng giá được phân cho User và còn hiệu lực tại ngày xuất.' : 'Chọn người phụ trách để tải bảng giá.');
         updateContextSummary();
         refreshRowsForPriceList();
@@ -221,9 +229,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateContextSummary() {
         const list=priceLists.find((item)=>String(item.id)===String(priceListSelect.value));
-        const manager=managerSelect?.options?.[managerSelect.selectedIndex]?.text || '—';
         const partner=partners.find((item)=>String(item.id)===String(recipientSelect?.value || ''));
-        contextSummary.textContent=list ? `Người phụ trách: ${manager} · Bảng giá: ${list.code} — ${list.name} · Khách hàng: ${partner?.name || 'Chưa chọn'}` : 'Chọn Người phụ trách và Bảng giá để bắt đầu lập phiếu.';
+        contextSummary.classList.toggle('hidden',!list);
+        contextSummary.textContent=list ? `${list.name} · ${partner?.name || 'Chưa chọn khách hàng'}` : '';
+        priceBadge.classList.toggle('hidden',!list);
+        priceBadge.textContent=list ? (list.type==='global' ? 'Bảng giá chung' : 'Bảng giá khách hàng') : '';
     }
 
     function refreshRowsForPriceList() {
@@ -243,11 +253,22 @@ document.addEventListener('DOMContentLoaded', () => {
         updateLineTotal(row);
     }
 
+    function updateOrderSummary() {
+        const rows=[...container.querySelectorAll('.issue-item-row')];
+        const activeRows=rows.filter((row)=>row.querySelector('.issue-medicine-select')?.value);
+        const quantity=rows.reduce((sum,row)=>sum+Number(row.querySelector('.issue-quantity')?.value || 0),0);
+        const total=rows.reduce((sum,row)=>sum+(Number(row.querySelector('.issue-quantity')?.value || 0)*Number(row.querySelector('.issue-unit-price')?.value || 0)),0);
+        const label=`${activeRows.length} sản phẩm`;
+        itemCount.textContent=label; footerCount.textContent=label;
+        footerQuantity.textContent=`· Tổng SL ${new Intl.NumberFormat('vi-VN',{maximumFractionDigits:3}).format(quantity)}`;
+        grandTotal.textContent=new Intl.NumberFormat('vi-VN',{maximumFractionDigits:0}).format(total)+' đ';
+    }
+
     function updateLineTotal(row) {
         const quantity=Number(row.querySelector('.issue-quantity')?.value || 0);
         const price=Number(row.querySelector('.issue-unit-price')?.value || 0);
         row.querySelector('.issue-line-total').textContent=new Intl.NumberFormat('vi-VN',{maximumFractionDigits:0}).format(quantity*price)+' đ';
-        updateStockWarning(row);
+        updateStockWarning(row); updateOrderSummary();
     }
 
     function updateStockWarning(row) {
@@ -284,6 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         lotSelect.disabled=!medicineId || matching.length===0;
         if (medicineId && matching.length===0) lotSelect.innerHTML='<option value="">Không còn lô khả dụng</option>';
+        if(medicineId && matching.length>0){ lotSelect.value=String(matching[0].id); updateStockWarning(row); }
     }
 
     function addRow() {
@@ -325,7 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const row=button.closest('.issue-item-row');
         const select=row.querySelector('.issue-medicine-select');
         if(select?.tomselect) select.tomselect.destroy();
-        row.remove(); renumberRows();
+        row.remove(); renumberRows(); updateOrderSummary();
     });
     addRow();
 });
