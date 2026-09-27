@@ -236,7 +236,9 @@ class PriceListV2ContractTest extends TestCase
         $this->assertStringContainsString('public array $globalUserIds = []', $livewire);
         $this->assertStringContainsString('globalUsers()->sync(', $livewire);
         $this->assertStringContainsString('Áp dụng cho tất cả User', $view);
-        $this->assertStringContainsString('wire:model.live="globalUserIds"', $view);
+        $this->assertStringContainsString('<x-select-search id="global-user-ids"', $view);
+        $this->assertStringContainsString('wire:model="globalUserIds"', $view);
+        $this->assertStringNotContainsString('wire:model.live="globalUserIds"', $view);
     }
 
     #[Test]
@@ -257,6 +259,12 @@ class PriceListV2ContractTest extends TestCase
         foreach (['managerUserId', 'effectiveFrom', 'effectiveTo', 'appliedEffectiveFrom', 'appliedEffectiveTo', 'sortField', 'sortDirection', 'applyEffectiveDates', 'resetFilters', 'sortBy'] as $property) $this->assertStringContainsString($property, $component);
         $this->assertStringContainsString("'manager'", $component);
         $this->assertStringContainsString("where('manager_user_id'", $component);
+        $this->assertStringContainsString("orWhereHas('globalUsers'", $component);
+        $this->assertStringContainsString("'globalUsers'", $component);
+        $this->assertStringContainsString("pharma_price_list_users", $component);
+        $this->assertStringContainsString('User áp dụng / phụ trách', $view);
+        $this->assertStringContainsString('Tất cả User', $view);
+        $this->assertStringContainsString('$list->globalUsers', $view);
         $this->assertStringContainsString("whereNull('effective_to')->orWhereDate('effective_to', '>=',", $component);
         $this->assertStringContainsString("whereNull('effective_from')->orWhereDate('effective_from', '<=',", $component);
         foreach (['wire:model.live="managerUserId"', 'wire:model="effectiveFrom"', 'wire:model="effectiveTo"', 'wire:click="applyEffectiveDates"', 'wire:click="resetFilters"', "sortBy('effective_from')", "sortBy('effective_to')", 'Xóa bộ lọc', 'Người phụ trách', 'Hiệu lực từ', 'Hiệu lực đến', 'manager?->name', 'Thêm', 'x-data="{ open:false, top:0, left:0, width:192', 'aria-haspopup="menu"', 'x-teleport="body"', 'position:fixed', 'Xóa bảng giá', 'Xuất Excel'] as $text) $this->assertStringContainsString($text, $view);
