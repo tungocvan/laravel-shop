@@ -6,7 +6,6 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Modules\Partner\Models\Partner;
-use Modules\Pharma\Models\MedicineVariant;
 use Modules\Pharma\Models\PriceList;
 use Modules\Pharma\Models\PriceListPurpose;
 
@@ -32,33 +31,42 @@ final class UserPriceListWorkflow
             ->get(['id', 'name']);
     }
 
-    public function products(?string $search = null): Collection
+    public function sourcePriceLists(int $userId): Collection
     {
-        $search = trim((string) $search);
-
-        return MedicineVariant::query()
-            ->with(['medicine:id,name,active_ingredients,registration_number,declared_price,packaging_specification'])
-            ->whereHas('medicine', function ($query) use ($search): void {
-                $query->where('catalog_status', 'active')
-                    ->when($search !== '', function ($query) use ($search): void {
-                        $like = "%{$search}%";
-                        $query->where(fn ($inner) => $inner->where('name', 'like', $like)
-                            ->orWhere('active_ingredients', 'like', $like)
-                            ->orWhere('registration_number', 'like', $like));
-                    });
+        return PriceList::query()
+            ->where('type', PriceList::TYPE_GLOBAL)
+            ->activeAt(now())
+            ->where(function ($query) use ($userId): void {
+                $query->whereDoesntHave('globalUsers')
+                    ->orWhereHas('globalUsers', fn ($users) => $users->whereKey($userId));
             })
-            ->orderBy('sku')
-            ->limit(100)
-            ->get(['id', 'medicine_id', 'sku', 'strength_text', 'presentation_text']);
+            ->withCount('items')
+            ->orderByDesc('effective_from')
+            ->orderBy('name')
+            ->get(['id', 'code', 'name', 'effective_from', 'effective_to']);
+    }
+
+    public function sourceProducts(int $userId, int $sourcePriceListId): Collection
+    {
+        $source = $this->sourceForUser($userId, $sourcePriceListId);
+
+        return $source->items()
+            ->with(['variant.medicine', 'package'])
+            ->where('status', 'active')
+            ->orderBy('id')
+            ->get();
     }
 
     public function createDraft(int $userId, array $header, array $items): PriceList
     {
         if ($items === []) {
-            throw ValidationException::withMessages(['items' => 'Vui lòng chọn ít nhất một sản phẩm cho bảng giá.']);
+            throw ValidationException::withMessages(['items' => 'Vui lòng chọn ít nhất một sản phẩm từ bảng giá gốc.']);
         }
 
-        return DB::transaction(function () use ($userId, $header, $items): PriceList {
+        $source = $this->sourceForUser($userId, (int) ($header['source_price_list_id'] ?? 0));
+        $sourceItems = $source->items()->where('status', 'active')->get()->keyBy('medicine_variant_id');
+
+        return DB::transaction(function () use ($userId, $header, $items, $sourceItems): PriceList {
             $header = $this->manager->validateHeader(array_merge($header, [
                 'type' => PriceList::TYPE_CUSTOMER,
                 'customer_source' => PriceList::CUSTOMER_SOURCE_PARTNER,
@@ -73,12 +81,18 @@ final class UserPriceListWorkflow
             ]));
 
             foreach ($items as $item) {
+                $variantId = (int) $item['medicine_variant_id'];
+                $sourceItem = $sourceItems->get($variantId);
+                if (! $sourceItem) {
+                    throw ValidationException::withMessages(['items' => 'Sản phẩm đã chọn không thuộc bảng giá gốc được phép sử dụng.']);
+                }
+
                 $list->items()->create($this->manager->validateItem([
-                    'medicine_variant_id' => (int) $item['medicine_variant_id'],
-                    'medicine_package_id' => null,
+                    'medicine_variant_id' => $variantId,
+                    'medicine_package_id' => $sourceItem->medicine_package_id,
                     'company_sale_price' => $item['company_sale_price'],
-                    'actual_receivable_price' => $item['actual_receivable_price'] ?? null,
-                    'invoice_price' => $item['invoice_price'] ?? null,
+                    'actual_receivable_price' => $item['actual_receivable_price'] ?? $sourceItem->actual_receivable_price,
+                    'invoice_price' => $item['invoice_price'] ?? $sourceItem->invoice_price,
                     'status' => 'active',
                 ]));
             }
@@ -103,6 +117,7 @@ final class UserPriceListWorkflow
                 throw ValidationException::withMessages(['price_list' => 'Bảng giá phải có ít nhất một sản phẩm trước khi gửi duyệt.']);
             }
 
+            $this->sourceForUser($userId, (int) $list->source_price_list_id);
             $this->manager->validateHeader($list->toArray(), $list);
             foreach ($list->items as $item) {
                 if ($item->company_sale_price === null) {
@@ -121,5 +136,26 @@ final class UserPriceListWorkflow
 
             return $list->refresh();
         });
+    }
+
+    private function sourceForUser(int $userId, int $sourcePriceListId): PriceList
+    {
+        $source = PriceList::query()
+            ->whereKey($sourcePriceListId)
+            ->where('type', PriceList::TYPE_GLOBAL)
+            ->activeAt(now())
+            ->where(function ($query) use ($userId): void {
+                $query->whereDoesntHave('globalUsers')
+                    ->orWhereHas('globalUsers', fn ($users) => $users->whereKey($userId));
+            })
+            ->first();
+
+        if (! $source) {
+            throw ValidationException::withMessages([
+                'source_price_list_id' => 'Bảng giá gốc phải là bảng giá chung đang ACTIVE và được Admin cấp cho User.',
+            ]);
+        }
+
+        return $source;
     }
 }
