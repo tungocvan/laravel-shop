@@ -9,7 +9,7 @@ use Modules\Pharma\Models\MedicineVariant;
 
 class MedicineCatalog
 {
-    public function browse(?string $search = null, int $perPage = 25, int $page = 1): LengthAwarePaginator
+    public function browse(?string $search = null, int $perPage = 25, int $page = 1, ?string $filter = null, bool $allowSupplierPricing = false): LengthAwarePaginator
     {
         $search = trim((string) $search);
         $perPage = in_array($perPage, [25, 50, 100], true) ? $perPage : 25;
@@ -17,6 +17,9 @@ class MedicineCatalog
         $paginator = MedicineVariant::query()
             ->with(['medicine', 'packages'])
             ->whereHas('medicine')
+            ->when($filter === 'awarded', fn ($query) => $query->whereHas('medicine.drugBidAwards'))
+            ->when($filter === 'profile', fn ($query) => $query->whereHas('medicine.currentProfile'))
+            ->when($filter === 'supplier-priced' && $allowSupplierPricing, fn ($query) => $query->whereHas('medicine.supplierTrackings', fn ($tracking) => $tracking->whereNotNull('import_price')))
             ->when($search !== '', function ($query) use ($search): void {
                 $query->where(function ($nested) use ($search): void {
                     $nested->where('sku', 'like', "%{$search}%")
