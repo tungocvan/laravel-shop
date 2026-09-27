@@ -53,6 +53,13 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('Chỉ hiển thị các bảng giá bạn là người phụ trách', $view);
         $this->assertStringContainsString('25,50,100', $view);
         $this->assertStringContainsString("setTimeout(()=>f.requestSubmit(),350)", $view);
+        $this->assertStringContainsString('name="from_date"', $view);
+        $this->assertStringContainsString('name="to_date"', $view);
+        $this->assertStringContainsString('Đặt lại', $view);
+        $this->assertStringContainsString("'from_date'=>$fromDate", $view);
+        $this->assertStringContainsString("'to_date'=>$toDate", $view);
+        $this->assertStringContainsString("whereDate('effective_from', '>=', $service);
+        $this->assertStringContainsString("whereDate('effective_from', '<=', $service);
         $this->assertStringNotContainsString('Admin::', $view);
 
         $this->assertStringContainsString('Giá kê khai', $detail);
@@ -86,6 +93,10 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('Lưu bảng giá Nháp', $create);
         $this->assertStringContainsString('name="selected[', $create);
         $this->assertStringContainsString('name="company_price[', $create);
+        $this->assertStringContainsString('Giá Bán (VAT) *', $create);
+        $this->assertStringNotContainsString('>Giá gốc<', $create);
+        $this->assertStringContainsString('data-money-input', $create);
+        $this->assertStringContainsString("replace(/\\D/g, '')", $create);
 
         $this->assertStringContainsString("public const STATUS_PENDING_APPROVAL = 'pending_approval'", $model);
         $this->assertStringContainsString('public function createDraft(int $userId', $workflow);
