@@ -426,10 +426,12 @@ final class InventoryController extends Controller
     {
         $warehouse=$inventory->defaultWarehouse();
         $query=InventoryIssue::query()->withCount('items')
-            ->with(['items:id,issue_id,medicine_id,batch_number,expiry_date,quantity'])
+            ->with(['items:id,issue_id,medicine_id,batch_number,expiry_date,quantity','manager:id,name'])
             ->withSum('items as total_value',DB::raw('quantity * unit_price'))
             ->where('warehouse_id',$warehouse->id)
             ->when($request->filled('q'),fn($q)=>$q->where(fn($x)=>$x->where('number','like','%'.$request->q.'%')->orWhere('recipient_name','like','%'.$request->q.'%')))
+            ->when($request->filled('manager_user_id'),fn($q)=>$q->where('manager_user_id',(int)$request->manager_user_id))
+            ->when($request->filled('recipient_name'),fn($q)=>$q->where('recipient_name',$request->recipient_name))
             ->when(in_array($request->status,['draft','posted'],true),fn($q)=>$q->where('status',$request->status))
             ->latest('issue_date')->latest('id');
         $documents=$query->paginate($this->documentPerPage($request))->withQueryString();
@@ -443,8 +445,13 @@ final class InventoryController extends Controller
                     return (float)($balanceKeys[$key]?->quantity_on_hand ?? 0) >= (float)$item->quantity;
                 });
         });
+        $managerIds=InventoryIssue::query()->where('warehouse_id',$warehouse->id)->whereNotNull('manager_user_id')->distinct()->pluck('manager_user_id');
+        $issueManagers=User::query()->whereIn('id',$managerIds)->orderBy('name')->get(['id','name']);
+        $issueRecipients=InventoryIssue::query()->where('warehouse_id',$warehouse->id)->whereNotNull('recipient_name')
+            ->where('recipient_name','<>','')->distinct()->orderBy('recipient_name')->pluck('recipient_name');
         return view('Pharma::pages.inventory.documents',[
             'type'=>'issue','title'=>'Phiếu xuất kho','documents'=>$documents,
+            'issueManagers'=>$issueManagers,'issueRecipients'=>$issueRecipients,
         ]);
     }
     public function issueDocumentSettings(): View
@@ -722,12 +729,17 @@ final class InventoryController extends Controller
     public function exportIssues(Request $request, InventoryService $inventory): StreamedResponse
     {
         $warehouse=$inventory->defaultWarehouse();
-        $issues=InventoryIssue::query()->with('items.medicine')->where('warehouse_id',$warehouse->id)
+        $selectedIds=collect($request->input('ids',[]))->map(fn($id)=>(int)$id)->filter()->unique()->values();
+        $issues=InventoryIssue::query()->with(['items.medicine','manager:id,name'])->where('warehouse_id',$warehouse->id)
+            ->when($selectedIds->isNotEmpty(),fn($q)=>$q->whereIn('id',$selectedIds))
             ->when($request->filled('q'),fn($q)=>$q->where(fn($x)=>$x->where('number','like','%'.$request->q.'%')->orWhere('recipient_name','like','%'.$request->q.'%')))
+            ->when($request->filled('manager_user_id'),fn($q)=>$q->where('manager_user_id',(int)$request->manager_user_id))
+            ->when($request->filled('recipient_name'),fn($q)=>$q->where('recipient_name',$request->recipient_name))
             ->when(in_array($request->status,['draft','posted'],true),fn($q)=>$q->where('status',$request->status))
             ->latest('issue_date')->latest('id')->get();
         $rows=$issues->flatMap(fn(InventoryIssue $issue)=>$issue->items->map(fn($item)=>[
             'Ma phieu'=>$issue->number,'Ngay xuat'=>$issue->issue_date->format('d/m/Y'),'Khach hang / noi nhan'=>$issue->recipient_name,
+            'Nguoi phu trach'=>$issue->manager?->name,'Nguon'=>($issue->issue_source ?? 'normal')==='bid'?'Hang thau':'Bang gia',
             'Trang thai'=>$issue->status,'Ma thuoc'=>$item->medicine->medicine_code,'Ten thuoc'=>$item->medicine->name,
             'So lo'=>$item->batch_number,'Han dung'=>$item->expiry_date->format('d/m/Y'),'So luong'=>(float)$item->quantity,
             'Don gia xuat'=>(float)$item->unit_price,'Thanh tien'=>(float)$item->quantity*(float)$item->unit_price,
