@@ -250,11 +250,26 @@ class PharmaDrugAwardAllocationContractTest extends TestCase
         $this->assertStringContainsString('cancelCreateAnotherContract', $component);
         $this->assertStringContainsString('Local → Drive', $view);
         $this->assertStringContainsString('Drive → Local', $view);
-        $this->assertStringContainsString('Xóa Local', $view);
-        $this->assertStringContainsString('Xóa Drive', $view);
+        $this->assertStringContainsString('Xóa bản Local', $view);
+        $this->assertStringContainsString('Xóa bản Google Drive', $view);
         $this->assertStringContainsString('Hủy thêm · Quay lại hợp đồng trước', $view);
         $this->assertStringContainsString('inputmode="numeric" wire:model="contractValue"', $view);
         $this->assertStringContainsString('max-w-2xl', $view);
+    }
+
+
+    public function test_contract_workspace_final_polish_keeps_create_and_edit_states_focused(): void
+    {
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/drug-bid-award/allocation-workspace.blade.php'));
+
+        $this->assertStringContainsString('lg:grid-cols-10', $view);
+        $this->assertStringContainsString('>VNĐ</span>', $view);
+        $this->assertStringContainsString("{{ \$editingContractId ? 'Quản lý file và đồng bộ Local ↔ Google Drive độc lập với thông tin hợp đồng.' : 'Chọn file và nơi lưu trước khi tạo hợp đồng.' }}", $view);
+        $this->assertStringContainsString('@if($editingContractId)', $view);
+        $this->assertStringContainsString('border-dashed', $view);
+        $this->assertStringContainsString('✓ File hiện có ở cả Local và Google Drive', $view);
+        $this->assertStringContainsString('aria-label="Thao tác file"', $view);
+        $this->assertStringContainsString("{{ \$editingContractId ? 'Đóng' : 'Hủy' }}", $view);
     }
 
 }
