@@ -462,6 +462,20 @@ class InventoryContractTest extends TestCase
         $this->assertStringNotContainsString('issue-reset-price hidden', $view);
     }
 
+    public function test_issue_persists_selected_manager_and_show_uses_issue_manager(): void
+    {
+        $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
+        $model=file_get_contents(base_path('Modules/Pharma/Models/InventoryIssue.php'));
+        $show=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-show.blade.php'));
+        $migration=file_get_contents(base_path('Modules/Pharma/database/migrations/2026_09_27_120000_add_manager_user_to_pharma_inventory_issues.php'));
+        $this->assertStringContainsString("'manager_user_id'=>\$data['manager_user_id']", $controller);
+        $this->assertStringContainsString("'manager:id,name'", $controller);
+        $this->assertStringContainsString("belongsTo(\\App\\Models\\User::class,'manager_user_id')", $model);
+        $this->assertStringContainsString('\$issue->manager?->name', $show);
+        $this->assertStringNotContainsString('\$issue->priceList?->manager?->name', $show);
+        $this->assertStringContainsString("foreignId('manager_user_id')->nullable()", $migration);
+    }
+
     public function test_issue_edit_matches_create_workspace_and_assigned_price_lists(): void
     {
         $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
