@@ -61,6 +61,10 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('Tạo bảng giá cho khách hàng', $create);
         $this->assertStringContainsString('<x-select-search', $create);
         $this->assertStringNotContainsString('<x-search-select', $create);
+        $this->assertStringContainsString("document.getElementById('client-price-list-customer')", $create);
+        $this->assertStringContainsString('window.TomSelect', $create);
+        $this->assertStringContainsString('!customer.tomselect', $create);
+        $this->assertStringContainsString("plugins: ['dropdown_input']", $create);
         $this->assertStringContainsString('02 · Bảng giá gốc', $create);
         $this->assertStringContainsString('03 · Sản phẩm & giá', $create);
         $this->assertStringContainsString('04 · Kiểm tra & lưu', $create);
