@@ -46,6 +46,8 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString('[25, 50, 100]', $service);
         $this->assertStringContainsString('MedicineCatalogItem::fromVariant', $service);
         $dto = file_get_contents(base_path('Modules/Pharma/DTOs/MedicineCatalogItem.php'));
+        $this->assertStringContainsString('public ?string $circularGroup', $dto);
+        $this->assertStringContainsString('public ?float $declaredPrice', $dto);
         $this->assertStringContainsString('public bool $hasBidAward = false', $dto);
         $this->assertStringContainsString('public bool $hasProfile = false', $dto);
         $this->assertStringContainsString('public bool $hasSupplierPricing = false', $dto);
@@ -53,6 +55,10 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString("\$filter === 'profile'", $service);
         $this->assertStringContainsString("\$filter === 'supplier-priced' && \$allowSupplierPricing", $service);
         $this->assertStringContainsString("whereNotNull('import_price')", $service);
+        $this->assertStringContainsString('public function filterCounts(bool $includeSupplierPricing = false): array', $service);
+        $this->assertStringContainsString("orderBy('catalog_medicines.circular_group')", $service);
+        $this->assertStringContainsString("orderBy('catalog_medicines.circular_order_number')", $service);
+        $this->assertStringContainsString("orderBy('catalog_medicines.name')", $service);
         $this->assertStringContainsString('public function overview(int $variantId, bool $includeSupplierPricing = false): ?array', $service);
         $this->assertStringContainsString('if ($includeSupplierPricing)', $service);
         $this->assertStringContainsString("\$row['import_price']", $service);
@@ -69,6 +75,7 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString("'permission' => 'client.pharma.products.supplier-pricing'", $manifest);
         $this->assertStringContainsString('MedicineCatalog $catalog', $controller);
         $this->assertStringContainsString('$catalog->browse(', $controller);
+        $this->assertStringContainsString('$catalog->filterCounts($canViewSupplierPricing)', $controller);
         $this->assertStringContainsString("client.pharma.products.supplier-pricing", $controller);
         $this->assertStringContainsString("abort_if(\$filter === 'supplier-priced' && ! \$canViewSupplierPricing, 403)", $controller);
         $this->assertStringContainsString('$catalog->overview($variant, $canViewSupplierPricing)', $controller);
@@ -80,6 +87,12 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString('Đã trúng thầu', $view);
         $this->assertStringContainsString('Có HSSP', $view);
         $this->assertStringContainsString('Có giá NCC', $view);
+        $this->assertStringContainsString('$filterCounts[$value ?? \'all\']', $view);
+        $this->assertStringContainsString('>Nhóm</th>', $view);
+        $this->assertStringContainsString('>Giá kê khai</th>', $view);
+        $this->assertStringContainsString('$product->circularGroup', $view);
+        $this->assertStringContainsString('$product->declaredPrice', $view);
+        $this->assertStringContainsString('h-[46px]', $view);
         $this->assertStringContainsString('bg-blue-50', $view);
         $this->assertStringContainsString('bg-emerald-50', $view);
         $this->assertStringContainsString('bg-amber-50', $view);
