@@ -7,6 +7,7 @@
 
 @section('content')
 <div class="space-y-5">
+    @if(session('success'))<div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">{{ session('success') }}</div>@endif
     <section class="rounded-[2rem] bg-slate-950 px-5 py-6 text-white shadow-sm sm:px-7">
         <p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-300">My Price Lists</p>
         <div class="mt-2 flex flex-wrap items-center gap-3">
@@ -57,8 +58,11 @@
         <table class="w-full table-fixed text-left text-sm"><thead class="bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-500"><tr><th class="w-[26%] px-5 py-3">Bảng giá</th><th class="w-[24%] px-5 py-3">Khách hàng</th><th class="w-[12%] px-5 py-3">Mục đích</th><th class="w-[8%] px-5 py-3 text-center">SP</th><th class="w-[20%] px-5 py-3">Hiệu lực</th><th class="w-[10%] px-5 py-3">Trạng thái</th></tr></thead>
         <tbody class="divide-y divide-slate-100">
         @forelse($priceLists as $priceList)
-            @php $customer = $priceList->partner?->name ?? $priceList->officialFacility?->facility_name ?? $priceList->officialFacility?->name ?? 'Bảng giá chung'; @endphp
-            <tr class="transition hover:bg-slate-50"><td class="px-5 py-4"><a href="{{ route('client.pharma.price-lists.show', $priceList->id) }}" class="font-black text-slate-950 hover:underline">{{ $priceList->name }}</a><p class="mt-1 text-xs text-slate-400">{{ $priceList->code }}</p></td><td class="px-5 py-4 text-slate-700">{{ $customer }}</td><td class="px-5 py-4 text-slate-600">{{ $priceList->purpose?->name ?: '—' }}</td><td class="px-5 py-4 text-center font-bold">{{ $priceList->items_count }}</td><td class="px-5 py-4 text-slate-600">{{ $priceList->effective_from?->format('d/m/Y') ?: '—' }} → {{ $priceList->effective_to?->format('d/m/Y') ?: '—' }}</td><td class="px-5 py-4 font-bold text-slate-700">{{ $priceList->status }}</td></tr>
+            @php
+                $customer = $priceList->partner?->name ?? $priceList->officialFacility?->facility_name ?? $priceList->officialFacility?->name ?? 'Bảng giá chung';
+                $statusLabel = match($priceList->status) { 'draft' => 'Nháp', 'pending_approval' => 'Chờ duyệt', 'active' => 'Đang hiệu lực', 'inactive' => 'Ngưng', 'archived' => 'Lưu trữ', default => $priceList->status };
+            @endphp
+            <tr class="transition hover:bg-slate-50"><td class="px-5 py-4"><a href="{{ route('client.pharma.price-lists.show', $priceList->id) }}" class="font-black text-slate-950 hover:underline">{{ $priceList->name }}</a><p class="mt-1 text-xs text-slate-400">{{ $priceList->code }}</p>@if($priceList->status === 'draft')<div class="mt-2 flex items-center gap-3 text-xs font-bold"><a href="{{ route('client.pharma.price-lists.edit', $priceList->id) }}" class="text-blue-700 hover:underline">Sửa</a><form method="POST" action="{{ route('client.pharma.price-lists.delete', $priceList->id) }}" onsubmit="return confirm('Xóa bảng giá Nháp này?')">@csrf @method('DELETE')<button class="text-red-600 hover:underline">Xóa</button></form></div>@endif</td><td class="px-5 py-4 text-slate-700">{{ $customer }}</td><td class="px-5 py-4 text-slate-600">{{ $priceList->purpose?->name ?: '—' }}</td><td class="px-5 py-4 text-center font-bold">{{ $priceList->items_count }}</td><td class="px-5 py-4 text-slate-600">{{ $priceList->effective_from?->format('d/m/Y') ?: '—' }} → {{ $priceList->effective_to?->format('d/m/Y') ?: '—' }}</td><td class="px-5 py-4"><span class="rounded-full px-2.5 py-1 text-xs font-bold {{ $priceList->status === 'active' ? 'bg-emerald-100 text-emerald-700' : ($priceList->status === 'draft' ? 'bg-amber-100 text-amber-700' : ($priceList->status === 'pending_approval' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600')) }}">{{ $statusLabel }}</span></td></tr>
         @empty <tr><td colspan="6" class="px-5 py-10 text-center text-slate-500">Bạn chưa có bảng giá nào trong phạm vi quản lý.</td></tr> @endforelse
         </tbody></table>
     </section>
