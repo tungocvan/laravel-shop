@@ -624,6 +624,29 @@ class InventoryContractTest extends TestCase
         $this->addToAssertionCount(1);
     }
 
+    public function test_commission_center_supports_price_list_and_bid_sources(): void
+    {
+        $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
+        $service=file_get_contents(base_path('Modules/Pharma/Services/DrugBidCommissionService.php'));
+        $model=file_get_contents(base_path('Modules/Pharma/Models/InventoryIssueCommission.php'));
+        $view=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/commissions.blade.php'));
+        $migration=file_get_contents(base_path('Modules/Pharma/database/migrations/2026_09_27_143000_extend_issue_commissions_for_price_lists.php'));
+
+        $this->assertStringContainsString('Trung tâm hoa hồng', $view);
+        $this->assertStringContainsString("['all'=>'Tất cả','price_list'=>'Theo bảng giá','bid'=>'Hàng thầu']", $view);
+        $this->assertStringContainsString('Khách hàng / Bệnh viện', $view);
+        $this->assertStringContainsString('Giá trị thu · bảng giá', $view);
+        $this->assertStringContainsString('SL × (Giá bán CT − Giá thu)', $view);
+        $this->assertStringContainsString('SOURCE_PRICE_LIST', $model);
+        $this->assertStringContainsString('snapshotPriceListIssue', $service);
+        $this->assertStringContainsString('actual_receivable_price', $service);
+        $this->assertStringContainsString("source_type'=>InventoryIssueCommission::SOURCE_PRICE_LIST", $service);
+        $this->assertStringContainsString('receivable_price_snapshot', $migration);
+        $this->assertStringContainsString('price_list_item_id', $migration);
+        $this->assertStringContainsString("\$commissions->snapshotPostedIssue(\$issue->fresh('items')", $controller);
+        $this->assertStringContainsString("when(\$source!=='all'", $controller);
+    }
+
     public function test_bid_sale_issue_workspace_contracts(): void
     {
         $routes=file_get_contents(base_path('Modules/Pharma/routes/web.php'));
