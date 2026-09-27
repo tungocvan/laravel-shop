@@ -557,7 +557,9 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('Đặt lại giá gốc', $view);
         $this->assertStringContainsString('parseViNumber', $view);
         $this->assertStringContainsString('formatViNumber', $view);
-        $this->assertStringContainsString('data-global-users', $view);
+        $this->assertStringNotContainsString('data-global-users', $view);
+        $this->assertStringContainsString('Bảng giá của phiếu đã lập không thể thay đổi.', $view);
+        $this->assertStringContainsString('Chỉ User được phân công cho bảng giá này mới được phép phụ trách phiếu.', $view);
         $this->assertStringNotContainsString('max-w-[1580px]', $view);
     }
 
