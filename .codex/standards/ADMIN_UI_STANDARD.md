@@ -417,6 +417,20 @@ Successful operations that materially change the dataset should provide explicit
 
 Before creating UI primitives, inspect existing shared components. Reuse canonical components for inputs, searchable selects, alerts, modals, pagination, status badges, upload controls and similar patterns when available.
 
+### Canonical searchable select component
+
+For Admin searchable/select-combobox fields, the canonical Blade component in this repository is:
+
+```blade
+<x-select-search ...>
+    ...
+</x-select-search>
+```
+
+Do **not** invent, alias, or use `<x-search-select>` unless the repository later introduces and registers that component explicitly. Before writing a searchable select, inspect an existing working Admin screen/component and reuse the exact registered component name and contract. A Blade tag that merely looks semantically equivalent is not interchangeable: an unregistered component will cause a runtime 500 during Blade compilation.
+
+Contract tests for Admin screens using searchable selects should assert `<x-select-search` rather than an invented variant, and rendered/manual UI acceptance must confirm the component loads without 404/500.
+
 Do not create duplicate UI systems inside individual modules.
 
 Specialized UI such as a Markdown source toolbar may be module-specific when no shared equivalent exists, but it should still follow the repository's visual language and remain small enough to extract later if reused elsewhere.
