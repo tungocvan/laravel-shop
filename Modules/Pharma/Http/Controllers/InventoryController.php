@@ -398,12 +398,10 @@ final class InventoryController extends Controller
             ->whereDate('expiry_date','>=',now()->toDateString())
             ->orderBy('expiry_date')->orderBy('medicine_id')->get();
         $partners=Partner::query()->withPartnerType('customer')->where('status','active')->orderBy('name')->get(['id','name','tax_code']);
-        $customerPriceLists=PriceList::query()->with(['manager:id,name','globalUsers:id,name'])
-            ->whereIn('type',[PriceList::TYPE_GLOBAL,PriceList::TYPE_CUSTOMER])->where('status',PriceList::STATUS_ACTIVE)
-            ->whereHas('items',fn($q)=>$q->where('status','active')->whereNotNull('medicine_id'))
-            ->orderByDesc('priority')->orderBy('name')->get([
-                'id','code','name','type','manager_user_id','partner_id','effective_from','effective_to','priority',
-            ]);
+        $customerPriceLists=collect([$issue->priceList])->filter();
+        if($issue->priceList){
+            $issue->priceList->loadMissing(['manager:id,name','globalUsers:id,name']);
+        }
         $issueSalePrices=$this->issueSalePriceCandidates();
         return view('Pharma::pages.inventory.issue-form',compact('warehouse','availableBalances','partners','customerPriceLists','issueSalePrices'));
     }
@@ -712,12 +710,15 @@ final class InventoryController extends Controller
             'items'=>'required|array|min:1','items.*.balance_id'=>'required|exists:pharma_inventory_balances,id',
             'items.*.quantity'=>'required|numeric|gt:0','items.*.unit_price'=>'required|numeric|min:0',
         ]);
+        if((int)$data['price_list_id'] !== (int)$issue->price_list_id){
+            throw ValidationException::withMessages(['price_list_id'=>'Bảng giá áp dụng của phiếu đã lập không được phép thay đổi.']);
+        }
         $priceList=PriceList::query()->with('globalUsers:id')->whereKey($data['price_list_id'])
             ->whereIn('type',[PriceList::TYPE_GLOBAL,PriceList::TYPE_CUSTOMER])->activeAt($metadata['issue_date'])->first();
         if(! $priceList) throw ValidationException::withMessages(['price_list_id'=>'Bảng giá áp dụng không còn hoạt động hoặc không còn hiệu lực tại ngày xuất. Vui lòng chọn lại bảng giá.']);
         $managerId=(int)$data['manager_user_id'];
         $assigned=$priceList->type===PriceList::TYPE_GLOBAL
-            ? ($priceList->globalUsers->isEmpty() || $priceList->globalUsers->contains(fn($user)=>(int)$user->id===$managerId))
+            ? $priceList->globalUsers->contains(fn($user)=>(int)$user->id===$managerId)
             : (int)$priceList->manager_user_id===$managerId;
         if(! $assigned) throw ValidationException::withMessages(['price_list_id'=>'Bảng giá không được phân cho Người phụ trách đã chọn.']);
         if($priceList->type===PriceList::TYPE_CUSTOMER && $priceList->partner_id !== null && (int)$priceList->partner_id !== (int)$data['recipient_partner_id']){
