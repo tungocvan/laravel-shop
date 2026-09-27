@@ -205,7 +205,8 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("PriceList::STATUS_ACTIVE", $controller);
         $this->assertStringContainsString("company_sale_price", $controller);
         $this->assertStringContainsString('Đơn giá xuất', $issueForm);
-        $this->assertStringContainsString('Giá bán CT', $issueForm);
+        $this->assertStringContainsString('Giá bảng:', $issueForm);
+        $this->assertStringNotContainsString('Giá bán CT ·', $issueForm);
         $this->assertStringContainsString("data-field=\"unit_price\"", $issueForm);
         $this->assertStringContainsString("value=\"0\"", $issueForm);
         $this->assertStringContainsString('có thể nhập tay', $issueForm);
