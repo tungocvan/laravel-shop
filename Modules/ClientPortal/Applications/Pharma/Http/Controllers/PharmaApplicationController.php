@@ -356,6 +356,36 @@ final class PharmaApplicationController extends Controller
         return back()->with('success','Đã thu hồi liên kết chia sẻ.');
     }
 
+    public function queuePriceListSharePdf(int $share, Request $request, PriceListShareExportService $exports)
+    {
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+
+        $record = $exports->queuePdf($share, (int) $user->id);
+
+        return back()->with(
+            'success',
+            $record->pdf_status === 'completed'
+                ? 'PDF đã sẵn sàng.'
+                : 'Đã đưa yêu cầu chuyển PDF vào Queue Pharma.'
+        );
+    }
+
+    public function priceListShareStatus(int $share, Request $request, PriceListShareExportService $exports)
+    {
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+
+        return response()->json($exports->status($share, (int) $user->id));
+    }
+
+    public function downloadPriceListSharePdf(string $token, PriceListShareExportService $exports)
+    {
+        $share = $exports->resolvePdf($token);
+
+        return Storage::disk('local')->download($share->pdf_storage_path, $share->pdf_download_name);
+    }
+
     public function requestPriceListDeactivation(
         int $priceList,
         Request $request,
