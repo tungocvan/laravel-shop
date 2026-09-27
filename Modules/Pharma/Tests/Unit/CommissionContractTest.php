@@ -45,9 +45,9 @@ class CommissionContractTest extends TestCase
         $this->assertStringContainsString("InventoryIssueCommission::query()", $controller);
         $this->assertStringContainsString("SUM(revenue_amount)", $controller);
         $this->assertStringContainsString("SUM(commission_amount)", $controller);
-        $this->assertStringContainsString('Hoa hồng kinh doanh', $view);
-        $this->assertStringContainsString('Số lượng thực xuất × Đơn giá trúng thầu × Chính sách %', $view);
-        $this->assertStringContainsString('Chưa đủ chính sách/phân công', $view);
+        $this->assertStringContainsString('Trung tâm hoa hồng', $view);
+        $this->assertStringContainsString('Bảng giá: HH = SL × (Giá bán CT − Giá thu). Hàng thầu: giữ nguyên chính sách % đã snapshot.', $view);
+        $this->assertStringContainsString('Chưa đủ dữ liệu', $view);
         $this->assertStringContainsString("->when(\$partnerId>0", $controller);
         $this->assertStringContainsString("->when(\$medicineId>0", $controller);
         $this->assertStringContainsString("DrugBidAwardManagementAssignment::query()", $controller);
@@ -55,8 +55,8 @@ class CommissionContractTest extends TestCase
         $this->assertStringContainsString("name=\"medicine_id\"", $view);
         $this->assertStringContainsString("commission-user-filter", $view);
         $this->assertStringContainsString("commission-partner-filter", $view);
-        $this->assertStringContainsString("partner.value=''", $view);
-        $this->assertStringContainsString("medicine.value=''", $view);
+        $this->assertStringContainsString("if(p)p.value=''", $view);
+        $this->assertStringContainsString("m?.addEventListener('change'", $view);
         $this->assertStringContainsString("Route::get('/commissions/export'", $routes);
         $this->assertStringContainsString('exportCommissions', $controller);
         $this->assertStringContainsString("'ids'=>'nullable|array|max:500'", $controller);
@@ -64,7 +64,7 @@ class CommissionContractTest extends TestCase
         $this->assertStringContainsString('Xóa bộ lọc', $view);
         $this->assertStringContainsString('Xuất Excel theo bộ lọc', $view);
         $this->assertStringContainsString('Xuất Excel đã chọn', $view);
-        $this->assertStringContainsString('commission-check-all', $view);
+        $this->assertStringContainsString('commission-select-all', $view);
         $this->assertStringContainsString('name="ids[]"', $view);
         $this->assertStringNotContainsString('Chỉ hiển thị bệnh viện đang được phân công cho User đã chọn.', $view);
     }
