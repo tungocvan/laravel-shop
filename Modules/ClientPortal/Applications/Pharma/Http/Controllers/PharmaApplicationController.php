@@ -179,6 +179,8 @@ final class PharmaApplicationController extends Controller
             ])],
             'per_page' => ['nullable', 'integer', 'in:25,50,100'],
             'page' => ['nullable', 'integer', 'min:1'],
+            'from_date' => ['nullable', 'date'],
+            'to_date' => ['nullable', 'date', 'after_or_equal:from_date'],
         ]);
 
         $application = $registry->find('pharma');
@@ -188,6 +190,8 @@ final class PharmaApplicationController extends Controller
         abort_if($user === null, 401);
 
         $status = $validated['status'] ?? null;
+        $fromDate = $validated['from_date'] ?? now()->startOfMonth()->toDateString();
+        $toDate = $validated['to_date'] ?? now()->toDateString();
 
         return view('ClientPortal::applications.pharma.price-lists', [
             'application' => $application,
@@ -198,11 +202,15 @@ final class PharmaApplicationController extends Controller
                 status: $status,
                 perPage: (int) ($validated['per_page'] ?? 25),
                 page: (int) ($validated['page'] ?? 1),
+                fromDate: $fromDate,
+                toDate: $toDate,
             )->withQueryString(),
             'counts' => $workspace->counts((int) $user->id),
             'search' => trim((string) ($validated['q'] ?? '')),
             'status' => $status,
             'perPage' => (int) ($validated['per_page'] ?? 25),
+            'fromDate' => $fromDate,
+            'toDate' => $toDate,
             'canCreate' => $registry->userCan($user, 'client.pharma.price-lists.create'),
         ]);
     }
