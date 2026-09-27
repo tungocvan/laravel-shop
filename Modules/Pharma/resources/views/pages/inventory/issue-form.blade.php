@@ -9,7 +9,10 @@
         'expiry'=>$b->expiry_date->format('Y-m-d'),'expiry_label'=>$b->expiry_date->format('d/m/Y'),
         'quantity'=>(float)$b->quantity_on_hand,
     ])->values();
-    $priceListManagers=$customerPriceLists->pluck('manager')->filter()->unique('id')->sortBy('name')->values();
+    $priceListManagers=collect()
+        ->merge($customerPriceLists->pluck('manager')->filter())
+        ->merge($customerPriceLists->pluck('globalUsers')->flatten())
+        ->unique('id')->sortBy('name')->values();
 @endphp
 <div class="w-full space-y-6">
     <header>
@@ -21,38 +24,38 @@
 
     <form method="POST" action="{{ route('admin.pharma.inventory.issues.store') }}" class="space-y-5">
         @csrf
-        <div class="grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 md:grid-cols-2 xl:grid-cols-4">
-            <label class="text-sm font-medium">Ngày xuất
-                <input type="date" name="issue_date" value="{{ old('issue_date',now()->toDateString()) }}" required class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3">
-            </label>
-            <label class="text-sm font-medium">Khách hàng / nơi nhận
-                <x-select-search id="issue-recipient" name="recipient_partner_id" placeholder="Tìm khách hàng / nơi nhận...">
-                    <option value="">Chọn khách hàng</option>
-                    @foreach($partners as $partner)
-                        <option value="{{ $partner->id }}" @selected((string)old('recipient_partner_id')===(string)$partner->id)>{{ $partner->name }}{{ $partner->tax_code ? ' · MST '.$partner->tax_code : '' }}</option>
-                    @endforeach
-                </x-select-search>
-                <input type="hidden" name="recipient_name" id="issue-recipient-name" value="{{ old('recipient_name') }}">
-            </label>
-            <label class="text-sm font-medium">Người phụ trách
-                <select id="issue-price-manager" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3">
-                    <option value="">Chọn người phụ trách</option>
-                    @foreach($priceListManagers as $manager)<option value="{{ $manager->id }}">{{ $manager->name }}</option>@endforeach
-                </select>
-                <span class="mt-1 block text-xs text-slate-500">Dùng để lọc các bảng giá CUSTOMER đang kích hoạt.</span>
-            </label>
-            <label class="text-sm font-medium">Bảng giá xuất <span class="text-rose-600">*</span>
-                <select id="issue-price-list" name="price_list_id" required disabled class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3">
-                    <option value="">Chọn người phụ trách trước</option>
-                </select>
-                <span id="issue-price-list-hint" class="mt-1 block text-xs text-slate-500">Chỉ sử dụng phạm vi CUSTOMER · ACTIVE · còn hiệu lực.</span>
-            </label>
-        </div>
+        <section class="rounded-2xl border border-slate-200 bg-white p-5">
+            <div class="mb-4"><h2 class="font-semibold text-slate-950">1. Thông tin xuất hàng</h2><p class="mt-1 text-xs text-slate-500">Chọn theo thứ tự: Ngày xuất → Người phụ trách → Bảng giá → Khách hàng.</p></div>
+            <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <label class="text-sm font-medium">Ngày xuất
+                    <input type="date" name="issue_date" value="{{ old('issue_date',now()->toDateString()) }}" required class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3">
+                </label>
+                <label class="text-sm font-medium">Người phụ trách <span class="text-rose-600">*</span>
+                    <x-select-search id="issue-price-manager" name="manager_user_id" placeholder="Tìm người phụ trách...">
+                        <option value="">Chọn người phụ trách</option>
+                        @foreach($priceListManagers as $manager)<option value="{{ $manager->id }}" @selected((string)old('manager_user_id')===(string)$manager->id)>{{ $manager->name }}</option>@endforeach
+                    </x-select-search>
+                    <span class="mt-1 block text-xs text-slate-500">Lọc bảng giá GLOBAL/CUSTOMER được phân cho User.</span>
+                </label>
+                <label class="text-sm font-medium">Bảng giá áp dụng <span class="text-rose-600">*</span>
+                    <select id="issue-price-list" name="price_list_id" required disabled class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3"><option value="">Chọn người phụ trách trước</option></select>
+                    <span id="issue-price-list-hint" class="mt-1 block text-xs text-slate-500">GLOBAL/CUSTOMER · ACTIVE · còn hiệu lực tại ngày xuất.</span>
+                </label>
+                <label class="text-sm font-medium">Khách hàng / nơi nhận
+                    <x-select-search id="issue-recipient" name="recipient_partner_id" placeholder="Tìm khách hàng / nơi nhận...">
+                        <option value="">Chọn khách hàng</option>
+                        @foreach($partners as $partner)<option value="{{ $partner->id }}" @selected((string)old('recipient_partner_id')===(string)$partner->id)>{{ $partner->name }}{{ $partner->tax_code ? ' · MST '.$partner->tax_code : '' }}</option>@endforeach
+                    </x-select-search>
+                    <input type="hidden" name="recipient_name" id="issue-recipient-name" value="{{ old('recipient_name') }}">
+                </label>
+            </div>
+            <div id="issue-context-summary" class="mt-4 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">Chọn Người phụ trách và Bảng giá để bắt đầu lập phiếu.</div>
+        </section>
 
         <div class="rounded-2xl border border-slate-200 bg-white p-5">
             <div class="flex items-center justify-between gap-4">
                 <div>
-                    <h2 class="font-semibold">Chi tiết xuất theo lô</h2>
+                    <h2 class="font-semibold">2. Chi tiết xuất kho</h2>
                     <p class="mt-1 text-xs text-slate-500">Tìm thuốc nhanh, chọn lô còn tồn; danh sách lô được xếp HSD gần nhất trước.</p>
                 </div>
                 <button type="button" id="add-issue-row" class="rounded-lg border border-indigo-200 px-3 py-2 text-sm font-semibold text-indigo-700">+ Thêm dòng</button>
@@ -114,8 +117,8 @@ document.addEventListener('DOMContentLoaded', () => {
     @php
         $priceListOptions = $customerPriceLists->map(function ($list) {
             return [
-                'id'=>$list->id,'code'=>$list->code,'name'=>$list->name,'manager_user_id'=>$list->manager_user_id,
-                'partner_id'=>$list->partner_id,'effective_from'=>$list->effective_from?->format('Y-m-d'),
+                'id'=>$list->id,'code'=>$list->code,'name'=>$list->name,'type'=>$list->type,'manager_user_id'=>$list->manager_user_id,
+                'global_user_ids'=>$list->globalUsers->pluck('id')->map(fn($id)=>(int)$id)->values(),'partner_id'=>$list->partner_id,'effective_from'=>$list->effective_from?->format('Y-m-d'),
                 'effective_to'=>$list->effective_to?->format('Y-m-d'),'priority'=>$list->priority,
             ];
         })->values();
@@ -131,6 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const managerSelect = document.getElementById('issue-price-manager');
     const priceListSelect = document.getElementById('issue-price-list');
     const priceListHint = document.getElementById('issue-price-list-hint');
+    const contextSummary = document.getElementById('issue-context-summary');
     const container = document.getElementById('issue-items');
     const template = document.getElementById('issue-row-template');
 
@@ -152,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return priceCandidates.find((candidate)=>
             String(candidate.price_list_id)===String(selectedPriceListId) &&
             String(candidate.medicine_id)===String(medicineId) &&
-            candidate.price_list_type==='customer' &&
+            ['global','customer'].includes(candidate.price_list_type) &&
             isEffective(candidate,date)
         ) || null;
     }
@@ -167,22 +171,23 @@ document.addEventListener('DOMContentLoaded', () => {
         const date=issueDate?.value || new Date().toISOString().slice(0,10);
         const current=priceListSelect.value;
         const lists=priceLists.filter((list)=>
-            String(list.manager_user_id)===String(managerId) &&
-            priceListIsEffective(list,date) &&
-            (!list.partner_id || String(list.partner_id)===String(partnerId))
+            ((list.type==='customer' && String(list.manager_user_id)===String(managerId)) ||
+                (list.type==='global' && (list.global_user_ids.length===0 || list.global_user_ids.map(String).includes(String(managerId))))) &&
+            priceListIsEffective(list,date)
         );
-        priceListSelect.innerHTML='<option value="">Chọn bảng giá CUSTOMER</option>';
+        priceListSelect.innerHTML='<option value="">Chọn bảng giá áp dụng</option>';
         lists.forEach((list)=>{
             const option=document.createElement('option');
             option.value=list.id;
-            option.textContent=`${list.code} — ${list.name}${list.partner_id ? ' · riêng khách hàng' : ' · dùng chung'}`;
+            option.textContent=`${list.code} — ${list.name} · ${list.type==='global' ? 'GLOBAL' : (list.partner_id ? 'CUSTOMER riêng' : 'CUSTOMER')}`;
             priceListSelect.appendChild(option);
         });
         priceListSelect.disabled=!managerId || lists.length===0;
         if(lists.some((list)=>String(list.id)===String(current))) priceListSelect.value=current;
         priceListHint.textContent=lists.length
-            ? `${lists.length} bảng giá CUSTOMER · ACTIVE · còn hiệu lực.`
-            : (managerId ? 'Không có bảng giá CUSTOMER phù hợp với ngày xuất / khách hàng.' : 'Chọn người phụ trách để tải bảng giá CUSTOMER.');
+            ? `${lists.length} bảng giá GLOBAL/CUSTOMER · ACTIVE · còn hiệu lực.`
+            : (managerId ? 'Không có bảng giá được phân cho User và còn hiệu lực tại ngày xuất.' : 'Chọn người phụ trách để tải bảng giá.');
+        updateContextSummary();
         refreshRowsForPriceList();
     }
 
@@ -190,7 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const date=issueDate?.value || new Date().toISOString().slice(0,10);
         return [...new Set(priceCandidates.filter((candidate)=>
             String(candidate.price_list_id)===String(priceListSelect.value) &&
-            candidate.price_list_type==='customer' && isEffective(candidate,date)
+            ['global','customer'].includes(candidate.price_list_type) && isEffective(candidate,date)
         ).map((candidate)=>String(candidate.medicine_id)))];
     }
 
@@ -212,6 +217,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if(!current || !allowed.includes(String(current))) fillLots(row,tom.getValue());
         refreshPrice(row);
+    }
+
+    function updateContextSummary() {
+        const list=priceLists.find((item)=>String(item.id)===String(priceListSelect.value));
+        const manager=managerSelect?.options?.[managerSelect.selectedIndex]?.text || '—';
+        const partner=partners.find((item)=>String(item.id)===String(recipientSelect?.value || ''));
+        contextSummary.textContent=list ? `Người phụ trách: ${manager} · Bảng giá: ${list.code} — ${list.name} · Khách hàng: ${partner?.name || 'Chưa chọn'}` : 'Chọn Người phụ trách và Bảng giá để bắt đầu lập phiếu.';
     }
 
     function refreshRowsForPriceList() {
@@ -298,10 +310,14 @@ document.addEventListener('DOMContentLoaded', () => {
     recipientSelect?.addEventListener('change',()=>{
         const partner=partners.find((item)=>String(item.id)===String(recipientSelect.value));
         recipientName.value=partner?.name || '';
-        refreshPriceLists();
+        updateContextSummary();
     });
     managerSelect.addEventListener('change',refreshPriceLists);
-    priceListSelect.addEventListener('change',refreshRowsForPriceList);
+    priceListSelect.addEventListener('change',()=>{
+        const list=priceLists.find((item)=>String(item.id)===String(priceListSelect.value));
+        if(list?.type==='customer' && list.partner_id && recipientSelect?.tomselect) recipientSelect.tomselect.setValue(String(list.partner_id));
+        updateContextSummary(); refreshRowsForPriceList();
+    });
     issueDate?.addEventListener('change',refreshPriceLists);
     container.addEventListener('click',(event)=>{
         const button=event.target.closest('.remove-issue-row');
