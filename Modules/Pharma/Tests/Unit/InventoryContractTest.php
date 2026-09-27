@@ -645,6 +645,9 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('price_list_item_id', $migration);
         $this->assertStringContainsString("\$commissions->snapshotPostedIssue(\$issue->fresh('items')", $controller);
         $this->assertStringContainsString("when(\$source!=='all'", $controller);
+        $this->assertStringContainsString("pharma_price_list_users", $controller);
+        $this->assertStringContainsString("whereNotNull('manager_user_id')", $controller);
+        $this->assertStringContainsString("newly configured price list must be selectable", $controller);
     }
 
     public function test_bid_sale_issue_workspace_contracts(): void
