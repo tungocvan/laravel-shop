@@ -24,7 +24,7 @@ class PharmaAdminDashboardTest extends TestCase
         $this->assertStringContainsString("'admin.pharma.hssp.index'", $view);
         $this->assertStringContainsString("route('admin.pharma.drug-bid-awards.index')", $view);
         $this->assertStringContainsString("'admin.pharma.supplier-trackings.index'", $view);
-        $this->assertStringContainsString("route('admin.pharma.price-lists.create')", $view);
+        $this->assertStringContainsString("'admin.pharma.price-lists.index'", $view);
     }
 
     public function test_dashboard_service_exposes_database_backed_metrics_and_price_list_summary(): void
@@ -43,7 +43,7 @@ class PharmaAdminDashboardTest extends TestCase
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/pages/dashboard.blade.php'));
 
         $this->assertStringContainsString("@if(\$cap['create'])", $view);
-        $this->assertStringContainsString("route('admin.pharma.price-lists.create')", $view);
+        $this->assertStringContainsString("'admin.pharma.price-lists.index'", $view);
         $this->assertStringContainsString("\$cap['edit']", $view);
         $this->assertStringContainsString("\$cap['official_facilities']", $view);
     }
