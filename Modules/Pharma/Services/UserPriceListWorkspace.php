@@ -46,6 +46,7 @@ final class UserPriceListWorkspace
             'all' => (clone $query)->count(),
             PriceList::STATUS_DRAFT => (clone $query)->where('status', PriceList::STATUS_DRAFT)->count(),
             PriceList::STATUS_PENDING_APPROVAL => (clone $query)->where('status', PriceList::STATUS_PENDING_APPROVAL)->count(),
+            PriceList::STATUS_REJECTED => (clone $query)->where('status', PriceList::STATUS_REJECTED)->count(),
             PriceList::STATUS_ACTIVE => (clone $query)->where('status', PriceList::STATUS_ACTIVE)->count(),
             PriceList::STATUS_INACTIVE => (clone $query)->where('status', PriceList::STATUS_INACTIVE)->count(),
             PriceList::STATUS_ARCHIVED => (clone $query)->where('status', PriceList::STATUS_ARCHIVED)->count(),
