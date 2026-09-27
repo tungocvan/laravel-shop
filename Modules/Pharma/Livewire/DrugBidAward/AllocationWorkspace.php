@@ -69,6 +69,8 @@ class AllocationWorkspace extends Component
 
     public string $contractValue = '';
 
+    public ?int $returnToContractId = null;
+
     public string $contractStartDate = '';
 
     public string $contractEndDate = '';
@@ -216,7 +218,7 @@ class AllocationWorkspace extends Component
         $this->editingContractId = $contract->id;
         $this->contractNumber = $contract->contract_number;
         $this->contractDate = $contract->contract_date?->format('Y-m-d') ?? '';
-                $this->contractValue = (string) ($contract->contract_value ?? '');
+                $this->contractValue = $this->formatMoneyInput($contract->contract_value);
         $this->contractStartDate = $contract->start_date?->format('Y-m-d') ?? '';
         $this->contractEndDate = $contract->end_date?->format('Y-m-d') ?? '';
         $this->contractStatus = $contract->status;
@@ -230,16 +232,33 @@ class AllocationWorkspace extends Component
     public function createAnotherContract(): void
     {
         $allocationId = $this->contractAllocationId;
+        $currentContractId = $this->editingContractId;
         if (! $allocationId) {
             return;
         }
 
         $this->openContractForm($allocationId);
+        $this->returnToContractId = $currentContractId;
+    }
+
+    public function cancelCreateAnotherContract(): void
+    {
+        if ($this->contractAllocationId && $this->returnToContractId) {
+            $contractId = $this->returnToContractId;
+            $allocationId = $this->contractAllocationId;
+            $this->returnToContractId = null;
+            $this->editContract($allocationId, $contractId);
+
+            return;
+        }
+
+        $this->closeContractForm();
     }
 
     public function saveContract(DrugBidAwardContractService $service): void
     {
         $this->authorizePermission('manage_pharma_contracts');
+        $this->contractValue = $this->normalizeMoneyInput($this->contractValue);
         $data = $this->validate([
             'contractAllocationId' => ['required', 'integer'],
             'contractNumber' => ['required', 'string', 'max:255'],
@@ -538,6 +557,30 @@ class AllocationWorkspace extends Component
         }
     }
 
+    public function deleteSignedContractLocal(int $contractId): void
+    {
+        $this->authorizePermission('manage_pharma_contracts');
+        $contract = $this->signedContractForAward($contractId);
+        if ($contract->signed_file_path) {
+            Storage::disk('local')->delete($contract->signed_file_path);
+        }
+        $contract->update(['signed_file_path' => null, 'signed_file_disk' => $contract->signed_file_remote_id ? 'google_drive' : null]);
+        $this->editContract($contract->drug_bid_award_allocation_id, $contract->id);
+        session()->flash('success', 'Đã xóa bản Local của file hợp đồng.');
+    }
+
+    public function deleteSignedContractDrive(int $contractId, GoogleDriveConnectionService $drive): void
+    {
+        $this->authorizePermission('manage_pharma_contracts');
+        $contract = $this->signedContractForAward($contractId);
+        if ($contract->signed_file_remote_id) {
+            $drive->deleteApplicationFile($contract->signed_file_remote_id, null);
+        }
+        $contract->update(['signed_file_remote_id' => null, 'signed_file_disk' => $contract->signed_file_path ? 'local' : null]);
+        $this->editContract($contract->drug_bid_award_allocation_id, $contract->id);
+        session()->flash('success', 'Đã xóa bản Google Drive của file hợp đồng.');
+    }
+
     public function downloadSignedContract(int $contractId)
     {
         $this->authorizePermission('view_pharma_contracts');
@@ -593,6 +636,20 @@ class AllocationWorkspace extends Component
         return trim((string) preg_replace('/[^A-Za-z0-9._-]+/', '-', $value), '.-') ?: 'unknown';
     }
 
+    private function formatMoneyInput(mixed $value): string
+    {
+        if ($value === null || $value === '') {
+            return '';
+        }
+
+        return number_format((float) $value, 0, ',', '.');
+    }
+
+    private function normalizeMoneyInput(string $value): string
+    {
+        return str_replace(['.', ',', ' '], '', trim($value));
+    }
+
     private function formatQuantityInput(mixed $value): string
     {
         $number = (float) $value;
@@ -611,7 +668,7 @@ class AllocationWorkspace extends Component
 
     private function resetContractForm(): void
     {
-        $this->reset(['contractAllocationId', 'contractPartnerName', 'editingContractId', 'contractNumber', 'contractDate', 'signedContractFile', 'contractValue', 'contractStartDate', 'contractEndDate', 'contractNotes']);
+        $this->reset(['contractAllocationId', 'contractPartnerName', 'editingContractId', 'contractNumber', 'contractDate', 'signedContractFile', 'contractValue', 'returnToContractId', 'contractStartDate', 'contractEndDate', 'contractNotes']);
         $this->contractStatus = DrugBidAwardContract::STATUS_DRAFT;
         $this->resetValidation();
     }
