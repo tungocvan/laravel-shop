@@ -22,7 +22,13 @@ class PriceList extends Model
 
     public const STATUS_DRAFT = 'draft';
 
+    public const STATUS_PENDING_APPROVAL = 'pending_approval';
+
+    public const STATUS_REJECTED = 'rejected';
+
     public const STATUS_ACTIVE = 'active';
+
+    public const STATUS_PENDING_DEACTIVATION = 'pending_deactivation';
 
     public const STATUS_INACTIVE = 'inactive';
 
@@ -47,15 +53,29 @@ class PriceList extends Model
         'priority',
         'notes',
         'created_by',
+        'submitted_by',
+        'submitted_at',
         'approved_by',
         'approved_at',
+        'rejected_by',
+        'rejected_at',
+        'rejection_reason',
+        'deactivation_requested_by',
+        'deactivation_requested_at',
+        'deactivation_reason',
+        'deactivated_by',
+        'deactivated_at',
     ];
 
     protected $casts = [
         'effective_from' => 'date',
         'effective_to' => 'date',
         'priority' => 'integer',
+        'submitted_at' => 'datetime',
         'approved_at' => 'datetime',
+        'rejected_at' => 'datetime',
+        'deactivation_requested_at' => 'datetime',
+        'deactivated_at' => 'datetime',
     ];
 
     public function items(): HasMany
@@ -71,6 +91,21 @@ class PriceList extends Model
     public function officialFacility(): BelongsTo
     {
         return $this->belongsTo(OfficialSourceFacility::class, 'official_facility_id');
+    }
+
+    public function submitter(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'submitted_by');
+    }
+
+    public function approver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function rejector(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'rejected_by');
     }
 
     public function manager(): BelongsTo
