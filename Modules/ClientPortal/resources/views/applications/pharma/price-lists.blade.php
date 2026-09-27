@@ -14,7 +14,7 @@
             <h1 class="text-2xl font-black tracking-tight sm:text-3xl">Bảng giá của tôi</h1>
             <span class="rounded-full bg-white/10 px-3 py-1 text-xs font-bold">{{ number_format($counts['all'] ?? 0, 0, ',', '.') }} bảng giá</span>
         </div>
-        <div class="mt-3 flex flex-wrap items-center justify-between gap-3"><p class="max-w-3xl text-sm leading-6 text-slate-300">Chỉ hiển thị các bảng giá bạn là người phụ trách. Tạo, gửi duyệt và phê duyệt được kiểm soát theo quyền nghiệp vụ.</p>@if($canCreate)<a href="{{ route('client.pharma.price-lists.create') }}" class="rounded-2xl bg-white px-4 py-2.5 text-sm font-black text-slate-950">+ Tạo bảng giá</a>@endif</div>
+        <div class="mt-3 flex flex-wrap items-center justify-between gap-3"><p class="max-w-3xl text-sm leading-6 text-slate-300">Chỉ hiển thị các bảng giá bạn là người phụ trách. Tạo, gửi duyệt và phê duyệt được kiểm soát theo quyền nghiệp vụ.</p><div class="flex flex-wrap gap-2">@if($canApprove)<a href="{{ route('client.pharma.price-list-approvals') }}" class="rounded-2xl border border-white/20 px-4 py-2.5 text-sm font-black text-white">Hàng chờ duyệt</a>@endif @if($canCreate)<a href="{{ route('client.pharma.price-lists.create') }}" class="rounded-2xl bg-white px-4 py-2.5 text-sm font-black text-slate-950">+ Tạo bảng giá</a>@endif</div></div>
     </section>
 
     <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
@@ -31,6 +31,7 @@
                 null => ['label' => 'Tất cả', 'class' => 'slate'],
                 'draft' => ['label' => 'Nháp', 'class' => 'amber'],
                 'pending_approval' => ['label' => 'Chờ duyệt', 'class' => 'amber'],
+                'rejected' => ['label' => 'Từ chối', 'class' => 'rose'],
                 'active' => ['label' => 'Đang hiệu lực', 'class' => 'emerald'],
                 'inactive' => ['label' => 'Ngưng', 'class' => 'slate'],
                 'archived' => ['label' => 'Lưu trữ', 'class' => 'slate'],
@@ -64,7 +65,7 @@
         @forelse($priceLists as $priceList)
             @php
                 $customer = $priceList->partner?->name ?? $priceList->officialFacility?->facility_name ?? $priceList->officialFacility?->name ?? 'Bảng giá chung';
-                $statusLabel = match($priceList->status) { 'draft' => 'Nháp', 'pending_approval' => 'Chờ duyệt', 'active' => 'Đang hiệu lực', 'inactive' => 'Ngưng', 'archived' => 'Lưu trữ', default => $priceList->status };
+                $statusLabel = match($priceList->status) { 'draft' => 'Nháp', 'pending_approval' => 'Chờ duyệt', 'active' => 'Đang hiệu lực', 'rejected' => 'Từ chối', 'inactive' => 'Ngưng', 'archived' => 'Lưu trữ', default => $priceList->status };
             @endphp
             <tr class="transition hover:bg-slate-50"><td class="px-5 py-4"><a href="{{ route('client.pharma.price-lists.show', $priceList->id) }}" class="font-black text-slate-950 hover:underline">{{ $priceList->name }}</a><p class="mt-1 text-xs text-slate-400">{{ $priceList->code }}</p>@if($priceList->status === 'draft')<div class="mt-2 flex items-center gap-3 text-xs font-bold"><a href="{{ route('client.pharma.price-lists.edit', $priceList->id) }}" class="text-blue-700 hover:underline">Sửa</a><form method="POST" action="{{ route('client.pharma.price-lists.delete', $priceList->id) }}" onsubmit="return confirm('Xóa bảng giá Nháp này?')">@csrf @method('DELETE')<button class="text-red-600 hover:underline">Xóa</button></form></div>@endif</td><td class="px-5 py-4 text-slate-700">{{ $customer }}</td><td class="px-5 py-4 text-slate-600">{{ $priceList->purpose?->name ?: '—' }}</td><td class="px-5 py-4 text-center font-bold">{{ $priceList->items_count }}</td><td class="px-5 py-4 text-slate-600">{{ $priceList->effective_from?->format('d/m/Y') ?: '—' }} → {{ $priceList->effective_to?->format('d/m/Y') ?: '—' }}</td><td class="px-5 py-4"><span class="rounded-full px-2.5 py-1 text-xs font-bold {{ $priceList->status === 'active' ? 'bg-emerald-100 text-emerald-700' : ($priceList->status === 'draft' ? 'bg-amber-100 text-amber-700' : ($priceList->status === 'pending_approval' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600')) }}">{{ $statusLabel }}</span></td></tr>
         @empty <tr><td colspan="6" class="px-5 py-10 text-center text-slate-500">Bạn chưa có bảng giá nào trong phạm vi quản lý.</td></tr> @endforelse
