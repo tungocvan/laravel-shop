@@ -20,6 +20,7 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $approval = file_get_contents(base_path('Modules/Pharma/Services/PriceListApprovalWorkflow.php'));
         $approvalQueue = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/price-list-approvals.blade.php'));
         $approvalDetail = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/price-list-approval-show.blade.php'));
+        $globalWorkflow = file_get_contents(base_path('Modules/Pharma/Services/ApproverGlobalPriceListWorkflow.php'));
 
         $this->assertStringContainsString("'route' => 'client.pharma.price-lists'", $manifest);
         $this->assertStringContainsString("'permission' => 'client.pharma.price-lists.view'", $manifest);
@@ -36,6 +37,7 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString("->name('price-lists.show')", $routes);
         $this->assertStringContainsString("->name('price-lists.create')", $routes);
         $this->assertStringContainsString("->name('price-lists.store')", $routes);
+        $this->assertStringContainsString("->name('price-lists.global.store')", $routes);
         $this->assertStringContainsString("->name('price-lists.submit')", $routes);
         $this->assertStringContainsString("->name('price-lists.edit')", $routes);
         $this->assertStringContainsString("->name('price-lists.update')", $routes);
@@ -101,6 +103,9 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('name="selected[', $create);
         $this->assertStringContainsString('name="company_price[', $create);
         $this->assertStringContainsString('Giá Bán (VAT) *', $create);
+        $this->assertStringContainsString('Bảng giá chung', $create);
+        $this->assertStringContainsString("name=\"manager_user_id\"", $create);
+        $this->assertStringContainsString('Kích hoạt bảng giá chung', $create);
         $this->assertStringNotContainsString('>Giá gốc<', $create);
         $this->assertStringContainsString('data-money-input', $create);
         $this->assertStringContainsString("replace(/\\D/g, '')", $create);
@@ -133,6 +138,13 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('Bảng giá đã bị từ chối', $detail);
         $this->assertStringContainsString('Gửi duyệt lại', $detail);
         $this->assertStringContainsString("['draft', 'rejected']", $view);
+        $this->assertStringContainsString('class ApproverGlobalPriceListWorkflow', $globalWorkflow);
+        $this->assertStringContainsString('public function createAndActivate(int $approverUserId, int $managerUserId', $globalWorkflow);
+        $this->assertStringContainsString("'type' => PriceList::TYPE_GLOBAL", $globalWorkflow);
+        $this->assertStringContainsString('$list->globalUsers()->sync([$managerUserId])', $globalWorkflow);
+        $this->assertStringContainsString('$this->manager->activate($list, $approverUserId)', $globalWorkflow);
+        $this->assertStringContainsString("userCan(\$user, 'client.pharma.price-lists.approve')", $controller);
+        $this->assertStringContainsString('storeGlobalPriceList(', $controller);
         $this->assertStringContainsString('class PriceListApprovalWorkflow', $approval);
         $this->assertStringContainsString("->where('status', PriceList::STATUS_PENDING_APPROVAL)", $approval);
         $this->assertStringContainsString('assertPendingAndIndependent', $approval);
