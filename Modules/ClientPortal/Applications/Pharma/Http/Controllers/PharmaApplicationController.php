@@ -15,6 +15,7 @@ use Modules\Pharma\Services\UserPriceListWorkspace;
 use Modules\Pharma\Services\UserPriceListWorkflow;
 use Modules\Pharma\Services\PriceListApprovalWorkflow;
 use Modules\Pharma\Services\ApproverGlobalPriceListWorkflow;
+use Modules\Pharma\Services\PriceListDeactivationWorkflow;
 
 final class PharmaApplicationController extends Controller
 {
@@ -305,7 +306,8 @@ final class PharmaApplicationController extends Controller
         $user = $request->user('web');
         abort_if($user === null, 401);
 
-        $list = $workspace->findManaged((int) $user->id, $priceList);
+        $canApprove = $registry->userCan($user, 'client.pharma.price-lists.approve');
+        $list = $workspace->findVisible((int) $user->id, $priceList, $canApprove);
         abort_if($list === null, 404);
 
         return view('ClientPortal::applications.pharma.price-list-show', [
@@ -314,7 +316,56 @@ final class PharmaApplicationController extends Controller
             'priceList' => $list,
             'canSubmit' => $registry->userCan($user, 'client.pharma.price-lists.submit'),
             'canEdit' => $registry->userCan($user, 'client.pharma.price-lists.create'),
+            'canApprove' => $canApprove,
+            'isManager' => (int) $list->manager_user_id === (int) $user->id,
         ]);
+    }
+
+    public function requestPriceListDeactivation(
+        int $priceList,
+        Request $request,
+        ApplicationRegistry $registry,
+        PriceListDeactivationWorkflow $workflow,
+    ) {
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.price-lists.view'), 403);
+        $validated = $request->validate(['deactivation_reason' => ['required', 'string', 'max:1000']]);
+        $workflow->request((int) $user->id, $priceList, $validated['deactivation_reason']);
+
+        return redirect()->route('client.pharma.price-lists.show', $priceList)
+            ->with('success', 'Đã gửi yêu cầu ngừng kích hoạt để người phê duyệt xử lý.');
+    }
+
+    public function approvePriceListDeactivation(
+        int $priceList,
+        Request $request,
+        ApplicationRegistry $registry,
+        PriceListDeactivationWorkflow $workflow,
+    ) {
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.price-lists.approve'), 403);
+        $workflow->approveRequest((int) $user->id, $priceList);
+
+        return redirect()->route('client.pharma.price-lists.show', $priceList)
+            ->with('success', 'Đã chấp nhận yêu cầu và ngừng kích hoạt bảng giá.');
+    }
+
+    public function deactivatePriceListDirectly(
+        int $priceList,
+        Request $request,
+        ApplicationRegistry $registry,
+        PriceListDeactivationWorkflow $workflow,
+    ) {
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.price-lists.approve'), 403);
+        $validated = $request->validate(['deactivation_reason' => ['required', 'string', 'max:1000']]);
+        $workflow->deactivateDirectly((int) $user->id, $priceList, $validated['deactivation_reason']);
+
+        return redirect()->route('client.pharma.price-lists.show', $priceList)
+            ->with('success', 'Đã ngừng kích hoạt bảng giá.');
     }
 
     public function priceLists(
@@ -331,6 +382,7 @@ final class PharmaApplicationController extends Controller
                 PriceList::STATUS_PENDING_APPROVAL,
                 PriceList::STATUS_REJECTED,
                 PriceList::STATUS_ACTIVE,
+                PriceList::STATUS_PENDING_DEACTIVATION,
                 PriceList::STATUS_INACTIVE,
                 PriceList::STATUS_ARCHIVED,
             ])],
