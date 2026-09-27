@@ -17,11 +17,20 @@
     </section>
 
     <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-        <form id="product-search-form" method="GET" action="{{ route('client.pharma.products') }}" class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_9rem] lg:items-start">
+        <form id="product-search-form" method="GET" action="{{ route('client.pharma.products') }}" class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_12rem_9rem] lg:items-start">
             <label class="min-w-0 flex-1">
                 <span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Tìm thuốc</span>
                 <input id="product-search-input" type="search" name="q" value="{{ $search }}" autocomplete="off" placeholder="Tên thuốc, mã thuốc, SKU, hoạt chất, GPLH..." class="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200">
                 <span class="mt-1.5 block text-xs text-slate-400">Kết quả tự cập nhật khi bạn nhập.</span>
+            </label>
+            <label class="w-full">
+                <span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Nhóm</span>
+                <select name="group" class="h-[46px] w-full rounded-2xl border border-slate-300 px-3 text-sm text-slate-950" onchange="this.form.submit()">
+                    <option value="">Tất cả nhóm</option>
+                    @foreach($circularGroups as $group)
+                        <option value="{{ $group }}" @selected($circularGroup === $group)>Nhóm {{ $group }}</option>
+                    @endforeach
+                </select>
             </label>
             <label class="w-full">
                 <span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Hiển thị</span>
@@ -31,7 +40,7 @@
                     @endforeach
                 </select>
             </label>
-            @if($search !== '')
+            @if($search !== '' || $circularGroup !== '' || $filter !== null)
                 <a href="{{ route('client.pharma.products', ['per_page' => $perPage]) }}" class="rounded-2xl border border-slate-300 px-4 py-3 text-center text-sm font-bold text-slate-700">Xóa bộ lọc</a>
             @endif
         </form>
@@ -47,7 +56,7 @@
                 }
             @endphp
             @foreach($filters as $value => $meta)
-                <a href="{{ route('client.pharma.products', array_filter(['q' => $search, 'per_page' => $perPage, 'filter' => $value], fn ($item) => $item !== null && $item !== '')) }}"
+                <a href="{{ route('client.pharma.products', array_filter(['q' => $search, 'per_page' => $perPage, 'filter' => $value, 'group' => $circularGroup], fn ($item) => $item !== null && $item !== '')) }}"
                    class="rounded-full border px-3.5 py-2 text-xs font-bold transition {{ $filter === $value ? $meta['active'] : $meta['idle'] }}">
                     @if($filter === $value)<span aria-hidden="true">✓</span>@endif {{ $meta['label'] }}
                     <span class="ml-1 opacity-70">{{ number_format($filterCounts[$value ?? 'all'] ?? 0, 0, ',', '.') }}</span>
