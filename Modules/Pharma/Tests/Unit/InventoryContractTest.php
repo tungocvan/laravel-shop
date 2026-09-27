@@ -633,6 +633,11 @@ class InventoryContractTest extends TestCase
         $migration=file_get_contents(base_path('Modules/Pharma/database/migrations/2026_09_27_143000_extend_issue_commissions_for_price_lists.php'));
 
         $this->assertStringContainsString('Trung tâm hoa hồng', $view);
+        $documents=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/documents.blade.php'));
+        $this->assertStringContainsString("route('admin.pharma.dashboard')", $view);
+        $this->assertStringContainsString('← Trung tâm điều hành Pharma', $view);
+        $this->assertStringContainsString("route('admin.pharma.dashboard')", $documents);
+        $this->assertStringContainsString('← Trung tâm điều hành Pharma', $documents);
         $this->assertStringContainsString("['all'=>'Tất cả','price_list'=>'Theo bảng giá','bid'=>'Hàng thầu']", $view);
         $this->assertStringContainsString('Khách hàng / Bệnh viện', $view);
         $this->assertStringContainsString('Giá trị thu · bảng giá', $view);
