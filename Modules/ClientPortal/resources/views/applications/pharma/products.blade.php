@@ -38,18 +38,18 @@
         <div class="mt-4 flex flex-wrap gap-2" aria-label="Bộ lọc danh mục thuốc">
             @php
                 $filters = [
-                    null => 'Tất cả',
-                    'awarded' => 'Đã trúng thầu',
-                    'profile' => 'Có HSSP',
+                    null => ['label' => 'Tất cả', 'active' => 'border-slate-700 bg-slate-700 text-white', 'idle' => 'border-slate-200 bg-white text-slate-600 hover:border-slate-400'],
+                    'awarded' => ['label' => 'Đã trúng thầu', 'active' => 'border-blue-600 bg-blue-600 text-white', 'idle' => 'border-blue-200 bg-blue-50 text-blue-700 hover:border-blue-400'],
+                    'profile' => ['label' => 'Có HSSP', 'active' => 'border-emerald-600 bg-emerald-600 text-white', 'idle' => 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-400'],
                 ];
                 if ($canViewSupplierPricing) {
-                    $filters['supplier-priced'] = 'Có giá NCC';
+                    $filters['supplier-priced'] = ['label' => 'Có giá NCC', 'active' => 'border-amber-500 bg-amber-500 text-white', 'idle' => 'border-amber-200 bg-amber-50 text-amber-800 hover:border-amber-400'];
                 }
             @endphp
-            @foreach($filters as $value => $label)
+            @foreach($filters as $value => $meta)
                 <a href="{{ route('client.pharma.products', array_filter(['q' => $search, 'per_page' => $perPage, 'filter' => $value], fn ($item) => $item !== null && $item !== '')) }}"
-                   class="rounded-full border px-3.5 py-2 text-xs font-bold transition {{ $filter === $value ? 'border-slate-950 bg-slate-950 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-400 hover:text-slate-950' }}">
-                    {{ $label }}
+                   class="rounded-full border px-3.5 py-2 text-xs font-bold transition {{ $filter === $value ? $meta['active'] : $meta['idle'] }}">
+                    @if($filter === $value)<span aria-hidden="true">✓</span>@endif {{ $meta['label'] }}
                 </a>
             @endforeach
         </div>
@@ -62,6 +62,11 @@
                     <div class="min-w-0">
                         <h2 class="mt-1 font-black text-slate-950">{{ $product->brandName }}</h2>
                         <p class="mt-1 text-sm text-slate-500">{{ $product->activeIngredients ?: '—' }}@if($product->strength) · {{ $product->strength }}@endif</p>
+                        <div class="mt-2 flex flex-wrap gap-1.5">
+                            @if($product->hasBidAward)<span class="rounded-full bg-blue-50 px-2 py-1 text-[11px] font-bold text-blue-700 ring-1 ring-inset ring-blue-200">Trúng thầu</span>@endif
+                            @if($product->hasProfile)<span class="rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-bold text-emerald-700 ring-1 ring-inset ring-emerald-200">HSSP</span>@endif
+                            @if($canViewSupplierPricing && $product->hasSupplierPricing)<span class="rounded-full bg-amber-50 px-2 py-1 text-[11px] font-bold text-amber-800 ring-1 ring-inset ring-amber-200">Giá NCC</span>@endif
+                        </div>
                     </div>
                     <span class="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600">{{ $product->unit ?: '—' }}</span>
                 </div>
@@ -90,7 +95,14 @@
                 <tbody class="divide-y divide-slate-100">
                     @forelse($products as $product)
                         <tr class="align-top">
-                            <td class="px-5 py-4 font-bold text-slate-950">{{ $product->brandName }}</td>
+                            <td class="px-5 py-4">
+                                <div class="font-bold text-slate-950">{{ $product->brandName }}</div>
+                                <div class="mt-2 flex flex-wrap gap-1.5">
+                                    @if($product->hasBidAward)<span class="rounded-full bg-blue-50 px-2 py-1 text-[11px] font-bold text-blue-700 ring-1 ring-inset ring-blue-200">Trúng thầu</span>@endif
+                                    @if($product->hasProfile)<span class="rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-bold text-emerald-700 ring-1 ring-inset ring-emerald-200">HSSP</span>@endif
+                                    @if($canViewSupplierPricing && $product->hasSupplierPricing)<span class="rounded-full bg-amber-50 px-2 py-1 text-[11px] font-bold text-amber-800 ring-1 ring-inset ring-amber-200">Giá NCC</span>@endif
+                                </div>
+                            </td>
                             <td class="px-5 py-4 text-slate-600">{{ $product->activeIngredients ?: '—' }}@if($product->strength)<br><span class="text-xs text-slate-400">{{ $product->strength }}</span>@endif</td>
                             <td class="whitespace-nowrap px-5 py-4 text-slate-600">{{ $product->registrationNumber ?: '—' }}</td>
                             <td class="whitespace-nowrap px-5 py-4 text-slate-600">{{ $product->unit ?: '—' }}</td>
