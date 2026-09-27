@@ -640,7 +640,11 @@ final class InventoryController extends Controller
     {
         $this->guardIssueWarehouse($issue,$inventory);
         if(($issue->issue_source ?? 'normal')==='bid'){
-            return redirect()->route('admin.pharma.inventory.issues.bid-sales.edit',$issue);
+            if($issue->status===InventoryIssue::DRAFT){
+                return redirect()->route('admin.pharma.inventory.issues.bid-sales.edit',$issue);
+            }
+            return redirect()->route('admin.pharma.inventory.issues.show',$issue)
+                ->with('warning','Phiếu hàng thầu đã ghi sổ; không thể chỉnh sửa nội dung đơn. Hãy hoàn tác ghi sổ trước nếu cần điều chỉnh.');
         }
         $issue->load(['items.medicine','priceList.manager','priceList.globalUsers:id,name']);
         $warehouse=$inventory->defaultWarehouse();
