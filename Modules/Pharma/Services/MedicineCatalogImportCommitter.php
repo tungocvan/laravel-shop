@@ -103,6 +103,9 @@ class MedicineCatalogImportCommitter
                 'dosage_form' => $data['dosage_form'] ?? null,
                 'route_of_administration' => $data['route_of_administration'] ?? null,
                 'unit' => $data['unit'] ?? null,
+                'circular_order_number' => $data['circular_order_number'] ?? null,
+                'circular_group' => $data['circular_group'] ?? null,
+                'therapeutic_group' => $data['therapeutic_group'] ?? null,
                 // Do not overwrite SKU-level presentation/price when another package
                 // of the same canonical medicine is committed later in the batch.
                 'registration_number_raw' => $data['registration_number_raw'] ?? null,
