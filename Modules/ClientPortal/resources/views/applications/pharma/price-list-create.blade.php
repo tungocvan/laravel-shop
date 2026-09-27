@@ -6,21 +6,27 @@
 @section('app-dashboard-route', route('client.pharma.dashboard'))
 
 @section('content')
+@php
+    $editingPriceList = $editingPriceList ?? null;
+    $isEditing = $editingPriceList !== null;
+    $field = fn (string $name, $fallback = null) => old($name, $isEditing ? data_get($editingPriceList, $name, $fallback) : $fallback);
+    $selectedExisting = $isEditing ? $editingPriceList->items->keyBy('medicine_variant_id') : collect();
+@endphp
 <div class="mx-auto max-w-7xl space-y-5">
     <div class="flex items-center justify-between gap-3"><a href="{{ route('client.pharma.price-lists') }}" class="text-sm font-bold text-slate-600">← Bảng giá của tôi</a><span class="rounded-full bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-800">Lưu ở trạng thái Nháp</span></div>
-    <section class="rounded-[2rem] bg-slate-950 px-5 py-6 text-white shadow-sm sm:px-7"><p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-300">Create Price List</p><h1 class="mt-2 text-2xl font-black sm:text-3xl">Tạo bảng giá cho khách hàng</h1><p class="mt-2 text-sm text-slate-300">Bảng giá khách hàng phải được khởi tạo từ bảng giá chung ACTIVE mà Admin đã cấp cho bạn.</p></section>
+    <section class="rounded-[2rem] bg-slate-950 px-5 py-6 text-white shadow-sm sm:px-7"><p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-300">Create Price List</p><h1 class="mt-2 text-2xl font-black sm:text-3xl">{{ $isEditing ? 'Sửa bảng giá Nháp' : 'Tạo bảng giá cho khách hàng' }}</h1><p class="mt-2 text-sm text-slate-300">Bảng giá khách hàng phải được khởi tạo từ bảng giá chung ACTIVE mà Admin đã cấp cho bạn.</p></section>
     @if($errors->any())<div class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">{{ $errors->first() }}</div>@endif
 
-    <form method="POST" action="{{ route('client.pharma.price-lists.store') }}" class="space-y-5">@csrf
+    <form id="price-list-editor" method="POST" action="{{ $isEditing ? route('client.pharma.price-lists.update', $editingPriceList->id) : route('client.pharma.price-lists.store') }}" class="space-y-5">@csrf @if($isEditing) @method('PUT') @endif
         <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
             <div class="mb-5"><p class="text-xs font-black uppercase tracking-[0.14em] text-slate-400">01 · Khách hàng & mục đích</p><h2 class="mt-1 text-lg font-black text-slate-950">Thông tin bảng giá</h2></div>
             <div class="grid gap-4 lg:grid-cols-2">
-                <label><span class="mb-1.5 block text-xs font-bold text-slate-500">Tên bảng giá *</span><input name="name" value="{{ old('name') }}" required maxlength="255" class="h-12 w-full rounded-2xl border border-slate-300 px-4" placeholder="VD: Bảng giá BV An Bình Q4/2026"></label>
-                <div><span class="mb-1.5 block text-xs font-bold text-slate-500">Khách hàng *</span><x-select-search id="client-price-list-customer" name="partner_id" placeholder="Tra cứu khách hàng..." :value="old('partner_id')"><option value="">Chọn khách hàng</option>@foreach($customers as $customer)<option value="{{ $customer->id }}" @selected((string)old('partner_id') === (string)$customer->id)>{{ $customer->name }}{{ $customer->tax_code ? ' · MST '.$customer->tax_code : '' }}</option>@endforeach</x-select-search></div>
-                <label><span class="mb-1.5 block text-xs font-bold text-slate-500">Mục đích *</span><select name="purpose_id" required class="h-12 w-full rounded-2xl border border-slate-300 px-4"><option value="">Chọn mục đích</option>@foreach($purposes as $purpose)<option value="{{ $purpose->id }}" @selected((string)old('purpose_id') === (string)$purpose->id)>{{ $purpose->name }}</option>@endforeach</select></label>
-                <div class="grid grid-cols-2 gap-3"><label><span class="mb-1.5 block text-xs font-bold text-slate-500">Hiệu lực từ *</span><input type="date" name="effective_from" value="{{ old('effective_from', now()->toDateString()) }}" required class="h-12 w-full rounded-2xl border border-slate-300 px-3"></label><label><span class="mb-1.5 block text-xs font-bold text-slate-500">Đến *</span><input type="date" name="effective_to" value="{{ old('effective_to', now()->addMonth()->toDateString()) }}" required class="h-12 w-full rounded-2xl border border-slate-300 px-3"></label></div>
+                <label><span class="mb-1.5 block text-xs font-bold text-slate-500">Tên bảng giá *</span><input name="name" value="{{ $field('name') }}" required maxlength="255" class="h-12 w-full rounded-2xl border border-slate-300 px-4" placeholder="VD: Bảng giá BV An Bình Q4/2026"></label>
+                <div><span class="mb-1.5 block text-xs font-bold text-slate-500">Khách hàng *</span><x-select-search id="client-price-list-customer" name="partner_id" placeholder="Tra cứu khách hàng..." :value="$field('partner_id')"><option value="">Chọn khách hàng</option>@foreach($customers as $customer)<option value="{{ $customer->id }}" @selected((string)$field('partner_id') === (string)$customer->id)>{{ $customer->name }}{{ $customer->tax_code ? ' · MST '.$customer->tax_code : '' }}</option>@endforeach</x-select-search></div>
+                <label><span class="mb-1.5 block text-xs font-bold text-slate-500">Mục đích *</span><select name="purpose_id" required class="h-12 w-full rounded-2xl border border-slate-300 px-4"><option value="">Chọn mục đích</option>@foreach($purposes as $purpose)<option value="{{ $purpose->id }}" @selected((string)$field('purpose_id') === (string)$purpose->id)>{{ $purpose->name }}</option>@endforeach</select></label>
+                <div class="grid grid-cols-2 gap-3"><label><span class="mb-1.5 block text-xs font-bold text-slate-500">Hiệu lực từ *</span><input type="date" name="effective_from" value="{{ $field('effective_from', now()->toDateString()) instanceof \Carbon\CarbonInterface ? $field('effective_from')->toDateString() : $field('effective_from', now()->toDateString()) }}" required class="h-12 w-full rounded-2xl border border-slate-300 px-3"></label><label><span class="mb-1.5 block text-xs font-bold text-slate-500">Đến *</span><input type="date" name="effective_to" value="{{ $field('effective_to', now()->addMonth()->toDateString()) instanceof \Carbon\CarbonInterface ? $field('effective_to')->toDateString() : $field('effective_to', now()->addMonth()->toDateString()) }}" required class="h-12 w-full rounded-2xl border border-slate-300 px-3"></label></div>
             </div>
-            <label class="mt-4 block"><span class="mb-1.5 block text-xs font-bold text-slate-500">Ghi chú</span><textarea name="notes" rows="2" maxlength="1000" class="w-full rounded-2xl border border-slate-300 px-4 py-3">{{ old('notes') }}</textarea></label>
+            <label class="mt-4 block"><span class="mb-1.5 block text-xs font-bold text-slate-500">Ghi chú</span><textarea name="notes" rows="2" maxlength="1000" class="w-full rounded-2xl border border-slate-300 px-4 py-3">{{ $field('notes') }}</textarea></label>
         </section>
 
         <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -36,13 +42,13 @@
         </section>
 
         <section class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-            <div class="border-b border-slate-100 p-5"><p class="text-xs font-black uppercase tracking-[0.14em] text-slate-400">03 · Sản phẩm & giá</p><h2 class="mt-1 text-lg font-black text-slate-950">Chọn sản phẩm từ bảng giá gốc</h2><p class="mt-1 text-sm text-slate-500">Giá bán CT mặc định lấy từ bảng giá gốc. Bỏ checkbox nếu sản phẩm không áp dụng cho khách hàng này.</p></div>
+            <div class="border-b border-slate-100 p-5"><p class="text-xs font-black uppercase tracking-[0.14em] text-slate-400">03 · Sản phẩm & giá</p><div class="mt-1 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between"><div><h2 class="text-lg font-black text-slate-950">Chọn sản phẩm từ bảng giá gốc</h2><p class="mt-1 text-sm text-slate-500">Giá bán CT mặc định lấy từ bảng giá gốc. Bỏ checkbox nếu sản phẩm không áp dụng cho khách hàng này.</p></div>@if($sourcePriceListId)<label class="w-full lg:w-80"><span class="mb-1 block text-xs font-bold text-slate-500">Tìm sản phẩm</span><div class="relative"><input id="source-product-search" type="search" class="h-11 w-full rounded-2xl border border-slate-300 pl-4 pr-10 text-sm" placeholder="Tên thuốc, SKU, hoạt chất, SĐK..."><button id="clear-source-product-search" type="button" class="absolute right-2 top-1/2 hidden h-7 w-7 -translate-y-1/2 rounded-full text-lg font-bold text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Xóa tìm kiếm">×</button></div></label>@endif</div></div>
             @if(!$sourcePriceListId)
                 <div class="p-8 text-center text-sm text-slate-500">Chọn bảng giá tại Bước 02 để tải sản phẩm.</div>
             @else
-                <div class="max-h-[620px] overflow-auto"><table class="w-full min-w-[980px] text-left text-sm"><thead class="sticky top-0 bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-500"><tr><th class="w-12 px-4 py-3">Chọn</th><th class="px-4 py-3">Thuốc</th><th class="px-4 py-3">Hoạt chất</th><th class="px-4 py-3 text-right">Giá kê khai</th><th class="px-4 py-3 text-right">Giá gốc</th><th class="w-48 px-4 py-3">Giá bán CT *</th></tr></thead><tbody class="divide-y divide-slate-100">
+                <div class="max-h-[620px] overflow-auto"><table class="w-full min-w-[980px] text-left text-sm"><thead class="sticky top-0 bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-500"><tr><th class="w-12 px-4 py-3"><input id="select-all-source-products" type="checkbox" class="h-5 w-5 rounded border-slate-300" title="Chọn/bỏ tất cả sản phẩm đang hiển thị"></th><th class="px-4 py-3">Thuốc</th><th class="px-4 py-3">Hoạt chất</th><th class="px-4 py-3 text-right">Giá kê khai</th><th class="px-4 py-3 text-right">Giá gốc</th><th class="w-48 px-4 py-3">Giá bán CT *</th></tr></thead><tbody class="divide-y divide-slate-100">
                 @forelse($sourceProducts as $sourceItem) @php $product=$sourceItem->variant; $medicine=$product?->medicine; @endphp
-                    <tr><td class="px-4 py-3"><input type="checkbox" name="selected[{{ $product->id }}]" value="1" @checked(old('selected.'.$product->id, true)) class="h-5 w-5 rounded border-slate-300"></td><td class="px-4 py-3"><p class="font-black">{{ $medicine?->name }}</p><p class="mt-1 text-xs text-slate-400">{{ $product?->sku }} · {{ $medicine?->packaging_specification }}</p></td><td class="px-4 py-3 text-slate-600">{{ $medicine?->active_ingredients ?: '—' }}</td><td class="px-4 py-3 text-right font-bold tabular-nums">{{ $sourceItem->declared_price_snapshot !== null ? number_format((float)$sourceItem->declared_price_snapshot,0,',','.') : '—' }}</td><td class="px-4 py-3 text-right font-black tabular-nums">{{ $sourceItem->company_sale_price !== null ? number_format((float)$sourceItem->company_sale_price,0,',','.') : '—' }}</td><td class="px-4 py-3"><input type="number" min="0" step="1" name="company_price[{{ $product->id }}]" value="{{ old('company_price.'.$product->id, $sourceItem->company_sale_price !== null ? (int)$sourceItem->company_sale_price : '') }}" class="h-10 w-full rounded-xl border border-slate-300 px-3 text-right font-bold tabular-nums"></td></tr>
+                    <tr class="source-product-row" data-search="{{ mb_strtolower(($medicine?->name ?? '').' '.($product?->sku ?? '').' '.($medicine?->active_ingredients ?? '').' '.($medicine?->registration_number ?? '')) }}"><td class="px-4 py-3"><input type="checkbox" data-source-product-checkbox name="selected[{{ $product->id }}]" value="1" @checked(old('selected.'.$product->id, $isEditing ? $selectedExisting->has($product->id) : true)) class="h-5 w-5 rounded border-slate-300"></td><td class="px-4 py-3"><p class="font-black">{{ $medicine?->name }}</p><p class="mt-1 text-xs text-slate-400">{{ $product?->sku }} · {{ $medicine?->packaging_specification }}</p></td><td class="px-4 py-3 text-slate-600">{{ $medicine?->active_ingredients ?: '—' }}</td><td class="px-4 py-3 text-right font-bold tabular-nums">{{ $sourceItem->declared_price_snapshot !== null ? number_format((float)$sourceItem->declared_price_snapshot,0,',','.') : '—' }}</td><td class="px-4 py-3 text-right font-black tabular-nums">{{ $sourceItem->company_sale_price !== null ? number_format((float)$sourceItem->company_sale_price,0,',','.') : '—' }}</td><td class="px-4 py-3"><input type="number" min="0" step="1" name="company_price[{{ $product->id }}]" value="{{ old('company_price.'.$product->id, $isEditing && $selectedExisting->has($product->id) ? (int)$selectedExisting->get($product->id)->company_sale_price : ($sourceItem->company_sale_price !== null ? (int)$sourceItem->company_sale_price : '')) }}" class="h-10 w-full rounded-xl border border-slate-300 px-3 text-right font-bold tabular-nums"></td></tr>
                 @empty <tr><td colspan="6" class="p-8 text-center text-slate-500">Bảng giá gốc chưa có sản phẩm ACTIVE.</td></tr> @endforelse
                 </tbody></table></div>
             @endif
@@ -50,35 +56,82 @@
 
         <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
             <p class="text-xs font-black uppercase tracking-[0.14em] text-slate-400">04 · Kiểm tra & lưu</p>
-            <div class="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><h2 class="text-lg font-black text-slate-950">Lưu bảng giá Nháp</h2><p class="mt-1 text-sm text-slate-500">Sau khi lưu, bạn có thể kiểm tra lại chi tiết trước khi Gửi duyệt.</p></div><div class="flex gap-2"><a href="{{ route('client.pharma.price-lists') }}" class="rounded-2xl border border-slate-300 px-5 py-3 text-sm font-bold text-slate-600">Hủy</a><button type="submit" @disabled(!$sourcePriceListId || $sourceProducts->isEmpty()) class="rounded-2xl bg-slate-950 px-6 py-3 text-sm font-black text-white disabled:opacity-40">Lưu bảng giá Nháp</button></div></div>
+            <div class="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><h2 class="text-lg font-black text-slate-950">{{ $isEditing ? 'Cập nhật bảng giá Nháp' : 'Lưu bảng giá Nháp' }}</h2><p class="mt-1 text-sm text-slate-500">Sau khi lưu, bạn có thể kiểm tra lại chi tiết trước khi Gửi duyệt.</p></div><div class="flex gap-2"><a href="{{ route('client.pharma.price-lists') }}" class="rounded-2xl border border-slate-300 px-5 py-3 text-sm font-bold text-slate-600">Hủy</a><button type="submit" @disabled(!$sourcePriceListId || $sourceProducts->isEmpty()) class="rounded-2xl bg-slate-950 px-6 py-3 text-sm font-black text-white disabled:opacity-40">{{ $isEditing ? 'Cập nhật bản Nháp' : 'Lưu bảng giá Nháp' }}</button></div></div>
         </section>
     </form>
 </div>
 <script>
 window.addEventListener('load', () => {
+    const form = document.getElementById('price-list-editor');
     const customer = document.getElementById('client-price-list-customer');
-    // ClientPortal does not rely on Livewire/Alpine to initialise the shared component.
-    // Keep the canonical x-select-search markup, but initialise TomSelect locally when needed.
     if (customer && window.TomSelect && !customer.tomselect) {
-        new TomSelect(customer, {
-            plugins: ['dropdown_input'],
-            placeholder: 'Tra cứu khách hàng...',
-            create: false,
-            allowEmptyOption: true,
-            dropdownParent: 'body',
+        new TomSelect(customer, { plugins: ['dropdown_input'], placeholder: 'Tra cứu khách hàng...', create: false, allowEmptyOption: true, dropdownParent: 'body' });
+    }
+
+    const draftKey = 'client-pharma-price-list-form-state';
+    const restore = sessionStorage.getItem(draftKey);
+    if (restore && form) {
+        try {
+            const state = JSON.parse(restore);
+            ['name','purpose_id','effective_from','effective_to','notes'].forEach(name => {
+                const el = form.elements.namedItem(name);
+                if (el && state[name] !== undefined) el.value = state[name];
+            });
+            if (state.partner_id) {
+                const partner = form.elements.namedItem('partner_id');
+                if (partner) {
+                    partner.value = state.partner_id;
+                    if (partner.tomselect) partner.tomselect.setValue(state.partner_id, true);
+                }
+            }
+        } finally {
+            sessionStorage.removeItem(draftKey);
+        }
+    }
+
+    const source = document.getElementById('source-price-list');
+    const load = document.getElementById('load-source-price-list');
+    if (source && load) {
+        load.addEventListener('click', () => {
+            if (!source.value || !form) return;
+            const partner = form.elements.namedItem('partner_id');
+            sessionStorage.setItem(draftKey, JSON.stringify({
+                name: form.elements.namedItem('name')?.value || '',
+                partner_id: partner?.value || '',
+                purpose_id: form.elements.namedItem('purpose_id')?.value || '',
+                effective_from: form.elements.namedItem('effective_from')?.value || '',
+                effective_to: form.elements.namedItem('effective_to')?.value || '',
+                notes: form.elements.namedItem('notes')?.value || '',
+            }));
+            const url = new URL(window.location.href);
+            url.searchParams.set('source_price_list_id', source.value);
+            window.location.href = url.toString();
         });
     }
 
-    const select = document.getElementById('source-price-list');
-    const button = document.getElementById('load-source-price-list');
-    if (!select || !button) return;
-
-    button.addEventListener('click', () => {
-        if (!select.value) return;
-        const url = new URL(window.location.href);
-        url.searchParams.set('source_price_list_id', select.value);
-        window.location.href = url.toString();
-    });
+    const search = document.getElementById('source-product-search');
+    const clear = document.getElementById('clear-source-product-search');
+    const selectAll = document.getElementById('select-all-source-products');
+    const rows = [...document.querySelectorAll('.source-product-row')];
+    const visibleCheckboxes = () => rows.filter(row => !row.classList.contains('hidden')).map(row => row.querySelector('[data-source-product-checkbox]')).filter(Boolean);
+    const syncSelectAll = () => {
+        if (!selectAll) return;
+        const boxes = visibleCheckboxes();
+        const checked = boxes.filter(box => box.checked).length;
+        selectAll.checked = boxes.length > 0 && checked === boxes.length;
+        selectAll.indeterminate = checked > 0 && checked < boxes.length;
+    };
+    const filterRows = () => {
+        const q = (search?.value || '').trim().toLowerCase();
+        rows.forEach(row => row.classList.toggle('hidden', q !== '' && !row.dataset.search.includes(q)));
+        if (clear) clear.classList.toggle('hidden', q === '');
+        syncSelectAll();
+    };
+    search?.addEventListener('input', filterRows);
+    clear?.addEventListener('click', () => { search.value = ''; filterRows(); search.focus(); });
+    selectAll?.addEventListener('change', () => { visibleCheckboxes().forEach(box => box.checked = selectAll.checked); syncSelectAll(); });
+    rows.forEach(row => row.querySelector('[data-source-product-checkbox]')?.addEventListener('change', syncSelectAll));
+    syncSelectAll();
 });
 </script>
 @endsection
