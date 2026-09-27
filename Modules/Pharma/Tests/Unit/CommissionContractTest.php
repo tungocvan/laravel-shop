@@ -63,7 +63,7 @@ class CommissionContractTest extends TestCase
         $this->assertStringContainsString("'Hoa hồng'=>(float)\$row->commission_amount", $controller);
         $this->assertStringContainsString('Xóa bộ lọc', $view);
         $this->assertStringContainsString('Xuất Excel theo bộ lọc', $view);
-        $this->assertStringContainsString('Xuất Excel đã chọn', $view);
+        $this->assertStringContainsString('Export Excel đã chọn', $view);
         $this->assertStringContainsString('commission-select-all', $view);
         $this->assertStringContainsString('name="ids[]"', $view);
         $this->assertStringNotContainsString('Chỉ hiển thị bệnh viện đang được phân công cho User đã chọn.', $view);
