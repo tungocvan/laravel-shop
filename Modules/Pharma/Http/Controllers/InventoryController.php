@@ -680,7 +680,7 @@ final class InventoryController extends Controller
             return redirect()->route('admin.pharma.inventory.issues.show',$issue)
                 ->with('warning','Phiếu hàng thầu đã ghi sổ; không thể chỉnh sửa nội dung đơn. Hãy hoàn tác ghi sổ trước nếu cần điều chỉnh.');
         }
-        $issue->load(['items.medicine','priceList.manager','priceList.globalUsers:id,name']);
+        $issue->load(['items.medicine','manager:id,name','priceList.manager','priceList.globalUsers:id,name']);
         $warehouse=$inventory->defaultWarehouse();
         $availableBalances=InventoryBalance::query()->with('medicine')->where('warehouse_id',$warehouse->id)
             ->whereDate('expiry_date','>=',now()->toDateString())->orderBy('expiry_date')->orderBy('medicine_id')->get();
@@ -713,7 +713,8 @@ final class InventoryController extends Controller
             'items.*.quantity'=>'required|numeric|gt:0','items.*.unit_price'=>'required|numeric|min:0',
         ]);
         $priceList=PriceList::query()->with('globalUsers:id')->whereKey($data['price_list_id'])
-            ->whereIn('type',[PriceList::TYPE_GLOBAL,PriceList::TYPE_CUSTOMER])->activeAt($metadata['issue_date'])->firstOrFail();
+            ->whereIn('type',[PriceList::TYPE_GLOBAL,PriceList::TYPE_CUSTOMER])->activeAt($metadata['issue_date'])->first();
+        if(! $priceList) throw ValidationException::withMessages(['price_list_id'=>'Bảng giá áp dụng không còn hoạt động hoặc không còn hiệu lực tại ngày xuất. Vui lòng chọn lại bảng giá.']);
         $managerId=(int)$data['manager_user_id'];
         $assigned=$priceList->type===PriceList::TYPE_GLOBAL
             ? ($priceList->globalUsers->isEmpty() || $priceList->globalUsers->contains(fn($user)=>(int)$user->id===$managerId))
@@ -724,14 +725,20 @@ final class InventoryController extends Controller
         }
         $allowedMedicineIds=PriceListItem::query()->where('price_list_id',$priceList->id)->where('status','active')->pluck('medicine_id')->filter()->map(fn($id)=>(int)$id)->unique();
         $warehouse=$inventory->defaultWarehouse();
-        if(!empty($data['recipient_partner_id'])) $metadata['recipient_name']=Partner::query()->whereKey($data['recipient_partner_id'])->where('status','active')->firstOrFail()->name;
+        if(!empty($data['recipient_partner_id'])){
+            $recipient=Partner::query()->whereKey($data['recipient_partner_id'])->where('status','active')->first();
+            if(! $recipient) throw ValidationException::withMessages(['recipient_partner_id'=>'Khách hàng không còn hoạt động. Vui lòng chọn lại khách hàng / nơi nhận.']);
+            $metadata['recipient_name']=$recipient->name;
+        }
         $items=collect($data['items'])->map(function(array $item)use($warehouse,$allowedMedicineIds){
-            $balance=InventoryBalance::query()->where('warehouse_id',$warehouse->id)->whereKey($item['balance_id'])->firstOrFail();
+            $balance=InventoryBalance::query()->where('warehouse_id',$warehouse->id)->whereKey($item['balance_id'])->first();
+            if(! $balance) throw ValidationException::withMessages(['items'=>'Lô tồn kho đã chọn không còn khả dụng. Vui lòng chọn lại lô.']);
             if(! $allowedMedicineIds->contains((int)$balance->medicine_id)) throw ValidationException::withMessages(['items'=>'Thuốc đã chọn không thuộc bảng giá áp dụng.']);
             return ['medicine_id'=>$balance->medicine_id,'batch_number'=>$balance->batch_number,'expiry_date'=>$balance->expiry_date->toDateString(),'quantity'=>$item['quantity'],'unit_price'=>(float)$item['unit_price']];
         })->all();
         DB::transaction(function()use($issue,$metadata,$data,$items){
-            $locked=InventoryIssue::query()->whereKey($issue->id)->lockForUpdate()->firstOrFail();
+            $locked=InventoryIssue::query()->whereKey($issue->id)->lockForUpdate()->first();
+            if(! $locked) throw ValidationException::withMessages(['issue'=>'Phiếu xuất không còn tồn tại.']);
             if($locked->status!==InventoryIssue::DRAFT) throw ValidationException::withMessages(['issue'=>'Phiếu không còn ở trạng thái nháp.']);
             $locked->update(array_merge($metadata,['manager_user_id'=>$data['manager_user_id'],'price_list_id'=>$data['price_list_id']]));
             $locked->items()->delete();
