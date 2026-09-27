@@ -17,6 +17,9 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $create = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/price-list-create.blade.php'));
         $workflow = file_get_contents(base_path('Modules/Pharma/Services/UserPriceListWorkflow.php'));
         $model = file_get_contents(base_path('Modules/Pharma/Models/PriceList.php'));
+        $approval = file_get_contents(base_path('Modules/Pharma/Services/PriceListApprovalWorkflow.php'));
+        $approvalQueue = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/price-list-approvals.blade.php'));
+        $approvalDetail = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/price-list-approval-show.blade.php'));
 
         $this->assertStringContainsString("'route' => 'client.pharma.price-lists'", $manifest);
         $this->assertStringContainsString("'permission' => 'client.pharma.price-lists.view'", $manifest);
@@ -37,6 +40,10 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString("->name('price-lists.edit')", $routes);
         $this->assertStringContainsString("->name('price-lists.update')", $routes);
         $this->assertStringContainsString("->name('price-lists.delete')", $routes);
+        $this->assertStringContainsString("->name('price-list-approvals')", $routes);
+        $this->assertStringContainsString("->name('price-list-approvals.show')", $routes);
+        $this->assertStringContainsString("->name('price-list-approvals.approve')", $routes);
+        $this->assertStringContainsString("->name('price-list-approvals.reject')", $routes);
         $this->assertStringContainsString('client.feature:pharma,price-lists', $routes);
         $this->assertStringNotContainsString('auth:admin', $routes);
 
@@ -99,6 +106,8 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString("replace(/\\D/g, '')", $create);
 
         $this->assertStringContainsString("public const STATUS_PENDING_APPROVAL = 'pending_approval'", $model);
+        $this->assertStringContainsString("public const STATUS_REJECTED = 'rejected'", $model);
+        $this->assertStringContainsString("'rejection_reason'", $model);
         $this->assertStringContainsString('public function createDraft(int $userId', $workflow);
         $this->assertStringContainsString('public function sourcePriceLists(int $userId)', $workflow);
         $this->assertStringContainsString('public function sourceProducts(int $userId, int $sourcePriceListId)', $workflow);
@@ -116,6 +125,18 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString("'manager_user_id'", $workflow);
         $this->assertStringContainsString("'submitted_by'", $workflow);
         $this->assertStringContainsString("'status' => PriceList::STATUS_PENDING_APPROVAL", $workflow);
+        $this->assertStringContainsString('class PriceListApprovalWorkflow', $approval);
+        $this->assertStringContainsString("->where('status', PriceList::STATUS_PENDING_APPROVAL)", $approval);
+        $this->assertStringContainsString('assertPendingAndIndependent', $approval);
+        $this->assertStringContainsString("'status' => PriceList::STATUS_REJECTED", $approval);
+        $this->assertStringContainsString('$this->manager->activate($list, $approverUserId)', $approval);
+        $this->assertStringContainsString('Người tạo, người phụ trách hoặc người gửi không được tự phê duyệt', $approval);
+        $this->assertStringContainsString('Hàng chờ phê duyệt', $approvalQueue);
+        $this->assertStringContainsString('Phê duyệt & Kích hoạt', $approvalDetail);
+        $this->assertStringContainsString('name="rejection_reason"', $approvalDetail);
+        $this->assertStringContainsString('$selfApprovalBlocked', $approvalDetail);
+        $this->assertStringNotContainsString('Admin::', $approvalQueue);
+        $this->assertStringNotContainsString('Admin::', $approvalDetail);
         $this->assertStringNotContainsString('Admin::', $detail);
     }
 }
