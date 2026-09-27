@@ -412,7 +412,6 @@ final class InventoryController extends Controller
         $query=InventoryReceipt::query()->withCount('items')
             ->withSum(['items as total_value'=>fn($q)=>$q->select(DB::raw('COALESCE(SUM(quantity * unit_price_ex_vat),0)'))],'unit_price_ex_vat')
             ->where('warehouse_id',$warehouse->id)
-            ->whereBetween('issue_date',[$dateFrom,$dateTo])
             ->when($request->filled('q'),fn($q)=>$q->where(fn($x)=>$x->where('number','like','%'.$request->q.'%')->orWhere('supplier_name','like','%'.$request->q.'%')))
             ->when(in_array($request->status,['draft','posted'],true),fn($q)=>$q->where('status',$request->status))
             ->latest('receipt_date')->latest('id');
