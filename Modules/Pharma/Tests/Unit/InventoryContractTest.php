@@ -444,6 +444,24 @@ class InventoryContractTest extends TestCase
         $this->addToAssertionCount(4);
     }
 
+    public function test_issue_create_is_an_order_entry_workspace(): void
+    {
+        $view=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-form.blade.php'));
+
+        $this->assertStringContainsString('Thiết lập nhanh phiếu xuất', $view);
+        $this->assertStringContainsString('Thuốc xuất kho', $view);
+        $this->assertStringContainsString('+ Thêm thuốc', $view);
+        $this->assertStringContainsString('issue-item-count', $view);
+        $this->assertStringContainsString('issue-grand-total', $view);
+        $this->assertStringContainsString('issue-footer-quantity', $view);
+        $this->assertStringContainsString('sticky bottom-3', $view);
+        $this->assertStringContainsString('Bảng giá chung', $view);
+        $this->assertStringContainsString('Bảng giá khách hàng', $view);
+        $this->assertStringContainsString('bảng giá phù hợp', $view);
+        $this->assertStringContainsString('lotSelect.value=String(matching[0].id)', $view);
+        $this->assertStringNotContainsString('GLOBAL/CUSTOMER · ACTIVE · còn hiệu lực', $view);
+    }
+
     public function test_normal_issue_uses_assigned_global_or_customer_price_lists_and_guided_header(): void
     {
         $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
