@@ -5,7 +5,7 @@
 @php
     $priceListManagers=collect()->merge($customerPriceLists->pluck('manager')->filter())->merge($customerPriceLists->pluck('globalUsers')->flatten())->unique('id')->sortBy('name')->values();
     $selectedPriceList=$issue->priceList;
-    $selectedManagerId=$selectedPriceList?->type==='global' ? ($selectedPriceList?->globalUsers?->first()?->id ?? auth()->id()) : $selectedPriceList?->manager_user_id;
+    $selectedManagerId=$issue->manager_user_id ?: ($selectedPriceList?->type==='global' ? ($selectedPriceList?->globalUsers?->first()?->id ?? auth()->id()) : $selectedPriceList?->manager_user_id);
     $initialItems=$issue->items->map(function ($item) {
         return [
             'medicine_id'=>$item->medicine_id,'batch_number'=>$item->batch_number,'expiry_date'=>$item->expiry_date?->format('Y-m-d'),
