@@ -139,6 +139,12 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString("'status' => PriceList::STATUS_REJECTED", $approval);
         $this->assertStringContainsString('$this->manager->activate($list, $approverUserId)', $approval);
         $this->assertStringContainsString('Người tạo, người phụ trách hoặc người gửi không được tự phê duyệt', $approval);
+        $this->assertStringContainsString('public function pendingCount(): int', $approval);
+        $this->assertStringContainsString("'pendingApprovalCount' => $canApprove ? $approval->pendingCount() : null", $controller);
+        $this->assertStringContainsString("route('client.pharma.price-list-approvals')", $view);
+        $this->assertStringContainsString('Yêu cầu cần tôi duyệt', $view);
+        $this->assertStringContainsString('$pendingApprovalCount ?? 0', $view);
+        $this->assertStringNotContainsString('>Hàng chờ duyệt</a>', $view);
         $this->assertStringContainsString('Hàng chờ phê duyệt', $approvalQueue);
         $this->assertStringContainsString('Phê duyệt & Kích hoạt', $approvalDetail);
         $this->assertStringContainsString('name="rejection_reason"', $approvalDetail);
