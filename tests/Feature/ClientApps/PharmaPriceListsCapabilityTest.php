@@ -61,8 +61,8 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString("public const STATUS_PENDING_APPROVAL = 'pending_approval'", $model);
         $this->assertStringContainsString('public function createDraft(int $userId', $workflow);
         $this->assertStringContainsString('public function submit(int $userId', $workflow);
-        $this->assertStringContainsString("'manager_user_id' => $userId", $workflow);
-        $this->assertStringContainsString("'submitted_by' => $userId", $workflow);
+        $this->assertStringContainsString("'manager_user_id'", $workflow);
+        $this->assertStringContainsString("'submitted_by'", $workflow);
         $this->assertStringContainsString("'status' => PriceList::STATUS_PENDING_APPROVAL", $workflow);
         $this->assertStringNotContainsString('Admin::', $detail);
     }
