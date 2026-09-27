@@ -22,7 +22,7 @@
   <div>
    <p class="text-xs font-bold uppercase tracking-[.14em] text-indigo-600">Pharma Operations Hub</p>
    <h1 class="mt-2 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">Trung tâm điều hành Pharma</h1>
-   <p class="mt-2 max-w-4xl text-sm leading-6 text-slate-600">Theo dõi dữ liệu nền, đấu thầu, chính sách kinh doanh, tồn kho, bán hàng thầu và hoa hồng từ một điểm vào thống nhất.</p>
+   <p class="mt-2 max-w-4xl text-sm leading-6 text-slate-600">Theo dõi danh mục sản phẩm, nguồn cung, bảng giá, tồn kho, bán hàng, đấu thầu và hoa hồng từ một điểm vào thống nhất.</p>
   </div>
   <div class="flex flex-wrap gap-2">
    @if($cap['create'])<a href="{{ route('admin.pharma.inventory.issues.bid-sales.create') }}" class="inline-flex min-h-11 items-center rounded-xl bg-indigo-600 px-4 text-sm font-bold text-white hover:bg-indigo-700">+ Xuất hàng thầu</a>@endif
@@ -35,9 +35,9 @@
   <div class="mb-3 flex items-end justify-between gap-4"><div><h2 class="text-lg font-bold text-slate-950">Tổng quan vận hành</h2><p class="mt-1 text-sm text-slate-500">Số liệu hiện tại và doanh thu/hoa hồng của tháng {{ now()->format('m/Y') }}.</p></div></div>
   <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
    <a href="{{ route('admin.pharma.medicines.index') }}" class="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-md">
-    <div class="flex items-center justify-between"><p class="text-xs font-bold uppercase tracking-wide text-slate-500">Medicine</p><span class="rounded-lg bg-indigo-50 px-2 py-1 text-xs font-bold text-indigo-600">Master</span></div>
+    <div class="flex items-center justify-between"><p class="text-xs font-bold uppercase tracking-wide text-slate-500">Danh mục sản phẩm</p><span class="rounded-lg bg-indigo-50 px-2 py-1 text-xs font-bold text-indigo-600">Master</span></div>
     <p class="mt-4 text-3xl font-extrabold tracking-tight text-slate-950">{{ $v($master,'medicines')===null?'—':$n($v($master,'medicines')) }}</p>
-    <p class="mt-1 text-xs text-slate-500">Danh mục thuốc chuẩn</p>
+    <p class="mt-1 text-xs text-slate-500">Medicine Master · dữ liệu sản phẩm chuẩn</p>
    </a>
    <a href="{{ route('admin.pharma.inventory.index') }}" class="group rounded-2xl border border-teal-200 bg-gradient-to-br from-teal-50 to-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-teal-400 hover:shadow-md xl:col-span-2">
     <div class="flex items-center justify-between gap-3"><p class="text-xs font-bold uppercase tracking-wide text-teal-700">Giá trị tồn kho khả dụng</p><span class="rounded-lg bg-teal-100 px-2 py-1 text-xs font-bold text-teal-700">Kho</span></div>
@@ -52,10 +52,10 @@
     <p class="mt-4 text-3xl font-extrabold tracking-tight text-slate-950">{{ $v($master,'bid_awards')===null?'—':$n($v($master,'bid_awards')) }}</p>
     <p class="mt-1 text-xs text-slate-500">Kết quả đã lưu</p>
    </a>
-   <a href="{{ route('admin.pharma.inventory.commissions.index') }}" class="group rounded-2xl border border-emerald-200 bg-emerald-50/70 p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-400 hover:shadow-md">
-    <p class="text-xs font-bold uppercase tracking-wide text-emerald-700">Doanh thu thầu</p>
+   <a href="{{ route('admin.pharma.inventory.issues.index') }}" class="group rounded-2xl border border-emerald-200 bg-emerald-50/70 p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-400 hover:shadow-md">
+    <p class="text-xs font-bold uppercase tracking-wide text-emerald-700">Doanh thu bán hàng</p>
     <p class="mt-4 text-3xl font-extrabold tracking-tight text-emerald-950">{{ $v($sales,'revenue')===null?'—':$n($v($sales,'revenue')).' đ' }}</p>
-    <p class="mt-1 text-xs text-emerald-700">Trong tháng · {{ $v($sales,'posted_bid_issues')===null?'—':$n($v($sales,'posted_bid_issues')) }} đơn ghi sổ</p>
+    <p class="mt-1 text-xs text-emerald-700">Trong tháng · {{ $v($sales,'posted_issues')===null?'—':$n($v($sales,'posted_issues')) }} phiếu đã ghi sổ</p>
    </a>
    <a href="{{ route('admin.pharma.inventory.commissions.index') }}" class="group rounded-2xl border border-amber-200 bg-amber-50/70 p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-amber-400 hover:shadow-md">
     <p class="text-xs font-bold uppercase tracking-wide text-amber-700">Hoa hồng</p>
@@ -105,13 +105,31 @@
    </div>
    <div class="flex flex-wrap gap-2 border-t border-slate-100 p-4">
     @if($cap['create'])<a href="{{ route('admin.pharma.inventory.receipts.create') }}" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">+ Nhập kho</a><a href="{{ route('admin.pharma.inventory.issues.create') }}" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">+ Xuất kho</a>@endif
+    <a href="{{ route('admin.pharma.supplier-trackings.index') }}" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Theo dõi NCC</a>
     <a href="{{ route('admin.pharma.inventory.index') }}" class="rounded-xl bg-teal-600 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-700">Mở tồn kho</a>
    </div>
   </section>
  </div>
 
  <section class="rounded-2xl border border-slate-200 bg-white shadow-sm">
-  <div class="border-b border-slate-100 px-5 py-4"><h2 class="font-bold text-slate-950">Đấu thầu & Commercial</h2><p class="mt-1 text-xs text-slate-500">Từ kết quả trúng thầu đến phân công bệnh viện, chính sách sản phẩm và bảng giá.</p></div>
+  <div class="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+   <div><h2 class="font-bold text-slate-950">Bảng giá & bán hàng</h2><p class="mt-1 text-xs text-slate-500">Từ chính sách giá đến lập phiếu, ghi sổ và phát sinh hoa hồng.</p></div>
+   <div class="flex flex-wrap gap-2">
+    <a href="{{ route('admin.pharma.price-lists.index') }}" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Bảng giá thuốc</a>
+    @if($cap['create'])<a href="{{ route('admin.pharma.price-lists.create') }}" class="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-100">+ Lập bảng giá</a><a href="{{ route('admin.pharma.inventory.issues.create') }}" class="rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700">+ Lập phiếu xuất</a>@endif
+   </div>
+  </div>
+  <div class="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
+   <a href="{{ route('admin.pharma.price-lists.index') }}" class="rounded-xl border border-slate-200 p-4 hover:border-indigo-300"><p class="text-2xl font-extrabold text-slate-950">{{ $v($priceLists,'active')===null?'—':$n($v($priceLists,'active')) }}</p><p class="mt-1 text-xs font-semibold text-slate-500">Bảng giá ACTIVE</p></a>
+   <a href="{{ route('admin.pharma.price-lists.index') }}" class="rounded-xl border border-slate-200 p-4 hover:border-indigo-300"><p class="text-2xl font-extrabold text-slate-950">{{ $v($priceLists,'draft')===null?'—':$n($v($priceLists,'draft')) }}</p><p class="mt-1 text-xs font-semibold text-slate-500">Bảng giá Draft</p></a>
+   <a href="{{ route('admin.pharma.inventory.issues.index') }}" class="rounded-xl border border-slate-200 p-4 hover:border-indigo-300"><p class="text-2xl font-extrabold text-slate-950">{{ $v($inventory,'draft_issues')===null?'—':$n($v($inventory,'draft_issues')) }}</p><p class="mt-1 text-xs font-semibold text-slate-500">Phiếu xuất Draft</p></a>
+   <a href="{{ route('admin.pharma.inventory.issues.index') }}" class="rounded-xl border border-slate-200 p-4 hover:border-indigo-300"><p class="text-2xl font-extrabold text-slate-950">{{ $v($sales,'posted_issues')===null?'—':$n($v($sales,'posted_issues')) }}</p><p class="mt-1 text-xs font-semibold text-slate-500">Phiếu ghi sổ tháng này</p></a>
+  </div>
+  <div class="flex flex-wrap items-center gap-2 border-t border-slate-100 px-4 py-3 text-xs font-semibold text-slate-500"><span>Bảng giá</span><span aria-hidden="true">→</span><span>Phiếu xuất</span><span aria-hidden="true">→</span><span>Ghi sổ</span><span aria-hidden="true">→</span><a href="{{ route('admin.pharma.inventory.commissions.index') }}" class="text-emerald-700 hover:text-emerald-800">Trung tâm hoa hồng</a></div>
+ </section>
+
+ <section class="rounded-2xl border border-slate-200 bg-white shadow-sm">
+  <div class="border-b border-slate-100 px-5 py-4"><h2 class="font-bold text-slate-950">Đấu thầu & Commercial</h2><p class="mt-1 text-xs text-slate-500">Từ kết quả trúng thầu đến chính sách sản phẩm, phân công bệnh viện và xuất hàng thầu.</p></div>
   <div class="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-5">
    @foreach([
     ['Kết quả trúng thầu',$v($master,'bid_awards'),'admin.pharma.drug-bid-awards.index'],
@@ -122,6 +140,10 @@
    ] as [$label,$value,$route])
     <a href="{{ route($route) }}" class="group relative rounded-xl border border-slate-200 bg-white p-4 transition hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-sm"><p class="text-2xl font-extrabold text-slate-950">{{ $value===null?'—':$n($value) }}</p><p class="mt-1 text-xs font-semibold text-slate-500">{{ $label }}</p>@if(!$loop->last)<span class="absolute -right-2.5 top-1/2 hidden -translate-y-1/2 text-slate-300 lg:block" aria-hidden="true">→</span>@endif</a>
    @endforeach
+  </div>
+  <div class="flex flex-wrap gap-2 border-t border-slate-100 px-4 py-3">
+   <a href="{{ route('admin.pharma.drug-bid-awards.index') }}" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Kết quả trúng thầu</a>
+   @if($cap['create'])<a href="{{ route('admin.pharma.inventory.issues.bid-sales.create') }}" class="rounded-xl bg-sky-600 px-3 py-2 text-sm font-semibold text-white hover:bg-sky-700">+ Xuất hàng thầu</a>@endif
   </div>
  </section>
 
