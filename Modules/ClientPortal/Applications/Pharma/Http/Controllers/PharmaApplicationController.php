@@ -74,6 +74,7 @@ final class PharmaApplicationController extends Controller
                 allowSupplierPricing: $canViewSupplierPricing,
             )->withQueryString(),
             'filter' => $filter,
+            'filterCounts' => $catalog->filterCounts($canViewSupplierPricing),
             'canViewSupplierPricing' => $canViewSupplierPricing,
             'search' => trim((string) ($validated['q'] ?? '')),
             'perPage' => (int) ($validated['per_page'] ?? 25),
