@@ -427,7 +427,7 @@ final class InventoryController extends Controller
         $warehouse=$inventory->defaultWarehouse();
         $query=InventoryIssue::query()->withCount('items')
             ->with(['items:id,issue_id,medicine_id,batch_number,expiry_date,quantity'])
-            ->withSum(['items as total_value'=>fn($q)=>$q->select(DB::raw('COALESCE(SUM(quantity * unit_price),0)'))],'unit_price')
+            ->withSum('items as total_value',DB::raw('quantity * unit_price'))
             ->where('warehouse_id',$warehouse->id)
             ->when($request->filled('q'),fn($q)=>$q->where(fn($x)=>$x->where('number','like','%'.$request->q.'%')->orWhere('recipient_name','like','%'.$request->q.'%')))
             ->when(in_array($request->status,['draft','posted'],true),fn($q)=>$q->where('status',$request->status))
@@ -568,7 +568,7 @@ final class InventoryController extends Controller
     public function storeIssue(Request $request, InventoryService $inventory): RedirectResponse
     {
         $data=$request->validate([
-            'issue_date'=>'required|date','manager_user_id'=>'required|integer|exists:users,id','recipient_name'=>'nullable|string|max:255','recipient_partner_id'=>'nullable|integer|exists:partners,id',
+            'issue_date'=>'required|date','manager_user_id'=>'required|integer|exists:users,id','recipient_name'=>'nullable|string|max:255','recipient_partner_id'=>'required|integer|exists:partners,id',
             'price_list_id'=>'required|integer|exists:pharma_price_lists,id','notes'=>'nullable|string','items'=>'required|array|min:1',
             'items.*.balance_id'=>'required|exists:pharma_inventory_balances,id','items.*.quantity'=>'required|numeric|gt:0',
             'items.*.unit_price'=>'required|numeric|min:0',
