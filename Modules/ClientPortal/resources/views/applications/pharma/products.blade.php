@@ -9,7 +9,10 @@
 <div class="min-w-0 space-y-4 overflow-x-hidden">
     <section class="rounded-[2rem] bg-slate-950 px-5 py-6 text-white shadow-sm sm:px-7">
         <p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-300">Medicine Catalog</p>
-        <h1 class="mt-2 text-2xl font-black tracking-tight sm:text-3xl">Danh mục thuốc</h1>
+        <div class="mt-2 flex flex-wrap items-center gap-3">
+            <h1 class="text-2xl font-black tracking-tight sm:text-3xl">Danh mục thuốc</h1>
+            <span class="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-slate-200">{{ number_format($products->total(), 0, ',', '.') }} SKU</span>
+        </div>
         <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-300">Tra cứu danh mục chuẩn theo tên thuốc, mã thuốc, SKU, hoạt chất hoặc giấy phép lưu hành. PWA chỉ đọc và không thay đổi Medicine Master.</p>
     </section>
 
@@ -32,6 +35,24 @@
                 <a href="{{ route('client.pharma.products', ['per_page' => $perPage]) }}" class="rounded-2xl border border-slate-300 px-4 py-3 text-center text-sm font-bold text-slate-700">Xóa bộ lọc</a>
             @endif
         </form>
+        <div class="mt-4 flex flex-wrap gap-2" aria-label="Bộ lọc danh mục thuốc">
+            @php
+                $filters = [
+                    null => 'Tất cả',
+                    'awarded' => 'Đã trúng thầu',
+                    'profile' => 'Có HSSP',
+                ];
+                if ($canViewSupplierPricing) {
+                    $filters['supplier-priced'] = 'Có giá NCC';
+                }
+            @endphp
+            @foreach($filters as $value => $label)
+                <a href="{{ route('client.pharma.products', array_filter(['q' => $search, 'per_page' => $perPage, 'filter' => $value], fn ($item) => $item !== null && $item !== '')) }}"
+                   class="rounded-full border px-3.5 py-2 text-xs font-bold transition {{ $filter === $value ? 'border-slate-950 bg-slate-950 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-400 hover:text-slate-950' }}">
+                    {{ $label }}
+                </a>
+            @endforeach
+        </div>
     </section>
 
     <section class="space-y-3 xl:hidden">
