@@ -494,7 +494,9 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('Chọn người phụ trách để xem bảng giá phù hợp.', $view);
         $this->assertStringNotContainsString('GLOBAL/CUSTOMER · ACTIVE · còn hiệu lực tại ngày xuất.', $view);
         $this->assertStringContainsString('global_user_ids', $view);
-        $this->assertStringContainsString('issue-context-summary', $view);
+        $this->assertStringContainsString('issue-recipient-card', $view);
+        $this->assertStringContainsString('updateRecipientCard', $view);
+        $this->assertStringNotContainsString('issue-context-summary', $view);
         $this->assertStringContainsString("list.type==='global'", $view);
         $this->assertStringContainsString("list.type==='customer'", $view);
         $this->assertStringNotContainsString('Chọn bảng giá CUSTOMER', $view);
