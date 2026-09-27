@@ -445,6 +445,23 @@ class InventoryContractTest extends TestCase
         $this->addToAssertionCount(4);
     }
 
+    public function test_issue_lines_format_numbers_and_can_restore_original_price(): void
+    {
+        $view=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-form.blade.php'));
+
+        $this->assertStringContainsString('inputmode="decimal"', $view);
+        $this->assertStringContainsString('tabular-nums', $view);
+        $this->assertStringContainsString('issue-reset-price', $view);
+        $this->assertStringContainsString('Đặt lại giá gốc', $view);
+        $this->assertStringContainsString('row.dataset.originalPrice', $view);
+        $this->assertStringContainsString('Giá bảng:', $view);
+        $this->assertStringContainsString('parseViNumber', $view);
+        $this->assertStringContainsString('formatViNumber', $view);
+        $this->assertStringContainsString('normalizeNumericInput', $view);
+        $this->assertStringContainsString("quantity.value=String(parseViNumber(quantity.value))", $view);
+        $this->assertStringContainsString("price.value=String(parseViNumber(price.value))", $view);
+    }
+
     public function test_issue_recipient_uses_search_then_customer_card(): void
     {
         $view=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-form.blade.php'));
