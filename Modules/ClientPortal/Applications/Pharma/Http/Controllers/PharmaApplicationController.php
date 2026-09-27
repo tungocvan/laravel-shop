@@ -16,6 +16,8 @@ use Modules\Pharma\Services\UserPriceListWorkflow;
 use Modules\Pharma\Services\PriceListApprovalWorkflow;
 use Modules\Pharma\Services\ApproverGlobalPriceListWorkflow;
 use Modules\Pharma\Services\PriceListDeactivationWorkflow;
+use Modules\Pharma\Services\PriceListShareExportService;
+use Illuminate\Support\Facades\Storage;
 
 final class PharmaApplicationController extends Controller
 {
@@ -318,7 +320,38 @@ final class PharmaApplicationController extends Controller
             'canEdit' => $registry->userCan($user, 'client.pharma.price-lists.create'),
             'canApprove' => $canApprove,
             'isManager' => (int) $list->manager_user_id === (int) $user->id,
+            'exportProfiles' => $list->status === PriceList::STATUS_ACTIVE ? app(PriceListShareExportService::class)->profilesForUser((int) $user->id) : [],
         ]);
+    }
+
+    public function exportPriceListShare(
+        int $priceList,
+        Request $request,
+        ApplicationRegistry $registry,
+        UserPriceListWorkspace $workspace,
+        PriceListShareExportService $exports,
+    ) {
+        $user=$request->user('web'); abort_if($user===null,401);
+        abort_unless($registry->userCan($user,'client.pharma.price-lists.view'),403);
+        $canApprove=$registry->userCan($user,'client.pharma.price-lists.approve');
+        $list=$workspace->findVisible((int)$user->id,$priceList,$canApprove); abort_if($list===null,404);
+        $validated=$request->validate(['export_profile_id'=>['nullable','integer'],'items'=>['nullable','array'],'items.*'=>['integer']]);
+        $result=$exports->export($list,(int)$user->id,isset($validated['export_profile_id'])?(int)$validated['export_profile_id']:null,$validated['items']??[]);
+        $url=route('client.pharma.price-lists.share.download',['token'=>$result['token']]);
+        return back()->with('success','Đã xuất Excel và tạo liên kết chia sẻ trong 30 ngày.')->with('price_list_share',['url'=>$url,'share_id'=>$result['share']->id,'expires_at'=>$result['share']->expires_at?->format('d/m/Y H:i')]);
+    }
+
+    public function downloadPriceListShare(string $token, PriceListShareExportService $exports)
+    {
+        $share=$exports->resolve($token);
+        return Storage::disk('local')->download($share->storage_path,$share->download_name);
+    }
+
+    public function revokePriceListShare(int $share, Request $request, PriceListShareExportService $exports)
+    {
+        $user=$request->user('web'); abort_if($user===null,401);
+        $exports->revoke($share,(int)$user->id);
+        return back()->with('success','Đã thu hồi liên kết chia sẻ.');
     }
 
     public function requestPriceListDeactivation(
