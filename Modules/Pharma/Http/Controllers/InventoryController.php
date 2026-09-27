@@ -745,12 +745,13 @@ final class InventoryController extends Controller
         return redirect()->route('admin.pharma.inventory.issues.index')->with('success',"Đã hoàn tác ghi sổ {$issue->number}; hàng đã được cộng trả tồn kho và hoa hồng phát sinh đã được đảo.");
     }
 
-    public function postIssue(InventoryIssue $issue, InventoryService $inventory): RedirectResponse
+    public function postIssue(InventoryIssue $issue, InventoryService $inventory, DrugBidCommissionService $commissions): RedirectResponse
     {
         if(($issue->issue_source ?? 'normal')==='bid' && $issue->status===InventoryIssue::DRAFT){
             return redirect()->route('admin.pharma.inventory.issues.bid-sales.batches',$issue);
         }
         $inventory->postIssue($issue,auth('admin')->id());
+        $commissions->snapshotPostedIssue($issue->fresh('items'),auth('admin')->id());
         return back()->with('success',"Đã ghi sổ {$issue->number}.");
     }
 
@@ -959,50 +960,35 @@ final class InventoryController extends Controller
     {
         $from=$request->filled('from') ? Carbon::parse($request->input('from'))->startOfDay() : now()->startOfMonth();
         $to=$request->filled('to') ? Carbon::parse($request->input('to'))->endOfDay() : now()->endOfMonth();
-        $userId=$request->integer('user_id');
-        $partnerId=$request->integer('partner_id');
-        $medicineId=$request->integer('medicine_id');
+        $source=in_array($request->input('source','all'),['all',InventoryIssueCommission::SOURCE_PRICE_LIST,InventoryIssueCommission::SOURCE_BID],true) ? $request->input('source','all') : 'all';
+        $userId=$request->integer('user_id'); $partnerId=$request->integer('partner_id'); $medicineId=$request->integer('medicine_id');
 
-        $base=InventoryIssueCommission::query()
-            ->whereBetween('calculated_at',[$from,$to])
+        $base=InventoryIssueCommission::query()->whereBetween('calculated_at',[$from,$to])
+            ->when($source!=='all',fn($q)=>$q->where('source_type',$source))
             ->when($userId>0,fn($q)=>$q->where('user_id',$userId))
             ->when($partnerId>0,fn($q)=>$q->where('partner_id',$partnerId))
             ->when($medicineId>0,fn($q)=>$q->where('medicine_id',$medicineId));
-
         $totals=(clone $base)->selectRaw('COALESCE(SUM(revenue_amount),0) as revenue, COALESCE(SUM(commission_amount),0) as commission')->first();
-        $unresolved=(clone $base)->where('entry_type',InventoryIssueCommission::TYPE_EARNED)
-            ->where('status',InventoryIssueCommission::STATUS_UNRESOLVED)->count();
-        $rows=(clone $base)->with(['issue','medicine','user','partner'])
-            ->orderByDesc('calculated_at')->orderByDesc('id')->paginate(50)->withQueryString();
+        $receivableTotal=(clone $base)->where('source_type',InventoryIssueCommission::SOURCE_PRICE_LIST)
+            ->selectRaw('COALESCE(SUM(quantity * receivable_price_snapshot),0) as amount')->value('amount') ?? 0;
+        $unresolved=(clone $base)->where('entry_type',InventoryIssueCommission::TYPE_EARNED)->where('status',InventoryIssueCommission::STATUS_UNRESOLVED)->count();
+        $rows=(clone $base)->with(['issue','medicine','user','partner'])->orderByDesc('calculated_at')->orderByDesc('id')->paginate(50)->withQueryString();
 
-        $assignments=DrugBidAwardManagementAssignment::query()
-            ->where('status',DrugBidAwardManagementAssignment::STATUS_ACTIVE)
-            ->when($userId>0,fn($q)=>$q->where('user_id',$userId));
-
-        $users=User::query()->whereIn('id',DrugBidAwardManagementAssignment::query()
-            ->where('status',DrugBidAwardManagementAssignment::STATUS_ACTIVE)->distinct()->pluck('user_id'))
-            ->orderBy('name')->get(['id','name']);
-
-        $partners=Partner::query()->whereIn('id',(clone $assignments)->distinct()->pluck('partner_id'))
-            ->orderBy('name')->get(['id','name']);
-
-        $assignedAwardIds=(clone $assignments)
-            ->when($partnerId>0,fn($q)=>$q->where('partner_id',$partnerId))
-            ->distinct()->pluck('drug_bid_award_id');
-        $medicineIds=DrugBidAward::query()->whereIn('id',$assignedAwardIds)
-            ->whereNotNull('medicine_id')->distinct()->pluck('medicine_id');
+        $filterRows=InventoryIssueCommission::query()->whereBetween('calculated_at',[$from,$to])
+            ->when($source!=='all',fn($q)=>$q->where('source_type',$source));
+        $users=User::query()->whereIn('id',(clone $filterRows)->whereNotNull('user_id')->distinct()->pluck('user_id'))->orderBy('name')->get(['id','name']);
+        $partners=Partner::query()->whereIn('id',(clone $filterRows)->when($userId>0,fn($q)=>$q->where('user_id',$userId))->whereNotNull('partner_id')->distinct()->pluck('partner_id'))->orderBy('name')->get(['id','name']);
+        $medicineIds=(clone $filterRows)->when($userId>0,fn($q)=>$q->where('user_id',$userId))->when($partnerId>0,fn($q)=>$q->where('partner_id',$partnerId))->distinct()->pluck('medicine_id');
         $medicines=Medicine::query()->whereIn('id',$medicineIds)->orderBy('name')->get(['id','medicine_code','name']);
 
-        return view('Pharma::pages.inventory.commissions',compact(
-            'rows','totals','unresolved','users','partners','medicines','from','to','userId','partnerId','medicineId'
-        ));
+        return view('Pharma::pages.inventory.commissions',compact('rows','totals','receivableTotal','unresolved','source','users','partners','medicines','from','to','userId','partnerId','medicineId'));
     }
 
     public function exportCommissions(Request $request): StreamedResponse
     {
         $data=$request->validate([
             'from'=>'nullable|date','to'=>'nullable|date','user_id'=>'nullable|integer',
-            'partner_id'=>'nullable|integer','medicine_id'=>'nullable|integer',
+            'partner_id'=>'nullable|integer','medicine_id'=>'nullable|integer','source'=>'nullable|in:all,bid,price_list',
             'ids'=>'nullable|array|max:500','ids.*'=>'integer|distinct',
         ]);
         $from=!empty($data['from']) ? Carbon::parse($data['from'])->startOfDay() : now()->startOfMonth();
@@ -1011,6 +997,7 @@ final class InventoryController extends Controller
         $query=InventoryIssueCommission::query()
             ->with(['issue','medicine','user','partner'])
             ->whereBetween('calculated_at',[$from,$to])
+            ->when(!empty($data['source']) && $data['source']!=='all',fn($q)=>$q->where('source_type',$data['source']))
             ->when(!empty($data['user_id']),fn($q)=>$q->where('user_id',(int)$data['user_id']))
             ->when(!empty($data['partner_id']),fn($q)=>$q->where('partner_id',(int)$data['partner_id']))
             ->when(!empty($data['medicine_id']),fn($q)=>$q->where('medicine_id',(int)$data['medicine_id']))
@@ -1025,9 +1012,11 @@ final class InventoryController extends Controller
             'Sản phẩm'=>$row->medicine?->name,
             'User phụ trách'=>$row->user?->name ?: 'Chưa phân công',
             'SL thực xuất'=>(float)$row->quantity,
-            'Đơn giá trúng thầu'=>(float)$row->unit_price,
+            'Nguồn'=>$row->source_type===InventoryIssueCommission::SOURCE_BID ? 'Hàng thầu' : 'Bảng giá',
+            'Giá bán CT / Giá trúng thầu'=>(float)$row->unit_price,
+            'Giá thu'=>$row->receivable_price_snapshot !== null ? (float)$row->receivable_price_snapshot : null,
             'Doanh thu'=>(float)$row->revenue_amount,
-            '% hoa hồng'=>$row->commission_percentage !== null ? (float)$row->commission_percentage : null,
+            'CK / % chính sách'=>$row->commission_percentage !== null ? (float)$row->commission_percentage : null,
             'Hoa hồng'=>(float)$row->commission_amount,
             'Trạng thái'=>$row->status===InventoryIssueCommission::STATUS_UNRESOLVED ? 'Chưa đủ dữ liệu' : 'Đã tính',
         ]);
