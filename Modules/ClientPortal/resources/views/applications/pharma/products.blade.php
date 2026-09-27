@@ -17,15 +17,15 @@
     </section>
 
     <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-        <form id="product-search-form" method="GET" action="{{ route('client.pharma.products') }}" class="flex flex-col gap-3 lg:flex-row lg:items-end">
+        <form id="product-search-form" method="GET" action="{{ route('client.pharma.products') }}" class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_9rem] lg:items-start">
             <label class="min-w-0 flex-1">
                 <span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Tìm thuốc</span>
                 <input id="product-search-input" type="search" name="q" value="{{ $search }}" autocomplete="off" placeholder="Tên thuốc, mã thuốc, SKU, hoạt chất, GPLH..." class="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200">
                 <span class="mt-1.5 block text-xs text-slate-400">Kết quả tự cập nhật khi bạn nhập.</span>
             </label>
-            <label class="w-full lg:w-36">
+            <label class="w-full">
                 <span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Hiển thị</span>
-                <select name="per_page" class="w-full rounded-2xl border border-slate-300 px-3 py-3 text-sm text-slate-950" onchange="this.form.submit()">
+                <select name="per_page" class="h-[46px] w-full rounded-2xl border border-slate-300 px-3 text-sm text-slate-950" onchange="this.form.submit()">
                     @foreach([25, 50, 100] as $size)
                         <option value="{{ $size }}" @selected($perPage === $size)>{{ $size }} / trang</option>
                     @endforeach
@@ -50,6 +50,7 @@
                 <a href="{{ route('client.pharma.products', array_filter(['q' => $search, 'per_page' => $perPage, 'filter' => $value], fn ($item) => $item !== null && $item !== '')) }}"
                    class="rounded-full border px-3.5 py-2 text-xs font-bold transition {{ $filter === $value ? $meta['active'] : $meta['idle'] }}">
                     @if($filter === $value)<span aria-hidden="true">✓</span>@endif {{ $meta['label'] }}
+                    <span class="ml-1 opacity-70">{{ number_format($filterCounts[$value ?? 'all'] ?? 0, 0, ',', '.') }}</span>
                 </a>
             @endforeach
         </div>
@@ -72,6 +73,8 @@
                 </div>
                 <dl class="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
                     <div><dt class="text-xs font-bold text-slate-400">GPLH</dt><dd class="mt-1 text-slate-700">{{ $product->registrationNumber ?: '—' }}</dd></div>
+                    <div><dt class="text-xs font-bold text-slate-400">Nhóm</dt><dd class="mt-1 text-slate-700">{{ $product->circularGroup ?: '—' }}</dd></div>
+                    <div><dt class="text-xs font-bold text-slate-400">Giá kê khai</dt><dd class="mt-1 font-bold tabular-nums text-slate-800">{{ $product->declaredPrice !== null ? number_format($product->declaredPrice, 0, ',', '.') : '—' }}</dd></div>
                     <div><dt class="text-xs font-bold text-slate-400">Dạng bào chế</dt><dd class="mt-1 text-slate-700">{{ $product->dosageForm ?: '—' }}</dd></div>
                     <div class="col-span-2"><dt class="text-xs font-bold text-slate-400">Quy cách</dt><dd class="mt-1 text-slate-700">{{ $product->packaging ?: '—' }}</dd></div>
                     </dl>
@@ -90,7 +93,7 @@
         <div class="overflow-x-auto">
             <table class="min-w-full text-left text-sm">
                 <thead class="bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-500">
-                    <tr><th class="w-[22%] px-5 py-3">Tên thuốc</th><th class="w-[30%] px-5 py-3">Hoạt chất / Hàm lượng</th><th class="w-[15%] px-5 py-3">GPLH</th><th class="w-[10%] px-5 py-3">ĐVT</th><th class="w-[18%] px-5 py-3">Quy cách</th><th class="w-[5%] px-3 py-3 text-center">Xem</th></tr>
+                    <tr><th class="w-[17%] px-4 py-3">Tên thuốc</th><th class="w-[9%] px-4 py-3">Nhóm</th><th class="w-[23%] px-4 py-3">Hoạt chất / Hàm lượng</th><th class="w-[13%] px-4 py-3">GPLH</th><th class="w-[7%] px-4 py-3">ĐVT</th><th class="w-[15%] px-4 py-3">Quy cách</th><th class="w-[11%] px-4 py-3 text-right">Giá kê khai</th><th class="w-[5%] px-3 py-3 text-center">Xem</th></tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse($products as $product)
@@ -103,10 +106,12 @@
                                     @if($canViewSupplierPricing && $product->hasSupplierPricing)<span class="rounded-full bg-amber-50 px-2 py-1 text-[11px] font-bold text-amber-800 ring-1 ring-inset ring-amber-200">Giá NCC</span>@endif
                                 </div>
                             </td>
-                            <td class="px-5 py-4 text-slate-600">{{ $product->activeIngredients ?: '—' }}@if($product->strength)<br><span class="text-xs text-slate-400">{{ $product->strength }}</span>@endif</td>
+                            <td class="px-4 py-4 font-semibold text-slate-700">{{ $product->circularGroup ?: '—' }}</td>
+                            <td class="px-4 py-4 text-slate-600">{{ $product->activeIngredients ?: '—' }}@if($product->strength)<br><span class="text-xs text-slate-400">{{ $product->strength }}</span>@endif</td>
                             <td class="whitespace-nowrap px-5 py-4 text-slate-600">{{ $product->registrationNumber ?: '—' }}</td>
                             <td class="whitespace-nowrap px-5 py-4 text-slate-600">{{ $product->unit ?: '—' }}</td>
-                            <td class="px-5 py-4 text-slate-600">{{ $product->packaging ?: '—' }}</td>
+                            <td class="px-4 py-4 text-slate-600">{{ $product->packaging ?: '—' }}</td>
+                            <td class="whitespace-nowrap px-4 py-4 text-right font-bold tabular-nums text-slate-800">{{ $product->declaredPrice !== null ? number_format($product->declaredPrice, 0, ',', '.') : '—' }}</td>
                             <td class="px-3 py-4 text-center">
                                 <a href="{{ route('client.pharma.products.show', ['variant' => $product->variantId]) }}" aria-label="Xem chi tiết {{ $product->brandName }}" title="Xem chi tiết" class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-950">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="h-5 w-5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M2.25 12s3.5-6 9.75-6 9.75 6 9.75 6-3.5 6-9.75 6S2.25 12 2.25 12Z"/><circle cx="12" cy="12" r="2.75" stroke-width="1.8"/></svg>
@@ -114,7 +119,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="6" class="px-5 py-10 text-center text-slate-500">Không tìm thấy thuốc phù hợp.</td></tr>
+                        <tr><td colspan="8" class="px-5 py-10 text-center text-slate-500">Không tìm thấy thuốc phù hợp.</td></tr>
                     @endforelse
                 </tbody>
             </table>
