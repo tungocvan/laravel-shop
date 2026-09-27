@@ -235,7 +235,6 @@ final class PharmaApplicationController extends Controller
         ApplicationRegistry $registry,
         ClientPortalSettingsService $settings,
         UserPriceListWorkspace $workspace,
-        PriceListApprovalWorkflow $approval,
     ): View {
         $application = $registry->find('pharma');
         abort_if($application === null, 404);
@@ -260,6 +259,7 @@ final class PharmaApplicationController extends Controller
         ApplicationRegistry $registry,
         ClientPortalSettingsService $settings,
         UserPriceListWorkspace $workspace,
+        PriceListApprovalWorkflow $approval,
     ): View {
         $validated = $request->validate([
             'q' => ['nullable', 'string', 'max:120'],
@@ -287,6 +287,8 @@ final class PharmaApplicationController extends Controller
         $fromDate = $validated['from_date'] ?? now()->startOfMonth()->toDateString();
         $toDate = $validated['to_date'] ?? now()->toDateString();
 
+        $canApprove = $registry->userCan($user, 'client.pharma.price-lists.approve');
+
         return view('ClientPortal::applications.pharma.price-lists', [
             'application' => $application,
             'applicationPresentation' => $settings->applicationPresentation($application),
@@ -306,7 +308,8 @@ final class PharmaApplicationController extends Controller
             'fromDate' => $fromDate,
             'toDate' => $toDate,
             'canCreate' => $registry->userCan($user, 'client.pharma.price-lists.create'),
-            'canApprove' => $registry->userCan($user, 'client.pharma.price-lists.approve'),
+            'canApprove' => $canApprove,
+            'pendingApprovalCount' => $canApprove ? $approval->pendingCount() : null,
         ]);
     }
 
