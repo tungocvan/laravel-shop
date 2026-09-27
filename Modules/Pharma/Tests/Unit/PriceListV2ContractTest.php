@@ -223,6 +223,23 @@ class PriceListV2ContractTest extends TestCase
     }
 
     #[Test]
+    public function global_price_lists_support_optional_multi_user_assignment(): void
+    {
+        $migration = file_get_contents(base_path('Modules/Pharma/database/migrations/2026_09_27_020000_create_price_list_users_table.php'));
+        $model = file_get_contents(base_path('Modules/Pharma/Models/PriceList.php'));
+        $livewire = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/Create.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/workspace-bid.blade.php'));
+        foreach (['pharma_price_list_users', 'price_list_id', 'user_id'] as $text) $this->assertStringContainsString($text, $migration);
+        $this->assertStringContainsString('globalUsers(): BelongsToMany', $model);
+        $this->assertStringContainsString('isAvailableToUser', $model);
+        $this->assertStringContainsString('public bool $globalAppliesToAllUsers = true', $livewire);
+        $this->assertStringContainsString('public array $globalUserIds = []', $livewire);
+        $this->assertStringContainsString('globalUsers()->sync(', $livewire);
+        $this->assertStringContainsString('Áp dụng cho tất cả User', $view);
+        $this->assertStringContainsString('wire:model.live="globalUserIds"', $view);
+    }
+
+    #[Test]
     public function admin_workspace_has_kpis_filters_pagination_modal_and_guarded_delete(): void
     {
         $component = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/Index.php'));
