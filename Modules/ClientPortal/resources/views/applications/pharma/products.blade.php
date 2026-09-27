@@ -41,7 +41,8 @@
                 </select>
             </label>
             @if($search !== '' || $circularGroup !== '' || $filter !== null)
-                <div class="flex items-end lg:h-full">
+                <div class="flex flex-col">
+                    <span class="mb-1.5 block select-none text-xs font-bold uppercase tracking-wide text-transparent" aria-hidden="true">Thao tác</span>
                     <a href="{{ route('client.pharma.products', ['per_page' => $perPage]) }}" class="inline-flex h-[46px] w-full items-center justify-center whitespace-nowrap rounded-2xl border border-slate-300 px-4 text-sm font-bold text-slate-700 transition hover:border-slate-400 hover:text-slate-950 lg:w-auto">Xóa bộ lọc</a>
                 </div>
             @endif
