@@ -38,8 +38,14 @@ class MedicineCatalog
                             ->orWhere('registration_number_primary', 'like', "%{$search}%"));
                 });
             })
-            ->orderByDesc('is_default')
-            ->orderByDesc('id')
+            ->leftJoin('pharma_medicines as catalog_medicines', 'catalog_medicines.id', '=', 'pharma_medicine_variants.medicine_id')
+            ->select('pharma_medicine_variants.*')
+            ->orderByRaw("CASE WHEN catalog_medicines.circular_group IS NULL OR catalog_medicines.circular_group = '' THEN 1 ELSE 0 END")
+            ->orderBy('catalog_medicines.circular_group')
+            ->orderByRaw("CASE WHEN catalog_medicines.circular_order_number IS NULL OR catalog_medicines.circular_order_number = '' THEN 1 ELSE 0 END")
+            ->orderBy('catalog_medicines.circular_order_number')
+            ->orderBy('catalog_medicines.name')
+            ->orderBy('pharma_medicine_variants.sku')
             ->paginate($perPage, ['*'], 'page', max(1, $page));
 
         $paginator->setCollection(
@@ -48,6 +54,25 @@ class MedicineCatalog
         );
 
         return $paginator;
+    }
+
+    public function filterCounts(bool $includeSupplierPricing = false): array
+    {
+        $base = MedicineVariant::query()->whereHas('medicine');
+
+        $counts = [
+            'all' => (clone $base)->count(),
+            'awarded' => (clone $base)->whereHas('medicine.drugBidAwards')->count(),
+            'profile' => (clone $base)->whereHas('medicine.currentProfile')->count(),
+        ];
+
+        if ($includeSupplierPricing) {
+            $counts['supplier-priced'] = (clone $base)
+                ->whereHas('medicine.supplierTrackings', fn ($tracking) => $tracking->whereNotNull('import_price'))
+                ->count();
+        }
+
+        return $counts;
     }
 
     public function overview(int $variantId, bool $includeSupplierPricing = false): ?array
