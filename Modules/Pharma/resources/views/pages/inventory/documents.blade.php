@@ -10,32 +10,43 @@
             <p class="mt-1 text-sm text-slate-500">Tra cứu chứng từ, trạng thái và ghi sổ phiếu nháp.</p>
         </div>
         <div class="flex flex-wrap gap-2">
-            @if($type === 'issue')@can('edit_pharma')<a href="{{ route('admin.pharma.inventory.issues.settings') }}" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">⚙ Cấu hình phiếu xuất</a>@endcan<a href="{{ route('admin.pharma.inventory.issues.export',request()->only(['q','status'])) }}" class="rounded-xl border border-emerald-300 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-700">Export Excel</a>@endif
+            @if($type === 'issue')@can('edit_pharma')<a href="{{ route('admin.pharma.inventory.issues.settings') }}" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">⚙ Cấu hình phiếu xuất</a>@endcan<a href="{{ route('admin.pharma.inventory.issues.export',request()->only(['q','status','manager_user_id','recipient_name'])) }}" class="rounded-xl border border-emerald-300 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-700">Export Excel</a>@endif
             @if($type === 'issue')<a href="{{ route('admin.pharma.inventory.issues.bid-sales.create') }}" class="rounded-xl border border-indigo-300 bg-indigo-50 px-4 py-2.5 text-sm font-semibold text-indigo-700">+ Xuất bán hàng thầu</a>@endif
             <a href="{{ route($type === 'receipt' ? 'admin.pharma.inventory.receipts.create' : 'admin.pharma.inventory.issues.create') }}" class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white">+ {{ $type === 'receipt' ? 'Lập phiếu nhập' : 'Lập phiếu xuất' }}</a>
         </div>
     </header>
 
-    <form method="GET" class="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[minmax(260px,1fr)_auto_auto_auto]">
-        <input name="q" value="{{ request('q') }}" placeholder="{{ $type === 'receipt' ? 'Tìm mã phiếu / nhà cung cấp' : 'Tìm mã phiếu / nơi nhận' }}" class="min-h-11 rounded-xl border border-slate-300 px-3 text-sm">
-        <select name="status" onchange="this.form.submit()" class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm">
-            <option value="">Tất cả trạng thái</option>
-            <option value="draft" @selected(request('status') === 'draft')>Nháp</option>
-            <option value="posted" @selected(request('status') === 'posted')>Đã ghi sổ</option>
-        </select>
-        <select name="per_page" onchange="this.form.submit()" class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm">
-            @foreach([25,50,100] as $size)<option value="{{ $size }}" @selected((int)request('per_page',25)===$size)>{{ $size }} / trang</option>@endforeach
-        </select>
-        <button class="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white">Tìm</button>
+    <form method="GET" id="document-filters" class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="grid gap-3 {{ $type === 'issue' ? 'lg:grid-cols-12' : 'md:grid-cols-[minmax(260px,1fr)_auto_auto_auto]' }}">
+            <input name="q" value="{{ request('q') }}" placeholder="{{ $type === 'receipt' ? 'Tìm mã phiếu / nhà cung cấp' : 'Tìm mã phiếu / nơi nhận' }}" class="min-h-11 rounded-xl border border-slate-300 px-3 text-sm {{ $type === 'issue' ? 'lg:col-span-4' : '' }}">
+            @if($type === 'issue')
+                <div class="lg:col-span-2"><x-select-search id="issue-manager-filter" name="manager_user_id" placeholder="Tìm người phụ trách..."><option value="">Tất cả người phụ trách</option>@foreach($issueManagers as $manager)<option value="{{ $manager->id }}" @selected((string)request('manager_user_id')===(string)$manager->id)>{{ $manager->name }}</option>@endforeach</x-select-search></div>
+                <div class="lg:col-span-3"><x-select-search id="issue-recipient-filter" name="recipient_name" placeholder="Tìm khách hàng / nơi nhận..."><option value="">Tất cả khách hàng / nơi nhận</option>@foreach($issueRecipients as $recipient)<option value="{{ $recipient }}" @selected(request('recipient_name')===$recipient)>{{ $recipient }}</option>@endforeach</x-select-search></div>
+            @endif
+            <select name="status" class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm {{ $type === 'issue' ? 'lg:col-span-1' : '' }}"><option value="">Tất cả trạng thái</option><option value="draft" @selected(request('status') === 'draft')>Nháp</option><option value="posted" @selected(request('status') === 'posted')>Đã ghi sổ</option></select>
+            <select name="per_page" onchange="this.form.submit()" class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm {{ $type === 'issue' ? 'lg:col-span-1' : '' }}">@foreach([25,50,100] as $size)<option value="{{ $size }}" @selected((int)request('per_page',25)===$size)>{{ $size }} / trang</option>@endforeach</select>
+            <button class="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white {{ $type === 'issue' ? 'lg:col-span-1' : '' }}">Tìm</button>
+        </div>
+        @if($type === 'issue' && request()->hasAny(['q','manager_user_id','recipient_name','status']))<div class="mt-3 flex justify-end"><a href="{{ route('admin.pharma.inventory.issues.index') }}" class="text-sm font-semibold text-slate-500 hover:text-slate-800">Xóa bộ lọc</a></div>@endif
     </form>
+
+    @if($type === 'issue')
+    <form id="selected-export-form" method="GET" action="{{ route('admin.pharma.inventory.issues.export') }}" class="hidden items-center justify-between gap-3 rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3" data-selection-toolbar>
+        @foreach(request()->only(['q','status','manager_user_id','recipient_name']) as $key=>$value)@if(filled($value))<input type="hidden" name="{{ $key }}" value="{{ $value }}">@endif @endforeach
+        <div class="text-sm text-slate-700"><strong data-selected-count>0</strong> phiếu đã chọn <button type="button" data-clear-selection class="ml-2 font-semibold text-indigo-700">Bỏ chọn tất cả</button></div>
+        <button class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white">Xuất Excel đã chọn (<span data-selected-button-count>0</span>)</button>
+    </form>
+    @endif
 
     <section class="flex min-h-0 flex-1 flex-col rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div class="min-h-[420px] flex-1 overflow-auto rounded-t-2xl">
-            <table class="{{ $type === 'issue' ? 'min-w-[1120px]' : 'min-w-[900px]' }} w-full table-fixed text-left text-sm">
+            <table class="{{ $type === 'issue' ? 'min-w-[1320px]' : 'min-w-[900px]' }} w-full table-fixed text-left text-sm">
                 <thead class="sticky top-0 z-10 bg-slate-50 text-xs uppercase text-slate-600 shadow-[0_1px_0_0_rgb(226_232_240)]">
                     <tr>
+                        @if($type === 'issue')<th class="w-[52px] px-4 py-3"><input type="checkbox" data-select-page aria-label="Chọn tất cả phiếu trên trang" class="h-4 w-4 rounded border-slate-300"></th>@endif
                         <th class="w-[180px] px-4 py-3">Mã phiếu</th><th class="w-[110px] px-4 py-3">Ngày</th>
                         <th class="px-4 py-3">{{ $type === 'receipt' ? 'Nhà cung cấp' : 'Khách hàng / Nơi nhận' }}</th>
+                        @if($type === 'issue')<th class="w-[190px] px-4 py-3">Người phụ trách</th>@endif
                         <th class="w-[100px] px-4 py-3 text-right">Mặt hàng</th><th class="w-[160px] px-4 py-3 text-right">Tổng giá trị</th>
                         <th class="w-[125px] px-4 py-3">Trạng thái</th><th class="{{ $type === 'issue' ? 'w-[150px]' : 'w-[230px]' }} px-4 py-3 text-right">Thao tác</th>
                     </tr>
@@ -48,9 +59,11 @@
                             $postRoute=$type === 'receipt' ? route('admin.pharma.inventory.receipts.post',$doc) : route('admin.pharma.inventory.issues.post',$doc);
                         @endphp
                         <tr class="transition hover:bg-slate-50/70">
+                            @if($type === 'issue')<td class="px-4 py-4"><input type="checkbox" name="ids[]" value="{{ $doc->id }}" form="selected-export-form" data-row-select class="h-4 w-4 rounded border-slate-300" aria-label="Chọn phiếu {{ $doc->number }}"></td>@endif
                             <td class="whitespace-nowrap px-4 py-4"><div class="font-mono font-bold text-indigo-700">{{ $doc->number }}</div>@if($type === 'issue' && ($doc->issue_source ?? 'normal') === 'bid')<span class="mt-1 inline-flex rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-bold uppercase text-violet-700">Hàng thầu</span>@endif</td>
                             <td class="whitespace-nowrap px-4 py-4 text-slate-600">{{ $date->format('d/m/Y') }}</td>
-                            <td class="px-4 py-4"><div class="truncate font-semibold text-slate-800" title="{{ $party ?: '—' }}">{{ $party ?: '—' }}</div>@if($type === 'issue' && $doc->priceList?->manager)<div class="mt-1 truncate text-xs text-slate-500">{{ $doc->priceList->manager->name }}</div>@endif</td>
+                            <td class="px-4 py-4"><div class="truncate font-semibold text-slate-800" title="{{ $party ?: '—' }}">{{ $party ?: '—' }}</div></td>
+                            @if($type === 'issue')<td class="px-4 py-4"><div class="truncate font-medium text-slate-700" title="{{ $doc->manager?->name ?: 'Chưa phân công' }}">{{ $doc->manager?->name ?: '—' }}</div>@if(!$doc->manager)<span class="mt-1 inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">Chưa phân công</span>@endif</td>@endif
                             <td class="px-4 py-4 text-right">{{ $doc->items_count }}</td>
                             <td class="px-4 py-4 text-right font-semibold">{{ number_format((float)$doc->total_value,0,',','.').' đ' }}</td>
                             <td class="px-4 py-4">
@@ -162,7 +175,7 @@
                             </dialog>
                         @endif
                     @empty
-                        <tr><td colspan="7" class="px-6 py-12 text-center text-slate-500">Chưa có chứng từ.</td></tr>
+                        <tr><td colspan="{{ $type === 'issue' ? 9 : 7 }}" class="px-6 py-12 text-center text-slate-500">Chưa có chứng từ.</td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -186,6 +199,25 @@ document.addEventListener('DOMContentLoaded', () => {
             if (menu.open && !menu.contains(event.target)) menu.removeAttribute('open');
         });
     });
+});
+@if($type === 'issue')
+    const rows=[...document.querySelectorAll('[data-row-select]')];
+    const all=document.querySelector('[data-select-page]');
+    const toolbar=document.querySelector('[data-selection-toolbar]');
+    const count=document.querySelector('[data-selected-count]');
+    const buttonCount=document.querySelector('[data-selected-button-count]');
+    const refreshSelection=()=>{
+        const selected=rows.filter(row=>row.checked).length;
+        if(count) count.textContent=selected;
+        if(buttonCount) buttonCount.textContent=selected;
+        if(toolbar){toolbar.classList.toggle('hidden',selected===0);toolbar.classList.toggle('flex',selected>0);}
+        if(all){all.checked=rows.length>0 && selected===rows.length;all.indeterminate=selected>0 && selected<rows.length;}
+    };
+    all?.addEventListener('change',()=>{rows.forEach(row=>row.checked=all.checked);refreshSelection();});
+    rows.forEach(row=>row.addEventListener('change',refreshSelection));
+    document.querySelector('[data-clear-selection]')?.addEventListener('click',()=>{rows.forEach(row=>row.checked=false);refreshSelection();});
+    refreshSelection();
+@endif
 });
 </script>
 @endsection
