@@ -169,11 +169,11 @@ class Index extends Component
 
     public function render()
     {
-        $query = PriceList::query()->with(['partner', 'officialFacility', 'manager'])->withCount('items')
+        $query = PriceList::query()->with(['partner', 'officialFacility', 'manager', 'globalUsers'])->withCount('items')
             ->when($this->search !== '', fn ($q) => $q->where(fn ($inner) => $inner->where('code', 'like', '%'.$this->search.'%')->orWhere('name', 'like', '%'.$this->search.'%')))
             ->when($this->type !== 'all', fn ($q) => $q->where('type', $this->type))
             ->when($this->status !== 'all', fn ($q) => $q->where('status', $this->status))
-            ->when($this->managerUserId !== 'all', fn ($q) => $q->where('manager_user_id', (int) $this->managerUserId))
+            ->when($this->managerUserId !== 'all', fn ($q) => $q->where(fn ($userScope) => $userScope->where('manager_user_id', (int) $this->managerUserId)->orWhereHas('globalUsers', fn ($users) => $users->whereKey((int) $this->managerUserId))))
             ->when($this->appliedEffectiveFrom !== '', fn ($q) => $q->where(fn ($dates) => $dates->whereNull('effective_to')->orWhereDate('effective_to', '>=', $this->appliedEffectiveFrom)))
             ->when($this->appliedEffectiveTo !== '', fn ($q) => $q->where(fn ($dates) => $dates->whereNull('effective_from')->orWhereDate('effective_from', '<=', $this->appliedEffectiveTo)))
             ->orderBy(in_array($this->sortField, ['effective_from', 'effective_to'], true) ? $this->sortField : 'updated_at', $this->sortDirection === 'asc' ? 'asc' : 'desc');
@@ -190,7 +190,10 @@ class Index extends Component
         ];
 
         $managers = \App\Models\User::query()
-            ->whereIn('id', PriceList::query()->whereNotNull('manager_user_id')->select('manager_user_id'))
+            ->where(function ($query): void {
+                $query->whereIn('id', PriceList::query()->whereNotNull('manager_user_id')->select('manager_user_id'))
+                    ->orWhereIn('id', \Illuminate\Support\Facades\DB::table('pharma_price_list_users')->select('user_id'));
+            })
             ->orderBy('name')
             ->get(['id', 'name']);
 
