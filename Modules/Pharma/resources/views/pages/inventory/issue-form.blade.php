@@ -105,12 +105,12 @@
             </select>
         </div>
         <div class="col-span-1">
-            <input type="number" step="0.001" min="0.001" data-field="quantity" required placeholder="Số lượng xuất" class="issue-quantity min-h-11 w-full rounded-xl border border-slate-300 px-3">
+            <input type="text" inputmode="decimal" data-field="quantity" required placeholder="Số lượng" class="issue-quantity min-h-11 w-full rounded-xl border border-slate-300 px-3 text-right tabular-nums">
             <p class="issue-stock-warning mt-1 hidden text-[11px] font-semibold text-rose-600"></p>
         </div>
         <div class="col-span-2">
-            <input type="number" step="0.01" min="0" data-field="unit_price" required value="0" placeholder="Đơn giá xuất" class="issue-unit-price min-h-11 w-full rounded-xl border border-slate-300 px-3 text-right">
-            <p class="issue-price-source mt-1 text-[11px] text-slate-500">Chưa có giá · có thể nhập tay</p>
+            <input type="text" inputmode="decimal" data-field="unit_price" required value="0" placeholder="Đơn giá" class="issue-unit-price min-h-11 w-full rounded-xl border border-slate-300 px-3 text-right tabular-nums">
+            <div class="mt-1 flex min-h-5 items-center justify-between gap-2"><p class="issue-price-source truncate text-[11px] text-slate-500">Chưa có giá · có thể nhập tay</p><button type="button" class="issue-reset-price hidden shrink-0 text-[11px] font-semibold text-indigo-700 hover:underline">Đặt lại giá gốc</button></div>
         </div>
         <div class="col-span-2 flex min-h-11 items-center justify-end pr-2">
             <span class="issue-line-total text-sm font-semibold text-slate-800">0 đ</span>
@@ -157,6 +157,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const grandTotal = document.getElementById('issue-grand-total');
     const container = document.getElementById('issue-items');
     const template = document.getElementById('issue-row-template');
+
+    function parseViNumber(value) {
+        const raw=String(value ?? '').trim().replace(/\s/g,'');
+        if(!raw) return 0;
+        if(raw.includes(',')) return Number(raw.replace(/\./g,'').replace(',','.')) || 0;
+        const dots=(raw.match(/\./g)||[]).length;
+        if(dots>1 || (dots===1 && /\.\d{3}$/.test(raw))) return Number(raw.replace(/\./g,'')) || 0;
+        return Number(raw) || 0;
+    }
+
+    function formatViNumber(value,maximumFractionDigits=3) {
+        return new Intl.NumberFormat('vi-VN',{maximumFractionDigits}).format(Number(value)||0);
+    }
+
+    function normalizeNumericInput(input,maximumFractionDigits=3) {
+        const value=parseViNumber(input.value);
+        input.value=formatViNumber(value,maximumFractionDigits);
+        return value;
+    }
 
     function renumberRows() {
         container.querySelectorAll('.issue-item-row').forEach((row,index) => {
@@ -266,18 +285,29 @@ document.addEventListener('DOMContentLoaded', () => {
         const source=row.querySelector('.issue-price-source');
         const candidate=resolveSalePrice(medicineId);
         const price=candidate?.company_sale_price === null || candidate?.company_sale_price === undefined ? 0 : Number(candidate.company_sale_price);
-        input.value=Number.isFinite(price) ? price : 0;
+        const originalPrice=Number.isFinite(price) ? price : 0;
+        row.dataset.originalPrice=String(originalPrice);
+        input.value=formatViNumber(originalPrice,2);
         source.textContent=candidate
-            ? `Giá bán CT · ${candidate.price_list_code || candidate.price_list_name || 'Bảng giá active'}${price===0?' · giá 0, có thể nhập tay':''}`
-            : 'Chưa có Giá bán CT · mặc định 0, có thể nhập tay';
+            ? `Giá bảng: ${formatViNumber(originalPrice,2)} đ · ${candidate.price_list_code || candidate.price_list_name || 'Bảng giá'}`
+            : 'Chưa có giá bảng · có thể nhập tay';
+        updateResetPriceState(row);
         updateLineTotal(row);
+    }
+
+    function updateResetPriceState(row) {
+        const input=row.querySelector('.issue-unit-price');
+        const reset=row.querySelector('.issue-reset-price');
+        const original=Number(row.dataset.originalPrice || 0);
+        const changed=Math.abs(parseViNumber(input?.value)-original)>0.000001;
+        reset?.classList.toggle('hidden',!changed);
     }
 
     function updateOrderSummary() {
         const rows=[...container.querySelectorAll('.issue-item-row')];
         const activeRows=rows.filter((row)=>row.querySelector('.issue-medicine-select')?.value);
-        const quantity=rows.reduce((sum,row)=>sum+Number(row.querySelector('.issue-quantity')?.value || 0),0);
-        const total=rows.reduce((sum,row)=>sum+(Number(row.querySelector('.issue-quantity')?.value || 0)*Number(row.querySelector('.issue-unit-price')?.value || 0)),0);
+        const quantity=rows.reduce((sum,row)=>sum+parseViNumber(row.querySelector('.issue-quantity')?.value),0);
+        const total=rows.reduce((sum,row)=>sum+(parseViNumber(row.querySelector('.issue-quantity')?.value)*parseViNumber(row.querySelector('.issue-unit-price')?.value)),0);
         const label=`${activeRows.length} sản phẩm`;
         itemCount.textContent=label; footerCount.textContent=label;
         footerQuantity.textContent=`· Tổng SL ${new Intl.NumberFormat('vi-VN',{maximumFractionDigits:3}).format(quantity)}`;
@@ -285,8 +315,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateLineTotal(row) {
-        const quantity=Number(row.querySelector('.issue-quantity')?.value || 0);
-        const price=Number(row.querySelector('.issue-unit-price')?.value || 0);
+        const quantity=parseViNumber(row.querySelector('.issue-quantity')?.value);
+        const price=parseViNumber(row.querySelector('.issue-unit-price')?.value);
         row.querySelector('.issue-line-total').textContent=new Intl.NumberFormat('vi-VN',{maximumFractionDigits:0}).format(quantity*price)+' đ';
         updateStockWarning(row); updateOrderSummary();
     }
@@ -296,7 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const lotSelect=row.querySelector('.issue-balance-select');
         const warning=row.querySelector('.issue-stock-warning');
         const balance=balances.find((item)=>String(item.id)===String(lotSelect?.value || ''));
-        const quantity=Number(quantityInput?.value || 0);
+        const quantity=parseViNumber(quantityInput?.value);
         const available=Number(balance?.quantity || 0);
         const after=available-quantity;
         const isNegative=Boolean(balance) && quantity>available;
@@ -342,12 +372,28 @@ document.addEventListener('DOMContentLoaded', () => {
         medicineTom.disable();
         if(priceListSelect.value) applyPriceListToRow(row,false);
         medicineSelect.addEventListener('change',(event)=>{ fillLots(row,event.target.value); refreshPrice(row); });
-        row.querySelector('.issue-quantity').addEventListener('input',()=>updateLineTotal(row));
+        const quantityInput=row.querySelector('.issue-quantity');
+        const priceInput=row.querySelector('.issue-unit-price');
+        quantityInput.addEventListener('input',()=>updateLineTotal(row));
+        quantityInput.addEventListener('blur',()=>{ normalizeNumericInput(quantityInput,3); updateLineTotal(row); });
         row.querySelector('.issue-balance-select').addEventListener('change',()=>updateStockWarning(row));
-        row.querySelector('.issue-unit-price').addEventListener('input',()=>updateLineTotal(row));
+        priceInput.addEventListener('input',()=>{ updateResetPriceState(row); updateLineTotal(row); });
+        priceInput.addEventListener('blur',()=>{ normalizeNumericInput(priceInput,2); updateResetPriceState(row); updateLineTotal(row); });
+        row.querySelector('.issue-reset-price').addEventListener('click',()=>{
+            priceInput.value=formatViNumber(Number(row.dataset.originalPrice || 0),2);
+            updateResetPriceState(row); updateLineTotal(row); priceInput.focus();
+        });
         renumberRows();
     }
 
+    document.querySelector('form')?.addEventListener('submit',()=>{
+        container.querySelectorAll('.issue-item-row').forEach((row)=>{
+            const quantity=row.querySelector('.issue-quantity');
+            const price=row.querySelector('.issue-unit-price');
+            if(quantity) quantity.value=String(parseViNumber(quantity.value));
+            if(price) price.value=String(parseViNumber(price.value));
+        });
+    });
     document.getElementById('add-issue-row').addEventListener('click',addRow);
     recipientSelect?.addEventListener('change',()=>{
         const partner=partners.find((item)=>String(item.id)===String(recipientSelect.value));
