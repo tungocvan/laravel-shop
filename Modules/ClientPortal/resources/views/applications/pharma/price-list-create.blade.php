@@ -46,10 +46,10 @@
             @if(!$sourcePriceListId)
                 <div class="p-8 text-center text-sm text-slate-500">Chọn bảng giá tại Bước 02 để tải sản phẩm.</div>
             @else
-                <div class="max-h-[620px] overflow-auto"><table class="w-full min-w-[980px] text-left text-sm"><thead class="sticky top-0 bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-500"><tr><th class="w-12 px-4 py-3"><input id="select-all-source-products" type="checkbox" class="h-5 w-5 rounded border-slate-300" title="Chọn/bỏ tất cả sản phẩm đang hiển thị"></th><th class="px-4 py-3">Thuốc</th><th class="px-4 py-3">Hoạt chất</th><th class="px-4 py-3 text-right">Giá kê khai</th><th class="px-4 py-3 text-right">Giá gốc</th><th class="w-48 px-4 py-3">Giá bán CT *</th></tr></thead><tbody class="divide-y divide-slate-100">
+                <div class="max-h-[620px] overflow-auto"><table class="w-full min-w-[980px] text-left text-sm"><thead class="sticky top-0 bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-500"><tr><th class="w-12 px-4 py-3"><input id="select-all-source-products" type="checkbox" class="h-5 w-5 rounded border-slate-300" title="Chọn/bỏ tất cả sản phẩm đang hiển thị"></th><th class="px-4 py-3">Thuốc</th><th class="px-4 py-3">Hoạt chất</th><th class="px-4 py-3 text-right">Giá kê khai</th><th class="w-48 px-4 py-3 text-right">Giá Bán (VAT) *</th></tr></thead><tbody class="divide-y divide-slate-100">
                 @forelse($sourceProducts as $sourceItem) @php $product=$sourceItem->variant; $medicine=$product?->medicine; @endphp
-                    <tr class="source-product-row" data-search="{{ mb_strtolower(($medicine?->name ?? '').' '.($product?->sku ?? '').' '.($medicine?->active_ingredients ?? '').' '.($medicine?->registration_number ?? '')) }}"><td class="px-4 py-3"><input type="checkbox" data-source-product-checkbox name="selected[{{ $product->id }}]" value="1" @checked(old('selected.'.$product->id, $isEditing ? $selectedExisting->has($product->id) : true)) class="h-5 w-5 rounded border-slate-300"></td><td class="px-4 py-3"><p class="font-black">{{ $medicine?->name }}</p><p class="mt-1 text-xs text-slate-400">{{ $product?->sku }} · {{ $medicine?->packaging_specification }}</p></td><td class="px-4 py-3 text-slate-600">{{ $medicine?->active_ingredients ?: '—' }}</td><td class="px-4 py-3 text-right font-bold tabular-nums">{{ $sourceItem->declared_price_snapshot !== null ? number_format((float)$sourceItem->declared_price_snapshot,0,',','.') : '—' }}</td><td class="px-4 py-3 text-right font-black tabular-nums">{{ $sourceItem->company_sale_price !== null ? number_format((float)$sourceItem->company_sale_price,0,',','.') : '—' }}</td><td class="px-4 py-3"><input type="number" min="0" step="1" name="company_price[{{ $product->id }}]" value="{{ old('company_price.'.$product->id, $isEditing && $selectedExisting->has($product->id) ? (int)$selectedExisting->get($product->id)->company_sale_price : ($sourceItem->company_sale_price !== null ? (int)$sourceItem->company_sale_price : '')) }}" class="h-10 w-full rounded-xl border border-slate-300 px-3 text-right font-bold tabular-nums"></td></tr>
-                @empty <tr><td colspan="6" class="p-8 text-center text-slate-500">Bảng giá gốc chưa có sản phẩm ACTIVE.</td></tr> @endforelse
+                    <tr class="source-product-row" data-search="{{ mb_strtolower(($medicine?->name ?? '').' '.($product?->sku ?? '').' '.($medicine?->active_ingredients ?? '').' '.($medicine?->registration_number ?? '')) }}"><td class="px-4 py-3"><input type="checkbox" data-source-product-checkbox name="selected[{{ $product->id }}]" value="1" @checked(old('selected.'.$product->id, $isEditing ? $selectedExisting->has($product->id) : true)) class="h-5 w-5 rounded border-slate-300"></td><td class="px-4 py-3"><p class="font-black">{{ $medicine?->name }}</p><p class="mt-1 text-xs text-slate-400">{{ $product?->sku }} · {{ $medicine?->packaging_specification }}</p></td><td class="px-4 py-3 text-slate-600">{{ $medicine?->active_ingredients ?: '—' }}</td><td class="px-4 py-3 text-right font-bold tabular-nums">{{ $sourceItem->declared_price_snapshot !== null ? number_format((float)$sourceItem->declared_price_snapshot,0,',','.') : '—' }}</td><td class="px-4 py-3"><input type="text" inputmode="numeric" data-money-input data-raw-value="{{ old('company_price.'.$product->id, $isEditing && $selectedExisting->has($product->id) ? (int)$selectedExisting->get($product->id)->company_sale_price : ($sourceItem->company_sale_price !== null ? (int)$sourceItem->company_sale_price : '')) }}" name="company_price[{{ $product->id }}]" value="{{ ($v = old('company_price.'.$product->id, $isEditing && $selectedExisting->has($product->id) ? (int)$selectedExisting->get($product->id)->company_sale_price : ($sourceItem->company_sale_price !== null ? (int)$sourceItem->company_sale_price : ''))) !== '' ? number_format((float)str_replace('.', '', (string)$v),0,',','.') : '' }}" class="h-10 w-full rounded-xl border border-slate-300 px-3 text-right font-bold tabular-nums"></td></tr>
+                @empty <tr><td colspan="5" class="p-8 text-center text-slate-500">Bảng giá gốc chưa có sản phẩm ACTIVE.</td></tr> @endforelse
                 </tbody></table></div>
             @endif
         </section>
@@ -132,6 +132,19 @@ window.addEventListener('load', () => {
     selectAll?.addEventListener('change', () => { visibleCheckboxes().forEach(box => box.checked = selectAll.checked); syncSelectAll(); });
     rows.forEach(row => row.querySelector('[data-source-product-checkbox]')?.addEventListener('change', syncSelectAll));
     syncSelectAll();
+
+    const moneyInputs = [...document.querySelectorAll('[data-money-input]')];
+    const digits = value => String(value || '').replace(/\D/g, '');
+    const formatMoney = value => digits(value).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    moneyInputs.forEach(input => {
+        input.value = formatMoney(input.value);
+        input.addEventListener('input', () => {
+            const caretAtEnd = input.selectionStart === input.value.length;
+            input.value = formatMoney(input.value);
+            if (caretAtEnd) input.setSelectionRange(input.value.length, input.value.length);
+        });
+    });
+    form?.addEventListener('submit', () => moneyInputs.forEach(input => { input.value = digits(input.value); }));
 });
 </script>
 @endsection
