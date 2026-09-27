@@ -39,7 +39,7 @@
         <div class="mt-4 flex flex-wrap gap-2">
             @foreach($statuses as $value => $meta)
                 @php $normalizedValue = $value === '' ? null : $value; $active = $status === $normalizedValue; $countKey = $normalizedValue ?? 'all'; @endphp
-                <a href="{{ route('client.pharma.price-lists', array_filter(['q' => $search, 'per_page' => $perPage, 'status' => $normalizedValue], fn($v) => $v !== null && $v !== '')) }}"
+                <a href="{{ route('client.pharma.price-lists', array_filter(['q' => $search, 'per_page' => $perPage, 'status' => $normalizedValue, 'from_date' => $fromDate, 'to_date' => $toDate], fn($v) => $v !== null && $v !== '')) }}"
                    class="rounded-full border px-3.5 py-2 text-xs font-bold {{ $active ? ($meta['class'] === 'emerald' ? 'border-emerald-600 bg-emerald-600 text-white' : ($meta['class'] === 'amber' ? 'border-amber-500 bg-amber-500 text-white' : 'border-slate-700 bg-slate-700 text-white')) : 'border-slate-200 bg-white text-slate-600' }}">
                     @if($active)✓ @endif{{ $meta['label'] }} <span class="ml-1 opacity-70">{{ $counts[$countKey] ?? 0 }}</span>
                 </a>
