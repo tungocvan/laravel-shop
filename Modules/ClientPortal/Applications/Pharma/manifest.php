@@ -25,6 +25,13 @@ return [
             'permission' => 'client.pharma.products.view',
             'icon' => 'beaker',
             'sort_order' => 20,
+            'actions' => [
+                'supplier-pricing' => [
+                    'name' => 'Xem giá nhà cung cấp',
+                    'permission' => 'client.pharma.products.supplier-pricing',
+                    'sort_order' => 10,
+                ],
+            ],
         ],
     ],
     'features' => [
