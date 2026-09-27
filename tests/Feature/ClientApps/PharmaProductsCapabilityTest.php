@@ -55,6 +55,8 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString("\$filter === 'profile'", $service);
         $this->assertStringContainsString("\$filter === 'supplier-priced' && \$allowSupplierPricing", $service);
         $this->assertStringContainsString("whereNotNull('import_price')", $service);
+        $this->assertStringContainsString('public function circularGroups(): Collection', $service);
+        $this->assertStringContainsString("where('circular_group', \$circularGroup)", $service);
         $this->assertStringContainsString('public function filterCounts(bool $includeSupplierPricing = false): array', $service);
         $this->assertStringContainsString("orderBy('catalog_medicines.circular_group')", $service);
         $this->assertStringContainsString("orderBy('catalog_medicines.circular_order_number')", $service);
@@ -76,6 +78,9 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString('MedicineCatalog $catalog', $controller);
         $this->assertStringContainsString('$catalog->browse(', $controller);
         $this->assertStringContainsString('$catalog->filterCounts($canViewSupplierPricing)', $controller);
+        $this->assertStringContainsString("'group' => ['nullable', 'string', 'max:100']", $controller);
+        $this->assertStringContainsString('$catalog->circularGroups()', $controller);
+        $this->assertStringContainsString('circularGroup: $circularGroup', $controller);
         $this->assertStringContainsString("client.pharma.products.supplier-pricing", $controller);
         $this->assertStringContainsString("abort_if(\$filter === 'supplier-priced' && ! \$canViewSupplierPricing, 403)", $controller);
         $this->assertStringContainsString('$catalog->overview($variant, $canViewSupplierPricing)', $controller);
@@ -88,6 +93,10 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString('Có HSSP', $view);
         $this->assertStringContainsString('Có giá NCC', $view);
         $this->assertStringContainsString('$filterCounts[$value ?? \'all\']', $view);
+        $this->assertStringContainsString('name="group"', $view);
+        $this->assertStringContainsString('Tất cả nhóm', $view);
+        $this->assertStringContainsString('@foreach($circularGroups as $group)', $view);
+        $this->assertStringContainsString("'group' => \$circularGroup", $view);
         $this->assertStringContainsString('>Nhóm</th>', $view);
         $this->assertStringContainsString('>Giá kê khai</th>', $view);
         $this->assertStringContainsString('$product->circularGroup', $view);
