@@ -199,22 +199,69 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("name('issues.revert')", $routes);
         $this->assertStringContainsString("name('issues.export')", $routes);
         $this->assertStringContainsString('function exportIssues', $controller);
+        $this->assertStringContainsString('<x-select-search id="issue-manager-filter"', $documents);
+        $this->assertStringContainsString('<x-select-search id="issue-recipient-filter"', $documents);
+        $this->assertStringContainsString('Người phụ trách', $documents);
+        $this->assertStringContainsString('data-select-page', $documents);
+        $this->assertStringContainsString('data-row-select', $documents);
+        $this->assertStringContainsString('Xuất Excel đã chọn', $documents);
+        $this->assertStringContainsString("request()->only(['q','status','manager_user_id','recipient_name','date_from','date_to'])", $documents);
+        $this->assertStringContainsString("\$managerId=\$request->filled('manager_user_id')", $controller);
+        $this->assertStringContainsString("filter_assignments.user_id", $controller);
+        $this->assertStringContainsString("issueManagerNames(\$issue)", $controller);
+        $this->assertStringContainsString("resolved_manager_names", $documents);
+        $this->assertStringContainsString('data-auto-submit-filter', $documents);
+        $this->assertStringContainsString("filterForm?.requestSubmit()", $documents);
+        $this->assertStringContainsString('Đặt lại', $documents);
+        $this->assertStringContainsString('id="issue-keyword-filter"', $documents);
+        $this->assertStringContainsString('data-clear-keyword', $documents);
+        $this->assertStringContainsString('name="date_from"', $documents);
+        $this->assertStringContainsString('name="date_to"', $documents);
+        $this->assertStringContainsString('aria-label="Từ ngày"', $documents);
+        $this->assertStringContainsString('aria-label="Đến ngày"', $documents);
+        $this->assertStringContainsString('class="min-h-11 w-full rounded-xl border border-slate-300 bg-white pl-10', $documents);
+        $this->assertStringNotContainsString('>Từ ngày<input type="date"', $documents);
+        $this->assertStringNotContainsString('>Đến ngày<input type="date"', $documents);
+        $this->assertStringContainsString("keyword.value='';filterForm?.requestSubmit()", $documents);
+        $this->assertStringContainsString("now()->startOfMonth()->toDateString()", $controller);
+        $this->assertStringContainsString("now()->toDateString()", $controller);
+        $this->assertStringContainsString("whereBetween('issue_date',[\$dateFrom,\$dateTo])", $controller);
+        $this->assertStringContainsString("\$selectedManagerId=\$issue->manager_user_id ?:", $issueEdit);
+        $this->assertStringContainsString("name=\"price_list_id\" value=\"{{ \$selectedPriceList?->id }}\"", $issueEdit);
+        $this->assertStringContainsString('Đã khóa', $issueEdit);
+        $this->assertStringContainsString('Bảng giá của phiếu đã lập không thể thay đổi.', $issueEdit);
+        $this->assertStringContainsString("\$priceListManagers=\$selectedPriceList?->type==='global'", $issueEdit);
+        $this->assertStringContainsString('Chỉ User được phân công cho bảng giá này mới được phép phụ trách phiếu.', $issueEdit);
+        $this->assertStringNotContainsString('refreshEditPriceLists', $issueEdit);
+        $this->assertStringContainsString("(int)\$data['price_list_id'] !== (int)\$issue->price_list_id", $controller);
+        $this->assertStringContainsString('Bảng giá áp dụng của phiếu đã lập không được phép thay đổi.', $controller);
+        $this->assertStringContainsString("? \$priceList->globalUsers->contains", $controller);
+        $this->assertStringContainsString("Bảng giá áp dụng không còn hoạt động hoặc không còn hiệu lực tại ngày xuất.", $controller);
+        $this->assertStringContainsString("Khách hàng không còn hoạt động. Vui lòng chọn lại khách hàng / nơi nhận.", $controller);
+        $this->assertStringContainsString("Lô tồn kho đã chọn không còn khả dụng. Vui lòng chọn lại lô.", $controller);
+        $this->assertStringContainsString("when(\$request->filled('recipient_name')", $controller);
+        $this->assertStringContainsString("collect(\$request->input('ids',[]))", $controller);
+        $this->assertStringContainsString("'Nguoi phu trach'=>\$issue->manager?->name", $controller);
+        $this->assertStringContainsString("'Nguon'=>(\$issue->issue_source ?? 'normal')==='bid'?'Hang thau':'Bang gia'", $controller);
         $this->assertStringContainsString("'items.*.unit_price'=>'required|numeric|min:0'", $controller);
         $this->assertStringContainsString("'unit_price'=>(float)\$item['unit_price']", $controller);
         $this->assertStringContainsString('issueSalePriceCandidates', $controller);
         $this->assertStringContainsString("PriceList::STATUS_ACTIVE", $controller);
         $this->assertStringContainsString("company_sale_price", $controller);
         $this->assertStringContainsString('Đơn giá xuất', $issueForm);
-        $this->assertStringContainsString('Giá bán CT', $issueForm);
+        $this->assertStringContainsString('Giá bảng:', $issueForm);
+        $this->assertStringNotContainsString('Giá bán CT ·', $issueForm);
         $this->assertStringContainsString("data-field=\"unit_price\"", $issueForm);
         $this->assertStringContainsString("value=\"0\"", $issueForm);
         $this->assertStringContainsString('có thể nhập tay', $issueForm);
-        $this->assertStringContainsString("candidate.price_list_type==='customer'", $issueForm);
-        $this->assertStringNotContainsString("candidate.price_list_type==='global'", $issueForm);
+        $this->assertStringContainsString("['global','customer'].includes(candidate.price_list_type)", $issueForm);
+        $this->assertStringContainsString("list.type==='global'", $issueForm);
+        $this->assertStringContainsString("list.type==='customer'", $issueForm);
         $this->assertStringContainsString('Người phụ trách', $issueForm);
-        $this->assertStringContainsString('Bảng giá xuất', $issueForm);
+        $this->assertStringContainsString('Bảng giá áp dụng', $issueForm);
         $this->assertStringContainsString('name="price_list_id"', $issueForm);
-        $this->assertStringContainsString('CUSTOMER · ACTIVE', $issueForm);
+        $this->assertStringContainsString('bảng giá phù hợp', $issueForm);
+        $this->assertStringNotContainsString('CUSTOMER · ACTIVE', $issueForm);
         $this->assertStringContainsString("@section('admin_container','full')", $issueForm);
         $this->assertStringNotContainsString('max-w-[1500px]', $issueForm);
         $this->assertStringContainsString('medicineIdsForSelectedPriceList', $issueForm);
@@ -226,10 +273,10 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("classList.toggle('border-rose-500',isNegative)", $issueForm);
         $this->assertStringContainsString('min-h-11 items-center justify-end', $issueForm);
         $this->assertStringContainsString("'price_list_id'=>'required|integer|exists:pharma_price_lists,id'", $controller);
-        $this->assertStringContainsString("where('type',PriceList::TYPE_CUSTOMER)->activeAt", $controller);
+        $this->assertStringContainsString("whereIn('type',[PriceList::TYPE_GLOBAL,PriceList::TYPE_CUSTOMER])->activeAt", $controller);
         $this->assertStringContainsString("'price_list_id'=>\$data['price_list_id']", $controller);
-        $this->assertStringContainsString("where('pharma_price_lists.type',PriceList::TYPE_CUSTOMER)", $controller);
-        $this->assertStringNotContainsString("whereIn('pharma_price_lists.type',[PriceList::TYPE_CUSTOMER,PriceList::TYPE_GLOBAL])", $controller);
+        $this->assertStringContainsString("whereIn('pharma_price_lists.type',[PriceList::TYPE_GLOBAL,PriceList::TYPE_CUSTOMER])", $controller);
+        $this->assertStringContainsString('Bảng giá không được phân cho Người phụ trách đã chọn.', $controller);
         $priceListMigration=file_get_contents(base_path('Modules/Pharma/database/migrations/2026_09_23_153000_add_price_list_to_pharma_inventory_issues.php'));
         $this->assertStringContainsString("foreignId('price_list_id')->nullable()", $priceListMigration);
         $this->assertStringContainsString("constrained('pharma_price_lists')->nullOnDelete()", $priceListMigration);
@@ -240,7 +287,7 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('Export Excel', $documents);
         $this->assertStringContainsString("@section('admin_container','full')", $documents);
         $this->assertStringContainsString("max-w-[1580px]", $documents);
-        $this->assertStringContainsString("min-w-[1120px]", $documents);
+        $this->assertStringContainsString("min-w-[1320px]", $documents);
         $this->assertStringContainsString('Khách hàng / Nơi nhận', $documents);
         $this->assertStringContainsString('Tải PDF', $documents);
         $this->assertStringContainsString('In trực tiếp', $documents);
@@ -321,7 +368,7 @@ class InventoryContractTest extends TestCase
         $edit=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-edit.blade.php'));
         $show=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-show.blade.php'));
 
-        $this->assertStringContainsString("['items.medicine','priceList.manager']", $controller);
+        $this->assertStringContainsString("['items.medicine','manager:id,name','priceList.manager']", $controller);
         $this->assertStringContainsString("'items'=>'required|array|min:1'", $controller);
         $this->assertStringContainsString("\$locked->items()->delete()", $controller);
         $this->assertStringContainsString("\$locked->items()->createMany(\$items)", $controller);
@@ -334,7 +381,7 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('⚠ Tồn sau xuất:', $edit);
         $this->assertStringContainsString("\$request->input('after_save')==='view'", $controller);
         $this->assertStringContainsString('name="price_list_id"', $edit);
-        $this->assertStringContainsString('Hàng hóa xuất', $edit);
+        $this->assertStringContainsString('Thuốc xuất kho', $edit);
         $this->assertStringContainsString('+ Thêm sản phẩm', $edit);
         $this->assertStringContainsString("@section('admin_container','full')", $show);
         $this->assertStringContainsString('Đơn giá xuất', $show);
@@ -441,6 +488,233 @@ class InventoryContractTest extends TestCase
             }
         }
         $this->addToAssertionCount(4);
+    }
+
+    public function test_issue_draft_requires_customer_and_product_and_issue_index_sums_line_values(): void
+    {
+        $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
+        $view=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-form.blade.php'));
+
+        $this->assertStringContainsString("'recipient_partner_id'=>'required|integer|exists:partners,id'", $controller);
+        $this->assertStringContainsString("withSum('items as total_value',DB::raw('quantity * unit_price'))", $controller);
+        $this->assertStringContainsString('id="issue-save-draft" disabled', $view);
+        $this->assertStringContainsString('function updateSaveDraftState()', $view);
+        $this->assertStringContainsString('hasRecipient && hasProduct', $view);
+        $this->assertStringContainsString('Chọn khách hàng và ít nhất một sản phẩm trước khi lưu nháp.', $view);
+        $this->assertStringContainsString('issue-reset-price', $view);
+        $this->assertStringContainsString('reset.disabled=!changed', $view);
+        $this->assertStringNotContainsString('issue-reset-price hidden', $view);
+    }
+
+    public function test_posted_bid_issue_does_not_route_into_draft_editor(): void
+    {
+        $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
+        $documents=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/documents.blade.php'));
+
+        $this->assertStringContainsString("if(\$issue->status===InventoryIssue::DRAFT)", $controller);
+        $this->assertStringContainsString('Phiếu hàng thầu đã ghi sổ; không thể chỉnh sửa nội dung đơn.', $controller);
+        $this->assertStringContainsString("@if((\$doc->issue_source ?? 'normal') === 'bid')", $documents);
+        $this->assertStringContainsString("@if(\$doc->status === 'draft')", $documents);
+        $this->assertStringContainsString('Sửa đơn hàng thầu', $documents);
+    }
+
+    public function test_bid_issue_uses_dedicated_editor_and_assignment_manager_context(): void
+    {
+        $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
+        $show=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-show.blade.php'));
+        $bidCreate=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/bid-sale-create.blade.php'));
+        $bidEdit=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/bid-sale-edit.blade.php'));
+
+        $this->assertStringContainsString("route('admin.pharma.inventory.issues.bid-sales.edit',\$issue)", $controller);
+        $this->assertStringContainsString('Phiếu hàng thầu phải được chỉnh sửa tại workspace Xuất hàng thầu.', $controller);
+        $this->assertStringContainsString('private function bidIssueManagerNames', $controller);
+        $this->assertStringContainsString('DrugBidAwardManagementAssignment::query()', $controller);
+        $this->assertStringContainsString("where('partner_id',\$partnerId)", $controller);
+        $this->assertStringContainsString("route('admin.pharma.inventory.issues.bid-sales.edit',\$issue)", $show);
+        $this->assertStringContainsString('Sửa đơn hàng thầu', $show);
+        $this->assertStringContainsString('$bidManagerNames', $show);
+        $this->assertStringContainsString('Chủ đầu tư / Gói thầu', $show);
+        $this->assertStringContainsString('Xuất bán hàng thầu', $bidCreate);
+        $this->assertStringContainsString('Sửa & duyệt đơn hàng thầu', $bidEdit);
+        $this->assertStringNotContainsString("route('admin.pharma.inventory.issues.update',\$issue)", $bidEdit);
+    }
+
+    public function test_issue_persists_selected_manager_and_show_uses_issue_manager(): void
+    {
+        $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
+        $model=file_get_contents(base_path('Modules/Pharma/Models/InventoryIssue.php'));
+        $show=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-show.blade.php'));
+        $migration=file_get_contents(base_path('Modules/Pharma/database/migrations/2026_09_27_120000_add_manager_user_to_pharma_inventory_issues.php'));
+        $this->assertStringContainsString("'manager_user_id'=>\$data['manager_user_id']", $controller);
+        $this->assertStringContainsString("'manager:id,name'", $controller);
+        $this->assertStringContainsString("belongsTo(\\App\\Models\\User::class,'manager_user_id')", $model);
+        $this->assertStringContainsString('$issue->manager?->name', $show);
+        $this->assertStringNotContainsString('$issue->priceList?->manager?->name', $show);
+        $this->assertStringContainsString("foreignId('manager_user_id')->nullable()", $migration);
+    }
+
+    public function test_issue_edit_matches_create_workspace_and_assigned_price_lists(): void
+    {
+        $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
+        $view=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-edit.blade.php'));
+
+        $this->assertStringContainsString("whereIn('type',[PriceList::TYPE_GLOBAL,PriceList::TYPE_CUSTOMER])", $controller);
+        $this->assertStringContainsString("'manager_user_id'=>'required|integer|exists:users,id'", $controller);
+        $this->assertStringContainsString('Bảng giá không được phân cho Người phụ trách đã chọn.', $controller);
+        $this->assertStringContainsString('<x-select-search id="issue-edit-manager"', $view);
+        $this->assertStringContainsString('Ngày xuất', $view);
+        $this->assertStringContainsString('Bảng giá áp dụng', $view);
+        $this->assertStringContainsString('Khách hàng / nơi nhận', $view);
+        $this->assertStringContainsString('Giá bảng:', $view);
+        $this->assertStringContainsString('Đặt lại giá gốc', $view);
+        $this->assertStringContainsString('parseViNumber', $view);
+        $this->assertStringContainsString('formatViNumber', $view);
+        $this->assertStringNotContainsString('data-global-users', $view);
+        $this->assertStringContainsString('Bảng giá của phiếu đã lập không thể thay đổi.', $view);
+        $this->assertStringContainsString('Chỉ User được phân công cho bảng giá này mới được phép phụ trách phiếu.', $view);
+        $this->assertStringNotContainsString('max-w-[1580px]', $view);
+    }
+
+    public function test_issue_create_and_edit_normalize_localized_numeric_values(): void
+    {
+        $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
+        $create=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-form.blade.php'));
+        $edit=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-edit.blade.php'));
+
+        $this->assertSame(2,substr_count($controller,'$this->normalizeIssueNumericInputs($request);'));
+        $this->assertStringContainsString('private function parseLocalizedNumber', $controller);
+        $this->assertStringContainsString("str_contains(\$raw,',')", $controller);
+        $this->assertStringContainsString("preg_match('/\\.\\d{3}$/',\$raw)", $controller);
+        $this->assertStringContainsString('parseViNumber', $create);
+        $this->assertStringContainsString('parseViNumber', $edit);
+        $this->assertStringContainsString("q.value=String(parseViNumber(q.value))", $edit);
+        $this->assertStringContainsString("p.value=String(parseViNumber(p.value))", $edit);
+        $this->assertStringNotContainsString("Number(tr.querySelector('.qty')?.value||0)", $edit);
+        $this->assertStringNotContainsString("Number(tr.querySelector('.price')?.value||0)", $edit);
+    }
+
+    public function test_issue_lines_format_numbers_and_can_restore_original_price(): void
+    {
+        $view=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-form.blade.php'));
+
+        $this->assertStringContainsString('inputmode="decimal"', $view);
+        $this->assertStringContainsString('tabular-nums', $view);
+        $this->assertStringContainsString('issue-reset-price', $view);
+        $this->assertStringContainsString('Đặt lại giá gốc', $view);
+        $this->assertStringContainsString('row.dataset.originalPrice', $view);
+        $this->assertStringContainsString('Giá bảng:', $view);
+        $this->assertStringContainsString('parseViNumber', $view);
+        $this->assertStringContainsString('formatViNumber', $view);
+        $this->assertStringContainsString('normalizeNumericInput', $view);
+        $this->assertStringContainsString("quantity.value=String(parseViNumber(quantity.value))", $view);
+        $this->assertStringContainsString("price.value=String(parseViNumber(price.value))", $view);
+    }
+
+    public function test_issue_recipient_uses_search_then_customer_card(): void
+    {
+        $view=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-form.blade.php'));
+
+        $this->assertStringContainsString('md:grid-cols-3', $view);
+        $this->assertStringContainsString('Tìm tên khách hàng, bệnh viện, mã số thuế...', $view);
+        $this->assertStringContainsString('issue-recipient-picker', $view);
+        $this->assertStringContainsString('issue-recipient-card', $view);
+        $this->assertStringContainsString('issue-recipient-card-name', $view);
+        $this->assertStringContainsString('issue-recipient-change', $view);
+        $this->assertStringContainsString('Thay đổi', $view);
+        $this->assertStringContainsString('updateRecipientCard', $view);
+        $this->assertStringContainsString("'tax_code'=>\$partner->tax_code", $view);
+        $this->assertStringNotContainsString('issue-context-summary', $view);
+    }
+
+    public function test_issue_create_is_an_order_entry_workspace(): void
+    {
+        $view=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-form.blade.php'));
+
+        $this->assertStringContainsString('Thiết lập nhanh phiếu xuất', $view);
+        $this->assertStringContainsString('Thuốc xuất kho', $view);
+        $this->assertStringContainsString('+ Thêm thuốc', $view);
+        $this->assertStringContainsString('issue-item-count', $view);
+        $this->assertStringContainsString('issue-grand-total', $view);
+        $this->assertStringContainsString('issue-footer-quantity', $view);
+        $this->assertStringContainsString('sticky bottom-3', $view);
+        $this->assertStringContainsString('Bảng giá chung', $view);
+        $this->assertStringContainsString('Bảng giá khách hàng', $view);
+        $this->assertStringContainsString('bảng giá phù hợp', $view);
+        $this->assertStringContainsString('lotSelect.value=String(matching[0].id)', $view);
+        $this->assertStringNotContainsString('GLOBAL/CUSTOMER · ACTIVE · còn hiệu lực', $view);
+    }
+
+    public function test_normal_issue_uses_assigned_global_or_customer_price_lists_and_guided_header(): void
+    {
+        $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
+        $view=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-form.blade.php'));
+
+        $this->assertStringContainsString("whereIn('type',[PriceList::TYPE_GLOBAL,PriceList::TYPE_CUSTOMER])", $controller);
+        $this->assertStringContainsString("'globalUsers:id,name'", $controller);
+        $this->assertStringContainsString("'manager_user_id'=>'required|integer|exists:users,id'", $controller);
+        $this->assertStringContainsString('Bảng giá không được phân cho Người phụ trách đã chọn.', $controller);
+        $this->assertStringContainsString("whereIn('pharma_price_lists.type',[PriceList::TYPE_GLOBAL,PriceList::TYPE_CUSTOMER])", $controller);
+        $this->assertStringContainsString('Thiết lập nhanh phiếu xuất', $view);
+        $this->assertStringContainsString('<x-select-search id="issue-price-manager"', $view);
+        $this->assertStringContainsString('Chọn người phụ trách để xem bảng giá phù hợp.', $view);
+        $this->assertStringNotContainsString('GLOBAL/CUSTOMER · ACTIVE · còn hiệu lực tại ngày xuất.', $view);
+        $this->assertStringContainsString('global_user_ids', $view);
+        $this->assertStringContainsString('issue-recipient-card', $view);
+        $this->assertStringContainsString('updateRecipientCard', $view);
+        $this->assertStringNotContainsString('issue-context-summary', $view);
+        $this->assertStringContainsString("list.type==='global'", $view);
+        $this->assertStringContainsString("list.type==='customer'", $view);
+        $this->assertStringNotContainsString('Chọn bảng giá CUSTOMER', $view);
+        try { token_get_all(Blade::compileString($view), TOKEN_PARSE); }
+        catch (\ParseError $error) { $this->fail('issue-form.blade.php failed Blade compilation: '.$error->getMessage()); }
+        $this->addToAssertionCount(1);
+    }
+
+    public function test_commission_center_supports_price_list_and_bid_sources(): void
+    {
+        $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
+        $service=file_get_contents(base_path('Modules/Pharma/Services/DrugBidCommissionService.php'));
+        $model=file_get_contents(base_path('Modules/Pharma/Models/InventoryIssueCommission.php'));
+        $view=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/commissions.blade.php'));
+        $migration=file_get_contents(base_path('Modules/Pharma/database/migrations/2026_09_27_143000_extend_issue_commissions_for_price_lists.php'));
+
+        $this->assertStringContainsString('Trung tâm hoa hồng', $view);
+        $documents=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/documents.blade.php'));
+        $this->assertStringContainsString("route('admin.pharma.dashboard')", $view);
+        $this->assertStringContainsString('← Trung tâm điều hành Pharma', $view);
+        $this->assertStringContainsString("route('admin.pharma.dashboard')", $documents);
+        $this->assertStringContainsString('← Trung tâm điều hành Pharma', $documents);
+        $this->assertStringContainsString("['all'=>'Tất cả','price_list'=>'Theo bảng giá','bid'=>'Hàng thầu']", $view);
+        $this->assertStringContainsString('Khách hàng / Bệnh viện', $view);
+        $this->assertStringContainsString('Giá trị thu · bảng giá', $view);
+        $this->assertStringContainsString('SL × (Giá bán CT − Giá thu)', $view);
+        $this->assertStringContainsString('SOURCE_PRICE_LIST', $model);
+        $this->assertStringContainsString('snapshotPriceListIssue', $service);
+        $this->assertStringContainsString('actual_receivable_price', $service);
+        $this->assertStringContainsString("source_type'=>InventoryIssueCommission::SOURCE_PRICE_LIST", $service);
+        $this->assertStringContainsString('receivable_price_snapshot', $migration);
+        $this->assertStringContainsString('price_list_item_id', $migration);
+        $this->assertStringContainsString("\$commissions->snapshotPostedIssue(\$issue->fresh('items')", $controller);
+        $this->assertStringContainsString("when(\$source!=='all'", $controller);
+        $this->assertStringContainsString("pharma_price_list_users", $controller);
+        $this->assertStringContainsString("whereNotNull('manager_user_id')", $controller);
+        $this->assertStringContainsString("newly configured price list must be selectable", $controller);
+        $this->assertStringContainsString('<x-select-search id="commission-user-filter"', $view);
+        $this->assertStringContainsString('<x-select-search id="commission-partner-filter"', $view);
+        $this->assertStringContainsString('<x-select-search id="commission-medicine-filter"', $view);
+        $this->assertStringContainsString('commission-select-all', $view);
+        $this->assertStringContainsString('commission-row-checkbox', $view);
+        $this->assertStringContainsString('Export Excel đã chọn', $view);
+        $this->assertStringContainsString('name="ids[]"', $view);
+        $this->assertStringContainsString("resolved_customer_name", $controller);
+        $this->assertStringContainsString("\$row->issue?->recipient_name", $controller);
+        $this->assertStringContainsString("'ids'=>'nullable|array|max:500'", $controller);
+        $this->assertStringContainsString('<div class="w-full space-y-5 px-2 xl:px-3">', $view);
+        $this->assertStringContainsString('min-w-[1520px] table-fixed', $view);
+        $this->assertStringContainsString('w-[155px] p-3 text-right">Hoa hồng', $view);
+        $this->assertStringContainsString("calculated_at->format('d/m/Y')", $view);
+        $this->assertStringNotContainsString("calculated_at->format('d/m/Y H:i')", $view);
+        $this->assertStringContainsString('whitespace-nowrap p-3 text-right font-bold', $view);
     }
 
     public function test_bid_sale_issue_workspace_contracts(): void

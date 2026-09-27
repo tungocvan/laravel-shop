@@ -57,7 +57,7 @@ Resolution order for the requested date and SKU/package:
 
 There is intentionally no fallback from `Medicine.declared_price` to a sale price. Declared price is a ceiling/reference only.
 
-Within the same resolution tier ordering is deterministic: priority descending, effective-from descending, then list id descending. v1 activation also prevents overlapping active lists in the same global/customer scope.
+Within the same resolution tier ordering is deterministic: priority descending, effective-from descending, then list id descending. Activation only treats time overlap as a conflict when another ACTIVE list has the same Price List code or the same Price List name. Different lists may therefore be ACTIVE over the same dates even when they share a manager, customer source, Partner, official facility or list type. The existing database uniqueness constraint on `code` remains unchanged.
 
 ## Admin workspace
 
@@ -89,3 +89,8 @@ Targeted tests:
 Targeted Pint:
 
 `./vendor/bin/pint Modules/Pharma/Models/PriceList.php Modules/Pharma/Models/PriceListItem.php Modules/Pharma/DTOs/ResolvedPrice.php Modules/Pharma/Contracts/PriceResolver.php Modules/Pharma/Services/DatabasePriceResolver.php Modules/Pharma/Services/PriceListManager.php Modules/Pharma/Http/Controllers/PriceListController.php Modules/Pharma/Livewire/PriceList/Index.php Modules/Pharma/Livewire/PriceList/Create.php Modules/Pharma/Tests/Unit/PriceListV2ContractTest.php`
+
+
+## Global price list user scope
+
+A global price list is available to all Pharma users when it has no rows in `pharma_price_list_users`. When one or more users are assigned, the list is scoped to those users. Customer price lists continue to use `manager_user_id`; the two concepts are intentionally separate.

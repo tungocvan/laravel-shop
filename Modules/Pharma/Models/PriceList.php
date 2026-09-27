@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Modules\Partner\Models\Partner;
 
@@ -75,6 +76,19 @@ class PriceList extends Model
     public function manager(): BelongsTo
     {
         return $this->belongsTo(User::class, 'manager_user_id');
+    }
+
+    public function globalUsers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'pharma_price_list_users', 'price_list_id', 'user_id')->withTimestamps();
+    }
+
+    public function isAvailableToUser(?int $userId): bool
+    {
+        if ($this->type !== self::TYPE_GLOBAL || ! $userId) return true;
+        if (! $this->globalUsers()->exists()) return true;
+
+        return $this->globalUsers()->whereKey($userId)->exists();
     }
 
     public function purpose(): BelongsTo

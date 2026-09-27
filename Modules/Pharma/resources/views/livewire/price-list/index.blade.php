@@ -27,7 +27,7 @@
                 </label>
                 <label class="block xl:w-44"><span class="mb-1 block text-xs font-semibold text-gray-500">Loại bảng giá</span><select wire:model.live="type" class="min-h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"><option value="all">Tất cả loại</option><option value="global">Bảng giá chung</option><option value="customer">Theo khách hàng</option></select></label>
                 <label class="block xl:w-44"><span class="mb-1 block text-xs font-semibold text-gray-500">Trạng thái</span><select wire:model.live="status" class="min-h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"><option value="all">Tất cả trạng thái</option><option value="draft">Draft</option><option value="active">Active</option><option value="inactive">Inactive</option><option value="archived">Archived</option></select></label>
-                <label class="block xl:w-56"><span class="mb-1 block text-xs font-semibold text-gray-500">Người phụ trách</span><select wire:model.live="managerUserId" class="min-h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"><option value="all">Tất cả người phụ trách</option>@foreach($managers as $manager)<option value="{{ $manager->id }}">{{ $manager->name }}</option>@endforeach</select></label>
+                <label class="block xl:w-56"><span class="mb-1 block text-xs font-semibold text-gray-500">User áp dụng / phụ trách</span><select wire:model.live="managerUserId" class="min-h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"><option value="all">Tất cả User</option>@foreach($managers as $manager)<option value="{{ $manager->id }}">{{ $manager->name }}</option>@endforeach</select></label>
                 <label class="block xl:w-32"><span class="mb-1 block text-xs font-semibold text-gray-500">Hiển thị</span><select wire:model.live="perPage" class="min-h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"><option value="10">10 dòng</option><option value="25">25 dòng</option><option value="50">50 dòng</option><option value="100">100 dòng</option></select></label>
             </div>
             <div class="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-3 lg:flex-row lg:items-end lg:justify-between">
@@ -62,7 +62,17 @@
                         <td class="px-5 py-4"><a href="{{ route('admin.pharma.price-lists.show',$list) }}" class="font-bold text-gray-900 hover:text-indigo-700">{{ $list->name }}</a><div class="mt-1 font-mono text-xs text-gray-500">{{ $list->code }}</div></td>
                         <td class="px-4 py-4"><span class="rounded-lg bg-gray-100 px-2.5 py-1 text-xs font-bold text-gray-700">{{ $list->type === 'global' ? 'GLOBAL' : 'CUSTOMER' }}</span></td>
                         <td class="max-w-[220px] px-4 py-4 font-medium text-gray-700">{{ $list->customer_source === 'official_facility' ? ($list->officialFacility?->facility_name ?? '—') : ($list->partner?->name ?? '—') }}</td>
-                        <td class="max-w-[180px] px-4 py-4 text-sm font-medium text-gray-700">{{ $list->manager?->name ?? '—' }}</td>
+                        <td class="max-w-[240px] px-4 py-4 text-sm font-medium text-gray-700">
+                            @if($list->type === 'global')
+                                @if($list->globalUsers->isEmpty())
+                                    <span class="font-semibold text-indigo-700">Tất cả User</span>
+                                @else
+                                    <div class="flex flex-wrap gap-1">@foreach($list->globalUsers as $user)<span class="rounded-md bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-700">{{ $user->name }}</span>@endforeach</div>
+                                @endif
+                            @else
+                                {{ $list->manager?->name ?? '—' }}
+                            @endif
+                        </td>
                         <td class="px-4 py-4 text-xs text-gray-600"><div>{{ $list->effective_from?->format('d/m/Y') ?? 'Không giới hạn' }}</div><div class="mt-1 text-gray-400">đến {{ $list->effective_to?->format('d/m/Y') ?? 'không giới hạn' }}</div></td>
                         <td class="px-4 py-4 text-center font-bold text-gray-900">{{ $list->items_count }}</td>
                         <td class="px-4 py-4"><span class="rounded-full px-2.5 py-1 text-[11px] font-bold {{ $list->status==='active'?'bg-emerald-100 text-emerald-700':($list->status==='draft'?'bg-amber-100 text-amber-700':'bg-gray-100 text-gray-600') }}">{{ strtoupper($list->status) }}</span></td>

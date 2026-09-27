@@ -398,12 +398,10 @@ final class InventoryController extends Controller
             ->whereDate('expiry_date','>=',now()->toDateString())
             ->orderBy('expiry_date')->orderBy('medicine_id')->get();
         $partners=Partner::query()->withPartnerType('customer')->where('status','active')->orderBy('name')->get(['id','name','tax_code']);
-        $customerPriceLists=PriceList::query()->with('manager:id,name')
-            ->where('type',PriceList::TYPE_CUSTOMER)->where('status',PriceList::STATUS_ACTIVE)
-            ->whereHas('items',fn($q)=>$q->where('status','active')->whereNotNull('medicine_id'))
-            ->orderBy('manager_user_id')->orderByDesc('priority')->orderBy('name')->get([
-                'id','code','name','manager_user_id','partner_id','effective_from','effective_to','priority',
-            ]);
+        $customerPriceLists=collect([$issue->priceList])->filter();
+        if($issue->priceList){
+            $issue->priceList->loadMissing(['manager:id,name','globalUsers:id,name']);
+        }
         $issueSalePrices=$this->issueSalePriceCandidates();
         return view('Pharma::pages.inventory.issue-form',compact('warehouse','availableBalances','partners','customerPriceLists','issueSalePrices'));
     }
@@ -425,11 +423,34 @@ final class InventoryController extends Controller
     public function issues(Request $request, InventoryService $inventory): View
     {
         $warehouse=$inventory->defaultWarehouse();
+        $managerId=$request->filled('manager_user_id') ? (int)$request->manager_user_id : null;
+        $dateFrom=$request->filled('date_from') ? Carbon::parse($request->date_from)->toDateString() : now()->startOfMonth()->toDateString();
+        $dateTo=$request->filled('date_to') ? Carbon::parse($request->date_to)->toDateString() : now()->toDateString();
+        if($dateFrom>$dateTo) [$dateFrom,$dateTo]=[$dateTo,$dateFrom];
         $query=InventoryIssue::query()->withCount('items')
-            ->with(['items:id,issue_id,medicine_id,batch_number,expiry_date,quantity'])
-            ->withSum(['items as total_value'=>fn($q)=>$q->select(DB::raw('COALESCE(SUM(quantity * unit_price),0)'))],'unit_price')
+            ->with(['items:id,issue_id,medicine_id,drug_bid_award_id,batch_number,expiry_date,quantity','manager:id,name'])
+            ->withSum('items as total_value',DB::raw('quantity * unit_price'))
             ->where('warehouse_id',$warehouse->id)
             ->when($request->filled('q'),fn($q)=>$q->where(fn($x)=>$x->where('number','like','%'.$request->q.'%')->orWhere('recipient_name','like','%'.$request->q.'%')))
+            ->when($managerId,function($q)use($managerId){
+                $q->where(function($scope)use($managerId){
+                    $scope->where('manager_user_id',$managerId)
+                        ->orWhere(function($bid)use($managerId){
+                            $bid->where('issue_source','bid')
+                                ->whereExists(function($exists)use($managerId){
+                                    $exists->selectRaw('1')->from('pharma_inventory_issue_items as filter_items')
+                                        ->join('pharma_drug_bid_award_management_assignments as filter_assignments',function($join){
+                                            $join->on('filter_assignments.drug_bid_award_id','=','filter_items.drug_bid_award_id')
+                                                ->on('filter_assignments.partner_id','=','pharma_inventory_issues.bid_partner_id');
+                                        })
+                                        ->whereColumn('filter_items.issue_id','pharma_inventory_issues.id')
+                                        ->where('filter_assignments.status',DrugBidAwardManagementAssignment::STATUS_ACTIVE)
+                                        ->where('filter_assignments.user_id',$managerId);
+                                });
+                        });
+                });
+            })
+            ->when($request->filled('recipient_name'),fn($q)=>$q->where('recipient_name',$request->recipient_name))
             ->when(in_array($request->status,['draft','posted'],true),fn($q)=>$q->where('status',$request->status))
             ->latest('issue_date')->latest('id');
         $documents=$query->paginate($this->documentPerPage($request))->withQueryString();
@@ -442,9 +463,24 @@ final class InventoryController extends Controller
                     $key=$item->medicine_id.'|'.$item->batch_number.'|'.$item->expiry_date->format('Y-m-d');
                     return (float)($balanceKeys[$key]?->quantity_on_hand ?? 0) >= (float)$item->quantity;
                 });
+            $issue->resolved_manager_names=$this->issueManagerNames($issue);
         });
+        $directManagerIds=InventoryIssue::query()->where('warehouse_id',$warehouse->id)->whereNotNull('manager_user_id')->distinct()->pluck('manager_user_id');
+        $bidManagerIds=DrugBidAwardManagementAssignment::query()->where('status',DrugBidAwardManagementAssignment::STATUS_ACTIVE)
+            ->whereExists(function($exists)use($warehouse){
+                $exists->selectRaw('1')->from('pharma_inventory_issue_items as manager_items')
+                    ->join('pharma_inventory_issues as manager_issues','manager_issues.id','=','manager_items.issue_id')
+                    ->whereColumn('manager_items.drug_bid_award_id','pharma_drug_bid_award_management_assignments.drug_bid_award_id')
+                    ->whereColumn('manager_issues.bid_partner_id','pharma_drug_bid_award_management_assignments.partner_id')
+                    ->where('manager_issues.warehouse_id',$warehouse->id)->where('manager_issues.issue_source','bid');
+            })->distinct()->pluck('user_id');
+        $issueManagers=User::query()->whereIn('id',$directManagerIds->merge($bidManagerIds)->unique())->orderBy('name')->get(['id','name']);
+        $issueRecipients=InventoryIssue::query()->where('warehouse_id',$warehouse->id)->whereNotNull('recipient_name')
+            ->where('recipient_name','<>','')->distinct()->orderBy('recipient_name')->pluck('recipient_name');
         return view('Pharma::pages.inventory.documents',[
             'type'=>'issue','title'=>'Phiếu xuất kho','documents'=>$documents,
+            'issueManagers'=>$issueManagers,'issueRecipients'=>$issueRecipients,
+            'dateFrom'=>$dateFrom,'dateTo'=>$dateTo,
         ]);
     }
     public function issueDocumentSettings(): View
@@ -567,14 +603,21 @@ final class InventoryController extends Controller
 
     public function storeIssue(Request $request, InventoryService $inventory): RedirectResponse
     {
+        $this->normalizeIssueNumericInputs($request);
         $data=$request->validate([
-            'issue_date'=>'required|date','recipient_name'=>'nullable|string|max:255','recipient_partner_id'=>'nullable|integer|exists:partners,id',
+            'issue_date'=>'required|date','manager_user_id'=>'required|integer|exists:users,id','recipient_name'=>'nullable|string|max:255','recipient_partner_id'=>'required|integer|exists:partners,id',
             'price_list_id'=>'required|integer|exists:pharma_price_lists,id','notes'=>'nullable|string','items'=>'required|array|min:1',
             'items.*.balance_id'=>'required|exists:pharma_inventory_balances,id','items.*.quantity'=>'required|numeric|gt:0',
             'items.*.unit_price'=>'required|numeric|min:0',
         ]);
-        $priceList=PriceList::query()->whereKey($data['price_list_id'])
-            ->where('type',PriceList::TYPE_CUSTOMER)->activeAt($data['issue_date'])->firstOrFail();
+        $priceList=PriceList::query()->with('globalUsers:id')->whereKey($data['price_list_id'])
+            ->whereIn('type',[PriceList::TYPE_GLOBAL,PriceList::TYPE_CUSTOMER])->activeAt($data['issue_date'])->firstOrFail();
+        $managerUserId=$request->integer('manager_user_id');
+        if(!$managerUserId || ($priceList->type===PriceList::TYPE_CUSTOMER
+            ? (int)$priceList->manager_user_id!==$managerUserId
+            : ($priceList->globalUsers->isNotEmpty() && !$priceList->globalUsers->contains('id',$managerUserId)))){
+            throw ValidationException::withMessages(['price_list_id'=>'Bảng giá không được phân cho Người phụ trách đã chọn.']);
+        }
         if($priceList->partner_id !== null && (int)$priceList->partner_id !== (int)($data['recipient_partner_id'] ?? 0)){
             throw ValidationException::withMessages(['price_list_id'=>'Bảng giá này chỉ áp dụng cho khách hàng đã liên kết.']);
         }
@@ -590,14 +633,14 @@ final class InventoryController extends Controller
         $items=collect($data['items'])->map(function(array $item) use ($warehouse,$allowedMedicineIds): array {
             $balance=InventoryBalance::query()->where('warehouse_id',$warehouse->id)->whereKey($item['balance_id'])->where('quantity_on_hand','>',0)->firstOrFail();
             if(! $allowedMedicineIds->contains((int)$balance->medicine_id)){
-                throw ValidationException::withMessages(['items'=>'Thuốc đã chọn không thuộc bảng giá CUSTOMER hoặc giá không còn hiệu lực.']);
+                throw ValidationException::withMessages(['items'=>'Thuốc đã chọn không thuộc bảng giá hoặc giá không còn hiệu lực.']);
             }
             return ['medicine_id'=>$balance->medicine_id,'batch_number'=>$balance->batch_number,'expiry_date'=>$balance->expiry_date->toDateString(),'quantity'=>$item['quantity'],'unit_price'=>(float)$item['unit_price']];
         })->all();
         $issue=DB::transaction(function()use($data,$inventory,$items){
             $warehouse=$inventory->defaultWarehouse();
             DB::table('pharma_inventory_warehouses')->where('id',$warehouse->id)->lockForUpdate()->first();
-            $i=InventoryIssue::create(['warehouse_id'=>$warehouse->id,'number'=>$this->nextDocumentNumber(InventoryIssue::class,'PX'),'issue_date'=>$data['issue_date'],'recipient_name'=>$data['recipient_name']??null,'price_list_id'=>$data['price_list_id'],'notes'=>$data['notes']??null,'created_by'=>auth('admin')->id()]);
+            $i=InventoryIssue::create(['warehouse_id'=>$warehouse->id,'number'=>$this->nextDocumentNumber(InventoryIssue::class,'PX'),'issue_date'=>$data['issue_date'],'recipient_name'=>$data['recipient_name']??null,'manager_user_id'=>$data['manager_user_id'],'price_list_id'=>$data['price_list_id'],'notes'=>$data['notes']??null,'created_by'=>auth('admin')->id()]);
             $i->items()->createMany($items);
             return $i;
         });
@@ -606,15 +649,16 @@ final class InventoryController extends Controller
     public function showIssue(InventoryIssue $issue, InventoryService $inventory): View
     {
         $this->guardIssueWarehouse($issue,$inventory);
-        $issue->load(['items.medicine','priceList.manager','deferredSupplies.medicine']);
+        $issue->load(['items.medicine','manager:id,name','priceList.manager','deferredSupplies.medicine']);
+        $bidManagerNames=$this->bidIssueManagerNames($issue);
         $settings=InventoryIssueDocumentSetting::current();
-        return view('Pharma::pages.inventory.issue-show',compact('issue','settings'));
+        return view('Pharma::pages.inventory.issue-show',compact('issue','settings','bidManagerNames'));
     }
 
     public function issuePdf(InventoryIssue $issue, InventoryService $inventory): Response
     {
         $this->guardIssueWarehouse($issue,$inventory);
-        $issue->load(['items.medicine','priceList.manager']);
+        $issue->load(['items.medicine','manager:id,name','priceList.manager']);
         $settings=InventoryIssueDocumentSetting::current();
         $pdf=Pdf::loadView('Pharma::pages.inventory.issue-pdf',compact('issue','settings'))->setPaper('a4','portrait');
         return $pdf->download("phieu-xuat-kho-{$issue->number}.pdf");
@@ -623,22 +667,31 @@ final class InventoryController extends Controller
     public function issuePrint(InventoryIssue $issue, InventoryService $inventory): View
     {
         $this->guardIssueWarehouse($issue,$inventory);
-        $issue->load(['items.medicine','priceList.manager']);
+        $issue->load(['items.medicine','manager:id,name','priceList.manager']);
         $settings=InventoryIssueDocumentSetting::current();
         return view('Pharma::pages.inventory.issue-print',compact('issue','settings'));
     }
 
-    public function editIssue(InventoryIssue $issue, InventoryService $inventory): View
+    public function editIssue(InventoryIssue $issue, InventoryService $inventory): View|RedirectResponse
     {
         $this->guardIssueWarehouse($issue,$inventory);
-        $issue->load(['items.medicine','priceList.manager']);
+        if(($issue->issue_source ?? 'normal')==='bid'){
+            if($issue->status===InventoryIssue::DRAFT){
+                return redirect()->route('admin.pharma.inventory.issues.bid-sales.edit',$issue);
+            }
+            return redirect()->route('admin.pharma.inventory.issues.show',$issue)
+                ->with('warning','Phiếu hàng thầu đã ghi sổ; không thể chỉnh sửa nội dung đơn. Hãy hoàn tác ghi sổ trước nếu cần điều chỉnh.');
+        }
+        $issue->load(['items.medicine','manager:id,name','priceList.manager','priceList.globalUsers:id,name']);
         $warehouse=$inventory->defaultWarehouse();
         $availableBalances=InventoryBalance::query()->with('medicine')->where('warehouse_id',$warehouse->id)
             ->whereDate('expiry_date','>=',now()->toDateString())->orderBy('expiry_date')->orderBy('medicine_id')->get();
         $partners=Partner::query()->withPartnerType('customer')->where('status','active')->orderBy('name')->get(['id','name','tax_code']);
-        $customerPriceLists=PriceList::query()->with('manager:id,name')->where('type',PriceList::TYPE_CUSTOMER)
-            ->where('status',PriceList::STATUS_ACTIVE)->orderBy('manager_user_id')->orderByDesc('priority')->orderBy('name')->get([
-                'id','code','name','manager_user_id','partner_id','effective_from','effective_to','priority',
+        $customerPriceLists=PriceList::query()->with(['manager:id,name','globalUsers:id,name'])
+            ->whereIn('type',[PriceList::TYPE_GLOBAL,PriceList::TYPE_CUSTOMER])->where('status',PriceList::STATUS_ACTIVE)
+            ->whereHas('items',fn($q)=>$q->where('status','active')->whereNotNull('medicine_id'))
+            ->orderByDesc('priority')->orderBy('name')->get([
+                'id','code','name','type','manager_user_id','partner_id','effective_from','effective_to','priority',
             ]);
         $issueSalePrices=$this->issueSalePriceCandidates();
         return view('Pharma::pages.inventory.issue-edit',compact('issue','warehouse','availableBalances','partners','customerPriceLists','issueSalePrices'));
@@ -646,33 +699,53 @@ final class InventoryController extends Controller
 
     public function updateIssue(Request $request, InventoryIssue $issue, InventoryService $inventory): RedirectResponse
     {
+        $this->normalizeIssueNumericInputs($request);
         $this->guardIssueWarehouse($issue,$inventory);
+        if(($issue->issue_source ?? 'normal')==='bid'){
+            throw ValidationException::withMessages(['issue'=>'Phiếu hàng thầu phải được chỉnh sửa tại workspace Xuất hàng thầu.']);
+        }
         $metadata=$request->validate(['issue_date'=>'required|date','recipient_name'=>'nullable|string|max:255','notes'=>'nullable|string']);
         if($issue->status===InventoryIssue::POSTED){
             $issue->update($metadata);
             return redirect()->route('admin.pharma.inventory.issues.index')->with('success',"Đã cập nhật thông tin {$issue->number}. Dữ liệu hàng hóa đã ghi sổ được giữ nguyên.");
         }
         $data=$request->validate([
-            'recipient_partner_id'=>'nullable|integer|exists:partners,id','price_list_id'=>'required|integer|exists:pharma_price_lists,id',
+            'recipient_partner_id'=>'required|integer|exists:partners,id','manager_user_id'=>'required|integer|exists:users,id','price_list_id'=>'required|integer|exists:pharma_price_lists,id',
             'items'=>'required|array|min:1','items.*.balance_id'=>'required|exists:pharma_inventory_balances,id',
             'items.*.quantity'=>'required|numeric|gt:0','items.*.unit_price'=>'required|numeric|min:0',
         ]);
-        $priceList=PriceList::query()->whereKey($data['price_list_id'])->where('type',PriceList::TYPE_CUSTOMER)->activeAt($metadata['issue_date'])->firstOrFail();
-        if($priceList->partner_id !== null && (int)$priceList->partner_id !== (int)($data['recipient_partner_id'] ?? 0)){
+        if((int)$data['price_list_id'] !== (int)$issue->price_list_id){
+            throw ValidationException::withMessages(['price_list_id'=>'Bảng giá áp dụng của phiếu đã lập không được phép thay đổi.']);
+        }
+        $priceList=PriceList::query()->with('globalUsers:id')->whereKey($data['price_list_id'])
+            ->whereIn('type',[PriceList::TYPE_GLOBAL,PriceList::TYPE_CUSTOMER])->activeAt($metadata['issue_date'])->first();
+        if(! $priceList) throw ValidationException::withMessages(['price_list_id'=>'Bảng giá áp dụng không còn hoạt động hoặc không còn hiệu lực tại ngày xuất. Vui lòng chọn lại bảng giá.']);
+        $managerId=(int)$data['manager_user_id'];
+        $assigned=$priceList->type===PriceList::TYPE_GLOBAL
+            ? $priceList->globalUsers->contains(fn($user)=>(int)$user->id===$managerId)
+            : (int)$priceList->manager_user_id===$managerId;
+        if(! $assigned) throw ValidationException::withMessages(['price_list_id'=>'Bảng giá không được phân cho Người phụ trách đã chọn.']);
+        if($priceList->type===PriceList::TYPE_CUSTOMER && $priceList->partner_id !== null && (int)$priceList->partner_id !== (int)$data['recipient_partner_id']){
             throw ValidationException::withMessages(['price_list_id'=>'Bảng giá này chỉ áp dụng cho khách hàng đã liên kết.']);
         }
         $allowedMedicineIds=PriceListItem::query()->where('price_list_id',$priceList->id)->where('status','active')->pluck('medicine_id')->filter()->map(fn($id)=>(int)$id)->unique();
         $warehouse=$inventory->defaultWarehouse();
-        if(!empty($data['recipient_partner_id'])) $metadata['recipient_name']=Partner::query()->whereKey($data['recipient_partner_id'])->where('status','active')->firstOrFail()->name;
+        if(!empty($data['recipient_partner_id'])){
+            $recipient=Partner::query()->whereKey($data['recipient_partner_id'])->where('status','active')->first();
+            if(! $recipient) throw ValidationException::withMessages(['recipient_partner_id'=>'Khách hàng không còn hoạt động. Vui lòng chọn lại khách hàng / nơi nhận.']);
+            $metadata['recipient_name']=$recipient->name;
+        }
         $items=collect($data['items'])->map(function(array $item)use($warehouse,$allowedMedicineIds){
-            $balance=InventoryBalance::query()->where('warehouse_id',$warehouse->id)->whereKey($item['balance_id'])->firstOrFail();
-            if(! $allowedMedicineIds->contains((int)$balance->medicine_id)) throw ValidationException::withMessages(['items'=>'Thuốc đã chọn không thuộc bảng giá CUSTOMER.']);
+            $balance=InventoryBalance::query()->where('warehouse_id',$warehouse->id)->whereKey($item['balance_id'])->first();
+            if(! $balance) throw ValidationException::withMessages(['items'=>'Lô tồn kho đã chọn không còn khả dụng. Vui lòng chọn lại lô.']);
+            if(! $allowedMedicineIds->contains((int)$balance->medicine_id)) throw ValidationException::withMessages(['items'=>'Thuốc đã chọn không thuộc bảng giá áp dụng.']);
             return ['medicine_id'=>$balance->medicine_id,'batch_number'=>$balance->batch_number,'expiry_date'=>$balance->expiry_date->toDateString(),'quantity'=>$item['quantity'],'unit_price'=>(float)$item['unit_price']];
         })->all();
         DB::transaction(function()use($issue,$metadata,$data,$items){
-            $locked=InventoryIssue::query()->whereKey($issue->id)->lockForUpdate()->firstOrFail();
+            $locked=InventoryIssue::query()->whereKey($issue->id)->lockForUpdate()->first();
+            if(! $locked) throw ValidationException::withMessages(['issue'=>'Phiếu xuất không còn tồn tại.']);
             if($locked->status!==InventoryIssue::DRAFT) throw ValidationException::withMessages(['issue'=>'Phiếu không còn ở trạng thái nháp.']);
-            $locked->update(array_merge($metadata,['price_list_id'=>$data['price_list_id']]));
+            $locked->update(array_merge($metadata,['manager_user_id'=>$data['manager_user_id'],'price_list_id'=>$data['price_list_id']]));
             $locked->items()->delete();
             $locked->items()->createMany($items);
         });
@@ -695,12 +768,21 @@ final class InventoryController extends Controller
     public function exportIssues(Request $request, InventoryService $inventory): StreamedResponse
     {
         $warehouse=$inventory->defaultWarehouse();
-        $issues=InventoryIssue::query()->with('items.medicine')->where('warehouse_id',$warehouse->id)
+        $selectedIds=collect($request->input('ids',[]))->map(fn($id)=>(int)$id)->filter()->unique()->values();
+        $dateFrom=$request->filled('date_from') ? Carbon::parse($request->date_from)->toDateString() : now()->startOfMonth()->toDateString();
+        $dateTo=$request->filled('date_to') ? Carbon::parse($request->date_to)->toDateString() : now()->toDateString();
+        if($dateFrom>$dateTo) [$dateFrom,$dateTo]=[$dateTo,$dateFrom];
+        $issues=InventoryIssue::query()->with(['items.medicine','manager:id,name'])->where('warehouse_id',$warehouse->id)
+            ->whereBetween('issue_date',[$dateFrom,$dateTo])
+            ->when($selectedIds->isNotEmpty(),fn($q)=>$q->whereIn('id',$selectedIds))
             ->when($request->filled('q'),fn($q)=>$q->where(fn($x)=>$x->where('number','like','%'.$request->q.'%')->orWhere('recipient_name','like','%'.$request->q.'%')))
+            ->when($request->filled('manager_user_id'),fn($q)=>$q->where('manager_user_id',(int)$request->manager_user_id))
+            ->when($request->filled('recipient_name'),fn($q)=>$q->where('recipient_name',$request->recipient_name))
             ->when(in_array($request->status,['draft','posted'],true),fn($q)=>$q->where('status',$request->status))
             ->latest('issue_date')->latest('id')->get();
         $rows=$issues->flatMap(fn(InventoryIssue $issue)=>$issue->items->map(fn($item)=>[
             'Ma phieu'=>$issue->number,'Ngay xuat'=>$issue->issue_date->format('d/m/Y'),'Khach hang / noi nhan'=>$issue->recipient_name,
+            'Nguoi phu trach'=>$issue->manager?->name,'Nguon'=>($issue->issue_source ?? 'normal')==='bid'?'Hang thau':'Bang gia',
             'Trang thai'=>$issue->status,'Ma thuoc'=>$item->medicine->medicine_code,'Ten thuoc'=>$item->medicine->name,
             'So lo'=>$item->batch_number,'Han dung'=>$item->expiry_date->format('d/m/Y'),'So luong'=>(float)$item->quantity,
             'Don gia xuat'=>(float)$item->unit_price,'Thanh tien'=>(float)$item->quantity*(float)$item->unit_price,
@@ -718,12 +800,13 @@ final class InventoryController extends Controller
         return redirect()->route('admin.pharma.inventory.issues.index')->with('success',"Đã hoàn tác ghi sổ {$issue->number}; hàng đã được cộng trả tồn kho và hoa hồng phát sinh đã được đảo.");
     }
 
-    public function postIssue(InventoryIssue $issue, InventoryService $inventory): RedirectResponse
+    public function postIssue(InventoryIssue $issue, InventoryService $inventory, DrugBidCommissionService $commissions): RedirectResponse
     {
         if(($issue->issue_source ?? 'normal')==='bid' && $issue->status===InventoryIssue::DRAFT){
             return redirect()->route('admin.pharma.inventory.issues.bid-sales.batches',$issue);
         }
         $inventory->postIssue($issue,auth('admin')->id());
+        $commissions->snapshotPostedIssue($issue->fresh('items'),auth('admin')->id());
         return back()->with('success',"Đã ghi sổ {$issue->number}.");
     }
 
@@ -932,50 +1015,60 @@ final class InventoryController extends Controller
     {
         $from=$request->filled('from') ? Carbon::parse($request->input('from'))->startOfDay() : now()->startOfMonth();
         $to=$request->filled('to') ? Carbon::parse($request->input('to'))->endOfDay() : now()->endOfMonth();
-        $userId=$request->integer('user_id');
-        $partnerId=$request->integer('partner_id');
-        $medicineId=$request->integer('medicine_id');
+        $source=in_array($request->input('source','all'),['all',InventoryIssueCommission::SOURCE_PRICE_LIST,InventoryIssueCommission::SOURCE_BID],true) ? $request->input('source','all') : 'all';
+        $userId=$request->integer('user_id'); $partnerId=$request->integer('partner_id'); $medicineId=$request->integer('medicine_id');
 
-        $base=InventoryIssueCommission::query()
-            ->whereBetween('calculated_at',[$from,$to])
+        $base=InventoryIssueCommission::query()->whereBetween('calculated_at',[$from,$to])
+            ->when($source!=='all',fn($q)=>$q->where('source_type',$source))
             ->when($userId>0,fn($q)=>$q->where('user_id',$userId))
             ->when($partnerId>0,fn($q)=>$q->where('partner_id',$partnerId))
             ->when($medicineId>0,fn($q)=>$q->where('medicine_id',$medicineId));
-
         $totals=(clone $base)->selectRaw('COALESCE(SUM(revenue_amount),0) as revenue, COALESCE(SUM(commission_amount),0) as commission')->first();
-        $unresolved=(clone $base)->where('entry_type',InventoryIssueCommission::TYPE_EARNED)
-            ->where('status',InventoryIssueCommission::STATUS_UNRESOLVED)->count();
-        $rows=(clone $base)->with(['issue','medicine','user','partner'])
-            ->orderByDesc('calculated_at')->orderByDesc('id')->paginate(50)->withQueryString();
+        $receivableTotal=(clone $base)->where('source_type',InventoryIssueCommission::SOURCE_PRICE_LIST)
+            ->selectRaw('COALESCE(SUM(quantity * receivable_price_snapshot),0) as amount')->value('amount') ?? 0;
+        $unresolved=(clone $base)->where('entry_type',InventoryIssueCommission::TYPE_EARNED)->where('status',InventoryIssueCommission::STATUS_UNRESOLVED)->count();
+        $rows=(clone $base)->with(['issue','medicine','user','partner'])->orderByDesc('calculated_at')->orderByDesc('id')->paginate(50)->withQueryString();
+        $rows->getCollection()->each(function(InventoryIssueCommission $row){
+            $row->resolved_customer_name=$row->partner?->name ?: $row->issue?->recipient_name ?: '—';
+        });
 
-        $assignments=DrugBidAwardManagementAssignment::query()
-            ->where('status',DrugBidAwardManagementAssignment::STATUS_ACTIVE)
-            ->when($userId>0,fn($q)=>$q->where('user_id',$userId));
+        $filterRows=InventoryIssueCommission::query()->whereBetween('calculated_at',[$from,$to])
+            ->when($source!=='all',fn($q)=>$q->where('source_type',$source));
 
-        $users=User::query()->whereIn('id',DrugBidAwardManagementAssignment::query()
-            ->where('status',DrugBidAwardManagementAssignment::STATUS_ACTIVE)->distinct()->pluck('user_id'))
-            ->orderBy('name')->get(['id','name']);
-
-        $partners=Partner::query()->whereIn('id',(clone $assignments)->distinct()->pluck('partner_id'))
-            ->orderBy('name')->get(['id','name']);
-
-        $assignedAwardIds=(clone $assignments)
-            ->when($partnerId>0,fn($q)=>$q->where('partner_id',$partnerId))
-            ->distinct()->pluck('drug_bid_award_id');
-        $medicineIds=DrugBidAward::query()->whereIn('id',$assignedAwardIds)
-            ->whereNotNull('medicine_id')->distinct()->pluck('medicine_id');
+        // Filters represent the configured commercial scope, not only historical
+        // commission rows. A newly configured price list must be selectable before
+        // the first posted issue creates a commission snapshot.
+        if($source===InventoryIssueCommission::SOURCE_PRICE_LIST){
+            $priceLists=PriceList::query()->whereIn('type',[PriceList::TYPE_GLOBAL,PriceList::TYPE_CUSTOMER])
+                ->whereIn('status',[PriceList::STATUS_ACTIVE,PriceList::STATUS_INACTIVE]);
+            $configuredUserIds=(clone $priceLists)->whereNotNull('manager_user_id')->pluck('manager_user_id')
+                ->merge(DB::table('pharma_price_list_users')->whereIn('price_list_id',(clone $priceLists)->pluck('id'))->pluck('user_id'))
+                ->filter()->unique()->values();
+            $users=User::query()->whereIn('id',$configuredUserIds)->orderBy('name')->get(['id','name']);
+            $selectedLists=(clone $priceLists)->when($userId>0,fn($q)=>$q->where(fn($u)=>$u->where('manager_user_id',$userId)
+                ->orWhereIn('id',DB::table('pharma_price_list_users')->select('price_list_id')->where('user_id',$userId))));
+            $partnerIds=(clone $selectedLists)->whereNotNull('partner_id')->pluck('partner_id')
+                ->merge((clone $filterRows)->when($userId>0,fn($q)=>$q->where('user_id',$userId))->whereNotNull('partner_id')->pluck('partner_id'))
+                ->unique()->values();
+            $partners=Partner::query()->whereIn('id',$partnerIds)->orderBy('name')->get(['id','name']);
+            $medicineIds=PriceListItem::query()->whereIn('price_list_id',(clone $selectedLists)->pluck('id'))
+                ->when($partnerId>0,fn($q)=>$q->whereIn('price_list_id',(clone $selectedLists)->where('partner_id',$partnerId)->pluck('id')))
+                ->whereNotNull('medicine_id')->distinct()->pluck('medicine_id');
+        } else {
+            $users=User::query()->whereIn('id',(clone $filterRows)->whereNotNull('user_id')->distinct()->pluck('user_id'))->orderBy('name')->get(['id','name']);
+            $partners=Partner::query()->whereIn('id',(clone $filterRows)->when($userId>0,fn($q)=>$q->where('user_id',$userId))->whereNotNull('partner_id')->distinct()->pluck('partner_id'))->orderBy('name')->get(['id','name']);
+            $medicineIds=(clone $filterRows)->when($userId>0,fn($q)=>$q->where('user_id',$userId))->when($partnerId>0,fn($q)=>$q->where('partner_id',$partnerId))->distinct()->pluck('medicine_id');
+        }
         $medicines=Medicine::query()->whereIn('id',$medicineIds)->orderBy('name')->get(['id','medicine_code','name']);
 
-        return view('Pharma::pages.inventory.commissions',compact(
-            'rows','totals','unresolved','users','partners','medicines','from','to','userId','partnerId','medicineId'
-        ));
+        return view('Pharma::pages.inventory.commissions',compact('rows','totals','receivableTotal','unresolved','source','users','partners','medicines','from','to','userId','partnerId','medicineId'));
     }
 
     public function exportCommissions(Request $request): StreamedResponse
     {
         $data=$request->validate([
             'from'=>'nullable|date','to'=>'nullable|date','user_id'=>'nullable|integer',
-            'partner_id'=>'nullable|integer','medicine_id'=>'nullable|integer',
+            'partner_id'=>'nullable|integer','medicine_id'=>'nullable|integer','source'=>'nullable|in:all,bid,price_list',
             'ids'=>'nullable|array|max:500','ids.*'=>'integer|distinct',
         ]);
         $from=!empty($data['from']) ? Carbon::parse($data['from'])->startOfDay() : now()->startOfMonth();
@@ -984,6 +1077,7 @@ final class InventoryController extends Controller
         $query=InventoryIssueCommission::query()
             ->with(['issue','medicine','user','partner'])
             ->whereBetween('calculated_at',[$from,$to])
+            ->when(!empty($data['source']) && $data['source']!=='all',fn($q)=>$q->where('source_type',$data['source']))
             ->when(!empty($data['user_id']),fn($q)=>$q->where('user_id',(int)$data['user_id']))
             ->when(!empty($data['partner_id']),fn($q)=>$q->where('partner_id',(int)$data['partner_id']))
             ->when(!empty($data['medicine_id']),fn($q)=>$q->where('medicine_id',(int)$data['medicine_id']))
@@ -993,14 +1087,16 @@ final class InventoryController extends Controller
         $rows=$query->get()->map(fn(InventoryIssueCommission $row)=>[
             'Ngày ghi sổ'=>$row->calculated_at?->format('d/m/Y H:i'),
             'Số phiếu'=>$row->issue?->number,
-            'Bệnh viện'=>$row->partner?->name,
+            'Khách hàng / Bệnh viện'=>$row->partner?->name ?: $row->issue?->recipient_name,
             'Mã sản phẩm'=>$row->medicine?->medicine_code,
             'Sản phẩm'=>$row->medicine?->name,
             'User phụ trách'=>$row->user?->name ?: 'Chưa phân công',
             'SL thực xuất'=>(float)$row->quantity,
-            'Đơn giá trúng thầu'=>(float)$row->unit_price,
+            'Nguồn'=>$row->source_type===InventoryIssueCommission::SOURCE_BID ? 'Hàng thầu' : 'Bảng giá',
+            'Giá bán CT / Giá trúng thầu'=>(float)$row->unit_price,
+            'Giá thu'=>$row->receivable_price_snapshot !== null ? (float)$row->receivable_price_snapshot : null,
             'Doanh thu'=>(float)$row->revenue_amount,
-            '% hoa hồng'=>$row->commission_percentage !== null ? (float)$row->commission_percentage : null,
+            'CK / % chính sách'=>$row->commission_percentage !== null ? (float)$row->commission_percentage : null,
             'Hoa hồng'=>(float)$row->commission_amount,
             'Trạng thái'=>$row->status===InventoryIssueCommission::STATUS_UNRESOLVED ? 'Chưa đủ dữ liệu' : 'Đã tính',
         ]);
@@ -1014,7 +1110,7 @@ final class InventoryController extends Controller
             ->join('pharma_price_lists','pharma_price_lists.id','=','pharma_price_list_items.price_list_id')
             ->where('pharma_price_lists.status',PriceList::STATUS_ACTIVE)
             ->where('pharma_price_list_items.status','active')
-            ->where('pharma_price_lists.type',PriceList::TYPE_CUSTOMER)
+            ->whereIn('pharma_price_lists.type',[PriceList::TYPE_GLOBAL,PriceList::TYPE_CUSTOMER])
             ->whereNotNull('pharma_price_list_items.medicine_id')
             ->orderByDesc('pharma_price_lists.priority')
             ->orderByDesc('pharma_price_lists.effective_from')
@@ -1098,6 +1194,46 @@ final class InventoryController extends Controller
         throw ValidationException::withMessages(['file'=>"Dòng {$line}: Hạn dùng không hợp lệ, dùng định dạng dd/mm/yyyy."]);
     }
     private function medicines(){ return Medicine::query()->orderBy('name')->limit(500)->get(['id','medicine_code','name','unit']); }
+    private function issueManagerNames(InventoryIssue $issue): string
+    {
+        if(($issue->issue_source ?? 'normal')!=='bid') return (string)($issue->manager?->name ?? '');
+        return $this->bidIssueManagerNames($issue) ?: (string)($issue->manager?->name ?? '');
+    }
+
+    private function bidIssueManagerNames(InventoryIssue $issue): string
+    {
+        if(($issue->issue_source ?? 'normal')!=='bid') return '';
+        $awardIds=$issue->items->pluck('drug_bid_award_id')->filter()->map(fn($id)=>(int)$id)->unique()->values();
+        $partnerId=(int)($issue->bid_partner_id ?? 0);
+        if($awardIds->isEmpty() || !$partnerId) return '';
+        return DrugBidAwardManagementAssignment::query()->with('user:id,name')
+            ->where('status',DrugBidAwardManagementAssignment::STATUS_ACTIVE)
+            ->whereIn('drug_bid_award_id',$awardIds)->where('partner_id',$partnerId)
+            ->get()->pluck('user.name')->filter()->unique()->sort()->values()->implode(', ');
+    }
+
+    private function normalizeIssueNumericInputs(Request $request): void
+    {
+        $items=collect($request->input('items',[]))->map(function($item){
+            if(!is_array($item)) return $item;
+            foreach(['quantity','unit_price'] as $field){
+                if(array_key_exists($field,$item)) $item[$field]=$this->parseLocalizedNumber($item[$field]);
+            }
+            return $item;
+        })->all();
+        $request->merge(['items'=>$items]);
+    }
+
+    private function parseLocalizedNumber(mixed $value): float
+    {
+        if(is_int($value) || is_float($value)) return (float)$value;
+        $raw=preg_replace('/\s+/u','',trim((string)$value));
+        if($raw==='') return 0.0;
+        if(str_contains($raw,',')) $raw=str_replace(',','.',str_replace('.','',$raw));
+        elseif(substr_count($raw,'.')>1 || preg_match('/\.\d{3}$/',$raw)) $raw=str_replace('.','',$raw);
+        return is_numeric($raw) ? (float)$raw : 0.0;
+    }
+
     private function documentPerPage(Request $request): int
     {
         $value=(int)$request->input('per_page',25);

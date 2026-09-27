@@ -1,3 +1,19 @@
+## Checkpoint — Inventory sales + commission operations closeout — 2026-09-27
+
+- Branch: `fix/pharma-price-list-activation-identity-overlap`.
+- Scope: Pharma Price List activation identity, Inventory issue sales workflow, bid-sale issue workflow, Pharma operations dashboard, and Commission Center UX/exports.
+- Inventory issue list now supports manager/customer searchable filters, current-month date scope, selected-row Excel export, stable manager resolution for normal and bid issues, and professional full-width Admin presentation.
+- Draft issue edit locks the original Price List and restricts the responsible User to Users actually assigned to that Price List; backend validation prevents request bypass.
+- Commission Center supports both Price List and bid sources, resolves customer/hospital from commission partner or posted issue snapshot, uses searchable manager/customer/product filters, selected-row Excel export, full-width detail layout, and date-only posting display.
+- Canonical Admin searchable select is `<x-select-search>`. `<x-search-select>` is not a registered project component and must not be used; this rule is now documented in `.codex/standards/ADMIN_UI_STANDARD.md`.
+- Operator acceptance: latest focused `Modules/Pharma/Tests/Unit/InventoryContractTest.php` PASS and rendered UI PASS for the completed Inventory/Commission screens.
+- No new migration is required by the final UI/contract closeout changes.
+- Full-project regression: NOT APPLICABLE by default; changes are Module-scoped. Final Pharma module regression plus any demonstrably impacted tests remain the merge gate.
+- Remaining pre-merge gate: pull this documentation closeout, run final Pharma regression, verify working tree clean, then create/review PR. Refresh this handoff if PR review changes implementation before merge.
+- Status: **IMPLEMENTATION COMPLETE — FOCUSED TEST PASS + UI PASS — PRE-MERGE REGRESSION/CLEAN/PR GATES REMAIN.**
+
+---
+
 ## Checkpoint — Pharma Inventory MVP — 2026-09-23
 
 - Branch: `feat/pharma-inventory`, based on current `main`.

@@ -21,6 +21,8 @@ class PharmaDashboardContractTest extends TestCase
         $this->assertStringContainsString("manual_cost_price", $service);
         $this->assertStringContainsString("AVG(cost_price) as average_cost_price", $service);
         $this->assertStringContainsString("defaultWarehouse()", $service);
+        $this->assertStringContainsString("'posted_issues'", $service);
+        $this->assertStringContainsString("'active_supplier_trackings'", $service);
         $this->assertStringContainsString("whereDate('expiry_date', '<=', \$today->copy()->addDays(90))", $service);
         $this->assertStringContainsString("InventoryIssueDeferredSupply::PENDING", $service);
         $this->assertStringContainsString("InventoryIssueCommission::STATUS_UNRESOLVED", $service);
@@ -37,6 +39,15 @@ class PharmaDashboardContractTest extends TestCase
         $this->assertStringContainsString("@section('admin_container','full')", $view);
         $this->assertStringContainsString('Trung tâm điều hành Pharma', $view);
         $this->assertStringContainsString('Tổng quan vận hành', $view);
+        $this->assertStringContainsString('Danh mục sản phẩm', $view);
+        $this->assertStringContainsString('Doanh thu bán hàng', $view);
+        $this->assertStringContainsString("admin.pharma.inventory.issues.index", $view);
+        $this->assertStringContainsString('Bảng giá & bán hàng', $view);
+        $this->assertStringContainsString("admin.pharma.price-lists.index", $view);
+        $this->assertStringContainsString("admin.pharma.price-lists.create", $view);
+        $this->assertStringContainsString("admin.pharma.supplier-trackings.index", $view);
+        $this->assertStringContainsString('Theo dõi NCC', $view);
+        $this->assertStringContainsString('Trung tâm hoa hồng', $view);
         $this->assertStringContainsString('Giá trị tồn kho khả dụng', $view);
         $this->assertStringContainsString("available_stock_value", $view);
         $this->assertStringContainsString("unpriced_available_lots", $view);

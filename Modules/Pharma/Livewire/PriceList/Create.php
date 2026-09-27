@@ -35,6 +35,8 @@ class Create extends Component
     public ?int $partnerId = null;
     public ?int $officialFacilityId = null;
     public ?int $managerUserId = null;
+    public bool $globalAppliesToAllUsers = true;
+    public array $globalUserIds = [];
     public ?int $purposeId = null;
     public bool $purposeModalOpen = false;
     public ?int $editingPurposeId = null;
@@ -90,7 +92,7 @@ class Create extends Component
             return;
         }
 
-        $list = PriceList::query()->with(['items.bidEvidence'])->findOrFail($priceListId);
+        $list = PriceList::query()->with(['items.bidEvidence', 'globalUsers'])->findOrFail($priceListId);
         abort_unless($list->isDirectlyEditable(), 422, 'Chỉ bảng giá Draft hoặc Inactive mới được chỉnh trực tiếp.');
         $this->name = $list->name;
         $this->code = $list->code;
@@ -98,7 +100,9 @@ class Create extends Component
         $this->customerSource = $list->customer_source ?: PriceList::CUSTOMER_SOURCE_PARTNER;
         $this->partnerId = $list->partner_id;
         $this->officialFacilityId = $list->official_facility_id;
-        $this->managerUserId = $list->manager_user_id ?: auth('admin')->id();
+        $this->managerUserId = $list->manager_user_id ?: ($list->type === PriceList::TYPE_CUSTOMER ? auth('admin')->id() : null);
+        $this->globalUserIds = $list->type === PriceList::TYPE_GLOBAL ? $list->globalUsers->pluck('id')->map(fn ($id): int => (int) $id)->all() : [];
+        $this->globalAppliesToAllUsers = $this->globalUserIds === [];
         $this->purposeId = $list->purpose_id;
         $this->effectiveFrom = $list->effective_from?->toDateString() ?? '';
         $this->effectiveTo = $list->effective_to?->toDateString() ?? '';
@@ -133,6 +137,14 @@ class Create extends Component
         }
         $this->customerSource = $this->customerSource ?: PriceList::CUSTOMER_SOURCE_PARTNER;
         $this->managerUserId ??= auth('admin')->id();
+        $this->globalAppliesToAllUsers = true;
+        $this->globalUserIds = [];
+    }
+
+    public function updatedGlobalAppliesToAllUsers(bool $value): void
+    {
+        if ($value) $this->globalUserIds = [];
+        $this->resetValidation('globalUserIds');
     }
 
     public function setCustomerSource(string $value): void
@@ -319,6 +331,7 @@ class Create extends Component
                 $list->fill($header);
                 if (! $list->exists) $list->status = PriceList::STATUS_DRAFT;
                 $list->save();
+                $list->globalUsers()->sync($this->type === PriceList::TYPE_GLOBAL && ! $this->globalAppliesToAllUsers ? $this->globalUserIds : []);
                 $list->items()->delete();
 
                 $restoredSnapshots = [];
@@ -403,8 +416,8 @@ class Create extends Component
 
     private function headerIsValid(): bool
     {
-        $this->resetValidation(['name', 'code', 'type', 'customerSource', 'partnerId', 'officialFacilityId', 'managerUserId', 'purposeId', 'effectiveFrom', 'effectiveTo', 'currency', 'priority']);
-        $this->validate(['name' => ['required', 'string', 'max:255'], 'code' => ['required', 'string', 'max:80'], 'type' => ['required', 'in:global,customer'], 'customerSource' => [$this->type === PriceList::TYPE_CUSTOMER ? 'required' : 'nullable', 'in:partner,official_facility'], 'partnerId' => ['nullable', 'integer', 'exists:partners,id'], 'officialFacilityId' => ['nullable', 'integer'], 'managerUserId' => [$this->type === PriceList::TYPE_CUSTOMER ? 'required' : 'nullable', 'integer'], 'purposeId' => [$this->type === PriceList::TYPE_CUSTOMER ? 'required' : 'nullable', 'integer'], 'effectiveFrom' => ['nullable', 'date'], 'effectiveTo' => ['nullable', 'date', 'after_or_equal:effectiveFrom'], 'currency' => ['required', 'string', 'size:3'], 'priority' => ['integer']]);
+        $this->resetValidation(['name', 'code', 'type', 'customerSource', 'partnerId', 'officialFacilityId', 'managerUserId', 'globalUserIds', 'purposeId', 'effectiveFrom', 'effectiveTo', 'currency', 'priority']);
+        $this->validate(['name' => ['required', 'string', 'max:255'], 'code' => ['required', 'string', 'max:80'], 'type' => ['required', 'in:global,customer'], 'customerSource' => [$this->type === PriceList::TYPE_CUSTOMER ? 'required' : 'nullable', 'in:partner,official_facility'], 'partnerId' => ['nullable', 'integer', 'exists:partners,id'], 'officialFacilityId' => ['nullable', 'integer'], 'managerUserId' => [$this->type === PriceList::TYPE_CUSTOMER ? 'required' : 'nullable', 'integer'], 'globalUserIds' => [$this->type === PriceList::TYPE_GLOBAL && ! $this->globalAppliesToAllUsers ? 'required' : 'array'], 'globalUserIds.*' => ['integer', 'exists:users,id'], 'purposeId' => [$this->type === PriceList::TYPE_CUSTOMER ? 'required' : 'nullable', 'integer'], 'effectiveFrom' => ['nullable', 'date'], 'effectiveTo' => ['nullable', 'date', 'after_or_equal:effectiveFrom'], 'currency' => ['required', 'string', 'size:3'], 'priority' => ['integer']]);
         try { $this->manager->validateHeader($this->headerPayload()); } catch (Throwable $exception) { $this->errorMessage = $exception->getMessage(); return false; }
         return true;
     }

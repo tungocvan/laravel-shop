@@ -131,21 +131,35 @@ class PriceListManager
             $identities[] = $item->identity_key;
         }
 
-        $overlap = PriceList::query()->whereKeyNot($priceList->id)->where('status', PriceList::STATUS_ACTIVE)->where('type', $priceList->type)
-            ->when($priceList->type === PriceList::TYPE_CUSTOMER, function ($query) use ($priceList): void {
-                $query->where('customer_source', $priceList->customer_source);
-                $priceList->customer_source === PriceList::CUSTOMER_SOURCE_OFFICIAL_FACILITY
-                    ? $query->where('official_facility_id', $priceList->official_facility_id)
-                    : $query->where('partner_id', $priceList->partner_id);
-            }, fn ($query) => $query->whereNull('partner_id')->whereNull('official_facility_id'))
+        $conflict = PriceList::query()
+            ->whereKeyNot($priceList->id)
+            ->where('status', PriceList::STATUS_ACTIVE)
             ->where(function ($query) use ($priceList): void {
-                $query->whereNull('effective_to')->orWhereDate('effective_to', '>=', $priceList->effective_from ?? '1000-01-01');
+                $query->where('code', $priceList->code)
+                    ->orWhere('name', $priceList->name);
             })
             ->where(function ($query) use ($priceList): void {
-                $query->whereNull('effective_from')->orWhereDate('effective_from', '<=', $priceList->effective_to ?? '9999-12-31');
-            })->exists();
-        if ($overlap) {
-            throw ValidationException::withMessages(['effective_from' => 'Đã có bảng giá ACTIVE bị chồng lấn thời gian trong cùng phạm vi.']);
+                $query->whereNull('effective_to')
+                    ->orWhereDate('effective_to', '>=', $priceList->effective_from ?? '1000-01-01');
+            })
+            ->where(function ($query) use ($priceList): void {
+                $query->whereNull('effective_from')
+                    ->orWhereDate('effective_from', '<=', $priceList->effective_to ?? '9999-12-31');
+            })
+            ->first(['code', 'name']);
+
+        if ($conflict) {
+            $sameIdentity = [];
+            if ($conflict->code === $priceList->code) {
+                $sameIdentity[] = 'mã '.$priceList->code;
+            }
+            if ($conflict->name === $priceList->name) {
+                $sameIdentity[] = 'tên '.$priceList->name;
+            }
+
+            throw ValidationException::withMessages([
+                'effective_from' => 'Không thể kích hoạt. Đã tồn tại bảng giá ACTIVE có cùng '.implode(' và ', $sameIdentity).' và thời gian hiệu lực bị chồng lấn.',
+            ]);
         }
 
         $priceList->forceFill(['status' => PriceList::STATUS_ACTIVE, 'approved_by' => $approvedBy, 'approved_at' => now()])->save();

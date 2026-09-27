@@ -14,7 +14,7 @@ $signatures=collect([
 <div class="mx-auto w-full max-w-[1580px] space-y-6">
  <div class="flex flex-wrap items-end justify-between gap-4">
   <div><a href="{{ route('admin.pharma.inventory.issues.index') }}" class="text-sm font-semibold text-indigo-700">← Danh sách phiếu xuất</a><div class="mt-2 flex items-center gap-3"><h1 class="text-2xl font-bold text-slate-950">Phiếu xuất kho</h1><span class="rounded-full px-3 py-1 text-xs font-bold uppercase {{ $issue->status==='posted'?'bg-emerald-100 text-emerald-700':'bg-amber-100 text-amber-800' }}">{{ $issue->status==='posted'?'Đã ghi sổ':'Nháp' }}</span></div><p class="mt-1 text-sm text-slate-500">Chứng từ xuất hàng · {{ $issue->number }}</p></div>
-  <div class="flex flex-wrap gap-2">@if($issue->status==='draft')<a href="{{ route('admin.pharma.inventory.issues.edit',$issue) }}" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">Sửa phiếu</a>@endif<a href="{{ route('admin.pharma.inventory.issues.pdf',$issue) }}" class="rounded-xl border border-indigo-200 bg-white px-4 py-2.5 text-sm font-semibold text-indigo-700">↓ Tải PDF</a><a href="{{ route('admin.pharma.inventory.issues.print',$issue) }}" target="_blank" rel="noopener" class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm">▣ In trực tiếp</a></div>
+  <div class="flex flex-wrap gap-2">@if($issue->status==='draft')<a href="{{ ($issue->issue_source ?? 'normal')==='bid' ? route('admin.pharma.inventory.issues.bid-sales.edit',$issue) : route('admin.pharma.inventory.issues.edit',$issue) }}" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">{{ ($issue->issue_source ?? 'normal')==='bid' ? 'Sửa đơn hàng thầu' : 'Sửa phiếu' }}</a>@endif<a href="{{ route('admin.pharma.inventory.issues.pdf',$issue) }}" class="rounded-xl border border-indigo-200 bg-white px-4 py-2.5 text-sm font-semibold text-indigo-700">↓ Tải PDF</a><a href="{{ route('admin.pharma.inventory.issues.print',$issue) }}" target="_blank" rel="noopener" class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm">▣ In trực tiếp</a></div>
  </div>
  <section class="rounded-2xl border border-slate-200 bg-white shadow-sm">
   <div class="border-b border-slate-100 px-5 py-4"><h2 class="font-bold text-slate-900">Thông tin chứng từ</h2><p class="mt-0.5 text-xs text-slate-500">Thông tin giao hàng và chính sách giá tại thời điểm lập phiếu.</p></div>
@@ -26,8 +26,10 @@ $signatures=collect([
   </div>
   <div class="grid gap-4 border-t border-slate-100 bg-slate-50/70 p-5 md:grid-cols-4">
    <div><p class="text-[11px] font-bold uppercase text-slate-400">Khách hàng / nơi nhận</p><p class="mt-1 font-semibold">{{ $issue->recipient_name ?: 'Chưa xác định' }}</p></div>
-   <div><p class="text-[11px] font-bold uppercase text-slate-400">Người phụ trách</p><p class="mt-1 font-semibold">{{ $issue->priceList?->manager?->name ?: '—' }}</p></div>
-   @if($settings->show_price_list)<div><p class="text-[11px] font-bold uppercase text-slate-400">Bảng giá áp dụng</p><p class="mt-1 font-semibold">{{ $issue->priceList?->code ?: '—' }}</p><p class="text-xs text-slate-500">{{ $issue->priceList?->name }}</p></div>@endif
+   <div><p class="text-[11px] font-bold uppercase text-slate-400">Người phụ trách</p><p class="mt-1 font-semibold">{{ ($issue->issue_source ?? 'normal')==='bid' ? ($bidManagerNames ?: 'Chưa phân công') : ($issue->manager?->name ?: '—') }}</p></div>
+   @if(($issue->issue_source ?? 'normal')==='bid')
+   <div><p class="text-[11px] font-bold uppercase text-slate-400">Chủ đầu tư / Gói thầu</p><p class="mt-1 font-semibold">{{ $issue->bid_investor_name ?: '—' }}</p>@if($issue->bid_investor_code)<p class="text-xs text-slate-500">{{ $issue->bid_investor_code }}</p>@endif</div>
+   @elseif($settings->show_price_list)<div><p class="text-[11px] font-bold uppercase text-slate-400">Bảng giá áp dụng</p><p class="mt-1 font-semibold">{{ $issue->priceList?->code ?: '—' }}</p><p class="text-xs text-slate-500">{{ $issue->priceList?->name }}</p></div>@endif
    @if($settings->show_notes && filled($issue->notes))<div><p class="text-[11px] font-bold uppercase text-slate-400">Ghi chú</p><p class="mt-1 text-sm">{{ $issue->notes }}</p></div>@endif
   </div>
  </section>

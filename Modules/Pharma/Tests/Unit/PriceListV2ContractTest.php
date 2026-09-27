@@ -204,6 +204,44 @@ class PriceListV2ContractTest extends TestCase
     }
 
     #[Test]
+    public function activation_overlap_is_scoped_by_price_list_code_or_name_not_customer_scope(): void
+    {
+        $manager = file_get_contents(base_path('Modules/Pharma/Services/PriceListManager.php'));
+
+        $this->assertStringContainsString("->where('code', \$priceList->code)", $manager);
+        $this->assertStringContainsString("->orWhere('name', \$priceList->name)", $manager);
+        $this->assertStringContainsString("whereNull('effective_to')", $manager);
+        $this->assertStringContainsString("whereNull('effective_from')", $manager);
+        $this->assertStringContainsString('Không thể kích hoạt. Đã tồn tại bảng giá ACTIVE có cùng ', $manager);
+        $this->assertStringNotContainsString('chồng lấn thời gian trong cùng phạm vi', $manager);
+
+        $activationBlock = substr($manager, strpos($manager, 'public function activate('), strpos($manager, 'public function deactivate(') - strpos($manager, 'public function activate('));
+        $this->assertStringNotContainsString("where('customer_source'", $activationBlock);
+        $this->assertStringNotContainsString("where('partner_id'", $activationBlock);
+        $this->assertStringNotContainsString("where('official_facility_id'", $activationBlock);
+        $this->assertStringNotContainsString("where('type', \$priceList->type)", $activationBlock);
+    }
+
+    #[Test]
+    public function global_price_lists_support_optional_multi_user_assignment(): void
+    {
+        $migration = file_get_contents(base_path('Modules/Pharma/database/migrations/2026_09_27_020000_create_price_list_users_table.php'));
+        $model = file_get_contents(base_path('Modules/Pharma/Models/PriceList.php'));
+        $livewire = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/Create.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/workspace-bid.blade.php'));
+        foreach (['pharma_price_list_users', 'price_list_id', 'user_id'] as $text) $this->assertStringContainsString($text, $migration);
+        $this->assertStringContainsString('globalUsers(): BelongsToMany', $model);
+        $this->assertStringContainsString('isAvailableToUser', $model);
+        $this->assertStringContainsString('public bool $globalAppliesToAllUsers = true', $livewire);
+        $this->assertStringContainsString('public array $globalUserIds = []', $livewire);
+        $this->assertStringContainsString('globalUsers()->sync(', $livewire);
+        $this->assertStringContainsString('Áp dụng cho tất cả User', $view);
+        $this->assertStringContainsString('<x-select-search id="global-user-ids"', $view);
+        $this->assertStringContainsString('wire:model="globalUserIds"', $view);
+        $this->assertStringNotContainsString('wire:model.live="globalUserIds"', $view);
+    }
+
+    #[Test]
     public function admin_workspace_has_kpis_filters_pagination_modal_and_guarded_delete(): void
     {
         $component = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/Index.php'));
@@ -221,6 +259,12 @@ class PriceListV2ContractTest extends TestCase
         foreach (['managerUserId', 'effectiveFrom', 'effectiveTo', 'appliedEffectiveFrom', 'appliedEffectiveTo', 'sortField', 'sortDirection', 'applyEffectiveDates', 'resetFilters', 'sortBy'] as $property) $this->assertStringContainsString($property, $component);
         $this->assertStringContainsString("'manager'", $component);
         $this->assertStringContainsString("where('manager_user_id'", $component);
+        $this->assertStringContainsString("orWhereHas('globalUsers'", $component);
+        $this->assertStringContainsString("'globalUsers'", $component);
+        $this->assertStringContainsString("pharma_price_list_users", $component);
+        $this->assertStringContainsString('User áp dụng / phụ trách', $view);
+        $this->assertStringContainsString('Tất cả User', $view);
+        $this->assertStringContainsString('$list->globalUsers', $view);
         $this->assertStringContainsString("whereNull('effective_to')->orWhereDate('effective_to', '>=',", $component);
         $this->assertStringContainsString("whereNull('effective_from')->orWhereDate('effective_from', '<=',", $component);
         foreach (['wire:model.live="managerUserId"', 'wire:model="effectiveFrom"', 'wire:model="effectiveTo"', 'wire:click="applyEffectiveDates"', 'wire:click="resetFilters"', "sortBy('effective_from')", "sortBy('effective_to')", 'Xóa bộ lọc', 'Người phụ trách', 'Hiệu lực từ', 'Hiệu lực đến', 'manager?->name', 'Thêm', 'x-data="{ open:false, top:0, left:0, width:192', 'aria-haspopup="menu"', 'x-teleport="body"', 'position:fixed', 'Xóa bảng giá', 'Xuất Excel'] as $text) $this->assertStringContainsString($text, $view);
