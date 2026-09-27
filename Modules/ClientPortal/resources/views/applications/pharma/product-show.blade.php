@@ -92,10 +92,10 @@
         @endforelse
     </section>
 
+    @if($supplierPricingVisible)
     <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <div class="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div><p class="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">04 · Nhà cung cấp</p><h2 class="mt-1 text-lg font-black text-slate-950">Thông tin nhà cung cấp</h2></div>
-            @if(!$supplierPricingVisible)<p class="text-xs font-semibold text-slate-400">Giá thương mại được bảo vệ theo quyền riêng.</p>@endif
         </div>
         @forelse($suppliers as $supplier)
             <article class="grid gap-4 border-t border-slate-100 py-4 first:border-t-0 first:pt-0 sm:grid-cols-2 {{ $supplierPricingVisible ? 'lg:grid-cols-5' : 'lg:grid-cols-3' }}">
@@ -111,5 +111,6 @@
             <p class="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">Chưa có nhà cung cấp được liên kết với sản phẩm này.</p>
         @endforelse
     </section>
+    @endif
 </div>
 @endsection
