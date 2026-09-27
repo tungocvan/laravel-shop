@@ -32,6 +32,14 @@ final class PriceListApprovalWorkflow
             ->paginate(perPage: $perPage, page: $page);
     }
 
+    public function pendingCount(): int
+    {
+        return PriceList::query()
+            ->where('status', PriceList::STATUS_PENDING_APPROVAL)
+            ->where('type', PriceList::TYPE_CUSTOMER)
+            ->count();
+    }
+
     public function findPending(int $priceListId): ?PriceList
     {
         return PriceList::query()
