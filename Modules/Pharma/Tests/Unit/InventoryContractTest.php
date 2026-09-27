@@ -213,6 +213,11 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('data-auto-submit-filter', $documents);
         $this->assertStringContainsString("filterForm?.requestSubmit()", $documents);
         $this->assertStringContainsString('Xóa bộ lọc', $documents);
+        $this->assertStringContainsString("xl:grid-cols-[minmax(210px,1.15fr)_minmax(190px,.75fr)_minmax(280px,1.25fr)_130px_120px_98px_110px]", $documents);
+        $this->assertStringContainsString("\$selectedManagerId=\$issue->manager_user_id ?:", $issueEdit);
+        $this->assertStringContainsString("Bảng giá áp dụng không còn hoạt động hoặc không còn hiệu lực tại ngày xuất.", $controller);
+        $this->assertStringContainsString("Khách hàng không còn hoạt động. Vui lòng chọn lại khách hàng / nơi nhận.", $controller);
+        $this->assertStringContainsString("Lô tồn kho đã chọn không còn khả dụng. Vui lòng chọn lại lô.", $controller);
         $this->assertStringContainsString("when(\$request->filled('recipient_name')", $controller);
         $this->assertStringContainsString("collect(\$request->input('ids',[]))", $controller);
         $this->assertStringContainsString("'Nguoi phu trach'=>\$issue->manager?->name", $controller);
