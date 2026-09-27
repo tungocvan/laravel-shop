@@ -218,6 +218,5 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('[data-clear-selection]')?.addEventListener('click',()=>{rows.forEach(row=>row.checked=false);refreshSelection();});
     refreshSelection();
 @endif
-});
 </script>
 @endsection
