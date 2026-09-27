@@ -10,24 +10,38 @@
             <p class="mt-1 text-sm text-slate-500">Tra cứu chứng từ, trạng thái và ghi sổ phiếu nháp.</p>
         </div>
         <div class="flex flex-wrap gap-2">
-            @if($type === 'issue')@can('edit_pharma')<a href="{{ route('admin.pharma.inventory.issues.settings') }}" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">⚙ Cấu hình phiếu xuất</a>@endcan<a href="{{ route('admin.pharma.inventory.issues.export',request()->only(['q','status','manager_user_id','recipient_name'])) }}" class="rounded-xl border border-emerald-300 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-700">Export Excel</a>@endif
+            @if($type === 'issue')@can('edit_pharma')<a href="{{ route('admin.pharma.inventory.issues.settings') }}" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">⚙ Cấu hình phiếu xuất</a>@endcan<a href="{{ route('admin.pharma.inventory.issues.export',request()->only(['q','status','manager_user_id','recipient_name','date_from','date_to'])) }}" class="rounded-xl border border-emerald-300 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-700">Export Excel</a>@endif
             @if($type === 'issue')<a href="{{ route('admin.pharma.inventory.issues.bid-sales.create') }}" class="rounded-xl border border-indigo-300 bg-indigo-50 px-4 py-2.5 text-sm font-semibold text-indigo-700">+ Xuất bán hàng thầu</a>@endif
             <a href="{{ route($type === 'receipt' ? 'admin.pharma.inventory.receipts.create' : 'admin.pharma.inventory.issues.create') }}" class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white">+ {{ $type === 'receipt' ? 'Lập phiếu nhập' : 'Lập phiếu xuất' }}</a>
         </div>
     </header>
 
     <form method="GET" id="document-filters" class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div class="grid items-center gap-3 {{ $type === 'issue' ? 'xl:grid-cols-[minmax(210px,1.15fr)_minmax(190px,.75fr)_minmax(280px,1.25fr)_130px_120px_98px_110px]' : 'md:grid-cols-[minmax(260px,1fr)_auto_auto_auto]' }}">
-            <input name="q" value="{{ request('q') }}" placeholder="{{ $type === 'receipt' ? 'Tìm mã phiếu / nhà cung cấp' : 'Tìm mã phiếu / nơi nhận' }}" class="min-h-11 w-full rounded-xl border border-slate-300 px-3 text-sm">
-            @if($type === 'issue')
-                <x-select-search id="issue-manager-filter" name="manager_user_id" data-auto-submit-filter placeholder="Tìm người phụ trách..."><option value="">Tất cả người phụ trách</option>@foreach($issueManagers as $manager)<option value="{{ $manager->id }}" @selected((string)request('manager_user_id')===(string)$manager->id)>{{ $manager->name }}</option>@endforeach</x-select-search>
-                <x-select-search id="issue-recipient-filter" name="recipient_name" data-auto-submit-filter placeholder="Tìm khách hàng / nơi nhận..."><option value="">Tất cả khách hàng / nơi nhận</option>@foreach($issueRecipients as $recipient)<option value="{{ $recipient }}" @selected(request('recipient_name')===$recipient)>{{ $recipient }}</option>@endforeach</x-select-search>
-            @endif
-            <select name="status" onchange="this.form.submit()" class="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm"><option value="">Tất cả trạng thái</option><option value="draft" @selected(request('status') === 'draft')>Nháp</option><option value="posted" @selected(request('status') === 'posted')>Đã ghi sổ</option></select>
-            <select name="per_page" onchange="this.form.submit()" class="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm">@foreach([25,50,100] as $size)<option value="{{ $size }}" @selected((int)request('per_page',25)===$size)>{{ $size }} / trang</option>@endforeach</select>
-            <button class="min-h-11 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white">Tìm</button>
-            @if($type === 'issue')<a href="{{ route('admin.pharma.inventory.issues.index') }}" class="inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-xl border px-3 text-sm font-semibold {{ request()->hasAny(['q','manager_user_id','recipient_name','status']) ? 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900' : 'pointer-events-none border-slate-200 bg-slate-50 text-slate-300' }}" @if(!request()->hasAny(['q','manager_user_id','recipient_name','status'])) aria-disabled="true" @endif>Xóa bộ lọc</a>@endif
+        @if($type === 'issue')
+        <div class="flex flex-wrap items-center gap-3 xl:flex-nowrap">
+            <div class="flex min-w-[300px] flex-[1.2]">
+                <div class="relative min-w-0 flex-1">
+                    <input id="issue-keyword-filter" name="q" value="{{ request('q') }}" placeholder="Tìm mã phiếu / nơi nhận" class="min-h-11 w-full rounded-l-xl border border-r-0 border-slate-300 px-3 pr-9 text-sm">
+                    <button type="button" data-clear-keyword class="{{ filled(request('q')) ? 'flex' : 'hidden' }} absolute right-2 top-1/2 h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Xóa nội dung tìm kiếm">×</button>
+                </div>
+                <button class="min-h-11 rounded-r-xl bg-slate-900 px-5 text-sm font-semibold text-white">Tìm</button>
+            </div>
+            <div class="min-w-[180px] flex-[.75]"><x-select-search id="issue-manager-filter" name="manager_user_id" data-auto-submit-filter placeholder="Tìm người phụ trách..."><option value="">Tất cả người phụ trách</option>@foreach($issueManagers as $manager)<option value="{{ $manager->id }}" @selected((string)request('manager_user_id')===(string)$manager->id)>{{ $manager->name }}</option>@endforeach</x-select-search></div>
+            <div class="min-w-[250px] flex-1"><x-select-search id="issue-recipient-filter" name="recipient_name" data-auto-submit-filter placeholder="Tìm khách hàng / nơi nhận..."><option value="">Tất cả khách hàng / nơi nhận</option>@foreach($issueRecipients as $recipient)<option value="{{ $recipient }}" @selected(request('recipient_name')===$recipient)>{{ $recipient }}</option>@endforeach</x-select-search></div>
+            <label class="min-w-[145px] text-[11px] font-semibold uppercase tracking-wide text-slate-500">Từ ngày<input type="date" name="date_from" value="{{ $dateFrom }}" data-auto-submit-filter class="mt-1 min-h-10 w-full rounded-xl border border-slate-300 bg-white px-2 text-sm font-normal text-slate-700"></label>
+            <label class="min-w-[145px] text-[11px] font-semibold uppercase tracking-wide text-slate-500">Đến ngày<input type="date" name="date_to" value="{{ $dateTo }}" data-auto-submit-filter class="mt-1 min-h-10 w-full rounded-xl border border-slate-300 bg-white px-2 text-sm font-normal text-slate-700"></label>
+            <select name="status" onchange="this.form.submit()" class="min-h-11 min-w-[125px] rounded-xl border border-slate-300 bg-white px-3 text-sm"><option value="">Tất cả trạng thái</option><option value="draft" @selected(request('status') === 'draft')>Nháp</option><option value="posted" @selected(request('status') === 'posted')>Đã ghi sổ</option></select>
+            <select name="per_page" onchange="this.form.submit()" class="min-h-11 min-w-[105px] rounded-xl border border-slate-300 bg-white px-3 text-sm">@foreach([25,50,100] as $size)<option value="{{ $size }}" @selected((int)request('per_page',25)===$size)>{{ $size }} / trang</option>@endforeach</select>
+            <a href="{{ route('admin.pharma.inventory.issues.index') }}" class="inline-flex min-h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900">Đặt lại</a>
         </div>
+        @else
+        <div class="grid gap-3 md:grid-cols-[minmax(260px,1fr)_auto_auto_auto]">
+            <input name="q" value="{{ request('q') }}" placeholder="Tìm mã phiếu / nhà cung cấp" class="min-h-11 rounded-xl border border-slate-300 px-3 text-sm">
+            <select name="status" onchange="this.form.submit()" class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm"><option value="">Tất cả trạng thái</option><option value="draft" @selected(request('status') === 'draft')>Nháp</option><option value="posted" @selected(request('status') === 'posted')>Đã ghi sổ</option></select>
+            <select name="per_page" onchange="this.form.submit()" class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm">@foreach([25,50,100] as $size)<option value="{{ $size }}" @selected((int)request('per_page',25)===$size)>{{ $size }} / trang</option>@endforeach</select>
+            <button class="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white">Tìm</button>
+        </div>
+        @endif
     </form>
 
     @if($type === 'issue')
@@ -187,6 +201,8 @@
 document.addEventListener('DOMContentLoaded', () => {
     @if($type === 'issue')
     const filterForm=document.getElementById('document-filters');
+    const keyword=document.getElementById('issue-keyword-filter');
+    document.querySelector('[data-clear-keyword]')?.addEventListener('click',()=>{if(keyword){keyword.value='';filterForm?.requestSubmit();}});
     document.querySelectorAll('[data-auto-submit-filter]').forEach((select)=>{
         select.addEventListener('change',()=>filterForm?.requestSubmit());
     });
