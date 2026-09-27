@@ -5,6 +5,7 @@ namespace Modules\Pharma\Services;
 use Modules\Pharma\Models\PriceList;
 use Modules\Pharma\Models\PriceListExportShare;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -73,11 +74,58 @@ final class PriceListShareExportService
 
         $share = PriceListExportShare::query()->create([
             'price_list_id'=>$priceList->id,'created_by'=>$userId,'export_profile_id'=>$profile['profile_id'] ?: null,
-            'storage_path'=>$storagePath,'download_name'=>$downloadName,'token_hash'=>hash('sha256',$token),
+            'storage_path'=>$storagePath,'download_name'=>$downloadName,'token_hash'=>hash('sha256',$token),'token_encrypted'=>Crypt::encryptString($token),
             'expires_at'=>now()->addDays(30),
         ]);
 
         return ['share'=>$share,'token'=>$token];
+    }
+
+    public function latestForUser(int $priceListId, int $userId): ?array
+    {
+        $share = PriceListExportShare::query()
+            ->where('price_list_id', $priceListId)
+            ->where('created_by', $userId)
+            ->whereNull('revoked_at')
+            ->where(function ($query): void {
+                $query->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })
+            ->whereNotNull('token_encrypted')
+            ->latest('id')
+            ->first();
+
+        return $share ? $this->present($share) : null;
+    }
+
+    public function latestForUserByPriceLists(array $priceListIds, int $userId): array
+    {
+        if ($priceListIds === []) return [];
+
+        return PriceListExportShare::query()
+            ->whereIn('price_list_id', $priceListIds)
+            ->where('created_by', $userId)
+            ->whereNull('revoked_at')
+            ->where(function ($query): void {
+                $query->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })
+            ->whereNotNull('token_encrypted')
+            ->latest('id')
+            ->get()
+            ->unique('price_list_id')
+            ->mapWithKeys(fn (PriceListExportShare $share) => [(int) $share->price_list_id => $this->present($share)])
+            ->all();
+    }
+
+    private function present(PriceListExportShare $share): array
+    {
+        $token = Crypt::decryptString($share->token_encrypted);
+
+        return [
+            'share_id' => (int) $share->id,
+            'url' => route('client.pharma.price-lists.share.download', ['token' => $token]),
+            'expires_at' => $share->expires_at?->format('d/m/Y H:i'),
+            'download_name' => $share->download_name,
+        ];
     }
 
     public function resolve(string $token): PriceListExportShare
