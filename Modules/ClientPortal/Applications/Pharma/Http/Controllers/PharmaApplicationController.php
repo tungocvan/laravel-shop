@@ -338,6 +338,7 @@ final class PharmaApplicationController extends Controller
             'page' => ['nullable', 'integer', 'min:1'],
             'from_date' => ['nullable', 'date'],
             'to_date' => ['nullable', 'date', 'after_or_equal:from_date'],
+            'manager_user_id' => ['nullable', 'integer'],
         ]);
 
         $application = $registry->find('pharma');
@@ -351,6 +352,9 @@ final class PharmaApplicationController extends Controller
         $toDate = $validated['to_date'] ?? now()->toDateString();
 
         $canApprove = $registry->userCan($user, 'client.pharma.price-lists.approve');
+        $managerUserId = $canApprove && ! empty($validated['manager_user_id'])
+            ? (int) $validated['manager_user_id']
+            : null;
 
         return view('ClientPortal::applications.pharma.price-lists', [
             'application' => $application,
@@ -363,8 +367,10 @@ final class PharmaApplicationController extends Controller
                 page: (int) ($validated['page'] ?? 1),
                 fromDate: $fromDate,
                 toDate: $toDate,
+                managerUserId: $managerUserId,
+                approverScope: $canApprove,
             )->withQueryString(),
-            'counts' => $workspace->counts((int) $user->id),
+            'counts' => $workspace->counts((int) $user->id, $managerUserId, $canApprove),
             'search' => trim((string) ($validated['q'] ?? '')),
             'status' => $status,
             'perPage' => (int) ($validated['per_page'] ?? 25),
@@ -373,6 +379,8 @@ final class PharmaApplicationController extends Controller
             'canCreate' => $registry->userCan($user, 'client.pharma.price-lists.create'),
             'canApprove' => $canApprove,
             'pendingApprovalCount' => $canApprove ? $approval->pendingCount() : null,
+            'managerUserId' => $managerUserId,
+            'managerUsers' => $canApprove ? app(ApproverGlobalPriceListWorkflow::class)->activeUsers() : collect(),
         ]);
     }
 
