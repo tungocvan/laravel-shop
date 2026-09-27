@@ -22,7 +22,7 @@ class MedicineCanonicalIdentityTest extends TestCase
         $resolver = new MedicineIdentityResolver;
         $first = ['registration_number' => '893110138900', 'name' => 'Pitamsol', 'strength_text' => '2.400mg; 7,2ml', 'dosage_form' => 'Dung dịch uống', 'presentation_text' => '7,2ml'];
         $second = ['registration_number' => '893110138900', 'name' => 'Pitamsol', 'strength_text' => '2.400mg; 24ml', 'dosage_form' => 'Dung dịch uống', 'presentation_text' => '24ml'];
-        $this->assertSame($resolver->canonicalMedicineIdentity($first), $resolver->canonicalMedicineIdentity($second));
+        $this->assertNotSame($resolver->canonicalMedicineIdentity($first), $resolver->canonicalMedicineIdentity($second));
         $this->assertNotSame($resolver->canonicalVariantIdentity($first), $resolver->canonicalVariantIdentity($second));
     }
 
@@ -91,20 +91,24 @@ class MedicineCanonicalIdentityTest extends TestCase
             'name' => 'Medicine A',
             'registration_number' => 'REG-A',
             'registration_number_raw' => 'REG-A',
+            'packaging_specification' => 'Hộp 10 viên',
             'registration_number_primary' => 'REG-A',
             'canonical_identity_key' => app(MedicineIdentityResolver::class)->canonicalMedicineIdentity([
                 'name' => 'Medicine A',
                 'registration_number' => 'REG-A',
+                'packaging_specification' => 'Hộp 10 viên',
             ]),
         ]);
         $second = Medicine::query()->create([
             'name' => 'Medicine B',
             'registration_number' => 'REG-B',
             'registration_number_raw' => 'REG-B',
+            'packaging_specification' => 'Hộp 10 viên',
             'registration_number_primary' => 'REG-B',
             'canonical_identity_key' => app(MedicineIdentityResolver::class)->canonicalMedicineIdentity([
                 'name' => 'Medicine B',
                 'registration_number' => 'REG-B',
+                'packaging_specification' => 'Hộp 10 viên',
             ]),
         ]);
 
