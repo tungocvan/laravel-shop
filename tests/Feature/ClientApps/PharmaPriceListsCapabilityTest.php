@@ -34,6 +34,9 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString("->name('price-lists.create')", $routes);
         $this->assertStringContainsString("->name('price-lists.store')", $routes);
         $this->assertStringContainsString("->name('price-lists.submit')", $routes);
+        $this->assertStringContainsString("->name('price-lists.edit')", $routes);
+        $this->assertStringContainsString("->name('price-lists.update')", $routes);
+        $this->assertStringContainsString("->name('price-lists.delete')", $routes);
         $this->assertStringContainsString('client.feature:pharma,price-lists', $routes);
         $this->assertStringNotContainsString('auth:admin', $routes);
 
@@ -56,6 +59,11 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('Giá bán CT', $detail);
         $this->assertStringContainsString('Giá thu / Giá HĐ', $detail);
         $this->assertStringContainsString('Gửi duyệt', $detail);
+        $this->assertStringContainsString('Sửa Nháp', $detail);
+        $this->assertStringContainsString('Xóa', $detail);
+        $this->assertStringContainsString("route('client.pharma.price-lists.edit'", $view);
+        $this->assertStringContainsString("route('client.pharma.price-lists.delete'", $view);
+        $this->assertStringContainsString("'draft' => 'Nháp'", $view);
         $this->assertStringContainsString('STATUS_PENDING_APPROVAL', $detail);
 
         $this->assertStringContainsString('Tạo bảng giá cho khách hàng', $create);
@@ -68,6 +76,11 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('02 · Bảng giá gốc', $create);
         $this->assertStringContainsString('03 · Sản phẩm & giá', $create);
         $this->assertStringContainsString('04 · Kiểm tra & lưu', $create);
+        $this->assertStringContainsString('select-all-source-products', $create);
+        $this->assertStringContainsString('source-product-search', $create);
+        $this->assertStringContainsString('clear-source-product-search', $create);
+        $this->assertStringContainsString('sessionStorage.setItem', $create);
+        $this->assertStringContainsString('sessionStorage.getItem', $create);
         $this->assertStringContainsString('source_price_list_id', $create);
         $this->assertStringNotContainsString('sticky bottom-4', $create);
         $this->assertStringContainsString('Lưu bảng giá Nháp', $create);
@@ -84,6 +97,10 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString("orWhereHas('globalUsers'", $workflow);
         $this->assertStringContainsString("'source_price_list_id'", $workflow);
         $this->assertStringContainsString("'declared_price_snapshot'", $workflow);
+        $this->assertStringContainsString('public function updateDraft(int $userId', $workflow);
+        $this->assertStringContainsString('public function deleteDraft(int $userId', $workflow);
+        $this->assertStringContainsString('private function draftForUser(int $userId', $workflow);
+        $this->assertStringContainsString("->where('status', PriceList::STATUS_DRAFT)", $workflow);
         $this->assertStringContainsString('public function submit(int $userId', $workflow);
         $this->assertStringContainsString("'manager_user_id'", $workflow);
         $this->assertStringContainsString("'submitted_by'", $workflow);
