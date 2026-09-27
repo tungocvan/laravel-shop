@@ -32,7 +32,7 @@ class Index extends Component
 
     public string $filterSource = '';
 
-    public string $filterMatchStatus = '';
+    public string $filterBusinessSetup = '';
 
     public int $perPage = 10;
 
@@ -53,7 +53,7 @@ class Index extends Component
         'filterTbmt' => ['except' => ''],
         'filterInvestor' => ['except' => ''],
         'filterSource' => ['except' => ''],
-        'filterMatchStatus' => ['except' => ''],
+        'filterBusinessSetup' => ['except' => ''],
         'valueSort' => ['except' => ''],
         'perPage' => ['except' => 10],
         'page' => ['except' => 1],
@@ -92,11 +92,10 @@ class Index extends Component
         $this->resetWorkspacePage();
     }
 
-    public function updatedFilterMatchStatus(): void
+    public function updatedFilterBusinessSetup(): void
     {
-        $this->filterMatchStatus = in_array($this->filterMatchStatus, $this->matchStatusValues(), true)
-            ? $this->filterMatchStatus
-            : '';
+        $allowed = ['', 'commercial_missing', 'commercial_ready', 'allocation_missing', 'allocation_ready'];
+        $this->filterBusinessSetup = in_array($this->filterBusinessSetup, $allowed, true) ? $this->filterBusinessSetup : '';
         $this->resetWorkspacePage();
     }
 
@@ -184,7 +183,7 @@ class Index extends Component
 
     public function resetFilters(): void
     {
-        $this->reset(['search', 'filterTbmt', 'filterInvestor', 'filterSource', 'filterMatchStatus', 'valueSort']);
+        $this->reset(['search', 'filterTbmt', 'filterInvestor', 'filterSource', 'filterBusinessSetup', 'valueSort']);
         $this->page = 1;
         $this->clearSelection();
         $this->dispatch('filters-reset');
@@ -315,12 +314,6 @@ class Index extends Component
                 DrugBidAward::SOURCE_MANUAL => 'Nhập thủ công',
                 DrugBidAward::SOURCE_MUASAMCONG => 'Mua sắm công',
             ],
-            'matchStatusOptions' => [
-                DrugBidAward::MATCH_VERIFIED => 'Đã đối soát',
-                DrugBidAward::MATCH_PROVISIONAL => 'Tạm khớp',
-                DrugBidAward::MATCH_AMBIGUOUS => 'Mơ hồ',
-                DrugBidAward::MATCH_UNRESOLVED => 'Chưa đối soát',
-            ],
         ]);
     }
 
@@ -333,9 +326,10 @@ class Index extends Component
             $this->perPage,
             $this->page,
             $this->filterSource ?: null,
-            $this->filterMatchStatus ?: null,
+            null,
             $this->filterTbmt,
             $this->valueSort,
+            $this->filterBusinessSetup ?: null,
         );
     }
 
@@ -410,16 +404,5 @@ class Index extends Component
     private function sourceOptions(): array
     {
         return ['', DrugBidAward::SOURCE_MANUAL, DrugBidAward::SOURCE_MUASAMCONG];
-    }
-
-    private function matchStatusValues(): array
-    {
-        return [
-            '',
-            DrugBidAward::MATCH_VERIFIED,
-            DrugBidAward::MATCH_PROVISIONAL,
-            DrugBidAward::MATCH_AMBIGUOUS,
-            DrugBidAward::MATCH_UNRESOLVED,
-        ];
     }
 }

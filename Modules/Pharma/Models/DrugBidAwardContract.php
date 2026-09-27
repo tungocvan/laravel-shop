@@ -28,7 +28,8 @@ class DrugBidAwardContract extends Model
     protected $fillable = [
         'drug_bid_award_allocation_id', 'contract_number', 'contract_date',
         'contract_quantity', 'contract_value', 'start_date', 'end_date', 'status',
-        'notes', 'created_by', 'updated_by', 'cancelled_by', 'cancelled_at',
+        'notes', 'signed_file_disk', 'signed_file_path', 'signed_file_name', 'signed_file_mime',
+        'signed_file_size', 'signed_file_remote_id', 'created_by', 'updated_by', 'cancelled_by', 'cancelled_at',
         'cancellation_reason',
     ];
 

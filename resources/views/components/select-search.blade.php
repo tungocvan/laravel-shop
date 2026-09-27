@@ -45,7 +45,7 @@ function selectSearchComponent(config) {
                     if (config.model) {
                         // Wait for Livewire to persist the selected value before a following
                         // action (for example Save) can be sent from the same component.
-                        this.$wire.set(config.model, value, false);
+                        this.$wire.set(config.model, value);
                     }
                 },
                 onType: (query) => {
@@ -92,9 +92,13 @@ function selectSearchComponent(config) {
 
 <style>
 .ts-control {
+    min-height: 44px !important;
+    height: 44px !important;
     border-radius: 0.75rem !important;
-    padding: 0.75rem !important;
+    padding: 0.5rem 0.75rem !important;
     border: 1px solid #d1d5db !important;
+    line-height: 1.25rem !important;
+    align-items: center !important;
 }
 
 

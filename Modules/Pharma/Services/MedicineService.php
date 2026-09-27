@@ -3,7 +3,9 @@
 namespace Modules\Pharma\Services;
 
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Modules\Partner\Models\Partner;
 use LogicException;
 use Modules\Pharma\Models\Medicine;
 
@@ -96,15 +98,37 @@ class MedicineService
             ->all();
     }
 
-    public function getSupplierOptions(): array
+    public function supplierFilterCandidates(string $search = '', ?int $selectedId = null, int $limit = 25): Collection
     {
-        return \Modules\Partner\Models\Partner::query()
+        $search = trim($search);
+        $query = Partner::query()
             ->where('status', 'active')
             ->whereJsonContains('partner_types', 'supplier')
             ->whereHas('supplierTrackings')
+            ->when($search !== '', fn ($query) => $query->where(fn ($nested) => $nested
+                ->where('name', 'like', "%{$search}%")
+                ->orWhere('tax_code', 'like', "%{$search}%")))
             ->orderBy('name')
-            ->pluck('name', 'id')
-            ->all();
+            ->limit(max(1, min(25, $limit)));
+
+        $items = $query->get(['id', 'name', 'tax_code']);
+
+        if ($selectedId && ! $items->contains('id', $selectedId)) {
+            $selected = Partner::query()->find($selectedId, ['id', 'name', 'tax_code']);
+            if ($selected) {
+                $items->prepend($selected);
+            }
+        }
+
+        return $items->unique('id')->values();
+    }
+
+    public function catalogStats(): array
+    {
+        return [
+            'total' => Medicine::query()->count(),
+            'special_control' => Medicine::query()->where('is_special_control', true)->count(),
+        ];
     }
 
     public function findOrFail(int $id): Medicine

@@ -4,6 +4,9 @@ Tài liệu này dành cho người phát triển khi yêu cầu ChatGPT/Codex/A
 
 Đọc cùng:
 
+- `.codex/skills/google-drive-upload/SKILL.md` — **skill canonical cho UI + implementation upload/download/delete/sync Local ↔ Google Drive**. Với task file storage thông thường, đọc skill này trước để không phải khám phá lại pattern HSSP/System.
+
+
 - `docs/GOOGLE_DRIVE_AND_SCHEDULER_REUSE_GUIDE.md` — kiến trúc kỹ thuật/canonical reuse guide.
 - `.codex/bootstrap/AI_PROJECT_CONTEXT.md` — context bắt buộc của AI.
 

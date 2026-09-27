@@ -165,7 +165,7 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("'partners'=>\$partners", $controller);
         $searchSelect=file_get_contents(base_path('resources/views/components/select-search.blade.php'));
         $this->assertStringNotContainsString('@this.set(', $searchSelect);
-        $this->assertStringContainsString('this.$wire.set(config.model, value, false);', $searchSelect);
+        $this->assertStringContainsString('this.$wire.set(config.model, value);', $searchSelect);
         $issueForm=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-form.blade.php'));
         $documents=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/documents.blade.php'));
         $service=file_get_contents(base_path('Modules/Pharma/Services/InventoryService.php'));

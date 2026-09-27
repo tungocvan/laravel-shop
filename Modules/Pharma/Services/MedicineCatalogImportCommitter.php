@@ -57,9 +57,10 @@ class MedicineCatalogImportCommitter
             $medicine = Medicine::query()->where('canonical_identity_key', $row->medicine_identity_key)->first();
         }
 
-        // Never reuse a matched legacy master for a different package. Packaging is
-        // now part of the Medicine identity and therefore owns its own MED code.
-        if ($medicine && ! $this->samePackaging($medicine, $data)) {
+        // A staged UPDATE intentionally refreshes the matched owner master even when
+        // package/strength metadata changed. A NEW row must not silently reuse a
+        // different package master.
+        if ($medicine && $row->classification !== MedicineImportRow::CLASS_UPDATE && ! $this->samePackaging($medicine, $data)) {
             $medicine = null;
         }
 
@@ -103,7 +104,8 @@ class MedicineCatalogImportCommitter
                 'dosage_form' => $data['dosage_form'] ?? null,
                 'route_of_administration' => $data['route_of_administration'] ?? null,
                 'unit' => $data['unit'] ?? null,
-                // Do not overwrite SKU-level presentation/price when another package
+                'packaging_specification' => $data['packaging_specification'] ?? null,
+                // Do not overwrite SKU-level price when another package
                 // of the same canonical medicine is committed later in the batch.
                 'registration_number_raw' => $data['registration_number_raw'] ?? null,
                 'registration_number_primary' => $data['registration_number_primary'] ?? null,
@@ -111,6 +113,7 @@ class MedicineCatalogImportCommitter
                 'shelf_life' => $data['shelf_life'] ?? null,
                 'manufacturing_company' => $data['manufacturing_company'] ?? null,
                 'manufacturing_country' => $data['manufacturing_country'] ?? null,
+                'declared_price' => $data['declared_price'] ?? null,
                 'is_special_control' => array_key_exists('is_special_control', $data)
                     ? (bool) $data['is_special_control']
                     : null,

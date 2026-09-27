@@ -68,6 +68,7 @@ class DrugBidAwardService
         ?string $matchStatus = null,
         ?string $tbmt = null,
         ?string $valueSort = null,
+        ?string $businessSetup = null,
     ): LengthAwarePaginator {
         $groupKey = "COALESCE(NULLIF(bidding_notice_code, ''), CONCAT('award-', id))";
 
@@ -84,7 +85,11 @@ class DrugBidAwardService
             ->when($investor, fn ($query, $value) => $query->where('investor_name', 'like', "%{$value}%"))
             ->when($company, fn ($query, $value) => $query->where('winning_company_name', 'like', "%{$value}%"))
             ->when($sourceType, fn ($query, $value) => $query->where('source_type', $value))
-            ->when($matchStatus, fn ($query, $value) => $query->where('medicine_match_status', $value));
+            ->when($matchStatus, fn ($query, $value) => $query->where('medicine_match_status', $value))
+            ->when($businessSetup === 'commercial_missing', fn ($query) => $query->whereDoesntHave('allocations.managementAssignments', fn ($assignment) => $assignment->where('status', 'active')))
+            ->when($businessSetup === 'commercial_ready', fn ($query) => $query->whereHas('allocations.managementAssignments', fn ($assignment) => $assignment->where('status', 'active')))
+            ->when($businessSetup === 'allocation_missing', fn ($query) => $query->whereDoesntHave('allocations', fn ($allocation) => $allocation->where('status', 'active')))
+            ->when($businessSetup === 'allocation_ready', fn ($query) => $query->whereHas('allocations', fn ($allocation) => $allocation->where('status', 'active')));
 
         $query = DrugBidAward::query()
             ->fromSub($baseQuery->toBase(), 'award_rows')
@@ -159,6 +164,62 @@ class DrugBidAwardService
             ->orderBy('lot_no')
             ->orderBy('id')
             ->get();
+    }
+
+    public function legalInfoForResultGroup(int $representativeId): DrugBidAward
+    {
+        $representative = $this->findOrFail($representativeId);
+
+        if (! filled($representative->bidding_notice_code)) {
+            return $representative;
+        }
+
+        return DrugBidAward::query()
+            ->where('bidding_notice_code', $representative->bidding_notice_code)
+            ->orderByRaw('contract_duration_months IS NULL')
+            ->orderByDesc('contract_duration_months')
+            ->orderByDesc('decision_date')
+            ->orderByDesc('published_at')
+            ->orderByDesc('id')
+            ->firstOrFail();
+    }
+
+    public function contractDurationMonthsForResultGroup(int $representativeId): ?int
+    {
+        return $this->productsForResultGroup($representativeId)
+            ->map(fn (DrugBidAward $award): ?int => $this->contractDurationMonths($award))
+            ->filter(fn (?int $months): bool => $months !== null && $months > 0)
+            ->max();
+    }
+
+    private function contractDurationMonths(DrugBidAward $award): ?int
+    {
+        if ((int) $award->contract_duration_months > 0) {
+            return (int) $award->contract_duration_months;
+        }
+
+        $period = (int) $award->contract_period;
+        if ($period > 0) {
+            $unit = mb_strtolower(trim((string) $award->contract_period_unit));
+
+            if ($unit === '' || in_array($unit, ['m', 'mo'], true) || str_contains($unit, 'tháng') || str_contains($unit, 'month')) {
+                return $period;
+            }
+
+            if (in_array($unit, ['y', 'yr'], true) || str_contains($unit, 'năm') || str_contains($unit, 'year')) {
+                return $period * 12;
+            }
+
+            if (in_array($unit, ['d', 'day', 'days'], true) || str_contains($unit, 'ngày')) {
+                return max(1, (int) round($period / 30.4375));
+            }
+        }
+
+        if (preg_match('/(\\d+)\\s*(tháng|month|months)/iu', (string) $award->contract_period_text, $matches)) {
+            return (int) $matches[1];
+        }
+
+        return null;
     }
 
     public function findProductInResultGroupOrFail(int $representativeId, int $productId): DrugBidAward

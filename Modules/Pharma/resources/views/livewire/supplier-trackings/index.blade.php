@@ -52,22 +52,23 @@
                         'status' => $status,
                         'partner_id' => $supplierId,
                         'medicine_id' => $medicineId,
+                        'purchase_price' => $purchasePrice,
                         'selected_ids' => $selectedIds,
                     ],
                     'permission' => 'edit_pharma',
-                ], key('supplier-tracking-import-export-' . md5(json_encode([$search, $status, $supplierId, $medicineId]))))
+                ], key('supplier-tracking-import-export-' . md5(json_encode([$search, $status, $supplierId, $medicineId, $purchasePrice]))))
             </div>
         @endif
     @endcan
 
     <div class="rounded-2xl border border-gray-200 bg-white shadow-sm">
         <div class="p-5">
-            <div class="grid gap-4 lg:grid-cols-12">
+            <div class="grid items-end gap-x-3 gap-y-4 lg:grid-cols-16">
                 <div class="lg:col-span-3">
                     <label for="supplier-search" class="text-sm font-medium text-gray-700">Tìm kiếm</label>
-                    <input id="supplier-search" type="text" wire:model.live.debounce.400ms="search" placeholder="SĐK, đại diện, khu vực..." class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm shadow-sm">
+                    <div class="relative mt-1"><input id="supplier-search" type="text" wire:model.live.debounce.400ms="search" placeholder="SĐK, đại diện, khu vực..." class="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-2 pr-10 text-sm shadow-sm">@if($search !== '')<button type="button" wire:click="clearSearch" aria-label="Xóa tìm kiếm" class="absolute inset-y-0 right-2 my-auto flex h-8 w-8 items-center justify-center rounded-lg text-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700">×</button>@endif</div>
                 </div>
-                <div class="lg:col-span-3">
+                <div class="lg:col-span-4">
                     <label for="supplier-filter" class="text-sm font-medium text-gray-700">Nhà cung cấp</label>
                     <div class="mt-1">
                         <x-select-search id="supplier-filter" wire:model="supplierId" :options="$supplierFilterOptions" options-wire="supplierFilterOptions" search-event="supplier-filter-search" placeholder="Tất cả nhà cung cấp">
@@ -86,32 +87,46 @@
                     </div>
                 </div>
                 <div class="lg:col-span-2">
+                    <label for="purchase-price-filter" class="text-sm font-medium text-gray-700">Giá mua</label>
+                    <select id="purchase-price-filter" wire:model.live="purchasePrice" class="mt-1 h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm shadow-sm">
+                        <option value="">Tất cả</option>
+                        <option value="with">Có giá (&gt; 0)</option>
+                        <option value="missing">Chưa có giá</option>
+                        <option value="zero">Giá 0 đồng</option>
+                    </select>
+                </div>
+                <div class="lg:col-span-2">
                     <label for="supplier-status" class="text-sm font-medium text-gray-700">Trạng thái</label>
-                    <select id="supplier-status" wire:model.live="status" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm shadow-sm"><option value="">Tất cả</option>@foreach ($statuses as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select>
+                    <select id="supplier-status" wire:model.live="status" class="mt-1 h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm shadow-sm"><option value="">Tất cả</option>@foreach ($statuses as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select>
                 </div>
                 <div class="lg:col-span-1">
                     <label for="supplier-per-page" class="text-sm font-medium text-gray-700">Hiển thị</label>
-                    <select id="supplier-per-page" wire:model.live="perPage" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm shadow-sm">@foreach ($perPageOptions as $option)<option value="{{ $option }}">{{ $option }}</option>@endforeach</select>
+                    <select id="supplier-per-page" wire:model.live="perPage" class="mt-1 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm">@foreach ($perPageOptions as $option)<option value="{{ $option }}">{{ $option }}</option>@endforeach</select>
+                </div>
+                <div class="lg:col-span-1">
+                    <button type="button" wire:click="resetFilters" class="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-600 shadow-sm hover:bg-slate-50">Đặt lại</button>
                 </div>
             </div>
         </div>
 
         <div class="flex flex-wrap items-center justify-between gap-3 border-y border-gray-100 bg-gray-50/70 px-5 py-3">
-            <div class="flex flex-wrap items-center gap-3 text-sm text-gray-500">
-                <span><strong class="font-semibold text-gray-700">{{ $items->total() }}</strong> kết quả</span>
-                <span class="text-gray-300">•</span>
-                <span>Trang {{ $currentPage }}/{{ max(1, $lastPage) }}</span>
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="rounded-lg bg-indigo-50 px-3 py-1.5 text-sm font-bold text-indigo-700">{{ number_format($workspaceStats['medicines']) }} sản phẩm</span>
+                <span class="rounded-lg bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-emerald-700">{{ number_format($workspaceStats['suppliers']) }} nhà cung cấp</span>
+                <span class="rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-600">{{ number_format($workspaceStats['trackings']) }} điều kiện · Trang {{ $currentPage }}/{{ max(1, $lastPage) }}</span>
                 @if ($this->hasSelected)
-                    <span class="rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-700">Đã chọn {{ $this->selectedCount }} dòng</span>
+                    <span class="rounded-lg bg-violet-50 px-3 py-1.5 text-sm font-semibold text-violet-700">Đã chọn {{ $this->selectedCount }}</span>
                 @endif
             </div>
             <div class="flex items-center gap-2">
-                <button type="button" wire:click="resetFilters" class="rounded-lg px-3 py-2 text-sm font-semibold text-gray-600 hover:bg-white">Đặt lại bộ lọc</button>
-                @can('delete_pharma')
-                    <button type="button" wire:click="confirmBulkDelete"
-                        class="rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-500 disabled:opacity-40"
-                        @disabled(!$this->hasSelected)>Xóa đã chọn</button>
-                @endcan
+                @if($this->hasSelected)
+                    @can('edit_pharma')
+                        <button type="button" wire:click="toggleImportExport" class="rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50">Export Excel đã chọn</button>
+                    @endcan
+                    @can('delete_pharma')
+                        <button type="button" wire:click="confirmBulkDelete" class="rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-500">Xóa đã chọn</button>
+                    @endcan
+                @endif
             </div>
         </div>
 

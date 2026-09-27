@@ -47,6 +47,7 @@ Route::prefix('admin/pharma')->name('admin.pharma.')->middleware(['web', 'auth:a
 
     Route::prefix('medicines')->name('medicines.')->group(function () {
         Route::get('/', [PharmaController::class, 'index'])->middleware('can:view_pharma')->name('index');
+        Route::get('/export', [PharmaController::class, 'export'])->middleware('can:view_pharma')->name('export');
         Route::get('/create', [PharmaController::class, 'create'])->middleware('can:create_pharma')->name('create');
         Route::get('/{id}/edit', [PharmaController::class, 'edit'])->whereNumber('id')->middleware('can:edit_pharma')->name('edit');
         Route::get('/import/template', [MedicineCatalogImportController::class, 'template'])->middleware('can:view_pharma')->name('import.template');

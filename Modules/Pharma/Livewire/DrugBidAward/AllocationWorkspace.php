@@ -2,7 +2,9 @@
 
 namespace Modules\Pharma\Livewire\DrugBidAward;
 
+use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
+use Livewire\Features\SupportFileUploads\WithFileUploads;
 use Modules\Partner\Models\Partner;
 use Modules\Pharma\Models\DrugBidAward;
 use Modules\Pharma\Models\DrugBidAwardAllocation;
@@ -11,11 +13,14 @@ use Modules\Pharma\Services\DrugBidAwardAllocationService;
 use Modules\Pharma\Services\DrugBidAwardAllocationSummaryService;
 use Modules\Pharma\Services\DrugBidAwardContractService;
 use Modules\Pharma\Services\DrugBidAwardDistributionScopeService;
+use Modules\System\Services\Cloud\GoogleDriveConnectionService;
+use Throwable;
 use Rap2hpoutre\FastExcel\FastExcel;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AllocationWorkspace extends Component
 {
+    use WithFileUploads;
     private const PER_PAGE_OPTIONS = [10, 25, 50, 100];
 
     public int $awardId;
@@ -34,6 +39,8 @@ class AllocationWorkspace extends Component
 
     public ?int $editingAllocationId = null;
 
+    public string $editingPartnerName = '';
+
     public string $partnerId = '';
 
     public string $allocatedQuantity = '';
@@ -46,15 +53,23 @@ class AllocationWorkspace extends Component
 
     public ?int $contractAllocationId = null;
 
+    public string $contractPartnerName = '';
+
     public ?int $editingContractId = null;
 
     public string $contractNumber = '';
 
     public string $contractDate = '';
 
-    public string $contractQuantity = '';
+    public $signedContractFile = null;
+
+    public array $contractStorageTargets = [];
+
+    public bool $googleDriveConnected = false;
 
     public string $contractValue = '';
+
+    public ?int $returnToContractId = null;
 
     public string $contractStartDate = '';
 
@@ -77,6 +92,8 @@ class AllocationWorkspace extends Component
         DrugBidAward::query()->findOrFail($awardId);
         $this->awardId = $awardId;
         $this->perPage = $this->normalizePerPage($this->perPage);
+        $this->googleDriveConnected = $this->driveConnected();
+        $this->contractStorageTargets = [$this->googleDriveConnected ? 'google_drive' : 'local'];
     }
 
     public function updatedSearch(): void
@@ -116,6 +133,11 @@ class AllocationWorkspace extends Component
     public function saveAllocation(DrugBidAwardAllocationService $service): void
     {
         $this->authorizePermission('manage_pharma_allocations');
+        if ($this->editingAllocationId) {
+            $existing = DrugBidAwardAllocation::query()->where('drug_bid_award_id', $this->awardId)->findOrFail($this->editingAllocationId);
+            $this->partnerId = (string) $existing->partner_id;
+            $this->allocatedQuantity = str_replace(['.', ','], ['', '.'], trim($this->allocatedQuantity));
+        }
         $data = $this->validate([
             'partnerId' => ['required', 'integer'],
             'allocatedQuantity' => ['required', 'numeric', 'gt:0'],
@@ -133,13 +155,19 @@ class AllocationWorkspace extends Component
     public function editAllocation(int $id): void
     {
         $this->authorizePermission('manage_pharma_allocations');
-        $allocation = DrugBidAwardAllocation::query()->where('drug_bid_award_id', $this->awardId)->findOrFail($id);
+        $allocation = DrugBidAwardAllocation::query()->with('partner')->where('drug_bid_award_id', $this->awardId)->findOrFail($id);
         $this->editingAllocationId = $allocation->id;
         $this->partnerId = (string) $allocation->partner_id;
-        $this->allocatedQuantity = (string) $allocation->allocated_quantity;
+        $this->editingPartnerName = (string) ($allocation->partner?->name ?? '');
+        $this->allocatedQuantity = $this->formatQuantityInput($allocation->allocated_quantity);
         $this->effectiveFrom = $allocation->effective_from?->format('Y-m-d') ?? '';
         $this->effectiveUntil = $allocation->effective_until?->format('Y-m-d') ?? '';
         $this->notes = (string) ($allocation->notes ?? '');
+    }
+
+    public function cancelAllocationEdit(): void
+    {
+        $this->resetAllocationForm();
     }
 
     public function toggleAllocationPause(int $id, bool $paused, DrugBidAwardAllocationService $service): void
@@ -168,16 +196,12 @@ class AllocationWorkspace extends Component
     public function openContractForm(int $allocationId): void
     {
         $this->authorizePermission('manage_pharma_contracts');
-        DrugBidAwardAllocation::query()->where('drug_bid_award_id', $this->awardId)->findOrFail($allocationId);
-
-        if ($this->contractAllocationId === $allocationId && $this->editingContractId === null) {
-            $this->resetContractForm();
-
-            return;
-        }
+        $allocation = DrugBidAwardAllocation::query()->with('partner')->where('drug_bid_award_id', $this->awardId)->findOrFail($allocationId);
 
         $this->resetContractForm();
         $this->contractAllocationId = $allocationId;
+        $this->contractPartnerName = (string) ($allocation->partner?->name ?? '');
+        $this->contractStorageTargets = [$this->googleDriveConnected ? 'google_drive' : 'local'];
     }
 
     public function closeContractForm(): void
@@ -188,45 +212,89 @@ class AllocationWorkspace extends Component
     public function editContract(int $allocationId, int $contractId): void
     {
         $this->authorizePermission('manage_pharma_contracts');
-        $contract = DrugBidAwardContract::query()->where('drug_bid_award_allocation_id', $allocationId)->findOrFail($contractId);
+        $contract = DrugBidAwardContract::query()->with('allocation.partner')->where('drug_bid_award_allocation_id', $allocationId)->findOrFail($contractId);
         $this->contractAllocationId = $allocationId;
+        $this->contractPartnerName = (string) ($contract->allocation?->partner?->name ?? '');
         $this->editingContractId = $contract->id;
         $this->contractNumber = $contract->contract_number;
         $this->contractDate = $contract->contract_date?->format('Y-m-d') ?? '';
-        $this->contractQuantity = (string) $contract->contract_quantity;
-        $this->contractValue = (string) ($contract->contract_value ?? '');
+                $this->contractValue = $this->formatMoneyInput($contract->contract_value);
         $this->contractStartDate = $contract->start_date?->format('Y-m-d') ?? '';
         $this->contractEndDate = $contract->end_date?->format('Y-m-d') ?? '';
         $this->contractStatus = $contract->status;
         $this->contractNotes = (string) ($contract->notes ?? '');
+        $this->contractStorageTargets = array_values(array_filter([
+            $contract->signed_file_path ? 'local' : null,
+            $contract->signed_file_remote_id ? 'google_drive' : null,
+        ])) ?: [$this->googleDriveConnected ? 'google_drive' : 'local'];
+    }
+
+    public function createAnotherContract(): void
+    {
+        $allocationId = $this->contractAllocationId;
+        $currentContractId = $this->editingContractId;
+        if (! $allocationId) {
+            return;
+        }
+
+        $this->openContractForm($allocationId);
+        $this->returnToContractId = $currentContractId;
+    }
+
+    public function cancelCreateAnotherContract(): void
+    {
+        if ($this->contractAllocationId && $this->returnToContractId) {
+            $contractId = $this->returnToContractId;
+            $allocationId = $this->contractAllocationId;
+            $this->returnToContractId = null;
+            $this->editContract($allocationId, $contractId);
+
+            return;
+        }
+
+        $this->closeContractForm();
     }
 
     public function saveContract(DrugBidAwardContractService $service): void
     {
         $this->authorizePermission('manage_pharma_contracts');
+        $this->contractValue = $this->normalizeMoneyInput($this->contractValue);
         $data = $this->validate([
             'contractAllocationId' => ['required', 'integer'],
             'contractNumber' => ['required', 'string', 'max:255'],
             'contractDate' => ['nullable', 'date'],
-            'contractQuantity' => ['required', 'numeric', 'gt:0'],
+            'signedContractFile' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:20480'],
+            'contractStorageTargets' => ['required', 'array', 'min:1'],
+            'contractStorageTargets.*' => ['in:local,google_drive'],
             'contractValue' => ['nullable', 'numeric', 'gte:0'],
             'contractStartDate' => ['nullable', 'date'],
             'contractEndDate' => ['nullable', 'date', 'after_or_equal:contractStartDate'],
             'contractStatus' => ['required', 'in:draft,signed,in_progress,completed'],
             'contractNotes' => ['nullable', 'string', 'max:3000'],
         ]);
-        $service->save((int) $data['contractAllocationId'], $this->editingContractId, [
+        $contract = $service->save((int) $data['contractAllocationId'], $this->editingContractId, [
             'contract_number' => $data['contractNumber'],
             'contract_date' => $data['contractDate'] ?: null,
-            'contract_quantity' => $data['contractQuantity'],
+            'contract_quantity' => $this->contractCommittedQuantity((int) $data['contractAllocationId']),
             'contract_value' => $data['contractValue'] === '' ? null : $data['contractValue'],
             'start_date' => $data['contractStartDate'] ?: null,
             'end_date' => $data['contractEndDate'] ?: null,
             'status' => $data['contractStatus'],
             'contract_notes' => $data['contractNotes'] ?: null,
         ], auth('admin')->id());
-        $this->resetContractForm();
-        session()->flash('success', 'Đã lưu hợp đồng bệnh viện.');
+
+        if (in_array('google_drive', $data['contractStorageTargets'], true) && ! $this->googleDriveConnected) {
+            $this->addError('contractStorageTargets', 'Google Drive chưa được kết nối.');
+
+            return;
+        }
+
+        if ($this->signedContractFile) {
+            $this->storeSignedContractFile($contract, $data['contractStorageTargets']);
+        }
+
+        $this->editContract((int) $data['contractAllocationId'], $contract->id);
+        session()->flash('success', 'Đã lưu hợp đồng bệnh viện. Bạn có thể tiếp tục chỉnh sửa hoặc thêm hợp đồng khác.');
     }
 
     public function exportAllocations(): StreamedResponse
@@ -386,16 +454,221 @@ class AllocationWorkspace extends Component
             ->all();
     }
 
+    private function contractCommittedQuantity(int $allocationId): float
+    {
+        $allocation = DrugBidAwardAllocation::query()->findOrFail($allocationId);
+        $otherCommitted = (float) DrugBidAwardContract::query()
+            ->where('drug_bid_award_allocation_id', $allocationId)
+            ->whereIn('status', DrugBidAwardContract::COMMITTED_STATUSES)
+            ->when($this->editingContractId, fn ($query) => $query->where('id', '!=', $this->editingContractId))
+            ->sum('contract_quantity');
+
+        return max(0.0001, round((float) $allocation->allocated_quantity - $otherCommitted, 4));
+    }
+
+    private function storeSignedContractFile(DrugBidAwardContract $contract, array $targets): void
+    {
+        $award = DrugBidAward::query()->findOrFail($this->awardId);
+        $safeTbmt = $this->safeStorageSegment((string) ($award->bidding_notice_code ?: 'TBMT-'.$award->id));
+        $safeContract = $this->safeStorageSegment($contract->contract_number);
+        $directory = 'Laravel-Backup/Pharma/DrugBidAwards/'.$safeTbmt.'/Contracts/'.$contract->drug_bid_award_allocation_id.'/'.$safeContract;
+        $originalName = $this->signedContractFile->getClientOriginalName();
+        $storedName = now()->format('YmdHis').'-'.$this->safeStorageSegment($originalName);
+        $path = $this->signedContractFile->storeAs($directory, $storedName, 'local');
+
+        $keepLocal = in_array('local', $targets, true);
+        $useDrive = in_array('google_drive', $targets, true);
+        $remoteId = null;
+
+        if ($useDrive) {
+            $uploaded = app(GoogleDriveConnectionService::class)->uploadApplicationFile(
+                Storage::disk('local')->path($path),
+                ['Pharma', 'DrugBidAwards', $safeTbmt, 'Contracts', (string) $contract->drug_bid_award_allocation_id, $safeContract],
+                $storedName,
+                $this->signedContractFile->getMimeType() ?: 'application/octet-stream',
+            );
+            $remoteId = $uploaded['id'];
+        }
+
+        $contract->update([
+            'signed_file_disk' => $keepLocal ? 'local' : 'google_drive',
+            'signed_file_path' => $keepLocal ? $path : null,
+            'signed_file_name' => $originalName,
+            'signed_file_mime' => $this->signedContractFile->getMimeType(),
+            'signed_file_size' => $this->signedContractFile->getSize(),
+            'signed_file_remote_id' => $remoteId,
+        ]);
+
+        if (! $keepLocal) {
+            Storage::disk('local')->delete($path);
+        }
+    }
+
+    public function backupSignedContractToDrive(int $contractId, GoogleDriveConnectionService $drive): void
+    {
+        $this->authorizePermission('manage_pharma_contracts');
+        $contract = $this->signedContractForAward($contractId);
+        abort_unless($contract->signed_file_path && Storage::disk($contract->signed_file_disk ?: 'local')->exists($contract->signed_file_path), 404);
+
+        try {
+            if ($contract->signed_file_remote_id) {
+                $drive->deleteApplicationFile($contract->signed_file_remote_id, null);
+            }
+
+            $uploaded = $drive->uploadApplicationFile(
+                Storage::disk($contract->signed_file_disk ?: 'local')->path($contract->signed_file_path),
+                $this->contractDriveFolders($contract),
+                basename($contract->signed_file_path),
+                $contract->signed_file_mime ?: 'application/octet-stream',
+            );
+
+            $contract->update(['signed_file_remote_id' => $uploaded['id']]);
+            session()->flash('success', 'Đã backup file hợp đồng lên Google Drive.');
+        } catch (Throwable $e) {
+            report($e);
+            session()->flash('error', 'Backup Google Drive thất bại. Hãy kiểm tra kết nối Drive trong System.');
+        }
+    }
+
+    public function restoreSignedContractFromDrive(int $contractId, GoogleDriveConnectionService $drive): void
+    {
+        $this->authorizePermission('manage_pharma_contracts');
+        $contract = $this->signedContractForAward($contractId);
+        abort_unless((string) $contract->signed_file_remote_id !== '', 404);
+
+        try {
+            $path = $contract->signed_file_path ?: $this->contractLocalPath($contract);
+            $metadata = $drive->downloadApplicationFile(
+                (string) $contract->signed_file_remote_id,
+                Storage::disk('local')->path($path),
+            );
+
+            $contract->update([
+                'signed_file_disk' => 'local',
+                'signed_file_path' => $path,
+                'signed_file_name' => $contract->signed_file_name ?: $metadata['name'],
+                'signed_file_mime' => $metadata['mime_type'] ?: $contract->signed_file_mime,
+                'signed_file_size' => $metadata['size'],
+            ]);
+            session()->flash('success', 'Đã khôi phục file hợp đồng từ Google Drive về local.');
+        } catch (Throwable $e) {
+            report($e);
+            session()->flash('error', 'Khôi phục từ Google Drive thất bại. Hãy kiểm tra kết nối Drive trong System.');
+        }
+    }
+
+    public function deleteSignedContractLocal(int $contractId): void
+    {
+        $this->authorizePermission('manage_pharma_contracts');
+        $contract = $this->signedContractForAward($contractId);
+        if ($contract->signed_file_path) {
+            Storage::disk('local')->delete($contract->signed_file_path);
+        }
+        $contract->update(['signed_file_path' => null, 'signed_file_disk' => $contract->signed_file_remote_id ? 'google_drive' : null]);
+        $this->editContract($contract->drug_bid_award_allocation_id, $contract->id);
+        session()->flash('success', 'Đã xóa bản Local của file hợp đồng.');
+    }
+
+    public function deleteSignedContractDrive(int $contractId, GoogleDriveConnectionService $drive): void
+    {
+        $this->authorizePermission('manage_pharma_contracts');
+        $contract = $this->signedContractForAward($contractId);
+        if ($contract->signed_file_remote_id) {
+            $drive->deleteApplicationFile($contract->signed_file_remote_id, null);
+        }
+        $contract->update(['signed_file_remote_id' => null, 'signed_file_disk' => $contract->signed_file_path ? 'local' : null]);
+        $this->editContract($contract->drug_bid_award_allocation_id, $contract->id);
+        session()->flash('success', 'Đã xóa bản Google Drive của file hợp đồng.');
+    }
+
+    public function downloadSignedContract(int $contractId)
+    {
+        $this->authorizePermission('view_pharma_contracts');
+        $contract = DrugBidAwardContract::query()
+            ->whereHas('allocation', fn ($query) => $query->where('drug_bid_award_id', $this->awardId))
+            ->findOrFail($contractId);
+        abort_unless($contract->signed_file_path && Storage::disk($contract->signed_file_disk ?: 'local')->exists($contract->signed_file_path), 404);
+
+        return Storage::disk($contract->signed_file_disk ?: 'local')->download($contract->signed_file_path, $contract->signed_file_name ?: basename($contract->signed_file_path));
+    }
+
+    private function driveConnected(): bool
+    {
+        try {
+            return (bool) (app(GoogleDriveConnectionService::class)->status()['connected'] ?? false);
+        } catch (Throwable) {
+            return false;
+        }
+    }
+
+    private function signedContractForAward(int $contractId): DrugBidAwardContract
+    {
+        return DrugBidAwardContract::query()
+            ->with('allocation.award')
+            ->whereHas('allocation', fn ($query) => $query->where('drug_bid_award_id', $this->awardId))
+            ->findOrFail($contractId);
+    }
+
+    private function contractDriveFolders(DrugBidAwardContract $contract): array
+    {
+        $award = $contract->allocation?->award ?: DrugBidAward::query()->findOrFail($this->awardId);
+
+        return [
+            'Pharma',
+            'DrugBidAwards',
+            $this->safeStorageSegment((string) ($award->bidding_notice_code ?: 'TBMT-'.$award->id)),
+            'Contracts',
+            (string) $contract->drug_bid_award_allocation_id,
+            $this->safeStorageSegment($contract->contract_number),
+        ];
+    }
+
+    private function contractLocalPath(DrugBidAwardContract $contract): string
+    {
+        $folders = $this->contractDriveFolders($contract);
+        $fileName = $this->safeStorageSegment($contract->signed_file_name ?: 'signed-contract-'.$contract->id.'.pdf');
+
+        return 'Laravel-Backup/'.implode('/', $folders).'/'.$fileName;
+    }
+
+    private function safeStorageSegment(string $value): string
+    {
+        return trim((string) preg_replace('/[^A-Za-z0-9._-]+/', '-', $value), '.-') ?: 'unknown';
+    }
+
+    private function formatMoneyInput(mixed $value): string
+    {
+        if ($value === null || $value === '') {
+            return '';
+        }
+
+        return number_format((float) $value, 0, ',', '.');
+    }
+
+    private function normalizeMoneyInput(string $value): string
+    {
+        return str_replace(['.', ',', ' '], '', trim($value));
+    }
+
+    private function formatQuantityInput(mixed $value): string
+    {
+        $number = (float) $value;
+
+        return fmod($number, 1.0) === 0.0
+            ? number_format($number, 0, ',', '.')
+            : rtrim(rtrim(number_format($number, 4, ',', '.'), '0'), ',');
+    }
+
     private function resetAllocationForm(): void
     {
-        $this->reset(['editingAllocationId', 'partnerId', 'allocatedQuantity', 'notes']);
+        $this->reset(['editingAllocationId', 'editingPartnerName', 'partnerId', 'allocatedQuantity', 'notes']);
         $this->dispatch('filters-reset');
         $this->resetValidation();
     }
 
     private function resetContractForm(): void
     {
-        $this->reset(['contractAllocationId', 'editingContractId', 'contractNumber', 'contractDate', 'contractQuantity', 'contractValue', 'contractStartDate', 'contractEndDate', 'contractNotes']);
+        $this->reset(['contractAllocationId', 'contractPartnerName', 'editingContractId', 'contractNumber', 'contractDate', 'signedContractFile', 'contractValue', 'returnToContractId', 'contractStartDate', 'contractEndDate', 'contractNotes']);
         $this->contractStatus = DrugBidAwardContract::STATUS_DRAFT;
         $this->resetValidation();
     }

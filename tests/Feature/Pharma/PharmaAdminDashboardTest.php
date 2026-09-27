@@ -21,20 +21,20 @@ class PharmaAdminDashboardTest extends TestCase
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/pages/dashboard.blade.php'));
 
         $this->assertStringContainsString("@extends('Admin::layouts.master')", $view);
-        $this->assertStringContainsString("route('admin.pharma.hssp.index')", $view);
+        $this->assertStringContainsString("'admin.pharma.hssp.index'", $view);
         $this->assertStringContainsString("route('admin.pharma.drug-bid-awards.index')", $view);
-        $this->assertStringContainsString("route('admin.pharma.supplier-trackings.index')", $view);
-        $this->assertStringContainsString("route('admin.pharma.price-lists.create')", $view);
+        $this->assertStringContainsString("'admin.pharma.supplier-trackings.index'", $view);
+        $this->assertStringContainsString("'admin.pharma.price-lists.index'", $view);
     }
 
     public function test_dashboard_service_exposes_database_backed_metrics_and_price_list_summary(): void
     {
         $service = file_get_contents(base_path('Modules/Pharma/Services/PharmaDashboardService.php'));
 
-        $this->assertStringContainsString('Medicine::class', $service);
-        $this->assertStringContainsString('DrugBidAward::class', $service);
-        $this->assertStringContainsString('SupplierTracking::class', $service);
-        $this->assertStringContainsString('PriceList::class', $service);
+        $this->assertStringContainsString('Medicine::query()->count()', $service);
+        $this->assertStringContainsString('DrugBidAward::query()', $service);
+        $this->assertStringContainsString('SupplierTracking::query()->count()', $service);
+        $this->assertStringContainsString('PriceList::query()', $service);
         $this->assertStringContainsString("'price_lists' => \$this->priceListSummary()", $service);
     }
 
@@ -42,9 +42,9 @@ class PharmaAdminDashboardTest extends TestCase
     {
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/pages/dashboard.blade.php'));
 
-        $this->assertStringContainsString("@if(\$capabilities['create'])", $view);
-        $this->assertStringContainsString("route('admin.pharma.price-lists.create')", $view);
-        $this->assertStringContainsString("@if(\$capabilities['edit'])", $view);
-        $this->assertStringContainsString("@if(\$capabilities['official_facilities'])", $view);
+        $this->assertStringContainsString("@if(\$cap['create'])", $view);
+        $this->assertStringContainsString("'admin.pharma.price-lists.index'", $view);
+        $this->assertStringContainsString("\$cap['edit']", $view);
+        $this->assertStringContainsString("\$cap['official_facilities']", $view);
     }
 }

@@ -5,7 +5,10 @@
             <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-950">{{ $trackingId ? 'Cập nhật điều kiện thương mại' : 'Thiết lập điều kiện thương mại' }}</h1>
             <p class="mt-2 text-sm text-slate-600">Liên kết thuốc ↔ nhà cung cấp ↔ phạm vi khách hàng/cơ sở được phép bán.</p>
         </div>
-        <a href="{{ route('admin.pharma.supplier-trackings.index') }}" class="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700">Danh sách theo dõi</a>
+        <div class="flex flex-wrap items-center gap-2">
+            <a href="{{ route('admin.pharma.medicines.index') }}" class="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700">← Danh mục thuốc</a>
+            <a href="{{ route('admin.pharma.supplier-trackings.index') }}" class="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700">Danh sách theo dõi</a>
+        </div>
     </header>
 
     @if(session('error'))<div role="alert" class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{{ session('error') }}</div>@endif

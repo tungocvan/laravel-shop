@@ -1,5 +1,8 @@
 @php($canManage = auth('admin')->user()?->can('manage_pharma_commercial_policies') ?? false)
-<div class="space-y-6">
+@php($configuredPolicyCount = collect($productPolicies)->filter(fn ($value) => $value !== null && $value !== '')->count())
+@php($policyComplete = $products->count() > 0 && $configuredPolicyCount >= $products->count())
+@php($assignmentComplete = $assignmentSummary['total'] > 0 && $assignmentSummary['assigned'] >= $assignmentSummary['total'])
+<div class="space-y-6" x-data="{ commercialTab: 'policy' }">
 <header class="flex flex-col gap-3 border-b border-slate-200 pb-5 xl:flex-row xl:items-end xl:justify-between">
     <div>
         <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Pharma · Commercial Setup</p>
@@ -15,23 +18,35 @@
 @if(session()->has('success'))<div role="status" class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('success') }}</div>@endif
 @if($errors->any())<div role="alert" class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"><ul class="list-disc pl-5">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 
-<section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+@if($canManage)
+<div class="flex flex-wrap items-center justify-end gap-2">
+    <label class="min-h-10 cursor-pointer rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">
+        Import Excel
+        <input type="file" wire:model="importFile" accept=".xlsx,.xls" class="hidden">
+    </label>
+    @if($importFile)<button type="button" wire:click="importExcel" wire:loading.attr="disabled" wire:target="importExcel" class="min-h-10 rounded-xl border border-indigo-300 bg-indigo-50 px-4 text-sm font-semibold text-indigo-700 disabled:opacity-50">Xác nhận Import</button>@endif
+    <button type="button" wire:click="exportExcel" wire:loading.attr="disabled" wire:target="exportExcel" class="min-h-10 rounded-xl border border-emerald-300 bg-emerald-50 px-4 text-sm font-semibold text-emerald-700 disabled:opacity-50">Export Excel</button>
+</div>
+@endif
+
+<nav class="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm" aria-label="Thiết lập chính sách kinh doanh">
+    <button type="button" x-on:click="commercialTab = 'policy'" class="flex min-h-12 w-auto items-center gap-4 rounded-xl px-4 text-left transition" x-bind:class="commercialTab === 'policy' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'">
+        <span><span class="block text-xs font-semibold uppercase opacity-75">Chính sách sản phẩm</span><span class="mt-0.5 block font-bold">{{ $configuredPolicyCount }}/{{ $products->count() }} đã thiết lập</span></span>
+        <span class="text-lg">{{ $policyComplete ? '✓' : '→' }}</span>
+    </button>
+    <button type="button" x-on:click="commercialTab = 'assignment'" class="flex min-h-12 w-auto items-center gap-4 rounded-xl px-4 text-left transition" x-bind:class="commercialTab === 'assignment' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'">
+        <span><span class="block text-xs font-semibold uppercase opacity-75">Phân công User</span><span class="mt-0.5 block font-bold">{{ $assignmentSummary['hospitals'] }} BV · {{ $assignmentComplete ? 'Đầy đủ' : 'Cần hoàn thiện' }}</span></span>
+        <span class="text-lg">{{ $assignmentComplete ? '✓' : '→' }}</span>
+    </button>
+</nav>
+
+<section x-show="commercialTab === 'policy'" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
     <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-            <p class="text-xs font-bold uppercase text-indigo-600">Bước 1</p>
             <h2 class="mt-1 text-lg font-bold text-slate-950">Thiết lập chính sách theo sản phẩm</h2>
             <p class="mt-1 text-sm text-slate-500">Mỗi sản phẩm trúng thầu có một tỷ lệ chính sách riêng. Thay đổi từng dòng được tự động lưu.</p>
         </div>
-        @if($canManage)
-        <div class="flex flex-wrap gap-2">
-            <label class="min-h-10 cursor-pointer rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">
-                Import Excel
-                <input type="file" wire:model="importFile" accept=".xlsx,.xls" class="hidden">
-            </label>
-            @if($importFile)<button type="button" wire:click="importExcel" wire:loading.attr="disabled" wire:target="importExcel" class="min-h-10 rounded-xl border border-indigo-300 bg-indigo-50 px-4 text-sm font-semibold text-indigo-700 disabled:opacity-50">Xác nhận Import</button>@endif
-            <button type="button" wire:click="exportExcel" wire:loading.attr="disabled" wire:target="exportExcel" class="min-h-10 rounded-xl border border-emerald-300 bg-emerald-50 px-4 text-sm font-semibold text-emerald-700 disabled:opacity-50">Export Excel</button>
-        </div>
-        @endif
+
     </div>
 
     <div class="mt-4 flex flex-col gap-3 xl:flex-row xl:items-end">
@@ -97,12 +112,50 @@
     @endif
 </section>
 
-<section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+<section x-show="commercialTab === 'assignment'" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
     <div>
-        <p class="text-xs font-bold uppercase text-indigo-600">Bước 2</p>
         <h2 class="mt-1 text-lg font-bold text-slate-950">Phân công User quản lý</h2>
         <p class="mt-1 text-sm text-slate-500">Xem rõ User đang phụ trách, phạm vi bệnh viện/sản phẩm và thay hoặc gỡ phân công khi cần.</p>
     </div>
+
+    @if($canManage)
+    <div class="mt-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+        <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+            <div>
+                <p class="text-sm font-bold text-slate-950">Cách phân công</p>
+                <p class="mt-1 text-xs text-slate-500">Chọn một User cho toàn bộ TBMT hoặc quản lý nhiều User theo từng bệnh viện/sản phẩm.</p>
+            </div>
+            <button type="button" wire:click="resetAllManagerAssignments" wire:confirm="Gỡ TOÀN BỘ phân công User của TBMT này? Chính sách % và dữ liệu phân bổ bệnh viện/sản phẩm vẫn được giữ nguyên." class="min-h-10 rounded-xl border border-rose-200 bg-white px-4 text-sm font-semibold text-rose-700">Gỡ toàn bộ phân công</button>
+        </div>
+        <div class="mt-4 flex flex-wrap gap-2">
+            <button type="button" wire:click="$set('assignmentMode', 'single')" @disabled($persistedAssignmentMode === 'multiple') class="min-h-10 rounded-xl border px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40 {{ $assignmentMode === 'single' ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300 bg-white text-slate-700' }}">Một User phụ trách toàn bộ</button>
+            <button type="button" wire:click="$set('assignmentMode', 'multiple')" @disabled($persistedAssignmentMode === 'single') class="min-h-10 rounded-xl border px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40 {{ $assignmentMode === 'multiple' ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300 bg-white text-slate-700' }}">Nhiều User phụ trách</button>
+        </div>
+        @if($persistedAssignmentMode !== 'unassigned')
+        <div class="mt-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
+            <span class="font-semibold">Chế độ hiện tại:</span>
+            {{ $persistedAssignmentMode === 'single' ? 'Một User phụ trách toàn bộ' : 'Nhiều User phụ trách' }}.
+            <span class="text-slate-500">Gỡ toàn bộ phân công để đổi cách phân công.</span>
+        </div>
+        @endif
+
+        @if($assignmentMode === 'single')
+        <div class="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+            <div class="text-sm font-semibold text-slate-700">User phụ trách toàn bộ
+                <div class="mt-1"><x-select-search id="commercial-policy-single-user" wire:model.live="selectedUserId" placeholder="Tìm và chọn User..."><option value="">Chọn User</option>@foreach($users as $user)<option value="{{ $user->id }}" @selected((int)$selectedUserId === $user->id)>{{ $user->name }}{{ $user->email ? ' · '.$user->email : '' }}</option>@endforeach</x-select-search></div>
+            </div>
+            @if($persistedAssignmentMode === 'single')
+            <button type="button" wire:click="replaceSingleManager" @disabled(!$selectedUserId) wire:confirm="Thay User phụ trách toàn bộ TBMT bằng User đã chọn?" class="min-h-11 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">Thay User toàn bộ</button>
+            @else
+            <button type="button" wire:click="assignSingleManagerToAll" @disabled(!$selectedUserId) wire:confirm="Phân công User này cho toàn bộ bệnh viện và sản phẩm có phân bổ thực tế trong TBMT?" class="min-h-11 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">Phân công toàn bộ</button>
+            @endif
+        </div>
+        <p class="mt-2 text-xs text-slate-500">Thao tác này cập nhật User cho toàn bộ cặp Bệnh viện × Sản phẩm có phân bổ thực tế; không tạo thêm phân bổ mới.</p>
+        @else
+        <div class="mt-4 rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm text-indigo-800">Chế độ nhiều User: sử dụng bảng bệnh viện và khu vực điều chỉnh bên dưới để gán hoặc thay User theo từng phạm vi.</div>
+        @endif
+    </div>
+    @endif
 
     <div class="mt-4 grid gap-3 sm:grid-cols-3">
         <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"><p class="text-xs font-semibold uppercase text-slate-500">Số lượng Bệnh viện</p><p class="mt-1 text-lg font-bold text-slate-950">{{ $assignmentSummary['hospitals'] }}</p></div>
@@ -111,9 +164,51 @@
     </div>
 
     <div class="mt-5">
+        <div class="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+                <h3 class="text-sm font-bold text-slate-950">Phạm vi quản lý theo bệnh viện</h3>
+                <p class="mt-1 text-xs text-slate-500">Một bệnh viện một dòng. Sản phẩm và User được tổng hợp đúng từ các phân bổ thực tế của TBMT.</p>
+            </div>
+            <span class="text-xs font-semibold text-slate-500">{{ $hospitalGroups->count() }} bệnh viện</span>
+        </div>
+        <div class="mt-3 overflow-x-auto rounded-xl border border-slate-200">
+            <table class="w-full min-w-[860px] divide-y divide-slate-200 text-sm">
+                <thead class="bg-slate-50 text-xs uppercase text-slate-600"><tr><th class="px-3 py-3 text-left">Bệnh viện</th><th class="px-3 py-3 text-center">Phân công sản phẩm</th><th class="px-3 py-3 text-left">User phụ trách</th><th class="px-3 py-3 text-left">Trạng thái</th><th class="px-3 py-3 text-right">Thao tác</th></tr></thead>
+                <tbody class="divide-y divide-slate-100">
+                @forelse($hospitalGroups as $hospitalGroup)
+                    <tr wire:key="commercial-hospital-scope-{{ $hospitalGroup['partner_id'] }}">
+                        <td class="px-3 py-3"><p class="font-semibold text-slate-950">{{ $hospitalGroup['hospital']->name }}</p>@if($hospitalGroup['hospital']->tax_code)<p class="text-xs text-slate-500">MST {{ $hospitalGroup['hospital']->tax_code }}</p>@endif</td>
+                        <td class="px-3 py-3 text-center"><span class="font-bold text-slate-950">{{ $hospitalGroup['assigned'] }}/{{ $hospitalGroup['products'] }} sản phẩm</span><p class="text-xs text-slate-500">{{ $hospitalGroup['assigned'] >= $hospitalGroup['products'] ? 'đã phân công User đầy đủ' : 'đã được gán User' }}</p></td>
+                        <td class="px-3 py-3">
+                            @if($hospitalGroup['users']->isNotEmpty())
+                                <div class="flex flex-wrap gap-1.5">@foreach($hospitalGroup['users'] as $manager)<span class="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700">{{ $manager->name ?: 'User #'.$manager->id }}</span>@endforeach</div>
+                            @else
+                                <span class="font-medium text-amber-700">Chưa phân công</span>
+                            @endif
+                        </td>
+                        <td class="px-3 py-3">
+                            @if($hospitalGroup['assigned'] >= $hospitalGroup['products'])
+                                <span class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Đã phân công đủ</span>
+                            @elseif($hospitalGroup['assigned'] > 0)
+                                <span class="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">Còn {{ $hospitalGroup['products'] - $hospitalGroup['assigned'] }} SP</span>
+                            @else
+                                <span class="rounded-full bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700">Chưa phân công</span>
+                            @endif
+                        </td>
+                        <td class="px-3 py-3 text-right">@if($canManage)<button type="button" wire:click="openHospitalAssignment({{ $hospitalGroup['partner_id'] }})" class="text-sm font-semibold text-indigo-700">Xem / Điều chỉnh</button>@endif</td>
+                    </tr>
+                @empty
+                    <tr><td colspan="5" class="px-4 py-6 text-center text-sm text-slate-500">Chưa có bệnh viện được phân bổ thực tế cho các sản phẩm đang hiển thị.</td></tr>
+                @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="mt-5">
         <div class="flex items-center justify-between gap-3">
             <div>
-                <h3 class="text-sm font-bold text-slate-950">User đang quản lý</h3>
+                <h3 class="text-sm font-bold text-slate-950">Tổng hợp theo User</h3>
                 <p class="mt-1 text-xs text-slate-500">Danh sách này cho biết chính xác ai đang được phân công trong TBMT.</p>
             </div>
         </div>
@@ -127,12 +222,7 @@
                         @if($group['user']?->email)<p class="mt-0.5 text-xs text-slate-500">{{ $group['user']->email }}</p>@endif
                         <p class="mt-1 text-sm text-slate-600">{{ $group['products'] }} sản phẩm · {{ $group['hospitals'] }} bệnh viện</p>
                     </div>
-                    @if($canManage && $group['user'])
-                    <div class="flex flex-wrap gap-2">
-                        <button type="button" wire:click="selectManagementUser({{ $group['user']->id }})" class="min-h-9 rounded-lg border border-indigo-200 bg-white px-3 text-xs font-semibold text-indigo-700">Chọn để thay thế</button>
-                        <button type="button" wire:click="removeManagerGroup({{ $group['user']->id }})" wire:confirm="Gỡ toàn bộ phân công của {{ addslashes($group['user']->name) }} trong TBMT?" class="min-h-9 rounded-lg border border-rose-200 bg-white px-3 text-xs font-semibold text-rose-700">Gỡ phân công</button>
-                    </div>
-                    @endif
+
                 </div>
             </div>
             @endforeach
@@ -142,7 +232,37 @@
         @endif
     </div>
 
-    @if($canManage)
+    @if($persistedAssignmentMode === 'single' && $selectedPartnerId)
+    <div class="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        @php($selectedHospital = $hospitalGroups->firstWhere('partner_id', (int)$selectedPartnerId))
+        <div class="flex items-center justify-between gap-3">
+            <div><p class="text-sm font-bold text-slate-950">Chi tiết bệnh viện</p><p class="mt-1 text-sm text-slate-600">{{ $selectedHospital['hospital']?->name ?? 'Bệnh viện' }} · có thể điều chỉnh chính sách riêng theo từng sản phẩm.</p></div>
+            <button type="button" wire:click="$set('selectedPartnerId', '')" class="text-sm font-semibold text-slate-600">Đóng</button>
+        </div>
+        <div class="mt-3 overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <table class="w-full min-w-[720px] divide-y divide-slate-200 text-sm">
+                <thead class="bg-slate-50 text-xs uppercase text-slate-600"><tr><th class="px-3 py-3 text-left">Sản phẩm</th><th class="px-3 py-3 text-left">Chính sách chuẩn</th><th class="px-3 py-3 text-left">Chính sách BV</th><th class="px-3 py-3 text-left">Chính sách áp dụng</th><th class="px-3 py-3 text-left">User phụ trách</th></tr></thead>
+                <tbody class="divide-y divide-slate-100">
+                @foreach($products as $product)
+                    @php($allocation = $product->allocations->firstWhere('partner_id', (int)$selectedPartnerId))
+                    @if($allocation)
+                        @php($assignment = $assignments->get($product->id.':'.(int)$selectedPartnerId))
+                        <tr>
+                            <td class="px-3 py-3 font-semibold text-slate-950">{{ $product->medicine_name ?: '—' }}</td>
+                            <td class="px-3 py-3">{{ isset($productPolicies[$product->id]) ? $productPolicies[$product->id].'%' : 'Chưa thiết lập' }}</td>
+                            <td class="px-3 py-3"><div class="flex items-center gap-2"><div class="relative w-28"><input type="number" min="0" max="100" step="0.01" wire:model.blur="hospitalPolicyOverrides.{{ $product->id }}" wire:change="saveHospitalPolicyOverride({{ $product->id }})" @disabled(!$canManage) class="w-full rounded-lg border border-slate-300 px-2.5 py-2 pr-7 text-right text-sm"><span class="pointer-events-none absolute right-2 top-2 text-xs text-slate-400">%</span></div>@if($canManage && ($hospitalPolicyOverrides[$product->id] ?? '') !== '')<button type="button" wire:click="resetHospitalPolicyOverride({{ $product->id }})" class="text-xs font-semibold text-rose-600">Đặt lại</button>@endif</div></td>
+                            <td class="px-3 py-3 font-bold text-slate-950">{{ ($hospitalPolicyOverrides[$product->id] ?? '') !== '' ? $hospitalPolicyOverrides[$product->id].'%' : (isset($productPolicies[$product->id]) ? $productPolicies[$product->id].'%' : 'Chưa thiết lập') }}</td>
+                            <td class="px-3 py-3 font-semibold">{{ $assignment?->user?->name ?? 'Chưa phân công' }}</td>
+                        </tr>
+                    @endif
+                @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+    @endif
+
+    @if($canManage && $assignmentMode === 'multiple')
     <div class="mt-5 rounded-2xl border border-indigo-200 bg-indigo-50/60 p-4">
         <p class="text-sm font-bold text-indigo-950">Phân công User theo sản phẩm</p>
         <p class="mt-1 text-sm text-indigo-800">Chọn một hoặc nhiều sản phẩm, sau đó gán User cho tất cả bệnh viện đang có phân bổ thực tế của các sản phẩm đó.</p>
@@ -173,6 +293,7 @@
     </div>
     @endif
 
+    @if($assignmentMode === 'multiple')
     <div class="mt-5 border-t border-slate-200 pt-5">
         <details class="group" @if($selectedPartnerId) open @endif>
         <summary class="cursor-pointer list-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
@@ -224,9 +345,10 @@
         @endif
         </details>
     </div>
+    @endif
 </section>
 
 <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-    Dữ liệu được lưu để đối chiếu về sau theo <b>TBMT → Bệnh viện → Sản phẩm → User</b> và lấy <b>% chính sách</b> từ sản phẩm. Màn hình này không thực hiện tính hoa hồng.
+    Dữ liệu được lưu để đối chiếu về sau theo <b>TBMT → Bệnh viện → Sản phẩm → User</b> và lấy <b>% chính sách áp dụng</b> theo ưu tiên Bệnh viện → Sản phẩm. Màn hình này không thực hiện tính hoa hồng.
 </div>
 </div>

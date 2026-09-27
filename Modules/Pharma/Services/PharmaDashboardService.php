@@ -2,6 +2,7 @@
 
 namespace Modules\Pharma\Services;
 
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Modules\Pharma\Models\DrugBidAward;
 use Modules\Pharma\Models\DrugBidAwardManagementAssignment;
@@ -19,6 +20,11 @@ use Throwable;
 
 final class PharmaDashboardService
 {
+    public function __construct(
+        private readonly InventoryService $inventoryService,
+    ) {
+    }
+
     public function forUser(mixed $user): array
     {
         return [
@@ -66,13 +72,53 @@ final class PharmaDashboardService
     private function inventorySummary(): array
     {
         return $this->section('inventory', function (): array {
+            $warehouse = $this->inventoryService->defaultWarehouse();
+            $today = now()->startOfDay();
+            $costs = $this->activeSupplierCosts();
+
+            $stockBalances = InventoryBalance::query()
+                ->where('warehouse_id', $warehouse->id)
+                ->where('quantity_on_hand', '>', 0)
+                ->get(['medicine_id', 'quantity_on_hand', 'expiry_date', 'manual_cost_price']);
+
+            $availableBalances = $stockBalances->filter(
+                fn (InventoryBalance $balance): bool => $balance->expiry_date !== null && $balance->expiry_date->gte($today)
+            );
+
+            $availableStockValue = $availableBalances->sum(function (InventoryBalance $balance) use ($costs): float {
+                $supplierCost = $costs->get($balance->medicine_id)?->average_cost_price;
+                $effectiveCost = $balance->manual_cost_price !== null
+                    ? (float) $balance->manual_cost_price
+                    : ($supplierCost !== null ? (float) $supplierCost : null);
+
+                return $effectiveCost === null ? 0.0 : (float) $balance->quantity_on_hand * $effectiveCost;
+            });
+
+            $unpricedAvailableLots = $availableBalances->filter(function (InventoryBalance $balance) use ($costs): bool {
+                $supplierCost = $costs->get($balance->medicine_id)?->average_cost_price;
+                $effectiveCost = $balance->manual_cost_price !== null
+                    ? (float) $balance->manual_cost_price
+                    : ($supplierCost !== null ? (float) $supplierCost : null);
+
+                return $effectiveCost === null || $effectiveCost <= 0;
+            })->count();
+
             return [
                 'available' => true,
-                'stock_quantity' => (float) InventoryBalance::query()->where('quantity_on_hand', '>', 0)->sum('quantity_on_hand'),
-                'stock_lots' => InventoryBalance::query()->where('quantity_on_hand', '>', 0)->count(),
-                'expiring_lots' => InventoryBalance::query()->where('quantity_on_hand', '>', 0)
-                    ->whereNotNull('expiry_date')->whereDate('expiry_date', '<=', now()->addDays(90))->count(),
-                'draft_issues' => InventoryIssue::query()->where('status', InventoryIssue::DRAFT)->count(),
+                'stock_quantity' => (float) $stockBalances->sum('quantity_on_hand'),
+                'stock_lots' => $stockBalances->count(),
+                'available_stock_value' => (float) $availableStockValue,
+                'available_stock_lots' => $availableBalances->count(),
+                'unpriced_available_lots' => $unpricedAvailableLots,
+                'expiring_lots' => InventoryBalance::query()
+                    ->where('warehouse_id', $warehouse->id)
+                    ->where('quantity_on_hand', '>', 0)
+                    ->whereNotNull('expiry_date')
+                    ->whereDate('expiry_date', '>=', $today)
+                    ->whereDate('expiry_date', '<=', $today->copy()->addDays(90))
+                    ->count(),
+                'draft_issues' => InventoryIssue::query()->where('warehouse_id', $warehouse->id)
+                    ->where('status', InventoryIssue::DRAFT)->count(),
                 'deferred_supply' => InventoryIssueDeferredSupply::query()->where('status', InventoryIssueDeferredSupply::PENDING)->count(),
             ];
         });
@@ -142,6 +188,21 @@ final class PharmaDashboardService
             'customer' => PriceList::query()->where('type', PriceList::TYPE_CUSTOMER)->count(),
             'global' => PriceList::query()->where('type', PriceList::TYPE_GLOBAL)->count(),
         ]);
+    }
+
+    private function activeSupplierCosts()
+    {
+        $today = now()->toDateString();
+
+        return SupplierTracking::query()
+            ->select('medicine_id', DB::raw('AVG(cost_price) as average_cost_price'))
+            ->where('status', 'active')
+            ->whereNotNull('cost_price')
+            ->where(fn ($query) => $query->whereNull('start_date')->orWhereDate('start_date', '<=', $today))
+            ->where(fn ($query) => $query->whereNull('end_date')->orWhereDate('end_date', '>=', $today))
+            ->groupBy('medicine_id')
+            ->get()
+            ->keyBy('medicine_id');
     }
 
     private function section(string $section, callable $resolver): array

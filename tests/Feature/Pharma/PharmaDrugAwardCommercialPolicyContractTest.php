@@ -48,10 +48,17 @@ class PharmaDrugAwardCommercialPolicyContractTest extends TestCase
 
         $this->assertStringContainsString('saveProductPolicies', $component);
         $this->assertStringContainsString('assignManager', $component);
-        $this->assertStringContainsString('Bước 1', $view);
-        $this->assertStringContainsString('Thiết lập chính sách theo sản phẩm', $view);
-        $this->assertStringContainsString('Bước 2', $view);
-        $this->assertStringContainsString('Phân công User quản lý', $view);
+        $this->assertStringContainsString("x-data=\"{ commercialTab: 'policy' }\"", $view);
+        $this->assertStringContainsString("x-on:click=\"commercialTab = 'policy'\"", $view);
+        $this->assertStringContainsString("x-on:click=\"commercialTab = 'assignment'\"", $view);
+        $this->assertStringContainsString("x-show=\"commercialTab === 'policy'\"", $view);
+        $this->assertStringContainsString("x-show=\"commercialTab === 'assignment'\"", $view);
+        $this->assertStringContainsString('Chính sách sản phẩm', $view);
+        $this->assertStringContainsString('Phân công User', $view);
+        $this->assertStringContainsString('đã thiết lập', $view);
+        $this->assertStringContainsString('Cần hoàn thiện', $view);
+        $this->assertStringNotContainsString('Bước 1', $view);
+        $this->assertStringNotContainsString('Bước 2', $view);
         $this->assertStringContainsString('Áp dụng cho đã chọn', $view);
         $this->assertStringContainsString('không thực hiện tính hoa hồng', $view);
         $this->assertStringNotContainsString('Kích hoạt chính sách', $view);
@@ -82,6 +89,34 @@ class PharmaDrugAwardCommercialPolicyContractTest extends TestCase
         $this->assertStringNotContainsString('Gán cho toàn bộ TBMT', $view);
     }
 
+    public function test_assignment_tab_exposes_hospital_first_scope_and_global_excel_toolbar(): void
+    {
+        $component = file_get_contents(base_path('Modules/Pharma/Livewire/DrugBidAward/CommercialPolicyWorkspace.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/drug-bid-award/commercial-policy-workspace.blade.php'));
+
+        $this->assertStringContainsString('hospitalGroups', $component);
+        $this->assertStringNotContainsString('assignmentMatrix', $component);
+        $this->assertStringContainsString('selectAssignmentContext', $component);
+        $this->assertStringContainsString('Phạm vi quản lý theo bệnh viện', $view);
+        $this->assertStringContainsString('Một bệnh viện một dòng', $view);
+        $this->assertStringContainsString('Phân công sản phẩm', $view);
+        $this->assertStringContainsString('đã phân công User đầy đủ', $view);
+        $this->assertStringContainsString('User phụ trách', $view);
+        $this->assertStringContainsString('Xem / Điều chỉnh', $view);
+        $this->assertStringContainsString('Tổng hợp theo User', $view);
+        $this->assertStringContainsString('Chưa phân công', $view);
+        $this->assertStringContainsString('flex flex-wrap items-center gap-2 rounded-2xl', $view);
+
+        $toolbarPosition = strpos($view, 'Import Excel');
+        $navPosition = strpos($view, '<nav class=');
+        $policyPanelPosition = strpos($view, 'x-show="commercialTab === \'policy\'"');
+        $this->assertNotFalse($toolbarPosition);
+        $this->assertNotFalse($navPosition);
+        $this->assertNotFalse($policyPanelPosition);
+        $this->assertLessThan($navPosition, $toolbarPosition);
+        $this->assertLessThan($policyPanelPosition, $toolbarPosition);
+    }
+
     public function test_workspace_supports_select_all_bulk_management_winning_price_and_excel_round_trip(): void
     {
         $component = file_get_contents(base_path('Modules/Pharma/Livewire/DrugBidAward/CommercialPolicyWorkspace.php'));
@@ -100,7 +135,7 @@ class PharmaDrugAwardCommercialPolicyContractTest extends TestCase
         $this->assertStringContainsString("'Mã thuốc chuẩn'=>\$product->medicine?->medicine_code ?? \$product->canonicalMatch?->medicine?->medicine_code", $component);
         $this->assertStringContainsString("'canonicalMatch.medicine'", $component);
         $this->assertStringContainsString("with(['medicine','canonicalMatch.medicine','allocations'", $component);
-        $this->assertStringContainsString("'assigned'=>\$assignmentRows->count()", $component);
+        $this->assertStringContainsString("'assigned'=>\$validAssignmentRows->count()", $component);
         $this->assertStringContainsString("'total'=>\$activeAllocationCount", $component);
         $this->assertStringContainsString('Đã phân công đầy đủ', $view);
         $this->assertStringContainsString('Số lượng Bệnh viện', $view);

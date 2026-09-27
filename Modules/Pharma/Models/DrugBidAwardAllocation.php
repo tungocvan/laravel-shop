@@ -17,13 +17,14 @@ class DrugBidAwardAllocation extends Model
     protected $table = 'pharma_drug_bid_award_allocations';
 
     protected $fillable = [
-        'drug_bid_award_id', 'partner_id', 'allocated_quantity', 'status',
+        'drug_bid_award_id', 'partner_id', 'allocated_quantity', 'commercial_policy_percentage', 'status',
         'effective_from', 'effective_until', 'notes', 'created_by', 'updated_by',
         'cancelled_by', 'cancelled_at', 'cancellation_reason',
     ];
 
     protected $casts = [
         'allocated_quantity' => 'decimal:4',
+        'commercial_policy_percentage' => 'decimal:4',
         'effective_from' => 'date',
         'effective_until' => 'date',
         'cancelled_at' => 'datetime',

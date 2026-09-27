@@ -28,6 +28,17 @@ class SupplierTrackingService
             ->paginate($perPage, ['*'], 'page', max(1, $page));
     }
 
+    public function workspaceStats(array $filters = []): array
+    {
+        $query = $this->queryForFilters($filters);
+
+        return [
+            'trackings' => (clone $query)->count(),
+            'medicines' => (clone $query)->whereNotNull('medicine_id')->distinct()->count('medicine_id'),
+            'suppliers' => (clone $query)->whereNotNull('partner_id')->distinct()->count('partner_id'),
+        ];
+    }
+
     public function medicineCandidates(string $search = '', ?int $selectedId = null, int $limit = 25): Collection
     {
         $limit = max(1, min(25, $limit));
@@ -252,7 +263,15 @@ class SupplierTrackingService
             }))
             ->when($filters['status'] ?? null, fn (Builder $query, string $status) => $query->where('status', $status))
             ->when($filters['partner_id'] ?? null, fn (Builder $query, $partnerId) => $query->where('partner_id', (int) $partnerId))
-            ->when($filters['medicine_id'] ?? null, fn (Builder $query, $medicineId) => $query->where('medicine_id', (int) $medicineId));
+            ->when($filters['medicine_id'] ?? null, fn (Builder $query, $medicineId) => $query->where('medicine_id', (int) $medicineId))
+            ->when($filters['purchase_price'] ?? null, function (Builder $query, string $priceFilter): void {
+                match ($priceFilter) {
+                    'with' => $query->whereNotNull('import_price')->where('import_price', '>', 0),
+                    'missing' => $query->whereNull('import_price'),
+                    'zero' => $query->whereNotNull('import_price')->where('import_price', 0),
+                    default => null,
+                };
+            });
     }
 
     private function prepare(array $data): array

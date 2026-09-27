@@ -4,6 +4,7 @@ namespace Modules\Pharma\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Modules\Pharma\Models\SupplierTracking;
 
 class SupplierTrackingController extends Controller
 {
@@ -14,8 +15,14 @@ class SupplierTrackingController extends Controller
 
     public function create(Request $request)
     {
+        $medicineId = $request->integer('medicine_id') ?: null;
+        $existingTrackingId = $medicineId
+            ? SupplierTracking::query()->where('medicine_id', $medicineId)->latest('id')->value('id')
+            : null;
+
         return view('Pharma::pages.supplier-trackings.create', [
-            'medicineId' => $request->integer('medicine_id') ?: null,
+            'medicineId' => $medicineId,
+            'existingTrackingId' => $existingTrackingId ? (int) $existingTrackingId : null,
         ]);
     }
 

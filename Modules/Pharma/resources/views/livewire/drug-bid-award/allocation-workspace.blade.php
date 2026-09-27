@@ -34,7 +34,7 @@
         <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><p class="text-sm text-slate-500">Số lượng trúng</p><p class="mt-1 text-2xl font-bold text-slate-950">{{ $fmtQty($summary['winning_quantity']) }}</p></div>
         <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><p class="text-sm text-slate-500">Đã phân bổ</p><p class="mt-1 text-2xl font-bold text-indigo-700">{{ $fmtQty($summary['allocated_quantity']) }}</p></div>
         <div class="rounded-2xl border {{ $summary['remaining_quantity'] < 0 ? 'border-rose-300 bg-rose-50' : 'border-slate-200 bg-white' }} p-4 shadow-sm"><p class="text-sm text-slate-500">Còn lại</p><p class="mt-1 text-2xl font-bold {{ $summary['remaining_quantity'] < 0 ? 'text-rose-700' : 'text-emerald-700' }}">{{ $fmtQty($summary['remaining_quantity']) }}</p></div>
-        <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><p class="text-sm text-slate-500">Bệnh viện / trạng thái</p><p class="mt-1 text-xl font-bold text-slate-950">{{ $summary['facility_count'] }}</p><span class="mt-2 inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{{ $summary['status'] }}</span></div>
+        <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><p class="text-sm text-slate-500">Số bệnh viện</p><p class="mt-1 text-xl font-bold text-slate-950">{{ $summary['facility_count'] }} bệnh viện</p><span class="mt-2 inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{{ $summary['status'] }}</span></div>
     </section>
 
     @if ($summary['status'] === 'OVER_ALLOCATED')
@@ -60,15 +60,16 @@
                 <div class="lg:col-span-4">
                     <label class="block text-sm font-medium text-slate-700">Bệnh viện</label>
                     @if ($editingAllocationId)
-                        <select disabled class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm"><option>{{ $partners->firstWhere('id', (int) $partnerId)?->name ?: 'Bệnh viện đã chọn' }}</option></select>
+                        <div class="mt-1 min-h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-900">{{ $editingPartnerName ?: '—' }}</div>
+                        <p class="mt-1 text-xs text-slate-500">Bệnh viện được khóa khi sửa để tránh chuyển nhầm phân bổ.</p>
                     @else
                         <div class="mt-1"><x-select-search id="pharma-allocation-hospital" wire:model="partnerId" placeholder="Tìm hoặc chọn bệnh viện..."><option value="">Chọn bệnh viện</option>@foreach ($partners as $partner)<option value="{{ $partner->id }}">{{ $partner->name }}{{ $partner->tax_code ? ' · '.$partner->tax_code : '' }}</option>@endforeach</x-select-search></div>
                     @endif
                 </div>
-                <div class="lg:col-span-2"><label class="block text-sm font-medium text-slate-700">Số lượng phân bổ</label><input type="number" step="0.0001" min="0.0001" wire:model="allocatedQuantity" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm shadow-sm"></div>
+                <div class="lg:col-span-2"><label class="block text-sm font-medium text-slate-700">Số lượng phân bổ</label><input type="{{ $editingAllocationId ? 'text' : 'number' }}" inputmode="decimal" step="0.0001" min="0.0001" wire:model="allocatedQuantity" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm shadow-sm"><p class="mt-1 text-xs text-slate-500">{{ $editingAllocationId ? 'Hiển thị theo định dạng 20.000; không còn .0000.' : 'Nhập số lượng cần phân bổ.' }}</p></div>
                 <div class="lg:col-span-4"><label class="block text-sm font-medium text-slate-700">Ghi chú</label><input type="text" wire:model="notes" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm shadow-sm"></div>
             </div>
-            <div class="mt-4 flex justify-end"><button type="button" wire:click="saveAllocation" wire:loading.attr="disabled" wire:target="saveAllocation" @disabled(!$distributionScope || ($summary['status'] === 'OVER_ALLOCATED' && !$editingAllocationId)) class="min-h-11 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">Lưu phân bổ</button></div>
+            <div class="mt-4 flex justify-end gap-2">@if($editingAllocationId)<button type="button" wire:click="cancelAllocationEdit" class="min-h-11 rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700">Hủy sửa</button>@endif<button type="button" wire:click="saveAllocation" wire:loading.attr="disabled" wire:target="saveAllocation" @disabled(!$distributionScope || ($summary['status'] === 'OVER_ALLOCATED' && !$editingAllocationId)) class="min-h-11 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">Lưu phân bổ</button></div>
         </section>
     @endif
 
@@ -79,7 +80,7 @@
                 <div><label class="block text-sm font-medium text-slate-700">Trạng thái</label><select wire:model.live="filterStatus" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="">Tất cả</option><option value="active">Đang phân bổ</option><option value="cancelled">Tạm ngưng</option></select></div>
                 <div><label class="block text-sm font-medium text-slate-700">Số dòng</label><select wire:model.live="perPage" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm">@foreach ($perPageOptions as $option)<option value="{{ $option }}">{{ $option }} / trang</option>@endforeach</select></div>
             </div>
-            <div class="flex flex-wrap gap-2"><button type="button" wire:click="exportAllocations" class="min-h-11 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold">Xuất phân bổ{{ $selectedIds !== [] ? ' đã chọn' : '' }}</button>@if ($canViewContracts)<button type="button" wire:click="exportContracts" class="min-h-11 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold">Xuất hợp đồng</button>@endif</div>
+            <div class="flex flex-wrap items-center gap-2">@if($selectedIds !== [])<span class="rounded-lg bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-700">Đã chọn {{ count($selectedIds) }} bệnh viện</span>@endif<button type="button" wire:click="exportAllocations" class="min-h-11 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold">Xuất phân bổ{{ $selectedIds !== [] ? ' đã chọn' : '' }}</button>@if ($canViewContracts)<button type="button" wire:click="exportContracts" class="min-h-11 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold">Xuất hợp đồng{{ $selectedIds !== [] ? ' đã chọn' : '' }}</button>@endif</div>
         </div>
     </section>
 
@@ -94,10 +95,10 @@
                         <td class="px-4 py-4"><div class="font-semibold text-slate-950">{{ $allocation->partner?->name ?: '—' }}</div><div class="mt-1 text-xs text-slate-500">{{ $allocation->partner?->tax_code ?: 'Không MST' }}</div></td>
                         <td class="px-4 py-4"><div class="font-semibold text-indigo-700">{{ $fmtQty($allocation->allocated_quantity) }}</div><div class="mt-1 text-xs text-slate-500">Đã cam kết HĐ: {{ $fmtQty($committed) }}</div></td>
                         <td class="px-4 py-4 text-xs text-slate-600">{{ $allocation->effective_from?->format('d/m/Y') ?: '—' }} → {{ $allocation->effective_until?->format('d/m/Y') ?: '—' }}</td>
-                        <td class="px-4 py-4"><div class="font-semibold">{{ $allocation->contracts->count() }} hợp đồng</div>@foreach ($allocation->contracts->take(3) as $contract)<div class="mt-1 text-xs text-slate-500">{{ $contract->contract_number }} · {{ $fmtQty($contract->contract_quantity) }} · {{ strtoupper($contract->status) }}</div>@endforeach</td>
+                        <td class="px-4 py-4"><div class="font-semibold {{ $allocation->contracts->isEmpty() ? 'text-slate-500' : 'text-slate-950' }}">{{ $allocation->contracts->isEmpty() ? 'Chưa có hợp đồng' : $allocation->contracts->count().' hợp đồng' }}</div>@foreach ($allocation->contracts->take(3) as $contract)<div class="mt-1 text-xs text-slate-500">{{ $contract->contract_number }} · {{ $fmtQty($contract->contract_quantity) }} · {{ strtoupper($contract->status) }}</div>@endforeach</td>
                         <td class="px-4 py-4"><span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $allocation->status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }}">{{ $allocation->status === 'active' ? 'ACTIVE' : 'TẠM NGƯNG' }}</span></td>
                         <td class="px-4 py-4"><input type="checkbox" @checked($allocation->status !== 'active') @disabled(($allocation->status === 'active' && !$canCancelAllocation) || ($allocation->status !== 'active' && !$canManageAllocation)) wire:change="toggleAllocationPause({{ $allocation->id }}, $event.target.checked)" class="h-4 w-4 rounded border-slate-300 text-indigo-600"><span class="ml-2 text-xs text-slate-500">Tạm ngưng</span></td>
-                        <td class="px-4 py-4 text-right"><div class="flex justify-end gap-2">@if ($canManageAllocation && $allocation->status === 'active')<button type="button" wire:click="editAllocation({{ $allocation->id }})" class="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold">Sửa</button>@endif @if ($canManageContracts && $allocation->status === 'active')<button type="button" wire:click="openContractForm({{ $allocation->id }})" class="rounded-lg border border-indigo-200 px-3 py-2 text-xs font-semibold text-indigo-700">{{ $contractAllocationId === $allocation->id ? 'Ẩn hợp đồng' : 'Hợp đồng' }}</button>@endif</div></td>
+                        <td class="px-4 py-4 text-right"><div class="flex justify-end gap-2">@if ($canManageAllocation && $allocation->status === 'active')<button type="button" wire:click="editAllocation({{ $allocation->id }})" class="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold">Sửa</button>@endif @if ($canManageContracts && $allocation->status === 'active')@if($allocation->contracts->isEmpty())<button type="button" wire:click="openContractForm({{ $allocation->id }})" class="rounded-lg border border-indigo-200 px-3 py-2 text-xs font-semibold text-indigo-700">Tạo hợp đồng</button>@else<button type="button" wire:click="editContract({{ $allocation->id }}, {{ $allocation->contracts->first()->id }})" class="rounded-lg border border-indigo-200 px-3 py-2 text-xs font-semibold text-indigo-700">Sửa hợp đồng</button>@endif @endif</div></td>
                     </tr>
                     @if ($canViewContracts && $allocation->contracts->isNotEmpty())
                         <tr class="bg-slate-50/70"><td></td><td colspan="7" class="px-4 py-3"><div class="flex flex-wrap gap-2">@foreach ($allocation->contracts as $contract)<span class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs"><strong>{{ $contract->contract_number }}</strong><span>{{ strtoupper($contract->status) }}</span>@if ($canManageContracts && $contract->status !== 'cancelled')<button type="button" wire:click="editContract({{ $allocation->id }}, {{ $contract->id }})" class="font-semibold text-indigo-700">Sửa</button>@endif</span>@endforeach</div></td></tr>
@@ -111,19 +112,97 @@
     </section>
 
     @if ($contractAllocationId && $canManageContracts)
-        <section class="rounded-2xl border border-indigo-200 bg-indigo-50/30 p-5 shadow-sm">
-            <div class="flex items-center justify-between gap-3"><h2 class="text-lg font-semibold text-slate-950">{{ $editingContractId ? 'Sửa hợp đồng' : 'Thêm hợp đồng' }} cho phân bổ #{{ $contractAllocationId }}</h2><button type="button" wire:click="closeContractForm" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700">Ẩn</button></div>
-            <div class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <div><label class="block text-sm font-medium">Số hợp đồng</label><input wire:model="contractNumber" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5"></div>
-                <div><label class="block text-sm font-medium">Ngày ký hợp đồng</label><input type="date" wire:model="contractDate" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5"></div>
-                <div><label class="block text-sm font-medium">Số lượng hợp đồng</label><input type="number" step="0.0001" min="0.0001" wire:model="contractQuantity" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5"><p class="mt-1 text-xs text-slate-500">Số lượng của mặt hàng trúng thầu này trong hợp đồng.</p></div>
-                <div><label class="block text-sm font-medium">Giá trị hợp đồng</label><input type="number" step="0.0001" wire:model="contractValue" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5"></div>
-                <div><label class="block text-sm font-medium">Từ ngày</label><input type="date" wire:model="contractStartDate" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5"></div>
-                <div><label class="block text-sm font-medium">Đến ngày</label><input type="date" wire:model="contractEndDate" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5"></div>
-                <div><label class="block text-sm font-medium">Trạng thái</label><select wire:model="contractStatus" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5"><option value="draft">Nháp</option><option value="signed">Đã ký</option><option value="in_progress">Đang thực hiện</option><option value="completed">Hoàn thành</option></select></div>
-                <div><label class="block text-sm font-medium">Ghi chú</label><input wire:model="contractNotes" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5"></div>
+        @php($editingContract = $editingContractId ? $allocations->getCollection()->flatMap->contracts->firstWhere('id', $editingContractId) : null)
+        @php($localExists = (bool) ($editingContract?->signed_file_path && \Illuminate\Support\Facades\Storage::disk('local')->exists($editingContract->signed_file_path)))
+        @php($driveExists = (bool) ($editingContract?->signed_file_remote_id))
+        <section id="contract-editor" x-init="$nextTick(() => $el.scrollIntoView({ behavior: 'smooth', block: 'center' }))" class="rounded-2xl border border-indigo-300 bg-indigo-50/30 p-5 shadow-sm">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+                <div><h2 class="text-lg font-semibold text-slate-950">{{ $editingContractId ? 'Sửa hợp đồng' : 'Thêm hợp đồng' }} · {{ $contractPartnerName ?: 'Bệnh viện' }}</h2><p class="mt-1 text-xs text-slate-500">Thông tin ký kết và tài liệu hợp đồng được quản lý độc lập.</p></div>
+                <button type="button" wire:click="closeContractForm" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700">Đóng</button>
             </div>
-            <div class="mt-4 flex justify-end"><button type="button" wire:click="saveContract" wire:loading.attr="disabled" wire:target="saveContract" class="min-h-11 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">Lưu hợp đồng</button></div>
+
+            <div class="mt-4 rounded-xl border border-slate-200 bg-white p-4">
+                <h3 class="text-sm font-semibold text-slate-900">Thông tin hợp đồng</h3>
+                <div class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-10">
+                    <div class="lg:col-span-2"><label class="block text-sm font-medium">Số hợp đồng</label><input wire:model="contractNumber" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2.5"></div>
+                    <div class="lg:col-span-2"><label class="block text-sm font-medium">Ngày ký</label><input type="date" wire:model="contractDate" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2.5"></div>
+                    <div class="lg:col-span-2"><label class="block text-sm font-medium">Ngày kết thúc</label><input type="date" wire:model="contractEndDate" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2.5"></div>
+                    <div class="lg:col-span-2"><label class="block text-sm font-medium">Giá trị hợp đồng</label><div class="relative mt-1"><input type="text" inputmode="numeric" wire:model="contractValue" class="min-h-11 w-full rounded-xl border border-slate-300 py-2.5 pl-3 pr-12 text-right font-medium" placeholder="0"><span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs font-semibold text-slate-400">VNĐ</span></div></div>
+                    <div class="lg:col-span-2"><label class="block text-sm font-medium">Trạng thái</label><select wire:model="contractStatus" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2.5"><option value="draft">Nháp</option><option value="signed">Đã ký</option><option value="in_progress">Đang thực hiện</option><option value="completed">Hoàn thành</option></select></div>
+                    <div class="sm:col-span-2 lg:col-span-10"><label class="block text-sm font-medium">Ghi chú</label><input wire:model="contractNotes" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2.5" placeholder="Ghi chú nội bộ về hợp đồng (nếu có)"></div>
+                </div>
+            </div>
+
+            <div class="mt-4 rounded-xl border border-slate-200 bg-white p-4">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div><h3 class="text-sm font-semibold text-slate-900">File hợp đồng đã ký</h3><p class="mt-1 text-xs text-slate-500">{{ $editingContractId ? 'Quản lý file và đồng bộ Local ↔ Google Drive độc lập với thông tin hợp đồng.' : 'Chọn file và nơi lưu trước khi tạo hợp đồng.' }}</p></div>
+                    <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $googleDriveConnected ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }}">Google Drive {{ $googleDriveConnected ? 'đã kết nối' : 'chưa kết nối' }}</span>
+                </div>
+
+                @if($editingContractId)
+                    @if($editingContract && $editingContract->signed_file_name)
+                        <div class="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                            <div class="min-w-0"><div class="truncate text-sm font-semibold text-slate-900">{{ $editingContract->signed_file_name }}</div><div class="mt-1 text-xs text-slate-500">{{ strtoupper(pathinfo($editingContract->signed_file_name, PATHINFO_EXTENSION)) ?: 'FILE' }}@if($editingContract->signed_file_size) · {{ number_format($editingContract->signed_file_size / 1048576, 2, ',', '.') }} MB @endif</div></div>
+                            <div x-data="{ open: false }" class="relative flex items-center gap-2">
+                                @if($localExists)<button type="button" wire:click="downloadSignedContract({{ $editingContract->id }})" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold">Tải xuống</button>@endif
+                                <button type="button" @click="open = !open" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-600" aria-label="Thao tác file">•••</button>
+                                <div x-cloak x-show="open" @click.outside="open = false" class="absolute right-0 top-10 z-20 w-44 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg">
+                                    @if($localExists)<button type="button" wire:click="deleteSignedContractLocal({{ $editingContract->id }})" wire:confirm="Xóa bản Local của file hợp đồng?" class="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-rose-600 hover:bg-rose-50">Xóa bản Local</button>@endif
+                                    @if($driveExists)<button type="button" wire:click="deleteSignedContractDrive({{ $editingContract->id }})" wire:confirm="Xóa bản Google Drive của file hợp đồng?" class="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-rose-600 hover:bg-rose-50">Xóa bản Google Drive</button>@endif
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    <div class="mt-3 grid gap-3 lg:grid-cols-2">
+                        <div class="rounded-xl border px-4 py-3 {{ $localExists ? 'border-emerald-200 bg-emerald-50/40' : 'border-slate-200' }}">
+                            <div class="flex flex-wrap items-center justify-between gap-3">
+                                <div><div class="text-sm font-semibold">Local <span class="ml-2 text-xs font-bold {{ $localExists ? 'text-emerald-700' : 'text-slate-500' }}">{{ $localExists ? '✓ Có file' : '— Chưa có' }}</span></div><p class="mt-1 text-xs text-slate-500">Bản riêng tư trên máy chủ.</p></div>
+                                @if(!$localExists && $driveExists)<button type="button" wire:click="restoreSignedContractFromDrive({{ $editingContract->id }})" class="rounded-lg border border-indigo-200 bg-white px-3 py-2 text-xs font-semibold text-indigo-700">Drive → Local</button>@endif
+                            </div>
+                        </div>
+                        <div class="rounded-xl border px-4 py-3 {{ $driveExists ? 'border-sky-200 bg-sky-50/40' : 'border-slate-200' }}">
+                            <div class="flex flex-wrap items-center justify-between gap-3">
+                                <div><div class="text-sm font-semibold">Google Drive <span class="ml-2 text-xs font-bold {{ $driveExists ? 'text-sky-700' : 'text-slate-500' }}">{{ $driveExists ? '✓ Có file' : '— Chưa có' }}</span></div><p class="mt-1 text-xs text-slate-500">Bản sao trên Google Drive.</p></div>
+                                @if($localExists && !$driveExists && $googleDriveConnected)<button type="button" wire:click="backupSignedContractToDrive({{ $editingContract->id }})" class="rounded-lg border border-sky-200 bg-white px-3 py-2 text-xs font-semibold text-sky-700">Local → Drive</button>@endif
+                            </div>
+                        </div>
+                    </div>
+                    @if($localExists && $driveExists)<div class="mt-2 text-center text-xs font-semibold text-emerald-700">✓ File hiện có ở cả Local và Google Drive</div>@endif
+                @endif
+
+                <div class="{{ $editingContractId ? 'mt-4 border-t border-slate-100 pt-4' : 'mt-3' }}">
+                    <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+                        <div class="max-w-3xl">
+                            <label class="block text-sm font-semibold text-slate-800">{{ $editingContract?->signed_file_name ? 'Thay file hợp đồng' : 'Chọn file hợp đồng' }}</label>
+                            <div class="mt-2 rounded-xl border border-dashed border-slate-300 bg-slate-50/70 px-4 py-3">
+                                <input type="file" wire:model="signedContractFile" accept=".pdf,.jpg,.jpeg,.png" class="block w-full text-sm text-slate-600">
+                                <p class="mt-1 text-xs text-slate-500">PDF/JPG/PNG · tối đa 20 MB.</p>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="mb-1 text-xs font-semibold text-slate-600">Lưu tại</div>
+                            <div class="flex flex-wrap gap-2">
+                                <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-xs font-semibold"><input type="checkbox" wire:model="contractStorageTargets" value="local" class="rounded border-slate-300"> Local</label>
+                                <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-xs font-semibold {{ $googleDriveConnected ? '' : 'opacity-50' }}"><input type="checkbox" wire:model="contractStorageTargets" value="google_drive" @disabled(!$googleDriveConnected) class="rounded border-slate-300"> Google Drive</label>
+                            </div>
+                        </div>
+                    </div>
+                    @error('signedContractFile')<p class="mt-2 text-xs text-rose-600">{{ $message }}</p>@enderror
+                    @error('contractStorageTargets')<p class="mt-2 text-xs text-rose-600">{{ $message }}</p>@enderror
+                </div>
+            </div>
+
+            <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    @if(!$editingContractId && $returnToContractId)<button type="button" wire:click="cancelCreateAnotherContract" class="min-h-11 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">← Hủy thêm · Quay lại hợp đồng trước</button>@endif
+                    @if($editingContractId)<button type="button" wire:click="createAnotherContract" class="min-h-11 rounded-xl border border-indigo-200 bg-white px-5 py-2.5 text-sm font-semibold text-indigo-700">+ Thêm hợp đồng khác</button>@endif
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" wire:click="closeContractForm" class="min-h-11 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">{{ $editingContractId ? 'Đóng' : 'Hủy' }}</button>
+                    <button type="button" wire:click="saveContract" wire:loading.attr="disabled" wire:target="saveContract,signedContractFile" class="min-h-11 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{{ $editingContractId ? 'Lưu thay đổi' : 'Lưu hợp đồng' }}</button>
+                </div>
+            </div>
         </section>
     @endif
 </div>

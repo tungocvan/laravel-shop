@@ -22,6 +22,7 @@ class CommercialPolicyWorkspace extends Component
 
     public int $awardId;
     public array $productPolicies = [];
+    public array $hospitalPolicyOverrides = [];
     public string $bulkPercentage = '';
     public array $selectedPolicyAwardIds = [];
     public array $selectedManagementAwardIds = [];
@@ -29,6 +30,8 @@ class CommercialPolicyWorkspace extends Component
     public string $selectedUserId = '';
     public string $userSearch = '';
     public string $productSearch = '';
+    public string $assignmentMode = 'single';
+    public string $persistedAssignmentMode = 'unassigned';
     public $importFile;
 
     public function mount(int $awardId): void
@@ -37,6 +40,7 @@ class CommercialPolicyWorkspace extends Component
         $this->awardId = $awardId;
         $this->award();
         $this->loadPolicyValues();
+        $this->syncAssignmentModeFromDatabase();
     }
 
     public function selectAllPolicies(): void { $this->selectedPolicyAwardIds = $this->visibleProductIds(); }
@@ -110,6 +114,7 @@ class CommercialPolicyWorkspace extends Component
     public function assignManager(int $awardId, DrugBidAwardCommercialPolicyService $service): void
     {
         $this->authorizeManage();
+        abort_if($this->persistedAssignmentMode === 'single', 422, 'Hãy gỡ toàn bộ phân công trước khi chuyển sang nhiều User phụ trách.');
         $data=$this->validate(['selectedPartnerId'=>['required','integer','exists:partners,id'],'selectedUserId'=>['required','integer','exists:users,id']]);
         $service->assignManager($this->award(),$awardId,(int)$data['selectedPartnerId'],(int)$data['selectedUserId'],auth('admin')->id());
         session()->flash('success','Đã lưu User quản lý bệnh viện/sản phẩm.');
@@ -118,6 +123,7 @@ class CommercialPolicyWorkspace extends Component
     public function assignSelectedManagers(DrugBidAwardCommercialPolicyService $service): void
     {
         $this->authorizeManage();
+        abort_if($this->persistedAssignmentMode === 'single', 422, 'Hãy gỡ toàn bộ phân công trước khi chuyển sang nhiều User phụ trách.');
         $data=$this->validate([
             'selectedPartnerId'=>['required','integer','exists:partners,id'],
             'selectedUserId'=>['required','integer','exists:users,id'],
@@ -131,6 +137,7 @@ class CommercialPolicyWorkspace extends Component
     public function assignManagerToSelectedProducts(DrugBidAwardCommercialPolicyService $service): void
     {
         $this->authorizeManage();
+        abort_if($this->persistedAssignmentMode === 'single', 422, 'Hãy gỡ toàn bộ phân công trước khi chuyển sang nhiều User phụ trách.');
         $data = $this->validate([
             'selectedUserId' => ['required', 'integer', 'exists:users,id'],
             'selectedManagementAwardIds' => ['required', 'array', 'min:1'],
@@ -154,6 +161,31 @@ class CommercialPolicyWorkspace extends Component
         session()->flash('success', "Đã gán User cho {$count} phân công Bệnh viện × Sản phẩm thực tế trong TBMT.");
     }
 
+    public function assignSingleManagerToAll(DrugBidAwardCommercialPolicyService $service): void
+    {
+        $this->authorizeManage();
+        abort_if($this->persistedAssignmentMode === 'multiple', 422, 'Hãy gỡ toàn bộ phân công trước khi chuyển sang một User phụ trách toàn bộ.');
+        $data = $this->validate(['selectedUserId' => ['required','integer','exists:users,id']]);
+        $count = $service->assignManagerToAllAllocations($this->award(), (int) $data['selectedUserId'], auth('admin')->id());
+        $this->selectedPartnerId = '';
+        $this->selectedManagementAwardIds = [];
+        $this->persistedAssignmentMode = 'single';
+        $this->assignmentMode = 'single';
+        session()->flash('success', "Đã phân công User cho toàn bộ {$count} Bệnh viện × Sản phẩm có phân bổ thực tế.");
+    }
+
+    public function resetAllManagerAssignments(DrugBidAwardCommercialPolicyService $service): void
+    {
+        $this->authorizeManage();
+        $count = $service->removeAllManagers($this->award());
+        $this->selectedUserId = '';
+        $this->selectedPartnerId = '';
+        $this->selectedManagementAwardIds = [];
+        $this->persistedAssignmentMode = 'unassigned';
+        $this->assignmentMode = 'single';
+        session()->flash('success', "Đã gỡ toàn bộ {$count} phân công User. Có thể thiết lập lại từ đầu.");
+    }
+
     public function removeManagerFromAll(DrugBidAwardCommercialPolicyService $service): void
     {
         $this->authorizeManage();
@@ -173,6 +205,57 @@ class CommercialPolicyWorkspace extends Component
     public function selectManagementUser(int $userId): void
     {
         $this->selectedUserId = (string) $userId;
+    }
+
+    public function prepareSingleManagerReplacement(): void
+    {
+        if ($this->persistedAssignmentMode !== 'single') return;
+        $this->selectedUserId = '';
+    }
+
+    public function replaceSingleManager(DrugBidAwardCommercialPolicyService $service): void
+    {
+        $this->authorizeManage();
+        abort_unless($this->persistedAssignmentMode === 'single', 422, 'Chỉ thay User toàn bộ khi đang ở chế độ Một User phụ trách toàn bộ.');
+        $data = $this->validate(['selectedUserId' => ['required','integer','exists:users,id']]);
+        $count = $service->assignManagerToAllAllocations($this->award(), (int) $data['selectedUserId'], auth('admin')->id());
+        session()->flash('success', "Đã thay User phụ trách toàn bộ {$count} Bệnh viện × Sản phẩm.");
+    }
+
+    public function openHospitalAssignment(int $partnerId): void
+    {
+        if ($this->persistedAssignmentMode === 'single') {
+            $this->selectAssignmentContext($partnerId);
+            return;
+        }
+        $this->assignmentMode = 'multiple';
+        $this->selectAssignmentContext($partnerId);
+    }
+
+    public function saveHospitalPolicyOverride(int $awardId, DrugBidAwardCommercialPolicyService $service): void
+    {
+        $this->authorizeManage();
+        $partnerId = (int) $this->selectedPartnerId;
+        abort_if($partnerId <= 0, 422, 'Chưa chọn bệnh viện.');
+        $service->saveHospitalPolicyOverride($this->award(), $awardId, $partnerId, $this->hospitalPolicyOverrides[$awardId] ?? null, auth('admin')->id());
+        session()->flash('success', 'Đã lưu chính sách riêng của bệnh viện.');
+    }
+
+    public function resetHospitalPolicyOverride(int $awardId, DrugBidAwardCommercialPolicyService $service): void
+    {
+        $this->authorizeManage();
+        $partnerId = (int) $this->selectedPartnerId;
+        abort_if($partnerId <= 0, 422, 'Chưa chọn bệnh viện.');
+        $this->hospitalPolicyOverrides[$awardId] = '';
+        $service->saveHospitalPolicyOverride($this->award(), $awardId, $partnerId, null, auth('admin')->id());
+        session()->flash('success', 'Đã đặt lại về chính sách chuẩn của sản phẩm.');
+    }
+
+    public function selectAssignmentContext(int $partnerId, ?int $userId = null): void
+    {
+        $this->selectedPartnerId = (string) $partnerId;
+        $this->selectedUserId = $userId ? (string) $userId : '';
+        $this->selectedManagementAwardIds = [];
     }
 
     public function removeSelectedManagers(DrugBidAwardCommercialPolicyService $service): void
@@ -249,27 +332,56 @@ class CommercialPolicyWorkspace extends Component
 
     public function updatedSelectedPartnerId(): void { $this->selectedUserId=''; $this->selectedManagementAwardIds=[]; }
 
+    private function syncAssignmentModeFromDatabase(): void
+    {
+        $awardIds = app(DrugBidAwardResultGroupService::class)->awardsQuery($this->award())->pluck('id');
+        $allocationCount = DrugBidAwardAllocation::query()
+            ->whereIn('drug_bid_award_id', $awardIds)
+            ->where('status', DrugBidAwardAllocation::STATUS_ACTIVE)
+            ->count();
+        $rows = DrugBidAwardManagementAssignment::query()
+            ->with(['user','partner'])
+            ->whereIn('drug_bid_award_id', $awardIds)
+            ->where('status', DrugBidAwardManagementAssignment::STATUS_ACTIVE)
+            ->get()
+            ->filter(fn($row) => $row->user !== null && $row->partner !== null);
+
+        if ($rows->isEmpty()) {
+            $this->persistedAssignmentMode = 'unassigned';
+            $this->assignmentMode = 'single';
+            return;
+        }
+
+        $isSingleComplete = $allocationCount > 0
+            && $rows->count() >= $allocationCount
+            && $rows->pluck('user_id')->unique()->count() === 1;
+
+        $this->persistedAssignmentMode = $isSingleComplete ? 'single' : 'multiple';
+        $this->assignmentMode = $this->persistedAssignmentMode;
+    }
+
     public function render()
     {
         $award=$this->award(); $group=app(DrugBidAwardResultGroupService::class); $awardIds=$group->awardsQuery($award)->pluck('id');
         $products=$this->productsQuery()->with(['medicine','canonicalMatch.medicine','allocations'=>fn($q)=>$q->where('status',DrugBidAwardAllocation::STATUS_ACTIVE)->with('partner')])->get();
         $partners=DrugBidAwardAllocation::query()->with('partner')->whereIn('drug_bid_award_id',$awardIds)->where('status',DrugBidAwardAllocation::STATUS_ACTIVE)->get()->pluck('partner')->filter()->unique('id')->sortBy('name')->values();
         $assignmentRows=DrugBidAwardManagementAssignment::query()->with(['user','partner'])->whereIn('drug_bid_award_id',$awardIds)->where('status',DrugBidAwardManagementAssignment::STATUS_ACTIVE)->get();
-        $assignments=$assignmentRows->keyBy(fn($row)=>$row->drug_bid_award_id.':'.$row->partner_id);
+        $validAssignmentRows=$assignmentRows->filter(fn($row)=>$row->user !== null && $row->partner !== null)->values();
+        $assignments=$validAssignmentRows->keyBy(fn($row)=>$row->drug_bid_award_id.':'.$row->partner_id);
         $allocationCounts=DrugBidAwardAllocation::query()->whereIn('drug_bid_award_id',$awardIds)->where('status',DrugBidAwardAllocation::STATUS_ACTIVE)->selectRaw('drug_bid_award_id, COUNT(DISTINCT partner_id) as allocation_count')->groupBy('drug_bid_award_id')->pluck('allocation_count','drug_bid_award_id');
-        $assignmentCounts=$assignmentRows->groupBy('drug_bid_award_id')->map(fn($rows)=>$rows->pluck('partner_id')->unique()->count());
+        $assignmentCounts=$validAssignmentRows->groupBy('drug_bid_award_id')->map(fn($rows)=>$rows->pluck('partner_id')->unique()->count());
         $unassignedProducts=$products->filter(function($product) use ($allocationCounts,$assignmentCounts){
             $allocationCount=(int)($allocationCounts[$product->id] ?? 0);
             return $allocationCount > 0 && (int)($assignmentCounts[$product->id] ?? 0) < $allocationCount;
         })->values();
         $activeAllocationCount=DrugBidAwardAllocation::query()->whereIn('drug_bid_award_id',$awardIds)->where('status',DrugBidAwardAllocation::STATUS_ACTIVE)->count();
         $assignmentSummary=[
-            'assigned'=>$assignmentRows->count(),
+            'assigned'=>$validAssignmentRows->count(),
             'total'=>$activeAllocationCount,
-            'users'=>$assignmentRows->pluck('user_id')->unique()->count(),
-            'hospitals'=>$assignmentRows->pluck('partner_id')->unique()->count(),
+            'users'=>$validAssignmentRows->pluck('user_id')->unique()->count(),
+            'hospitals'=>$partners->count(),
         ];
-        $assignmentGroups=$assignmentRows->groupBy('user_id')->map(function($rows){
+        $assignmentGroups=$validAssignmentRows->groupBy('user_id')->map(function($rows){
             return [
                 'user'=>$rows->first()?->user,
                 'assignments'=>$rows->count(),
@@ -277,8 +389,37 @@ class CommercialPolicyWorkspace extends Component
                 'hospitals'=>$rows->pluck('partner_id')->unique()->count(),
             ];
         })->values();
+        // Hospital is the primary management scope. Build the overview only from
+        // allocations whose Partner still resolves, then aggregate products/users
+        // underneath each hospital instead of flattening Hospital x Product rows.
+        $hospitalGroups=$products
+            ->flatMap(fn($product) => $product->allocations
+                ->filter(fn($allocation) => $allocation->partner !== null)
+                ->map(function($allocation) use ($product,$assignments){
+                    $assignment=$assignments->get($product->id.':'.$allocation->partner_id);
+                    return [
+                        'hospital'=>$allocation->partner,
+                        'product'=>$product,
+                        'assignment'=>$assignment,
+                        'user'=>$assignment?->user,
+                        'partner_id'=>(int)$allocation->partner_id,
+                    ];
+                }))
+            ->groupBy('partner_id')
+            ->map(function($rows){
+                $assigned=$rows->filter(fn($row)=>$row['assignment'] !== null);
+                return [
+                    'hospital'=>$rows->first()['hospital'],
+                    'partner_id'=>(int)$rows->first()['partner_id'],
+                    'products'=>$rows->count(),
+                    'assigned'=>$assigned->count(),
+                    'users'=>$assigned->pluck('user')->filter()->unique('id')->values(),
+                ];
+            })
+            ->sortBy(fn($row)=>mb_strtolower((string)$row['hospital']?->name))
+            ->values();
         $users=User::query()->where('is_active',true)->when(trim($this->userSearch)!=='',function($q){$like='%'.trim($this->userSearch).'%';$q->where(fn($n)=>$n->where('name','like',$like)->orWhere('email','like',$like));})->orderBy('name')->limit(50)->get(['id','name','email']);
-        return view('Pharma::livewire.drug-bid-award.commercial-policy-workspace',compact('award','products','unassignedProducts','partners','assignments','users','assignmentSummary','assignmentGroups'));
+        return view('Pharma::livewire.drug-bid-award.commercial-policy-workspace',compact('award','products','unassignedProducts','partners','assignments','users','assignmentSummary','assignmentGroups','hospitalGroups'));
     }
 
     private function productsQuery()
