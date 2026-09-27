@@ -12,6 +12,25 @@ use Modules\Pharma\Services\MedicineCatalog;
 
 final class PharmaApplicationController extends Controller
 {
+    public function product(
+        int $variant,
+        ApplicationRegistry $registry,
+        ClientPortalSettingsService $settings,
+        MedicineCatalog $catalog,
+    ): View {
+        $application = $registry->find('pharma');
+        abort_if($application === null, 404);
+
+        $product = $catalog->findVariant($variant);
+        abort_if($product === null, 404);
+
+        return view('ClientPortal::applications.pharma.product-show', [
+            'application' => $application,
+            'applicationPresentation' => $settings->applicationPresentation($application),
+            'product' => $product,
+        ]);
+    }
+
     public function products(
         Request $request,
         ApplicationRegistry $registry,
