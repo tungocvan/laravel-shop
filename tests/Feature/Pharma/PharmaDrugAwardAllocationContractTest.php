@@ -236,4 +236,24 @@ class PharmaDrugAwardAllocationContractTest extends TestCase
         $this->assertStringContainsString("'google_drive'", $component);
     }
 
+
+    public function test_contract_document_workspace_supports_immediate_sync_delete_cancel_and_money_formatting(): void
+    {
+        $component = file_get_contents(base_path('Modules/Pharma/Livewire/DrugBidAward/AllocationWorkspace.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/drug-bid-award/allocation-workspace.blade.php'));
+
+        $this->assertStringContainsString('formatMoneyInput', $component);
+        $this->assertStringContainsString('normalizeMoneyInput', $component);
+        $this->assertStringContainsString('deleteSignedContractLocal', $component);
+        $this->assertStringContainsString('deleteSignedContractDrive', $component);
+        $this->assertStringContainsString('cancelCreateAnotherContract', $component);
+        $this->assertStringContainsString('Local → Drive', $view);
+        $this->assertStringContainsString('Drive → Local', $view);
+        $this->assertStringContainsString('Xóa Local', $view);
+        $this->assertStringContainsString('Xóa Drive', $view);
+        $this->assertStringContainsString('Hủy thêm · Quay lại hợp đồng trước', $view);
+        $this->assertStringContainsString('inputmode="numeric" wire:model="contractValue"', $view);
+        $this->assertStringContainsString('max-w-2xl', $view);
+    }
+
 }
