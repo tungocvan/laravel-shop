@@ -23,6 +23,9 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $globalWorkflow = file_get_contents(base_path('Modules/Pharma/Services/ApproverGlobalPriceListWorkflow.php'));
         $deactivation = file_get_contents(base_path('Modules/Pharma/Services/PriceListDeactivationWorkflow.php'));
         $shareExport = file_get_contents(base_path('Modules/Pharma/Services/PriceListShareExportService.php'));
+        $shareModel = file_get_contents(base_path('Modules/Pharma/Models/PriceListExportShare.php'));
+        $pdfJob = file_get_contents(base_path('Modules/Pharma/Jobs/GeneratePriceListSharePdf.php'));
+        $pdfMigration = file_get_contents(base_path('Modules/Pharma/database/migrations/2026_09_27_204000_add_pdf_fields_to_price_list_export_shares.php'));
 
         $this->assertStringContainsString("'route' => 'client.pharma.price-lists'", $manifest);
         $this->assertStringContainsString("'permission' => 'client.pharma.price-lists.view'", $manifest);
@@ -50,6 +53,9 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString("->name('price-lists.export-share')", $routes);
         $this->assertStringContainsString("->name('client.pharma.price-lists.share.download')", $routes);
         $this->assertStringContainsString("->name('price-lists.share.revoke')", $routes);
+        $this->assertStringContainsString("->name('price-lists.share.pdf.queue')", $routes);
+        $this->assertStringContainsString("->name('price-lists.share.status')", $routes);
+        $this->assertStringContainsString("->name('client.pharma.price-lists.share.pdf')", $routes);
         $this->assertStringContainsString("->name('price-list-approvals')", $routes);
         $this->assertStringContainsString("->name('price-list-approvals.show')", $routes);
         $this->assertStringContainsString("->name('price-list-approvals.approve')", $routes);
@@ -221,6 +227,18 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('exportPriceListShare(', $controller);
         $this->assertStringContainsString('downloadPriceListShare(', $controller);
         $this->assertStringContainsString('revokePriceListShare(', $controller);
+        $this->assertStringContainsString('queuePriceListSharePdf(', $controller);
+        $this->assertStringContainsString('priceListShareStatus(', $controller);
+        $this->assertStringContainsString('downloadPriceListSharePdf(', $controller);
+        $this->assertStringContainsString('public function queuePdf(int $shareId, int $userId)', $shareExport);
+        $this->assertStringContainsString('GeneratePriceListSharePdf::dispatch', $shareExport);
+        $this->assertStringContainsString('public function resolvePdf(string $token)', $shareExport);
+        $this->assertStringContainsString("'pdf_status' => 'queued'", $shareExport);
+        $this->assertStringContainsString("'pdf_completed_at' => 'datetime'", $shareModel);
+        $this->assertStringContainsString('class GeneratePriceListSharePdf implements ShouldQueue', $pdfJob);
+        $this->assertStringContainsString("'libreoffice'", $pdfJob);
+        $this->assertStringContainsString("'Pharma/price-lists/exports/'", $shareExport);
+        $this->assertStringContainsString("\$table->string('pdf_status', 20)", $pdfMigration);
         $this->assertStringContainsString("'currentExportShare' =>", $controller);
         $this->assertStringContainsString("'exportShares' => \$exportShares", $controller);
         $this->assertStringContainsString("session('price_list_share') ?? \$currentExportShare", $detail);
@@ -231,6 +249,12 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('Sao chép liên kết', $detail);
         $this->assertStringContainsString('navigator.share', $detail);
         $this->assertStringContainsString('Thu hồi link', $detail);
+        $this->assertStringContainsString('<details class="group', $detail);
+        $this->assertStringContainsString('Chuyển sang PDF', $detail);
+        $this->assertStringContainsString('Queue Pharma', $detail);
+        $this->assertStringContainsString('Tải PDF', $detail);
+        $this->assertStringContainsString('Chia sẻ PDF', $detail);
+        $this->assertStringContainsString("price-lists.share.status", $detail);
         $this->assertStringContainsString('Phê duyệt & Kích hoạt', $approvalDetail);
         $this->assertStringContainsString('name="rejection_reason"', $approvalDetail);
         $this->assertStringContainsString('$selfApprovalBlocked', $approvalDetail);
