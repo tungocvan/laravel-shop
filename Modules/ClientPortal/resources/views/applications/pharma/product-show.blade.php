@@ -15,6 +15,11 @@
                 <p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-300">Product Intelligence</p>
                 <h1 class="mt-2 text-2xl font-black tracking-tight sm:text-3xl">{{ $product->brandName }}</h1>
                 <p class="mt-2 text-sm leading-6 text-slate-300">{{ $product->activeIngredients ?: 'Chưa có hoạt chất' }}@if($product->strength) · {{ $product->strength }}@endif</p>
+                <div class="mt-3 flex flex-wrap gap-2">
+                    @if($awards->isNotEmpty())<span class="rounded-full bg-blue-500/20 px-3 py-1 text-xs font-bold text-blue-100 ring-1 ring-inset ring-blue-400/40">Trúng thầu</span>@endif
+                    @if($profile)<span class="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-bold text-emerald-100 ring-1 ring-inset ring-emerald-400/40">HSSP</span>@endif
+                    @if($supplierPricingVisible && $suppliers->contains(fn ($supplier) => array_key_exists('import_price', $supplier) && $supplier['import_price'] !== null))<span class="rounded-full bg-amber-400/20 px-3 py-1 text-xs font-bold text-amber-100 ring-1 ring-inset ring-amber-300/40">Giá NCC</span>@endif
+                </div>
             </div>
             <div class="flex flex-wrap gap-2 text-xs font-bold">
                 <span class="rounded-full bg-white/10 px-3 py-1.5">{{ $medicine['medicine_code'] ?: 'Chưa có mã thuốc' }}</span>
