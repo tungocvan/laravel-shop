@@ -209,10 +209,11 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("data-field=\"unit_price\"", $issueForm);
         $this->assertStringContainsString("value=\"0\"", $issueForm);
         $this->assertStringContainsString('có thể nhập tay', $issueForm);
-        $this->assertStringContainsString("candidate.price_list_type==='customer'", $issueForm);
-        $this->assertStringNotContainsString("candidate.price_list_type==='global'", $issueForm);
+        $this->assertStringContainsString("['global','customer'].includes(candidate.price_list_type)", $issueForm);
+        $this->assertStringContainsString("list.type==='global'", $issueForm);
+        $this->assertStringContainsString("list.type==='customer'", $issueForm);
         $this->assertStringContainsString('Người phụ trách', $issueForm);
-        $this->assertStringContainsString('Bảng giá xuất', $issueForm);
+        $this->assertStringContainsString('Bảng giá áp dụng', $issueForm);
         $this->assertStringContainsString('name="price_list_id"', $issueForm);
         $this->assertStringContainsString('CUSTOMER · ACTIVE', $issueForm);
         $this->assertStringContainsString("@section('admin_container','full')", $issueForm);
