@@ -206,7 +206,13 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('data-row-select', $documents);
         $this->assertStringContainsString('Xuất Excel đã chọn', $documents);
         $this->assertStringContainsString("request()->only(['q','status','manager_user_id','recipient_name'])", $documents);
-        $this->assertStringContainsString("when(\$request->filled('manager_user_id')", $controller);
+        $this->assertStringContainsString("\$managerId=\$request->filled('manager_user_id')", $controller);
+        $this->assertStringContainsString("filter_assignments.user_id", $controller);
+        $this->assertStringContainsString("issueManagerNames(\$issue)", $controller);
+        $this->assertStringContainsString("resolved_manager_names", $documents);
+        $this->assertStringContainsString('data-auto-submit-filter', $documents);
+        $this->assertStringContainsString("filterForm?.requestSubmit()", $documents);
+        $this->assertStringContainsString('Xóa bộ lọc', $documents);
         $this->assertStringContainsString("when(\$request->filled('recipient_name')", $controller);
         $this->assertStringContainsString("collect(\$request->input('ids',[]))", $controller);
         $this->assertStringContainsString("'Nguoi phu trach'=>\$issue->manager?->name", $controller);
