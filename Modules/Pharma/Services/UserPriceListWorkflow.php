@@ -90,6 +90,7 @@ final class UserPriceListWorkflow
                 $list->items()->create($this->manager->validateItem([
                     'medicine_variant_id' => $variantId,
                     'medicine_package_id' => $sourceItem->medicine_package_id,
+                    'declared_price_snapshot' => $sourceItem->declared_price_snapshot,
                     'company_sale_price' => $item['company_sale_price'],
                     'actual_receivable_price' => $item['actual_receivable_price'] ?? $sourceItem->actual_receivable_price,
                     'invoice_price' => $item['invoice_price'] ?? $sourceItem->invoice_price,
