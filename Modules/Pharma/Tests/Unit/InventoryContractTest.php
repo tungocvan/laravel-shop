@@ -462,6 +462,27 @@ class InventoryContractTest extends TestCase
         $this->assertStringNotContainsString('issue-reset-price hidden', $view);
     }
 
+    public function test_bid_issue_uses_dedicated_editor_and_assignment_manager_context(): void
+    {
+        $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
+        $show=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-show.blade.php'));
+        $bidCreate=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/bid-sale-create.blade.php'));
+        $bidEdit=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/bid-sale-edit.blade.php'));
+
+        $this->assertStringContainsString("route('admin.pharma.inventory.issues.bid-sales.edit',\$issue)", $controller);
+        $this->assertStringContainsString('Phiếu hàng thầu phải được chỉnh sửa tại workspace Xuất hàng thầu.', $controller);
+        $this->assertStringContainsString('private function bidIssueManagerNames', $controller);
+        $this->assertStringContainsString('DrugBidAwardManagementAssignment::query()', $controller);
+        $this->assertStringContainsString("where('partner_id',\$partnerId)", $controller);
+        $this->assertStringContainsString("route('admin.pharma.inventory.issues.bid-sales.edit',\$issue)", $show);
+        $this->assertStringContainsString('Sửa đơn hàng thầu', $show);
+        $this->assertStringContainsString('$bidManagerNames', $show);
+        $this->assertStringContainsString('Chủ đầu tư / Gói thầu', $show);
+        $this->assertStringContainsString('Xuất bán hàng thầu', $bidCreate);
+        $this->assertStringContainsString('Sửa & duyệt đơn hàng thầu', $bidEdit);
+        $this->assertStringNotContainsString("route('admin.pharma.inventory.issues.update',\$issue)", $bidEdit);
+    }
+
     public function test_issue_persists_selected_manager_and_show_uses_issue_manager(): void
     {
         $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
