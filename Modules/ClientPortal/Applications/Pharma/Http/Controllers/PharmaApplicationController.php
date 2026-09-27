@@ -50,10 +50,18 @@ final class PharmaApplicationController extends Controller
             'q' => ['nullable', 'string', 'max:120'],
             'per_page' => ['nullable', 'integer', 'in:25,50,100'],
             'page' => ['nullable', 'integer', 'min:1'],
+            'filter' => ['nullable', 'in:awarded,profile,supplier-priced'],
         ]);
 
         $application = $registry->find('pharma');
         abort_if($application === null, 404);
+
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+
+        $canViewSupplierPricing = $registry->userCan($user, 'client.pharma.products.supplier-pricing');
+        $filter = $validated['filter'] ?? null;
+        abort_if($filter === 'supplier-priced' && ! $canViewSupplierPricing, 403);
 
         return view('ClientPortal::applications.pharma.products', [
             'application' => $application,
@@ -62,7 +70,11 @@ final class PharmaApplicationController extends Controller
                 search: $validated['q'] ?? null,
                 perPage: (int) ($validated['per_page'] ?? 25),
                 page: (int) ($validated['page'] ?? 1),
+                filter: $filter,
+                allowSupplierPricing: $canViewSupplierPricing,
             )->withQueryString(),
+            'filter' => $filter,
+            'canViewSupplierPricing' => $canViewSupplierPricing,
             'search' => trim((string) ($validated['q'] ?? '')),
             'perPage' => (int) ($validated['per_page'] ?? 25),
         ]);
