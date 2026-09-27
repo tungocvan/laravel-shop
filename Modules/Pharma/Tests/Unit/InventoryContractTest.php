@@ -215,7 +215,8 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('Người phụ trách', $issueForm);
         $this->assertStringContainsString('Bảng giá áp dụng', $issueForm);
         $this->assertStringContainsString('name="price_list_id"', $issueForm);
-        $this->assertStringContainsString('CUSTOMER · ACTIVE', $issueForm);
+        $this->assertStringContainsString('bảng giá phù hợp', $issueForm);
+        $this->assertStringNotContainsString('CUSTOMER · ACTIVE', $issueForm);
         $this->assertStringContainsString("@section('admin_container','full')", $issueForm);
         $this->assertStringNotContainsString('max-w-[1500px]', $issueForm);
         $this->assertStringContainsString('medicineIdsForSelectedPriceList', $issueForm);
@@ -472,9 +473,10 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("'manager_user_id'=>'required|integer|exists:users,id'", $controller);
         $this->assertStringContainsString('Bảng giá không được phân cho Người phụ trách đã chọn.', $controller);
         $this->assertStringContainsString("whereIn('pharma_price_lists.type',[PriceList::TYPE_GLOBAL,PriceList::TYPE_CUSTOMER])", $controller);
-        $this->assertStringContainsString('Ngày xuất → Người phụ trách → Bảng giá → Khách hàng', $view);
+        $this->assertStringContainsString('Thiết lập nhanh phiếu xuất', $view);
         $this->assertStringContainsString('<x-select-search id="issue-price-manager"', $view);
-        $this->assertStringContainsString('GLOBAL/CUSTOMER · ACTIVE · còn hiệu lực tại ngày xuất.', $view);
+        $this->assertStringContainsString('Chọn người phụ trách để xem bảng giá phù hợp.', $view);
+        $this->assertStringNotContainsString('GLOBAL/CUSTOMER · ACTIVE · còn hiệu lực tại ngày xuất.', $view);
         $this->assertStringContainsString('global_user_ids', $view);
         $this->assertStringContainsString('issue-context-summary', $view);
         $this->assertStringContainsString("list.type==='global'", $view);
