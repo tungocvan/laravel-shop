@@ -3,7 +3,7 @@
 @section('admin_container','full')
 @section('content')
 <div class="mx-auto w-full max-w-[1580px] space-y-5">
- <header><a href="{{ route('admin.pharma.inventory.index') }}" class="text-sm font-semibold text-indigo-700">← Quản lý kho</a><h1 class="mt-2 text-2xl font-bold text-slate-950">Trung tâm hoa hồng</h1><p class="mt-1 text-sm text-slate-500">Tổng hợp hoa hồng từ mọi phiếu xuất đã ghi sổ. Dữ liệu chính sách được snapshot tại thời điểm ghi sổ.</p></header>
+ <header><a href="{{ route('admin.pharma.dashboard') }}" class="text-sm font-semibold text-indigo-700 hover:text-indigo-900">← Trung tâm điều hành Pharma</a><h1 class="mt-2 text-2xl font-bold text-slate-950">Trung tâm hoa hồng</h1><p class="mt-1 text-sm text-slate-500">Tổng hợp hoa hồng từ mọi phiếu xuất đã ghi sổ. Dữ liệu chính sách được snapshot tại thời điểm ghi sổ.</p></header>
  <form method="GET" id="commission-filter-form" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
   <div><p class="text-xs font-bold uppercase tracking-wide text-indigo-600">1 · Nguồn tính hoa hồng</p><div class="mt-2 flex flex-wrap gap-2">
    @foreach(['all'=>'Tất cả','price_list'=>'Theo bảng giá','bid'=>'Hàng thầu'] as $key=>$label)<label class="cursor-pointer"><input type="radio" name="source" value="{{ $key }}" class="peer sr-only" @checked($source===$key) onchange="this.form.submit()"><span class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 px-4 text-sm font-semibold text-slate-700 peer-checked:border-indigo-600 peer-checked:bg-indigo-50 peer-checked:text-indigo-700">{{ $label }}</span></label>@endforeach
