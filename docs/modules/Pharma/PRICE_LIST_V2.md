@@ -89,3 +89,8 @@ Targeted tests:
 Targeted Pint:
 
 `./vendor/bin/pint Modules/Pharma/Models/PriceList.php Modules/Pharma/Models/PriceListItem.php Modules/Pharma/DTOs/ResolvedPrice.php Modules/Pharma/Contracts/PriceResolver.php Modules/Pharma/Services/DatabasePriceResolver.php Modules/Pharma/Services/PriceListManager.php Modules/Pharma/Http/Controllers/PriceListController.php Modules/Pharma/Livewire/PriceList/Index.php Modules/Pharma/Livewire/PriceList/Create.php Modules/Pharma/Tests/Unit/PriceListV2ContractTest.php`
+
+
+## Global price list user scope
+
+A global price list is available to all Pharma users when it has no rows in `pharma_price_list_users`. When one or more users are assigned, the list is scoped to those users. Customer price lists continue to use `manager_user_id`; the two concepts are intentionally separate.
