@@ -339,8 +339,9 @@ final class PharmaApplicationController extends Controller
         $list=$workspace->findVisible((int)$user->id,$priceList,$canApprove); abort_if($list===null,404);
         $validated=$request->validate(['export_profile_id'=>['nullable','integer'],'items'=>['nullable','array'],'items.*'=>['integer']]);
         $result=$exports->export($list,(int)$user->id,isset($validated['export_profile_id'])?(int)$validated['export_profile_id']:null,$validated['items']??[]);
-        $url=route('client.pharma.price-lists.share.download',['token'=>$result['token']]);
-        return back()->with('success','Đã xuất Excel và tạo liên kết chia sẻ trong 30 ngày.')->with('price_list_share',['url'=>$url,'share_id'=>$result['share']->id,'expires_at'=>$result['share']->expires_at?->format('d/m/Y H:i')]);
+        return back()
+            ->with('success', 'Đã xuất Excel và tạo liên kết chia sẻ trong 30 ngày.')
+            ->with('price_list_share', $exports->status((int) $result['share']->id, (int) $user->id));
     }
 
     public function downloadPriceListShare(string $token, PriceListShareExportService $exports)
