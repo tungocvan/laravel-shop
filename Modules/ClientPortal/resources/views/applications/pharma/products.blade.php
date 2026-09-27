@@ -14,10 +14,11 @@
     </section>
 
     <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-        <form method="GET" action="{{ route('client.pharma.products') }}" class="flex flex-col gap-3 lg:flex-row lg:items-end">
+        <form id="product-search-form" method="GET" action="{{ route('client.pharma.products') }}" class="flex flex-col gap-3 lg:flex-row lg:items-end">
             <label class="min-w-0 flex-1">
                 <span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Tìm thuốc</span>
-                <input type="search" name="q" value="{{ $search }}" placeholder="Tên thuốc, mã thuốc, SKU, hoạt chất, GPLH..." class="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200">
+                <input id="product-search-input" type="search" name="q" value="{{ $search }}" autocomplete="off" placeholder="Tên thuốc, mã thuốc, SKU, hoạt chất, GPLH..." class="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200">
+                <span class="mt-1.5 block text-xs text-slate-400">Kết quả tự cập nhật khi bạn nhập.</span>
             </label>
             <label class="w-full lg:w-36">
                 <span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Hiển thị</span>
@@ -27,12 +28,9 @@
                     @endforeach
                 </select>
             </label>
-            <div class="flex gap-2">
-                <button type="submit" class="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-bold text-white">Tìm kiếm</button>
-                @if($search !== '')
-                    <a href="{{ route('client.pharma.products', ['per_page' => $perPage]) }}" class="rounded-2xl border border-slate-300 px-4 py-3 text-sm font-bold text-slate-700">Xóa bộ lọc</a>
-                @endif
-            </div>
+            @if($search !== '')
+                <a href="{{ route('client.pharma.products', ['per_page' => $perPage]) }}" class="rounded-2xl border border-slate-300 px-4 py-3 text-center text-sm font-bold text-slate-700">Xóa bộ lọc</a>
+            @endif
         </form>
     </section>
 
@@ -94,4 +92,17 @@
         <div>{{ $products->links() }}</div>
     @endif
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('product-search-form');
+    const input = document.getElementById('product-search-input');
+    if (!form || !input) return;
+
+    let timer;
+    input.addEventListener('input', () => {
+        window.clearTimeout(timer);
+        timer = window.setTimeout(() => form.requestSubmit(), 350);
+    });
+});
+</script>
 @endsection
