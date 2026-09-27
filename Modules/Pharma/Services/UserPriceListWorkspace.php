@@ -54,9 +54,27 @@ final class UserPriceListWorkspace
             PriceList::STATUS_PENDING_APPROVAL => (clone $query)->where('status', PriceList::STATUS_PENDING_APPROVAL)->count(),
             PriceList::STATUS_REJECTED => (clone $query)->where('status', PriceList::STATUS_REJECTED)->count(),
             PriceList::STATUS_ACTIVE => (clone $query)->where('status', PriceList::STATUS_ACTIVE)->count(),
+            PriceList::STATUS_PENDING_DEACTIVATION => (clone $query)->where('status', PriceList::STATUS_PENDING_DEACTIVATION)->count(),
             PriceList::STATUS_INACTIVE => (clone $query)->where('status', PriceList::STATUS_INACTIVE)->count(),
             PriceList::STATUS_ARCHIVED => (clone $query)->where('status', PriceList::STATUS_ARCHIVED)->count(),
         ];
+    }
+
+    public function findVisible(int $userId, int $priceListId, bool $approverScope = false): ?PriceList
+    {
+        $query = $approverScope ? PriceList::query() : $this->managedQuery($userId);
+
+        return $query
+            ->with([
+                'partner',
+                'officialFacility',
+                'purpose',
+                'manager',
+                'items.variant.medicine',
+                'items.package',
+            ])
+            ->withCount('items')
+            ->find($priceListId);
     }
 
     public function findManaged(int $userId, int $priceListId): ?PriceList
