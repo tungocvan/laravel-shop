@@ -247,8 +247,8 @@ class PharmaSupplierTrackingWorkspaceTest extends TestCase
         $this->assertStringContainsString('Hiệu lực đến', $indexView);
         $this->assertStringContainsString('$item->start_date?->format(\'d/m/Y\')', $indexView);
         $this->assertStringContainsString('$item->end_date?->format(\'d/m/Y\')', $indexView);
-        $this->assertStringContainsString("route('admin.pharma.supplier-trackings.index')", $dashboard);
-        $this->assertStringContainsString('Supplier Commercial', $dashboard);
+        $this->assertStringContainsString("'admin.pharma.supplier-trackings.index'", $dashboard);
+        $this->assertStringContainsString('Theo dõi nhà cung cấp', $dashboard);
     }
 
 
