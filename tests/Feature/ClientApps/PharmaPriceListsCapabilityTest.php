@@ -46,6 +46,8 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString("->name('price-list-approvals.show')", $routes);
         $this->assertStringContainsString("->name('price-list-approvals.approve')", $routes);
         $this->assertStringContainsString("->name('price-list-approvals.reject')", $routes);
+        $this->assertStringContainsString("->name('price-list-approvals.items.update')", $routes);
+        $this->assertStringContainsString("->name('price-list-approvals.items.delete')", $routes);
         $this->assertStringContainsString('client.feature:pharma,price-lists', $routes);
         $this->assertStringNotContainsString('auth:admin', $routes);
 
@@ -158,6 +160,19 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('$pendingApprovalCount ?? 0', $view);
         $this->assertStringNotContainsString('>Hàng chờ duyệt</a>', $view);
         $this->assertStringContainsString('Hàng chờ phê duyệt', $approvalQueue);
+        $this->assertStringContainsString('public function updateItemPrice(', $approval);
+        $this->assertStringContainsString('public function removeItem(', $approval);
+        $this->assertStringContainsString("pharma_price_list_approval_item_audits", $approval);
+        $this->assertStringContainsString("'action' => 'price_changed'", $approval);
+        $this->assertStringContainsString("'action' => 'removed'", $approval);
+        $this->assertStringContainsString('Bảng giá phải còn ít nhất một sản phẩm', $approval);
+        $this->assertStringContainsString('updatePriceListApprovalItem(', $controller);
+        $this->assertStringContainsString('deletePriceListApprovalItem(', $controller);
+        $this->assertStringContainsString('name="company_sale_price"', $approvalDetail);
+        $this->assertStringContainsString('data-approval-money', $approvalDetail);
+        $this->assertStringContainsString('>Cập nhật</button>', $approvalDetail);
+        $this->assertStringContainsString('>Xóa</button>', $approvalDetail);
+        $this->assertStringContainsString('Mọi thay đổi đều được ghi audit', $approvalDetail);
         $this->assertStringContainsString('Phê duyệt & Kích hoạt', $approvalDetail);
         $this->assertStringContainsString('name="rejection_reason"', $approvalDetail);
         $this->assertStringContainsString('$selfApprovalBlocked', $approvalDetail);
