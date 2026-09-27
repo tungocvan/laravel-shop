@@ -324,7 +324,7 @@ class InventoryContractTest extends TestCase
         $edit=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-edit.blade.php'));
         $show=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-show.blade.php'));
 
-        $this->assertStringContainsString("['items.medicine','priceList.manager']", $controller);
+        $this->assertStringContainsString("['items.medicine','manager:id,name','priceList.manager']", $controller);
         $this->assertStringContainsString("'items'=>'required|array|min:1'", $controller);
         $this->assertStringContainsString("\$locked->items()->delete()", $controller);
         $this->assertStringContainsString("\$locked->items()->createMany(\$items)", $controller);
@@ -471,8 +471,8 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("'manager_user_id'=>\$data['manager_user_id']", $controller);
         $this->assertStringContainsString("'manager:id,name'", $controller);
         $this->assertStringContainsString("belongsTo(\\App\\Models\\User::class,'manager_user_id')", $model);
-        $this->assertStringContainsString('\$issue->manager?->name', $show);
-        $this->assertStringNotContainsString('\$issue->priceList?->manager?->name', $show);
+        $this->assertStringContainsString('$issue->manager?->name', $show);
+        $this->assertStringNotContainsString('$issue->priceList?->manager?->name', $show);
         $this->assertStringContainsString("foreignId('manager_user_id')->nullable()", $migration);
     }
 
