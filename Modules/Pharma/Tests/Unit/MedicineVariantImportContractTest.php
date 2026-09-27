@@ -73,8 +73,8 @@ class MedicineVariantImportContractTest extends TestCase
         $this->assertStringContainsString('samePackaging', $stager);
         $this->assertStringContainsString('legacy_medicine_same_packaging', $stager);
         $this->assertStringContainsString('samePackaging', $committer);
-        $this->assertStringContainsString('Packaging is', $committer);
-        $this->assertStringContainsString('own MED code', $committer);
+        $this->assertStringContainsString('staged UPDATE intentionally refreshes the matched owner master', $committer);
+        $this->assertStringContainsString('different package master', $committer);
     }
 
 }
