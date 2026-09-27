@@ -22,6 +22,7 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $approvalDetail = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/price-list-approval-show.blade.php'));
         $globalWorkflow = file_get_contents(base_path('Modules/Pharma/Services/ApproverGlobalPriceListWorkflow.php'));
         $deactivation = file_get_contents(base_path('Modules/Pharma/Services/PriceListDeactivationWorkflow.php'));
+        $shareExport = file_get_contents(base_path('Modules/Pharma/Services/PriceListShareExportService.php'));
 
         $this->assertStringContainsString("'route' => 'client.pharma.price-lists'", $manifest);
         $this->assertStringContainsString("'permission' => 'client.pharma.price-lists.view'", $manifest);
@@ -46,6 +47,9 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString("->name('price-lists.deactivation.request')", $routes);
         $this->assertStringContainsString("->name('price-lists.deactivation.approve')", $routes);
         $this->assertStringContainsString("->name('price-lists.deactivate')", $routes);
+        $this->assertStringContainsString("->name('price-lists.export-share')", $routes);
+        $this->assertStringContainsString("->name('client.pharma.price-lists.share.download')", $routes);
+        $this->assertStringContainsString("->name('price-lists.share.revoke')", $routes);
         $this->assertStringContainsString("->name('price-list-approvals')", $routes);
         $this->assertStringContainsString("->name('price-list-approvals.show')", $routes);
         $this->assertStringContainsString("->name('price-list-approvals.approve')", $routes);
@@ -200,6 +204,22 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('Yêu cầu ngừng kích hoạt', $detail);
         $this->assertStringContainsString('Chấp nhận ngừng kích hoạt', $detail);
         $this->assertStringContainsString('Ngừng kích hoạt', $detail);
+        $this->assertStringContainsString('class PriceListShareExportService', $shareExport);
+        $this->assertStringContainsString("PriceList::STATUS_ACTIVE", $shareExport);
+        $this->assertStringContainsString("'Pharma/price-lists/exports/'", $shareExport);
+        $this->assertStringContainsString("hash('sha256',\$token)", $shareExport);
+        $this->assertStringContainsString("now()->addDays(30)", $shareExport);
+        $this->assertStringContainsString('PriceListExcelDocumentLayout', $shareExport);
+        $this->assertStringContainsString('PriceListExcelTypography', $shareExport);
+        $this->assertStringContainsString('PriceListExportProfileService', $shareExport);
+        $this->assertStringContainsString('exportPriceListShare(', $controller);
+        $this->assertStringContainsString('downloadPriceListShare(', $controller);
+        $this->assertStringContainsString('revokePriceListShare(', $controller);
+        $this->assertStringContainsString('Xuất & chia sẻ bảng giá Excel', $detail);
+        $this->assertStringContainsString('Mẫu bảng giá', $detail);
+        $this->assertStringContainsString('Sao chép liên kết', $detail);
+        $this->assertStringContainsString('navigator.share', $detail);
+        $this->assertStringContainsString('Thu hồi link', $detail);
         $this->assertStringContainsString('Phê duyệt & Kích hoạt', $approvalDetail);
         $this->assertStringContainsString('name="rejection_reason"', $approvalDetail);
         $this->assertStringContainsString('$selfApprovalBlocked', $approvalDetail);
