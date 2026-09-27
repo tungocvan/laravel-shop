@@ -604,7 +604,7 @@ final class InventoryController extends Controller
         $issue=DB::transaction(function()use($data,$inventory,$items){
             $warehouse=$inventory->defaultWarehouse();
             DB::table('pharma_inventory_warehouses')->where('id',$warehouse->id)->lockForUpdate()->first();
-            $i=InventoryIssue::create(['warehouse_id'=>$warehouse->id,'number'=>$this->nextDocumentNumber(InventoryIssue::class,'PX'),'issue_date'=>$data['issue_date'],'recipient_name'=>$data['recipient_name']??null,'price_list_id'=>$data['price_list_id'],'notes'=>$data['notes']??null,'created_by'=>auth('admin')->id()]);
+            $i=InventoryIssue::create(['warehouse_id'=>$warehouse->id,'number'=>$this->nextDocumentNumber(InventoryIssue::class,'PX'),'issue_date'=>$data['issue_date'],'recipient_name'=>$data['recipient_name']??null,'manager_user_id'=>$data['manager_user_id'],'price_list_id'=>$data['price_list_id'],'notes'=>$data['notes']??null,'created_by'=>auth('admin')->id()]);
             $i->items()->createMany($items);
             return $i;
         });
@@ -613,7 +613,7 @@ final class InventoryController extends Controller
     public function showIssue(InventoryIssue $issue, InventoryService $inventory): View
     {
         $this->guardIssueWarehouse($issue,$inventory);
-        $issue->load(['items.medicine','priceList.manager','deferredSupplies.medicine']);
+        $issue->load(['items.medicine','manager:id,name','priceList.manager','deferredSupplies.medicine']);
         $settings=InventoryIssueDocumentSetting::current();
         return view('Pharma::pages.inventory.issue-show',compact('issue','settings'));
     }
@@ -621,7 +621,7 @@ final class InventoryController extends Controller
     public function issuePdf(InventoryIssue $issue, InventoryService $inventory): Response
     {
         $this->guardIssueWarehouse($issue,$inventory);
-        $issue->load(['items.medicine','priceList.manager']);
+        $issue->load(['items.medicine','manager:id,name','priceList.manager']);
         $settings=InventoryIssueDocumentSetting::current();
         $pdf=Pdf::loadView('Pharma::pages.inventory.issue-pdf',compact('issue','settings'))->setPaper('a4','portrait');
         return $pdf->download("phieu-xuat-kho-{$issue->number}.pdf");
@@ -630,7 +630,7 @@ final class InventoryController extends Controller
     public function issuePrint(InventoryIssue $issue, InventoryService $inventory): View
     {
         $this->guardIssueWarehouse($issue,$inventory);
-        $issue->load(['items.medicine','priceList.manager']);
+        $issue->load(['items.medicine','manager:id,name','priceList.manager']);
         $settings=InventoryIssueDocumentSetting::current();
         return view('Pharma::pages.inventory.issue-print',compact('issue','settings'));
     }
@@ -688,7 +688,7 @@ final class InventoryController extends Controller
         DB::transaction(function()use($issue,$metadata,$data,$items){
             $locked=InventoryIssue::query()->whereKey($issue->id)->lockForUpdate()->firstOrFail();
             if($locked->status!==InventoryIssue::DRAFT) throw ValidationException::withMessages(['issue'=>'Phiếu không còn ở trạng thái nháp.']);
-            $locked->update(array_merge($metadata,['price_list_id'=>$data['price_list_id']]));
+            $locked->update(array_merge($metadata,['manager_user_id'=>$data['manager_user_id'],'price_list_id'=>$data['price_list_id']]));
             $locked->items()->delete();
             $locked->items()->createMany($items);
         });
