@@ -45,6 +45,10 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString('paginate($perPage', $service);
         $this->assertStringContainsString('[25, 50, 100]', $service);
         $this->assertStringContainsString('MedicineCatalogItem::fromVariant', $service);
+        $dto = file_get_contents(base_path('Modules/Pharma/DTOs/MedicineCatalogItem.php'));
+        $this->assertStringContainsString('public bool $hasBidAward = false', $dto);
+        $this->assertStringContainsString('public bool $hasProfile = false', $dto);
+        $this->assertStringContainsString('public bool $hasSupplierPricing = false', $dto);
         $this->assertStringContainsString("\$filter === 'awarded'", $service);
         $this->assertStringContainsString("\$filter === 'profile'", $service);
         $this->assertStringContainsString("\$filter === 'supplier-priced' && \$allowSupplierPricing", $service);
@@ -76,6 +80,12 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString('Đã trúng thầu', $view);
         $this->assertStringContainsString('Có HSSP', $view);
         $this->assertStringContainsString('Có giá NCC', $view);
+        $this->assertStringContainsString('bg-blue-50', $view);
+        $this->assertStringContainsString('bg-emerald-50', $view);
+        $this->assertStringContainsString('bg-amber-50', $view);
+        $this->assertStringContainsString('$product->hasBidAward', $view);
+        $this->assertStringContainsString('$product->hasProfile', $view);
+        $this->assertStringContainsString('$canViewSupplierPricing && $product->hasSupplierPricing', $view);
         $this->assertStringContainsString('if ($canViewSupplierPricing)', $view);
         $this->assertStringContainsString("\$filters['supplier-priced'] = 'Có giá NCC'", $view);
         $this->assertStringContainsString("window.setTimeout(() => form.requestSubmit(), 350)", $view);
@@ -91,6 +101,8 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString('Thông tin nhà cung cấp', $detail);
         $this->assertStringContainsString('@if($supplierPricingVisible)', $detail);
         $this->assertStringContainsString('Giá thu NCC', $detail);
+        $this->assertStringContainsString('$awards->isNotEmpty()', $detail);
+        $this->assertStringContainsString('$supplierPricingVisible && $suppliers->contains', $detail);
         $this->assertStringNotContainsString('Medicine::query()', $controller);
         $this->assertStringNotContainsString('Admin::', $view);
 
