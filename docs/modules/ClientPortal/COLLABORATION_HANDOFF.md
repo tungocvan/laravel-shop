@@ -1,5 +1,78 @@
 # ClientPortal Module — Collaboration Handoff
 
+## Current delivery — Pharma PWA Medicine Catalog
+
+- Last updated: 2026-09-27
+- Active branch: `feat/clientportal-pharma-products`
+- Base branch: `main`
+- Branch comparison before this handoff commit: **ahead 44 / behind 0**
+- Status: **IMPLEMENTED — FOCUSED TEST PASS — DESKTOP UI PASS — READY FOR PR**
+
+### Objective
+
+Deliver the first Pharma business capability in ClientPortal as a read-only, user-oriented Medicine Catalog while keeping Medicine Master ownership and business queries in `Modules/Pharma`.
+
+### Delivered capability
+
+- `GET /apps/pharma/products` and read-only product detail;
+- full Medicine Master catalog for Users authorized with `client.pharma.products.view`;
+- live-search UX with 350 ms debounce and 25/50/100 pagination;
+- circular-group selector plus default ordering by circular group, circular order, medicine name and SKU;
+- status filters for awarded products, HSSP and supplier pricing;
+- catalog aggregate counts and SKU total;
+- compact business-status language: blue = Trúng thầu, emerald = HSSP, amber = Giá NCC;
+- desktop/mobile catalog presentation with Nhóm and Giá kê khai;
+- declared price uses variant value first and Medicine fallback;
+- detail workspace surfaces basic product information, product dossier, recent bid-award information and supplier information when available;
+- supplier commercial pricing is separately protected by `client.pharma.products.supplier-pricing`.
+
+### Canonical ownership / security boundary
+
+```text
+Modules/Pharma
+  MedicineCatalog + MedicineCatalogItem
+  owns Medicine/Variant query and business-data composition
+  owns catalog grouping, counts and Product Intelligence payload
+
+Modules/ClientPortal/Applications/Pharma
+  owns auth:web + client permission boundary
+  owns PWA routes/controller orchestration
+  owns responsive catalog/detail presentation
+```
+
+ClientPortal does not query Pharma tables directly for this capability and does not reuse Admin controllers, Blade, Livewire or `auth:admin`.
+
+Supplier pricing is treated as sensitive company data. A User without `client.pharma.products.supplier-pricing` does not receive supplier price values, does not see the Giá NCC filter/badge, and cannot access the supplier-priced filter by manually crafting the query string.
+
+### Validation evidence
+
+User reported the focused capability test as **PASS**:
+
+```text
+php artisan test tests/Feature/ClientApps/PharmaProductsCapabilityTest.php
+PASS
+```
+
+Manual Desktop UI acceptance: **PASS**.
+
+Accepted UX includes live search, pagination, circular-group filtering, colored business filters/badges, SKU count, Nhóm, Giá kê khai, detail Product Intelligence and aligned filter toolbar.
+
+Per project testing policy, broad ClientPortal/full-project regression is intentionally deferred until merge-to-main validation.
+
+### Scope deliberately excluded
+
+- no Medicine Master create/edit/delete;
+- no Medicine import or master verification;
+- no HSSP mutation;
+- no bid-award mutation;
+- no supplier-tracking mutation;
+- no Admin Pharma permission reuse;
+- no PWA file/export behavior in this capability.
+
+### PR gate
+
+Review the final branch diff and open a PR into `main`. Do not merge automatically. After merge, run the agreed wider main-branch validation before starting the next Pharma PWA capability.
+
 ## Current delivery — Pharma PWA Foundation
 
 - Last updated: 2026-09-27

@@ -12,5 +12,13 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
         Route::get('/', [PharmaApplicationController::class, 'dashboard'])
             ->middleware('client.feature:pharma,overview')
             ->name('dashboard');
+
+        Route::get('/products', [PharmaApplicationController::class, 'products'])
+            ->middleware('client.feature:pharma,products')
+            ->name('products');
+        Route::get('/products/{variant}', [PharmaApplicationController::class, 'product'])
+            ->whereNumber('variant')
+            ->middleware('client.feature:pharma,products')
+            ->name('products.show');
     });
 }
