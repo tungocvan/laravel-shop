@@ -445,6 +445,22 @@ class InventoryContractTest extends TestCase
         $this->addToAssertionCount(4);
     }
 
+    public function test_issue_recipient_uses_search_then_customer_card(): void
+    {
+        $view=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-form.blade.php'));
+
+        $this->assertStringContainsString('md:grid-cols-3', $view);
+        $this->assertStringContainsString('Tìm tên khách hàng, bệnh viện, mã số thuế...', $view);
+        $this->assertStringContainsString('issue-recipient-picker', $view);
+        $this->assertStringContainsString('issue-recipient-card', $view);
+        $this->assertStringContainsString('issue-recipient-card-name', $view);
+        $this->assertStringContainsString('issue-recipient-change', $view);
+        $this->assertStringContainsString('Thay đổi', $view);
+        $this->assertStringContainsString('updateRecipientCard', $view);
+        $this->assertStringContainsString("'tax_code'=>\$partner->tax_code", $view);
+        $this->assertStringNotContainsString('issue-context-summary', $view);
+    }
+
     public function test_issue_create_is_an_order_entry_workspace(): void
     {
         $view=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-form.blade.php'));
