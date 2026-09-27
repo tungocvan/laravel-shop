@@ -1029,6 +1029,9 @@ final class InventoryController extends Controller
             ->selectRaw('COALESCE(SUM(quantity * receivable_price_snapshot),0) as amount')->value('amount') ?? 0;
         $unresolved=(clone $base)->where('entry_type',InventoryIssueCommission::TYPE_EARNED)->where('status',InventoryIssueCommission::STATUS_UNRESOLVED)->count();
         $rows=(clone $base)->with(['issue','medicine','user','partner'])->orderByDesc('calculated_at')->orderByDesc('id')->paginate(50)->withQueryString();
+        $rows->getCollection()->each(function(InventoryIssueCommission $row){
+            $row->resolved_customer_name=$row->partner?->name ?: $row->issue?->recipient_name ?: '—';
+        });
 
         $filterRows=InventoryIssueCommission::query()->whereBetween('calculated_at',[$from,$to])
             ->when($source!=='all',fn($q)=>$q->where('source_type',$source));
@@ -1085,7 +1088,7 @@ final class InventoryController extends Controller
         $rows=$query->get()->map(fn(InventoryIssueCommission $row)=>[
             'Ngày ghi sổ'=>$row->calculated_at?->format('d/m/Y H:i'),
             'Số phiếu'=>$row->issue?->number,
-            'Bệnh viện'=>$row->partner?->name,
+            'Khách hàng / Bệnh viện'=>$row->partner?->name ?: $row->issue?->recipient_name,
             'Mã sản phẩm'=>$row->medicine?->medicine_code,
             'Sản phẩm'=>$row->medicine?->name,
             'User phụ trách'=>$row->user?->name ?: 'Chưa phân công',
