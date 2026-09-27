@@ -92,5 +92,13 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->whereNumber('variant')
             ->middleware('client.feature:pharma,products')
             ->name('products.show');
+        Route::post('/price-lists/{priceList}/export-share', [PharmaApplicationController::class, 'exportPriceListShare'])
+            ->whereNumber('priceList')->middleware('client.feature:pharma,price-lists')->name('price-lists.export-share');
+        Route::delete('/price-list-export-shares/{share}', [PharmaApplicationController::class, 'revokePriceListShare'])
+            ->whereNumber('share')->middleware('client.feature:pharma,price-lists')->name('price-lists.share.revoke');
     });
+
+    Route::middleware('web')->get('/share/pharma/price-lists/{token}', [PharmaApplicationController::class, 'downloadPriceListShare'])
+        ->where('token', '[A-Za-z0-9]{64}')
+        ->name('client.pharma.price-lists.share.download');
 }
