@@ -17,7 +17,7 @@
     </section>
 
     <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-        <form id="product-search-form" method="GET" action="{{ route('client.pharma.products') }}" class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_12rem_9rem] lg:items-start">
+        <form id="product-search-form" method="GET" action="{{ route('client.pharma.products') }}" class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_11rem_8rem_auto] lg:items-start">
             <label class="min-w-0 flex-1">
                 <span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Tìm thuốc</span>
                 <input id="product-search-input" type="search" name="q" value="{{ $search }}" autocomplete="off" placeholder="Tên thuốc, mã thuốc, SKU, hoạt chất, GPLH..." class="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200">
@@ -41,7 +41,9 @@
                 </select>
             </label>
             @if($search !== '' || $circularGroup !== '' || $filter !== null)
-                <a href="{{ route('client.pharma.products', ['per_page' => $perPage]) }}" class="rounded-2xl border border-slate-300 px-4 py-3 text-center text-sm font-bold text-slate-700">Xóa bộ lọc</a>
+                <div class="flex items-end lg:h-full">
+                    <a href="{{ route('client.pharma.products', ['per_page' => $perPage]) }}" class="inline-flex h-[46px] w-full items-center justify-center whitespace-nowrap rounded-2xl border border-slate-300 px-4 text-sm font-bold text-slate-700 transition hover:border-slate-400 hover:text-slate-950 lg:w-auto">Xóa bộ lọc</a>
+                </div>
             @endif
         </form>
         <div class="mt-4 flex flex-wrap gap-2" aria-label="Bộ lọc danh mục thuốc">
