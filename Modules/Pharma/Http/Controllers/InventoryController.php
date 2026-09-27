@@ -976,9 +976,31 @@ final class InventoryController extends Controller
 
         $filterRows=InventoryIssueCommission::query()->whereBetween('calculated_at',[$from,$to])
             ->when($source!=='all',fn($q)=>$q->where('source_type',$source));
-        $users=User::query()->whereIn('id',(clone $filterRows)->whereNotNull('user_id')->distinct()->pluck('user_id'))->orderBy('name')->get(['id','name']);
-        $partners=Partner::query()->whereIn('id',(clone $filterRows)->when($userId>0,fn($q)=>$q->where('user_id',$userId))->whereNotNull('partner_id')->distinct()->pluck('partner_id'))->orderBy('name')->get(['id','name']);
-        $medicineIds=(clone $filterRows)->when($userId>0,fn($q)=>$q->where('user_id',$userId))->when($partnerId>0,fn($q)=>$q->where('partner_id',$partnerId))->distinct()->pluck('medicine_id');
+
+        // Filters represent the configured commercial scope, not only historical
+        // commission rows. A newly configured price list must be selectable before
+        // the first posted issue creates a commission snapshot.
+        if($source===InventoryIssueCommission::SOURCE_PRICE_LIST){
+            $priceLists=PriceList::query()->whereIn('type',[PriceList::TYPE_GLOBAL,PriceList::TYPE_CUSTOMER])
+                ->whereIn('status',[PriceList::STATUS_ACTIVE,PriceList::STATUS_INACTIVE]);
+            $configuredUserIds=(clone $priceLists)->whereNotNull('manager_user_id')->pluck('manager_user_id')
+                ->merge(DB::table('pharma_price_list_users')->whereIn('price_list_id',(clone $priceLists)->pluck('id'))->pluck('user_id'))
+                ->filter()->unique()->values();
+            $users=User::query()->whereIn('id',$configuredUserIds)->orderBy('name')->get(['id','name']);
+            $selectedLists=(clone $priceLists)->when($userId>0,fn($q)=>$q->where(fn($u)=>$u->where('manager_user_id',$userId)
+                ->orWhereIn('id',DB::table('pharma_price_list_users')->select('price_list_id')->where('user_id',$userId))));
+            $partnerIds=(clone $selectedLists)->whereNotNull('partner_id')->pluck('partner_id')
+                ->merge((clone $filterRows)->when($userId>0,fn($q)=>$q->where('user_id',$userId))->whereNotNull('partner_id')->pluck('partner_id'))
+                ->unique()->values();
+            $partners=Partner::query()->whereIn('id',$partnerIds)->orderBy('name')->get(['id','name']);
+            $medicineIds=PriceListItem::query()->whereIn('price_list_id',(clone $selectedLists)->pluck('id'))
+                ->when($partnerId>0,fn($q)=>$q->whereIn('price_list_id',(clone $selectedLists)->where('partner_id',$partnerId)->pluck('id')))
+                ->whereNotNull('medicine_id')->distinct()->pluck('medicine_id');
+        } else {
+            $users=User::query()->whereIn('id',(clone $filterRows)->whereNotNull('user_id')->distinct()->pluck('user_id'))->orderBy('name')->get(['id','name']);
+            $partners=Partner::query()->whereIn('id',(clone $filterRows)->when($userId>0,fn($q)=>$q->where('user_id',$userId))->whereNotNull('partner_id')->distinct()->pluck('partner_id'))->orderBy('name')->get(['id','name']);
+            $medicineIds=(clone $filterRows)->when($userId>0,fn($q)=>$q->where('user_id',$userId))->when($partnerId>0,fn($q)=>$q->where('partner_id',$partnerId))->distinct()->pluck('medicine_id');
+        }
         $medicines=Medicine::query()->whereIn('id',$medicineIds)->orderBy('name')->get(['id','medicine_code','name']);
 
         return view('Pharma::pages.inventory.commissions',compact('rows','totals','receivableTotal','unresolved','source','users','partners','medicines','from','to','userId','partnerId','medicineId'));
