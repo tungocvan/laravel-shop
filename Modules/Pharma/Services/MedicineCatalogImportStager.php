@@ -114,8 +114,16 @@ class MedicineCatalogImportStager
                 return [MedicineImportRow::CLASS_NEW, 'new_variant_for_existing_medicine', $medicine->id, null];
             }
 
-            // Legacy v2 masters may share registration/name across packages. Match
-            // only when packaging also matches; another package must become a new MED.
+            // Owner Excel is authoritative for an existing registration/name master.
+            // Packaging, strength and presentation are mutable catalog metadata during
+            // a source refresh; variants still keep their own SKU-level identity.
+            $registrationMatch = $this->registrationNameMatch($normalized);
+            if ($registrationMatch) {
+                return [MedicineImportRow::CLASS_UPDATE, 'owner_master_registration_name_update', $registrationMatch->id, null];
+            }
+
+            // Legacy v2 masters without a reliable registration/name match may still
+            // be reused only when the package itself matches.
             $legacyPackageMatch = $this->possibleExistingMedicines($normalized)
                 ->first(fn (Medicine $candidate): bool => $this->samePackaging($candidate, $normalized));
             if ($legacyPackageMatch) {
@@ -159,6 +167,21 @@ class MedicineCatalogImportStager
 
                 return true;
             })->values();
+    }
+
+    private function registrationNameMatch(array $normalized): ?Medicine
+    {
+        $registration = $this->normalizer->registration($normalized['registration_number'] ?? null);
+        $name = $this->normalizer->text($normalized['name'] ?? null);
+
+        if ($registration === null || $name === null) {
+            return null;
+        }
+
+        return Medicine::query()
+            ->where('registration_number', $registration)
+            ->get()
+            ->first(fn (Medicine $medicine): bool => $this->normalizer->text($medicine->name) === $name);
     }
 
     private function samePackaging(Medicine $medicine, array $normalized): bool
