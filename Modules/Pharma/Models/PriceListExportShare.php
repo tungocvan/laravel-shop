@@ -8,7 +8,7 @@ class PriceListExportShare extends Model
 {
     protected $table = 'pharma_price_list_export_shares';
     protected $guarded = [];
-    protected $casts = ['expires_at' => 'datetime', 'revoked_at' => 'datetime'];
+    protected $casts = ['expires_at' => 'datetime', 'revoked_at' => 'datetime', 'pdf_completed_at' => 'datetime'];
 
     public function isAvailable(): bool
     {
