@@ -227,10 +227,10 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("classList.toggle('border-rose-500',isNegative)", $issueForm);
         $this->assertStringContainsString('min-h-11 items-center justify-end', $issueForm);
         $this->assertStringContainsString("'price_list_id'=>'required|integer|exists:pharma_price_lists,id'", $controller);
-        $this->assertStringContainsString("where('type',PriceList::TYPE_CUSTOMER)->activeAt", $controller);
+        $this->assertStringContainsString("whereIn('type',[PriceList::TYPE_GLOBAL,PriceList::TYPE_CUSTOMER])->activeAt", $controller);
         $this->assertStringContainsString("'price_list_id'=>\$data['price_list_id']", $controller);
-        $this->assertStringContainsString("where('pharma_price_lists.type',PriceList::TYPE_CUSTOMER)", $controller);
-        $this->assertStringNotContainsString("whereIn('pharma_price_lists.type',[PriceList::TYPE_CUSTOMER,PriceList::TYPE_GLOBAL])", $controller);
+        $this->assertStringContainsString("whereIn('pharma_price_lists.type',[PriceList::TYPE_GLOBAL,PriceList::TYPE_CUSTOMER])", $controller);
+        $this->assertStringContainsString('Bảng giá không được phân cho Người phụ trách đã chọn.', $controller);
         $priceListMigration=file_get_contents(base_path('Modules/Pharma/database/migrations/2026_09_23_153000_add_price_list_to_pharma_inventory_issues.php'));
         $this->assertStringContainsString("foreignId('price_list_id')->nullable()", $priceListMigration);
         $this->assertStringContainsString("constrained('pharma_price_lists')->nullOnDelete()", $priceListMigration);
