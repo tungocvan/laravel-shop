@@ -337,7 +337,7 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('⚠ Tồn sau xuất:', $edit);
         $this->assertStringContainsString("\$request->input('after_save')==='view'", $controller);
         $this->assertStringContainsString('name="price_list_id"', $edit);
-        $this->assertStringContainsString('Hàng hóa xuất', $edit);
+        $this->assertStringContainsString('Thuốc xuất kho', $edit);
         $this->assertStringContainsString('+ Thêm sản phẩm', $edit);
         $this->assertStringContainsString("@section('admin_container','full')", $show);
         $this->assertStringContainsString('Đơn giá xuất', $show);
