@@ -50,43 +50,75 @@ final class PharmaApplicationController extends Controller
         abort_if($user === null, 401);
         abort_unless($registry->userCan($user, 'client.pharma.price-lists.create'), 403);
 
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'partner_id' => ['required', 'integer'],
-            'purpose_id' => ['required', 'integer'],
-            'source_price_list_id' => ['required', 'integer'],
-            'effective_from' => ['required', 'date'],
-            'effective_to' => ['required', 'date', 'after_or_equal:effective_from'],
-            'notes' => ['nullable', 'string', 'max:1000'],
-            'selected' => ['required', 'array', 'min:1'],
-            'selected.*' => ['nullable'],
-            'company_price' => ['required', 'array'],
-            'company_price.*' => ['nullable', 'numeric', 'min:0'],
-        ]);
+        [$header, $items] = $this->validatedPriceListPayload($request);
+        $header['code'] = 'BG-USER-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4));
 
-        $items = collect(array_keys($validated['selected']))
-            ->map(fn ($variantId): array => [
-                'medicine_variant_id' => (int) $variantId,
-                'company_sale_price' => $validated['company_price'][$variantId] ?? null,
-                'actual_receivable_price' => $validated['company_price'][$variantId] ?? null,
-                'invoice_price' => $validated['company_price'][$variantId] ?? null,
-            ])->all();
-
-        $list = $workflow->createDraft((int) $user->id, [
-            'code' => 'BG-USER-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4)),
-            'name' => trim($validated['name']),
-            'partner_id' => (int) $validated['partner_id'],
-            'purpose_id' => (int) $validated['purpose_id'],
-            'source_price_list_id' => (int) $validated['source_price_list_id'],
-            'effective_from' => $validated['effective_from'],
-            'effective_to' => $validated['effective_to'],
-            'currency' => 'VND',
-            'priority' => 0,
-            'notes' => $validated['notes'] ?? null,
-        ], $items);
+        $list = $workflow->createDraft((int) $user->id, $header, $items);
 
         return redirect()->route('client.pharma.price-lists.show', $list->id)
             ->with('success', 'Đã lưu bảng giá ở trạng thái Nháp.');
+    }
+
+    public function editPriceList(
+        int $priceList,
+        Request $request,
+        ApplicationRegistry $registry,
+        ClientPortalSettingsService $settings,
+        UserPriceListWorkspace $workspace,
+        UserPriceListWorkflow $workflow,
+    ): View {
+        $application = $registry->find('pharma');
+        abort_if($application === null, 404);
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.price-lists.create'), 403);
+
+        $list = $workspace->findManaged((int) $user->id, $priceList);
+        abort_if($list === null || $list->status !== PriceList::STATUS_DRAFT, 404);
+
+        return view('ClientPortal::applications.pharma.price-list-create', [
+            'application' => $application,
+            'applicationPresentation' => $settings->applicationPresentation($application),
+            'customers' => $workflow->customers(),
+            'purposes' => $workflow->purposes(),
+            'sourcePriceLists' => $workflow->sourcePriceLists((int) $user->id),
+            'sourcePriceListId' => $request->integer('source_price_list_id') ?: (int) $list->source_price_list_id,
+            'sourceProducts' => $workflow->sourceProducts((int) $user->id, $request->integer('source_price_list_id') ?: (int) $list->source_price_list_id),
+            'editingPriceList' => $list,
+        ]);
+    }
+
+    public function updatePriceList(
+        int $priceList,
+        Request $request,
+        ApplicationRegistry $registry,
+        UserPriceListWorkflow $workflow,
+    ) {
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.price-lists.create'), 403);
+
+        [$header, $items] = $this->validatedPriceListPayload($request);
+        $list = $workflow->updateDraft((int) $user->id, $priceList, $header, $items);
+
+        return redirect()->route('client.pharma.price-lists.show', $list->id)
+            ->with('success', 'Đã cập nhật bảng giá Nháp.');
+    }
+
+    public function deletePriceList(
+        int $priceList,
+        Request $request,
+        ApplicationRegistry $registry,
+        UserPriceListWorkflow $workflow,
+    ) {
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.price-lists.create'), 403);
+
+        $workflow->deleteDraft((int) $user->id, $priceList);
+
+        return redirect()->route('client.pharma.price-lists')
+            ->with('success', 'Đã xóa bảng giá Nháp.');
     }
 
     public function submitPriceList(
@@ -247,6 +279,43 @@ final class PharmaApplicationController extends Controller
             'search' => trim((string) ($validated['q'] ?? '')),
             'perPage' => (int) ($validated['per_page'] ?? 25),
         ]);
+    }
+
+    private function validatedPriceListPayload(Request $request): array
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'partner_id' => ['required', 'integer'],
+            'purpose_id' => ['required', 'integer'],
+            'source_price_list_id' => ['required', 'integer'],
+            'effective_from' => ['required', 'date'],
+            'effective_to' => ['required', 'date', 'after_or_equal:effective_from'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+            'selected' => ['required', 'array', 'min:1'],
+            'selected.*' => ['nullable'],
+            'company_price' => ['required', 'array'],
+            'company_price.*' => ['nullable', 'numeric', 'min:0'],
+        ]);
+
+        $items = collect(array_keys($validated['selected']))
+            ->map(fn ($variantId): array => [
+                'medicine_variant_id' => (int) $variantId,
+                'company_sale_price' => $validated['company_price'][$variantId] ?? null,
+                'actual_receivable_price' => $validated['company_price'][$variantId] ?? null,
+                'invoice_price' => $validated['company_price'][$variantId] ?? null,
+            ])->all();
+
+        return [[
+            'name' => trim($validated['name']),
+            'partner_id' => (int) $validated['partner_id'],
+            'purpose_id' => (int) $validated['purpose_id'],
+            'source_price_list_id' => (int) $validated['source_price_list_id'],
+            'effective_from' => $validated['effective_from'],
+            'effective_to' => $validated['effective_to'],
+            'currency' => 'VND',
+            'priority' => 0,
+            'notes' => $validated['notes'] ?? null,
+        ], $items];
     }
 
     public function dashboard(
