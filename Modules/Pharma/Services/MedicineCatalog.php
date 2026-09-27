@@ -15,7 +15,12 @@ class MedicineCatalog
         $perPage = in_array($perPage, [25, 50, 100], true) ? $perPage : 25;
 
         $paginator = MedicineVariant::query()
-            ->with(['medicine', 'packages'])
+            ->with([
+                'medicine.currentProfile',
+                'medicine.drugBidAwards:id,medicine_id',
+                'medicine.supplierTrackings:id,medicine_id,import_price',
+                'packages',
+            ])
             ->whereHas('medicine')
             ->when($filter === 'awarded', fn ($query) => $query->whereHas('medicine.drugBidAwards'))
             ->when($filter === 'profile', fn ($query) => $query->whereHas('medicine.currentProfile'))
