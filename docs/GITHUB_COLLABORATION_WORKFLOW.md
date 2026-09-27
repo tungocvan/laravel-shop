@@ -63,6 +63,20 @@ Người dùng chịu trách nhiệm:
 - gửi output nguyên văn để debug
 - phê duyệt plan/architecture trước thay đổi lớn
 
+### Google Drive / cloud file storage — skill gate bắt buộc
+
+Khi task nhắc tới Google Drive, upload cloud, backup file, download/restore Drive, Local ↔ Drive hoặc chọn nơi lưu file, trước khi đề xuất hoặc code bắt buộc đọc:
+
+```text
+.codex/skills/google-drive-upload/SKILL.md
+docs/GOOGLE_DRIVE_AND_SCHEDULER_REUSE_GUIDE.md
+docs/GOOGLE_DRIVE_SCHEDULER_PROMPT_GUIDE.md
+```
+
+Sau đó kiểm tra source feature-specific và contract hiện tại của `GoogleDriveConnectionService`. **Không cần khám phá lại OAuth/route System/HSSP từ đầu** nếu skill/reuse guide vẫn khớp source; chỉ audit sâu lại khi có architecture drift hoặc task thay đổi infrastructure.
+
+Mặc định phải reuse kết nối `Modules/System`, không tạo OAuth/token riêng trong Module. Nếu task có scheduler/recurring/retention, áp dụng thêm toàn bộ scheduler rules trong hai guide trên.
+
 ## 2. Quy tắc trước khi sửa code
 
 Trước khi code, ChatGPT phải:
