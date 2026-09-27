@@ -25,6 +25,19 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
         Route::post('/price-lists', [PharmaApplicationController::class, 'storePriceList'])
             ->middleware('client.feature:pharma,price-lists')
             ->name('price-lists.store');
+        Route::get('/price-lists/{priceList}/edit', [PharmaApplicationController::class, 'editPriceList'])
+            ->whereNumber('priceList')
+            ->middleware('client.feature:pharma,price-lists')
+            ->name('price-lists.edit');
+        Route::put('/price-lists/{priceList}', [PharmaApplicationController::class, 'updatePriceList'])
+            ->whereNumber('priceList')
+            ->middleware('client.feature:pharma,price-lists')
+            ->name('price-lists.update');
+        Route::delete('/price-lists/{priceList}', [PharmaApplicationController::class, 'deletePriceList'])
+            ->whereNumber('priceList')
+            ->middleware('client.feature:pharma,price-lists')
+            ->name('price-lists.delete');
+
         Route::post('/price-lists/{priceList}/submit', [PharmaApplicationController::class, 'submitPriceList'])
             ->whereNumber('priceList')
             ->middleware('client.feature:pharma,price-lists')
