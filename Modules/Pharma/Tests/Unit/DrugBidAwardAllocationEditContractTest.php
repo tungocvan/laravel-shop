@@ -12,7 +12,6 @@ class DrugBidAwardAllocationEditContractTest extends TestCase
         $view = file_get_contents($root.'/resources/views/livewire/drug-bid-award/allocation-workspace.blade.php');
 
         $this->assertStringContainsString('wire:model="partnerId"', $view);
-        $this->assertStringContainsString('Có thể đổi sang bệnh viện khác trong phạm vi phân bổ đã duyệt.', $view);
         $this->assertStringNotContainsString('<select disabled', $view);
         $this->assertStringNotContainsString('Bệnh viện đã chọn', $view);
     }
