@@ -614,8 +614,9 @@ final class InventoryController extends Controller
     {
         $this->guardIssueWarehouse($issue,$inventory);
         $issue->load(['items.medicine','manager:id,name','priceList.manager','deferredSupplies.medicine']);
+        $bidManagerNames=$this->bidIssueManagerNames($issue);
         $settings=InventoryIssueDocumentSetting::current();
-        return view('Pharma::pages.inventory.issue-show',compact('issue','settings'));
+        return view('Pharma::pages.inventory.issue-show',compact('issue','settings','bidManagerNames'));
     }
 
     public function issuePdf(InventoryIssue $issue, InventoryService $inventory): Response
@@ -635,9 +636,12 @@ final class InventoryController extends Controller
         return view('Pharma::pages.inventory.issue-print',compact('issue','settings'));
     }
 
-    public function editIssue(InventoryIssue $issue, InventoryService $inventory): View
+    public function editIssue(InventoryIssue $issue, InventoryService $inventory): View|RedirectResponse
     {
         $this->guardIssueWarehouse($issue,$inventory);
+        if(($issue->issue_source ?? 'normal')==='bid'){
+            return redirect()->route('admin.pharma.inventory.issues.bid-sales.edit',$issue);
+        }
         $issue->load(['items.medicine','priceList.manager','priceList.globalUsers:id,name']);
         $warehouse=$inventory->defaultWarehouse();
         $availableBalances=InventoryBalance::query()->with('medicine')->where('warehouse_id',$warehouse->id)
@@ -657,6 +661,9 @@ final class InventoryController extends Controller
     {
         $this->normalizeIssueNumericInputs($request);
         $this->guardIssueWarehouse($issue,$inventory);
+        if(($issue->issue_source ?? 'normal')==='bid'){
+            throw ValidationException::withMessages(['issue'=>'Phiếu hàng thầu phải được chỉnh sửa tại workspace Xuất hàng thầu.']);
+        }
         $metadata=$request->validate(['issue_date'=>'required|date','recipient_name'=>'nullable|string|max:255','notes'=>'nullable|string']);
         if($issue->status===InventoryIssue::POSTED){
             $issue->update($metadata);
@@ -1114,6 +1121,18 @@ final class InventoryController extends Controller
         throw ValidationException::withMessages(['file'=>"Dòng {$line}: Hạn dùng không hợp lệ, dùng định dạng dd/mm/yyyy."]);
     }
     private function medicines(){ return Medicine::query()->orderBy('name')->limit(500)->get(['id','medicine_code','name','unit']); }
+    private function bidIssueManagerNames(InventoryIssue $issue): string
+    {
+        if(($issue->issue_source ?? 'normal')!=='bid') return '';
+        $awardIds=$issue->items->pluck('drug_bid_award_id')->filter()->map(fn($id)=>(int)$id)->unique()->values();
+        $partnerId=(int)($issue->bid_partner_id ?? 0);
+        if($awardIds->isEmpty() || !$partnerId) return '';
+        return DrugBidAwardManagementAssignment::query()->with('user:id,name')
+            ->where('status',DrugBidAwardManagementAssignment::STATUS_ACTIVE)
+            ->whereIn('drug_bid_award_id',$awardIds)->where('partner_id',$partnerId)
+            ->get()->pluck('user.name')->filter()->unique()->sort()->values()->implode(', ');
+    }
+
     private function normalizeIssueNumericInputs(Request $request): void
     {
         $items=collect($request->input('items',[]))->map(function($item){
