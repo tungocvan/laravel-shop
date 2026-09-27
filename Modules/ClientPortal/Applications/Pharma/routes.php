@@ -25,6 +25,9 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
         Route::post('/price-lists', [PharmaApplicationController::class, 'storePriceList'])
             ->middleware('client.feature:pharma,price-lists')
             ->name('price-lists.store');
+        Route::post('/price-lists/global', [PharmaApplicationController::class, 'storeGlobalPriceList'])
+            ->middleware('client.feature:pharma,price-lists')
+            ->name('price-lists.global.store');
         Route::get('/price-lists/{priceList}/edit', [PharmaApplicationController::class, 'editPriceList'])
             ->whereNumber('priceList')
             ->middleware('client.feature:pharma,price-lists')
