@@ -53,6 +53,14 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->whereNumber('priceList')
             ->middleware('client.feature:pharma,price-lists')
             ->name('price-list-approvals.show');
+        Route::put('/price-list-approvals/{priceList}/items/{item}', [PharmaApplicationController::class, 'updatePriceListApprovalItem'])
+            ->whereNumber(['priceList', 'item'])
+            ->middleware('client.feature:pharma,price-lists')
+            ->name('price-list-approvals.items.update');
+        Route::delete('/price-list-approvals/{priceList}/items/{item}', [PharmaApplicationController::class, 'deletePriceListApprovalItem'])
+            ->whereNumber(['priceList', 'item'])
+            ->middleware('client.feature:pharma,price-lists')
+            ->name('price-list-approvals.items.delete');
         Route::post('/price-list-approvals/{priceList}/approve', [PharmaApplicationController::class, 'approvePriceList'])
             ->whereNumber('priceList')
             ->middleware('client.feature:pharma,price-lists')
