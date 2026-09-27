@@ -109,7 +109,7 @@ final class UserPriceListWorkflow
         }
 
         return DB::transaction(function () use ($userId, $priceListId, $header, $items): PriceList {
-            $list = $this->draftForUser($userId, $priceListId);
+            $list = $this->editableForUser($userId, $priceListId);
             $source = $this->sourceForUser($userId, (int) ($header['source_price_list_id'] ?? 0));
             $sourceItems = $source->items()->where('status', 'active')->get()->keyBy('medicine_variant_id');
 
@@ -165,8 +165,8 @@ final class UserPriceListWorkflow
                 ->with('items')
                 ->findOrFail($priceListId);
 
-            if ($list->status !== PriceList::STATUS_DRAFT) {
-                throw ValidationException::withMessages(['price_list' => 'Chỉ bảng giá Nháp mới được gửi duyệt.']);
+            if (! in_array($list->status, [PriceList::STATUS_DRAFT, PriceList::STATUS_REJECTED], true)) {
+                throw ValidationException::withMessages(['price_list' => 'Chỉ bảng giá Nháp hoặc đã bị từ chối mới được gửi duyệt.']);
             }
             if ($list->items->isEmpty()) {
                 throw ValidationException::withMessages(['price_list' => 'Bảng giá phải có ít nhất một sản phẩm trước khi gửi duyệt.']);
@@ -187,10 +187,27 @@ final class UserPriceListWorkflow
                 'submitted_at' => now(),
                 'approved_by' => null,
                 'approved_at' => null,
+                'rejected_by' => null,
+                'rejected_at' => null,
+                'rejection_reason' => null,
             ])->save();
 
             return $list->refresh();
         });
+    }
+
+    private function editableForUser(int $userId, int $priceListId): PriceList
+    {
+        $list = PriceList::query()
+            ->where('manager_user_id', $userId)
+            ->whereIn('status', [PriceList::STATUS_DRAFT, PriceList::STATUS_REJECTED])
+            ->find($priceListId);
+
+        if (! $list) {
+            throw ValidationException::withMessages(['price_list' => 'Chỉ bảng giá Nháp hoặc đã bị từ chối của bạn mới được sửa.']);
+        }
+
+        return $list;
     }
 
     private function draftForUser(int $userId, int $priceListId): PriceList
