@@ -102,6 +102,60 @@ final class UserPriceListWorkflow
         });
     }
 
+    public function updateDraft(int $userId, int $priceListId, array $header, array $items): PriceList
+    {
+        if ($items === []) {
+            throw ValidationException::withMessages(['items' => 'Vui lòng chọn ít nhất một sản phẩm từ bảng giá gốc.']);
+        }
+
+        return DB::transaction(function () use ($userId, $priceListId, $header, $items): PriceList {
+            $list = $this->draftForUser($userId, $priceListId);
+            $source = $this->sourceForUser($userId, (int) ($header['source_price_list_id'] ?? 0));
+            $sourceItems = $source->items()->where('status', 'active')->get()->keyBy('medicine_variant_id');
+
+            $validatedHeader = $this->manager->validateHeader(array_merge($header, [
+                'type' => PriceList::TYPE_CUSTOMER,
+                'customer_source' => PriceList::CUSTOMER_SOURCE_PARTNER,
+                'manager_user_id' => $userId,
+            ]), $list);
+
+            $list->fill($validatedHeader);
+            $list->save();
+            $list->items()->delete();
+
+            foreach ($items as $item) {
+                $variantId = (int) $item['medicine_variant_id'];
+                $sourceItem = $sourceItems->get($variantId);
+                if (! $sourceItem) {
+                    throw ValidationException::withMessages(['items' => 'Sản phẩm đã chọn không thuộc bảng giá gốc được phép sử dụng.']);
+                }
+
+                $list->items()->create($this->manager->validateItem([
+                    'medicine_variant_id' => $variantId,
+                    'medicine_package_id' => $sourceItem->medicine_package_id,
+                    'declared_price_snapshot' => $sourceItem->declared_price_snapshot,
+                    'company_sale_price' => $item['company_sale_price'],
+                    'actual_receivable_price' => $item['actual_receivable_price'] ?? $sourceItem->actual_receivable_price,
+                    'invoice_price' => $item['invoice_price'] ?? $sourceItem->invoice_price,
+                    'status' => 'active',
+                ]));
+            }
+
+            return $list->refresh()->load('items');
+        });
+    }
+
+    public function deleteDraft(int $userId, int $priceListId): void
+    {
+        DB::transaction(function () use ($userId, $priceListId): void {
+            $list = $this->draftForUser($userId, $priceListId);
+            if ($list->submitted_at !== null) {
+                throw ValidationException::withMessages(['price_list' => 'Bảng giá đã từng gửi duyệt không được xóa.']);
+            }
+            $list->delete();
+        });
+    }
+
     public function submit(int $userId, int $priceListId): PriceList
     {
         return DB::transaction(function () use ($userId, $priceListId): PriceList {
@@ -137,6 +191,20 @@ final class UserPriceListWorkflow
 
             return $list->refresh();
         });
+    }
+
+    private function draftForUser(int $userId, int $priceListId): PriceList
+    {
+        $list = PriceList::query()
+            ->where('manager_user_id', $userId)
+            ->where('status', PriceList::STATUS_DRAFT)
+            ->find($priceListId);
+
+        if (! $list) {
+            throw ValidationException::withMessages(['price_list' => 'Chỉ bảng giá Nháp của bạn mới được sửa hoặc xóa.']);
+        }
+
+        return $list;
     }
 
     private function sourceForUser(int $userId, int $sourcePriceListId): PriceList
