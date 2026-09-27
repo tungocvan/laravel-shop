@@ -22,6 +22,8 @@ class PriceList extends Model
 
     public const STATUS_DRAFT = 'draft';
 
+    public const STATUS_PENDING_APPROVAL = 'pending_approval';
+
     public const STATUS_ACTIVE = 'active';
 
     public const STATUS_INACTIVE = 'inactive';
@@ -47,6 +49,8 @@ class PriceList extends Model
         'priority',
         'notes',
         'created_by',
+        'submitted_by',
+        'submitted_at',
         'approved_by',
         'approved_at',
     ];
@@ -55,6 +59,7 @@ class PriceList extends Model
         'effective_from' => 'date',
         'effective_to' => 'date',
         'priority' => 'integer',
+        'submitted_at' => 'datetime',
         'approved_at' => 'datetime',
     ];
 
