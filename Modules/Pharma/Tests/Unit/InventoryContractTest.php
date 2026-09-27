@@ -462,6 +462,26 @@ class InventoryContractTest extends TestCase
         $this->assertStringNotContainsString('issue-reset-price hidden', $view);
     }
 
+    public function test_issue_edit_matches_create_workspace_and_assigned_price_lists(): void
+    {
+        $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
+        $view=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-edit.blade.php'));
+
+        $this->assertStringContainsString("whereIn('type',[PriceList::TYPE_GLOBAL,PriceList::TYPE_CUSTOMER])", $controller);
+        $this->assertStringContainsString("'manager_user_id'=>'required|integer|exists:users,id'", $controller);
+        $this->assertStringContainsString('Bảng giá không được phân cho Người phụ trách đã chọn.', $controller);
+        $this->assertStringContainsString('<x-select-search id="issue-edit-manager"', $view);
+        $this->assertStringContainsString('Ngày xuất', $view);
+        $this->assertStringContainsString('Bảng giá áp dụng', $view);
+        $this->assertStringContainsString('Khách hàng / nơi nhận', $view);
+        $this->assertStringContainsString('Giá bảng:', $view);
+        $this->assertStringContainsString('Đặt lại giá gốc', $view);
+        $this->assertStringContainsString('parseViNumber', $view);
+        $this->assertStringContainsString('formatViNumber', $view);
+        $this->assertStringContainsString('data-global-users', $view);
+        $this->assertStringNotContainsString('max-w-[1580px]', $view);
+    }
+
     public function test_issue_create_and_edit_normalize_localized_numeric_values(): void
     {
         $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
