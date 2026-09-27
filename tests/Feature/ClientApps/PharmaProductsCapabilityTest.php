@@ -51,7 +51,8 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString('MedicineCatalog $catalog', $controller);
         $this->assertStringContainsString('$catalog->browse(', $controller);
         $this->assertStringContainsString('Danh mục thuốc · chỉ đọc', $view);
-        $this->assertStringContainsString('25 / trang', $view);
+        $this->assertStringContainsString('@foreach([25, 50, 100] as $size)', $view);
+        $this->assertStringContainsString('{{ $size }} / trang', $view);
         $this->assertStringContainsString('Xóa bộ lọc', $view);
         $this->assertStringNotContainsString('Medicine::query()', $controller);
         $this->assertStringNotContainsString('Admin::', $view);
