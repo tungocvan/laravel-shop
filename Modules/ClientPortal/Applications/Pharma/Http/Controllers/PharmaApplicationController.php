@@ -21,13 +21,22 @@ final class PharmaApplicationController extends Controller
         $application = $registry->find('pharma');
         abort_if($application === null, 404);
 
-        $product = $catalog->findVariant($variant);
-        abort_if($product === null, 404);
+        $user = request()->user('web');
+        abort_if($user === null, 401);
+
+        $canViewSupplierPricing = $registry->userCan($user, 'client.pharma.products.supplier-pricing');
+        $overview = $catalog->overview($variant, $canViewSupplierPricing);
+        abort_if($overview === null, 404);
 
         return view('ClientPortal::applications.pharma.product-show', [
             'application' => $application,
             'applicationPresentation' => $settings->applicationPresentation($application),
-            'product' => $product,
+            'product' => $overview['product'],
+            'medicine' => $overview['medicine'],
+            'profile' => $overview['profile'],
+            'awards' => $overview['awards'],
+            'suppliers' => $overview['suppliers'],
+            'supplierPricingVisible' => $overview['supplier_pricing_visible'],
         ]);
     }
 
