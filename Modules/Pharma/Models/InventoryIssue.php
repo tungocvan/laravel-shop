@@ -10,4 +10,5 @@ class InventoryIssue extends Model {
  public function deferredSupplies(): HasMany { return $this->hasMany(InventoryIssueDeferredSupply::class,'issue_id'); }
  public function priceList(): BelongsTo { return $this->belongsTo(PriceList::class,'price_list_id'); }
  public function manager(): BelongsTo { return $this->belongsTo(\App\Models\User::class,'manager_user_id'); }
+ public function recipientPartner(): BelongsTo { return $this->belongsTo(\Modules\Partner\Models\Partner::class,'recipient_partner_id'); }
 }
