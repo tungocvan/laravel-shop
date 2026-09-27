@@ -23,6 +23,11 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString("'permission' => 'client.pharma.price-lists.create'", $manifest);
         $this->assertStringContainsString("'permission' => 'client.pharma.price-lists.submit'", $manifest);
         $this->assertStringContainsString("'permission' => 'client.pharma.price-lists.approve'", $manifest);
+        $priceListFeature = require base_path('Modules/ClientPortal/Applications/Pharma/manifest.php');
+        $priceListActions = $priceListFeature['features']['price-lists']['actions'] ?? [];
+        $this->assertSame('client.pharma.price-lists.create', $priceListActions['create']['permission'] ?? null);
+        $this->assertSame('client.pharma.price-lists.submit', $priceListActions['submit']['permission'] ?? null);
+        $this->assertSame('client.pharma.price-lists.approve', $priceListActions['approve']['permission'] ?? null);
 
         $this->assertStringContainsString("->name('price-lists')", $routes);
         $this->assertStringContainsString("->name('price-lists.show')", $routes);
