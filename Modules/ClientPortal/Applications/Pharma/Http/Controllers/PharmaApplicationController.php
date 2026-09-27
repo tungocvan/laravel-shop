@@ -14,6 +14,7 @@ use Modules\Pharma\Services\MedicineCatalog;
 use Modules\Pharma\Services\UserPriceListWorkspace;
 use Modules\Pharma\Services\UserPriceListWorkflow;
 use Modules\Pharma\Services\PriceListApprovalWorkflow;
+use Modules\Pharma\Services\ApproverGlobalPriceListWorkflow;
 
 final class PharmaApplicationController extends Controller
 {
@@ -22,12 +23,14 @@ final class PharmaApplicationController extends Controller
         ApplicationRegistry $registry,
         ClientPortalSettingsService $settings,
         UserPriceListWorkflow $workflow,
+        ApproverGlobalPriceListWorkflow $globalWorkflow,
     ): View {
         $application = $registry->find('pharma');
         abort_if($application === null, 404);
         $user = $request->user('web');
         abort_if($user === null, 401);
         abort_unless($registry->userCan($user, 'client.pharma.price-lists.create'), 403);
+        $canApprove = $registry->userCan($user, 'client.pharma.price-lists.approve');
 
         return view('ClientPortal::applications.pharma.price-list-create', [
             'application' => $application,
@@ -39,6 +42,8 @@ final class PharmaApplicationController extends Controller
             'sourceProducts' => $request->integer('source_price_list_id')
                 ? $workflow->sourceProducts((int) $user->id, $request->integer('source_price_list_id'))
                 : collect(),
+            'canApprove' => $canApprove,
+            'activeUsers' => $canApprove ? $globalWorkflow->activeUsers() : collect(),
         ]);
     }
 
@@ -58,6 +63,29 @@ final class PharmaApplicationController extends Controller
 
         return redirect()->route('client.pharma.price-lists.show', $list->id)
             ->with('success', 'Đã lưu bảng giá ở trạng thái Nháp.');
+    }
+
+    public function storeGlobalPriceList(
+        Request $request,
+        ApplicationRegistry $registry,
+        ApproverGlobalPriceListWorkflow $globalWorkflow,
+    ) {
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.price-lists.approve'), 403);
+
+        [$header, $items] = $this->validatedPriceListPayload($request, true);
+        $header['code'] = 'BG-GLOBAL-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4));
+
+        $list = $globalWorkflow->createAndActivate(
+            (int) $user->id,
+            (int) $request->validate(['manager_user_id' => ['required', 'integer']])['manager_user_id'],
+            $header,
+            $items,
+        );
+
+        return redirect()->route('client.pharma.price-lists')
+            ->with('success', 'Đã tạo, gán User phụ trách và kích hoạt bảng giá chung '.$list->code.'.');
     }
 
     public function editPriceList(
@@ -387,12 +415,12 @@ final class PharmaApplicationController extends Controller
         ]);
     }
 
-    private function validatedPriceListPayload(Request $request): array
+    private function validatedPriceListPayload(Request $request, bool $global = false): array
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'partner_id' => ['required', 'integer'],
-            'purpose_id' => ['required', 'integer'],
+            'partner_id' => [$global ? 'nullable' : 'required', 'integer'],
+            'purpose_id' => [$global ? 'nullable' : 'required', 'integer'],
             'source_price_list_id' => ['required', 'integer'],
             'effective_from' => ['required', 'date'],
             'effective_to' => ['required', 'date', 'after_or_equal:effective_from'],
@@ -413,8 +441,8 @@ final class PharmaApplicationController extends Controller
 
         return [[
             'name' => trim($validated['name']),
-            'partner_id' => (int) $validated['partner_id'],
-            'purpose_id' => (int) $validated['purpose_id'],
+            'partner_id' => $global ? null : (int) $validated['partner_id'],
+            'purpose_id' => $global ? null : (int) $validated['purpose_id'],
             'source_price_list_id' => (int) $validated['source_price_list_id'],
             'effective_from' => $validated['effective_from'],
             'effective_to' => $validated['effective_to'],
