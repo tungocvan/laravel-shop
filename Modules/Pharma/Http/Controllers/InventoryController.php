@@ -425,12 +425,30 @@ final class InventoryController extends Controller
     public function issues(Request $request, InventoryService $inventory): View
     {
         $warehouse=$inventory->defaultWarehouse();
+        $managerId=$request->filled('manager_user_id') ? (int)$request->manager_user_id : null;
         $query=InventoryIssue::query()->withCount('items')
-            ->with(['items:id,issue_id,medicine_id,batch_number,expiry_date,quantity','manager:id,name'])
+            ->with(['items:id,issue_id,medicine_id,drug_bid_award_id,batch_number,expiry_date,quantity','manager:id,name'])
             ->withSum('items as total_value',DB::raw('quantity * unit_price'))
             ->where('warehouse_id',$warehouse->id)
             ->when($request->filled('q'),fn($q)=>$q->where(fn($x)=>$x->where('number','like','%'.$request->q.'%')->orWhere('recipient_name','like','%'.$request->q.'%')))
-            ->when($request->filled('manager_user_id'),fn($q)=>$q->where('manager_user_id',(int)$request->manager_user_id))
+            ->when($managerId,function($q)use($managerId){
+                $q->where(function($scope)use($managerId){
+                    $scope->where('manager_user_id',$managerId)
+                        ->orWhere(function($bid)use($managerId){
+                            $bid->where('issue_source','bid')
+                                ->whereExists(function($exists)use($managerId){
+                                    $exists->selectRaw('1')->from('pharma_inventory_issue_items as filter_items')
+                                        ->join('pharma_drug_bid_award_management_assignments as filter_assignments',function($join){
+                                            $join->on('filter_assignments.drug_bid_award_id','=','filter_items.drug_bid_award_id')
+                                                ->on('filter_assignments.partner_id','=','pharma_inventory_issues.bid_partner_id');
+                                        })
+                                        ->whereColumn('filter_items.issue_id','pharma_inventory_issues.id')
+                                        ->where('filter_assignments.status',DrugBidAwardManagementAssignment::STATUS_ACTIVE)
+                                        ->where('filter_assignments.user_id',$managerId);
+                                });
+                        });
+                });
+            })
             ->when($request->filled('recipient_name'),fn($q)=>$q->where('recipient_name',$request->recipient_name))
             ->when(in_array($request->status,['draft','posted'],true),fn($q)=>$q->where('status',$request->status))
             ->latest('issue_date')->latest('id');
@@ -444,9 +462,18 @@ final class InventoryController extends Controller
                     $key=$item->medicine_id.'|'.$item->batch_number.'|'.$item->expiry_date->format('Y-m-d');
                     return (float)($balanceKeys[$key]?->quantity_on_hand ?? 0) >= (float)$item->quantity;
                 });
+            $issue->resolved_manager_names=$this->issueManagerNames($issue);
         });
-        $managerIds=InventoryIssue::query()->where('warehouse_id',$warehouse->id)->whereNotNull('manager_user_id')->distinct()->pluck('manager_user_id');
-        $issueManagers=User::query()->whereIn('id',$managerIds)->orderBy('name')->get(['id','name']);
+        $directManagerIds=InventoryIssue::query()->where('warehouse_id',$warehouse->id)->whereNotNull('manager_user_id')->distinct()->pluck('manager_user_id');
+        $bidManagerIds=DrugBidAwardManagementAssignment::query()->where('status',DrugBidAwardManagementAssignment::STATUS_ACTIVE)
+            ->whereExists(function($exists)use($warehouse){
+                $exists->selectRaw('1')->from('pharma_inventory_issue_items as manager_items')
+                    ->join('pharma_inventory_issues as manager_issues','manager_issues.id','=','manager_items.issue_id')
+                    ->whereColumn('manager_items.drug_bid_award_id','pharma_drug_bid_award_management_assignments.drug_bid_award_id')
+                    ->whereColumn('manager_issues.bid_partner_id','pharma_drug_bid_award_management_assignments.partner_id')
+                    ->where('manager_issues.warehouse_id',$warehouse->id)->where('manager_issues.issue_source','bid');
+            })->distinct()->pluck('user_id');
+        $issueManagers=User::query()->whereIn('id',$directManagerIds->merge($bidManagerIds)->unique())->orderBy('name')->get(['id','name']);
         $issueRecipients=InventoryIssue::query()->where('warehouse_id',$warehouse->id)->whereNotNull('recipient_name')
             ->where('recipient_name','<>','')->distinct()->orderBy('recipient_name')->pluck('recipient_name');
         return view('Pharma::pages.inventory.documents',[
@@ -1148,6 +1175,12 @@ final class InventoryController extends Controller
         throw ValidationException::withMessages(['file'=>"Dòng {$line}: Hạn dùng không hợp lệ, dùng định dạng dd/mm/yyyy."]);
     }
     private function medicines(){ return Medicine::query()->orderBy('name')->limit(500)->get(['id','medicine_code','name','unit']); }
+    private function issueManagerNames(InventoryIssue $issue): string
+    {
+        if(($issue->issue_source ?? 'normal')!=='bid') return (string)($issue->manager?->name ?? '');
+        return $this->bidIssueManagerNames($issue) ?: (string)($issue->manager?->name ?? '');
+    }
+
     private function bidIssueManagerNames(InventoryIssue $issue): string
     {
         if(($issue->issue_source ?? 'normal')!=='bid') return '';
