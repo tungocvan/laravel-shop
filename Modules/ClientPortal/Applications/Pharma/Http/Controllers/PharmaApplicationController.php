@@ -301,6 +301,7 @@ final class PharmaApplicationController extends Controller
         ApplicationRegistry $registry,
         ClientPortalSettingsService $settings,
         UserPriceListWorkspace $workspace,
+        PriceListShareExportService $exports,
     ): View {
         $application = $registry->find('pharma');
         abort_if($application === null, 404);
@@ -320,7 +321,8 @@ final class PharmaApplicationController extends Controller
             'canEdit' => $registry->userCan($user, 'client.pharma.price-lists.create'),
             'canApprove' => $canApprove,
             'isManager' => (int) $list->manager_user_id === (int) $user->id,
-            'exportProfiles' => $list->status === PriceList::STATUS_ACTIVE ? app(PriceListShareExportService::class)->profilesForUser((int) $user->id) : [],
+            'exportProfiles' => $list->status === PriceList::STATUS_ACTIVE ? $exports->profilesForUser((int) $user->id) : [],
+            'currentExportShare' => $list->status === PriceList::STATUS_ACTIVE ? $exports->latestForUser((int) $list->id, (int) $user->id) : null,
         ]);
     }
 
@@ -407,6 +409,7 @@ final class PharmaApplicationController extends Controller
         ClientPortalSettingsService $settings,
         UserPriceListWorkspace $workspace,
         PriceListApprovalWorkflow $approval,
+        PriceListShareExportService $exports,
     ): View {
         $validated = $request->validate([
             'q' => ['nullable', 'string', 'max:120'],
@@ -441,20 +444,24 @@ final class PharmaApplicationController extends Controller
             ? (int) $validated['manager_user_id']
             : null;
 
+        $priceLists = $workspace->browse(
+            userId: (int) $user->id,
+            search: $validated['q'] ?? null,
+            status: $status,
+            perPage: (int) ($validated['per_page'] ?? 25),
+            page: (int) ($validated['page'] ?? 1),
+            fromDate: $fromDate,
+            toDate: $toDate,
+            managerUserId: $managerUserId,
+            approverScope: $canApprove,
+        )->withQueryString();
+        $exportShares = $exports->latestForUserByPriceLists($priceLists->getCollection()->pluck('id')->map(fn ($id) => (int) $id)->all(), (int) $user->id);
+
         return view('ClientPortal::applications.pharma.price-lists', [
             'application' => $application,
             'applicationPresentation' => $settings->applicationPresentation($application),
-            'priceLists' => $workspace->browse(
-                userId: (int) $user->id,
-                search: $validated['q'] ?? null,
-                status: $status,
-                perPage: (int) ($validated['per_page'] ?? 25),
-                page: (int) ($validated['page'] ?? 1),
-                fromDate: $fromDate,
-                toDate: $toDate,
-                managerUserId: $managerUserId,
-                approverScope: $canApprove,
-            )->withQueryString(),
+            'priceLists' => $priceLists,
+            'exportShares' => $exportShares,
             'counts' => $workspace->counts((int) $user->id, $managerUserId, $canApprove),
             'search' => trim((string) ($validated['q'] ?? '')),
             'status' => $status,
