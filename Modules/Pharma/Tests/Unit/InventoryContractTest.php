@@ -443,6 +443,29 @@ class InventoryContractTest extends TestCase
         $this->addToAssertionCount(4);
     }
 
+    public function test_normal_issue_uses_assigned_global_or_customer_price_lists_and_guided_header(): void
+    {
+        $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
+        $view=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-form.blade.php'));
+
+        $this->assertStringContainsString("whereIn('type',[PriceList::TYPE_GLOBAL,PriceList::TYPE_CUSTOMER])", $controller);
+        $this->assertStringContainsString("'globalUsers:id,name'", $controller);
+        $this->assertStringContainsString("'manager_user_id'=>'required|integer|exists:users,id'", $controller);
+        $this->assertStringContainsString('Bảng giá không được phân cho Người phụ trách đã chọn.', $controller);
+        $this->assertStringContainsString("whereIn('pharma_price_lists.type',[PriceList::TYPE_GLOBAL,PriceList::TYPE_CUSTOMER])", $controller);
+        $this->assertStringContainsString('Ngày xuất → Người phụ trách → Bảng giá → Khách hàng', $view);
+        $this->assertStringContainsString('<x-select-search id="issue-price-manager"', $view);
+        $this->assertStringContainsString('GLOBAL/CUSTOMER · ACTIVE · còn hiệu lực tại ngày xuất.', $view);
+        $this->assertStringContainsString('global_user_ids', $view);
+        $this->assertStringContainsString('issue-context-summary', $view);
+        $this->assertStringContainsString("list.type==='global'", $view);
+        $this->assertStringContainsString("list.type==='customer'", $view);
+        $this->assertStringNotContainsString('Chọn bảng giá CUSTOMER', $view);
+        try { token_get_all(Blade::compileString($view), TOKEN_PARSE); }
+        catch (\ParseError $error) { $this->fail('issue-form.blade.php failed Blade compilation: '.$error->getMessage()); }
+        $this->addToAssertionCount(1);
+    }
+
     public function test_bid_sale_issue_workspace_contracts(): void
     {
         $routes=file_get_contents(base_path('Modules/Pharma/routes/web.php'));
