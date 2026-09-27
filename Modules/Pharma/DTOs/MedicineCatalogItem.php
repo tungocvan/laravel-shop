@@ -19,6 +19,8 @@ final readonly class MedicineCatalogItem
         public ?string $packaging,
         public ?string $registrationNumber,
         public ?string $manufacturer,
+        public ?string $circularGroup,
+        public ?float $declaredPrice,
         public bool $hasBidAward = false,
         public bool $hasProfile = false,
         public bool $hasSupplierPricing = false,
@@ -43,6 +45,10 @@ final readonly class MedicineCatalogItem
             packaging: $package?->packaging_text ?: $medicine->packaging_specification,
             registrationNumber: $medicine->registration_number_primary ?: $medicine->registration_number,
             manufacturer: $medicine->manufacturing_company,
+            circularGroup: $medicine->circular_group,
+            declaredPrice: ($variant->declared_price ?? $medicine->declared_price) !== null
+                ? (float) ($variant->declared_price ?? $medicine->declared_price)
+                : null,
             hasBidAward: $medicine->relationLoaded('drugBidAwards') && $medicine->drugBidAwards->isNotEmpty(),
             hasProfile: $medicine->relationLoaded('currentProfile') && $medicine->currentProfile !== null,
             hasSupplierPricing: $medicine->relationLoaded('supplierTrackings')
@@ -65,6 +71,8 @@ final readonly class MedicineCatalogItem
             'packaging' => $this->packaging,
             'registration_number' => $this->registrationNumber,
             'manufacturer' => $this->manufacturer,
+            'circular_group' => $this->circularGroup,
+            'declared_price' => $this->declaredPrice,
             'has_bid_award' => $this->hasBidAward,
             'has_profile' => $this->hasProfile,
             'has_supplier_pricing' => $this->hasSupplierPricing,
