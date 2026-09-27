@@ -127,6 +127,8 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString('Giá thu NCC', $detail);
         $this->assertStringContainsString('$awards->isNotEmpty()', $detail);
         $this->assertStringContainsString('$supplierPricingVisible && $suppliers->contains', $detail);
+        $this->assertStringContainsString('@if($supplierPricingVisible)', $detail);
+        $this->assertStringNotContainsString('Giá thương mại được bảo vệ theo quyền riêng.', $detail);
         $this->assertStringNotContainsString('Medicine::query()', $controller);
         $this->assertStringNotContainsString('Admin::', $view);
 
