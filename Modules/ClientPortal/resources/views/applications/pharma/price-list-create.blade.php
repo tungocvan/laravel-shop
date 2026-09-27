@@ -54,5 +54,31 @@
         </section>
     </form>
 </div>
-<script>document.addEventListener('DOMContentLoaded',()=>{const select=document.getElementById('source-price-list'),button=document.getElementById('load-source-price-list');if(!select||!button)return;button.addEventListener('click',()=>{if(!select.value)return;const url=new URL(window.location.href);url.searchParams.set('source_price_list_id',select.value);window.location.href=url.toString();});});</script>
+<script>
+window.addEventListener('load', () => {
+    const customer = document.getElementById('client-price-list-customer');
+    // ClientPortal does not rely on Livewire/Alpine to initialise the shared component.
+    // Keep the canonical x-select-search markup, but initialise TomSelect locally when needed.
+    if (customer && window.TomSelect && !customer.tomselect) {
+        new TomSelect(customer, {
+            plugins: ['dropdown_input'],
+            placeholder: 'Tra cứu khách hàng...',
+            create: false,
+            allowEmptyOption: true,
+            dropdownParent: 'body',
+        });
+    }
+
+    const select = document.getElementById('source-price-list');
+    const button = document.getElementById('load-source-price-list');
+    if (!select || !button) return;
+
+    button.addEventListener('click', () => {
+        if (!select.value) return;
+        const url = new URL(window.location.href);
+        url.searchParams.set('source_price_list_id', select.value);
+        window.location.href = url.toString();
+    });
+});
+</script>
 @endsection
