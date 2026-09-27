@@ -16,11 +16,15 @@ final class UserPriceListWorkspace
         int $page = 1,
         ?string $fromDate = null,
         ?string $toDate = null,
+        ?int $managerUserId = null,
+        bool $approverScope = false,
     ): LengthAwarePaginator {
         $search = trim((string) $search);
 
-        return $this->managedQuery($userId)
-            ->with(['partner', 'officialFacility', 'purpose'])
+        $query = $approverScope ? PriceList::query() : $this->managedQuery($userId);
+
+        return $query
+            ->with(['partner', 'officialFacility', 'purpose', 'manager'])
             ->withCount('items')
             ->when($search !== '', function (Builder $query) use ($search): void {
                 $query->where(function (Builder $inner) use ($search): void {
@@ -30,6 +34,7 @@ final class UserPriceListWorkspace
                         ->orWhereHas('officialFacility', fn (Builder $facility) => $facility->where('facility_name', 'like', "%{$search}%"));
                 });
             })
+            ->when($managerUserId, fn (Builder $query) => $query->where('manager_user_id', $managerUserId))
             ->when($status, fn (Builder $query) => $query->where('status', $status))
             ->when($fromDate, fn (Builder $query) => $query->whereDate('effective_from', '>=', $fromDate))
             ->when($toDate, fn (Builder $query) => $query->whereDate('effective_from', '<=', $toDate))
@@ -38,9 +43,10 @@ final class UserPriceListWorkspace
             ->paginate(perPage: $perPage, page: $page);
     }
 
-    public function counts(int $userId): array
+    public function counts(int $userId, ?int $managerUserId = null, bool $approverScope = false): array
     {
-        $query = $this->managedQuery($userId);
+        $query = $approverScope ? PriceList::query() : $this->managedQuery($userId);
+        $query->when($managerUserId, fn (Builder $builder) => $builder->where('manager_user_id', $managerUserId));
 
         return [
             'all' => (clone $query)->count(),
