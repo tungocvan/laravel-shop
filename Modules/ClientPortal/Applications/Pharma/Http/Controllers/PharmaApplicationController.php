@@ -75,7 +75,7 @@ final class PharmaApplicationController extends Controller
         abort_unless($registry->userCan($user, 'client.pharma.price-lists.create'), 403);
 
         $list = $workspace->findManaged((int) $user->id, $priceList);
-        abort_if($list === null || $list->status !== PriceList::STATUS_DRAFT, 404);
+        abort_if($list === null || ! in_array($list->status, [PriceList::STATUS_DRAFT, PriceList::STATUS_REJECTED], true), 404);
 
         return view('ClientPortal::applications.pharma.price-list-create', [
             'application' => $application,
@@ -250,6 +250,7 @@ final class PharmaApplicationController extends Controller
             'applicationPresentation' => $settings->applicationPresentation($application),
             'priceList' => $list,
             'canSubmit' => $registry->userCan($user, 'client.pharma.price-lists.submit'),
+            'canEdit' => $registry->userCan($user, 'client.pharma.price-lists.create'),
         ]);
     }
 
