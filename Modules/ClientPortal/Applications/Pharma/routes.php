@@ -96,9 +96,16 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->whereNumber('priceList')->middleware('client.feature:pharma,price-lists')->name('price-lists.export-share');
         Route::delete('/price-list-export-shares/{share}', [PharmaApplicationController::class, 'revokePriceListShare'])
             ->whereNumber('share')->middleware('client.feature:pharma,price-lists')->name('price-lists.share.revoke');
+        Route::post('/price-list-export-shares/{share}/pdf', [PharmaApplicationController::class, 'queuePriceListSharePdf'])
+            ->whereNumber('share')->middleware('client.feature:pharma,price-lists')->name('price-lists.share.pdf.queue');
+        Route::get('/price-list-export-shares/{share}/status', [PharmaApplicationController::class, 'priceListShareStatus'])
+            ->whereNumber('share')->middleware('client.feature:pharma,price-lists')->name('price-lists.share.status');
     });
 
     Route::middleware('web')->get('/share/pharma/price-lists/{token}', [PharmaApplicationController::class, 'downloadPriceListShare'])
         ->where('token', '[A-Za-z0-9]{64}')
         ->name('client.pharma.price-lists.share.download');
+    Route::middleware('web')->get('/share/pharma/price-lists/{token}/pdf', [PharmaApplicationController::class, 'downloadPriceListSharePdf'])
+        ->where('token', '[A-Za-z0-9]{64}')
+        ->name('client.pharma.price-lists.share.pdf');
 }
