@@ -446,6 +446,22 @@ class InventoryContractTest extends TestCase
         $this->addToAssertionCount(4);
     }
 
+    public function test_issue_draft_requires_customer_and_product_and_issue_index_sums_line_values(): void
+    {
+        $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
+        $view=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-form.blade.php'));
+
+        $this->assertStringContainsString("'recipient_partner_id'=>'required|integer|exists:partners,id'", $controller);
+        $this->assertStringContainsString("withSum('items as total_value',DB::raw('quantity * unit_price'))", $controller);
+        $this->assertStringContainsString('id="issue-save-draft" disabled', $view);
+        $this->assertStringContainsString('function updateSaveDraftState()', $view);
+        $this->assertStringContainsString('hasRecipient && hasProduct', $view);
+        $this->assertStringContainsString('Chọn khách hàng và ít nhất một sản phẩm trước khi lưu nháp.', $view);
+        $this->assertStringContainsString('issue-reset-price', $view);
+        $this->assertStringContainsString('reset.disabled=!changed', $view);
+        $this->assertStringNotContainsString('issue-reset-price hidden', $view);
+    }
+
     public function test_issue_lines_format_numbers_and_can_restore_original_price(): void
     {
         $view=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-form.blade.php'));
