@@ -33,6 +33,18 @@ return [
                 ],
             ],
         ],
+        'price-lists' => [
+            'name' => 'Bảng giá của tôi',
+            'route' => 'client.pharma.price-lists',
+            'permission' => 'client.pharma.price-lists.view',
+            'icon' => 'document-chart-bar',
+            'sort_order' => 30,
+            'actions' => [
+                'create' => ['name' => 'Tạo bảng giá', 'permission' => 'client.pharma.price-lists.create', 'sort_order' => 10],
+                'submit' => ['name' => 'Gửi duyệt bảng giá', 'permission' => 'client.pharma.price-lists.submit', 'sort_order' => 20],
+                'approve' => ['name' => 'Phê duyệt bảng giá', 'permission' => 'client.pharma.price-lists.approve', 'sort_order' => 30],
+            ],
+        ],
     ],
     'features' => [
         'overview' => [
@@ -53,7 +65,8 @@ return [
         ],
         'price-lists' => [
             'name' => 'Bảng giá',
-            'description' => 'Tra cứu bảng giá thương mại phù hợp với User và khách hàng.',
+            'description' => 'Quản lý các bảng giá do User phụ trách và theo dõi vòng đời phê duyệt.',
+            'route' => 'client.pharma.price-lists',
             'permission' => 'client.pharma.price-lists.view',
             'icon' => 'document-chart-bar',
             'sort_order' => 30,
