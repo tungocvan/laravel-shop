@@ -71,6 +71,16 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString("'to_date' => \$toDate", $view);
         $this->assertStringContainsString("whereDate('effective_from', '>='", $service);
         $this->assertStringContainsString("whereDate('effective_from', '<='", $service);
+        $this->assertStringContainsString('?int $managerUserId = null', $service);
+        $this->assertStringContainsString('bool $approverScope = false', $service);
+        $this->assertStringContainsString("->where('manager_user_id', \$managerUserId)", $service);
+        $this->assertStringContainsString("'manager_user_id' => ['nullable', 'integer']", $controller);
+        $this->assertStringContainsString('managerUserId: $managerUserId', $controller);
+        $this->assertStringContainsString('approverScope: $canApprove', $controller);
+        $this->assertStringContainsString('name="manager_user_id"', $view);
+        $this->assertStringContainsString('Tất cả User', $view);
+        $this->assertStringContainsString('Người phụ trách', $view);
+        $this->assertStringContainsString("'manager_user_id' => \$managerUserId", $view);
         $this->assertStringNotContainsString('Admin::', $view);
 
         $this->assertStringContainsString('Giá kê khai', $detail);
