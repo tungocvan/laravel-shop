@@ -462,6 +462,24 @@ class InventoryContractTest extends TestCase
         $this->assertStringNotContainsString('issue-reset-price hidden', $view);
     }
 
+    public function test_issue_create_and_edit_normalize_localized_numeric_values(): void
+    {
+        $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
+        $create=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-form.blade.php'));
+        $edit=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-edit.blade.php'));
+
+        $this->assertSame(2,substr_count($controller,'$this->normalizeIssueNumericInputs($request);'));
+        $this->assertStringContainsString('private function parseLocalizedNumber', $controller);
+        $this->assertStringContainsString("str_contains(\$raw,',')", $controller);
+        $this->assertStringContainsString("preg_match('/\\.\\d{3}$/',\$raw)", $controller);
+        $this->assertStringContainsString('parseViNumber', $create);
+        $this->assertStringContainsString('parseViNumber', $edit);
+        $this->assertStringContainsString("q.value=String(parseViNumber(q.value))", $edit);
+        $this->assertStringContainsString("p.value=String(parseViNumber(p.value))", $edit);
+        $this->assertStringNotContainsString("Number(tr.querySelector('.qty')?.value||0)", $edit);
+        $this->assertStringNotContainsString("Number(tr.querySelector('.price')?.value||0)", $edit);
+    }
+
     public function test_issue_lines_format_numbers_and_can_restore_original_price(): void
     {
         $view=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-form.blade.php'));
