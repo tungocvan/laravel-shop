@@ -14,12 +14,15 @@ class InventoryIssueCommission extends Model
     public const STATUS_EARNED='earned';
     public const STATUS_REVERSED='reversed';
     public const STATUS_UNRESOLVED='unresolved';
+    public const SOURCE_BID='bid';
+    public const SOURCE_PRICE_LIST='price_list';
 
     protected $table='pharma_inventory_issue_commissions';
     protected $guarded=[];
     protected $casts=[
         'quantity'=>'decimal:3','unit_price'=>'decimal:4','revenue_amount'=>'decimal:2',
-        'commission_percentage'=>'decimal:4','commission_amount'=>'decimal:2','calculated_at'=>'datetime',
+        'commission_percentage'=>'decimal:4','commission_amount'=>'decimal:2','sale_price_snapshot'=>'decimal:4',
+        'receivable_price_snapshot'=>'decimal:4','calculated_at'=>'datetime',
     ];
 
     public function issue(): BelongsTo { return $this->belongsTo(InventoryIssue::class,'issue_id'); }
