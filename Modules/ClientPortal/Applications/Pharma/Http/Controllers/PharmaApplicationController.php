@@ -235,6 +235,7 @@ final class PharmaApplicationController extends Controller
         ApplicationRegistry $registry,
         ClientPortalSettingsService $settings,
         UserPriceListWorkspace $workspace,
+        PriceListApprovalWorkflow $approval,
     ): View {
         $application = $registry->find('pharma');
         abort_if($application === null, 404);
