@@ -412,6 +412,7 @@ final class InventoryController extends Controller
         $query=InventoryReceipt::query()->withCount('items')
             ->withSum(['items as total_value'=>fn($q)=>$q->select(DB::raw('COALESCE(SUM(quantity * unit_price_ex_vat),0)'))],'unit_price_ex_vat')
             ->where('warehouse_id',$warehouse->id)
+            ->whereBetween('issue_date',[$dateFrom,$dateTo])
             ->when($request->filled('q'),fn($q)=>$q->where(fn($x)=>$x->where('number','like','%'.$request->q.'%')->orWhere('supplier_name','like','%'.$request->q.'%')))
             ->when(in_array($request->status,['draft','posted'],true),fn($q)=>$q->where('status',$request->status))
             ->latest('receipt_date')->latest('id');
@@ -424,6 +425,9 @@ final class InventoryController extends Controller
     {
         $warehouse=$inventory->defaultWarehouse();
         $managerId=$request->filled('manager_user_id') ? (int)$request->manager_user_id : null;
+        $dateFrom=$request->filled('date_from') ? Carbon::parse($request->date_from)->toDateString() : now()->startOfMonth()->toDateString();
+        $dateTo=$request->filled('date_to') ? Carbon::parse($request->date_to)->toDateString() : now()->toDateString();
+        if($dateFrom>$dateTo) [$dateFrom,$dateTo]=[$dateTo,$dateFrom];
         $query=InventoryIssue::query()->withCount('items')
             ->with(['items:id,issue_id,medicine_id,drug_bid_award_id,batch_number,expiry_date,quantity','manager:id,name'])
             ->withSum('items as total_value',DB::raw('quantity * unit_price'))
@@ -477,6 +481,7 @@ final class InventoryController extends Controller
         return view('Pharma::pages.inventory.documents',[
             'type'=>'issue','title'=>'Phiếu xuất kho','documents'=>$documents,
             'issueManagers'=>$issueManagers,'issueRecipients'=>$issueRecipients,
+            'dateFrom'=>$dateFrom,'dateTo'=>$dateTo,
         ]);
     }
     public function issueDocumentSettings(): View
@@ -765,7 +770,11 @@ final class InventoryController extends Controller
     {
         $warehouse=$inventory->defaultWarehouse();
         $selectedIds=collect($request->input('ids',[]))->map(fn($id)=>(int)$id)->filter()->unique()->values();
+        $dateFrom=$request->filled('date_from') ? Carbon::parse($request->date_from)->toDateString() : now()->startOfMonth()->toDateString();
+        $dateTo=$request->filled('date_to') ? Carbon::parse($request->date_to)->toDateString() : now()->toDateString();
+        if($dateFrom>$dateTo) [$dateFrom,$dateTo]=[$dateTo,$dateFrom];
         $issues=InventoryIssue::query()->with(['items.medicine','manager:id,name'])->where('warehouse_id',$warehouse->id)
+            ->whereBetween('issue_date',[$dateFrom,$dateTo])
             ->when($selectedIds->isNotEmpty(),fn($q)=>$q->whereIn('id',$selectedIds))
             ->when($request->filled('q'),fn($q)=>$q->where(fn($x)=>$x->where('number','like','%'.$request->q.'%')->orWhere('recipient_name','like','%'.$request->q.'%')))
             ->when($request->filled('manager_user_id'),fn($q)=>$q->where('manager_user_id',(int)$request->manager_user_id))
