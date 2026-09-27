@@ -14,6 +14,9 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $service = file_get_contents(base_path('Modules/Pharma/Services/UserPriceListWorkspace.php'));
         $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/price-lists.blade.php'));
         $detail = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/price-list-show.blade.php'));
+        $create = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/price-list-create.blade.php'));
+        $workflow = file_get_contents(base_path('Modules/Pharma/Services/UserPriceListWorkflow.php'));
+        $model = file_get_contents(base_path('Modules/Pharma/Models/PriceList.php'));
 
         $this->assertStringContainsString("'route' => 'client.pharma.price-lists'", $manifest);
         $this->assertStringContainsString("'permission' => 'client.pharma.price-lists.view'", $manifest);
@@ -23,6 +26,9 @@ class PharmaPriceListsCapabilityTest extends TestCase
 
         $this->assertStringContainsString("->name('price-lists')", $routes);
         $this->assertStringContainsString("->name('price-lists.show')", $routes);
+        $this->assertStringContainsString("->name('price-lists.create')", $routes);
+        $this->assertStringContainsString("->name('price-lists.store')", $routes);
+        $this->assertStringContainsString("->name('price-lists.submit')", $routes);
         $this->assertStringContainsString('client.feature:pharma,price-lists', $routes);
         $this->assertStringNotContainsString('auth:admin', $routes);
 
@@ -44,6 +50,20 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('Giá kê khai', $detail);
         $this->assertStringContainsString('Giá bán CT', $detail);
         $this->assertStringContainsString('Giá thu / Giá HĐ', $detail);
+        $this->assertStringContainsString('Gửi duyệt', $detail);
+        $this->assertStringContainsString('STATUS_PENDING_APPROVAL', $detail);
+
+        $this->assertStringContainsString('Tạo bảng giá cho khách hàng', $create);
+        $this->assertStringContainsString('Lưu bảng giá Nháp', $create);
+        $this->assertStringContainsString('name="selected[', $create);
+        $this->assertStringContainsString('name="company_price[', $create);
+
+        $this->assertStringContainsString("public const STATUS_PENDING_APPROVAL = 'pending_approval'", $model);
+        $this->assertStringContainsString('public function createDraft(int $userId', $workflow);
+        $this->assertStringContainsString('public function submit(int $userId', $workflow);
+        $this->assertStringContainsString("'manager_user_id' => $userId", $workflow);
+        $this->assertStringContainsString("'submitted_by' => $userId", $workflow);
+        $this->assertStringContainsString("'status' => PriceList::STATUS_PENDING_APPROVAL", $workflow);
         $this->assertStringNotContainsString('Admin::', $detail);
     }
 }
