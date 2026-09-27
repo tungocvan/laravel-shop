@@ -73,7 +73,7 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringNotContainsString('>SKU</th>', $view);
         $this->assertStringNotContainsString('>Nhà sản xuất</th>', $view);
         $this->assertStringContainsString('Thông tin sản phẩm', $detail);
-        $this->assertStringContainsString('Mã SKU', $detail);
+        $this->assertStringContainsString("['Hoạt chất', \$product->activeIngredients]", $detail);
         $this->assertStringContainsString('Nhà sản xuất', $detail);
         $this->assertStringContainsString('Hồ sơ sản phẩm', $detail);
         $this->assertStringContainsString('Thông tin trúng thầu gần đây', $detail);
