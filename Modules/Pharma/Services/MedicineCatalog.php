@@ -9,7 +9,7 @@ use Modules\Pharma\Models\MedicineVariant;
 
 class MedicineCatalog
 {
-    public function browse(?string $search = null, int $perPage = 25, int $page = 1, ?string $filter = null, bool $allowSupplierPricing = false): LengthAwarePaginator
+    public function browse(?string $search = null, int $perPage = 25, int $page = 1, ?string $filter = null, bool $allowSupplierPricing = false, ?string $circularGroup = null): LengthAwarePaginator
     {
         $search = trim((string) $search);
         $perPage = in_array($perPage, [25, 50, 100], true) ? $perPage : 25;
@@ -25,6 +25,7 @@ class MedicineCatalog
             ->when($filter === 'awarded', fn ($query) => $query->whereHas('medicine.drugBidAwards'))
             ->when($filter === 'profile', fn ($query) => $query->whereHas('medicine.currentProfile'))
             ->when($filter === 'supplier-priced' && $allowSupplierPricing, fn ($query) => $query->whereHas('medicine.supplierTrackings', fn ($tracking) => $tracking->whereNotNull('import_price')))
+            ->when(filled($circularGroup), fn ($query) => $query->whereHas('medicine', fn ($medicine) => $medicine->where('circular_group', $circularGroup)))
             ->when($search !== '', function ($query) use ($search): void {
                 $query->where(function ($nested) use ($search): void {
                     $nested->where('sku', 'like', "%{$search}%")
@@ -54,6 +55,22 @@ class MedicineCatalog
         );
 
         return $paginator;
+    }
+
+    public function circularGroups(): Collection
+    {
+        return MedicineVariant::query()
+            ->join('pharma_medicines as group_medicines', 'group_medicines.id', '=', 'pharma_medicine_variants.medicine_id')
+            ->whereNotNull('group_medicines.circular_group')
+            ->where('group_medicines.circular_group', '!=', '')
+            ->select('group_medicines.circular_group')
+            ->selectRaw('MIN(group_medicines.circular_order_number) as circular_order_number')
+            ->groupBy('group_medicines.circular_group')
+            ->orderByRaw("CASE WHEN MIN(group_medicines.circular_order_number) IS NULL OR MIN(group_medicines.circular_order_number) = '' THEN 1 ELSE 0 END")
+            ->orderByRaw('MIN(group_medicines.circular_order_number)')
+            ->orderBy('group_medicines.circular_group')
+            ->pluck('group_medicines.circular_group')
+            ->values();
     }
 
     public function filterCounts(bool $includeSupplierPricing = false): array
