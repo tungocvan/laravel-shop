@@ -204,6 +204,25 @@ class PriceListV2ContractTest extends TestCase
     }
 
     #[Test]
+    public function activation_overlap_is_scoped_by_price_list_code_or_name_not_customer_scope(): void
+    {
+        $manager = file_get_contents(base_path('Modules/Pharma/Services/PriceListManager.php'));
+
+        $this->assertStringContainsString("->where('code', \$priceList->code)", $manager);
+        $this->assertStringContainsString("->orWhere('name', \$priceList->name)", $manager);
+        $this->assertStringContainsString("whereNull('effective_to')", $manager);
+        $this->assertStringContainsString("whereNull('effective_from')", $manager);
+        $this->assertStringContainsString('Không thể kích hoạt. Đã tồn tại bảng giá ACTIVE có cùng ', $manager);
+        $this->assertStringNotContainsString('chồng lấn thời gian trong cùng phạm vi', $manager);
+
+        $activationBlock = substr($manager, strpos($manager, 'public function activate('), strpos($manager, 'public function deactivate(') - strpos($manager, 'public function activate('));
+        $this->assertStringNotContainsString("where('customer_source'", $activationBlock);
+        $this->assertStringNotContainsString("where('partner_id'", $activationBlock);
+        $this->assertStringNotContainsString("where('official_facility_id'", $activationBlock);
+        $this->assertStringNotContainsString("where('type', \$priceList->type)", $activationBlock);
+    }
+
+    #[Test]
     public function admin_workspace_has_kpis_filters_pagination_modal_and_guarded_delete(): void
     {
         $component = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/Index.php'));
