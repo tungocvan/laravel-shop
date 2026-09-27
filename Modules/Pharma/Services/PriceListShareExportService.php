@@ -4,6 +4,7 @@ namespace Modules\Pharma\Services;
 
 use Modules\Pharma\Models\PriceList;
 use Modules\Pharma\Models\PriceListExportShare;
+use Modules\Pharma\Jobs\GeneratePriceListSharePdf;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
@@ -125,7 +126,59 @@ final class PriceListShareExportService
             'url' => route('client.pharma.price-lists.share.download', ['token' => $token]),
             'expires_at' => $share->expires_at?->format('d/m/Y H:i'),
             'download_name' => $share->download_name,
+            'pdf_status' => $share->pdf_status,
+            'pdf_error' => $share->pdf_error_message,
+            'pdf_available' => $this->pdfAvailable($share),
+            'pdf_url' => $this->pdfAvailable($share)
+                ? route('client.pharma.price-lists.share.pdf', ['token' => $token])
+                : null,
         ];
+    }
+
+    public function queuePdf(int $shareId, int $userId): PriceListExportShare
+    {
+        $share = PriceListExportShare::query()
+            ->whereKey($shareId)
+            ->where('created_by', $userId)
+            ->firstOrFail();
+
+        abort_unless($share->isAvailable() && Storage::disk('local')->exists($share->storage_path), 409, 'File Excel chưa sẵn sàng hoặc không còn tồn tại.');
+
+        if (! $this->pdfAvailable($share) && $share->pdf_status !== 'processing') {
+            $share->update([
+                'pdf_status' => 'queued',
+                'pdf_error_message' => null,
+            ]);
+            GeneratePriceListSharePdf::dispatch((int) $share->id);
+        }
+
+        return $share->fresh();
+    }
+
+    public function status(int $shareId, int $userId): array
+    {
+        $share = PriceListExportShare::query()
+            ->whereKey($shareId)
+            ->where('created_by', $userId)
+            ->firstOrFail();
+
+        return $this->present($share);
+    }
+
+    public function resolvePdf(string $token): PriceListExportShare
+    {
+        $share = $this->resolve($token);
+        abort_unless($this->pdfAvailable($share), 404, 'File PDF chưa sẵn sàng hoặc không còn tồn tại.');
+
+        return $share;
+    }
+
+    private function pdfAvailable(PriceListExportShare $share): bool
+    {
+        return $share->pdf_status === 'completed'
+            && is_string($share->pdf_storage_path)
+            && trim($share->pdf_storage_path) !== ''
+            && Storage::disk('local')->exists($share->pdf_storage_path);
     }
 
     public function resolve(string $token): PriceListExportShare
