@@ -25,9 +25,18 @@
                         <label class="flex items-center gap-3 text-sm font-semibold text-slate-800"><input type="checkbox" wire:model.live="globalAppliesToAllUsers" class="h-4 w-4 rounded border-slate-300 text-indigo-600">Áp dụng cho tất cả User</label>
                         <p class="mt-1 text-xs text-slate-500">Mặc định tất cả User có quyền Pharma đều có thể sử dụng bảng giá chung này.</p>
                         @unless($globalAppliesToAllUsers)
-                            <div class="mt-4"><label class="text-sm font-semibold">User được áp dụng *</label><div class="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                                @foreach($users as $user)<label class="flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm"><input type="checkbox" wire:model.live="globalUserIds" value="{{ $user->id }}" class="h-4 w-4 rounded border-slate-300 text-indigo-600"><span class="min-w-0"><span class="block truncate font-semibold">{{ $user->name }}</span>@if($user->email)<span class="block truncate text-xs text-slate-500">{{ $user->email }}</span>@endif</span></label>@endforeach
-                            </div>@error('globalUserIds')<p class="mt-2 text-xs font-semibold text-rose-600">{{ $message }}</p>@enderror</div>
+                            <div class="mt-4">
+                                <label class="text-sm font-semibold">User được áp dụng *</label>
+                                <div class="mt-2">
+                                    <x-select-search id="global-user-ids" wire:model="globalUserIds" multiple placeholder="Tìm và chọn User áp dụng...">
+                                        @foreach($users as $user)
+                                            <option value="{{ $user->id }}" @selected(in_array((int) $user->id, array_map('intval', $globalUserIds), true))>{{ $user->name }}{{ $user->email ? ' · '.$user->email : '' }}</option>
+                                        @endforeach
+                                    </x-select-search>
+                                </div>
+                                <p class="mt-1 text-xs text-slate-500">Có thể tìm kiếm và chọn nhiều User.</p>
+                                @error('globalUserIds')<p class="mt-2 text-xs font-semibold text-rose-600">{{ $message }}</p>@enderror
+                            </div>
                         @endunless
                     </div>
                 @endif
