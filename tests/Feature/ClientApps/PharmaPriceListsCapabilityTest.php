@@ -76,7 +76,7 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString("->where('type', PriceList::TYPE_GLOBAL)", $workflow);
         $this->assertStringContainsString('->activeAt(now())', $workflow);
         $this->assertStringContainsString("whereDoesntHave('globalUsers')", $workflow);
-        $this->assertStringContainsString("whereHas('globalUsers'", $workflow);
+        $this->assertStringContainsString("orWhereHas('globalUsers'", $workflow);
         $this->assertStringContainsString("'source_price_list_id'", $workflow);
         $this->assertStringContainsString("'declared_price_snapshot'", $workflow);
         $this->assertStringContainsString('public function submit(int $userId', $workflow);
