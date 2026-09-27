@@ -183,7 +183,7 @@ class PharmaDrugAwardAllocationContractTest extends TestCase
         $this->assertStringContainsString("'Laravel-Backup/Pharma/DrugBidAwards/'", $component);
         $this->assertStringContainsString("storeAs(\$directory, \$storedName, 'local')", $component);
         $this->assertStringContainsString('signed_file_remote_id', $model);
-        $this->assertStringContainsString('Ngày ký hợp đồng', $view);
+        $this->assertStringContainsString('>Ngày ký</label>', $view);
         $this->assertStringContainsString('Ngày kết thúc', $view);
         $this->assertStringContainsString('File hợp đồng đã ký', $view);
         $this->assertStringNotContainsString('Số lượng hợp đồng</label>', $view);
@@ -254,7 +254,8 @@ class PharmaDrugAwardAllocationContractTest extends TestCase
         $this->assertStringContainsString('Xóa bản Google Drive', $view);
         $this->assertStringContainsString('Hủy thêm · Quay lại hợp đồng trước', $view);
         $this->assertStringContainsString('inputmode="numeric" wire:model="contractValue"', $view);
-        $this->assertStringContainsString('max-w-2xl', $view);
+        $this->assertStringContainsString('max-w-3xl', $view);
+        $this->assertStringContainsString('border-dashed', $view);
     }
 
 
