@@ -59,12 +59,26 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('STATUS_PENDING_APPROVAL', $detail);
 
         $this->assertStringContainsString('Tạo bảng giá cho khách hàng', $create);
+        $this->assertStringContainsString('<x-search-select', $create);
+        $this->assertStringContainsString('02 · Bảng giá gốc', $create);
+        $this->assertStringContainsString('03 · Sản phẩm & giá', $create);
+        $this->assertStringContainsString('04 · Kiểm tra & lưu', $create);
+        $this->assertStringContainsString('source_price_list_id', $create);
+        $this->assertStringNotContainsString('sticky bottom-4', $create);
         $this->assertStringContainsString('Lưu bảng giá Nháp', $create);
         $this->assertStringContainsString('name="selected[', $create);
         $this->assertStringContainsString('name="company_price[', $create);
 
         $this->assertStringContainsString("public const STATUS_PENDING_APPROVAL = 'pending_approval'", $model);
         $this->assertStringContainsString('public function createDraft(int $userId', $workflow);
+        $this->assertStringContainsString('public function sourcePriceLists(int $userId)', $workflow);
+        $this->assertStringContainsString('public function sourceProducts(int $userId, int $sourcePriceListId)', $workflow);
+        $this->assertStringContainsString("->where('type', PriceList::TYPE_GLOBAL)", $workflow);
+        $this->assertStringContainsString('->activeAt(now())', $workflow);
+        $this->assertStringContainsString("whereDoesntHave('globalUsers')", $workflow);
+        $this->assertStringContainsString("whereHas('globalUsers'", $workflow);
+        $this->assertStringContainsString("'source_price_list_id'", $workflow);
+        $this->assertStringContainsString("'declared_price_snapshot' => $sourceItem->declared_price_snapshot", $workflow);
         $this->assertStringContainsString('public function submit(int $userId', $workflow);
         $this->assertStringContainsString("'manager_user_id'", $workflow);
         $this->assertStringContainsString("'submitted_by'", $workflow);
