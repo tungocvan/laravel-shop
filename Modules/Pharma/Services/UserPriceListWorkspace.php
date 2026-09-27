@@ -14,6 +14,8 @@ final class UserPriceListWorkspace
         ?string $status = null,
         int $perPage = 25,
         int $page = 1,
+        ?string $fromDate = null,
+        ?string $toDate = null,
     ): LengthAwarePaginator {
         $search = trim((string) $search);
 
@@ -29,6 +31,8 @@ final class UserPriceListWorkspace
                 });
             })
             ->when($status, fn (Builder $query) => $query->where('status', $status))
+            ->when($fromDate, fn (Builder $query) => $query->whereDate('effective_from', '>=', $fromDate))
+            ->when($toDate, fn (Builder $query) => $query->whereDate('effective_from', '<=', $toDate))
             ->orderByDesc('updated_at')
             ->orderByDesc('id')
             ->paginate(perPage: $perPage, page: $page);
