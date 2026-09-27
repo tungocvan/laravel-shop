@@ -13,6 +13,7 @@ use Modules\Pharma\Models\PriceList;
 use Modules\Pharma\Services\MedicineCatalog;
 use Modules\Pharma\Services\UserPriceListWorkspace;
 use Modules\Pharma\Services\UserPriceListWorkflow;
+use Modules\Pharma\Services\PriceListApprovalWorkflow;
 
 final class PharmaApplicationController extends Controller
 {
@@ -138,6 +139,96 @@ final class PharmaApplicationController extends Controller
     }
 
 
+    public function priceListApprovals(
+        Request $request,
+        ApplicationRegistry $registry,
+        ClientPortalSettingsService $settings,
+        PriceListApprovalWorkflow $approval,
+    ): View {
+        $application = $registry->find('pharma');
+        abort_if($application === null, 404);
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.price-lists.approve'), 403);
+
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:120'],
+            'per_page' => ['nullable', 'integer', 'in:25,50,100'],
+            'page' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        return view('ClientPortal::applications.pharma.price-list-approvals', [
+            'application' => $application,
+            'applicationPresentation' => $settings->applicationPresentation($application),
+            'priceLists' => $approval->queue(
+                search: $validated['q'] ?? null,
+                perPage: (int) ($validated['per_page'] ?? 25),
+                page: (int) ($validated['page'] ?? 1),
+            )->withQueryString(),
+            'search' => trim((string) ($validated['q'] ?? '')),
+            'perPage' => (int) ($validated['per_page'] ?? 25),
+        ]);
+    }
+
+    public function priceListApproval(
+        int $priceList,
+        Request $request,
+        ApplicationRegistry $registry,
+        ClientPortalSettingsService $settings,
+        PriceListApprovalWorkflow $approval,
+    ): View {
+        $application = $registry->find('pharma');
+        abort_if($application === null, 404);
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.price-lists.approve'), 403);
+
+        $list = $approval->findPending($priceList);
+        abort_if($list === null, 404);
+
+        return view('ClientPortal::applications.pharma.price-list-approval-show', [
+            'application' => $application,
+            'applicationPresentation' => $settings->applicationPresentation($application),
+            'priceList' => $list,
+            'selfApprovalBlocked' => in_array((int) $user->id, array_map('intval', [
+                $list->created_by, $list->manager_user_id, $list->submitted_by,
+            ]), true),
+        ]);
+    }
+
+    public function approvePriceList(
+        int $priceList,
+        Request $request,
+        ApplicationRegistry $registry,
+        PriceListApprovalWorkflow $approval,
+    ) {
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.price-lists.approve'), 403);
+
+        $approval->approve((int) $user->id, $priceList);
+
+        return redirect()->route('client.pharma.price-list-approvals')
+            ->with('success', 'Đã phê duyệt và kích hoạt bảng giá.');
+    }
+
+    public function rejectPriceList(
+        int $priceList,
+        Request $request,
+        ApplicationRegistry $registry,
+        PriceListApprovalWorkflow $approval,
+    ) {
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.price-lists.approve'), 403);
+        $validated = $request->validate(['rejection_reason' => ['required', 'string', 'max:1000']]);
+
+        $approval->reject((int) $user->id, $priceList, $validated['rejection_reason']);
+
+        return redirect()->route('client.pharma.price-list-approvals')
+            ->with('success', 'Đã từ chối bảng giá và lưu lý do.');
+    }
+
     public function priceList(
         int $priceList,
         Request $request,
@@ -173,6 +264,7 @@ final class PharmaApplicationController extends Controller
             'status' => ['nullable', 'in:'.implode(',', [
                 PriceList::STATUS_DRAFT,
                 PriceList::STATUS_PENDING_APPROVAL,
+                PriceList::STATUS_REJECTED,
                 PriceList::STATUS_ACTIVE,
                 PriceList::STATUS_INACTIVE,
                 PriceList::STATUS_ARCHIVED,
@@ -212,6 +304,7 @@ final class PharmaApplicationController extends Controller
             'fromDate' => $fromDate,
             'toDate' => $toDate,
             'canCreate' => $registry->userCan($user, 'client.pharma.price-lists.create'),
+            'canApprove' => $registry->userCan($user, 'client.pharma.price-lists.approve'),
         ]);
     }
 
