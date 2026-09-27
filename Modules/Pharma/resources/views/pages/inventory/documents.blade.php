@@ -28,8 +28,14 @@
             </div>
             <div class="min-w-[180px] flex-[.75]"><x-select-search id="issue-manager-filter" name="manager_user_id" data-auto-submit-filter placeholder="Tìm người phụ trách..."><option value="">Tất cả người phụ trách</option>@foreach($issueManagers as $manager)<option value="{{ $manager->id }}" @selected((string)request('manager_user_id')===(string)$manager->id)>{{ $manager->name }}</option>@endforeach</x-select-search></div>
             <div class="min-w-[250px] flex-1"><x-select-search id="issue-recipient-filter" name="recipient_name" data-auto-submit-filter placeholder="Tìm khách hàng / nơi nhận..."><option value="">Tất cả khách hàng / nơi nhận</option>@foreach($issueRecipients as $recipient)<option value="{{ $recipient }}" @selected(request('recipient_name')===$recipient)>{{ $recipient }}</option>@endforeach</x-select-search></div>
-            <label class="min-w-[145px] text-[11px] font-semibold uppercase tracking-wide text-slate-500">Từ ngày<input type="date" name="date_from" value="{{ $dateFrom }}" data-auto-submit-filter class="mt-1 min-h-10 w-full rounded-xl border border-slate-300 bg-white px-2 text-sm font-normal text-slate-700"></label>
-            <label class="min-w-[145px] text-[11px] font-semibold uppercase tracking-wide text-slate-500">Đến ngày<input type="date" name="date_to" value="{{ $dateTo }}" data-auto-submit-filter class="mt-1 min-h-10 w-full rounded-xl border border-slate-300 bg-white px-2 text-sm font-normal text-slate-700"></label>
+            <div class="relative min-w-[155px] flex-[.62]">
+                <span class="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Từ</span>
+                <input type="date" name="date_from" value="{{ $dateFrom }}" data-auto-submit-filter aria-label="Từ ngày" title="Từ ngày" class="min-h-11 w-full rounded-xl border border-slate-300 bg-white pl-10 pr-2 text-sm text-slate-700">
+            </div>
+            <div class="relative min-w-[155px] flex-[.62]">
+                <span class="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Đến</span>
+                <input type="date" name="date_to" value="{{ $dateTo }}" data-auto-submit-filter aria-label="Đến ngày" title="Đến ngày" class="min-h-11 w-full rounded-xl border border-slate-300 bg-white pl-12 pr-2 text-sm text-slate-700">
+            </div>
             <select name="status" onchange="this.form.submit()" class="min-h-11 min-w-[125px] rounded-xl border border-slate-300 bg-white px-3 text-sm"><option value="">Tất cả trạng thái</option><option value="draft" @selected(request('status') === 'draft')>Nháp</option><option value="posted" @selected(request('status') === 'posted')>Đã ghi sổ</option></select>
             <select name="per_page" onchange="this.form.submit()" class="min-h-11 min-w-[105px] rounded-xl border border-slate-300 bg-white px-3 text-sm">@foreach([25,50,100] as $size)<option value="{{ $size }}" @selected((int)request('per_page',25)===$size)>{{ $size }} / trang</option>@endforeach</select>
             <a href="{{ route('admin.pharma.inventory.issues.index') }}" class="inline-flex min-h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900">Đặt lại</a>
@@ -46,7 +52,7 @@
 
     @if($type === 'issue')
     <form id="selected-export-form" method="GET" action="{{ route('admin.pharma.inventory.issues.export') }}" class="hidden items-center justify-between gap-3 rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3" data-selection-toolbar>
-        @foreach(request()->only(['q','status','manager_user_id','recipient_name']) as $key=>$value)@if(filled($value))<input type="hidden" name="{{ $key }}" value="{{ $value }}">@endif @endforeach
+        @foreach(request()->only(['q','status','manager_user_id','recipient_name','date_from','date_to']) as $key=>$value)@if(filled($value))<input type="hidden" name="{{ $key }}" value="{{ $value }}">@endif @endforeach
         <div class="text-sm text-slate-700"><strong data-selected-count>0</strong> phiếu đã chọn <button type="button" data-clear-selection class="ml-2 font-semibold text-indigo-700">Bỏ chọn tất cả</button></div>
         <button class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white">Xuất Excel đã chọn (<span data-selected-button-count>0</span>)</button>
     </form>
