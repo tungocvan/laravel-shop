@@ -45,6 +45,9 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString('paginate($perPage', $service);
         $this->assertStringContainsString('[25, 50, 100]', $service);
         $this->assertStringContainsString('MedicineCatalogItem::fromVariant', $service);
+        $this->assertStringContainsString('public function overview(int $variantId, bool $includeSupplierPricing = false): ?array', $service);
+        $this->assertStringContainsString("if ($includeSupplierPricing)", $service);
+        $this->assertStringContainsString("$row['import_price']", $service);
     }
 
     public function test_client_products_workspace_consumes_pharma_catalog_without_admin_mutations(): void
@@ -55,18 +58,28 @@ class PharmaProductsCapabilityTest extends TestCase
         $detail = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/product-show.blade.php'));
 
         $this->assertStringContainsString("'route' => 'client.pharma.products'", $manifest);
+        $this->assertStringContainsString("'permission' => 'client.pharma.products.supplier-pricing'", $manifest);
         $this->assertStringContainsString('MedicineCatalog $catalog', $controller);
         $this->assertStringContainsString('$catalog->browse(', $controller);
+        $this->assertStringContainsString("client.pharma.products.supplier-pricing", $controller);
+        $this->assertStringContainsString('$catalog->overview($variant, $canViewSupplierPricing)', $controller);
         $this->assertStringContainsString('Danh mục thuốc · chỉ đọc', $view);
         $this->assertStringContainsString('@foreach([25, 50, 100] as $size)', $view);
         $this->assertStringContainsString('{{ $size }} / trang', $view);
         $this->assertStringContainsString('Xóa bộ lọc', $view);
+        $this->assertStringContainsString("window.setTimeout(() => form.requestSubmit(), 350)", $view);
+        $this->assertStringNotContainsString('>Tìm kiếm</button>', $view);
         $this->assertStringContainsString("route('client.pharma.products.show'", $view);
         $this->assertStringNotContainsString('>SKU</th>', $view);
         $this->assertStringNotContainsString('>Nhà sản xuất</th>', $view);
         $this->assertStringContainsString('Chi tiết sản phẩm · chỉ đọc', $detail);
         $this->assertStringContainsString('Mã SKU', $detail);
         $this->assertStringContainsString('Nhà sản xuất', $detail);
+        $this->assertStringContainsString('Hồ sơ sản phẩm', $detail);
+        $this->assertStringContainsString('Thông tin trúng thầu gần đây', $detail);
+        $this->assertStringContainsString('Thông tin nhà cung cấp', $detail);
+        $this->assertStringContainsString('@if($supplierPricingVisible)', $detail);
+        $this->assertStringContainsString('Giá thu NCC', $detail);
         $this->assertStringNotContainsString('Medicine::query()', $controller);
         $this->assertStringNotContainsString('Admin::', $view);
 
