@@ -56,8 +56,8 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('name="from_date"', $view);
         $this->assertStringContainsString('name="to_date"', $view);
         $this->assertStringContainsString('Đặt lại', $view);
-        $this->assertStringContainsString("'from_date'=>$fromDate", $view);
-        $this->assertStringContainsString("'to_date'=>$toDate", $view);
+        $this->assertStringContainsString("'from_date'=>\$fromDate", $view);
+        $this->assertStringContainsString("'to_date'=>\$toDate", $view);
         $this->assertStringContainsString("whereDate('effective_from', '>='", $service);
         $this->assertStringContainsString("whereDate('effective_from', '<='", $service);
         $this->assertStringNotContainsString('Admin::', $view);
