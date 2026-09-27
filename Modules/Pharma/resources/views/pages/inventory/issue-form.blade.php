@@ -86,7 +86,7 @@
         @if($errors->any())<div class="rounded-xl bg-rose-50 p-4 text-sm text-rose-700">{{ $errors->first() }}</div>@endif
         <div class="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white/95 px-5 py-4 shadow-lg backdrop-blur">
             <div class="flex items-baseline gap-5"><div><span id="issue-footer-count" class="text-sm font-semibold text-slate-700">0 sản phẩm</span><span id="issue-footer-quantity" class="ml-2 text-xs text-slate-500">· Tổng SL 0</span></div><div><span class="text-xs font-medium uppercase tracking-wide text-slate-500">Tổng tiền</span><strong id="issue-grand-total" class="ml-2 text-xl text-slate-950">0 đ</strong></div></div>
-            <button class="rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-sm">Lưu phiếu xuất nháp</button>
+            <button id="issue-save-draft" disabled class="rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none">Lưu phiếu xuất nháp</button>
         </div>
     </form>
 </div>
@@ -110,7 +110,7 @@
         </div>
         <div class="col-span-2">
             <input type="text" inputmode="decimal" data-field="unit_price" required value="0" placeholder="Đơn giá" class="issue-unit-price min-h-11 w-full rounded-xl border border-slate-300 px-3 text-right tabular-nums">
-            <div class="mt-1 flex min-h-5 items-center justify-between gap-2"><p class="issue-price-source truncate text-[11px] text-slate-500">Chưa có giá · có thể nhập tay</p><button type="button" class="issue-reset-price hidden shrink-0 text-[11px] font-semibold text-indigo-700 hover:underline">Đặt lại giá gốc</button></div>
+            <div class="mt-1 flex min-h-5 items-center justify-between gap-2"><p class="issue-price-source truncate text-[11px] text-slate-500">Chưa có giá · có thể nhập tay</p><button type="button" class="issue-reset-price shrink-0 text-[11px] font-semibold text-indigo-700 hover:underline disabled:cursor-not-allowed disabled:text-slate-400 disabled:no-underline" disabled>Đặt lại giá gốc</button></div>
         </div>
         <div class="col-span-2 flex min-h-11 items-center justify-end pr-2">
             <span class="issue-line-total text-sm font-semibold text-slate-800">0 đ</span>
@@ -155,6 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const footerCount = document.getElementById('issue-footer-count');
     const footerQuantity = document.getElementById('issue-footer-quantity');
     const grandTotal = document.getElementById('issue-grand-total');
+    const saveDraft = document.getElementById('issue-save-draft');
     const container = document.getElementById('issue-items');
     const template = document.getElementById('issue-row-template');
 
@@ -258,6 +259,13 @@ document.addEventListener('DOMContentLoaded', () => {
         refreshPrice(row);
     }
 
+    function updateSaveDraftState() {
+        const hasRecipient=Boolean(recipientSelect?.value);
+        const hasProduct=[...container.querySelectorAll('.issue-medicine-select')].some((select)=>Boolean(select.value));
+        saveDraft.disabled=!(hasRecipient && hasProduct);
+        saveDraft.title=saveDraft.disabled ? 'Chọn khách hàng và ít nhất một sản phẩm trước khi lưu nháp.' : '';
+    }
+
     function updateRecipientCard() {
         const partner=partners.find((item)=>String(item.id)===String(recipientSelect?.value || ''));
         const selected=Boolean(partner);
@@ -266,6 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
         recipientChange.classList.toggle('hidden',!selected);
         recipientCardName.textContent=partner?.name || '';
         recipientCardMeta.textContent=partner?.tax_code ? `MST: ${partner.tax_code}` : 'Khách hàng đã chọn';
+        updateSaveDraftState();
     }
 
     function updateContextSummary() {
@@ -300,7 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const reset=row.querySelector('.issue-reset-price');
         const original=Number(row.dataset.originalPrice || 0);
         const changed=Math.abs(parseViNumber(input?.value)-original)>0.000001;
-        reset?.classList.toggle('hidden',!changed);
+        if(reset){ reset.disabled=!changed; reset.setAttribute('aria-disabled',String(!changed)); }
     }
 
     function updateOrderSummary() {
@@ -312,6 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
         itemCount.textContent=label; footerCount.textContent=label;
         footerQuantity.textContent=`· Tổng SL ${new Intl.NumberFormat('vi-VN',{maximumFractionDigits:3}).format(quantity)}`;
         grandTotal.textContent=new Intl.NumberFormat('vi-VN',{maximumFractionDigits:0}).format(total)+' đ';
+        updateSaveDraftState();
     }
 
     function updateLineTotal(row) {
