@@ -37,7 +37,7 @@ class PharmaPriceListsCapabilityTest extends TestCase
 
         $this->assertStringContainsString('Bảng giá của tôi', $view);
         $this->assertStringContainsString('Chỉ hiển thị các bảng giá bạn là người phụ trách', $view);
-        $this->assertStringContainsString('25 / trang', $view);
+        $this->assertStringContainsString('25,50,100', $view);
         $this->assertStringContainsString("setTimeout(()=>f.requestSubmit(),350)", $view);
         $this->assertStringNotContainsString('Admin::', $view);
 
