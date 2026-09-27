@@ -33,8 +33,11 @@ final class PharmaApplicationController extends Controller
             'applicationPresentation' => $settings->applicationPresentation($application),
             'customers' => $workflow->customers(),
             'purposes' => $workflow->purposes(),
-            'products' => $workflow->products($request->string('product_q')->toString()),
-            'productSearch' => $request->string('product_q')->toString(),
+            'sourcePriceLists' => $workflow->sourcePriceLists((int) $user->id),
+            'sourcePriceListId' => $request->integer('source_price_list_id') ?: null,
+            'sourceProducts' => $request->integer('source_price_list_id')
+                ? $workflow->sourceProducts((int) $user->id, $request->integer('source_price_list_id'))
+                : collect(),
         ]);
     }
 
@@ -51,6 +54,7 @@ final class PharmaApplicationController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'partner_id' => ['required', 'integer'],
             'purpose_id' => ['required', 'integer'],
+            'source_price_list_id' => ['required', 'integer'],
             'effective_from' => ['required', 'date'],
             'effective_to' => ['required', 'date', 'after_or_equal:effective_from'],
             'notes' => ['nullable', 'string', 'max:1000'],
@@ -73,6 +77,7 @@ final class PharmaApplicationController extends Controller
             'name' => trim($validated['name']),
             'partner_id' => (int) $validated['partner_id'],
             'purpose_id' => (int) $validated['purpose_id'],
+            'source_price_list_id' => (int) $validated['source_price_list_id'],
             'effective_from' => $validated['effective_from'],
             'effective_to' => $validated['effective_to'],
             'currency' => 'VND',
