@@ -164,7 +164,8 @@ class PharmaDrugAwardAllocationContractTest extends TestCase
         $this->assertStringContainsString("with('partner')->where('drug_bid_award_id'", $component);
         $this->assertStringContainsString('id="contract-editor"', $view);
         $this->assertStringContainsString('scrollIntoView', $view);
-        $this->assertStringContainsString("'Tạo hợp đồng' : 'Thêm hợp đồng'", $view);
+        $this->assertStringContainsString('>Tạo hợp đồng</button>', $view);
+        $this->assertStringContainsString('>Sửa hợp đồng</button>', $view);
         $this->assertStringContainsString('Chưa có hợp đồng', $view);
         $this->assertStringContainsString("Xuất hợp đồng{{ \$selectedIds !== [] ? ' đã chọn' : '' }}", $view);
         $this->assertStringContainsString('Đã chọn {{ count($selectedIds) }} bệnh viện', $view);
@@ -183,7 +184,7 @@ class PharmaDrugAwardAllocationContractTest extends TestCase
         $this->assertStringContainsString("storeAs(\$directory, \$storedName, 'local')", $component);
         $this->assertStringContainsString('signed_file_remote_id', $model);
         $this->assertStringContainsString('Ngày ký hợp đồng', $view);
-        $this->assertStringContainsString('Ngày kết thúc hợp đồng', $view);
+        $this->assertStringContainsString('Ngày kết thúc', $view);
         $this->assertStringContainsString('File hợp đồng đã ký', $view);
         $this->assertStringNotContainsString('Số lượng hợp đồng</label>', $view);
         $this->assertStringNotContainsString('wire:model="contractStartDate"', $view);
@@ -204,9 +205,9 @@ class PharmaDrugAwardAllocationContractTest extends TestCase
         $this->assertStringContainsString("['Pharma',", str_replace("\n            ", '', $component));
         $this->assertStringContainsString('public function downloadApplicationFile', $drive);
         $this->assertStringContainsString("'alt' => 'media'", $drive);
-        $this->assertStringContainsString('Nơi lưu hợp đồng', $view);
+        $this->assertStringContainsString('File hợp đồng đã ký', $view);
         $this->assertStringContainsString('Google Drive', $view);
-        $this->assertStringContainsString('Khôi phục từ Drive', $view);
+        $this->assertStringContainsString('Drive → Local', $view);
     }
 
 
@@ -214,10 +215,10 @@ class PharmaDrugAwardAllocationContractTest extends TestCase
     {
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/drug-bid-award/allocation-workspace.blade.php'));
 
-        $this->assertStringContainsString('Nơi lưu hợp đồng', $view);
+        $this->assertStringContainsString('File hợp đồng đã ký', $view);
         $this->assertStringContainsString('wire:model="contractStorageTargets"', $view);
-        $this->assertStringContainsString('Google Drive {{ $googleDriveConnected', $view);
-        $this->assertStringContainsString('Khôi phục từ Drive', $view);
+        $this->assertStringContainsString("Google Drive {{ \$googleDriveConnected ? 'đã kết nối' : 'chưa kết nối' }}", $view);
+        $this->assertStringContainsString('Drive → Local', $view);
         $this->assertStringNotContainsString('Local private: Laravel-Backup/Pharma/DrugBidAwards/', $view);
     }
 
