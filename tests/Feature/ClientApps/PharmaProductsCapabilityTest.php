@@ -46,8 +46,8 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString('[25, 50, 100]', $service);
         $this->assertStringContainsString('MedicineCatalogItem::fromVariant', $service);
         $this->assertStringContainsString('public function overview(int $variantId, bool $includeSupplierPricing = false): ?array', $service);
-        $this->assertStringContainsString("if ($includeSupplierPricing)", $service);
-        $this->assertStringContainsString("$row['import_price']", $service);
+        $this->assertStringContainsString('if ($includeSupplierPricing)', $service);
+        $this->assertStringContainsString("\$row['import_price']", $service);
     }
 
     public function test_client_products_workspace_consumes_pharma_catalog_without_admin_mutations(): void
@@ -72,7 +72,7 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString("route('client.pharma.products.show'", $view);
         $this->assertStringNotContainsString('>SKU</th>', $view);
         $this->assertStringNotContainsString('>Nhà sản xuất</th>', $view);
-        $this->assertStringContainsString('Chi tiết sản phẩm · chỉ đọc', $detail);
+        $this->assertStringContainsString('Thông tin sản phẩm', $detail);
         $this->assertStringContainsString('Mã SKU', $detail);
         $this->assertStringContainsString('Nhà sản xuất', $detail);
         $this->assertStringContainsString('Hồ sơ sản phẩm', $detail);
