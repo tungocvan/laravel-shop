@@ -21,6 +21,7 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $approvalQueue = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/price-list-approvals.blade.php'));
         $approvalDetail = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/price-list-approval-show.blade.php'));
         $globalWorkflow = file_get_contents(base_path('Modules/Pharma/Services/ApproverGlobalPriceListWorkflow.php'));
+        $deactivation = file_get_contents(base_path('Modules/Pharma/Services/PriceListDeactivationWorkflow.php'));
 
         $this->assertStringContainsString("'route' => 'client.pharma.price-lists'", $manifest);
         $this->assertStringContainsString("'permission' => 'client.pharma.price-lists.view'", $manifest);
@@ -42,6 +43,9 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString("->name('price-lists.edit')", $routes);
         $this->assertStringContainsString("->name('price-lists.update')", $routes);
         $this->assertStringContainsString("->name('price-lists.delete')", $routes);
+        $this->assertStringContainsString("->name('price-lists.deactivation.request')", $routes);
+        $this->assertStringContainsString("->name('price-lists.deactivation.approve')", $routes);
+        $this->assertStringContainsString("->name('price-lists.deactivate')", $routes);
         $this->assertStringContainsString("->name('price-list-approvals')", $routes);
         $this->assertStringContainsString("->name('price-list-approvals.show')", $routes);
         $this->assertStringContainsString("->name('price-list-approvals.approve')", $routes);
@@ -53,11 +57,13 @@ class PharmaPriceListsCapabilityTest extends TestCase
 
         $this->assertStringContainsString('UserPriceListWorkspace $workspace', $controller);
         $this->assertStringContainsString('$workspace->browse(', $controller);
-        $this->assertStringContainsString('$workspace->findManaged(', $controller);
+        $this->assertStringContainsString('$workspace->findVisible(', $controller);
+        $this->assertStringContainsString('findVisible((int) $user->id, $priceList, $canApprove)', $controller);
         $this->assertStringContainsString('abort_if($list === null, 404)', $controller);
 
         $this->assertStringContainsString("where('manager_user_id', \$userId)", $service);
         $this->assertStringContainsString('public function findManaged(int $userId, int $priceListId)', $service);
+        $this->assertStringContainsString('public function findVisible(int $userId, int $priceListId, bool $approverScope = false)', $service);
         $this->assertStringNotContainsString('auth(', $service);
 
         $this->assertStringContainsString('Bảng giá của tôi', $view);
@@ -124,6 +130,8 @@ class PharmaPriceListsCapabilityTest extends TestCase
 
         $this->assertStringContainsString("public const STATUS_PENDING_APPROVAL = 'pending_approval'", $model);
         $this->assertStringContainsString("public const STATUS_REJECTED = 'rejected'", $model);
+        $this->assertStringContainsString("public const STATUS_PENDING_DEACTIVATION = 'pending_deactivation'", $model);
+        $this->assertStringContainsString("'deactivation_reason'", $model);
         $this->assertStringContainsString("'rejection_reason'", $model);
         $this->assertStringContainsString('public function createDraft(int $userId', $workflow);
         $this->assertStringContainsString('public function sourcePriceLists(int $userId)', $workflow);
@@ -183,6 +191,15 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('>Cập nhật</button>', $approvalDetail);
         $this->assertStringContainsString('>Xóa</button>', $approvalDetail);
         $this->assertStringContainsString('Mọi thay đổi đều được ghi audit', $approvalDetail);
+        $this->assertStringContainsString('class PriceListDeactivationWorkflow', $deactivation);
+        $this->assertStringContainsString('public function request(int $userId', $deactivation);
+        $this->assertStringContainsString('public function approveRequest(int $approverUserId', $deactivation);
+        $this->assertStringContainsString('public function deactivateDirectly(int $approverUserId', $deactivation);
+        $this->assertStringContainsString("'status' => PriceList::STATUS_PENDING_DEACTIVATION", $deactivation);
+        $this->assertStringContainsString("'status' => PriceList::STATUS_INACTIVE", $deactivation);
+        $this->assertStringContainsString('Yêu cầu ngừng kích hoạt', $detail);
+        $this->assertStringContainsString('Chấp nhận ngừng kích hoạt', $detail);
+        $this->assertStringContainsString('Ngừng kích hoạt', $detail);
         $this->assertStringContainsString('Phê duyệt & Kích hoạt', $approvalDetail);
         $this->assertStringContainsString('name="rejection_reason"', $approvalDetail);
         $this->assertStringContainsString('$selfApprovalBlocked', $approvalDetail);
