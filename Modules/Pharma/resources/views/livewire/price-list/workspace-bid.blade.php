@@ -20,6 +20,17 @@
                 <div class="xl:col-span-2"><label class="text-sm font-semibold">Tên bảng giá *</label><input wire:model="name" class="mt-1.5 min-h-11 w-full rounded-xl border border-slate-300 px-4 text-sm">@error('name')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror</div>
                 <div><label class="text-sm font-semibold">Mã bảng giá *</label><input wire:model="code" class="mt-1.5 min-h-11 w-full rounded-xl border border-slate-300 px-4 font-mono text-sm"></div>
                 <div><label class="text-sm font-semibold">Loại bảng giá *</label><select wire:model.live="type" class="mt-1.5 min-h-11 w-full rounded-xl border border-slate-300 px-4 text-sm"><option value="global">Bảng giá chung</option><option value="customer">Bảng giá khách hàng</option></select></div>
+                @if($type==='global')
+                    <div class="xl:col-span-2 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                        <label class="flex items-center gap-3 text-sm font-semibold text-slate-800"><input type="checkbox" wire:model.live="globalAppliesToAllUsers" class="h-4 w-4 rounded border-slate-300 text-indigo-600">Áp dụng cho tất cả User</label>
+                        <p class="mt-1 text-xs text-slate-500">Mặc định tất cả User có quyền Pharma đều có thể sử dụng bảng giá chung này.</p>
+                        @unless($globalAppliesToAllUsers)
+                            <div class="mt-4"><label class="text-sm font-semibold">User được áp dụng *</label><div class="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                                @foreach($users as $user)<label class="flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm"><input type="checkbox" wire:model.live="globalUserIds" value="{{ $user->id }}" class="h-4 w-4 rounded border-slate-300 text-indigo-600"><span class="min-w-0"><span class="block truncate font-semibold">{{ $user->name }}</span>@if($user->email)<span class="block truncate text-xs text-slate-500">{{ $user->email }}</span>@endif</span></label>@endforeach
+                            </div>@error('globalUserIds')<p class="mt-2 text-xs font-semibold text-rose-600">{{ $message }}</p>@enderror</div>
+                        @endunless
+                    </div>
+                @endif
                 @if($type==='customer')
                     <div class="space-y-2"><label class="text-sm font-semibold">Khách hàng *</label><div class="grid grid-cols-2 gap-2"><button type="button" wire:click="setCustomerSource('partner')" class="min-h-10 rounded-xl border px-3 text-xs font-bold {{ $customerSource==='partner'?'border-indigo-500 bg-indigo-50 text-indigo-700':'border-slate-300 bg-white text-slate-600' }}">Partner Master</button><button type="button" wire:click="setCustomerSource('official_facility')" class="min-h-10 rounded-xl border px-3 text-xs font-bold {{ $customerSource==='official_facility'?'border-sky-500 bg-sky-50 text-sky-700':'border-slate-300 bg-white text-slate-600' }}">Cơ sở KCB nguồn</button></div>
 @if($customerSource==='partner')
