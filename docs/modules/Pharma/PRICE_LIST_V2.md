@@ -57,7 +57,7 @@ Resolution order for the requested date and SKU/package:
 
 There is intentionally no fallback from `Medicine.declared_price` to a sale price. Declared price is a ceiling/reference only.
 
-Within the same resolution tier ordering is deterministic: priority descending, effective-from descending, then list id descending. v1 activation also prevents overlapping active lists in the same global/customer scope.
+Within the same resolution tier ordering is deterministic: priority descending, effective-from descending, then list id descending. Activation only treats time overlap as a conflict when another ACTIVE list has the same Price List code or the same Price List name. Different lists may therefore be ACTIVE over the same dates even when they share a manager, customer source, Partner, official facility or list type. The existing database uniqueness constraint on `code` remains unchanged.
 
 ## Admin workspace
 
