@@ -70,6 +70,19 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->middleware('client.feature:pharma,price-lists')
             ->name('price-list-approvals.reject');
 
+        Route::post('/price-lists/{priceList}/deactivation-request', [PharmaApplicationController::class, 'requestPriceListDeactivation'])
+            ->whereNumber('priceList')
+            ->middleware('client.feature:pharma,price-lists')
+            ->name('price-lists.deactivation.request');
+        Route::post('/price-lists/{priceList}/deactivation-approve', [PharmaApplicationController::class, 'approvePriceListDeactivation'])
+            ->whereNumber('priceList')
+            ->middleware('client.feature:pharma,price-lists')
+            ->name('price-lists.deactivation.approve');
+        Route::post('/price-lists/{priceList}/deactivate', [PharmaApplicationController::class, 'deactivatePriceListDirectly'])
+            ->whereNumber('priceList')
+            ->middleware('client.feature:pharma,price-lists')
+            ->name('price-lists.deactivate');
+
         Route::get('/price-lists/{priceList}', [PharmaApplicationController::class, 'priceList'])
             ->whereNumber('priceList')
             ->middleware('client.feature:pharma,price-lists')
