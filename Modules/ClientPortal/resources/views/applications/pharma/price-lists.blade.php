@@ -13,7 +13,7 @@
             <h1 class="text-2xl font-black tracking-tight sm:text-3xl">Bảng giá của tôi</h1>
             <span class="rounded-full bg-white/10 px-3 py-1 text-xs font-bold">{{ number_format($counts['all'] ?? 0, 0, ',', '.') }} bảng giá</span>
         </div>
-        <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-300">Chỉ hiển thị các bảng giá bạn là người phụ trách. Tạo, gửi duyệt và phê duyệt sẽ được mở theo từng quyền nghiệp vụ.</p>
+        <div class="mt-3 flex flex-wrap items-center justify-between gap-3"><p class="max-w-3xl text-sm leading-6 text-slate-300">Chỉ hiển thị các bảng giá bạn là người phụ trách. Tạo, gửi duyệt và phê duyệt được kiểm soát theo quyền nghiệp vụ.</p>@if($canCreate)<a href="{{ route('client.pharma.price-lists.create') }}" class="rounded-2xl bg-white px-4 py-2.5 text-sm font-black text-slate-950">+ Tạo bảng giá</a>@endif</div>
     </section>
 
     <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
@@ -25,6 +25,7 @@
             $statuses = [
                 null => ['label' => 'Tất cả', 'class' => 'slate'],
                 'draft' => ['label' => 'Nháp', 'class' => 'amber'],
+                'pending_approval' => ['label' => 'Chờ duyệt', 'class' => 'amber'],
                 'active' => ['label' => 'Đang hiệu lực', 'class' => 'emerald'],
                 'inactive' => ['label' => 'Ngưng', 'class' => 'slate'],
                 'archived' => ['label' => 'Lưu trữ', 'class' => 'slate'],
@@ -32,8 +33,8 @@
         @endphp
         <div class="mt-4 flex flex-wrap gap-2">
             @foreach($statuses as $value => $meta)
-                @php $active = $status === $value; $countKey = $value ?? 'all'; @endphp
-                <a href="{{ route('client.pharma.price-lists', array_filter(['q' => $search, 'per_page' => $perPage, 'status' => $value], fn($v) => $v !== null && $v !== '')) }}"
+                @php $normalizedValue = $value === '' ? null : $value; $active = $status === $normalizedValue; $countKey = $normalizedValue ?? 'all'; @endphp
+                <a href="{{ route('client.pharma.price-lists', array_filter(['q' => $search, 'per_page' => $perPage, 'status' => $normalizedValue], fn($v) => $v !== null && $v !== '')) }}"
                    class="rounded-full border px-3.5 py-2 text-xs font-bold {{ $active ? ($meta['class'] === 'emerald' ? 'border-emerald-600 bg-emerald-600 text-white' : ($meta['class'] === 'amber' ? 'border-amber-500 bg-amber-500 text-white' : 'border-slate-700 bg-slate-700 text-white')) : 'border-slate-200 bg-white text-slate-600' }}">
                     @if($active)✓ @endif{{ $meta['label'] }} <span class="ml-1 opacity-70">{{ $counts[$countKey] ?? 0 }}</span>
                 </a>
