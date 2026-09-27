@@ -638,14 +638,16 @@ final class InventoryController extends Controller
     public function editIssue(InventoryIssue $issue, InventoryService $inventory): View
     {
         $this->guardIssueWarehouse($issue,$inventory);
-        $issue->load(['items.medicine','priceList.manager']);
+        $issue->load(['items.medicine','priceList.manager','priceList.globalUsers:id,name']);
         $warehouse=$inventory->defaultWarehouse();
         $availableBalances=InventoryBalance::query()->with('medicine')->where('warehouse_id',$warehouse->id)
             ->whereDate('expiry_date','>=',now()->toDateString())->orderBy('expiry_date')->orderBy('medicine_id')->get();
         $partners=Partner::query()->withPartnerType('customer')->where('status','active')->orderBy('name')->get(['id','name','tax_code']);
-        $customerPriceLists=PriceList::query()->with('manager:id,name')->where('type',PriceList::TYPE_CUSTOMER)
-            ->where('status',PriceList::STATUS_ACTIVE)->orderBy('manager_user_id')->orderByDesc('priority')->orderBy('name')->get([
-                'id','code','name','manager_user_id','partner_id','effective_from','effective_to','priority',
+        $customerPriceLists=PriceList::query()->with(['manager:id,name','globalUsers:id,name'])
+            ->whereIn('type',[PriceList::TYPE_GLOBAL,PriceList::TYPE_CUSTOMER])->where('status',PriceList::STATUS_ACTIVE)
+            ->whereHas('items',fn($q)=>$q->where('status','active')->whereNotNull('medicine_id'))
+            ->orderByDesc('priority')->orderBy('name')->get([
+                'id','code','name','type','manager_user_id','partner_id','effective_from','effective_to','priority',
             ]);
         $issueSalePrices=$this->issueSalePriceCandidates();
         return view('Pharma::pages.inventory.issue-edit',compact('issue','warehouse','availableBalances','partners','customerPriceLists','issueSalePrices'));
@@ -661,12 +663,18 @@ final class InventoryController extends Controller
             return redirect()->route('admin.pharma.inventory.issues.index')->with('success',"Đã cập nhật thông tin {$issue->number}. Dữ liệu hàng hóa đã ghi sổ được giữ nguyên.");
         }
         $data=$request->validate([
-            'recipient_partner_id'=>'nullable|integer|exists:partners,id','price_list_id'=>'required|integer|exists:pharma_price_lists,id',
+            'recipient_partner_id'=>'required|integer|exists:partners,id','manager_user_id'=>'required|integer|exists:users,id','price_list_id'=>'required|integer|exists:pharma_price_lists,id',
             'items'=>'required|array|min:1','items.*.balance_id'=>'required|exists:pharma_inventory_balances,id',
             'items.*.quantity'=>'required|numeric|gt:0','items.*.unit_price'=>'required|numeric|min:0',
         ]);
-        $priceList=PriceList::query()->whereKey($data['price_list_id'])->where('type',PriceList::TYPE_CUSTOMER)->activeAt($metadata['issue_date'])->firstOrFail();
-        if($priceList->partner_id !== null && (int)$priceList->partner_id !== (int)($data['recipient_partner_id'] ?? 0)){
+        $priceList=PriceList::query()->with('globalUsers:id')->whereKey($data['price_list_id'])
+            ->whereIn('type',[PriceList::TYPE_GLOBAL,PriceList::TYPE_CUSTOMER])->activeAt($metadata['issue_date'])->firstOrFail();
+        $managerId=(int)$data['manager_user_id'];
+        $assigned=$priceList->type===PriceList::TYPE_GLOBAL
+            ? ($priceList->globalUsers->isEmpty() || $priceList->globalUsers->contains(fn($user)=>(int)$user->id===$managerId))
+            : (int)$priceList->manager_user_id===$managerId;
+        if(! $assigned) throw ValidationException::withMessages(['price_list_id'=>'Bảng giá không được phân cho Người phụ trách đã chọn.']);
+        if($priceList->type===PriceList::TYPE_CUSTOMER && $priceList->partner_id !== null && (int)$priceList->partner_id !== (int)$data['recipient_partner_id']){
             throw ValidationException::withMessages(['price_list_id'=>'Bảng giá này chỉ áp dụng cho khách hàng đã liên kết.']);
         }
         $allowedMedicineIds=PriceListItem::query()->where('price_list_id',$priceList->id)->where('status','active')->pluck('medicine_id')->filter()->map(fn($id)=>(int)$id)->unique();
@@ -674,7 +682,7 @@ final class InventoryController extends Controller
         if(!empty($data['recipient_partner_id'])) $metadata['recipient_name']=Partner::query()->whereKey($data['recipient_partner_id'])->where('status','active')->firstOrFail()->name;
         $items=collect($data['items'])->map(function(array $item)use($warehouse,$allowedMedicineIds){
             $balance=InventoryBalance::query()->where('warehouse_id',$warehouse->id)->whereKey($item['balance_id'])->firstOrFail();
-            if(! $allowedMedicineIds->contains((int)$balance->medicine_id)) throw ValidationException::withMessages(['items'=>'Thuốc đã chọn không thuộc bảng giá CUSTOMER.']);
+            if(! $allowedMedicineIds->contains((int)$balance->medicine_id)) throw ValidationException::withMessages(['items'=>'Thuốc đã chọn không thuộc bảng giá áp dụng.']);
             return ['medicine_id'=>$balance->medicine_id,'batch_number'=>$balance->batch_number,'expiry_date'=>$balance->expiry_date->toDateString(),'quantity'=>$item['quantity'],'unit_price'=>(float)$item['unit_price']];
         })->all();
         DB::transaction(function()use($issue,$metadata,$data,$items){
