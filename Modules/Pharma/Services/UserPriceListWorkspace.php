@@ -25,7 +25,7 @@ final class UserPriceListWorkspace
                     $inner->where('code', 'like', "%{$search}%")
                         ->orWhere('name', 'like', "%{$search}%")
                         ->orWhereHas('partner', fn (Builder $partner) => $partner->where('name', 'like', "%{$search}%"))
-                        ->orWhereHas('officialFacility', fn (Builder $facility) => $facility->where('name', 'like', "%{$search}%"));
+                        ->orWhereHas('officialFacility', fn (Builder $facility) => $facility->where('facility_name', 'like', "%{$search}%"));
                 });
             })
             ->when($status, fn (Builder $query) => $query->where('status', $status))
