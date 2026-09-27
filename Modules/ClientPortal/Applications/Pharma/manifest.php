@@ -19,6 +19,13 @@ return [
             'icon' => 'home',
             'sort_order' => 10,
         ],
+        'products' => [
+            'name' => 'Danh mục thuốc',
+            'route' => 'client.pharma.products',
+            'permission' => 'client.pharma.products.view',
+            'icon' => 'beaker',
+            'sort_order' => 20,
+        ],
     ],
     'features' => [
         'overview' => [
@@ -32,6 +39,7 @@ return [
         'products' => [
             'name' => 'Danh mục thuốc',
             'description' => 'Tra cứu Medicine Master và thông tin sản phẩm theo phạm vi được cấp.',
+            'route' => 'client.pharma.products',
             'permission' => 'client.pharma.products.view',
             'icon' => 'beaker',
             'sort_order' => 20,
