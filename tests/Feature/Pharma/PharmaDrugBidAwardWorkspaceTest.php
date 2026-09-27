@@ -55,7 +55,8 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString("->with('medicine')", $service);
         $this->assertStringContainsString("->with('sources')", $service);
         $this->assertStringContainsString("orWhereHas('sources'", $service);
-        $this->assertStringContainsString('Đối soát HSSP', $view);
+        $this->assertStringContainsString('Sản phẩm / Phân bổ', $view);
+        $this->assertStringContainsString("'origin' => 'hssp'", $model);
     }
 
     public function test_kqlcnt_sync_is_explicit_bounded_and_permission_guarded(): void
@@ -138,7 +139,7 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString("\$canEdit = \$admin?->can('edit_pharma') ?? false;", $view);
         $this->assertStringContainsString("'permission' => 'edit_pharma'", $view);
         $this->assertStringContainsString("'selected_ids' => \$selectedIds", $view);
-        $this->assertStringContainsString("'medicine_match_status' => \$filterMatchStatus", $view);
+        $this->assertStringNotContainsString("'medicine_match_status' => \$filterMatchStatus", $view);
         $this->assertStringContainsString('$selectedIds = $this->selectedIds($filters);', $export);
         $this->assertStringContainsString("when(\$filters['medicine_match_status'] ?? null", $export);
         $this->assertStringContainsString("'Mã TBMT' => \$model->bidding_notice_code", $export);
