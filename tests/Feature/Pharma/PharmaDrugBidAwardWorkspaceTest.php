@@ -261,7 +261,7 @@ class PharmaDrugBidAwardWorkspaceTest extends TestCase
         $this->assertStringContainsString('return (int) round((float) $normalized);', $component);
         $this->assertStringContainsString('min-h-14', $view);
         $selectSearch = file_get_contents(base_path('resources/views/components/select-search.blade.php'));
-        $this->assertStringContainsString('@this.set(config.model, value, false)', $selectSearch);
+        $this->assertStringContainsString('this.$wire.set(config.model, value)', $selectSearch);
     }
 
     public function test_award_distribution_scope_is_shared_by_products_and_restricts_hospitals(): void
