@@ -28,6 +28,8 @@ class PriceList extends Model
 
     public const STATUS_ACTIVE = 'active';
 
+    public const STATUS_PENDING_DEACTIVATION = 'pending_deactivation';
+
     public const STATUS_INACTIVE = 'inactive';
 
     public const STATUS_ARCHIVED = 'archived';
@@ -58,6 +60,11 @@ class PriceList extends Model
         'rejected_by',
         'rejected_at',
         'rejection_reason',
+        'deactivation_requested_by',
+        'deactivation_requested_at',
+        'deactivation_reason',
+        'deactivated_by',
+        'deactivated_at',
     ];
 
     protected $casts = [
@@ -67,6 +74,8 @@ class PriceList extends Model
         'submitted_at' => 'datetime',
         'approved_at' => 'datetime',
         'rejected_at' => 'datetime',
+        'deactivation_requested_at' => 'datetime',
+        'deactivated_at' => 'datetime',
     ];
 
     public function items(): HasMany
