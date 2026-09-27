@@ -567,6 +567,7 @@ final class InventoryController extends Controller
 
     public function storeIssue(Request $request, InventoryService $inventory): RedirectResponse
     {
+        $this->normalizeIssueNumericInputs($request);
         $data=$request->validate([
             'issue_date'=>'required|date','manager_user_id'=>'required|integer|exists:users,id','recipient_name'=>'nullable|string|max:255','recipient_partner_id'=>'required|integer|exists:partners,id',
             'price_list_id'=>'required|integer|exists:pharma_price_lists,id','notes'=>'nullable|string','items'=>'required|array|min:1',
@@ -652,6 +653,7 @@ final class InventoryController extends Controller
 
     public function updateIssue(Request $request, InventoryIssue $issue, InventoryService $inventory): RedirectResponse
     {
+        $this->normalizeIssueNumericInputs($request);
         $this->guardIssueWarehouse($issue,$inventory);
         $metadata=$request->validate(['issue_date'=>'required|date','recipient_name'=>'nullable|string|max:255','notes'=>'nullable|string']);
         if($issue->status===InventoryIssue::POSTED){
@@ -1104,6 +1106,28 @@ final class InventoryController extends Controller
         throw ValidationException::withMessages(['file'=>"Dòng {$line}: Hạn dùng không hợp lệ, dùng định dạng dd/mm/yyyy."]);
     }
     private function medicines(){ return Medicine::query()->orderBy('name')->limit(500)->get(['id','medicine_code','name','unit']); }
+    private function normalizeIssueNumericInputs(Request $request): void
+    {
+        $items=collect($request->input('items',[]))->map(function($item){
+            if(!is_array($item)) return $item;
+            foreach(['quantity','unit_price'] as $field){
+                if(array_key_exists($field,$item)) $item[$field]=$this->parseLocalizedNumber($item[$field]);
+            }
+            return $item;
+        })->all();
+        $request->merge(['items'=>$items]);
+    }
+
+    private function parseLocalizedNumber(mixed $value): float
+    {
+        if(is_int($value) || is_float($value)) return (float)$value;
+        $raw=preg_replace('/\s+/u','',trim((string)$value));
+        if($raw==='') return 0.0;
+        if(str_contains($raw,',')) $raw=str_replace(',','.',str_replace('.','',$raw));
+        elseif(substr_count($raw,'.')>1 || preg_match('/\.\d{3}$/',$raw)) $raw=str_replace('.','',$raw);
+        return is_numeric($raw) ? (float)$raw : 0.0;
+    }
+
     private function documentPerPage(Request $request): int
     {
         $value=(int)$request->input('per_page',25);
