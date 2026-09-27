@@ -217,6 +217,11 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('data-clear-keyword', $documents);
         $this->assertStringContainsString('name="date_from"', $documents);
         $this->assertStringContainsString('name="date_to"', $documents);
+        $this->assertStringContainsString('aria-label="Từ ngày"', $documents);
+        $this->assertStringContainsString('aria-label="Đến ngày"', $documents);
+        $this->assertStringContainsString('class="min-h-11 w-full rounded-xl border border-slate-300 bg-white pl-10', $documents);
+        $this->assertStringNotContainsString('>Từ ngày<input type="date"', $documents);
+        $this->assertStringNotContainsString('>Đến ngày<input type="date"', $documents);
         $this->assertStringContainsString("keyword.value='';filterForm?.requestSubmit()", $documents);
         $this->assertStringContainsString("now()->startOfMonth()->toDateString()", $controller);
         $this->assertStringContainsString("now()->toDateString()", $controller);
