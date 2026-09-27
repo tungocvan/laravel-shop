@@ -43,6 +43,22 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->middleware('client.feature:pharma,price-lists')
             ->name('price-lists.submit');
 
+        Route::get('/price-list-approvals', [PharmaApplicationController::class, 'priceListApprovals'])
+            ->middleware('client.feature:pharma,price-lists')
+            ->name('price-list-approvals');
+        Route::get('/price-list-approvals/{priceList}', [PharmaApplicationController::class, 'priceListApproval'])
+            ->whereNumber('priceList')
+            ->middleware('client.feature:pharma,price-lists')
+            ->name('price-list-approvals.show');
+        Route::post('/price-list-approvals/{priceList}/approve', [PharmaApplicationController::class, 'approvePriceList'])
+            ->whereNumber('priceList')
+            ->middleware('client.feature:pharma,price-lists')
+            ->name('price-list-approvals.approve');
+        Route::post('/price-list-approvals/{priceList}/reject', [PharmaApplicationController::class, 'rejectPriceList'])
+            ->whereNumber('priceList')
+            ->middleware('client.feature:pharma,price-lists')
+            ->name('price-list-approvals.reject');
+
         Route::get('/price-lists/{priceList}', [PharmaApplicationController::class, 'priceList'])
             ->whereNumber('priceList')
             ->middleware('client.feature:pharma,price-lists')
