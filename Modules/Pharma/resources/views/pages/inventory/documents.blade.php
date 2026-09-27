@@ -20,14 +20,14 @@
         <div class="grid gap-3 {{ $type === 'issue' ? 'lg:grid-cols-12' : 'md:grid-cols-[minmax(260px,1fr)_auto_auto_auto]' }}">
             <input name="q" value="{{ request('q') }}" placeholder="{{ $type === 'receipt' ? 'Tìm mã phiếu / nhà cung cấp' : 'Tìm mã phiếu / nơi nhận' }}" class="min-h-11 rounded-xl border border-slate-300 px-3 text-sm {{ $type === 'issue' ? 'lg:col-span-4' : '' }}">
             @if($type === 'issue')
-                <div class="lg:col-span-2"><x-select-search id="issue-manager-filter" name="manager_user_id" placeholder="Tìm người phụ trách..."><option value="">Tất cả người phụ trách</option>@foreach($issueManagers as $manager)<option value="{{ $manager->id }}" @selected((string)request('manager_user_id')===(string)$manager->id)>{{ $manager->name }}</option>@endforeach</x-select-search></div>
-                <div class="lg:col-span-3"><x-select-search id="issue-recipient-filter" name="recipient_name" placeholder="Tìm khách hàng / nơi nhận..."><option value="">Tất cả khách hàng / nơi nhận</option>@foreach($issueRecipients as $recipient)<option value="{{ $recipient }}" @selected(request('recipient_name')===$recipient)>{{ $recipient }}</option>@endforeach</x-select-search></div>
+                <div class="lg:col-span-2"><x-select-search id="issue-manager-filter" name="manager_user_id" data-auto-submit-filter placeholder="Tìm người phụ trách..."><option value="">Tất cả người phụ trách</option>@foreach($issueManagers as $manager)<option value="{{ $manager->id }}" @selected((string)request('manager_user_id')===(string)$manager->id)>{{ $manager->name }}</option>@endforeach</x-select-search></div>
+                <div class="lg:col-span-3"><x-select-search id="issue-recipient-filter" name="recipient_name" data-auto-submit-filter placeholder="Tìm khách hàng / nơi nhận..."><option value="">Tất cả khách hàng / nơi nhận</option>@foreach($issueRecipients as $recipient)<option value="{{ $recipient }}" @selected(request('recipient_name')===$recipient)>{{ $recipient }}</option>@endforeach</x-select-search></div>
             @endif
-            <select name="status" class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm {{ $type === 'issue' ? 'lg:col-span-1' : '' }}"><option value="">Tất cả trạng thái</option><option value="draft" @selected(request('status') === 'draft')>Nháp</option><option value="posted" @selected(request('status') === 'posted')>Đã ghi sổ</option></select>
+            <select name="status" onchange="this.form.submit()" class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm {{ $type === 'issue' ? 'lg:col-span-1' : '' }}"><option value="">Tất cả trạng thái</option><option value="draft" @selected(request('status') === 'draft')>Nháp</option><option value="posted" @selected(request('status') === 'posted')>Đã ghi sổ</option></select>
             <select name="per_page" onchange="this.form.submit()" class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm {{ $type === 'issue' ? 'lg:col-span-1' : '' }}">@foreach([25,50,100] as $size)<option value="{{ $size }}" @selected((int)request('per_page',25)===$size)>{{ $size }} / trang</option>@endforeach</select>
             <button class="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white {{ $type === 'issue' ? 'lg:col-span-1' : '' }}">Tìm</button>
         </div>
-        @if($type === 'issue' && request()->hasAny(['q','manager_user_id','recipient_name','status']))<div class="mt-3 flex justify-end"><a href="{{ route('admin.pharma.inventory.issues.index') }}" class="text-sm font-semibold text-slate-500 hover:text-slate-800">Xóa bộ lọc</a></div>@endif
+        @if($type === 'issue')<div class="mt-3 flex justify-end"><a href="{{ route('admin.pharma.inventory.issues.index') }}" class="text-sm font-semibold {{ request()->hasAny(['q','manager_user_id','recipient_name','status']) ? 'text-indigo-700 hover:text-indigo-900' : 'pointer-events-none text-slate-300' }}" @if(!request()->hasAny(['q','manager_user_id','recipient_name','status'])) aria-disabled="true" @endif>Xóa bộ lọc</a></div>@endif
     </form>
 
     @if($type === 'issue')
@@ -63,7 +63,7 @@
                             <td class="whitespace-nowrap px-4 py-4"><div class="font-mono font-bold text-indigo-700">{{ $doc->number }}</div>@if($type === 'issue' && ($doc->issue_source ?? 'normal') === 'bid')<span class="mt-1 inline-flex rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-bold uppercase text-violet-700">Hàng thầu</span>@endif</td>
                             <td class="whitespace-nowrap px-4 py-4 text-slate-600">{{ $date->format('d/m/Y') }}</td>
                             <td class="px-4 py-4"><div class="truncate font-semibold text-slate-800" title="{{ $party ?: '—' }}">{{ $party ?: '—' }}</div></td>
-                            @if($type === 'issue')<td class="px-4 py-4"><div class="truncate font-medium text-slate-700" title="{{ $doc->manager?->name ?: 'Chưa phân công' }}">{{ $doc->manager?->name ?: '—' }}</div>@if(!$doc->manager)<span class="mt-1 inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">Chưa phân công</span>@endif</td>@endif
+                            @if($type === 'issue')<td class="px-4 py-4"><div class="truncate font-medium text-slate-700" title="{{ $doc->resolved_manager_names ?: 'Chưa phân công' }}">{{ $doc->resolved_manager_names ?: '—' }}</div>@if(blank($doc->resolved_manager_names))<span class="mt-1 inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">Chưa phân công</span>@endif</td>@endif
                             <td class="px-4 py-4 text-right">{{ $doc->items_count }}</td>
                             <td class="px-4 py-4 text-right font-semibold">{{ number_format((float)$doc->total_value,0,',','.').' đ' }}</td>
                             <td class="px-4 py-4">
@@ -185,6 +185,12 @@
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    @if($type === 'issue')
+    const filterForm=document.getElementById('document-filters');
+    document.querySelectorAll('[data-auto-submit-filter]').forEach((select)=>{
+        select.addEventListener('change',()=>filterForm?.requestSubmit());
+    });
+    @endif
     const actionMenus = Array.from(document.querySelectorAll('details[data-document-actions]'));
     actionMenus.forEach((menu) => {
         menu.addEventListener('toggle', () => {
