@@ -26,7 +26,7 @@ $signatures=collect([
   </div>
   <div class="grid gap-4 border-t border-slate-100 bg-slate-50/70 p-5 md:grid-cols-4">
    <div><p class="text-[11px] font-bold uppercase text-slate-400">Khách hàng / nơi nhận</p><p class="mt-1 font-semibold">{{ $issue->recipient_name ?: 'Chưa xác định' }}</p></div>
-   <div><p class="text-[11px] font-bold uppercase text-slate-400">Người phụ trách</p><p class="mt-1 font-semibold">{{ $issue->priceList?->manager?->name ?: '—' }}</p></div>
+   <div><p class="text-[11px] font-bold uppercase text-slate-400">Người phụ trách</p><p class="mt-1 font-semibold">{{ $issue->manager?->name ?: '—' }}</p></div>
    @if($settings->show_price_list)<div><p class="text-[11px] font-bold uppercase text-slate-400">Bảng giá áp dụng</p><p class="mt-1 font-semibold">{{ $issue->priceList?->code ?: '—' }}</p><p class="text-xs text-slate-500">{{ $issue->priceList?->name }}</p></div>@endif
    @if($settings->show_notes && filled($issue->notes))<div><p class="text-[11px] font-bold uppercase text-slate-400">Ghi chú</p><p class="mt-1 text-sm">{{ $issue->notes }}</p></div>@endif
   </div>
