@@ -81,8 +81,10 @@
                                             <summary class="flex min-h-9 cursor-pointer list-none items-center rounded-lg border border-slate-300 bg-white px-3 text-base font-bold leading-none text-slate-600 hover:bg-slate-50" aria-label="Thao tác khác">⋯</summary>
                                             <div class="absolute right-0 z-30 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-left shadow-xl">
                                                 @can('edit_pharma')
-                                                    @if(($doc->issue_source ?? 'normal') === 'bid' && $doc->status === 'draft')
-                                                        <a href="{{ route('admin.pharma.inventory.issues.bid-sales.edit',$doc) }}" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Sửa đơn hàng thầu</a>
+                                                    @if(($doc->issue_source ?? 'normal') === 'bid')
+                                                        @if($doc->status === 'draft')
+                                                            <a href="{{ route('admin.pharma.inventory.issues.bid-sales.edit',$doc) }}" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Sửa đơn hàng thầu</a>
+                                                        @endif
                                                     @else
                                                         <a href="{{ route('admin.pharma.inventory.issues.edit',$doc) }}" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">{{ $doc->status === 'draft' ? 'Sửa phiếu' : 'Cập nhật phiếu' }}</a>
                                                     @endif
