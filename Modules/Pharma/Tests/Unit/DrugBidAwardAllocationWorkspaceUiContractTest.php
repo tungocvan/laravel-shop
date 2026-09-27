@@ -15,7 +15,7 @@ class DrugBidAwardAllocationWorkspaceUiContractTest extends TestCase
         $this->assertStringContainsString('Quản lý bệnh viện', $products);
         $this->assertStringContainsString('+ Thêm bệnh viện', $products);
         $this->assertStringNotContainsString('Quản lý bệnh viện', $allocation);
-        $this->assertStringNotContainsString('+ Thêm bệnh viện', $allocation);
+        $this->assertStringContainsString("route('admin.partner.partners.create', ['legal_type' => 'hospital'])", $allocation);
     }
 
     public function test_distribution_setup_is_collapsible_three_column_workspace(): void
