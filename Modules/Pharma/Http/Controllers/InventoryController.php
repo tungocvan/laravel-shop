@@ -398,11 +398,11 @@ final class InventoryController extends Controller
             ->whereDate('expiry_date','>=',now()->toDateString())
             ->orderBy('expiry_date')->orderBy('medicine_id')->get();
         $partners=Partner::query()->withPartnerType('customer')->where('status','active')->orderBy('name')->get(['id','name','tax_code']);
-        $customerPriceLists=PriceList::query()->with('manager:id,name')
-            ->where('type',PriceList::TYPE_CUSTOMER)->where('status',PriceList::STATUS_ACTIVE)
+        $customerPriceLists=PriceList::query()->with(['manager:id,name','globalUsers:id,name'])
+            ->whereIn('type',[PriceList::TYPE_GLOBAL,PriceList::TYPE_CUSTOMER])->where('status',PriceList::STATUS_ACTIVE)
             ->whereHas('items',fn($q)=>$q->where('status','active')->whereNotNull('medicine_id'))
-            ->orderBy('manager_user_id')->orderByDesc('priority')->orderBy('name')->get([
-                'id','code','name','manager_user_id','partner_id','effective_from','effective_to','priority',
+            ->orderByDesc('priority')->orderBy('name')->get([
+                'id','code','name','type','manager_user_id','partner_id','effective_from','effective_to','priority',
             ]);
         $issueSalePrices=$this->issueSalePriceCandidates();
         return view('Pharma::pages.inventory.issue-form',compact('warehouse','availableBalances','partners','customerPriceLists','issueSalePrices'));
@@ -568,13 +568,19 @@ final class InventoryController extends Controller
     public function storeIssue(Request $request, InventoryService $inventory): RedirectResponse
     {
         $data=$request->validate([
-            'issue_date'=>'required|date','recipient_name'=>'nullable|string|max:255','recipient_partner_id'=>'nullable|integer|exists:partners,id',
+            'issue_date'=>'required|date','manager_user_id'=>'required|integer|exists:users,id','recipient_name'=>'nullable|string|max:255','recipient_partner_id'=>'nullable|integer|exists:partners,id',
             'price_list_id'=>'required|integer|exists:pharma_price_lists,id','notes'=>'nullable|string','items'=>'required|array|min:1',
             'items.*.balance_id'=>'required|exists:pharma_inventory_balances,id','items.*.quantity'=>'required|numeric|gt:0',
             'items.*.unit_price'=>'required|numeric|min:0',
         ]);
-        $priceList=PriceList::query()->whereKey($data['price_list_id'])
-            ->where('type',PriceList::TYPE_CUSTOMER)->activeAt($data['issue_date'])->firstOrFail();
+        $priceList=PriceList::query()->with('globalUsers:id')->whereKey($data['price_list_id'])
+            ->whereIn('type',[PriceList::TYPE_GLOBAL,PriceList::TYPE_CUSTOMER])->activeAt($data['issue_date'])->firstOrFail();
+        $managerUserId=$request->integer('manager_user_id');
+        if(!$managerUserId || ($priceList->type===PriceList::TYPE_CUSTOMER
+            ? (int)$priceList->manager_user_id!==$managerUserId
+            : ($priceList->globalUsers->isNotEmpty() && !$priceList->globalUsers->contains('id',$managerUserId)))){
+            throw ValidationException::withMessages(['price_list_id'=>'Bảng giá không được phân cho Người phụ trách đã chọn.']);
+        }
         if($priceList->partner_id !== null && (int)$priceList->partner_id !== (int)($data['recipient_partner_id'] ?? 0)){
             throw ValidationException::withMessages(['price_list_id'=>'Bảng giá này chỉ áp dụng cho khách hàng đã liên kết.']);
         }
@@ -590,7 +596,7 @@ final class InventoryController extends Controller
         $items=collect($data['items'])->map(function(array $item) use ($warehouse,$allowedMedicineIds): array {
             $balance=InventoryBalance::query()->where('warehouse_id',$warehouse->id)->whereKey($item['balance_id'])->where('quantity_on_hand','>',0)->firstOrFail();
             if(! $allowedMedicineIds->contains((int)$balance->medicine_id)){
-                throw ValidationException::withMessages(['items'=>'Thuốc đã chọn không thuộc bảng giá CUSTOMER hoặc giá không còn hiệu lực.']);
+                throw ValidationException::withMessages(['items'=>'Thuốc đã chọn không thuộc bảng giá hoặc giá không còn hiệu lực.']);
             }
             return ['medicine_id'=>$balance->medicine_id,'batch_number'=>$balance->batch_number,'expiry_date'=>$balance->expiry_date->toDateString(),'quantity'=>$item['quantity'],'unit_price'=>(float)$item['unit_price']];
         })->all();
@@ -1014,7 +1020,7 @@ final class InventoryController extends Controller
             ->join('pharma_price_lists','pharma_price_lists.id','=','pharma_price_list_items.price_list_id')
             ->where('pharma_price_lists.status',PriceList::STATUS_ACTIVE)
             ->where('pharma_price_list_items.status','active')
-            ->where('pharma_price_lists.type',PriceList::TYPE_CUSTOMER)
+            ->whereIn('pharma_price_lists.type',[PriceList::TYPE_GLOBAL,PriceList::TYPE_CUSTOMER])
             ->whereNotNull('pharma_price_list_items.medicine_id')
             ->orderByDesc('pharma_price_lists.priority')
             ->orderByDesc('pharma_price_lists.effective_from')
