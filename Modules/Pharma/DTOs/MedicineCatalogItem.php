@@ -19,6 +19,9 @@ final readonly class MedicineCatalogItem
         public ?string $packaging,
         public ?string $registrationNumber,
         public ?string $manufacturer,
+        public bool $hasBidAward = false,
+        public bool $hasProfile = false,
+        public bool $hasSupplierPricing = false,
     ) {}
 
     public static function fromVariant(MedicineVariant $variant): self
@@ -40,6 +43,10 @@ final readonly class MedicineCatalogItem
             packaging: $package?->packaging_text ?: $medicine->packaging_specification,
             registrationNumber: $medicine->registration_number_primary ?: $medicine->registration_number,
             manufacturer: $medicine->manufacturing_company,
+            hasBidAward: $medicine->relationLoaded('drugBidAwards') && $medicine->drugBidAwards->isNotEmpty(),
+            hasProfile: $medicine->relationLoaded('currentProfile') && $medicine->currentProfile !== null,
+            hasSupplierPricing: $medicine->relationLoaded('supplierTrackings')
+                && $medicine->supplierTrackings->contains(fn ($tracking) => $tracking->import_price !== null),
         );
     }
 
@@ -58,6 +65,9 @@ final readonly class MedicineCatalogItem
             'packaging' => $this->packaging,
             'registration_number' => $this->registrationNumber,
             'manufacturer' => $this->manufacturer,
+            'has_bid_award' => $this->hasBidAward,
+            'has_profile' => $this->hasProfile,
+            'has_supplier_pricing' => $this->hasSupplierPricing,
         ];
     }
 }
