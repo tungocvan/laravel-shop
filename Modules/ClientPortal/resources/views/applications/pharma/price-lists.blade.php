@@ -18,9 +18,13 @@
     </section>
 
     <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-        <form id="price-list-search-form" method="GET" action="{{ route('client.pharma.price-lists') }}" class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_9rem]">
+        <form id="price-list-search-form" method="GET" action="{{ route('client.pharma.price-lists') }}" class="grid gap-3 lg:grid-cols-[minmax(15rem,1fr)_10.5rem_10.5rem_8rem_auto] lg:items-end">
             <label><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Tìm bảng giá / khách hàng</span><input id="price-list-search-input" type="search" name="q" value="{{ $search }}" autocomplete="off" class="h-[46px] w-full rounded-2xl border border-slate-300 px-4 text-sm" placeholder="Tên, mã bảng giá, khách hàng..."></label>
+            <label><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Từ ngày</span><input type="date" name="from_date" value="{{ $fromDate }}" onchange="this.form.submit()" class="h-[46px] w-full rounded-2xl border border-slate-300 px-3 text-sm"></label>
+            <label><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Đến ngày</span><input type="date" name="to_date" value="{{ $toDate }}" onchange="this.form.submit()" class="h-[46px] w-full rounded-2xl border border-slate-300 px-3 text-sm"></label>
             <label><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Hiển thị</span><select name="per_page" onchange="this.form.submit()" class="h-[46px] w-full rounded-2xl border border-slate-300 px-3 text-sm">@foreach([25,50,100] as $size)<option value="{{ $size }}" @selected($perPage === $size)>{{ $size }} / trang</option>@endforeach</select></label>
+            <a href="{{ route('client.pharma.price-lists', ['from_date' => now()->startOfMonth()->toDateString(), 'to_date' => now()->toDateString(), 'per_page' => 25]) }}" class="flex h-[46px] items-center justify-center rounded-2xl border border-slate-300 px-4 text-sm font-bold text-slate-600 hover:bg-slate-50">Đặt lại</a>
+            @if($status)<input type="hidden" name="status" value="{{ $status }}">@endif
         </form>
         @php
             $statuses = [
