@@ -3,7 +3,7 @@
 @section('admin_container','full')
 @section('content')
 <div class="mx-auto flex min-h-[calc(100vh-7.5rem)] w-full max-w-[1580px] flex-col gap-6">
-    <header class="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+    <header class="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between"><a href="{{ route('admin.pharma.dashboard') }}" class="text-sm font-semibold text-indigo-700 hover:text-indigo-900">← Trung tâm điều hành Pharma</a>
         <div>
             <a href="{{ route('admin.pharma.inventory.index') }}" class="text-sm font-semibold text-indigo-700">← Quay về Tồn kho</a>
             <h1 class="mt-2 text-2xl font-bold text-slate-950">{{ $title }}</h1>
