@@ -343,6 +343,7 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('Tài liệu đã xuất · {{ count($exportHistory) }}', $detail);
         $this->assertStringContainsString("matchMedia('(min-width: 1024px)')", $detail);
         $this->assertStringContainsString('min-w-0 overflow-hidden rounded-3xl', $detail);
+        $this->assertStringContainsString('group min-w-0 basis-full w-full lg:basis-auto lg:flex-1', $detail);
         $this->assertStringContainsString('break-all text-xs', $detail);
         $this->assertStringContainsString('id="price-list-product-search"', $detail);
         $this->assertStringContainsString('Tìm tên thuốc, mã thuốc, quy cách...', $detail);
