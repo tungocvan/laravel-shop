@@ -349,6 +349,10 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('m-auto w-[calc(100%-24px)] max-w-[520px] rounded-[28px]', $detail);
         $this->assertStringNotContainsString('id="price-list-export-dialog" class="mb-0 mt-auto', $detail);
         $this->assertStringNotContainsString('absolute right-0 z-20 mt-2 w-[min(92vw,430px)]', $detail);
+        $this->assertStringContainsString('id="price-list-secondary-actions-dialog"', $detail);
+        $this->assertStringContainsString("document.getElementById('price-list-secondary-actions-dialog').showModal()", $detail);
+        $this->assertStringContainsString('max-w-[440px] rounded-[28px]', $detail);
+        $this->assertStringNotContainsString('absolute right-0 z-20 mt-2 w-80', $detail);
         $this->assertStringContainsString('break-all text-xs', $detail);
         $this->assertStringContainsString('id="price-list-product-search"', $detail);
         $this->assertStringContainsString('Tìm tên thuốc, mã thuốc, quy cách...', $detail);
