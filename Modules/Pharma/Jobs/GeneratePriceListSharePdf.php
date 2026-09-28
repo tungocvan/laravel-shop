@@ -114,6 +114,7 @@ final class GeneratePriceListSharePdf implements ShouldQueue
         $sheet = $spreadsheet->getActiveSheet();
 
         $this->freezeWrappedTableRowHeights($sheet);
+        $this->normalizeSignatureDrawingForLibreOffice($sheet);
         $this->keepSignatureFooterTogether($sheet);
         $this->stabilizePrintLayout($sheet);
 
@@ -173,15 +174,68 @@ final class GeneratePriceListSharePdf implements ShouldQueue
         }
     }
 
-    private function keepSignatureFooterTogether(Worksheet $sheet): void
+    /**
+     * LibreOffice does not reliably move floating XLSX drawings with manual row page
+     * breaks. For the temporary PDF workbook only, re-anchor the signature image to
+     * the authored footer rows and make it move/resize with those cells.
+     */
+    private function normalizeSignatureDrawingForLibreOffice(Worksheet $sheet): void
     {
-        $markerRow = null;
+        $markerRow = $this->footerMarkerRow($sheet);
+        if ($markerRow === null) {
+            return;
+        }
+
+        $signatureRow = $markerRow + 3;
+        $signatureEndRow = $signatureRow + 2;
+        $lastColumnIndex = Coordinate::columnIndexFromString($sheet->getHighestDataColumn());
+        $firstColumnIndex = max(1, $lastColumnIndex - 4);
+        $firstColumn = Coordinate::stringFromColumnIndex($firstColumnIndex);
+        $lastColumn = Coordinate::stringFromColumnIndex($lastColumnIndex);
+
+        foreach ($sheet->getDrawingCollection() as $drawing) {
+            if (strcasecmp((string) $drawing->getName(), 'Signature') !== 0) {
+                continue;
+            }
+
+            $drawing->setCoordinates("{$firstColumn}{$signatureRow}");
+            $drawing->setOffsetX(0);
+            $drawing->setOffsetY(0);
+            $drawing->setResizeProportional(true);
+            if (method_exists($drawing, 'setEditAs')) {
+                $drawing->setEditAs('twoCell');
+            }
+            if (method_exists($drawing, 'setCoordinates2')) {
+                $drawing->setCoordinates2("{$lastColumn}{$signatureEndRow}");
+            }
+
+            // Keep the footer cells tall enough for the authored signature image.
+            $height = max(30, (float) $drawing->getHeight() * 0.75 / 3);
+            foreach (range($signatureRow, $signatureEndRow) as $row) {
+                $sheet->getRowDimension($row)->setRowHeight(max(
+                    $height,
+                    (float) $sheet->getRowDimension($row)->getRowHeight()
+                ));
+            }
+
+            break;
+        }
+    }
+
+    private function footerMarkerRow(Worksheet $sheet): ?int
+    {
         for ($row = $sheet->getHighestRow(); $row >= 1; $row--) {
             if ((string) $sheet->getCell("A{$row}")->getValue() === '__PHARMA_PRICE_LIST_FOOTER__') {
-                $markerRow = $row;
-                break;
+                return $row;
             }
         }
+
+        return null;
+    }
+
+    private function keepSignatureFooterTogether(Worksheet $sheet): void
+    {
+        $markerRow = $this->footerMarkerRow($sheet);
 
         if ($markerRow === null) {
             return;
