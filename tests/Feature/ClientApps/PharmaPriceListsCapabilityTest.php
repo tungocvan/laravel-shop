@@ -315,7 +315,7 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringNotContainsString("window.open(anchor.href", $detail);
         $this->assertStringNotContainsString("window.location=anchor.href", $detail);
         $this->assertStringContainsString('Tệp đã sẵn sàng', $detail);
-        $this->assertStringContainsString('PWA vẫn giữ nguyên màn hình này', $detail);
+        $this->assertStringContainsString('Màn hình PWA vẫn được giữ nguyên', $detail);
         $this->assertStringContainsString('rounded-t-[28px]', $detail);
         $this->assertStringContainsString('max-h-[92dvh]', $detail);
         $this->assertStringContainsString('grid grid-cols-2 gap-x-4 gap-y-5', $detail);
