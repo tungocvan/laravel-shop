@@ -407,6 +407,40 @@ final class PharmaApplicationController extends Controller
         return redirect()->back()->with('success', 'Đã xóa bản xuất Excel / PDF.');
     }
 
+    public function emailPriceListExportShare(int $share, Request $request, PriceListShareExportService $exports)
+    {
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+
+        $validated = $request->validate([
+            'recipients' => ['required', 'string', 'max:1000'],
+            'subject' => ['required', 'string', 'max:255'],
+            'message' => ['required', 'string', 'max:10000'],
+            'attach_excel' => ['nullable', 'boolean'],
+            'attach_pdf' => ['nullable', 'boolean'],
+        ]);
+
+        $recipients = collect(preg_split('/[;,\\s]+/', $validated['recipients']) ?: [])
+            ->map(fn ($email) => trim((string) $email))
+            ->filter()
+            ->unique()
+            ->values();
+
+        abort_if($recipients->isEmpty() || $recipients->count() > 20 || $recipients->contains(fn ($email) => filter_var($email, FILTER_VALIDATE_EMAIL) === false), 422, 'Danh sách email người nhận không hợp lệ.');
+
+        $exports->queueEmail(
+            $share,
+            (int) $user->id,
+            $recipients->all(),
+            trim($validated['subject']),
+            trim($validated['message']),
+            $request->boolean('attach_excel'),
+            $request->boolean('attach_pdf'),
+        );
+
+        return back()->with('success', 'Đã đưa email vào hàng đợi gửi.');
+    }
+
     public function priceListShareStatus(int $share, Request $request, PriceListShareExportService $exports)
     {
         $user = $request->user('web');
