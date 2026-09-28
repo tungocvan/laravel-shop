@@ -47,6 +47,7 @@ class PharmaClientFoundationTest extends TestCase
             'client.pharma.price-lists.view',
             'client.pharma.bid-awards.view',
             'client.pharma.commercial.view',
+            'client.pharma.commercial.view-team',
             'client.pharma.inventory.view',
             'client.pharma.inventory.receipts',
             'client.pharma.inventory.issues',
