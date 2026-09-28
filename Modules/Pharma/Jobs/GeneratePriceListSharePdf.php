@@ -114,7 +114,6 @@ final class GeneratePriceListSharePdf implements ShouldQueue
         $sheet = $spreadsheet->getActiveSheet();
 
         $this->freezeWrappedTableRowHeights($sheet);
-        $this->keepSignatureFooterTogether($sheet);
         $this->stabilizePrintLayout($sheet);
 
         $normalized = $workDir.'/pharma-price-list-pdf-source.xlsx';
@@ -182,22 +181,6 @@ final class GeneratePriceListSharePdf implements ShouldQueue
         }
 
         return null;
-    }
-
-    private function keepSignatureFooterTogether(Worksheet $sheet): void
-    {
-        $markerRow = $this->footerMarkerRow($sheet);
-
-        if ($markerRow === null) {
-            return;
-        }
-
-        // The marker row is hidden in Excel and only carries layout metadata.
-        // A manual row break before it forces LibreOffice to start the complete
-        // footer/signature block on a fresh page instead of floating the drawing
-        // beside the last product rows.
-        $sheet->setBreak("A{$markerRow}", Worksheet::BREAK_ROW);
-        $sheet->setCellValue("A{$markerRow}", null);
     }
 
     private function stabilizePrintLayout($sheet): void
