@@ -206,7 +206,7 @@ Trân trọng.</textarea></label>
         <div id="price-list-products" class="divide-y divide-slate-100">
             @forelse($priceList->items as $item)
                 @php $productSearchText = collect([$item->variant?->medicine?->name, $item->variant?->sku, $item->package?->name, $item->package?->packaging_specification])->filter()->implode(' '); @endphp
-                <article class="px-4 py-5 sm:px-5" data-price-list-product data-search="{{ IlluminateSupportStr::lower($productSearchText) }}">
+                <article class="px-4 py-5 sm:px-5" data-price-list-product data-search="{{ $productSearchText }}">
                     <div><p class="font-black leading-6 text-slate-900">{{ $item->variant?->medicine?->name ?? $item->variant?->sku ?? 'SKU #'.$item->medicine_variant_id }}</p><p class="mt-1 break-words text-xs leading-5 text-slate-400">{{ $item->variant?->sku }}@if($item->package) · {{ $item->package->name ?? $item->package->packaging_specification ?? '' }}@endif</p></div>
                     <div class="mt-4 grid grid-cols-2 gap-x-4 gap-y-4 lg:grid-cols-3">
                         <div><p class="text-xs font-bold text-slate-400">Giá kê khai</p><p class="mt-1 font-bold tabular-nums">{{ $item->declared_price_snapshot !== null ? number_format((float)$item->declared_price_snapshot,0,',','.') : '—' }}</p></div>
