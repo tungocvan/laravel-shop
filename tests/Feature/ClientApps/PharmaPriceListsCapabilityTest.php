@@ -243,6 +243,14 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString("'exportShares' => \$exportShares", $controller);
         $this->assertStringContainsString("session('price_list_share') ?? \$currentExportShare", $detail);
         $this->assertStringContainsString('title="Tải Excel đã xuất"', $view);
+        $this->assertStringContainsString('PDF đã sẵn sàng', $detailView);
+        $this->assertStringContainsString('Đang tạo PDF...', $detailView);
+        $this->assertStringNotContainsString('PDF đã sẵn sàng@elseif', $detailView);
+        $this->assertStringContainsString('prepareForLibreOffice', $pdfJob);
+        $this->assertStringContainsString('freezeWrappedTableRowHeights', $pdfJob);
+        $this->assertStringContainsString('stabilizePrintLayout', $pdfJob);
+        $this->assertStringContainsString('setFitToWidth(1)', $pdfJob);
+        $this->assertStringContainsString('setFitToHeight(0)', $pdfJob);
         $this->assertStringContainsString("\$exportShares[(int)\$priceList->id]", $view);
         $this->assertStringContainsString('Xuất & chia sẻ bảng giá Excel', $detail);
         $this->assertStringContainsString('Mẫu bảng giá', $detail);
