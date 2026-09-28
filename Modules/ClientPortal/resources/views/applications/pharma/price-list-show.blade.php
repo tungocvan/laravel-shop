@@ -60,7 +60,7 @@
                             </form>
                         </div>
                     </details>
-                    <details class="group min-w-0 flex-1">
+                    <details class="group min-w-0 basis-full w-full lg:basis-auto lg:flex-1">
                         <summary class="cursor-pointer list-none rounded-2xl border border-slate-300 px-5 py-3 text-sm font-black text-slate-700">Tài liệu đã xuất · {{ count($exportHistory) }}</summary>
                         <div class="mt-3 min-w-0 space-y-3 lg:min-w-[720px]">
                             @forelse($exportHistory as $export)
