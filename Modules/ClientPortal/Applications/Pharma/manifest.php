@@ -98,6 +98,7 @@ return [
         'commercial' => [
             'name' => 'Chính sách kinh doanh',
             'description' => 'Theo dõi chính sách và phân công thương mại thuộc phạm vi User.',
+            'route' => 'client.pharma.commercial',
             'permission' => 'client.pharma.commercial.view',
             'icon' => 'briefcase',
             'sort_order' => 50,
