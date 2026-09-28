@@ -295,7 +295,12 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString("name=\"message\"", $detail);
         $this->assertStringContainsString("name=\"attach_excel\"", $detail);
         $this->assertStringContainsString("name=\"attach_pdf\"", $detail);
-        $this->assertStringContainsString('Đưa vào hàng đợi gửi', $detail);
+        $this->assertStringContainsString('Gửi email →', $detail);
+        $this->assertStringContainsString('copyExportUrl', $detail);
+        $this->assertStringContainsString('navigator.clipboard', $detail);
+        $this->assertStringContainsString('Đã sao chép', $detail);
+        $this->assertStringContainsString('m-auto w-[calc(100%-1rem)]', $detail);
+        $this->assertStringContainsString('min-h-11', $detail);
         $this->assertStringContainsString('Phê duyệt & kích hoạt', $detail);
         $this->assertStringContainsString('Kích hoạt ngay', $detail);
         $this->assertStringContainsString('public function activateOwnDraft(int $approverUserId, int $priceListId)', $approval);
