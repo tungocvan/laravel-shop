@@ -307,6 +307,11 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('new File([blob]', $detail);
         $this->assertStringContainsString('navigator.canShare', $detail);
         $this->assertStringContainsString("navigator.share({files:[preparedPwaFile]", $detail);
+        $this->assertStringContainsString('URL.createObjectURL(preparedPwaFile)', $detail);
+        $this->assertStringContainsString('download.download=preparedPwaFile.name', $detail);
+        $this->assertStringContainsString('download.click()', $detail);
+        $this->assertStringContainsString('URL.revokeObjectURL(objectUrl)', $detail);
+        $this->assertStringContainsString('Đã chuyển tệp sang trình tải xuống', $detail);
         $this->assertStringNotContainsString("window.open(anchor.href", $detail);
         $this->assertStringNotContainsString("window.location=anchor.href", $detail);
         $this->assertStringContainsString('Tệp đã sẵn sàng', $detail);
