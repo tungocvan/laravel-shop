@@ -256,10 +256,13 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('setFitToHeight(0)', $pdfJob);
         $layout = file_get_contents(base_path('Modules/Pharma/Services/PriceListExcelDocumentLayout.php'));
         $this->assertStringContainsString('__PHARMA_PRICE_LIST_FOOTER__', $layout);
-        $this->assertStringContainsString('normalizeSignatureDrawingForLibreOffice', $pdfJob);
+        $this->assertStringContainsString('rasterizeSignatureFooterForLibreOffice', $pdfJob);
         $this->assertStringContainsString("getName(), 'Signature'", $pdfJob);
-        $this->assertStringContainsString("setEditAs('twoCell')", $pdfJob);
-        $this->assertStringContainsString('setCoordinates2', $pdfJob);
+        $this->assertStringContainsString("setName('PDF Footer')", $pdfJob);
+        $this->assertStringContainsString('imagecreatetruecolor', $pdfJob);
+        $this->assertStringContainsString('imagecopyresampled', $pdfJob);
+        $this->assertStringContainsString("offsetUnset($signatureIndex)", $pdfJob);
+        $this->assertStringNotContainsString("setEditAs('twoCell')", $pdfJob);
         $this->assertStringContainsString('keepSignatureFooterTogether', $pdfJob);
         $this->assertStringContainsString('Worksheet::BREAK_ROW', $pdfJob);
         $this->assertStringContainsString('setBreak("A{$markerRow}"', $pdfJob);
