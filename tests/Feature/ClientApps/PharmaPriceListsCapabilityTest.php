@@ -256,7 +256,7 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('setFitToWidth(1)', $pdfJob);
         $this->assertStringContainsString('setFitToHeight(0)', $pdfJob);
         $layout = file_get_contents(base_path('Modules/Pharma/Services/PriceListExcelDocumentLayout.php'));
-        $this->assertStringContainsString('__PHARMA_PRICE_LIST_FOOTER__', $layout);
+        $this->assertStringNotContainsString('__PHARMA_PRICE_LIST_FOOTER__', $layout);
         $this->assertStringNotContainsString('setasign\\Fpdi', $pdfJob);
         $this->assertStringNotContainsString('stampPdfFooter', $pdfJob);
         $this->assertStringNotContainsString('extractPdfFooter', $pdfJob);
