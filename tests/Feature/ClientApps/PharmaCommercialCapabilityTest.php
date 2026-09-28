@@ -35,6 +35,8 @@ class PharmaCommercialCapabilityTest extends TestCase
     {
         $service = file_get_contents(base_path('Modules/Pharma/Services/UserCommercialHospitalWorkspace.php'));
 
+        $this->assertStringContainsString('public function assignedUsers(): Collection', $service);
+        $this->assertStringContainsString("->whereColumn('workspace_assignments.user_id', 'users.id')", $service);
         $this->assertStringContainsString('public function browseHospitals(', $service);
         $this->assertStringContainsString('public function summary(int $userId): array', $service);
         $this->assertStringContainsString('public function findHospital(int $userId, int $partnerId): ?Partner', $service);
@@ -65,6 +67,10 @@ class PharmaCommercialCapabilityTest extends TestCase
         $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/commercial.blade.php'));
 
         $this->assertStringContainsString('UserCommercialHospitalWorkspace $workspace', $controller);
+        $this->assertStringContainsString("'client.pharma.commercial.view-team'", $controller);
+        $this->assertStringContainsString("'manager_user_id' => ['nullable', 'integer']", $controller);
+        $this->assertStringContainsString('$workspace->assignedUsers()', $controller);
+        $this->assertStringContainsString('userId: $targetUserId', $controller);
         $this->assertStringContainsString('$workspace->browseHospitals(', $controller);
         $this->assertStringContainsString('$workspace->summary((int) $user->id)', $controller);
         $this->assertStringContainsString('$workspace->findHospital((int) $user->id, $hospital)', $controller);
@@ -73,6 +79,11 @@ class PharmaCommercialCapabilityTest extends TestCase
         $this->assertStringContainsString('partnerId: (int) $scopedHospital->id', $controller);
 
         $this->assertStringContainsString('Công việc bệnh viện của tôi', $view);
+        $this->assertStringContainsString('Nhân viên phụ trách', $view);
+        $this->assertStringContainsString('manager_user_id', $view);
+        $this->assertStringContainsString('active:scale-[0.985]', $view);
+        $this->assertStringContainsString('motion-reduce:transform-none', $view);
+        $this->assertStringContainsString('commercial-navigation-feedback', $view);
         $this->assertStringContainsString('Danh sách chỉ gồm bệnh viện và sản phẩm trúng thầu đang được phân công', $view);
         $this->assertStringContainsString('@foreach([25, 50, 100] as $size)', $view);
         $this->assertStringContainsString('{{ $size }} / trang', $view);
@@ -109,6 +120,7 @@ class PharmaCommercialCapabilityTest extends TestCase
     public function test_workspace_is_a_public_reusable_pharma_read_contract(): void
     {
         $service = new ReflectionClass(UserCommercialHospitalWorkspace::class);
+        $this->assertTrue($service->hasMethod('assignedUsers'));
         $this->assertTrue($service->hasMethod('browseHospitals'));
         $this->assertTrue($service->hasMethod('summary'));
         $this->assertTrue($service->hasMethod('findHospital'));
