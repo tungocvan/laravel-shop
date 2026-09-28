@@ -72,7 +72,24 @@
                                             @if(!$isProcessing && !$export['revoked'])
                                                 <form method="POST" action="{{ $export['pdf_available'] ? route('client.pharma.price-lists.share.pdf.regenerate',$exportId) : route('client.pharma.price-lists.share.pdf.queue',$exportId) }}">@csrf<button class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold">{{ $export['pdf_available'] ? 'Tạo lại PDF' : 'Tạo PDF' }}</button></form>
                                             @endif
-                                            @if(!$export['revoked'])<button type="button" onclick="shareExportUrl('export-url-{{ $exportId }}')" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold">Chia sẻ</button><input id="export-url-{{ $exportId }}" type="hidden" value="{{ $export['pdf_available'] ? $export['pdf_url'] : $export['url'] }}">@endif
+                                            @if(!$export['revoked'])
+                                                <button type="button" onclick="shareExportUrl('export-url-{{ $exportId }}')" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold">Chia sẻ</button><input id="export-url-{{ $exportId }}" type="hidden" value="{{ $export['pdf_available'] ? $export['pdf_url'] : $export['url'] }}">
+                                                <button type="button" onclick="document.getElementById('email-export-{{ $exportId }}').showModal()" class="rounded-xl border border-sky-300 bg-white px-3 py-2 text-xs font-bold text-sky-800">Gửi email</button>
+                                                <dialog id="email-export-{{ $exportId }}" class="w-[min(92vw,620px)] rounded-3xl p-0 backdrop:bg-slate-950/50">
+                                                    <form method="POST" action="{{ route('client.pharma.price-lists.share.email',$exportId) }}" class="space-y-4 p-6">@csrf
+                                                        <div class="flex items-start justify-between gap-4"><div><p class="text-lg font-black text-slate-950">Gửi bảng giá qua email</p><p class="mt-1 text-xs text-slate-500">{{ $profileLabel }} · {{ $export['download_name'] }}</p></div><button type="button" onclick="this.closest('dialog').close()" class="rounded-xl px-3 py-2 text-sm font-black text-slate-500">✕</button></div>
+                                                        <label class="block"><span class="mb-1.5 block text-xs font-bold text-slate-600">Email người nhận *</span><input name="recipients" required maxlength="1000" class="h-11 w-full rounded-2xl border border-slate-300 px-4 text-sm" placeholder="email@congty.vn; email2@congty.vn"></label>
+                                                        <label class="block"><span class="mb-1.5 block text-xs font-bold text-slate-600">Tiêu đề *</span><input name="subject" required maxlength="255" value="Bảng giá - {{ $priceList->name }}" class="h-11 w-full rounded-2xl border border-slate-300 px-4 text-sm"></label>
+                                                        <label class="block"><span class="mb-1.5 block text-xs font-bold text-slate-600">Nội dung *</span><textarea name="message" required maxlength="10000" rows="6" class="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm" placeholder="Nhập nội dung email...">Kính gửi Quý khách,
+
+Xin gửi kèm bảng giá {{ $priceList->name }}.
+
+Trân trọng.</textarea></label>
+                                                        <fieldset><legend class="text-xs font-bold text-slate-600">Tệp đính kèm *</legend><div class="mt-2 flex flex-wrap gap-4 text-sm"><label class="flex items-center gap-2 font-bold text-emerald-800"><input type="checkbox" name="attach_excel" value="1" checked> Excel</label><label class="flex items-center gap-2 font-bold {{ $export['pdf_available'] ? 'text-violet-800' : 'text-slate-400' }}"><input type="checkbox" name="attach_pdf" value="1" @disabled(!$export['pdf_available'])> PDF @if(!$export['pdf_available'])<span class="text-xs font-normal">(chưa sẵn sàng)</span>@endif</label></div></fieldset>
+                                                        <div class="flex justify-end gap-2 border-t border-slate-100 pt-4"><button type="button" onclick="this.closest('dialog').close()" class="rounded-2xl border border-slate-300 px-5 py-3 text-sm font-black text-slate-700">Hủy</button><button class="rounded-2xl bg-sky-700 px-5 py-3 text-sm font-black text-white">Đưa vào hàng đợi gửi</button></div>
+                                                    </form>
+                                                </dialog>
+                                            @endif
                                             <form method="POST" action="{{ route('client.pharma.price-lists.share.export.delete',$exportId) }}" onsubmit="return confirm('Xóa bản xuất Excel/PDF này?')">@csrf @method('DELETE')<button @disabled($isProcessing) class="rounded-xl px-3 py-2 text-xs font-bold text-red-600 disabled:opacity-40">Xóa bản xuất</button></form>
                                         </div>
                                     </div>
