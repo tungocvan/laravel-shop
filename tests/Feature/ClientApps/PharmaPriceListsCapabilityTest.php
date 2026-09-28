@@ -256,14 +256,10 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('setFitToHeight(0)', $pdfJob);
         $layout = file_get_contents(base_path('Modules/Pharma/Services/PriceListExcelDocumentLayout.php'));
         $this->assertStringContainsString('__PHARMA_PRICE_LIST_FOOTER__', $layout);
-        $this->assertStringContainsString('extractPdfFooter', $pdfJob);
-        $this->assertStringContainsString("getName(), 'Signature'", $pdfJob);
-        $this->assertStringContainsString('offsetUnset($signatureIndex)', $pdfJob);
-        $this->assertStringContainsString('stampPdfFooter', $pdfJob);
-        $this->assertStringContainsString('new Fpdi()', $pdfJob);
-        $this->assertStringContainsString('importPage($page)', $pdfJob);
-        $this->assertStringContainsString('->Image($signature', $pdfJob);
-        $this->assertStringContainsString("pharma-price-list-final.pdf", $pdfJob);
+        $this->assertStringNotContainsString('setasign\\Fpdi', $pdfJob);
+        $this->assertStringNotContainsString('stampPdfFooter', $pdfJob);
+        $this->assertStringNotContainsString('extractPdfFooter', $pdfJob);
+        $this->assertStringNotContainsString('new Fpdi()', $pdfJob);
         $this->assertStringNotContainsString('rasterizeSignatureFooterForLibreOffice', $pdfJob);
         $this->assertStringNotContainsString("setEditAs('twoCell')", $pdfJob);
         $this->assertStringContainsString('keepSignatureFooterTogether', $pdfJob);
