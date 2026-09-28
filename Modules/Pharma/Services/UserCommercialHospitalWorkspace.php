@@ -113,7 +113,14 @@ final class UserCommercialHospitalWorkspace
             ->selectRaw('COALESCE(workspace_allocations.commercial_policy_percentage, product_policies.commission_percentage) as effective_policy_percentage')
             ->orderBy('awards.medicine_name')
             ->orderBy('awards.id')
-            ->paginate($perPage, ['*'], 'page', max(1, $page));
+            ->paginate($perPage, ['*'], 'page', max(1, $page))
+            ->through(function ($product) use ($userId, $partnerId) {
+                $context = $this->commercialContext($userId, $partnerId, (int) $product->id);
+                $product->sale_price = $context['sale_price'];
+                $product->supplier = $context['supplier'];
+
+                return $product;
+            });
     }
 
     /**
