@@ -659,7 +659,6 @@ final class PharmaApplicationController extends Controller
     ): View {
         $validated = $request->validate([
             'q' => ['nullable', 'string', 'max:120'],
-            'per_page' => ['nullable', 'integer', 'in:25,50,100'],
             'page' => ['nullable', 'integer', 'min:1'],
             'manager_user_id' => ['nullable', 'integer'],
         ]);
@@ -683,12 +682,11 @@ final class PharmaApplicationController extends Controller
             'hospitals' => $workspace->browseHospitals(
                 userId: $targetUserId,
                 search: $validated['q'] ?? null,
-                perPage: (int) ($validated['per_page'] ?? 25),
+                perPage: 20,
                 page: (int) ($validated['page'] ?? 1),
             )->withQueryString(),
             'summary' => $workspace->summary($targetUserId),
             'search' => trim((string) ($validated['q'] ?? '')),
-            'perPage' => (int) ($validated['per_page'] ?? 25),
             'canViewTeam' => $canViewTeam,
             'assignedUsers' => $assignedUsers,
             'managerUserId' => $targetUser ? $targetUserId : null,
@@ -705,7 +703,6 @@ final class PharmaApplicationController extends Controller
     ): View {
         $validated = $request->validate([
             'q' => ['nullable', 'string', 'max:120'],
-            'per_page' => ['nullable', 'integer', 'in:25,50,100'],
             'page' => ['nullable', 'integer', 'min:1'],
             'manager_user_id' => ['nullable', 'integer'],
         ]);
@@ -734,12 +731,11 @@ final class PharmaApplicationController extends Controller
                 userId: $targetUserId,
                 partnerId: (int) $scopedHospital->id,
                 search: $validated['q'] ?? null,
-                perPage: (int) ($validated['per_page'] ?? 25),
+                perPage: 20,
                 page: (int) ($validated['page'] ?? 1),
                 includeSupplierPricing: $registry->userCan($user, 'client.pharma.products.supplier-pricing'),
             )->withQueryString(),
             'search' => trim((string) ($validated['q'] ?? '')),
-            'perPage' => (int) ($validated['per_page'] ?? 25),
             'managerUserId' => $targetUser ? $targetUserId : null,
             'scopeUser' => $targetUser ?? $user,
         ]);
