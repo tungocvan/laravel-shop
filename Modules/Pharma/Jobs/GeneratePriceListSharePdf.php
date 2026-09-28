@@ -13,11 +13,11 @@ use Modules\Pharma\Models\PriceListExportShare;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Drawing as SharedDrawing;
-use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use RuntimeException;
+use setasign\Fpdi\Fpdi;
 use Throwable;
 
 final class GeneratePriceListSharePdf implements ShouldQueue
@@ -54,7 +54,7 @@ final class GeneratePriceListSharePdf implements ShouldQueue
 
         try {
             $source = $disk->path($share->storage_path);
-            $conversionSource = $this->prepareForLibreOffice($source, $workDir);
+            [$conversionSource, $pdfFooter] = $this->prepareForLibreOffice($source, $workDir);
             $result = Process::timeout(100)->run([
                 'libreoffice',
                 '--headless',
@@ -72,6 +72,10 @@ final class GeneratePriceListSharePdf implements ShouldQueue
             $generated = $workDir.'/'.pathinfo($conversionSource, PATHINFO_FILENAME).'.pdf';
             if (! is_file($generated)) {
                 throw new RuntimeException('Không tìm thấy file PDF sau khi chuyển đổi.');
+            }
+
+            if ($pdfFooter !== null) {
+                $generated = $this->stampPdfFooter($generated, $pdfFooter, $workDir);
             }
 
             $pdfName = pathinfo($share->download_name, PATHINFO_FILENAME).'.pdf';
@@ -109,13 +113,13 @@ final class GeneratePriceListSharePdf implements ShouldQueue
      * Normalize only a temporary conversion workbook so the downloadable Excel stays
      * untouched while PDF pagination keeps table rows and the signature block stable.
      */
-    private function prepareForLibreOffice(string $source, string $workDir): string
+    private function prepareForLibreOffice(string $source, string $workDir): array
     {
         $spreadsheet = IOFactory::load($source);
         $sheet = $spreadsheet->getActiveSheet();
 
         $this->freezeWrappedTableRowHeights($sheet);
-        $this->rasterizeSignatureFooterForLibreOffice($sheet, $workDir);
+        $pdfFooter = $this->extractPdfFooter($sheet, $workDir);
         $this->keepSignatureFooterTogether($sheet);
         $this->stabilizePrintLayout($sheet);
 
@@ -123,7 +127,7 @@ final class GeneratePriceListSharePdf implements ShouldQueue
         (new Xlsx($spreadsheet))->save($normalized);
         $spreadsheet->disconnectWorksheets();
 
-        return $normalized;
+        return [$normalized, $pdfFooter];
     }
 
     private function freezeWrappedTableRowHeights($sheet): void
@@ -176,16 +180,14 @@ final class GeneratePriceListSharePdf implements ShouldQueue
     }
 
     /**
-     * LibreOffice can reposition an XLSX signature drawing independently from the
-     * footer cells when pagination changes. For the temporary PDF workbook only,
-     * flatten the complete authored footer into one PNG and replace the original
-     * cells/drawing with that single visual block.
+     * Extract footer content before LibreOffice conversion, then remove it from the
+     * temporary workbook. The final footer is stamped directly onto the last PDF page.
      */
-    private function rasterizeSignatureFooterForLibreOffice(Worksheet $sheet, string $workDir): void
+    private function extractPdfFooter(Worksheet $sheet, string $workDir): ?array
     {
         $markerRow = $this->footerMarkerRow($sheet);
-        if ($markerRow === null || ! function_exists('imagecreatetruecolor')) {
-            return;
+        if ($markerRow === null) {
+            return null;
         }
 
         $signatureIndex = null;
@@ -197,9 +199,6 @@ final class GeneratePriceListSharePdf implements ShouldQueue
                 break;
             }
         }
-        if ($signature === null) {
-            return;
-        }
 
         $locationRow = $markerRow + 1;
         $titleRow = $markerRow + 2;
@@ -210,110 +209,96 @@ final class GeneratePriceListSharePdf implements ShouldQueue
         $firstColumn = Coordinate::stringFromColumnIndex($firstColumnIndex);
         $lastColumn = Coordinate::stringFromColumnIndex($lastColumnIndex);
 
-        $location = (string) $sheet->getCell("{$firstColumn}{$locationRow}")->getFormattedValue();
-        $title = (string) $sheet->getCell("{$firstColumn}{$titleRow}")->getFormattedValue();
-        $name = (string) $sheet->getCell("{$firstColumn}{$nameRow}")->getFormattedValue();
-        $signatureBytes = @file_get_contents($signature->getPath());
-        if ($signatureBytes === false) {
-            return;
+        $footer = [
+            'location' => (string) $sheet->getCell("{$firstColumn}{$locationRow}")->getFormattedValue(),
+            'title' => (string) $sheet->getCell("{$firstColumn}{$titleRow}")->getFormattedValue(),
+            'name' => (string) $sheet->getCell("{$firstColumn}{$nameRow}")->getFormattedValue(),
+            'signature' => null,
+        ];
+
+        if ($signature !== null) {
+            $bytes = @file_get_contents($signature->getPath());
+            if ($bytes !== false) {
+                $extension = strtolower(pathinfo($signature->getPath(), PATHINFO_EXTENSION)) ?: 'png';
+                $signaturePath = $workDir.'/pharma-price-list-signature.'.$extension;
+                if (file_put_contents($signaturePath, $bytes) !== false) {
+                    $footer['signature'] = $signaturePath;
+                }
+            }
         }
-        $signatureImage = @imagecreatefromstring($signatureBytes);
-        if ($signatureImage === false) {
-            return;
-        }
 
-        $canvasWidth = 900;
-        $canvasHeight = 390;
-        $canvas = imagecreatetruecolor($canvasWidth, $canvasHeight);
-        $white = imagecolorallocate($canvas, 255, 255, 255);
-        $black = imagecolorallocate($canvas, 20, 20, 20);
-        imagefilledrectangle($canvas, 0, 0, $canvasWidth, $canvasHeight, $white);
-
-        $font = $this->pdfFooterFont();
-        $this->drawCenteredFooterText($canvas, $location, 20, 34, $black, $font, false);
-        $this->drawCenteredFooterText($canvas, $title, 22, 70, $black, $font, true);
-
-        $sourceWidth = imagesx($signatureImage);
-        $sourceHeight = imagesy($signatureImage);
-        $targetHeight = 220;
-        $targetWidth = max(1, (int) round($sourceWidth * ($targetHeight / max(1, $sourceHeight))));
-        if ($targetWidth > 420) {
-            $targetWidth = 420;
-            $targetHeight = max(1, (int) round($sourceHeight * ($targetWidth / max(1, $sourceWidth))));
-        }
-        $targetX = (int) round(($canvasWidth - $targetWidth) / 2);
-        imagecopyresampled($canvas, $signatureImage, $targetX, 88, 0, 0, $targetWidth, $targetHeight, $sourceWidth, $sourceHeight);
-        imagedestroy($signatureImage);
-
-        $this->drawCenteredFooterText($canvas, $name, 21, 350, $black, $font, true);
-
-        $footerPng = $workDir.'/pharma-price-list-footer.png';
-        imagepng($canvas, $footerPng, 6);
-        imagedestroy($canvas);
-
-        // Remove the original floating signature and clear the authored footer text:
-        // the PNG below is now the sole PDF representation of this block.
         if ($signatureIndex !== null) {
             $sheet->getDrawingCollection()->offsetUnset($signatureIndex);
         }
-        foreach ([$locationRow, $titleRow, $nameRow] as $row) {
-            $sheet->setCellValue("{$firstColumn}{$row}", null);
-        }
 
-        $footerEndRow = $signatureRow + 4;
-        $sheet->mergeCells("{$firstColumn}{$locationRow}:{$lastColumn}{$footerEndRow}");
-        foreach (range($locationRow, $footerEndRow) as $row) {
-            $sheet->getRowDimension($row)->setRowHeight(42);
-        }
-
-        $flattened = new Drawing();
-        $flattened->setName('PDF Footer');
-        $flattened->setDescription('Flattened signature footer for LibreOffice PDF conversion');
-        $flattened->setPath($footerPng);
-        $flattened->setCoordinates("{$firstColumn}{$locationRow}");
-        $flattened->setOffsetX(0);
-        $flattened->setOffsetY(0);
-        $flattened->setResizeProportional(true);
-        $flattened->setHeight(290);
-        $flattened->setWorksheet($sheet);
-    }
-
-    private function pdfFooterFont(): ?string
-    {
-        foreach ([
-            '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
-            '/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf',
-        ] as $font) {
-            if (is_file($font)) {
-                return $font;
+        // LibreOffice must not render any part of the signature footer. Preserve the
+        // rows as whitespace so table pagination remains close to the authored Excel.
+        foreach (range($locationRow, $nameRow) as $row) {
+            foreach (range($firstColumnIndex, $lastColumnIndex) as $column) {
+                $sheet->setCellValue([Coordinate::stringFromColumnIndex($column), $row], null);
             }
         }
 
-        return null;
+        return $footer;
     }
 
-    private function drawCenteredFooterText($image, string $text, int $size, int $baseline, int $color, ?string $font, bool $bold): void
+    private function stampPdfFooter(string $sourcePdf, array $footer, string $workDir): string
     {
-        $text = trim($text);
-        if ($text === '') {
-            return;
-        }
+        $pdf = new Fpdi();
+        $pageCount = $pdf->setSourceFile($sourcePdf);
+        $signature = $footer['signature'] ?? null;
 
-        if ($font !== null && function_exists('imagettftext')) {
-            $fontSize = $bold ? $size + 1 : $size;
-            $box = imagettfbbox($fontSize, 0, $font, $text);
-            $width = $box === false ? 0 : abs($box[2] - $box[0]);
-            $x = max(0, (int) round((imagesx($image) - $width) / 2));
-            imagettftext($image, $fontSize, 0, $x, $baseline, $color, $font, $text);
-            if ($bold) {
-                imagettftext($image, $fontSize, 0, $x + 1, $baseline, $color, $font, $text);
+        for ($page = 1; $page <= $pageCount; $page++) {
+            $template = $pdf->importPage($page);
+            $size = $pdf->getTemplateSize($template);
+            $orientation = $size['width'] > $size['height'] ? 'L' : 'P';
+            $pdf->AddPage($orientation, [$size['width'], $size['height']]);
+            $pdf->useTemplate($template);
+
+            if ($page !== $pageCount) {
+                continue;
             }
-            return;
+
+            $blockWidth = min(92.0, $size['width'] * 0.34);
+            $x = $size['width'] - $blockWidth - 12.0;
+            $bottom = 12.0;
+            $nameY = $size['height'] - $bottom - 6.0;
+            $imageHeight = 28.0;
+            $imageY = $nameY - $imageHeight - 7.0;
+            $titleY = $imageY - 10.0;
+            $locationY = $titleY - 7.0;
+
+            $pdf->SetTextColor(20, 20, 20);
+            $pdf->SetFont('Arial', 'I', 9);
+            $pdf->SetXY($x, $locationY);
+            $pdf->Cell($blockWidth, 5, $this->fpdfText((string) ($footer['location'] ?? '')), 0, 0, 'C');
+
+            $pdf->SetFont('Arial', 'B', 10);
+            $pdf->SetXY($x, $titleY);
+            $pdf->Cell($blockWidth, 5, $this->fpdfText((string) ($footer['title'] ?? '')), 0, 0, 'C');
+
+            if (is_string($signature) && is_file($signature)) {
+                [$imageWidthPx, $imageHeightPx] = getimagesize($signature) ?: [1, 1];
+                $imageWidth = min(48.0, $imageHeight * ($imageWidthPx / max(1, $imageHeightPx)));
+                $pdf->Image($signature, $x + (($blockWidth - $imageWidth) / 2), $imageY, $imageWidth, $imageHeight);
+            }
+
+            $pdf->SetFont('Arial', 'B', 10);
+            $pdf->SetXY($x, $nameY);
+            $pdf->Cell($blockWidth, 5, $this->fpdfText((string) ($footer['name'] ?? '')), 0, 0, 'C');
         }
 
-        $fontId = 5;
-        $width = imagefontwidth($fontId) * strlen($text);
-        imagestring($image, $fontId, max(0, (int) round((imagesx($image) - $width) / 2)), max(0, $baseline - 15), $text, $color);
+        $stamped = $workDir.'/pharma-price-list-final.pdf';
+        $pdf->Output('F', $stamped);
+
+        return $stamped;
+    }
+
+    private function fpdfText(string $text): string
+    {
+        $converted = @iconv('UTF-8', 'windows-1252//TRANSLIT//IGNORE', $text);
+
+        return $converted === false ? $text : $converted;
     }
 
     private function footerMarkerRow(Worksheet $sheet): ?int
