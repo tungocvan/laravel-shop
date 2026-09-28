@@ -72,8 +72,8 @@ class PharmaCommercialCapabilityTest extends TestCase
         $this->assertStringContainsString('$workspace->assignedUsers()', $controller);
         $this->assertStringContainsString('userId: $targetUserId', $controller);
         $this->assertStringContainsString('$workspace->browseHospitals(', $controller);
-        $this->assertStringContainsString('$workspace->summary((int) $user->id)', $controller);
-        $this->assertStringContainsString('$workspace->findHospital((int) $user->id, $hospital)', $controller);
+        $this->assertStringContainsString('$workspace->summary($targetUserId)', $controller);
+        $this->assertStringContainsString('$workspace->findHospital($targetUserId, $hospital)', $controller);
         $this->assertStringContainsString('abort_if($scopedHospital === null, 404)', $controller);
         $this->assertStringContainsString('$workspace->assignedProducts(', $controller);
         $this->assertStringContainsString('partnerId: (int) $scopedHospital->id', $controller);
@@ -84,6 +84,7 @@ class PharmaCommercialCapabilityTest extends TestCase
         $this->assertStringContainsString('active:scale-[0.985]', $view);
         $this->assertStringContainsString('motion-reduce:transform-none', $view);
         $this->assertStringContainsString('commercial-navigation-feedback', $view);
+        $this->assertStringContainsString("array_filter(['hospital' => $hospital->id, 'manager_user_id' => $managerUserId])", $view);
         $this->assertStringContainsString('Danh sách chỉ gồm bệnh viện và sản phẩm trúng thầu đang được phân công', $view);
         $this->assertStringContainsString('@foreach([25, 50, 100] as $size)', $view);
         $this->assertStringContainsString('{{ $size }} / trang', $view);
