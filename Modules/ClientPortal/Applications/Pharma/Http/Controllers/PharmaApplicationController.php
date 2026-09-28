@@ -716,6 +716,7 @@ final class PharmaApplicationController extends Controller
                 search: $validated['q'] ?? null,
                 perPage: (int) ($validated['per_page'] ?? 25),
                 page: (int) ($validated['page'] ?? 1),
+                includeSupplierPricing: $registry->userCan($user, 'client.pharma.products.supplier-pricing'),
             )->withQueryString(),
             'search' => trim((string) ($validated['q'] ?? '')),
             'perPage' => (int) ($validated['per_page'] ?? 25),
