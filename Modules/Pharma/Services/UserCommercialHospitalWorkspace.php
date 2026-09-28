@@ -70,6 +70,7 @@ final class UserCommercialHospitalWorkspace
         ?string $search = null,
         int $perPage = 25,
         int $page = 1,
+        bool $includeSupplierPricing = false,
     ): LengthAwarePaginator {
         $search = trim((string) $search);
         $perPage = in_array($perPage, [25, 50, 100], true) ? $perPage : 25;
@@ -114,8 +115,8 @@ final class UserCommercialHospitalWorkspace
             ->orderBy('awards.medicine_name')
             ->orderBy('awards.id')
             ->paginate($perPage, ['*'], 'page', max(1, $page))
-            ->through(function ($product) use ($userId, $partnerId) {
-                $context = $this->commercialContext($userId, $partnerId, (int) $product->id);
+            ->through(function ($product) use ($userId, $partnerId, $includeSupplierPricing) {
+                $context = $this->commercialContext($userId, $partnerId, (int) $product->id, $includeSupplierPricing);
                 $product->sale_price = $context['sale_price'];
                 $product->supplier = $context['supplier'];
 
@@ -126,7 +127,7 @@ final class UserCommercialHospitalWorkspace
     /**
      * @return array{sale_price:?array,supplier:?array}
      */
-    public function commercialContext(int $userId, int $partnerId, int $awardId): array
+    public function commercialContext(int $userId, int $partnerId, int $awardId, bool $includeSupplierPricing = false): array
     {
         $award = $this->assignedAwardQuery($userId, $partnerId)
             ->where('awards.id', $awardId)
@@ -141,7 +142,7 @@ final class UserCommercialHospitalWorkspace
 
         return [
             'sale_price' => $this->resolveUnambiguousSalePrice($medicineId, $partnerId),
-            'supplier' => $this->resolveCurrentSupplier($medicineId),
+            'supplier' => $this->resolveCurrentSupplier($medicineId, $includeSupplierPricing),
         ];
     }
 
@@ -197,7 +198,7 @@ final class UserCommercialHospitalWorkspace
         ];
     }
 
-    private function resolveCurrentSupplier(int $medicineId): ?array
+    private function resolveCurrentSupplier(int $medicineId, bool $includePricing): ?array
     {
         $today = now()->toDateString();
         $tracking = SupplierTracking::query()
@@ -220,9 +221,10 @@ final class UserCommercialHospitalWorkspace
 
         return [
             'supplier_name' => $tracking->partner?->name ?: $tracking->supplier_name,
-            'import_price' => $tracking->import_price,
-            'invoice_price' => $tracking->invoice_price,
-            'cost_price' => $tracking->cost_price,
+            'import_price' => $includePricing ? $tracking->import_price : null,
+            'invoice_price' => $includePricing ? $tracking->invoice_price : null,
+            'cost_price' => $includePricing ? $tracking->cost_price : null,
+            'pricing_visible' => $includePricing,
             'working_date' => $tracking->working_date?->toDateString(),
             'effective_from' => $tracking->start_date?->toDateString(),
             'effective_to' => $tracking->end_date?->toDateString(),
