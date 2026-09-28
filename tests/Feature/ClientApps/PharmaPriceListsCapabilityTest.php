@@ -262,9 +262,9 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringNotContainsString('new Fpdi()', $pdfJob);
         $this->assertStringNotContainsString('rasterizeSignatureFooterForLibreOffice', $pdfJob);
         $this->assertStringNotContainsString("setEditAs('twoCell')", $pdfJob);
-        $this->assertStringContainsString('keepSignatureFooterTogether', $pdfJob);
-        $this->assertStringContainsString('Worksheet::BREAK_ROW', $pdfJob);
-        $this->assertStringContainsString('setBreak("A{$markerRow}"', $pdfJob);
+        $this->assertStringNotContainsString('keepSignatureFooterTogether', $pdfJob);
+        $this->assertStringNotContainsString('Worksheet::BREAK_ROW', $pdfJob);
+        $this->assertStringNotContainsString('setBreak("A{$markerRow}"', $pdfJob);
         $this->assertStringContainsString("\$exportShares[(int)\$priceList->id]", $view);
         $this->assertStringContainsString('+ Xuất tài liệu', $detail);
         $this->assertStringContainsString('Tài liệu đã xuất', $detail);
