@@ -43,6 +43,10 @@ class PharmaCommercialCapabilityTest extends TestCase
         $this->assertStringContainsString("DrugBidAwardAllocation::STATUS_ACTIVE", $service);
         $this->assertStringContainsString("'workspace_allocations.partner_id', '=', 'workspace_assignments.partner_id'", $service);
         $this->assertStringContainsString('COUNT(DISTINCT product_assignments.drug_bid_award_id)', $service);
+        $this->assertStringContainsString('public function assignedProducts(', $service);
+        $this->assertStringContainsString("->where('workspace_assignments.partner_id', \$partnerId)", $service);
+        $this->assertStringContainsString("'pharma_drug_bid_award_product_policies as product_policies'", $service);
+        $this->assertStringContainsString('COALESCE(workspace_allocations.commercial_policy_percentage, product_policies.commission_percentage) as effective_policy_percentage', $service);
         $this->assertStringNotContainsString('auth()', $service);
     }
 
@@ -56,6 +60,8 @@ class PharmaCommercialCapabilityTest extends TestCase
         $this->assertStringContainsString('$workspace->summary((int) $user->id)', $controller);
         $this->assertStringContainsString('$workspace->findHospital((int) $user->id, $hospital)', $controller);
         $this->assertStringContainsString('abort_if($scopedHospital === null, 404)', $controller);
+        $this->assertStringContainsString('$workspace->assignedProducts(', $controller);
+        $this->assertStringContainsString('partnerId: (int) $scopedHospital->id', $controller);
 
         $this->assertStringContainsString('Công việc bệnh viện của tôi', $view);
         $this->assertStringContainsString('Danh sách chỉ gồm bệnh viện và sản phẩm trúng thầu đang được phân công', $view);
@@ -68,12 +74,32 @@ class PharmaCommercialCapabilityTest extends TestCase
         $this->assertStringNotContainsString('Admin::', $view);
     }
 
+    public function test_commercial_hospital_detail_shows_assigned_bid_and_effective_policy_data(): void
+    {
+        $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/commercial-hospital-show.blade.php'));
+
+        $this->assertStringContainsString('Danh sách sản phẩm', $view);
+        $this->assertStringContainsString('Tên thuốc, hoạt chất, số đăng ký...', $view);
+        $this->assertStringContainsString('@foreach([25, 50, 100] as $size)', $view);
+        $this->assertStringContainsString('Giá trúng thầu', $view);
+        $this->assertStringContainsString('SL phân bổ', $view);
+        $this->assertStringContainsString('SL trúng thầu', $view);
+        $this->assertStringContainsString('Chính sách hiệu lực', $view);
+        $this->assertStringContainsString("'Theo bệnh viện' : 'Theo sản phẩm'", $view);
+        $this->assertStringContainsString('effective_from', $view);
+        $this->assertStringContainsString('effective_until', $view);
+        $this->assertStringNotContainsString('Giá vốn NCC', $view);
+        $this->assertStringNotContainsString('Admin::', $view);
+    }
+
     public function test_workspace_is_a_public_reusable_pharma_read_contract(): void
     {
         $service = new ReflectionClass(UserCommercialHospitalWorkspace::class);
         $this->assertTrue($service->hasMethod('browseHospitals'));
         $this->assertTrue($service->hasMethod('summary'));
         $this->assertTrue($service->hasMethod('findHospital'));
+        $this->assertTrue($service->hasMethod('assignedProducts'));
         $this->assertTrue($service->getMethod('browseHospitals')->isPublic());
+        $this->assertTrue($service->getMethod('assignedProducts')->isPublic());
     }
 }
