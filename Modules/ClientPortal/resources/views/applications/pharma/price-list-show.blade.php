@@ -50,16 +50,22 @@
                     <div class="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                         <div class="min-w-0"><p class="text-sm text-slate-600">Xuất nhiều mẫu độc lập; mỗi bản Excel có thể tạo hoặc tạo lại PDF riêng.</p></div>
                         <div class="flex min-w-0 flex-wrap gap-2">
-                    <details class="group relative">
-                        <summary class="cursor-pointer list-none rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white">+ Xuất tài liệu</summary>
-                        <div class="absolute right-0 z-20 mt-2 w-[min(92vw,430px)] rounded-3xl border border-slate-200 bg-white p-5 shadow-xl">
-                            <p class="font-black text-slate-950">Xuất tài liệu mới</p><p class="mt-1 text-xs text-slate-500">Bản xuất trước được giữ nguyên trong lịch sử.</p>
-                            <form method="POST" action="{{ route('client.pharma.price-lists.export-share',$priceList->id) }}" class="mt-4 space-y-4">@csrf
+                    <button type="button" onclick="document.getElementById('price-list-export-dialog').showModal()" class="min-h-11 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white">+ Xuất tài liệu</button>
+                    <dialog id="price-list-export-dialog" class="mb-0 mt-auto w-full max-w-[560px] rounded-t-[28px] border-0 p-0 shadow-2xl backdrop:bg-slate-950/55 lg:m-auto lg:w-[min(92vw,560px)] lg:rounded-[28px]">
+                        <form method="POST" action="{{ route('client.pharma.price-lists.export-share',$priceList->id) }}" class="flex max-h-[92dvh] flex-col">@csrf
+                            <div class="min-w-0 space-y-4 overflow-y-auto p-5 pb-3 sm:p-6 sm:pb-3">
+                                <div class="flex items-start justify-between gap-4">
+                                    <div class="min-w-0"><p class="font-black text-slate-950">Xuất tài liệu mới</p><p class="mt-1 text-xs text-slate-500">Bản xuất trước được giữ nguyên trong lịch sử.</p></div>
+                                    <button type="button" onclick="this.closest('dialog').close()" class="min-h-11 shrink-0 rounded-xl px-3 py-2 text-sm font-black text-slate-500" aria-label="Đóng">✕</button>
+                                </div>
                                 <label class="block"><span class="mb-1.5 block text-xs font-bold text-slate-500">Mẫu bảng giá</span><select name="export_profile_id" class="h-11 w-full rounded-2xl border border-slate-300 bg-white px-3 text-sm"><option value="">Mặc định hệ thống</option>@foreach($exportProfiles as $profile)<option value="{{ $profile['id'] }}">{{ $profile['name'] }}{{ $profile['is_default']?' · Mặc định':'' }}</option>@endforeach</select></label>
-                                <div class="flex justify-end"><button class="rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white">Xuất Excel mới</button></div>
-                            </form>
-                        </div>
-                    </details>
+                            </div>
+                            <div class="flex shrink-0 gap-2 border-t border-slate-100 bg-white p-4 lg:justify-end">
+                                <button type="button" onclick="this.closest('dialog').close()" class="min-h-11 flex-1 rounded-2xl border border-slate-300 px-5 py-3 text-sm font-black text-slate-700 lg:flex-none">Hủy</button>
+                                <button class="min-h-11 flex-1 rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white lg:flex-none">Xuất Excel mới</button>
+                            </div>
+                        </form>
+                    </dialog>
                     <details class="group min-w-0 basis-full w-full lg:basis-auto lg:flex-1">
                         <summary class="cursor-pointer list-none rounded-2xl border border-slate-300 px-5 py-3 text-sm font-black text-slate-700">Tài liệu đã xuất · {{ count($exportHistory) }}</summary>
                         <div class="mt-3 min-w-0 space-y-3 lg:min-w-[720px]">
