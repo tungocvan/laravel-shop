@@ -61,6 +61,10 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->whereNumber(['priceList', 'item'])
             ->middleware('client.feature:pharma,price-lists')
             ->name('price-list-approvals.items.delete');
+        Route::post('/price-lists/{priceList}/activate-own-draft', [PharmaApplicationController::class, 'activateOwnDraftPriceList'])
+            ->whereNumber('priceList')
+            ->middleware('client.feature:pharma,price-lists')
+            ->name('price-lists.activate-own-draft');
         Route::post('/price-list-approvals/{priceList}/approve', [PharmaApplicationController::class, 'approvePriceList'])
             ->whereNumber('priceList')
             ->middleware('client.feature:pharma,price-lists')
