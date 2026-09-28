@@ -13,6 +13,7 @@ use Modules\Pharma\Models\PriceListExportShare;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Drawing as SharedDrawing;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -114,7 +115,7 @@ final class GeneratePriceListSharePdf implements ShouldQueue
         $sheet = $spreadsheet->getActiveSheet();
 
         $this->freezeWrappedTableRowHeights($sheet);
-        $this->normalizeSignatureDrawingForLibreOffice($sheet);
+        $this->rasterizeSignatureFooterForLibreOffice($sheet, $workDir);
         $this->keepSignatureFooterTogether($sheet);
         $this->stabilizePrintLayout($sheet);
 
@@ -175,51 +176,144 @@ final class GeneratePriceListSharePdf implements ShouldQueue
     }
 
     /**
-     * LibreOffice does not reliably move floating XLSX drawings with manual row page
-     * breaks. For the temporary PDF workbook only, re-anchor the signature image to
-     * the authored footer rows and make it move/resize with those cells.
+     * LibreOffice can reposition an XLSX signature drawing independently from the
+     * footer cells when pagination changes. For the temporary PDF workbook only,
+     * flatten the complete authored footer into one PNG and replace the original
+     * cells/drawing with that single visual block.
      */
-    private function normalizeSignatureDrawingForLibreOffice(Worksheet $sheet): void
+    private function rasterizeSignatureFooterForLibreOffice(Worksheet $sheet, string $workDir): void
     {
         $markerRow = $this->footerMarkerRow($sheet);
-        if ($markerRow === null) {
+        if ($markerRow === null || ! function_exists('imagecreatetruecolor')) {
             return;
         }
 
+        $signatureIndex = null;
+        $signature = null;
+        foreach ($sheet->getDrawingCollection() as $index => $drawing) {
+            if (strcasecmp((string) $drawing->getName(), 'Signature') === 0) {
+                $signatureIndex = $index;
+                $signature = $drawing;
+                break;
+            }
+        }
+        if ($signature === null) {
+            return;
+        }
+
+        $locationRow = $markerRow + 1;
+        $titleRow = $markerRow + 2;
         $signatureRow = $markerRow + 3;
-        $signatureEndRow = $signatureRow + 2;
+        $nameRow = $markerRow + 6;
         $lastColumnIndex = Coordinate::columnIndexFromString($sheet->getHighestDataColumn());
         $firstColumnIndex = max(1, $lastColumnIndex - 4);
         $firstColumn = Coordinate::stringFromColumnIndex($firstColumnIndex);
         $lastColumn = Coordinate::stringFromColumnIndex($lastColumnIndex);
 
-        foreach ($sheet->getDrawingCollection() as $drawing) {
-            if (strcasecmp((string) $drawing->getName(), 'Signature') !== 0) {
-                continue;
-            }
-
-            $drawing->setCoordinates("{$firstColumn}{$signatureRow}");
-            $drawing->setOffsetX(0);
-            $drawing->setOffsetY(0);
-            $drawing->setResizeProportional(true);
-            if (method_exists($drawing, 'setEditAs')) {
-                $drawing->setEditAs('twoCell');
-            }
-            if (method_exists($drawing, 'setCoordinates2')) {
-                $drawing->setCoordinates2("{$lastColumn}{$signatureEndRow}");
-            }
-
-            // Keep the footer cells tall enough for the authored signature image.
-            $height = max(30, (float) $drawing->getHeight() * 0.75 / 3);
-            foreach (range($signatureRow, $signatureEndRow) as $row) {
-                $sheet->getRowDimension($row)->setRowHeight(max(
-                    $height,
-                    (float) $sheet->getRowDimension($row)->getRowHeight()
-                ));
-            }
-
-            break;
+        $location = (string) $sheet->getCell("{$firstColumn}{$locationRow}")->getFormattedValue();
+        $title = (string) $sheet->getCell("{$firstColumn}{$titleRow}")->getFormattedValue();
+        $name = (string) $sheet->getCell("{$firstColumn}{$nameRow}")->getFormattedValue();
+        $signatureBytes = @file_get_contents($signature->getPath());
+        if ($signatureBytes === false) {
+            return;
         }
+        $signatureImage = @imagecreatefromstring($signatureBytes);
+        if ($signatureImage === false) {
+            return;
+        }
+
+        $canvasWidth = 900;
+        $canvasHeight = 390;
+        $canvas = imagecreatetruecolor($canvasWidth, $canvasHeight);
+        $white = imagecolorallocate($canvas, 255, 255, 255);
+        $black = imagecolorallocate($canvas, 20, 20, 20);
+        imagefilledrectangle($canvas, 0, 0, $canvasWidth, $canvasHeight, $white);
+
+        $font = $this->pdfFooterFont();
+        $this->drawCenteredFooterText($canvas, $location, 20, 34, $black, $font, false);
+        $this->drawCenteredFooterText($canvas, $title, 22, 70, $black, $font, true);
+
+        $sourceWidth = imagesx($signatureImage);
+        $sourceHeight = imagesy($signatureImage);
+        $targetHeight = 220;
+        $targetWidth = max(1, (int) round($sourceWidth * ($targetHeight / max(1, $sourceHeight))));
+        if ($targetWidth > 420) {
+            $targetWidth = 420;
+            $targetHeight = max(1, (int) round($sourceHeight * ($targetWidth / max(1, $sourceWidth))));
+        }
+        $targetX = (int) round(($canvasWidth - $targetWidth) / 2);
+        imagecopyresampled($canvas, $signatureImage, $targetX, 88, 0, 0, $targetWidth, $targetHeight, $sourceWidth, $sourceHeight);
+        imagedestroy($signatureImage);
+
+        $this->drawCenteredFooterText($canvas, $name, 21, 350, $black, $font, true);
+
+        $footerPng = $workDir.'/pharma-price-list-footer.png';
+        imagepng($canvas, $footerPng, 6);
+        imagedestroy($canvas);
+
+        // Remove the original floating signature and clear the authored footer text:
+        // the PNG below is now the sole PDF representation of this block.
+        if ($signatureIndex !== null) {
+            $sheet->getDrawingCollection()->offsetUnset($signatureIndex);
+        }
+        foreach ([$locationRow, $titleRow, $nameRow] as $row) {
+            $sheet->setCellValue("{$firstColumn}{$row}", null);
+        }
+
+        $footerEndRow = $signatureRow + 4;
+        $sheet->mergeCells("{$firstColumn}{$locationRow}:{$lastColumn}{$footerEndRow}");
+        foreach (range($locationRow, $footerEndRow) as $row) {
+            $sheet->getRowDimension($row)->setRowHeight(42);
+        }
+
+        $flattened = new Drawing();
+        $flattened->setName('PDF Footer');
+        $flattened->setDescription('Flattened signature footer for LibreOffice PDF conversion');
+        $flattened->setPath($footerPng);
+        $flattened->setCoordinates("{$firstColumn}{$locationRow}");
+        $flattened->setOffsetX(0);
+        $flattened->setOffsetY(0);
+        $flattened->setResizeProportional(true);
+        $flattened->setHeight(290);
+        $flattened->setWorksheet($sheet);
+    }
+
+    private function pdfFooterFont(): ?string
+    {
+        foreach ([
+            '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+            '/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf',
+        ] as $font) {
+            if (is_file($font)) {
+                return $font;
+            }
+        }
+
+        return null;
+    }
+
+    private function drawCenteredFooterText($image, string $text, int $size, int $baseline, int $color, ?string $font, bool $bold): void
+    {
+        $text = trim($text);
+        if ($text === '') {
+            return;
+        }
+
+        if ($font !== null && function_exists('imagettftext')) {
+            $fontSize = $bold ? $size + 1 : $size;
+            $box = imagettfbbox($fontSize, 0, $font, $text);
+            $width = $box === false ? 0 : abs($box[2] - $box[0]);
+            $x = max(0, (int) round((imagesx($image) - $width) / 2));
+            imagettftext($image, $fontSize, 0, $x, $baseline, $color, $font, $text);
+            if ($bold) {
+                imagettftext($image, $fontSize, 0, $x + 1, $baseline, $color, $font, $text);
+            }
+            return;
+        }
+
+        $fontId = 5;
+        $width = imagefontwidth($fontId) * strlen($text);
+        imagestring($image, $fontId, max(0, (int) round((imagesx($image) - $width) / 2)), max(0, $baseline - 15), $text, $color);
     }
 
     private function footerMarkerRow(Worksheet $sheet): ?int
