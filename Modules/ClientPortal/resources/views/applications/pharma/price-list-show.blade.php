@@ -40,10 +40,16 @@
             $share = session('price_list_share') ?? $currentExportShare;
             $profileNames = collect($exportProfiles)->mapWithKeys(fn ($profile) => [(int) $profile['id'] => $profile['name']]);
         @endphp
-        <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div><p class="text-xs font-black uppercase tracking-[0.14em] text-slate-400">Tài liệu bảng giá</p><p class="mt-1 text-sm text-slate-600">Xuất nhiều mẫu độc lập; mỗi bản Excel có thể tạo hoặc tạo lại PDF riêng.</p></div>
-                <div class="flex flex-wrap gap-2">
+        <section class="min-w-0 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+            <details id="price-list-documents" class="group min-w-0 lg:open">
+                <summary class="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 sm:px-5">
+                    <div class="min-w-0"><p class="text-xs font-black uppercase tracking-[0.14em] text-slate-400">Tài liệu bảng giá</p><p class="mt-1 truncate text-sm font-bold text-slate-700">Tài liệu đã xuất · {{ count($exportHistory) }}@if($share) · {{ !empty($share['pdf_url']) ? 'Excel + PDF' : 'Excel' }}@endif</p></div>
+                    <span class="shrink-0 text-sm font-black text-slate-400 transition group-open:rotate-180">⌄</span>
+                </summary>
+                <div class="min-w-0 border-t border-slate-100 p-4 sm:p-5">
+                    <div class="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                        <div class="min-w-0"><p class="text-sm text-slate-600">Xuất nhiều mẫu độc lập; mỗi bản Excel có thể tạo hoặc tạo lại PDF riêng.</p></div>
+                        <div class="flex min-w-0 flex-wrap gap-2">
                     <details class="group relative">
                         <summary class="cursor-pointer list-none rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white">+ Xuất tài liệu</summary>
                         <div class="absolute right-0 z-20 mt-2 w-[min(92vw,430px)] rounded-3xl border border-slate-200 bg-white p-5 shadow-xl">
@@ -54,18 +60,18 @@
                             </form>
                         </div>
                     </details>
-                    <details class="group">
+                    <details class="group min-w-0 flex-1">
                         <summary class="cursor-pointer list-none rounded-2xl border border-slate-300 px-5 py-3 text-sm font-black text-slate-700">Tài liệu đã xuất · {{ count($exportHistory) }}</summary>
-                        <div class="mt-3 space-y-3 lg:min-w-[720px]">
+                        <div class="mt-3 min-w-0 space-y-3 lg:min-w-[720px]">
                             @forelse($exportHistory as $export)
                                 @php
                                     $exportId = (int) $export['share_id'];
                                     $profileLabel = $export['export_profile_id'] ? ($profileNames[$export['export_profile_id']] ?? 'Mẫu #'.$export['export_profile_id']) : 'Mặc định hệ thống';
                                     $isProcessing = in_array($export['pdf_status'] ?? null, ['queued','processing'], true);
                                 @endphp
-                                <article class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5" @if($share && $exportId === (int)$share['share_id']) data-export-share data-status-url="{{ route('client.pharma.price-lists.share.status',$exportId) }}" @endif>
+                                <article class="min-w-0 overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5" @if($share && $exportId === (int)$share['share_id']) data-export-share data-status-url="{{ route('client.pharma.price-lists.share.status',$exportId) }}" @endif>
                                     <div class="flex flex-col gap-4">
-                                        <div><p class="font-black text-slate-900">{{ $profileLabel }}</p><p class="mt-1 text-xs text-slate-500">{{ $export['created_at'] }} · {{ $export['download_name'] }}</p><div class="mt-2 flex gap-2 text-xs font-bold"><span class="rounded-full bg-emerald-100 px-2.5 py-1 text-emerald-700">Excel ✓</span>@if($export['pdf_available'])<span id="{{ $share && $exportId === (int)$share['share_id'] ? 'price-list-pdf-status' : '' }}" class="rounded-full bg-violet-100 px-2.5 py-1 text-violet-700">PDF ✓</span>@elseif($isProcessing)<span id="{{ $share && $exportId === (int)$share['share_id'] ? 'price-list-pdf-status' : '' }}" class="rounded-full bg-violet-100 px-2.5 py-1 text-violet-700">Đang tạo PDF...</span>@elseif(($export['pdf_status'] ?? null)==='failed')<span class="rounded-full bg-red-100 px-2.5 py-1 text-red-700">PDF lỗi</span>@else<span class="rounded-full bg-slate-200 px-2.5 py-1 text-slate-600">Chưa có PDF</span>@endif</div></div>
+                                        <div class="min-w-0"><p class="font-black text-slate-900">{{ $profileLabel }}</p><p class="mt-1 break-all text-xs leading-5 text-slate-500">{{ $export['created_at'] }} · {{ $export['download_name'] }}</p><div class="mt-2 flex gap-2 text-xs font-bold"><span class="rounded-full bg-emerald-100 px-2.5 py-1 text-emerald-700">Excel ✓</span>@if($export['pdf_available'])<span id="{{ $share && $exportId === (int)$share['share_id'] ? 'price-list-pdf-status' : '' }}" class="rounded-full bg-violet-100 px-2.5 py-1 text-violet-700">PDF ✓</span>@elseif($isProcessing)<span id="{{ $share && $exportId === (int)$share['share_id'] ? 'price-list-pdf-status' : '' }}" class="rounded-full bg-violet-100 px-2.5 py-1 text-violet-700">Đang tạo PDF...</span>@elseif(($export['pdf_status'] ?? null)==='failed')<span class="rounded-full bg-red-100 px-2.5 py-1 text-red-700">PDF lỗi</span>@else<span class="rounded-full bg-slate-200 px-2.5 py-1 text-slate-600">Chưa có PDF</span>@endif</div></div>
                                         <div class="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                                             @if(!$export['revoked'])<a href="{{ $export['url'] }}" data-pwa-file-handoff data-file-name="{{ $export['download_name'] }}" class="flex min-h-11 items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-black text-emerald-800">Tải Excel</a>@endif
                                             @if($export['pdf_available'] && !$export['revoked'])<a href="{{ $export['pdf_url'] }}" data-pwa-file-handoff data-file-name="{{ preg_replace('/\.xlsx$/i','.pdf',$export['download_name']) }}" class="flex min-h-11 items-center justify-center rounded-2xl border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-black text-violet-800">Tải PDF</a>@endif
@@ -114,8 +120,10 @@ Trân trọng.</textarea></label>
                             </div>
                         </details>
                     @endif
+                        </div>
+                    </div>
                 </div>
-            </div>
+            </details>
         </section>
         <dialog id="pwa-file-handoff" class="mb-0 mt-auto w-full max-w-[560px] rounded-t-[28px] border-0 p-0 shadow-2xl backdrop:bg-slate-950/55 sm:m-auto sm:w-[min(92vw,560px)] sm:rounded-[28px]">
             <div class="p-5 sm:p-6">
@@ -188,10 +196,17 @@ Trân trọng.</textarea></label>
     </section>
 
     <section class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-        <div class="border-b border-slate-100 px-5 py-4"><p class="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">Sản phẩm</p><h2 class="mt-1 text-lg font-black text-slate-950">{{ $priceList->items_count }} sản phẩm trong bảng giá</h2></div>
-        <div class="divide-y divide-slate-100">
+        <div class="border-b border-slate-100 px-4 py-4 sm:px-5">
+            <p class="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">Sản phẩm</p>
+            <div class="mt-1 flex items-baseline justify-between gap-3"><h2 class="text-lg font-black text-slate-950">{{ $priceList->items_count }} sản phẩm trong bảng giá</h2><span id="price-list-product-count" class="shrink-0 text-xs font-bold text-slate-400"></span></div>
+            @if($priceList->items->isNotEmpty())
+                <label class="relative mt-3 block"><span class="sr-only">Tìm sản phẩm trong bảng giá</span><span class="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-400">⌕</span><input id="price-list-product-search" type="search" autocomplete="off" class="h-12 w-full rounded-2xl border border-slate-300 bg-white pl-10 pr-4 text-sm outline-none focus:border-slate-500" placeholder="Tìm tên thuốc, mã thuốc, quy cách..."></label>
+            @endif
+        </div>
+        <div id="price-list-products" class="divide-y divide-slate-100">
             @forelse($priceList->items as $item)
-                <article class="px-5 py-5">
+                @php $productSearchText = collect([$item->variant?->medicine?->name, $item->variant?->sku, $item->package?->name, $item->package?->packaging_specification])->filter()->implode(' '); @endphp
+                <article class="px-4 py-5 sm:px-5" data-price-list-product data-search="{{ IlluminateSupportStr::lower($productSearchText) }}">
                     <div><p class="font-black leading-6 text-slate-900">{{ $item->variant?->medicine?->name ?? $item->variant?->sku ?? 'SKU #'.$item->medicine_variant_id }}</p><p class="mt-1 break-words text-xs leading-5 text-slate-400">{{ $item->variant?->sku }}@if($item->package) · {{ $item->package->name ?? $item->package->packaging_specification ?? '' }}@endif</p></div>
                     <div class="mt-4 grid grid-cols-2 gap-x-4 gap-y-4 lg:grid-cols-3">
                         <div><p class="text-xs font-bold text-slate-400">Giá kê khai</p><p class="mt-1 font-bold tabular-nums">{{ $item->declared_price_snapshot !== null ? number_format((float)$item->declared_price_snapshot,0,',','.') : '—' }}</p></div>
@@ -201,6 +216,10 @@ Trân trọng.</textarea></label>
                 </article>
             @empty <p class="px-5 py-8 text-center text-sm text-slate-500">Bảng giá chưa có sản phẩm.</p> @endforelse
         </div>
+        <p id="price-list-product-empty" hidden class="px-5 py-8 text-center text-sm font-semibold text-slate-500">Không tìm thấy sản phẩm phù hợp.</p>
     </section>
+    <script>
+        (()=>{const input=document.getElementById('price-list-product-search'),items=[...document.querySelectorAll('[data-price-list-product]')],count=document.getElementById('price-list-product-count'),empty=document.getElementById('price-list-product-empty'),documents=document.getElementById('price-list-documents');if(documents&&window.matchMedia('(min-width: 1024px)').matches)documents.open=true;if(!input||!items.length)return;const normalize=value=>(value||'').toLocaleLowerCase('vi').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'');const filter=()=>{const query=normalize(input.value.trim());let visible=0;items.forEach(item=>{const matched=!query||normalize(item.dataset.search).includes(query);item.hidden=!matched;if(matched)visible++});if(count)count.textContent=query?visible+' / '+items.length:'';if(empty)empty.hidden=visible!==0};input.addEventListener('input',filter)})();
+    </script>
 </div>
 @endsection
