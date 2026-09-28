@@ -5,6 +5,7 @@ namespace Modules\Pharma\Services;
 use Modules\Pharma\Models\PriceList;
 use Modules\Pharma\Models\PriceListExportShare;
 use Modules\Pharma\Jobs\GeneratePriceListSharePdf;
+use Modules\Pharma\Jobs\SendPriceListExportEmail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
@@ -168,6 +169,35 @@ final class PriceListShareExportService
         }
 
         return $share->fresh();
+    }
+
+    public function queueEmail(
+        int $shareId,
+        int $userId,
+        array $recipients,
+        string $subject,
+        string $message,
+        bool $attachExcel,
+        bool $attachPdf,
+    ): void {
+        $share = PriceListExportShare::query()
+            ->whereKey($shareId)
+            ->where('created_by', $userId)
+            ->firstOrFail();
+
+        abort_unless($share->isAvailable(), 409, 'Bản xuất đã hết hạn hoặc đã bị thu hồi.');
+        abort_unless($attachExcel || $attachPdf, 422, 'Chọn ít nhất một tệp đính kèm.');
+        abort_if($attachExcel && (! $share->storage_path || ! Storage::disk('local')->exists($share->storage_path)), 409, 'File Excel không còn tồn tại.');
+        abort_if($attachPdf && ! $this->pdfAvailable($share), 409, 'PDF chưa sẵn sàng để đính kèm.');
+
+        SendPriceListExportEmail::dispatch(
+            (int) $share->id,
+            array_values($recipients),
+            $subject,
+            $message,
+            $attachExcel,
+            $attachPdf,
+        );
     }
 
     public function status(int $shareId, int $userId): array
