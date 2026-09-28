@@ -56,7 +56,23 @@
 
                                 <div class="mt-4 border-t border-slate-100 pt-4">
                                     <div class="flex flex-wrap items-center justify-between gap-3">
-                                        <div><p class="text-xs font-bold uppercase tracking-wide text-slate-400">PDF</p><p id="price-list-pdf-status" class="mt-1 text-sm font-bold text-slate-700">@if(($share['pdf_status'] ?? null)==='completed')PDF đã sẵn sàng@elseif(in_array(($share['pdf_status'] ?? null),['queued','processing'],true))Đang chuyển PDF qua Queue Pharma...@elseif(($share['pdf_status'] ?? null)==='failed')Chuyển PDF không thành công@else Chưa tạo PDF @endif</p>@if(($share['pdf_error'] ?? null))<p class="mt-1 text-xs text-red-600">{{ $share['pdf_error'] }}</p>@endif</div>
+                                        <div class="min-w-[220px]">
+                                            <p class="text-xs font-bold uppercase tracking-wide text-slate-400">PDF</p>
+                                            @php($pdfStatus = $share['pdf_status'] ?? null)
+                                            @if(($share['pdf_available'] ?? false) && ($share['pdf_url'] ?? null))
+                                                <div id="price-list-pdf-status" class="mt-2 flex items-center gap-2 text-sm font-bold text-emerald-700"><span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100">✓</span><span>PDF đã sẵn sàng</span></div>
+                                                <p class="mt-1 text-xs text-slate-500">Đã chuyển đổi thành công và sẵn sàng tải hoặc chia sẻ.</p>
+                                            @elseif(in_array($pdfStatus, ['queued','processing'], true))
+                                                <div id="price-list-pdf-status" class="mt-2 flex items-center gap-2 text-sm font-bold text-violet-700"><span class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-violet-200 border-t-violet-700"></span><span>Đang tạo PDF...</span></div>
+                                                <p class="mt-1 text-xs text-slate-500">Queue Pharma đang xử lý file. Trang sẽ cập nhật khi hoàn tất.</p>
+                                            @elseif($pdfStatus === 'failed')
+                                                <div id="price-list-pdf-status" class="mt-2 text-sm font-bold text-red-700">Chuyển PDF không thành công</div>
+                                                @if(($share['pdf_error'] ?? null))<p class="mt-1 text-xs text-red-600">{{ $share['pdf_error'] }}</p>@endif
+                                            @else
+                                                <div id="price-list-pdf-status" class="mt-2 text-sm font-bold text-slate-700">Chưa tạo PDF</div>
+                                                <p class="mt-1 text-xs text-slate-500">Tạo bản PDF từ file Excel đã xuất.</p>
+                                            @endif
+                                        </div>
                                         @if(($share['pdf_available'] ?? false) && ($share['pdf_url'] ?? null))
                                             <div class="flex flex-wrap gap-2"><a href="{{ $share['pdf_url'] }}" class="rounded-xl border border-violet-300 px-4 py-3 text-sm font-bold text-violet-800">Tải PDF</a><input id="price-list-pdf-url" type="hidden" value="{{ $share['pdf_url'] }}"><button type="button" onclick="copyShareUrl('price-list-pdf-url')" class="rounded-xl border border-slate-300 px-4 py-3 text-sm font-bold">Sao chép liên kết PDF</button><button type="button" onclick="shareExportUrl('price-list-pdf-url')" class="rounded-xl bg-violet-700 px-4 py-3 text-sm font-bold text-white">Chia sẻ PDF</button></div>
                                         @elseif(!in_array(($share['pdf_status'] ?? null),['queued','processing'],true))
@@ -90,7 +106,7 @@
         <script>
             function copyShareUrl(id){const e=document.getElementById(id);if(!e)return;navigator.clipboard?navigator.clipboard.writeText(e.value):(e.type!=='hidden'&&e.select())}
             function shareExportUrl(id){const e=document.getElementById(id);if(!e)return;if(navigator.share){navigator.share({title:'Bảng giá',url:e.value})}else{copyShareUrl(id)}}
-            (()=>{const box=document.querySelector('[data-export-share]');if(!box)return;const status=document.getElementById('price-list-pdf-status');if(!status||!status.textContent.includes('Đang chuyển PDF'))return;const poll=()=>fetch(box.dataset.statusUrl,{headers:{'Accept':'application/json'}}).then(r=>r.ok?r.json():Promise.reject()).then(data=>{if(data.pdf_status==='completed'||data.pdf_status==='failed'){const key='pharma-pdf-status-refreshed-'+data.share_id;if(!sessionStorage.getItem(key)){sessionStorage.setItem(key,'1');window.location.reload()}return}setTimeout(poll,2500)}).catch(()=>setTimeout(poll,5000));setTimeout(poll,1500)})()
+            (()=>{const box=document.querySelector('[data-export-share]');if(!box)return;const status=document.getElementById('price-list-pdf-status');if(!status||!status.textContent.includes('Đang tạo PDF'))return;const poll=()=>fetch(box.dataset.statusUrl,{headers:{'Accept':'application/json'}}).then(r=>r.ok?r.json():Promise.reject()).then(data=>{if(data.pdf_status==='completed'||data.pdf_status==='failed'){const key='pharma-pdf-status-refreshed-'+data.share_id;if(!sessionStorage.getItem(key)){sessionStorage.setItem(key,'1');window.location.reload()}return}setTimeout(poll,2500)}).catch(()=>setTimeout(poll,5000));setTimeout(poll,1500)})()
         </script>
     @elseif($priceList->status === \Modules\Pharma\Models\PriceList::STATUS_PENDING_DEACTIVATION)
         <section class="rounded-3xl border border-violet-200 bg-violet-50 p-5"><p class="font-black text-violet-950">Đang chờ duyệt ngừng kích hoạt</p><p class="mt-1 text-sm text-violet-800">{{ $priceList->deactivation_reason }}</p><p class="mt-2 text-xs font-bold text-violet-600">{{ $priceList->deactivation_requested_at ? 'Yêu cầu lúc '.$priceList->deactivation_requested_at->format('H:i d/m/Y') : '' }}</p>@if($canApprove)<form method="POST" action="{{ route('client.pharma.price-lists.deactivation.approve',$priceList->id) }}" class="mt-4" onsubmit="return confirm('Chấp nhận ngừng kích hoạt bảng giá này?')">@csrf<button class="rounded-2xl bg-violet-700 px-5 py-3 text-sm font-black text-white">Chấp nhận ngừng kích hoạt</button></form>@endif</section>
