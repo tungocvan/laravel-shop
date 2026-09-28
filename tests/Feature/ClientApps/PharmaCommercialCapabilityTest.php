@@ -38,7 +38,7 @@ class PharmaCommercialCapabilityTest extends TestCase
         $this->assertStringContainsString('public function browseHospitals(', $service);
         $this->assertStringContainsString('public function summary(int $userId): array', $service);
         $this->assertStringContainsString('public function findHospital(int $userId, int $partnerId): ?Partner', $service);
-        $this->assertStringContainsString("->where('workspace_assignments.user_id', $userId)", $service);
+        $this->assertStringContainsString("->where('workspace_assignments.user_id', \$userId)", $service);
         $this->assertStringContainsString("DrugBidAwardManagementAssignment::STATUS_ACTIVE", $service);
         $this->assertStringContainsString("DrugBidAwardAllocation::STATUS_ACTIVE", $service);
         $this->assertStringContainsString("whereColumn('workspace_allocations.partner_id', 'workspace_assignments.partner_id')", $service);
