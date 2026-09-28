@@ -125,7 +125,7 @@ final class PriceListApprovalWorkflow
     {
         return DB::transaction(function () use ($approverUserId, $priceListId): PriceList {
             $list = PriceList::query()->lockForUpdate()->findOrFail($priceListId);
-            $this->assertPendingAndIndependent($list, $approverUserId);
+            $this->assertPending($list);
 
             $list->forceFill([
                 'rejected_by' => null,
@@ -161,11 +161,16 @@ final class PriceListApprovalWorkflow
         });
     }
 
-    private function assertPendingAndIndependent(PriceList $list, int $approverUserId): void
+    private function assertPending(PriceList $list): void
     {
         if ($list->status !== PriceList::STATUS_PENDING_APPROVAL || $list->type !== PriceList::TYPE_CUSTOMER) {
             throw ValidationException::withMessages(['price_list' => 'Bảng giá không còn ở hàng chờ phê duyệt.']);
         }
+    }
+
+    private function assertPendingAndIndependent(PriceList $list, int $approverUserId): void
+    {
+        $this->assertPending($list);
 
         if ((int) $list->created_by === $approverUserId
             || (int) $list->manager_user_id === $approverUserId
