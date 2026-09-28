@@ -691,6 +691,12 @@ final class PharmaApplicationController extends Controller
         ClientPortalSettingsService $settings,
         UserCommercialHospitalWorkspace $workspace,
     ): View {
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:120'],
+            'per_page' => ['nullable', 'integer', 'in:25,50,100'],
+            'page' => ['nullable', 'integer', 'min:1'],
+        ]);
+
         $application = $registry->find('pharma');
         abort_if($application === null, 404);
 
@@ -704,6 +710,15 @@ final class PharmaApplicationController extends Controller
             'application' => $application,
             'applicationPresentation' => $settings->applicationPresentation($application),
             'hospital' => $scopedHospital,
+            'products' => $workspace->assignedProducts(
+                userId: (int) $user->id,
+                partnerId: (int) $scopedHospital->id,
+                search: $validated['q'] ?? null,
+                perPage: (int) ($validated['per_page'] ?? 25),
+                page: (int) ($validated['page'] ?? 1),
+            )->withQueryString(),
+            'search' => trim((string) ($validated['q'] ?? '')),
+            'perPage' => (int) ($validated['per_page'] ?? 25),
         ]);
     }
 
