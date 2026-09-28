@@ -44,6 +44,7 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString("->name('price-lists.store')", $routes);
         $this->assertStringContainsString("->name('price-lists.global.store')", $routes);
         $this->assertStringContainsString("->name('price-lists.submit')", $routes);
+        $this->assertStringContainsString("->name('price-lists.activate-own-draft')", $routes);
         $this->assertStringContainsString("->name('price-lists.edit')", $routes);
         $this->assertStringContainsString("->name('price-lists.update')", $routes);
         $this->assertStringContainsString("->name('price-lists.delete')", $routes);
@@ -271,6 +272,9 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('regeneratePriceListSharePdf(', $controller);
         $this->assertStringContainsString('deletePriceListExportShare(', $controller);
         $this->assertStringContainsString('Phê duyệt & kích hoạt', $detail);
+        $this->assertStringContainsString('Kích hoạt ngay', $detail);
+        $this->assertStringContainsString('public function activateOwnDraft(int $approverUserId, int $priceListId)', $approval);
+        $this->assertStringContainsString('activateOwnDraftPriceList(', $controller);
         $this->assertStringContainsString('$this->assertPending($list);', $approval);
         $this->assertStringContainsString('Phê duyệt & Kích hoạt', $approvalDetail);
         $this->assertStringContainsString('name="rejection_reason"', $approvalDetail);
