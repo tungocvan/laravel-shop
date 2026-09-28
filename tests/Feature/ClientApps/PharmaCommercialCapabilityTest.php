@@ -47,6 +47,13 @@ class PharmaCommercialCapabilityTest extends TestCase
         $this->assertStringContainsString("->where('workspace_assignments.partner_id', \$partnerId)", $service);
         $this->assertStringContainsString("'pharma_drug_bid_award_product_policies as product_policies'", $service);
         $this->assertStringContainsString('COALESCE(workspace_allocations.commercial_policy_percentage, product_policies.commission_percentage) as effective_policy_percentage', $service);
+        $this->assertStringContainsString('public function commercialContext(int $userId, int $partnerId, int $awardId): array', $service);
+        $this->assertStringContainsString('private readonly PriceResolver $priceResolver', $service);
+        $this->assertStringContainsString("->where('medicine_id', \$medicineId)", $service);
+        $this->assertStringContainsString("if (\$variants->count() !== 1)", $service);
+        $this->assertStringContainsString("if (\$packages->count() > 1)", $service);
+        $this->assertStringContainsString("->where('status', 'active')", $service);
+        $this->assertStringContainsString("->orderByDesc('working_date')", $service);
         $this->assertStringNotContainsString('auth()', $service);
     }
 
@@ -88,7 +95,12 @@ class PharmaCommercialCapabilityTest extends TestCase
         $this->assertStringContainsString("'Theo bệnh viện' : 'Theo sản phẩm'", $view);
         $this->assertStringContainsString('effective_from', $view);
         $this->assertStringContainsString('effective_until', $view);
-        $this->assertStringNotContainsString('Giá vốn NCC', $view);
+        $this->assertStringContainsString('Giá bán hiện hành', $view);
+        $this->assertStringContainsString('Bảng giá bệnh viện', $view);
+        $this->assertStringContainsString('Bảng giá chung', $view);
+        $this->assertStringContainsString('Điều kiện NCC hiện hành', $view);
+        $this->assertStringContainsString('Giá vốn NCC', $view);
+        $this->assertStringContainsString('Giá vốn tính toán', $view);
         $this->assertStringNotContainsString('Admin::', $view);
     }
 
@@ -99,6 +111,7 @@ class PharmaCommercialCapabilityTest extends TestCase
         $this->assertTrue($service->hasMethod('summary'));
         $this->assertTrue($service->hasMethod('findHospital'));
         $this->assertTrue($service->hasMethod('assignedProducts'));
+        $this->assertTrue($service->hasMethod('commercialContext'));
         $this->assertTrue($service->getMethod('browseHospitals')->isPublic());
         $this->assertTrue($service->getMethod('assignedProducts')->isPublic());
     }
