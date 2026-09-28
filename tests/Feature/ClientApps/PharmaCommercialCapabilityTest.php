@@ -41,7 +41,7 @@ class PharmaCommercialCapabilityTest extends TestCase
         $this->assertStringContainsString("->where('workspace_assignments.user_id', \$userId)", $service);
         $this->assertStringContainsString("DrugBidAwardManagementAssignment::STATUS_ACTIVE", $service);
         $this->assertStringContainsString("DrugBidAwardAllocation::STATUS_ACTIVE", $service);
-        $this->assertStringContainsString("whereColumn('workspace_allocations.partner_id', 'workspace_assignments.partner_id')", $service);
+        $this->assertStringContainsString("'workspace_allocations.partner_id', '=', 'workspace_assignments.partner_id'", $service);
         $this->assertStringContainsString('COUNT(DISTINCT product_assignments.drug_bid_award_id)', $service);
         $this->assertStringNotContainsString('auth()', $service);
     }
