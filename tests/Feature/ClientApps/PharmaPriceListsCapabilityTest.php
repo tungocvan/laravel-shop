@@ -257,6 +257,10 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('data-status-rail', $view);
         $this->assertStringContainsString('overflow-x-auto', $view);
         $this->assertStringContainsString('flex w-max flex-nowrap', $view);
+        $this->assertStringContainsString('$statusCount', $view);
+        $this->assertStringContainsString('$disabled = !$active && $statusCount < 1', $view);
+        $this->assertStringContainsString('aria-disabled="true"', $view);
+        $this->assertStringContainsString('cursor-not-allowed select-none', $view);
         $this->assertStringContainsString("'active' => ['label' => 'Đang hiệu lực'", $view);
         $this->assertStringContainsString('rounded-3xl p-4 pr-16', $view);
         $this->assertStringContainsString('line-clamp-2', $view);
