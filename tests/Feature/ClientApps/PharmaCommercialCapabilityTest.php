@@ -84,7 +84,7 @@ class PharmaCommercialCapabilityTest extends TestCase
         $this->assertStringContainsString('active:scale-[0.985]', $view);
         $this->assertStringContainsString('motion-reduce:transform-none', $view);
         $this->assertStringContainsString('commercial-navigation-feedback', $view);
-        $this->assertStringContainsString("array_filter(['hospital' => $hospital->id, 'manager_user_id' => $managerUserId])", $view);
+        $this->assertStringContainsString("array_filter(['hospital' => \$hospital->id, 'manager_user_id' => \$managerUserId])", $view);
         $this->assertStringContainsString('Danh sách chỉ gồm bệnh viện và sản phẩm trúng thầu đang được phân công', $view);
         $this->assertStringContainsString('@foreach([25, 50, 100] as $size)', $view);
         $this->assertStringContainsString('{{ $size }} / trang', $view);
