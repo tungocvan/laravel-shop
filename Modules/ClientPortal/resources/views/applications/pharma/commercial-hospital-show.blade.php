@@ -91,6 +91,32 @@
                     </div>
                 </div>
 
+                @if($product->sale_price || $product->supplier)
+                    <div class="mt-3 grid gap-2 sm:grid-cols-2">
+                        @if($product->sale_price)
+                            <div class="rounded-2xl border border-slate-200 p-3">
+                                <p class="text-[11px] font-bold uppercase tracking-wide text-slate-400">Giá bán hiện hành</p>
+                                <p class="mt-1 text-base font-black text-slate-900">{{ $product->sale_price['company_sale_price'] !== null ? number_format((float) $product->sale_price['company_sale_price'], 0, ',', '.') . ' đ' : 'Chưa có' }}</p>
+                                <p class="mt-1 text-xs font-semibold text-slate-500">{{ $product->sale_price['source_type'] === 'customer' ? 'Bảng giá bệnh viện' : 'Bảng giá chung' }}</p>
+                            </div>
+                        @endif
+                        @if($product->supplier)
+                            <div class="rounded-2xl border border-slate-200 p-3">
+                                <p class="text-[11px] font-bold uppercase tracking-wide text-slate-400">Điều kiện NCC hiện hành</p>
+                                <p class="mt-1 break-words text-sm font-black text-slate-900">{{ $product->supplier['supplier_name'] ?: 'Nhà cung cấp' }}</p>
+                                <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-slate-500">
+                                    @if($product->supplier['import_price'] !== null)
+                                        <span>Giá vốn NCC: <strong class="text-slate-800">{{ number_format((float) $product->supplier['import_price'], 0, ',', '.') }} đ</strong></span>
+                                    @endif
+                                    @if($product->supplier['cost_price'] !== null)
+                                        <span>Giá vốn tính toán: <strong class="text-slate-800">{{ number_format((float) $product->supplier['cost_price'], 0, ',', '.') }} đ</strong></span>
+                                    @endif
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+                @endif
+
                 @if($product->effective_from || $product->effective_until)
                     <p class="mt-3 text-xs font-semibold text-slate-400">
                         Hiệu lực
