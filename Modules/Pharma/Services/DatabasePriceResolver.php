@@ -56,14 +56,14 @@ class DatabasePriceResolver implements PriceResolver
     ): ?PriceListItem {
         return PriceListItem::query()
             ->with('priceList')
-            ->where('medicine_variant_id', $variantId)
-            ->where('identity_key', PriceListItem::makeIdentityKey($variantId, $packageId))
-            ->where('status', 'active')
+            ->where('pharma_price_list_items.medicine_variant_id', $variantId)
+            ->where('pharma_price_list_items.identity_key', PriceListItem::makeIdentityKey($variantId, $packageId))
+            ->where('pharma_price_list_items.status', 'active')
             ->where(function (Builder $query) use ($date): void {
-                $query->whereNull('effective_from')->orWhereDate('effective_from', '<=', $date->toDateString());
+                $query->whereNull('pharma_price_list_items.effective_from')->orWhereDate('pharma_price_list_items.effective_from', '<=', $date->toDateString());
             })
             ->where(function (Builder $query) use ($date): void {
-                $query->whereNull('effective_to')->orWhereDate('effective_to', '>=', $date->toDateString());
+                $query->whereNull('pharma_price_list_items.effective_to')->orWhereDate('pharma_price_list_items.effective_to', '>=', $date->toDateString());
             })
             ->whereHas('priceList', function (Builder $query) use ($type, $partnerId, $date): void {
                 $query->activeAt($date->toDateString())->where('type', $type);

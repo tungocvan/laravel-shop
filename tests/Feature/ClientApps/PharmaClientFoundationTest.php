@@ -26,6 +26,10 @@ class PharmaClientFoundationTest extends TestCase
             ['overview', 'products', 'price-lists', 'bid-awards', 'commercial', 'inventory', 'commissions'],
             collect($application['features'])->pluck('key')->all(),
         );
+        $commercial = collect($application['features'])->firstWhere('key', 'commercial');
+        $this->assertNotNull($commercial);
+        $this->assertSame('client.pharma.commercial', $commercial['route']);
+        $this->assertTrue(Route::has($commercial['route']));
     }
 
     public function test_pharma_application_permissions_are_managed_by_client_apps_admin(): void
@@ -43,6 +47,7 @@ class PharmaClientFoundationTest extends TestCase
             'client.pharma.price-lists.view',
             'client.pharma.bid-awards.view',
             'client.pharma.commercial.view',
+            'client.pharma.commercial.view-team',
             'client.pharma.inventory.view',
             'client.pharma.inventory.receipts',
             'client.pharma.inventory.issues',

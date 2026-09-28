@@ -35,6 +35,8 @@ class PharmaCommercialCapabilityTest extends TestCase
     {
         $service = file_get_contents(base_path('Modules/Pharma/Services/UserCommercialHospitalWorkspace.php'));
 
+        $this->assertStringContainsString('public function assignedUsers(): Collection', $service);
+        $this->assertStringContainsString("->whereColumn('workspace_assignments.user_id', 'users.id')", $service);
         $this->assertStringContainsString('public function browseHospitals(', $service);
         $this->assertStringContainsString('public function summary(int $userId): array', $service);
         $this->assertStringContainsString('public function findHospital(int $userId, int $partnerId): ?Partner', $service);
@@ -65,17 +67,31 @@ class PharmaCommercialCapabilityTest extends TestCase
         $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/commercial.blade.php'));
 
         $this->assertStringContainsString('UserCommercialHospitalWorkspace $workspace', $controller);
+        $this->assertStringContainsString("'client.pharma.commercial.view-team'", $controller);
+        $this->assertStringContainsString("'manager_user_id' => ['nullable', 'integer']", $controller);
+        $this->assertStringContainsString('$workspace->assignedUsers()', $controller);
+        $this->assertStringContainsString('userId: $targetUserId', $controller);
         $this->assertStringContainsString('$workspace->browseHospitals(', $controller);
-        $this->assertStringContainsString('$workspace->summary((int) $user->id)', $controller);
-        $this->assertStringContainsString('$workspace->findHospital((int) $user->id, $hospital)', $controller);
+        $this->assertStringContainsString('$workspace->summary($targetUserId)', $controller);
+        $this->assertStringContainsString('$workspace->findHospital($targetUserId, $hospital)', $controller);
         $this->assertStringContainsString('abort_if($scopedHospital === null, 404)', $controller);
         $this->assertStringContainsString('$workspace->assignedProducts(', $controller);
         $this->assertStringContainsString('partnerId: (int) $scopedHospital->id', $controller);
+        $this->assertStringContainsString('perPage: 20', $controller);
 
         $this->assertStringContainsString('Công việc bệnh viện của tôi', $view);
+        $this->assertStringContainsString('Nhân viên phụ trách', $view);
+        $this->assertStringContainsString('manager_user_id', $view);
+        $this->assertStringContainsString('active:scale-[0.985]', $view);
+        $this->assertStringContainsString('motion-reduce:transform-none', $view);
+        $this->assertStringContainsString('commercial-navigation-feedback', $view);
+        $this->assertStringContainsString("array_filter(['hospital' => \$hospital->id, 'manager_user_id' => \$managerUserId])", $view);
         $this->assertStringContainsString('Danh sách chỉ gồm bệnh viện và sản phẩm trúng thầu đang được phân công', $view);
-        $this->assertStringContainsString('@foreach([25, 50, 100] as $size)', $view);
-        $this->assertStringContainsString('{{ $size }} / trang', $view);
+        $this->assertStringContainsString('Xem thêm bệnh viện', $view);
+        $this->assertStringContainsString('commercial-load-more', $view);
+        $this->assertStringContainsString('data-commercial-item', $view);
+        $this->assertStringContainsString('DOMParser', $view);
+        $this->assertStringNotContainsString('{{ $size }} / trang', $view);
         $this->assertStringContainsString('Xóa bộ lọc', $view);
         $this->assertStringContainsString('min-w-0', $view);
         $this->assertStringContainsString('h-11 w-11', $view);
@@ -89,7 +105,10 @@ class PharmaCommercialCapabilityTest extends TestCase
 
         $this->assertStringContainsString('Danh sách sản phẩm', $view);
         $this->assertStringContainsString('Tên thuốc, hoạt chất, số đăng ký...', $view);
-        $this->assertStringContainsString('@foreach([25, 50, 100] as $size)', $view);
+        $this->assertStringContainsString('Xem thêm sản phẩm', $view);
+        $this->assertStringContainsString('commercial-product-load-more', $view);
+        $this->assertStringContainsString('data-commercial-product', $view);
+        $this->assertStringNotContainsString('{{ $size }} / trang', $view);
         $this->assertStringContainsString('Giá trúng thầu', $view);
         $this->assertStringContainsString('SL phân bổ', $view);
         $this->assertStringContainsString('SL trúng thầu', $view);
@@ -106,9 +125,22 @@ class PharmaCommercialCapabilityTest extends TestCase
         $this->assertStringNotContainsString('Admin::', $view);
     }
 
+    public function test_database_price_resolver_qualifies_item_columns_after_join(): void
+    {
+        $resolver = file_get_contents(base_path('Modules/Pharma/Services/DatabasePriceResolver.php'));
+
+        $this->assertStringContainsString("->where('pharma_price_list_items.status', 'active')", $resolver);
+        $this->assertStringContainsString("->where('pharma_price_list_items.medicine_variant_id', \$variantId)", $resolver);
+        $this->assertStringContainsString("->where('pharma_price_list_items.identity_key'", $resolver);
+        $this->assertStringContainsString("whereNull('pharma_price_list_items.effective_from')", $resolver);
+        $this->assertStringContainsString("whereNull('pharma_price_list_items.effective_to')", $resolver);
+        $this->assertStringNotContainsString("->where('status', 'active')", $resolver);
+    }
+
     public function test_workspace_is_a_public_reusable_pharma_read_contract(): void
     {
         $service = new ReflectionClass(UserCommercialHospitalWorkspace::class);
+        $this->assertTrue($service->hasMethod('assignedUsers'));
         $this->assertTrue($service->hasMethod('browseHospitals'));
         $this->assertTrue($service->hasMethod('summary'));
         $this->assertTrue($service->hasMethod('findHospital'));

@@ -659,8 +659,8 @@ final class PharmaApplicationController extends Controller
     ): View {
         $validated = $request->validate([
             'q' => ['nullable', 'string', 'max:120'],
-            'per_page' => ['nullable', 'integer', 'in:25,50,100'],
             'page' => ['nullable', 'integer', 'min:1'],
+            'manager_user_id' => ['nullable', 'integer'],
         ]);
 
         $application = $registry->find('pharma');
@@ -669,18 +669,28 @@ final class PharmaApplicationController extends Controller
         $user = $request->user('web');
         abort_if($user === null, 401);
 
+        $canViewTeam = $registry->userCan($user, 'client.pharma.commercial.view-team');
+        $assignedUsers = $canViewTeam ? $workspace->assignedUsers() : collect();
+        $requestedUserId = $canViewTeam ? (int) ($validated['manager_user_id'] ?? 0) : 0;
+        $targetUser = $requestedUserId > 0 ? $assignedUsers->firstWhere('id', $requestedUserId) : null;
+        abort_if($requestedUserId > 0 && $targetUser === null, 404);
+        $targetUserId = $targetUser ? (int) $targetUser->id : (int) $user->id;
+
         return view('ClientPortal::applications.pharma.commercial', [
             'application' => $application,
             'applicationPresentation' => $settings->applicationPresentation($application),
             'hospitals' => $workspace->browseHospitals(
-                userId: (int) $user->id,
+                userId: $targetUserId,
                 search: $validated['q'] ?? null,
-                perPage: (int) ($validated['per_page'] ?? 25),
+                perPage: 20,
                 page: (int) ($validated['page'] ?? 1),
             )->withQueryString(),
-            'summary' => $workspace->summary((int) $user->id),
+            'summary' => $workspace->summary($targetUserId),
             'search' => trim((string) ($validated['q'] ?? '')),
-            'perPage' => (int) ($validated['per_page'] ?? 25),
+            'canViewTeam' => $canViewTeam,
+            'assignedUsers' => $assignedUsers,
+            'managerUserId' => $targetUser ? $targetUserId : null,
+            'scopeUser' => $targetUser ?? $user,
         ]);
     }
 
@@ -693,8 +703,8 @@ final class PharmaApplicationController extends Controller
     ): View {
         $validated = $request->validate([
             'q' => ['nullable', 'string', 'max:120'],
-            'per_page' => ['nullable', 'integer', 'in:25,50,100'],
             'page' => ['nullable', 'integer', 'min:1'],
+            'manager_user_id' => ['nullable', 'integer'],
         ]);
 
         $application = $registry->find('pharma');
@@ -703,7 +713,14 @@ final class PharmaApplicationController extends Controller
         $user = $request->user('web');
         abort_if($user === null, 401);
 
-        $scopedHospital = $workspace->findHospital((int) $user->id, $hospital);
+        $canViewTeam = $registry->userCan($user, 'client.pharma.commercial.view-team');
+        $assignedUsers = $canViewTeam ? $workspace->assignedUsers() : collect();
+        $requestedUserId = $canViewTeam ? (int) ($validated['manager_user_id'] ?? 0) : 0;
+        $targetUser = $requestedUserId > 0 ? $assignedUsers->firstWhere('id', $requestedUserId) : null;
+        abort_if($requestedUserId > 0 && $targetUser === null, 404);
+        $targetUserId = $targetUser ? (int) $targetUser->id : (int) $user->id;
+
+        $scopedHospital = $workspace->findHospital($targetUserId, $hospital);
         abort_if($scopedHospital === null, 404);
 
         return view('ClientPortal::applications.pharma.commercial-hospital-show', [
@@ -711,15 +728,16 @@ final class PharmaApplicationController extends Controller
             'applicationPresentation' => $settings->applicationPresentation($application),
             'hospital' => $scopedHospital,
             'products' => $workspace->assignedProducts(
-                userId: (int) $user->id,
+                userId: $targetUserId,
                 partnerId: (int) $scopedHospital->id,
                 search: $validated['q'] ?? null,
-                perPage: (int) ($validated['per_page'] ?? 25),
+                perPage: 20,
                 page: (int) ($validated['page'] ?? 1),
                 includeSupplierPricing: $registry->userCan($user, 'client.pharma.products.supplier-pricing'),
             )->withQueryString(),
             'search' => trim((string) ($validated['q'] ?? '')),
-            'perPage' => (int) ($validated['per_page'] ?? 25),
+            'managerUserId' => $targetUser ? $targetUserId : null,
+            'scopeUser' => $targetUser ?? $user,
         ]);
     }
 
