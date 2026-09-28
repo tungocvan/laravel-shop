@@ -346,8 +346,8 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('group min-w-0 basis-full w-full lg:basis-auto lg:flex-1', $detail);
         $this->assertStringContainsString('id="price-list-export-dialog"', $detail);
         $this->assertStringContainsString("document.getElementById('price-list-export-dialog').showModal()", $detail);
-        $this->assertStringContainsString('rounded-t-[28px]', $detail);
-        $this->assertStringContainsString('lg:m-auto lg:w-[min(92vw,560px)] lg:rounded-[28px]', $detail);
+        $this->assertStringContainsString('m-auto w-[calc(100%-24px)] max-w-[520px] rounded-[28px]', $detail);
+        $this->assertStringNotContainsString('mb-0 mt-auto w-full max-w-[560px]', $detail);
         $this->assertStringNotContainsString('absolute right-0 z-20 mt-2 w-[min(92vw,430px)]', $detail);
         $this->assertStringContainsString('break-all text-xs', $detail);
         $this->assertStringContainsString('id="price-list-product-search"', $detail);
