@@ -114,17 +114,20 @@ Trân trọng.</textarea></label>
                         </div>
                     </details>
                     @if(($isManager && !$canApprove) || $canApprove)
-                        <details class="group relative">
-                            <summary class="cursor-pointer list-none rounded-2xl border border-slate-300 px-4 py-3 text-sm font-black text-slate-600">⋯</summary>
-                            <div class="absolute right-0 z-20 mt-2 w-80 rounded-3xl border border-slate-200 bg-white p-4 shadow-xl">
-                                <p class="font-black text-slate-900">Ngừng kích hoạt</p>
+                        <button type="button" onclick="document.getElementById('price-list-secondary-actions-dialog').showModal()" class="min-h-11 rounded-2xl border border-slate-300 px-4 py-3 text-sm font-black text-slate-600" aria-label="Thao tác khác">⋯</button>
+                        <dialog id="price-list-secondary-actions-dialog" class="m-auto w-[calc(100%-24px)] max-w-[440px] rounded-[28px] border-0 p-0 shadow-2xl backdrop:bg-slate-950/55">
+                            <div class="p-5 sm:p-6">
+                                <div class="flex items-start justify-between gap-4">
+                                    <div class="min-w-0"><p class="font-black text-slate-900">Ngừng kích hoạt</p><p class="mt-1 text-xs text-slate-500">@if($isManager && !$canApprove) Gửi yêu cầu để người phê duyệt xử lý. @else Bắt buộc ghi lý do để lưu lịch sử. @endif</p></div>
+                                    <button type="button" onclick="this.closest('dialog').close()" class="min-h-11 shrink-0 rounded-xl px-3 py-2 text-sm font-black text-slate-500" aria-label="Đóng">✕</button>
+                                </div>
                                 @if($isManager && !$canApprove)
-                                    <p class="mt-1 text-xs text-slate-500">Gửi yêu cầu để người phê duyệt xử lý.</p><form method="POST" action="{{ route('client.pharma.price-lists.deactivation.request',$priceList->id) }}" class="mt-3 space-y-2">@csrf<input name="deactivation_reason" required maxlength="1000" class="h-11 w-full rounded-2xl border border-slate-300 px-4 text-sm" placeholder="Lý do..."><button class="w-full rounded-2xl bg-rose-700 px-4 py-3 text-sm font-black text-white">Yêu cầu ngừng kích hoạt</button></form>
+                                    <form method="POST" action="{{ route('client.pharma.price-lists.deactivation.request',$priceList->id) }}" class="mt-4 space-y-3">@csrf<input name="deactivation_reason" required maxlength="1000" class="h-11 w-full rounded-2xl border border-slate-300 px-4 text-sm" placeholder="Lý do..."><button class="min-h-11 w-full rounded-2xl bg-rose-700 px-4 py-3 text-sm font-black text-white">Yêu cầu ngừng kích hoạt</button></form>
                                 @else
-                                    <p class="mt-1 text-xs text-slate-500">Bắt buộc ghi lý do để lưu lịch sử.</p><form method="POST" action="{{ route('client.pharma.price-lists.deactivate',$priceList->id) }}" class="mt-3 space-y-2" onsubmit="return confirm('Ngừng kích hoạt bảng giá này?')">@csrf<input name="deactivation_reason" required maxlength="1000" class="h-11 w-full rounded-2xl border border-slate-300 px-4 text-sm" placeholder="Lý do..."><button class="w-full rounded-2xl bg-rose-700 px-4 py-3 text-sm font-black text-white">Ngừng kích hoạt</button></form>
+                                    <form method="POST" action="{{ route('client.pharma.price-lists.deactivate',$priceList->id) }}" class="mt-4 space-y-3" onsubmit="return confirm('Ngừng kích hoạt bảng giá này?')">@csrf<input name="deactivation_reason" required maxlength="1000" class="h-11 w-full rounded-2xl border border-slate-300 px-4 text-sm" placeholder="Lý do..."><button class="min-h-11 w-full rounded-2xl bg-rose-700 px-4 py-3 text-sm font-black text-white">Ngừng kích hoạt</button></form>
                                 @endif
                             </div>
-                        </details>
+                        </dialog>
                     @endif
                         </div>
                     </div>
