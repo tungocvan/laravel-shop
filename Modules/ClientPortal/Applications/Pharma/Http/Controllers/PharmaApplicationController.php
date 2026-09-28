@@ -323,6 +323,7 @@ final class PharmaApplicationController extends Controller
             'isManager' => (int) $list->manager_user_id === (int) $user->id,
             'exportProfiles' => $list->status === PriceList::STATUS_ACTIVE ? $exports->profilesForUser((int) $user->id) : [],
             'currentExportShare' => $list->status === PriceList::STATUS_ACTIVE ? $exports->latestForUser((int) $list->id, (int) $user->id) : null,
+            'exportHistory' => $list->status === PriceList::STATUS_ACTIVE ? $exports->historyForUser((int) $list->id, (int) $user->id) : [],
         ]);
     }
 
@@ -370,6 +371,24 @@ final class PharmaApplicationController extends Controller
                 ? 'PDF đã sẵn sàng.'
                 : 'Đã đưa yêu cầu chuyển PDF vào Queue Pharma.'
         );
+    }
+
+    public function regeneratePriceListSharePdf(int $share, Request $request, PriceListShareExportService $exports)
+    {
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+        $exports->regeneratePdf($share, (int) $user->id);
+
+        return redirect()->back()->with('success', 'Đã đưa yêu cầu tạo lại PDF vào hàng chờ xử lý.');
+    }
+
+    public function deletePriceListExportShare(int $share, Request $request, PriceListShareExportService $exports)
+    {
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+        $exports->deleteExport($share, (int) $user->id);
+
+        return redirect()->back()->with('success', 'Đã xóa bản xuất Excel / PDF.');
     }
 
     public function priceListShareStatus(int $share, Request $request, PriceListShareExportService $exports)
