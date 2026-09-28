@@ -4,7 +4,9 @@ namespace Modules\Pharma\Services;
 
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use App\Models\User;
 use Modules\Pharma\Contracts\PriceResolver;
 use Modules\Partner\Models\Partner;
 use Modules\Pharma\Models\DrugBidAwardAllocation;
@@ -15,6 +17,24 @@ use Modules\Pharma\Models\SupplierTracking;
 final class UserCommercialHospitalWorkspace
 {
     public function __construct(private readonly PriceResolver $priceResolver) {}
+
+    public function assignedUsers(): Collection
+    {
+        return User::query()
+            ->where('is_active', true)
+            ->whereExists(fn ($query) => $query
+                ->selectRaw('1')
+                ->from('pharma_drug_bid_award_management_assignments as workspace_assignments')
+                ->join('pharma_drug_bid_award_allocations as workspace_allocations', function ($join): void {
+                    $join->on('workspace_allocations.drug_bid_award_id', '=', 'workspace_assignments.drug_bid_award_id')
+                        ->on('workspace_allocations.partner_id', '=', 'workspace_assignments.partner_id');
+                })
+                ->whereColumn('workspace_assignments.user_id', 'users.id')
+                ->where('workspace_assignments.status', DrugBidAwardManagementAssignment::STATUS_ACTIVE)
+                ->where('workspace_allocations.status', DrugBidAwardAllocation::STATUS_ACTIVE))
+            ->orderBy('name')
+            ->get(['id', 'name', 'email']);
+    }
 
     public function browseHospitals(
         int $userId,
