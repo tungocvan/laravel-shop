@@ -344,6 +344,9 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('Tìm tên thuốc, mã thuốc, quy cách...', $detail);
         $this->assertStringContainsString('data-price-list-product', $detail);
         $this->assertStringContainsString('data-search=', $detail);
+        $this->assertStringContainsString('data-search="{{ $productSearchText }}"', $detail);
+        $this->assertStringNotContainsString('IlluminateSupportStr', $detail);
+        $this->assertStringNotContainsString('Illuminate\\Support\\Str::', $detail);
         $this->assertStringContainsString("toLocaleLowerCase('vi')", $detail);
         $this->assertStringContainsString("normalize('NFD')", $detail);
         $this->assertStringContainsString("item.hidden=!matched", $detail);
