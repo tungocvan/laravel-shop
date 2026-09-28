@@ -96,11 +96,6 @@ class PriceListExcelDocumentLayout
         $first = Coordinate::stringFromColumnIndex($firstIndex);
         $last = Coordinate::stringFromColumnIndex($lastIndex);
         $row = $afterRow + 2;
-        // Mark the authored footer boundary so PDF conversion can keep the complete
-        // location/title/signature/name block together on one printed page.
-        $sheet->setCellValue("A{$row}", '__PHARMA_PRICE_LIST_FOOTER__');
-        $sheet->getRowDimension($row)->setVisible(false);
-        $row++;
         $location = trim((string) ($hf['footer_location'] ?? ''));
         $dateText = trim((string) ($hf['footer_year'] ?? ''));
         $locationLine = trim($location.($location !== '' && $dateText !== '' ? ', ' : '').$dateText);
