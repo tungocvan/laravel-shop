@@ -121,11 +121,34 @@ final class PriceListApprovalWorkflow
         });
     }
 
+    public function activateOwnDraft(int $approverUserId, int $priceListId): PriceList
+    {
+        return DB::transaction(function () use ($approverUserId, $priceListId): PriceList {
+            $list = PriceList::query()->lockForUpdate()->findOrFail($priceListId);
+            if ($list->status !== PriceList::STATUS_DRAFT || $list->type !== PriceList::TYPE_CUSTOMER) {
+                throw ValidationException::withMessages(['price_list' => 'Chỉ bảng giá khách hàng ở trạng thái Nháp mới được kích hoạt trực tiếp.']);
+            }
+            if ((int) $list->created_by !== $approverUserId && (int) $list->manager_user_id !== $approverUserId) {
+                throw ValidationException::withMessages(['price_list' => 'Bạn chỉ được kích hoạt trực tiếp bảng giá do mình tạo hoặc phụ trách.']);
+            }
+
+            $list->forceFill([
+                'submitted_by' => $approverUserId,
+                'submitted_at' => now(),
+                'rejected_by' => null,
+                'rejected_at' => null,
+                'rejection_reason' => null,
+            ])->save();
+
+            return $this->manager->activate($list, $approverUserId);
+        });
+    }
+
     public function approve(int $approverUserId, int $priceListId): PriceList
     {
         return DB::transaction(function () use ($approverUserId, $priceListId): PriceList {
             $list = PriceList::query()->lockForUpdate()->findOrFail($priceListId);
-            $this->assertPendingAndIndependent($list, $approverUserId);
+            $this->assertPending($list);
 
             $list->forceFill([
                 'rejected_by' => null,
@@ -161,11 +184,16 @@ final class PriceListApprovalWorkflow
         });
     }
 
-    private function assertPendingAndIndependent(PriceList $list, int $approverUserId): void
+    private function assertPending(PriceList $list): void
     {
         if ($list->status !== PriceList::STATUS_PENDING_APPROVAL || $list->type !== PriceList::TYPE_CUSTOMER) {
             throw ValidationException::withMessages(['price_list' => 'Bảng giá không còn ở hàng chờ phê duyệt.']);
         }
+    }
+
+    private function assertPendingAndIndependent(PriceList $list, int $approverUserId): void
+    {
+        $this->assertPending($list);
 
         if ((int) $list->created_by === $approverUserId
             || (int) $list->manager_user_id === $approverUserId

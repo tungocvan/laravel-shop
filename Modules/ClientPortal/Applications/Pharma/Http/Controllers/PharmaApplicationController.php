@@ -262,6 +262,22 @@ final class PharmaApplicationController extends Controller
             ->with('success', 'Đã loại sản phẩm khỏi bảng giá và ghi nhận lịch sử điều chỉnh.');
     }
 
+    public function activateOwnDraftPriceList(
+        int $priceList,
+        Request $request,
+        ApplicationRegistry $registry,
+        PriceListApprovalWorkflow $approval,
+    ) {
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.price-lists.approve'), 403);
+
+        $approval->activateOwnDraft((int) $user->id, $priceList);
+
+        return redirect()->route('client.pharma.price-lists.show', $priceList)
+            ->with('success', 'Đã kích hoạt trực tiếp bảng giá.');
+    }
+
     public function approvePriceList(
         int $priceList,
         Request $request,
@@ -323,6 +339,7 @@ final class PharmaApplicationController extends Controller
             'isManager' => (int) $list->manager_user_id === (int) $user->id,
             'exportProfiles' => $list->status === PriceList::STATUS_ACTIVE ? $exports->profilesForUser((int) $user->id) : [],
             'currentExportShare' => $list->status === PriceList::STATUS_ACTIVE ? $exports->latestForUser((int) $list->id, (int) $user->id) : null,
+            'exportHistory' => $list->status === PriceList::STATUS_ACTIVE ? $exports->historyForUser((int) $list->id, (int) $user->id) : [],
         ]);
     }
 
@@ -370,6 +387,58 @@ final class PharmaApplicationController extends Controller
                 ? 'PDF đã sẵn sàng.'
                 : 'Đã đưa yêu cầu chuyển PDF vào Queue Pharma.'
         );
+    }
+
+    public function regeneratePriceListSharePdf(int $share, Request $request, PriceListShareExportService $exports)
+    {
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+        $exports->regeneratePdf($share, (int) $user->id);
+
+        return redirect()->back()->with('success', 'Đã đưa yêu cầu tạo lại PDF vào hàng chờ xử lý.');
+    }
+
+    public function deletePriceListExportShare(int $share, Request $request, PriceListShareExportService $exports)
+    {
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+        $exports->deleteExport($share, (int) $user->id);
+
+        return redirect()->back()->with('success', 'Đã xóa bản xuất Excel / PDF.');
+    }
+
+    public function emailPriceListExportShare(int $share, Request $request, PriceListShareExportService $exports)
+    {
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+
+        $validated = $request->validate([
+            'recipients' => ['required', 'string', 'max:1000'],
+            'subject' => ['required', 'string', 'max:255'],
+            'message' => ['required', 'string', 'max:10000'],
+            'attach_excel' => ['nullable', 'boolean'],
+            'attach_pdf' => ['nullable', 'boolean'],
+        ]);
+
+        $recipients = collect(preg_split('/[;,\\s]+/', $validated['recipients']) ?: [])
+            ->map(fn ($email) => trim((string) $email))
+            ->filter()
+            ->unique()
+            ->values();
+
+        abort_if($recipients->isEmpty() || $recipients->count() > 20 || $recipients->contains(fn ($email) => filter_var($email, FILTER_VALIDATE_EMAIL) === false), 422, 'Danh sách email người nhận không hợp lệ.');
+
+        $exports->queueEmail(
+            $share,
+            (int) $user->id,
+            $recipients->all(),
+            trim($validated['subject']),
+            trim($validated['message']),
+            $request->boolean('attach_excel'),
+            $request->boolean('attach_pdf'),
+        );
+
+        return back()->with('success', 'Đã đưa email vào hàng đợi gửi.');
     }
 
     public function priceListShareStatus(int $share, Request $request, PriceListShareExportService $exports)

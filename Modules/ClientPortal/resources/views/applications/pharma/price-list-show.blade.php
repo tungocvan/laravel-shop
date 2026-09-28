@@ -17,10 +17,15 @@
     @if($priceList->status === \Modules\Pharma\Models\PriceList::STATUS_DRAFT && ($canSubmit || $canEdit))
         <section class="flex flex-col gap-3 rounded-3xl border border-amber-200 bg-amber-50 p-5 sm:flex-row sm:items-center sm:justify-between">
             <div><p class="font-black text-amber-950">Bảng giá đang ở trạng thái Nháp</p><p class="mt-1 text-sm text-amber-800">Gửi duyệt sẽ khóa bước lập giá và chuyển sang hàng chờ người có quyền phê duyệt.</p></div>
-            <div class="flex flex-wrap gap-2">@if($canEdit)<a href="{{ route('client.pharma.price-lists.edit', $priceList->id) }}" class="rounded-2xl border border-amber-300 bg-white px-5 py-3 text-sm font-black text-amber-800">Sửa Nháp</a><form method="POST" action="{{ route('client.pharma.price-lists.delete', $priceList->id) }}" onsubmit="return confirm('Xóa bảng giá Nháp này?')">@csrf @method('DELETE')<button class="rounded-2xl border border-red-200 bg-white px-5 py-3 text-sm font-black text-red-600">Xóa</button></form>@endif @if($canSubmit)<form method="POST" action="{{ route('client.pharma.price-lists.submit', $priceList->id) }}">@csrf<button class="rounded-2xl bg-amber-600 px-5 py-3 text-sm font-black text-white">Gửi duyệt</button></form>@endif</div>
+            <div class="flex flex-wrap gap-2">@if($canEdit)<a href="{{ route('client.pharma.price-lists.edit', $priceList->id) }}" class="rounded-2xl border border-amber-300 bg-white px-5 py-3 text-sm font-black text-amber-800">Sửa Nháp</a><form method="POST" action="{{ route('client.pharma.price-lists.delete', $priceList->id) }}" onsubmit="return confirm('Xóa bảng giá Nháp này?')">@csrf @method('DELETE')<button class="rounded-2xl border border-red-200 bg-white px-5 py-3 text-sm font-black text-red-600">Xóa</button></form>@endif @if($canSubmit)<form method="POST" action="{{ route('client.pharma.price-lists.submit', $priceList->id) }}">@csrf<button class="rounded-2xl border border-amber-300 bg-white px-5 py-3 text-sm font-black text-amber-800">Gửi duyệt</button></form>@endif @if($canApprove)<form method="POST" action="{{ route('client.pharma.price-lists.activate-own-draft',$priceList->id) }}" onsubmit="return confirm('Kích hoạt trực tiếp bảng giá này?')">@csrf<button class="rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white">Kích hoạt ngay</button></form>@endif</div>
         </section>
     @elseif($priceList->status === \Modules\Pharma\Models\PriceList::STATUS_PENDING_APPROVAL)
-        <div class="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm font-bold text-blue-800">Đã gửi duyệt{{ $priceList->submitted_at ? ' lúc '.$priceList->submitted_at->format('H:i d/m/Y') : '' }} · Đang chờ phê duyệt.</div>
+        <section class="flex flex-col gap-3 rounded-3xl border border-blue-200 bg-blue-50 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div><p class="font-black text-blue-950">Đang chờ phê duyệt</p><p class="mt-1 text-sm text-blue-700">Đã gửi{{ $priceList->submitted_at ? ' lúc '.$priceList->submitted_at->format('H:i d/m/Y') : '' }}.</p></div>
+            @if($canApprove)
+                <form method="POST" action="{{ route('client.pharma.price-list-approvals.approve',$priceList->id) }}" onsubmit="return confirm('Phê duyệt và kích hoạt bảng giá này?')">@csrf<button class="rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white">Phê duyệt & kích hoạt</button></form>
+            @endif
+        </section>
     @elseif($priceList->status === \Modules\Pharma\Models\PriceList::STATUS_REJECTED)
         <section class="rounded-3xl border border-rose-200 bg-rose-50 p-5">
             <p class="font-black text-rose-950">Bảng giá đã bị từ chối</p>
@@ -31,66 +36,90 @@
     @endif
 
     @if($priceList->status === \Modules\Pharma\Models\PriceList::STATUS_ACTIVE)
-        @php($share = session('price_list_share') ?? $currentExportShare)
+        @php
+            $share = session('price_list_share') ?? $currentExportShare;
+            $profileNames = collect($exportProfiles)->mapWithKeys(fn ($profile) => [(int) $profile['id'] => $profile['name']]);
+        @endphp
         <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div class="flex flex-wrap items-center gap-2">
-                <details class="group flex-1 min-w-[260px] rounded-2xl border border-emerald-200 bg-emerald-50">
-                    <summary class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-black text-emerald-950">
-                        <span>Xuất & chia sẻ bảng giá Excel / PDF</span><span class="text-lg transition group-open:rotate-180">⌄</span>
-                    </summary>
-                    <div class="border-t border-emerald-200 p-4">
-                        <p class="text-sm text-emerald-800">Dùng cấu hình mẫu bảng giá Pharma. Excel và PDF được lưu trên server; liên kết chia sẻ có hiệu lực 30 ngày.</p>
-                        <form method="POST" action="{{ route('client.pharma.price-lists.export-share',$priceList->id) }}" class="mt-4 flex flex-col gap-2 sm:flex-row sm:items-end">
-                            @csrf
-                            <label class="flex-1"><span class="mb-1 block text-xs font-bold text-emerald-800">Mẫu bảng giá</span><select name="export_profile_id" class="h-11 w-full rounded-2xl border border-emerald-300 bg-white px-3 text-sm"><option value="">Mặc định hệ thống</option>@foreach($exportProfiles as $profile)<option value="{{ $profile['id'] }}">{{ $profile['name'] }}{{ $profile['is_default']?' · Mặc định':'' }}</option>@endforeach</select></label>
-                            <button class="h-11 rounded-2xl bg-emerald-700 px-5 text-sm font-black text-white">Xuất Excel</button>
-                        </form>
-
-                        @if($share)
-                            <div class="mt-4 rounded-2xl border border-emerald-200 bg-white p-4" data-export-share data-status-url="{{ route('client.pharma.price-lists.share.status',$share['share_id']) }}">
-                                <div class="flex flex-wrap items-center justify-between gap-2"><p class="text-sm font-black text-slate-900">File xuất gần nhất</p><span class="text-xs font-bold text-slate-500">Hết hạn: {{ $share['expires_at'] }}</span></div>
-                                <div class="mt-3 grid gap-3 lg:grid-cols-[1fr_auto]">
-                                    <div><p class="mb-1 text-xs font-bold uppercase tracking-wide text-slate-400">Excel</p><input id="price-list-share-url" readonly value="{{ $share['url'] }}" class="h-11 w-full rounded-xl border border-slate-300 px-3 text-sm"></div>
-                                    <div class="flex flex-wrap items-end gap-2"><a href="{{ $share['url'] }}" class="rounded-xl border border-emerald-300 px-4 py-3 text-sm font-bold text-emerald-800">Tải Excel</a><button type="button" onclick="copyShareUrl('price-list-share-url')" class="rounded-xl border border-slate-300 px-4 py-3 text-sm font-bold">Sao chép liên kết</button><button type="button" onclick="shareExportUrl('price-list-share-url')" class="rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white">Chia sẻ</button></div>
-                                </div>
-
-                                <div class="mt-4 border-t border-slate-100 pt-4">
-                                    <div class="flex flex-wrap items-center justify-between gap-3">
-                                        <div><p class="text-xs font-bold uppercase tracking-wide text-slate-400">PDF</p><p id="price-list-pdf-status" class="mt-1 text-sm font-bold text-slate-700">@if(($share['pdf_status'] ?? null)==='completed')PDF đã sẵn sàng@elseif(in_array(($share['pdf_status'] ?? null),['queued','processing'],true))Đang chuyển PDF qua Queue Pharma...@elseif(($share['pdf_status'] ?? null)==='failed')Chuyển PDF không thành công@else Chưa tạo PDF @endif</p>@if(($share['pdf_error'] ?? null))<p class="mt-1 text-xs text-red-600">{{ $share['pdf_error'] }}</p>@endif</div>
-                                        @if(($share['pdf_available'] ?? false) && ($share['pdf_url'] ?? null))
-                                            <div class="flex flex-wrap gap-2"><a href="{{ $share['pdf_url'] }}" class="rounded-xl border border-violet-300 px-4 py-3 text-sm font-bold text-violet-800">Tải PDF</a><input id="price-list-pdf-url" type="hidden" value="{{ $share['pdf_url'] }}"><button type="button" onclick="copyShareUrl('price-list-pdf-url')" class="rounded-xl border border-slate-300 px-4 py-3 text-sm font-bold">Sao chép liên kết PDF</button><button type="button" onclick="shareExportUrl('price-list-pdf-url')" class="rounded-xl bg-violet-700 px-4 py-3 text-sm font-bold text-white">Chia sẻ PDF</button></div>
-                                        @elseif(!in_array(($share['pdf_status'] ?? null),['queued','processing'],true))
-                                            <form method="POST" action="{{ route('client.pharma.price-lists.share.pdf.queue',$share['share_id']) }}">@csrf<button class="rounded-xl bg-violet-700 px-4 py-3 text-sm font-black text-white">Chuyển sang PDF</button></form>
-                                        @endif
-                                    </div>
-                                </div>
-
-                                <div class="mt-4 flex justify-end"><form method="POST" action="{{ route('client.pharma.price-lists.share.revoke',$share['share_id']) }}">@csrf @method('DELETE')<button class="text-xs font-bold text-red-600">Thu hồi link Excel / PDF</button></form></div>
-                            </div>
-                        @endif
-                    </div>
-                </details>
-
-                @if(($isManager && !$canApprove) || $canApprove)
-                    <details class="group min-w-[220px] rounded-2xl border border-rose-200 bg-rose-50">
-                        <summary class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-black text-rose-800"><span>Ngừng kích hoạt</span><span class="text-lg transition group-open:rotate-180">⌄</span></summary>
-                        <div class="border-t border-rose-200 p-4">
-                            @if($isManager && !$canApprove)
-                                <p class="text-sm text-rose-700">Không còn bán hàng cho khách? Gửi yêu cầu để người phê duyệt xử lý.</p>
-                                <form method="POST" action="{{ route('client.pharma.price-lists.deactivation.request',$priceList->id) }}" class="mt-3 flex flex-col gap-2">@csrf<input name="deactivation_reason" required maxlength="1000" class="h-11 min-w-72 rounded-2xl border border-rose-300 bg-white px-4 text-sm" placeholder="Lý do ngừng kích hoạt..."><button class="rounded-2xl bg-rose-700 px-5 py-3 text-sm font-black text-white">Yêu cầu ngừng kích hoạt</button></form>
-                            @else
-                                <p class="text-sm text-rose-700">Người phê duyệt có thể ngừng kích hoạt trực tiếp; bắt buộc ghi lý do.</p>
-                                <form method="POST" action="{{ route('client.pharma.price-lists.deactivate',$priceList->id) }}" class="mt-3 flex flex-col gap-2" onsubmit="return confirm('Ngừng kích hoạt bảng giá này?')">@csrf<input name="deactivation_reason" required maxlength="1000" class="h-11 min-w-72 rounded-2xl border border-rose-300 bg-white px-4 text-sm" placeholder="Lý do ngừng kích hoạt..."><button class="rounded-2xl bg-rose-700 px-5 py-3 text-sm font-black text-white">Ngừng kích hoạt</button></form>
-                            @endif
+            <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div><p class="text-xs font-black uppercase tracking-[0.14em] text-slate-400">Tài liệu bảng giá</p><p class="mt-1 text-sm text-slate-600">Xuất nhiều mẫu độc lập; mỗi bản Excel có thể tạo hoặc tạo lại PDF riêng.</p></div>
+                <div class="flex flex-wrap gap-2">
+                    <details class="group relative">
+                        <summary class="cursor-pointer list-none rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white">+ Xuất tài liệu</summary>
+                        <div class="absolute right-0 z-20 mt-2 w-[min(92vw,430px)] rounded-3xl border border-slate-200 bg-white p-5 shadow-xl">
+                            <p class="font-black text-slate-950">Xuất tài liệu mới</p><p class="mt-1 text-xs text-slate-500">Bản xuất trước được giữ nguyên trong lịch sử.</p>
+                            <form method="POST" action="{{ route('client.pharma.price-lists.export-share',$priceList->id) }}" class="mt-4 space-y-4">@csrf
+                                <label class="block"><span class="mb-1.5 block text-xs font-bold text-slate-500">Mẫu bảng giá</span><select name="export_profile_id" class="h-11 w-full rounded-2xl border border-slate-300 bg-white px-3 text-sm"><option value="">Mặc định hệ thống</option>@foreach($exportProfiles as $profile)<option value="{{ $profile['id'] }}">{{ $profile['name'] }}{{ $profile['is_default']?' · Mặc định':'' }}</option>@endforeach</select></label>
+                                <div class="flex justify-end"><button class="rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white">Xuất Excel mới</button></div>
+                            </form>
                         </div>
                     </details>
-                @endif
+                    <details class="group">
+                        <summary class="cursor-pointer list-none rounded-2xl border border-slate-300 px-5 py-3 text-sm font-black text-slate-700">Tài liệu đã xuất · {{ count($exportHistory) }}</summary>
+                        <div class="mt-3 space-y-3 lg:min-w-[720px]">
+                            @forelse($exportHistory as $export)
+                                @php
+                                    $exportId = (int) $export['share_id'];
+                                    $profileLabel = $export['export_profile_id'] ? ($profileNames[$export['export_profile_id']] ?? 'Mẫu #'.$export['export_profile_id']) : 'Mặc định hệ thống';
+                                    $isProcessing = in_array($export['pdf_status'] ?? null, ['queued','processing'], true);
+                                @endphp
+                                <article class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5" @if($share && $exportId === (int)$share['share_id']) data-export-share data-status-url="{{ route('client.pharma.price-lists.share.status',$exportId) }}" @endif>
+                                    <div class="flex flex-col gap-4">
+                                        <div><p class="font-black text-slate-900">{{ $profileLabel }}</p><p class="mt-1 text-xs text-slate-500">{{ $export['created_at'] }} · {{ $export['download_name'] }}</p><div class="mt-2 flex gap-2 text-xs font-bold"><span class="rounded-full bg-emerald-100 px-2.5 py-1 text-emerald-700">Excel ✓</span>@if($export['pdf_available'])<span id="{{ $share && $exportId === (int)$share['share_id'] ? 'price-list-pdf-status' : '' }}" class="rounded-full bg-violet-100 px-2.5 py-1 text-violet-700">PDF ✓</span>@elseif($isProcessing)<span id="{{ $share && $exportId === (int)$share['share_id'] ? 'price-list-pdf-status' : '' }}" class="rounded-full bg-violet-100 px-2.5 py-1 text-violet-700">Đang tạo PDF...</span>@elseif(($export['pdf_status'] ?? null)==='failed')<span class="rounded-full bg-red-100 px-2.5 py-1 text-red-700">PDF lỗi</span>@else<span class="rounded-full bg-slate-200 px-2.5 py-1 text-slate-600">Chưa có PDF</span>@endif</div></div>
+                                        <div class="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                                            @if(!$export['revoked'])<a href="{{ $export['url'] }}" class="flex min-h-11 items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-black text-emerald-800">Tải Excel</a>@endif
+                                            @if($export['pdf_available'] && !$export['revoked'])<a href="{{ $export['pdf_url'] }}" class="flex min-h-11 items-center justify-center rounded-2xl border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-black text-violet-800">Tải PDF</a>@endif
+                                            @if(!$isProcessing && !$export['revoked'])
+                                                <form method="POST" action="{{ $export['pdf_available'] ? route('client.pharma.price-lists.share.pdf.regenerate',$exportId) : route('client.pharma.price-lists.share.pdf.queue',$exportId) }}">@csrf<button class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold">{{ $export['pdf_available'] ? 'Tạo lại PDF' : 'Tạo PDF' }}</button></form>
+                                            @endif
+                                            @if(!$export['revoked'])
+                                                <div class="col-span-2 flex min-w-0 items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-2 sm:col-span-full sm:w-full"><span class="shrink-0">🔗</span><span class="min-w-0 flex-1 truncate text-xs font-semibold text-slate-600">{{ $export['pdf_available'] ? $export['pdf_url'] : $export['url'] }}</span><input id="export-url-{{ $exportId }}" type="hidden" value="{{ $export['pdf_available'] ? $export['pdf_url'] : $export['url'] }}"><button type="button" onclick="copyExportUrl('export-url-{{ $exportId }}',this)" class="flex h-11 shrink-0 items-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700" aria-label="Sao chép URL">⧉ <span class="ml-1 hidden sm:inline" data-copy-label>Sao chép</span></button><button type="button" onclick="shareExportUrl('export-url-{{ $exportId }}')" class="h-11 shrink-0 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700">Chia sẻ</button></div>
+                                                <button type="button" onclick="document.getElementById('email-export-{{ $exportId }}').showModal()" class="col-span-2 min-h-11 rounded-2xl bg-sky-700 px-4 py-2.5 text-sm font-black text-white sm:col-span-1">✉ Gửi email</button>
+                                                <dialog id="email-export-{{ $exportId }}" class="m-auto w-[calc(100%-1rem)] max-w-[620px] rounded-[28px] border-0 p-0 shadow-2xl backdrop:bg-slate-950/55 sm:w-[min(92vw,620px)]">
+                                                    <form method="POST" action="{{ route('client.pharma.price-lists.share.email',$exportId) }}" class="max-h-[88dvh] space-y-4 overflow-y-auto p-5 sm:p-6">@csrf
+                                                        <div class="flex items-start justify-between gap-4"><div><p class="text-lg font-black text-slate-950">Gửi bảng giá qua email</p><p class="mt-1 text-xs text-slate-500">{{ $profileLabel }} · {{ $export['download_name'] }}</p></div><button type="button" onclick="this.closest('dialog').close()" class="rounded-xl px-3 py-2 text-sm font-black text-slate-500">✕</button></div>
+                                                        <label class="block"><span class="mb-1.5 block text-xs font-bold text-slate-600">Email người nhận *</span><input name="recipients" required maxlength="1000" class="h-11 w-full rounded-2xl border border-slate-300 px-4 text-sm" placeholder="email@congty.vn; email2@congty.vn"></label>
+                                                        <label class="block"><span class="mb-1.5 block text-xs font-bold text-slate-600">Tiêu đề *</span><input name="subject" required maxlength="255" value="Bảng giá - {{ $priceList->name }}" class="h-11 w-full rounded-2xl border border-slate-300 px-4 text-sm"></label>
+                                                        <label class="block"><span class="mb-1.5 block text-xs font-bold text-slate-600">Nội dung *</span><textarea name="message" required maxlength="10000" rows="6" class="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm" placeholder="Nhập nội dung email...">Kính gửi Quý khách,
+
+Xin gửi kèm bảng giá {{ $priceList->name }}.
+
+Trân trọng.</textarea></label>
+                                                        <fieldset><legend class="text-xs font-bold text-slate-600">Tệp đính kèm *</legend><div class="mt-2 flex flex-wrap gap-4 text-sm"><label class="flex items-center gap-2 font-bold text-emerald-800"><input type="checkbox" name="attach_excel" value="1" checked> Excel</label><label class="flex items-center gap-2 font-bold {{ $export['pdf_available'] ? 'text-violet-800' : 'text-slate-400' }}"><input type="checkbox" name="attach_pdf" value="1" @disabled(!$export['pdf_available'])> PDF @if(!$export['pdf_available'])<span class="text-xs font-normal">(chưa sẵn sàng)</span>@endif</label></div></fieldset>
+                                                        <div class="flex justify-end gap-2 border-t border-slate-100 pt-4"><button type="button" onclick="this.closest('dialog').close()" class="rounded-2xl border border-slate-300 px-5 py-3 text-sm font-black text-slate-700">Hủy</button><button class="min-h-11 rounded-2xl bg-sky-700 px-5 py-3 text-sm font-black text-white">Gửi email →</button></div>
+                                                    </form>
+                                                </dialog>
+                                            @endif
+                                            <form method="POST" action="{{ route('client.pharma.price-lists.share.export.delete',$exportId) }}" onsubmit="return confirm('Xóa bản xuất Excel/PDF này?')">@csrf @method('DELETE')<button @disabled($isProcessing) class="rounded-xl px-3 py-2 text-xs font-bold text-red-600 disabled:opacity-40">Xóa bản xuất</button></form>
+                                        </div>
+                                    </div>
+                                </article>
+                            @empty
+                                <div class="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">Chưa có tài liệu xuất.</div>
+                            @endforelse
+                        </div>
+                    </details>
+                    @if(($isManager && !$canApprove) || $canApprove)
+                        <details class="group relative">
+                            <summary class="cursor-pointer list-none rounded-2xl border border-slate-300 px-4 py-3 text-sm font-black text-slate-600">⋯</summary>
+                            <div class="absolute right-0 z-20 mt-2 w-80 rounded-3xl border border-slate-200 bg-white p-4 shadow-xl">
+                                <p class="font-black text-slate-900">Ngừng kích hoạt</p>
+                                @if($isManager && !$canApprove)
+                                    <p class="mt-1 text-xs text-slate-500">Gửi yêu cầu để người phê duyệt xử lý.</p><form method="POST" action="{{ route('client.pharma.price-lists.deactivation.request',$priceList->id) }}" class="mt-3 space-y-2">@csrf<input name="deactivation_reason" required maxlength="1000" class="h-11 w-full rounded-2xl border border-slate-300 px-4 text-sm" placeholder="Lý do..."><button class="w-full rounded-2xl bg-rose-700 px-4 py-3 text-sm font-black text-white">Yêu cầu ngừng kích hoạt</button></form>
+                                @else
+                                    <p class="mt-1 text-xs text-slate-500">Bắt buộc ghi lý do để lưu lịch sử.</p><form method="POST" action="{{ route('client.pharma.price-lists.deactivate',$priceList->id) }}" class="mt-3 space-y-2" onsubmit="return confirm('Ngừng kích hoạt bảng giá này?')">@csrf<input name="deactivation_reason" required maxlength="1000" class="h-11 w-full rounded-2xl border border-slate-300 px-4 text-sm" placeholder="Lý do..."><button class="w-full rounded-2xl bg-rose-700 px-4 py-3 text-sm font-black text-white">Ngừng kích hoạt</button></form>
+                                @endif
+                            </div>
+                        </details>
+                    @endif
+                </div>
             </div>
         </section>
         <script>
             function copyShareUrl(id){const e=document.getElementById(id);if(!e)return;navigator.clipboard?navigator.clipboard.writeText(e.value):(e.type!=='hidden'&&e.select())}
+            async function copyExportUrl(id,button){const e=document.getElementById(id);if(!e)return;try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(e.value)}else{copyShareUrl(id)}const l=button?.querySelector('[data-copy-label]');const p=l?.textContent;if(l)l.textContent='Đã sao chép';button?.classList.add('text-emerald-700');setTimeout(()=>{if(l)l.textContent=p||'Sao chép';button?.classList.remove('text-emerald-700')},1600)}catch(_){copyShareUrl(id)}}
             function shareExportUrl(id){const e=document.getElementById(id);if(!e)return;if(navigator.share){navigator.share({title:'Bảng giá',url:e.value})}else{copyShareUrl(id)}}
-            (()=>{const box=document.querySelector('[data-export-share]');if(!box)return;const status=document.getElementById('price-list-pdf-status');if(!status||!status.textContent.includes('Đang chuyển PDF'))return;const poll=()=>fetch(box.dataset.statusUrl,{headers:{'Accept':'application/json'}}).then(r=>r.ok?r.json():Promise.reject()).then(data=>{if(data.pdf_status==='completed'||data.pdf_status==='failed'){const key='pharma-pdf-status-refreshed-'+data.share_id;if(!sessionStorage.getItem(key)){sessionStorage.setItem(key,'1');window.location.reload()}return}setTimeout(poll,2500)}).catch(()=>setTimeout(poll,5000));setTimeout(poll,1500)})()
+            (()=>{const box=document.querySelector('[data-export-share]');if(!box)return;const status=document.getElementById('price-list-pdf-status');if(!status||!status.textContent.includes('Đang tạo PDF'))return;const poll=()=>fetch(box.dataset.statusUrl,{headers:{'Accept':'application/json'}}).then(r=>r.ok?r.json():Promise.reject()).then(data=>{if(data.pdf_status==='completed'||data.pdf_status==='failed'){const key='pharma-pdf-status-refreshed-'+data.share_id;if(!sessionStorage.getItem(key)){sessionStorage.setItem(key,'1');window.location.reload()}return}setTimeout(poll,2500)}).catch(()=>setTimeout(poll,5000));setTimeout(poll,1500)})()
         </script>
     @elseif($priceList->status === \Modules\Pharma\Models\PriceList::STATUS_PENDING_DEACTIVATION)
         <section class="rounded-3xl border border-violet-200 bg-violet-50 p-5"><p class="font-black text-violet-950">Đang chờ duyệt ngừng kích hoạt</p><p class="mt-1 text-sm text-violet-800">{{ $priceList->deactivation_reason }}</p><p class="mt-2 text-xs font-bold text-violet-600">{{ $priceList->deactivation_requested_at ? 'Yêu cầu lúc '.$priceList->deactivation_requested_at->format('H:i d/m/Y') : '' }}</p>@if($canApprove)<form method="POST" action="{{ route('client.pharma.price-lists.deactivation.approve',$priceList->id) }}" class="mt-4" onsubmit="return confirm('Chấp nhận ngừng kích hoạt bảng giá này?')">@csrf<button class="rounded-2xl bg-violet-700 px-5 py-3 text-sm font-black text-white">Chấp nhận ngừng kích hoạt</button></form>@endif</section>

@@ -5,6 +5,7 @@ namespace Modules\Pharma\Services;
 use Modules\Pharma\Models\PriceList;
 use Modules\Pharma\Models\PriceListExportShare;
 use Modules\Pharma\Jobs\GeneratePriceListSharePdf;
+use Modules\Pharma\Jobs\SendPriceListExportEmail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
@@ -82,6 +83,18 @@ final class PriceListShareExportService
         return ['share'=>$share,'token'=>$token];
     }
 
+    public function historyForUser(int $priceListId, int $userId): array
+    {
+        return PriceListExportShare::query()
+            ->where('price_list_id', $priceListId)
+            ->where('created_by', $userId)
+            ->whereNotNull('token_encrypted')
+            ->latest('id')
+            ->get()
+            ->map(fn (PriceListExportShare $share) => $this->present($share))
+            ->all();
+    }
+
     public function latestForUser(int $priceListId, int $userId): ?array
     {
         $share = PriceListExportShare::query()
@@ -126,6 +139,9 @@ final class PriceListShareExportService
             'url' => route('client.pharma.price-lists.share.download', ['token' => $token]),
             'expires_at' => $share->expires_at?->format('d/m/Y H:i'),
             'download_name' => $share->download_name,
+            'export_profile_id' => $share->export_profile_id ? (int) $share->export_profile_id : null,
+            'created_at' => $share->created_at?->format('d/m/Y H:i'),
+            'revoked' => $share->revoked_at !== null,
             'pdf_status' => $share->pdf_status,
             'pdf_error' => $share->pdf_error_message,
             'pdf_available' => $this->pdfAvailable($share),
@@ -153,6 +169,35 @@ final class PriceListShareExportService
         }
 
         return $share->fresh();
+    }
+
+    public function queueEmail(
+        int $shareId,
+        int $userId,
+        array $recipients,
+        string $subject,
+        string $message,
+        bool $attachExcel,
+        bool $attachPdf,
+    ): void {
+        $share = PriceListExportShare::query()
+            ->whereKey($shareId)
+            ->where('created_by', $userId)
+            ->firstOrFail();
+
+        abort_unless($share->isAvailable(), 409, 'Bản xuất đã hết hạn hoặc đã bị thu hồi.');
+        abort_unless($attachExcel || $attachPdf, 422, 'Chọn ít nhất một tệp đính kèm.');
+        abort_if($attachExcel && (! $share->storage_path || ! Storage::disk('local')->exists($share->storage_path)), 409, 'File Excel không còn tồn tại.');
+        abort_if($attachPdf && ! $this->pdfAvailable($share), 409, 'PDF chưa sẵn sàng để đính kèm.');
+
+        SendPriceListExportEmail::dispatch(
+            (int) $share->id,
+            array_values($recipients),
+            $subject,
+            $message,
+            $attachExcel,
+            $attachPdf,
+        );
     }
 
     public function status(int $shareId, int $userId): array
@@ -186,6 +231,45 @@ final class PriceListShareExportService
         $share=PriceListExportShare::query()->where('token_hash',hash('sha256',$token))->firstOrFail();
         abort_unless($share->isAvailable() && Storage::disk('local')->exists($share->storage_path), 404);
         return $share;
+    }
+
+    public function regeneratePdf(int $shareId, int $userId): PriceListExportShare
+    {
+        $share = PriceListExportShare::query()->whereKey($shareId)->where('created_by', $userId)->firstOrFail();
+        abort_unless($share->isAvailable() && Storage::disk('local')->exists($share->storage_path), 409, 'File Excel chưa sẵn sàng hoặc không còn tồn tại.');
+
+        if ($share->pdf_status === 'processing' || $share->pdf_status === 'queued') {
+            return $share;
+        }
+
+        if ($share->pdf_storage_path && Storage::disk('local')->exists($share->pdf_storage_path)) {
+            Storage::disk('local')->delete($share->pdf_storage_path);
+        }
+
+        $share->update([
+            'pdf_status' => 'queued',
+            'pdf_storage_path' => null,
+            'pdf_download_name' => null,
+            'pdf_error_message' => null,
+            'pdf_completed_at' => null,
+        ]);
+        GeneratePriceListSharePdf::dispatch((int) $share->id);
+
+        return $share->fresh();
+    }
+
+    public function deleteExport(int $shareId, int $userId): void
+    {
+        $share = PriceListExportShare::query()->whereKey($shareId)->where('created_by', $userId)->firstOrFail();
+        abort_if(in_array($share->pdf_status, ['queued', 'processing'], true), 409, 'Không thể xóa khi PDF đang được xử lý.');
+
+        foreach (array_filter([$share->storage_path, $share->pdf_storage_path]) as $path) {
+            if (Storage::disk('local')->exists($path)) {
+                Storage::disk('local')->delete($path);
+            }
+        }
+
+        $share->delete();
     }
 
     public function revoke(int $shareId, int $userId): void
