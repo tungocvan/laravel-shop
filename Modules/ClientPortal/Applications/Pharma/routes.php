@@ -106,6 +106,8 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->whereNumber('share')->middleware('client.feature:pharma,price-lists')->name('price-lists.share.pdf.regenerate');
         Route::delete('/price-list-export-shares/{share}/export', [PharmaApplicationController::class, 'deletePriceListExportShare'])
             ->whereNumber('share')->middleware('client.feature:pharma,price-lists')->name('price-lists.share.export.delete');
+        Route::post('/price-list-export-shares/{share}/email', [PharmaApplicationController::class, 'emailPriceListExportShare'])
+            ->whereNumber('share')->middleware('client.feature:pharma,price-lists')->name('price-lists.share.email');
         Route::get('/price-list-export-shares/{share}/status', [PharmaApplicationController::class, 'priceListShareStatus'])
             ->whereNumber('share')->middleware('client.feature:pharma,price-lists')->name('price-lists.share.status');
     });
