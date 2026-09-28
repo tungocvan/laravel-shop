@@ -47,7 +47,9 @@ class PharmaCommercialCapabilityTest extends TestCase
         $this->assertStringContainsString("->where('workspace_assignments.partner_id', \$partnerId)", $service);
         $this->assertStringContainsString("'pharma_drug_bid_award_product_policies as product_policies'", $service);
         $this->assertStringContainsString('COALESCE(workspace_allocations.commercial_policy_percentage, product_policies.commission_percentage) as effective_policy_percentage', $service);
-        $this->assertStringContainsString('public function commercialContext(int $userId, int $partnerId, int $awardId): array', $service);
+        $this->assertStringContainsString('public function commercialContext(int $userId, int $partnerId, int $awardId, bool $includeSupplierPricing = false): array', $service);
+        $this->assertStringContainsString("'import_price' => $includePricing ? $tracking->import_price : null", $service);
+        $this->assertStringContainsString("'pricing_visible' => $includePricing", $service);
         $this->assertStringContainsString('private readonly PriceResolver $priceResolver', $service);
         $this->assertStringContainsString("->where('medicine_id', \$medicineId)", $service);
         $this->assertStringContainsString("if (\$variants->count() !== 1)", $service);
