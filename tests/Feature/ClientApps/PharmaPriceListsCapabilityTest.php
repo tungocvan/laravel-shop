@@ -254,6 +254,11 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('stabilizePrintLayout', $pdfJob);
         $this->assertStringContainsString('setFitToWidth(1)', $pdfJob);
         $this->assertStringContainsString('setFitToHeight(0)', $pdfJob);
+        $layout = file_get_contents(base_path('Modules/Pharma/Services/PriceListExcelDocumentLayout.php'));
+        $this->assertStringContainsString('__PHARMA_PRICE_LIST_FOOTER__', $layout);
+        $this->assertStringContainsString('keepSignatureFooterTogether', $pdfJob);
+        $this->assertStringContainsString('Worksheet::BREAK_ROW', $pdfJob);
+        $this->assertStringContainsString('setBreak("A{$markerRow}"', $pdfJob);
         $this->assertStringContainsString("\$exportShares[(int)\$priceList->id]", $view);
         $this->assertStringContainsString('+ Xuất tài liệu', $detail);
         $this->assertStringContainsString('Tài liệu đã xuất', $detail);
