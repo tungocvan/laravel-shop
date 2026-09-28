@@ -262,7 +262,7 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('stampPdfFooter', $pdfJob);
         $this->assertStringContainsString('new Fpdi()', $pdfJob);
         $this->assertStringContainsString('importPage($page)', $pdfJob);
-        $this->assertStringContainsString("->Image($signature", $pdfJob);
+        $this->assertStringContainsString('->Image($signature', $pdfJob);
         $this->assertStringContainsString("pharma-price-list-final.pdf", $pdfJob);
         $this->assertStringNotContainsString('rasterizeSignatureFooterForLibreOffice', $pdfJob);
         $this->assertStringNotContainsString("setEditAs('twoCell')", $pdfJob);
