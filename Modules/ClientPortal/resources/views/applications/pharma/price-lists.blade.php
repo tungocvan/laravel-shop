@@ -64,11 +64,19 @@
         <div class="-mx-4 mt-4 overflow-x-auto px-4 pb-1 sm:-mx-5 sm:px-5" data-status-rail>
             <div class="flex w-max flex-nowrap gap-2 whitespace-nowrap">
                 @foreach($statuses as $value => $meta)
-                    @php $normalizedValue = $value === '' ? null : $value; $active = $status === $normalizedValue; $countKey = $normalizedValue ?? 'all'; @endphp
-                    @if($normalizedValue === 'pending_approval' && $canApprove)
-                        <a href="{{ route('client.pharma.price-list-approvals') }}" title="Yêu cầu cần tôi duyệt" class="min-h-10 rounded-full border px-3.5 py-2 text-xs font-bold {{ ($pendingApprovalCount ?? 0) > 0 ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-200 bg-white text-slate-600' }}">Chờ duyệt <span class="ml-1 opacity-80">{{ $pendingApprovalCount ?? 0 }}</span></a>
+                    @php
+                        $normalizedValue = $value === '' ? null : $value;
+                        $active = $status === $normalizedValue;
+                        $countKey = $normalizedValue ?? 'all';
+                        $statusCount = $normalizedValue === 'pending_approval' && $canApprove ? ($pendingApprovalCount ?? 0) : ($counts[$countKey] ?? 0);
+                        $disabled = !$active && $statusCount < 1;
+                    @endphp
+                    @if($disabled)
+                        <span aria-disabled="true" class="min-h-10 cursor-not-allowed select-none rounded-full border border-slate-100 bg-slate-50 px-3.5 py-2 text-xs font-bold text-slate-300">{{ $meta['label'] }} <span class="ml-1 opacity-70">{{ $statusCount }}</span></span>
+                    @elseif($normalizedValue === 'pending_approval' && $canApprove)
+                        <a href="{{ route('client.pharma.price-list-approvals') }}" title="Yêu cầu cần tôi duyệt" class="min-h-10 rounded-full border border-blue-600 bg-blue-600 px-3.5 py-2 text-xs font-bold text-white">Chờ duyệt <span class="ml-1 opacity-80">{{ $statusCount }}</span></a>
                     @else
-                        <a href="{{ route('client.pharma.price-lists', array_filter(['q' => $search, 'per_page' => $perPage, 'status' => $normalizedValue, 'from_date' => $fromDate, 'to_date' => $toDate, 'manager_user_id' => $managerUserId], fn($v) => $v !== null && $v !== '')) }}" class="min-h-10 rounded-full border px-3.5 py-2 text-xs font-bold {{ $active ? ($meta['class'] === 'emerald' ? 'border-emerald-600 bg-emerald-600 text-white' : ($meta['class'] === 'amber' ? 'border-amber-500 bg-amber-500 text-white' : 'border-slate-800 bg-slate-800 text-white')) : 'border-slate-200 bg-white text-slate-600' }}">@if($active)✓ @endif{{ $meta['label'] }} <span class="ml-1 opacity-70">{{ $counts[$countKey] ?? 0 }}</span></a>
+                        <a href="{{ route('client.pharma.price-lists', array_filter(['q' => $search, 'per_page' => $perPage, 'status' => $normalizedValue, 'from_date' => $fromDate, 'to_date' => $toDate, 'manager_user_id' => $managerUserId], fn($v) => $v !== null && $v !== '')) }}" class="min-h-10 rounded-full border px-3.5 py-2 text-xs font-bold {{ $active ? ($meta['class'] === 'emerald' ? 'border-emerald-600 bg-emerald-600 text-white' : ($meta['class'] === 'amber' ? 'border-amber-500 bg-amber-500 text-white' : 'border-slate-800 bg-slate-800 text-white')) : 'border-slate-200 bg-white text-slate-600' }}">@if($active)✓ @endif{{ $meta['label'] }} <span class="ml-1 opacity-70">{{ $statusCount }}</span></a>
                     @endif
                 @endforeach
             </div>
