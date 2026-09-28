@@ -14,6 +14,7 @@ use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Drawing as SharedDrawing;
 use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use RuntimeException;
 use Throwable;
@@ -113,6 +114,7 @@ final class GeneratePriceListSharePdf implements ShouldQueue
         $sheet = $spreadsheet->getActiveSheet();
 
         $this->freezeWrappedTableRowHeights($sheet);
+        $this->keepSignatureFooterTogether($sheet);
         $this->stabilizePrintLayout($sheet);
 
         $normalized = $workDir.'/pharma-price-list-pdf-source.xlsx';
@@ -169,6 +171,28 @@ final class GeneratePriceListSharePdf implements ShouldQueue
 
             $sheet->getRowDimension($row)->setRowHeight(min(120, max(20, 8 + ($maxLines * 13.5))));
         }
+    }
+
+    private function keepSignatureFooterTogether(Worksheet $sheet): void
+    {
+        $markerRow = null;
+        for ($row = $sheet->getHighestRow(); $row >= 1; $row--) {
+            if ((string) $sheet->getCell("A{$row}")->getValue() === '__PHARMA_PRICE_LIST_FOOTER__') {
+                $markerRow = $row;
+                break;
+            }
+        }
+
+        if ($markerRow === null) {
+            return;
+        }
+
+        // The marker row is hidden in Excel and only carries layout metadata.
+        // A manual row break before it forces LibreOffice to start the complete
+        // footer/signature block on a fresh page instead of floating the drawing
+        // beside the last product rows.
+        $sheet->setBreak("A{$markerRow}", Worksheet::BREAK_ROW);
+        $sheet->setCellValue("A{$markerRow}", null);
     }
 
     private function stabilizePrintLayout($sheet): void
