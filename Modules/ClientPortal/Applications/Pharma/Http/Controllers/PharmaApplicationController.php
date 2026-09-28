@@ -262,6 +262,22 @@ final class PharmaApplicationController extends Controller
             ->with('success', 'Đã loại sản phẩm khỏi bảng giá và ghi nhận lịch sử điều chỉnh.');
     }
 
+    public function activateOwnDraftPriceList(
+        int $priceList,
+        Request $request,
+        ApplicationRegistry $registry,
+        PriceListApprovalWorkflow $approval,
+    ) {
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.price-lists.approve'), 403);
+
+        $approval->activateOwnDraft((int) $user->id, $priceList);
+
+        return redirect()->route('client.pharma.price-lists.show', $priceList)
+            ->with('success', 'Đã kích hoạt trực tiếp bảng giá.');
+    }
+
     public function approvePriceList(
         int $priceList,
         Request $request,
