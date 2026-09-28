@@ -7,7 +7,7 @@
 
 @section('content')
 <div class="min-w-0 space-y-4 overflow-x-hidden">
-    <a href="{{ route('client.pharma.commercial') }}" class="inline-flex h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm">← Công việc bệnh viện</a>
+    <a href="{{ route('client.pharma.commercial', array_filter(['manager_user_id' => $managerUserId])) }}" class="inline-flex h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm">← Công việc bệnh viện</a>
 
     <section class="rounded-[2rem] bg-slate-950 px-5 py-6 text-white shadow-sm sm:px-7">
         <p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-300">Bệnh viện được phân công</p>
