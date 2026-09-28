@@ -77,6 +77,7 @@ class PharmaCommercialCapabilityTest extends TestCase
         $this->assertStringContainsString('abort_if($scopedHospital === null, 404)', $controller);
         $this->assertStringContainsString('$workspace->assignedProducts(', $controller);
         $this->assertStringContainsString('partnerId: (int) $scopedHospital->id', $controller);
+        $this->assertStringContainsString('perPage: 20', $controller);
 
         $this->assertStringContainsString('Công việc bệnh viện của tôi', $view);
         $this->assertStringContainsString('Nhân viên phụ trách', $view);
@@ -86,8 +87,11 @@ class PharmaCommercialCapabilityTest extends TestCase
         $this->assertStringContainsString('commercial-navigation-feedback', $view);
         $this->assertStringContainsString("array_filter(['hospital' => \$hospital->id, 'manager_user_id' => \$managerUserId])", $view);
         $this->assertStringContainsString('Danh sách chỉ gồm bệnh viện và sản phẩm trúng thầu đang được phân công', $view);
-        $this->assertStringContainsString('@foreach([25, 50, 100] as $size)', $view);
-        $this->assertStringContainsString('{{ $size }} / trang', $view);
+        $this->assertStringContainsString('Xem thêm bệnh viện', $view);
+        $this->assertStringContainsString('commercial-load-more', $view);
+        $this->assertStringContainsString('data-commercial-item', $view);
+        $this->assertStringContainsString('DOMParser', $view);
+        $this->assertStringNotContainsString('{{ $size }} / trang', $view);
         $this->assertStringContainsString('Xóa bộ lọc', $view);
         $this->assertStringContainsString('min-w-0', $view);
         $this->assertStringContainsString('h-11 w-11', $view);
@@ -101,7 +105,10 @@ class PharmaCommercialCapabilityTest extends TestCase
 
         $this->assertStringContainsString('Danh sách sản phẩm', $view);
         $this->assertStringContainsString('Tên thuốc, hoạt chất, số đăng ký...', $view);
-        $this->assertStringContainsString('@foreach([25, 50, 100] as $size)', $view);
+        $this->assertStringContainsString('Xem thêm sản phẩm', $view);
+        $this->assertStringContainsString('commercial-product-load-more', $view);
+        $this->assertStringContainsString('data-commercial-product', $view);
+        $this->assertStringNotContainsString('{{ $size }} / trang', $view);
         $this->assertStringContainsString('Giá trúng thầu', $view);
         $this->assertStringContainsString('SL phân bổ', $view);
         $this->assertStringContainsString('SL trúng thầu', $view);
