@@ -34,7 +34,6 @@
     </section>
 
     <section class="space-y-3">
-        <div id="commercial-product-list" class="space-y-3">
         <div class="flex items-end justify-between gap-3 px-1">
             <div>
                 <p class="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">Danh sách sản phẩm</p>
@@ -42,6 +41,7 @@
             </div>
         </div>
 
+        <div id="commercial-product-list" class="space-y-3">
         @forelse($products as $product)
             @php
                 $winningPrice = $product->winning_price ?? $product->unit_price;
