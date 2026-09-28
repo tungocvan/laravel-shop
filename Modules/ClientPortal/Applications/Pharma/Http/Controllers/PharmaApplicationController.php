@@ -12,6 +12,7 @@ use Modules\ClientPortal\Services\ClientPortalSettingsService;
 use Modules\Pharma\Models\PriceList;
 use Modules\Pharma\Services\MedicineCatalog;
 use Modules\Pharma\Services\UserPriceListWorkspace;
+use Modules\Pharma\Services\UserCommercialHospitalWorkspace;
 use Modules\Pharma\Services\UserPriceListWorkflow;
 use Modules\Pharma\Services\PriceListApprovalWorkflow;
 use Modules\Pharma\Services\ApproverGlobalPriceListWorkflow;
@@ -645,6 +646,78 @@ final class PharmaApplicationController extends Controller
             'circularGroups' => $catalog->circularGroups(),
             'circularGroup' => $circularGroup,
             'canViewSupplierPricing' => $canViewSupplierPricing,
+            'search' => trim((string) ($validated['q'] ?? '')),
+            'perPage' => (int) ($validated['per_page'] ?? 25),
+        ]);
+    }
+
+    public function commercial(
+        Request $request,
+        ApplicationRegistry $registry,
+        ClientPortalSettingsService $settings,
+        UserCommercialHospitalWorkspace $workspace,
+    ): View {
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:120'],
+            'per_page' => ['nullable', 'integer', 'in:25,50,100'],
+            'page' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        $application = $registry->find('pharma');
+        abort_if($application === null, 404);
+
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+
+        return view('ClientPortal::applications.pharma.commercial', [
+            'application' => $application,
+            'applicationPresentation' => $settings->applicationPresentation($application),
+            'hospitals' => $workspace->browseHospitals(
+                userId: (int) $user->id,
+                search: $validated['q'] ?? null,
+                perPage: (int) ($validated['per_page'] ?? 25),
+                page: (int) ($validated['page'] ?? 1),
+            )->withQueryString(),
+            'summary' => $workspace->summary((int) $user->id),
+            'search' => trim((string) ($validated['q'] ?? '')),
+            'perPage' => (int) ($validated['per_page'] ?? 25),
+        ]);
+    }
+
+    public function commercialHospital(
+        int $hospital,
+        Request $request,
+        ApplicationRegistry $registry,
+        ClientPortalSettingsService $settings,
+        UserCommercialHospitalWorkspace $workspace,
+    ): View {
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:120'],
+            'per_page' => ['nullable', 'integer', 'in:25,50,100'],
+            'page' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        $application = $registry->find('pharma');
+        abort_if($application === null, 404);
+
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+
+        $scopedHospital = $workspace->findHospital((int) $user->id, $hospital);
+        abort_if($scopedHospital === null, 404);
+
+        return view('ClientPortal::applications.pharma.commercial-hospital-show', [
+            'application' => $application,
+            'applicationPresentation' => $settings->applicationPresentation($application),
+            'hospital' => $scopedHospital,
+            'products' => $workspace->assignedProducts(
+                userId: (int) $user->id,
+                partnerId: (int) $scopedHospital->id,
+                search: $validated['q'] ?? null,
+                perPage: (int) ($validated['per_page'] ?? 25),
+                page: (int) ($validated['page'] ?? 1),
+                includeSupplierPricing: $registry->userCan($user, 'client.pharma.products.supplier-pricing'),
+            )->withQueryString(),
             'search' => trim((string) ($validated['q'] ?? '')),
             'perPage' => (int) ($validated['per_page'] ?? 25),
         ]);
