@@ -56,6 +56,7 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString("->name('price-lists.share.revoke')", $routes);
         $this->assertStringContainsString("->name('price-lists.share.pdf.queue')", $routes);
         $this->assertStringContainsString("->name('price-lists.share.status')", $routes);
+        $this->assertStringContainsString("->name('price-lists.share.email')", $routes);
         $this->assertStringContainsString("->name('price-lists.share.pdf.regenerate')", $routes);
         $this->assertStringContainsString("->name('price-lists.share.export.delete')", $routes);
         $this->assertStringContainsString("->name('client.pharma.price-lists.share.pdf')", $routes);
@@ -282,6 +283,19 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('public function deleteExport(int $shareId, int $userId)', $shareExport);
         $this->assertStringContainsString('regeneratePriceListSharePdf(', $controller);
         $this->assertStringContainsString('deletePriceListExportShare(', $controller);
+        $this->assertStringContainsString('emailPriceListExportShare(', $controller);
+        $this->assertStringContainsString('queueEmail(', $shareExport);
+        $emailJob = file_get_contents(base_path('Modules/Pharma/Jobs/SendPriceListExportEmail.php'));
+        $this->assertStringContainsString('implements ShouldQueue', $emailJob);
+        $this->assertStringContainsString('Mail::raw', $emailJob);
+        $this->assertStringContainsString("->attach(", $emailJob);
+        $this->assertStringContainsString('Gửi email', $detail);
+        $this->assertStringContainsString("name=\"recipients\"", $detail);
+        $this->assertStringContainsString("name=\"subject\"", $detail);
+        $this->assertStringContainsString("name=\"message\"", $detail);
+        $this->assertStringContainsString("name=\"attach_excel\"", $detail);
+        $this->assertStringContainsString("name=\"attach_pdf\"", $detail);
+        $this->assertStringContainsString('Đưa vào hàng đợi gửi', $detail);
         $this->assertStringContainsString('Phê duyệt & kích hoạt', $detail);
         $this->assertStringContainsString('Kích hoạt ngay', $detail);
         $this->assertStringContainsString('public function activateOwnDraft(int $approverUserId, int $priceListId)', $approval);
