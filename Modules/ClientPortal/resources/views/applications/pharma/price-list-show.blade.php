@@ -51,7 +51,7 @@
                         <div class="min-w-0"><p class="text-sm text-slate-600">Xuất nhiều mẫu độc lập; mỗi bản Excel có thể tạo hoặc tạo lại PDF riêng.</p></div>
                         <div class="flex min-w-0 flex-wrap gap-2">
                     <button type="button" onclick="document.getElementById('price-list-export-dialog').showModal()" class="min-h-11 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white">+ Xuất tài liệu</button>
-                    <dialog id="price-list-export-dialog" class="mb-0 mt-auto w-full max-w-[560px] rounded-t-[28px] border-0 p-0 shadow-2xl backdrop:bg-slate-950/55 lg:m-auto lg:w-[min(92vw,560px)] lg:rounded-[28px]">
+                    <dialog id="price-list-export-dialog" class="m-auto w-[calc(100%-24px)] max-w-[520px] rounded-[28px] border-0 p-0 shadow-2xl backdrop:bg-slate-950/55">
                         <form method="POST" action="{{ route('client.pharma.price-lists.export-share',$priceList->id) }}" class="flex max-h-[92dvh] flex-col">@csrf
                             <div class="min-w-0 space-y-4 overflow-y-auto p-5 pb-3 sm:p-6 sm:pb-3">
                                 <div class="flex items-start justify-between gap-4">
