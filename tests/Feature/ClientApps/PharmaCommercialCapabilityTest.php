@@ -118,6 +118,18 @@ class PharmaCommercialCapabilityTest extends TestCase
         $this->assertStringNotContainsString('Admin::', $view);
     }
 
+    public function test_database_price_resolver_qualifies_item_columns_after_join(): void
+    {
+        $resolver = file_get_contents(base_path('Modules/Pharma/Services/DatabasePriceResolver.php'));
+
+        $this->assertStringContainsString("->where('pharma_price_list_items.status', 'active')", $resolver);
+        $this->assertStringContainsString("->where('pharma_price_list_items.medicine_variant_id', \$variantId)", $resolver);
+        $this->assertStringContainsString("->where('pharma_price_list_items.identity_key'", $resolver);
+        $this->assertStringContainsString("whereNull('pharma_price_list_items.effective_from')", $resolver);
+        $this->assertStringContainsString("whereNull('pharma_price_list_items.effective_to')", $resolver);
+        $this->assertStringNotContainsString("->where('status', 'active')", $resolver);
+    }
+
     public function test_workspace_is_a_public_reusable_pharma_read_contract(): void
     {
         $service = new ReflectionClass(UserCommercialHospitalWorkspace::class);
