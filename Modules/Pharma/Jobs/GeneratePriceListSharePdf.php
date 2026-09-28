@@ -235,7 +235,7 @@ final class GeneratePriceListSharePdf implements ShouldQueue
         // rows as whitespace so table pagination remains close to the authored Excel.
         foreach (range($locationRow, $nameRow) as $row) {
             foreach (range($firstColumnIndex, $lastColumnIndex) as $column) {
-                $sheet->setCellValue([Coordinate::stringFromColumnIndex($column), $row], null);
+                $sheet->setCellValue([$column, $row], null);
             }
         }
 
