@@ -21,17 +21,12 @@
     </section>
 
     <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-        <form method="GET" action="{{ route('client.pharma.commercial.hospitals.show', $hospital->id) }}" class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
+        <form method="GET" action="{{ route('client.pharma.commercial.hospitals.show', $hospital->id) }}" class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
             @if($managerUserId)<input type="hidden" name="manager_user_id" value="{{ $managerUserId }}">@endif
             <label class="min-w-0">
                 <span class="sr-only">Tìm sản phẩm</span>
                 <input name="q" value="{{ $search }}" type="search" placeholder="Tên thuốc, hoạt chất, số đăng ký..." class="h-11 w-full min-w-0 rounded-2xl border border-slate-200 px-4 text-sm outline-none focus:border-slate-400">
             </label>
-            <select name="per_page" onchange="this.form.submit()" class="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700">
-                @foreach([25, 50, 100] as $size)
-                    <option value="{{ $size }}" @selected($perPage === $size)>{{ $size }} / trang</option>
-                @endforeach
-            </select>
             @if($search !== '')
                 <a href="{{ route('client.pharma.commercial.hospitals.show', array_filter(['hospital' => $hospital->id, 'manager_user_id' => $managerUserId])) }}" class="inline-flex h-11 items-center justify-center rounded-2xl border border-slate-200 px-4 text-sm font-bold text-slate-600">Xóa bộ lọc</a>
             @endif
@@ -39,6 +34,7 @@
     </section>
 
     <section class="space-y-3">
+        <div id="commercial-product-list" class="space-y-3">
         <div class="flex items-end justify-between gap-3 px-1">
             <div>
                 <p class="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">Danh sách sản phẩm</p>
@@ -51,7 +47,7 @@
                 $winningPrice = $product->winning_price ?? $product->unit_price;
                 $policy = $product->effective_policy_percentage;
             @endphp
-            <article class="min-w-0 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+            <article data-commercial-product class="min-w-0 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
                 <div class="min-w-0">
                     <div class="flex flex-wrap items-center gap-2 text-xs font-bold text-slate-500">
                         @if($product->bidding_notice_code)
@@ -133,10 +129,14 @@
                 <p class="mt-1 text-sm text-slate-500">Thử thay đổi từ khóa tìm kiếm hoặc xóa bộ lọc.</p>
             </div>
         @endforelse
+        </div>
 
-        @if($products->hasPages())
-            <div class="rounded-3xl border border-slate-200 bg-white p-3 shadow-sm">
-                {{ $products->links() }}
+        @if($products->hasMorePages())
+            <div id="commercial-product-load-more-wrap" class="pt-1 text-center">
+                <a id="commercial-product-load-more" href="{{ $products->nextPageUrl() }}" class="inline-flex min-h-12 w-full items-center justify-center rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-black text-slate-800 shadow-sm transition duration-150 active:scale-[0.985] sm:w-auto motion-reduce:transform-none">
+                    Xem thêm sản phẩm
+                </a>
+                <p class="mt-2 text-xs font-semibold text-slate-400">Đã hiển thị {{ $products->count() }} / {{ $products->total() }}</p>
             </div>
         @endif
     </section>
@@ -146,6 +146,37 @@
 document.addEventListener('DOMContentLoaded', () => {
     const input = document.querySelector('input[name="q"]');
     if (!input) return;
+
+    const bindLoadMore = () => {
+        const button = document.getElementById('commercial-product-load-more');
+        const list = document.getElementById('commercial-product-list');
+        if (!button || !list || button.dataset.loadMoreBound) return;
+        button.dataset.loadMoreBound = '1';
+        button.addEventListener('click', async (event) => {
+            if (!window.fetch || !window.DOMParser) return;
+            event.preventDefault();
+            const original = button.textContent;
+            button.textContent = 'Đang tải…';
+            button.setAttribute('aria-busy', 'true');
+            try {
+                const response = await fetch(button.href, {headers: {'X-Requested-With': 'XMLHttpRequest'}});
+                if (!response.ok) throw new Error('load-more');
+                const doc = new DOMParser().parseFromString(await response.text(), 'text/html');
+                doc.querySelectorAll('#commercial-product-list [data-commercial-product]').forEach((item) => list.appendChild(item));
+                document.getElementById('commercial-product-load-more-wrap')?.remove();
+                const nextWrap = doc.getElementById('commercial-product-load-more-wrap');
+                if (nextWrap) list.insertAdjacentElement('afterend', nextWrap);
+                bindLoadMore();
+            } catch (error) {
+                window.location.href = button.href;
+            } finally {
+                button.textContent = original;
+                button.removeAttribute('aria-busy');
+            }
+        });
+    };
+    bindLoadMore();
+
     let timer;
     input.addEventListener('input', () => {
         clearTimeout(timer);
