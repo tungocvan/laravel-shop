@@ -130,27 +130,43 @@ Trân trọng.</textarea></label>
         <script>
             const isInstalledPwa=()=>window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
             let preparedPwaFile=null;
+            const canNativeSharePreparedFile=()=>{if(!preparedPwaFile||!navigator.share)return false;const payload={files:[preparedPwaFile]};return !navigator.canShare||navigator.canShare(payload)};
+            function downloadPreparedPwaFile(){
+                if(!preparedPwaFile)return;
+                const objectUrl=URL.createObjectURL(preparedPwaFile),download=document.createElement('a');
+                download.href=objectUrl;download.download=preparedPwaFile.name;download.hidden=true;document.body.appendChild(download);download.click();download.remove();
+                setTimeout(()=>URL.revokeObjectURL(objectUrl),30000);
+            }
             async function preparePwaFile(event,anchor){
                 if(!isInstalledPwa())return;
                 event.preventDefault();
                 const dialog=document.getElementById('pwa-file-handoff'),title=dialog.querySelector('[data-file-title]'),message=dialog.querySelector('[data-file-message]'),share=dialog.querySelector('[data-file-share]');
-                preparedPwaFile=null;share.disabled=true;title.textContent='Chuẩn bị tệp';message.textContent='Đang chuẩn bị tệp trong PWA. Màn hình hiện tại sẽ được giữ nguyên.';dialog.showModal();
+                preparedPwaFile=null;share.disabled=true;share.textContent='Mở / chia sẻ tệp';title.textContent='Chuẩn bị tệp';message.textContent='Đang chuẩn bị tệp trong PWA. Màn hình hiện tại sẽ được giữ nguyên.';dialog.showModal();
                 try{
                     const response=await fetch(anchor.href,{credentials:'same-origin',cache:'no-store',headers:{'X-PWA-File-Handoff':'1'}});
                     if(!response.ok)throw new Error('download failed');
                     const blob=await response.blob(),name=anchor.dataset.fileName||'tai-lieu';
                     preparedPwaFile=new File([blob],name,{type:blob.type||'application/octet-stream'});
-                    const payload={files:[preparedPwaFile]};
-                    if(navigator.share&&(!navigator.canShare||navigator.canShare(payload))){
-                        title.textContent='Tệp đã sẵn sàng';message.textContent='Chọn “Mở / chia sẻ tệp” để bàn giao sang Files, Excel, PDF hoặc ứng dụng phù hợp. PWA vẫn giữ nguyên màn hình này.';share.disabled=false;
+                    title.textContent='Tệp đã sẵn sàng';share.disabled=false;
+                    if(canNativeSharePreparedFile()){
+                        message.textContent='Chọn “Mở / chia sẻ tệp” để bàn giao sang Files, Excel, PDF hoặc ứng dụng phù hợp. Nếu thiết bị không mở được bảng chia sẻ, tệp sẽ được tải xuống mà không thay thế màn hình PWA.';
                     }else{
-                        title.textContent='Thiết bị chưa hỗ trợ bàn giao tệp';message.textContent='PWA đã giữ nguyên màn hình. Hãy mở trang này bằng trình duyệt thông thường để tải tệp; không điều hướng PWA sang trình xem tệp.';
+                        share.textContent='Lưu tệp';message.textContent='Thiết bị không hỗ trợ chia sẻ tệp trực tiếp. Chọn “Lưu tệp” để tải tệp xuống mà không thay thế màn hình PWA.';
                     }
                 }catch(_){title.textContent='Không thể chuẩn bị tệp';message.textContent='Không tải được tệp trong phiên hiện tại. PWA vẫn giữ nguyên màn hình để bạn có thể thử lại.'}
             }
             document.querySelectorAll('[data-pwa-file-handoff]').forEach(anchor=>anchor.addEventListener('click',event=>preparePwaFile(event,anchor)));
             document.querySelector('[data-file-cancel]')?.addEventListener('click',()=>document.getElementById('pwa-file-handoff')?.close());
-            document.querySelector('[data-file-share]')?.addEventListener('click',async()=>{if(!preparedPwaFile)return;try{await navigator.share({files:[preparedPwaFile],title:'Bảng giá'});document.getElementById('pwa-file-handoff')?.close()}catch(error){if(error?.name!=='AbortError')document.querySelector('[data-file-message]').textContent='Không thể mở bảng chia sẻ. Tệp vẫn chưa thay thế màn hình PWA.'}});
+            document.querySelector('[data-file-share]')?.addEventListener('click',async()=>{
+                if(!preparedPwaFile)return;
+                if(canNativeSharePreparedFile()){
+                    try{await navigator.share({files:[preparedPwaFile],title:'Bảng giá'});document.getElementById('pwa-file-handoff')?.close();return}
+                    catch(error){if(error?.name==='AbortError')return}
+                }
+                downloadPreparedPwaFile();
+                const message=document.querySelector('[data-file-message]');if(message)message.textContent='Đã chuyển tệp sang trình tải xuống. Màn hình PWA vẫn được giữ nguyên.';
+                const button=document.querySelector('[data-file-share]');if(button)button.textContent='Lưu lại tệp';
+            });
             function copyShareUrl(id){const e=document.getElementById(id);if(!e)return;navigator.clipboard?navigator.clipboard.writeText(e.value):(e.type!=='hidden'&&e.select())}
             async function copyExportUrl(id,button){const e=document.getElementById(id);if(!e)return;try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(e.value)}else{copyShareUrl(id)}const l=button?.querySelector('[data-copy-label]');const p=l?.textContent;if(l)l.textContent='Đã sao chép';button?.classList.add('text-emerald-700');setTimeout(()=>{if(l)l.textContent=p||'Sao chép';button?.classList.remove('text-emerald-700')},1600)}catch(_){copyShareUrl(id)}}
             function shareExportUrl(id){const e=document.getElementById(id);if(!e)return;if(navigator.share){navigator.share({title:'Bảng giá',url:e.value})}else{copyShareUrl(id)}}
