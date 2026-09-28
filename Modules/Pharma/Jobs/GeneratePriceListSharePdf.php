@@ -342,7 +342,7 @@ final class GeneratePriceListSharePdf implements ShouldQueue
             $setup->setOrientation(PageSetup::ORIENTATION_LANDSCAPE);
         }
 
-        if ($setup->getPaperSize() === PageSetup::PAPERSIZE_DEFAULT) {
+        if (! $setup->getPaperSize()) {
             $setup->setPaperSize(PageSetup::PAPERSIZE_A4);
         }
 
