@@ -22,6 +22,7 @@
 
     <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
         <form method="GET" action="{{ route('client.pharma.commercial.hospitals.show', $hospital->id) }}" class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
+            @if($managerUserId)<input type="hidden" name="manager_user_id" value="{{ $managerUserId }}">@endif
             <label class="min-w-0">
                 <span class="sr-only">Tìm sản phẩm</span>
                 <input name="q" value="{{ $search }}" type="search" placeholder="Tên thuốc, hoạt chất, số đăng ký..." class="h-11 w-full min-w-0 rounded-2xl border border-slate-200 px-4 text-sm outline-none focus:border-slate-400">
@@ -32,7 +33,7 @@
                 @endforeach
             </select>
             @if($search !== '')
-                <a href="{{ route('client.pharma.commercial.hospitals.show', $hospital->id) }}" class="inline-flex h-11 items-center justify-center rounded-2xl border border-slate-200 px-4 text-sm font-bold text-slate-600">Xóa bộ lọc</a>
+                <a href="{{ route('client.pharma.commercial.hospitals.show', array_filter(['hospital' => $hospital->id, 'manager_user_id' => $managerUserId])) }}" class="inline-flex h-11 items-center justify-center rounded-2xl border border-slate-200 px-4 text-sm font-bold text-slate-600">Xóa bộ lọc</a>
             @endif
         </form>
     </section>
