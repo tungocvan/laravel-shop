@@ -16,6 +16,13 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
         Route::get('/products', [PharmaApplicationController::class, 'products'])
             ->middleware('client.feature:pharma,products')
             ->name('products');
+        Route::get('/commercial', [PharmaApplicationController::class, 'commercial'])
+            ->middleware('client.feature:pharma,commercial')
+            ->name('commercial');
+        Route::get('/commercial/hospitals/{hospital}', [PharmaApplicationController::class, 'commercialHospital'])
+            ->whereNumber('hospital')
+            ->middleware('client.feature:pharma,commercial')
+            ->name('commercial.hospitals.show');
         Route::get('/price-lists', [PharmaApplicationController::class, 'priceLists'])
             ->middleware('client.feature:pharma,price-lists')
             ->name('price-lists');
