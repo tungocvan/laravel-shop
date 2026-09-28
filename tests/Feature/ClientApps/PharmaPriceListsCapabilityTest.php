@@ -261,7 +261,7 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString("setName('PDF Footer')", $pdfJob);
         $this->assertStringContainsString('imagecreatetruecolor', $pdfJob);
         $this->assertStringContainsString('imagecopyresampled', $pdfJob);
-        $this->assertStringContainsString("offsetUnset($signatureIndex)", $pdfJob);
+        $this->assertStringContainsString('offsetUnset($signatureIndex)', $pdfJob);
         $this->assertStringNotContainsString("setEditAs('twoCell')", $pdfJob);
         $this->assertStringContainsString('keepSignatureFooterTogether', $pdfJob);
         $this->assertStringContainsString('Worksheet::BREAK_ROW', $pdfJob);
