@@ -43,6 +43,8 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString("->where('workspace_assignments.user_id', \$userId)", $source);
         $this->assertStringContainsString('DrugBidAwardManagementAssignment::STATUS_ACTIVE', $source);
         $this->assertStringContainsString('DrugBidAwardAllocation::STATUS_ACTIVE', $source);
+        $this->assertStringContainsString("MAX(awards.contract_duration_months) as contract_duration_months", $source);
+        $this->assertStringContainsString("MAX(awards.contract_period_text) as contract_period_text", $source);
         $this->assertStringContainsString("'scope_key' => sha1(\$identity)", $source);
         $this->assertStringNotContainsString('auth()', $source);
         $this->assertStringNotContainsString('auth(', $source);
@@ -75,6 +77,14 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString('active:scale-[0.985]', $list);
         $this->assertStringContainsString('Xem thêm kết quả', $list);
         $this->assertStringContainsString('DOMParser', $list);
+        $this->assertStringContainsString('Danh sách kết quả trúng thầu', $list);
+        $this->assertStringContainsString('kết quả trong phạm vi bạn phụ trách', $list);
+        $this->assertStringContainsString('SL phân bổ', $list);
+        $this->assertStringContainsString('Giá trị phân bổ', $list);
+        $this->assertStringContainsString('Còn {{ str_pad', $list);
+        $this->assertStringContainsString('md:grid-cols-2 xl:grid-cols-3', $list);
+        $this->assertStringContainsString('\\Carbon\\Carbon::parse', $list);
+        $this->assertStringNotContainsString('CarbonCarbon::parse', $list);
         $this->assertStringContainsString("setTimeout(()=>form.requestSubmit(),350)", $list);
         $this->assertStringContainsString('Xem thêm sản phẩm', $detail);
         $this->assertStringContainsString('Giá trúng thầu', $detail);
