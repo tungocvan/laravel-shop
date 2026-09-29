@@ -412,4 +412,39 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString("sortBy(fn (\$hospital) => (\$hospital->pwa_management_complete ? '1' : '0')", $workflow);
     }
 
+    public function test_individual_manager_assignments_can_be_transferred_or_removed_safely(): void
+    {
+        $routes=file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/routes.php'));
+        $controller=file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php'));
+        $workflow=file_get_contents(base_path('Modules/Pharma/Services/ClientBidAwardWorkflow.php'));
+        $service=file_get_contents(base_path('Modules/Pharma/Services/DrugBidAwardCommercialPolicyService.php'));
+        $summary=file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/bid-award-manager-assignment.blade.php'));
+        $view=file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/bid-award-manager-assignment-user.blade.php'));
+
+        $this->assertStringContainsString("manager-assignment/users/{manager}", $routes);
+        $this->assertStringContainsString('bidAwardManagerAssignmentUser', $controller);
+        $this->assertStringContainsString('transferBidAwardManagerAssignments', $controller);
+        $this->assertStringContainsString('destroyBidAwardManagerAssignments', $controller);
+        $this->assertStringContainsString("'assignment_ids'=>['required','array','min:1']", $controller);
+        $this->assertStringContainsString('managerAssignmentWorkspace', $workflow);
+        $this->assertStringContainsString('transferManagerAssignments', $workflow);
+        $this->assertStringContainsString('removeManagerAssignments', $workflow);
+        $this->assertStringContainsString("whereKey(\$toUserId)->where('is_active', true)", $workflow);
+        $this->assertStringContainsString("where('user_id', \$fromUserId)", $service);
+        $this->assertStringContainsString("where('user_id', \$userId)", $service);
+        $this->assertStringContainsString('lockForUpdate()', $service);
+        $this->assertStringContainsString('Có phân công không còn thuộc User đang điều chỉnh. Hãy tải lại dữ liệu.', $service);
+        $this->assertStringContainsString('Điều chỉnh phân công', $summary);
+        $this->assertStringContainsString('Bệnh viện × Sản phẩm', $view);
+        $this->assertStringContainsString('data-assignment-checkbox', $view);
+        $this->assertStringContainsString('data-toggle-hospital', $view);
+        $this->assertStringContainsString('data-toggle-all-assignments', $view);
+        $this->assertStringContainsString('Thay User mục đã chọn', $view);
+        $this->assertStringContainsString('Gỡ mục đã chọn', $view);
+        $this->assertStringContainsString('data-remove-selected-modal', $view);
+        $this->assertStringContainsString('Phân bổ số lượng và chính sách kinh doanh không bị thay đổi.', $view);
+        $this->assertStringContainsString("method.value='DELETE'", $view);
+        $this->assertStringNotContainsString("@method('PUT')", $view);
+    }
+
 }
