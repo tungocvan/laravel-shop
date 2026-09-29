@@ -131,7 +131,11 @@ return [
         ],
         'inventory' => [
             'name' => 'Tồn kho',
-            'description' => 'Theo dõi tồn kho và các nghiệp vụ kho được cấp quyền.',
+            'description' => 'Theo dõi tồn kho, lô và hạn dùng của sản phẩm trong phạm vi được cấp.',
+            'eyebrow' => 'Inventory',
+            'page_title' => 'Tồn kho Pharma',
+            'page_description' => 'Theo dõi số lượng tồn, giá trị, lô và hạn dùng để ưu tiên xử lý hàng sắp hết hạn.',
+            'route' => 'client.pharma.inventory',
             'permission' => 'client.pharma.inventory.view',
             'icon' => 'archive-box',
             'sort_order' => 60,
