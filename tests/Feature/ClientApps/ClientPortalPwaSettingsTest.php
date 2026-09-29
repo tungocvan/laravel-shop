@@ -178,6 +178,22 @@ class ClientPortalPwaSettingsTest extends TestCase
         $this->assertStringNotContainsString('Chưa có ứng dụng được cấp</h2>', $blade);
     }
 
+    public function test_feature_admin_form_exposes_safe_page_copy_fields(): void
+    {
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Http/Controllers/Admin/PwaSettingsController.php'));
+        $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/admin/application-presentation.blade.php'));
+
+        $this->assertStringContainsString("'eyebrow' => ['required', 'string', 'max:80']", $controller);
+        $this->assertStringContainsString("'page_title' => ['required', 'string', 'max:160']", $controller);
+        $this->assertStringContainsString("'page_description' => ['nullable', 'string', 'max:500']", $controller);
+        $this->assertStringContainsString('name="eyebrow"', $view);
+        $this->assertStringContainsString('name="page_title"', $view);
+        $this->assertStringContainsString('name="page_description"', $view);
+        $this->assertStringContainsString('Route, permission và nghiệp vụ vẫn do source code kiểm soát.', $view);
+        $this->assertStringNotContainsString('name="route"', $view);
+        $this->assertStringNotContainsString('name="permission"', $view);
+    }
+
     public function test_pwa_admin_routes_are_protected_by_admin_guard_and_edit_permission(): void
     {
         foreach ([
