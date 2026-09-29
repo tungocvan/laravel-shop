@@ -1,3 +1,21 @@
+## Checkpoint — Pharma PWA Bid Awards allocation wizard + gated CSKD — 2026-09-29
+
+- Branch: `feat/clientportal-pharma-bid-awards`.
+- Existing KQLCNT list/detail remains intact; mutation is opt-in through two new ClientPortal action permissions: `client.pharma.bid-awards.allocate` and `client.pharma.bid-awards.commercial-policy`.
+- Added `ClientBidAwardWorkflow` as a thin Pharma-domain adapter. Allocation writes reuse canonical `DrugBidAwardAllocationService`; product policy writes reuse canonical `DrugBidAwardCommercialPolicyService`.
+- Allocation sequence is tablet/mobile-first:
+  1. select hospitals from the Admin-defined Distribution Scope and save the step into the current User session;
+  2. only then show product cards and quantity inputs for the selected hospitals;
+  3. writes are validated again by the canonical allocation service (active hospital, in distribution scope, positive quantity, total not above winning quantity, contract commitment guard).
+- The Step-1 selection intentionally does not mutate Distribution Scope: that scope is Admin/domain ownership and is broader than a User's temporary wizard selection.
+- Commercial Policy UI is locked until the KQLCNT has an active allocation. Product percentages are additionally rejected unless that specific product has an active allocation.
+- Detail shows `Phân bổ số lượng` only with allocate permission and `Thiết lập chính sách kinh doanh` only with commercial-policy permission; the latter renders a disabled explanatory card until allocation exists.
+- Allocation UI uses searchable hospital cards, one column on mobile/two on tablet, product cards, large touch targets and sticky save actions. No horizontal Admin table was copied into PWA.
+- New permissions are manifest-defined and are discovered/synced by `ApplicationPermissionService`; no schema migration is required. They still must be granted to the testing User/role before UI acceptance.
+- No allocation cancellation, contract management, import/export or Admin Livewire reuse was added in this checkpoint.
+- Required operator checkpoint: `git pull --ff-only`, focused `PharmaBidAwardsCapabilityTest`. Stop on any failure/runtime 500 before ClientApps regression.
+- Status: IMPLEMENTED — AWAITING OPERATOR PULL / FOCUSED TEST / PERMISSIONED UI ACCEPTANCE.
+
 ## Checkpoint — Pharma PWA Bid Awards filters + tablet/mobile setup UX — 2026-09-29
 
 - Branch: `feat/clientportal-pharma-bid-awards`.
