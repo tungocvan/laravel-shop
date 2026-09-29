@@ -379,7 +379,10 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString('data-selected-manager', $view);
         $this->assertStringContainsString("url.searchParams.set('manager_id',userId)", $view);
         $this->assertStringContainsString("@selected((int)(\$selectedManagerId ?? 0) === (int)\$manager->id)", $view);
-        $this->assertStringNotContainsString('Gán User cho sản phẩm đã chọn</button>', $view);
+        $this->assertStringContainsString('name="hospital_id" value="{{ $selectedHospital->id }}"', $view);
+        $this->assertStringContainsString('data-multiple-assignment-form', $view);
+        $this->assertStringContainsString('Gán User cho sản phẩm đã chọn</button>', $view);
+        $this->assertStringNotContainsString('pwa_assigned_hospital_count', $view);
     }
 
 }
