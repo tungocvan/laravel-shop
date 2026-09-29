@@ -85,7 +85,7 @@
                 </div>
             </a>
         @empty
-            <div class="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500 md:col-span-2 xl:col-span-3">Chưa có kết quả trúng thầu nào trong phạm vi bạn được phân công.</div>
+            <div class="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500 md:col-span-2 xl:col-span-3">Chưa có kết quả trúng thầu có phân bổ đang hiệu lực trong phạm vi bạn phụ trách.</div>
         @endforelse
     </section>
 
