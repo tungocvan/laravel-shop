@@ -320,4 +320,30 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringNotContainsString('wire:', $assignment);
     }
 
+    public function test_manager_assignment_shows_current_owner_and_supports_confirmed_reset(): void
+    {
+        $routes=file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/routes.php'));
+        $controller=file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php'));
+        $workflow=file_get_contents(base_path('Modules/Pharma/Services/ClientBidAwardWorkflow.php'));
+        $service=file_get_contents(base_path('Modules/Pharma/Services/DrugBidAwardCommercialPolicyService.php'));
+        $view=file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/bid-award-manager-assignment.blade.php'));
+
+        $this->assertStringContainsString("Route::delete('/bid-awards/{scope}/manager-assignment'", $routes);
+        $this->assertStringContainsString('destroyBidAwardManagers', $controller);
+        $this->assertStringContainsString("'assignmentSummary' => \$workflow->managementAssignmentSummary(\$award)", $controller);
+        $this->assertStringContainsString('managementAssignmentSummary', $workflow);
+        $this->assertStringContainsString("->with('user:id,name,email')", $workflow);
+        $this->assertStringContainsString('return $this->commercialPolicies->removeAllManagers($award);', $workflow);
+        $this->assertStringContainsString('public function removeAllManagers', $service);
+        $this->assertStringContainsString('Phân công hiện tại', $view);
+        $this->assertStringContainsString("summary->user?->email", $view);
+        $this->assertStringContainsString('Thay User phụ trách', $view);
+        $this->assertStringContainsString('Gỡ phân công toàn bộ', $view);
+        $this->assertStringContainsString('data-remove-managers-modal', $view);
+        $this->assertStringContainsString('Phân bổ số lượng và chính sách kinh doanh không bị thay đổi.', $view);
+        $this->assertStringContainsString("@method('DELETE')", $view);
+        $this->assertStringContainsString("route('client.pharma.bid-awards.manager-assignment.destroy',\$scope)", $view);
+        $this->assertStringContainsString('Muốn chuyển sang Nhiều User, hãy gỡ phân công hiện tại trước.', $view);
+    }
+
 }
