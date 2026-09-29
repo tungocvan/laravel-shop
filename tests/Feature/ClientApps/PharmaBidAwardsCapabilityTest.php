@@ -171,6 +171,9 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString('Sản phẩm phải được phân bổ số lượng trước', $workflow);
         $this->assertStringContainsString('Bước 1 · Chọn bệnh viện', $allocation);
         $this->assertStringContainsString('Bước 2 · Phân bổ sản phẩm', $allocation);
+        $this->assertStringContainsString("str(\$hospital->name)->lower()", $allocation);
+        $this->assertStringNotContainsString('IlluminateSupportStr', $allocation);
+        $this->assertStringNotContainsString('Illuminate\\Support\\Str::lower', $allocation);
         $this->assertStringContainsString('md:grid-cols-2', $allocation);
         $this->assertStringContainsString('sticky bottom-3', $allocation);
         $this->assertStringContainsString('Thiết lập chính sách kinh doanh', $policy);
