@@ -49,7 +49,7 @@
 
     <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
         <form id="inventory-filter-form" method="GET" action="{{ route('client.pharma.inventory') }}" class="grid gap-3 lg:grid-cols-12 lg:items-start">
-            <label class="min-w-0 lg:col-span-5">
+            <label class="min-w-0 lg:col-span-4">
                 <span class="flex h-7 items-center text-xs font-bold text-slate-500">Tìm thuốc</span>
                 <div class="relative mt-1">
                     <input id="inventory-search-input" type="search" name="q" value="{{ $filters['q'] }}" autocomplete="off" placeholder="Tên thuốc / hoạt chất" class="w-full rounded-2xl border border-slate-300 bg-white py-3 pl-4 pr-11 text-sm shadow-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200">
@@ -60,9 +60,14 @@
                 <span class="mt-1.5 block text-xs text-slate-400">Kết quả tự cập nhật khi bạn nhập.</span>
             </label>
 
-            <div class="lg:col-span-7">
+            <div class="lg:col-span-8">
                 <details id="inventory-advanced-filters" class="group" {{ $hasFilters ? 'open' : '' }}>
-                    <summary class="flex h-7 cursor-pointer items-center text-sm font-bold text-slate-700">Bộ lọc nâng cao @if($hasFilters)<span class="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-500">Đang áp dụng</span>@endif</summary>
+                    <div class="flex h-7 items-center gap-2">
+                    <summary class="cursor-pointer text-xs font-bold text-slate-500">Bộ lọc nâng cao @if($hasFilters)<span class="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-500">Đang áp dụng</span>@endif</summary>
+                    @if($hasFilters)
+                        <a href="{{ route('client.pharma.inventory') }}" class="ml-auto inline-flex items-center rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-black text-rose-700 ring-1 ring-inset ring-rose-200 transition hover:bg-rose-100">× Xóa bộ lọc</a>
+                    @endif
+                </div>
                     <div class="grid gap-2 pt-2 {{ $canViewCosts ? 'sm:grid-cols-2 lg:grid-cols-3' : '' }}">
                         <select name="expiry" onchange="this.form.submit()" class="h-12 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-slate-500 focus:ring-2 focus:ring-slate-200"><option value="">Tất cả hạn dùng</option>@foreach($expiryLabels as $value=>$label)<option value="{{ $value }}" @selected($filters['expiry']===$value)>{{ $label }}</option>@endforeach</select>
                         @if($canViewCosts)
@@ -73,10 +78,7 @@
                 </details>
             </div>
         </form>
-        @if($hasFilters)
-            <a href="{{ route('client.pharma.inventory') }}" class="mt-3 inline-flex text-sm font-bold text-slate-600">Xóa bộ lọc</a>
-        @endif
-    </section>
+     </section>
 
     <section id="inventory-mobile-list" class="grid gap-3 md:grid-cols-2 xl:hidden">
         @forelse($balances as $row)
