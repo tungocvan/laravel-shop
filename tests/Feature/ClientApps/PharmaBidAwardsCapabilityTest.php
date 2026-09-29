@@ -220,4 +220,23 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString('Chưa phân bổ · CSKD bị khóa',$policy);
     }
 
+    public function test_allocation_dashboard_collapses_sections_and_summarizes_product_quantities(): void
+    {
+        $controller=file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php'));
+        $workflow=file_get_contents(base_path('Modules/Pharma/Services/ClientBidAwardWorkflow.php'));
+        $view=file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/bid-award-allocation.blade.php'));
+
+        $this->assertStringContainsString('productAllocationCards', $controller);
+        $this->assertStringContainsString('SUM(allocated_quantity) as allocated_quantity', $workflow);
+        $this->assertStringContainsString('pwa_remaining_quantity = max($winning - $used, 0)', $workflow);
+        $this->assertStringContainsString('pwa_fully_allocated', $workflow);
+        $this->assertStringContainsString('Tổng quan phân bổ', $view);
+        $this->assertStringContainsString('SL trúng thầu', $view);
+        $this->assertStringContainsString('Đã phân bổ', $view);
+        $this->assertStringContainsString('Còn lại', $view);
+        $this->assertStringContainsString('Đã phân bổ hết', $view);
+        $this->assertGreaterThanOrEqual(5, substr_count($view, '<details'));
+        $this->assertStringContainsString('Bệnh viện nhận phân bổ', $view);
+    }
+
 }
