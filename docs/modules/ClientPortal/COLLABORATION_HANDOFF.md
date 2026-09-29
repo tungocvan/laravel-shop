@@ -1,3 +1,14 @@
+## Checkpoint — Pharma PWA Bid Awards scope verification — 2026-09-29
+
+- Verified `UserBidAwardWorkspace` against canonical `UserCommercialHospitalWorkspace`.
+- Both use the same assignment/allocation identity: `drug_bid_award_id + partner_id`, current `user_id`, active management assignment, active allocation.
+- Deliberately did not broaden Bid Awards scope merely to populate the UI; a User must not see Admin-wide results outside their responsibility.
+- Added a regression contract that locks Bid Awards to the canonical Commercial Workspace scope clauses and guards against auth/global-scope shortcuts.
+- Empty state now explicitly says that no bid result has an active allocation in the User's responsibility scope, making missing assignment/allocation data distinguishable from a generic empty list.
+- No migration, permission broadening, Admin reuse, mutation or export added.
+- Required operator checkpoint: `git pull --ff-only`, focused `PharmaBidAwardsCapabilityTest`; only after PASS run `tests/Feature/ClientApps`.
+- Status: IMPLEMENTED — AWAITING OPERATOR PULL / FOCUSED TEST.
+
 ## Checkpoint — Pharma PWA Bid Awards responsive summary refinement — 2026-09-29
 
 - Branch: `feat/clientportal-pharma-bid-awards`.
