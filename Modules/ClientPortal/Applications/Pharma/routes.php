@@ -45,6 +45,8 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->where('scope', '[a-f0-9]{40}')->middleware('client.feature:pharma,bid-awards')->name('bid-awards.manager-assignment.single');
         Route::post('/bid-awards/{scope}/manager-assignment/products', [PharmaApplicationController::class, 'storeBidAwardProductManagers'])
             ->where('scope', '[a-f0-9]{40}')->middleware('client.feature:pharma,bid-awards')->name('bid-awards.manager-assignment.products');
+        Route::delete('/bid-awards/{scope}/manager-assignment', [PharmaApplicationController::class, 'destroyBidAwardManagers'])
+            ->where('scope', '[a-f0-9]{40}')->middleware('client.feature:pharma,bid-awards')->name('bid-awards.manager-assignment.destroy');
         Route::get('/commercial', [PharmaApplicationController::class, 'commercial'])
             ->middleware('client.feature:pharma,commercial')
             ->name('commercial');
