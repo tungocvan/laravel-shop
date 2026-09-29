@@ -719,6 +719,7 @@ final class PharmaApplicationController extends Controller
         ApplicationRegistry $registry,
         ClientPortalSettingsService $settings,
         UserBidAwardWorkspace $workspace,
+        ClientBidAwardWorkflow $bidWorkflow,
     ): View {
         $validated = $request->validate([
             'q' => ['nullable', 'string', 'max:120'],
@@ -749,6 +750,9 @@ final class PharmaApplicationController extends Controller
                 page: (int) ($validated['page'] ?? 1),
             )->withQueryString(),
             'search' => trim((string) ($validated['q'] ?? '')),
+            'canAllocate' => $registry->userCan($user, 'client.pharma.bid-awards.allocate'),
+            'canManageCommercialPolicy' => $registry->userCan($user, 'client.pharma.bid-awards.commercial-policy'),
+            'hasActiveAllocation' => ($contextAward = $bidWorkflow->contextAward($scope)) ? $bidWorkflow->hasActiveAllocation($contextAward) : false,
         ]);
     }
 
