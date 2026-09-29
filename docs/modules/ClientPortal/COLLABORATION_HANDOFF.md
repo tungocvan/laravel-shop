@@ -1,3 +1,18 @@
+## Checkpoint — Pharma PWA Bid Awards global KQLCNT + personal context — 2026-09-29
+
+- Branch: `feat/clientportal-pharma-bid-awards`.
+- Product decision updated after real Admin/UI acceptance: the Bid Awards list is a read-only KQLCNT catalogue comparable to `/admin/pharma/drug-bid-awards`, not an assignment-only inbox.
+- `UserBidAwardWorkspace` now reads all canonical `pharma_drug_bid_awards` result groups while calculating the current User's responsibility context through correlated active assignment + active allocation subqueries.
+- Global totals are calculated independently from User assignment joins, preventing duplicated KQLCNT value when one award is assigned to multiple hospitals.
+- No other User's assignment/allocation rows are exposed. Personal context only contains aggregate counts/quantities for the current `user_id`.
+- Detail lists all products in the selected KQLCNT read-only; products assigned to the current User are identified by `BV của tôi` and `SL của tôi`.
+- Result identity follows Admin semantics: TBMT when present, otherwise the individual award id.
+- UI remains mobile-first: one card on mobile, two on tablet, three on wide desktop, live search, touch feedback and progressive `Xem thêm`.
+- Default managed presentation is now `Kết quả trúng thầu` rather than `Kết quả trúng thầu của tôi`; Admin presentation settings can still override it.
+- No Admin controller/Livewire reuse, no mutation/import/export, no permission broadening and no migration.
+- Required operator checkpoint: `git pull --ff-only` then focused `PharmaBidAwardsCapabilityTest`; after PASS run `tests/Feature/ClientApps`, then real Desktop/Tablet/Mobile acceptance against the existing 11 Admin TBMT dataset.
+- Status: IMPLEMENTED — AWAITING OPERATOR PULL / FOCUSED TEST.
+
 ## Checkpoint — Pharma PWA Bid Awards scope verification — 2026-09-29
 
 - Verified `UserBidAwardWorkspace` against canonical `UserCommercialHospitalWorkspace`.
