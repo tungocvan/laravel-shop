@@ -18,7 +18,7 @@ final class UserBidAwardWorkspace
         $valueSort = in_array($valueSort, ['asc', 'desc'], true) ? $valueSort : null;
         $businessSetup = in_array($businessSetup, ['commercial_missing', 'commercial_ready', 'allocation_missing', 'allocation_ready'], true) ? $businessSetup : null;
 
-        $query = $this->globalRowsWithUserContext($userId)
+        return $this->globalRowsWithUserContext($userId)
             ->when($search !== '', fn ($query) => $query->where(function ($nested) use ($search): void {
                 $nested->where('awards.bidding_notice_code', 'like', "%{$search}%")
                     ->orWhere('awards.decision_number', 'like', "%{$search}%")
