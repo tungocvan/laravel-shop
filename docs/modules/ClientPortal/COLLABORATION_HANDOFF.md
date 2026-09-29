@@ -1,3 +1,18 @@
+## Checkpoint — Pharma PWA Bid Awards workspace — 2026-09-29
+
+- Branch: `feat/clientportal-pharma-bid-awards`, based on current `main` after PR #235.
+- Scope: activate the existing Pharma PWA `bid-awards` capability as a read-only User workspace. Inventory and Commissions remain deferred.
+- Canonical ownership remains in `Modules/Pharma`. New `UserBidAwardWorkspace` exposes only User-scoped reads and requires both ACTIVE management assignment and ACTIVE allocation; ClientPortal does not query Admin controllers/Livewire or duplicate award business rules.
+- PWA routes: `/apps/pharma/bid-awards` and SHA-1 scoped detail `/apps/pharma/bid-awards/{scope}`. A scope not derivable from the authenticated User's active assignments returns 404.
+- Manifest now supplies `eyebrow`, `page_title`, and `page_description`; runtime consumes them through `ClientPortalSettingsService::featurePresentation()`, so Admin `/admin/client-apps` remains the presentation owner.
+- UI is mobile-first: live search with clear action, touch feedback, card presentation, and in-context `Xem thêm` loading for result groups/products. No export/download was added, so this batch does not introduce a new external-file handoff.
+- Focused test added: `tests/Feature/ClientApps/PharmaBidAwardsCapabilityTest.php`.
+- Required operator checkpoint: `git pull --ff-only`, run focused Bid Awards test first; only if PASS run `php artisan test tests/Feature/ClientApps`. Then perform real Desktop + Tablet/Mobile/PWA acceptance, including permission/404 scope behavior and Admin-managed page content.
+- No migration. No PR or merge before operator test/UI acceptance.
+- Status: **IMPLEMENTED — AWAITING OPERATOR PULL / FOCUSED TEST / CLIENTAPPS REGRESSION / REAL UI ACCEPTANCE.**
+
+---
+
 # ClientPortal Module — Collaboration Handoff
 
 ## Current delivery — ClientPortal Feature Page Content & PWA AI Workflow
