@@ -22,6 +22,7 @@ final class UserBidAwardWorkspace
                     ->orWhere('awards.medicine_name', 'like', "%{$search}%");
             }))
             ->selectRaw("CASE WHEN awards.bidding_notice_code IS NOT NULL AND awards.bidding_notice_code <> '' THEN CONCAT('tbmt:', awards.bidding_notice_code) WHEN awards.decision_number IS NOT NULL AND awards.decision_number <> '' THEN CONCAT('decision:', awards.decision_number) ELSE CONCAT('award:', awards.id) END as result_identity")
+            ->selectRaw('MAX(awards.id) as id')
             ->selectRaw('MAX(awards.bidding_notice_code) as bidding_notice_code')
             ->selectRaw('MAX(awards.decision_number) as decision_number')
             ->selectRaw('MAX(awards.decision_date) as decision_date')
