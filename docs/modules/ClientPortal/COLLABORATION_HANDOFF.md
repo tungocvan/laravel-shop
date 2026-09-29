@@ -1,3 +1,19 @@
+## Checkpoint — Mode-first User management assignment — 2026-09-29
+
+- Extended the PWA sequence to `Allocation -> Commercial Policy -> User management assignment`.
+- Saving the base Commercial Policy now continues to the manager-assignment workspace. The policy page also exposes an explicit `Phân công User quản lý` action and labels the primary save as `Lưu & tiếp tục`.
+- The assignment workspace intentionally starts with `Cách phân công` and renders no User/product configuration until a mode is selected.
+- Canonical Admin modes are preserved:
+  - `single`: Một User phụ trách toàn bộ -> `DrugBidAwardCommercialPolicyService::assignManagerToAllAllocations()`;
+  - `multiple`: Nhiều User phụ trách -> `assignManagerToProductAllocations()`.
+- Existing assignment data determines the persisted mode. A query-string mode cannot override an already-persisted single/multiple assignment state; the UI explains that all assignments must be removed before changing mode, matching Admin semantics.
+- PWA assignment is gated until every active allocation has an effective commercial policy (hospital override or base product policy).
+- Only active Users are offered and Pharma workflow revalidates active User status server-side.
+- Multiple mode shows only products with active allocations and displays assigned-hospital / allocated-hospital progress. It supports select-all and assigns only across real allocation pairs; it does not create allocations.
+- ClientPortal remains a thin adapter; assignment persistence/business mutation stays in the canonical Pharma commercial-policy service.
+- Added focused contract coverage for routes, sequence gate, mode-first disclosure, canonical service reuse, active-user guard, mobile UI hooks and no Admin/Livewire reuse.
+- Required checkpoint: pull + focused `PharmaBidAwardsCapabilityTest`; if PASS run `tests/Feature/ClientApps`, then real tablet/mobile acceptance of both assignment modes before PR.
+
 ## Checkpoint — Compact policy values + incomplete allocation filtering — 2026-09-29
 
 - Base commercial-policy inputs now trim the model's decimal:4 presentation: e.g. `25.0000 -> 25`, while meaningful decimals remain (e.g. `2.5000 -> 2.5`). Persistence semantics are unchanged.
