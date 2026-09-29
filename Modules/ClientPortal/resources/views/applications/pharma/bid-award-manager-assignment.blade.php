@@ -43,7 +43,7 @@
             <a href="{{ route('client.pharma.bid-awards.manager-assignment',['scope'=>$scope,'mode'=>'multiple']) }}" class="rounded-2xl border p-4 active:scale-[.985] motion-reduce:transform-none {{ $assignmentMode === 'multiple' ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200 bg-white' }} {{ $assignmentState['persisted_mode'] === 'single' ? 'pointer-events-none opacity-40' : '' }}">
                 <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-950 text-sm font-black text-white">N</span>
                 <h3 class="mt-3 font-black">Nhiều User phụ trách</h3>
-                <p class="mt-1 text-xs leading-5 text-slate-500">Chọn sản phẩm rồi giao User cho các bệnh viện có phân bổ của sản phẩm đó.</p>
+                <p class="mt-1 text-xs leading-5 text-slate-500">Chọn User → Bệnh viện → các sản phẩm đã phân bổ nhưng chưa có User.</p>
             </a>
         </div>
         @if($assignmentState['persisted_mode'] !== 'unassigned')
@@ -73,25 +73,54 @@
             <button class="min-h-12 w-full rounded-2xl bg-slate-950 px-5 text-sm font-black text-white active:scale-[.985]">{{ $assignmentState['persisted_mode'] === 'single' ? 'Thay User phụ trách' : 'Phân công toàn bộ' }}</button>
         </form>
         @else
-        <form method="POST" action="{{ route('client.pharma.bid-awards.manager-assignment.products',$scope) }}" class="mt-3 space-y-4">
-            @csrf
+        <div class="mt-3 space-y-4">
             <label class="block text-xs font-bold text-slate-600">User quản lý
-                <select name="user_id" required data-manager-select class="mt-1.5 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm">
-                    <option value="">Chọn User</option>
+                <select required data-manager-select data-multiple-manager class="mt-1.5 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm">
+                    <option value="">Chọn User trước</option>
                     @foreach($users as $manager)<option value="{{ $manager->id }}" data-search="{{ str($manager->name.' '.$manager->email)->lower() }}">{{ $manager->name }}{{ $manager->email ? ' · '.$manager->email : '' }}</option>@endforeach
                 </select>
             </label>
-            <div class="flex items-center justify-between gap-3"><div><p class="text-xs font-bold text-slate-600">Sản phẩm có phân bổ</p><p class="text-[11px] text-slate-400">Chỉ giao trên các bệnh viện thực sự có số lượng phân bổ.</p></div><button type="button" data-select-all-products class="min-h-10 rounded-xl border border-slate-300 px-3 text-xs font-bold">Chọn tất cả</button></div>
-            <div class="grid gap-2 md:grid-cols-2">
-                @foreach($products as $product)
-                <label class="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 p-3 active:scale-[.985]">
-                    <input type="checkbox" name="award_ids[]" value="{{ $product->id }}" class="mt-0.5 h-5 w-5 rounded" data-product-checkbox>
-                    <span class="min-w-0 flex-1"><b class="block text-sm">{{ $product->medicine_name }}</b><span class="mt-1 block text-xs text-slate-500">{{ $product->pwa_assigned_hospital_count }}/{{ $product->pwa_hospital_count }} bệnh viện đã có User</span></span>
-                </label>
-                @endforeach
+
+            <div data-hospital-step class="opacity-50">
+                <div class="flex items-end justify-between gap-3"><div><p class="text-[11px] font-black uppercase tracking-[.14em] text-slate-400">Bước 3</p><h3 class="mt-1 font-black">Chọn bệnh viện</h3><p class="mt-1 text-xs text-slate-500">Chỉ bệnh viện còn sản phẩm chưa có User mới có thể chọn.</p></div><span class="text-xs font-bold text-slate-500">{{ $hospitalCards->where('pwa_management_complete',false)->count() }} còn khả dụng</span></div>
+                <input type="search" data-management-hospital-search placeholder="Tìm bệnh viện..." class="mt-3 h-11 w-full rounded-xl border border-slate-300 px-3 text-sm" disabled>
+                <div class="mt-3 grid gap-2 md:grid-cols-2">
+                    @foreach($hospitalCards as $hospital)
+                    @if($hospital->pwa_management_complete)
+                    <article data-management-hospital-card data-name="{{ str($hospital->name)->lower() }}" class="rounded-2xl border border-slate-200 bg-slate-50 p-3 opacity-55">
+                        <div class="flex items-start justify-between gap-2"><b class="text-sm">{{ $hospital->name }}</b><span class="shrink-0 rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-bold text-emerald-700">Đã phân công hết</span></div>
+                        <p class="mt-1 text-xs text-slate-500">{{ $hospital->pwa_management_assigned_count }}/{{ $hospital->pwa_management_allocated_count }} sản phẩm đã có User</p>
+                    </article>
+                    @else
+                    <a data-management-hospital-card data-selectable-hospital data-name="{{ str($hospital->name)->lower() }}" data-hospital-id="{{ $hospital->id }}" href="{{ route('client.pharma.bid-awards.manager-assignment',['scope'=>$scope,'mode'=>'multiple','hospital_id'=>$hospital->id]) }}" class="pointer-events-none rounded-2xl border p-3 active:scale-[.985] {{ $selectedHospital && (int)$selectedHospital->id === (int)$hospital->id ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200 bg-white' }}">
+                        <b class="block text-sm">{{ $hospital->name }}</b><p class="mt-1 text-xs text-slate-500">{{ $hospital->pwa_management_assigned_count }}/{{ $hospital->pwa_management_allocated_count }} sản phẩm đã có User · còn {{ $hospital->pwa_management_remaining_count }}</p>
+                    </a>
+                    @endif
+                    @endforeach
+                </div>
             </div>
-            <button class="min-h-12 w-full rounded-2xl bg-slate-950 px-5 text-sm font-black text-white active:scale-[.985]">Gán User cho sản phẩm đã chọn</button>
-        </form>
+
+            @if($selectedHospital && ! $selectedHospital->pwa_management_complete)
+            <form method="POST" action="{{ route('client.pharma.bid-awards.manager-assignment.products',$scope) }}" data-multiple-assignment-form class="rounded-[22px] border border-indigo-200 bg-indigo-50/40 p-4">
+                @csrf
+                <input type="hidden" name="user_id" data-selected-manager>
+                <input type="hidden" name="hospital_id" value="{{ $selectedHospital->id }}">
+                <p class="text-[11px] font-black uppercase tracking-[.14em] text-indigo-500">Bước 4</p>
+                <h3 class="mt-1 font-black">Sản phẩm chưa có User</h3>
+                <p class="mt-1 text-xs text-slate-500">{{ $selectedHospital->name }} · chỉ hiển thị sản phẩm đã phân bổ tại bệnh viện này và chưa được giao User.</p>
+                <div class="mt-3 flex justify-end"><button type="button" data-select-all-products class="min-h-10 rounded-xl border border-indigo-200 bg-white px-3 text-xs font-bold">Chọn tất cả</button></div>
+                <div class="mt-2 grid gap-2 md:grid-cols-2">
+                    @foreach($products as $product)
+                    <label class="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 bg-white p-3 active:scale-[.985]">
+                        <input type="checkbox" name="award_ids[]" value="{{ $product->id }}" class="mt-0.5 h-5 w-5 rounded" data-product-checkbox>
+                        <span class="min-w-0 flex-1"><b class="block text-sm">{{ $product->medicine_name }}</b><span class="mt-1 block text-xs text-slate-500">{{ $product->active_ingredient }}{{ $product->concentration ? ' · '.$product->concentration : '' }}</span></span>
+                    </label>
+                    @endforeach
+                </div>
+                <button class="mt-4 min-h-12 w-full rounded-2xl bg-slate-950 px-5 text-sm font-black text-white active:scale-[.985]">Gán User cho sản phẩm đã chọn</button>
+            </form>
+            @endif
+        </div>
         @endif
     </section>
     @endif
@@ -111,6 +140,10 @@ document.addEventListener('DOMContentLoaded',()=>{
  const q=document.querySelector('[data-manager-search]'),select=document.querySelector('[data-manager-select]');
  q?.addEventListener('input',()=>{const term=q.value.toLocaleLowerCase('vi');[...select.options].forEach((o,i)=>{if(i)o.hidden=!(o.dataset.search||'').includes(term)})});
  const modal=document.querySelector('[data-remove-managers-modal]');document.querySelector('[data-open-remove-managers]')?.addEventListener('click',()=>{modal?.classList.remove('hidden');modal?.classList.add('flex')});document.querySelector('[data-close-remove-managers]')?.addEventListener('click',()=>{modal?.classList.add('hidden');modal?.classList.remove('flex')});modal?.addEventListener('click',e=>{if(e.target===modal){modal.classList.add('hidden');modal.classList.remove('flex')}});
+ const multipleManager=document.querySelector('[data-multiple-manager]'),hospitalStep=document.querySelector('[data-hospital-step]'),hospitalSearch=document.querySelector('[data-management-hospital-search]'),selectedManager=document.querySelector('[data-selected-manager]'),hospitalLinks=[...document.querySelectorAll('[data-selectable-hospital]')];
+ const syncMultiple=()=>{const userId=multipleManager?.value||'';hospitalStep?.classList.toggle('opacity-50',!userId);if(hospitalSearch)hospitalSearch.disabled=!userId;hospitalLinks.forEach(link=>{link.classList.toggle('pointer-events-none',!userId);const url=new URL(link.href,window.location.origin);if(userId)url.searchParams.set('manager_id',userId);else url.searchParams.delete('manager_id');link.href=url.pathname+url.search});if(selectedManager)selectedManager.value=userId};
+ multipleManager?.addEventListener('change',syncMultiple);syncMultiple();
+ hospitalSearch?.addEventListener('input',()=>{const term=hospitalSearch.value.toLocaleLowerCase('vi');document.querySelectorAll('[data-management-hospital-card]').forEach(card=>card.classList.toggle('hidden',!(card.dataset.name||'').includes(term)))});
  const all=document.querySelector('[data-select-all-products]'),boxes=[...document.querySelectorAll('[data-product-checkbox]')];
  all?.addEventListener('click',()=>{const checked=boxes.length>0&&boxes.every(x=>x.checked);boxes.forEach(x=>x.checked=!checked);all.textContent=checked?'Chọn tất cả':'Bỏ chọn tất cả'});
 });
