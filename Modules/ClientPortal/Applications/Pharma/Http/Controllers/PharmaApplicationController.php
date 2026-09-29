@@ -876,15 +876,24 @@ final class PharmaApplicationController extends Controller
         abort_unless($workflow->commercialPolicyReady($award), 409, 'Hãy hoàn tất chính sách kinh doanh trước khi phân công User quản lý.');
 
         $state = $workflow->managementAssignmentState($award);
-        $requestedMode = $request->validate(['mode' => ['nullable', 'in:single,multiple']])['mode'] ?? null;
+        $selection = $request->validate([
+            'mode' => ['nullable', 'in:single,multiple'],
+            'hospital_id' => ['nullable','integer'],
+        ]);
+        $requestedMode = $selection['mode'] ?? null;
         $mode = $state['persisted_mode'] !== 'unassigned' ? $state['persisted_mode'] : $requestedMode;
+        $hospitalId = $mode === 'multiple' ? (int) ($selection['hospital_id'] ?? 0) : 0;
+        $hospitalCards = $mode === 'multiple' ? $workflow->managementHospitalCards($award) : collect();
+        $selectedHospital = $hospitalId > 0 ? $hospitalCards->first(fn ($hospital) => (int) $hospital->id === $hospitalId) : null;
+        $products = $selectedHospital && ! $selectedHospital->pwa_management_complete
+            ? $workflow->unassignedHospitalProducts($award, $hospitalId) : collect();
 
         return view('ClientPortal::applications.pharma.bid-award-manager-assignment', [
             'application' => $registry->find('pharma'), 'scope' => $scope, 'award' => $award,
             'assignmentState' => $state, 'assignmentMode' => $mode,
             'assignmentSummary' => $workflow->managementAssignmentSummary($award),
             'users' => $mode ? $workflow->managementUsers() : collect(),
-            'products' => $mode === 'multiple' ? $workflow->managementProducts($award) : collect(),
+            'hospitalCards' => $hospitalCards, 'selectedHospital' => $selectedHospital, 'products' => $products,
         ]);
     }
 
@@ -921,13 +930,16 @@ final class PharmaApplicationController extends Controller
         $award = $workflow->contextAward($scope); abort_if($award === null, 404);
         $data = $request->validate([
             'user_id' => ['required','integer','exists:users,id'],
+            'hospital_id' => ['required','integer'],
             'award_ids' => ['required','array','min:1'],
             'award_ids.*' => ['integer'],
         ]);
-        $count = $workflow->assignManagerToProducts($award, $data['award_ids'], (int) $data['user_id'], (int) $user->id);
+        $count = $workflow->assignManagerToHospitalProducts(
+            $award, (int) $data['hospital_id'], $data['award_ids'], (int) $data['user_id'], (int) $user->id
+        );
 
         return redirect()->route('client.pharma.bid-awards.manager-assignment', ['scope'=>$scope,'mode'=>'multiple'])
-            ->with('success', "Đã cập nhật {$count} phân công Bệnh viện × Sản phẩm.");
+            ->with('success', "Đã gán User cho {$count} sản phẩm tại bệnh viện đã chọn.");
     }
 
     public function commercial(
