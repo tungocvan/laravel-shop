@@ -1,3 +1,17 @@
+## Checkpoint — Bid Awards canonical 3-step Distribution Setup before product allocation — 2026-09-29
+
+- Refactored the PWA allocation flow after real Admin/PWA comparison.
+- The first section is now the canonical `Thiết lập chung / Phạm vi & hiệu lực phân bổ`: Step 1 province scope + effective dates, Step 2 official KCB facilities, Step 3 selected-facility review.
+- Step 3 renders already selected/saved facilities checked by default and mirrors Step-2 checkbox changes; unchecking in review removes the corresponding Step-2 selection before save.
+- Removed session-backed hospital selection as the source of truth. PWA now reads/writes the canonical `DrugBidAwardDistributionScopeService`, matching Admin `ProductWorkspace::saveDistributionScope()`.
+- Existing scope is loaded back into the PWA from scope provinces + Partner source references -> OfficialSourceFacility IDs, so revisiting allocation shows the saved hospitals checked.
+- Product allocation appears only after a canonical Distribution Scope exists and uses its Partner hospitals. Actual quantity writes continue through `DrugBidAwardAllocationService`.
+- CSKD gating remains unchanged: allocation must exist before product policy is allowed.
+- Tablet layout keeps the three setup steps in three columns when space permits; mobile stacks them. Product allocation remains card-based with two hospital columns on tablet.
+- No Admin Livewire view/controller is reused; only canonical Pharma services/data rules are reused.
+- Required checkpoint: pull, run focused `PharmaBidAwardsCapabilityTest`, then revisit the allocation URL and verify saved facilities are checked in Step 2 and Step 3 before any full regression.
+- Status: IMPLEMENTED — AWAITING OPERATOR PULL / FOCUSED TEST / UI ACCEPTANCE.
+
 ## Checkpoint — Pharma PWA Bid Awards allocation wizard + gated CSKD — 2026-09-29
 
 - Branch: `feat/clientportal-pharma-bid-awards`.
