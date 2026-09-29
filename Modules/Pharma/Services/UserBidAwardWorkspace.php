@@ -34,10 +34,10 @@ final class UserBidAwardWorkspace
             ->selectRaw('MAX(awards.contract_period_text) as contract_period_text')
             ->selectRaw('COUNT(DISTINCT awards.id) as products_count')
             ->selectRaw('SUM(COALESCE(awards.amount, COALESCE(awards.winning_price, awards.unit_price, 0) * COALESCE(awards.quantity, 0))) as total_value')
-            ->selectRaw('COUNT(DISTINCT CASE WHEN user_assignments.id IS NOT NULL AND user_allocations.id IS NOT NULL THEN awards.id END) as my_products_count')
-            ->selectRaw('COUNT(DISTINCT user_assignments.partner_id) as my_hospitals_count')
-            ->selectRaw('COALESCE(SUM(user_allocations.allocated_quantity), 0) as my_allocated_quantity')
-            ->selectRaw('COALESCE(SUM(user_allocations.allocated_quantity * COALESCE(awards.winning_price, awards.unit_price, 0)), 0) as my_allocated_value')
+            ->selectRaw('SUM(CASE WHEN awards.my_hospitals_count > 0 THEN 1 ELSE 0 END) as my_products_count')
+            ->selectRaw('SUM(awards.my_hospitals_count) as my_hospitals_count')
+            ->selectRaw('SUM(awards.my_allocated_quantity) as my_allocated_quantity')
+            ->selectRaw('SUM(awards.my_allocated_quantity * COALESCE(awards.winning_price, awards.unit_price, 0)) as my_allocated_value')
             ->groupBy('result_identity')
             ->orderByDesc('published_at')
             ->orderByDesc('id')
@@ -71,8 +71,8 @@ final class UserBidAwardWorkspace
                 'awards.winning_price', 'awards.unit_price', 'awards.quantity as winning_quantity',
                 'awards.bidding_notice_code', 'awards.decision_number', 'awards.decision_date',
             ])
-            ->selectRaw('COALESCE(SUM(user_allocations.allocated_quantity), 0) as my_allocated_quantity')
-            ->selectRaw('COUNT(DISTINCT user_assignments.partner_id) as my_hospitals_count')
+            ->selectRaw('MAX(awards.my_allocated_quantity) as my_allocated_quantity')
+            ->selectRaw('MAX(awards.my_hospitals_count) as my_hospitals_count')
             ->groupBy([
                 'awards.id', 'awards.medicine_name', 'awards.active_ingredient', 'awards.concentration',
                 'awards.packaging_specification', 'awards.registration_or_import_license',
@@ -109,17 +109,34 @@ final class UserBidAwardWorkspace
 
     private function globalRowsWithUserContext(int $userId)
     {
-        return DB::table('pharma_drug_bid_awards as awards')
-            ->leftJoin('pharma_drug_bid_award_management_assignments as user_assignments', function ($join) use ($userId): void {
-                $join->on('user_assignments.drug_bid_award_id', '=', 'awards.id')
-                    ->where('user_assignments.user_id', $userId)
-                    ->where('user_assignments.status', DrugBidAwardManagementAssignment::STATUS_ACTIVE);
-            })
-            ->leftJoin('pharma_drug_bid_award_allocations as user_allocations', function ($join): void {
-                $join->on('user_allocations.drug_bid_award_id', '=', 'user_assignments.drug_bid_award_id')
-                    ->on('user_allocations.partner_id', '=', 'user_assignments.partner_id')
-                    ->where('user_allocations.status', DrugBidAwardAllocation::STATUS_ACTIVE);
-            });
+        $context = DB::table('pharma_drug_bid_awards as source_awards')
+            ->select('source_awards.*')
+            ->selectSub(function ($query) use ($userId): void {
+                $query->from('pharma_drug_bid_award_management_assignments as scoped_assignments')
+                    ->join('pharma_drug_bid_award_allocations as scoped_allocations', function ($join): void {
+                        $join->on('scoped_allocations.drug_bid_award_id', '=', 'scoped_assignments.drug_bid_award_id')
+                            ->on('scoped_allocations.partner_id', '=', 'scoped_assignments.partner_id')
+                            ->where('scoped_allocations.status', DrugBidAwardAllocation::STATUS_ACTIVE);
+                    })
+                    ->whereColumn('scoped_assignments.drug_bid_award_id', 'source_awards.id')
+                    ->where('scoped_assignments.user_id', $userId)
+                    ->where('scoped_assignments.status', DrugBidAwardManagementAssignment::STATUS_ACTIVE)
+                    ->selectRaw('COALESCE(SUM(scoped_allocations.allocated_quantity), 0)');
+            }, 'my_allocated_quantity')
+            ->selectSub(function ($query) use ($userId): void {
+                $query->from('pharma_drug_bid_award_management_assignments as scoped_assignments')
+                    ->join('pharma_drug_bid_award_allocations as scoped_allocations', function ($join): void {
+                        $join->on('scoped_allocations.drug_bid_award_id', '=', 'scoped_assignments.drug_bid_award_id')
+                            ->on('scoped_allocations.partner_id', '=', 'scoped_assignments.partner_id')
+                            ->where('scoped_allocations.status', DrugBidAwardAllocation::STATUS_ACTIVE);
+                    })
+                    ->whereColumn('scoped_assignments.drug_bid_award_id', 'source_awards.id')
+                    ->where('scoped_assignments.user_id', $userId)
+                    ->where('scoped_assignments.status', DrugBidAwardManagementAssignment::STATUS_ACTIVE)
+                    ->selectRaw('COUNT(DISTINCT scoped_assignments.partner_id)');
+            }, 'my_hospitals_count');
+
+        return DB::query()->fromSub($context, 'awards');
     }
 
     private function resultIdentitySql(): string
