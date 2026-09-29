@@ -18,6 +18,21 @@
         </div>
     </section>
 
+    @if($canAllocate || $canManageCommercialPolicy)
+    <section class="grid gap-3 sm:grid-cols-2">
+        @if($canAllocate)
+        <a href="{{ route('client.pharma.bid-awards.allocation',$result->scope_key) }}" class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm active:scale-[.985] motion-reduce:transform-none"><span class="text-xs font-black uppercase text-slate-400">Bước 1–2</span><strong class="mt-1 block text-slate-950">Phân bổ số lượng</strong><span class="mt-1 block text-xs text-slate-500">Chọn bệnh viện trước, sau đó phân bổ sản phẩm.</span></a>
+        @endif
+        @if($canManageCommercialPolicy)
+            @if($hasActiveAllocation)
+            <a href="{{ route('client.pharma.bid-awards.commercial-policy',$result->scope_key) }}" class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm active:scale-[.985] motion-reduce:transform-none"><span class="text-xs font-black uppercase text-emerald-600">Đã mở</span><strong class="mt-1 block text-emerald-950">Thiết lập chính sách kinh doanh</strong><span class="mt-1 block text-xs text-emerald-700">KQLCNT đã có phân bổ số lượng.</span></a>
+            @else
+            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 opacity-70" aria-disabled="true"><span class="text-xs font-black uppercase text-slate-400">Đang khóa</span><strong class="mt-1 block text-slate-700">Thiết lập chính sách kinh doanh</strong><span class="mt-1 block text-xs text-slate-500">Cần hoàn tất phân bổ số lượng trước.</span></div>
+            @endif
+        @endif
+    </section>
+    @endif
+
     <form method="GET" class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm" id="bid-product-search-form">
         <div class="relative">
             <input name="q" value="{{ $search }}" placeholder="Tìm tên thuốc, hoạt chất, số đăng ký..." autocomplete="off"
