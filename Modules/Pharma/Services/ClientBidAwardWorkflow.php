@@ -3,6 +3,8 @@
 namespace Modules\Pharma\Services;
 
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Modules\Pharma\Models\OfficialSourceFacility;
 use Illuminate\Validation\ValidationException;
 use Modules\Pharma\Models\DrugBidAward;
 use Modules\Pharma\Models\DrugBidAwardAllocation;
@@ -22,6 +24,47 @@ final class ClientBidAwardWorkflow
         return DrugBidAward::query()->get()->first(
             fn (DrugBidAward $award): bool => sha1($this->groups->resultKey($award)) === $scopeKey
         );
+    }
+
+    public function distributionSetup(DrugBidAward $award): array
+    {
+        $scope = $this->distributionScopes->findForAward($award);
+        if (! $scope) {
+            return ['scope' => null, 'provinces' => [], 'facility_ids' => [], 'selected_facilities' => collect()];
+        }
+        $provinces = DB::table('pharma_drug_bid_award_distribution_scope_provinces')
+            ->where('distribution_scope_id', $scope->id)->orderBy('province_name')->pluck('province_name')->all();
+        if ($provinces === [] && filled($scope->province_code)) $provinces = [(string) $scope->province_code];
+        $externalIds = $scope->partners->flatMap(fn ($partner) => $partner->sourceReferences
+            ->where('source', 'official_source_facility')->pluck('external_id'))->filter()->all();
+        $facilityIds = OfficialSourceFacility::query()->whereIn('external_id', $externalIds)->pluck('id')->map(fn ($id) => (int) $id)->all();
+
+        return [
+            'scope' => $scope, 'provinces' => $provinces, 'facility_ids' => $facilityIds,
+            'selected_facilities' => OfficialSourceFacility::query()->whereIn('id', $facilityIds)->orderBy('facility_name')->get(),
+        ];
+    }
+
+    public function provinceOptions(): Collection
+    {
+        return OfficialSourceFacility::query()->where('is_active', true)->whereNotNull('province_name')->where('province_name', '!=', '')
+            ->distinct()->orderBy('province_name')->pluck('province_name');
+    }
+
+    public function facilitiesForProvinces(array $provinces): Collection
+    {
+        return OfficialSourceFacility::query()->where('is_active', true)->whereIn('province_name', $provinces)
+            ->orderBy('province_name')->orderBy('facility_name')->limit(600)->get(['id','external_id','facility_name','district_name','province_name']);
+    }
+
+    public function saveDistributionSetup(DrugBidAward $award, array $data, ?int $actorId): void
+    {
+        $this->distributionScopes->save($award, [
+            'province_names' => $data['province_names'],
+            'facility_ids' => $data['facility_ids'],
+            'effective_from' => $data['effective_from'],
+            'effective_until' => $data['effective_until'],
+        ], $actorId);
     }
 
     public function hospitals(DrugBidAward $award): Collection
