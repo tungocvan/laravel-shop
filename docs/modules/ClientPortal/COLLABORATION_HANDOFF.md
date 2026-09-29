@@ -1,3 +1,17 @@
+## Checkpoint — Pharma PWA Bid Awards filters + tablet/mobile setup UX — 2026-09-29
+
+- Branch: `feat/clientportal-pharma-bid-awards`.
+- Added PWA filters matching Admin Drug Bid Awards semantics: Chủ đầu tư, Sản phẩm, Giá trị asc/desc, Thiết lập kinh doanh (CSKD ready/missing, allocation ready/missing).
+- Admin's canonical `<x-select-search>` was inspected before implementation. It is Livewire-bound (`$wire`, `wire:ignore`) and is therefore not embedded directly into the plain GET-form ClientPortal PWA; doing so would introduce a runtime dependency/error. PWA keeps native responsive selects with the same option data/semantics.
+- Filters live under a mobile-first collapsible `Bộ lọc nâng cao`; active filters reopen the panel and show an active count. Main live search remains always visible.
+- Filter changes submit/reset the result list to page 1; result navigation remains progressive `Xem thêm kết quả`, not traditional pagination.
+- Removed `SP của tôi` and `SL của tôi` from result cards and removed `BV của tôi` / `SL của tôi` from product cards.
+- Result cards now show compact KQLCNT signals: product count, `Phân bổ: Đã/Chưa thiết lập`, `CSKD: Đã/Chưa thiết lập`, total KQLCNT value and contract remaining.
+- Setup filters/statuses are global read-only KQLCNT facts, while the existing green responsibility badge remains only when the current User has an active scoped assignment/allocation.
+- No Admin UI reuse, mutation, export, permission broadening or migration.
+- Required operator checkpoint: `git pull --ff-only`, focused `PharmaBidAwardsCapabilityTest`; after PASS run ClientApps regression, then Desktop/Tablet/Mobile acceptance.
+- Status: IMPLEMENTED — AWAITING OPERATOR PULL / FOCUSED TEST.
+
 ## Checkpoint — Pharma PWA Bid Awards global KQLCNT + personal context — 2026-09-29
 
 - Branch: `feat/clientportal-pharma-bid-awards`.
