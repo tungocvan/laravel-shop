@@ -98,6 +98,15 @@ final class ClientBidAwardWorkflow
         if (! $this->hasActiveAllocation($award)) {
             throw ValidationException::withMessages(['commercial_policy' => 'Cần hoàn tất phân bổ số lượng trước khi thiết lập chính sách kinh doanh.']);
         }
+        $allocatedAwardIds = DrugBidAwardAllocation::query()
+            ->whereIn('drug_bid_award_id', $this->groups->awardsQuery($award)->pluck('id'))
+            ->where('status', DrugBidAwardAllocation::STATUS_ACTIVE)
+            ->pluck('drug_bid_award_id')->map(fn ($id) => (int) $id)->unique()->all();
+        foreach ($percentages as $awardId => $percentage) {
+            if ($percentage !== '' && $percentage !== null && ! in_array((int) $awardId, $allocatedAwardIds, true)) {
+                throw ValidationException::withMessages(["percentages.$awardId" => 'Sản phẩm phải được phân bổ số lượng trước khi thiết lập chính sách kinh doanh.']);
+            }
+        }
         $this->commercialPolicies->saveProductPolicies($award, $percentages, $actorId);
     }
 }
