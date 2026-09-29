@@ -56,12 +56,17 @@ final class PharmaInventoryCapabilityTest extends TestCase
         $this->assertStringContainsString('Hoạt chất / Quy cách', $view);
         $this->assertStringNotContainsString('>Mã thuốc</th>', $view);
         $this->assertStringContainsString('border border-slate-300', $view);
-        $this->assertStringContainsString('min-h-12 rounded-2xl', $view);
+        $this->assertStringContainsString('h-12 rounded-2xl', $view);
         $this->assertStringContainsString('table-fixed', $view);
         $this->assertStringContainsString('w-[27%]', $view);
         $this->assertStringContainsString('w-[13%]', $view);
         $this->assertStringContainsString('w-[15%]', $view);
         $this->assertStringContainsString('whitespace-nowrap', $view);
+        $this->assertStringContainsString('Giá trị tồn theo giá vốn', $view);
+        $this->assertStringContainsString('Trong đó còn hạn', $view);
+        $this->assertStringContainsString('Lô chưa định giá', $view);
+        $this->assertStringContainsString('Giá trị hàng cận hạn ≤ 6 tháng', $view);
+        $this->assertStringContainsString('Hàng hết hạn còn tồn', $view);
         $this->assertStringContainsString('@if($canViewCosts)', $view);
         $this->assertStringContainsString('pb-24 xl:pb-8', $view);
         $this->assertStringContainsString("'page_title' => 'Tồn kho Pharma'", $manifest);
@@ -82,6 +87,8 @@ final class PharmaInventoryCapabilityTest extends TestCase
         $this->assertStringNotContainsString("->where('medicine_code', 'like'", $workspace);
         $this->assertStringContainsString("if (\$canViewCosts) {", $workspace);
         $this->assertStringContainsString("\$canViewCosts ? \$this->activeSupplierCosts() : collect()", $workspace);
+        $this->assertStringContainsString("'valid_count' =>", $workspace);
+        $this->assertStringContainsString("'valid_value' =>", $workspace);
     }
 
 }
