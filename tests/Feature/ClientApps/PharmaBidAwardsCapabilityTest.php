@@ -148,4 +148,34 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringNotContainsString('SL của tôi', $detail);
         $this->assertStringNotContainsString('{{ $size }} / trang', $list);
     }
+    public function test_bid_award_mutation_workflow_is_permissioned_sequenced_and_mobile_first(): void
+    {
+        $manifest = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/manifest.php'));
+        $routes = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/routes.php'));
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php'));
+        $workflow = file_get_contents(base_path('Modules/Pharma/Services/ClientBidAwardWorkflow.php'));
+        $allocation = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/bid-award-allocation.blade.php'));
+        $policy = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/bid-award-commercial-policy.blade.php'));
+        $detail = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/bid-award-show.blade.php'));
+
+        $this->assertStringContainsString('client.pharma.bid-awards.allocate', $manifest);
+        $this->assertStringContainsString('client.pharma.bid-awards.commercial-policy', $manifest);
+        $this->assertStringContainsString("Route::post('/bid-awards/{scope}/allocation/hospitals'", $routes);
+        $this->assertStringContainsString("Route::post('/bid-awards/{scope}/allocation'", $routes);
+        $this->assertStringContainsString("Route::post('/bid-awards/{scope}/commercial-policy'", $routes);
+        $this->assertStringContainsString("userCan(\$user, 'client.pharma.bid-awards.allocate')", $controller);
+        $this->assertStringContainsString("userCan(\$user, 'client.pharma.bid-awards.commercial-policy')", $controller);
+        $this->assertStringContainsString('DrugBidAwardAllocationService', $workflow);
+        $this->assertStringContainsString('DrugBidAwardCommercialPolicyService', $workflow);
+        $this->assertStringContainsString('Cần hoàn tất phân bổ số lượng trước', $workflow);
+        $this->assertStringContainsString('Sản phẩm phải được phân bổ số lượng trước', $workflow);
+        $this->assertStringContainsString('Bước 1 · Chọn bệnh viện', $allocation);
+        $this->assertStringContainsString('Bước 2 · Phân bổ sản phẩm', $allocation);
+        $this->assertStringContainsString('md:grid-cols-2', $allocation);
+        $this->assertStringContainsString('sticky bottom-3', $allocation);
+        $this->assertStringContainsString('Thiết lập chính sách kinh doanh', $policy);
+        $this->assertStringContainsString('Cần hoàn tất phân bổ số lượng trước.', $detail);
+        $this->assertStringContainsString('active:scale-[.985]', $detail);
+    }
+
 }
