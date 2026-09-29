@@ -879,10 +879,12 @@ final class PharmaApplicationController extends Controller
         $selection = $request->validate([
             'mode' => ['nullable', 'in:single,multiple'],
             'hospital_id' => ['nullable','integer'],
+            'manager_id' => ['nullable','integer'],
         ]);
         $requestedMode = $selection['mode'] ?? null;
         $mode = $state['persisted_mode'] !== 'unassigned' ? $state['persisted_mode'] : $requestedMode;
         $hospitalId = $mode === 'multiple' ? (int) ($selection['hospital_id'] ?? 0) : 0;
+        $managerId = $mode === 'multiple' ? (int) ($selection['manager_id'] ?? 0) : 0;
         $hospitalCards = $mode === 'multiple' ? $workflow->managementHospitalCards($award) : collect();
         $selectedHospital = $hospitalId > 0 ? $hospitalCards->first(fn ($hospital) => (int) $hospital->id === $hospitalId) : null;
         $products = $selectedHospital && ! $selectedHospital->pwa_management_complete
@@ -894,6 +896,7 @@ final class PharmaApplicationController extends Controller
             'assignmentSummary' => $workflow->managementAssignmentSummary($award),
             'users' => $mode ? $workflow->managementUsers() : collect(),
             'hospitalCards' => $hospitalCards, 'selectedHospital' => $selectedHospital, 'products' => $products,
+            'selectedManagerId' => $managerId,
         ]);
     }
 
