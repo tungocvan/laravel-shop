@@ -1,3 +1,14 @@
+## Checkpoint — Current manager visibility + safe assignment reset — 2026-09-29
+
+- Manager assignment now exposes a canonical current-assignment summary before the mode cards: User name/email plus assignment, hospital and product counts.
+- Single mode preselects the currently assigned User and changes the primary action to `Thay User phụ trách`; saving reuses canonical `assignManagerToAllAllocations()`, so existing assignment rows are updated rather than duplicated.
+- Existing mode remains locked while assignments exist. The UI explicitly explains how to switch modes.
+- Added `Gỡ phân công toàn bộ` with a centered confirmation modal. The copy explicitly states allocation quantities and commercial policies are preserved.
+- Reset delegates to existing Pharma `DrugBidAwardCommercialPolicyService::removeAllManagers()`; ClientPortal owns no assignment-delete business logic.
+- After reset, persisted mode becomes `unassigned`, so the user can choose Single or Multiple again.
+- Added focused contract coverage for assignment summary eager-loading, DELETE route/controller delegation, current User presentation, single-mode replacement CTA and confirmation-modal reset semantics.
+- Required checkpoint: pull + focused `PharmaBidAwardsCapabilityTest`, then real UI acceptance for current manager display, replace User, cancel reset, confirmed reset, and selecting Multiple after reset.
+
 ## Checkpoint — Mode-first User management assignment — 2026-09-29
 
 - Extended the PWA sequence to `Allocation -> Commercial Policy -> User management assignment`.
