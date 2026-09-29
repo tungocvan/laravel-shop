@@ -54,10 +54,19 @@
     @if($assignmentMode)
     <section class="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
         <p class="text-[11px] font-black uppercase tracking-[.14em] text-slate-400">Bước 2</p>
-        <h2 class="mt-1 text-lg font-black">{{ $assignmentMode === 'single' ? ($assignmentState['persisted_mode'] === 'single' ? 'User đang phụ trách' : 'Chọn User phụ trách toàn bộ') : 'Chọn User và sản phẩm' }}</h2>
+        <h2 class="mt-1 text-lg font-black">{{ $assignmentMode === 'single' ? ($assignmentState['persisted_mode'] === 'single' ? 'User đang phụ trách' : 'Chọn User phụ trách toàn bộ') : 'Chọn User quản lý' }}</h2>
         <div class="mt-4">
             <label class="text-xs font-bold text-slate-600">Tìm User</label>
-            <input type="search" data-manager-search placeholder="Tên hoặc email..." class="mt-1.5 h-11 w-full rounded-xl border border-slate-300 px-3 text-sm">
+            <input type="search" data-manager-search placeholder="Tên hoặc email..." autocomplete="off" class="mt-1.5 h-11 w-full rounded-xl border border-slate-300 px-3 text-sm">
+            <div data-manager-results class="mt-2 hidden max-h-56 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-1 shadow-lg">
+                @foreach($users as $manager)
+                <button type="button" data-manager-result data-user-id="{{ $manager->id }}" data-search="{{ str($manager->name.' '.$manager->email)->lower() }}" class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-slate-50 active:bg-slate-100">
+                    <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-950 text-[11px] font-black text-white">{{ str($manager->name)->substr(0,2)->upper() }}</span>
+                    <span class="min-w-0"><b class="block truncate text-sm">{{ $manager->name }}</b><span class="block truncate text-xs text-slate-500">{{ $manager->email ?: 'Không có email' }}</span></span>
+                </button>
+                @endforeach
+                <p data-manager-empty class="hidden px-3 py-4 text-center text-xs text-slate-500">Không tìm thấy User phù hợp.</p>
+            </div>
         </div>
 
         @if($assignmentMode === 'single')
@@ -74,32 +83,45 @@
         </form>
         @else
         <div class="mt-3 space-y-4">
-            <label class="block text-xs font-bold text-slate-600">User quản lý
-                <select required data-manager-select data-multiple-manager class="mt-1.5 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm">
+            <label class="sr-only">User quản lý
+                <select required data-manager-select data-multiple-manager>
                     <option value="">Chọn User trước</option>
                     @foreach($users as $manager)<option value="{{ $manager->id }}" data-search="{{ str($manager->name.' '.$manager->email)->lower() }}" @selected((int)($selectedManagerId ?? 0) === (int)$manager->id)>{{ $manager->name }}{{ $manager->email ? ' · '.$manager->email : '' }}</option>@endforeach
                 </select>
             </label>
-
-            <div data-hospital-step class="opacity-50">
-                <div class="flex items-end justify-between gap-3"><div><p class="text-[11px] font-black uppercase tracking-[.14em] text-slate-400">Bước 3</p><h3 class="mt-1 font-black">Chọn bệnh viện</h3><p class="mt-1 text-xs text-slate-500">Chỉ bệnh viện còn sản phẩm chưa có User mới có thể chọn.</p></div><span class="text-xs font-bold text-slate-500">{{ $hospitalCards->where('pwa_management_complete',false)->count() }} còn khả dụng</span></div>
-                <input type="search" data-management-hospital-search placeholder="Tìm bệnh viện..." class="mt-3 h-11 w-full rounded-xl border border-slate-300 px-3 text-sm" disabled>
-                <div class="mt-3 grid gap-2 md:grid-cols-2">
-                    @foreach($hospitalCards as $hospital)
-                    @if($hospital->pwa_management_complete)
-                    <article data-management-hospital-card data-name="{{ str($hospital->name)->lower() }}" class="rounded-2xl border border-slate-200 bg-slate-50 p-3 opacity-55">
-                        <div class="flex items-start justify-between gap-2"><b class="text-sm">{{ $hospital->name }}</b><span class="shrink-0 rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-bold text-emerald-700">Đã phân công hết</span></div>
-                        <p class="mt-1 text-xs text-slate-500">{{ $hospital->pwa_management_assigned_count }}/{{ $hospital->pwa_management_allocated_count }} sản phẩm đã có User</p>
-                    </article>
-                    @else
-                    <a data-management-hospital-card data-selectable-hospital data-name="{{ str($hospital->name)->lower() }}" data-hospital-id="{{ $hospital->id }}" href="{{ route('client.pharma.bid-awards.manager-assignment',['scope'=>$scope,'mode'=>'multiple','hospital_id'=>$hospital->id]) }}" class="pointer-events-none rounded-2xl border p-3 active:scale-[.985] {{ $selectedHospital && (int)$selectedHospital->id === (int)$hospital->id ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200 bg-white' }}">
-                        <b class="block text-sm">{{ $hospital->name }}</b><p class="mt-1 text-xs text-slate-500">{{ $hospital->pwa_management_assigned_count }}/{{ $hospital->pwa_management_allocated_count }} sản phẩm đã có User · còn {{ $hospital->pwa_management_remaining_count }}</p>
-                    </a>
-                    @endif
-                    @endforeach
-                </div>
+            <div data-selected-manager-card class="rounded-2xl border border-slate-200 bg-slate-50 p-3 {{ ($selectedManagerId ?? 0) ? '' : 'hidden' }}">
+                <p class="text-[10px] font-black uppercase tracking-[.12em] text-slate-400">User đã chọn</p>
+                <div class="mt-1 flex items-center justify-between gap-3"><b data-selected-manager-name class="truncate text-sm">{{ $users->firstWhere('id',(int)($selectedManagerId ?? 0))?->name }}</b><button type="button" data-change-manager class="shrink-0 text-xs font-black text-indigo-600">Đổi User</button></div>
             </div>
 
+            <div data-hospital-step class="{{ ($selectedManagerId ?? 0) ? '' : 'opacity-50' }}">
+                <div class="flex items-end justify-between gap-3"><div><p class="text-[11px] font-black uppercase tracking-[.14em] text-slate-400">Bước 3</p><h3 class="mt-1 font-black">Chọn bệnh viện</h3></div><span class="text-xs font-bold text-slate-500">{{ $hospitalCards->count() }} bệnh viện được phân bổ</span></div>
+                <p class="mt-1 text-xs text-slate-500">{{ $hospitalCards->where('pwa_management_complete',true)->count() }} đã hoàn tất · {{ $hospitalCards->where('pwa_management_complete',false)->count() }} còn phân công</p>
+
+                @if($selectedHospital && ! $selectedHospital->pwa_management_complete)
+                <div class="mt-3 rounded-2xl border border-indigo-200 bg-indigo-50 p-3" data-selected-hospital-summary>
+                    <div class="flex items-start justify-between gap-3"><div><b class="block text-sm">{{ $selectedHospital->name }}</b><p class="mt-1 text-xs text-slate-500">{{ $selectedHospital->pwa_management_assigned_count }}/{{ $selectedHospital->pwa_management_allocated_count }} sản phẩm đã có User · còn {{ $selectedHospital->pwa_management_remaining_count }}</p></div><a href="{{ route('client.pharma.bid-awards.manager-assignment',['scope'=>$scope,'mode'=>'multiple','manager_id'=>$selectedManagerId]) }}" class="shrink-0 text-xs font-black text-indigo-600">Đổi bệnh viện</a></div>
+                </div>
+                @else
+                <div data-hospital-picker>
+                    <input type="search" data-management-hospital-search placeholder="Tìm bệnh viện..." class="mt-3 h-11 w-full rounded-xl border border-slate-300 px-3 text-sm" @disabled(!($selectedManagerId ?? 0))>
+                    <div class="mt-3 grid gap-2 md:grid-cols-2">
+                        @foreach($hospitalCards as $hospital)
+                        @if($hospital->pwa_management_complete)
+                        <article data-management-hospital-card data-name="{{ str($hospital->name)->lower() }}" class="rounded-2xl border border-slate-200 bg-slate-50 p-3 opacity-55">
+                            <div class="flex items-start justify-between gap-2"><b class="text-sm">{{ $hospital->name }}</b><span class="shrink-0 rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-bold text-emerald-700">Đã phân công hết</span></div>
+                            <p class="mt-1 text-xs text-slate-500">{{ $hospital->pwa_management_assigned_count }}/{{ $hospital->pwa_management_allocated_count }} sản phẩm đã có User</p>
+                        </article>
+                        @else
+                        <a data-management-hospital-card data-selectable-hospital data-name="{{ str($hospital->name)->lower() }}" data-hospital-id="{{ $hospital->id }}" href="{{ route('client.pharma.bid-awards.manager-assignment',['scope'=>$scope,'mode'=>'multiple','hospital_id'=>$hospital->id,'manager_id'=>$selectedManagerId]) }}" class="{{ ($selectedManagerId ?? 0) ? '' : 'pointer-events-none' }} rounded-2xl border border-slate-200 bg-white p-3 active:scale-[.985]">
+                            <b class="block text-sm">{{ $hospital->name }}</b><p class="mt-1 text-xs text-slate-500">{{ $hospital->pwa_management_assigned_count }}/{{ $hospital->pwa_management_allocated_count }} sản phẩm đã có User · còn {{ $hospital->pwa_management_remaining_count }}</p>
+                        </a>
+                        @endif
+                        @endforeach
+                    </div>
+                </div>
+                @endif
+            </div>
             @if($selectedHospital && ! $selectedHospital->pwa_management_complete)
             <form method="POST" action="{{ route('client.pharma.bid-awards.manager-assignment.products',$scope) }}" data-multiple-assignment-form class="rounded-[22px] border border-indigo-200 bg-indigo-50/40 p-4">
                 @csrf
@@ -108,7 +130,7 @@
                 <p class="text-[11px] font-black uppercase tracking-[.14em] text-indigo-500">Bước 4</p>
                 <h3 class="mt-1 font-black">Sản phẩm chưa có User</h3>
                 <p class="mt-1 text-xs text-slate-500">{{ $selectedHospital->name }} · chỉ hiển thị sản phẩm đã phân bổ tại bệnh viện này và chưa được giao User.</p>
-                <div class="mt-3 flex justify-end"><button type="button" data-select-all-products class="min-h-10 rounded-xl border border-indigo-200 bg-white px-3 text-xs font-bold">Chọn tất cả</button></div>
+                <div class="mt-3 flex items-center justify-between gap-3 rounded-xl bg-white/80 p-2"><span class="text-xs text-slate-600"><b data-selected-product-count>0</b>/{{ $products->count() }} sản phẩm đã chọn</span><button type="button" data-select-all-products class="min-h-10 rounded-xl border border-indigo-200 bg-white px-3 text-xs font-bold">Chọn tất cả</button></div>
                 <div class="mt-2 grid gap-2 md:grid-cols-2">
                     @foreach($products as $product)
                     <label class="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 bg-white p-3 active:scale-[.985]">
@@ -137,15 +159,25 @@
 @endif
 <script>
 document.addEventListener('DOMContentLoaded',()=>{
- const q=document.querySelector('[data-manager-search]'),select=document.querySelector('[data-manager-select]');
- q?.addEventListener('input',()=>{const term=q.value.toLocaleLowerCase('vi');[...select.options].forEach((o,i)=>{if(i)o.hidden=!(o.dataset.search||'').includes(term)})});
+ const q=document.querySelector('[data-manager-search]'),select=document.querySelector('[data-manager-select]'),results=document.querySelector('[data-manager-results]'),resultButtons=[...document.querySelectorAll('[data-manager-result]')],empty=document.querySelector('[data-manager-empty]');
+ const selectedCard=document.querySelector('[data-selected-manager-card]'),selectedName=document.querySelector('[data-selected-manager-name]');
+ const renderUsers=()=>{const term=(q?.value||'').trim().toLocaleLowerCase('vi');let visible=0;resultButtons.forEach(btn=>{const show=!term||(btn.dataset.search||'').includes(term);btn.classList.toggle('hidden',!show);if(show)visible++});empty?.classList.toggle('hidden',visible!==0);results?.classList.remove('hidden')};
+ q?.addEventListener('focus',renderUsers);q?.addEventListener('input',renderUsers);
+ resultButtons.forEach(btn=>btn.addEventListener('click',()=>{if(select){select.value=btn.dataset.userId;select.dispatchEvent(new Event('change',{bubbles:true}))}if(q)q.value=btn.querySelector('b')?.textContent?.trim()||'';if(selectedName)selectedName.textContent=btn.querySelector('b')?.textContent?.trim()||'';selectedCard?.classList.remove('hidden');results?.classList.add('hidden')}));
+ document.addEventListener('click',e=>{if(results&&!results.contains(e.target)&&e.target!==q)results.classList.add('hidden')});
+ document.querySelector('[data-change-manager]')?.addEventListener('click',()=>{q?.focus();renderUsers()});
+
  const modal=document.querySelector('[data-remove-managers-modal]');document.querySelector('[data-open-remove-managers]')?.addEventListener('click',()=>{modal?.classList.remove('hidden');modal?.classList.add('flex')});document.querySelector('[data-close-remove-managers]')?.addEventListener('click',()=>{modal?.classList.add('hidden');modal?.classList.remove('flex')});modal?.addEventListener('click',e=>{if(e.target===modal){modal.classList.add('hidden');modal.classList.remove('flex')}});
+
  const multipleManager=document.querySelector('[data-multiple-manager]'),hospitalStep=document.querySelector('[data-hospital-step]'),hospitalSearch=document.querySelector('[data-management-hospital-search]'),selectedManager=document.querySelector('[data-selected-manager]'),hospitalLinks=[...document.querySelectorAll('[data-selectable-hospital]')];
  const syncMultiple=()=>{const userId=multipleManager?.value||'';hospitalStep?.classList.toggle('opacity-50',!userId);if(hospitalSearch)hospitalSearch.disabled=!userId;hospitalLinks.forEach(link=>{link.classList.toggle('pointer-events-none',!userId);const url=new URL(link.href,window.location.origin);if(userId)url.searchParams.set('manager_id',userId);else url.searchParams.delete('manager_id');link.href=url.pathname+url.search});if(selectedManager)selectedManager.value=userId};
  multipleManager?.addEventListener('change',syncMultiple);syncMultiple();
- hospitalSearch?.addEventListener('input',()=>{const term=hospitalSearch.value.toLocaleLowerCase('vi');document.querySelectorAll('[data-management-hospital-card]').forEach(card=>card.classList.toggle('hidden',!(card.dataset.name||'').includes(term)))});
- const all=document.querySelector('[data-select-all-products]'),boxes=[...document.querySelectorAll('[data-product-checkbox]')];
- all?.addEventListener('click',()=>{const checked=boxes.length>0&&boxes.every(x=>x.checked);boxes.forEach(x=>x.checked=!checked);all.textContent=checked?'Chọn tất cả':'Bỏ chọn tất cả'});
+ hospitalSearch?.addEventListener('input',()=>{const term=hospitalSearch.value.toLocaleLowerCase('vi');document.querySelectorAll('[data-management-hospital-card]').forEach(card=>card.classList.toggle('hidden',!(card.dataset.name||'').includes(term)))}); 
+
+ const all=document.querySelector('[data-select-all-products]'),boxes=[...document.querySelectorAll('[data-product-checkbox]')],count=document.querySelector('[data-selected-product-count]');
+ const syncCount=()=>{if(count)count.textContent=boxes.filter(x=>x.checked).length;if(all)all.textContent=boxes.length>0&&boxes.every(x=>x.checked)?'Bỏ chọn tất cả':'Chọn tất cả'};
+ boxes.forEach(x=>x.addEventListener('change',syncCount));
+ all?.addEventListener('click',()=>{const checked=boxes.length>0&&boxes.every(x=>x.checked);boxes.forEach(x=>x.checked=!checked);syncCount()});syncCount();
 });
 </script>
 @endsection
