@@ -1,3 +1,14 @@
+## Checkpoint — Multi-User assignment wizard UX — 2026-09-29
+
+- Replaced native-select option hiding with a real live User result panel. Typing name/email filters visible User rows immediately; tapping a row updates the canonical select/state and enables the hospital step.
+- Multiple assignment Step 3 now reports the total allocated-hospital count plus completed/remaining progress.
+- Assignable hospitals are sorted before completed hospitals in the Pharma read model; completed hospitals remain visible but disabled.
+- Once a hospital is selected, Step 3 collapses to a compact selected-hospital summary with progress and an explicit `Đổi bệnh viện` action. The hospital list is not rendered in that state, allowing Step 4 products to move up on mobile.
+- Step 4 shows live selected-product count plus select-all behavior.
+- After assigning products, redirect preserves `manager_id` but intentionally drops `hospital_id`: the same User remains selected while the workflow returns to Step 3 for the next hospital. Hospital progress is recomputed from canonical assignments.
+- Added focused contract coverage for live User filtering, allocated-hospital totals, completed-last ordering, collapsed hospital state, selected-product count and post-save return semantics.
+- Required checkpoint: pull + focused Pharma bid-awards capability test; if PASS, run ClientApps regression. Manual acceptance should verify live User typing, hospital collapse/Change Hospital, partial assignment progress, and same-User continuation after save.
+
 ## Checkpoint — Hospital-first multi-User assignment — 2026-09-29
 
 - Refactored the `multiple` manager mode from product-first bulk assignment to the canonical business sequence: `User -> Hospital -> remaining allocated products -> assign`.
