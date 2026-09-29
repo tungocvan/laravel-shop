@@ -31,17 +31,13 @@
             <article data-bid-product class="min-w-0 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0"><h2 class="font-black text-slate-950">{{ $product->medicine_name }}</h2><p class="mt-1 text-sm text-slate-500">{{ $product->active_ingredient ?: '—' }} @if($product->concentration) · {{ $product->concentration }} @endif</p></div>
-                    @if((int) $product->my_hospitals_count > 0)
-                        <span class="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">{{ $product->my_hospitals_count }} BV của tôi</span>
-                    @else
-                        <span class="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-500">KQLCNT</span>
-                    @endif
+<span class="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-500">KQLCNT</span>
                 </div>
                 <p class="mt-3 text-sm text-slate-500">{{ $product->packaging_specification ?: 'Chưa có quy cách' }}</p>
-                <div class="mt-4 grid grid-cols-3 gap-2">
+                <div class="mt-4 grid grid-cols-2 gap-2">
                     <div class="rounded-2xl bg-slate-50 p-3"><span class="block text-[11px] font-bold uppercase text-slate-400">Giá trúng thầu</span><strong class="mt-1 block text-sm text-slate-950">{{ number_format((float) ($product->winning_price ?? $product->unit_price ?? 0), 0, ',', '.') }}</strong></div>
                     <div class="rounded-2xl bg-slate-50 p-3"><span class="block text-[11px] font-bold uppercase text-slate-400">SL trúng thầu</span><strong class="mt-1 block text-sm text-slate-950">{{ number_format((float) $product->winning_quantity, 0, ',', '.') }}</strong></div>
-                    <div class="rounded-2xl bg-slate-50 p-3"><span class="block text-[11px] font-bold uppercase text-slate-400">SL của tôi</span><strong class="mt-1 block text-sm text-slate-950">{{ number_format((float) $product->my_allocated_quantity, 0, ',', '.') }}</strong></div>
+                    
                 </div>
             </article>
         @empty
