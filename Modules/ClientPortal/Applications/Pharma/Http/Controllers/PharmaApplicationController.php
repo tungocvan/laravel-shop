@@ -676,7 +676,7 @@ final class PharmaApplicationController extends Controller
             'application' => $application,
             'applicationPresentation' => $settings->applicationPresentation($application),
             'featurePresentation' => $settings->featurePresentation($application['key'], $feature),
-            'results' => $workspace->browseAssignedResults(
+            'results' => $workspace->browseResults(
                 userId: (int) $user->id,
                 search: $validated['q'] ?? null,
                 perPage: 20,
@@ -706,7 +706,7 @@ final class PharmaApplicationController extends Controller
         $feature = collect($application['features'] ?? [])->first(fn (array $feature): bool => $feature['key'] === 'bid-awards');
         abort_if($feature === null, 404);
 
-        $result = $workspace->findAssignedResult((int) $user->id, $scope);
+        $result = $workspace->findResult((int) $user->id, $scope);
         abort_if($result === null, 404);
 
         return view('ClientPortal::applications.pharma.bid-award-show', [
@@ -714,7 +714,7 @@ final class PharmaApplicationController extends Controller
             'applicationPresentation' => $settings->applicationPresentation($application),
             'featurePresentation' => $settings->featurePresentation($application['key'], $feature),
             'result' => $result,
-            'products' => $workspace->assignedProducts(
+            'products' => $workspace->products(
                 userId: (int) $user->id,
                 scope: $result,
                 search: $validated['q'] ?? null,
