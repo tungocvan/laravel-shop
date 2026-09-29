@@ -217,8 +217,8 @@ final class ClientBidAwardWorkflow
     {
         $awardIds = $this->groups->awardsQuery($award)->pluck('id');
         $allocations = DrugBidAwardAllocation::query()
-            ->whereIn('drug_bid_award_id', $awardIds)
-            ->where('status', DrugBidAwardAllocation::STATUS_ACTIVE);
+            ->whereIn('pharma_drug_bid_award_allocations.drug_bid_award_id', $awardIds)
+            ->where('pharma_drug_bid_award_allocations.status', DrugBidAwardAllocation::STATUS_ACTIVE);
 
         if (! (clone $allocations)->exists()) return false;
 
