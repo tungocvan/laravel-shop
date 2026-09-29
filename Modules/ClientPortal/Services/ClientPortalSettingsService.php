@@ -54,6 +54,9 @@ class ClientPortalSettingsService
             'description' => $feature['description'] ?? '',
             'sort_order' => $feature['sort_order'] ?? 100,
             'badge' => '',
+            'eyebrow' => $feature['eyebrow'] ?? $feature['name'],
+            'page_title' => $feature['page_title'] ?? $feature['name'],
+            'page_description' => $feature['page_description'] ?? ($feature['description'] ?? ''),
             'maintenance' => false,
             'maintenance_message' => '',
         ];
