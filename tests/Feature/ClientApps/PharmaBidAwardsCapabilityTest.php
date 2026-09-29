@@ -239,4 +239,27 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString('Bệnh viện nhận phân bổ', $view);
     }
 
+    public function test_hospital_allocation_formats_quantities_and_policy_shows_default_context(): void
+    {
+        $controller=file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php'));
+        $workflow=file_get_contents(base_path('Modules/Pharma/Services/ClientBidAwardWorkflow.php'));
+        $index=file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/bid-award-allocation.blade.php'));
+        $allocation=file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/bid-award-hospital-allocation.blade.php'));
+        $policy=file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/bid-award-hospital-policy.blade.php'));
+
+        $this->assertStringNotContainsString('>Đang phân bổ</span>', $index);
+        $this->assertStringNotContainsString('>Hoàn tất</span>', $index);
+        $this->assertStringContainsString("preg_replace('/[^0-9]/', '', (string)\$value)", $controller);
+        $this->assertStringContainsString("'quantities.*'=>['nullable','integer','gt:0']", $controller);
+        $this->assertStringContainsString('data-quantity-input', $allocation);
+        $this->assertStringContainsString("number_format((float)\$row->allocated_quantity,0,',','.')", $allocation);
+        $this->assertStringContainsString("replace(/\\D/g,'')", $allocation);
+        $this->assertStringContainsString("toLocaleString('vi-VN')", $allocation);
+        $this->assertStringContainsString("'productPolicies'=>\$workflow->productPolicies(\$award)", $controller);
+        $this->assertStringContainsString('CSKD gốc', $policy);
+        $this->assertStringContainsString('Để trống để dùng chính sách gốc.', $policy);
+        $this->assertStringContainsString('saveHospitalPolicyOverride', $workflow);
+        $this->assertStringContainsString('commercial_policy_percentage !== null', $policy);
+    }
+
 }
