@@ -143,6 +143,31 @@ Defaults come from the application manifest. The override service intentionally 
 
 Hiding an application card is a presentation decision, not a replacement for permission enforcement. Application routes continue to enforce their existing access middleware.
 
+### `application.{key}.feature.{feature}.presentation`
+
+Every user-facing PWA feature must expose its page copy through **Giao diện Application & Feature → Nội dung trang PWA** at `/admin/client-apps`.
+
+Required manifest defaults for every feature are:
+
+```php
+'eyebrow' => '...',
+'page_title' => '...',
+'page_description' => '...',
+```
+
+These values are presentation defaults, not business configuration. Runtime pages must read the resolved values through `ClientPortalSettingsService::featurePresentation()` and pass them from the controller to Blade. Do not hard-code the same page eyebrow/title/description in Blade.
+
+When adding a new PWA capability or feature, implementation is incomplete until:
+
+- the manifest declares the three default page-content keys;
+- `ApplicationRegistry` preserves them;
+- Admin can edit them from `/admin/client-apps`;
+- the runtime page consumes the resolved feature presentation;
+- focused contract tests cover the defaults/override path;
+- real UI acceptance confirms Admin changes appear in the PWA.
+
+Admin overrides must never change route names, permissions, source-module contracts, or business logic.
+
 ## Non-hardcode rule
 
 User-facing configurable PWA copy must be read through `ClientPortalSettingsService`. Blade may contain layout/CSS/accessibility structure, but editable branding/copy must not be duplicated as literals in login or launcher templates.
