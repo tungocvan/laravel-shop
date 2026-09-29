@@ -93,7 +93,7 @@ class PharmaBidAwardsCapabilityTest extends TestCase
 
         $this->assertStringContainsString("'route' => 'client.pharma.bid-awards'", $manifest);
         $this->assertStringContainsString("'eyebrow' => 'Bid Awards'", $manifest);
-        $this->assertStringContainsString("'page_title' => 'Kết quả trúng thầu của tôi'", $manifest);
+        $this->assertStringContainsString("'page_title' => 'Kết quả trúng thầu'", $manifest);
         $this->assertStringContainsString("'page_description' =>", $manifest);
 
         $this->assertStringContainsString('UserBidAwardWorkspace $workspace', $controller);
