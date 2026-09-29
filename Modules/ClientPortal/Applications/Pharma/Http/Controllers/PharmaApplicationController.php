@@ -772,6 +772,7 @@ final class PharmaApplicationController extends Controller
             'draftProvinces' => $draftProvinces, 'draftFacilityIds' => $draftFacilityIds,
             'facilityOptions' => $workflow->facilitiesForProvinces($draftProvinces),
             'hospitalCards' => $workflow->hospitalCards($award),
+            'productAllocationCards' => $workflow->productAllocationCards($award),
         ]);
     }
 
