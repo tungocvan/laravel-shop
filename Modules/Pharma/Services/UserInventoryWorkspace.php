@@ -92,6 +92,8 @@ final class UserInventoryWorkspace
             'balance_count' => $balances->count(),
             'inventory_value' => $canViewCosts ? $balances->sum($value) : null,
             'unpriced_count' => $canViewCosts ? $unpriced->count() : null,
+            'valid_count' => $balances->filter(fn (InventoryBalance $balance) => $balance->expiry_date->gte($today))->count(),
+            'valid_value' => $canViewCosts ? $balances->filter(fn (InventoryBalance $balance) => $balance->expiry_date->gte($today))->sum($value) : null,
             'expired_count' => $expired->count(),
             'expired_value' => $canViewCosts ? $expired->sum($value) : null,
             'near_expiry_count' => $nearExpiry->count(),
