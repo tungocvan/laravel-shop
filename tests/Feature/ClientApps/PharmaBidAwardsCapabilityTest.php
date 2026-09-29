@@ -34,7 +34,7 @@ class PharmaBidAwardsCapabilityTest extends TestCase
     public function test_bid_award_workspace_is_a_user_scoped_pharma_read_contract(): void
     {
         $service = new ReflectionClass(UserBidAwardWorkspace::class);
-        foreach (['browseAssignedResults', 'findAssignedResult', 'assignedProducts'] as $method) {
+        foreach (['browseResults', 'findResult', 'products'] as $method) {
             $this->assertTrue($service->hasMethod($method));
             $this->assertTrue($service->getMethod($method)->isPublic());
         }
@@ -56,11 +56,11 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $commercial = file_get_contents(base_path('Modules/Pharma/Services/UserCommercialHospitalWorkspace.php'));
 
         $canonicalClauses = [
-            "->on('workspace_allocations.drug_bid_award_id', '=', 'workspace_assignments.drug_bid_award_id')",
-            "->on('workspace_allocations.partner_id', '=', 'workspace_assignments.partner_id')",
+            "->on('scoped_allocations.drug_bid_award_id', '=', 'scoped_assignments.drug_bid_award_id')",
+            "->on('scoped_allocations.partner_id', '=', 'scoped_assignments.partner_id')",
             "->where('workspace_assignments.user_id', \$userId)",
-            "->where('workspace_assignments.status', DrugBidAwardManagementAssignment::STATUS_ACTIVE)",
-            "->where('workspace_allocations.status', DrugBidAwardAllocation::STATUS_ACTIVE)",
+            "->where('scoped_assignments.status', DrugBidAwardManagementAssignment::STATUS_ACTIVE)",
+            "->where('scoped_allocations.status', DrugBidAwardAllocation::STATUS_ACTIVE)",
         ];
 
         foreach ($canonicalClauses as $clause) {
@@ -68,10 +68,10 @@ class PharmaBidAwardsCapabilityTest extends TestCase
             $this->assertStringContainsString($clause, $bidAwards);
         }
 
-        $this->assertStringContainsString("COUNT(DISTINCT workspace_assignments.partner_id) as hospitals_count", $bidAwards);
-        $this->assertStringContainsString("SUM(workspace_allocations.allocated_quantity) as allocated_quantity", $bidAwards);
-        $this->assertStringContainsString("SUM(workspace_allocations.allocated_quantity * COALESCE(awards.winning_price, awards.unit_price, 0)) as allocated_value", $bidAwards);
-        $this->assertStringNotContainsString("orWhere('workspace_assignments.user_id'", $bidAwards);
+        $this->assertStringContainsString("DB::table('pharma_drug_bid_awards as source_awards')", $bidAwards);
+        $this->assertStringContainsString("'my_allocated_quantity'", $bidAwards);
+        $this->assertStringContainsString("'my_hospitals_count'", $bidAwards);
+        $this->assertStringNotContainsString("->where('awards.user_id'", $bidAwards);
         $this->assertStringNotContainsString('auth()', $bidAwards);
     }
 
@@ -88,8 +88,8 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString("'page_description' =>", $manifest);
 
         $this->assertStringContainsString('UserBidAwardWorkspace $workspace', $controller);
-        $this->assertStringContainsString('$workspace->browseAssignedResults(', $controller);
-        $this->assertStringContainsString('$workspace->findAssignedResult((int) $user->id, $scope)', $controller);
+        $this->assertStringContainsString('$workspace->browseResults(', $controller);
+        $this->assertStringContainsString('$workspace->findResult((int) $user->id, $scope)', $controller);
         $this->assertStringContainsString('abort_if($result === null, 404)', $controller);
         $this->assertStringContainsString('$settings->featurePresentation($application[\'key\'], $feature)', $controller);
 
@@ -103,14 +103,18 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString('Xem thêm kết quả', $list);
         $this->assertStringContainsString('DOMParser', $list);
         $this->assertStringContainsString('Danh sách kết quả trúng thầu', $list);
-        $this->assertStringContainsString('kết quả trong phạm vi bạn phụ trách', $list);
-        $this->assertStringContainsString('SL phân bổ', $list);
-        $this->assertStringContainsString('Giá trị phân bổ', $list);
+        $this->assertStringContainsString('kết quả trúng thầu · phần được giao sẽ được đánh dấu riêng', $list);
+        $this->assertStringContainsString('SL của tôi', $list);
+        $this->assertStringContainsString('Giá trị KQLCNT', $list);
         $this->assertStringContainsString('Còn {{ str_pad', $list);
         $this->assertStringContainsString('md:grid-cols-2 xl:grid-cols-3', $list);
         $this->assertStringContainsString('\\Carbon\\Carbon::parse', $list);
         $this->assertStringNotContainsString('CarbonCarbon::parse', $list);
         $this->assertStringContainsString("setTimeout(()=>form.requestSubmit(),350)", $list);
+        $this->assertStringContainsString('Trong phạm vi tôi phụ trách', $list);
+        $this->assertStringContainsString('md:grid-cols-2 xl:grid-cols-3', $list);
+        $this->assertStringContainsString('BV của tôi', $detail);
+        $this->assertStringContainsString('KQLCNT', $detail);
         $this->assertStringContainsString('Xem thêm sản phẩm', $detail);
         $this->assertStringContainsString('Giá trúng thầu', $detail);
         $this->assertStringContainsString('SL phân bổ', $detail);
