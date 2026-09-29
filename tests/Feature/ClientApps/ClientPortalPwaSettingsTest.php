@@ -89,6 +89,36 @@ class ClientPortalPwaSettingsTest extends TestCase
         ]);
     }
 
+    public function test_feature_page_content_uses_manifest_defaults_and_admin_overrides(): void
+    {
+        $registry = app(ApplicationRegistry::class);
+        $settings = app(ClientPortalSettingsService::class);
+        $application = $registry->find('pharma');
+        $feature = collect($application['features'])->firstWhere('key', 'commercial');
+
+        $this->assertNotNull($feature);
+        $defaults = $settings->featurePresentation('pharma', $feature);
+        $this->assertSame('Commercial Workspace', $defaults['eyebrow']);
+        $this->assertSame('Công việc bệnh viện của tôi', $defaults['page_title']);
+        $this->assertSame('Chọn Chủ đầu tư / kết quả trúng thầu để xem đúng phạm vi bệnh viện được phân công.', $defaults['page_description']);
+
+        $settings->updateFeaturePresentation('pharma', 'commercial', [
+            'eyebrow' => 'Không gian thương mại',
+            'page_title' => 'Bệnh viện phụ trách',
+            'page_description' => 'Nội dung do Admin quản lý.',
+        ], 77);
+
+        $presentation = $settings->featurePresentation('pharma', $feature);
+        $this->assertSame('Không gian thương mại', $presentation['eyebrow']);
+        $this->assertSame('Bệnh viện phụ trách', $presentation['page_title']);
+        $this->assertSame('Nội dung do Admin quản lý.', $presentation['page_description']);
+        $this->assertDatabaseHas('client_portal_settings', [
+            'group_name' => 'application.pharma.feature.commercial.presentation',
+            'key' => 'page_title',
+            'updated_by' => 77,
+        ]);
+    }
+
     public function test_application_presentation_override_preserves_manifest_contract(): void
     {
         $registry = app(ApplicationRegistry::class);
