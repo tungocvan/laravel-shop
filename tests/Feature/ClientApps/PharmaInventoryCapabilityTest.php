@@ -57,6 +57,10 @@ final class PharmaInventoryCapabilityTest extends TestCase
         $this->assertStringNotContainsString('>Mã thuốc</th>', $view);
         $this->assertStringContainsString('border border-slate-300', $view);
         $this->assertStringContainsString('h-12 rounded-2xl', $view);
+        $this->assertStringContainsString('lg:col-span-4', $view);
+        $this->assertStringContainsString('lg:col-span-8', $view);
+        $this->assertStringContainsString('× Xóa bộ lọc', $view);
+        $this->assertStringContainsString('text-[11px] font-black text-rose-700', $view);
         $this->assertStringContainsString('table-fixed', $view);
         $this->assertStringContainsString('w-[27%]', $view);
         $this->assertStringContainsString('w-[13%]', $view);
