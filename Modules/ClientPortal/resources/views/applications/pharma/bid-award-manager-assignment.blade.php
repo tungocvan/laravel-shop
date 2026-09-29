@@ -77,7 +77,7 @@
             <label class="block text-xs font-bold text-slate-600">User quản lý
                 <select required data-manager-select data-multiple-manager class="mt-1.5 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm">
                     <option value="">Chọn User trước</option>
-                    @foreach($users as $manager)<option value="{{ $manager->id }}" data-search="{{ str($manager->name.' '.$manager->email)->lower() }}">{{ $manager->name }}{{ $manager->email ? ' · '.$manager->email : '' }}</option>@endforeach
+                    @foreach($users as $manager)<option value="{{ $manager->id }}" data-search="{{ str($manager->name.' '.$manager->email)->lower() }}" @selected((int)($selectedManagerId ?? 0) === (int)$manager->id)>{{ $manager->name }}{{ $manager->email ? ' · '.$manager->email : '' }}</option>@endforeach
                 </select>
             </label>
 
