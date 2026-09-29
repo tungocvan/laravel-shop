@@ -56,6 +56,12 @@ final class PharmaInventoryCapabilityTest extends TestCase
         $this->assertStringContainsString('Hoạt chất / Quy cách', $view);
         $this->assertStringNotContainsString('>Mã thuốc</th>', $view);
         $this->assertStringContainsString('border border-slate-300', $view);
+        $this->assertStringContainsString('min-h-12 rounded-2xl', $view);
+        $this->assertStringContainsString('table-fixed', $view);
+        $this->assertStringContainsString('w-[27%]', $view);
+        $this->assertStringContainsString('w-[13%]', $view);
+        $this->assertStringContainsString('w-[15%]', $view);
+        $this->assertStringContainsString('whitespace-nowrap', $view);
         $this->assertStringContainsString('@if($canViewCosts)', $view);
         $this->assertStringContainsString('pb-24 xl:pb-8', $view);
         $this->assertStringContainsString("'page_title' => 'Tồn kho Pharma'", $manifest);
