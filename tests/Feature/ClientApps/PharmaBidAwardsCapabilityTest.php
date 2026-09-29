@@ -160,7 +160,7 @@ class PharmaBidAwardsCapabilityTest extends TestCase
 
         $this->assertStringContainsString('client.pharma.bid-awards.allocate', $manifest);
         $this->assertStringContainsString('client.pharma.bid-awards.commercial-policy', $manifest);
-        $this->assertStringContainsString("Route::post('/bid-awards/{scope}/allocation/hospitals'", $routes);
+        $this->assertStringContainsString("Route::post('/bid-awards/{scope}/allocation/setup'", $routes);
         $this->assertStringContainsString("Route::post('/bid-awards/{scope}/allocation'", $routes);
         $this->assertStringContainsString("Route::post('/bid-awards/{scope}/commercial-policy'", $routes);
         $this->assertStringContainsString("userCan(\$user, 'client.pharma.bid-awards.allocate')", $controller);
@@ -169,8 +169,17 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString('DrugBidAwardCommercialPolicyService', $workflow);
         $this->assertStringContainsString('Cần hoàn tất phân bổ số lượng trước', $workflow);
         $this->assertStringContainsString('Sản phẩm phải được phân bổ số lượng trước', $workflow);
-        $this->assertStringContainsString('Bước 1 · Chọn bệnh viện', $allocation);
-        $this->assertStringContainsString('Bước 2 · Phân bổ sản phẩm', $allocation);
+        $this->assertStringContainsString('Thiết lập chung', $allocation);
+        $this->assertStringContainsString('Bước 1 · Phạm vi', $allocation);
+        $this->assertStringContainsString('Bước 2 · Cơ sở nhận phân bổ', $allocation);
+        $this->assertStringContainsString('Bước 3 · Kiểm tra trước khi lưu', $allocation);
+        $this->assertStringContainsString('data-review-checkbox', $allocation);
+        $this->assertStringContainsString('@checked(in_array((int)$facility->id,$draftFacilityIds,true))', $allocation);
+        $this->assertStringContainsString('Lưu thiết lập phân bổ', $allocation);
+        $this->assertStringContainsString('Phân bổ sản phẩm', $allocation);
+        $this->assertStringNotContainsString('pharma.bid_awards.$scope.hospitals', $controller);
+        $this->assertStringContainsString('saveDistributionSetup', $workflow);
+        $this->assertStringContainsString('DrugBidAwardDistributionScopeService', $workflow);
         $this->assertStringContainsString("str(\$hospital->name)->lower()", $allocation);
         $this->assertStringNotContainsString('IlluminateSupportStr', $allocation);
         $this->assertStringNotContainsString('Illuminate\\Support\\Str::lower', $allocation);
