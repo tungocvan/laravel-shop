@@ -89,6 +89,59 @@ final class ClientBidAwardWorkflow
             ->keyBy(fn (DrugBidAwardAllocation $allocation): string => $allocation->drug_bid_award_id.':'.$allocation->partner_id);
     }
 
+    public function hospital(DrugBidAward $award, int $partnerId): ?object
+    {
+        return $this->hospitals($award)->first(fn ($partner) => (int) $partner->id === $partnerId);
+    }
+
+    public function hospitalAllocations(DrugBidAward $award, int $partnerId): Collection
+    {
+        return DrugBidAwardAllocation::query()
+            ->whereIn('drug_bid_award_id', $this->groups->awardsQuery($award)->pluck('id'))
+            ->where('partner_id', $partnerId)->where('status', DrugBidAwardAllocation::STATUS_ACTIVE)
+            ->get()->keyBy('drug_bid_award_id');
+    }
+
+    public function hospitalCards(DrugBidAward $award): Collection
+    {
+        $productCount = $this->products($award)->count();
+        $allocations = $this->existingAllocations($award)->groupBy('partner_id');
+        return $this->hospitals($award)->map(function ($hospital) use ($productCount, $allocations) {
+            $rows = $allocations->get($hospital->id, collect());
+            $allocatedProducts = $rows->pluck('drug_bid_award_id')->unique()->count();
+            $policyProducts = $rows->filter(fn ($row) => $row->commercial_policy_percentage !== null)->pluck('drug_bid_award_id')->unique()->count();
+            $hospital->pwa_product_count = $productCount;
+            $hospital->pwa_allocated_products = $allocatedProducts;
+            $hospital->pwa_policy_products = $policyProducts;
+            return $hospital;
+        });
+    }
+
+    public function saveHospitalAllocations(DrugBidAward $award, int $partnerId, array $quantities, ?int $actorId): int
+    {
+        if (! $this->hospital($award, $partnerId)) {
+            throw ValidationException::withMessages(['hospital' => 'Bệnh viện không thuộc phạm vi phân bổ hiện tại.']);
+        }
+        $payload = [];
+        foreach ($quantities as $awardId => $quantity) $payload[(int) $awardId] = [$partnerId => $quantity];
+        return $this->saveAllocations($award, [$partnerId], $payload, $actorId);
+    }
+
+    public function saveHospitalPolicies(DrugBidAward $award, int $partnerId, array $percentages, ?int $actorId): int
+    {
+        if (! $this->hospital($award, $partnerId)) {
+            throw ValidationException::withMessages(['hospital' => 'Bệnh viện không thuộc phạm vi phân bổ hiện tại.']);
+        }
+        $saved = 0;
+        foreach ($percentages as $awardId => $percentage) {
+            if ($percentage === '' || $percentage === null) continue;
+            $this->commercialPolicies->saveHospitalPolicyOverride($award, (int) $awardId, $partnerId, $percentage, $actorId);
+            $saved++;
+        }
+        if ($saved === 0) throw ValidationException::withMessages(['commercial_policy' => 'Nhập chính sách cho ít nhất một sản phẩm đã phân bổ.']);
+        return $saved;
+    }
+
     public function saveAllocations(DrugBidAward $award, array $selectedHospitalIds, array $quantities, ?int $actorId): int
     {
         $allowedHospitalIds = $this->hospitals($award)->pluck('id')->map(fn ($id) => (int) $id)->all();
