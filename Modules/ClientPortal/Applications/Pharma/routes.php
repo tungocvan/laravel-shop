@@ -25,8 +25,8 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->name('bid-awards.show');
         Route::get('/bid-awards/{scope}/allocation', [PharmaApplicationController::class, 'bidAwardAllocation'])
             ->where('scope', '[a-f0-9]{40}')->middleware('client.feature:pharma,bid-awards')->name('bid-awards.allocation');
-        Route::post('/bid-awards/{scope}/allocation/hospitals', [PharmaApplicationController::class, 'storeBidAwardAllocationHospitals'])
-            ->where('scope', '[a-f0-9]{40}')->middleware('client.feature:pharma,bid-awards')->name('bid-awards.allocation.hospitals');
+        Route::post('/bid-awards/{scope}/allocation/setup', [PharmaApplicationController::class, 'storeBidAwardDistributionSetup'])
+            ->where('scope', '[a-f0-9]{40}')->middleware('client.feature:pharma,bid-awards')->name('bid-awards.allocation.setup');
         Route::post('/bid-awards/{scope}/allocation', [PharmaApplicationController::class, 'storeBidAwardAllocations'])
             ->where('scope', '[a-f0-9]{40}')->middleware('client.feature:pharma,bid-awards')->name('bid-awards.allocation.store');
         Route::get('/bid-awards/{scope}/commercial-policy', [PharmaApplicationController::class, 'bidAwardCommercialPolicy'])
