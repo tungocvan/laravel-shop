@@ -281,4 +281,40 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString('Không có sản phẩm phù hợp bộ lọc.', $allocation);
     }
 
+    public function test_manager_assignment_starts_with_assignment_mode_and_reuses_canonical_services(): void
+    {
+        $routes=file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/routes.php'));
+        $controller=file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php'));
+        $workflow=file_get_contents(base_path('Modules/Pharma/Services/ClientBidAwardWorkflow.php'));
+        $service=file_get_contents(base_path('Modules/Pharma/Services/DrugBidAwardCommercialPolicyService.php'));
+        $policy=file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/bid-award-commercial-policy.blade.php'));
+        $assignment=file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/bid-award-manager-assignment.blade.php'));
+
+        $this->assertStringContainsString("Route::get('/bid-awards/{scope}/manager-assignment'", $routes);
+        $this->assertStringContainsString("manager-assignment/single'", $routes);
+        $this->assertStringContainsString("manager-assignment/products'", $routes);
+        $this->assertStringContainsString('commercialPolicyReady($award)', $controller);
+        $this->assertStringContainsString("'mode' => ['nullable', 'in:single,multiple']", $controller);
+        $this->assertStringContainsString("\$state['persisted_mode'] !== 'unassigned' ? \$state['persisted_mode'] : \$requestedMode", $controller);
+        $this->assertStringContainsString("route('client.pharma.bid-awards.manager-assignment', \$scope)", $controller);
+        $this->assertStringContainsString('assignManagerToAllAllocations', $service);
+        $this->assertStringContainsString('assignManagerToProductAllocations', $service);
+        $this->assertStringContainsString('assignSingleManager', $workflow);
+        $this->assertStringContainsString('assignManagerToProducts', $workflow);
+        $this->assertStringContainsString("where('is_active', true)", $workflow);
+        $this->assertStringContainsString('Hãy hoàn tất chính sách kinh doanh trước khi phân công User quản lý.', $workflow);
+        $this->assertStringContainsString('Cách phân công', $assignment);
+        $this->assertStringContainsString('Một User phụ trách toàn bộ', $assignment);
+        $this->assertStringContainsString('Nhiều User phụ trách', $assignment);
+        $this->assertStringContainsString('@if($assignmentMode)', $assignment);
+        $this->assertStringContainsString("data-manager-search", $assignment);
+        $this->assertStringContainsString('data-select-all-products', $assignment);
+        $this->assertStringContainsString('Bệnh viện × Sản phẩm', $assignment);
+        $this->assertStringContainsString('Cần gỡ toàn bộ phân công trước khi chuyển sang cách khác.', $assignment);
+        $this->assertStringContainsString('Phân công User quản lý', $policy);
+        $this->assertStringContainsString('Lưu & tiếp tục', $policy);
+        $this->assertStringNotContainsString('Admin::', $assignment);
+        $this->assertStringNotContainsString('wire:', $assignment);
+    }
+
 }
