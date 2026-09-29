@@ -285,6 +285,9 @@ final class ClientBidAwardWorkflow
 
     public function assignSingleManager(DrugBidAward $award, int $userId, ?int $actorId): int
     {
+        if (! User::query()->whereKey($userId)->where('is_active', true)->exists()) {
+            throw ValidationException::withMessages(['user_id' => 'User quản lý không hoạt động hoặc không tồn tại.']);
+        }
         if (! $this->commercialPolicyReady($award)) {
             throw ValidationException::withMessages(['assignment' => 'Hãy hoàn tất chính sách kinh doanh trước khi phân công User quản lý.']);
         }
@@ -297,6 +300,9 @@ final class ClientBidAwardWorkflow
 
     public function assignManagerToProducts(DrugBidAward $award, array $awardIds, int $userId, ?int $actorId): int
     {
+        if (! User::query()->whereKey($userId)->where('is_active', true)->exists()) {
+            throw ValidationException::withMessages(['user_id' => 'User quản lý không hoạt động hoặc không tồn tại.']);
+        }
         if (! $this->commercialPolicyReady($award)) {
             throw ValidationException::withMessages(['assignment' => 'Hãy hoàn tất chính sách kinh doanh trước khi phân công User quản lý.']);
         }
