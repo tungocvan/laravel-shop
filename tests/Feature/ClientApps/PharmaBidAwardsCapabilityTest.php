@@ -346,4 +346,40 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString('Muốn chuyển sang Nhiều User, hãy gỡ phân công hiện tại trước.', $view);
     }
 
+    public function test_multi_user_assignment_is_user_then_hospital_then_unassigned_products(): void
+    {
+        $controller=file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php'));
+        $workflow=file_get_contents(base_path('Modules/Pharma/Services/ClientBidAwardWorkflow.php'));
+        $service=file_get_contents(base_path('Modules/Pharma/Services/DrugBidAwardCommercialPolicyService.php'));
+        $view=file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/bid-award-manager-assignment.blade.php'));
+
+        $this->assertStringContainsString("'hospital_id' => ['nullable','integer']", $controller);
+        $this->assertStringContainsString("'manager_id' => ['nullable','integer']", $controller);
+        $this->assertStringContainsString('managementHospitalCards($award)', $controller);
+        $this->assertStringContainsString('unassignedHospitalProducts($award, $hospitalId)', $controller);
+        $this->assertStringContainsString('assignManagerToHospitalProducts', $controller);
+        $this->assertStringContainsString("'hospital_id' => ['required','integer']", $controller);
+        $this->assertStringContainsString('managementHospitalCards', $workflow);
+        $this->assertStringContainsString('pwa_management_remaining_count', $workflow);
+        $this->assertStringContainsString('pwa_management_complete', $workflow);
+        $this->assertStringContainsString('unassignedHospitalProducts', $workflow);
+        $this->assertStringContainsString("! \$assignedAwardIds->contains((int) \$product->id)", $workflow);
+        $this->assertStringContainsString('assignManagerToHospitalProducts', $workflow);
+        $this->assertStringContainsString('count($selectedIds) !== count(array_unique(array_map', $workflow);
+        $this->assertStringContainsString('Có sản phẩm đã được User khác phụ trách hoặc không được phân bổ tại bệnh viện này.', $workflow);
+        $this->assertStringContainsString('assignManagers($award, $selectedIds, $partnerId, $userId, $actorId)', $workflow);
+        $this->assertStringContainsString('public function assignManagers', $service);
+        $this->assertStringContainsString('Chọn User → Bệnh viện → các sản phẩm đã phân bổ nhưng chưa có User.', $view);
+        $this->assertStringContainsString('Chọn bệnh viện', $view);
+        $this->assertStringContainsString('Đã phân công hết', $view);
+        $this->assertStringContainsString('sản phẩm đã có User', $view);
+        $this->assertStringContainsString('Sản phẩm chưa có User', $view);
+        $this->assertStringContainsString('data-multiple-manager', $view);
+        $this->assertStringContainsString('data-management-hospital-search', $view);
+        $this->assertStringContainsString('data-selected-manager', $view);
+        $this->assertStringContainsString("url.searchParams.set('manager_id',userId)", $view);
+        $this->assertStringContainsString("@selected((int)(\$selectedManagerId ?? 0) === (int)\$manager->id)", $view);
+        $this->assertStringNotContainsString('Gán User cho sản phẩm đã chọn</button>', $view);
+    }
+
 }
