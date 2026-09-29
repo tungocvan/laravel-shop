@@ -44,6 +44,13 @@ return [
                 'submit' => ['name' => 'Gửi duyệt bảng giá', 'permission' => 'client.pharma.price-lists.submit', 'sort_order' => 20],
                 'approve' => ['name' => 'Phê duyệt bảng giá', 'permission' => 'client.pharma.price-lists.approve', 'sort_order' => 30],
             ],
+        'inventory' => [
+            'name' => 'Tồn kho',
+            'route' => 'client.pharma.inventory',
+            'permission' => 'client.pharma.inventory.view',
+            'icon' => 'archive-box',
+            'sort_order' => 60,
+        ],
         ],
     ],
     'features' => [
