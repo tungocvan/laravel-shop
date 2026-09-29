@@ -8,6 +8,7 @@ use Modules\Pharma\Jobs\GeneratePriceListSharePdf;
 use Modules\Pharma\Jobs\SendPriceListExportEmail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -91,7 +92,9 @@ final class PriceListShareExportService
             ->whereNotNull('token_encrypted')
             ->latest('id')
             ->get()
-            ->map(fn (PriceListExportShare $share) => $this->present($share))
+            ->map(fn (PriceListExportShare $share) => $this->presentSafely($share))
+            ->filter()
+            ->values()
             ->all();
     }
 
@@ -108,7 +111,7 @@ final class PriceListShareExportService
             ->latest('id')
             ->first();
 
-        return $share ? $this->present($share) : null;
+        return $share ? $this->presentSafely($share) : null;
     }
 
     public function latestForUserByPriceLists(array $priceListIds, int $userId): array
@@ -126,8 +129,21 @@ final class PriceListShareExportService
             ->latest('id')
             ->get()
             ->unique('price_list_id')
-            ->mapWithKeys(fn (PriceListExportShare $share) => [(int) $share->price_list_id => $this->present($share)])
+            ->mapWithKeys(function (PriceListExportShare $share): array {
+                $presented = $this->presentSafely($share);
+
+                return $presented === null ? [] : [(int) $share->price_list_id => $presented];
+            })
             ->all();
+    }
+
+    private function presentSafely(PriceListExportShare $share): ?array
+    {
+        try {
+            return $this->present($share);
+        } catch (DecryptException) {
+            return null;
+        }
     }
 
     private function present(PriceListExportShare $share): array

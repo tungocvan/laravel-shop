@@ -225,6 +225,13 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString("where('created_by', \$userId)", $shareExport);
         $this->assertStringContainsString("whereNull('revoked_at')", $shareExport);
         $this->assertStringContainsString("Crypt::decryptString(\$share->token_encrypted)", $shareExport);
+        $this->assertStringContainsString('use Illuminate\\Contracts\\Encryption\\DecryptException;', $shareExport);
+        $this->assertStringContainsString('private function presentSafely(PriceListExportShare $share): ?array', $shareExport);
+        $this->assertStringContainsString('catch (DecryptException)', $shareExport);
+        $this->assertStringContainsString('->map(fn (PriceListExportShare $share) => $this->presentSafely($share))', $shareExport);
+        $this->assertStringContainsString('return $share ? $this->presentSafely($share) : null;', $shareExport);
+        $this->assertStringContainsString('$presented = $this->presentSafely($share);', $shareExport);
+        $this->assertStringNotContainsString('catch (\\Throwable)', $shareExport);
         $this->assertStringContainsString('PriceListExcelDocumentLayout', $shareExport);
         $this->assertStringContainsString('PriceListExcelTypography', $shareExport);
         $this->assertStringContainsString('PriceListExportProfileService', $shareExport);
