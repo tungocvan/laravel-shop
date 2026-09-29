@@ -45,6 +45,12 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->where('scope', '[a-f0-9]{40}')->middleware('client.feature:pharma,bid-awards')->name('bid-awards.manager-assignment.single');
         Route::post('/bid-awards/{scope}/manager-assignment/products', [PharmaApplicationController::class, 'storeBidAwardProductManagers'])
             ->where('scope', '[a-f0-9]{40}')->middleware('client.feature:pharma,bid-awards')->name('bid-awards.manager-assignment.products');
+        Route::get('/bid-awards/{scope}/manager-assignment/users/{manager}', [PharmaApplicationController::class, 'bidAwardManagerAssignmentUser'])
+            ->where('scope', '[a-f0-9]{40}')->whereNumber('manager')->middleware('client.feature:pharma,bid-awards')->name('bid-awards.manager-assignment.users.show');
+        Route::put('/bid-awards/{scope}/manager-assignment/users/{manager}', [PharmaApplicationController::class, 'transferBidAwardManagerAssignments'])
+            ->where('scope', '[a-f0-9]{40}')->whereNumber('manager')->middleware('client.feature:pharma,bid-awards')->name('bid-awards.manager-assignment.users.transfer');
+        Route::delete('/bid-awards/{scope}/manager-assignment/users/{manager}', [PharmaApplicationController::class, 'destroyBidAwardManagerAssignments'])
+            ->where('scope', '[a-f0-9]{40}')->whereNumber('manager')->middleware('client.feature:pharma,bid-awards')->name('bid-awards.manager-assignment.users.destroy');
         Route::delete('/bid-awards/{scope}/manager-assignment', [PharmaApplicationController::class, 'destroyBidAwardManagers'])
             ->where('scope', '[a-f0-9]{40}')->middleware('client.feature:pharma,bid-awards')->name('bid-awards.manager-assignment.destroy');
         Route::get('/commercial', [PharmaApplicationController::class, 'commercial'])
