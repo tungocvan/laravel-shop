@@ -1010,6 +1010,8 @@ final class PharmaApplicationController extends Controller
         $user = $request->user('web');
         abort_if($user === null, 401);
         abort_unless($registry->userCan($user, 'client.pharma.inventory.view'), 403);
+        $canViewCosts = $registry->userCan($user, 'client.pharma.inventory.costs');
+        abort_if((filled($validated['cost_status'] ?? null) || in_array($validated['sort'] ?? null, ['value_asc', 'value_desc'], true)) && ! $canViewCosts, 403);
 
         $inventoryFeature = collect($application['features'] ?? [])
             ->first(fn (array $feature): bool => $feature['key'] === 'inventory');
@@ -1026,8 +1028,10 @@ final class PharmaApplicationController extends Controller
                 sort: $validated['sort'] ?? null,
                 perPage: (int) ($validated['per_page'] ?? 25),
                 page: (int) ($validated['page'] ?? 1),
+                canViewCosts: $canViewCosts,
             )->withQueryString(),
-            'summary' => $workspace->summary(),
+            'summary' => $workspace->summary($canViewCosts),
+            'canViewCosts' => $canViewCosts,
             'filters' => [
                 'q' => trim((string) ($validated['q'] ?? '')),
                 'expiry' => $validated['expiry'] ?? '',
