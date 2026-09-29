@@ -163,6 +163,54 @@ class DrugBidAwardCommercialPolicyService
         return $allocations->count();
     }
 
+    public function transferManagerAssignments(DrugBidAward $contextAward, int $fromUserId, array $assignmentIds, int $toUserId, ?int $actorId): int
+    {
+        $validAwardIds = $this->groups->awardsQuery($contextAward)->pluck('id');
+        $ids = array_values(array_unique(array_map('intval', $assignmentIds)));
+
+        return DB::transaction(function () use ($validAwardIds, $ids, $fromUserId, $toUserId, $actorId) {
+            $rows = DrugBidAwardManagementAssignment::query()
+                ->whereIn('id', $ids)
+                ->whereIn('drug_bid_award_id', $validAwardIds)
+                ->where('user_id', $fromUserId)
+                ->where('status', DrugBidAwardManagementAssignment::STATUS_ACTIVE)
+                ->lockForUpdate()->get();
+
+            if ($rows->count() !== count($ids)) {
+                throw ValidationException::withMessages(['assignment_ids' => 'Có phân công không còn thuộc User đang điều chỉnh. Hãy tải lại dữ liệu.']);
+            }
+
+            foreach ($rows as $row) {
+                $row->user_id = $toUserId;
+                $row->updated_by = $actorId;
+                $row->save();
+            }
+
+            return $rows->count();
+        }, 3);
+    }
+
+    public function removeManagerAssignments(DrugBidAward $contextAward, int $userId, array $assignmentIds): int
+    {
+        $validAwardIds = $this->groups->awardsQuery($contextAward)->pluck('id');
+        $ids = array_values(array_unique(array_map('intval', $assignmentIds)));
+
+        return DB::transaction(function () use ($validAwardIds, $ids, $userId) {
+            $query = DrugBidAwardManagementAssignment::query()
+                ->whereIn('id', $ids)
+                ->whereIn('drug_bid_award_id', $validAwardIds)
+                ->where('user_id', $userId)
+                ->where('status', DrugBidAwardManagementAssignment::STATUS_ACTIVE);
+            $rows = (clone $query)->lockForUpdate()->get(['id']);
+
+            if ($rows->count() !== count($ids)) {
+                throw ValidationException::withMessages(['assignment_ids' => 'Có phân công không còn thuộc User đang điều chỉnh. Hãy tải lại dữ liệu.']);
+            }
+
+            return $query->delete();
+        }, 3);
+    }
+
     public function removeAllManagers(DrugBidAward $contextAward): int
     {
         $validAwardIds = $this->groups->awardsQuery($contextAward)->pluck('id');
