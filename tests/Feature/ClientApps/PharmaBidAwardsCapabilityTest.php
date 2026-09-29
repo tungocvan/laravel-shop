@@ -50,6 +50,31 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringNotContainsString('auth(', $source);
     }
 
+    public function test_bid_award_scope_matches_the_canonical_commercial_assignment_contract(): void
+    {
+        $bidAwards = file_get_contents(base_path('Modules/Pharma/Services/UserBidAwardWorkspace.php'));
+        $commercial = file_get_contents(base_path('Modules/Pharma/Services/UserCommercialHospitalWorkspace.php'));
+
+        $canonicalClauses = [
+            "->on('workspace_allocations.drug_bid_award_id', '=', 'workspace_assignments.drug_bid_award_id')",
+            "->on('workspace_allocations.partner_id', '=', 'workspace_assignments.partner_id')",
+            "->where('workspace_assignments.user_id', \$userId)",
+            "->where('workspace_assignments.status', DrugBidAwardManagementAssignment::STATUS_ACTIVE)",
+            "->where('workspace_allocations.status', DrugBidAwardAllocation::STATUS_ACTIVE)",
+        ];
+
+        foreach ($canonicalClauses as $clause) {
+            $this->assertStringContainsString($clause, $commercial);
+            $this->assertStringContainsString($clause, $bidAwards);
+        }
+
+        $this->assertStringContainsString("COUNT(DISTINCT workspace_assignments.partner_id) as hospitals_count", $bidAwards);
+        $this->assertStringContainsString("SUM(workspace_allocations.allocated_quantity) as allocated_quantity", $bidAwards);
+        $this->assertStringContainsString("SUM(workspace_allocations.allocated_quantity * COALESCE(awards.winning_price, awards.unit_price, 0)) as allocated_value", $bidAwards);
+        $this->assertStringNotContainsString("orWhere('workspace_assignments.user_id'", $bidAwards);
+        $this->assertStringNotContainsString('auth()', $bidAwards);
+    }
+
     public function test_client_bid_awards_consumes_managed_presentation_and_mobile_workspace(): void
     {
         $manifest = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/manifest.php'));
