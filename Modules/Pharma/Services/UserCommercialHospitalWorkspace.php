@@ -141,6 +141,7 @@ final class UserCommercialHospitalWorkspace
             })
             ->join('pharma_drug_bid_awards as awards', 'awards.id', '=', 'workspace_assignments.drug_bid_award_id')
             ->leftJoin('pharma_drug_bid_award_product_policies as product_policies', 'product_policies.drug_bid_award_id', '=', 'awards.id')
+            ->when($awardScope === null, fn ($query) => $query->whereRaw('1 = 0'))
             ->where('workspace_assignments.user_id', $userId)
             ->where('workspace_assignments.partner_id', $partnerId)
             ->where('workspace_assignments.status', DrugBidAwardManagementAssignment::STATUS_ACTIVE)
@@ -294,6 +295,7 @@ final class UserCommercialHospitalWorkspace
     private function hospitalQuery(int $userId, ?object $awardScope = null): Builder
     {
         return Partner::query()
+            ->when($awardScope === null, fn (Builder $query) => $query->whereRaw('1 = 0'))
             ->whereExists(fn ($query) => $query
                 ->selectRaw('1')
                 ->from('pharma_drug_bid_award_management_assignments as workspace_assignments')
