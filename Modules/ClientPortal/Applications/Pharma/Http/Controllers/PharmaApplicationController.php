@@ -762,28 +762,34 @@ final class PharmaApplicationController extends Controller
         $user = $request->user('web'); abort_if($user === null, 401);
         abort_unless($registry->userCan($user, 'client.pharma.bid-awards.allocate'), 403);
         $award = $workflow->contextAward($scope); abort_if($award === null, 404);
-        $selected = collect((array) $request->session()->get("pharma.bid_awards.$scope.hospitals", []))->map(fn ($id) => (int) $id)->all();
+        $setup = $workflow->distributionSetup($award);
+        $draftProvinces = array_values(array_filter(array_map('strval', (array) $request->query('provinces', $setup['provinces']))));
+        $draftFacilityIds = array_values(array_unique(array_map('intval', (array) $request->query('facilities', $setup['facility_ids']))));
 
         return view('ClientPortal::applications.pharma.bid-award-allocation', [
             'application' => $registry->find('pharma'), 'scope' => $scope, 'award' => $award,
+            'setup' => $setup, 'provinceOptions' => $workflow->provinceOptions(),
+            'draftProvinces' => $draftProvinces, 'draftFacilityIds' => $draftFacilityIds,
+            'facilityOptions' => $workflow->facilitiesForProvinces($draftProvinces),
             'hospitals' => $workflow->hospitals($award), 'products' => $workflow->products($award),
-            'existingAllocations' => $workflow->existingAllocations($award), 'selectedHospitalIds' => $selected,
+            'existingAllocations' => $workflow->existingAllocations($award),
         ]);
     }
 
-    public function storeBidAwardAllocationHospitals(
+    public function storeBidAwardDistributionSetup(
         string $scope, Request $request, ApplicationRegistry $registry, ClientBidAwardWorkflow $workflow,
     ) {
         $user = $request->user('web'); abort_if($user === null, 401);
         abort_unless($registry->userCan($user, 'client.pharma.bid-awards.allocate'), 403);
         $award = $workflow->contextAward($scope); abort_if($award === null, 404);
-        $data = $request->validate(['hospital_ids' => ['required', 'array', 'min:1'], 'hospital_ids.*' => ['integer']]);
-        $allowed = $workflow->hospitals($award)->pluck('id')->map(fn ($id) => (int) $id)->all();
-        $selected = array_values(array_intersect($allowed, array_unique(array_map('intval', $data['hospital_ids']))));
-        abort_if($selected === [], 422, 'Không có bệnh viện hợp lệ trong phạm vi phân bổ.');
-        $request->session()->put("pharma.bid_awards.$scope.hospitals", $selected);
+        $data = $request->validate([
+            'province_names' => ['required','array','min:1'], 'province_names.*' => ['string','max:100'],
+            'facility_ids' => ['required','array','min:1'], 'facility_ids.*' => ['integer'],
+            'effective_from' => ['required','date'], 'effective_until' => ['required','date','after_or_equal:effective_from'],
+        ]);
+        $workflow->saveDistributionSetup($award, $data, (int) $user->id);
 
-        return redirect()->route('client.pharma.bid-awards.allocation', $scope)->with('success', 'Đã lưu Bước 1. Tiếp tục phân bổ sản phẩm cho các bệnh viện đã chọn.');
+        return redirect()->route('client.pharma.bid-awards.allocation', $scope)->with('success', 'Đã lưu Thiết lập chung. Bạn có thể phân bổ sản phẩm cho các bệnh viện đã chọn.');
     }
 
     public function storeBidAwardAllocations(
@@ -792,7 +798,7 @@ final class PharmaApplicationController extends Controller
         $user = $request->user('web'); abort_if($user === null, 401);
         abort_unless($registry->userCan($user, 'client.pharma.bid-awards.allocate'), 403);
         $award = $workflow->contextAward($scope); abort_if($award === null, 404);
-        $selected = (array) $request->session()->get("pharma.bid_awards.$scope.hospitals", []);
+        $selected = $workflow->hospitals($award)->pluck('id')->map(fn ($id) => (int) $id)->all();
         $data = $request->validate(['allocations' => ['required', 'array'], 'allocations.*' => ['array'], 'allocations.*.*' => ['nullable', 'numeric', 'gt:0']]);
         $count = $workflow->saveAllocations($award, $selected, $data['allocations'], (int) $user->id);
 
