@@ -1,3 +1,14 @@
+## Checkpoint — Selective manager adjustment workspace — 2026-09-29
+
+- Multi-manager summary cards now expose `Điều chỉnh phân công` per User. Single-manager replacement remains in the existing single-mode flow.
+- Added a dedicated mobile-first adjustment workspace grouped by Hospital -> assigned products for the selected User.
+- Selection supports one product, all assignments within one hospital, or all assignments owned by the User. A sticky action panel shows the live selected count.
+- `Thay User mục đã chọn` transfers only selected active assignments to another active User. `Gỡ mục đã chọn` uses a confirmation modal and removes only selected assignments; allocation quantities, hospital commercial-policy overrides, product policies and distribution scope are untouched.
+- Pharma owns both mutations. `DrugBidAwardCommercialPolicyService` rechecks result-group scope, current owner, active status and assignment IDs under `lockForUpdate()`; stale/forged IDs are rejected instead of partially mutating another User's work.
+- Transfer rejects the same User and inactive/missing target Users. After transfer/removal the main assignment screen recomputes User/assignment/hospital/product counters from canonical rows. Removed pairs become eligible again in the existing User -> Hospital -> unassigned products workflow.
+- Added GET/PUT/DELETE ClientPortal routes for the per-User adjustment workspace and focused contract coverage for ownership guards, UI selection levels, transfer/remove actions and preservation copy.
+- Required checkpoint: pull + focused `PharmaBidAwardsCapabilityTest`; if PASS, run `tests/Feature/ClientApps`. Manual acceptance should cover partial transfer, full-User transfer, partial remove, removing the final assignment of a User, counter refresh, and reappearance of removed products in the unassigned workflow.
+
 ## Checkpoint — Multi-User assignment wizard UX — 2026-09-29
 
 - Replaced native-select option hiding with a real live User result panel. Typing name/email filters visible User rows immediately; tapping a row updates the canonical select/state and enables the hospital step.
