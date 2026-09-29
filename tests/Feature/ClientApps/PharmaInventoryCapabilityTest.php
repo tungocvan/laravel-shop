@@ -61,6 +61,11 @@ final class PharmaInventoryCapabilityTest extends TestCase
         $this->assertStringContainsString('lg:col-span-8', $view);
         $this->assertStringContainsString('× Xóa bộ lọc', $view);
         $this->assertStringContainsString('text-[11px] font-black text-rose-700', $view);
+        $this->assertStringNotContainsString('<details id="inventory-advanced-filters"', $view);
+        $this->assertStringNotContainsString('<summary', $view);
+        $this->assertStringContainsString('inventory-filter-toggle', $view);
+        $this->assertStringContainsString('inventory-filter-panel', $view);
+        $this->assertStringContainsString("window.matchMedia('(min-width: 1024px)')", $view);
         $this->assertStringContainsString('table-fixed', $view);
         $this->assertStringContainsString('w-[27%]', $view);
         $this->assertStringContainsString('w-[13%]', $view);
