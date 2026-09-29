@@ -126,7 +126,7 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString('KQLCNT', $detail);
         $this->assertStringContainsString('Xem thêm sản phẩm', $detail);
         $this->assertStringContainsString('Giá trúng thầu', $detail);
-        $this->assertStringContainsString('SL phân bổ', $detail);
+        $this->assertStringContainsString('SL của tôi', $detail);
         $this->assertStringNotContainsString('{{ $size }} / trang', $list);
     }
 }
