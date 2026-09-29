@@ -1,6 +1,6 @@
 @extends('ClientPortal::layouts.application')
 
-@section('title', $managerUserId ? 'Công việc bệnh viện theo User' : 'Công việc bệnh viện của tôi')
+@section('title', $featurePresentation['page_title'])
 @section('app-name', $applicationPresentation['name'] ?? $application['name'])
 @section('app-subtitle', 'Commercial Workspace · chỉ đọc')
 @section('app-dashboard-route', route('client.pharma.dashboard'))
@@ -8,10 +8,10 @@
 @section('content')
 <div class="min-w-0 space-y-4 overflow-x-hidden">
     <section class="rounded-[2rem] bg-slate-950 px-5 py-6 text-white shadow-sm sm:px-7">
-        <p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-300">Commercial Workspace</p>
-        <h1 class="mt-2 text-2xl font-black tracking-tight sm:text-3xl">{{ $managerUserId ? 'Công việc bệnh viện theo User' : 'Công việc bệnh viện của tôi' }}</h1>
+        <p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-300">{{ $featurePresentation['eyebrow'] }}</p>
+        <h1 class="mt-2 text-2xl font-black tracking-tight sm:text-3xl">{{ $featurePresentation['page_title'] }}</h1>
         <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
-            {{ $awardScope ? 'Đang xem '.($awardScope->investor_name ?: 'kết quả trúng thầu').' · '.($awardScope->bidding_notice_code ?: $awardScope->decision_number ?: 'Theo phân công').'.' : 'Chọn Chủ đầu tư / kết quả trúng thầu để xem đúng phạm vi bệnh viện được phân công.' }}
+            {{ $awardScope ? 'Đang xem '.($awardScope->investor_name ?: 'kết quả trúng thầu').' · '.($awardScope->bidding_notice_code ?: $awardScope->decision_number ?: 'Theo phân công').'.' : $featurePresentation['page_description'] }}
         </p>
         <dl class="mt-5 grid grid-cols-2 gap-3 sm:max-w-2xl">
             <div class="rounded-2xl bg-white/10 p-4">
