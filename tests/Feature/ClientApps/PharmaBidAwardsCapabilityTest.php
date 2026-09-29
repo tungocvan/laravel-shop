@@ -180,7 +180,8 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringNotContainsString('pharma.bid_awards.$scope.hospitals', $controller);
         $this->assertStringContainsString('saveDistributionSetup', $workflow);
         $this->assertStringContainsString('DrugBidAwardDistributionScopeService', $workflow);
-        $this->assertStringContainsString("str(\$hospital->name)->lower()", $allocation);
+        $this->assertStringContainsString("str(\$province)->lower()", $allocation);
+        $this->assertStringContainsString("str(\$facility->facility_name.' '.\$facility->external_id)->lower()", $allocation);
         $this->assertStringNotContainsString('IlluminateSupportStr', $allocation);
         $this->assertStringNotContainsString('Illuminate\\Support\\Str::lower', $allocation);
         $this->assertStringContainsString('md:grid-cols-2', $allocation);
