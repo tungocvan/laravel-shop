@@ -21,7 +21,7 @@ final class UserBidAwardWorkspace
                     ->orWhere('awards.investor_name', 'like', "%{$search}%")
                     ->orWhere('awards.medicine_name', 'like', "%{$search}%");
             }))
-            ->selectRaw("COALESCE(NULLIF(awards.bidding_notice_code,''), CONCAT('decision:', COALESCE(NULLIF(awards.decision_number,''), awards.id))) as result_identity")
+            ->selectRaw("CASE WHEN awards.bidding_notice_code IS NOT NULL AND awards.bidding_notice_code <> '' THEN CONCAT('tbmt:', awards.bidding_notice_code) WHEN awards.decision_number IS NOT NULL AND awards.decision_number <> '' THEN CONCAT('decision:', awards.decision_number) ELSE CONCAT('award:', awards.id) END as result_identity")
             ->selectRaw('MAX(awards.bidding_notice_code) as bidding_notice_code')
             ->selectRaw('MAX(awards.decision_number) as decision_number')
             ->selectRaw('MAX(awards.decision_date) as decision_date')
@@ -49,6 +49,7 @@ final class UserBidAwardWorkspace
     public function assignedProducts(int $userId, object $scope, ?string $search = null, int $perPage = 20, int $page = 1): LengthAwarePaginator
     {
         $search = trim((string) $search);
+        $perPage = in_array($perPage, [20, 25, 50, 100], true) ? $perPage : 20;
 
         return $this->assignedRows($userId)
             ->tap(fn ($query) => $this->applyScope($query, $scope))
@@ -72,7 +73,7 @@ final class UserBidAwardWorkspace
                 'awards.bidding_notice_code', 'awards.decision_number', 'awards.decision_date',
             ])
             ->orderBy('awards.medicine_name')
-            ->paginate(20, ['*'], 'page', max(1, $page));
+            ->paginate($perPage, ['*'], 'page', max(1, $page));
     }
 
     private function resultScopes(int $userId)
