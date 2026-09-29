@@ -344,7 +344,9 @@ final class ClientBidAwardWorkflow
             $hospital->pwa_management_remaining_count = max($hospital->pwa_management_allocated_count - $hospital->pwa_management_assigned_count, 0);
             $hospital->pwa_management_complete = $hospital->pwa_management_allocated_count > 0 && $hospital->pwa_management_remaining_count === 0;
             return $hospital;
-        })->filter(fn ($hospital) => $hospital->pwa_management_allocated_count > 0)->values();
+        })->filter(fn ($hospital) => $hospital->pwa_management_allocated_count > 0)
+            ->sortBy(fn ($hospital) => ($hospital->pwa_management_complete ? '1' : '0').'|'.str($hospital->name)->lower())
+            ->values();
     }
 
     public function unassignedHospitalProducts(DrugBidAward $award, int $partnerId): Collection
