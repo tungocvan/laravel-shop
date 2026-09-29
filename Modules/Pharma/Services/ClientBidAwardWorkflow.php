@@ -102,6 +102,26 @@ final class ClientBidAwardWorkflow
             ->get()->keyBy('drug_bid_award_id');
     }
 
+    public function productAllocationCards(DrugBidAward $award): Collection
+    {
+        $products = $this->products($award);
+        $allocated = DrugBidAwardAllocation::query()
+            ->whereIn('drug_bid_award_id', $products->pluck('id'))
+            ->where('status', DrugBidAwardAllocation::STATUS_ACTIVE)
+            ->selectRaw('drug_bid_award_id, SUM(allocated_quantity) as allocated_quantity')
+            ->groupBy('drug_bid_award_id')
+            ->pluck('allocated_quantity', 'drug_bid_award_id');
+
+        return $products->map(function ($product) use ($allocated) {
+            $winning = (float) ($product->quantity ?? 0);
+            $used = (float) ($allocated[$product->id] ?? 0);
+            $product->pwa_allocated_quantity = $used;
+            $product->pwa_remaining_quantity = max($winning - $used, 0);
+            $product->pwa_fully_allocated = $winning > 0 && $product->pwa_remaining_quantity <= 0;
+            return $product;
+        });
+    }
+
     public function hospitalCards(DrugBidAward $award): Collection
     {
         $productCount = $this->products($award)->count();
