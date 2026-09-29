@@ -89,6 +89,19 @@ class ClientPortalPwaSettingsTest extends TestCase
         ]);
     }
 
+    public function test_registry_preserves_feature_page_presentation_defaults(): void
+    {
+        $application = app(ApplicationRegistry::class)->find('pharma');
+        $feature = collect($application['features'])->firstWhere('key', 'commercial');
+
+        $this->assertNotNull($feature);
+        $this->assertSame('Commercial Workspace', $feature['eyebrow']);
+        $this->assertSame('Công việc bệnh viện của tôi', $feature['page_title']);
+        $this->assertSame('Chọn Chủ đầu tư / kết quả trúng thầu để xem đúng phạm vi bệnh viện được phân công.', $feature['page_description']);
+        $this->assertSame('client.pharma.commercial', $feature['route']);
+        $this->assertSame('client.pharma.commercial.view', $feature['permission']);
+    }
+
     public function test_feature_page_content_uses_manifest_defaults_and_admin_overrides(): void
     {
         $registry = app(ApplicationRegistry::class);
