@@ -36,51 +36,88 @@ final class UserCommercialHospitalWorkspace
             ->get(['id', 'name', 'email']);
     }
 
+    public function assignedAwardScopes(int $userId): Collection
+    {
+        return DB::table('pharma_drug_bid_award_management_assignments as workspace_assignments')
+            ->join('pharma_drug_bid_award_allocations as workspace_allocations', function ($join): void {
+                $join->on('workspace_allocations.drug_bid_award_id', '=', 'workspace_assignments.drug_bid_award_id')
+                    ->on('workspace_allocations.partner_id', '=', 'workspace_assignments.partner_id');
+            })
+            ->join('pharma_drug_bid_awards as awards', 'awards.id', '=', 'workspace_assignments.drug_bid_award_id')
+            ->where('workspace_assignments.user_id', $userId)
+            ->where('workspace_assignments.status', DrugBidAwardManagementAssignment::STATUS_ACTIVE)
+            ->where('workspace_allocations.status', DrugBidAwardAllocation::STATUS_ACTIVE)
+            ->select('awards.id', 'awards.investor_name', 'awards.bidding_notice_code', 'awards.decision_number')
+            ->distinct()
+            ->get()
+            ->groupBy(fn ($award) => $award->bidding_notice_code
+                ? 'tbmt:'.$award->bidding_notice_code
+                : ($award->decision_number ? 'decision:'.$award->decision_number : 'award:'.$award->id))
+            ->map(function (Collection $awards, string $identity) {
+                $award = $awards->first();
+                [$type, $value] = explode(':', $identity, 2);
+
+                return (object) [
+                    'scope_key' => sha1($identity),
+                    'type' => $type,
+                    'value' => $value,
+                    'investor_name' => $award->investor_name,
+                    'bidding_notice_code' => $award->bidding_notice_code,
+                    'decision_number' => $award->decision_number,
+                    'products_count' => $awards->count(),
+                ];
+            })
+            ->sortBy(fn ($scope) => mb_strtolower((string) ($scope->investor_name ?: $scope->bidding_notice_code ?: $scope->decision_number)))
+            ->values();
+    }
+
     public function browseHospitals(
         int $userId,
         ?string $search = null,
         int $perPage = 25,
         int $page = 1,
+        ?object $awardScope = null,
     ): LengthAwarePaginator {
         $search = trim((string) $search);
-        $perPage = in_array($perPage, [25, 50, 100], true) ? $perPage : 25;
+        $perPage = in_array($perPage, [20, 25, 50, 100], true) ? $perPage : 20;
 
-        return $this->hospitalQuery($userId)
+        return $this->hospitalQuery($userId, $awardScope)
             ->when($search !== '', fn (Builder $query) => $query->where(function (Builder $nested) use ($search): void {
                 $nested->where('partners.name', 'like', "%{$search}%")
                     ->orWhere('partners.address', 'like', "%{$search}%")
                     ->orWhere('partners.province_code', 'like', "%{$search}%");
             }))
             ->select('partners.*')
-            ->selectSub($this->assignedProductCountQuery($userId), 'assigned_products_count')
+            ->selectSub($this->assignedProductCountQuery($userId, $awardScope), 'assigned_products_count')
+            ->selectSub($this->allocatedAwardValueQuery($userId, $awardScope), 'allocated_award_value')
             ->orderBy('partners.name')
             ->paginate($perPage, ['*'], 'page', max(1, $page));
     }
 
-    /** @return array{hospitals:int,products:int} */
-    public function summary(int $userId): array
+    /** @return array{hospitals:int,products:int,allocated_value:float} */
+    public function summary(int $userId, ?object $awardScope = null): array
     {
+        if ($awardScope === null) {
+            return ['hospitals' => 0, 'products' => 0, 'allocated_value' => 0.0];
+        }
+
+        $rows = $this->assignedAwardQueryForUser($userId, $awardScope);
+
         return [
-            'hospitals' => $this->hospitalQuery($userId)->count(),
-            'products' => DrugBidAwardManagementAssignment::query()
-                ->where('user_id', $userId)
-                ->where('status', DrugBidAwardManagementAssignment::STATUS_ACTIVE)
-                ->whereExists(fn ($query) => $query
-                    ->selectRaw('1')
-                    ->from('pharma_drug_bid_award_allocations as workspace_allocations')
-                    ->whereColumn('workspace_allocations.drug_bid_award_id', 'pharma_drug_bid_award_management_assignments.drug_bid_award_id')
-                    ->whereColumn('workspace_allocations.partner_id', 'pharma_drug_bid_award_management_assignments.partner_id')
-                    ->where('workspace_allocations.status', DrugBidAwardAllocation::STATUS_ACTIVE))
-                ->distinct()
-                ->count('drug_bid_award_id'),
+            'hospitals' => $this->hospitalQuery($userId, $awardScope)->count(),
+            'products' => (clone $rows)->distinct()->count('awards.id'),
+            'allocated_value' => (float) (clone $rows)
+                ->selectRaw('SUM(workspace_allocations.allocated_quantity * COALESCE(awards.winning_price, awards.unit_price, 0)) as total')
+                ->value('total'),
         ];
     }
 
-    public function findHospital(int $userId, int $partnerId): ?Partner
+    public function findHospital(int $userId, int $partnerId, ?object $awardScope = null): ?Partner
     {
-        return $this->hospitalQuery($userId)
+        return $this->hospitalQuery($userId, $awardScope)
             ->select('partners.*')
-            ->selectSub($this->assignedProductCountQuery($userId), 'assigned_products_count')
+            ->selectSub($this->assignedProductCountQuery($userId, $awardScope), 'assigned_products_count')
+            ->selectSub($this->allocatedAwardValueQuery($userId, $awardScope), 'allocated_award_value')
             ->find($partnerId);
     }
 
@@ -91,9 +128,10 @@ final class UserCommercialHospitalWorkspace
         int $perPage = 25,
         int $page = 1,
         bool $includeSupplierPricing = false,
+        ?object $awardScope = null,
     ): LengthAwarePaginator {
         $search = trim((string) $search);
-        $perPage = in_array($perPage, [25, 50, 100], true) ? $perPage : 25;
+        $perPage = in_array($perPage, [20, 25, 50, 100], true) ? $perPage : 20;
 
         return DB::table('pharma_drug_bid_award_management_assignments as workspace_assignments')
             ->join('pharma_drug_bid_award_allocations as workspace_allocations', function ($join): void {
@@ -102,10 +140,12 @@ final class UserCommercialHospitalWorkspace
             })
             ->join('pharma_drug_bid_awards as awards', 'awards.id', '=', 'workspace_assignments.drug_bid_award_id')
             ->leftJoin('pharma_drug_bid_award_product_policies as product_policies', 'product_policies.drug_bid_award_id', '=', 'awards.id')
+            ->when($awardScope === null, fn ($query) => $query->whereRaw('1 = 0'))
             ->where('workspace_assignments.user_id', $userId)
             ->where('workspace_assignments.partner_id', $partnerId)
             ->where('workspace_assignments.status', DrugBidAwardManagementAssignment::STATUS_ACTIVE)
             ->where('workspace_allocations.status', DrugBidAwardAllocation::STATUS_ACTIVE)
+            ->when($awardScope !== null, fn ($query) => $this->applyAwardScope($query, $awardScope))
             ->when($search !== '', fn ($query) => $query->where(function ($nested) use ($search): void {
                 $nested->where('awards.medicine_name', 'like', "%{$search}%")
                     ->orWhere('awards.active_ingredient', 'like', "%{$search}%")
@@ -251,9 +291,10 @@ final class UserCommercialHospitalWorkspace
         ];
     }
 
-    private function hospitalQuery(int $userId): Builder
+    private function hospitalQuery(int $userId, ?object $awardScope = null): Builder
     {
         return Partner::query()
+            ->when($awardScope === null, fn (Builder $query) => $query->whereRaw('1 = 0'))
             ->whereExists(fn ($query) => $query
                 ->selectRaw('1')
                 ->from('pharma_drug_bid_award_management_assignments as workspace_assignments')
@@ -261,23 +302,66 @@ final class UserCommercialHospitalWorkspace
                     $join->on('workspace_allocations.drug_bid_award_id', '=', 'workspace_assignments.drug_bid_award_id')
                         ->on('workspace_allocations.partner_id', '=', 'workspace_assignments.partner_id');
                 })
+                ->join('pharma_drug_bid_awards as awards', 'awards.id', '=', 'workspace_assignments.drug_bid_award_id')
                 ->whereColumn('workspace_assignments.partner_id', 'partners.id')
                 ->where('workspace_assignments.user_id', $userId)
                 ->where('workspace_assignments.status', DrugBidAwardManagementAssignment::STATUS_ACTIVE)
-                ->where('workspace_allocations.status', DrugBidAwardAllocation::STATUS_ACTIVE));
+                ->where('workspace_allocations.status', DrugBidAwardAllocation::STATUS_ACTIVE)
+                ->when($awardScope !== null, fn ($query) => $this->applyAwardScope($query, $awardScope)));
     }
 
-    private function assignedProductCountQuery(int $userId)
+    private function assignedAwardQueryForUser(int $userId, object $awardScope)
+    {
+        return DB::table('pharma_drug_bid_award_management_assignments as workspace_assignments')
+            ->join('pharma_drug_bid_award_allocations as workspace_allocations', function ($join): void {
+                $join->on('workspace_allocations.drug_bid_award_id', '=', 'workspace_assignments.drug_bid_award_id')
+                    ->on('workspace_allocations.partner_id', '=', 'workspace_assignments.partner_id');
+            })
+            ->join('pharma_drug_bid_awards as awards', 'awards.id', '=', 'workspace_assignments.drug_bid_award_id')
+            ->where('workspace_assignments.user_id', $userId)
+            ->where('workspace_assignments.status', DrugBidAwardManagementAssignment::STATUS_ACTIVE)
+            ->where('workspace_allocations.status', DrugBidAwardAllocation::STATUS_ACTIVE)
+            ->tap(fn ($query) => $this->applyAwardScope($query, $awardScope));
+    }
+
+    private function assignedProductCountQuery(int $userId, ?object $awardScope = null)
     {
         return DB::table('pharma_drug_bid_award_management_assignments as product_assignments')
             ->join('pharma_drug_bid_award_allocations as product_allocations', function ($join): void {
                 $join->on('product_allocations.drug_bid_award_id', '=', 'product_assignments.drug_bid_award_id')
                     ->on('product_allocations.partner_id', '=', 'product_assignments.partner_id');
             })
+            ->join('pharma_drug_bid_awards as awards', 'awards.id', '=', 'product_assignments.drug_bid_award_id')
             ->whereColumn('product_assignments.partner_id', 'partners.id')
             ->where('product_assignments.user_id', $userId)
             ->where('product_assignments.status', DrugBidAwardManagementAssignment::STATUS_ACTIVE)
             ->where('product_allocations.status', DrugBidAwardAllocation::STATUS_ACTIVE)
+            ->when($awardScope !== null, fn ($query) => $this->applyAwardScope($query, $awardScope))
             ->selectRaw('COUNT(DISTINCT product_assignments.drug_bid_award_id)');
+    }
+
+    private function allocatedAwardValueQuery(int $userId, ?object $awardScope = null)
+    {
+        return DB::table('pharma_drug_bid_award_management_assignments as value_assignments')
+            ->join('pharma_drug_bid_award_allocations as value_allocations', function ($join): void {
+                $join->on('value_allocations.drug_bid_award_id', '=', 'value_assignments.drug_bid_award_id')
+                    ->on('value_allocations.partner_id', '=', 'value_assignments.partner_id');
+            })
+            ->join('pharma_drug_bid_awards as awards', 'awards.id', '=', 'value_assignments.drug_bid_award_id')
+            ->whereColumn('value_assignments.partner_id', 'partners.id')
+            ->where('value_assignments.user_id', $userId)
+            ->where('value_assignments.status', DrugBidAwardManagementAssignment::STATUS_ACTIVE)
+            ->where('value_allocations.status', DrugBidAwardAllocation::STATUS_ACTIVE)
+            ->when($awardScope !== null, fn ($query) => $this->applyAwardScope($query, $awardScope))
+            ->selectRaw('COALESCE(SUM(value_allocations.allocated_quantity * COALESCE(awards.winning_price, awards.unit_price, 0)), 0)');
+    }
+
+    private function applyAwardScope($query, object $awardScope): void
+    {
+        match ($awardScope->type) {
+            'tbmt' => $query->where('awards.bidding_notice_code', $awardScope->value),
+            'decision' => $query->where('awards.decision_number', $awardScope->value),
+            default => $query->where('awards.id', (int) $awardScope->value),
+        };
     }
 }
