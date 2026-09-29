@@ -661,6 +661,7 @@ final class PharmaApplicationController extends Controller
             'q' => ['nullable', 'string', 'max:120'],
             'page' => ['nullable', 'integer', 'min:1'],
             'manager_user_id' => ['nullable', 'integer'],
+            'award_scope' => ['nullable', 'string', 'size:40'],
         ]);
 
         $application = $registry->find('pharma');
@@ -675,6 +676,10 @@ final class PharmaApplicationController extends Controller
         $targetUser = $requestedUserId > 0 ? $assignedUsers->firstWhere('id', $requestedUserId) : null;
         abort_if($requestedUserId > 0 && $targetUser === null, 404);
         $targetUserId = $targetUser ? (int) $targetUser->id : (int) $user->id;
+        $awardScopes = $workspace->assignedAwardScopes($targetUserId);
+        $awardScopeKey = trim((string) ($validated['award_scope'] ?? ''));
+        $awardScope = $awardScopeKey !== '' ? $awardScopes->firstWhere('scope_key', $awardScopeKey) : null;
+        abort_if($awardScopeKey !== '' && $awardScope === null, 404);
 
         return view('ClientPortal::applications.pharma.commercial', [
             'application' => $application,
@@ -684,13 +689,17 @@ final class PharmaApplicationController extends Controller
                 search: $validated['q'] ?? null,
                 perPage: 20,
                 page: (int) ($validated['page'] ?? 1),
+                awardScope: $awardScope,
             )->withQueryString(),
-            'summary' => $workspace->summary($targetUserId),
+            'summary' => $workspace->summary($targetUserId, $awardScope),
             'search' => trim((string) ($validated['q'] ?? '')),
             'canViewTeam' => $canViewTeam,
             'assignedUsers' => $assignedUsers,
             'managerUserId' => $targetUser ? $targetUserId : null,
             'scopeUser' => $targetUser ?? $user,
+            'awardScopes' => $awardScopes,
+            'awardScopeKey' => $awardScopeKey,
+            'awardScope' => $awardScope,
         ]);
     }
 
@@ -705,6 +714,7 @@ final class PharmaApplicationController extends Controller
             'q' => ['nullable', 'string', 'max:120'],
             'page' => ['nullable', 'integer', 'min:1'],
             'manager_user_id' => ['nullable', 'integer'],
+            'award_scope' => ['nullable', 'string', 'size:40'],
         ]);
 
         $application = $registry->find('pharma');
@@ -719,8 +729,14 @@ final class PharmaApplicationController extends Controller
         $targetUser = $requestedUserId > 0 ? $assignedUsers->firstWhere('id', $requestedUserId) : null;
         abort_if($requestedUserId > 0 && $targetUser === null, 404);
         $targetUserId = $targetUser ? (int) $targetUser->id : (int) $user->id;
+        $awardScopes = $workspace->assignedAwardScopes($targetUserId);
+        $awardScopeKey = trim((string) ($validated['award_scope'] ?? ''));
+        $awardScope = $awardScopeKey !== '' ? $awardScopes->firstWhere('scope_key', $awardScopeKey) : null;
+        abort_if($awardScopeKey !== '' && $awardScope === null, 404);
 
-        $scopedHospital = $workspace->findHospital($targetUserId, $hospital);
+        abort_if($awardScope === null, 404);
+
+        $scopedHospital = $workspace->findHospital($targetUserId, $hospital, $awardScope);
         abort_if($scopedHospital === null, 404);
 
         return view('ClientPortal::applications.pharma.commercial-hospital-show', [
@@ -734,10 +750,13 @@ final class PharmaApplicationController extends Controller
                 perPage: 20,
                 page: (int) ($validated['page'] ?? 1),
                 includeSupplierPricing: $registry->userCan($user, 'client.pharma.products.supplier-pricing'),
+                awardScope: $awardScope,
             )->withQueryString(),
             'search' => trim((string) ($validated['q'] ?? '')),
             'managerUserId' => $targetUser ? $targetUserId : null,
             'scopeUser' => $targetUser ?? $user,
+            'awardScopeKey' => $awardScopeKey,
+            'awardScope' => $awardScope,
         ]);
     }
 
