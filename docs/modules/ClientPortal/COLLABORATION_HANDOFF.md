@@ -7,7 +7,7 @@
 - Base branch: `main`
 - Base checkpoint: `9027f08542c964028088cb340519d6f36fbe7c89`
 - Branch comparison before this handoff commit: **ahead 15 / behind 0**
-- Status: **IMPLEMENTED — AWAITING LOCAL FOCUSED/CLIENTAPPS TESTS + REAL UI ACCEPTANCE**
+- Status: **IMPLEMENTED — FOCUSED PASS — CLIENTAPPS REGRESSION PASS — REAL UI PASS — READY FOR PR**
 
 ### Objective
 
@@ -92,30 +92,22 @@ For PWA file download/open/share/export work, `docs/PWA_EXTERNAL_FILE_HANDOFF.md
 - controller resolution through `ClientPortalSettingsService::featurePresentation()`;
 - managed eyebrow/title/description consumption in the Commercial view.
 
-### Validation gate
+### Validation evidence
 
-No test result is claimed by this handoff yet. The next local checkpoint is:
+Focused ClientPortal PWA settings + Pharma Commercial capability tests: **PASS**.
 
-```text
-Test 1 — focused:
-php artisan test tests/Feature/ClientApps/ClientPortalPwaSettingsTest.php tests/Feature/ClientApps/PharmaCommercialCapabilityTest.php
-
-Test 2 — ClientApps regression, only after Test 1 PASS:
-php artisan test tests/Feature/ClientApps
-```
-
-After automated tests PASS, real UI acceptance is still mandatory:
+Latest ClientApps regression reported by the user:
 
 ```text
-/admin/client-apps
--> edit Commercial eyebrow/title/description
--> save
--> refresh Pharma PWA Commercial Workspace
--> verify managed copy is rendered
--> verify User -> bid result -> hospital flow remains intact
+Tests: 134 passed (1454 assertions)
+Duration: 24.37s
 ```
 
-For this UI-changing delivery, automated tests alone are not sufficient for PR/merge.
+Real UI acceptance: **PASS**.
+
+Verified through `/admin/client-apps` that Commercial eyebrow/title/description can be edited and persisted, and the Pharma PWA Commercial Workspace renders the managed values while preserving the existing scoped workflow.
+
+The later documentation/workflow additions do not alter rendered UI. Automated and manual UI gates required for this delivery are satisfied.
 
 ### Scope / known boundaries
 
@@ -123,12 +115,13 @@ For this UI-changing delivery, automated tests alone are not sufficient for PR/m
 - no route, permission or source-module contract is made Admin-editable;
 - no migration/schema change;
 - no file download/open behavior changed, therefore PWA external-file platform acceptance is **NOT APPLICABLE** to this batch;
-- no PR is created until focused tests, ClientApps regression and real UI acceptance PASS;
+- focused tests, ClientApps regression and real UI acceptance are PASS;
+- PR may now be created for review;
 - merge still requires explicit user approval.
 
 ### Next step
 
-User pulls this branch and runs Test 1. If Test 1 fails, stop and debug from the exact output. If Test 1 passes, run Test 2. Then perform real UI acceptance before the PR gate.
+Create/review the PR into `main`. Do not merge until the user explicitly approves the reviewed PR.
 
 
 ## Current delivery — Pharma PWA Medicine Catalog
