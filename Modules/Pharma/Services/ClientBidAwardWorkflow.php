@@ -324,6 +324,73 @@ final class ClientBidAwardWorkflow
         return $this->commercialPolicies->assignManagerToAllAllocations($award, $userId, $actorId);
     }
 
+    public function managementHospitalCards(DrugBidAward $award): Collection
+    {
+        $awardIds = $this->groups->awardsQuery($award)->pluck('id');
+        $allocations = DrugBidAwardAllocation::query()
+            ->whereIn('drug_bid_award_id', $awardIds)
+            ->where('status', DrugBidAwardAllocation::STATUS_ACTIVE)
+            ->get(['drug_bid_award_id','partner_id'])->groupBy('partner_id');
+        $assignments = DrugBidAwardManagementAssignment::query()
+            ->whereIn('drug_bid_award_id', $awardIds)
+            ->where('status', DrugBidAwardManagementAssignment::STATUS_ACTIVE)
+            ->get(['drug_bid_award_id','partner_id'])->groupBy('partner_id');
+
+        return $this->hospitals($award)->map(function ($hospital) use ($allocations, $assignments) {
+            $allocatedIds = $allocations->get($hospital->id, collect())->pluck('drug_bid_award_id')->unique();
+            $assignedIds = $assignments->get($hospital->id, collect())->pluck('drug_bid_award_id')->unique();
+            $hospital->pwa_management_allocated_count = $allocatedIds->count();
+            $hospital->pwa_management_assigned_count = $assignedIds->intersect($allocatedIds)->count();
+            $hospital->pwa_management_remaining_count = max($hospital->pwa_management_allocated_count - $hospital->pwa_management_assigned_count, 0);
+            $hospital->pwa_management_complete = $hospital->pwa_management_allocated_count > 0 && $hospital->pwa_management_remaining_count === 0;
+            return $hospital;
+        })->filter(fn ($hospital) => $hospital->pwa_management_allocated_count > 0)->values();
+    }
+
+    public function unassignedHospitalProducts(DrugBidAward $award, int $partnerId): Collection
+    {
+        if (! $this->hospital($award, $partnerId)) return collect();
+
+        $allocations = $this->hospitalAllocations($award, $partnerId);
+        $assignedAwardIds = DrugBidAwardManagementAssignment::query()
+            ->whereIn('drug_bid_award_id', $allocations->keys())
+            ->where('partner_id', $partnerId)
+            ->where('status', DrugBidAwardManagementAssignment::STATUS_ACTIVE)
+            ->pluck('drug_bid_award_id')->map(fn ($id) => (int) $id);
+
+        return $this->products($award)
+            ->filter(fn ($product) => $allocations->has($product->id) && ! $assignedAwardIds->contains((int) $product->id))
+            ->values();
+    }
+
+    public function assignManagerToHospitalProducts(DrugBidAward $award, int $partnerId, array $awardIds, int $userId, ?int $actorId): int
+    {
+        if (! User::query()->whereKey($userId)->where('is_active', true)->exists()) {
+            throw ValidationException::withMessages(['user_id' => 'User quản lý không hoạt động hoặc không tồn tại.']);
+        }
+        if (! $this->commercialPolicyReady($award)) {
+            throw ValidationException::withMessages(['assignment' => 'Hãy hoàn tất chính sách kinh doanh trước khi phân công User quản lý.']);
+        }
+        if ($this->managementAssignmentState($award)['persisted_mode'] === 'single') {
+            throw ValidationException::withMessages(['assignment' => 'Đang ở chế độ một User. Hãy gỡ toàn bộ phân công trước khi đổi cách phân công.']);
+        }
+        if (! $this->hospital($award, $partnerId)) {
+            throw ValidationException::withMessages(['hospital_id' => 'Bệnh viện không thuộc phạm vi phân bổ hiện tại.']);
+        }
+
+        $availableIds = $this->unassignedHospitalProducts($award, $partnerId)->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $selectedIds = array_values(array_intersect($availableIds, array_unique(array_map('intval', $awardIds))));
+        if ($selectedIds === []) {
+            throw ValidationException::withMessages(['award_ids' => 'Các sản phẩm đã chọn không còn khả dụng để phân công tại bệnh viện này.']);
+        }
+        if (count($selectedIds) !== count(array_unique(array_map('intval', $awardIds)))) {
+            throw ValidationException::withMessages(['award_ids' => 'Có sản phẩm đã được User khác phụ trách hoặc không được phân bổ tại bệnh viện này.']);
+        }
+
+        $this->commercialPolicies->assignManagers($award, $selectedIds, $partnerId, $userId, $actorId);
+        return count($selectedIds);
+    }
+
     public function assignManagerToProducts(DrugBidAward $award, array $awardIds, int $userId, ?int $actorId): int
     {
         if (! User::query()->whereKey($userId)->where('is_active', true)->exists()) {
