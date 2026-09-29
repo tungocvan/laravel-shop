@@ -79,7 +79,7 @@ final class UserCommercialHospitalWorkspace
         ?object $awardScope = null,
     ): LengthAwarePaginator {
         $search = trim((string) $search);
-        $perPage = in_array($perPage, [25, 50, 100], true) ? $perPage : 25;
+        $perPage = in_array($perPage, [20, 25, 50, 100], true) ? $perPage : 20;
 
         return $this->hospitalQuery($userId, $awardScope)
             ->when($search !== '', fn (Builder $query) => $query->where(function (Builder $nested) use ($search): void {
@@ -94,7 +94,6 @@ final class UserCommercialHospitalWorkspace
             ->paginate($perPage, ['*'], 'page', max(1, $page));
     }
 
-    /** @return array{hospitals:int,products:int} */
     /** @return array{hospitals:int,products:int,allocated_value:float} */
     public function summary(int $userId, ?object $awardScope = null): array
     {
@@ -132,7 +131,7 @@ final class UserCommercialHospitalWorkspace
         ?object $awardScope = null,
     ): LengthAwarePaginator {
         $search = trim((string) $search);
-        $perPage = in_array($perPage, [25, 50, 100], true) ? $perPage : 25;
+        $perPage = in_array($perPage, [20, 25, 50, 100], true) ? $perPage : 20;
 
         return DB::table('pharma_drug_bid_award_management_assignments as workspace_assignments')
             ->join('pharma_drug_bid_award_allocations as workspace_allocations', function ($join): void {
