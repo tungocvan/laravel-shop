@@ -809,7 +809,12 @@ final class PharmaApplicationController extends Controller
     ) {
         $user=$request->user('web'); abort_if($user===null,401); abort_unless($registry->userCan($user,'client.pharma.bid-awards.allocate'),403);
         $award=$workflow->contextAward($scope); abort_if($award===null,404);
-        $data=$request->validate(['quantities'=>['required','array'],'quantities.*'=>['nullable','numeric','gt:0']]);
+        $quantities=collect((array)$request->input('quantities',[]))->map(function($value){
+            if ($value === null || $value === '') return $value;
+            return preg_replace('/[^0-9]/', '', (string)$value);
+        })->all();
+        $request->merge(['quantities'=>$quantities]);
+        $data=$request->validate(['quantities'=>['required','array'],'quantities.*'=>['nullable','integer','gt:0']]);
         $count=$workflow->saveHospitalAllocations($award,$partner,$data['quantities'],(int)$user->id);
         return redirect()->route('client.pharma.bid-awards.allocation.hospital',[$scope,$partner])->with('success',"Đã lưu {$count} sản phẩm cho bệnh viện.");
     }
@@ -822,7 +827,7 @@ final class PharmaApplicationController extends Controller
         $allocations=$workflow->hospitalAllocations($award,$partner); abort_if($allocations->isEmpty(),409,'Cần phân bổ số lượng cho bệnh viện trước khi thiết lập CSKD.');
         return view('ClientPortal::applications.pharma.bid-award-hospital-policy',[
             'application'=>$registry->find('pharma'),'scope'=>$scope,'award'=>$award,'hospital'=>$hospital,
-            'products'=>$workflow->products($award),'allocations'=>$allocations,
+            'products'=>$workflow->products($award),'allocations'=>$allocations,'productPolicies'=>$workflow->productPolicies($award),
         ]);
     }
 
