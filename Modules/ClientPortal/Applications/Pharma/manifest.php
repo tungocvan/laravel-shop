@@ -98,6 +98,9 @@ return [
         'commercial' => [
             'name' => 'Chính sách kinh doanh',
             'description' => 'Theo dõi chính sách và phân công thương mại thuộc phạm vi User.',
+            'eyebrow' => 'Commercial Workspace',
+            'page_title' => 'Công việc bệnh viện của tôi',
+            'page_description' => 'Chọn Chủ đầu tư / kết quả trúng thầu để xem đúng phạm vi bệnh viện được phân công.',
             'route' => 'client.pharma.commercial',
             'permission' => 'client.pharma.commercial.view',
             'icon' => 'briefcase',
