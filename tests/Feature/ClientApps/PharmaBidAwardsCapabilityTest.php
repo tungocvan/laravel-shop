@@ -40,7 +40,7 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         }
 
         $source = file_get_contents(base_path('Modules/Pharma/Services/UserBidAwardWorkspace.php'));
-        $this->assertStringContainsString("->where('workspace_assignments.user_id', \$userId)", $source);
+        $this->assertStringContainsString("->where('scoped_assignments.user_id', \$userId)", $source);
         $this->assertStringContainsString('DrugBidAwardManagementAssignment::STATUS_ACTIVE', $source);
         $this->assertStringContainsString('DrugBidAwardAllocation::STATUS_ACTIVE', $source);
         $this->assertStringContainsString("MAX(awards.contract_duration_months) as contract_duration_months", $source);
