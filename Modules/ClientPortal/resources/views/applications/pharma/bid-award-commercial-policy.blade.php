@@ -9,7 +9,7 @@
 <form method="POST" action="{{ route('client.pharma.bid-awards.commercial-policy.store',$scope) }}" class="space-y-3">@csrf
 @foreach($products as $product)
 @php($policy=$policies->get($product->id))
-<label class="block rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><span class="block font-black">{{ $product->medicine_name }}</span><span class="mt-1 block text-xs text-slate-500">{{ $product->active_ingredient }} {{ $product->concentration }}</span><span class="mt-3 block text-xs font-bold text-slate-600">Chính sách (%)</span><input inputmode="decimal" name="percentages[{{ $product->id }}]" value="{{ old('percentages.'.$product->id,$policy?->commission_percentage) }}" placeholder="0 - 100" class="mt-1.5 h-12 w-full rounded-xl border border-slate-200 px-3 text-base"></label>
+<label class="block rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><span class="block font-black">{{ $product->medicine_name }}</span><span class="mt-1 block text-xs text-slate-500">{{ $product->active_ingredient }} {{ $product->concentration }}</span><span class="mt-3 block text-xs font-bold text-slate-600">Chính sách (%)</span><input inputmode="decimal" name="percentages[{{ $product->id }}]" value="{{ old('percentages.'.$product->id,$policy ? rtrim(rtrim(number_format((float)$policy->commission_percentage,4,'.',''),'0'),'.') : '') }}" placeholder="0 - 100" class="mt-1.5 h-12 w-full rounded-xl border border-slate-200 px-3 text-base"></label>
 @endforeach
 <div class="sticky bottom-3 flex justify-end"><button class="min-h-12 rounded-2xl bg-slate-950 px-5 text-sm font-black text-white shadow-lg">Lưu chính sách</button></div>
 </form></div>
