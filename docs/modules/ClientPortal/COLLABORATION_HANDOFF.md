@@ -1,3 +1,12 @@
+## Checkpoint — Compact policy values + incomplete allocation filtering — 2026-09-29
+
+- Base commercial-policy inputs now trim the model's decimal:4 presentation: e.g. `25.0000 -> 25`, while meaningful decimals remain (e.g. `2.5000 -> 2.5`). Persistence semantics are unchanged.
+- Product allocation overview now has client-side live product search with clear (×) and a `Chưa phân bổ hết` toggle. Search and incomplete-only filtering compose without navigation/reload.
+- Cards with remaining quantity > 0 render a red `Phân bổ chưa hết` badge and subtle warning surface; fully allocated cards retain green `Đã phân bổ hết`.
+- Filtering uses the already-rendered finite result-group products and does not add a server route/query or change canonical allocation calculations.
+- Added focused contract coverage for compact policy values, search/clear/toggle hooks, incomplete status data and empty-filter feedback.
+- Required checkpoint: pull + focused `PharmaBidAwardsCapabilityTest`, then mobile/tablet acceptance of search + incomplete filter.
+
 ## Checkpoint — Hospital quantity formatting + base/override CSKD — 2026-09-29
 
 - Removed redundant `Đang phân bổ` and `Hoàn tất` badges from hospital cards; numeric product progress remains the primary status signal.
