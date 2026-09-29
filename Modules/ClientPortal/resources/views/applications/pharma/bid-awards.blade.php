@@ -23,10 +23,10 @@
                 $durationMonths = max(1, (int) round($period / 30.4375));
             }
         }
-        if (! $durationMonths || ! $result->decision_date) {
+        if (! $durationMonths || ! ($result->decision_date ?: $result->published_at)) {
             return null;
         }
-        $endDate = \Carbon\Carbon::parse($result->decision_date)->addMonthsNoOverflow($durationMonths)->endOfDay();
+        $endDate = \Carbon\Carbon::parse($result->decision_date ?: $result->published_at)->addMonthsNoOverflow($durationMonths)->endOfDay();
         return now()->greaterThanOrEqualTo($endDate) ? 0 : max(1, (int) ceil(now()->diffInDays($endDate) / 30.4375));
     };
 @endphp
@@ -50,7 +50,7 @@
     <div class="flex items-center justify-between gap-3 px-1">
         <div>
             <h2 class="text-base font-black text-slate-950">Danh sách kết quả trúng thầu</h2>
-            <p class="mt-0.5 text-xs text-slate-500">{{ number_format($results->total()) }} kết quả trong phạm vi bạn phụ trách</p>
+            <p class="mt-0.5 text-xs text-slate-500">{{ number_format($results->total()) }} kết quả trúng thầu · phần được giao sẽ được đánh dấu riêng</p>
         </div>
         @if($search !== '')<span class="shrink-0 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">Đang lọc</span>@endif
     </div>
@@ -67,13 +67,16 @@
                     </div>
                     <span class="shrink-0 text-slate-400 transition group-hover:translate-x-0.5">→</span>
                 </div>
+                @if((int) $result->my_products_count > 0)
+                    <div class="mt-3 inline-flex rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-black text-emerald-700">Trong phạm vi tôi phụ trách</div>
+                @endif
                 <div class="mt-4 grid grid-cols-3 gap-2 text-center">
                     <div class="rounded-2xl bg-slate-50 p-3"><strong class="block text-slate-950">{{ number_format($result->products_count) }}</strong><span class="text-xs text-slate-500">Sản phẩm</span></div>
-                    <div class="rounded-2xl bg-slate-50 p-3"><strong class="block text-slate-950">{{ number_format($result->hospitals_count) }}</strong><span class="text-xs text-slate-500">Bệnh viện</span></div>
-                    <div class="rounded-2xl bg-slate-50 p-3"><strong class="block text-slate-950">{{ $fmtQty($result->allocated_quantity) }}</strong><span class="text-xs text-slate-500">SL phân bổ</span></div>
+                    <div class="rounded-2xl bg-slate-50 p-3"><strong class="block text-slate-950">{{ number_format($result->my_products_count) }}</strong><span class="text-xs text-slate-500">SP của tôi</span></div>
+                    <div class="rounded-2xl bg-slate-50 p-3"><strong class="block text-slate-950">{{ $fmtQty($result->my_allocated_quantity) }}</strong><span class="text-xs text-slate-500">SL của tôi</span></div>
                 </div>
                 <div class="mt-3 flex items-center justify-between gap-3 border-t border-slate-100 pt-3 text-xs">
-                    <span class="min-w-0 text-slate-500">Giá trị phân bổ <strong class="text-slate-800">{{ number_format((float) $result->allocated_value, 0, ',', '.') }} VNĐ</strong></span>
+                    <span class="min-w-0 text-slate-500">Giá trị KQLCNT <strong class="text-slate-800">{{ number_format((float) $result->total_value, 0, ',', '.') }} VNĐ</strong></span>
                     @php($remainingMonths = $remainingContractMonths($result))
                     @if($remainingMonths === 0)
                         <span class="shrink-0 rounded-full bg-rose-50 px-2.5 py-1 font-bold text-rose-700">Hết hiệu lực HĐ</span>
@@ -85,7 +88,7 @@
                 </div>
             </a>
         @empty
-            <div class="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500 md:col-span-2 xl:col-span-3">Chưa có kết quả trúng thầu có phân bổ đang hiệu lực trong phạm vi bạn phụ trách.</div>
+            <div class="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500 md:col-span-2 xl:col-span-3">Chưa có kết quả trúng thầu phù hợp.</div>
         @endforelse
     </section>
 
