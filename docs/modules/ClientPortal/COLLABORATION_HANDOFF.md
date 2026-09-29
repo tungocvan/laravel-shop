@@ -1,3 +1,14 @@
+## Checkpoint — Collapsible allocation dashboard + product progress cards — 2026-09-29
+
+- Tablet UI acceptance passed for hospital-first allocation, followed by a compactness refinement.
+- `Thiết lập chung` is now a section-level toggle; saved setup is collapsed by default while its header retains province/facility/effectivity summary.
+- `Bệnh viện nhận phân bổ` is also a section-level toggle; search and hospital cards render only when expanded.
+- Added an always-visible product allocation overview between those sections. Each product card shows winning quantity, total active allocated quantity across hospitals, and remaining quantity.
+- Remaining is calculated in `ClientBidAwardWorkflow::productAllocationCards()` from canonical active allocations as `max(winning - allocated, 0)`; Blade only presents the result.
+- A product with positive winning quantity and remaining = 0 is labelled `Đã phân bổ hết`.
+- Hospital-first quantity and hospital-policy workflows are unchanged.
+- Required checkpoint: focused `PharmaBidAwardsCapabilityTest`, then tablet/mobile visual acceptance before full ClientApps regression.
+
 ## Checkpoint — Hospital-first allocation UX — 2026-09-29
 
 - Reworked the allocation PWA after tablet acceptance feedback: the page no longer expands a product x hospital matrix.
