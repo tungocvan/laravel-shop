@@ -279,6 +279,57 @@ final class ClientBidAwardWorkflow
         })->values()->sortBy(fn ($row) => str($row->user?->name ?? '')->lower())->values();
     }
 
+    public function managerAssignmentWorkspace(DrugBidAward $award, int $userId): ?object
+    {
+        $manager = User::query()->whereKey($userId)->first(['id','name','email','is_active']);
+        if (! $manager) return null;
+
+        $awardIds = $this->groups->awardsQuery($award)->pluck('id');
+        $products = $this->products($award)->keyBy('id');
+        $hospitals = $this->hospitals($award)->keyBy('id');
+        $rows = DrugBidAwardManagementAssignment::query()
+            ->whereIn('drug_bid_award_id', $awardIds)
+            ->where('user_id', $userId)
+            ->where('status', DrugBidAwardManagementAssignment::STATUS_ACTIVE)
+            ->orderBy('partner_id')->orderBy('drug_bid_award_id')
+            ->get(['id','drug_bid_award_id','partner_id','user_id']);
+
+        if ($rows->isEmpty()) return null;
+
+        return (object) [
+            'user' => $manager,
+            'assignment_count' => $rows->count(),
+            'hospital_count' => $rows->pluck('partner_id')->unique()->count(),
+            'product_count' => $rows->pluck('drug_bid_award_id')->unique()->count(),
+            'hospitals' => $rows->groupBy('partner_id')->map(function (Collection $assignments, $partnerId) use ($hospitals, $products) {
+                return (object) [
+                    'hospital' => $hospitals->get((int) $partnerId),
+                    'assignments' => $assignments->map(function ($assignment) use ($products) {
+                        $assignment->pwa_product = $products->get((int) $assignment->drug_bid_award_id);
+                        return $assignment;
+                    })->values(),
+                ];
+            })->filter(fn ($group) => $group->hospital !== null)->sortBy(fn ($group) => str($group->hospital->name)->lower())->values(),
+        ];
+    }
+
+    public function transferManagerAssignments(DrugBidAward $award, int $fromUserId, array $assignmentIds, int $toUserId, ?int $actorId): int
+    {
+        if ($fromUserId === $toUserId) {
+            throw ValidationException::withMessages(['to_user_id' => 'Hãy chọn User khác User hiện tại.']);
+        }
+        if (! User::query()->whereKey($toUserId)->where('is_active', true)->exists()) {
+            throw ValidationException::withMessages(['to_user_id' => 'User nhận phân công không hoạt động hoặc không tồn tại.']);
+        }
+
+        return $this->commercialPolicies->transferManagerAssignments($award, $fromUserId, $assignmentIds, $toUserId, $actorId);
+    }
+
+    public function removeManagerAssignments(DrugBidAward $award, int $userId, array $assignmentIds): int
+    {
+        return $this->commercialPolicies->removeManagerAssignments($award, $userId, $assignmentIds);
+    }
+
     public function removeAllManagers(DrugBidAward $award): int
     {
         return $this->commercialPolicies->removeAllManagers($award);
