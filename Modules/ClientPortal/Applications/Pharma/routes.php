@@ -27,8 +27,14 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->where('scope', '[a-f0-9]{40}')->middleware('client.feature:pharma,bid-awards')->name('bid-awards.allocation');
         Route::post('/bid-awards/{scope}/allocation/setup', [PharmaApplicationController::class, 'storeBidAwardDistributionSetup'])
             ->where('scope', '[a-f0-9]{40}')->middleware('client.feature:pharma,bid-awards')->name('bid-awards.allocation.setup');
-        Route::post('/bid-awards/{scope}/allocation', [PharmaApplicationController::class, 'storeBidAwardAllocations'])
-            ->where('scope', '[a-f0-9]{40}')->middleware('client.feature:pharma,bid-awards')->name('bid-awards.allocation.store');
+        Route::get('/bid-awards/{scope}/allocation/hospitals/{partner}', [PharmaApplicationController::class, 'bidAwardHospitalAllocation'])
+            ->where('scope', '[a-f0-9]{40}')->whereNumber('partner')->middleware('client.feature:pharma,bid-awards')->name('bid-awards.allocation.hospital');
+        Route::post('/bid-awards/{scope}/allocation/hospitals/{partner}', [PharmaApplicationController::class, 'storeBidAwardHospitalAllocation'])
+            ->where('scope', '[a-f0-9]{40}')->whereNumber('partner')->middleware('client.feature:pharma,bid-awards')->name('bid-awards.allocation.hospital.store');
+        Route::get('/bid-awards/{scope}/allocation/hospitals/{partner}/commercial-policy', [PharmaApplicationController::class, 'bidAwardHospitalCommercialPolicy'])
+            ->where('scope', '[a-f0-9]{40}')->whereNumber('partner')->middleware('client.feature:pharma,bid-awards')->name('bid-awards.allocation.hospital.policy');
+        Route::post('/bid-awards/{scope}/allocation/hospitals/{partner}/commercial-policy', [PharmaApplicationController::class, 'storeBidAwardHospitalCommercialPolicy'])
+            ->where('scope', '[a-f0-9]{40}')->whereNumber('partner')->middleware('client.feature:pharma,bid-awards')->name('bid-awards.allocation.hospital.policy.store');
         Route::get('/bid-awards/{scope}/commercial-policy', [PharmaApplicationController::class, 'bidAwardCommercialPolicy'])
             ->where('scope', '[a-f0-9]{40}')->middleware('client.feature:pharma,bid-awards')->name('bid-awards.commercial-policy');
         Route::post('/bid-awards/{scope}/commercial-policy', [PharmaApplicationController::class, 'storeBidAwardCommercialPolicy'])
