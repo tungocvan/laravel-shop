@@ -13,7 +13,7 @@
         <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
             {{ $awardScope ? 'Đang xem '.($awardScope->investor_name ?: 'kết quả trúng thầu').' · '.($awardScope->bidding_notice_code ?: $awardScope->decision_number ?: 'Theo phân công').'.' : 'Chọn Chủ đầu tư / kết quả trúng thầu để xem đúng phạm vi bệnh viện được phân công.' }}
         </p>
-        <dl class="mt-5 grid grid-cols-2 gap-3 sm:max-w-lg">
+        <dl class="mt-5 grid grid-cols-2 gap-3 sm:max-w-2xl">
             <div class="rounded-2xl bg-white/10 p-4">
                 <dt class="text-xs font-bold uppercase tracking-wide text-slate-300">Bệnh viện</dt>
                 <dd class="mt-1 text-2xl font-black tabular-nums">{{ number_format($summary['hospitals'], 0, ',', '.') }}</dd>
@@ -22,6 +22,12 @@
                 <dt class="text-xs font-bold uppercase tracking-wide text-slate-300">SKU</dt>
                 <dd class="mt-1 text-2xl font-black tabular-nums">{{ number_format($summary['products'], 0, ',', '.') }}</dd>
             </div>
+            @if($awardScope)
+                <div class="col-span-2 rounded-2xl bg-white/10 p-4">
+                    <dt class="text-xs font-bold uppercase tracking-wide text-slate-300">Tổng giá trị trúng thầu</dt>
+                    <dd class="mt-1 text-xl font-black tabular-nums sm:text-2xl">{{ number_format((float) $summary['allocated_value'], 0, ',', '.') }} đ</dd>
+                </div>
+            @endif
         </dl>
     </section>
 
