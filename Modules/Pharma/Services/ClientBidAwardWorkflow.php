@@ -152,13 +152,15 @@ final class ClientBidAwardWorkflow
         if (! $this->hospital($award, $partnerId)) {
             throw ValidationException::withMessages(['hospital' => 'Bệnh viện không thuộc phạm vi phân bổ hiện tại.']);
         }
+        $allocatedAwardIds = $this->hospitalAllocations($award, $partnerId)->keys()->map(fn ($id) => (int) $id)->all();
         $saved = 0;
         foreach ($percentages as $awardId => $percentage) {
-            if ($percentage === '' || $percentage === null) continue;
-            $this->commercialPolicies->saveHospitalPolicyOverride($award, (int) $awardId, $partnerId, $percentage, $actorId);
+            $awardId = (int) $awardId;
+            if (! in_array($awardId, $allocatedAwardIds, true)) continue;
+            $this->commercialPolicies->saveHospitalPolicyOverride($award, $awardId, $partnerId, $percentage, $actorId);
             $saved++;
         }
-        if ($saved === 0) throw ValidationException::withMessages(['commercial_policy' => 'Nhập chính sách cho ít nhất một sản phẩm đã phân bổ.']);
+        if ($saved === 0) throw ValidationException::withMessages(['commercial_policy' => 'Không có sản phẩm đã phân bổ để cập nhật chính sách.']);
         return $saved;
     }
 
