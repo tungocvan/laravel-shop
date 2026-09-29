@@ -1,3 +1,16 @@
+## Checkpoint — Hospital-first multi-User assignment — 2026-09-29
+
+- Refactored the `multiple` manager mode from product-first bulk assignment to the canonical business sequence: `User -> Hospital -> remaining allocated products -> assign`.
+- Hospital cards derive progress from real active allocation pairs versus active management assignments and show `assigned/allocated products`.
+- Hospitals whose allocated products are all assigned remain visible for progress context but are disabled and labeled `Đã phân công hết`; they cannot be selected for the next User.
+- Selecting a hospital renders only products that (a) have an active allocation at that hospital and (b) have no active management assignment.
+- Server-side Pharma guard recomputes the allowed product IDs at save time. Forged/stale requests that include an already-assigned product or a product not allocated to the hospital are rejected; the flow never silently overwrites another User's assignment.
+- Mutation delegates to canonical `DrugBidAwardCommercialPolicyService::assignManagers(contextAward, awardIds, partnerId, userId, actorId)`.
+- Selected manager is carried in `manager_id` while navigating to a hospital and is restored after the server renders the hospital-specific product set.
+- Single-manager mode, current-assignment summary and confirmed global reset remain unchanged.
+- Added focused contract coverage for hospital progress, completed-hospital disablement, unassigned-product filtering, stale-request guard, canonical hospital assignment mutation and manager state preservation.
+- Required checkpoint: pull + focused `PharmaBidAwardsCapabilityTest`; then real UI acceptance for User -> Hospital -> products, including a hospital becoming disabled immediately after its last remaining product is assigned.
+
 ## Checkpoint — Current manager visibility + safe assignment reset — 2026-09-29
 
 - Manager assignment now exposes a canonical current-assignment summary before the mode cards: User name/email plus assignment, hospital and product counts.
