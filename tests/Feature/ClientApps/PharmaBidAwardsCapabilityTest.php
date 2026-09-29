@@ -80,6 +80,7 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString("DB::table('pharma_drug_bid_awards as source_awards')", $bidAwards);
         $this->assertStringContainsString("'my_allocated_quantity'", $bidAwards);
         $this->assertStringContainsString("'my_hospitals_count'", $bidAwards);
+        $this->assertStringContainsString('return $this->globalRowsWithUserContext($userId)', $bidAwards);
         $this->assertStringContainsString('filterOptions', $bidAwards);
         $this->assertStringContainsString("'allocation_ready'", $bidAwards);
         $this->assertStringContainsString("'commercial_ready'", $bidAwards);
