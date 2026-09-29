@@ -4,11 +4,13 @@ namespace Modules\Pharma\Services;
 
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use App\Models\User;
 use Modules\Pharma\Models\OfficialSourceFacility;
 use Illuminate\Validation\ValidationException;
 use Modules\Pharma\Models\DrugBidAward;
 use Modules\Pharma\Models\DrugBidAwardAllocation;
 use Modules\Pharma\Models\DrugBidAwardProductPolicy;
+use Modules\Pharma\Models\DrugBidAwardManagementAssignment;
 
 final class ClientBidAwardWorkflow
 {
@@ -209,6 +211,100 @@ final class ClientBidAwardWorkflow
         return DrugBidAwardProductPolicy::query()
             ->whereIn('drug_bid_award_id', $this->groups->awardsQuery($award)->pluck('id'))
             ->get()->keyBy('drug_bid_award_id');
+    }
+
+    public function commercialPolicyReady(DrugBidAward $award): bool
+    {
+        $awardIds = $this->groups->awardsQuery($award)->pluck('id');
+        $allocations = DrugBidAwardAllocation::query()
+            ->whereIn('drug_bid_award_id', $awardIds)
+            ->where('status', DrugBidAwardAllocation::STATUS_ACTIVE);
+
+        if (! (clone $allocations)->exists()) return false;
+
+        return ! (clone $allocations)
+            ->leftJoin('pharma_drug_bid_award_product_policies as product_policies', 'product_policies.drug_bid_award_id', '=', 'pharma_drug_bid_award_allocations.drug_bid_award_id')
+            ->whereNull('pharma_drug_bid_award_allocations.commercial_policy_percentage')
+            ->whereNull('product_policies.commission_percentage')
+            ->exists();
+    }
+
+    /** @return array{persisted_mode:string,allocation_count:int,assignment_count:int,user_count:int} */
+    public function managementAssignmentState(DrugBidAward $award): array
+    {
+        $awardIds = $this->groups->awardsQuery($award)->pluck('id');
+        $allocationCount = DrugBidAwardAllocation::query()
+            ->whereIn('drug_bid_award_id', $awardIds)
+            ->where('status', DrugBidAwardAllocation::STATUS_ACTIVE)
+            ->get(['drug_bid_award_id','partner_id'])
+            ->unique(fn ($row) => $row->drug_bid_award_id.':'.$row->partner_id)->count();
+        $assignments = DrugBidAwardManagementAssignment::query()
+            ->whereIn('drug_bid_award_id', $awardIds)
+            ->where('status', DrugBidAwardManagementAssignment::STATUS_ACTIVE)
+            ->get(['drug_bid_award_id','partner_id','user_id']);
+        $mode = 'unassigned';
+        if ($assignments->isNotEmpty()) {
+            $completeSingle = $allocationCount > 0
+                && $assignments->count() >= $allocationCount
+                && $assignments->pluck('user_id')->unique()->count() === 1;
+            $mode = $completeSingle ? 'single' : 'multiple';
+        }
+
+        return [
+            'persisted_mode' => $mode,
+            'allocation_count' => $allocationCount,
+            'assignment_count' => $assignments->count(),
+            'user_count' => $assignments->pluck('user_id')->unique()->count(),
+        ];
+    }
+
+    public function managementUsers(): Collection
+    {
+        return User::query()->where('is_active', true)->orderBy('name')->get(['id','name','email']);
+    }
+
+    public function managementProducts(DrugBidAward $award): Collection
+    {
+        $products = $this->products($award);
+        $awardIds = $products->pluck('id');
+        $allocationCounts = DrugBidAwardAllocation::query()
+            ->whereIn('drug_bid_award_id', $awardIds)->where('status', DrugBidAwardAllocation::STATUS_ACTIVE)
+            ->selectRaw('drug_bid_award_id, COUNT(DISTINCT partner_id) as hospital_count')
+            ->groupBy('drug_bid_award_id')->pluck('hospital_count','drug_bid_award_id');
+        $assignmentCounts = DrugBidAwardManagementAssignment::query()
+            ->whereIn('drug_bid_award_id', $awardIds)->where('status', DrugBidAwardManagementAssignment::STATUS_ACTIVE)
+            ->selectRaw('drug_bid_award_id, COUNT(DISTINCT partner_id) as assigned_hospital_count')
+            ->groupBy('drug_bid_award_id')->pluck('assigned_hospital_count','drug_bid_award_id');
+
+        return $products->filter(fn ($product) => (int) ($allocationCounts[$product->id] ?? 0) > 0)
+            ->each(function ($product) use ($allocationCounts, $assignmentCounts) {
+                $product->pwa_hospital_count = (int) ($allocationCounts[$product->id] ?? 0);
+                $product->pwa_assigned_hospital_count = (int) ($assignmentCounts[$product->id] ?? 0);
+            })->values();
+    }
+
+    public function assignSingleManager(DrugBidAward $award, int $userId, ?int $actorId): int
+    {
+        if (! $this->commercialPolicyReady($award)) {
+            throw ValidationException::withMessages(['assignment' => 'Hãy hoàn tất chính sách kinh doanh trước khi phân công User quản lý.']);
+        }
+        $state = $this->managementAssignmentState($award);
+        if ($state['persisted_mode'] === 'multiple') {
+            throw ValidationException::withMessages(['assignment' => 'Đang ở chế độ nhiều User. Hãy gỡ toàn bộ phân công trước khi đổi cách phân công.']);
+        }
+        return $this->commercialPolicies->assignManagerToAllAllocations($award, $userId, $actorId);
+    }
+
+    public function assignManagerToProducts(DrugBidAward $award, array $awardIds, int $userId, ?int $actorId): int
+    {
+        if (! $this->commercialPolicyReady($award)) {
+            throw ValidationException::withMessages(['assignment' => 'Hãy hoàn tất chính sách kinh doanh trước khi phân công User quản lý.']);
+        }
+        $state = $this->managementAssignmentState($award);
+        if ($state['persisted_mode'] === 'single') {
+            throw ValidationException::withMessages(['assignment' => 'Đang ở chế độ một User. Hãy gỡ toàn bộ phân công trước khi đổi cách phân công.']);
+        }
+        return $this->commercialPolicies->assignManagerToProductAllocations($award, $awardIds, $userId, $actorId);
     }
 
     public function saveProductPolicies(DrugBidAward $award, array $percentages, ?int $actorId): void
