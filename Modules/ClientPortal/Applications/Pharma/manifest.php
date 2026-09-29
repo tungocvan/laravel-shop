@@ -91,6 +91,10 @@ return [
         'bid-awards' => [
             'name' => 'Trúng thầu',
             'description' => 'Theo dõi TBMT, sản phẩm trúng thầu và phạm vi bệnh viện được giao.',
+            'eyebrow' => 'Bid Awards',
+            'page_title' => 'Kết quả trúng thầu của tôi',
+            'page_description' => 'Theo dõi các kết quả trúng thầu, sản phẩm và phạm vi được phân công phụ trách.',
+            'route' => 'client.pharma.bid-awards',
             'permission' => 'client.pharma.bid-awards.view',
             'icon' => 'building-library',
             'sort_order' => 40,
