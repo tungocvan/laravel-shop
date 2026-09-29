@@ -40,8 +40,8 @@ final class PharmaInventoryCapabilityTest extends TestCase
         $this->assertStringContainsString("featurePresentation['page_description']", $view);
         $this->assertStringContainsString('xl:hidden', $view);
         $this->assertStringContainsString('xl:block', $view);
-        $this->assertStringContainsString('@foreach([25,50,100] as $size)', $view);
-        $this->assertStringContainsString('{{ $size }} / trang', $view);
+        $this->assertStringNotContainsString('{{ $size }} / trang', $view);
+        $this->assertStringNotContainsString('$balances->links()', $view);
         $this->assertStringContainsString('Xóa bộ lọc', $view);
         $this->assertStringContainsString('inventory-search-input', $view);
         $this->assertStringContainsString('window.setTimeout(() => form.requestSubmit(), 350)', $view);
@@ -50,7 +50,31 @@ final class PharmaInventoryCapabilityTest extends TestCase
         $this->assertStringContainsString('inventory-load-more', $view);
         $this->assertStringContainsString('Xem thêm', $view);
         $this->assertStringContainsString("fetch(more.href", $view);
-        $this->assertStringContainsString('pb-24 xl:pb-0', $view);
+        $this->assertStringContainsString('IntersectionObserver', $view);
+        $this->assertStringContainsString('inventory-desktop-body', $view);
+        $this->assertStringContainsString('Tên thuốc / hoạt chất', $view);
+        $this->assertStringContainsString('Hoạt chất / Quy cách', $view);
+        $this->assertStringNotContainsString('>Mã thuốc</th>', $view);
+        $this->assertStringContainsString('border border-slate-300', $view);
+        $this->assertStringContainsString('@if($canViewCosts)', $view);
+        $this->assertStringContainsString('pb-24 xl:pb-8', $view);
         $this->assertStringContainsString("'page_title' => 'Tồn kho Pharma'", $manifest);
+        $this->assertStringContainsString("'permission' => 'client.pharma.inventory.costs'", $manifest);
+    }
+
+    public function test_inventory_costs_and_search_are_permission_scoped(): void
+    {
+        $root = base_path();
+        $controller = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php');
+        $workspace = file_get_contents($root.'/Modules/Pharma/Services/UserInventoryWorkspace.php');
+
+        $this->assertStringContainsString("userCan(\$user, 'client.pharma.inventory.costs')", $controller);
+        $this->assertStringContainsString('! $canViewCosts, 403', $controller);
+        $this->assertStringContainsString("'canViewCosts' => \$canViewCosts", $controller);
+        $this->assertStringContainsString('bool $canViewCosts = false', $workspace);
+        $this->assertStringContainsString("->orWhere('active_ingredients', 'like'", $workspace);
+        $this->assertStringNotContainsString("->where('medicine_code', 'like'", $workspace);
+        $this->assertStringContainsString("if (\$canViewCosts) {", $workspace);
+        $this->assertStringContainsString("\$canViewCosts ? \$this->activeSupplierCosts() : collect()", $workspace);
     }
 }
