@@ -1,5 +1,136 @@
 # ClientPortal Module — Collaboration Handoff
 
+## Current delivery — ClientPortal Feature Page Content & PWA AI Workflow
+
+- Last updated: 2026-09-29
+- Active branch: `feat/clientportal-feature-page-content`
+- Base branch: `main`
+- Base checkpoint: `9027f08542c964028088cb340519d6f36fbe7c89`
+- Branch comparison before this handoff commit: **ahead 15 / behind 0**
+- Status: **IMPLEMENTED — AWAITING LOCAL FOCUSED/CLIENTAPPS TESTS + REAL UI ACCEPTANCE**
+
+### Objective
+
+Make routable PWA feature hero/page copy manageable from `/admin/client-apps` without making routes, permissions or business logic configurable, connect the first runtime consumer (Pharma Commercial Workspace), and establish a mandatory AI workflow gate for future ClientPortal/PWA work.
+
+### Delivered contract
+
+Generic feature presentation now supports:
+
+```text
+eyebrow
+page_title
+page_description
+```
+
+Resolution path:
+
+```text
+application manifest defaults
+    -> ApplicationRegistry
+    -> ClientPortalSettingsService::featurePresentation()
+    -> controller
+    -> Blade
+```
+
+Admin editing is exposed through:
+
+```text
+/admin/client-apps
+-> Giao diện Application & Feature
+-> Nội dung trang PWA
+```
+
+The Admin form edits presentation text only. Route names, permission names, source-module ownership and business behavior remain source-controlled.
+
+### Pharma Commercial runtime integration
+
+The Pharma Commercial feature manifest defines the current defaults:
+
+```text
+Commercial Workspace
+Công việc bệnh viện của tôi
+Chọn Chủ đầu tư / kết quả trúng thầu để xem đúng phạm vi bệnh viện được phân công.
+```
+
+`PharmaApplicationController::commercial()` resolves the Commercial feature and passes its resolved presentation to the view. The Commercial Blade consumes managed eyebrow/title/description instead of duplicating those configurable literals.
+
+When a bid-result scope is selected, the existing contextual `Đang xem ...` description remains dynamic; the managed description is the initial/no-selected-result page description.
+
+No migration is required. Existing `client_portal_settings` storage and the generic feature presentation group are reused.
+
+### PWA AI/workflow governance
+
+Added:
+
+```text
+docs/modules/ClientPortal/PWA_AI_WORKFLOW.md
+```
+
+and linked it as a mandatory gate from:
+
+```text
+docs/GITHUB_COLLABORATION_WORKFLOW.md
+```
+
+Any new chat/task touching `/my-apps`, `/apps/*`, `Modules/ClientPortal`, installed PWA/mobile Client UX or `/admin/client-apps` must read the PWA AI workflow before code analysis/implementation. The gate defines mandatory ClientPortal docs, conditional file/export/debug docs, architecture/security boundaries, managed page-content rules and test/UI/PR gates.
+
+For PWA file download/open/share/export work, `docs/PWA_EXTERNAL_FILE_HANDOFF.md` remains an additional mandatory gate.
+
+### Automated coverage added/updated
+
+`ClientPortalPwaSettingsTest` covers:
+
+- Commercial feature presentation defaults;
+- persisted Admin override resolution;
+- updater identity persistence;
+- Admin/controller validation for safe page-copy fields;
+- no editable route/permission fields in the presentation form.
+
+`PharmaCommercialCapabilityTest` guards:
+
+- controller resolution through `ClientPortalSettingsService::featurePresentation()`;
+- managed eyebrow/title/description consumption in the Commercial view.
+
+### Validation gate
+
+No test result is claimed by this handoff yet. The next local checkpoint is:
+
+```text
+Test 1 — focused:
+php artisan test tests/Feature/ClientApps/ClientPortalPwaSettingsTest.php tests/Feature/ClientApps/PharmaCommercialCapabilityTest.php
+
+Test 2 — ClientApps regression, only after Test 1 PASS:
+php artisan test tests/Feature/ClientApps
+```
+
+After automated tests PASS, real UI acceptance is still mandatory:
+
+```text
+/admin/client-apps
+-> edit Commercial eyebrow/title/description
+-> save
+-> refresh Pharma PWA Commercial Workspace
+-> verify managed copy is rendered
+-> verify User -> bid result -> hospital flow remains intact
+```
+
+For this UI-changing delivery, automated tests alone are not sufficient for PR/merge.
+
+### Scope / known boundaries
+
+- only Pharma Commercial is connected as the first runtime consumer in this delivery; the generic Admin/schema contract is reusable by later PWA features;
+- no route, permission or source-module contract is made Admin-editable;
+- no migration/schema change;
+- no file download/open behavior changed, therefore PWA external-file platform acceptance is **NOT APPLICABLE** to this batch;
+- no PR is created until focused tests, ClientApps regression and real UI acceptance PASS;
+- merge still requires explicit user approval.
+
+### Next step
+
+User pulls this branch and runs Test 1. If Test 1 fails, stop and debug from the exact output. If Test 1 passes, run Test 2. Then perform real UI acceptance before the PR gate.
+
+
 ## Current delivery — Pharma PWA Medicine Catalog
 
 - Last updated: 2026-09-27
