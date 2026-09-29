@@ -13,6 +13,7 @@ use Modules\Pharma\Models\PriceList;
 use Modules\Pharma\Services\MedicineCatalog;
 use Modules\Pharma\Services\UserPriceListWorkspace;
 use Modules\Pharma\Services\UserCommercialHospitalWorkspace;
+use Modules\Pharma\Services\UserBidAwardWorkspace;
 use Modules\Pharma\Services\UserPriceListWorkflow;
 use Modules\Pharma\Services\PriceListApprovalWorkflow;
 use Modules\Pharma\Services\ApproverGlobalPriceListWorkflow;
@@ -648,6 +649,79 @@ final class PharmaApplicationController extends Controller
             'canViewSupplierPricing' => $canViewSupplierPricing,
             'search' => trim((string) ($validated['q'] ?? '')),
             'perPage' => (int) ($validated['per_page'] ?? 25),
+        ]);
+    }
+
+
+    public function bidAwards(
+        Request $request,
+        ApplicationRegistry $registry,
+        ClientPortalSettingsService $settings,
+        UserBidAwardWorkspace $workspace,
+    ): View {
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:120'],
+            'page' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        $application = $registry->find('pharma');
+        abort_if($application === null, 404);
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+
+        $feature = collect($application['features'] ?? [])->first(fn (array $feature): bool => $feature['key'] === 'bid-awards');
+        abort_if($feature === null, 404);
+
+        return view('ClientPortal::applications.pharma.bid-awards', [
+            'application' => $application,
+            'applicationPresentation' => $settings->applicationPresentation($application),
+            'featurePresentation' => $settings->featurePresentation($application['key'], $feature),
+            'results' => $workspace->browseAssignedResults(
+                userId: (int) $user->id,
+                search: $validated['q'] ?? null,
+                perPage: 20,
+                page: (int) ($validated['page'] ?? 1),
+            )->withQueryString(),
+            'search' => trim((string) ($validated['q'] ?? '')),
+        ]);
+    }
+
+    public function bidAward(
+        string $scope,
+        Request $request,
+        ApplicationRegistry $registry,
+        ClientPortalSettingsService $settings,
+        UserBidAwardWorkspace $workspace,
+    ): View {
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:120'],
+            'page' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        $application = $registry->find('pharma');
+        abort_if($application === null, 404);
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+
+        $feature = collect($application['features'] ?? [])->first(fn (array $feature): bool => $feature['key'] === 'bid-awards');
+        abort_if($feature === null, 404);
+
+        $result = $workspace->findAssignedResult((int) $user->id, $scope);
+        abort_if($result === null, 404);
+
+        return view('ClientPortal::applications.pharma.bid-award-show', [
+            'application' => $application,
+            'applicationPresentation' => $settings->applicationPresentation($application),
+            'featurePresentation' => $settings->featurePresentation($application['key'], $feature),
+            'result' => $result,
+            'products' => $workspace->assignedProducts(
+                userId: (int) $user->id,
+                scope: $result,
+                search: $validated['q'] ?? null,
+                perPage: 20,
+                page: (int) ($validated['page'] ?? 1),
+            )->withQueryString(),
+            'search' => trim((string) ($validated['q'] ?? '')),
         ]);
     }
 
