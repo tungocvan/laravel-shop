@@ -1,3 +1,16 @@
+## Checkpoint — Pharma PWA Bid Awards responsive summary refinement — 2026-09-29
+
+- Branch: `feat/clientportal-pharma-bid-awards`.
+- Refined `/apps/pharma/bid-awards` to mirror the Admin Drug Bid Awards mental model: one responsive card per TBMT/result group, without copying the Admin table or mutation controls.
+- User scope remains enforced server-side by active management assignment + active allocation; the PWA never broad-loads all Admin bid awards and hides them in Blade.
+- Summary cards now surface assigned product count, hospital count, allocated quantity, allocated value and contract remaining/status where source data supports it.
+- Responsive layout is 1 column on mobile, 2 on tablet, 3 on wide desktop; mobile keeps live search and progressive `Xem thêm`.
+- Fixed the data-path date formatter from invalid `CarbonCarbon::parse` to `\\Carbon\\Carbon::parse`; the earlier empty-state acceptance did not exercise this branch.
+- No Admin controller/Livewire reuse, no mutation/import/export, no permission broadening, no migration.
+- Contract coverage updated in `tests/Feature/ClientApps/PharmaBidAwardsCapabilityTest.php`.
+- Required operator checkpoint: `git pull --ff-only`, focused Bid Awards capability test, then `tests/Feature/ClientApps` only after focused PASS.
+- Status: IMPLEMENTED — AWAITING OPERATOR PULL / FOCUSED TEST / CLIENTAPPS REGRESSION / REAL DATA TABLET-MOBILE ACCEPTANCE.
+
 ## Checkpoint — Pharma PWA Bid Awards workspace — 2026-09-29
 
 - Branch: `feat/clientportal-pharma-bid-awards`, based on current `main` after PR #235.
