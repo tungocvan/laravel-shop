@@ -43,6 +43,14 @@ final class PharmaInventoryCapabilityTest extends TestCase
         $this->assertStringContainsString('@foreach([25,50,100] as $size)', $view);
         $this->assertStringContainsString('{{ $size }} / trang', $view);
         $this->assertStringContainsString('Xóa bộ lọc', $view);
+        $this->assertStringContainsString('inventory-search-input', $view);
+        $this->assertStringContainsString('window.setTimeout(() => form.requestSubmit(), 350)', $view);
+        $this->assertStringContainsString('Xóa từ khóa tìm kiếm', $view);
+        $this->assertStringContainsString('md:grid-cols-2', $view);
+        $this->assertStringContainsString('inventory-load-more', $view);
+        $this->assertStringContainsString('Xem thêm', $view);
+        $this->assertStringContainsString("fetch(more.href", $view);
+        $this->assertStringContainsString('pb-24 xl:pb-0', $view);
         $this->assertStringContainsString("'page_title' => 'Tồn kho Pharma'", $manifest);
     }
 }
