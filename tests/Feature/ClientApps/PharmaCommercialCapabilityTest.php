@@ -82,8 +82,8 @@ class PharmaCommercialCapabilityTest extends TestCase
         $this->assertStringContainsString('$workspace->assignedUsers()', $controller);
         $this->assertStringContainsString('userId: $targetUserId', $controller);
         $this->assertStringContainsString('$workspace->browseHospitals(', $controller);
-        $this->assertStringContainsString('$workspace->summary($targetUserId)', $controller);
-        $this->assertStringContainsString('$workspace->findHospital($targetUserId, $hospital)', $controller);
+        $this->assertStringContainsString('$workspace->summary($targetUserId, $awardScope)', $controller);
+        $this->assertStringContainsString('$workspace->findHospital($targetUserId, $hospital, $awardScope)', $controller);
         $this->assertStringContainsString('abort_if($scopedHospital === null, 404)', $controller);
         $this->assertStringContainsString('$workspace->assignedProducts(', $controller);
         $this->assertStringContainsString('partnerId: (int) $scopedHospital->id', $controller);
@@ -102,8 +102,8 @@ class PharmaCommercialCapabilityTest extends TestCase
         $this->assertStringContainsString('active:scale-[0.985]', $view);
         $this->assertStringContainsString('motion-reduce:transform-none', $view);
         $this->assertStringContainsString('commercial-navigation-feedback', $view);
-        $this->assertStringContainsString("array_filter(['hospital' => \$hospital->id, 'manager_user_id' => \$managerUserId])", $view);
-        $this->assertStringContainsString('Danh sách chỉ gồm bệnh viện và sản phẩm trúng thầu đang được phân công', $view);
+        $this->assertStringContainsString("array_filter(['hospital' => \$hospital->id, 'manager_user_id' => \$managerUserId, 'award_scope' => \$awardScopeKey])", $view);
+        $this->assertStringContainsString('Chọn Chủ đầu tư / kết quả trúng thầu để xem đúng phạm vi bệnh viện được phân công.', $view);
         $this->assertStringContainsString('Xem thêm bệnh viện', $view);
         $this->assertStringContainsString('commercial-load-more', $view);
         $this->assertStringContainsString('data-commercial-item', $view);
