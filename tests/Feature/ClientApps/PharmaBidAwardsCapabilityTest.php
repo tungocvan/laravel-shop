@@ -171,13 +171,14 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString('Cần hoàn tất phân bổ số lượng trước', $workflow);
         $this->assertStringContainsString('Sản phẩm phải được phân bổ số lượng trước', $workflow);
         $this->assertStringContainsString('Thiết lập chung', $allocation);
-        $this->assertStringContainsString('Bước 1 · Phạm vi', $allocation);
-        $this->assertStringContainsString('Bước 2 · Cơ sở nhận phân bổ', $allocation);
-        $this->assertStringContainsString('Bước 3 · Kiểm tra trước khi lưu', $allocation);
+        $this->assertStringContainsString('① Phạm vi & hiệu lực', $allocation);
+        $this->assertStringContainsString('② Chọn cơ sở KCB', $allocation);
+        $this->assertStringContainsString('③ Kiểm tra & lưu', $allocation);
         $this->assertStringContainsString('data-review-checkbox', $allocation);
         $this->assertStringContainsString('@checked(in_array((int)$facility->id,$draftFacilityIds,true))', $allocation);
         $this->assertStringContainsString('Lưu thiết lập phân bổ', $allocation);
-        $this->assertStringContainsString('Phân bổ sản phẩm', $allocation);
+        $this->assertStringContainsString('Bệnh viện nhận phân bổ', $allocation);
+        $this->assertStringContainsString('Nhận phân bổ số lượng', $allocation);
         $this->assertStringNotContainsString('pharma.bid_awards.$scope.hospitals', $controller);
         $this->assertStringContainsString('saveDistributionSetup', $workflow);
         $this->assertStringContainsString('DrugBidAwardDistributionScopeService', $workflow);
@@ -185,8 +186,8 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString("str(\$facility->facility_name.' '.\$facility->external_id)->lower()", $allocation);
         $this->assertStringNotContainsString('IlluminateSupportStr', $allocation);
         $this->assertStringNotContainsString('Illuminate\\Support\\Str::lower', $allocation);
+        $this->assertGreaterThanOrEqual(3, substr_count($allocation, '<details'));
         $this->assertStringContainsString('md:grid-cols-2', $allocation);
-        $this->assertStringContainsString('sticky bottom-3', $allocation);
         $this->assertStringContainsString('Thiết lập chính sách kinh doanh', $policy);
         $this->assertStringContainsString('Cần hoàn tất phân bổ số lượng trước.', $detail);
         $this->assertStringContainsString('active:scale-[.985]', $detail);
