@@ -9,18 +9,28 @@ use Modules\Pharma\Models\DrugBidAwardManagementAssignment;
 
 final class UserBidAwardWorkspace
 {
-    public function browseResults(int $userId, ?string $search = null, int $perPage = 20, int $page = 1): LengthAwarePaginator
+    public function browseResults(int $userId, ?string $search = null, int $perPage = 20, int $page = 1, ?string $investor = null, ?string $medicine = null, ?string $valueSort = null, ?string $businessSetup = null): LengthAwarePaginator
     {
         $search = trim((string) $search);
         $perPage = in_array($perPage, [20, 25, 50, 100], true) ? $perPage : 20;
+        $investor = trim((string) $investor);
+        $medicine = trim((string) $medicine);
+        $valueSort = in_array($valueSort, ['asc', 'desc'], true) ? $valueSort : null;
+        $businessSetup = in_array($businessSetup, ['commercial_missing', 'commercial_ready', 'allocation_missing', 'allocation_ready'], true) ? $businessSetup : null;
 
-        return $this->globalRowsWithUserContext($userId)
+        $query = $this->globalRowsWithUserContext($userId)
             ->when($search !== '', fn ($query) => $query->where(function ($nested) use ($search): void {
                 $nested->where('awards.bidding_notice_code', 'like', "%{$search}%")
                     ->orWhere('awards.decision_number', 'like', "%{$search}%")
                     ->orWhere('awards.investor_name', 'like', "%{$search}%")
                     ->orWhere('awards.medicine_name', 'like', "%{$search}%");
             }))
+            ->when($investor !== '', fn ($query) => $query->where('awards.investor_name', $investor))
+            ->when($medicine !== '', fn ($query) => $query->where('awards.medicine_name', $medicine))
+            ->when($businessSetup === 'allocation_ready', fn ($query) => $query->where('awards.has_active_allocation', 1))
+            ->when($businessSetup === 'allocation_missing', fn ($query) => $query->where('awards.has_active_allocation', 0))
+            ->when($businessSetup === 'commercial_ready', fn ($query) => $query->where('awards.has_active_commercial', 1))
+            ->when($businessSetup === 'commercial_missing', fn ($query) => $query->where('awards.has_active_commercial', 0))
             ->selectRaw($this->resultIdentitySql().' as result_identity')
             ->selectRaw('MAX(awards.id) as id')
             ->selectRaw('MAX(awards.bidding_notice_code) as bidding_notice_code')
@@ -38,7 +48,11 @@ final class UserBidAwardWorkspace
             ->selectRaw('SUM(awards.my_hospitals_count) as my_hospitals_count')
             ->selectRaw('SUM(awards.my_allocated_quantity) as my_allocated_quantity')
             ->selectRaw('SUM(awards.my_allocated_quantity * COALESCE(awards.winning_price, awards.unit_price, 0)) as my_allocated_value')
+            ->selectRaw('SUM(awards.has_active_allocation) as allocated_product_count')
+            ->selectRaw('SUM(awards.has_active_commercial) as commercial_product_count')
             ->groupBy('result_identity')
+            ->when($valueSort === 'desc', fn ($query) => $query->orderByDesc('total_value'))
+            ->when($valueSort === 'asc', fn ($query) => $query->orderBy('total_value'))
             ->orderByDesc('published_at')
             ->orderByDesc('id')
             ->paginate($perPage, ['*'], 'page', max(1, $page))
@@ -46,6 +60,14 @@ final class UserBidAwardWorkspace
                 $row->scope_key = sha1($this->identityForRow($row));
                 return $row;
             });
+    }
+
+    public function filterOptions(): array
+    {
+        return [
+            'investors' => DB::table('pharma_drug_bid_awards')->whereNotNull('investor_name')->where('investor_name', '!=', '')->distinct()->orderBy('investor_name')->limit(500)->pluck('investor_name')->all(),
+            'medicines' => DB::table('pharma_drug_bid_awards')->whereNotNull('medicine_name')->where('medicine_name', '!=', '')->distinct()->orderBy('medicine_name')->limit(500)->pluck('medicine_name')->all(),
+        ];
     }
 
     public function findResult(int $userId, string $scopeKey): ?object
@@ -111,6 +133,8 @@ final class UserBidAwardWorkspace
     {
         $context = DB::table('pharma_drug_bid_awards as source_awards')
             ->select('source_awards.*')
+            ->selectRaw("CASE WHEN EXISTS (SELECT 1 FROM pharma_drug_bid_award_allocations active_allocations WHERE active_allocations.drug_bid_award_id = source_awards.id AND active_allocations.status = 'active') THEN 1 ELSE 0 END as has_active_allocation")
+            ->selectRaw("CASE WHEN EXISTS (SELECT 1 FROM pharma_drug_bid_award_management_assignments active_assignments WHERE active_assignments.drug_bid_award_id = source_awards.id AND active_assignments.status = 'active') THEN 1 ELSE 0 END as has_active_commercial")
             ->selectSub(function ($query) use ($userId): void {
                 $query->from('pharma_drug_bid_award_management_assignments as scoped_assignments')
                     ->join('pharma_drug_bid_award_allocations as scoped_allocations', function ($join): void {
