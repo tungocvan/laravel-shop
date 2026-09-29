@@ -913,6 +913,49 @@ final class PharmaApplicationController extends Controller
             ->with('success', "Đã phân công User cho {$count} Bệnh viện × Sản phẩm.");
     }
 
+    public function bidAwardManagerAssignmentUser(
+        string $scope, int $manager, Request $request, ApplicationRegistry $registry, ClientBidAwardWorkflow $workflow,
+    ): View {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.bid-awards.commercial-policy'), 403);
+        $award = $workflow->contextAward($scope); abort_if($award === null, 404);
+        $workspace = $workflow->managerAssignmentWorkspace($award, $manager); abort_if($workspace === null, 404);
+
+        return view('ClientPortal::applications.pharma.bid-award-manager-assignment-user', [
+            'application'=>$registry->find('pharma'), 'scope'=>$scope, 'award'=>$award,
+            'workspace'=>$workspace, 'users'=>$workflow->managementUsers()->where('id','!=',$manager)->values(),
+        ]);
+    }
+
+    public function transferBidAwardManagerAssignments(
+        string $scope, int $manager, Request $request, ApplicationRegistry $registry, ClientBidAwardWorkflow $workflow,
+    ) {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.bid-awards.commercial-policy'), 403);
+        $award = $workflow->contextAward($scope); abort_if($award === null, 404);
+        $data = $request->validate([
+            'assignment_ids'=>['required','array','min:1'], 'assignment_ids.*'=>['integer'],
+            'to_user_id'=>['required','integer','exists:users,id'],
+        ]);
+        $count = $workflow->transferManagerAssignments($award, $manager, $data['assignment_ids'], (int)$data['to_user_id'], (int)$user->id);
+
+        return redirect()->route('client.pharma.bid-awards.manager-assignment', $scope)
+            ->with('success', "Đã chuyển {$count} phân công sang User mới.");
+    }
+
+    public function destroyBidAwardManagerAssignments(
+        string $scope, int $manager, Request $request, ApplicationRegistry $registry, ClientBidAwardWorkflow $workflow,
+    ) {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.bid-awards.commercial-policy'), 403);
+        $award = $workflow->contextAward($scope); abort_if($award === null, 404);
+        $data = $request->validate(['assignment_ids'=>['required','array','min:1'], 'assignment_ids.*'=>['integer']]);
+        $count = $workflow->removeManagerAssignments($award, $manager, $data['assignment_ids']);
+
+        return redirect()->route('client.pharma.bid-awards.manager-assignment', $scope)
+            ->with('success', "Đã gỡ {$count} phân công. Các sản phẩm này có thể được gán lại cho User khác.");
+    }
+
     public function destroyBidAwardManagers(
         string $scope, Request $request, ApplicationRegistry $registry, ClientBidAwardWorkflow $workflow,
     ) {
