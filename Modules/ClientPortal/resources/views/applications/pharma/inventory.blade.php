@@ -48,37 +48,40 @@
     @endif
 
     <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-        <form id="inventory-filter-form" method="GET" action="{{ route('client.pharma.inventory') }}" class="grid gap-3 lg:grid-cols-12 lg:items-start">
-            <label class="min-w-0 lg:col-span-4">
-                <span class="flex h-7 items-center text-xs font-bold text-slate-500">Tìm thuốc</span>
-                <div class="relative mt-1">
-                    <input id="inventory-search-input" type="search" name="q" value="{{ $filters['q'] }}" autocomplete="off" placeholder="Tên thuốc / hoạt chất" class="w-full rounded-2xl border border-slate-300 bg-white py-3 pl-4 pr-11 text-sm shadow-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200">
-                    @if($filters['q'])
-                        <a href="{{ route('client.pharma.inventory', array_filter(['expiry'=>$filters['expiry'],'cost_status'=>$canViewCosts ? $filters['cost_status'] : null,'sort'=>$canViewCosts ? $filters['sort'] : null])) }}" aria-label="Xóa từ khóa tìm kiếm" class="absolute right-2 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-lg font-bold text-slate-400 hover:bg-slate-100 hover:text-slate-700">×</a>
-                    @endif
-                </div>
-                <span class="mt-1.5 block text-xs text-slate-400">Kết quả tự cập nhật khi bạn nhập.</span>
-            </label>
-
-            <div class="lg:col-span-8">
-                <details id="inventory-advanced-filters" class="group" {{ $hasFilters ? 'open' : '' }}>
-                    <div class="flex h-7 items-center gap-2">
-                    <summary class="cursor-pointer text-xs font-bold text-slate-500">Bộ lọc nâng cao @if($hasFilters)<span class="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-500">Đang áp dụng</span>@endif</summary>
-                    @if($hasFilters)
-                        <a href="{{ route('client.pharma.inventory') }}" class="ml-auto inline-flex items-center rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-black text-rose-700 ring-1 ring-inset ring-rose-200 transition hover:bg-rose-100">× Xóa bộ lọc</a>
-                    @endif
-                </div>
-                    <div class="grid gap-2 pt-2 {{ $canViewCosts ? 'sm:grid-cols-2 lg:grid-cols-3' : '' }}">
-                        <select name="expiry" onchange="this.form.submit()" class="h-12 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-slate-500 focus:ring-2 focus:ring-slate-200"><option value="">Tất cả hạn dùng</option>@foreach($expiryLabels as $value=>$label)<option value="{{ $value }}" @selected($filters['expiry']===$value)>{{ $label }}</option>@endforeach</select>
-                        @if($canViewCosts)
-                            <select name="cost_status" onchange="this.form.submit()" class="h-12 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-slate-500 focus:ring-2 focus:ring-slate-200"><option value="">Tất cả giá vốn</option><option value="priced" @selected($filters['cost_status']==='priced')>Có giá vốn</option><option value="unpriced" @selected($filters['cost_status']==='unpriced')>Chưa có giá vốn</option></select>
-                            <select name="sort" onchange="this.form.submit()" class="h-12 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-slate-500 focus:ring-2 focus:ring-slate-200 sm:col-span-2 lg:col-span-1"><option value="">Hạn dùng gần nhất</option><option value="value_desc" @selected($filters['sort']==='value_desc')>Giá trị tồn lớn nhất</option><option value="value_asc" @selected($filters['sort']==='value_asc')>Giá trị tồn nhỏ nhất</option></select>
+        <form id="inventory-filter-form" method="GET" action="{{ route('client.pharma.inventory') }}">
+            <div class="grid gap-x-4 gap-y-3 lg:grid-cols-12">
+                <label class="min-w-0 lg:col-span-4">
+                    <span class="flex h-7 items-center text-xs font-bold text-slate-500">Tìm thuốc</span>
+                    <div class="relative mt-1">
+                        <input id="inventory-search-input" type="search" name="q" value="{{ $filters['q'] }}" autocomplete="off" placeholder="Tên thuốc / hoạt chất" class="h-12 w-full rounded-2xl border border-slate-300 bg-white px-4 pr-11 text-sm shadow-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200">
+                        @if($filters['q'])
+                            <a href="{{ route('client.pharma.inventory', array_filter(['expiry'=>$filters['expiry'],'cost_status'=>$canViewCosts ? $filters['cost_status'] : null,'sort'=>$canViewCosts ? $filters['sort'] : null])) }}" aria-label="Xóa từ khóa tìm kiếm" class="absolute right-2 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-lg font-bold text-slate-400 hover:bg-slate-100 hover:text-slate-700">×</a>
                         @endif
                     </div>
-                </details>
+                </label>
+
+                <div class="min-w-0 lg:col-span-8">
+                    <div class="flex h-7 items-center gap-2">
+                        <button id="inventory-filter-toggle" type="button" aria-expanded="{{ $hasFilters ? 'true' : 'false' }}" class="inline-flex items-center gap-1 text-xs font-bold text-slate-500 lg:pointer-events-none">
+                            <span class="lg:hidden">▾</span><span>Bộ lọc nâng cao</span>
+                        </button>
+                        @if($hasFilters)
+                            <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-500">Đang áp dụng</span>
+                            <a href="{{ route('client.pharma.inventory') }}" class="ml-auto inline-flex items-center rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-black text-rose-700 ring-1 ring-inset ring-rose-200 transition hover:bg-rose-100">× Xóa bộ lọc</a>
+                        @endif
+                    </div>
+                    <div id="inventory-filter-panel" class="mt-1 grid gap-2 {{ $hasFilters ? '' : 'hidden' }} sm:grid-cols-2 lg:grid lg:grid-cols-3">
+                        <select name="expiry" onchange="this.form.submit()" class="h-12 rounded-2xl border border-slate-300 bg-white px-4 text-sm shadow-sm focus:border-slate-500 focus:ring-2 focus:ring-slate-200"><option value="">Tất cả hạn dùng</option>@foreach($expiryLabels as $value=>$label)<option value="{{ $value }}" @selected($filters['expiry']===$value)>{{ $label }}</option>@endforeach</select>
+                        @if($canViewCosts)
+                            <select name="cost_status" onchange="this.form.submit()" class="h-12 rounded-2xl border border-slate-300 bg-white px-4 text-sm shadow-sm focus:border-slate-500 focus:ring-2 focus:ring-slate-200"><option value="">Tất cả giá vốn</option><option value="priced" @selected($filters['cost_status']==='priced')>Có giá vốn</option><option value="unpriced" @selected($filters['cost_status']==='unpriced')>Chưa có giá vốn</option></select>
+                            <select name="sort" onchange="this.form.submit()" class="h-12 rounded-2xl border border-slate-300 bg-white px-4 text-sm shadow-sm focus:border-slate-500 focus:ring-2 focus:ring-slate-200 sm:col-span-2 lg:col-span-1"><option value="">Hạn dùng gần nhất</option><option value="value_desc" @selected($filters['sort']==='value_desc')>Giá trị tồn lớn nhất</option><option value="value_asc" @selected($filters['sort']==='value_asc')>Giá trị tồn nhỏ nhất</option></select>
+                        @endif
+                    </div>
+                </div>
             </div>
+            <p class="mt-2 text-xs text-slate-400">Kết quả tự cập nhật khi bạn nhập.</p>
         </form>
-     </section>
+    </section>
 
     <section id="inventory-mobile-list" class="grid gap-3 md:grid-cols-2 xl:hidden">
         @forelse($balances as $row)
@@ -128,9 +131,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    const details = document.getElementById('inventory-advanced-filters');
-    const desktop = window.matchMedia('(min-width: 1024px)');
-    if (details && desktop.matches) details.open = true;
+    const filterToggle = document.getElementById('inventory-filter-toggle');
+    const filterPanel = document.getElementById('inventory-filter-panel');
+    if (filterToggle && filterPanel) {
+        filterToggle.addEventListener('click', () => {
+            if (window.matchMedia('(min-width: 1024px)').matches) return;
+            const isHidden = filterPanel.classList.toggle('hidden');
+            filterToggle.setAttribute('aria-expanded', isHidden ? 'false' : 'true');
+        });
+    }
 
     const mobileList = document.getElementById('inventory-mobile-list');
     const desktopBody = document.getElementById('inventory-desktop-body');
