@@ -80,6 +80,11 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString("DB::table('pharma_drug_bid_awards as source_awards')", $bidAwards);
         $this->assertStringContainsString("'my_allocated_quantity'", $bidAwards);
         $this->assertStringContainsString("'my_hospitals_count'", $bidAwards);
+        $this->assertStringContainsString('filterOptions', $bidAwards);
+        $this->assertStringContainsString("'allocation_ready'", $bidAwards);
+        $this->assertStringContainsString("'commercial_ready'", $bidAwards);
+        $this->assertStringContainsString('allocated_product_count', $bidAwards);
+        $this->assertStringContainsString('commercial_product_count', $bidAwards);
         $this->assertStringNotContainsString("->where('awards.user_id'", $bidAwards);
         $this->assertStringNotContainsString('auth()', $bidAwards);
     }
@@ -113,7 +118,15 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString('DOMParser', $list);
         $this->assertStringContainsString('Danh sách kết quả trúng thầu', $list);
         $this->assertStringContainsString('kết quả trúng thầu · phần được giao sẽ được đánh dấu riêng', $list);
-        $this->assertStringContainsString('SL của tôi', $list);
+        $this->assertStringContainsString('Bộ lọc nâng cao', $list);
+        $this->assertStringContainsString('Chủ đầu tư', $list);
+        $this->assertStringContainsString('Sản phẩm', $list);
+        $this->assertStringContainsString('Giá trị', $list);
+        $this->assertStringContainsString('Thiết lập kinh doanh', $list);
+        $this->assertStringContainsString('Phân bổ:', $list);
+        $this->assertStringContainsString('CSKD:', $list);
+        $this->assertStringNotContainsString('SP của tôi', $list);
+        $this->assertStringNotContainsString('SL của tôi', $list);
         $this->assertStringContainsString('Giá trị KQLCNT', $list);
         $this->assertStringContainsString('Còn {{ str_pad', $list);
         $this->assertStringContainsString('md:grid-cols-2 xl:grid-cols-3', $list);
@@ -122,11 +135,11 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString("setTimeout(()=>form.requestSubmit(),350)", $list);
         $this->assertStringContainsString('Trong phạm vi tôi phụ trách', $list);
         $this->assertStringContainsString('md:grid-cols-2 xl:grid-cols-3', $list);
-        $this->assertStringContainsString('BV của tôi', $detail);
+        $this->assertStringNotContainsString('BV của tôi', $detail);
         $this->assertStringContainsString('KQLCNT', $detail);
         $this->assertStringContainsString('Xem thêm sản phẩm', $detail);
         $this->assertStringContainsString('Giá trúng thầu', $detail);
-        $this->assertStringContainsString('SL của tôi', $detail);
+        $this->assertStringNotContainsString('SL của tôi', $detail);
         $this->assertStringNotContainsString('{{ $size }} / trang', $list);
     }
 }
