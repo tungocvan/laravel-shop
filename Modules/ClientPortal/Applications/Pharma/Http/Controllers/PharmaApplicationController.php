@@ -13,6 +13,8 @@ use Modules\Pharma\Models\PriceList;
 use Modules\Pharma\Services\MedicineCatalog;
 use Modules\Pharma\Services\UserPriceListWorkspace;
 use Modules\Pharma\Services\UserCommercialHospitalWorkspace;
+use Modules\Pharma\Services\UserBidAwardWorkspace;
+use Modules\Pharma\Services\ClientBidAwardWorkflow;
 use Modules\Pharma\Services\UserPriceListWorkflow;
 use Modules\Pharma\Services\PriceListApprovalWorkflow;
 use Modules\Pharma\Services\ApproverGlobalPriceListWorkflow;
@@ -196,8 +198,19 @@ final class PharmaApplicationController extends Controller
                 search: $validated['q'] ?? null,
                 perPage: (int) ($validated['per_page'] ?? 25),
                 page: (int) ($validated['page'] ?? 1),
+                investor: $validated['investor'] ?? null,
+                medicine: $validated['medicine'] ?? null,
+                valueSort: $validated['value_sort'] ?? null,
+                businessSetup: $validated['business_setup'] ?? null,
             )->withQueryString(),
             'search' => trim((string) ($validated['q'] ?? '')),
+            'filters' => [
+                'investor' => trim((string) ($validated['investor'] ?? '')),
+                'medicine' => trim((string) ($validated['medicine'] ?? '')),
+                'value_sort' => (string) ($validated['value_sort'] ?? ''),
+                'business_setup' => (string) ($validated['business_setup'] ?? ''),
+            ],
+            'filterOptions' => $workspace->filterOptions(),
             'perPage' => (int) ($validated['per_page'] ?? 25),
         ]);
     }
@@ -649,6 +662,331 @@ final class PharmaApplicationController extends Controller
             'search' => trim((string) ($validated['q'] ?? '')),
             'perPage' => (int) ($validated['per_page'] ?? 25),
         ]);
+    }
+
+
+    public function bidAwards(
+        Request $request,
+        ApplicationRegistry $registry,
+        ClientPortalSettingsService $settings,
+        UserBidAwardWorkspace $workspace,
+    ): View {
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:120'],
+            'page' => ['nullable', 'integer', 'min:1'],
+            'investor' => ['nullable', 'string', 'max:255'],
+            'medicine' => ['nullable', 'string', 'max:255'],
+            'value_sort' => ['nullable', 'in:asc,desc'],
+            'business_setup' => ['nullable', 'in:commercial_missing,commercial_ready,allocation_missing,allocation_ready'],
+        ]);
+
+        $application = $registry->find('pharma');
+        abort_if($application === null, 404);
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+
+        $feature = collect($application['features'] ?? [])->first(fn (array $feature): bool => $feature['key'] === 'bid-awards');
+        abort_if($feature === null, 404);
+
+        return view('ClientPortal::applications.pharma.bid-awards', [
+            'application' => $application,
+            'applicationPresentation' => $settings->applicationPresentation($application),
+            'featurePresentation' => $settings->featurePresentation($application['key'], $feature),
+            'results' => $workspace->browseResults(
+                userId: (int) $user->id,
+                search: $validated['q'] ?? null,
+                perPage: 20,
+                page: (int) ($validated['page'] ?? 1),
+                investor: $validated['investor'] ?? null,
+                medicine: $validated['medicine'] ?? null,
+                valueSort: $validated['value_sort'] ?? null,
+                businessSetup: $validated['business_setup'] ?? null,
+            )->withQueryString(),
+            'search' => trim((string) ($validated['q'] ?? '')),
+            'filters' => [
+                'investor' => trim((string) ($validated['investor'] ?? '')),
+                'medicine' => trim((string) ($validated['medicine'] ?? '')),
+                'value_sort' => (string) ($validated['value_sort'] ?? ''),
+                'business_setup' => (string) ($validated['business_setup'] ?? ''),
+            ],
+            'filterOptions' => $workspace->filterOptions(),
+        ]);
+    }
+
+    public function bidAward(
+        string $scope,
+        Request $request,
+        ApplicationRegistry $registry,
+        ClientPortalSettingsService $settings,
+        UserBidAwardWorkspace $workspace,
+        ClientBidAwardWorkflow $bidWorkflow,
+    ): View {
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:120'],
+            'page' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        $application = $registry->find('pharma');
+        abort_if($application === null, 404);
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+
+        $feature = collect($application['features'] ?? [])->first(fn (array $feature): bool => $feature['key'] === 'bid-awards');
+        abort_if($feature === null, 404);
+
+        $result = $workspace->findResult((int) $user->id, $scope);
+        abort_if($result === null, 404);
+
+        return view('ClientPortal::applications.pharma.bid-award-show', [
+            'application' => $application,
+            'applicationPresentation' => $settings->applicationPresentation($application),
+            'featurePresentation' => $settings->featurePresentation($application['key'], $feature),
+            'result' => $result,
+            'products' => $workspace->products(
+                userId: (int) $user->id,
+                scope: $result,
+                search: $validated['q'] ?? null,
+                perPage: 20,
+                page: (int) ($validated['page'] ?? 1),
+            )->withQueryString(),
+            'search' => trim((string) ($validated['q'] ?? '')),
+            'canAllocate' => $registry->userCan($user, 'client.pharma.bid-awards.allocate'),
+            'canManageCommercialPolicy' => $registry->userCan($user, 'client.pharma.bid-awards.commercial-policy'),
+            'hasActiveAllocation' => ($contextAward = $bidWorkflow->contextAward($scope)) ? $bidWorkflow->hasActiveAllocation($contextAward) : false,
+        ]);
+    }
+
+    public function bidAwardAllocation(
+        string $scope, Request $request, ApplicationRegistry $registry, ClientBidAwardWorkflow $workflow,
+    ): View {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.bid-awards.allocate'), 403);
+        $award = $workflow->contextAward($scope); abort_if($award === null, 404);
+        $setup = $workflow->distributionSetup($award);
+        $draftProvinces = array_values(array_filter(array_map('strval', (array) $request->query('provinces', $setup['provinces']))));
+        $draftFacilityIds = array_values(array_unique(array_map('intval', (array) $request->query('facilities', $setup['facility_ids']))));
+
+        return view('ClientPortal::applications.pharma.bid-award-allocation', [
+            'application' => $registry->find('pharma'), 'scope' => $scope, 'award' => $award,
+            'setup' => $setup, 'provinceOptions' => $workflow->provinceOptions(),
+            'draftProvinces' => $draftProvinces, 'draftFacilityIds' => $draftFacilityIds,
+            'facilityOptions' => $workflow->facilitiesForProvinces($draftProvinces),
+            'hospitalCards' => $workflow->hospitalCards($award),
+            'productAllocationCards' => $workflow->productAllocationCards($award),
+        ]);
+    }
+
+    public function storeBidAwardDistributionSetup(
+        string $scope, Request $request, ApplicationRegistry $registry, ClientBidAwardWorkflow $workflow,
+    ) {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.bid-awards.allocate'), 403);
+        $award = $workflow->contextAward($scope); abort_if($award === null, 404);
+        $data = $request->validate([
+            'province_names' => ['required','array','min:1'], 'province_names.*' => ['string','max:100'],
+            'facility_ids' => ['required','array','min:1'], 'facility_ids.*' => ['integer'],
+            'effective_from' => ['required','date'], 'effective_until' => ['required','date','after_or_equal:effective_from'],
+        ]);
+        $workflow->saveDistributionSetup($award, $data, (int) $user->id);
+
+        return redirect()->route('client.pharma.bid-awards.allocation', $scope)->with('success', 'Đã lưu Thiết lập chung. Bạn có thể phân bổ sản phẩm cho các bệnh viện đã chọn.');
+    }
+
+    public function bidAwardHospitalAllocation(
+        string $scope, int $partner, Request $request, ApplicationRegistry $registry, ClientBidAwardWorkflow $workflow,
+    ): View {
+        $user=$request->user('web'); abort_if($user===null,401); abort_unless($registry->userCan($user,'client.pharma.bid-awards.allocate'),403);
+        $award=$workflow->contextAward($scope); abort_if($award===null,404); $hospital=$workflow->hospital($award,$partner); abort_if($hospital===null,404);
+        return view('ClientPortal::applications.pharma.bid-award-hospital-allocation',[
+            'application'=>$registry->find('pharma'),'scope'=>$scope,'award'=>$award,'hospital'=>$hospital,
+            'products'=>$workflow->products($award),'allocations'=>$workflow->hospitalAllocations($award,$partner),
+            'canManageCommercialPolicy'=>$registry->userCan($user,'client.pharma.bid-awards.commercial-policy'),
+        ]);
+    }
+
+    public function storeBidAwardHospitalAllocation(
+        string $scope, int $partner, Request $request, ApplicationRegistry $registry, ClientBidAwardWorkflow $workflow,
+    ) {
+        $user=$request->user('web'); abort_if($user===null,401); abort_unless($registry->userCan($user,'client.pharma.bid-awards.allocate'),403);
+        $award=$workflow->contextAward($scope); abort_if($award===null,404);
+        $quantities=collect((array)$request->input('quantities',[]))->map(function($value){
+            if ($value === null || $value === '') return $value;
+            return preg_replace('/[^0-9]/', '', (string)$value);
+        })->all();
+        $request->merge(['quantities'=>$quantities]);
+        $data=$request->validate(['quantities'=>['required','array'],'quantities.*'=>['nullable','integer','gt:0']]);
+        $count=$workflow->saveHospitalAllocations($award,$partner,$data['quantities'],(int)$user->id);
+        return redirect()->route('client.pharma.bid-awards.allocation.hospital',[$scope,$partner])->with('success',"Đã lưu {$count} sản phẩm cho bệnh viện.");
+    }
+
+    public function bidAwardHospitalCommercialPolicy(
+        string $scope, int $partner, Request $request, ApplicationRegistry $registry, ClientBidAwardWorkflow $workflow,
+    ): View {
+        $user=$request->user('web'); abort_if($user===null,401); abort_unless($registry->userCan($user,'client.pharma.bid-awards.commercial-policy'),403);
+        $award=$workflow->contextAward($scope); abort_if($award===null,404); $hospital=$workflow->hospital($award,$partner); abort_if($hospital===null,404);
+        $allocations=$workflow->hospitalAllocations($award,$partner); abort_if($allocations->isEmpty(),409,'Cần phân bổ số lượng cho bệnh viện trước khi thiết lập CSKD.');
+        return view('ClientPortal::applications.pharma.bid-award-hospital-policy',[
+            'application'=>$registry->find('pharma'),'scope'=>$scope,'award'=>$award,'hospital'=>$hospital,
+            'products'=>$workflow->products($award),'allocations'=>$allocations,'productPolicies'=>$workflow->productPolicies($award),
+        ]);
+    }
+
+    public function storeBidAwardHospitalCommercialPolicy(
+        string $scope, int $partner, Request $request, ApplicationRegistry $registry, ClientBidAwardWorkflow $workflow,
+    ) {
+        $user=$request->user('web'); abort_if($user===null,401); abort_unless($registry->userCan($user,'client.pharma.bid-awards.commercial-policy'),403);
+        $award=$workflow->contextAward($scope); abort_if($award===null,404);
+        $data=$request->validate(['percentages'=>['required','array'],'percentages.*'=>['nullable','numeric','between:0,100']]);
+        $count=$workflow->saveHospitalPolicies($award,$partner,$data['percentages'],(int)$user->id);
+        return redirect()->route('client.pharma.bid-awards.allocation.hospital.policy',[$scope,$partner])->with('success',"Đã lưu CSKD cho {$count} sản phẩm.");
+    }
+
+    public function bidAwardCommercialPolicy(
+        string $scope, Request $request, ApplicationRegistry $registry, ClientBidAwardWorkflow $workflow,
+    ): View {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.bid-awards.commercial-policy'), 403);
+        $award = $workflow->contextAward($scope); abort_if($award === null, 404);
+        abort_unless($workflow->hasActiveAllocation($award), 409, 'Cần hoàn tất phân bổ số lượng trước khi thiết lập chính sách kinh doanh.');
+
+        return view('ClientPortal::applications.pharma.bid-award-commercial-policy', [
+            'application' => $registry->find('pharma'), 'scope' => $scope, 'award' => $award,
+            'products' => $workflow->products($award), 'policies' => $workflow->productPolicies($award),
+        ]);
+    }
+
+    public function storeBidAwardCommercialPolicy(
+        string $scope, Request $request, ApplicationRegistry $registry, ClientBidAwardWorkflow $workflow,
+    ) {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.bid-awards.commercial-policy'), 403);
+        $award = $workflow->contextAward($scope); abort_if($award === null, 404);
+        $data = $request->validate(['percentages' => ['required', 'array'], 'percentages.*' => ['nullable', 'numeric', 'between:0,100']]);
+        $workflow->saveProductPolicies($award, $data['percentages'], (int) $user->id);
+
+        return redirect()->route('client.pharma.bid-awards.manager-assignment', $scope)->with('success', 'Đã lưu chính sách kinh doanh. Tiếp tục chọn cách phân công User quản lý.');
+    }
+
+    public function bidAwardManagerAssignment(
+        string $scope, Request $request, ApplicationRegistry $registry, ClientBidAwardWorkflow $workflow,
+    ): View {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.bid-awards.commercial-policy'), 403);
+        $award = $workflow->contextAward($scope); abort_if($award === null, 404);
+        abort_unless($workflow->commercialPolicyReady($award), 409, 'Hãy hoàn tất chính sách kinh doanh trước khi phân công User quản lý.');
+
+        $state = $workflow->managementAssignmentState($award);
+        $selection = $request->validate([
+            'mode' => ['nullable', 'in:single,multiple'],
+            'hospital_id' => ['nullable','integer'],
+            'manager_id' => ['nullable','integer'],
+        ]);
+        $requestedMode = $selection['mode'] ?? null;
+        $mode = $state['persisted_mode'] !== 'unassigned' ? $state['persisted_mode'] : $requestedMode;
+        $hospitalId = $mode === 'multiple' ? (int) ($selection['hospital_id'] ?? 0) : 0;
+        $managerId = $mode === 'multiple' ? (int) ($selection['manager_id'] ?? 0) : 0;
+        $hospitalCards = $mode === 'multiple' ? $workflow->managementHospitalCards($award) : collect();
+        $selectedHospital = $hospitalId > 0 ? $hospitalCards->first(fn ($hospital) => (int) $hospital->id === $hospitalId) : null;
+        $products = $selectedHospital && ! $selectedHospital->pwa_management_complete
+            ? $workflow->unassignedHospitalProducts($award, $hospitalId) : collect();
+
+        return view('ClientPortal::applications.pharma.bid-award-manager-assignment', [
+            'application' => $registry->find('pharma'), 'scope' => $scope, 'award' => $award,
+            'assignmentState' => $state, 'assignmentMode' => $mode,
+            'assignmentSummary' => $workflow->managementAssignmentSummary($award),
+            'users' => $mode ? $workflow->managementUsers() : collect(),
+            'hospitalCards' => $hospitalCards, 'selectedHospital' => $selectedHospital, 'products' => $products,
+            'selectedManagerId' => $managerId,
+        ]);
+    }
+
+    public function storeBidAwardSingleManager(
+        string $scope, Request $request, ApplicationRegistry $registry, ClientBidAwardWorkflow $workflow,
+    ) {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.bid-awards.commercial-policy'), 403);
+        $award = $workflow->contextAward($scope); abort_if($award === null, 404);
+        $data = $request->validate(['user_id' => ['required','integer','exists:users,id']]);
+        $count = $workflow->assignSingleManager($award, (int) $data['user_id'], (int) $user->id);
+
+        return redirect()->route('client.pharma.bid-awards.manager-assignment', $scope)
+            ->with('success', "Đã phân công User cho {$count} Bệnh viện × Sản phẩm.");
+    }
+
+    public function bidAwardManagerAssignmentUser(
+        string $scope, int $manager, Request $request, ApplicationRegistry $registry, ClientBidAwardWorkflow $workflow,
+    ): View {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.bid-awards.commercial-policy'), 403);
+        $award = $workflow->contextAward($scope); abort_if($award === null, 404);
+        $workspace = $workflow->managerAssignmentWorkspace($award, $manager); abort_if($workspace === null, 404);
+
+        return view('ClientPortal::applications.pharma.bid-award-manager-assignment-user', [
+            'application'=>$registry->find('pharma'), 'scope'=>$scope, 'award'=>$award,
+            'workspace'=>$workspace, 'users'=>$workflow->managementUsers()->where('id','!=',$manager)->values(),
+        ]);
+    }
+
+    public function transferBidAwardManagerAssignments(
+        string $scope, int $manager, Request $request, ApplicationRegistry $registry, ClientBidAwardWorkflow $workflow,
+    ) {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.bid-awards.commercial-policy'), 403);
+        $award = $workflow->contextAward($scope); abort_if($award === null, 404);
+        $data = $request->validate([
+            'assignment_ids'=>['required','array','min:1'], 'assignment_ids.*'=>['integer'],
+            'to_user_id'=>['required','integer','exists:users,id'],
+        ]);
+        $count = $workflow->transferManagerAssignments($award, $manager, $data['assignment_ids'], (int)$data['to_user_id'], (int)$user->id);
+
+        return redirect()->route('client.pharma.bid-awards.manager-assignment', $scope)
+            ->with('success', "Đã chuyển {$count} phân công sang User mới.");
+    }
+
+    public function destroyBidAwardManagerAssignments(
+        string $scope, int $manager, Request $request, ApplicationRegistry $registry, ClientBidAwardWorkflow $workflow,
+    ) {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.bid-awards.commercial-policy'), 403);
+        $award = $workflow->contextAward($scope); abort_if($award === null, 404);
+        $data = $request->validate(['assignment_ids'=>['required','array','min:1'], 'assignment_ids.*'=>['integer']]);
+        $count = $workflow->removeManagerAssignments($award, $manager, $data['assignment_ids']);
+
+        return redirect()->route('client.pharma.bid-awards.manager-assignment', $scope)
+            ->with('success', "Đã gỡ {$count} phân công. Các sản phẩm này có thể được gán lại cho User khác.");
+    }
+
+    public function destroyBidAwardManagers(
+        string $scope, Request $request, ApplicationRegistry $registry, ClientBidAwardWorkflow $workflow,
+    ) {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.bid-awards.commercial-policy'), 403);
+        $award = $workflow->contextAward($scope); abort_if($award === null, 404);
+        $count = $workflow->removeAllManagers($award);
+
+        return redirect()->route('client.pharma.bid-awards.manager-assignment', $scope)
+            ->with('success', "Đã gỡ {$count} phân công. Bạn có thể chọn lại cách phân công.");
+    }
+
+    public function storeBidAwardProductManagers(
+        string $scope, Request $request, ApplicationRegistry $registry, ClientBidAwardWorkflow $workflow,
+    ) {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.bid-awards.commercial-policy'), 403);
+        $award = $workflow->contextAward($scope); abort_if($award === null, 404);
+        $data = $request->validate([
+            'user_id' => ['required','integer','exists:users,id'],
+            'hospital_id' => ['required','integer'],
+            'award_ids' => ['required','array','min:1'],
+            'award_ids.*' => ['integer'],
+        ]);
+        $count = $workflow->assignManagerToHospitalProducts(
+            $award, (int) $data['hospital_id'], $data['award_ids'], (int) $data['user_id'], (int) $user->id
+        );
+
+        return redirect()->route('client.pharma.bid-awards.manager-assignment', [
+            'scope'=>$scope, 'mode'=>'multiple', 'manager_id'=>(int) $data['user_id'],
+        ])->with('success', "Đã gán User cho {$count} sản phẩm tại bệnh viện đã chọn.");
     }
 
     public function commercial(

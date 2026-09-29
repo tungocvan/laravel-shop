@@ -1,3 +1,209 @@
+## Checkpoint — Selective manager adjustment workspace — 2026-09-29
+
+- Multi-manager summary cards now expose `Điều chỉnh phân công` per User. Single-manager replacement remains in the existing single-mode flow.
+- Added a dedicated mobile-first adjustment workspace grouped by Hospital -> assigned products for the selected User.
+- Selection supports one product, all assignments within one hospital, or all assignments owned by the User. A sticky action panel shows the live selected count.
+- `Thay User mục đã chọn` transfers only selected active assignments to another active User. `Gỡ mục đã chọn` uses a confirmation modal and removes only selected assignments; allocation quantities, hospital commercial-policy overrides, product policies and distribution scope are untouched.
+- Pharma owns both mutations. `DrugBidAwardCommercialPolicyService` rechecks result-group scope, current owner, active status and assignment IDs under `lockForUpdate()`; stale/forged IDs are rejected instead of partially mutating another User's work.
+- Transfer rejects the same User and inactive/missing target Users. After transfer/removal the main assignment screen recomputes User/assignment/hospital/product counters from canonical rows. Removed pairs become eligible again in the existing User -> Hospital -> unassigned products workflow.
+- Added GET/PUT/DELETE ClientPortal routes for the per-User adjustment workspace and focused contract coverage for ownership guards, UI selection levels, transfer/remove actions and preservation copy.
+- Required checkpoint: pull + focused `PharmaBidAwardsCapabilityTest`; if PASS, run `tests/Feature/ClientApps`. Manual acceptance should cover partial transfer, full-User transfer, partial remove, removing the final assignment of a User, counter refresh, and reappearance of removed products in the unassigned workflow.
+
+## Checkpoint — Multi-User assignment wizard UX — 2026-09-29
+
+- Replaced native-select option hiding with a real live User result panel. Typing name/email filters visible User rows immediately; tapping a row updates the canonical select/state and enables the hospital step.
+- Multiple assignment Step 3 now reports the total allocated-hospital count plus completed/remaining progress.
+- Assignable hospitals are sorted before completed hospitals in the Pharma read model; completed hospitals remain visible but disabled.
+- Once a hospital is selected, Step 3 collapses to a compact selected-hospital summary with progress and an explicit `Đổi bệnh viện` action. The hospital list is not rendered in that state, allowing Step 4 products to move up on mobile.
+- Step 4 shows live selected-product count plus select-all behavior.
+- After assigning products, redirect preserves `manager_id` but intentionally drops `hospital_id`: the same User remains selected while the workflow returns to Step 3 for the next hospital. Hospital progress is recomputed from canonical assignments.
+- Added focused contract coverage for live User filtering, allocated-hospital totals, completed-last ordering, collapsed hospital state, selected-product count and post-save return semantics.
+- Required checkpoint: pull + focused Pharma bid-awards capability test; if PASS, run ClientApps regression. Manual acceptance should verify live User typing, hospital collapse/Change Hospital, partial assignment progress, and same-User continuation after save.
+
+## Checkpoint — Hospital-first multi-User assignment — 2026-09-29
+
+- Refactored the `multiple` manager mode from product-first bulk assignment to the canonical business sequence: `User -> Hospital -> remaining allocated products -> assign`.
+- Hospital cards derive progress from real active allocation pairs versus active management assignments and show `assigned/allocated products`.
+- Hospitals whose allocated products are all assigned remain visible for progress context but are disabled and labeled `Đã phân công hết`; they cannot be selected for the next User.
+- Selecting a hospital renders only products that (a) have an active allocation at that hospital and (b) have no active management assignment.
+- Server-side Pharma guard recomputes the allowed product IDs at save time. Forged/stale requests that include an already-assigned product or a product not allocated to the hospital are rejected; the flow never silently overwrites another User's assignment.
+- Mutation delegates to canonical `DrugBidAwardCommercialPolicyService::assignManagers(contextAward, awardIds, partnerId, userId, actorId)`.
+- Selected manager is carried in `manager_id` while navigating to a hospital and is restored after the server renders the hospital-specific product set.
+- Single-manager mode, current-assignment summary and confirmed global reset remain unchanged.
+- Added focused contract coverage for hospital progress, completed-hospital disablement, unassigned-product filtering, stale-request guard, canonical hospital assignment mutation and manager state preservation.
+- Required checkpoint: pull + focused `PharmaBidAwardsCapabilityTest`; then real UI acceptance for User -> Hospital -> products, including a hospital becoming disabled immediately after its last remaining product is assigned.
+
+## Checkpoint — Current manager visibility + safe assignment reset — 2026-09-29
+
+- Manager assignment now exposes a canonical current-assignment summary before the mode cards: User name/email plus assignment, hospital and product counts.
+- Single mode preselects the currently assigned User and changes the primary action to `Thay User phụ trách`; saving reuses canonical `assignManagerToAllAllocations()`, so existing assignment rows are updated rather than duplicated.
+- Existing mode remains locked while assignments exist. The UI explicitly explains how to switch modes.
+- Added `Gỡ phân công toàn bộ` with a centered confirmation modal. The copy explicitly states allocation quantities and commercial policies are preserved.
+- Reset delegates to existing Pharma `DrugBidAwardCommercialPolicyService::removeAllManagers()`; ClientPortal owns no assignment-delete business logic.
+- After reset, persisted mode becomes `unassigned`, so the user can choose Single or Multiple again.
+- Added focused contract coverage for assignment summary eager-loading, DELETE route/controller delegation, current User presentation, single-mode replacement CTA and confirmation-modal reset semantics.
+- Required checkpoint: pull + focused `PharmaBidAwardsCapabilityTest`, then real UI acceptance for current manager display, replace User, cancel reset, confirmed reset, and selecting Multiple after reset.
+
+## Checkpoint — Mode-first User management assignment — 2026-09-29
+
+- Extended the PWA sequence to `Allocation -> Commercial Policy -> User management assignment`.
+- Saving the base Commercial Policy now continues to the manager-assignment workspace. The policy page also exposes an explicit `Phân công User quản lý` action and labels the primary save as `Lưu & tiếp tục`.
+- The assignment workspace intentionally starts with `Cách phân công` and renders no User/product configuration until a mode is selected.
+- Canonical Admin modes are preserved:
+  - `single`: Một User phụ trách toàn bộ -> `DrugBidAwardCommercialPolicyService::assignManagerToAllAllocations()`;
+  - `multiple`: Nhiều User phụ trách -> `assignManagerToProductAllocations()`.
+- Existing assignment data determines the persisted mode. A query-string mode cannot override an already-persisted single/multiple assignment state; the UI explains that all assignments must be removed before changing mode, matching Admin semantics.
+- PWA assignment is gated until every active allocation has an effective commercial policy (hospital override or base product policy).
+- Only active Users are offered and Pharma workflow revalidates active User status server-side.
+- Multiple mode shows only products with active allocations and displays assigned-hospital / allocated-hospital progress. It supports select-all and assigns only across real allocation pairs; it does not create allocations.
+- ClientPortal remains a thin adapter; assignment persistence/business mutation stays in the canonical Pharma commercial-policy service.
+- Added focused contract coverage for routes, sequence gate, mode-first disclosure, canonical service reuse, active-user guard, mobile UI hooks and no Admin/Livewire reuse.
+- Required checkpoint: pull + focused `PharmaBidAwardsCapabilityTest`; if PASS run `tests/Feature/ClientApps`, then real tablet/mobile acceptance of both assignment modes before PR.
+
+## Checkpoint — Compact policy values + incomplete allocation filtering — 2026-09-29
+
+- Base commercial-policy inputs now trim the model's decimal:4 presentation: e.g. `25.0000 -> 25`, while meaningful decimals remain (e.g. `2.5000 -> 2.5`). Persistence semantics are unchanged.
+- Product allocation overview now has client-side live product search with clear (×) and a `Chưa phân bổ hết` toggle. Search and incomplete-only filtering compose without navigation/reload.
+- Cards with remaining quantity > 0 render a red `Phân bổ chưa hết` badge and subtle warning surface; fully allocated cards retain green `Đã phân bổ hết`.
+- Filtering uses the already-rendered finite result-group products and does not add a server route/query or change canonical allocation calculations.
+- Added focused contract coverage for compact policy values, search/clear/toggle hooks, incomplete status data and empty-filter feedback.
+- Required checkpoint: pull + focused `PharmaBidAwardsCapabilityTest`, then mobile/tablet acceptance of search + incomplete filter.
+
+## Checkpoint — Hospital quantity formatting + base/override CSKD — 2026-09-29
+
+- Removed redundant `Đang phân bổ` and `Hoàn tất` badges from hospital cards; numeric product progress remains the primary status signal.
+- Hospital allocation quantity inputs now render integer quantities with Vietnamese thousands separators and reformat while typing.
+- Formatted quantity strings are normalized at the ClientPortal request boundary before Laravel validation by stripping non-digits, then validated as positive integers. Example: `1.000 -> 1000`; formatted strings never reach the Pharma allocation service.
+- Percentage inputs intentionally do NOT use the quantity parser; percentages retain decimal semantics and 0..100 validation.
+- Hospital CSKD now shows two context cards for each allocated product: allocated quantity and canonical base CSKD from `DrugBidAwardProductPolicy.commission_percentage`.
+- `CSKD riêng bệnh viện (%)` remains an override. Blank means use the base policy; saving blank now calls canonical `saveHospitalPolicyOverride()` so an existing override is reset to NULL instead of silently being skipped.
+- Added focused contract coverage for numeric normalization, formatted display, base-policy context, override reset path, and removed progress badges.
+- Required checkpoint: pull + focused `PharmaBidAwardsCapabilityTest`, then verify formatted quantity save/reload and blank override reset in real UI.
+
+## Checkpoint — Collapsible allocation dashboard + product progress cards — 2026-09-29
+
+- Tablet UI acceptance passed for hospital-first allocation, followed by a compactness refinement.
+- `Thiết lập chung` is now a section-level toggle; saved setup is collapsed by default while its header retains province/facility/effectivity summary.
+- `Bệnh viện nhận phân bổ` is also a section-level toggle; search and hospital cards render only when expanded.
+- Added an always-visible product allocation overview between those sections. Each product card shows winning quantity, total active allocated quantity across hospitals, and remaining quantity.
+- Remaining is calculated in `ClientBidAwardWorkflow::productAllocationCards()` from canonical active allocations as `max(winning - allocated, 0)`; Blade only presents the result.
+- A product with positive winning quantity and remaining = 0 is labelled `Đã phân bổ hết`.
+- Hospital-first quantity and hospital-policy workflows are unchanged.
+- Required checkpoint: focused `PharmaBidAwardsCapabilityTest`, then tablet/mobile visual acceptance before full ClientApps regression.
+
+## Checkpoint — Hospital-first allocation UX — 2026-09-29
+
+- Reworked the allocation PWA after tablet acceptance feedback: the page no longer expands a product x hospital matrix.
+- Canonical Distribution Setup remains first, but its three stages are now compact `<details>` toggles: (1) scope/effectivity, (2) KCB facilities, (3) review/save. Existing saved setup is collapsed into a summary by default.
+- After setup, the page renders compact hospital cards with progress: allocated products / total products and status Chưa phân bổ / Đang phân bổ / Hoàn tất.
+- Each hospital has `Nhận phân bổ số lượng`, opening a dedicated hospital workspace. Only that hospital's product quantities are rendered there.
+- Hospital allocation writes still go through canonical `DrugBidAwardAllocationService`; distribution membership is revalidated server-side.
+- Added hospital-specific CSKD workspace. This intentionally uses canonical `DrugBidAwardCommercialPolicyService::saveHospitalPolicyOverride()`, because the domain already stores hospital+product overrides on allocations. Products without an active allocation stay visibly locked.
+- The previous global product-policy route remains available for the existing capability, but the hospital-first allocation flow links to the hospital override UI.
+- Added focused contract coverage for collapsible setup, absence of the old matrix on the main allocation page, hospital routes/workspaces and allocation-before-CSKD gating.
+- Required checkpoint: pull + focused `PharmaBidAwardsCapabilityTest`; then tablet/mobile UI acceptance before ClientApps regression.
+- Status: IMPLEMENTED — AWAITING OPERATOR TEST.
+
+## Checkpoint — Bid Awards canonical 3-step Distribution Setup before product allocation — 2026-09-29
+
+- Refactored the PWA allocation flow after real Admin/PWA comparison.
+- The first section is now the canonical `Thiết lập chung / Phạm vi & hiệu lực phân bổ`: Step 1 province scope + effective dates, Step 2 official KCB facilities, Step 3 selected-facility review.
+- Step 3 renders already selected/saved facilities checked by default and mirrors Step-2 checkbox changes; unchecking in review removes the corresponding Step-2 selection before save.
+- Removed session-backed hospital selection as the source of truth. PWA now reads/writes the canonical `DrugBidAwardDistributionScopeService`, matching Admin `ProductWorkspace::saveDistributionScope()`.
+- Existing scope is loaded back into the PWA from scope provinces + Partner source references -> OfficialSourceFacility IDs, so revisiting allocation shows the saved hospitals checked.
+- Product allocation appears only after a canonical Distribution Scope exists and uses its Partner hospitals. Actual quantity writes continue through `DrugBidAwardAllocationService`.
+- CSKD gating remains unchanged: allocation must exist before product policy is allowed.
+- Tablet layout keeps the three setup steps in three columns when space permits; mobile stacks them. Product allocation remains card-based with two hospital columns on tablet.
+- No Admin Livewire view/controller is reused; only canonical Pharma services/data rules are reused.
+- Required checkpoint: pull, run focused `PharmaBidAwardsCapabilityTest`, then revisit the allocation URL and verify saved facilities are checked in Step 2 and Step 3 before any full regression.
+- Status: IMPLEMENTED — AWAITING OPERATOR PULL / FOCUSED TEST / UI ACCEPTANCE.
+
+## Checkpoint — Pharma PWA Bid Awards allocation wizard + gated CSKD — 2026-09-29
+
+- Branch: `feat/clientportal-pharma-bid-awards`.
+- Existing KQLCNT list/detail remains intact; mutation is opt-in through two new ClientPortal action permissions: `client.pharma.bid-awards.allocate` and `client.pharma.bid-awards.commercial-policy`.
+- Added `ClientBidAwardWorkflow` as a thin Pharma-domain adapter. Allocation writes reuse canonical `DrugBidAwardAllocationService`; product policy writes reuse canonical `DrugBidAwardCommercialPolicyService`.
+- Allocation sequence is tablet/mobile-first:
+  1. select hospitals from the Admin-defined Distribution Scope and save the step into the current User session;
+  2. only then show product cards and quantity inputs for the selected hospitals;
+  3. writes are validated again by the canonical allocation service (active hospital, in distribution scope, positive quantity, total not above winning quantity, contract commitment guard).
+- The Step-1 selection intentionally does not mutate Distribution Scope: that scope is Admin/domain ownership and is broader than a User's temporary wizard selection.
+- Commercial Policy UI is locked until the KQLCNT has an active allocation. Product percentages are additionally rejected unless that specific product has an active allocation.
+- Detail shows `Phân bổ số lượng` only with allocate permission and `Thiết lập chính sách kinh doanh` only with commercial-policy permission; the latter renders a disabled explanatory card until allocation exists.
+- Allocation UI uses searchable hospital cards, one column on mobile/two on tablet, product cards, large touch targets and sticky save actions. No horizontal Admin table was copied into PWA.
+- New permissions are manifest-defined and are discovered/synced by `ApplicationPermissionService`; no schema migration is required. They still must be granted to the testing User/role before UI acceptance.
+- No allocation cancellation, contract management, import/export or Admin Livewire reuse was added in this checkpoint.
+- Required operator checkpoint: `git pull --ff-only`, focused `PharmaBidAwardsCapabilityTest`. Stop on any failure/runtime 500 before ClientApps regression.
+- Status: IMPLEMENTED — AWAITING OPERATOR PULL / FOCUSED TEST / PERMISSIONED UI ACCEPTANCE.
+
+## Checkpoint — Pharma PWA Bid Awards filters + tablet/mobile setup UX — 2026-09-29
+
+- Branch: `feat/clientportal-pharma-bid-awards`.
+- Added PWA filters matching Admin Drug Bid Awards semantics: Chủ đầu tư, Sản phẩm, Giá trị asc/desc, Thiết lập kinh doanh (CSKD ready/missing, allocation ready/missing).
+- Admin's canonical `<x-select-search>` was inspected before implementation. It is Livewire-bound (`$wire`, `wire:ignore`) and is therefore not embedded directly into the plain GET-form ClientPortal PWA; doing so would introduce a runtime dependency/error. PWA keeps native responsive selects with the same option data/semantics.
+- Filters live under a mobile-first collapsible `Bộ lọc nâng cao`; active filters reopen the panel and show an active count. Main live search remains always visible.
+- Filter changes submit/reset the result list to page 1; result navigation remains progressive `Xem thêm kết quả`, not traditional pagination.
+- Removed `SP của tôi` and `SL của tôi` from result cards and removed `BV của tôi` / `SL của tôi` from product cards.
+- Result cards now show compact KQLCNT signals: product count, `Phân bổ: Đã/Chưa thiết lập`, `CSKD: Đã/Chưa thiết lập`, total KQLCNT value and contract remaining.
+- Setup filters/statuses are global read-only KQLCNT facts, while the existing green responsibility badge remains only when the current User has an active scoped assignment/allocation.
+- No Admin UI reuse, mutation, export, permission broadening or migration.
+- Required operator checkpoint: `git pull --ff-only`, focused `PharmaBidAwardsCapabilityTest`; after PASS run ClientApps regression, then Desktop/Tablet/Mobile acceptance.
+- Status: IMPLEMENTED — AWAITING OPERATOR PULL / FOCUSED TEST.
+
+## Checkpoint — Pharma PWA Bid Awards global KQLCNT + personal context — 2026-09-29
+
+- Branch: `feat/clientportal-pharma-bid-awards`.
+- Product decision updated after real Admin/UI acceptance: the Bid Awards list is a read-only KQLCNT catalogue comparable to `/admin/pharma/drug-bid-awards`, not an assignment-only inbox.
+- `UserBidAwardWorkspace` now reads all canonical `pharma_drug_bid_awards` result groups while calculating the current User's responsibility context through correlated active assignment + active allocation subqueries.
+- Global totals are calculated independently from User assignment joins, preventing duplicated KQLCNT value when one award is assigned to multiple hospitals.
+- No other User's assignment/allocation rows are exposed. Personal context only contains aggregate counts/quantities for the current `user_id`.
+- Detail lists all products in the selected KQLCNT read-only; products assigned to the current User are identified by `BV của tôi` and `SL của tôi`.
+- Result identity follows Admin semantics: TBMT when present, otherwise the individual award id.
+- UI remains mobile-first: one card on mobile, two on tablet, three on wide desktop, live search, touch feedback and progressive `Xem thêm`.
+- Default managed presentation is now `Kết quả trúng thầu` rather than `Kết quả trúng thầu của tôi`; Admin presentation settings can still override it.
+- No Admin controller/Livewire reuse, no mutation/import/export, no permission broadening and no migration.
+- Required operator checkpoint: `git pull --ff-only` then focused `PharmaBidAwardsCapabilityTest`; after PASS run `tests/Feature/ClientApps`, then real Desktop/Tablet/Mobile acceptance against the existing 11 Admin TBMT dataset.
+- Status: IMPLEMENTED — AWAITING OPERATOR PULL / FOCUSED TEST.
+
+## Checkpoint — Pharma PWA Bid Awards scope verification — 2026-09-29
+
+- Verified `UserBidAwardWorkspace` against canonical `UserCommercialHospitalWorkspace`.
+- Both use the same assignment/allocation identity: `drug_bid_award_id + partner_id`, current `user_id`, active management assignment, active allocation.
+- Deliberately did not broaden Bid Awards scope merely to populate the UI; a User must not see Admin-wide results outside their responsibility.
+- Added a regression contract that locks Bid Awards to the canonical Commercial Workspace scope clauses and guards against auth/global-scope shortcuts.
+- Empty state now explicitly says that no bid result has an active allocation in the User's responsibility scope, making missing assignment/allocation data distinguishable from a generic empty list.
+- No migration, permission broadening, Admin reuse, mutation or export added.
+- Required operator checkpoint: `git pull --ff-only`, focused `PharmaBidAwardsCapabilityTest`; only after PASS run `tests/Feature/ClientApps`.
+- Status: IMPLEMENTED — AWAITING OPERATOR PULL / FOCUSED TEST.
+
+## Checkpoint — Pharma PWA Bid Awards responsive summary refinement — 2026-09-29
+
+- Branch: `feat/clientportal-pharma-bid-awards`.
+- Refined `/apps/pharma/bid-awards` to mirror the Admin Drug Bid Awards mental model: one responsive card per TBMT/result group, without copying the Admin table or mutation controls.
+- User scope remains enforced server-side by active management assignment + active allocation; the PWA never broad-loads all Admin bid awards and hides them in Blade.
+- Summary cards now surface assigned product count, hospital count, allocated quantity, allocated value and contract remaining/status where source data supports it.
+- Responsive layout is 1 column on mobile, 2 on tablet, 3 on wide desktop; mobile keeps live search and progressive `Xem thêm`.
+- Fixed the data-path date formatter from invalid `CarbonCarbon::parse` to `\\Carbon\\Carbon::parse`; the earlier empty-state acceptance did not exercise this branch.
+- No Admin controller/Livewire reuse, no mutation/import/export, no permission broadening, no migration.
+- Contract coverage updated in `tests/Feature/ClientApps/PharmaBidAwardsCapabilityTest.php`.
+- Required operator checkpoint: `git pull --ff-only`, focused Bid Awards capability test, then `tests/Feature/ClientApps` only after focused PASS.
+- Status: IMPLEMENTED — AWAITING OPERATOR PULL / FOCUSED TEST / CLIENTAPPS REGRESSION / REAL DATA TABLET-MOBILE ACCEPTANCE.
+
+## Checkpoint — Pharma PWA Bid Awards workspace — 2026-09-29
+
+- Branch: `feat/clientportal-pharma-bid-awards`, based on current `main` after PR #235.
+- Scope: activate the existing Pharma PWA `bid-awards` capability as a read-only User workspace. Inventory and Commissions remain deferred.
+- Canonical ownership remains in `Modules/Pharma`. New `UserBidAwardWorkspace` exposes only User-scoped reads and requires both ACTIVE management assignment and ACTIVE allocation; ClientPortal does not query Admin controllers/Livewire or duplicate award business rules.
+- PWA routes: `/apps/pharma/bid-awards` and SHA-1 scoped detail `/apps/pharma/bid-awards/{scope}`. A scope not derivable from the authenticated User's active assignments returns 404.
+- Manifest now supplies `eyebrow`, `page_title`, and `page_description`; runtime consumes them through `ClientPortalSettingsService::featurePresentation()`, so Admin `/admin/client-apps` remains the presentation owner.
+- UI is mobile-first: live search with clear action, touch feedback, card presentation, and in-context `Xem thêm` loading for result groups/products. No export/download was added, so this batch does not introduce a new external-file handoff.
+- Focused test added: `tests/Feature/ClientApps/PharmaBidAwardsCapabilityTest.php`.
+- Required operator checkpoint: `git pull --ff-only`, run focused Bid Awards test first; only if PASS run `php artisan test tests/Feature/ClientApps`. Then perform real Desktop + Tablet/Mobile/PWA acceptance, including permission/404 scope behavior and Admin-managed page content.
+- No migration. No PR or merge before operator test/UI acceptance.
+- Status: **IMPLEMENTED — AWAITING OPERATOR PULL / FOCUSED TEST / CLIENTAPPS REGRESSION / REAL UI ACCEPTANCE.**
+
+---
+
 # ClientPortal Module — Collaboration Handoff
 
 ## Current delivery — ClientPortal Feature Page Content & PWA AI Workflow

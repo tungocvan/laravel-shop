@@ -16,6 +16,43 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
         Route::get('/products', [PharmaApplicationController::class, 'products'])
             ->middleware('client.feature:pharma,products')
             ->name('products');
+        Route::get('/bid-awards', [PharmaApplicationController::class, 'bidAwards'])
+            ->middleware('client.feature:pharma,bid-awards')
+            ->name('bid-awards');
+        Route::get('/bid-awards/{scope}', [PharmaApplicationController::class, 'bidAward'])
+            ->where('scope', '[a-f0-9]{40}')
+            ->middleware('client.feature:pharma,bid-awards')
+            ->name('bid-awards.show');
+        Route::get('/bid-awards/{scope}/allocation', [PharmaApplicationController::class, 'bidAwardAllocation'])
+            ->where('scope', '[a-f0-9]{40}')->middleware('client.feature:pharma,bid-awards')->name('bid-awards.allocation');
+        Route::post('/bid-awards/{scope}/allocation/setup', [PharmaApplicationController::class, 'storeBidAwardDistributionSetup'])
+            ->where('scope', '[a-f0-9]{40}')->middleware('client.feature:pharma,bid-awards')->name('bid-awards.allocation.setup');
+        Route::get('/bid-awards/{scope}/allocation/hospitals/{partner}', [PharmaApplicationController::class, 'bidAwardHospitalAllocation'])
+            ->where('scope', '[a-f0-9]{40}')->whereNumber('partner')->middleware('client.feature:pharma,bid-awards')->name('bid-awards.allocation.hospital');
+        Route::post('/bid-awards/{scope}/allocation/hospitals/{partner}', [PharmaApplicationController::class, 'storeBidAwardHospitalAllocation'])
+            ->where('scope', '[a-f0-9]{40}')->whereNumber('partner')->middleware('client.feature:pharma,bid-awards')->name('bid-awards.allocation.hospital.store');
+        Route::get('/bid-awards/{scope}/allocation/hospitals/{partner}/commercial-policy', [PharmaApplicationController::class, 'bidAwardHospitalCommercialPolicy'])
+            ->where('scope', '[a-f0-9]{40}')->whereNumber('partner')->middleware('client.feature:pharma,bid-awards')->name('bid-awards.allocation.hospital.policy');
+        Route::post('/bid-awards/{scope}/allocation/hospitals/{partner}/commercial-policy', [PharmaApplicationController::class, 'storeBidAwardHospitalCommercialPolicy'])
+            ->where('scope', '[a-f0-9]{40}')->whereNumber('partner')->middleware('client.feature:pharma,bid-awards')->name('bid-awards.allocation.hospital.policy.store');
+        Route::get('/bid-awards/{scope}/commercial-policy', [PharmaApplicationController::class, 'bidAwardCommercialPolicy'])
+            ->where('scope', '[a-f0-9]{40}')->middleware('client.feature:pharma,bid-awards')->name('bid-awards.commercial-policy');
+        Route::post('/bid-awards/{scope}/commercial-policy', [PharmaApplicationController::class, 'storeBidAwardCommercialPolicy'])
+            ->where('scope', '[a-f0-9]{40}')->middleware('client.feature:pharma,bid-awards')->name('bid-awards.commercial-policy.store');
+        Route::get('/bid-awards/{scope}/manager-assignment', [PharmaApplicationController::class, 'bidAwardManagerAssignment'])
+            ->where('scope', '[a-f0-9]{40}')->middleware('client.feature:pharma,bid-awards')->name('bid-awards.manager-assignment');
+        Route::post('/bid-awards/{scope}/manager-assignment/single', [PharmaApplicationController::class, 'storeBidAwardSingleManager'])
+            ->where('scope', '[a-f0-9]{40}')->middleware('client.feature:pharma,bid-awards')->name('bid-awards.manager-assignment.single');
+        Route::post('/bid-awards/{scope}/manager-assignment/products', [PharmaApplicationController::class, 'storeBidAwardProductManagers'])
+            ->where('scope', '[a-f0-9]{40}')->middleware('client.feature:pharma,bid-awards')->name('bid-awards.manager-assignment.products');
+        Route::get('/bid-awards/{scope}/manager-assignment/users/{manager}', [PharmaApplicationController::class, 'bidAwardManagerAssignmentUser'])
+            ->where('scope', '[a-f0-9]{40}')->whereNumber('manager')->middleware('client.feature:pharma,bid-awards')->name('bid-awards.manager-assignment.users.show');
+        Route::put('/bid-awards/{scope}/manager-assignment/users/{manager}', [PharmaApplicationController::class, 'transferBidAwardManagerAssignments'])
+            ->where('scope', '[a-f0-9]{40}')->whereNumber('manager')->middleware('client.feature:pharma,bid-awards')->name('bid-awards.manager-assignment.users.transfer');
+        Route::delete('/bid-awards/{scope}/manager-assignment/users/{manager}', [PharmaApplicationController::class, 'destroyBidAwardManagerAssignments'])
+            ->where('scope', '[a-f0-9]{40}')->whereNumber('manager')->middleware('client.feature:pharma,bid-awards')->name('bid-awards.manager-assignment.users.destroy');
+        Route::delete('/bid-awards/{scope}/manager-assignment', [PharmaApplicationController::class, 'destroyBidAwardManagers'])
+            ->where('scope', '[a-f0-9]{40}')->middleware('client.feature:pharma,bid-awards')->name('bid-awards.manager-assignment.destroy');
         Route::get('/commercial', [PharmaApplicationController::class, 'commercial'])
             ->middleware('client.feature:pharma,commercial')
             ->name('commercial');
