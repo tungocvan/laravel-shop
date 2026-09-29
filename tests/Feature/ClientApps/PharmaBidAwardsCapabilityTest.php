@@ -161,7 +161,8 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString('client.pharma.bid-awards.allocate', $manifest);
         $this->assertStringContainsString('client.pharma.bid-awards.commercial-policy', $manifest);
         $this->assertStringContainsString("Route::post('/bid-awards/{scope}/allocation/setup'", $routes);
-        $this->assertStringContainsString("Route::post('/bid-awards/{scope}/allocation'", $routes);
+        $this->assertStringContainsString("Route::post('/bid-awards/{scope}/allocation/hospitals/{partner}'", $routes);
+        $this->assertStringNotContainsString("Route::post('/bid-awards/{scope}/allocation',", $routes);
         $this->assertStringContainsString("Route::post('/bid-awards/{scope}/commercial-policy'", $routes);
         $this->assertStringContainsString("userCan(\$user, 'client.pharma.bid-awards.allocate')", $controller);
         $this->assertStringContainsString("userCan(\$user, 'client.pharma.bid-awards.commercial-policy')", $controller);
