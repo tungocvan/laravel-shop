@@ -60,6 +60,23 @@ final class PharmaInventoryCapabilityTest extends TestCase
         $this->assertStringContainsString('pb-24 xl:pb-8', $view);
         $this->assertStringContainsString("'page_title' => 'Tồn kho Pharma'", $manifest);
         $this->assertStringContainsString("'permission' => 'client.pharma.inventory.costs'", $manifest);
+        $this->assertStringContainsString("'permission' => 'client.pharma.inventory.costs'", $manifest);
+    }
+
+    public function test_inventory_costs_and_search_are_permission_scoped(): void
+    {
+        $root = base_path();
+        $controller = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php');
+        $workspace = file_get_contents($root.'/Modules/Pharma/Services/UserInventoryWorkspace.php');
+
+        $this->assertStringContainsString("userCan(\$user, 'client.pharma.inventory.costs')", $controller);
+        $this->assertStringContainsString('! $canViewCosts, 403', $controller);
+        $this->assertStringContainsString("'canViewCosts' => \$canViewCosts", $controller);
+        $this->assertStringContainsString('bool $canViewCosts = false', $workspace);
+        $this->assertStringContainsString("->orWhere('active_ingredients', 'like'", $workspace);
+        $this->assertStringNotContainsString("->where('medicine_code', 'like'", $workspace);
+        $this->assertStringContainsString("if (\$canViewCosts) {", $workspace);
+        $this->assertStringContainsString("\$canViewCosts ? \$this->activeSupplierCosts() : collect()", $workspace);
     }
 
     public function test_inventory_costs_and_search_are_permission_scoped(): void
