@@ -262,4 +262,23 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString('commercial_policy_percentage !== null', $policy);
     }
 
+    public function test_base_policy_values_are_compact_and_allocation_overview_filters_incomplete_products(): void
+    {
+        $policy=file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/bid-award-commercial-policy.blade.php'));
+        $allocation=file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/bid-award-allocation.blade.php'));
+
+        $this->assertStringContainsString("rtrim(rtrim(number_format((float)\$policy->commission_percentage,4,'.',''),'0'),'.')", $policy);
+        $this->assertStringContainsString('data-product-allocation-search', $allocation);
+        $this->assertStringContainsString('data-product-allocation-clear', $allocation);
+        $this->assertStringContainsString('data-incomplete-toggle', $allocation);
+        $this->assertStringContainsString('data-product-allocation-card', $allocation);
+        $this->assertStringContainsString('data-incomplete="{{ $product->pwa_fully_allocated', $allocation);
+        $this->assertStringContainsString('Phân bổ chưa hết', $allocation);
+        $this->assertStringContainsString('Đã phân bổ hết', $allocation);
+        $this->assertStringContainsString("card.dataset.incomplete==='1'", $allocation);
+        $this->assertStringContainsString("ps?.addEventListener('input',applyProducts)", $allocation);
+        $this->assertStringContainsString("pt?.addEventListener('click'", $allocation);
+        $this->assertStringContainsString('Không có sản phẩm phù hợp bộ lọc.', $allocation);
+    }
+
 }
