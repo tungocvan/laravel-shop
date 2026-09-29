@@ -941,8 +941,9 @@ final class PharmaApplicationController extends Controller
             $award, (int) $data['hospital_id'], $data['award_ids'], (int) $data['user_id'], (int) $user->id
         );
 
-        return redirect()->route('client.pharma.bid-awards.manager-assignment', ['scope'=>$scope,'mode'=>'multiple'])
-            ->with('success', "Đã gán User cho {$count} sản phẩm tại bệnh viện đã chọn.");
+        return redirect()->route('client.pharma.bid-awards.manager-assignment', [
+            'scope'=>$scope, 'mode'=>'multiple', 'manager_id'=>(int) $data['user_id'],
+        ])->with('success', "Đã gán User cho {$count} sản phẩm tại bệnh viện đã chọn.");
     }
 
     public function commercial(
