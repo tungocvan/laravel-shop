@@ -103,6 +103,11 @@ class PharmaBidAwardsCapabilityTest extends TestCase
 
         $this->assertStringContainsString('UserBidAwardWorkspace $workspace', $controller);
         $this->assertStringContainsString('$workspace->browseResults(', $controller);
+        $this->assertStringContainsString("investor: \$validated['investor'] ?? null", $controller);
+        $this->assertStringContainsString("medicine: \$validated['medicine'] ?? null", $controller);
+        $this->assertStringContainsString("valueSort: \$validated['value_sort'] ?? null", $controller);
+        $this->assertStringContainsString("businessSetup: \$validated['business_setup'] ?? null", $controller);
+        $this->assertStringContainsString("'filterOptions' => \$workspace->filterOptions()", $controller);
         $this->assertStringContainsString('$workspace->findResult((int) $user->id, $scope)', $controller);
         $this->assertStringContainsString('abort_if($result === null, 404)', $controller);
         $this->assertStringContainsString('$settings->featurePresentation($application[\'key\'], $feature)', $controller);
