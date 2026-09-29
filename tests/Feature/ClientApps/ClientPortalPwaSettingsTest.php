@@ -89,6 +89,23 @@ class ClientPortalPwaSettingsTest extends TestCase
         ]);
     }
 
+    public function test_all_routable_features_define_managed_page_content_defaults(): void
+    {
+        $applications = app(ApplicationRegistry::class)->all();
+
+        foreach ($applications as $application) {
+            foreach ($application['features'] as $feature) {
+                if ($feature['route'] === null) {
+                    continue;
+                }
+
+                $this->assertNotSame('', trim((string) $feature['eyebrow']), $application['key'].'.'.$feature['key'].' eyebrow');
+                $this->assertNotSame('', trim((string) $feature['page_title']), $application['key'].'.'.$feature['key'].' page_title');
+                $this->assertArrayHasKey('page_description', $feature, $application['key'].'.'.$feature['key'].' page_description');
+            }
+        }
+    }
+
     public function test_registry_preserves_feature_page_presentation_defaults(): void
     {
         $application = app(ApplicationRegistry::class)->find('pharma');
