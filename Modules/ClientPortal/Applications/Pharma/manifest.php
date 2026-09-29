@@ -45,6 +45,13 @@ return [
                 'approve' => ['name' => 'Phê duyệt bảng giá', 'permission' => 'client.pharma.price-lists.approve', 'sort_order' => 30],
             ],
         ],
+        'inventory' => [
+            'name' => 'Tồn kho',
+            'route' => 'client.pharma.inventory',
+            'permission' => 'client.pharma.inventory.view',
+            'icon' => 'archive-box',
+            'sort_order' => 60,
+        ],
     ],
     'features' => [
         'overview' => [
@@ -131,11 +138,20 @@ return [
         ],
         'inventory' => [
             'name' => 'Tồn kho',
-            'description' => 'Theo dõi tồn kho và các nghiệp vụ kho được cấp quyền.',
+            'description' => 'Theo dõi tồn kho, lô và hạn dùng của sản phẩm trong phạm vi được cấp.',
+            'eyebrow' => 'Inventory',
+            'page_title' => 'Tồn kho Pharma',
+            'page_description' => 'Theo dõi số lượng tồn, giá trị, lô và hạn dùng để ưu tiên xử lý hàng sắp hết hạn.',
+            'route' => 'client.pharma.inventory',
             'permission' => 'client.pharma.inventory.view',
             'icon' => 'archive-box',
             'sort_order' => 60,
             'actions' => [
+                'costs' => [
+                    'name' => 'Xem giá vốn và giá trị tồn',
+                    'permission' => 'client.pharma.inventory.costs',
+                    'sort_order' => 5,
+                ],
                 'receipts' => [
                     'name' => 'Phiếu nhập',
                     'permission' => 'client.pharma.inventory.receipts',

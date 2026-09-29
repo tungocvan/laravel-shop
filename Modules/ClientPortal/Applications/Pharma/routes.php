@@ -53,6 +53,9 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->where('scope', '[a-f0-9]{40}')->whereNumber('manager')->middleware('client.feature:pharma,bid-awards')->name('bid-awards.manager-assignment.users.destroy');
         Route::delete('/bid-awards/{scope}/manager-assignment', [PharmaApplicationController::class, 'destroyBidAwardManagers'])
             ->where('scope', '[a-f0-9]{40}')->middleware('client.feature:pharma,bid-awards')->name('bid-awards.manager-assignment.destroy');
+        Route::get('/inventory', [PharmaApplicationController::class, 'inventory'])
+            ->middleware('client.feature:pharma,inventory')
+            ->name('inventory');
         Route::get('/commercial', [PharmaApplicationController::class, 'commercial'])
             ->middleware('client.feature:pharma,commercial')
             ->name('commercial');

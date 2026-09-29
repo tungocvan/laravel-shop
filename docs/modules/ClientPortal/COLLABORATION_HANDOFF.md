@@ -1,3 +1,79 @@
+## Current delivery — Pharma PWA Inventory Read Workspace
+
+- Last updated: 2026-09-30
+- Active branch: `feat/clientportal-pharma-inventory`
+- Base branch: `main`
+- Base checkpoint: `df7c67942c1164a0ab85ed21b68a9ee2274c870c`
+- Status: **IMPLEMENTED — FOCUSED TEST PASS — CLIENTAPPS REGRESSION PASS — DESKTOP/TABLET/MOBILE UI PASS — READY FOR PR GATE**
+
+### Objective
+
+Expose Pharma inventory as a read-only ClientPortal/PWA workspace while keeping inventory schema, valuation rules and domain ownership in `Modules/Pharma`. Do not reuse Admin controllers, Blade, Livewire or `auth:admin`.
+
+### Delivered capability
+
+- `GET /apps/pharma/inventory` with `client.pharma.inventory.view`;
+- canonical read service `Modules\Pharma\Services\UserInventoryWorkspace`;
+- search by medicine name / active ingredients;
+- lot, expiry, current quantity, active supplier-average cost and inventory value;
+- expiry and cost filters plus value sorting when cost visibility is authorized;
+- responsive Mobile/Tablet cards and Desktop table;
+- no visible paginator: backend remains chunked and the PWA appends the next page through `IntersectionObserver`, with `Xem thêm` as fallback;
+- presentation title/description continues through the ClientPortal manifest/settings pipeline.
+
+### Sensitive cost permission
+
+Inventory financial data has a separate ClientPortal permission:
+
+`client.pharma.inventory.costs`
+
+Without it, the request does not receive cost/value presentation, cost filters or value sorting, and the Pharma workspace does not join/calculate supplier-cost values for that browse request. Forged `cost_status` or value-sort query parameters are rejected.
+
+With the permission, the PWA exposes the Admin-aligned inventory summary:
+
+- Giá trị tồn theo giá vốn, including a separate still-valid value/count;
+- Lô chưa định giá;
+- Giá trị hàng cận hạn ≤ 6 tháng, excluding already-expired lots;
+- Hàng hết hạn còn tồn.
+
+### Ownership and mutation boundary
+
+`Modules/Pharma` remains canonical owner of inventory balances, supplier-cost rules, warehouses and inventory mutations. ClientPortal only orchestrates authorized read presentation.
+
+This delivery intentionally has no ClientPortal receipt/issue create, edit, post, revert or delete route. Existing `client.pharma.inventory.receipts` and `client.pharma.inventory.issues` remain future mutation capabilities and require a separate mutation/security audit before implementation.
+
+### Validation evidence
+
+User reported:
+
+```text
+Focused PharmaInventoryCapabilityTest: PASS
+Manual Desktop/Tablet/Mobile UI acceptance: PASS
+
+ClientApps Pharma regression:
+Tests: 31 passed (968 assertions)
+Duration: 2.47s
+```
+
+UI acceptance includes aligned filter controls, live medicine/active-ingredient search, compact reset-filter action, Admin-aligned cost KPIs for authorized users, protected cost/value columns, responsive cards/table and native-like continuous loading.
+
+### Final PR gate
+
+Final comparison before this handoff update: branch is ahead of `main` with no behind commits and changes are limited to the Inventory capability/controller/manifest/routes/view/service/test plus this handoff document.
+
+Review the post-handoff diff, then open a PR into `main`. Do not merge automatically. After merge, run the agreed main-branch validation before starting the next capability.
+
+### Deferred next scope
+
+Recommended sequence remains:
+
+1. inventory detail by medicine / lot / expiry;
+2. receipt mutation only after permission, row/object-scope and stale/forged-request audit;
+3. issue mutation under the same mutation gate;
+4. commissions after Inventory is stable.
+
+---
+
 ## Checkpoint — Selective manager adjustment workspace — 2026-09-29
 
 - Multi-manager summary cards now expose `Điều chỉnh phân công` per User. Single-manager replacement remains in the existing single-mode flow.
