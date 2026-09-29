@@ -385,4 +385,31 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringNotContainsString('pwa_assigned_hospital_count', $view);
     }
 
+    public function test_multi_user_wizard_live_searches_users_collapses_hospitals_and_returns_after_save(): void
+    {
+        $controller=file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php'));
+        $workflow=file_get_contents(base_path('Modules/Pharma/Services/ClientBidAwardWorkflow.php'));
+        $view=file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/bid-award-manager-assignment.blade.php'));
+
+        $this->assertStringContainsString('data-manager-results', $view);
+        $this->assertStringContainsString('data-manager-result', $view);
+        $this->assertStringContainsString('data-manager-empty', $view);
+        $this->assertStringContainsString("q?.addEventListener('input',renderUsers)", $view);
+        $this->assertStringContainsString("select.dispatchEvent(new Event('change',{bubbles:true}))", $view);
+        $this->assertStringContainsString('Không tìm thấy User phù hợp.', $view);
+        $this->assertStringContainsString("hospitalCards->count() }} bệnh viện được phân bổ", $view);
+        $this->assertStringContainsString("hospitalCards->where('pwa_management_complete',true)->count()", $view);
+        $this->assertStringContainsString("hospitalCards->where('pwa_management_complete',false)->count()", $view);
+        $this->assertStringContainsString('data-selected-hospital-summary', $view);
+        $this->assertStringContainsString('Đổi bệnh viện', $view);
+        $this->assertStringContainsString('@if($selectedHospital && ! $selectedHospital->pwa_management_complete)', $view);
+        $this->assertStringContainsString('@else', $view);
+        $this->assertStringContainsString('data-hospital-picker', $view);
+        $this->assertStringContainsString('data-selected-product-count', $view);
+        $this->assertStringContainsString("boxes.filter(x=>x.checked).length", $view);
+        $this->assertStringContainsString("'manager_id'=>(int) \$data['user_id']", $controller);
+        $this->assertStringContainsString("route('client.pharma.bid-awards.manager-assignment', [", $controller);
+        $this->assertStringContainsString("sortBy(fn (\$hospital) => (\$hospital->pwa_management_complete ? '1' : '0')", $workflow);
+    }
+
 }
