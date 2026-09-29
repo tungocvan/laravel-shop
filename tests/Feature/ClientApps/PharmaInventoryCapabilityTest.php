@@ -40,7 +40,8 @@ final class PharmaInventoryCapabilityTest extends TestCase
         $this->assertStringContainsString("featurePresentation['page_description']", $view);
         $this->assertStringContainsString('xl:hidden', $view);
         $this->assertStringContainsString('xl:block', $view);
-        $this->assertStringContainsString('25 / trang', $view);
+        $this->assertStringContainsString('@foreach([25,50,100] as $size)', $view);
+        $this->assertStringContainsString('{{ $size }} / trang', $view);
         $this->assertStringContainsString('Xóa bộ lọc', $view);
         $this->assertStringContainsString("'page_title' => 'Tồn kho Pharma'", $manifest);
     }
