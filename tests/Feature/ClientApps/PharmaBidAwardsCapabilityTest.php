@@ -31,7 +31,7 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertContains('client.feature:pharma,bid-awards', $show->gatherMiddleware());
     }
 
-    public function test_bid_award_workspace_is_a_user_scoped_pharma_read_contract(): void
+    public function test_bid_award_workspace_exposes_global_results_with_user_scoped_context(): void
     {
         $service = new ReflectionClass(UserBidAwardWorkspace::class);
         foreach (['browseResults', 'findResult', 'products'] as $method) {
@@ -55,16 +55,25 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $bidAwards = file_get_contents(base_path('Modules/Pharma/Services/UserBidAwardWorkspace.php'));
         $commercial = file_get_contents(base_path('Modules/Pharma/Services/UserCommercialHospitalWorkspace.php'));
 
-        $canonicalClauses = [
+        $commercialClauses = [
+            "->on('workspace_allocations.drug_bid_award_id', '=', 'workspace_assignments.drug_bid_award_id')",
+            "->on('workspace_allocations.partner_id', '=', 'workspace_assignments.partner_id')",
+            "->where('workspace_assignments.user_id', \$userId)",
+            "->where('workspace_assignments.status', DrugBidAwardManagementAssignment::STATUS_ACTIVE)",
+            "->where('workspace_allocations.status', DrugBidAwardAllocation::STATUS_ACTIVE)",
+        ];
+        foreach ($commercialClauses as $clause) {
+            $this->assertStringContainsString($clause, $commercial);
+        }
+
+        $bidContextClauses = [
             "->on('scoped_allocations.drug_bid_award_id', '=', 'scoped_assignments.drug_bid_award_id')",
             "->on('scoped_allocations.partner_id', '=', 'scoped_assignments.partner_id')",
-            "->where('workspace_assignments.user_id', \$userId)",
+            "->where('scoped_assignments.user_id', \$userId)",
             "->where('scoped_assignments.status', DrugBidAwardManagementAssignment::STATUS_ACTIVE)",
             "->where('scoped_allocations.status', DrugBidAwardAllocation::STATUS_ACTIVE)",
         ];
-
-        foreach ($canonicalClauses as $clause) {
-            $this->assertStringContainsString($clause, $commercial);
+        foreach ($bidContextClauses as $clause) {
             $this->assertStringContainsString($clause, $bidAwards);
         }
 
