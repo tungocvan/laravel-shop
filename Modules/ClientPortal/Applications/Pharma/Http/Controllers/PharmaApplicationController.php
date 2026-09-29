@@ -13,6 +13,7 @@ use Modules\Pharma\Models\PriceList;
 use Modules\Pharma\Services\MedicineCatalog;
 use Modules\Pharma\Services\UserPriceListWorkspace;
 use Modules\Pharma\Services\UserCommercialHospitalWorkspace;
+use Modules\Pharma\Services\UserInventoryWorkspace;
 use Modules\Pharma\Services\UserBidAwardWorkspace;
 use Modules\Pharma\Services\ClientBidAwardWorkflow;
 use Modules\Pharma\Services\UserPriceListWorkflow;
@@ -987,6 +988,54 @@ final class PharmaApplicationController extends Controller
         return redirect()->route('client.pharma.bid-awards.manager-assignment', [
             'scope'=>$scope, 'mode'=>'multiple', 'manager_id'=>(int) $data['user_id'],
         ])->with('success', "Đã gán User cho {$count} sản phẩm tại bệnh viện đã chọn.");
+    }
+
+    public function inventory(
+        Request $request,
+        ApplicationRegistry $registry,
+        ClientPortalSettingsService $settings,
+        UserInventoryWorkspace $workspace,
+    ): View {
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:120'],
+            'expiry' => ['nullable', 'in:expired,lt1,lt3,lt6,safe'],
+            'cost_status' => ['nullable', 'in:priced,unpriced'],
+            'sort' => ['nullable', 'in:value_asc,value_desc'],
+            'per_page' => ['nullable', 'integer', 'in:25,50,100'],
+            'page' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        $application = $registry->find('pharma');
+        abort_if($application === null, 404);
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.inventory.view'), 403);
+
+        $inventoryFeature = collect($application['features'] ?? [])
+            ->first(fn (array $feature): bool => $feature['key'] === 'inventory');
+        abort_if($inventoryFeature === null, 404);
+
+        return view('ClientPortal::applications.pharma.inventory', [
+            'application' => $application,
+            'applicationPresentation' => $settings->applicationPresentation($application),
+            'featurePresentation' => $settings->featurePresentation($application['key'], $inventoryFeature),
+            'balances' => $workspace->browse(
+                search: $validated['q'] ?? null,
+                expiry: $validated['expiry'] ?? null,
+                costStatus: $validated['cost_status'] ?? null,
+                sort: $validated['sort'] ?? null,
+                perPage: (int) ($validated['per_page'] ?? 25),
+                page: (int) ($validated['page'] ?? 1),
+            )->withQueryString(),
+            'summary' => $workspace->summary(),
+            'filters' => [
+                'q' => trim((string) ($validated['q'] ?? '')),
+                'expiry' => $validated['expiry'] ?? '',
+                'cost_status' => $validated['cost_status'] ?? '',
+                'sort' => $validated['sort'] ?? '',
+                'per_page' => (int) ($validated['per_page'] ?? 25),
+            ],
+        ]);
     }
 
     public function commercial(
