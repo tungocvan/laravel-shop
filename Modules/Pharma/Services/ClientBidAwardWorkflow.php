@@ -258,6 +258,32 @@ final class ClientBidAwardWorkflow
         ];
     }
 
+    public function managementAssignmentSummary(DrugBidAward $award): Collection
+    {
+        $awardIds = $this->groups->awardsQuery($award)->pluck('id');
+        $rows = DrugBidAwardManagementAssignment::query()
+            ->with('user:id,name,email')
+            ->whereIn('drug_bid_award_id', $awardIds)
+            ->where('status', DrugBidAwardManagementAssignment::STATUS_ACTIVE)
+            ->get(['id','drug_bid_award_id','partner_id','user_id','status']);
+
+        return $rows->groupBy('user_id')->map(function (Collection $assignments) {
+            $first = $assignments->first();
+            return (object) [
+                'user_id' => (int) $first->user_id,
+                'user' => $first->user,
+                'assignment_count' => $assignments->count(),
+                'product_count' => $assignments->pluck('drug_bid_award_id')->unique()->count(),
+                'hospital_count' => $assignments->pluck('partner_id')->unique()->count(),
+            ];
+        })->values()->sortBy(fn ($row) => str($row->user?->name ?? '')->lower())->values();
+    }
+
+    public function removeAllManagers(DrugBidAward $award): int
+    {
+        return $this->commercialPolicies->removeAllManagers($award);
+    }
+
     public function managementUsers(): Collection
     {
         return User::query()->where('is_active', true)->orderBy('name')->get(['id','name','email']);
