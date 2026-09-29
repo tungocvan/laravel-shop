@@ -21,6 +21,9 @@
             <article class="rounded-2xl border border-indigo-100 bg-white p-3">
                 <div class="flex items-center gap-3"><span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-950 text-xs font-black text-white">{{ str($summary->user?->name ?? '?')->substr(0,2)->upper() }}</span><div class="min-w-0"><b class="block truncate text-sm">{{ $summary->user?->name ?? 'User không còn tồn tại' }}</b><span class="block truncate text-xs text-slate-500">{{ $summary->user?->email ?: 'Không có email' }}</span></div></div>
                 <div class="mt-3 grid grid-cols-3 gap-2 text-center"><div class="rounded-xl bg-slate-50 p-2"><b class="block text-sm">{{ $summary->assignment_count }}</b><span class="text-[10px] text-slate-500">Phân công</span></div><div class="rounded-xl bg-slate-50 p-2"><b class="block text-sm">{{ $summary->hospital_count }}</b><span class="text-[10px] text-slate-500">Bệnh viện</span></div><div class="rounded-xl bg-slate-50 p-2"><b class="block text-sm">{{ $summary->product_count }}</b><span class="text-[10px] text-slate-500">Sản phẩm</span></div></div>
+                @if($assignmentState['persisted_mode'] === 'multiple')
+                <a href="{{ route('client.pharma.bid-awards.manager-assignment.users.show',[$scope,$summary->user_id]) }}" class="mt-3 flex min-h-10 items-center justify-center rounded-xl border border-indigo-200 bg-indigo-50 px-3 text-xs font-black text-indigo-700 active:scale-[.985]">Điều chỉnh phân công</a>
+                @endif
             </article>
             @endforeach
         </div>
