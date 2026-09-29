@@ -1,3 +1,14 @@
+## Checkpoint — Hospital quantity formatting + base/override CSKD — 2026-09-29
+
+- Removed redundant `Đang phân bổ` and `Hoàn tất` badges from hospital cards; numeric product progress remains the primary status signal.
+- Hospital allocation quantity inputs now render integer quantities with Vietnamese thousands separators and reformat while typing.
+- Formatted quantity strings are normalized at the ClientPortal request boundary before Laravel validation by stripping non-digits, then validated as positive integers. Example: `1.000 -> 1000`; formatted strings never reach the Pharma allocation service.
+- Percentage inputs intentionally do NOT use the quantity parser; percentages retain decimal semantics and 0..100 validation.
+- Hospital CSKD now shows two context cards for each allocated product: allocated quantity and canonical base CSKD from `DrugBidAwardProductPolicy.commission_percentage`.
+- `CSKD riêng bệnh viện (%)` remains an override. Blank means use the base policy; saving blank now calls canonical `saveHospitalPolicyOverride()` so an existing override is reset to NULL instead of silently being skipped.
+- Added focused contract coverage for numeric normalization, formatted display, base-policy context, override reset path, and removed progress badges.
+- Required checkpoint: pull + focused `PharmaBidAwardsCapabilityTest`, then verify formatted quantity save/reload and blank override reset in real UI.
+
 ## Checkpoint — Collapsible allocation dashboard + product progress cards — 2026-09-29
 
 - Tablet UI acceptance passed for hospital-first allocation, followed by a compactness refinement.
