@@ -16,6 +16,13 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
         Route::get('/products', [PharmaApplicationController::class, 'products'])
             ->middleware('client.feature:pharma,products')
             ->name('products');
+        Route::get('/bid-awards', [PharmaApplicationController::class, 'bidAwards'])
+            ->middleware('client.feature:pharma,bid-awards')
+            ->name('bid-awards');
+        Route::get('/bid-awards/{scope}', [PharmaApplicationController::class, 'bidAward'])
+            ->where('scope', '[a-f0-9]{40}')
+            ->middleware('client.feature:pharma,bid-awards')
+            ->name('bid-awards.show');
         Route::get('/commercial', [PharmaApplicationController::class, 'commercial'])
             ->middleware('client.feature:pharma,commercial')
             ->name('commercial');
