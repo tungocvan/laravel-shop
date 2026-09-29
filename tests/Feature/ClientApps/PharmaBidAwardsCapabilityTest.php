@@ -191,4 +191,31 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString('active:scale-[.985]', $detail);
     }
 
+    public function test_bid_award_allocation_is_collapsible_and_hospital_first(): void
+    {
+        $routes=file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/routes.php'));
+        $controller=file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php'));
+        $workflow=file_get_contents(base_path('Modules/Pharma/Services/ClientBidAwardWorkflow.php'));
+        $index=file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/bid-award-allocation.blade.php'));
+        $hospital=file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/bid-award-hospital-allocation.blade.php'));
+        $policy=file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/bid-award-hospital-policy.blade.php'));
+
+        $this->assertGreaterThanOrEqual(3, substr_count($index,'<details'));
+        $this->assertStringContainsString('① Phạm vi & hiệu lực',$index);
+        $this->assertStringContainsString('② Chọn cơ sở KCB',$index);
+        $this->assertStringContainsString('③ Kiểm tra & lưu',$index);
+        $this->assertStringContainsString('Bệnh viện nhận phân bổ',$index);
+        $this->assertStringContainsString('Nhận phân bổ số lượng',$index);
+        $this->assertStringNotContainsString('allocations[',$index);
+        $this->assertStringContainsString("allocation/hospitals/{partner}",$routes);
+        $this->assertStringContainsString('bidAwardHospitalAllocation',$controller);
+        $this->assertStringContainsString('bidAwardHospitalCommercialPolicy',$controller);
+        $this->assertStringContainsString('saveHospitalAllocations',$workflow);
+        $this->assertStringContainsString('saveHospitalPolicyOverride',$workflow);
+        $this->assertStringContainsString('Số lượng bệnh viện này',$hospital);
+        $this->assertStringContainsString('Thiết lập CSKD',$hospital);
+        $this->assertStringContainsString('CSKD riêng bệnh viện (%)',$policy);
+        $this->assertStringContainsString('Chưa phân bổ · CSKD bị khóa',$policy);
+    }
+
 }
