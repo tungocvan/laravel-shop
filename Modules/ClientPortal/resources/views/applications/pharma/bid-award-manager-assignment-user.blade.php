@@ -19,7 +19,6 @@
 
     <form method="POST" action="{{ route('client.pharma.bid-awards.manager-assignment.users.transfer',[$scope,$workspace->user->id]) }}" data-manager-adjust-form class="space-y-4">
         @csrf
-        @method('PUT')
         <input type="hidden" name="_method" value="PUT" data-adjust-method>
 
         <section class="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
