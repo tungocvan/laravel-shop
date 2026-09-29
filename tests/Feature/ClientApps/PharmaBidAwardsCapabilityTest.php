@@ -303,6 +303,9 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString('assignManagerToProducts', $workflow);
         $this->assertStringContainsString("where('is_active', true)", $workflow);
         $this->assertStringContainsString('Hãy hoàn tất chính sách kinh doanh trước khi phân công User quản lý.', $workflow);
+        $this->assertStringContainsString("whereIn('pharma_drug_bid_award_allocations.drug_bid_award_id', \$awardIds)", $workflow);
+        $this->assertStringContainsString("where('pharma_drug_bid_award_allocations.status', DrugBidAwardAllocation::STATUS_ACTIVE)", $workflow);
+
         $this->assertStringContainsString('Cách phân công', $assignment);
         $this->assertStringContainsString('Một User phụ trách toàn bộ', $assignment);
         $this->assertStringContainsString('Nhiều User phụ trách', $assignment);
