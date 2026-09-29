@@ -696,8 +696,19 @@ final class PharmaApplicationController extends Controller
                 search: $validated['q'] ?? null,
                 perPage: 20,
                 page: (int) ($validated['page'] ?? 1),
+                investor: $validated['investor'] ?? null,
+                medicine: $validated['medicine'] ?? null,
+                valueSort: $validated['value_sort'] ?? null,
+                businessSetup: $validated['business_setup'] ?? null,
             )->withQueryString(),
             'search' => trim((string) ($validated['q'] ?? '')),
+            'filters' => [
+                'investor' => trim((string) ($validated['investor'] ?? '')),
+                'medicine' => trim((string) ($validated['medicine'] ?? '')),
+                'value_sort' => (string) ($validated['value_sort'] ?? ''),
+                'business_setup' => (string) ($validated['business_setup'] ?? ''),
+            ],
+            'filterOptions' => $workspace->filterOptions(),
         ]);
     }
 
