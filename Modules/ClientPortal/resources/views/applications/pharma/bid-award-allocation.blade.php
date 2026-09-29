@@ -22,7 +22,7 @@
         <input type="search" data-hospital-search placeholder="Tìm bệnh viện..." class="mt-4 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm">
         <div class="mt-3 grid max-h-[46vh] gap-2 overflow-y-auto md:grid-cols-2">
             @forelse($hospitals as $hospital)
-                <label data-hospital-card data-name="{{ IlluminateSupportStr::lower($hospital->name) }}" class="flex min-h-14 cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 p-3 active:scale-[.985] motion-reduce:transform-none">
+                <label data-hospital-card data-name="{{ str($hospital->name)->lower() }}" class="flex min-h-14 cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 p-3 active:scale-[.985] motion-reduce:transform-none">
                     <input type="checkbox" name="hospital_ids[]" value="{{ $hospital->id }}" @checked(in_array((int)$hospital->id,$selectedHospitalIds,true)) class="h-5 w-5 rounded">
                     <span class="min-w-0"><strong class="block truncate text-sm">{{ $hospital->name }}</strong><span class="text-xs text-slate-500">{{ $hospital->province_code }}</span></span>
                 </label>
