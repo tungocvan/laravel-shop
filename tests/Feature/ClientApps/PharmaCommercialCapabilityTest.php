@@ -89,7 +89,10 @@ class PharmaCommercialCapabilityTest extends TestCase
         $this->assertStringContainsString('partnerId: (int) $scopedHospital->id', $controller);
         $this->assertStringContainsString('perPage: 20', $controller);
 
-        $this->assertStringContainsString('Công việc bệnh viện của tôi', $view);
+        $this->assertStringContainsString("\$featurePresentation['eyebrow']", $view);
+        $this->assertStringContainsString("\$featurePresentation['page_title']", $view);
+        $this->assertStringContainsString("\$featurePresentation['page_description']", $view);
+        $this->assertStringContainsString("\$settings->featurePresentation(\$application['key'], \$commercialFeature)", $controller);
         $this->assertStringContainsString('Nhân viên phụ trách', $view);
         $this->assertStringContainsString('Chủ đầu tư / Kết quả trúng thầu', $view);
         $this->assertStringContainsString('Chọn kết quả trúng thầu', $view);
@@ -103,7 +106,8 @@ class PharmaCommercialCapabilityTest extends TestCase
         $this->assertStringContainsString('motion-reduce:transform-none', $view);
         $this->assertStringContainsString('commercial-navigation-feedback', $view);
         $this->assertStringContainsString("array_filter(['hospital' => \$hospital->id, 'manager_user_id' => \$managerUserId, 'award_scope' => \$awardScopeKey])", $view);
-        $this->assertStringContainsString('Chọn Chủ đầu tư / kết quả trúng thầu để xem đúng phạm vi bệnh viện được phân công.', $view);
+        $this->assertStringNotContainsString('>Commercial Workspace</p>', $view);
+        $this->assertStringNotContainsString(" : 'Chọn Chủ đầu tư / kết quả trúng thầu để xem đúng phạm vi bệnh viện được phân công.'", $view);
         $this->assertStringContainsString('Xem thêm bệnh viện', $view);
         $this->assertStringContainsString('commercial-load-more', $view);
         $this->assertStringContainsString('data-commercial-item', $view);
