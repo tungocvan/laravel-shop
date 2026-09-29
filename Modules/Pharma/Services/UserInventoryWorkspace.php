@@ -21,28 +21,35 @@ final class UserInventoryWorkspace
         ?string $sort = null,
         int $perPage = 25,
         int $page = 1,
+        bool $canViewCosts = false,
     ): LengthAwarePaginator {
         $warehouse = $this->inventory->defaultWarehouse();
-        $costSubquery = $this->activeSupplierCostSubquery();
 
         $query = InventoryBalance::query()
             ->with('medicine')
-            ->leftJoinSub($costSubquery, 'supplier_costs', fn ($join) => $join->on('supplier_costs.medicine_id', '=', 'pharma_inventory_balances.medicine_id'))
-            ->select('pharma_inventory_balances.*')
-            ->selectRaw('COALESCE(pharma_inventory_balances.manual_cost_price, supplier_costs.average_cost_price) as average_cost_price')
-            ->selectRaw('(pharma_inventory_balances.quantity_on_hand * COALESCE(pharma_inventory_balances.manual_cost_price, supplier_costs.average_cost_price)) as inventory_value')
+            ->select('pharma_inventory_balances.*');
+
+        if ($canViewCosts) {
+            $query->leftJoinSub($this->activeSupplierCostSubquery(), 'supplier_costs', fn ($join) => $join->on('supplier_costs.medicine_id', '=', 'pharma_inventory_balances.medicine_id'))
+                ->selectRaw('COALESCE(pharma_inventory_balances.manual_cost_price, supplier_costs.average_cost_price) as average_cost_price')
+                ->selectRaw('(pharma_inventory_balances.quantity_on_hand * COALESCE(pharma_inventory_balances.manual_cost_price, supplier_costs.average_cost_price)) as inventory_value');
+        }
+
+        $query
             ->where('pharma_inventory_balances.warehouse_id', $warehouse->id)
             ->where('pharma_inventory_balances.quantity_on_hand', '>', 0)
             ->when(filled($search), function (Builder $query) use ($search): void {
                 $query->whereHas('medicine', fn (Builder $medicine) => $medicine
-                    ->where('medicine_code', 'like', '%'.trim((string) $search).'%')
-                    ->orWhere('name', 'like', '%'.trim((string) $search).'%'));
+                    ->where('name', 'like', '%'.trim((string) $search).'%')
+                    ->orWhere('active_ingredients', 'like', '%'.trim((string) $search).'%'));
             });
 
         $this->applyExpiryFilter($query, (string) $expiry);
-        $this->applyCostFilter($query, (string) $costStatus);
+        if ($canViewCosts) {
+            $this->applyCostFilter($query, (string) $costStatus);
+        }
 
-        match ($sort) {
+        match ($canViewCosts ? $sort : null) {
             'value_desc' => $query->orderByDesc('inventory_value'),
             'value_asc' => $query->orderByRaw('inventory_value IS NULL, inventory_value ASC'),
             default => $query->orderBy('pharma_inventory_balances.expiry_date')->orderBy('pharma_inventory_balances.id'),
@@ -54,10 +61,10 @@ final class UserInventoryWorkspace
         );
     }
 
-    public function summary(): array
+    public function summary(bool $canViewCosts = false): array
     {
         $warehouse = $this->inventory->defaultWarehouse();
-        $costs = $this->activeSupplierCosts();
+        $costs = $canViewCosts ? $this->activeSupplierCosts() : collect();
         $today = now()->startOfDay();
         $nearExpiryEnd = $today->copy()->addMonths(6);
         $balances = InventoryBalance::query()
@@ -83,12 +90,12 @@ final class UserInventoryWorkspace
 
         return [
             'balance_count' => $balances->count(),
-            'inventory_value' => $balances->sum($value),
-            'unpriced_count' => $unpriced->count(),
+            'inventory_value' => $canViewCosts ? $balances->sum($value) : null,
+            'unpriced_count' => $canViewCosts ? $unpriced->count() : null,
             'expired_count' => $expired->count(),
-            'expired_value' => $expired->sum($value),
+            'expired_value' => $canViewCosts ? $expired->sum($value) : null,
             'near_expiry_count' => $nearExpiry->count(),
-            'near_expiry_value' => $nearExpiry->sum($value),
+            'near_expiry_value' => $canViewCosts ? $nearExpiry->sum($value) : null,
         ];
     }
 
