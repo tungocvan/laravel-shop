@@ -882,6 +882,7 @@ final class PharmaApplicationController extends Controller
         return view('ClientPortal::applications.pharma.bid-award-manager-assignment', [
             'application' => $registry->find('pharma'), 'scope' => $scope, 'award' => $award,
             'assignmentState' => $state, 'assignmentMode' => $mode,
+            'assignmentSummary' => $workflow->managementAssignmentSummary($award),
             'users' => $mode ? $workflow->managementUsers() : collect(),
             'products' => $mode === 'multiple' ? $workflow->managementProducts($award) : collect(),
         ]);
@@ -898,6 +899,18 @@ final class PharmaApplicationController extends Controller
 
         return redirect()->route('client.pharma.bid-awards.manager-assignment', $scope)
             ->with('success', "Đã phân công User cho {$count} Bệnh viện × Sản phẩm.");
+    }
+
+    public function destroyBidAwardManagers(
+        string $scope, Request $request, ApplicationRegistry $registry, ClientBidAwardWorkflow $workflow,
+    ) {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.bid-awards.commercial-policy'), 403);
+        $award = $workflow->contextAward($scope); abort_if($award === null, 404);
+        $count = $workflow->removeAllManagers($award);
+
+        return redirect()->route('client.pharma.bid-awards.manager-assignment', $scope)
+            ->with('success', "Đã gỡ {$count} phân công. Bạn có thể chọn lại cách phân công.");
     }
 
     public function storeBidAwardProductManagers(
