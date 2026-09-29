@@ -147,6 +147,11 @@ return [
             'icon' => 'archive-box',
             'sort_order' => 60,
             'actions' => [
+                'costs' => [
+                    'name' => 'Xem giá vốn và giá trị tồn',
+                    'permission' => 'client.pharma.inventory.costs',
+                    'sort_order' => 5,
+                ],
                 'receipts' => [
                     'name' => 'Phiếu nhập',
                     'permission' => 'client.pharma.inventory.receipts',
