@@ -681,9 +681,13 @@ final class PharmaApplicationController extends Controller
         $awardScope = $awardScopeKey !== '' ? $awardScopes->firstWhere('scope_key', $awardScopeKey) : null;
         abort_if($awardScopeKey !== '' && $awardScope === null, 404);
 
+        $commercialFeature = collect($application['features'] ?? [])->first(fn (array $feature): bool => $feature['key'] === 'commercial');
+        abort_if($commercialFeature === null, 404);
+
         return view('ClientPortal::applications.pharma.commercial', [
             'application' => $application,
             'applicationPresentation' => $settings->applicationPresentation($application),
+            'featurePresentation' => $settings->featurePresentation($application['key'], $commercialFeature),
             'hospitals' => $workspace->browseHospitals(
                 userId: $targetUserId,
                 search: $validated['q'] ?? null,

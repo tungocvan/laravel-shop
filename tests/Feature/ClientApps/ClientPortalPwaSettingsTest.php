@@ -89,6 +89,66 @@ class ClientPortalPwaSettingsTest extends TestCase
         ]);
     }
 
+    public function test_all_routable_features_define_managed_page_content_defaults(): void
+    {
+        $applications = app(ApplicationRegistry::class)->all();
+
+        foreach ($applications as $application) {
+            foreach ($application['features'] as $feature) {
+                if ($feature['route'] === null) {
+                    continue;
+                }
+
+                $this->assertNotSame('', trim((string) $feature['eyebrow']), $application['key'].'.'.$feature['key'].' eyebrow');
+                $this->assertNotSame('', trim((string) $feature['page_title']), $application['key'].'.'.$feature['key'].' page_title');
+                $this->assertArrayHasKey('page_description', $feature, $application['key'].'.'.$feature['key'].' page_description');
+            }
+        }
+    }
+
+    public function test_registry_preserves_feature_page_presentation_defaults(): void
+    {
+        $application = app(ApplicationRegistry::class)->find('pharma');
+        $feature = collect($application['features'])->firstWhere('key', 'commercial');
+
+        $this->assertNotNull($feature);
+        $this->assertSame('Commercial Workspace', $feature['eyebrow']);
+        $this->assertSame('Công việc bệnh viện của tôi', $feature['page_title']);
+        $this->assertSame('Chọn Chủ đầu tư / kết quả trúng thầu để xem đúng phạm vi bệnh viện được phân công.', $feature['page_description']);
+        $this->assertSame('client.pharma.commercial', $feature['route']);
+        $this->assertSame('client.pharma.commercial.view', $feature['permission']);
+    }
+
+    public function test_feature_page_content_uses_manifest_defaults_and_admin_overrides(): void
+    {
+        $registry = app(ApplicationRegistry::class);
+        $settings = app(ClientPortalSettingsService::class);
+        $application = $registry->find('pharma');
+        $feature = collect($application['features'])->firstWhere('key', 'commercial');
+
+        $this->assertNotNull($feature);
+        $defaults = $settings->featurePresentation('pharma', $feature);
+        $this->assertSame('Commercial Workspace', $defaults['eyebrow']);
+        $this->assertSame('Công việc bệnh viện của tôi', $defaults['page_title']);
+        $this->assertSame('Chọn Chủ đầu tư / kết quả trúng thầu để xem đúng phạm vi bệnh viện được phân công.', $defaults['page_description']);
+
+        $settings->updateFeaturePresentation('pharma', 'commercial', [
+            'eyebrow' => 'Không gian thương mại',
+            'page_title' => 'Bệnh viện phụ trách',
+            'page_description' => 'Nội dung do Admin quản lý.',
+        ], 77);
+
+        $presentation = $settings->featurePresentation('pharma', $feature);
+        $this->assertSame('Không gian thương mại', $presentation['eyebrow']);
+        $this->assertSame('Bệnh viện phụ trách', $presentation['page_title']);
+        $this->assertSame('Nội dung do Admin quản lý.', $presentation['page_description']);
+        $this->assertDatabaseHas('client_portal_settings', [
+            'group_name' => 'application.pharma.feature.commercial.presentation',
+            'key' => 'page_title',
+            'updated_by' => 77,
+        ]);
+    }
+
     public function test_application_presentation_override_preserves_manifest_contract(): void
     {
         $registry = app(ApplicationRegistry::class);
@@ -146,6 +206,22 @@ class ClientPortalPwaSettingsTest extends TestCase
         $this->assertStringContainsString("\$launcher['open_application_text']", $blade);
         $this->assertStringNotContainsString('Chọn ứng dụng được quản trị viên cấp quyền.', $blade);
         $this->assertStringNotContainsString('Chưa có ứng dụng được cấp</h2>', $blade);
+    }
+
+    public function test_feature_admin_form_exposes_safe_page_copy_fields(): void
+    {
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Http/Controllers/Admin/PwaSettingsController.php'));
+        $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/admin/application-presentation.blade.php'));
+
+        $this->assertStringContainsString("'eyebrow' => ['required', 'string', 'max:80']", $controller);
+        $this->assertStringContainsString("'page_title' => ['required', 'string', 'max:160']", $controller);
+        $this->assertStringContainsString("'page_description' => ['nullable', 'string', 'max:500']", $controller);
+        $this->assertStringContainsString('name="eyebrow"', $view);
+        $this->assertStringContainsString('name="page_title"', $view);
+        $this->assertStringContainsString('name="page_description"', $view);
+        $this->assertStringContainsString('Route, permission và nghiệp vụ vẫn do source code kiểm soát.', $view);
+        $this->assertStringNotContainsString('name="route"', $view);
+        $this->assertStringNotContainsString('name="permission"', $view);
     }
 
     public function test_pwa_admin_routes_are_protected_by_admin_guard_and_edit_permission(): void

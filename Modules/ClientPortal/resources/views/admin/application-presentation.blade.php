@@ -39,6 +39,17 @@
                     <input type="hidden" name="enabled" value="0"><label class="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" name="enabled" value="1" @checked(old('enabled', $presentation['enabled']))> Hiển thị feature</label>
                     <label class="block"><span class="text-sm font-semibold">Tên hiển thị</span><input name="name" value="{{ old('name', $presentation['name']) }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm"></label>
                     <label class="block"><span class="text-sm font-semibold">Mô tả</span><textarea name="description" rows="3" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm">{{ old('description', $presentation['description']) }}</textarea></label>
+                    <div class="rounded-2xl border border-sky-200 bg-sky-50/60 p-4">
+                        <div>
+                            <h3 class="text-sm font-bold text-sky-950">Nội dung trang PWA</h3>
+                            <p class="mt-1 text-xs leading-5 text-sky-700">Chỉ thay đổi nội dung hiển thị. Route, permission và nghiệp vụ vẫn do source code kiểm soát.</p>
+                        </div>
+                        <div class="mt-4 space-y-4">
+                            <label class="block"><span class="text-sm font-semibold text-gray-800">Nhãn / Eyebrow</span><input name="eyebrow" required maxlength="80" value="{{ old('eyebrow', $presentation['eyebrow']) }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm"></label>
+                            <label class="block"><span class="text-sm font-semibold text-gray-800">Tiêu đề trang</span><input name="page_title" required maxlength="160" value="{{ old('page_title', $presentation['page_title']) }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm"></label>
+                            <label class="block"><span class="text-sm font-semibold text-gray-800">Mô tả trang</span><textarea name="page_description" maxlength="500" rows="3" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm">{{ old('page_description', $presentation['page_description']) }}</textarea></label>
+                        </div>
+                    </div>
                     <div class="grid gap-4 sm:grid-cols-2">
                         <label><span class="text-sm font-semibold">Thứ tự</span><input type="number" min="0" max="9999" name="sort_order" value="{{ old('sort_order', $presentation['sort_order']) }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm"></label>
                         <label><span class="text-sm font-semibold">Badge</span><input name="badge" value="{{ old('badge', $presentation['badge']) }}" placeholder="Beta / Mới" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm"></label>

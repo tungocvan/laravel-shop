@@ -97,8 +97,9 @@ class PwaSettingsController extends Controller
         $featureManifest = collect($manifest['features'] ?? [])->first(fn (array $row): bool => $row['key'] === $feature); abort_if($featureManifest === null, 404);
         $validated = $request->validate([
             'enabled' => ['required', 'boolean'], 'name' => ['required', 'string', 'max:100'], 'description' => ['nullable', 'string', 'max:500'],
-            'sort_order' => ['required', 'integer', 'min:0', 'max:9999'], 'badge' => ['nullable', 'string', 'max:30'], 'maintenance' => ['required', 'boolean'],
-            'maintenance_message' => ['nullable', 'string', 'max:300'],
+            'sort_order' => ['required', 'integer', 'min:0', 'max:9999'], 'badge' => ['nullable', 'string', 'max:30'],
+            'eyebrow' => ['required', 'string', 'max:80'], 'page_title' => ['required', 'string', 'max:160'], 'page_description' => ['nullable', 'string', 'max:500'],
+            'maintenance' => ['required', 'boolean'], 'maintenance_message' => ['nullable', 'string', 'max:300'],
         ]);
         $settings->updateFeaturePresentation($manifest['key'], $featureManifest['key'], $validated, $request->user('admin')?->getAuthIdentifier());
         return back()->with('success', 'Đã cập nhật presentation cho chức năng '.$featureManifest['name'].'.');

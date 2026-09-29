@@ -63,6 +63,36 @@ Người dùng chịu trách nhiệm:
 - gửi output nguyên văn để debug
 - phê duyệt plan/architecture trước thay đổi lớn
 
+### ClientPortal / PWA — workflow gate bắt buộc
+
+Khi task nhắc tới hoặc tác động tới `/my-apps`, `/apps/*`, `Modules/ClientPortal`, installed PWA/mobile Client UX, application adapter/manifest, `/admin/client-apps` hoặc **Giao diện Application & Feature**, trước khi phân tích code hoặc đề xuất implementation bắt buộc đọc và áp dụng:
+
+```text
+docs/modules/ClientPortal/PWA_AI_WORKFLOW.md
+```
+
+Tài liệu này là entry point canonical cho AI và quy định thứ tự đọc tiếp theo, gồm tối thiểu ClientPortal `README.md`, `MODULE.md`, `COLLABORATION_HANDOFF.md`, `PWA.md`, `PWA_ADMIN_SETTINGS.md` và `.codex/standards/ADMIN_UI_STANDARD.md`.
+
+Nếu task có download/open/share/export/attachment/binary trên PWA-capable surface, phải đọc thêm:
+
+```text
+docs/PWA_EXTERNAL_FILE_HANDOFF.md
+```
+
+Không được dựa riêng vào memory của chat trước. Chat mới phải đọc lại các tài liệu trên từ branch hiện tại trước khi phân tích implementation để tránh dùng contract cũ.
+
+Mọi user-facing routable PWA feature mới phải có default `eyebrow`, `page_title`, `page_description` trong application manifest, đi qua `ApplicationRegistry -> ClientPortalSettingsService::featurePresentation() -> controller -> Blade`, và quản trị được tại:
+
+```text
+/admin/client-apps
+-> Giao diện Application & Feature
+-> Nội dung trang PWA
+```
+
+Không hard-code lại feature hero/page copy trong Blade. Route, permission, source-module boundary và business logic không được biến thành presentation setting.
+
+Task có UI chỉ đạt merge gate khi **automated tests PASS + real rendered UI acceptance PASS** theo workflow; không coi code test PASS là đủ.
+
 ### Google Drive / cloud file storage — skill gate bắt buộc
 
 Khi task nhắc tới Google Drive, upload cloud, backup file, download/restore Drive, Local ↔ Drive hoặc chọn nơi lưu file, trước khi đề xuất hoặc code bắt buộc đọc:
