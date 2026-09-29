@@ -19,21 +19,38 @@
         <p class="mt-1.5 max-w-3xl text-sm leading-5 text-slate-300 sm:leading-6">{{ $featurePresentation['page_description'] ?? 'Theo dõi số lượng tồn, giá trị, lô và hạn dùng.' }}</p>
     </section>
 
-    <section class="grid grid-cols-2 gap-3 {{ $canViewCosts ? 'lg:grid-cols-4' : 'lg:grid-cols-2' }}">
-        <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm"><p class="text-xs font-bold text-slate-500">Lô đang còn hàng</p><p class="mt-2 text-2xl font-black text-slate-950">{{ number_format($summary['balance_count']) }}</p></div>
-        @if($canViewCosts)
-            <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm"><p class="text-xs font-bold text-slate-500">Giá trị tồn</p><p class="mt-2 text-lg font-black text-slate-950 sm:text-2xl">{{ $money($summary['inventory_value']) }}</p></div>
-        @endif
-        <a href="{{ route('client.pharma.inventory', ['expiry'=>'lt6']) }}" class="rounded-3xl border p-4 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none {{ $filters['expiry']==='lt6' ? 'border-amber-400 bg-amber-100 ring-2 ring-amber-200' : 'border-amber-200 bg-amber-50' }}"><p class="text-xs font-bold text-amber-700">Sắp hết hạn ≤ 6 tháng</p><p class="mt-2 text-2xl font-black text-amber-950">{{ number_format($summary['near_expiry_count']) }}</p></a>
-        @if($canViewCosts)
-            <a href="{{ route('client.pharma.inventory', ['cost_status'=>'unpriced']) }}" class="rounded-3xl border p-4 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none {{ $filters['cost_status']==='unpriced' ? 'border-rose-400 bg-rose-100 ring-2 ring-rose-200' : 'border-rose-200 bg-rose-50' }}"><p class="text-xs font-bold text-rose-700">Chưa có giá vốn</p><p class="mt-2 text-2xl font-black text-rose-950">{{ number_format($summary['unpriced_count']) }}</p></a>
-        @endif
-    </section>
+    @if($canViewCosts)
+        <section class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div class="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
+                <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Giá trị tồn theo giá vốn</p>
+                <p class="mt-3 text-2xl font-black text-emerald-950">{{ $money($summary['inventory_value']) }}</p>
+                <p class="mt-1 text-xs leading-5 text-emerald-700">Tổng giá trị tồn, bao gồm cả hàng còn hạn và đã hết hạn.</p>
+                <div class="mt-4 border-t border-emerald-200 pt-3">
+                    <div class="flex items-center justify-between gap-3"><span class="text-xs font-bold text-emerald-800">Trong đó còn hạn</span><strong class="whitespace-nowrap text-sm text-emerald-950">{{ $money($summary['valid_value']) }}</strong></div>
+                    <p class="mt-1 text-xs text-emerald-700">{{ number_format($summary['valid_count']) }} lô còn tồn chưa quá hạn.</p>
+                </div>
+            </div>
+            <a href="{{ route('client.pharma.inventory', ['cost_status'=>'unpriced']) }}" class="rounded-3xl border border-amber-200 bg-amber-50 p-5 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">
+                <p class="text-xs font-black uppercase tracking-wide text-amber-700">Lô chưa định giá</p><p class="mt-3 text-2xl font-black text-amber-950">{{ number_format($summary['unpriced_count']) }}</p><p class="mt-1 text-xs leading-5 text-amber-700">Các lô còn tồn chưa có giá vốn điều chỉnh và giá vốn NCC đang hiệu lực.</p>
+            </a>
+            <a href="{{ route('client.pharma.inventory', ['expiry'=>'lt6']) }}" class="rounded-3xl border border-orange-200 bg-orange-50 p-5 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">
+                <p class="text-xs font-black uppercase tracking-wide text-orange-700">Giá trị hàng cận hạn ≤ 6 tháng</p><p class="mt-3 whitespace-nowrap text-2xl font-black text-orange-950">{{ $money($summary['near_expiry_value']) }}</p><p class="mt-1 text-xs leading-5 text-orange-700">{{ number_format($summary['near_expiry_count']) }} lô còn tồn · Không tính hàng đã hết hạn.</p>
+            </a>
+            <a href="{{ route('client.pharma.inventory', ['expiry'=>'expired']) }}" class="rounded-3xl border border-rose-200 bg-rose-50 p-5 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">
+                <p class="text-xs font-black uppercase tracking-wide text-rose-700">Hàng hết hạn còn tồn</p><p class="mt-3 whitespace-nowrap text-2xl font-black text-rose-950">{{ $money($summary['expired_value']) }}</p><p class="mt-1 text-xs leading-5 text-rose-700">{{ number_format($summary['expired_count']) }} lô còn tồn đã quá hạn dùng.</p>
+            </a>
+        </section>
+    @else
+        <section class="grid grid-cols-2 gap-3">
+            <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm"><p class="text-xs font-bold text-slate-500">Lô đang còn hàng</p><p class="mt-2 text-2xl font-black text-slate-950">{{ number_format($summary['balance_count']) }}</p></div>
+            <a href="{{ route('client.pharma.inventory', ['expiry'=>'lt6']) }}" class="rounded-3xl border border-amber-200 bg-amber-50 p-4 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none"><p class="text-xs font-bold text-amber-700">Sắp hết hạn ≤ 6 tháng</p><p class="mt-2 text-2xl font-black text-amber-950">{{ number_format($summary['near_expiry_count']) }}</p></a>
+        </section>
+    @endif
 
     <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
         <form id="inventory-filter-form" method="GET" action="{{ route('client.pharma.inventory') }}" class="grid gap-3 lg:grid-cols-12 lg:items-start">
             <label class="min-w-0 lg:col-span-5">
-                <span class="text-xs font-bold text-slate-500">Tìm thuốc</span>
+                <span class="flex h-7 items-center text-xs font-bold text-slate-500">Tìm thuốc</span>
                 <div class="relative mt-1">
                     <input id="inventory-search-input" type="search" name="q" value="{{ $filters['q'] }}" autocomplete="off" placeholder="Tên thuốc / hoạt chất" class="w-full rounded-2xl border border-slate-300 bg-white py-3 pl-4 pr-11 text-sm shadow-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200">
                     @if($filters['q'])
@@ -45,12 +62,12 @@
 
             <div class="lg:col-span-7">
                 <details id="inventory-advanced-filters" class="group" {{ $hasFilters ? 'open' : '' }}>
-                    <summary class="cursor-pointer py-2 text-sm font-bold text-slate-700">Bộ lọc nâng cao @if($hasFilters)<span class="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-500">Đang áp dụng</span>@endif</summary>
+                    <summary class="flex h-7 cursor-pointer items-center text-sm font-bold text-slate-700">Bộ lọc nâng cao @if($hasFilters)<span class="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-500">Đang áp dụng</span>@endif</summary>
                     <div class="grid gap-2 pt-2 {{ $canViewCosts ? 'sm:grid-cols-2 lg:grid-cols-3' : '' }}">
-                        <select name="expiry" onchange="this.form.submit()" class="min-h-12 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-slate-500 focus:ring-2 focus:ring-slate-200"><option value="">Tất cả hạn dùng</option>@foreach($expiryLabels as $value=>$label)<option value="{{ $value }}" @selected($filters['expiry']===$value)>{{ $label }}</option>@endforeach</select>
+                        <select name="expiry" onchange="this.form.submit()" class="h-12 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-slate-500 focus:ring-2 focus:ring-slate-200"><option value="">Tất cả hạn dùng</option>@foreach($expiryLabels as $value=>$label)<option value="{{ $value }}" @selected($filters['expiry']===$value)>{{ $label }}</option>@endforeach</select>
                         @if($canViewCosts)
-                            <select name="cost_status" onchange="this.form.submit()" class="min-h-12 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-slate-500 focus:ring-2 focus:ring-slate-200"><option value="">Tất cả giá vốn</option><option value="priced" @selected($filters['cost_status']==='priced')>Có giá vốn</option><option value="unpriced" @selected($filters['cost_status']==='unpriced')>Chưa có giá vốn</option></select>
-                            <select name="sort" onchange="this.form.submit()" class="min-h-12 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-slate-500 focus:ring-2 focus:ring-slate-200 sm:col-span-2 lg:col-span-1"><option value="">Hạn dùng gần nhất</option><option value="value_desc" @selected($filters['sort']==='value_desc')>Giá trị tồn lớn nhất</option><option value="value_asc" @selected($filters['sort']==='value_asc')>Giá trị tồn nhỏ nhất</option></select>
+                            <select name="cost_status" onchange="this.form.submit()" class="h-12 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-slate-500 focus:ring-2 focus:ring-slate-200"><option value="">Tất cả giá vốn</option><option value="priced" @selected($filters['cost_status']==='priced')>Có giá vốn</option><option value="unpriced" @selected($filters['cost_status']==='unpriced')>Chưa có giá vốn</option></select>
+                            <select name="sort" onchange="this.form.submit()" class="h-12 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-slate-500 focus:ring-2 focus:ring-slate-200 sm:col-span-2 lg:col-span-1"><option value="">Hạn dùng gần nhất</option><option value="value_desc" @selected($filters['sort']==='value_desc')>Giá trị tồn lớn nhất</option><option value="value_asc" @selected($filters['sort']==='value_asc')>Giá trị tồn nhỏ nhất</option></select>
                         @endif
                     </div>
                 </details>
