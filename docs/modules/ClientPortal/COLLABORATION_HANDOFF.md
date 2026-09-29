@@ -1,3 +1,16 @@
+## Checkpoint — Hospital-first allocation UX — 2026-09-29
+
+- Reworked the allocation PWA after tablet acceptance feedback: the page no longer expands a product x hospital matrix.
+- Canonical Distribution Setup remains first, but its three stages are now compact `<details>` toggles: (1) scope/effectivity, (2) KCB facilities, (3) review/save. Existing saved setup is collapsed into a summary by default.
+- After setup, the page renders compact hospital cards with progress: allocated products / total products and status Chưa phân bổ / Đang phân bổ / Hoàn tất.
+- Each hospital has `Nhận phân bổ số lượng`, opening a dedicated hospital workspace. Only that hospital's product quantities are rendered there.
+- Hospital allocation writes still go through canonical `DrugBidAwardAllocationService`; distribution membership is revalidated server-side.
+- Added hospital-specific CSKD workspace. This intentionally uses canonical `DrugBidAwardCommercialPolicyService::saveHospitalPolicyOverride()`, because the domain already stores hospital+product overrides on allocations. Products without an active allocation stay visibly locked.
+- The previous global product-policy route remains available for the existing capability, but the hospital-first allocation flow links to the hospital override UI.
+- Added focused contract coverage for collapsible setup, absence of the old matrix on the main allocation page, hospital routes/workspaces and allocation-before-CSKD gating.
+- Required checkpoint: pull + focused `PharmaBidAwardsCapabilityTest`; then tablet/mobile UI acceptance before ClientApps regression.
+- Status: IMPLEMENTED — AWAITING OPERATOR TEST.
+
 ## Checkpoint — Bid Awards canonical 3-step Distribution Setup before product allocation — 2026-09-29
 
 - Refactored the PWA allocation flow after real Admin/PWA comparison.
