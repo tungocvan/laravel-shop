@@ -54,12 +54,5 @@ final class UserOrderApprovalService
             throw ValidationException::withMessages(['order' => 'Chỉ đơn hàng đang Chờ duyệt mới được phê duyệt hoặc từ chối.']);
         }
 
-        if (in_array($actorUserId, array_filter([
-            (int) $issue->created_by,
-            (int) $issue->manager_user_id,
-            (int) $issue->submitted_by,
-        ]), true)) {
-            throw ValidationException::withMessages(['order' => 'Người lập, người phụ trách hoặc người gửi duyệt không được tự phê duyệt đơn hàng này.']);
-        }
     }
 }
