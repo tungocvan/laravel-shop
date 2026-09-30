@@ -39,6 +39,13 @@
                 @if($hasFilters)<span class="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-rose-600"></span>@endif
             </button>
         </form>
+        @if($canCreateOrders)
+            <div class="mt-3 hidden justify-end xl:flex">
+                <a href="{{ route('client.pharma.orders.create') }}" class="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-black text-white shadow-sm transition active:scale-[0.985]">
+                    <span class="text-base font-light leading-none">+</span><span>Lập đơn hàng</span>
+                </a>
+            </div>
+        @endif
     </section>
 
     @php
@@ -139,22 +146,19 @@
         </form>
     </aside>
     @if($canCreateOrders)
-        <a href="{{ route('client.pharma.orders.create') }}" data-create-order class="order-create-action" aria-label="Lập đơn hàng"><span class="order-create-plus">+</span><span class="order-create-label">Lập đơn hàng</span></a>
+        <a href="{{ route('client.pharma.orders.create') }}" data-create-order class="order-create-action xl:hidden" aria-label="Lập đơn hàng"><span class="order-create-plus">+</span></a>
     @endif
 </div>
 
 <style>
-.order-create-action{position:fixed!important;right:16px!important;bottom:calc(82px + env(safe-area-inset-bottom,0px))!important;z-index:45;display:inline-flex;width:44px;height:44px;align-items:center;justify-content:center;border-radius:9999px;background:#020617;color:#fff;box-shadow:0 8px 22px rgb(15 23 42 / .18);text-decoration:none}
+.order-create-action{position:fixed!important;right:16px!important;bottom:calc(70px + env(safe-area-inset-bottom,0px))!important;z-index:45;display:inline-flex;width:44px;height:44px;align-items:center;justify-content:center;border-radius:9999px;background:#020617;color:#fff;box-shadow:0 8px 22px rgb(15 23 42 / .18);text-decoration:none}
 .order-create-plus{font-size:20px;font-weight:300;line-height:1}
-.order-create-label{display:none}
-@media (min-width:1024px){.order-create-action{right:32px!important;bottom:32px!important;width:auto;height:42px;padding:0 16px;gap:8px;border-radius:12px;font-size:13px;font-weight:800}.order-create-plus{font-size:17px}.order-create-label{display:inline}}
 </style>
 <dialog id="shortage-note-dialog" class="w-[calc(100%-16px)] max-w-[520px] rounded-[26px] border-0 p-0 shadow-2xl backdrop:bg-slate-950/55">
     <div class="p-4 sm:p-5"><div class="flex items-center justify-between gap-3"><div><p class="text-xs font-black uppercase tracking-wide text-amber-700">Thiếu hàng</p><h2 class="mt-1 text-lg font-black text-slate-950">Ghi chú cung ứng</h2></div><button type="button" data-shortage-close class="h-10 w-10 rounded-full bg-slate-100 text-xl text-slate-700" aria-label="Đóng">×</button></div><p id="shortage-note-content" class="mt-4 whitespace-pre-line rounded-2xl bg-amber-50 p-4 text-sm font-medium leading-6 text-amber-950"></p></div>
 </dialog>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const createAction=document.querySelector('[data-create-order]');if(createAction&&createAction.parentElement!==document.body)document.body.appendChild(createAction);
     const shortageDialog=document.getElementById('shortage-note-dialog'), shortageContent=document.getElementById('shortage-note-content');
     const centerShortageDialog=()=>{if(!shortageDialog)return;shortageDialog.style.position='fixed';shortageDialog.style.inset='50% auto auto 50%';shortageDialog.style.margin='0';shortageDialog.style.transform='translate(-50%, -50%)';shortageDialog.style.maxHeight='calc(100dvh - 24px)';};
     document.addEventListener('click',(event)=>{const button=event.target.closest('[data-shortage-note]');if(!button)return;event.preventDefault();event.stopPropagation();if(shortageContent)shortageContent.textContent=button.dataset.shortageNote||'';centerShortageDialog();shortageDialog?.showModal();});
