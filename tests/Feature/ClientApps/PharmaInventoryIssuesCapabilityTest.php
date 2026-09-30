@@ -21,6 +21,9 @@ final class PharmaInventoryIssuesCapabilityTest extends TestCase
         $this->assertStringContainsString("client.pharma.orders", $controller);
         $this->assertStringContainsString("->where('manager_user_id', \$userId)->orWhere('created_by', \$userId)", $workspace);
         $this->assertStringContainsString('findVisible((int) $user->id, $issue)', $controller);
+        $this->assertStringContainsString('managerUserId: $managerUserId', $controller);
+        $this->assertStringContainsString("managerOptions((int) \$user->id, true)", $controller);
+        $this->assertStringContainsString("->when(\$managerUserId, fn (Builder \$query) => \$query->where('manager_user_id', \$managerUserId))", $workspace);
         $this->assertStringContainsString('abort_if($visibleIssue === null, 404)', $controller);
         $this->assertStringNotContainsString('InventoryIssue::query()', $controller);
         $this->assertSame(2, substr_count($manifest, "'orders' => ["), 'Orders must exist once in navigation and once in features.');
@@ -49,6 +52,9 @@ final class PharmaInventoryIssuesCapabilityTest extends TestCase
         $this->assertStringContainsString('lg:max-h-[calc(100vh-3rem)]', $view);
         $this->assertStringNotContainsString('lg:right-6 lg:bottom-6', $view);
         $this->assertStringContainsString('Lọc đơn hàng', $view);
+        $this->assertStringContainsString('data-order-manager-filter', $view);
+        $this->assertStringContainsString('Tất cả User phụ trách', $view);
+        $this->assertStringContainsString("['status','source','from_date','to_date','manager_user_id']", $view);
         $this->assertStringContainsString('Xóa lọc', $view);
         $this->assertStringContainsString('data-clear-order-filters', $view);
         $this->assertStringContainsString('Xóa bộ lọc', $view);
