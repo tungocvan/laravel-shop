@@ -86,9 +86,14 @@
                                     <p class="text-xs font-black text-amber-900">Hiện kho đang hết/thiếu hàng</p>
                                     <p class="mt-1 text-xs leading-5 text-amber-800">Ghi chú ngày dự kiến và tình trạng cung cấp để theo dõi mặt hàng đang thiếu.</p>
                                     <div class="mt-3 grid gap-2 sm:grid-cols-2">
-                                        <label class="block"><span class="mb-1 block text-[11px] font-bold text-slate-600">Dự kiến cung cấp lại</span><input form="supply-note-form" type="date" name="supply_notes[{{ $stockRow['item_id'] }}][expected_supply_date]" value="{{ old('supply_notes.'.$stockRow['item_id'].'.expected_supply_date', $savedSupply?->expected_supply_date?->format('Y-m-d')) }}" class="h-10 w-full rounded-lg border border-amber-200 bg-white px-2 text-sm"></label>
-                                        <label class="block"><span class="mb-1 block text-[11px] font-bold text-slate-600">Ghi chú *</span><input form="supply-note-form" type="text" required maxlength="2000" name="supply_notes[{{ $stockRow['item_id'] }}][note]" value="{{ old('supply_notes.'.$stockRow['item_id'].'.note', $savedSupply?->note) }}" placeholder="VD: Đang hỏi NCC, dự kiến hàng về..." class="h-10 w-full rounded-lg border border-amber-200 bg-white px-2 text-sm"></label>
+                                        <label class="block"><span class="mb-1 block text-[11px] font-bold text-slate-600">Dự kiến cung cấp lại</span><input type="date" name="supply_notes[{{ $stockRow['item_id'] }}][expected_supply_date]" value="{{ old('supply_notes.'.$stockRow['item_id'].'.expected_supply_date', $savedSupply?->expected_supply_date?->format('Y-m-d')) }}" class="h-10 w-full rounded-lg border border-amber-200 bg-white px-2 text-sm"></label>
+                                        <label class="block"><span class="mb-1 block text-[11px] font-bold text-slate-600">Ghi chú *</span><input type="text" required maxlength="2000" name="supply_notes[{{ $stockRow['item_id'] }}][note]" value="{{ old('supply_notes.'.$stockRow['item_id'].'.note', $savedSupply?->note ?? 'Hiện kho đang hết hàng. Đơn hàng dự kiến cung cấp lại.') }}" placeholder="VD: Đang hỏi NCC, dự kiến hàng về..." class="h-10 w-full rounded-lg border border-amber-200 bg-white px-2 text-sm"></label>
                                     </div>
+                                    <button form="supply-note-{{ $stockRow['item_id'] }}" class="mt-2 h-9 w-full rounded-lg border border-amber-300 bg-white text-xs font-black text-amber-900">Lưu ghi chú</button>
+                                    <form id="supply-note-{{ $stockRow['item_id'] }}" method="POST" action="{{ route('client.pharma.orders.supply-notes',$issue) }}" class="hidden">@csrf
+                                        <input type="hidden" name="supply_notes[{{ $stockRow['item_id'] }}][expected_supply_date]" data-copy-from="supply_notes[{{ $stockRow['item_id'] }}][expected_supply_date]">
+                                        <input type="hidden" name="supply_notes[{{ $stockRow['item_id'] }}][note]" data-copy-from="supply_notes[{{ $stockRow['item_id'] }}][note]">
+                                    </form>
                                 </div>
                             @endif
                             <details class="mt-3 rounded-xl bg-slate-50 px-3 py-2">
@@ -107,13 +112,7 @@
                         </article>
                     @endforeach
                 </div>
-                @if(!$stockReadiness['is_ready'])
-                    <form id="supply-note-form" method="POST" action="{{ route('client.pharma.orders.supply-notes',$issue) }}" class="mt-3">
-                        @csrf
-                        <button class="h-11 w-full rounded-xl border border-amber-300 bg-white font-black text-amber-900">Lưu ghi chú chờ cung cấp</button>
-                    </form>
-                @endif
-                <p class="mt-3 text-xs leading-5 text-slate-500">Thông tin này không giữ hàng. Sau khi lưu ghi chú, hệ thống vẫn kiểm tra tồn kho hiện tại. Khi toàn bộ sản phẩm đủ hàng, nút Phê duyệt sẽ tự bật. Chọn lô thực xuất ở bước xử lý kho sau khi đơn được phê duyệt.</p>
+                <p class="mt-3 text-xs leading-5 text-slate-500">Thông tin này không giữ hàng. Sản phẩm đủ hàng được duyệt theo tồn hiện tại; sản phẩm thiếu hàng phải có ghi chú chờ cung cấp. Khi tất cả mặt hàng đạt một trong hai điều kiện này, nút Phê duyệt sẽ bật. Chọn lô thực xuất ở bước xử lý kho sau khi đơn được phê duyệt.</p>
             </section>
         @endif
 
@@ -129,10 +128,10 @@
             @if($canApproveOrder)
                 <div class="grid grid-cols-2 gap-3">
                     <button type="button" id="order-reject-toggle" class="h-13 rounded-2xl border border-rose-300 bg-white font-black text-rose-700">Từ chối</button>
-                    <form method="POST" action="{{ route('client.pharma.orders.approve',$issue) }}">@csrf<button @disabled(!($stockReadiness['is_ready'] ?? false)) class="h-13 w-full rounded-2xl bg-slate-950 font-black text-white disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500">Phê duyệt</button></form>
+                    <form method="POST" action="{{ route('client.pharma.orders.approve',$issue) }}">@csrf<button @disabled(!($stockReadiness['can_approve'] ?? false)) class="h-13 w-full rounded-2xl bg-slate-950 font-black text-white disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500">Phê duyệt</button></form>
                 </div>
-                @if(!($stockReadiness['is_ready'] ?? false))
-                    <p class="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs font-bold leading-5 text-amber-900">Chưa thể phê duyệt: tồn kho khả dụng không đủ cho toàn bộ đơn hàng. Vui lòng bổ sung hàng hoặc Từ chối để User điều chỉnh số lượng.</p>
+                @if(!($stockReadiness['can_approve'] ?? false))
+                    <p class="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs font-bold leading-5 text-amber-900">Chưa thể phê duyệt: hãy lưu ghi chú cho từng sản phẩm đang thiếu hàng, hoặc Từ chối để User điều chỉnh số lượng.</p>
                 @endif
                 <form id="order-reject-form" method="POST" action="{{ route('client.pharma.orders.reject',$issue) }}" class="mt-3 hidden rounded-2xl border border-rose-200 bg-rose-50 p-3">
                     @csrf
