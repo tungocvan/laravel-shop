@@ -58,6 +58,8 @@ final class UserOrderStockReadinessService
         $rows = $rows->map(function (array $row) use ($deferredSupplies, $itemAllocationIds): array {
             $allocationId = $itemAllocationIds->get($row['item_id']);
             $supply = $allocationId ? $deferredSupplies->get((int) $allocationId) : null;
+            $row['supply_expected_date'] = $supply?->expected_supply_date?->format('Y-m-d');
+            $row['supply_note'] = $supply?->note;
             $row['has_supply_note'] = ! $row['is_ready'] && $supply !== null;
             $row['has_complete_supply_note'] = $row['has_supply_note']
                 && $supply->expected_supply_date !== null
