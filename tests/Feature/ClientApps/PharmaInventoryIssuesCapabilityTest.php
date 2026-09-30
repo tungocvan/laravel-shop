@@ -122,10 +122,12 @@ final class PharmaInventoryIssuesCapabilityTest extends TestCase
         $this->assertStringContainsString('Ghi chú cung ứng', $view);
         $this->assertStringContainsString("shortageDialog.style.inset='50% auto auto 50%'", $view);
         $this->assertStringContainsString("shortageDialog.style.transform='translate(-50%, -50%)'", $view);
-        $this->assertStringContainsString('max-w-[480px]', $view);
-        $this->assertStringContainsString('bottom-[88px] right-5', $view);
+        $this->assertStringContainsString('max-w-[520px]', $view);
+        $this->assertStringContainsString('bottom-[76px] right-4', $view);
         $this->assertStringContainsString('h-11 w-11', $view);
-        $this->assertStringContainsString('lg:bottom-6 lg:right-8 lg:h-10 lg:w-10', $view);
+        $this->assertStringContainsString('lg:bottom-8 lg:right-8 lg:h-11 lg:w-auto', $view);
+        $this->assertStringContainsString('<span class="hidden lg:inline">Lập đơn hàng</span>', $view);
+        $this->assertStringContainsString("Dự kiến: '.\$row->expected_supply_date->format('d/m/Y')", $workspace);
         $this->assertStringContainsString('placeholder:text-[13px]', $view);
     }
 
