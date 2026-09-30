@@ -18,6 +18,7 @@ use Modules\Pharma\Services\UserInventoryIssueWorkspace;
 use Modules\Pharma\Services\UserOrderAuthoringService;
 use Modules\Pharma\Services\UserOrderApprovalService;
 use Modules\Pharma\Services\UserOrderStockReadinessService;
+use Modules\Pharma\Services\UserOrderSupplyNoteService;
 use Modules\Pharma\Services\UserBidAwardWorkspace;
 use Modules\Pharma\Services\ClientBidAwardWorkflow;
 use Modules\Pharma\Services\UserPriceListWorkflow;
@@ -1196,6 +1197,25 @@ final class PharmaApplicationController extends Controller
         return redirect()->route('client.pharma.orders.show', $visible)->with('success', 'Đơn hàng đã được gửi duyệt.');
     }
 
+    public function saveOrderSupplyNotes(
+        int $issue, Request $request, ApplicationRegistry $registry,
+        UserInventoryIssueWorkspace $workspace, UserOrderSupplyNoteService $supplyNotes,
+    ) {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.orders.approve'), 403);
+        $pending = $workspace->findPendingForApproval($issue);
+        abort_if($pending === null, 404);
+        $validated = $request->validate([
+            'supply_notes' => ['required', 'array'],
+            'supply_notes.*.expected_supply_date' => ['nullable', 'date'],
+            'supply_notes.*.note' => ['nullable', 'string', 'max:2000'],
+        ]);
+        $supplyNotes->save((int) $user->id, $pending, $validated['supply_notes']);
+
+        return redirect()->route('client.pharma.orders.show', $issue)
+            ->with('success', 'Đã lưu ghi chú chờ cung cấp. Khả năng xuất kho được kiểm tra lại theo tồn hiện tại.');
+    }
+
     public function approveOrder(
         int $issue, Request $request, ApplicationRegistry $registry,
         UserInventoryIssueWorkspace $workspace, UserOrderApprovalService $approval,
@@ -1271,6 +1291,9 @@ final class PharmaApplicationController extends Controller
             'canApproveOrder' => $canApproveOrder
                 && $visibleIssue->status === \Modules\Pharma\Models\InventoryIssue::PENDING_APPROVAL,
             'stockReadiness' => $canApproveOrder ? $stockReadiness->forIssue($visibleIssue) : null,
+            'savedSupplyNotes' => $canApproveOrder
+                ? $visibleIssue->deferredSupplies()->where('status', \Modules\Pharma\Models\InventoryIssueDeferredSupply::PENDING)->get()->keyBy('drug_bid_award_allocation_id')
+                : collect(),
         ]);
     }
 
