@@ -1230,6 +1230,20 @@ final class PharmaApplicationController extends Controller
             ->with('success', 'Đã phê duyệt đơn hàng. Đơn sẵn sàng chuyển sang bước xử lý kho.');
     }
 
+    public function undoOrderApproval(
+        int $issue, Request $request, ApplicationRegistry $registry,
+        UserInventoryIssueWorkspace $workspace, UserOrderApprovalService $approval,
+    ) {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.orders.approve'), 403);
+        $approved = $workspace->findApprovedForUndo($issue);
+        abort_if($approved === null, 404);
+        $approval->undoApproval((int) $user->id, $approved);
+
+        return redirect()->route('client.pharma.orders.show', $issue)
+            ->with('success', 'Đã hoàn tác phê duyệt. Đơn trở lại trạng thái Chờ duyệt để kiểm tra lại điều kiện.');
+    }
+
     public function rejectOrder(
         int $issue, Request $request, ApplicationRegistry $registry,
         UserInventoryIssueWorkspace $workspace, UserOrderApprovalService $approval,
@@ -1276,7 +1290,7 @@ final class PharmaApplicationController extends Controller
         $canApproveOrder = $registry->userCan($user, 'client.pharma.orders.approve');
         $visibleIssue = $workspace->findVisible((int) $user->id, $issue);
         if ($visibleIssue === null && $canCreateForUser) $visibleIssue = $workspace->findByCreator((int) $user->id, $issue);
-        if ($visibleIssue === null && $canApproveOrder) $visibleIssue = $workspace->findPendingForApproval($issue);
+        if ($visibleIssue === null && $canApproveOrder) $visibleIssue = $workspace->findPendingForApproval($issue) ?? $workspace->findApprovedForUndo($issue);
         abort_if($visibleIssue === null, 404);
 
         return view('ClientPortal::applications.pharma.inventory-issue-show', [
@@ -1290,6 +1304,9 @@ final class PharmaApplicationController extends Controller
                 && $visibleIssue->status === \Modules\Pharma\Models\InventoryIssue::DRAFT,
             'canApproveOrder' => $canApproveOrder
                 && $visibleIssue->status === \Modules\Pharma\Models\InventoryIssue::PENDING_APPROVAL,
+            'canUndoApproval' => $canApproveOrder
+                && $visibleIssue->status === \Modules\Pharma\Models\InventoryIssue::APPROVED
+                && $visibleIssue->posted_at === null,
             'stockReadiness' => $canApproveOrder ? $stockReadiness->forIssue($visibleIssue) : null,
             'savedSupplyNotes' => $canApproveOrder
                 ? $visibleIssue->deferredSupplies()->where('status', \Modules\Pharma\Models\InventoryIssueDeferredSupply::PENDING)->get()->keyBy('drug_bid_award_allocation_id')
