@@ -765,7 +765,7 @@ final class InventoryController extends Controller
         DB::transaction(function()use($issue,$metadata,$data,$items){
             $locked=InventoryIssue::query()->whereKey($issue->id)->lockForUpdate()->first();
             if(! $locked) throw ValidationException::withMessages(['issue'=>'Phiếu xuất không còn tồn tại.']);
-            if($locked->status!==InventoryIssue::DRAFT) throw ValidationException::withMessages(['issue'=>'Phiếu không còn ở trạng thái nháp.']);
+            if(!in_array($locked->status,[InventoryIssue::DRAFT,InventoryIssue::PENDING_APPROVAL,InventoryIssue::APPROVED],true)) throw ValidationException::withMessages(['issue'=>'Phiếu không còn ở trạng thái cho phép cập nhật xử lý kho.']);
             $locked->update(array_merge($metadata,['manager_user_id'=>$data['manager_user_id'],'price_list_id'=>$data['price_list_id']]));
             $locked->deferredSupplies()->whereNull('drug_bid_award_allocation_id')->delete();
             $locked->items()->delete();
