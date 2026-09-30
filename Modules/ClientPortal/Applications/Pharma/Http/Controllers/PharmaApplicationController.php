@@ -1205,7 +1205,7 @@ final class PharmaApplicationController extends Controller
         abort_if($pending === null, 404);
         $approval->approve((int) $user->id, $pending);
 
-        return redirect()->route('client.pharma.orders.show', $issue)
+        return redirect()->route('client.pharma.orders', ['status' => 'pending_approval'])
             ->with('success', 'Đã phê duyệt đơn hàng. Đơn sẵn sàng chuyển sang bước xử lý kho.');
     }
 
@@ -1220,7 +1220,7 @@ final class PharmaApplicationController extends Controller
         abort_if($pending === null, 404);
         $approval->reject((int) $user->id, $pending, $validated['rejection_reason']);
 
-        return redirect()->route('client.pharma.orders.show', $issue)
+        return redirect()->route('client.pharma.orders', ['status' => 'pending_approval'])
             ->with('success', 'Đã từ chối đơn hàng và lưu lý do.');
     }
 
