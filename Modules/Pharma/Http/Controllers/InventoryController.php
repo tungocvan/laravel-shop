@@ -788,13 +788,10 @@ final class InventoryController extends Controller
         return (new FastExcel($rows))->download('pharma-phieu-xuat-'.now()->format('Ymd-His').'.xlsx');
     }
 
-    public function revertIssue(InventoryIssue $issue, InventoryService $inventory, DrugBidCommissionService $commissions): RedirectResponse
+    public function revertIssue(InventoryIssue $issue, InventoryService $inventory): RedirectResponse
     {
         $this->guardIssueWarehouse($issue,$inventory);
-        DB::transaction(function()use($issue,$inventory,$commissions){
-            $inventory->revertIssue($issue,auth('admin')->id());
-            $commissions->reverseIssue($issue->fresh(),auth('admin')->id());
-        });
+        $inventory->revertIssue($issue,auth('admin')->id());
         return redirect()->route('admin.pharma.inventory.issues.index')->with('success',"Đã hoàn tác ghi sổ {$issue->number}; hàng đã được cộng trả tồn kho và hoa hồng phát sinh đã được đảo.");
     }
 
@@ -819,13 +816,12 @@ final class InventoryController extends Controller
             ->with('success',"Đã từ chối đơn hàng {$issue->number}.");
     }
 
-    public function postIssue(InventoryIssue $issue, InventoryService $inventory, DrugBidCommissionService $commissions): RedirectResponse
+    public function postIssue(InventoryIssue $issue, InventoryService $inventory): RedirectResponse
     {
         if(($issue->issue_source ?? 'normal')==='bid' && in_array($issue->status,[InventoryIssue::DRAFT,InventoryIssue::APPROVED],true)){
             return redirect()->route('admin.pharma.inventory.issues.bid-sales.batches',$issue);
         }
         $inventory->postIssue($issue,auth('admin')->id());
-        $commissions->snapshotPostedIssue($issue->fresh('items'),auth('admin')->id());
         return back()->with('success',"Đã ghi sổ {$issue->number}.");
     }
 
@@ -970,7 +966,7 @@ final class InventoryController extends Controller
         return view('Pharma::pages.inventory.bid-sale-batches',compact('issue','balances'));
     }
 
-    public function postBidSaleIssue(Request $request, InventoryIssue $issue, InventoryService $inventory, DrugBidCommissionService $commissions): RedirectResponse
+    public function postBidSaleIssue(Request $request, InventoryIssue $issue, InventoryService $inventory): RedirectResponse
     {
         $this->guardIssueWarehouse($issue,$inventory);
         abort_unless(($issue->issue_source ?? 'normal')==='bid' && in_array($issue->status,[InventoryIssue::DRAFT,InventoryIssue::APPROVED],true),404);
@@ -983,7 +979,7 @@ final class InventoryController extends Controller
             'deferred'=>'nullable|array','deferred.*.enabled'=>'nullable|boolean',
             'deferred.*.expected_supply_date'=>'nullable|date','deferred.*.note'=>'nullable|string|max:2000',
         ]);
-        DB::transaction(function()use($issue,$data,$inventory,$commissions){
+        DB::transaction(function()use($issue,$data,$inventory){
             $issue=InventoryIssue::query()->lockForUpdate()->findOrFail($issue->id); $issue->load('items.medicine');
             if(!in_array($issue->status,[InventoryIssue::DRAFT,InventoryIssue::APPROVED],true) || ($issue->issue_source ?? 'normal')!=='bid') throw ValidationException::withMessages(['issue'=>'Phiếu hàng thầu không còn ở trạng thái có thể xử lý kho.']);
             $posted=DB::table('pharma_inventory_issue_items as ii')->join('pharma_inventory_issues as i','i.id','=','ii.issue_id')
@@ -1025,7 +1021,6 @@ final class InventoryController extends Controller
             $issue->items()->delete(); $issue->items()->createMany($newItems);
             $issue->update(['notes'=>$data['notes']??null]);
             $inventory->postIssue($issue->fresh('items'),auth('admin')->id());
-            $commissions->snapshotPostedIssue($issue->fresh('items'),auth('admin')->id());
         });
         return redirect()->route('admin.pharma.inventory.issues.show',$issue)->with('success',"Đã duyệt lô và ghi sổ {$issue->number}.");
     }
