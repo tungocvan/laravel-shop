@@ -191,6 +191,11 @@ return [
                     'permission' => 'client.pharma.orders.create-for-user',
                     'sort_order' => 30,
                 ],
+                'approve' => [
+                    'name' => 'Phê duyệt đơn hàng',
+                    'permission' => 'client.pharma.orders.approve',
+                    'sort_order' => 40,
+                ],
             ],
         ],
         'inventory' => [
