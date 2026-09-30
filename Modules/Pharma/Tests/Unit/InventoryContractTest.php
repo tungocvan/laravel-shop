@@ -380,6 +380,11 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("[InventoryIssue::DRAFT,InventoryIssue::PENDING_APPROVAL,InventoryIssue::APPROVED]", $controller);
         $this->assertStringContainsString('Phiếu không còn ở trạng thái cho phép cập nhật xử lý kho.', $controller);
         $this->assertStringContainsString('Lưu & xem phiếu', $edit);
+        $this->assertStringContainsString('id="issue-edit-form"', $edit);
+        $this->assertStringContainsString('id="issue-save-errors"', $edit);
+        $this->assertStringContainsString('type="submit" form="issue-edit-form" name="after_save" value="view"', $edit);
+        $this->assertStringContainsString('type="submit" form="issue-edit-form" name="after_save" value="edit"', $edit);
+        $this->assertStringContainsString("document.getElementById('issue-edit-form')?.addEventListener('submit'", $edit);
         $this->assertStringContainsString('Tóm tắt phiếu', $edit);
         $this->assertStringContainsString('Tổng số lượng', $edit);
         $this->assertStringContainsString('Tổng giá trị', $edit);
