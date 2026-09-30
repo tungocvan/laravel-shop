@@ -1059,6 +1059,7 @@ final class PharmaApplicationController extends Controller
             'source' => ['nullable', 'in:normal,bid'],
             'from_date' => ['nullable', 'date'],
             'to_date' => ['nullable', 'date', 'after_or_equal:from_date'],
+            'manager_user_id' => ['nullable', 'integer', 'min:1'],
             'page' => ['nullable', 'integer', 'min:1'],
         ]);
 
@@ -1068,6 +1069,8 @@ final class PharmaApplicationController extends Controller
         abort_if($user === null, 401);
         abort_unless($registry->userCan($user, 'client.pharma.orders'), 403);
         $canApproveOrders = $registry->userCan($user, 'client.pharma.orders.approve');
+        $managerUserId = $canApproveOrders ? (int) ($validated['manager_user_id'] ?? 0) : 0;
+        $managerUserId = $managerUserId > 0 ? $managerUserId : null;
 
         $ordersFeature = collect($application['features'] ?? [])
             ->first(fn (array $feature): bool => $feature['key'] === 'orders');
@@ -1084,11 +1087,13 @@ final class PharmaApplicationController extends Controller
                 source: $validated['source'] ?? null,
                 fromDate: $validated['from_date'] ?? null,
                 toDate: $validated['to_date'] ?? null,
+                managerUserId: $managerUserId,
                 perPage: 20,
                 page: (int) ($validated['page'] ?? 1),
                 includeApprovalScope: $canApproveOrders,
             )->withQueryString(),
-            'counts' => $workspace->counts((int) $user->id, $canApproveOrders),
+            'counts' => $workspace->counts((int) $user->id, $canApproveOrders, $managerUserId),
+            'managerOptions' => $canApproveOrders ? $workspace->managerOptions((int) $user->id, true) : collect(),
             'canApproveOrders' => $canApproveOrders,
             'canCreateOrders' => $registry->userCan($user, 'client.pharma.orders.create')
                 || $registry->userCan($user, 'client.pharma.orders.create-for-user'),
@@ -1098,6 +1103,7 @@ final class PharmaApplicationController extends Controller
                 'source' => $validated['source'] ?? '',
                 'from_date' => $validated['from_date'] ?? '',
                 'to_date' => $validated['to_date'] ?? '',
+                'manager_user_id' => $managerUserId ?: '',
             ],
         ]);
     }
