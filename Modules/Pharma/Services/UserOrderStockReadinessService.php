@@ -47,19 +47,22 @@ final class UserOrderStockReadinessService
             ];
         })->values();
 
-        $deferredAllocationIds = $issue->deferredSupplies()
+        $deferredSupplies = $issue->deferredSupplies()
             ->where('status', \Modules\Pharma\Models\InventoryIssueDeferredSupply::PENDING)
-            ->pluck('drug_bid_award_allocation_id')
-            ->map(fn ($id) => (int) $id);
+            ->get(['drug_bid_award_allocation_id', 'expected_supply_date', 'note'])
+            ->keyBy(fn ($supply) => (int) $supply->drug_bid_award_allocation_id);
 
         $itemAllocationIds = $issue->items->pluck('drug_bid_award_allocation_id', 'id')
             ->map(fn ($id) => (int) $id);
 
-        $rows = $rows->map(function (array $row) use ($deferredAllocationIds, $itemAllocationIds): array {
+        $rows = $rows->map(function (array $row) use ($deferredSupplies, $itemAllocationIds): array {
             $allocationId = $itemAllocationIds->get($row['item_id']);
-            $row['has_supply_note'] = ! $row['is_ready'] && $allocationId
-                && $deferredAllocationIds->contains((int) $allocationId);
-            $row['approval_ready'] = $row['is_ready'] || $row['has_supply_note'];
+            $supply = $allocationId ? $deferredSupplies->get((int) $allocationId) : null;
+            $row['has_supply_note'] = ! $row['is_ready'] && $supply !== null;
+            $row['has_complete_supply_note'] = $row['has_supply_note']
+                && $supply->expected_supply_date !== null
+                && trim((string) $supply->note) !== '';
+            $row['approval_ready'] = $row['is_ready'] || $row['has_complete_supply_note'];
             return $row;
         });
 
