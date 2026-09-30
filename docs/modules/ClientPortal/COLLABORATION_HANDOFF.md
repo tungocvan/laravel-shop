@@ -298,7 +298,9 @@ Recommended sequence remains:
 - UI acceptance reported PASS for the independent Orders capability, mobile list/detail, responsive overflow containment, quick `Xóa bộ lọc`, and centered desktop filter modal.
 - MR1 intentionally remains read-only. Draft orders do not expose approve/post actions. The next mutation sequence is explicitly deferred: Draft -> Submit for approval -> Pending approval -> Approve/Reject -> Warehouse issue/post. Sales/order permissions must remain separate from warehouse Inventory permissions.
 - Required operator checkpoint: `git pull --ff-only`, run the focused Inventory Issues capability test first. Stop on FAIL/500. After PASS run the full `tests/Feature/ClientApps` regression. Do not add mutation to MR1.
-- Status: **IMPLEMENTED — REAL UI PASS — AWAITING FOCUSED + CLIENTAPPS REGRESSION BEFORE PR GATE.**
+- Validation accepted: focused Orders capability tests PASS; full `tests/Feature/ClientApps` regression PASS (user-reported); real mobile/PWA Orders list/detail UI PASS. Desktop filter modal was also corrected to the centered PWA convention.
+- Final branch gate: compare against `main`, confirm no migrations and no order mutations were introduced, then create the MR1 PR. MR2 starts only after MR1 merge.
+- Status: **MR1 VALIDATED — CODE TEST PASS — UI PASS — READY FOR PR GATE.**
 
 ## Current delivery — ClientPortal Feature Page Content & PWA AI Workflow
 
