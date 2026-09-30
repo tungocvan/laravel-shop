@@ -17,8 +17,8 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
         $this->assertStringContainsString("Route::get('/orders/{issue}/edit'", $routes);
         $this->assertStringContainsString("Route::put('/orders/{issue}'", $routes);
         $this->assertStringContainsString("Route::post('/orders/{issue}/submit'", $routes);
-        $this->assertStringContainsString('client.feature:pharma,orders,create', $routes);
-        $this->assertStringContainsString('client.feature:pharma,orders,submit', $routes);
+        $this->assertStringContainsString("middleware('client.feature:pharma,orders')", $routes);
+        $this->assertStringContainsString('client.pharma.orders.create-for-user', $manifest);
         $this->assertStringContainsString("'permission' => 'client.pharma.orders.create'", $manifest);
         $this->assertStringContainsString("'permission' => 'client.pharma.orders.submit'", $manifest);
         $this->assertStringNotContainsString('client.pharma.inventory.issues', $routes);
@@ -40,6 +40,11 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
         $this->assertStringContainsString("'submitted_by' => \$userId", $service);
         $this->assertStringContainsString('guardEditable($userId, $issue)', $service);
         $this->assertStringContainsString('UserOrderAuthoringService $authoring', $controller);
+        $this->assertStringContainsString('orderManagers()', $service);
+        $this->assertStringContainsString('createDraft(int $actorUserId, int $managerUserId', $service);
+        $this->assertStringContainsString("'manager_user_id' => \$managerUserId", $service);
+        $this->assertStringContainsString("'created_by' => \$actorUserId", $service);
+        $this->assertStringContainsString("client.pharma.orders.create-for-user", $controller);
         $this->assertStringNotContainsString('PriceList::query()', $controller);
         $this->assertStringNotContainsString('DrugBidAwardAllocation::query()', $controller);
     }
@@ -54,10 +59,14 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
         $this->assertStringContainsString('Thêm mới đơn hàng', $view);
         $this->assertStringContainsString('Theo bảng giá', $view);
         $this->assertStringContainsString('Theo kết quả trúng thầu', $view);
-        $this->assertStringContainsString('Tìm khách hàng...', $view);
+        $this->assertStringContainsString('Tìm tên / MST khách hàng...', $view);
+        $this->assertStringContainsString('Tìm User phụ trách...', $view);
+        $this->assertStringContainsString('Tìm tên thuốc / mã thuốc / hoạt chất...', $view);
         $this->assertStringContainsString('Sản phẩm theo bảng giá', $view);
         $this->assertStringContainsString('Sản phẩm trúng thầu được phân công', $view);
         $this->assertStringContainsString('Lưu nháp', $view);
+        $this->assertStringContainsString('order-summary', $view);
+        $this->assertStringContainsString('lg:grid-cols-[360px_minmax(0,1fr)]', $view);
         $this->assertStringContainsString("el.disabled=isBid", $view);
         $this->assertStringContainsString("el.disabled=!isBid", $view);
         $this->assertStringNotContainsString('name="unit_price', $view);
