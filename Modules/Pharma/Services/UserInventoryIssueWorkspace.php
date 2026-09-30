@@ -46,6 +46,7 @@ final class UserInventoryIssueWorkspace
         return [
             'all' => (clone $query)->count(),
             InventoryIssue::DRAFT => (clone $query)->where('status', InventoryIssue::DRAFT)->count(),
+            InventoryIssue::PENDING_APPROVAL => (clone $query)->where('status', InventoryIssue::PENDING_APPROVAL)->count(),
             InventoryIssue::POSTED => (clone $query)->where('status', InventoryIssue::POSTED)->count(),
             InventoryIssue::CANCELLED => (clone $query)->where('status', InventoryIssue::CANCELLED)->count(),
         ];
