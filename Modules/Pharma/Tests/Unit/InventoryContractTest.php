@@ -391,6 +391,12 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('type="submit" form="issue-edit-form" name="after_save" value="edit"', $edit);
         $this->assertStringContainsString("document.getElementById('issue-edit-form')?.addEventListener('submit'", $edit);
         $this->assertStringContainsString('Tóm tắt phiếu', $edit);
+        $this->assertStringContainsString("\$deferredByMedicine=", $show);
+        $this->assertStringContainsString("\$deferredValue=", $show);
+        $this->assertStringContainsString("\$availableValue=max(0,\$totalValue-\$deferredValue)", $show);
+        $this->assertStringContainsString('Tổng giá trị đơn', $show);
+        $this->assertStringContainsString('Có thể xuất hiện tại', $show);
+        $this->assertStringContainsString('Chờ cung ứng', $show);
         $this->assertStringContainsString('Tổng số lượng', $edit);
         $this->assertStringContainsString('Tổng giá trị', $edit);
         $this->assertStringContainsString('refreshSummary()', $edit);
