@@ -230,7 +230,8 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("name=\"price_list_id\" value=\"{{ \$selectedPriceList?->id }}\"", $issueEdit);
         $this->assertStringContainsString('Đã khóa', $issueEdit);
         $this->assertStringContainsString('Bảng giá của phiếu đã lập không thể thay đổi.', $issueEdit);
-        $this->assertStringContainsString("\$priceListManagers=\$selectedPriceList?->type==='global'", $issueEdit);
+        $this->assertStringContainsString("priceListManagers=app(UserOrderAuthoringService::class)->orderManagers()", $controller);
+        $this->assertStringContainsString("@foreach(\$priceListManagers as \$manager)", $issueEdit);
         $this->assertStringContainsString('Chỉ User được phân công cho bảng giá này mới được phép phụ trách phiếu.', $issueEdit);
         $this->assertStringNotContainsString('refreshEditPriceLists', $issueEdit);
         $this->assertStringContainsString("(int)\$data['price_list_id'] !== (int)\$issue->price_list_id", $controller);
