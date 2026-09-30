@@ -20,7 +20,8 @@ final class PharmaInventoryIssuesCapabilityTest extends TestCase
         $this->assertStringContainsString('UserInventoryIssueWorkspace $workspace', $controller);
         $this->assertStringContainsString("client.pharma.orders", $controller);
         $this->assertStringContainsString("->where('manager_user_id', \$userId)->orWhere('created_by', \$userId)", $workspace);
-        $this->assertStringContainsString('findVisible((int) $user->id, $issue)', $controller);
+        $this->assertStringContainsString('findVisible((int) $user->id, $issue, $canApproveOrder)', $controller);
+        $this->assertStringContainsString('findVisible(int $userId, int $issueId, bool $includeApprovalScope = false)', $workspace);
         $this->assertStringContainsString('managerUserId: $managerUserId', $controller);
         $this->assertStringContainsString("managerOptions((int) \$user->id, true)", $controller);
         $this->assertStringContainsString("if (\$includeApprovalScope) {", $workspace);
@@ -114,6 +115,11 @@ final class PharmaInventoryIssuesCapabilityTest extends TestCase
         $this->assertStringContainsString("\$issue->items_count=\$postedItems->count()", $workspace);
         $this->assertStringContainsString("\$issue->total_value=(float)\$postedItems->sum", $workspace);
         $this->assertStringContainsString("\$money(\$issue->total_value ?? 0)", $view);
+        $this->assertStringContainsString("'deferredSupplies.medicine:id,name,unit'", $workspace);
+        $this->assertStringContainsString("\$issue->shortage_note=\$issue->deferredSupplies->map", $workspace);
+        $this->assertStringContainsString('data-shortage-note', $view);
+        $this->assertStringContainsString('shortage-note-dialog', $view);
+        $this->assertStringContainsString('Ghi chú cung ứng', $view);
     }
 
 }
