@@ -43,7 +43,9 @@ final class PharmaOrderApprovalCapabilityTest extends TestCase
         $view = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-issue-show.blade.php');
 
         $this->assertStringContainsString('includeApprovalScope', $workspace);
-        $this->assertStringContainsString("orWhereIn('status', [InventoryIssue::PENDING_APPROVAL, InventoryIssue::APPROVED, InventoryIssue::REJECTED])", $workspace);
+        $this->assertStringContainsString("if (\$includeApprovalScope) {", $workspace);
+        $this->assertStringContainsString("return \$query;", $workspace);
+        $this->assertStringNotContainsString("orWhereIn('status', [InventoryIssue::PENDING_APPROVAL, InventoryIssue::APPROVED, InventoryIssue::REJECTED])", $workspace);
         $this->assertStringContainsString('findPendingForApproval', $workspace);
         $this->assertStringContainsString("client.pharma.orders.approve", $controller);
         $this->assertStringContainsString("'canApproveOrder' => \$canApproveOrder", $controller);
