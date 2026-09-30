@@ -82,6 +82,16 @@ final class UserInventoryIssueWorkspace
             ->find($issueId);
     }
 
+    public function findDeletableForApproval(int $issueId): ?InventoryIssue
+    {
+        return InventoryIssue::query()
+            ->whereIn('status', [InventoryIssue::DRAFT, InventoryIssue::REJECTED])
+            ->whereNull('posted_at')
+            ->with(['manager:id,name', 'priceList:id,code,name,type', 'items.medicine'])
+            ->withCount('items')
+            ->find($issueId);
+    }
+
     public function findByCreator(int $creatorUserId, int $issueId): ?InventoryIssue
     {
         return InventoryIssue::query()
