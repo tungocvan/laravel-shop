@@ -23,7 +23,7 @@
 
     <section class="mt-4">
         <div class="flex items-center gap-2">
-        <form id="issue-search-form" method="GET" action="{{ route('client.pharma.orders') }}" class="flex min-w-0 flex-1 gap-2 xl:max-w-[760px]">
+        <form id="issue-search-form" method="GET" action="{{ route('client.pharma.orders') }}" class="flex min-w-0 flex-1 gap-2 lg:max-w-[720px]">
             @foreach(['status','source','from_date','to_date','manager_user_id'] as $key)
                 @if($filters[$key])<input type="hidden" name="{{ $key }}" value="{{ $filters[$key] }}">@endif
             @endforeach
@@ -41,7 +41,7 @@
             </button>
         </form>
         @if($canCreateOrders)
-            <a href="{{ route('client.pharma.orders.create') }}" class="ml-auto hidden h-14 shrink-0 items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 text-sm font-black text-white shadow-sm transition active:scale-[0.985] xl:inline-flex">
+            <a href="{{ route('client.pharma.orders.create') }}" class="ml-auto hidden h-14 shrink-0 items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 text-sm font-black text-white shadow-sm transition active:scale-[0.985] lg:inline-flex">
                 <span class="text-base font-light leading-none">+</span><span>Lập đơn hàng</span>
             </a>
         @endif
@@ -146,12 +146,12 @@
         </form>
     </aside>
     @if($canCreateOrders)
-        <a href="{{ route('client.pharma.orders.create') }}" data-create-order class="order-create-action xl:hidden" aria-label="Lập đơn hàng"><span class="order-create-plus">+</span></a>
+        <a href="{{ route('client.pharma.orders.create') }}" data-create-order class="order-create-action lg:hidden" aria-label="Lập đơn hàng"><span class="order-create-plus">+</span></a>
     @endif
 </div>
 
 <style>
-.order-create-action{position:fixed!important;right:16px!important;bottom:calc(70px + env(safe-area-inset-bottom,0px))!important;z-index:45;display:inline-flex;width:44px;height:44px;align-items:center;justify-content:center;border-radius:9999px;background:#020617;color:#fff;box-shadow:0 8px 22px rgb(15 23 42 / .18);text-decoration:none}
+.order-create-action{position:fixed!important;right:16px!important;bottom:calc(82px + env(safe-area-inset-bottom,0px))!important;z-index:45;display:inline-flex;width:44px;height:44px;align-items:center;justify-content:center;border-radius:9999px;background:#020617;color:#fff;box-shadow:0 8px 22px rgb(15 23 42 / .18);text-decoration:none}
 .order-create-plus{font-size:20px;font-weight:300;line-height:1}
 </style>
 <dialog id="shortage-note-dialog" class="w-[calc(100%-16px)] max-w-[520px] rounded-[26px] border-0 p-0 shadow-2xl backdrop:bg-slate-950/55">
