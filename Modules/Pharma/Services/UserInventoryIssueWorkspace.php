@@ -25,7 +25,7 @@ final class UserInventoryIssueWorkspace
         $search = trim((string) $search);
 
         $paginator = $this->visibleQuery($userId, $includeApprovalScope)
-            ->with(['manager:id,name', 'priceList:id,code,name,type', 'items:id,issue_id,medicine_id,quantity,unit_price'])
+            ->with(['manager:id,name', 'priceList:id,code,name,type', 'items:id,issue_id,medicine_id,quantity,unit_price', 'deferredSupplies.medicine:id,name,unit'])
             ->withCount('items')
             ->withSum('items as total_quantity', 'quantity')
             ->withSum('items as total_value', \DB::raw('quantity * unit_price'))
@@ -54,6 +54,9 @@ final class UserInventoryIssueWorkspace
             ->map(fn($rows)=>$rows->pluck('medicine_id')->map(fn($id)=>(int)$id)->unique());
 
         $paginator->getCollection()->each(function(InventoryIssue $issue)use($postedMedicineIds): void {
+            $issue->shortage_note=$issue->deferredSupplies->map(fn($row)=>($row->medicine?->name ?? ('MED-'.$row->medicine_id))
+                .' · '.rtrim(rtrim(number_format((float)$row->quantity,3,'.',''),'0'),'.').($row->medicine?->unit ? ' '.$row->medicine->unit : '')
+                .' · '.($row->note ?: 'Chờ cung ứng'))->join('; ');
             if($issue->status!==InventoryIssue::POSTED) return;
             $medicineIds=$postedMedicineIds->get($issue->id,collect());
             $postedItems=$issue->items->filter(fn($item)=>$medicineIds->contains((int)$item->medicine_id));
@@ -94,10 +97,10 @@ final class UserInventoryIssueWorkspace
             ->get(['id', 'name']);
     }
 
-    public function findVisible(int $userId, int $issueId): ?InventoryIssue
+    public function findVisible(int $userId, int $issueId, bool $includeApprovalScope = false): ?InventoryIssue
     {
-        return $this->visibleQuery($userId)
-            ->with(['manager:id,name', 'priceList:id,code,name,type', 'items.medicine'])
+        return $this->visibleQuery($userId, $includeApprovalScope)
+            ->with(['manager:id,name', 'priceList:id,code,name,type', 'items.medicine', 'deferredSupplies.medicine'])
             ->withCount('items')
             ->find($issueId);
     }
