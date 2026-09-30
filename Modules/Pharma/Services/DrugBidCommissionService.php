@@ -21,9 +21,11 @@ final class DrugBidCommissionService
 
         DB::transaction(function () use ($issue,$actorId): void {
             $issue=InventoryIssue::query()->lockForUpdate()->findOrFail($issue->id);
-            $issue->load('items');
+            $issue->load(['items','deferredSupplies']);
+            $deferredMedicineIds=$issue->deferredSupplies->pluck('medicine_id')->map(fn($id)=>(int)$id)->unique();
+            $postedItems=$issue->items->reject(fn($item)=>$deferredMedicineIds->contains((int)$item->medicine_id));
 
-            foreach ($issue->items as $item) {
+            foreach ($postedItems as $item) {
                 $assignment=DrugBidAwardManagementAssignment::query()
                     ->where('drug_bid_award_id',$item->drug_bid_award_id)
                     ->where('partner_id',$issue->bid_partner_id)
@@ -58,12 +60,14 @@ final class DrugBidCommissionService
 
         DB::transaction(function () use ($issue,$actorId): void {
             $issue=InventoryIssue::query()->lockForUpdate()->findOrFail($issue->id);
-            $issue->load('items');
+            $issue->load(['items','deferredSupplies']);
+            $deferredMedicineIds=$issue->deferredSupplies->pluck('medicine_id')->map(fn($id)=>(int)$id)->unique();
+            $postedItems=$issue->items->reject(fn($item)=>$deferredMedicineIds->contains((int)$item->medicine_id));
             $priceItems=PriceListItem::query()->where('price_list_id',$issue->price_list_id)
-                ->whereIn('medicine_id',$issue->items->pluck('medicine_id')->unique())
+                ->whereIn('medicine_id',$postedItems->pluck('medicine_id')->unique())
                 ->get()->groupBy('medicine_id');
 
-            foreach($issue->items as $item){
+            foreach($postedItems as $item){
                 $priceItem=$priceItems->get($item->medicine_id)?->first();
                 $sale=(float)$item->unit_price;
                 $receivable=$priceItem?->actual_receivable_price !== null ? (float)$priceItem->actual_receivable_price : null;
