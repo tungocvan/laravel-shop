@@ -35,5 +35,6 @@ final class PharmaOrderSupplyNotesCapabilityTest extends TestCase
         $this->assertStringNotContainsString('data-copy-from', $view);
         $this->assertStringContainsString('sản phẩm thiếu hàng phải có ghi chú chờ cung cấp', $view);
         $this->assertStringContainsString("'can_approve'", file_get_contents($root.'/Modules/Pharma/Services/UserOrderStockReadinessService.php'));
+        $this->assertStringContainsString('ít nhất 1 sản phẩm đủ tồn', $view);
     }
 }
