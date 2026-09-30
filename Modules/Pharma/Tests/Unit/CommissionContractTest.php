@@ -13,7 +13,11 @@ class CommissionContractTest extends TestCase
         $migration=file_get_contents(base_path('Modules/Pharma/database/migrations/2026_09_24_123000_create_pharma_inventory_issue_commissions_table.php'));
 
         $this->assertStringContainsString('private readonly DrugBidCommissionService $commissions', $inventoryService);
-        $this->assertStringContainsString("\$this->commissions->snapshotPostedIssue(\$issue->fresh('items'),\$userId)", $inventoryService);
+        $this->assertStringContainsString("\$this->commissions->snapshotPostedIssue(\$issue->fresh(['items','deferredSupplies']),\$userId)", $inventoryService);
+        $this->assertStringContainsString("\$deferredMedicineIds=\$issue->deferredSupplies->pluck('medicine_id')", $service);
+        $this->assertStringContainsString("\$postedItems=\$issue->items->reject", $service);
+        $this->assertStringContainsString('foreach ($postedItems as $item)', $service);
+        $this->assertStringContainsString('foreach($postedItems as $item)', $service);
         $this->assertStringContainsString('DrugBidAwardManagementAssignment::query()', $service);
         $this->assertStringContainsString('DrugBidAwardProductPolicy::query()', $service);
         $this->assertStringContainsString('round($revenue*$percentage/100,2)', $service);
