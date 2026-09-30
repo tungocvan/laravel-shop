@@ -288,7 +288,7 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('Export Excel', $documents);
         $this->assertStringContainsString("@section('admin_container','full')", $documents);
         $this->assertStringContainsString("max-w-[1580px]", $documents);
-        $this->assertStringContainsString("min-w-[1320px]", $documents);
+        $this->assertStringContainsString("min-w-[1580px]", $documents);
         $this->assertStringContainsString('Khách hàng / Nơi nhận', $documents);
         $this->assertStringContainsString('Tải PDF', $documents);
         $this->assertStringContainsString('In trực tiếp', $documents);
