@@ -659,6 +659,9 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("request->input('after_save')==='post'", $controller);
         $this->assertStringContainsString("postIssue(\$issue->fresh('items')", $controller);
         $this->assertStringContainsString('id="save-post-issue"', $editView);
+        $this->assertStringContainsString("->merge(\$issue->items->pluck('medicine'))", $editView);
+        $this->assertStringContainsString("->filter()", $editView);
+        $this->assertStringContainsString("->unique('id')", $editView);
         $this->assertStringContainsString("priceListManagers=app(UserOrderAuthoringService::class)->orderManagers()", $controller);
         $this->assertStringContainsString("priceListManagers->contains('id',\$issue->manager->id)", $controller);
         $this->assertStringContainsString("@selected((string)old('manager_user_id',\$selectedManagerId)===(string)\$manager->id)", $editView);
