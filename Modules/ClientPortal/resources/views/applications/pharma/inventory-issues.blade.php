@@ -10,7 +10,7 @@
     $money = fn ($value) => number_format((float) $value, 0, ',', '.').' đ';
     $statusLabels = ['draft'=>'Nháp','pending_approval'=>'Chờ duyệt','approved'=>'Đã duyệt','rejected'=>'Từ chối','posted'=>'Đã xuất','cancelled'=>'Đã hủy'];
     $sourceLabels = ['normal'=>'Theo bảng giá','bid'=>'Theo kết quả trúng thầu'];
-    $hasFilters = $filters['status'] || $filters['source'] || $filters['from_date'] || $filters['to_date'];
+    $hasFilters = $filters['status'] || $filters['source'] || $filters['from_date'] || $filters['to_date'] || $filters['manager_user_id'];
 @endphp
 
 <div class="min-w-0 max-w-full overflow-x-hidden min-h-[calc(100vh-5rem)] bg-slate-50 pb-24 lg:pb-8" data-inventory-issues-workspace>
@@ -23,7 +23,7 @@
 
     <section class="mt-4">
         <form id="issue-search-form" method="GET" action="{{ route('client.pharma.orders') }}" class="flex gap-2">
-            @foreach(['status','source','from_date','to_date'] as $key)
+            @foreach(['status','source','from_date','to_date','manager_user_id'] as $key)
                 @if($filters[$key])<input type="hidden" name="{{ $key }}" value="{{ $filters[$key] }}">@endif
             @endforeach
             <label class="relative min-w-0 flex-1">
@@ -31,7 +31,7 @@
                 <span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xl text-slate-500">⌕</span>
                 <input id="issue-search-input" name="q" value="{{ $filters['q'] }}" placeholder="Tìm đơn hàng / khách hàng / bệnh viện" class="h-14 w-full rounded-2xl border border-slate-300 bg-white pl-12 pr-11 text-[15px] font-medium text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200">
                 @if($filters['q'])
-                    <a href="{{ route('client.pharma.orders', array_filter(['status'=>$filters['status'],'source'=>$filters['source'],'from_date'=>$filters['from_date'],'to_date'=>$filters['to_date']])) }}" class="absolute right-3 top-1/2 -translate-y-1/2 rounded-full px-2 py-1 text-xl text-slate-500" aria-label="Xóa từ khóa tìm kiếm">×</a>
+                    <a href="{{ route('client.pharma.orders', array_filter(['status'=>$filters['status'],'source'=>$filters['source'],'from_date'=>$filters['from_date'],'to_date'=>$filters['to_date'],'manager_user_id'=>$filters['manager_user_id']])) }}" class="absolute right-3 top-1/2 -translate-y-1/2 rounded-full px-2 py-1 text-xl text-slate-500" aria-label="Xóa từ khóa tìm kiếm">×</a>
                 @endif
             </label>
             <button id="issue-filter-toggle" type="button" class="relative inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-slate-300 bg-white text-xl text-slate-700 active:scale-95" aria-controls="issue-filter-sheet" aria-expanded="false">
@@ -43,7 +43,7 @@
 
     <nav class="mt-4 flex max-w-full gap-2 overflow-x-auto overscroll-x-contain pb-1 [scrollbar-width:none]" aria-label="Trạng thái đơn hàng">
         @foreach([''=>'Tất cả','draft'=>'Nháp','pending_approval'=>'Chờ duyệt','approved'=>'Đã duyệt','rejected'=>'Từ chối','posted'=>'Đã xuất','cancelled'=>'Đã hủy'] as $value=>$label)
-            <a href="{{ route('client.pharma.orders', array_filter(['q'=>$filters['q'],'status'=>$value,'source'=>$filters['source'],'from_date'=>$filters['from_date'],'to_date'=>$filters['to_date']], fn($v)=>$v!=='' && $v!==null)) }}"
+            <a href="{{ route('client.pharma.orders', array_filter(['q'=>$filters['q'],'status'=>$value,'source'=>$filters['source'],'from_date'=>$filters['from_date'],'to_date'=>$filters['to_date'],'manager_user_id'=>$filters['manager_user_id']], fn($v)=>$v!=='' && $v!==null)) }}"
                class="shrink-0 rounded-full border px-4 py-2 text-sm font-bold {{ $filters['status']===$value ? 'border-slate-950 bg-slate-950 text-white' : 'border-slate-200 bg-white text-slate-600' }}">
                 {{ $label }} <span class="ml-1 opacity-70">{{ $value==='' ? $counts['all'] : ($counts[$value] ?? 0) }}</span>
             </a>
@@ -112,6 +112,18 @@
         <form method="GET" action="{{ route('client.pharma.orders') }}" class="px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-5">
             @if($filters['q'])<input type="hidden" name="q" value="{{ $filters['q'] }}">@endif
             <div class="space-y-5">
+                @if($canApproveOrders)
+                    <label class="block">
+                        <span class="mb-2 block text-sm font-black text-slate-800">Người phụ trách</span>
+                        <select name="manager_user_id" data-order-manager-filter class="h-13 w-full rounded-2xl border border-slate-300 bg-white px-4 text-base">
+                            <option value="">Tất cả User phụ trách</option>
+                            @foreach($managerOptions as $manager)
+                                <option value="{{ $manager->id }}" @selected((int)$filters['manager_user_id']===(int)$manager->id)>{{ $manager->name }}</option>
+                            @endforeach
+                        </select>
+                        <p class="mt-2 text-xs text-slate-500">Mặc định hiển thị đơn hàng của tất cả User trong phạm vi quản trị.</p>
+                    </label>
+                @endif
                 <label class="block"><span class="mb-2 block text-sm font-black text-slate-800">Nguồn đơn hàng</span><select name="source" class="h-13 w-full rounded-2xl border border-slate-300 bg-white px-4 text-base"><option value="">Tất cả</option><option value="normal" @selected($filters['source']==='normal')>Theo bảng giá</option><option value="bid" @selected($filters['source']==='bid')>Theo kết quả trúng thầu</option></select></label>
                 <label class="block"><span class="mb-2 block text-sm font-black text-slate-800">Trạng thái</span><select name="status" class="h-13 w-full rounded-2xl border border-slate-300 bg-white px-4 text-base"><option value="">Tất cả</option>@foreach($statusLabels as $value=>$label)<option value="{{ $value }}" @selected($filters['status']===$value)>{{ $label }}</option>@endforeach</select></label>
                 <div><span class="mb-2 block text-sm font-black text-slate-800">Ngày lập đơn</span><div class="grid grid-cols-2 gap-3"><input type="date" name="from_date" value="{{ $filters['from_date'] }}" class="h-13 min-w-0 rounded-2xl border border-slate-300 px-3"><input type="date" name="to_date" value="{{ $filters['to_date'] }}" class="h-13 min-w-0 rounded-2xl border border-slate-300 px-3"></div></div>
