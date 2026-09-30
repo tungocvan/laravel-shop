@@ -113,6 +113,12 @@
                                         <details class="relative" data-document-actions>
                                             <summary class="flex min-h-9 cursor-pointer list-none items-center rounded-lg border border-slate-300 bg-white px-3 text-base font-bold leading-none text-slate-600 hover:bg-slate-50" aria-label="Thao tác khác">⋯</summary>
                                             <div class="absolute right-0 z-30 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-left shadow-xl">
+                                                @can('approve_pharma_inventory_issue')
+                                                    @if($doc->status === 'pending_approval')
+                                                        <a href="{{ route('admin.pharma.inventory.issues.show',$doc) }}" class="block px-4 py-2.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50">Xử lý phê duyệt</a>
+                                                        <div class="my-1 border-t border-slate-100"></div>
+                                                    @endif
+                                                @endcan
                                                 @can('edit_pharma')
                                                     @if(($doc->issue_source ?? 'normal') === 'bid')
                                                         @if(in_array($doc->status, ['draft','approved'], true))
