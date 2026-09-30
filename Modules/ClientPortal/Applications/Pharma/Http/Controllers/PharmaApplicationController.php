@@ -1183,7 +1183,9 @@ final class PharmaApplicationController extends Controller
     ) {
         $user = $request->user('web'); abort_if($user === null, 401);
         abort_unless($registry->userCan($user, 'client.pharma.orders.submit'), 403);
-        $visible = $workspace->findVisible((int) $user->id, $issue); abort_if($visible === null, 404);
+        $visible = $workspace->findVisible((int) $user->id, $issue);
+        if ($visible === null && $registry->userCan($user, 'client.pharma.orders.create-for-user')) $visible = $workspace->findByCreator((int) $user->id, $issue);
+        abort_if($visible === null, 404);
         $authoring->submit((int) $user->id, $visible);
 
         return redirect()->route('client.pharma.orders.show', $visible)->with('success', 'Đơn hàng đã được gửi duyệt.');
