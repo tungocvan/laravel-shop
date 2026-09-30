@@ -117,7 +117,7 @@
                         </article>
                     @endforeach
                 </div>
-                <p class="mt-3 text-xs leading-5 text-slate-500">Thông tin này không giữ hàng. Sản phẩm đủ hàng được duyệt theo tồn hiện tại; sản phẩm thiếu hàng phải có ghi chú chờ cung cấp. Khi tất cả mặt hàng đạt một trong hai điều kiện này, nút Phê duyệt sẽ bật. Chọn lô thực xuất ở bước xử lý kho sau khi đơn được phê duyệt.</p>
+                <p class="mt-3 text-xs leading-5 text-slate-500">Thông tin này không giữ hàng. Điều kiện duyệt: đơn phải có ít nhất 1 sản phẩm đủ tồn. Các sản phẩm còn thiếu phải lưu đầy đủ ngày dự kiến cung cấp và ghi chú. Chọn lô thực xuất ở bước xử lý kho sau khi đơn được phê duyệt.</p>
                 </div>
             </details>
         @endif
@@ -145,10 +145,10 @@
             @elseif($canApproveOrder)
                 <div class="grid grid-cols-2 gap-3">
                     <button type="button" id="order-reject-toggle" class="h-13 rounded-2xl border border-rose-300 bg-white font-black text-rose-700">Từ chối</button>
-                    <form method="POST" action="{{ route('client.pharma.orders.approve',$issue) }}">@csrf<button @disabled(!($stockReadiness['is_ready'] ?? false)) class="h-13 w-full rounded-2xl bg-slate-950 font-black text-white disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500">Phê duyệt</button></form>
+                    <form method="POST" action="{{ route('client.pharma.orders.approve',$issue) }}">@csrf<button @disabled(!($stockReadiness['can_approve'] ?? false)) class="h-13 w-full rounded-2xl bg-slate-950 font-black text-white disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500">Phê duyệt</button></form>
                 </div>
-                @if(!($stockReadiness['is_ready'] ?? false))
-                    <p class="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs font-bold leading-5 text-amber-900">Chưa thể phê duyệt: toàn bộ sản phẩm phải đủ tồn kho khả dụng. Ghi chú chờ cung cấp chỉ dùng để theo dõi hàng thiếu.</p>
+                @if(!($stockReadiness['can_approve'] ?? false))
+                    <p class="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs font-bold leading-5 text-amber-900">Chưa thể phê duyệt: đơn phải có ít nhất 1 sản phẩm đủ tồn; mọi sản phẩm thiếu phải lưu đầy đủ ngày dự kiến cung cấp và ghi chú.</p>
                 @endif
                 <form id="order-reject-form" method="POST" action="{{ route('client.pharma.orders.reject',$issue) }}" class="mt-3 hidden rounded-2xl border border-rose-200 bg-rose-50 p-3">
                     @csrf
