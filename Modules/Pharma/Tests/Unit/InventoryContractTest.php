@@ -694,7 +694,8 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("source_type'=>InventoryIssueCommission::SOURCE_PRICE_LIST", $service);
         $this->assertStringContainsString('receivable_price_snapshot', $migration);
         $this->assertStringContainsString('price_list_item_id', $migration);
-        $this->assertStringContainsString("\$commissions->snapshotPostedIssue(\$issue->fresh('items')", $controller);
+        $inventoryService=file_get_contents(base_path('Modules/Pharma/Services/InventoryService.php'));
+        $this->assertStringContainsString("\$this->commissions->snapshotPostedIssue(\$issue->fresh('items')", $inventoryService);
         $this->assertStringContainsString("when(\$source!=='all'", $controller);
         $this->assertStringContainsString("pharma_price_list_users", $controller);
         $this->assertStringContainsString("whereNotNull('manager_user_id')", $controller);
