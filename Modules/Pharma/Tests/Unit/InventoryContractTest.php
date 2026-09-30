@@ -376,6 +376,9 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("\$created=\$locked->items()->create(\$item)", $controller);
         $this->assertStringContainsString("\$locked->deferredSupplies()->create(", $controller);
         $this->assertStringContainsString('Lưu phiếu nháp', $edit);
+        $this->assertStringContainsString("'Lưu phiếu nháp' : 'Lưu thay đổi'", $edit);
+        $this->assertStringContainsString("[InventoryIssue::DRAFT,InventoryIssue::PENDING_APPROVAL,InventoryIssue::APPROVED]", $controller);
+        $this->assertStringContainsString('Phiếu không còn ở trạng thái cho phép cập nhật xử lý kho.', $controller);
         $this->assertStringContainsString('Lưu & xem phiếu', $edit);
         $this->assertStringContainsString('Tóm tắt phiếu', $edit);
         $this->assertStringContainsString('Tổng số lượng', $edit);
