@@ -1267,10 +1267,7 @@ final class PharmaApplicationController extends Controller
                 && (int) $visibleIssue->created_by === (int) $user->id
                 && $visibleIssue->status === \Modules\Pharma\Models\InventoryIssue::DRAFT,
             'canApproveOrder' => $canApproveOrder
-                && $visibleIssue->status === \Modules\Pharma\Models\InventoryIssue::PENDING_APPROVAL
-                && ! in_array((int) $user->id, array_filter([
-                    (int) $visibleIssue->created_by, (int) $visibleIssue->manager_user_id, (int) $visibleIssue->submitted_by,
-                ]), true),
+                && $visibleIssue->status === \Modules\Pharma\Models\InventoryIssue::PENDING_APPROVAL,
         ]);
     }
 
