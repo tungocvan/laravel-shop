@@ -322,6 +322,23 @@ Recommended sequence remains:
 - Final branch gate: compare against `main`, confirm no migrations and no order mutations were introduced, then create the MR1 PR. MR2 starts only after MR1 merge.
 - Status: **MR1 VALIDATED — CODE TEST PASS — UI PASS — READY FOR PR GATE.**
 
+## Current delivery — Pharma PWA Order Authoring (MR2) — 2026-09-30
+
+- Active branch: `feat/clientportal-pharma-order-authoring`
+- Base branch: `main`
+- Scope: create/edit Draft orders and Submit for approval only. Approval/Reject and warehouse lot/posting remain deferred to MR3+.
+- Orders support both canonical sources: User-managed price lists and assigned bid-award allocations.
+- Admin/authorized author can choose the responsible User; source-specific customer/investor/hospital/product choices are constrained by that User's canonical assignments.
+- Price-list and bid product pickers use searchable combobox UX and explicit add/remove selection. Canonical prices are server-resolved and are not browser-authoritative.
+- Bid UI now exposes both `SL phân bổ` and calculated `SL còn lại`; remaining allocation continues to account for posted quantities.
+- Draft ownership/audit and order visibility remain server-side. Orders and Inventory permissions remain separate.
+- Migration `2026_09_30_120000_add_order_authoring_to_inventory_issues.php` carries the MR2 order-authoring schema required by this workflow.
+- Real UI validation covered mobile/PWA create/edit/detail for price-list and bid flows, including the duplicate-product edit correction and Orders back-navigation permission boundary.
+- Focused validation reported by operator: **7 passed (140 assertions)**.
+- Full `tests/Feature/ClientApps` regression reported by operator: **158 passed (1979 assertions), 28.66s**.
+- MR3 requirement confirmed from UI review: an authorized approver must receive explicit Reject/Approve actions for Pending approval orders. Approval must not itself post stock; lot/expiry selection and warehouse posting stay a separate warehouse capability.
+- Status: **MR2 IMPLEMENTED — FOCUSED PASS — CLIENTAPPS REGRESSION PASS — UI ACCEPTED — READY FOR PR GATE.**
+
 ## Current delivery — ClientPortal Feature Page Content & PWA AI Workflow
 
 - Last updated: 2026-09-29
