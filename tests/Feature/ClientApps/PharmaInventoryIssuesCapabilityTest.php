@@ -120,19 +120,19 @@ final class PharmaInventoryIssuesCapabilityTest extends TestCase
         $this->assertStringContainsString('data-shortage-note', $view);
         $this->assertStringContainsString('shortage-note-dialog', $view);
         $this->assertStringContainsString('Ghi chú cung ứng', $view);
-        $this->assertStringContainsString('order-create-action', $view);
-        $this->assertStringContainsString('bottom:calc(82px + env(safe-area-inset-bottom,0px))', $view);
-        $this->assertStringContainsString('@media (min-width:1024px)', $view);
-        $this->assertStringContainsString('order-create-label{display:inline}', $view);
-        $this->assertStringContainsString("document.body.appendChild(createAction)", $view);
+        $this->assertStringContainsString('order-create-action xl:hidden', $view);
+        $this->assertStringContainsString('bottom:calc(70px + env(safe-area-inset-bottom,0px))', $view);
+        $this->assertStringContainsString('mt-3 hidden justify-end xl:flex', $view);
+        $this->assertStringContainsString('<span>Lập đơn hàng</span>', $view);
+        $this->assertStringNotContainsString("document.body.appendChild(createAction)", $view);
         $this->assertStringContainsString("' · Dự kiến: '", $workspace);
         $this->assertStringContainsString("shortageDialog.style.inset='50% auto auto 50%'", $view);
         $this->assertStringContainsString("shortageDialog.style.transform='translate(-50%, -50%)'", $view);
         $this->assertStringContainsString('max-w-[520px]', $view);
-        $this->assertStringContainsString('bottom-[76px] right-4', $view);
-        $this->assertStringContainsString('h-11 w-11', $view);
-        $this->assertStringContainsString('lg:bottom-8 lg:right-8 lg:h-11 lg:w-auto', $view);
-        $this->assertStringContainsString('<span class="hidden lg:inline">Lập đơn hàng</span>', $view);
+        $this->assertStringContainsString('bottom:calc(70px + env(safe-area-inset-bottom,0px))', $view);
+        $this->assertStringContainsString('width:44px;height:44px', $view);
+        $this->assertStringContainsString('mt-3 hidden justify-end xl:flex', $view);
+        $this->assertStringContainsString('<span>Lập đơn hàng</span>', $view);
         $this->assertStringContainsString("Dự kiến: '.\$row->expected_supply_date->format('d/m/Y')", $workspace);
         $this->assertStringContainsString('placeholder:text-[13px]', $view);
     }
