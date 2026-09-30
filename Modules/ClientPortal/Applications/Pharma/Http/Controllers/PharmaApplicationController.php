@@ -15,6 +15,7 @@ use Modules\Pharma\Services\UserPriceListWorkspace;
 use Modules\Pharma\Services\UserCommercialHospitalWorkspace;
 use Modules\Pharma\Services\UserInventoryWorkspace;
 use Modules\Pharma\Services\UserInventoryIssueWorkspace;
+use Modules\Pharma\Services\UserOrderAuthoringService;
 use Modules\Pharma\Services\UserBidAwardWorkspace;
 use Modules\Pharma\Services\ClientBidAwardWorkflow;
 use Modules\Pharma\Services\UserPriceListWorkflow;
@@ -1051,7 +1052,7 @@ final class PharmaApplicationController extends Controller
     ): View {
         $validated = $request->validate([
             'q' => ['nullable', 'string', 'max:120'],
-            'status' => ['nullable', 'in:draft,posted,cancelled'],
+            'status' => ['nullable', 'in:draft,pending_approval,posted,cancelled'],
             'source' => ['nullable', 'in:normal,bid'],
             'from_date' => ['nullable', 'date'],
             'to_date' => ['nullable', 'date', 'after_or_equal:from_date'],
@@ -1083,6 +1084,8 @@ final class PharmaApplicationController extends Controller
                 page: (int) ($validated['page'] ?? 1),
             )->withQueryString(),
             'counts' => $workspace->counts((int) $user->id),
+            'canCreateOrders' => $registry->userCan($user, 'client.pharma.orders.create')
+                || $registry->userCan($user, 'client.pharma.orders.create-for-user'),
             'filters' => [
                 'q' => trim((string) ($validated['q'] ?? '')),
                 'status' => $validated['status'] ?? '',
@@ -1090,6 +1093,115 @@ final class PharmaApplicationController extends Controller
                 'from_date' => $validated['from_date'] ?? '',
                 'to_date' => $validated['to_date'] ?? '',
             ],
+        ]);
+    }
+
+    public function createOrder(
+        Request $request,
+        ApplicationRegistry $registry,
+        UserOrderAuthoringService $authoring,
+    ): View {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        $canCreateOwn = $registry->userCan($user, 'client.pharma.orders.create');
+        $canCreateForUser = $registry->userCan($user, 'client.pharma.orders.create-for-user');
+        abort_unless($canCreateOwn || $canCreateForUser, 403);
+        $date = now()->toDateString();
+        $managerUserId = $canCreateForUser ? (int) $request->integer('manager_user_id') : (int) $user->id;
+        if ($managerUserId <= 0) $managerUserId = (int) $user->id;
+
+        return view('ClientPortal::applications.pharma.order-form', [
+            'application' => $registry->find('pharma'), 'issue' => null, 'issueDate' => $date,
+            'managerUserId' => $managerUserId, 'canCreateForUser' => $canCreateForUser,
+            'orderManagers' => $canCreateForUser ? $authoring->orderManagers() : collect([$user]),
+            'priceLists' => $authoring->priceLists($managerUserId, $date),
+            'customers' => $authoring->customers(),
+            'bidRows' => $authoring->bidRows($managerUserId, $date),
+        ]);
+    }
+
+    public function storeOrder(
+        Request $request,
+        ApplicationRegistry $registry,
+        UserOrderAuthoringService $authoring,
+    ) {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        $canCreateForUser = $registry->userCan($user, 'client.pharma.orders.create-for-user');
+        abort_unless($registry->userCan($user, 'client.pharma.orders.create') || $canCreateForUser, 403);
+        $data = $this->validateOrderAuthoring($request);
+        $managerUserId = $canCreateForUser ? (int) ($data['manager_user_id'] ?? 0) : (int) $user->id;
+        abort_if($managerUserId <= 0 || ($canCreateForUser && ! $authoring->orderManagers()->contains('id', $managerUserId)), 403);
+        $issue = $authoring->createDraft((int) $user->id, $managerUserId, $data);
+
+        return redirect()->route('client.pharma.orders.show', $issue)->with('success', 'Đã lưu đơn hàng ở trạng thái Nháp.');
+    }
+
+    public function editOrder(
+        int $issue, Request $request, ApplicationRegistry $registry,
+        UserInventoryIssueWorkspace $workspace, UserOrderAuthoringService $authoring,
+    ): View {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        $canCreateForUser = $registry->userCan($user, 'client.pharma.orders.create-for-user');
+        abort_unless($registry->userCan($user, 'client.pharma.orders.create') || $canCreateForUser, 403);
+        $visible = $workspace->findVisible((int) $user->id, $issue);
+        if ($visible === null && $canCreateForUser) $visible = $workspace->findByCreator((int) $user->id, $issue);
+        abort_if($visible === null, 404);
+        abort_unless((int) $visible->created_by === (int) $user->id && $visible->status === \Modules\Pharma\Models\InventoryIssue::DRAFT, 403);
+        $date = $visible->issue_date->toDateString();
+        $managerUserId = (int) ($visible->manager_user_id ?: $user->id);
+
+        return view('ClientPortal::applications.pharma.order-form', [
+            'application' => $registry->find('pharma'), 'issue' => $visible, 'issueDate' => $date,
+            'managerUserId' => $managerUserId, 'canCreateForUser' => $canCreateForUser,
+            'orderManagers' => $canCreateForUser ? $authoring->orderManagers() : collect([$user]),
+            'priceLists' => $authoring->priceLists($managerUserId, $date),
+            'customers' => $authoring->customers(),
+            'bidRows' => $authoring->bidRows($managerUserId, $date),
+        ]);
+    }
+
+    public function updateOrder(
+        int $issue, Request $request, ApplicationRegistry $registry,
+        UserInventoryIssueWorkspace $workspace, UserOrderAuthoringService $authoring,
+    ) {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        $canCreateForUser = $registry->userCan($user, 'client.pharma.orders.create-for-user');
+        abort_unless($registry->userCan($user, 'client.pharma.orders.create') || $canCreateForUser, 403);
+        $visible = $workspace->findVisible((int) $user->id, $issue);
+        if ($visible === null && $canCreateForUser) $visible = $workspace->findByCreator((int) $user->id, $issue);
+        abort_if($visible === null, 404);
+        $data = $this->validateOrderAuthoring($request);
+        $managerUserId = $canCreateForUser ? (int) ($data['manager_user_id'] ?? $visible->manager_user_id) : (int) $user->id;
+        abort_if($managerUserId <= 0 || ($canCreateForUser && ! $authoring->orderManagers()->contains('id', $managerUserId)), 403);
+        $authoring->updateDraft((int) $user->id, $managerUserId, $visible, $data);
+
+        return redirect()->route('client.pharma.orders.show', $visible)->with('success', 'Đã cập nhật đơn hàng Nháp.');
+    }
+
+    public function submitOrder(
+        int $issue, Request $request, ApplicationRegistry $registry,
+        UserInventoryIssueWorkspace $workspace, UserOrderAuthoringService $authoring,
+    ) {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.orders.submit'), 403);
+        $visible = $workspace->findVisible((int) $user->id, $issue);
+        if ($visible === null && $registry->userCan($user, 'client.pharma.orders.create-for-user')) $visible = $workspace->findByCreator((int) $user->id, $issue);
+        abort_if($visible === null, 404);
+        $authoring->submit((int) $user->id, $visible);
+
+        return redirect()->route('client.pharma.orders.show', $visible)->with('success', 'Đơn hàng đã được gửi duyệt.');
+    }
+
+    private function validateOrderAuthoring(Request $request): array
+    {
+        return $request->validate([
+            'source' => ['required', 'in:price_list,bid'],
+            'manager_user_id' => ['nullable', 'integer', 'exists:users,id'],
+            'issue_date' => ['required', 'date'],
+            'recipient_partner_id' => ['nullable', 'integer', 'exists:partners,id'],
+            'price_list_id' => ['nullable', 'integer', 'exists:pharma_price_lists,id'],
+            'quantities' => ['required', 'array'],
+            'quantities.*' => ['nullable', 'numeric', 'min:0'],
+            'notes' => ['nullable', 'string', 'max:2000'],
         ]);
     }
 
@@ -1105,12 +1217,20 @@ final class PharmaApplicationController extends Controller
         abort_if($user === null, 401);
         abort_unless($registry->userCan($user, 'client.pharma.orders'), 403);
 
+        $canCreateForUser = $registry->userCan($user, 'client.pharma.orders.create-for-user');
         $visibleIssue = $workspace->findVisible((int) $user->id, $issue);
+        if ($visibleIssue === null && $canCreateForUser) $visibleIssue = $workspace->findByCreator((int) $user->id, $issue);
         abort_if($visibleIssue === null, 404);
 
         return view('ClientPortal::applications.pharma.inventory-issue-show', [
             'application' => $application,
             'issue' => $visibleIssue,
+            'canEditOrder' => $registry->userCan($user, 'client.pharma.orders.create')
+                && (int) $visibleIssue->created_by === (int) $user->id
+                && $visibleIssue->status === \Modules\Pharma\Models\InventoryIssue::DRAFT,
+            'canSubmitOrder' => $registry->userCan($user, 'client.pharma.orders.submit')
+                && (int) $visibleIssue->created_by === (int) $user->id
+                && $visibleIssue->status === \Modules\Pharma\Models\InventoryIssue::DRAFT,
         ]);
     }
 

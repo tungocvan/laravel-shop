@@ -31,16 +31,18 @@ final class PharmaInventoryIssuesCapabilityTest extends TestCase
         $this->assertStringNotContainsString('Đơn hàng / Phiếu xuất', $inventoryView);
     }
 
-    public function test_inventory_issue_list_matches_mobile_native_reference_and_remains_read_only(): void
+    public function test_inventory_issue_list_keeps_mobile_native_reference_with_authoring_entry(): void
     {
         $root = base_path();
         $routes = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/routes.php');
         $view = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-issues.blade.php');
 
-        $this->assertStringNotContainsString("Route::post('/orders", $routes);
-        $this->assertStringNotContainsString("Route::put('/orders", $routes);
+        $this->assertStringContainsString("Route::post('/orders'", $routes);
+        $this->assertStringContainsString("Route::put('/orders/{issue}'", $routes);
         $this->assertStringNotContainsString("Route::delete('/orders", $routes);
         $this->assertStringContainsString('Đơn hàng', $view);
+        $this->assertStringContainsString("route('client.pharma.dashboard')", $view);
+        $this->assertStringNotContainsString("route('client.pharma.inventory')", $view);
         $this->assertStringContainsString('Tìm đơn hàng / khách hàng / bệnh viện', $view);
         $this->assertStringContainsString('issue-filter-sheet', $view);
         $this->assertStringContainsString('lg:inset-0 lg:m-auto lg:h-fit', $view);
@@ -64,7 +66,7 @@ final class PharmaInventoryIssuesCapabilityTest extends TestCase
         $this->assertStringContainsString("window.setTimeout(() => searchForm.requestSubmit(), 350)", $view);
     }
 
-    public function test_inventory_issue_detail_is_read_only_and_shows_order_source_products_and_totals(): void
+    public function test_inventory_issue_detail_shows_order_source_products_totals_and_draft_actions(): void
     {
         $root = base_path();
         $view = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-issue-show.blade.php');
@@ -76,6 +78,7 @@ final class PharmaInventoryIssuesCapabilityTest extends TestCase
         $this->assertStringContainsString('Người phụ trách', $view);
         $this->assertStringContainsString('Sản phẩm', $view);
         $this->assertStringContainsString('Đơn giá', $view);
-        $this->assertStringNotContainsString('<form', $view);
+        $this->assertStringContainsString('Sửa đơn', $view);
+        $this->assertStringContainsString('Gửi duyệt', $view);
     }
 }

@@ -1,3 +1,23 @@
+## Checkpoint — Pharma PWA Order Authoring MR2 — 2026-09-30
+
+- Branch: `feat/clientportal-pharma-order-authoring`, based on merged PR #239 at `a7d5f9a2b2ebcc675e298ef9503cb46eb3b957b5`.
+- Scope: create/edit Draft orders and Submit for approval. Approval/rejection and warehouse posting remain explicitly deferred.
+- Canonical mutation owner: `Modules/Pharma/Services/UserOrderAuthoringService`; ClientPortal only validates request shape, authorizes Client permissions, delegates and renders.
+- Added independent action permissions `client.pharma.orders.create` and `client.pharma.orders.submit`; no Inventory permission is reused.
+- Order sources: active/effective Price Lists assigned to the User, or active Bid Award allocation pairs actively assigned to the User. Server re-resolves source scope at mutation time.
+- Browser never submits authoritative unit price. Price-list drafts persist canonical `company_sale_price`; bid drafts persist canonical winning price/fallback award unit price.
+- Draft mutation is creator-only and draft-only. Source cannot be switched after initial draft creation.
+- Submit transitions only `draft -> pending_approval`, recording `submitted_by/submitted_at`; it does not call `InventoryService::postIssue()`, create inventory transactions or mutate stock balances.
+- Schema adds `recipient_partner_id`, `submitted_by`, `submitted_at` to the existing InventoryIssue-backed order document. No approval/posting audit fields are introduced in MR2.
+- Mobile-first create/edit UI follows the approved reference: simple centered header, segmented source selector, large controls, searchable customer/bid rows, product quantity cards and sticky `Quay lại | Lưu nháp`. Draft detail exposes `Sửa đơn | Gửi duyệt` only when authorized.
+- UX refinement after operator screenshot: create CTA is available to own-create OR delegated-create permission; delegated authoring uses `client.pharma.orders.create-for-user`, searchable User selector, then reloads canonical price-list/bid scope for that User. `created_by` remains the real actor while `manager_user_id` is the responsible User.
+- Professional authoring UI: desktop two-column context/catalog layout, mobile single-column, searchable customer combobox, product search, selected-card emphasis, live item/quantity/value summary, sticky draft actions. Customer-bound price lists auto-lock the assigned customer.
+- Operator UI refinement: `Người phụ trách` is now a real toggle combobox (collapsed by default, click to open search/results, select then reload scoped data); `Khách hàng` closes on outside click; both close on Escape. Order action permissions are registered under the canonical `features.orders.actions` tree (not only navigation), so User permission management can expose `Tạo đơn hàng`, `Gửi duyệt`, and delegated `Lên đơn thay User`; the list `+` remains permission-gated by create/delegated-create.
+- Required checkpoint: pull branch; Test 1 = focused `PharmaOrderAuthoringCapabilityTest + PharmaInventoryIssuesCapabilityTest`; on PASS run Test 2 = `tests/Feature/ClientApps`. Stop on any failure and send raw output. Real mobile + desktop UI acceptance remains mandatory before PR.
+- Status: **IMPLEMENTED — AWAITING OPERATOR PULL / TEST.**
+
+---
+
 ## Current delivery — Pharma PWA Inventory Read Workspace
 
 - Last updated: 2026-09-30
@@ -301,6 +321,23 @@ Recommended sequence remains:
 - Validation accepted: focused Orders capability tests PASS; full `tests/Feature/ClientApps` regression PASS (user-reported); real mobile/PWA Orders list/detail UI PASS. Desktop filter modal was also corrected to the centered PWA convention.
 - Final branch gate: compare against `main`, confirm no migrations and no order mutations were introduced, then create the MR1 PR. MR2 starts only after MR1 merge.
 - Status: **MR1 VALIDATED — CODE TEST PASS — UI PASS — READY FOR PR GATE.**
+
+## Current delivery — Pharma PWA Order Authoring (MR2) — 2026-09-30
+
+- Active branch: `feat/clientportal-pharma-order-authoring`
+- Base branch: `main`
+- Scope: create/edit Draft orders and Submit for approval only. Approval/Reject and warehouse lot/posting remain deferred to MR3+.
+- Orders support both canonical sources: User-managed price lists and assigned bid-award allocations.
+- Admin/authorized author can choose the responsible User; source-specific customer/investor/hospital/product choices are constrained by that User's canonical assignments.
+- Price-list and bid product pickers use searchable combobox UX and explicit add/remove selection. Canonical prices are server-resolved and are not browser-authoritative.
+- Bid UI now exposes both `SL phân bổ` and calculated `SL còn lại`; remaining allocation continues to account for posted quantities.
+- Draft ownership/audit and order visibility remain server-side. Orders and Inventory permissions remain separate.
+- Migration `2026_09_30_120000_add_order_authoring_to_inventory_issues.php` carries the MR2 order-authoring schema required by this workflow.
+- Real UI validation covered mobile/PWA create/edit/detail for price-list and bid flows, including the duplicate-product edit correction and Orders back-navigation permission boundary.
+- Focused validation reported by operator: **7 passed (140 assertions)**.
+- Full `tests/Feature/ClientApps` regression reported by operator: **158 passed (1979 assertions), 28.66s**.
+- MR3 requirement confirmed from UI review: an authorized approver must receive explicit Reject/Approve actions for Pending approval orders. Approval must not itself post stock; lot/expiry selection and warehouse posting stay a separate warehouse capability.
+- Status: **MR2 IMPLEMENTED — FOCUSED PASS — CLIENTAPPS REGRESSION PASS — UI ACCEPTED — READY FOR PR GATE.**
 
 ## Current delivery — ClientPortal Feature Page Content & PWA AI Workflow
 

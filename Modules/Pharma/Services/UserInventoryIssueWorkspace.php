@@ -46,6 +46,7 @@ final class UserInventoryIssueWorkspace
         return [
             'all' => (clone $query)->count(),
             InventoryIssue::DRAFT => (clone $query)->where('status', InventoryIssue::DRAFT)->count(),
+            InventoryIssue::PENDING_APPROVAL => (clone $query)->where('status', InventoryIssue::PENDING_APPROVAL)->count(),
             InventoryIssue::POSTED => (clone $query)->where('status', InventoryIssue::POSTED)->count(),
             InventoryIssue::CANCELLED => (clone $query)->where('status', InventoryIssue::CANCELLED)->count(),
         ];
@@ -54,6 +55,15 @@ final class UserInventoryIssueWorkspace
     public function findVisible(int $userId, int $issueId): ?InventoryIssue
     {
         return $this->visibleQuery($userId)
+            ->with(['manager:id,name', 'priceList:id,code,name,type', 'items.medicine'])
+            ->withCount('items')
+            ->find($issueId);
+    }
+
+    public function findByCreator(int $creatorUserId, int $issueId): ?InventoryIssue
+    {
+        return InventoryIssue::query()
+            ->where('created_by', $creatorUserId)
             ->with(['manager:id,name', 'priceList:id,code,name,type', 'items.medicine'])
             ->withCount('items')
             ->find($issueId);

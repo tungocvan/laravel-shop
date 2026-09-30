@@ -8,7 +8,7 @@
 @section('content')
 @php
     $money = fn ($value) => number_format((float) $value, 0, ',', '.').' đ';
-    $statusLabels = ['draft'=>'Nháp','posted'=>'Đã xuất','cancelled'=>'Đã hủy'];
+    $statusLabels = ['draft'=>'Nháp','pending_approval'=>'Chờ duyệt','posted'=>'Đã xuất','cancelled'=>'Đã hủy'];
     $sourceLabels = ['normal'=>'Theo bảng giá','bid'=>'Theo kết quả trúng thầu'];
     $hasFilters = $filters['status'] || $filters['source'] || $filters['from_date'] || $filters['to_date'];
 @endphp
@@ -16,7 +16,7 @@
 <div class="min-w-0 max-w-full overflow-x-hidden min-h-[calc(100vh-5rem)] bg-slate-50 pb-24 lg:pb-8" data-inventory-issues-workspace>
     <header class="sticky top-0 z-30 -mx-4 border-b border-slate-200 bg-white/95 px-4 py-4 backdrop-blur sm:-mx-6 sm:px-6 lg:static lg:mx-0 lg:rounded-3xl lg:border lg:px-6">
         <div class="relative flex items-center justify-center">
-            <a href="{{ route('client.pharma.inventory') }}" class="absolute left-0 inline-flex h-11 w-11 items-center justify-center rounded-full text-2xl text-slate-900 transition active:scale-95" aria-label="Quay lại">←</a>
+            <a href="{{ route('client.pharma.dashboard') }}" class="absolute left-0 inline-flex h-11 w-11 items-center justify-center rounded-full text-2xl text-slate-900 transition active:scale-95" aria-label="Quay lại">←</a>
             <h1 class="px-12 text-center text-xl font-black tracking-tight text-slate-950 sm:text-2xl">Đơn hàng / Phiếu xuất</h1>
         </div>
     </header>
@@ -42,7 +42,7 @@
     </section>
 
     <nav class="mt-4 flex max-w-full gap-2 overflow-x-auto overscroll-x-contain pb-1 [scrollbar-width:none]" aria-label="Trạng thái đơn hàng">
-        @foreach([''=>'Tất cả','draft'=>'Nháp','posted'=>'Đã xuất','cancelled'=>'Đã hủy'] as $value=>$label)
+        @foreach([''=>'Tất cả','draft'=>'Nháp','pending_approval'=>'Chờ duyệt','posted'=>'Đã xuất','cancelled'=>'Đã hủy'] as $value=>$label)
             <a href="{{ route('client.pharma.orders', array_filter(['q'=>$filters['q'],'status'=>$value,'source'=>$filters['source'],'from_date'=>$filters['from_date'],'to_date'=>$filters['to_date']], fn($v)=>$v!=='' && $v!==null)) }}"
                class="shrink-0 rounded-full border px-4 py-2 text-sm font-bold {{ $filters['status']===$value ? 'border-slate-950 bg-slate-950 text-white' : 'border-slate-200 bg-white text-slate-600' }}">
                 {{ $label }} <span class="ml-1 opacity-70">{{ $value==='' ? $counts['all'] : ($counts[$value] ?? 0) }}</span>
@@ -113,6 +113,9 @@
             <div class="mt-6 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4"><button id="issue-filter-cancel" type="button" class="h-13 rounded-2xl border border-slate-300 font-black text-slate-700">Hủy</button><button type="submit" class="h-13 rounded-2xl bg-slate-950 font-black text-white">Áp dụng</button></div>
         </form>
     </aside>
+    @if($canCreateOrders)
+        <a href="{{ route('client.pharma.orders.create') }}" data-create-order class="fixed bottom-24 right-5 z-30 inline-flex h-14 w-14 items-center justify-center rounded-full bg-slate-950 text-3xl font-light text-white shadow-xl transition active:scale-95 lg:bottom-8 lg:right-8" aria-label="Thêm mới đơn hàng">+</a>
+    @endif
 </div>
 
 <script>
