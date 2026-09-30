@@ -62,6 +62,11 @@ return [
                     'permission' => 'client.pharma.orders.submit',
                     'sort_order' => 20,
                 ],
+                'create-for-user' => [
+                    'name' => 'Lên đơn thay User',
+                    'permission' => 'client.pharma.orders.create-for-user',
+                    'sort_order' => 30,
+                ],
             ],
         ],
         'inventory' => [
