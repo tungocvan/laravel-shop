@@ -660,6 +660,14 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("postIssue(\$issue->fresh('items')", $controller);
         $this->assertStringContainsString('id="save-post-issue"', $editView);
         $this->assertStringContainsString("->merge(\$issue->items->pluck('medicine'))", $editView);
+        $this->assertStringContainsString("'items.*.balance_id'=>'nullable|exists:pharma_inventory_balances,id'", $controller);
+        $this->assertStringContainsString("'items.*.supply_note'=>'nullable|string|max:2000'", $controller);
+        $this->assertStringContainsString("deferredSupplies()->whereNull('drug_bid_award_allocation_id')->delete()", $controller);
+        $this->assertStringContainsString("InventoryIssueDeferredSupply::PENDING", $controller);
+        $this->assertStringContainsString('Chưa đủ tồn · ghi chú cung ứng', $editView);
+        $this->assertStringContainsString('expected_supply_date', $editView);
+        $this->assertStringContainsString('supply_note', $editView);
+        $this->assertStringContainsString('Mặt hàng chưa chọn lô phải có Ghi chú cung ứng.', $controller);
         $this->assertStringContainsString("->filter()", $editView);
         $this->assertStringContainsString("->unique('id')", $editView);
         $this->assertStringContainsString("priceListManagers=app(UserOrderAuthoringService::class)->orderManagers()", $controller);
