@@ -282,6 +282,22 @@ Recommended sequence remains:
 
 # ClientPortal Module — Collaboration Handoff
 
+
+## Checkpoint — Pharma PWA Inventory Issue/Order read workspace — 2026-09-30
+
+- Branch: `feat/clientportal-pharma-inventory-issues-read`, based on `main` at `cd512c387d8855993100546343c0fb4413fcc801` (PR #238).
+- Scope is MR1 only: read-only User-scoped list + detail for Inventory Issue/Order. No create/update/submit/approve/post/revert mutation and no migration.
+- Canonical ownership stays in `Modules/Pharma` through `UserInventoryIssueWorkspace`. ClientPortal only authenticates, authorizes, orchestrates and renders.
+- Visibility is server-side: an issue is visible only when the authenticated Web User is `manager_user_id` or `created_by`; direct detail access outside that scope returns 404.
+- PWA routes: `/apps/pharma/inventory/issues` and `/apps/pharma/inventory/issues/{issue}`, guarded by `client.pharma.inventory.issues`.
+- List UI follows the approved mobile reference: centered header/back action, large search, separate filter button, bottom-sheet filter with reset/cancel/apply, status rail, empty state, touch-friendly cards, progressive `Xem thêm`; desktop switches to a wide table.
+- Filters: search by document/customer/hospital/investor, source (price list / bid award), current canonical status and issue-date range.
+- Detail is read-only and shows source, recipient, manager, price list when applicable, product lines, quantity, unit price, lot/expiry when present, total and notes.
+- Existing Inventory read workspace now exposes a permission-aware entry to `Đơn hàng / Phiếu xuất`.
+- Focused test added: `tests/Feature/ClientApps/PharmaInventoryIssuesCapabilityTest.php`.
+- Required operator checkpoint: `git pull --ff-only`, run the focused Inventory Issues capability test first. Stop on FAIL/500. After PASS run impacted ClientApps regression and then real Desktop + Tablet/Mobile/PWA acceptance.
+- Status: **IMPLEMENTED — AWAITING OPERATOR PULL / FOCUSED TEST / UI ACCEPTANCE.**
+
 ## Current delivery — ClientPortal Feature Page Content & PWA AI Workflow
 
 - Last updated: 2026-09-29
