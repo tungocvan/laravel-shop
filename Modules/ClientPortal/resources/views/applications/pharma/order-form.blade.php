@@ -24,8 +24,13 @@
 <aside class="space-y-4 lg:sticky lg:top-4">
  <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
   <p class="text-xs font-black uppercase tracking-wide text-slate-500">Thiết lập đơn hàng</p>
+  <div class="mt-4 grid grid-cols-2 gap-2 rounded-2xl bg-slate-100 p-1.5">
+   <label><input class="peer sr-only" type="radio" name="source" value="price_list" @checked($currentSource==='price_list') @disabled($editing)><span class="block rounded-xl px-2 py-3 text-center text-xs font-black text-slate-600 peer-checked:bg-white peer-checked:text-slate-950 peer-checked:shadow-sm">Theo bảng giá</span></label>
+   <label><input class="peer sr-only" type="radio" name="source" value="bid" @checked($currentSource==='bid') @disabled($editing)><span class="block rounded-xl px-2 py-3 text-center text-xs font-black text-slate-600 peer-checked:bg-white peer-checked:text-slate-950 peer-checked:shadow-sm">Theo trúng thầu</span></label>
+  </div>@if($editing)<input type="hidden" name="source" value="{{ $currentSource }}">@endif
+  <div id="manager-context" class="mt-4">
   @if($canCreateForUser)
-   <div class="mt-4" data-manager-combobox><span class="mb-2 block text-sm font-black">Người phụ trách</span>
+   <div data-manager-combobox><span class="mb-2 block text-sm font-black">Người phụ trách</span>
     <div class="relative">
      <button id="manager-toggle" type="button" class="flex h-12 w-full items-center justify-between rounded-2xl border border-slate-300 bg-white px-4 text-left"><span id="manager-label" class="min-w-0 truncate text-sm text-slate-700">Chọn User phụ trách</span><span class="ml-2 shrink-0 text-slate-400">⌄</span></button>
      <div id="manager-panel" class="absolute z-50 mt-1 hidden w-full rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
@@ -37,12 +42,9 @@
     <p class="mt-2 text-xs text-slate-500">Bạn đang lên đơn thay User; hệ thống vẫn lưu người tạo thực tế để audit.</p>
    </div>
   @else
-   <input type="hidden" name="manager_user_id" value="{{ $managerUserId }}"><div class="mt-4 rounded-2xl bg-slate-50 p-3"><p class="text-xs font-bold text-slate-500">Người phụ trách</p><p class="mt-1 font-black">{{ $orderManagers->first()?->name }}</p></div>
+   <input type="hidden" name="manager_user_id" value="{{ $managerUserId }}"><div class="rounded-2xl bg-slate-50 p-3"><p class="text-xs font-bold text-slate-500">Người phụ trách</p><p class="mt-1 font-black">{{ $orderManagers->first()?->name }}</p></div>
   @endif
-  <div class="mt-4 grid grid-cols-2 gap-2 rounded-2xl bg-slate-100 p-1.5">
-   <label><input class="peer sr-only" type="radio" name="source" value="price_list" @checked($currentSource==='price_list') @disabled($editing)><span class="block rounded-xl px-2 py-3 text-center text-xs font-black text-slate-600 peer-checked:bg-white peer-checked:text-slate-950 peer-checked:shadow-sm">Theo bảng giá</span></label>
-   <label><input class="peer sr-only" type="radio" name="source" value="bid" @checked($currentSource==='bid') @disabled($editing)><span class="block rounded-xl px-2 py-3 text-center text-xs font-black text-slate-600 peer-checked:bg-white peer-checked:text-slate-950 peer-checked:shadow-sm">Theo trúng thầu</span></label>
-  </div>@if($editing)<input type="hidden" name="source" value="{{ $currentSource }}">@endif
+  </div>
   <label class="mt-4 block"><span class="mb-2 block text-sm font-black">Ngày lập đơn</span><input type="date" name="issue_date" value="{{ old('issue_date',$issueDate) }}" class="h-12 w-full rounded-2xl border border-slate-300 px-4"></label>
  </section>
 
@@ -87,12 +89,22 @@
   <div id="selected-products-empty" class="mt-4 rounded-2xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500">Chưa có sản phẩm. Chọn sản phẩm phía trên để thêm vào đơn.</div>
  </section>
 
- <section id="bid-products" class="hidden rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-  <h2 class="text-lg font-black">Sản phẩm trúng thầu được phân công</h2><p class="mt-1 text-sm text-slate-500">Chỉ bệnh viện và sản phẩm thuộc phạm vi User phụ trách.</p>
-  <input id="bid-search" type="search" placeholder="Tìm bệnh viện / sản phẩm..." class="mt-4 h-12 w-full rounded-2xl border border-slate-300 px-4">
-  <div class="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-2">@foreach($bidRows as $row) @php $current=$currentByAllocation->get($row->allocation_id); @endphp
-   <article data-bid-item data-search="{{ mb_strtolower($row->partner_name.' '.$row->medicine_name) }}" data-price="{{ $row->unit_price }}" class="rounded-2xl border border-slate-200 p-4"><p class="text-xs font-bold text-slate-500">{{ $row->partner_name }}</p><div class="mt-1 flex justify-between gap-3"><div><p class="font-black">{{ $row->medicine_name }}</p><p class="text-xs text-slate-500">Còn {{ rtrim(rtrim(number_format($row->remaining_quantity,3,'.',''),'0'),'.') }} {{ $row->unit }}</p></div><p class="shrink-0 text-sm font-black">{{ $money($row->unit_price) }}</p></div><input data-quantity name="quantities[{{ $row->allocation_id }}]" value="{{ old('quantities.'.$row->allocation_id,$current?->quantity) }}" inputmode="decimal" class="mt-3 h-12 w-full rounded-2xl border border-slate-300 px-4" placeholder="Số lượng"></article>
-  @endforeach</div>
+ <section id="bid-products" class="hidden space-y-4">
+  <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+   <div><h2 class="text-lg font-black">Xuất bán hàng thầu</h2><p class="mt-1 text-sm text-slate-500">Chọn chủ đầu tư và bệnh viện trong phạm vi User phụ trách.</p></div>
+   <div class="mt-4 grid gap-3 sm:grid-cols-2">
+    <label><span class="mb-2 block text-sm font-black">Chủ đầu tư *</span><select id="bid-investor" class="h-12 w-full rounded-2xl border border-slate-300 bg-white px-3"><option value="">Chọn chủ đầu tư</option></select></label>
+    <label><span class="mb-2 block text-sm font-black">Khách hàng / Bệnh viện *</span><select id="bid-partner" class="h-12 w-full rounded-2xl border border-slate-300 bg-white px-3" disabled><option value="">Chọn chủ đầu tư trước</option></select></label>
+   </div>
+  </section>
+  <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+   <div class="flex items-end justify-between gap-3"><div><h2 class="text-lg font-black">Sản phẩm trúng thầu</h2><p class="mt-1 text-sm text-slate-500">Đơn giá và hạn mức lấy từ phân bổ canonical.</p></div><span id="bid-visible-count" class="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-black">0 sản phẩm</span></div>
+   <input id="bid-search" type="search" placeholder="Tìm mã thuốc / tên thuốc / hoạt chất..." class="mt-4 h-12 w-full rounded-2xl border border-slate-300 px-4" disabled>
+   <div id="bid-empty" class="mt-4 rounded-2xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500">Chọn chủ đầu tư và bệnh viện để tải sản phẩm được phân công.</div>
+   <div class="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-2">@foreach($bidRows as $row) @php $current=$currentByAllocation->get($row->allocation_id); $investorKey=$row->investor_code ?: $row->investor_name; @endphp
+    <article data-bid-item data-investor="{{ $investorKey }}" data-investor-name="{{ $row->investor_name }}" data-partner="{{ $row->partner_id }}" data-partner-name="{{ $row->partner_name }}" data-search="{{ mb_strtolower(($row->medicine_code ?? '').' '.$row->medicine_name.' '.$row->partner_name) }}" data-price="{{ $row->unit_price }}" class="hidden rounded-2xl border border-slate-200 p-4"><div class="flex items-start justify-between gap-3"><div class="min-w-0"><p class="truncate font-black">{{ $row->medicine_name }}</p><p class="mt-0.5 text-xs text-slate-500">{{ $row->medicine_code }} · {{ $row->unit }} · Còn {{ rtrim(rtrim(number_format($row->remaining_quantity,3,'.',''),'0'),'.') }}</p></div><p class="shrink-0 text-sm font-black">{{ $money($row->unit_price) }}</p></div><div class="mt-3 flex items-center gap-2"><span class="text-xs font-bold text-slate-500">SL</span><input data-quantity name="quantities[{{ $row->allocation_id }}]" value="{{ old('quantities.'.$row->allocation_id,$current?->quantity) }}" inputmode="decimal" class="h-9 w-24 rounded-xl border border-slate-300 px-2 text-right text-sm font-black" placeholder="0"></div></article>
+   @endforeach</div>
+  </section>
  </section>
  <section class="rounded-3xl border border-slate-200 bg-white p-5"><label><span class="mb-2 block text-sm font-black">Ghi chú</span><textarea name="notes" rows="3" class="w-full rounded-2xl border border-slate-300 px-4 py-3">{{ old('notes',$issue?->notes) }}</textarea></label></section>
 </main>
@@ -118,7 +130,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 
  const priceContext=document.getElementById('price-list-context'), priceProducts=document.getElementById('price-list-products'), bidProducts=document.getElementById('bid-products');
  const source=()=>document.querySelector('input[name="source"]:checked')?.value||document.querySelector('input[type="hidden"][name="source"]')?.value||'price_list';
- const syncSource=()=>{const b=source()==='bid';priceContext.classList.toggle('hidden',b);priceProducts.classList.toggle('hidden',b);bidProducts.classList.toggle('hidden',!b);priceContext.querySelectorAll('input,select').forEach(el=>el.disabled=b);priceProducts.querySelectorAll('input').forEach(el=>el.disabled=b);bidProducts.querySelectorAll('input').forEach(el=>el.disabled=!b);summary();};
+ const syncSource=()=>{const b=source()==='bid';document.getElementById('manager-context')?.classList.remove('hidden');priceContext.classList.toggle('hidden',b);priceProducts.classList.toggle('hidden',b);bidProducts.classList.toggle('hidden',!b);priceContext.querySelectorAll('input,select').forEach(el=>el.disabled=b);priceProducts.querySelectorAll('input').forEach(el=>el.disabled=b);bidProducts.querySelectorAll('input').forEach(el=>el.disabled=!b);summary();};
  document.querySelectorAll('input[name="source"]').forEach(x=>x.addEventListener('change',syncSource));
 
  const pl=document.getElementById('price-list-select'), productBox=document.querySelector('[data-product-picker]'), productToggle=document.getElementById('product-toggle'), productPanel=document.getElementById('product-panel'), productSearch=document.getElementById('product-search'), productResults=document.getElementById('product-results'), productAddPanel=document.getElementById('product-add-panel'), productAddQty=document.getElementById('product-add-qty');
@@ -140,7 +152,11 @@ document.addEventListener('DOMContentLoaded',()=>{
  document.addEventListener('click',e=>{if(managerBox&&!managerBox.contains(e.target))managerPanel?.classList.add('hidden');const customerBox=cs?.closest('.relative');if(customerBox&&!customerBox.contains(e.target))cr?.classList.add('hidden');if(productBox&&!productBox.contains(e.target))productPanel?.classList.add('hidden');});
  document.addEventListener('keydown',e=>{if(e.key==='Escape'){managerPanel?.classList.add('hidden');cr?.classList.add('hidden');productPanel?.classList.add('hidden');}});
 
- const bidSearch=document.getElementById('bid-search');bidSearch?.addEventListener('input',()=>{const q=bidSearch.value.toLocaleLowerCase('vi');document.querySelectorAll('[data-bid-item]').forEach(el=>el.classList.toggle('hidden',!el.dataset.search.includes(q)));});
+ const bidInvestor=document.getElementById('bid-investor'),bidPartner=document.getElementById('bid-partner'),bidSearch=document.getElementById('bid-search'),bidItems=[...document.querySelectorAll('[data-bid-item]')];
+ const hydrateBidContext=()=>{const investors=[...new Map(bidItems.map(el=>[el.dataset.investor,el.dataset.investorName||el.dataset.investor])).entries()];bidInvestor.innerHTML='<option value="">Chọn chủ đầu tư</option>'+investors.map(([v,t])=>'<option value="'+v.replaceAll('"','&quot;')+'">'+t+'</option>').join('');const selected=bidItems.find(el=>(parseFloat(el.querySelector('[data-quantity]')?.value)||0)>0);if(selected){bidInvestor.value=selected.dataset.investor;syncBidPartners(selected.dataset.partner);}else syncBidPartners();};
+ const syncBidPartners=(selectedPartner='')=>{const key=bidInvestor.value,partners=[...new Map(bidItems.filter(el=>el.dataset.investor===key).map(el=>[el.dataset.partner,el.dataset.partnerName])).entries()];bidPartner.disabled=!key;bidPartner.innerHTML='<option value="">'+(key?'Chọn bệnh viện':'Chọn chủ đầu tư trước')+'</option>'+partners.map(([v,t])=>'<option value="'+v+'">'+t+'</option>').join('');if(selectedPartner)bidPartner.value=selectedPartner;renderBidItems();};
+ const renderBidItems=()=>{const inv=bidInvestor.value,partner=bidPartner.value,q=(bidSearch.value||'').toLocaleLowerCase('vi').trim();let n=0;bidItems.forEach(el=>{const show=!!partner&&el.dataset.investor===inv&&el.dataset.partner===partner&&el.dataset.search.includes(q);el.classList.toggle('hidden',!show);if(show)n++;});bidSearch.disabled=!partner;document.getElementById('bid-visible-count').textContent=n+' sản phẩm';document.getElementById('bid-empty').classList.toggle('hidden',n>0);};
+ bidInvestor?.addEventListener('change',()=>{bidItems.forEach(el=>el.querySelector('[data-quantity]').value='');syncBidPartners();summary();});bidPartner?.addEventListener('change',()=>{bidItems.forEach(el=>{if(el.dataset.partner!==bidPartner.value)el.querySelector('[data-quantity]').value='';});renderBidItems();summary();});bidSearch?.addEventListener('input',renderBidItems);hydrateBidContext();
  const summary=()=>{let count=0,qty=0,total=0;document.querySelectorAll('[data-quantity]:not(:disabled)').forEach(i=>{const q=parseFloat(i.value)||0;if(q>0){count++;qty+=q;total+=q*(parseFloat(i.closest('[data-price]')?.dataset.price)||0);i.closest('[data-price]')?.classList.add('ring-2','ring-slate-900');}else{i.closest('[data-price]')?.classList.remove('ring-2','ring-slate-900');}});document.getElementById('order-summary').textContent=count+' sản phẩm · '+qty.toLocaleString('vi-VN')+' SL · '+Math.round(total).toLocaleString('vi-VN')+' đ';};
  document.querySelectorAll('[data-quantity]').forEach(i=>i.addEventListener('input',summary));syncSource();syncSelectedProducts();summary();
 });
