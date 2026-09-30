@@ -84,8 +84,9 @@ final class PharmaOrderApprovalCapabilityTest extends TestCase
         $this->assertStringContainsString('Phê duyệt đơn', $detail);
         $this->assertStringContainsString('Từ chối đơn hàng', $detail);
         $this->assertStringContainsString('Bước này chưa chọn lô, chưa trừ tồn và chưa ghi nhận hoa hồng.', $detail);
-        $this->assertStringContainsString("route('admin.pharma.inventory.issues.bid-sales.batches',\$issue)", $detail);
-        $this->assertStringContainsString('Xử lý kho · Chọn lô', $detail);
+        $this->assertStringContainsString("route('admin.pharma.inventory.issues.bid-sales.edit',\$issue)", $detail);
+        $this->assertStringContainsString('Sửa đơn hàng thầu', $detail);
+        $this->assertStringNotContainsString('Xử lý kho · Chọn lô', $detail);
     }
 
     public function test_admin_inventory_reuses_canonical_posting_and_commission_flow_for_pwa_approved_orders(): void
