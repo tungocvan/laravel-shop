@@ -12,8 +12,8 @@ final class UserOrderApprovalService
     public function approve(int $actorUserId, InventoryIssue $issue): InventoryIssue
     {
         $this->guardPending($actorUserId, $issue);
-        if (! $this->stockReadiness->forIssue($issue)['is_ready']) {
-            throw ValidationException::withMessages(['order' => 'Chưa thể phê duyệt vì tồn kho khả dụng không đủ. Vui lòng bổ sung hàng hoặc từ chối đơn để User điều chỉnh.']);
+        if (! $this->stockReadiness->forIssue($issue)['can_approve']) {
+            throw ValidationException::withMessages(['order' => 'Chưa thể phê duyệt: sản phẩm thiếu hàng phải được lưu ghi chú chờ cung cấp trước.']);
         }
 
         return DB::transaction(function () use ($actorUserId, $issue): InventoryIssue {
