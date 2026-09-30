@@ -8,14 +8,9 @@ use Modules\Pharma\Models\InventoryIssue;
 
 final class UserOrderApprovalService
 {
-    public function __construct(private readonly UserOrderStockReadinessService $stockReadiness) {}
     public function approve(int $actorUserId, InventoryIssue $issue): InventoryIssue
     {
         $this->guardPending($actorUserId, $issue);
-        if (! $this->stockReadiness->forIssue($issue)['can_approve']) {
-            throw ValidationException::withMessages(['order' => 'Chưa thể phê duyệt: đơn phải có ít nhất 1 sản phẩm đủ tồn; mọi sản phẩm thiếu phải có ngày dự kiến và ghi chú chờ cung cấp.']);
-        }
-
         return DB::transaction(function () use ($actorUserId, $issue): InventoryIssue {
             $issue->update([
                 'status' => InventoryIssue::APPROVED,
