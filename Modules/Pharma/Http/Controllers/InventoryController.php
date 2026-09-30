@@ -19,6 +19,7 @@ use Modules\Pharma\Models\InventoryIssue;
 use Modules\Pharma\Models\InventoryIssueDocumentSetting;
 use Modules\Pharma\Models\InventoryIssueCommission;
 use Modules\Pharma\Models\InventoryIssueDeferredSupply;
+use Modules\Pharma\Models\InventoryTransaction;
 use Modules\Pharma\Models\InventoryReceipt;
 use Modules\Pharma\Models\Medicine;
 use Modules\Pharma\Models\PriceList;
@@ -432,7 +433,7 @@ final class InventoryController extends Controller
         $dateTo=$request->filled('date_to') ? Carbon::parse($request->date_to)->toDateString() : now()->toDateString();
         if($dateFrom>$dateTo) [$dateFrom,$dateTo]=[$dateTo,$dateFrom];
         $query=InventoryIssue::query()->withCount('items')
-            ->with(['items:id,issue_id,medicine_id,drug_bid_award_id,batch_number,expiry_date,quantity','manager:id,name'])
+            ->with(['items:id,issue_id,medicine_id,drug_bid_award_id,batch_number,expiry_date,quantity,unit_price','items.medicine:id,name,unit','deferredSupplies:id,issue_id,medicine_id,quantity,note,expected_supply_date','manager:id,name'])
             ->withSum('items as total_quantity','quantity')
             ->withSum('items as total_value',DB::raw('quantity * unit_price'))
             ->where('warehouse_id',$warehouse->id)
@@ -462,6 +463,22 @@ final class InventoryController extends Controller
         $balanceKeys=InventoryBalance::query()->where('warehouse_id',$warehouse->id)->get()
             ->keyBy(fn($balance)=>$balance->medicine_id.'|'.$balance->batch_number.'|'.$balance->expiry_date->format('Y-m-d'));
         $documents->getCollection()->each(function($issue)use($balanceKeys){
+            if($issue->status===InventoryIssue::POSTED){
+                $postedMedicineIds=InventoryTransaction::query()->where('source_type',InventoryIssue::class)->where('source_id',$issue->id)
+                    ->where('type','issue')->where('quantity_delta','<',0)->pluck('medicine_id')->map(fn($id)=>(int)$id)->unique();
+                $postedItems=$issue->items->filter(fn($item)=>$postedMedicineIds->contains((int)$item->medicine_id));
+                $issue->items_count=$postedItems->count();
+                $issue->total_quantity=(float)$postedItems->sum('quantity');
+                $issue->total_value=(float)$postedItems->sum(fn($item)=>(float)$item->quantity*(float)$item->unit_price);
+                $issue->shortage_note=$issue->deferredSupplies->map(function($row)use($issue){
+                    $item=$issue->items->firstWhere('medicine_id',$row->medicine_id);
+                    $name=$item?->medicine?->name ?? ('MED-'.$row->medicine_id);
+                    $unit=$item?->medicine?->unit;
+                    return $name.' · '.number_format((float)$row->quantity,3,'.','').($unit?' '.$unit:'').' · '.($row->note ?: 'Chờ cung ứng');
+                })->join('; ');
+            }else{
+                $issue->shortage_note='';
+            }
             $issue->can_post_stock=($issue->issue_source ?? 'normal')!=='bid' && $issue->status===InventoryIssue::DRAFT
                 && $issue->items->isNotEmpty() && $issue->items->every(function($item)use($balanceKeys){
                     if(blank($item->batch_number) || !$item->expiry_date) return false;
@@ -807,7 +824,7 @@ final class InventoryController extends Controller
         $dateFrom=$request->filled('date_from') ? Carbon::parse($request->date_from)->toDateString() : now()->startOfMonth()->toDateString();
         $dateTo=$request->filled('date_to') ? Carbon::parse($request->date_to)->toDateString() : now()->toDateString();
         if($dateFrom>$dateTo) [$dateFrom,$dateTo]=[$dateTo,$dateFrom];
-        $issues=InventoryIssue::query()->with(['items.medicine','manager:id,name'])->where('warehouse_id',$warehouse->id)
+        $issues=InventoryIssue::query()->with(['items.medicine','deferredSupplies','manager:id,name'])->where('warehouse_id',$warehouse->id)
             ->whereBetween('issue_date',[$dateFrom,$dateTo])
             ->when($selectedIds->isNotEmpty(),fn($q)=>$q->whereIn('id',$selectedIds))
             ->when($request->filled('q'),fn($q)=>$q->where(fn($x)=>$x->where('number','like','%'.$request->q.'%')->orWhere('recipient_name','like','%'.$request->q.'%')))
@@ -815,13 +832,25 @@ final class InventoryController extends Controller
             ->when($request->filled('recipient_name'),fn($q)=>$q->where('recipient_name',$request->recipient_name))
             ->when(in_array($request->status,['draft','posted'],true),fn($q)=>$q->where('status',$request->status))
             ->latest('issue_date')->latest('id')->get();
-        $rows=$issues->flatMap(fn(InventoryIssue $issue)=>$issue->items->map(fn($item)=>[
-            'Ma phieu'=>$issue->number,'Ngay xuat'=>$issue->issue_date->format('d/m/Y'),'Khach hang / noi nhan'=>$issue->recipient_name,
-            'Nguoi phu trach'=>$issue->manager?->name,'Nguon'=>($issue->issue_source ?? 'normal')==='bid'?'Hang thau':'Bang gia',
-            'Trang thai'=>$issue->status,'Ma thuoc'=>$item->medicine->medicine_code,'Ten thuoc'=>$item->medicine->name,
-            'So lo'=>$item->batch_number,'Han dung'=>$item->expiry_date->format('d/m/Y'),'So luong'=>(float)$item->quantity,
-            'Don gia xuat'=>(float)$item->unit_price,'Thanh tien'=>(float)$item->quantity*(float)$item->unit_price,
-        ]));
+        $rows=$issues->flatMap(function(InventoryIssue $issue){
+            $items=$issue->items;
+            if($issue->status===InventoryIssue::POSTED){
+                $postedMedicineIds=InventoryTransaction::query()->where('source_type',InventoryIssue::class)->where('source_id',$issue->id)
+                    ->where('type','issue')->where('quantity_delta','<',0)->pluck('medicine_id')->map(fn($id)=>(int)$id)->unique();
+                $items=$items->filter(fn($item)=>$postedMedicineIds->contains((int)$item->medicine_id));
+            }
+            $shortage=$issue->deferredSupplies->map(fn($row)=>($issue->items->firstWhere('medicine_id',$row->medicine_id)?->medicine?->name ?? ('MED-'.$row->medicine_id))
+                .' · '.number_format((float)$row->quantity,3,'.','').($issue->items->firstWhere('medicine_id',$row->medicine_id)?->medicine?->unit ? ' '.$issue->items->firstWhere('medicine_id',$row->medicine_id)->medicine->unit : '')
+                .' · '.($row->note ?: 'Chờ cung ứng'))->join('; ');
+            return $items->map(fn($item)=>[
+                'Ma phieu'=>$issue->number,'Ngay xuat'=>$issue->issue_date->format('d/m/Y'),'Khach hang / noi nhan'=>$issue->recipient_name,
+                'Nguoi phu trach'=>$issue->manager?->name,'Nguon'=>($issue->issue_source ?? 'normal')==='bid'?'Hang thau':'Bang gia',
+                'Trang thai'=>$issue->status,'Ma thuoc'=>$item->medicine->medicine_code,'Ten thuoc'=>$item->medicine->name,
+                'So lo'=>$item->batch_number,'Han dung'=>$item->expiry_date?->format('d/m/Y'),'So luong'=>(float)$item->quantity,
+                'Don gia xuat'=>(float)$item->unit_price,'Thanh tien'=>(float)$item->quantity*(float)$item->unit_price,
+                'Ghi chu thieu hang'=>$shortage,
+            ]);
+        });
         return (new FastExcel($rows))->download('pharma-phieu-xuat-'.now()->format('Ymd-His').'.xlsx');
     }
 
