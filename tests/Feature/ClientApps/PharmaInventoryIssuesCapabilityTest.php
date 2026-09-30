@@ -23,8 +23,9 @@ final class PharmaInventoryIssuesCapabilityTest extends TestCase
         $this->assertStringContainsString('findVisible((int) $user->id, $issue)', $controller);
         $this->assertStringContainsString('abort_if($visibleIssue === null, 404)', $controller);
         $this->assertStringNotContainsString('InventoryIssue::query()', $controller);
-        $this->assertStringContainsString("'orders' => [", $manifest);
-        $this->assertStringContainsString("'route' => 'client.pharma.orders'", $manifest);
+        $this->assertSame(2, substr_count($manifest, "'orders' => ["), 'Orders must exist once in navigation and once in features.');
+        $this->assertSame(2, substr_count($manifest, "'route' => 'client.pharma.orders'"), 'Orders route must be registered in navigation and features.');
+        $this->assertStringContainsString("'description' => 'Lập và theo dõi đơn hàng theo bảng giá hoặc kết quả trúng thầu trong phạm vi User.'", $manifest);
         $this->assertStringContainsString("'permission' => 'client.pharma.orders'", $manifest);
         $this->assertStringNotContainsString("'route' => 'client.pharma.inventory.issues'", $manifest);
         $this->assertStringNotContainsString('Đơn hàng / Phiếu xuất', $inventoryView);
