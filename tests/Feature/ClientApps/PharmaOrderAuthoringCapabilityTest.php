@@ -67,7 +67,9 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
         $this->assertStringContainsString('Theo bảng giá', $view);
         $this->assertStringContainsString('Theo trúng thầu', $view);
         $this->assertStringContainsString('data-order-source-picker', $view);
-        $this->assertStringContainsString('peer-checked:bg-slate-950', $view);
+        $this->assertStringContainsString('peer-checked:bg-white', $view);
+        $this->assertStringContainsString('id="order-source-hint"', $view);
+        $this->assertStringContainsString("hint.textContent=b?'Giá và số lượng theo phân bổ trúng thầu':'Giá bán theo bảng giá đang hiệu lực'", $view);
         $this->assertStringContainsString('Giá bán theo bảng giá đang hiệu lực', $view);
         $this->assertStringContainsString('Giá và số lượng theo phân bổ thầu', $view);
         $this->assertStringContainsString('Tìm tên / MST khách hàng...', $view);
