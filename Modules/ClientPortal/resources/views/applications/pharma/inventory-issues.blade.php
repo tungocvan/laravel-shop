@@ -41,26 +41,59 @@
         </form>
     </section>
 
-    <nav class="-mx-1 mt-4 grid grid-cols-3 gap-2 px-1 sm:flex sm:max-w-full sm:overflow-x-auto sm:overscroll-x-contain sm:pb-2 sm:[scrollbar-width:none] sm:[&::-webkit-scrollbar]:hidden" aria-label="Trạng thái đơn hàng">
-        @foreach([''=>'Tất cả','draft'=>'Nháp','pending_approval'=>'Chờ duyệt','approved'=>'Đã duyệt','rejected'=>'Từ chối','posted'=>'Đã xuất','cancelled'=>'Đã hủy'] as $value=>$label)
-            @php($statusCount = $value==='' ? $counts['all'] : ($counts[$value] ?? 0))
-            @if($statusCount > 0 || $filters['status']===$value)
-                <a href="{{ route('client.pharma.orders', array_filter(['q'=>$filters['q'],'status'=>$value,'source'=>$filters['source'],'from_date'=>$filters['from_date'],'to_date'=>$filters['to_date'],'manager_user_id'=>$filters['manager_user_id']], fn($v)=>$v!=='' && $v!==null)) }}"
-                   class="min-w-0 whitespace-nowrap rounded-full border px-2.5 py-2 text-center text-xs font-bold sm:shrink-0 sm:px-3.5 sm:text-sm {{ $filters['status']===$value ? 'border-slate-950 bg-slate-950 text-white' : 'border-slate-200 bg-white text-slate-600' }}">
-                    {{ $label }} <span class="ml-1 opacity-70">{{ $statusCount }}</span>
-                </a>
-            @else
-                <span aria-disabled="true" data-disabled-status class="min-w-0 cursor-not-allowed whitespace-nowrap rounded-full border border-slate-100 bg-slate-50 px-2.5 py-2 text-center text-xs font-bold text-slate-300 sm:shrink-0 sm:px-3.5 sm:text-sm">
-                    {{ $label }} <span class="ml-1">{{ $statusCount }}</span>
-                </span>
-            @endif
-        @endforeach
+    @php
+        $quickStatuses = [''=>'Tất cả','draft'=>'Nháp','approved'=>'Đã duyệt'];
+        $activeStatus = (string) ($filters['status'] ?? '');
+        if ($activeStatus !== '' && ! array_key_exists($activeStatus, $quickStatuses)) {
+            $quickStatuses[$activeStatus] = $statusLabels[$activeStatus] ?? $activeStatus;
+        }
+    @endphp
+    <div class="mt-4 flex min-w-0 items-center gap-2" data-order-status-bar>
+        <nav class="grid min-w-0 flex-1 grid-cols-3 gap-2" aria-label="Trạng thái nhanh">
+            @foreach($quickStatuses as $value=>$label)
+                @php($statusCount = $value==='' ? $counts['all'] : ($counts[$value] ?? 0))
+                @if($statusCount > 0 || $activeStatus===$value)
+                    <a href="{{ route('client.pharma.orders', array_filter(['q'=>$filters['q'],'status'=>$value,'source'=>$filters['source'],'from_date'=>$filters['from_date'],'to_date'=>$filters['to_date'],'manager_user_id'=>$filters['manager_user_id']], fn($v)=>$v!=='' && $v!==null)) }}"
+                       class="min-w-0 truncate whitespace-nowrap rounded-full border px-2 py-2 text-center text-xs font-bold {{ $activeStatus===$value ? 'border-slate-950 bg-slate-950 text-white' : 'border-slate-200 bg-white text-slate-600' }}">
+                        {{ $label }} <span class="ml-0.5 opacity-70">{{ $statusCount }}</span>
+                    </a>
+                @else
+                    <span aria-disabled="true" data-disabled-status class="min-w-0 cursor-not-allowed truncate whitespace-nowrap rounded-full border border-slate-100 bg-slate-50 px-2 py-2 text-center text-xs font-bold text-slate-300">
+                        {{ $label }} <span class="ml-0.5">{{ $statusCount }}</span>
+                    </span>
+                @endif
+            @endforeach
+        </nav>
+        <button id="issue-status-toggle" type="button" class="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-slate-300 bg-white px-3 text-xs font-black text-slate-700 active:scale-95" aria-controls="issue-status-menu" aria-expanded="false">
+            Trạng thái <span aria-hidden="true">⌄</span>
+        </button>
+    </div>
+
+    <div id="issue-status-backdrop" class="fixed inset-0 z-40 hidden bg-slate-950/30"></div>
+    <aside id="issue-status-menu" class="fixed inset-x-3 bottom-[max(5.5rem,env(safe-area-inset-bottom))] z-50 hidden rounded-[1.75rem] border border-slate-200 bg-white p-3 shadow-2xl sm:absolute sm:inset-auto sm:right-4 sm:mt-2 sm:w-72" aria-hidden="true">
+        <div class="mb-2 flex items-center justify-between px-2 py-1">
+            <strong class="text-sm text-slate-950">Chọn trạng thái</strong>
+            <button id="issue-status-close" type="button" class="h-8 w-8 rounded-full text-xl text-slate-500" aria-label="Đóng trạng thái">×</button>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+            @foreach([''=>'Tất cả','draft'=>'Nháp','pending_approval'=>'Chờ duyệt','approved'=>'Đã duyệt','rejected'=>'Từ chối','posted'=>'Đã xuất','cancelled'=>'Đã hủy'] as $value=>$label)
+                @php($statusCount = $value==='' ? $counts['all'] : ($counts[$value] ?? 0))
+                @if($statusCount > 0 || $activeStatus===$value)
+                    <a href="{{ route('client.pharma.orders', array_filter(['q'=>$filters['q'],'status'=>$value,'source'=>$filters['source'],'from_date'=>$filters['from_date'],'to_date'=>$filters['to_date'],'manager_user_id'=>$filters['manager_user_id']], fn($v)=>$v!=='' && $v!==null)) }}"
+                       class="rounded-2xl border px-3 py-3 text-sm font-bold {{ $activeStatus===$value ? 'border-slate-950 bg-slate-950 text-white' : 'border-slate-200 text-slate-700' }}">
+                        {{ $label }} <span class="float-right opacity-60">{{ $statusCount }}</span>
+                    </a>
+                @else
+                    <span aria-disabled="true" data-disabled-status class="cursor-not-allowed rounded-2xl border border-slate-100 bg-slate-50 px-3 py-3 text-sm font-bold text-slate-300">
+                        {{ $label }} <span class="float-right">{{ $statusCount }}</span>
+                    </span>
+                @endif
+            @endforeach
+        </div>
         @if($filters['q'] || $hasFilters)
-            <a data-clear-order-filters href="{{ route('client.pharma.orders') }}" class="shrink-0 rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-bold text-rose-700 active:scale-95">
-                Xóa bộ lọc
-            </a>
+            <a data-clear-order-filters href="{{ route('client.pharma.orders') }}" class="mt-3 flex h-11 items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 text-sm font-black text-rose-700">Xóa bộ lọc</a>
         @endif
-    </nav>
+    </aside>
 
     @if($canApproveOrders && ($counts['pending_approval'] ?? 0) > 0)
         <div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900">
@@ -157,6 +190,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const openSheet = () => { sheet?.classList.remove('hidden'); backdrop?.classList.remove('hidden'); sheet?.setAttribute('aria-hidden','false'); toggle?.setAttribute('aria-expanded','true'); document.body.classList.add('overflow-hidden'); };
     const closeSheet = () => { sheet?.classList.add('hidden'); backdrop?.classList.add('hidden'); sheet?.setAttribute('aria-hidden','true'); toggle?.setAttribute('aria-expanded','false'); document.body.classList.remove('overflow-hidden'); };
     toggle?.addEventListener('click', openSheet); closeButtons.forEach((button) => button?.addEventListener('click', closeSheet));
+
+    const statusToggle = document.getElementById('issue-status-toggle');
+    const statusMenu = document.getElementById('issue-status-menu');
+    const statusBackdrop = document.getElementById('issue-status-backdrop');
+    const statusClose = document.getElementById('issue-status-close');
+    const openStatusMenu = () => { statusMenu?.classList.remove('hidden'); statusBackdrop?.classList.remove('hidden'); statusMenu?.setAttribute('aria-hidden','false'); statusToggle?.setAttribute('aria-expanded','true'); };
+    const closeStatusMenu = () => { statusMenu?.classList.add('hidden'); statusBackdrop?.classList.add('hidden'); statusMenu?.setAttribute('aria-hidden','true'); statusToggle?.setAttribute('aria-expanded','false'); };
+    statusToggle?.addEventListener('click', () => statusMenu?.classList.contains('hidden') ? openStatusMenu() : closeStatusMenu());
+    statusClose?.addEventListener('click', closeStatusMenu);
+    statusBackdrop?.addEventListener('click', closeStatusMenu);
 
     const more = document.getElementById('issue-load-more');
     const mobile = document.getElementById('issue-mobile-list');
