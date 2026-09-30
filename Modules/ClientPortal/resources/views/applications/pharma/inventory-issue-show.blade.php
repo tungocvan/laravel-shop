@@ -112,22 +112,18 @@
                                 <div><p class="text-xs text-slate-500">SL đơn hàng</p><p class="font-black text-slate-900">{{ number_format($stockRow['requested_quantity'],3,'.','') }}</p></div>
                                 <div><p class="text-xs text-slate-500">Tồn khả dụng</p><p class="font-black text-slate-900">{{ number_format($stockRow['available_stock'],3,'.','') }}</p></div>
                             </div>
-                            @if(!$stockRow['is_ready'])
-                                @php
-                                    $issueItem = $issue->items->firstWhere('id', $stockRow['item_id']);
-                                    $savedSupply = $issueItem ? $savedSupplyNotes->get($issueItem->drug_bid_award_allocation_id) : null;
-                                @endphp
-                                <form method="POST" action="{{ route('client.pharma.orders.supply-notes',$issue) }}" class="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
+                            @unless($stockRow['is_ready'])
+                                <form method="POST" action="{{ route('client.pharma.orders.supply-notes', $issue) }}" class="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
                                     @csrf
                                     <p class="text-xs font-black text-amber-900">Hiện kho đang hết/thiếu hàng</p>
                                     <p class="mt-1 text-xs leading-5 text-amber-800">Ghi chú ngày dự kiến và tình trạng cung cấp để theo dõi mặt hàng đang thiếu.</p>
                                     <div class="mt-3 grid gap-2 sm:grid-cols-2">
-                                        <label class="block"><span class="mb-1 block text-[11px] font-bold text-slate-600">Dự kiến cung cấp lại</span><input type="date" name="supply_notes[{{ $stockRow['item_id'] }}][expected_supply_date]" value="{{ old('supply_notes.'.$stockRow['item_id'].'.expected_supply_date', $savedSupply?->expected_supply_date?->format('Y-m-d') ?? now()->addMonth()->format('Y-m-d')) }}" class="h-10 w-full rounded-lg border border-amber-200 bg-white px-2 text-sm"></label>
-                                        <label class="block"><span class="mb-1 block text-[11px] font-bold text-slate-600">Ghi chú *</span><input type="text" required maxlength="2000" name="supply_notes[{{ $stockRow['item_id'] }}][note]" value="{{ old('supply_notes.'.$stockRow['item_id'].'.note', $savedSupply?->note ?? 'Hiện kho đang hết hàng. Đơn hàng dự kiến cung cấp lại.') }}" class="h-10 w-full rounded-lg border border-amber-200 bg-white px-2 text-sm"></label>
+                                        <label class="block"><span class="mb-1 block text-[11px] font-bold text-slate-600">Dự kiến cung cấp lại</span><input type="date" name="supply_notes[{{ $stockRow['item_id'] }}][expected_supply_date]" value="{{ old('supply_notes.'.$stockRow['item_id'].'.expected_supply_date', $stockRow['supply_expected_date'] ?: now()->addMonth()->format('Y-m-d')) }}" class="h-10 w-full rounded-lg border border-amber-200 bg-white px-2 text-sm"></label>
+                                        <label class="block"><span class="mb-1 block text-[11px] font-bold text-slate-600">Ghi chú *</span><input type="text" required maxlength="2000" name="supply_notes[{{ $stockRow['item_id'] }}][note]" value="{{ old('supply_notes.'.$stockRow['item_id'].'.note', $stockRow['supply_note'] ?: 'Hiện kho đang hết hàng. Đơn hàng dự kiến cung cấp lại.') }}" class="h-10 w-full rounded-lg border border-amber-200 bg-white px-2 text-sm"></label>
                                     </div>
-                                    <button class="mt-2 h-9 w-full rounded-lg border border-amber-300 bg-white text-xs font-black text-amber-900">{{ $savedSupply ? 'Cập nhật ghi chú' : 'Lưu ghi chú' }}</button>
+                                    <button class="mt-2 h-9 w-full rounded-lg border border-amber-300 bg-white text-xs font-black text-amber-900">{{ $stockRow['has_supply_note'] ? 'Cập nhật ghi chú' : 'Lưu ghi chú' }}</button>
                                 </form>
-                            @endif
+                            @endunless
                             <details class="mt-3 rounded-xl bg-slate-50 px-3 py-2">
                                 <summary class="cursor-pointer text-xs font-black text-slate-700">Lô khả dụng · {{ count($stockRow['lots']) }}</summary>
                                 <div class="mt-2 space-y-2">
