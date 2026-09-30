@@ -24,9 +24,21 @@
 <aside class="space-y-4 lg:sticky lg:top-4">
  <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
   <p class="text-xs font-black uppercase tracking-wide text-slate-500">Thiết lập đơn hàng</p>
-  <div class="mt-4 grid grid-cols-2 gap-2 rounded-2xl bg-slate-100 p-1.5">
-   <label><input class="peer sr-only" type="radio" name="source" value="price_list" @checked($currentSource==='price_list') @disabled($editing)><span class="block rounded-xl px-2 py-3 text-center text-xs font-black text-slate-600 peer-checked:bg-white peer-checked:text-slate-950 peer-checked:shadow-sm">Theo bảng giá</span></label>
-   <label><input class="peer sr-only" type="radio" name="source" value="bid" @checked($currentSource==='bid') @disabled($editing)><span class="block rounded-xl px-2 py-3 text-center text-xs font-black text-slate-600 peer-checked:bg-white peer-checked:text-slate-950 peer-checked:shadow-sm">Theo trúng thầu</span></label>
+  <div class="mt-4 grid grid-cols-2 gap-3" data-order-source-picker>
+   <label class="block cursor-pointer">
+    <input class="peer sr-only" type="radio" name="source" value="price_list" @checked($currentSource==='price_list') @disabled($editing)>
+    <span class="relative flex min-h-[112px] flex-col justify-between rounded-2xl border-2 border-slate-200 bg-white p-3 shadow-sm transition active:scale-[.985] peer-checked:border-slate-950 peer-checked:bg-slate-950 peer-checked:text-white peer-checked:shadow-lg">
+     <span class="absolute right-2.5 top-2.5 hidden h-6 w-6 items-center justify-center rounded-full bg-white text-sm font-black text-slate-950 peer-checked:flex">✓</span>
+     <span class="text-2xl">▤</span><span><strong class="block pr-6 text-sm font-black">Theo bảng giá</strong><small class="mt-1 block text-[11px] font-semibold leading-4 opacity-70">Giá bán theo bảng giá đang hiệu lực</small></span>
+    </span>
+   </label>
+   <label class="block cursor-pointer">
+    <input class="peer sr-only" type="radio" name="source" value="bid" @checked($currentSource==='bid') @disabled($editing)>
+    <span class="relative flex min-h-[112px] flex-col justify-between rounded-2xl border-2 border-slate-200 bg-white p-3 shadow-sm transition active:scale-[.985] peer-checked:border-slate-950 peer-checked:bg-slate-950 peer-checked:text-white peer-checked:shadow-lg">
+     <span class="absolute right-2.5 top-2.5 hidden h-6 w-6 items-center justify-center rounded-full bg-white text-sm font-black text-slate-950 peer-checked:flex">✓</span>
+     <span class="text-2xl">◎</span><span><strong class="block pr-6 text-sm font-black">Theo trúng thầu</strong><small class="mt-1 block text-[11px] font-semibold leading-4 opacity-70">Giá và số lượng theo phân bổ thầu</small></span>
+    </span>
+   </label>
   </div>@if($editing)<input type="hidden" name="source" value="{{ $currentSource }}">@endif
   <div id="manager-context" class="mt-4">
   @if($canCreateForUser)
