@@ -1084,6 +1084,7 @@ final class PharmaApplicationController extends Controller
                 page: (int) ($validated['page'] ?? 1),
             )->withQueryString(),
             'counts' => $workspace->counts((int) $user->id),
+            'canCreateOrders' => $registry->userCan($user, 'client.pharma.orders.create'),
             'filters' => [
                 'q' => trim((string) ($validated['q'] ?? '')),
                 'status' => $validated['status'] ?? '',
@@ -1197,6 +1198,12 @@ final class PharmaApplicationController extends Controller
         return view('ClientPortal::applications.pharma.inventory-issue-show', [
             'application' => $application,
             'issue' => $visibleIssue,
+            'canEditOrder' => $registry->userCan($user, 'client.pharma.orders.create')
+                && (int) $visibleIssue->created_by === (int) $user->id
+                && $visibleIssue->status === \Modules\Pharma\Models\InventoryIssue::DRAFT,
+            'canSubmitOrder' => $registry->userCan($user, 'client.pharma.orders.submit')
+                && (int) $visibleIssue->created_by === (int) $user->id
+                && $visibleIssue->status === \Modules\Pharma\Models\InventoryIssue::DRAFT,
         ]);
     }
 
