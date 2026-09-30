@@ -1033,7 +1033,6 @@ final class PharmaApplicationController extends Controller
             )->withQueryString(),
             'summary' => $workspace->summary($canViewCosts),
             'canViewCosts' => $canViewCosts,
-            'canViewIssues' => $registry->userCan($user, 'client.pharma.inventory.issues'),
             'filters' => [
                 'q' => trim((string) ($validated['q'] ?? '')),
                 'expiry' => $validated['expiry'] ?? '',
@@ -1044,7 +1043,7 @@ final class PharmaApplicationController extends Controller
         ]);
     }
 
-    public function inventoryIssues(
+    public function orders(
         Request $request,
         ApplicationRegistry $registry,
         ClientPortalSettingsService $settings,
@@ -1063,16 +1062,16 @@ final class PharmaApplicationController extends Controller
         abort_if($application === null, 404);
         $user = $request->user('web');
         abort_if($user === null, 401);
-        abort_unless($registry->userCan($user, 'client.pharma.inventory.issues'), 403);
+        abort_unless($registry->userCan($user, 'client.pharma.orders'), 403);
 
-        $inventoryFeature = collect($application['features'] ?? [])
-            ->first(fn (array $feature): bool => $feature['key'] === 'inventory');
-        abort_if($inventoryFeature === null, 404);
+        $ordersFeature = collect($application['features'] ?? [])
+            ->first(fn (array $feature): bool => $feature['key'] === 'orders');
+        abort_if($ordersFeature === null, 404);
 
         return view('ClientPortal::applications.pharma.inventory-issues', [
             'application' => $application,
             'applicationPresentation' => $settings->applicationPresentation($application),
-            'featurePresentation' => $settings->featurePresentation($application['key'], $inventoryFeature),
+            'featurePresentation' => $settings->featurePresentation($application['key'], $ordersFeature),
             'issues' => $workspace->browse(
                 userId: (int) $user->id,
                 search: $validated['q'] ?? null,
@@ -1094,7 +1093,7 @@ final class PharmaApplicationController extends Controller
         ]);
     }
 
-    public function inventoryIssue(
+    public function order(
         int $issue,
         Request $request,
         ApplicationRegistry $registry,
@@ -1104,7 +1103,7 @@ final class PharmaApplicationController extends Controller
         abort_if($application === null, 404);
         $user = $request->user('web');
         abort_if($user === null, 401);
-        abort_unless($registry->userCan($user, 'client.pharma.inventory.issues'), 403);
+        abort_unless($registry->userCan($user, 'client.pharma.orders'), 403);
 
         $visibleIssue = $workspace->findVisible((int) $user->id, $issue);
         abort_if($visibleIssue === null, 404);
