@@ -76,8 +76,11 @@
   <div id="selected-products" class="mt-4 space-y-3">
    @foreach($priceLists as $pl) @foreach($pl->items as $item) @php $current=$currentByMedicine->get($item->medicine_id); @endphp
    <article data-price-item data-item-id="{{ $item->id }}" data-price-list="{{ $pl->id }}" data-search="{{ mb_strtolower(($item->medicine?->name ?? '').' '.($item->medicine?->medicine_code ?? '').' '.($item->medicine?->active_ingredient ?? '')) }}" data-name="{{ $item->medicine?->name }}" data-meta="{{ $item->medicine?->medicine_code }} · {{ $item->medicine?->unit }} · {{ $money($item->company_sale_price) }}" data-price="{{ (float)$item->company_sale_price }}" class="{{ $current && (float)$current->quantity>0 ? '' : 'hidden' }} min-w-0 rounded-2xl border border-slate-200 bg-white p-4">
-    <div class="flex items-start justify-between gap-3"><div class="min-w-0"><p class="break-words font-black">{{ $item->medicine?->name }}</p><p class="mt-1 text-xs text-slate-500">{{ $item->medicine?->medicine_code }} · {{ $item->medicine?->unit }}</p></div><p class="shrink-0 text-sm font-black">{{ $money($item->company_sale_price) }}</p></div>
-    <div class="mt-3 flex items-end justify-between gap-3 border-t border-slate-100 pt-3"><label class="block"><span class="text-xs font-bold text-slate-500">Số lượng</span><input data-quantity name="quantities[{{ $item->id }}]" value="{{ old('quantities.'.$item->id,$current?->quantity) }}" inputmode="decimal" class="mt-1 h-10 w-28 rounded-xl border border-slate-300 px-3 text-right font-bold sm:w-32" placeholder="0"></label><button data-remove-product type="button" class="mb-1 flex h-10 items-center rounded-xl px-3 text-sm font-black text-rose-600 hover:bg-rose-50">Xóa</button></div>
+    <div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2">
+     <div class="min-w-0"><p class="truncate font-black">{{ $item->medicine?->name }}</p><p class="mt-0.5 truncate text-xs text-slate-500">{{ $item->medicine?->medicine_code }} · {{ $item->medicine?->unit }}</p></div>
+     <p class="shrink-0 text-right text-sm font-black">{{ $money($item->company_sale_price) }}</p>
+     <div class="col-span-2 flex items-center justify-between gap-3 border-t border-slate-100 pt-2 sm:col-span-1 sm:border-0 sm:pt-0"><div class="flex items-center gap-2"><span class="whitespace-nowrap text-xs font-bold text-slate-500">SL</span><input aria-label="Số lượng" data-quantity name="quantities[{{ $item->id }}]" value="{{ old('quantities.'.$item->id,$current?->quantity) }}" inputmode="decimal" class="h-9 w-24 rounded-xl border border-slate-300 px-2 text-right text-sm font-black" placeholder="0"></div><button data-remove-product type="button" class="flex h-9 items-center rounded-xl px-2 text-xs font-black text-rose-600 hover:bg-rose-50">Xóa</button></div>
+    </div>
    </article>
    @endforeach @endforeach
   </div>
@@ -94,9 +97,12 @@
  <section class="rounded-3xl border border-slate-200 bg-white p-5"><label><span class="mb-2 block text-sm font-black">Ghi chú</span><textarea name="notes" rows="3" class="w-full rounded-2xl border border-slate-300 px-4 py-3">{{ old('notes',$issue?->notes) }}</textarea></label></section>
 </main>
 
-<div class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-8px_30px_rgba(15,23,42,.08)] backdrop-blur lg:left-auto lg:right-6 lg:bottom-6 lg:w-[520px] lg:rounded-3xl lg:border">
- <div class="mb-2 flex items-center justify-between gap-3"><p id="order-summary" class="min-w-0 truncate text-sm font-black">0 sản phẩm · 0 SL · 0 đ</p><span class="shrink-0 text-xs font-bold text-slate-500">Nháp</span></div>
- <div class="grid grid-cols-2 gap-3"><a href="{{ $editing ? route('client.pharma.orders.show',$issue) : route('client.pharma.orders') }}" class="flex h-12 items-center justify-center rounded-2xl border border-slate-300 font-black">Hủy</a><button type="submit" class="h-12 rounded-2xl bg-slate-950 font-black text-white">Lưu nháp</button></div>
+<div class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-8px_30px_rgba(15,23,42,.08)] backdrop-blur lg:left-[calc(50%+130px)] lg:right-auto lg:bottom-6 lg:w-[568px] lg:-translate-x-1/2 lg:rounded-3xl lg:border lg:px-4">
+ <div class="flex items-center gap-3">
+  <div class="min-w-0 flex-1"><div class="flex items-center gap-2"><span class="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-600">Nháp</span><p id="order-summary" class="min-w-0 truncate text-sm font-black">0 sản phẩm · 0 SL · 0 đ</p></div></div>
+  <a href="{{ $editing ? route('client.pharma.orders.show',$issue) : route('client.pharma.orders') }}" class="hidden h-11 w-24 shrink-0 items-center justify-center rounded-2xl border border-slate-300 font-black sm:flex">Hủy</a><button type="submit" class="h-11 w-32 shrink-0 rounded-2xl bg-slate-950 font-black text-white">Lưu nháp</button>
+ </div>
+ <a href="{{ $editing ? route('client.pharma.orders.show',$issue) : route('client.pharma.orders') }}" class="mt-2 flex h-11 items-center justify-center rounded-2xl border border-slate-300 font-black sm:hidden">Hủy</a>
 </div>
 </form></div>
 
