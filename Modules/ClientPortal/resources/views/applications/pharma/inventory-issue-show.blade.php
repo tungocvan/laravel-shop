@@ -129,9 +129,15 @@
             <section class="rounded-3xl border border-rose-200 bg-rose-50 p-5"><p class="text-xs font-black uppercase tracking-wide text-rose-700">Lý do từ chối</p><p class="mt-2 whitespace-pre-line text-sm leading-6 text-rose-900">{{ $issue->rejection_reason }}</p></section>
         @endif
     </main>
-    @if($canEditOrder || $canSubmitOrder || $canApproveOrder || ($canUndoApproval ?? false))
+    @if($canEditOrder || $canSubmitOrder || $canApproveOrder || ($canUndoApproval ?? false) || ($canDeleteOrder ?? false))
         <div class="sticky bottom-0 z-20 mx-auto mt-4 max-w-4xl border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur lg:rounded-2xl lg:border">
-            @if($canUndoApproval ?? false)
+            @if($canDeleteOrder ?? false)
+                <form method="POST" action="{{ route('client.pharma.orders.delete',$issue) }}" onsubmit="return confirm('Xóa đơn {{ $issue->number }}? Đơn chưa ghi sổ nên thao tác này không ảnh hưởng tồn kho.');">
+                    @csrf @method('DELETE')
+                    <button class="h-13 w-full rounded-2xl border border-rose-300 bg-white font-black text-rose-700">Xóa đơn</button>
+                </form>
+                <p class="mt-2 text-xs leading-5 text-slate-500">Chỉ xóa đơn Nháp/Từ chối chưa ghi sổ. Không tạo giao dịch kho và không thay đổi tồn.</p>
+            @elseif($canUndoApproval ?? false)
                 <form method="POST" action="{{ route('client.pharma.orders.undo-approval',$issue) }}">@csrf
                     <button class="h-13 w-full rounded-2xl border border-amber-300 bg-amber-50 font-black text-amber-900">Hoàn tác phê duyệt</button>
                 </form>
