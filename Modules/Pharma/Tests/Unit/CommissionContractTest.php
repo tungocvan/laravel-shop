@@ -13,7 +13,7 @@ class CommissionContractTest extends TestCase
         $migration=file_get_contents(base_path('Modules/Pharma/database/migrations/2026_09_24_123000_create_pharma_inventory_issue_commissions_table.php'));
 
         $this->assertStringContainsString('private readonly DrugBidCommissionService $commissions', $inventoryService);
-        $this->assertStringContainsString("$this->commissions->snapshotPostedIssue($issue->fresh('items'),$userId)", $inventoryService);
+        $this->assertStringContainsString("\$this->commissions->snapshotPostedIssue(\$issue->fresh('items'),\$userId)", $inventoryService);
         $this->assertStringContainsString('DrugBidAwardManagementAssignment::query()', $service);
         $this->assertStringContainsString('DrugBidAwardProductPolicy::query()', $service);
         $this->assertStringContainsString('round($revenue*$percentage/100,2)', $service);
@@ -25,6 +25,7 @@ class CommissionContractTest extends TestCase
     public function test_reverting_bid_issue_removes_commission_cost(): void
     {
         $inventoryService=file_get_contents(base_path('Modules/Pharma/Services/InventoryService.php'));
+        $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
         $service=file_get_contents(base_path('Modules/Pharma/Services/DrugBidCommissionService.php'));
 
         $this->assertStringContainsString('$this->commissions->reverseIssue($issue->fresh(),$userId)', $inventoryService);
