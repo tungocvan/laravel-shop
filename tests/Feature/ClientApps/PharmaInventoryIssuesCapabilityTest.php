@@ -12,15 +12,22 @@ final class PharmaInventoryIssuesCapabilityTest extends TestCase
         $routes = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/routes.php');
         $controller = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php');
         $workspace = file_get_contents($root.'/Modules/Pharma/Services/UserInventoryIssueWorkspace.php');
+        $manifest = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/manifest.php');
+        $inventoryView = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory.blade.php');
 
-        $this->assertStringContainsString("Route::get('/inventory/issues'", $routes);
-        $this->assertStringContainsString("Route::get('/inventory/issues/{issue}'", $routes);
+        $this->assertStringContainsString("Route::get('/orders'", $routes);
+        $this->assertStringContainsString("Route::get('/orders/{issue}'", $routes);
         $this->assertStringContainsString('UserInventoryIssueWorkspace $workspace', $controller);
-        $this->assertStringContainsString("client.pharma.inventory.issues", $controller);
+        $this->assertStringContainsString("client.pharma.orders", $controller);
         $this->assertStringContainsString("->where('manager_user_id', \$userId)->orWhere('created_by', \$userId)", $workspace);
         $this->assertStringContainsString('findVisible((int) $user->id, $issue)', $controller);
         $this->assertStringContainsString('abort_if($visibleIssue === null, 404)', $controller);
         $this->assertStringNotContainsString('InventoryIssue::query()', $controller);
+        $this->assertStringContainsString("'orders' => [", $manifest);
+        $this->assertStringContainsString("'route' => 'client.pharma.orders'", $manifest);
+        $this->assertStringContainsString("'permission' => 'client.pharma.orders'", $manifest);
+        $this->assertStringNotContainsString("'route' => 'client.pharma.inventory.issues'", $manifest);
+        $this->assertStringNotContainsString('Đơn hàng / Phiếu xuất', $inventoryView);
     }
 
     public function test_inventory_issue_list_matches_mobile_native_reference_and_remains_read_only(): void
@@ -29,10 +36,10 @@ final class PharmaInventoryIssuesCapabilityTest extends TestCase
         $routes = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/routes.php');
         $view = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-issues.blade.php');
 
-        $this->assertStringNotContainsString("Route::post('/inventory/issues", $routes);
-        $this->assertStringNotContainsString("Route::put('/inventory/issues", $routes);
-        $this->assertStringNotContainsString("Route::delete('/inventory/issues", $routes);
-        $this->assertStringContainsString('Đơn hàng / Phiếu xuất', $view);
+        $this->assertStringNotContainsString("Route::post('/orders", $routes);
+        $this->assertStringNotContainsString("Route::put('/orders", $routes);
+        $this->assertStringNotContainsString("Route::delete('/orders", $routes);
+        $this->assertStringContainsString('Đơn hàng', $view);
         $this->assertStringContainsString('Tìm đơn hàng / khách hàng / bệnh viện', $view);
         $this->assertStringContainsString('issue-filter-sheet', $view);
         $this->assertStringContainsString('lg:inset-0 lg:m-auto lg:h-fit', $view);
