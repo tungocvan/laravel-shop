@@ -943,7 +943,7 @@ final class InventoryController extends Controller
     public function bidSaleBatches(InventoryIssue $issue, InventoryService $inventory): View
     {
         $this->guardIssueWarehouse($issue,$inventory);
-        abort_unless(($issue->issue_source ?? 'normal')==='bid' && $issue->status===InventoryIssue::DRAFT,404);
+        abort_unless(($issue->issue_source ?? 'normal')==='bid' && in_array($issue->status,[InventoryIssue::DRAFT,InventoryIssue::APPROVED],true),404);
         $issue->load('items.medicine');
         $balances=InventoryBalance::query()->where('warehouse_id',$issue->warehouse_id)
             ->whereIn('medicine_id',$issue->items->pluck('medicine_id'))->where('quantity_on_hand','>',0)
@@ -954,7 +954,7 @@ final class InventoryController extends Controller
     public function postBidSaleIssue(Request $request, InventoryIssue $issue, InventoryService $inventory, DrugBidCommissionService $commissions): RedirectResponse
     {
         $this->guardIssueWarehouse($issue,$inventory);
-        abort_unless(($issue->issue_source ?? 'normal')==='bid' && $issue->status===InventoryIssue::DRAFT,404);
+        abort_unless(($issue->issue_source ?? 'normal')==='bid' && in_array($issue->status,[InventoryIssue::DRAFT,InventoryIssue::APPROVED],true),404);
         if($request->filled('add_allocations') || $request->filled('add_quantities')){
             throw ValidationException::withMessages(['add_allocations'=>'Có sản phẩm mới chưa được lưu. Hãy lưu phiếu nháp trước khi Duyệt & ghi sổ.']);
         }
