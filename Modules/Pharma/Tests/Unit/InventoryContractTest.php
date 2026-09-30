@@ -672,6 +672,7 @@ class InventoryContractTest extends TestCase
         $view=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-form.blade.php'));
         $editView=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-edit.blade.php'));
         $documents=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/documents.blade.php'));
+        $service=file_get_contents(base_path('Modules/Pharma/Services/InventoryService.php'));
 
         $this->assertStringContainsString("whereIn('type',[PriceList::TYPE_GLOBAL,PriceList::TYPE_CUSTOMER])", $controller);
         $this->assertStringContainsString("'globalUsers:id,name'", $controller);
@@ -758,7 +759,7 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('receivable_price_snapshot', $migration);
         $this->assertStringContainsString('price_list_item_id', $migration);
         $inventoryService=file_get_contents(base_path('Modules/Pharma/Services/InventoryService.php'));
-        $this->assertStringContainsString("\$this->commissions->snapshotPostedIssue(\$issue->fresh('items')", $inventoryService);
+        $this->assertStringContainsString("\$this->commissions->snapshotPostedIssue(\$issue->fresh(['items','deferredSupplies'])", $inventoryService);
         $this->assertStringContainsString("when(\$source!=='all'", $controller);
         $this->assertStringContainsString("pharma_price_list_users", $controller);
         $this->assertStringContainsString("whereNotNull('manager_user_id')", $controller);
