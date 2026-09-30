@@ -100,4 +100,20 @@ final class PharmaInventoryIssuesCapabilityTest extends TestCase
         $this->assertStringContainsString('Sửa đơn', $view);
         $this->assertStringContainsString('Gửi duyệt', $view);
     }
+
+    public function test_posted_order_list_uses_actual_stock_movement_totals(): void
+    {
+        $root=base_path();
+        $workspace=file_get_contents($root.'/Modules/Pharma/Services/UserInventoryIssueWorkspace.php');
+        $view=file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-issues.blade.php');
+
+        $this->assertStringContainsString('use Modules\\Pharma\\Models\\InventoryTransaction;', $workspace);
+        $this->assertStringContainsString("where('source_type',InventoryIssue::class)", $workspace);
+        $this->assertStringContainsString("where('quantity_delta','<',0)", $workspace);
+        $this->assertStringContainsString("\$postedItems=\$issue->items->filter", $workspace);
+        $this->assertStringContainsString("\$issue->items_count=\$postedItems->count()", $workspace);
+        $this->assertStringContainsString("\$issue->total_value=(float)\$postedItems->sum", $workspace);
+        $this->assertStringContainsString("\$money(\$issue->total_value ?? 0)", $view);
+    }
+
 }
