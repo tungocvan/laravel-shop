@@ -404,8 +404,11 @@ final class InventoryController extends Controller
             ->whereIn('type',[PriceList::TYPE_GLOBAL,PriceList::TYPE_CUSTOMER])
             ->activeAt(now()->toDateString())
             ->orderByDesc('priority')->orderByDesc('effective_from')->orderByDesc('id')->get();
+        $priceListUserIds=$customerPriceLists->pluck('manager_user_id')->filter()
+            ->merge($customerPriceLists->pluck('globalUsers')->flatten()->pluck('id'))->map(fn($id)=>(int)$id)->unique()->values();
+        $priceListManagers=User::query()->whereIn('id',$priceListUserIds)->orderBy('name')->get(['id','name']);
         $issueSalePrices=$this->issueSalePriceCandidates();
-        return view('Pharma::pages.inventory.issue-form',compact('warehouse','availableBalances','partners','customerPriceLists','issueSalePrices'));
+        return view('Pharma::pages.inventory.issue-form',compact('warehouse','availableBalances','partners','customerPriceLists','priceListManagers','issueSalePrices'));
     }
 
     public function receipts(Request $request, InventoryService $inventory): View
