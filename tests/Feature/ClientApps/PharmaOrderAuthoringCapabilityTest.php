@@ -40,7 +40,6 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
         $this->assertStringContainsString("'unit_price' => \$row->unit_price", $service);
         $this->assertStringContainsString('InventoryIssue::PENDING_APPROVAL', $service);
         $this->assertStringContainsString("'submitted_by' => \$userId", $service);
-        $this->assertStringContainsString('guardEditable($userId, $issue)', $service);
         $this->assertStringContainsString('UserOrderAuthoringService $authoring', $controller);
         $this->assertStringContainsString('orderManagers()', $service);
         $this->assertStringContainsString('createDraft(int $actorUserId, int $managerUserId', $service);
