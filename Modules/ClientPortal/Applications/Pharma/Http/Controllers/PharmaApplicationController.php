@@ -15,6 +15,7 @@ use Modules\Pharma\Services\UserPriceListWorkspace;
 use Modules\Pharma\Services\UserCommercialHospitalWorkspace;
 use Modules\Pharma\Services\UserInventoryWorkspace;
 use Modules\Pharma\Services\UserInventoryIssueWorkspace;
+use Modules\Pharma\Services\UserOrderAuthoringService;
 use Modules\Pharma\Services\UserBidAwardWorkspace;
 use Modules\Pharma\Services\ClientBidAwardWorkflow;
 use Modules\Pharma\Services\UserPriceListWorkflow;
@@ -1090,6 +1091,91 @@ final class PharmaApplicationController extends Controller
                 'from_date' => $validated['from_date'] ?? '',
                 'to_date' => $validated['to_date'] ?? '',
             ],
+        ]);
+    }
+
+    public function createOrder(
+        Request $request,
+        ApplicationRegistry $registry,
+        UserOrderAuthoringService $authoring,
+    ): View {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.orders.create'), 403);
+        $date = now()->toDateString();
+
+        return view('ClientPortal::applications.pharma.order-form', [
+            'application' => $registry->find('pharma'), 'issue' => null, 'issueDate' => $date,
+            'priceLists' => $authoring->priceLists((int) $user->id, $date),
+            'customers' => $authoring->customers(),
+            'bidRows' => $authoring->bidRows((int) $user->id, $date),
+        ]);
+    }
+
+    public function storeOrder(
+        Request $request,
+        ApplicationRegistry $registry,
+        UserOrderAuthoringService $authoring,
+    ) {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.orders.create'), 403);
+        $data = $this->validateOrderAuthoring($request);
+        $issue = $authoring->createDraft((int) $user->id, $data);
+
+        return redirect()->route('client.pharma.orders.show', $issue)->with('success', 'Đã lưu đơn hàng ở trạng thái Nháp.');
+    }
+
+    public function editOrder(
+        int $issue, Request $request, ApplicationRegistry $registry,
+        UserInventoryIssueWorkspace $workspace, UserOrderAuthoringService $authoring,
+    ): View {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.orders.create'), 403);
+        $visible = $workspace->findVisible((int) $user->id, $issue); abort_if($visible === null, 404);
+        abort_unless((int) $visible->created_by === (int) $user->id && $visible->status === \Modules\Pharma\Models\InventoryIssue::DRAFT, 403);
+        $date = $visible->issue_date->toDateString();
+
+        return view('ClientPortal::applications.pharma.order-form', [
+            'application' => $registry->find('pharma'), 'issue' => $visible, 'issueDate' => $date,
+            'priceLists' => $authoring->priceLists((int) $user->id, $date),
+            'customers' => $authoring->customers(),
+            'bidRows' => $authoring->bidRows((int) $user->id, $date),
+        ]);
+    }
+
+    public function updateOrder(
+        int $issue, Request $request, ApplicationRegistry $registry,
+        UserInventoryIssueWorkspace $workspace, UserOrderAuthoringService $authoring,
+    ) {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.orders.create'), 403);
+        $visible = $workspace->findVisible((int) $user->id, $issue); abort_if($visible === null, 404);
+        $authoring->updateDraft((int) $user->id, $visible, $this->validateOrderAuthoring($request));
+
+        return redirect()->route('client.pharma.orders.show', $visible)->with('success', 'Đã cập nhật đơn hàng Nháp.');
+    }
+
+    public function submitOrder(
+        int $issue, Request $request, ApplicationRegistry $registry,
+        UserInventoryIssueWorkspace $workspace, UserOrderAuthoringService $authoring,
+    ) {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.orders.submit'), 403);
+        $visible = $workspace->findVisible((int) $user->id, $issue); abort_if($visible === null, 404);
+        $authoring->submit((int) $user->id, $visible);
+
+        return redirect()->route('client.pharma.orders.show', $visible)->with('success', 'Đơn hàng đã được gửi duyệt.');
+    }
+
+    private function validateOrderAuthoring(Request $request): array
+    {
+        return $request->validate([
+            'source' => ['required', 'in:price_list,bid'],
+            'issue_date' => ['required', 'date'],
+            'recipient_partner_id' => ['nullable', 'integer', 'exists:partners,id'],
+            'price_list_id' => ['nullable', 'integer', 'exists:pharma_price_lists,id'],
+            'quantities' => ['required', 'array'],
+            'quantities.*' => ['nullable', 'numeric', 'min:0'],
+            'notes' => ['nullable', 'string', 'max:2000'],
         ]);
     }
 
