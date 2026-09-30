@@ -1052,7 +1052,7 @@ final class PharmaApplicationController extends Controller
     ): View {
         $validated = $request->validate([
             'q' => ['nullable', 'string', 'max:120'],
-            'status' => ['nullable', 'in:draft,posted,cancelled'],
+            'status' => ['nullable', 'in:draft,pending_approval,posted,cancelled'],
             'source' => ['nullable', 'in:normal,bid'],
             'from_date' => ['nullable', 'date'],
             'to_date' => ['nullable', 'date', 'after_or_equal:from_date'],
