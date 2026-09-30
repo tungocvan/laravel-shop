@@ -1,3 +1,20 @@
+## Checkpoint — Pharma PWA Order Approval MR3 — 2026-09-30
+
+- Branch: `feat/clientportal-pharma-order-approval`, based on merged PR #240 / `main` at `27e46951`.
+- Scope is approval only: Pending approval -> Approved / Rejected. Warehouse lot/expiry selection, `InventoryService::postIssue()`, inventory transactions and stock decrement remain explicitly deferred.
+- Added independent action permission `client.pharma.orders.approve`; it does not reuse Inventory permissions.
+- Approvers can see the pending approval queue even when they are not the order manager/creator, while normal Users retain their existing scoped order visibility.
+- Pending order detail exposes mobile-first `Từ chối | Phê duyệt` actions only to authorized approvers. Rejection requires a reason.
+- Self-approval is blocked when the approver is the creator, responsible manager or submitter.
+- Canonical mutation owner is `Modules/Pharma/Services/UserOrderApprovalService`; ClientPortal only authorizes, delegates and renders.
+- Approval audit schema adds `approved_by/approved_at/rejected_by/rejected_at/rejection_reason`. It adds no lot, expiry or stock-posting fields.
+- New statuses: `approved` and `rejected`. Approved means commercial/order approval only; it does not mean stock has been issued.
+- Focused contract: `tests/Feature/ClientApps/PharmaOrderApprovalCapabilityTest.php`.
+- Required operator gate: pull branch, run MR3 focused approval + existing order authoring/issues tests; only on PASS run full `tests/Feature/ClientApps`. Real UI acceptance of approver and normal User views is required before PR.
+- Status: **IMPLEMENTED — AWAITING OPERATOR PULL / TEST / UI.**
+
+---
+
 ## Checkpoint — Pharma PWA Order Authoring MR2 — 2026-09-30
 
 - Branch: `feat/clientportal-pharma-order-authoring`, based on merged PR #239 at `a7d5f9a2b2ebcc675e298ef9503cb46eb3b957b5`.
