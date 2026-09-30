@@ -14,6 +14,7 @@ use Modules\Pharma\Services\MedicineCatalog;
 use Modules\Pharma\Services\UserPriceListWorkspace;
 use Modules\Pharma\Services\UserCommercialHospitalWorkspace;
 use Modules\Pharma\Services\UserInventoryWorkspace;
+use Modules\Pharma\Services\UserInventoryIssueWorkspace;
 use Modules\Pharma\Services\UserBidAwardWorkspace;
 use Modules\Pharma\Services\ClientBidAwardWorkflow;
 use Modules\Pharma\Services\UserPriceListWorkflow;
@@ -1039,6 +1040,77 @@ final class PharmaApplicationController extends Controller
                 'sort' => $validated['sort'] ?? '',
                 'per_page' => (int) ($validated['per_page'] ?? 25),
             ],
+        ]);
+    }
+
+    public function inventoryIssues(
+        Request $request,
+        ApplicationRegistry $registry,
+        ClientPortalSettingsService $settings,
+        UserInventoryIssueWorkspace $workspace,
+    ): View {
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:120'],
+            'status' => ['nullable', 'in:draft,posted,cancelled'],
+            'source' => ['nullable', 'in:normal,bid'],
+            'from_date' => ['nullable', 'date'],
+            'to_date' => ['nullable', 'date', 'after_or_equal:from_date'],
+            'page' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        $application = $registry->find('pharma');
+        abort_if($application === null, 404);
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.inventory.issues'), 403);
+
+        $inventoryFeature = collect($application['features'] ?? [])
+            ->first(fn (array $feature): bool => $feature['key'] === 'inventory');
+        abort_if($inventoryFeature === null, 404);
+
+        return view('ClientPortal::applications.pharma.inventory-issues', [
+            'application' => $application,
+            'applicationPresentation' => $settings->applicationPresentation($application),
+            'featurePresentation' => $settings->featurePresentation($application['key'], $inventoryFeature),
+            'issues' => $workspace->browse(
+                userId: (int) $user->id,
+                search: $validated['q'] ?? null,
+                status: $validated['status'] ?? null,
+                source: $validated['source'] ?? null,
+                fromDate: $validated['from_date'] ?? null,
+                toDate: $validated['to_date'] ?? null,
+                perPage: 20,
+                page: (int) ($validated['page'] ?? 1),
+            )->withQueryString(),
+            'counts' => $workspace->counts((int) $user->id),
+            'filters' => [
+                'q' => trim((string) ($validated['q'] ?? '')),
+                'status' => $validated['status'] ?? '',
+                'source' => $validated['source'] ?? '',
+                'from_date' => $validated['from_date'] ?? '',
+                'to_date' => $validated['to_date'] ?? '',
+            ],
+        ]);
+    }
+
+    public function inventoryIssue(
+        int $issue,
+        Request $request,
+        ApplicationRegistry $registry,
+        UserInventoryIssueWorkspace $workspace,
+    ): View {
+        $application = $registry->find('pharma');
+        abort_if($application === null, 404);
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.inventory.issues'), 403);
+
+        $visibleIssue = $workspace->findVisible((int) $user->id, $issue);
+        abort_if($visibleIssue === null, 404);
+
+        return view('ClientPortal::applications.pharma.inventory-issue-show', [
+            'application' => $application,
+            'issue' => $visibleIssue,
         ]);
     }
 
