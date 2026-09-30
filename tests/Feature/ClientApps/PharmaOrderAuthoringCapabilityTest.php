@@ -46,6 +46,7 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
         $this->assertStringContainsString('createDraft(int $actorUserId, int $managerUserId', $service);
         $this->assertStringContainsString("'manager_user_id' => \$managerUserId", $service);
         $this->assertStringContainsString("'created_by' => \$actorUserId", $service);
+        $this->assertStringContainsString("'allocated_quantity' => (float) \$allocation->allocated_quantity", $service);
         $this->assertStringContainsString("client.pharma.orders.create-for-user", $controller);
         $this->assertStringNotContainsString('PriceList::query()', $controller);
         $this->assertStringNotContainsString('DrugBidAwardAllocation::query()', $controller);
@@ -94,7 +95,6 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
         $this->assertStringContainsString('Chọn sản phẩm trúng thầu...', $view);
         $this->assertStringContainsString('SL phân bổ:', $view);
         $this->assertStringContainsString('SL còn lại:', $view);
-        $this->assertStringContainsString('allocated_quantity', $service);
         $this->assertStringContainsString('renderBidProducts', $view);
         $this->assertStringContainsString("!bidPartnerBox.contains(e.target)", $view);
         $this->assertStringContainsString('data-investor=', $view);
