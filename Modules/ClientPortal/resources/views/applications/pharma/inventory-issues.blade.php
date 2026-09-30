@@ -151,14 +151,17 @@
 </div>
 
 <style>
-.order-create-action{position:fixed!important;right:16px!important;bottom:calc(58px + env(safe-area-inset-bottom,0px))!important;z-index:45;display:inline-flex;width:44px;height:44px;align-items:center;justify-content:center;border-radius:9999px;background:#020617;color:#fff;box-shadow:0 8px 22px rgb(15 23 42 / .18);text-decoration:none}
+.order-create-action{position:fixed!important;right:18px!important;bottom:calc(86px + env(safe-area-inset-bottom,0px))!important;z-index:45;display:inline-flex;width:44px;height:44px;align-items:center;justify-content:center;border-radius:9999px;background:#020617;color:#fff;box-shadow:0 8px 22px rgb(15 23 42 / .18);text-decoration:none}
 .order-create-plus{font-size:20px;font-weight:300;line-height:1}
+@media (min-width:1024px){.order-create-action{display:none!important}}
 </style>
 <dialog id="shortage-note-dialog" class="w-[calc(100%-16px)] max-w-[520px] rounded-[26px] border-0 p-0 shadow-2xl backdrop:bg-slate-950/55">
     <div class="p-4 sm:p-5"><div class="flex items-center justify-between gap-3"><div><p class="text-xs font-black uppercase tracking-wide text-amber-700">Thiếu hàng</p><h2 class="mt-1 text-lg font-black text-slate-950">Ghi chú cung ứng</h2></div><button type="button" data-shortage-close class="h-10 w-10 rounded-full bg-slate-100 text-xl text-slate-700" aria-label="Đóng">×</button></div><p id="shortage-note-content" class="mt-4 whitespace-pre-line rounded-2xl bg-amber-50 p-4 text-sm font-medium leading-6 text-amber-950"></p></div>
 </dialog>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    const createAction=document.querySelector('[data-create-order]');
+    if(createAction && window.matchMedia('(max-width: 1023px)').matches) document.body.appendChild(createAction);
     const shortageDialog=document.getElementById('shortage-note-dialog'), shortageContent=document.getElementById('shortage-note-content');
     const centerShortageDialog=()=>{if(!shortageDialog)return;shortageDialog.style.position='fixed';shortageDialog.style.inset='50% auto auto 50%';shortageDialog.style.margin='0';shortageDialog.style.transform='translate(-50%, -50%)';shortageDialog.style.maxHeight='calc(100dvh - 24px)';};
     document.addEventListener('click',(event)=>{const button=event.target.closest('[data-shortage-note]');if(!button)return;event.preventDefault();event.stopPropagation();if(shortageContent)shortageContent.textContent=button.dataset.shortageNote||'';centerShortageDialog();shortageDialog?.showModal();});
