@@ -1,6 +1,6 @@
 @extends('ClientPortal::layouts.application')
 
-@section('title', 'Đơn hàng / Phiếu xuất')
+@section('title', 'Đơn hàng')
 @section('app-name', $applicationPresentation['name'] ?? $application['name'])
 @section('app-subtitle', 'Workspace Pharma dành cho User')
 @section('app-dashboard-route', route('client.pharma.dashboard'))
@@ -22,7 +22,7 @@
     </header>
 
     <section class="mt-4">
-        <form id="issue-search-form" method="GET" action="{{ route('client.pharma.inventory.issues') }}" class="flex gap-2">
+        <form id="issue-search-form" method="GET" action="{{ route('client.pharma.orders') }}" class="flex gap-2">
             @foreach(['status','source','from_date','to_date'] as $key)
                 @if($filters[$key])<input type="hidden" name="{{ $key }}" value="{{ $filters[$key] }}">@endif
             @endforeach
@@ -31,7 +31,7 @@
                 <span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xl text-slate-500">⌕</span>
                 <input id="issue-search-input" name="q" value="{{ $filters['q'] }}" placeholder="Tìm đơn hàng / khách hàng / bệnh viện" class="h-14 w-full rounded-2xl border border-slate-300 bg-white pl-12 pr-11 text-[15px] font-medium text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200">
                 @if($filters['q'])
-                    <a href="{{ route('client.pharma.inventory.issues', array_filter(['status'=>$filters['status'],'source'=>$filters['source'],'from_date'=>$filters['from_date'],'to_date'=>$filters['to_date']])) }}" class="absolute right-3 top-1/2 -translate-y-1/2 rounded-full px-2 py-1 text-xl text-slate-500" aria-label="Xóa từ khóa tìm kiếm">×</a>
+                    <a href="{{ route('client.pharma.orders', array_filter(['status'=>$filters['status'],'source'=>$filters['source'],'from_date'=>$filters['from_date'],'to_date'=>$filters['to_date']])) }}" class="absolute right-3 top-1/2 -translate-y-1/2 rounded-full px-2 py-1 text-xl text-slate-500" aria-label="Xóa từ khóa tìm kiếm">×</a>
                 @endif
             </label>
             <button id="issue-filter-toggle" type="button" class="relative inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-slate-300 bg-white text-xl text-slate-700 active:scale-95" aria-controls="issue-filter-sheet" aria-expanded="false">
@@ -43,7 +43,7 @@
 
     <nav class="mt-4 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]" aria-label="Trạng thái đơn hàng">
         @foreach([''=>'Tất cả','draft'=>'Nháp','posted'=>'Đã xuất','cancelled'=>'Đã hủy'] as $value=>$label)
-            <a href="{{ route('client.pharma.inventory.issues', array_filter(['q'=>$filters['q'],'status'=>$value,'source'=>$filters['source'],'from_date'=>$filters['from_date'],'to_date'=>$filters['to_date']], fn($v)=>$v!=='' && $v!==null)) }}"
+            <a href="{{ route('client.pharma.orders', array_filter(['q'=>$filters['q'],'status'=>$value,'source'=>$filters['source'],'from_date'=>$filters['from_date'],'to_date'=>$filters['to_date']], fn($v)=>$v!=='' && $v!==null)) }}"
                class="shrink-0 rounded-full border px-4 py-2 text-sm font-bold {{ $filters['status']===$value ? 'border-slate-950 bg-slate-950 text-white' : 'border-slate-200 bg-white text-slate-600' }}">
                 {{ $label }} <span class="ml-1 opacity-70">{{ $value==='' ? $counts['all'] : ($counts[$value] ?? 0) }}</span>
             </a>
@@ -52,7 +52,7 @@
 
     <section id="issue-mobile-list" class="mt-4 grid gap-3 md:grid-cols-2 xl:hidden">
         @forelse($issues as $issue)
-            <a data-issue-card href="{{ route('client.pharma.inventory.issues.show', $issue->id) }}" class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">
+            <a data-issue-card href="{{ route('client.pharma.orders.show', $issue->id) }}" class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
                         <p class="text-xs font-black uppercase tracking-wide text-slate-500">{{ $issue->number }}</p>
@@ -80,7 +80,7 @@
             <thead class="bg-slate-50 text-xs font-black uppercase tracking-wide text-slate-500"><tr><th class="w-[17%] px-5 py-4">Số phiếu</th><th class="w-[27%] px-5 py-4">Khách hàng / bệnh viện</th><th class="w-[18%] px-5 py-4">Nguồn</th><th class="w-[13%] px-5 py-4">Ngày lập</th><th class="w-[13%] px-5 py-4 text-right">Tổng tiền</th><th class="w-[12%] px-5 py-4">Trạng thái</th></tr></thead>
             <tbody id="issue-desktop-body" class="divide-y divide-slate-100">
                 @foreach($issues as $issue)
-                    <tr data-issue-row class="hover:bg-slate-50"><td class="px-5 py-4"><a class="font-black text-slate-950" href="{{ route('client.pharma.inventory.issues.show',$issue->id) }}">{{ $issue->number }}</a></td><td class="px-5 py-4 font-bold text-slate-800">{{ $issue->recipient_name ?: '—' }}</td><td class="px-5 py-4">{{ $sourceLabels[$issue->issue_source ?? 'normal'] ?? 'Theo bảng giá' }}</td><td class="px-5 py-4">{{ $issue->issue_date?->format('d/m/Y') }}</td><td class="px-5 py-4 text-right font-black">{{ $money($issue->total_value ?? 0) }}</td><td class="px-5 py-4 font-bold">{{ $statusLabels[$issue->status] ?? $issue->status }}</td></tr>
+                    <tr data-issue-row class="hover:bg-slate-50"><td class="px-5 py-4"><a class="font-black text-slate-950" href="{{ route('client.pharma.orders.show',$issue->id) }}">{{ $issue->number }}</a></td><td class="px-5 py-4 font-bold text-slate-800">{{ $issue->recipient_name ?: '—' }}</td><td class="px-5 py-4">{{ $sourceLabels[$issue->issue_source ?? 'normal'] ?? 'Theo bảng giá' }}</td><td class="px-5 py-4">{{ $issue->issue_date?->format('d/m/Y') }}</td><td class="px-5 py-4 text-right font-black">{{ $money($issue->total_value ?? 0) }}</td><td class="px-5 py-4 font-bold">{{ $statusLabels[$issue->status] ?? $issue->status }}</td></tr>
                 @endforeach
             </tbody>
         </table>
@@ -94,11 +94,11 @@
     <aside id="issue-filter-sheet" class="fixed inset-x-0 bottom-0 z-50 hidden rounded-t-[2rem] bg-white shadow-2xl lg:inset-0 lg:m-auto lg:h-fit lg:max-h-[calc(100vh-3rem)] lg:w-[34rem] lg:overflow-y-auto lg:rounded-[2rem]" aria-hidden="true">
         <div class="mx-auto mt-2 h-1.5 w-16 rounded-full bg-slate-300"></div>
         <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-            <a href="{{ route('client.pharma.inventory.issues', array_filter(['q'=>$filters['q']])) }}" class="text-sm font-bold text-rose-600">Xóa lọc</a>
+            <a href="{{ route('client.pharma.orders', array_filter(['q'=>$filters['q']])) }}" class="text-sm font-bold text-rose-600">Xóa lọc</a>
             <h2 class="text-lg font-black text-slate-950">Lọc đơn hàng</h2>
             <button id="issue-filter-close" type="button" class="h-10 w-10 text-2xl text-slate-700" aria-label="Đóng bộ lọc">×</button>
         </div>
-        <form method="GET" action="{{ route('client.pharma.inventory.issues') }}" class="px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-5">
+        <form method="GET" action="{{ route('client.pharma.orders') }}" class="px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-5">
             @if($filters['q'])<input type="hidden" name="q" value="{{ $filters['q'] }}">@endif
             <div class="space-y-5">
                 <label class="block"><span class="mb-2 block text-sm font-black text-slate-800">Nguồn đơn hàng</span><select name="source" class="h-13 w-full rounded-2xl border border-slate-300 bg-white px-4 text-base"><option value="">Tất cả</option><option value="normal" @selected($filters['source']==='normal')>Theo bảng giá</option><option value="bid" @selected($filters['source']==='bid')>Theo kết quả trúng thầu</option></select></label>
