@@ -651,6 +651,9 @@ class InventoryContractTest extends TestCase
 
         $this->assertStringContainsString("whereIn('type',[PriceList::TYPE_GLOBAL,PriceList::TYPE_CUSTOMER])", $controller);
         $this->assertStringContainsString("'globalUsers:id,name'", $controller);
+        $this->assertStringContainsString("\$priceListUserIds=\$customerPriceLists->pluck('manager_user_id')->filter()", $controller);
+        $this->assertStringContainsString("User::query()->whereIn('id',\$priceListUserIds)->orderBy('name')->get(['id','name'])", $controller);
+        $this->assertStringContainsString("compact('warehouse','availableBalances','partners','customerPriceLists','priceListManagers','issueSalePrices')", $controller);
         $this->assertStringContainsString("'manager_user_id'=>'required|integer|exists:users,id'", $controller);
         $this->assertStringContainsString('Bảng giá không được phân cho Người phụ trách đã chọn.', $controller);
         $this->assertStringContainsString("whereIn('pharma_price_lists.type',[PriceList::TYPE_GLOBAL,PriceList::TYPE_CUSTOMER])", $controller);
