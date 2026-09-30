@@ -58,16 +58,30 @@
 
 <main class="min-w-0 space-y-4">
  <section id="price-list-products" class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-  <div class="flex flex-wrap items-end justify-between gap-3"><div><h2 class="text-lg font-black">Sản phẩm theo bảng giá</h2><p class="mt-1 text-sm text-slate-500">Tìm nhanh và nhập số lượng; giá bán không thể sửa từ trình duyệt.</p></div><span id="product-count" class="rounded-full bg-slate-100 px-3 py-1 text-xs font-black">0 sản phẩm</span></div>
-  <div class="relative mt-4"><input id="product-search" type="search" placeholder="Tìm tên thuốc / mã thuốc / hoạt chất..." class="h-12 w-full rounded-2xl border border-slate-300 pl-11 pr-10"><span class="absolute left-4 top-3 text-slate-400">⌕</span><button id="clear-product-search" type="button" class="absolute right-3 top-2 h-8 w-8 rounded-full text-slate-500">×</button></div>
-  <div class="mt-4 grid min-w-0 grid-cols-1 gap-3 xl:grid-cols-2">
+  <div class="flex items-end justify-between gap-3"><div><h2 class="text-lg font-black">Sản phẩm theo bảng giá</h2><p class="mt-1 text-sm text-slate-500">Chọn sản phẩm, nhập số lượng rồi thêm vào đơn.</p></div><span id="product-count" class="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-black">0 đã thêm</span></div>
+  <div class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3" data-product-picker>
+   <div class="relative">
+    <button id="product-toggle" type="button" class="flex h-12 w-full items-center justify-between rounded-2xl border border-slate-300 bg-white px-4 text-left"><span id="product-picker-label" class="min-w-0 truncate text-sm text-slate-500">Chọn sản phẩm từ bảng giá...</span><span class="ml-2 shrink-0 text-slate-400">⌄</span></button>
+    <div id="product-panel" class="absolute z-50 mt-1 hidden w-full rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+     <input id="product-search" type="search" autocomplete="off" placeholder="Tìm tên thuốc / mã thuốc / hoạt chất..." class="h-11 w-full rounded-xl border border-slate-300 px-3">
+     <div id="product-results" class="mt-2 max-h-64 overflow-y-auto"></div>
+    </div>
+   </div>
+   <div id="product-add-panel" class="mt-3 hidden grid-cols-[minmax(0,1fr)_110px] gap-2">
+    <div class="min-w-0 rounded-xl bg-white px-3 py-2"><p id="product-selected-name" class="truncate text-sm font-black"></p><p id="product-selected-meta" class="mt-0.5 truncate text-xs text-slate-500"></p></div>
+    <input id="product-add-qty" inputmode="decimal" class="h-12 w-full rounded-xl border border-slate-300 px-3 text-center" placeholder="Số lượng">
+    <button id="product-add" type="button" class="col-span-2 h-11 rounded-xl bg-slate-950 text-sm font-black text-white">+ Thêm vào đơn</button>
+   </div>
+  </div>
+  <div id="selected-products" class="mt-4 space-y-3">
    @foreach($priceLists as $pl) @foreach($pl->items as $item) @php $current=$currentByMedicine->get($item->medicine_id); @endphp
-   <article data-price-item data-price-list="{{ $pl->id }}" data-search="{{ mb_strtolower(($item->medicine?->name ?? '').' '.($item->medicine?->medicine_code ?? '').' '.($item->medicine?->active_ingredient ?? '')) }}" data-price="{{ (float)$item->company_sale_price }}" class="hidden min-w-0 rounded-2xl border border-slate-200 p-4 transition">
-    <div class="flex justify-between gap-3"><div class="min-w-0"><p class="break-words font-black">{{ $item->medicine?->name }}</p><p class="mt-1 text-xs text-slate-500">{{ $item->medicine?->medicine_code }} · {{ $item->medicine?->unit }}</p></div><p class="shrink-0 text-sm font-black">{{ $money($item->company_sale_price) }}</p></div>
+   <article data-price-item data-item-id="{{ $item->id }}" data-price-list="{{ $pl->id }}" data-search="{{ mb_strtolower(($item->medicine?->name ?? '').' '.($item->medicine?->medicine_code ?? '').' '.($item->medicine?->active_ingredient ?? '')) }}" data-name="{{ $item->medicine?->name }}" data-meta="{{ $item->medicine?->medicine_code }} · {{ $item->medicine?->unit }} · {{ $money($item->company_sale_price) }}" data-price="{{ (float)$item->company_sale_price }}" class="{{ $current && (float)$current->quantity>0 ? '' : 'hidden' }} min-w-0 rounded-2xl border border-slate-200 bg-white p-4">
+    <div class="flex items-start justify-between gap-3"><div class="min-w-0"><p class="break-words font-black">{{ $item->medicine?->name }}</p><p class="mt-1 text-xs text-slate-500">{{ $item->medicine?->medicine_code }} · {{ $item->medicine?->unit }}</p></div><div class="text-right"><p class="shrink-0 text-sm font-black">{{ $money($item->company_sale_price) }}</p><button data-remove-product type="button" class="mt-2 text-xs font-black text-rose-600">Xóa</button></div></div>
     <label class="mt-3 block"><span class="text-xs font-bold text-slate-500">Số lượng</span><input data-quantity name="quantities[{{ $item->id }}]" value="{{ old('quantities.'.$item->id,$current?->quantity) }}" inputmode="decimal" class="mt-1 h-12 w-full rounded-2xl border border-slate-300 px-4" placeholder="0"></label>
    </article>
    @endforeach @endforeach
   </div>
+  <div id="selected-products-empty" class="mt-4 rounded-2xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500">Chưa có sản phẩm. Chọn sản phẩm phía trên để thêm vào đơn.</div>
  </section>
 
  <section id="bid-products" class="hidden rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -101,22 +115,28 @@ document.addEventListener('DOMContentLoaded',()=>{
  const syncSource=()=>{const b=source()==='bid';priceContext.classList.toggle('hidden',b);priceProducts.classList.toggle('hidden',b);bidProducts.classList.toggle('hidden',!b);priceContext.querySelectorAll('input,select').forEach(el=>el.disabled=b);priceProducts.querySelectorAll('input').forEach(el=>el.disabled=b);bidProducts.querySelectorAll('input').forEach(el=>el.disabled=!b);summary();};
  document.querySelectorAll('input[name="source"]').forEach(x=>x.addEventListener('change',syncSource));
 
- const pl=document.getElementById('price-list-select'), productSearch=document.getElementById('product-search');
- const syncProducts=()=>{const q=(productSearch.value||'').toLocaleLowerCase('vi');let n=0;document.querySelectorAll('[data-price-item]').forEach(el=>{const show=el.dataset.priceList===pl.value&&el.dataset.search.includes(q);el.classList.toggle('hidden',!show);if(show)n++;});document.getElementById('product-count').textContent=n+' sản phẩm';};
- pl?.addEventListener('change',()=>{syncProducts();const partner=pl.selectedOptions[0]?.dataset.partner;if(partner){selectCustomer(partner,true);}else{document.getElementById('customer-search').readOnly=false;}});
- productSearch?.addEventListener('input',syncProducts);document.getElementById('clear-product-search')?.addEventListener('click',()=>{productSearch.value='';syncProducts();});
-
+ const pl=document.getElementById('price-list-select'), productBox=document.querySelector('[data-product-picker]'), productToggle=document.getElementById('product-toggle'), productPanel=document.getElementById('product-panel'), productSearch=document.getElementById('product-search'), productResults=document.getElementById('product-results'), productAddPanel=document.getElementById('product-add-panel'), productAddQty=document.getElementById('product-add-qty');
+ let pendingProduct=null;
+ const eligibleProducts=()=>[...document.querySelectorAll('[data-price-item]')].filter(el=>el.dataset.priceList===pl.value);
+ const syncSelectedProducts=()=>{let n=0;eligibleProducts().forEach(el=>{const q=parseFloat(el.querySelector('[data-quantity]')?.value)||0;el.classList.toggle('hidden',q<=0);if(q>0)n++;});document.getElementById('product-count').textContent=n+' đã thêm';document.getElementById('selected-products-empty').classList.toggle('hidden',n>0);summary();};
+ const chooseProduct=el=>{pendingProduct=el;document.getElementById('product-picker-label').textContent=el.dataset.name;document.getElementById('product-selected-name').textContent=el.dataset.name;document.getElementById('product-selected-meta').textContent=el.dataset.meta;productAddQty.value=el.querySelector('[data-quantity]')?.value||'';productAddPanel.classList.remove('hidden');productAddPanel.classList.add('grid');productPanel.classList.add('hidden');setTimeout(()=>productAddQty.focus(),0);};
+ const renderProducts=()=>{const q=(productSearch.value||'').toLocaleLowerCase('vi').trim();productResults.innerHTML='';eligibleProducts().filter(el=>el.dataset.search.includes(q)).slice(0,30).forEach(el=>{const b=document.createElement('button');b.type='button';b.className='flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left hover:bg-slate-100';b.innerHTML='<span class="min-w-0"><strong class="block truncate text-sm"></strong><small class="block truncate text-slate-500"></small></span><span class="shrink-0 text-xs font-black"></span>';b.querySelector('strong').textContent=el.dataset.name;b.querySelector('small').textContent=el.dataset.meta;b.querySelector('span:last-child').textContent=(parseFloat(el.querySelector('[data-quantity]')?.value)||0)>0?'Đã thêm':'';b.onclick=()=>chooseProduct(el);productResults.appendChild(b);});if(!productResults.children.length)productResults.innerHTML='<p class="px-3 py-5 text-center text-sm text-slate-500">Không tìm thấy sản phẩm phù hợp.</p>';};
+ productToggle?.addEventListener('click',()=>{if(!pl.value)return;productPanel.classList.toggle('hidden');if(!productPanel.classList.contains('hidden')){renderProducts();setTimeout(()=>productSearch.focus(),0);}});
+ productSearch?.addEventListener('input',renderProducts);
+ document.getElementById('product-add')?.addEventListener('click',()=>{if(!pendingProduct)return;const q=parseFloat(productAddQty.value)||0;if(q<=0){productAddQty.focus();return;}pendingProduct.querySelector('[data-quantity]').value=q;pendingProduct=null;productAddQty.value='';productAddPanel.classList.add('hidden');productAddPanel.classList.remove('grid');document.getElementById('product-picker-label').textContent='Chọn sản phẩm từ bảng giá...';syncSelectedProducts();});
+ document.querySelectorAll('[data-remove-product]').forEach(b=>b.addEventListener('click',()=>{const el=b.closest('[data-price-item]');el.querySelector('[data-quantity]').value='';syncSelectedProducts();}));
+ pl?.addEventListener('change',()=>{pendingProduct=null;productPanel.classList.add('hidden');productAddPanel.classList.add('hidden');productAddPanel.classList.remove('grid');document.getElementById('product-picker-label').textContent='Chọn sản phẩm từ bảng giá...';document.querySelectorAll('[data-price-item]').forEach(el=>{if(el.dataset.priceList!==pl.value)el.querySelector('[data-quantity]').value='';});syncSelectedProducts();const partner=pl.selectedOptions[0]?.dataset.partner;if(partner){selectCustomer(partner,true);}else{document.getElementById('customer-search').readOnly=false;}});
  const customers=@json($customers->map(fn($c)=>['id'=>$c->id,'name'=>$c->name,'tax_code'=>$c->tax_code])->values());
  const cs=document.getElementById('customer-search'), cr=document.getElementById('customer-results'), cid=document.getElementById('customer-id'), csel=document.getElementById('customer-selected');
  window.selectCustomer=(id,locked=false)=>{const c=customers.find(x=>String(x.id)===String(id));if(!c)return;cid.value=c.id;cs.value=c.name;csel.textContent='Đã chọn: '+c.name;cs.readOnly=locked;cr.classList.add('hidden');};
  const renderCustomers=()=>{const q=cs.value.toLocaleLowerCase('vi').trim();cr.innerHTML='';customers.filter(c=>(c.name+' '+(c.tax_code||'')).toLocaleLowerCase('vi').includes(q)).slice(0,25).forEach(c=>{const b=document.createElement('button');b.type='button';b.className='block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100';b.textContent=c.name+(c.tax_code?' · '+c.tax_code:'');b.onclick=()=>selectCustomer(c.id);cr.appendChild(b);});cr.classList.toggle('hidden',cr.children.length===0);};
  cs?.addEventListener('input',()=>{cid.value='';csel.textContent='';renderCustomers();});cs?.addEventListener('focus',renderCustomers);if(cid?.value)selectCustomer(cid.value,false);
- document.addEventListener('click',e=>{if(managerBox&&!managerBox.contains(e.target))managerPanel?.classList.add('hidden');const customerBox=cs?.closest('.relative');if(customerBox&&!customerBox.contains(e.target))cr?.classList.add('hidden');});
- document.addEventListener('keydown',e=>{if(e.key==='Escape'){managerPanel?.classList.add('hidden');cr?.classList.add('hidden');}});
+ document.addEventListener('click',e=>{if(managerBox&&!managerBox.contains(e.target))managerPanel?.classList.add('hidden');const customerBox=cs?.closest('.relative');if(customerBox&&!customerBox.contains(e.target))cr?.classList.add('hidden');if(productBox&&!productBox.contains(e.target))productPanel?.classList.add('hidden');});
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'){managerPanel?.classList.add('hidden');cr?.classList.add('hidden');productPanel?.classList.add('hidden');}});
 
  const bidSearch=document.getElementById('bid-search');bidSearch?.addEventListener('input',()=>{const q=bidSearch.value.toLocaleLowerCase('vi');document.querySelectorAll('[data-bid-item]').forEach(el=>el.classList.toggle('hidden',!el.dataset.search.includes(q)));});
  const summary=()=>{let count=0,qty=0,total=0;document.querySelectorAll('[data-quantity]:not(:disabled)').forEach(i=>{const q=parseFloat(i.value)||0;if(q>0){count++;qty+=q;total+=q*(parseFloat(i.closest('[data-price]')?.dataset.price)||0);i.closest('[data-price]')?.classList.add('ring-2','ring-slate-900');}else{i.closest('[data-price]')?.classList.remove('ring-2','ring-slate-900');}});document.getElementById('order-summary').textContent=count+' sản phẩm · '+qty.toLocaleString('vi-VN')+' SL · '+Math.round(total).toLocaleString('vi-VN')+' đ';};
- document.querySelectorAll('[data-quantity]').forEach(i=>i.addEventListener('input',summary));syncSource();syncProducts();summary();
+ document.querySelectorAll('[data-quantity]').forEach(i=>i.addEventListener('input',summary));syncSource();syncSelectedProducts();summary();
 });
 </script>
 @endsection
