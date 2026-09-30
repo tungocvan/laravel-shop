@@ -16,6 +16,7 @@ use Modules\Pharma\Services\UserCommercialHospitalWorkspace;
 use Modules\Pharma\Services\UserInventoryWorkspace;
 use Modules\Pharma\Services\UserInventoryIssueWorkspace;
 use Modules\Pharma\Services\UserOrderAuthoringService;
+use Modules\Pharma\Services\UserOrderApprovalService;
 use Modules\Pharma\Services\UserBidAwardWorkspace;
 use Modules\Pharma\Services\ClientBidAwardWorkflow;
 use Modules\Pharma\Services\UserPriceListWorkflow;
@@ -1052,7 +1053,7 @@ final class PharmaApplicationController extends Controller
     ): View {
         $validated = $request->validate([
             'q' => ['nullable', 'string', 'max:120'],
-            'status' => ['nullable', 'in:draft,pending_approval,posted,cancelled'],
+            'status' => ['nullable', 'in:draft,pending_approval,approved,rejected,posted,cancelled'],
             'source' => ['nullable', 'in:normal,bid'],
             'from_date' => ['nullable', 'date'],
             'to_date' => ['nullable', 'date', 'after_or_equal:from_date'],
@@ -1064,6 +1065,7 @@ final class PharmaApplicationController extends Controller
         $user = $request->user('web');
         abort_if($user === null, 401);
         abort_unless($registry->userCan($user, 'client.pharma.orders'), 403);
+        $canApproveOrders = $registry->userCan($user, 'client.pharma.orders.approve');
 
         $ordersFeature = collect($application['features'] ?? [])
             ->first(fn (array $feature): bool => $feature['key'] === 'orders');
@@ -1082,8 +1084,10 @@ final class PharmaApplicationController extends Controller
                 toDate: $validated['to_date'] ?? null,
                 perPage: 20,
                 page: (int) ($validated['page'] ?? 1),
+                includePendingApproval: $canApproveOrders,
             )->withQueryString(),
-            'counts' => $workspace->counts((int) $user->id),
+            'counts' => $workspace->counts((int) $user->id, $canApproveOrders),
+            'canApproveOrders' => $canApproveOrders,
             'canCreateOrders' => $registry->userCan($user, 'client.pharma.orders.create')
                 || $registry->userCan($user, 'client.pharma.orders.create-for-user'),
             'filters' => [
@@ -1191,6 +1195,35 @@ final class PharmaApplicationController extends Controller
         return redirect()->route('client.pharma.orders.show', $visible)->with('success', 'Đơn hàng đã được gửi duyệt.');
     }
 
+    public function approveOrder(
+        int $issue, Request $request, ApplicationRegistry $registry,
+        UserInventoryIssueWorkspace $workspace, UserOrderApprovalService $approval,
+    ) {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.orders.approve'), 403);
+        $pending = $workspace->findPendingForApproval($issue);
+        abort_if($pending === null, 404);
+        $approval->approve((int) $user->id, $pending);
+
+        return redirect()->route('client.pharma.orders.show', $issue)
+            ->with('success', 'Đã phê duyệt đơn hàng. Đơn sẵn sàng chuyển sang bước xử lý kho.');
+    }
+
+    public function rejectOrder(
+        int $issue, Request $request, ApplicationRegistry $registry,
+        UserInventoryIssueWorkspace $workspace, UserOrderApprovalService $approval,
+    ) {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.orders.approve'), 403);
+        $validated = $request->validate(['rejection_reason' => ['required', 'string', 'max:1000']]);
+        $pending = $workspace->findPendingForApproval($issue);
+        abort_if($pending === null, 404);
+        $approval->reject((int) $user->id, $pending, $validated['rejection_reason']);
+
+        return redirect()->route('client.pharma.orders.show', $issue)
+            ->with('success', 'Đã từ chối đơn hàng và lưu lý do.');
+    }
+
     private function validateOrderAuthoring(Request $request): array
     {
         return $request->validate([
@@ -1218,8 +1251,10 @@ final class PharmaApplicationController extends Controller
         abort_unless($registry->userCan($user, 'client.pharma.orders'), 403);
 
         $canCreateForUser = $registry->userCan($user, 'client.pharma.orders.create-for-user');
+        $canApproveOrder = $registry->userCan($user, 'client.pharma.orders.approve');
         $visibleIssue = $workspace->findVisible((int) $user->id, $issue);
         if ($visibleIssue === null && $canCreateForUser) $visibleIssue = $workspace->findByCreator((int) $user->id, $issue);
+        if ($visibleIssue === null && $canApproveOrder) $visibleIssue = $workspace->findPendingForApproval($issue);
         abort_if($visibleIssue === null, 404);
 
         return view('ClientPortal::applications.pharma.inventory-issue-show', [
@@ -1231,6 +1266,11 @@ final class PharmaApplicationController extends Controller
             'canSubmitOrder' => $registry->userCan($user, 'client.pharma.orders.submit')
                 && (int) $visibleIssue->created_by === (int) $user->id
                 && $visibleIssue->status === \Modules\Pharma\Models\InventoryIssue::DRAFT,
+            'canApproveOrder' => $canApproveOrder
+                && $visibleIssue->status === \Modules\Pharma\Models\InventoryIssue::PENDING_APPROVAL
+                && ! in_array((int) $user->id, array_filter([
+                    (int) $visibleIssue->created_by, (int) $visibleIssue->manager_user_id, (int) $visibleIssue->submitted_by,
+                ]), true),
         ]);
     }
 
