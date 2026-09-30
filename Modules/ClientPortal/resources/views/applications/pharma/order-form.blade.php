@@ -24,21 +24,12 @@
 <aside class="space-y-4 lg:sticky lg:top-4">
  <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
   <p class="text-xs font-black uppercase tracking-wide text-slate-500">Thiết lập đơn hàng</p>
-  <div class="mt-4 grid grid-cols-2 gap-3" data-order-source-picker>
-   <label class="block cursor-pointer">
-    <input class="peer sr-only" type="radio" name="source" value="price_list" @checked($currentSource==='price_list') @disabled($editing)>
-    <span class="relative flex min-h-[112px] flex-col justify-between rounded-2xl border-2 border-slate-200 bg-white p-3 shadow-sm transition active:scale-[.985] peer-checked:border-slate-950 peer-checked:bg-slate-950 peer-checked:text-white peer-checked:shadow-lg">
-     <span class="absolute right-2.5 top-2.5 hidden h-6 w-6 items-center justify-center rounded-full bg-white text-sm font-black text-slate-950 peer-checked:flex">✓</span>
-     <span class="text-2xl">▤</span><span><strong class="block pr-6 text-sm font-black">Theo bảng giá</strong><small class="mt-1 block text-[11px] font-semibold leading-4 opacity-70">Giá bán theo bảng giá đang hiệu lực</small></span>
-    </span>
-   </label>
-   <label class="block cursor-pointer">
-    <input class="peer sr-only" type="radio" name="source" value="bid" @checked($currentSource==='bid') @disabled($editing)>
-    <span class="relative flex min-h-[112px] flex-col justify-between rounded-2xl border-2 border-slate-200 bg-white p-3 shadow-sm transition active:scale-[.985] peer-checked:border-slate-950 peer-checked:bg-slate-950 peer-checked:text-white peer-checked:shadow-lg">
-     <span class="absolute right-2.5 top-2.5 hidden h-6 w-6 items-center justify-center rounded-full bg-white text-sm font-black text-slate-950 peer-checked:flex">✓</span>
-     <span class="text-2xl">◎</span><span><strong class="block pr-6 text-sm font-black">Theo trúng thầu</strong><small class="mt-1 block text-[11px] font-semibold leading-4 opacity-70">Giá và số lượng theo phân bổ thầu</small></span>
-    </span>
-   </label>
+  <div class="mt-4 rounded-2xl border border-slate-200 bg-slate-100 p-1.5 shadow-inner" data-order-source-picker>
+   <div class="grid grid-cols-2 gap-1.5">
+    <label class="min-w-0 cursor-pointer"><input class="peer sr-only" type="radio" name="source" value="price_list" @checked($currentSource==='price_list') @disabled($editing)><span class="flex h-14 items-center justify-center gap-2 rounded-xl px-2 text-center text-xs font-black text-slate-600 transition active:scale-[.985] peer-checked:bg-white peer-checked:text-slate-950 peer-checked:shadow-sm"><span class="text-base">▤</span><span class="whitespace-nowrap">Theo bảng giá</span><span class="hidden text-emerald-600 peer-checked:inline">✓</span></span></label>
+    <label class="min-w-0 cursor-pointer"><input class="peer sr-only" type="radio" name="source" value="bid" @checked($currentSource==='bid') @disabled($editing)><span class="flex h-14 items-center justify-center gap-2 rounded-xl px-2 text-center text-xs font-black text-slate-600 transition active:scale-[.985] peer-checked:bg-white peer-checked:text-slate-950 peer-checked:shadow-sm"><span class="text-base">◎</span><span class="whitespace-nowrap">Theo trúng thầu</span><span class="hidden text-emerald-600 peer-checked:inline">✓</span></span></label>
+   </div>
+   <p id="order-source-hint" class="px-2 pb-1 pt-2 text-center text-[11px] font-semibold text-slate-500">Giá bán theo bảng giá đang hiệu lực</p>
   </div>@if($editing)<input type="hidden" name="source" value="{{ $currentSource }}">@endif
   <div id="manager-context" class="mt-4">
   @if($canCreateForUser)
@@ -142,7 +133,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 
  const priceContext=document.getElementById('price-list-context'), priceProducts=document.getElementById('price-list-products'), bidProducts=document.getElementById('bid-products');
  const source=()=>document.querySelector('input[name="source"]:checked')?.value||document.querySelector('input[type="hidden"][name="source"]')?.value||'price_list';
- const syncSource=()=>{const b=source()==='bid';document.getElementById('manager-context')?.classList.remove('hidden');priceContext.classList.toggle('hidden',b);priceProducts.classList.toggle('hidden',b);bidProducts.classList.toggle('hidden',!b);priceContext.querySelectorAll('input,select').forEach(el=>el.disabled=b);priceProducts.querySelectorAll('input').forEach(el=>el.disabled=b);bidProducts.querySelectorAll('input').forEach(el=>el.disabled=!b);summary();};
+ const syncSource=()=>{const b=source()==='bid';const hint=document.getElementById('order-source-hint');if(hint)hint.textContent=b?'Giá và số lượng theo phân bổ trúng thầu':'Giá bán theo bảng giá đang hiệu lực';document.getElementById('manager-context')?.classList.remove('hidden');priceContext.classList.toggle('hidden',b);priceProducts.classList.toggle('hidden',b);bidProducts.classList.toggle('hidden',!b);priceContext.querySelectorAll('input,select').forEach(el=>el.disabled=b);priceProducts.querySelectorAll('input').forEach(el=>el.disabled=b);bidProducts.querySelectorAll('input').forEach(el=>el.disabled=!b);summary();};
  document.querySelectorAll('input[name="source"]').forEach(x=>x.addEventListener('change',syncSource));
 
  const pl=document.getElementById('price-list-select'), productBox=document.querySelector('[data-product-picker]'), productToggle=document.getElementById('product-toggle'), productPanel=document.getElementById('product-panel'), productSearch=document.getElementById('product-search'), productResults=document.getElementById('product-results'), productAddPanel=document.getElementById('product-add-panel'), productAddQty=document.getElementById('product-add-qty');
