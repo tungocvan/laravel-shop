@@ -135,6 +135,9 @@ final class PharmaInventoryIssuesCapabilityTest extends TestCase
         $this->assertStringContainsString('<span>Lập đơn hàng</span>', $view);
         $this->assertStringContainsString("Dự kiến: '.\$row->expected_supply_date->format('d/m/Y')", $workspace);
         $this->assertStringContainsString('placeholder:text-[13px]', $view);
+        $this->assertStringContainsString('xl:max-w-[760px]', $view);
+        $this->assertStringContainsString('xl:inline-flex', $view);
+        $this->assertStringContainsString('<span>Lập đơn hàng</span>', $view);
     }
 
 }
