@@ -35,6 +35,9 @@ final class PharmaInventoryIssuesCapabilityTest extends TestCase
         $this->assertStringContainsString('Đơn hàng / Phiếu xuất', $view);
         $this->assertStringContainsString('Tìm đơn hàng / khách hàng / bệnh viện', $view);
         $this->assertStringContainsString('issue-filter-sheet', $view);
+        $this->assertStringContainsString('lg:inset-0 lg:m-auto lg:h-fit', $view);
+        $this->assertStringContainsString('lg:max-h-[calc(100vh-3rem)]', $view);
+        $this->assertStringNotContainsString('lg:right-6 lg:bottom-6', $view);
         $this->assertStringContainsString('Lọc đơn hàng', $view);
         $this->assertStringContainsString('Xóa lọc', $view);
         $this->assertStringContainsString('Hủy', $view);
