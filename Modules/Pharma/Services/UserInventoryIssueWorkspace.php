@@ -72,6 +72,16 @@ final class UserInventoryIssueWorkspace
             ->find($issueId);
     }
 
+    public function findApprovedForUndo(int $issueId): ?InventoryIssue
+    {
+        return InventoryIssue::query()
+            ->where('status', InventoryIssue::APPROVED)
+            ->whereNull('posted_at')
+            ->with(['manager:id,name', 'priceList:id,code,name,type', 'items.medicine'])
+            ->withCount('items')
+            ->find($issueId);
+    }
+
     public function findByCreator(int $creatorUserId, int $issueId): ?InventoryIssue
     {
         return InventoryIssue::query()
