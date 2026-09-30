@@ -23,8 +23,8 @@ final class PharmaOrderApprovalCapabilityTest extends TestCase
         $this->assertStringContainsString('InventoryIssue::REJECTED', $service);
         $this->assertStringContainsString("'approved_by' => \$actorUserId", $service);
         $this->assertStringContainsString("'rejected_by' => \$actorUserId", $service);
-        $this->assertStringContainsString("stockReadiness->forIssue(\$issue)['can_approve']", $service);
-        $this->assertStringContainsString('ít nhất 1 sản phẩm đủ tồn', $service);
+        $this->assertStringNotContainsString('UserOrderStockReadinessService', $service);
+        $this->assertStringNotContainsString("stockReadiness->forIssue(\$issue)", $service);
         $this->assertStringContainsString('undoApproval', $service);
         $this->assertStringContainsString('deleteNonStockOrder', $service);
         $this->assertStringContainsString('[InventoryIssue::DRAFT, InventoryIssue::REJECTED]', $service);
@@ -56,7 +56,7 @@ final class PharmaOrderApprovalCapabilityTest extends TestCase
         $this->assertStringContainsString('Từ chối', $view);
         $this->assertStringContainsString('Lý do từ chối', $view);
         $this->assertStringContainsString('rejection_reason', $view);
-        $this->assertStringContainsString("@disabled(!(\$stockReadiness['can_approve'] ?? false))", $view);
+        $this->assertStringNotContainsString("@disabled(!(\$stockReadiness['can_approve'] ?? false))", $view);
         $this->assertStringContainsString('Hoàn tác phê duyệt', $view);
         $this->assertStringContainsString('Chờ cung cấp', $view);
         $this->assertStringContainsString('Không tính là hàng đã duyệt xuất', $view);
@@ -65,7 +65,8 @@ final class PharmaOrderApprovalCapabilityTest extends TestCase
         $this->assertStringContainsString('function ($item) use ($deferredAllocationIds)', $view);
         $this->assertStringContainsString('Xóa đơn', $view);
         $this->assertStringContainsString('không ảnh hưởng tồn kho', $view);
-        $this->assertStringContainsString('ít nhất 1 sản phẩm đủ tồn', $view);
+        $this->assertStringContainsString('Thiếu tồn không chặn phê duyệt đơn', $view);
+        $this->assertStringContainsString('kiểm tra đủ tồn ở bước xử lý kho/Ghi sổ', $view);
     }
 
     public function test_admin_inventory_can_process_pending_pwa_order_without_posting_stock(): void
