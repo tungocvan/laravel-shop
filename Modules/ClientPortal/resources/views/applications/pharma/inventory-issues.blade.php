@@ -41,16 +41,16 @@
         </form>
     </section>
 
-    <nav class="-mx-1 mt-4 flex max-w-full gap-2 overflow-x-auto overscroll-x-contain px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Trạng thái đơn hàng">
+    <nav class="-mx-1 mt-4 grid grid-cols-3 gap-2 px-1 sm:flex sm:max-w-full sm:overflow-x-auto sm:overscroll-x-contain sm:pb-2 sm:[scrollbar-width:none] sm:[&::-webkit-scrollbar]:hidden" aria-label="Trạng thái đơn hàng">
         @foreach([''=>'Tất cả','draft'=>'Nháp','pending_approval'=>'Chờ duyệt','approved'=>'Đã duyệt','rejected'=>'Từ chối','posted'=>'Đã xuất','cancelled'=>'Đã hủy'] as $value=>$label)
             @php($statusCount = $value==='' ? $counts['all'] : ($counts[$value] ?? 0))
             @if($statusCount > 0 || $filters['status']===$value)
                 <a href="{{ route('client.pharma.orders', array_filter(['q'=>$filters['q'],'status'=>$value,'source'=>$filters['source'],'from_date'=>$filters['from_date'],'to_date'=>$filters['to_date'],'manager_user_id'=>$filters['manager_user_id']], fn($v)=>$v!=='' && $v!==null)) }}"
-                   class="shrink-0 whitespace-nowrap rounded-full border px-3.5 py-2 text-sm font-bold {{ $filters['status']===$value ? 'border-slate-950 bg-slate-950 text-white' : 'border-slate-200 bg-white text-slate-600' }}">
+                   class="min-w-0 whitespace-nowrap rounded-full border px-2.5 py-2 text-center text-xs font-bold sm:shrink-0 sm:px-3.5 sm:text-sm {{ $filters['status']===$value ? 'border-slate-950 bg-slate-950 text-white' : 'border-slate-200 bg-white text-slate-600' }}">
                     {{ $label }} <span class="ml-1 opacity-70">{{ $statusCount }}</span>
                 </a>
             @else
-                <span aria-disabled="true" data-disabled-status class="shrink-0 cursor-not-allowed whitespace-nowrap rounded-full border border-slate-100 bg-slate-50 px-3.5 py-2 text-sm font-bold text-slate-300">
+                <span aria-disabled="true" data-disabled-status class="min-w-0 cursor-not-allowed whitespace-nowrap rounded-full border border-slate-100 bg-slate-50 px-2.5 py-2 text-center text-xs font-bold text-slate-300 sm:shrink-0 sm:px-3.5 sm:text-sm">
                     {{ $label }} <span class="ml-1">{{ $statusCount }}</span>
                 </span>
             @endif
