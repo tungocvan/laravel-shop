@@ -45,12 +45,30 @@ return [
                 'approve' => ['name' => 'Phê duyệt bảng giá', 'permission' => 'client.pharma.price-lists.approve', 'sort_order' => 30],
             ],
         ],
+        'orders' => [
+            'name' => 'Đơn hàng',
+            'route' => 'client.pharma.orders',
+            'permission' => 'client.pharma.orders',
+            'icon' => 'clipboard-document-list',
+            'sort_order' => 60,
+        ],
+        'orders' => [
+            'name' => 'Đơn hàng',
+            'description' => 'Lập và theo dõi đơn hàng theo bảng giá hoặc kết quả trúng thầu trong phạm vi User.',
+            'eyebrow' => 'Orders',
+            'page_title' => 'Đơn hàng',
+            'page_description' => 'Theo dõi đơn hàng, nguồn giá và tiến trình xử lý thuộc phạm vi được giao.',
+            'route' => 'client.pharma.orders',
+            'permission' => 'client.pharma.orders',
+            'icon' => 'clipboard-document-list',
+            'sort_order' => 60,
+        ],
         'inventory' => [
             'name' => 'Tồn kho',
             'route' => 'client.pharma.inventory',
             'permission' => 'client.pharma.inventory.view',
             'icon' => 'archive-box',
-            'sort_order' => 60,
+            'sort_order' => 80,
         ],
     ],
     'features' => [
@@ -145,7 +163,7 @@ return [
             'route' => 'client.pharma.inventory',
             'permission' => 'client.pharma.inventory.view',
             'icon' => 'archive-box',
-            'sort_order' => 60,
+            'sort_order' => 70,
             'actions' => [
                 'costs' => [
                     'name' => 'Xem giá vốn và giá trị tồn',
@@ -156,12 +174,6 @@ return [
                     'name' => 'Phiếu nhập',
                     'permission' => 'client.pharma.inventory.receipts',
                     'sort_order' => 10,
-                ],
-                'issues' => [
-                    'name' => 'Đơn hàng / Phiếu xuất',
-                    'route' => 'client.pharma.inventory.issues',
-                    'permission' => 'client.pharma.inventory.issues',
-                    'sort_order' => 20,
                 ],
             ],
         ],
