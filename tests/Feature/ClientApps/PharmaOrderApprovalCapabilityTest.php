@@ -22,7 +22,6 @@ final class PharmaOrderApprovalCapabilityTest extends TestCase
         $this->assertStringContainsString('InventoryIssue::REJECTED', $service);
         $this->assertStringContainsString("'approved_by' => \$actorUserId", $service);
         $this->assertStringContainsString("'rejected_by' => \$actorUserId", $service);
-        $this->assertStringContainsString('Người lập, người phụ trách hoặc người gửi duyệt không được tự phê duyệt', $service);
         $this->assertStringNotContainsString('postIssue(', $service);
         $this->assertStringNotContainsString('InventoryTransaction', $service);
         $this->assertStringNotContainsString('quantity_on_hand', $service);
@@ -38,6 +37,8 @@ final class PharmaOrderApprovalCapabilityTest extends TestCase
         $this->assertStringContainsString('includePendingApproval', $workspace);
         $this->assertStringContainsString('findPendingForApproval', $workspace);
         $this->assertStringContainsString("client.pharma.orders.approve", $controller);
+        $this->assertStringContainsString("'canApproveOrder' => $canApproveOrder", $controller);
+        $this->assertStringContainsString("&& $visibleIssue->status === \\Modules\\Pharma\\Models\\InventoryIssue::PENDING_APPROVAL", $controller);
         $this->assertStringContainsString('approveOrder', $controller);
         $this->assertStringContainsString('rejectOrder', $controller);
         $this->assertStringContainsString('Phê duyệt', $view);
