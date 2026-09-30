@@ -77,6 +77,20 @@
                                 <div><p class="text-xs text-slate-500">SL đơn hàng</p><p class="font-black text-slate-900">{{ number_format($stockRow['requested_quantity'],3,'.','') }}</p></div>
                                 <div><p class="text-xs text-slate-500">Tồn khả dụng</p><p class="font-black text-slate-900">{{ number_format($stockRow['available_stock'],3,'.','') }}</p></div>
                             </div>
+                            @if(!$stockRow['is_ready'])
+                                @php
+                                    $issueItem = $issue->items->firstWhere('id', $stockRow['item_id']);
+                                    $savedSupply = $issueItem ? $savedSupplyNotes->get($issueItem->drug_bid_award_allocation_id) : null;
+                                @endphp
+                                <div class="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
+                                    <p class="text-xs font-black text-amber-900">Hiện kho đang hết/thiếu hàng</p>
+                                    <p class="mt-1 text-xs leading-5 text-amber-800">Ghi chú ngày dự kiến và tình trạng cung cấp để theo dõi mặt hàng đang thiếu.</p>
+                                    <div class="mt-3 grid gap-2 sm:grid-cols-2">
+                                        <label class="block"><span class="mb-1 block text-[11px] font-bold text-slate-600">Dự kiến cung cấp lại</span><input form="supply-note-form" type="date" name="supply_notes[{{ $stockRow['item_id'] }}][expected_supply_date]" value="{{ old('supply_notes.'.$stockRow['item_id'].'.expected_supply_date', $savedSupply?->expected_supply_date?->format('Y-m-d')) }}" class="h-10 w-full rounded-lg border border-amber-200 bg-white px-2 text-sm"></label>
+                                        <label class="block"><span class="mb-1 block text-[11px] font-bold text-slate-600">Ghi chú *</span><input form="supply-note-form" type="text" required maxlength="2000" name="supply_notes[{{ $stockRow['item_id'] }}][note]" value="{{ old('supply_notes.'.$stockRow['item_id'].'.note', $savedSupply?->note) }}" placeholder="VD: Đang hỏi NCC, dự kiến hàng về..." class="h-10 w-full rounded-lg border border-amber-200 bg-white px-2 text-sm"></label>
+                                    </div>
+                                </div>
+                            @endif
                             <details class="mt-3 rounded-xl bg-slate-50 px-3 py-2">
                                 <summary class="cursor-pointer text-xs font-black text-slate-700">Lô khả dụng · {{ count($stockRow['lots']) }}</summary>
                                 <div class="mt-2 space-y-2">
@@ -93,7 +107,13 @@
                         </article>
                     @endforeach
                 </div>
-                <p class="mt-3 text-xs leading-5 text-slate-500">Thông tin này không giữ hàng. Chọn lô thực xuất ở bước xử lý kho sau khi đơn được phê duyệt.</p>
+                @if(!$stockReadiness['is_ready'])
+                    <form id="supply-note-form" method="POST" action="{{ route('client.pharma.orders.supply-notes',$issue) }}" class="mt-3">
+                        @csrf
+                        <button class="h-11 w-full rounded-xl border border-amber-300 bg-white font-black text-amber-900">Lưu ghi chú chờ cung cấp</button>
+                    </form>
+                @endif
+                <p class="mt-3 text-xs leading-5 text-slate-500">Thông tin này không giữ hàng. Sau khi lưu ghi chú, hệ thống vẫn kiểm tra tồn kho hiện tại. Khi toàn bộ sản phẩm đủ hàng, nút Phê duyệt sẽ tự bật. Chọn lô thực xuất ở bước xử lý kho sau khi đơn được phê duyệt.</p>
             </section>
         @endif
 
