@@ -23,7 +23,7 @@
 
     <section class="mt-4">
         <div class="flex items-center gap-2">
-        <form id="issue-search-form" method="GET" action="{{ route('client.pharma.orders') }}" class="flex min-w-0 flex-1 gap-2 lg:max-w-[720px]">
+        <form id="issue-search-form" method="GET" action="{{ route('client.pharma.orders') }}" class="flex min-w-0 flex-1 gap-2 lg:max-w-[620px]">
             @foreach(['status','source','from_date','to_date','manager_user_id'] as $key)
                 @if($filters[$key])<input type="hidden" name="{{ $key }}" value="{{ $filters[$key] }}">@endif
             @endforeach
@@ -151,7 +151,7 @@
 </div>
 
 <style>
-.order-create-action{position:fixed!important;right:16px!important;bottom:calc(70px + env(safe-area-inset-bottom,0px))!important;z-index:45;display:inline-flex;width:44px;height:44px;align-items:center;justify-content:center;border-radius:9999px;background:#020617;color:#fff;box-shadow:0 8px 22px rgb(15 23 42 / .18);text-decoration:none}
+.order-create-action{position:fixed!important;right:16px!important;bottom:calc(58px + env(safe-area-inset-bottom,0px))!important;z-index:45;display:inline-flex;width:44px;height:44px;align-items:center;justify-content:center;border-radius:9999px;background:#020617;color:#fff;box-shadow:0 8px 22px rgb(15 23 42 / .18);text-decoration:none}
 .order-create-plus{font-size:20px;font-weight:300;line-height:1}
 </style>
 <dialog id="shortage-note-dialog" class="w-[calc(100%-16px)] max-w-[520px] rounded-[26px] border-0 p-0 shadow-2xl backdrop:bg-slate-950/55">
