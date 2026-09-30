@@ -413,7 +413,7 @@ final class InventoryController extends Controller
             ->withSum(['items as total_value'=>fn($q)=>$q->select(DB::raw('COALESCE(SUM(quantity * unit_price_ex_vat),0)'))],'unit_price_ex_vat')
             ->where('warehouse_id',$warehouse->id)
             ->when($request->filled('q'),fn($q)=>$q->where(fn($x)=>$x->where('number','like','%'.$request->q.'%')->orWhere('supplier_name','like','%'.$request->q.'%')))
-            ->when(in_array($request->status,['draft','posted'],true),fn($q)=>$q->where('status',$request->status))
+            ->when(in_array($request->status,[InventoryIssue::DRAFT,InventoryIssue::PENDING_APPROVAL,InventoryIssue::APPROVED,InventoryIssue::REJECTED,InventoryIssue::POSTED,InventoryIssue::CANCELLED],true),fn($q)=>$q->where('status',$request->status))
             ->latest('receipt_date')->latest('id');
         return view('Pharma::pages.inventory.documents',[
             'type'=>'receipt','title'=>'Phiếu nhập kho','documents'=>$query->paginate($this->documentPerPage($request))->withQueryString(),
@@ -802,7 +802,7 @@ final class InventoryController extends Controller
 
     public function postIssue(InventoryIssue $issue, InventoryService $inventory, DrugBidCommissionService $commissions): RedirectResponse
     {
-        if(($issue->issue_source ?? 'normal')==='bid' && $issue->status===InventoryIssue::DRAFT){
+        if(($issue->issue_source ?? 'normal')==='bid' && in_array($issue->status,[InventoryIssue::DRAFT,InventoryIssue::APPROVED],true)){
             return redirect()->route('admin.pharma.inventory.issues.bid-sales.batches',$issue);
         }
         $inventory->postIssue($issue,auth('admin')->id());
@@ -813,7 +813,7 @@ final class InventoryController extends Controller
     public function editBidSaleIssue(InventoryIssue $issue, InventoryService $inventory): View
     {
         $this->guardIssueWarehouse($issue,$inventory);
-        abort_unless(($issue->issue_source ?? 'normal')==='bid' && $issue->status===InventoryIssue::DRAFT,404);
+        abort_unless(($issue->issue_source ?? 'normal')==='bid' && in_array($issue->status,[InventoryIssue::DRAFT,InventoryIssue::APPROVED],true),404);
         $issue->load(['items.medicine','deferredSupplies']);
         $savedDeferred=$issue->deferredSupplies->where('status',InventoryIssueDeferredSupply::PENDING)->keyBy('drug_bid_award_allocation_id');
         $allocationIds=$issue->items->pluck('drug_bid_award_allocation_id')->filter();
@@ -966,7 +966,7 @@ final class InventoryController extends Controller
         ]);
         DB::transaction(function()use($issue,$data,$inventory,$commissions){
             $issue=InventoryIssue::query()->lockForUpdate()->findOrFail($issue->id); $issue->load('items.medicine');
-            if($issue->status!==InventoryIssue::DRAFT || ($issue->issue_source ?? 'normal')!=='bid') throw ValidationException::withMessages(['issue'=>'Phiếu hàng thầu không còn ở trạng thái nháp.']);
+            if(!in_array($issue->status,[InventoryIssue::DRAFT,InventoryIssue::APPROVED],true) || ($issue->issue_source ?? 'normal')!=='bid') throw ValidationException::withMessages(['issue'=>'Phiếu hàng thầu không còn ở trạng thái có thể xử lý kho.']);
             $posted=DB::table('pharma_inventory_issue_items as ii')->join('pharma_inventory_issues as i','i.id','=','ii.issue_id')
                 ->where('i.issue_source','bid')->where('i.status',InventoryIssue::POSTED)->whereIn('ii.drug_bid_award_allocation_id',$issue->items->pluck('drug_bid_award_allocation_id'))
                 ->groupBy('ii.drug_bid_award_allocation_id')->selectRaw('ii.drug_bid_award_allocation_id, SUM(ii.quantity) as qty')->pluck('qty','ii.drug_bid_award_allocation_id');
