@@ -11,6 +11,8 @@ use Modules\Pharma\Models\InventoryWarehouse;
 
 final class InventoryService
 {
+    public function __construct(private readonly DrugBidCommissionService $commissions) {}
+
     public function defaultWarehouse(): InventoryWarehouse
     {
         return InventoryWarehouse::query()->firstOrCreate(['code'=>'MAIN'], ['name'=>'Kho chính','is_active'=>true]);
@@ -102,6 +104,7 @@ final class InventoryService
             }
             foreach ($issue->items as $item) $this->move($issue->warehouse_id,$item->medicine_id,$item->batch_number,$item->expiry_date->toDateString(),-(float)$item->quantity,'issue',$issue,$userId);
             $issue->update(['status'=>InventoryIssue::POSTED,'posted_by'=>$userId,'posted_at'=>now()]);
+            $this->commissions->snapshotPostedIssue($issue->fresh('items'),$userId);
         });
     }
 
@@ -130,6 +133,7 @@ final class InventoryService
                 ]);
             }
             $issue->update(['status'=>$issue->approved_at ? InventoryIssue::APPROVED : InventoryIssue::DRAFT,'posted_by'=>null,'posted_at'=>null]);
+            $this->commissions->reverseIssue($issue->fresh(),$userId);
         });
     }
 
