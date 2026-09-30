@@ -91,7 +91,7 @@ final class InventoryService
     {
         DB::transaction(function () use ($issue,$userId): void {
             $issue=InventoryIssue::query()->lockForUpdate()->findOrFail($issue->getKey());
-            if ($issue->status !== InventoryIssue::DRAFT) throw ValidationException::withMessages(['status'=>'Chỉ phiếu nháp mới được ghi sổ.']);
+            if (! in_array($issue->status,[InventoryIssue::DRAFT,InventoryIssue::APPROVED],true)) throw ValidationException::withMessages(['status'=>'Chỉ phiếu nháp hoặc đơn đã duyệt mới được ghi sổ.']);
             $this->assertDocumentDateAfterOpeningCutoff($issue->warehouse_id,$issue->issue_date,'Ngày phiếu xuất');
             $issue->load('items');
             if ($issue->items->isEmpty()) throw ValidationException::withMessages(['items'=>'Phiếu xuất phải có ít nhất một dòng.']);
@@ -129,7 +129,7 @@ final class InventoryService
                     'source_type'=>InventoryIssue::class,'source_id'=>$issue->getKey(),'created_by'=>$userId,'notes'=>"Hoàn tác ghi sổ {$issue->number}",
                 ]);
             }
-            $issue->update(['status'=>InventoryIssue::DRAFT,'posted_by'=>null,'posted_at'=>null]);
+            $issue->update(['status'=>$issue->approved_at ? InventoryIssue::APPROVED : InventoryIssue::DRAFT,'posted_by'=>null,'posted_at'=>null]);
         });
     }
 
