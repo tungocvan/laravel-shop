@@ -80,7 +80,14 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
         $this->assertStringContainsString("((int)(\$issue?->price_list_id ?? 0)===(int)\$pl->id)", $view);
         $this->assertStringContainsString("!eligible||q<=0", $view);
         $this->assertStringContainsString('Sản phẩm theo bảng giá', $view);
-        $this->assertStringContainsString('Sản phẩm trúng thầu được phân công', $view);
+        $this->assertStringContainsString('Xuất bán hàng thầu', $view);
+        $this->assertStringContainsString('Chủ đầu tư *', $view);
+        $this->assertStringContainsString('Khách hàng / Bệnh viện *', $view);
+        $this->assertStringContainsString('Sản phẩm trúng thầu', $view);
+        $this->assertStringContainsString('id="bid-investor"', $view);
+        $this->assertStringContainsString('id="bid-partner"', $view);
+        $this->assertStringContainsString('data-investor=', $view);
+        $this->assertStringContainsString('hydrateBidContext', $view);
         $this->assertStringContainsString('Lưu nháp', $view);
         $this->assertStringContainsString('order-summary', $view);
         $this->assertStringContainsString('lg:grid-cols-[360px_minmax(0,1fr)]', $view);
