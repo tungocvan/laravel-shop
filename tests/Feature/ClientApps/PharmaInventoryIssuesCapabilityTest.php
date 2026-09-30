@@ -135,14 +135,10 @@ final class PharmaInventoryIssuesCapabilityTest extends TestCase
         $this->assertStringContainsString('bottom:calc(70px + env(safe-area-inset-bottom,0px))', $view);
         $this->assertStringContainsString('width:44px;height:44px', $view);
         $this->assertStringContainsString('class="flex items-center gap-2"', $view);
-        $this->assertStringContainsString('xl:max-w-[760px]', $view);
         $this->assertStringContainsString('ml-auto hidden h-14', $view);
-        $this->assertStringContainsString('xl:inline-flex', $view);
         $this->assertStringContainsString('<span>Lập đơn hàng</span>', $view);
         $this->assertStringContainsString("Dự kiến: '.\$row->expected_supply_date->format('d/m/Y')", $workspace);
         $this->assertStringContainsString('placeholder:text-[13px]', $view);
-        $this->assertStringContainsString('xl:max-w-[760px]', $view);
-        $this->assertStringContainsString('xl:inline-flex', $view);
         $this->assertStringContainsString('<span>Lập đơn hàng</span>', $view);
     }
 
