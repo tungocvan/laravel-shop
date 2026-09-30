@@ -163,7 +163,7 @@ final class UserOrderAuthoringService
 
     public function submit(int $userId, InventoryIssue $issue): InventoryIssue
     {
-        $this->guardEditable($userId, $issue);
+        $this->guardSubmittable($userId, $issue);
         if (! $issue->items()->exists()) {
             throw ValidationException::withMessages(['order' => 'Đơn hàng chưa có sản phẩm để gửi duyệt.']);
         }
@@ -230,6 +230,14 @@ final class UserOrderAuthoringService
                     'quantity' => $quantities[$row->allocation_id], 'unit_price' => $row->unit_price];
             })->values()->all(),
         ];
+    }
+
+    private function guardSubmittable(int $userId, InventoryIssue $issue): void
+    {
+        if ($issue->status !== InventoryIssue::DRAFT
+            || ! in_array($userId, [(int) $issue->created_by, (int) $issue->manager_user_id], true)) {
+            throw ValidationException::withMessages(['order' => 'Chỉ người tạo hoặc User phụ trách mới được gửi duyệt đơn đang ở trạng thái Nháp.']);
+        }
     }
 
     private function guardEditable(int $userId, InventoryIssue $issue): void
