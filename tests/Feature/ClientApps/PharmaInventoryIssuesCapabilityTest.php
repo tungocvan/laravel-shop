@@ -23,6 +23,9 @@ final class PharmaInventoryIssuesCapabilityTest extends TestCase
         $this->assertStringContainsString('findVisible((int) $user->id, $issue)', $controller);
         $this->assertStringContainsString('managerUserId: $managerUserId', $controller);
         $this->assertStringContainsString("managerOptions((int) \$user->id, true)", $controller);
+        $this->assertStringContainsString("if (\$includeApprovalScope) {", $workspace);
+        $this->assertStringContainsString("return \$query;", $workspace);
+        $this->assertStringNotContainsString("orWhereIn('status', [InventoryIssue::PENDING_APPROVAL, InventoryIssue::APPROVED, InventoryIssue::REJECTED])", $workspace);
         $this->assertStringContainsString("->when(\$managerUserId, fn (Builder \$query) => \$query->where('manager_user_id', \$managerUserId))", $workspace);
         $this->assertStringContainsString('abort_if($visibleIssue === null, 404)', $controller);
         $this->assertStringNotContainsString('InventoryIssue::query()', $controller);
