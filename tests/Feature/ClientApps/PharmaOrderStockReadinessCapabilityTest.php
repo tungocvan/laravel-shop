@@ -40,7 +40,7 @@ final class PharmaOrderStockReadinessCapabilityTest extends TestCase
         $this->assertStringContainsString('Đủ hàng', $view);
         $this->assertStringContainsString('Không đủ hàng', $view);
         $this->assertStringContainsString('Lô khả dụng', $view);
-        $this->assertStringContainsString('Chọn lô thực xuất ở bước xử lý kho', $view);
+        $this->assertStringContainsString('Chọn lô thực xuất và kiểm tra đủ tồn ở bước xử lý kho/Ghi sổ', $view);
         $this->assertStringNotContainsString('name="batches', $view);
     }
 }
