@@ -16,7 +16,7 @@
 <div class="min-w-0 max-w-full overflow-x-hidden min-h-[calc(100vh-5rem)] bg-slate-50 pb-24 lg:pb-8" data-inventory-issues-workspace>
     <header class="sticky top-0 z-30 -mx-4 border-b border-slate-200 bg-white/95 px-4 py-4 backdrop-blur sm:-mx-6 sm:px-6 lg:static lg:mx-0 lg:rounded-3xl lg:border lg:px-6">
         <div class="relative flex items-center justify-center">
-            <a href="{{ route('client.pharma.inventory') }}" class="absolute left-0 inline-flex h-11 w-11 items-center justify-center rounded-full text-2xl text-slate-900 transition active:scale-95" aria-label="Quay lại">←</a>
+            <a href="{{ route('client.pharma.dashboard') }}" class="absolute left-0 inline-flex h-11 w-11 items-center justify-center rounded-full text-2xl text-slate-900 transition active:scale-95" aria-label="Quay lại">←</a>
             <h1 class="px-12 text-center text-xl font-black tracking-tight text-slate-950 sm:text-2xl">Đơn hàng / Phiếu xuất</h1>
         </div>
     </header>
