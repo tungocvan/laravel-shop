@@ -681,6 +681,13 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("withSum('items as total_quantity','quantity')", $controller);
         $this->assertStringContainsString("request->input('after_save')==='post'", $controller);
         $this->assertStringContainsString("postIssue(\$issue->fresh('items')", $controller);
+        $this->assertStringContainsString("\$issue->load(['items','deferredSupplies'])", $service);
+        $this->assertStringContainsString("\$deferredMedicineIds=\$issue->deferredSupplies->pluck('medicine_id')", $service);
+        $this->assertStringContainsString("\$postedItems=\$issue->items->reject", $service);
+        $this->assertStringContainsString('toàn bộ mặt hàng đang chờ cung ứng', $service);
+        $this->assertStringContainsString("foreach (\$postedItems as \$item)", $service);
+        $this->assertStringContainsString("foreach (\$postedItems as \$item) \$this->move", $service);
+        $this->assertStringContainsString("snapshotPostedIssue(\$issue->fresh(['items','deferredSupplies'])", $service);
         $this->assertStringContainsString('id="save-post-issue"', $editView);
         $this->assertStringContainsString("->merge(\$issue->items->pluck('medicine'))", $editView);
         $this->assertStringContainsString("'items.*.balance_id'=>'nullable|exists:pharma_inventory_balances,id'", $controller);
