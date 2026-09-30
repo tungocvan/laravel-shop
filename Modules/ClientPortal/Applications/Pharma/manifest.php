@@ -45,12 +45,19 @@ return [
                 'approve' => ['name' => 'Phê duyệt bảng giá', 'permission' => 'client.pharma.price-lists.approve', 'sort_order' => 30],
             ],
         ],
+        'orders' => [
+            'name' => 'Đơn hàng',
+            'route' => 'client.pharma.orders',
+            'permission' => 'client.pharma.orders',
+            'icon' => 'clipboard-document-list',
+            'sort_order' => 60,
+        ],
         'inventory' => [
             'name' => 'Tồn kho',
             'route' => 'client.pharma.inventory',
             'permission' => 'client.pharma.inventory.view',
             'icon' => 'archive-box',
-            'sort_order' => 60,
+            'sort_order' => 70,
         ],
     ],
     'features' => [
@@ -136,6 +143,17 @@ return [
             ],
             'sort_order' => 50,
         ],
+        'orders' => [
+            'name' => 'Đơn hàng',
+            'description' => 'Lập và theo dõi đơn hàng theo bảng giá hoặc kết quả trúng thầu trong phạm vi User.',
+            'eyebrow' => 'Orders',
+            'page_title' => 'Đơn hàng',
+            'page_description' => 'Theo dõi đơn hàng, nguồn giá và tiến trình xử lý thuộc phạm vi được giao.',
+            'route' => 'client.pharma.orders',
+            'permission' => 'client.pharma.orders',
+            'icon' => 'clipboard-document-list',
+            'sort_order' => 60,
+        ],
         'inventory' => [
             'name' => 'Tồn kho',
             'description' => 'Theo dõi tồn kho, lô và hạn dùng của sản phẩm trong phạm vi được cấp.',
@@ -145,7 +163,7 @@ return [
             'route' => 'client.pharma.inventory',
             'permission' => 'client.pharma.inventory.view',
             'icon' => 'archive-box',
-            'sort_order' => 60,
+            'sort_order' => 70,
             'actions' => [
                 'costs' => [
                     'name' => 'Xem giá vốn và giá trị tồn',
@@ -157,11 +175,6 @@ return [
                     'permission' => 'client.pharma.inventory.receipts',
                     'sort_order' => 10,
                 ],
-                'issues' => [
-                    'name' => 'Phiếu xuất',
-                    'permission' => 'client.pharma.inventory.issues',
-                    'sort_order' => 20,
-                ],
             ],
         ],
         'commissions' => [
@@ -169,7 +182,7 @@ return [
             'description' => 'Theo dõi hoa hồng thuộc phạm vi của User.',
             'permission' => 'client.pharma.commissions.view',
             'icon' => 'banknotes',
-            'sort_order' => 70,
+            'sort_order' => 80,
         ],
     ],
 ];

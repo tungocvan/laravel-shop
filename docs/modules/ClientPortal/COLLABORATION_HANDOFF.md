@@ -282,6 +282,26 @@ Recommended sequence remains:
 
 # ClientPortal Module — Collaboration Handoff
 
+
+## Checkpoint — Pharma PWA Inventory Issue/Order read workspace — 2026-09-30
+
+- Branch: `feat/clientportal-pharma-inventory-issues-read`, based on `main` at `cd512c387d8855993100546343c0fb4413fcc801` (PR #238).
+- Scope is MR1 only: read-only User-scoped list + detail for Inventory Issue/Order. No create/update/submit/approve/post/revert mutation and no migration.
+- Canonical ownership stays in `Modules/Pharma` through `UserInventoryIssueWorkspace`. ClientPortal only authenticates, authorizes, orchestrates and renders.
+- Visibility is server-side: an issue is visible only when the authenticated Web User is `manager_user_id` or `created_by`; direct detail access outside that scope returns 404.
+- PWA presentation is now an independent top-level `orders` capability, not nested under Inventory. Routes are `/apps/pharma/orders` and `/apps/pharma/orders/{issue}`, guarded by `client.pharma.orders`. Inventory remains a separate warehouse/stock capability.
+- List UI follows the approved mobile reference: centered header/back action, large search, separate filter button, bottom-sheet filter with reset/cancel/apply, status rail, empty state, touch-friendly cards, progressive `Xem thêm`; desktop switches to a wide table.
+- Filters: search by document/customer/hospital/investor, source (price list / bid award), current canonical status and issue-date range.
+- Detail is read-only and shows source, recipient, manager, price list when applicable, product lines, quantity, unit price, lot/expiry when present, total and notes.
+- `Đơn hàng` appears directly in the Pharma capability/navigation surface. The Inventory screen no longer exposes a nested order/issue entry.
+- Focused test added: `tests/Feature/ClientApps/PharmaInventoryIssuesCapabilityTest.php`.
+- UI acceptance reported PASS for the independent Orders capability, mobile list/detail, responsive overflow containment, quick `Xóa bộ lọc`, and centered desktop filter modal.
+- MR1 intentionally remains read-only. Draft orders do not expose approve/post actions. The next mutation sequence is explicitly deferred: Draft -> Submit for approval -> Pending approval -> Approve/Reject -> Warehouse issue/post. Sales/order permissions must remain separate from warehouse Inventory permissions.
+- Required operator checkpoint: `git pull --ff-only`, run the focused Inventory Issues capability test first. Stop on FAIL/500. After PASS run the full `tests/Feature/ClientApps` regression. Do not add mutation to MR1.
+- Validation accepted: focused Orders capability tests PASS; full `tests/Feature/ClientApps` regression PASS (user-reported); real mobile/PWA Orders list/detail UI PASS. Desktop filter modal was also corrected to the centered PWA convention.
+- Final branch gate: compare against `main`, confirm no migrations and no order mutations were introduced, then create the MR1 PR. MR2 starts only after MR1 merge.
+- Status: **MR1 VALIDATED — CODE TEST PASS — UI PASS — READY FOR PR GATE.**
+
 ## Current delivery — ClientPortal Feature Page Content & PWA AI Workflow
 
 - Last updated: 2026-09-29

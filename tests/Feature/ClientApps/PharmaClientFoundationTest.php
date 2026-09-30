@@ -23,13 +23,18 @@ class PharmaClientFoundationTest extends TestCase
         $this->assertSame('client.pharma.access', $application['permission']);
         $this->assertSame(['mode' => 'workspace'], $application['layout']);
         $this->assertSame(
-            ['overview', 'products', 'price-lists', 'bid-awards', 'commercial', 'inventory', 'commissions'],
+            ['overview', 'products', 'price-lists', 'bid-awards', 'commercial', 'orders', 'inventory', 'commissions'],
             collect($application['features'])->pluck('key')->all(),
         );
         $commercial = collect($application['features'])->firstWhere('key', 'commercial');
         $this->assertNotNull($commercial);
         $this->assertSame('client.pharma.commercial', $commercial['route']);
         $this->assertTrue(Route::has($commercial['route']));
+        $orders = collect($application['features'])->firstWhere('key', 'orders');
+        $this->assertNotNull($orders);
+        $this->assertSame('client.pharma.orders', $orders['route']);
+        $this->assertSame('client.pharma.orders', $orders['permission']);
+        $this->assertTrue(Route::has($orders['route']));
     }
 
     public function test_pharma_application_permissions_are_managed_by_client_apps_admin(): void
@@ -48,9 +53,9 @@ class PharmaClientFoundationTest extends TestCase
             'client.pharma.bid-awards.view',
             'client.pharma.commercial.view',
             'client.pharma.commercial.view-team',
+            'client.pharma.orders',
             'client.pharma.inventory.view',
             'client.pharma.inventory.receipts',
-            'client.pharma.inventory.issues',
             'client.pharma.commissions.view',
         ] as $permission) {
             $this->assertTrue($definitions->contains('name', $permission), $permission);
