@@ -14,9 +14,15 @@
     $balanceOptions=$availableBalances->map(function ($balance) {
         return ['id'=>$balance->id,'medicine_id'=>$balance->medicine_id,'batch'=>$balance->batch_number,'expiry'=>$balance->expiry_date?->format('Y-m-d'),'quantity'=>(float)$balance->quantity_on_hand];
     })->values();
-    $medicineOptions=$availableBalances->pluck('medicine')->unique('id')->values()->map(function ($medicine) {
-        return ['id'=>$medicine->id,'text'=>$medicine->medicine_code.' — '.$medicine->name];
-    })->values();
+    $medicineOptions=$availableBalances->pluck('medicine')
+        ->merge($issue->items->pluck('medicine'))
+        ->filter()
+        ->unique('id')
+        ->sortBy('name')
+        ->values()
+        ->map(function ($medicine) {
+            return ['id'=>$medicine->id,'text'=>$medicine->medicine_code.' — '.$medicine->name];
+        })->values();
 @endphp
 <div class="w-full space-y-6">
     <div class="flex flex-wrap items-end justify-between gap-4">
