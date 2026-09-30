@@ -91,7 +91,7 @@
     @endif
 
     <div id="issue-filter-backdrop" class="fixed inset-0 z-40 hidden bg-slate-950/55"></div>
-    <aside id="issue-filter-sheet" class="fixed inset-x-0 bottom-0 z-50 hidden rounded-t-[2rem] bg-white shadow-2xl lg:left-auto lg:right-6 lg:bottom-6 lg:w-[30rem] lg:rounded-[2rem]" aria-hidden="true">
+    <aside id="issue-filter-sheet" class="fixed inset-x-0 bottom-0 z-50 hidden rounded-t-[2rem] bg-white shadow-2xl lg:inset-0 lg:m-auto lg:h-fit lg:max-h-[calc(100vh-3rem)] lg:w-[34rem] lg:overflow-y-auto lg:rounded-[2rem]" aria-hidden="true">
         <div class="mx-auto mt-2 h-1.5 w-16 rounded-full bg-slate-300"></div>
         <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
             <a href="{{ route('client.pharma.inventory.issues', array_filter(['q'=>$filters['q']])) }}" class="text-sm font-bold text-rose-600">Xóa lọc</a>
