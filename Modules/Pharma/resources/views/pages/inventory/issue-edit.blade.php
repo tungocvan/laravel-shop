@@ -5,7 +5,7 @@
 @php
     $selectedPriceList=$issue->priceList;
     $selectedManagerId=$issue->manager_user_id ?: ($selectedPriceList?->manager_user_id ?? auth()->id());
-    $initialItems=$issue->items->map(function ($item) {
+    $initialItems=$issue->items->map(function ($item) use ($issue) {
         return [
             'medicine_id'=>$item->medicine_id,'batch_number'=>$item->batch_number,'expiry_date'=>$item->expiry_date?->format('Y-m-d'),
             'quantity'=>(float)$item->quantity,'unit_price'=>(float)$item->unit_price,
