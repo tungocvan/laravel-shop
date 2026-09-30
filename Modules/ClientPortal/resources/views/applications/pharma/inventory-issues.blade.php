@@ -29,7 +29,7 @@
             <label class="relative min-w-0 flex-1">
                 <span class="sr-only">Tìm kiếm đơn hàng</span>
                 <span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xl text-slate-500">⌕</span>
-                <input id="issue-search-input" name="q" value="{{ $filters['q'] }}" placeholder="Tìm đơn hàng / khách hàng / bệnh viện" class="h-14 w-full rounded-2xl border border-slate-300 bg-white pl-12 pr-11 text-[15px] font-medium text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200">
+                <input id="issue-search-input" name="q" value="{{ $filters['q'] }}" placeholder="Tìm đơn hàng / khách hàng / bệnh viện" class="h-14 w-full rounded-2xl border border-slate-300 bg-white pl-12 pr-11 text-[15px] font-medium text-slate-900 placeholder:text-[13px] placeholder:font-normal outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200">
                 @if($filters['q'])
                     <a href="{{ route('client.pharma.orders', array_filter(['status'=>$filters['status'],'source'=>$filters['source'],'from_date'=>$filters['from_date'],'to_date'=>$filters['to_date'],'manager_user_id'=>$filters['manager_user_id']])) }}" class="absolute right-3 top-1/2 -translate-y-1/2 rounded-full px-2 py-1 text-xl text-slate-500" aria-label="Xóa từ khóa tìm kiếm">×</a>
                 @endif
@@ -139,11 +139,11 @@
         </form>
     </aside>
     @if($canCreateOrders)
-        <a href="{{ route('client.pharma.orders.create') }}" data-create-order class="fixed bottom-24 right-5 z-30 inline-flex h-14 w-14 items-center justify-center rounded-full bg-slate-950 text-3xl font-light text-white shadow-xl transition active:scale-95 lg:bottom-8 lg:right-8" aria-label="Thêm mới đơn hàng">+</a>
+        <a href="{{ route('client.pharma.orders.create') }}" data-create-order class="fixed bottom-28 right-5 z-30 inline-flex h-12 w-12 items-center justify-center rounded-full bg-slate-950 text-2xl font-light leading-none text-white shadow-lg transition active:scale-95 lg:bottom-10 lg:right-8" aria-label="Thêm mới đơn hàng">+</a>
     @endif
 </div>
 
-<dialog id="shortage-note-dialog" class="m-auto w-[calc(100%-24px)] max-w-[520px] rounded-[28px] border-0 p-0 shadow-2xl backdrop:bg-slate-950/55">
+<dialog id="shortage-note-dialog" class="fixed inset-0 m-auto max-h-[calc(100dvh-32px)] w-[calc(100%-32px)] max-w-[480px] rounded-[26px] border-0 p-0 shadow-2xl backdrop:bg-slate-950/55">
     <div class="p-5"><div class="flex items-center justify-between gap-3"><div><p class="text-xs font-black uppercase tracking-wide text-amber-700">Thiếu hàng</p><h2 class="mt-1 text-lg font-black text-slate-950">Ghi chú cung ứng</h2></div><button type="button" data-shortage-close class="h-10 w-10 rounded-full bg-slate-100 text-xl text-slate-700" aria-label="Đóng">×</button></div><p id="shortage-note-content" class="mt-4 whitespace-pre-line rounded-2xl bg-amber-50 p-4 text-sm font-medium leading-6 text-amber-950"></p></div>
 </dialog>
 <script>
