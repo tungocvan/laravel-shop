@@ -1309,7 +1309,7 @@ final class PharmaApplicationController extends Controller
 
         $canCreateForUser = $registry->userCan($user, 'client.pharma.orders.create-for-user');
         $canApproveOrder = $registry->userCan($user, 'client.pharma.orders.approve');
-        $visibleIssue = $workspace->findVisible((int) $user->id, $issue);
+        $visibleIssue = $workspace->findVisible((int) $user->id, $issue, $canApproveOrder);
         if ($visibleIssue === null && $canCreateForUser) $visibleIssue = $workspace->findByCreator((int) $user->id, $issue);
         if ($visibleIssue === null && $canApproveOrder) $visibleIssue = $workspace->findPendingForApproval($issue) ?? $workspace->findApprovedForUndo($issue);
         abort_if($visibleIssue === null, 404);
