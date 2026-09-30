@@ -8,7 +8,7 @@
 @section('content')
 @php
     $money = fn ($value) => number_format((float) $value, 0, ',', '.').' đ';
-    $statusLabels = ['draft'=>'Nháp','pending_approval'=>'Chờ duyệt','posted'=>'Đã xuất','cancelled'=>'Đã hủy'];
+    $statusLabels = ['draft'=>'Nháp','pending_approval'=>'Chờ duyệt','approved'=>'Đã duyệt','rejected'=>'Từ chối','posted'=>'Đã xuất','cancelled'=>'Đã hủy'];
     $source = ($issue->issue_source ?? 'normal') === 'bid' ? 'Theo kết quả trúng thầu' : 'Theo bảng giá';
     $total = $issue->items->sum(fn($item)=>(float)$item->quantity*(float)$item->unit_price);
 @endphp
@@ -55,12 +55,32 @@
         @if($issue->notes)
             <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-black uppercase tracking-wide text-slate-500">Ghi chú</p><p class="mt-2 whitespace-pre-line text-sm leading-6 text-slate-700">{{ $issue->notes }}</p></section>
         @endif
+        @if($issue->status === 'rejected' && $issue->rejection_reason)
+            <section class="rounded-3xl border border-rose-200 bg-rose-50 p-5"><p class="text-xs font-black uppercase tracking-wide text-rose-700">Lý do từ chối</p><p class="mt-2 whitespace-pre-line text-sm leading-6 text-rose-900">{{ $issue->rejection_reason }}</p></section>
+        @endif
     </main>
-    @if($canEditOrder || $canSubmitOrder)
-        <div class="sticky bottom-0 z-20 mx-auto mt-4 grid max-w-4xl {{ $canEditOrder && $canSubmitOrder ? 'grid-cols-2' : 'grid-cols-1' }} gap-3 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur lg:rounded-2xl lg:border">
-            @if($canEditOrder)<a href="{{ route('client.pharma.orders.edit',$issue) }}" class="flex h-13 items-center justify-center rounded-2xl border border-slate-300 font-black text-slate-700">Sửa đơn</a>@endif
-            @if($canSubmitOrder)<form method="POST" action="{{ route('client.pharma.orders.submit',$issue) }}">@csrf<button class="h-13 w-full rounded-2xl bg-slate-950 font-black text-white">Gửi duyệt</button></form>@endif
+    @if($canEditOrder || $canSubmitOrder || $canApproveOrder)
+        <div class="sticky bottom-0 z-20 mx-auto mt-4 max-w-4xl border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur lg:rounded-2xl lg:border">
+            @if($canApproveOrder)
+                <div class="grid grid-cols-2 gap-3">
+                    <button type="button" id="order-reject-toggle" class="h-13 rounded-2xl border border-rose-300 bg-white font-black text-rose-700">Từ chối</button>
+                    <form method="POST" action="{{ route('client.pharma.orders.approve',$issue) }}">@csrf<button class="h-13 w-full rounded-2xl bg-slate-950 font-black text-white">Phê duyệt</button></form>
+                </div>
+                <form id="order-reject-form" method="POST" action="{{ route('client.pharma.orders.reject',$issue) }}" class="mt-3 hidden rounded-2xl border border-rose-200 bg-rose-50 p-3">
+                    @csrf
+                    <label class="block"><span class="mb-2 block text-sm font-black text-rose-900">Lý do từ chối *</span><textarea name="rejection_reason" rows="3" required maxlength="1000" class="w-full rounded-xl border border-rose-200 bg-white px-3 py-2 text-sm" placeholder="Nhập lý do để User biết cần điều chỉnh gì...">{{ old('rejection_reason') }}</textarea></label>
+                    <button class="mt-3 h-11 w-full rounded-xl bg-rose-700 font-black text-white">Xác nhận từ chối</button>
+                </form>
+            @else
+                <div class="grid {{ $canEditOrder && $canSubmitOrder ? 'grid-cols-2' : 'grid-cols-1' }} gap-3">
+                    @if($canEditOrder)<a href="{{ route('client.pharma.orders.edit',$issue) }}" class="flex h-13 items-center justify-center rounded-2xl border border-slate-300 font-black text-slate-700">Sửa đơn</a>@endif
+                    @if($canSubmitOrder)<form method="POST" action="{{ route('client.pharma.orders.submit',$issue) }}">@csrf<button class="h-13 w-full rounded-2xl bg-slate-950 font-black text-white">Gửi duyệt</button></form>@endif
+                </div>
+            @endif
         </div>
+    @endif
+    @if($canApproveOrder)
+        <script>document.getElementById('order-reject-toggle')?.addEventListener('click',()=>document.getElementById('order-reject-form')?.classList.toggle('hidden'));</script>
     @endif
 </div>
 @endsection
