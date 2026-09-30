@@ -61,7 +61,9 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
         $this->assertStringContainsString("el.disabled=isBid", $view);
         $this->assertStringContainsString("el.disabled=!isBid", $view);
         $this->assertStringNotContainsString('name="unit_price', $view);
-        $this->assertStringNotContainsString('name="price', $view);
+        $this->assertStringNotContainsString('name="company_sale_price', $view);
+        $this->assertStringNotContainsString('name="winning_price', $view);
+        $this->assertStringContainsString('name="price_list_id"', $view);
         $this->assertStringContainsString('data-create-order', $list);
         $this->assertStringContainsString('Chờ duyệt', $list);
         $this->assertStringContainsString('Sửa đơn', $detail);
