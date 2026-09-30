@@ -37,8 +37,8 @@ final class PharmaOrderApprovalCapabilityTest extends TestCase
         $this->assertStringContainsString('includePendingApproval', $workspace);
         $this->assertStringContainsString('findPendingForApproval', $workspace);
         $this->assertStringContainsString("client.pharma.orders.approve", $controller);
-        $this->assertStringContainsString("'canApproveOrder' => $canApproveOrder", $controller);
-        $this->assertStringContainsString("&& $visibleIssue->status === \\Modules\\Pharma\\Models\\InventoryIssue::PENDING_APPROVAL", $controller);
+        $this->assertStringContainsString("'canApproveOrder' => \$canApproveOrder", $controller);
+        $this->assertStringContainsString("&& \$visibleIssue->status === \\Modules\\Pharma\\Models\\InventoryIssue::PENDING_APPROVAL", $controller);
         $this->assertStringContainsString('approveOrder', $controller);
         $this->assertStringContainsString('rejectOrder', $controller);
         $this->assertStringContainsString('Phê duyệt', $view);
