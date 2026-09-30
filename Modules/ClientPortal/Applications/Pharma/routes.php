@@ -67,6 +67,8 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->whereNumber('issue')->middleware('client.feature:pharma,orders')->name('orders.edit');
         Route::put('/orders/{issue}', [PharmaApplicationController::class, 'updateOrder'])
             ->whereNumber('issue')->middleware('client.feature:pharma,orders')->name('orders.update');
+        Route::delete('/orders/{issue}', [PharmaApplicationController::class, 'deleteOrder'])
+            ->whereNumber('issue')->middleware('client.feature:pharma,orders')->name('orders.delete');
         Route::post('/orders/{issue}/submit', [PharmaApplicationController::class, 'submitOrder'])
             ->whereNumber('issue')->middleware('client.feature:pharma,orders')->name('orders.submit');
         Route::post('/orders/{issue}/supply-notes', [PharmaApplicationController::class, 'saveOrderSupplyNotes'])
