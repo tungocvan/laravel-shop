@@ -66,6 +66,26 @@ final class PharmaOrderApprovalCapabilityTest extends TestCase
         $this->assertStringContainsString('ít nhất 1 sản phẩm đủ tồn', $view);
     }
 
+    public function test_admin_inventory_can_process_pending_pwa_order_without_posting_stock(): void
+    {
+        $root = base_path();
+        $routes = file_get_contents($root.'/Modules/Pharma/routes/web.php');
+        $controller = file_get_contents($root.'/Modules/Pharma/Http/Controllers/InventoryController.php');
+        $list = file_get_contents($root.'/Modules/Pharma/resources/views/pages/inventory/documents.blade.php');
+        $detail = file_get_contents($root.'/Modules/Pharma/resources/views/pages/inventory/issue-show.blade.php');
+
+        $this->assertStringContainsString("issues/{issue}/approve-order", $routes);
+        $this->assertStringContainsString("issues/{issue}/reject-order", $routes);
+        $this->assertStringContainsString("can:approve_pharma_inventory_issue", $routes);
+        $this->assertStringContainsString('approveUserOrder', $controller);
+        $this->assertStringContainsString('rejectUserOrder', $controller);
+        $this->assertStringContainsString('UserOrderApprovalService $approval', $controller);
+        $this->assertStringContainsString('Xử lý phê duyệt', $list);
+        $this->assertStringContainsString('Phê duyệt đơn', $detail);
+        $this->assertStringContainsString('Từ chối đơn hàng', $detail);
+        $this->assertStringContainsString('Bước này chưa chọn lô, chưa trừ tồn và chưa ghi nhận hoa hồng.', $detail);
+    }
+
     public function test_admin_inventory_reuses_canonical_posting_and_commission_flow_for_pwa_approved_orders(): void
     {
         $root = base_path();
