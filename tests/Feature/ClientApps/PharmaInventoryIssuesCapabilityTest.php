@@ -121,9 +121,9 @@ final class PharmaInventoryIssuesCapabilityTest extends TestCase
         $this->assertStringContainsString('shortage-note-dialog', $view);
         $this->assertStringContainsString('Ghi chú cung ứng', $view);
         $this->assertStringContainsString('order-create-action lg:hidden', $view);
-        $this->assertStringContainsString('bottom:calc(70px + env(safe-area-inset-bottom,0px))', $view);
+        $this->assertStringContainsString('bottom:calc(58px + env(safe-area-inset-bottom,0px))', $view);
         $this->assertStringContainsString('class="flex items-center gap-2"', $view);
-        $this->assertStringContainsString('lg:max-w-[720px]', $view);
+        $this->assertStringContainsString('lg:max-w-[620px]', $view);
         $this->assertStringContainsString('ml-auto hidden h-14', $view);
         $this->assertStringContainsString('lg:inline-flex', $view);
         $this->assertStringContainsString('<span>Lập đơn hàng</span>', $view);
@@ -132,7 +132,7 @@ final class PharmaInventoryIssuesCapabilityTest extends TestCase
         $this->assertStringContainsString("shortageDialog.style.inset='50% auto auto 50%'", $view);
         $this->assertStringContainsString("shortageDialog.style.transform='translate(-50%, -50%)'", $view);
         $this->assertStringContainsString('max-w-[520px]', $view);
-        $this->assertStringContainsString('bottom:calc(70px + env(safe-area-inset-bottom,0px))', $view);
+        $this->assertStringContainsString('bottom:calc(58px + env(safe-area-inset-bottom,0px))', $view);
         $this->assertStringContainsString('width:44px;height:44px', $view);
         $this->assertStringContainsString('class="flex items-center gap-2"', $view);
         $this->assertStringContainsString('ml-auto hidden h-14', $view);
