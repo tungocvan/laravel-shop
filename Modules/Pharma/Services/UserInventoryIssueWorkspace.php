@@ -56,7 +56,8 @@ final class UserInventoryIssueWorkspace
         $paginator->getCollection()->each(function(InventoryIssue $issue)use($postedMedicineIds): void {
             $issue->shortage_note=$issue->deferredSupplies->map(fn($row)=>($row->medicine?->name ?? ('MED-'.$row->medicine_id))
                 .' · '.rtrim(rtrim(number_format((float)$row->quantity,3,'.',''),'0'),'.').($row->medicine?->unit ? ' '.$row->medicine->unit : '')
-                .' · '.($row->note ?: 'Chờ cung ứng'))->join('; ');
+                .' · '.($row->note ?: 'Chờ cung ứng')
+                .($row->expected_supply_date ? ' · Dự kiến: '.$row->expected_supply_date->format('d/m/Y') : ''))->join('; ');
             if($issue->status!==InventoryIssue::POSTED) return;
             $medicineIds=$postedMedicineIds->get($issue->id,collect());
             $postedItems=$issue->items->filter(fn($item)=>$medicineIds->contains((int)$item->medicine_id));
