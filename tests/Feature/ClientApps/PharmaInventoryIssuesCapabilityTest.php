@@ -39,7 +39,7 @@ final class PharmaInventoryIssuesCapabilityTest extends TestCase
 
         $this->assertStringContainsString("Route::post('/orders'", $routes);
         $this->assertStringContainsString("Route::put('/orders/{issue}'", $routes);
-        $this->assertStringNotContainsString("Route::delete('/orders", $routes);
+        $this->assertStringContainsString("Route::delete('/orders/{issue}'", $routes);
         $this->assertStringContainsString('Đơn hàng', $view);
         $this->assertStringContainsString("route('client.pharma.dashboard')", $view);
         $this->assertStringNotContainsString("route('client.pharma.inventory')", $view);
