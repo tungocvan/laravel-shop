@@ -1223,11 +1223,10 @@ final class PharmaApplicationController extends Controller
         $user = $request->user('web'); abort_if($user === null, 401);
         abort_unless($registry->userCan($user, 'client.pharma.orders.approve'), 403);
 
-        $visible = $workspace->findVisible((int) $user->id, $issue)
-            ?? $workspace->findByCreator((int) $user->id, $issue);
-        if ($visible === null && in_array($request->input('status'), ['draft', 'rejected'], true)) {
-            $visible = \Modules\Pharma\Models\InventoryIssue::query()->find($issue);
-        }
+        $visible = \Modules\Pharma\Models\InventoryIssue::query()
+            ->whereIn('status', [\Modules\Pharma\Models\InventoryIssue::DRAFT, \Modules\Pharma\Models\InventoryIssue::REJECTED])
+            ->whereNull('posted_at')
+            ->find($issue);
         abort_if($visible === null, 404);
         $approval->deleteNonStockOrder((int) $user->id, $visible);
 
