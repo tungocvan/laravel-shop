@@ -1142,7 +1142,9 @@ final class PharmaApplicationController extends Controller
         $user = $request->user('web'); abort_if($user === null, 401);
         $canCreateForUser = $registry->userCan($user, 'client.pharma.orders.create-for-user');
         abort_unless($registry->userCan($user, 'client.pharma.orders.create') || $canCreateForUser, 403);
-        $visible = $workspace->findVisible((int) $user->id, $issue); abort_if($visible === null, 404);
+        $visible = $workspace->findVisible((int) $user->id, $issue);
+        if ($visible === null && $canCreateForUser) $visible = $workspace->findByCreator((int) $user->id, $issue);
+        abort_if($visible === null, 404);
         abort_unless((int) $visible->created_by === (int) $user->id && $visible->status === \Modules\Pharma\Models\InventoryIssue::DRAFT, 403);
         $date = $visible->issue_date->toDateString();
         $managerUserId = (int) ($visible->manager_user_id ?: $user->id);
@@ -1164,7 +1166,9 @@ final class PharmaApplicationController extends Controller
         $user = $request->user('web'); abort_if($user === null, 401);
         $canCreateForUser = $registry->userCan($user, 'client.pharma.orders.create-for-user');
         abort_unless($registry->userCan($user, 'client.pharma.orders.create') || $canCreateForUser, 403);
-        $visible = $workspace->findVisible((int) $user->id, $issue); abort_if($visible === null, 404);
+        $visible = $workspace->findVisible((int) $user->id, $issue);
+        if ($visible === null && $canCreateForUser) $visible = $workspace->findByCreator((int) $user->id, $issue);
+        abort_if($visible === null, 404);
         $data = $this->validateOrderAuthoring($request);
         $managerUserId = $canCreateForUser ? (int) ($data['manager_user_id'] ?? $visible->manager_user_id) : (int) $user->id;
         abort_if($managerUserId <= 0 || ($canCreateForUser && ! $authoring->orderManagers()->contains('id', $managerUserId)), 403);
