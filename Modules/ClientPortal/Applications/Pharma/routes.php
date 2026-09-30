@@ -60,15 +60,15 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->middleware('client.feature:pharma,orders')
             ->name('orders');
         Route::get('/orders/create', [PharmaApplicationController::class, 'createOrder'])
-            ->middleware('client.feature:pharma,orders,create')->name('orders.create');
+            ->middleware('client.feature:pharma,orders')->name('orders.create');
         Route::post('/orders', [PharmaApplicationController::class, 'storeOrder'])
-            ->middleware('client.feature:pharma,orders,create')->name('orders.store');
+            ->middleware('client.feature:pharma,orders')->name('orders.store');
         Route::get('/orders/{issue}/edit', [PharmaApplicationController::class, 'editOrder'])
-            ->whereNumber('issue')->middleware('client.feature:pharma,orders,create')->name('orders.edit');
+            ->whereNumber('issue')->middleware('client.feature:pharma,orders')->name('orders.edit');
         Route::put('/orders/{issue}', [PharmaApplicationController::class, 'updateOrder'])
-            ->whereNumber('issue')->middleware('client.feature:pharma,orders,create')->name('orders.update');
+            ->whereNumber('issue')->middleware('client.feature:pharma,orders')->name('orders.update');
         Route::post('/orders/{issue}/submit', [PharmaApplicationController::class, 'submitOrder'])
-            ->whereNumber('issue')->middleware('client.feature:pharma,orders,submit')->name('orders.submit');
+            ->whereNumber('issue')->middleware('client.feature:pharma,orders')->name('orders.submit');
         Route::get('/orders/{issue}', [PharmaApplicationController::class, 'order'])
             ->whereNumber('issue')
             ->middleware('client.feature:pharma,orders')
