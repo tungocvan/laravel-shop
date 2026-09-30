@@ -36,7 +36,7 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
         $this->assertStringContainsString("->activeAt(\$date)", $service);
         $this->assertStringContainsString("->where('type', PriceList::TYPE_GLOBAL)", $service);
         $this->assertStringContainsString("->where('type', PriceList::TYPE_CUSTOMER)", $service);
-        $this->assertStringContainsString("->where('manager_user_id', $userId)", $service);
+        $this->assertStringContainsString("->where('manager_user_id', \$userId)", $service);
         $this->assertStringNotContainsString("->orWhereHas('globalUsers'", $service);
         $this->assertStringContainsString('DrugBidAwardManagementAssignment::STATUS_ACTIVE', $service);
         $this->assertStringContainsString("'unit_price' => (float) \$item->company_sale_price", $service);
