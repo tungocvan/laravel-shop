@@ -30,6 +30,8 @@ final class PharmaOrderStockReadinessCapabilityTest extends TestCase
         $this->assertStringContainsString("'stockReadiness' => ".'$canApproveOrder ? $stockReadiness->forIssue($visibleIssue) : null', $controller);
 
         $this->assertStringContainsString('Kiểm tra khả năng xuất kho', $view);
+        $this->assertStringContainsString('chạm để ẩn/hiện', $view);
+        $this->assertStringContainsString('<details class="rounded-3xl border', $view);
         $this->assertStringContainsString('Tồn khả dụng', $view);
         $this->assertStringContainsString('SL đơn hàng', $view);
         $this->assertStringContainsString('Đủ hàng', $view);
