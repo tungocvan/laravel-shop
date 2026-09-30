@@ -372,7 +372,9 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("['items.medicine','manager:id,name','priceList.manager']", $controller);
         $this->assertStringContainsString("'items'=>'required|array|min:1'", $controller);
         $this->assertStringContainsString("\$locked->items()->delete()", $controller);
-        $this->assertStringContainsString("\$locked->items()->createMany(\$items)", $controller);
+        $this->assertStringContainsString("foreach(\$items as \$item)", $controller);
+        $this->assertStringContainsString("\$created=\$locked->items()->create(\$item)", $controller);
+        $this->assertStringContainsString("\$locked->deferredSupplies()->create(", $controller);
         $this->assertStringContainsString('Lưu phiếu nháp', $edit);
         $this->assertStringContainsString('Lưu & xem phiếu', $edit);
         $this->assertStringContainsString('Tóm tắt phiếu', $edit);
