@@ -15,7 +15,7 @@
 <div class="min-h-[calc(100vh-5rem)] bg-slate-50 pb-24 lg:pb-8">
     <header class="sticky top-0 z-30 -mx-4 border-b border-slate-200 bg-white/95 px-4 py-4 backdrop-blur sm:-mx-6 sm:px-6 lg:static lg:mx-0 lg:rounded-3xl lg:border lg:px-6">
         <div class="relative flex items-center justify-center">
-            <a href="{{ route('client.pharma.inventory.issues') }}" class="absolute left-0 inline-flex h-11 w-11 items-center justify-center rounded-full text-2xl text-slate-900 active:scale-95" aria-label="Quay lại">←</a>
+            <a href="{{ route('client.pharma.orders') }}" class="absolute left-0 inline-flex h-11 w-11 items-center justify-center rounded-full text-2xl text-slate-900 active:scale-95" aria-label="Quay lại">←</a>
             <h1 class="px-12 text-center text-xl font-black text-slate-950">Chi tiết đơn hàng</h1>
         </div>
     </header>
