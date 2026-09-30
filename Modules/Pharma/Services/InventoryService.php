@@ -95,16 +95,19 @@ final class InventoryService
             $issue=InventoryIssue::query()->lockForUpdate()->findOrFail($issue->getKey());
             if (! in_array($issue->status,[InventoryIssue::DRAFT,InventoryIssue::APPROVED],true)) throw ValidationException::withMessages(['status'=>'Chỉ phiếu nháp hoặc đơn đã duyệt mới được ghi sổ.']);
             $this->assertDocumentDateAfterOpeningCutoff($issue->warehouse_id,$issue->issue_date,'Ngày phiếu xuất');
-            $issue->load('items');
+            $issue->load(['items','deferredSupplies']);
             if ($issue->items->isEmpty()) throw ValidationException::withMessages(['items'=>'Phiếu xuất phải có ít nhất một dòng.']);
-            foreach ($issue->items as $item) {
-                if(blank($item->batch_number) || !$item->expiry_date) throw ValidationException::withMessages(['stock'=>'Phiếu có mặt hàng chưa chọn lô/HSD, chưa thể ghi sổ.']);
+            $deferredMedicineIds=$issue->deferredSupplies->pluck('medicine_id')->map(fn($id)=>(int)$id)->unique();
+            $postedItems=$issue->items->reject(fn($item)=>$deferredMedicineIds->contains((int)$item->medicine_id))->values();
+            if ($postedItems->isEmpty()) throw ValidationException::withMessages(['stock'=>'Không có mặt hàng đủ điều kiện xuất kho; toàn bộ mặt hàng đang chờ cung ứng.']);
+            foreach ($postedItems as $item) {
+                if(blank($item->batch_number) || !$item->expiry_date) throw ValidationException::withMessages(['stock'=>'Mặt hàng thực xuất chưa chọn lô/HSD, chưa thể ghi sổ.']);
                 $balance=$this->lockedBalance($issue->warehouse_id,$item->medicine_id,$item->batch_number,$item->expiry_date->toDateString());
                 if((float)$balance->quantity_on_hand < (float)$item->quantity) throw ValidationException::withMessages(['stock'=>"Không đủ tồn cho lô {$item->batch_number}. Tồn khả dụng: ".number_format((float)$balance->quantity_on_hand,3,'.','').', cần xuất: '.number_format((float)$item->quantity,3,'.','').'.']);
             }
-            foreach ($issue->items as $item) $this->move($issue->warehouse_id,$item->medicine_id,$item->batch_number,$item->expiry_date->toDateString(),-(float)$item->quantity,'issue',$issue,$userId);
+            foreach ($postedItems as $item) $this->move($issue->warehouse_id,$item->medicine_id,$item->batch_number,$item->expiry_date->toDateString(),-(float)$item->quantity,'issue',$issue,$userId);
             $issue->update(['status'=>InventoryIssue::POSTED,'posted_by'=>$userId,'posted_at'=>now()]);
-            $this->commissions->snapshotPostedIssue($issue->fresh('items'),$userId);
+            $this->commissions->snapshotPostedIssue($issue->fresh(['items','deferredSupplies']),$userId);
         });
     }
 
