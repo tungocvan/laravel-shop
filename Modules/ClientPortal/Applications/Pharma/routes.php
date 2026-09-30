@@ -69,6 +69,8 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->whereNumber('issue')->middleware('client.feature:pharma,orders')->name('orders.update');
         Route::post('/orders/{issue}/submit', [PharmaApplicationController::class, 'submitOrder'])
             ->whereNumber('issue')->middleware('client.feature:pharma,orders')->name('orders.submit');
+        Route::post('/orders/{issue}/supply-notes', [PharmaApplicationController::class, 'saveOrderSupplyNotes'])
+            ->whereNumber('issue')->middleware('client.feature:pharma,orders')->name('orders.supply-notes');
         Route::post('/orders/{issue}/approve', [PharmaApplicationController::class, 'approveOrder'])
             ->whereNumber('issue')->middleware('client.feature:pharma,orders')->name('orders.approve');
         Route::post('/orders/{issue}/reject', [PharmaApplicationController::class, 'rejectOrder'])
