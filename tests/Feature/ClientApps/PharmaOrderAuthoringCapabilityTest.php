@@ -92,6 +92,9 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
         $this->assertStringContainsString('placeholder="Tìm khách hàng / bệnh viện..."', $view);
         $this->assertStringContainsString('data-bid-product-picker', $view);
         $this->assertStringContainsString('Chọn sản phẩm trúng thầu...', $view);
+        $this->assertStringContainsString('SL phân bổ:', $view);
+        $this->assertStringContainsString('SL còn lại:', $view);
+        $this->assertStringContainsString('allocated_quantity', $service);
         $this->assertStringContainsString('renderBidProducts', $view);
         $this->assertStringContainsString("!bidPartnerBox.contains(e.target)", $view);
         $this->assertStringContainsString('data-investor=', $view);
