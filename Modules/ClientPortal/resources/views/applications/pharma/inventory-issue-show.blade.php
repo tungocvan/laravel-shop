@@ -109,8 +109,11 @@
             @if($canApproveOrder)
                 <div class="grid grid-cols-2 gap-3">
                     <button type="button" id="order-reject-toggle" class="h-13 rounded-2xl border border-rose-300 bg-white font-black text-rose-700">Từ chối</button>
-                    <form method="POST" action="{{ route('client.pharma.orders.approve',$issue) }}">@csrf<button class="h-13 w-full rounded-2xl bg-slate-950 font-black text-white">Phê duyệt</button></form>
+                    <form method="POST" action="{{ route('client.pharma.orders.approve',$issue) }}">@csrf<button @disabled(!($stockReadiness['is_ready'] ?? false)) class="h-13 w-full rounded-2xl bg-slate-950 font-black text-white disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500">Phê duyệt</button></form>
                 </div>
+                @if(!($stockReadiness['is_ready'] ?? false))
+                    <p class="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs font-bold leading-5 text-amber-900">Chưa thể phê duyệt: tồn kho khả dụng không đủ cho toàn bộ đơn hàng. Vui lòng bổ sung hàng hoặc Từ chối để User điều chỉnh số lượng.</p>
+                @endif
                 <form id="order-reject-form" method="POST" action="{{ route('client.pharma.orders.reject',$issue) }}" class="mt-3 hidden rounded-2xl border border-rose-200 bg-rose-50 p-3">
                     @csrf
                     <label class="block"><span class="mb-2 block text-sm font-black text-rose-900">Lý do từ chối *</span><textarea name="rejection_reason" rows="3" required maxlength="1000" class="w-full rounded-xl border border-rose-200 bg-white px-3 py-2 text-sm" placeholder="Nhập lý do để User biết cần điều chỉnh gì...">{{ old('rejection_reason') }}</textarea></label>
