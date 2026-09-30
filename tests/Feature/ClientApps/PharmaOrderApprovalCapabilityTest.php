@@ -100,8 +100,8 @@ final class PharmaOrderApprovalCapabilityTest extends TestCase
 
         $this->assertGreaterThanOrEqual(3, substr_count($controller, '[InventoryIssue::DRAFT,InventoryIssue::APPROVED]'));
         $this->assertStringContainsString("if(!in_array(\$locked->status,[InventoryIssue::DRAFT,InventoryIssue::APPROVED],true)", $controller);
-        $this->assertStringContainsString("snapshotPostedIssue(\$issue->fresh('items')", $controller);
-        $this->assertStringContainsString("reverseIssue(\$issue->fresh()", $controller);
+        $this->assertStringContainsString("\$this->commissions->snapshotPostedIssue(\$issue->fresh('items')", $inventory);
+        $this->assertStringContainsString("\$this->commissions->reverseIssue(\$issue->fresh()", $inventory);
         $this->assertStringContainsString('[InventoryIssue::DRAFT,InventoryIssue::APPROVED]', $inventory);
         $this->assertStringContainsString("\$issue->approved_at ? InventoryIssue::APPROVED : InventoryIssue::DRAFT", $inventory);
         $this->assertStringContainsString('pending_approval', $documents);
