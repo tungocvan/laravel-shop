@@ -667,6 +667,7 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("deferredSupplies()->whereNull('drug_bid_award_allocation_id')->delete()", $controller);
         $this->assertStringContainsString("InventoryIssueDeferredSupply::PENDING", $controller);
         $this->assertStringContainsString('Chưa đủ tồn · ghi chú cung ứng', $editView);
+        $this->assertStringContainsString("items->map(function (\$item) use (\$issue)", $editView);
         $this->assertStringContainsString('expected_supply_date', $editView);
         $this->assertStringContainsString('supply_note', $editView);
         $this->assertStringContainsString('Mặt hàng chưa chọn lô phải có Ghi chú cung ứng.', $controller);
