@@ -732,7 +732,7 @@ final class InventoryController extends Controller
         if(! $priceList) throw ValidationException::withMessages(['price_list_id'=>'Bảng giá áp dụng không còn hoạt động hoặc không còn hiệu lực tại ngày xuất. Vui lòng chọn lại bảng giá.']);
         $managerId=(int)$data['manager_user_id'];
         $assigned=$priceList->type===PriceList::TYPE_GLOBAL
-            ? $priceList->globalUsers->contains(fn($user)=>(int)$user->id===$managerId)
+            ? ($priceList->globalUsers->isEmpty() || $priceList->globalUsers->contains(fn($user)=>(int)$user->id===$managerId))
             : (int)$priceList->manager_user_id===$managerId;
         if(! $assigned) throw ValidationException::withMessages(['price_list_id'=>'Bảng giá không được phân cho Người phụ trách đã chọn.']);
         if($priceList->type===PriceList::TYPE_CUSTOMER && $priceList->partner_id !== null && (int)$priceList->partner_id !== (int)$data['recipient_partner_id']){
