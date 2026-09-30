@@ -10,7 +10,11 @@
     $money = fn ($value) => number_format((float) $value, 0, ',', '.').' đ';
     $statusLabels = ['draft'=>'Nháp','pending_approval'=>'Chờ duyệt','approved'=>'Đã duyệt','rejected'=>'Từ chối','posted'=>'Đã xuất','cancelled'=>'Đã hủy'];
     $source = ($issue->issue_source ?? 'normal') === 'bid' ? 'Theo kết quả trúng thầu' : 'Theo bảng giá';
-    $total = $issue->items->sum(fn($item)=>(float)$item->quantity*(float)$item->unit_price);
+    $deferredAllocationIds = $savedSupplyNotes->keys()->map(fn($id)=>(int)$id);
+    $fulfilledItems = $issue->items->filter(fn($item)=>!$deferredAllocationIds->contains((int)$item->drug_bid_award_allocation_id));
+    $deferredItems = $issue->items->filter(fn($item)=>$deferredAllocationIds->contains((int)$item->drug_bid_award_allocation_id));
+    $displayItems = $issue->status === 'approved' ? $fulfilledItems : $issue->items;
+    $total = $displayItems->sum(fn($item)=>(float)$item->quantity*(float)$item->unit_price);
 @endphp
 <div class="min-h-[calc(100vh-5rem)] bg-slate-50 pb-24 lg:pb-8">
     <header class="sticky top-0 z-30 -mx-4 border-b border-slate-200 bg-white/95 px-4 py-4 backdrop-blur sm:-mx-6 sm:px-6 lg:static lg:mx-0 lg:rounded-3xl lg:border lg:px-6">
@@ -35,9 +39,9 @@
         </section>
 
         <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div class="flex items-end justify-between gap-3"><div><p class="text-xs font-black uppercase tracking-wide text-slate-500">Sản phẩm</p><h2 class="mt-1 text-lg font-black text-slate-950">{{ number_format($issue->items_count) }} sản phẩm</h2></div><p class="text-right text-lg font-black text-slate-950">{{ $money($total) }}</p></div>
+            <div class="flex items-end justify-between gap-3"><div><p class="text-xs font-black uppercase tracking-wide text-slate-500">Sản phẩm</p><h2 class="mt-1 text-lg font-black text-slate-950">{{ number_format($displayItems->count()) }} sản phẩm</h2></div><p class="text-right text-lg font-black text-slate-950">{{ $money($total) }}</p></div>
             <div class="mt-4 divide-y divide-slate-100">
-                @foreach($issue->items as $item)
+                @foreach($displayItems as $item)
                     <article class="py-4 first:pt-0 last:pb-0">
                         <h3 class="font-black text-slate-950">{{ $item->medicine?->name ?: 'Sản phẩm #'.$item->medicine_id }}</h3>
                         <div class="mt-2 grid grid-cols-2 gap-3 text-sm">
@@ -51,6 +55,25 @@
                 @endforeach
             </div>
         </section>
+
+        @if($issue->status === 'approved' && $deferredItems->isNotEmpty())
+            <details class="rounded-3xl border border-amber-200 bg-amber-50/50 shadow-sm">
+                <summary class="flex cursor-pointer list-none items-center justify-between gap-3 p-5">
+                    <div><p class="text-xs font-black uppercase tracking-wide text-amber-800">Chờ cung cấp</p><p class="mt-1 text-sm font-black text-slate-900">{{ $deferredItems->count() }} sản phẩm chưa có hàng</p></div>
+                    <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-black text-amber-900">Không tính là hàng đã duyệt xuất</span>
+                </summary>
+                <div class="space-y-3 px-5 pb-5">
+                    @foreach($deferredItems as $item)
+                        @php($supply = $savedSupplyNotes->get($item->drug_bid_award_allocation_id))
+                        <article class="rounded-2xl border border-amber-200 bg-white p-4">
+                            <div class="flex items-start justify-between gap-3"><p class="font-black text-slate-900">{{ $item->medicine?->name ?: 'Sản phẩm #'.$item->medicine_id }}</p><p class="text-xs font-black text-amber-800">SL {{ rtrim(rtrim(number_format((float)$item->quantity,3,'.',''),'0'),'.') }}</p></div>
+                            <p class="mt-2 text-xs text-slate-600">Dự kiến cung cấp: <span class="font-black text-slate-800">{{ $supply?->expected_supply_date?->format('d/m/Y') ?: '—' }}</span></p>
+                            <p class="mt-1 text-xs leading-5 text-slate-600">{{ $supply?->note }}</p>
+                        </article>
+                    @endforeach
+                </div>
+            </details>
+        @endif
 
         @if($canApproveOrder && $stockReadiness)
             <details class="rounded-3xl border {{ $stockReadiness['is_ready'] ? 'border-emerald-200 bg-emerald-50/40' : 'border-amber-200 bg-amber-50/50' }} shadow-sm" open>
