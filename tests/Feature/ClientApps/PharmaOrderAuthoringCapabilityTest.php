@@ -34,7 +34,10 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
 
         $this->assertStringContainsString('final class UserOrderAuthoringService', $service);
         $this->assertStringContainsString("->activeAt(\$date)", $service);
-        $this->assertStringContainsString("->orWhereHas('globalUsers'", $service);
+        $this->assertStringContainsString("->where('type', PriceList::TYPE_GLOBAL)", $service);
+        $this->assertStringContainsString("->where('type', PriceList::TYPE_CUSTOMER)", $service);
+        $this->assertStringContainsString("->where('manager_user_id', $userId)", $service);
+        $this->assertStringNotContainsString("->orWhereHas('globalUsers'", $service);
         $this->assertStringContainsString('DrugBidAwardManagementAssignment::STATUS_ACTIVE', $service);
         $this->assertStringContainsString("'unit_price' => (float) \$item->company_sale_price", $service);
         $this->assertStringContainsString("'unit_price' => \$row->unit_price", $service);
@@ -63,6 +66,10 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
         $this->assertStringContainsString('Thêm mới đơn hàng', $view);
         $this->assertStringContainsString('Theo bảng giá', $view);
         $this->assertStringContainsString('Theo trúng thầu', $view);
+        $this->assertStringContainsString('data-order-source-picker', $view);
+        $this->assertStringContainsString('peer-checked:bg-slate-950', $view);
+        $this->assertStringContainsString('Giá bán theo bảng giá đang hiệu lực', $view);
+        $this->assertStringContainsString('Giá và số lượng theo phân bổ thầu', $view);
         $this->assertStringContainsString('Tìm tên / MST khách hàng...', $view);
         $this->assertStringContainsString('Tìm User phụ trách...', $view);
         $this->assertStringContainsString('data-manager-combobox', $view);
