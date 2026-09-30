@@ -15,11 +15,6 @@ $signatures=collect([
  <div class="flex flex-wrap items-end justify-between gap-4">
   <div><a href="{{ route('admin.pharma.inventory.issues.index') }}" class="text-sm font-semibold text-indigo-700">← Danh sách phiếu xuất</a><div class="mt-2 flex items-center gap-3"><h1 class="text-2xl font-bold text-slate-950">Phiếu xuất kho</h1><span class="rounded-full px-3 py-1 text-xs font-bold uppercase {{ $issue->status==='posted'?'bg-emerald-100 text-emerald-700':'bg-amber-100 text-amber-800' }}">{{ ['draft'=>'Nháp','pending_approval'=>'Chờ duyệt','approved'=>'Đã duyệt','rejected'=>'Từ chối','posted'=>'Đã ghi sổ','cancelled'=>'Đã hủy'][$issue->status] ?? $issue->status }}</span></div><p class="mt-1 text-sm text-slate-500">Chứng từ xuất hàng · {{ $issue->number }}</p></div>
   <div class="flex flex-wrap gap-2">
-   @if($issue->status==='approved')
-    @can('approve_pharma_inventory_issue')
-     <a href="{{ ($issue->issue_source ?? 'normal')==='bid' ? route('admin.pharma.inventory.issues.bid-sales.batches',$issue) : route('admin.pharma.inventory.issues.edit',$issue) }}" class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-emerald-700">{{ ($issue->issue_source ?? 'normal')==='bid' ? 'Xử lý kho · Chọn lô' : 'Xử lý kho' }}</a>
-    @endcan
-   @endif
    @if(in_array($issue->status,['draft','approved'],true))<a href="{{ ($issue->issue_source ?? 'normal')==='bid' ? route('admin.pharma.inventory.issues.bid-sales.edit',$issue) : route('admin.pharma.inventory.issues.edit',$issue) }}" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">{{ ($issue->issue_source ?? 'normal')==='bid' ? 'Sửa đơn hàng thầu' : 'Sửa phiếu' }}</a>@endif
    <a href="{{ route('admin.pharma.inventory.issues.pdf',$issue) }}" class="rounded-xl border border-indigo-200 bg-white px-4 py-2.5 text-sm font-semibold text-indigo-700">↓ Tải PDF</a><a href="{{ route('admin.pharma.inventory.issues.print',$issue) }}" target="_blank" rel="noopener" class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm">▣ In trực tiếp</a>
   </div>
