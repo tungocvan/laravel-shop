@@ -6,6 +6,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use App\Models\User;
 use Modules\Pharma\Models\InventoryIssue;
+use Modules\Pharma\Models\InventoryTransaction;
 
 final class UserInventoryIssueWorkspace
 {
@@ -23,8 +24,8 @@ final class UserInventoryIssueWorkspace
     ): LengthAwarePaginator {
         $search = trim((string) $search);
 
-        return $this->visibleQuery($userId, $includeApprovalScope)
-            ->with(['manager:id,name', 'priceList:id,code,name,type'])
+        $paginator = $this->visibleQuery($userId, $includeApprovalScope)
+            ->with(['manager:id,name', 'priceList:id,code,name,type', 'items:id,issue_id,medicine_id,quantity,unit_price'])
             ->withCount('items')
             ->withSum('items as total_quantity', 'quantity')
             ->withSum('items as total_value', \DB::raw('quantity * unit_price'))
@@ -41,6 +42,27 @@ final class UserInventoryIssueWorkspace
             ->orderByDesc('issue_date')
             ->orderByDesc('id')
             ->paginate(perPage: in_array($perPage, [20, 25, 50, 100], true) ? $perPage : 20, page: max(1, $page));
+
+        $postedIds=$paginator->getCollection()->where('status',InventoryIssue::POSTED)->pluck('id');
+        $postedMedicineIds=InventoryTransaction::query()
+            ->whereIn('source_id',$postedIds)
+            ->where('source_type',InventoryIssue::class)
+            ->where('type','issue')
+            ->where('quantity_delta','<',0)
+            ->get(['source_id','medicine_id'])
+            ->groupBy('source_id')
+            ->map(fn($rows)=>$rows->pluck('medicine_id')->map(fn($id)=>(int)$id)->unique());
+
+        $paginator->getCollection()->each(function(InventoryIssue $issue)use($postedMedicineIds): void {
+            if($issue->status!==InventoryIssue::POSTED) return;
+            $medicineIds=$postedMedicineIds->get($issue->id,collect());
+            $postedItems=$issue->items->filter(fn($item)=>$medicineIds->contains((int)$item->medicine_id));
+            $issue->items_count=$postedItems->count();
+            $issue->total_quantity=(float)$postedItems->sum('quantity');
+            $issue->total_value=(float)$postedItems->sum(fn($item)=>(float)$item->quantity*(float)$item->unit_price);
+        });
+
+        return $paginator;
     }
 
     public function counts(int $userId, bool $includeApprovalScope = false, ?int $managerUserId = null): array
