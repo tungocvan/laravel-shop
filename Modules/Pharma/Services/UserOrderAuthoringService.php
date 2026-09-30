@@ -93,6 +93,7 @@ final class UserOrderAuthoringService
                 'unit' => $award->medicine?->unit ?: $award->unit,
                 'investor_code' => $award->investor_code,
                 'investor_name' => $award->investor_name,
+                'allocated_quantity' => (float) $allocation->allocated_quantity,
                 'remaining_quantity' => $remaining,
                 'unit_price' => (float) ($award->winning_price ?? $award->unit_price ?? 0),
             ];
