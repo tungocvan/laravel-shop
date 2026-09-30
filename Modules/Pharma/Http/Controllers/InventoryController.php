@@ -698,8 +698,12 @@ final class InventoryController extends Controller
             ->orderByDesc('priority')->orderBy('name')->get([
                 'id','code','name','type','manager_user_id','partner_id','effective_from','effective_to','priority',
             ]);
+        $priceListManagers=app(UserOrderAuthoringService::class)->orderManagers();
+        if($issue->manager && ! $priceListManagers->contains('id',$issue->manager->id)){
+            $priceListManagers=$priceListManagers->push($issue->manager)->unique('id')->sortBy('name')->values();
+        }
         $issueSalePrices=$this->issueSalePriceCandidates();
-        return view('Pharma::pages.inventory.issue-edit',compact('issue','warehouse','availableBalances','partners','customerPriceLists','issueSalePrices'));
+        return view('Pharma::pages.inventory.issue-edit',compact('issue','warehouse','availableBalances','partners','customerPriceLists','priceListManagers','issueSalePrices'));
     }
 
     public function updateIssue(Request $request, InventoryIssue $issue, InventoryService $inventory): RedirectResponse
