@@ -1,3 +1,20 @@
+## Checkpoint — Pharma PWA Order Authoring MR2 — 2026-09-30
+
+- Branch: `feat/clientportal-pharma-order-authoring`, based on merged PR #239 at `a7d5f9a2b2ebcc675e298ef9503cb46eb3b957b5`.
+- Scope: create/edit Draft orders and Submit for approval. Approval/rejection and warehouse posting remain explicitly deferred.
+- Canonical mutation owner: `Modules/Pharma/Services/UserOrderAuthoringService`; ClientPortal only validates request shape, authorizes Client permissions, delegates and renders.
+- Added independent action permissions `client.pharma.orders.create` and `client.pharma.orders.submit`; no Inventory permission is reused.
+- Order sources: active/effective Price Lists assigned to the User, or active Bid Award allocation pairs actively assigned to the User. Server re-resolves source scope at mutation time.
+- Browser never submits authoritative unit price. Price-list drafts persist canonical `company_sale_price`; bid drafts persist canonical winning price/fallback award unit price.
+- Draft mutation is creator-only and draft-only. Source cannot be switched after initial draft creation.
+- Submit transitions only `draft -> pending_approval`, recording `submitted_by/submitted_at`; it does not call `InventoryService::postIssue()`, create inventory transactions or mutate stock balances.
+- Schema adds `recipient_partner_id`, `submitted_by`, `submitted_at` to the existing InventoryIssue-backed order document. No approval/posting audit fields are introduced in MR2.
+- Mobile-first create/edit UI follows the approved reference: simple centered header, segmented source selector, large controls, searchable customer/bid rows, product quantity cards and sticky `Quay lại | Lưu nháp`. Draft detail exposes `Sửa đơn | Gửi duyệt` only when authorized.
+- Required checkpoint: pull branch; Test 1 = focused `PharmaOrderAuthoringCapabilityTest + PharmaInventoryIssuesCapabilityTest`; on PASS run Test 2 = `tests/Feature/ClientApps`. Stop on any failure and send raw output. Real mobile + desktop UI acceptance remains mandatory before PR.
+- Status: **IMPLEMENTED — AWAITING OPERATOR PULL / TEST.**
+
+---
+
 ## Current delivery — Pharma PWA Inventory Read Workspace
 
 - Last updated: 2026-09-30
