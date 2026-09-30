@@ -91,6 +91,7 @@ final class UserOrderAuthoringService
                 'medicine_name' => $award->medicine?->name ?: $award->medicine_name,
                 'medicine_code' => $award->medicine?->medicine_code ?: $award->medicine_code,
                 'unit' => $award->medicine?->unit ?: $award->unit,
+                'investor_code' => $award->investor_code,
                 'investor_name' => $award->investor_name,
                 'remaining_quantity' => $remaining,
                 'unit_price' => (float) ($award->winning_price ?? $award->unit_price ?? 0),
@@ -119,6 +120,7 @@ final class UserOrderAuthoringService
                 'price_list_id' => $items['price_list_id'],
                 'issue_source' => $source === 'bid' ? 'bid' : 'normal',
                 'bid_partner_id' => $source === 'bid' ? $partner->id : null,
+                'bid_investor_code' => $items['investor_code'],
                 'bid_investor_name' => $items['investor_name'],
                 'status' => InventoryIssue::DRAFT,
                 'notes' => $data['notes'] ?? null,
@@ -148,6 +150,7 @@ final class UserOrderAuthoringService
                 'manager_user_id' => $managerUserId,
                 'recipient_partner_id' => $partner->id, 'price_list_id' => $items['price_list_id'],
                 'bid_partner_id' => $data['source'] === 'bid' ? $partner->id : null,
+                'bid_investor_code' => $items['investor_code'],
                 'bid_investor_name' => $items['investor_name'], 'notes' => $data['notes'] ?? null,
             ]);
             $issue->items()->delete();
@@ -190,7 +193,7 @@ final class UserOrderAuthoringService
         if ($items->count() !== $quantities->count()) throw ValidationException::withMessages(['quantities' => 'Có sản phẩm không còn thuộc bảng giá hiệu lực.']);
 
         return [
-            'partner_id' => $partnerId, 'price_list_id' => $priceList->id, 'investor_name' => null,
+            'partner_id' => $partnerId, 'price_list_id' => $priceList->id, 'investor_code' => null, 'investor_name' => null,
             'rows' => $quantities->map(function ($quantity, $itemId) use ($items) {
                 $item = $items[$itemId];
                 if (! $item->medicine_id) throw ValidationException::withMessages(['quantities' => 'Sản phẩm chưa liên kết thuốc canonical.']);
@@ -213,10 +216,13 @@ final class UserOrderAuthoringService
             return $row;
         });
         if ($rows->pluck('partner_id')->unique()->count() !== 1) throw ValidationException::withMessages(['quantities' => 'Một đơn chỉ được thuộc một bệnh viện/khách hàng.']);
+        $investorKeys = $rows->map(fn ($row) => $row->investor_code ?: $row->investor_name)->filter()->unique();
+        if ($investorKeys->count() !== 1) throw ValidationException::withMessages(['quantities' => 'Một đơn chỉ được thuộc một chủ đầu tư.']);
 
         return [
             'partner_id' => (int) $rows->first()->partner_id, 'price_list_id' => null,
-            'investor_name' => $rows->pluck('investor_name')->filter()->unique()->count() === 1 ? $rows->first()->investor_name : null,
+            'investor_code' => $rows->first()->investor_code,
+            'investor_name' => $rows->first()->investor_name,
             'rows' => $rows->map(function ($row) use ($quantities) {
                 return ['medicine_id' => $row->medicine_id, 'drug_bid_award_id' => $row->award_id,
                     'drug_bid_award_allocation_id' => $row->allocation_id, 'batch_number' => null, 'expiry_date' => null,
