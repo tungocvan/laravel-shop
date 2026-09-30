@@ -892,15 +892,15 @@ final class InventoryController extends Controller
     public function updateBidSaleIssue(Request $request, InventoryIssue $issue, InventoryService $inventory): RedirectResponse
     {
         $this->guardIssueWarehouse($issue,$inventory);
-        abort_unless(($issue->issue_source ?? 'normal')==='bid' && $issue->status===InventoryIssue::DRAFT,404);
-        $data=$request->validate(['issue_date'=>'required|date','quantities'=>'required|array','quantities.*'=>'nullable|numeric|min:0',
+        abort_unless(($issue->issue_source ?? 'normal')==='bid' && in_array($issue->status,[InventoryIssue::DRAFT,InventoryIssue::APPROVED],true),404);
+        $data=$request->validate(['issue_date'=>'required|date','quantities'=>'required|array,'quantities.*'=>'nullable|numeric|min:0',
             'add_allocations'=>'nullable|array','add_allocations.*'=>'integer|distinct','add_quantities'=>'nullable|array','add_quantities.*'=>'nullable|numeric|min:0','notes'=>'nullable|string',
             'deferred'=>'nullable|array','deferred.*.enabled'=>'nullable|boolean','deferred.*.expected_supply_date'=>'nullable|date','deferred.*.note'=>'nullable|string|max:2000'],[
             'quantities.required'=>'Vui lòng nhập số lượng xuất cho ít nhất một sản phẩm.','quantities.*.numeric'=>'Số lượng xuất phải là số.','quantities.*.min'=>'Số lượng xuất không được âm.',
         ]);
         DB::transaction(function()use($issue,$data,$request){
             $locked=InventoryIssue::query()->whereKey($issue->id)->lockForUpdate()->firstOrFail();
-            if($locked->status!==InventoryIssue::DRAFT || ($locked->issue_source ?? 'normal')!=='bid') throw ValidationException::withMessages(['issue'=>'Phiếu hàng thầu không còn ở trạng thái nháp.']);
+            if(!in_array($locked->status,[InventoryIssue::DRAFT,InventoryIssue::APPROVED],true) || ($locked->issue_source ?? 'normal')!=='bid') throw ValidationException::withMessages(['issue'=>'Phiếu hàng thầu không còn ở trạng thái có thể chỉnh sửa.']);
             $items=$locked->items()->get(); $posted=DB::table('pharma_inventory_issue_items as ii')->join('pharma_inventory_issues as i','i.id','=','ii.issue_id')
                 ->where('i.issue_source','bid')->where('i.status',InventoryIssue::POSTED)->whereIn('ii.drug_bid_award_allocation_id',$items->pluck('drug_bid_award_allocation_id'))
                 ->groupBy('ii.drug_bid_award_allocation_id')->selectRaw('ii.drug_bid_award_allocation_id, SUM(ii.quantity) as qty')->pluck('qty','ii.drug_bid_award_allocation_id');
@@ -959,7 +959,7 @@ final class InventoryController extends Controller
                 ->when(!$activeDeferredAllocationIds,fn($q)=>$q)->delete();
             $locked->update(['notes'=>$data['notes']??null]);
         });
-        return redirect()->route('admin.pharma.inventory.issues.bid-sales.edit',$issue)->with('success',"Đã lưu phiếu nháp {$issue->number}.");
+        return redirect()->route('admin.pharma.inventory.issues.bid-sales.edit',$issue)->with('success',$issue->status===InventoryIssue::APPROVED ? "Đã lưu điều chỉnh đơn đã duyệt {$issue->number}." : "Đã lưu phiếu nháp {$issue->number}.");
     }
 
     public function bidSaleBatches(InventoryIssue $issue, InventoryService $inventory): View
