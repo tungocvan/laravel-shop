@@ -1326,7 +1326,7 @@ final class PharmaApplicationController extends Controller
                 && $visibleIssue->status === \Modules\Pharma\Models\InventoryIssue::APPROVED
                 && $visibleIssue->posted_at === null,
             'stockReadiness' => $canApproveOrder ? $stockReadiness->forIssue($visibleIssue) : null,
-            'savedSupplyNotes' => $canApproveOrder
+            'savedSupplyNotes' => ($canApproveOrder || $visibleIssue->status === \Modules\Pharma\Models\InventoryIssue::APPROVED)
                 ? $visibleIssue->deferredSupplies()->where('status', \Modules\Pharma\Models\InventoryIssueDeferredSupply::PENDING)->get()->keyBy('drug_bid_award_allocation_id')
                 : collect(),
         ]);
