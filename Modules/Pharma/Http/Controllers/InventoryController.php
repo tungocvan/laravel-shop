@@ -893,7 +893,7 @@ final class InventoryController extends Controller
     {
         $this->guardIssueWarehouse($issue,$inventory);
         abort_unless(($issue->issue_source ?? 'normal')==='bid' && in_array($issue->status,[InventoryIssue::DRAFT,InventoryIssue::APPROVED],true),404);
-        $data=$request->validate(['issue_date'=>'required|date','quantities'=>'required|array,'quantities.*'=>'nullable|numeric|min:0',
+        $data=$request->validate(['issue_date'=>'required|date','quantities'=>'required|array','quantities.*'=>'nullable|numeric|min:0',
             'add_allocations'=>'nullable|array','add_allocations.*'=>'integer|distinct','add_quantities'=>'nullable|array','add_quantities.*'=>'nullable|numeric|min:0','notes'=>'nullable|string',
             'deferred'=>'nullable|array','deferred.*.enabled'=>'nullable|boolean','deferred.*.expected_supply_date'=>'nullable|date','deferred.*.note'=>'nullable|string|max:2000'],[
             'quantities.required'=>'Vui lòng nhập số lượng xuất cho ít nhất một sản phẩm.','quantities.*.numeric'=>'Số lượng xuất phải là số.','quantities.*.min'=>'Số lượng xuất không được âm.',
