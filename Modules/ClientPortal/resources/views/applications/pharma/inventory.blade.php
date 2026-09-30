@@ -19,13 +19,6 @@
         <p class="mt-1.5 max-w-3xl text-sm leading-5 text-slate-300 sm:leading-6">{{ $featurePresentation['page_description'] ?? 'Theo dõi số lượng tồn, giá trị, lô và hạn dùng.' }}</p>
     </section>
 
-    @if($canViewIssues)
-        <a href="{{ route('client.pharma.inventory.issues') }}" class="flex min-h-14 items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">
-            <span><span class="block text-sm font-black text-slate-950">Đơn hàng / Phiếu xuất</span><span class="mt-0.5 block text-xs text-slate-500">Xem các đơn hàng và phiếu xuất thuộc phạm vi của bạn</span></span>
-            <span class="ml-4 text-xl text-slate-400">›</span>
-        </a>
-    @endif
-
     @if($canViewCosts)
         <section class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <div class="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
