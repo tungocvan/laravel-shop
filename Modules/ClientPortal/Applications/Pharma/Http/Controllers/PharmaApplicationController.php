@@ -17,6 +17,7 @@ use Modules\Pharma\Services\UserInventoryWorkspace;
 use Modules\Pharma\Services\UserInventoryIssueWorkspace;
 use Modules\Pharma\Services\UserOrderAuthoringService;
 use Modules\Pharma\Services\UserOrderApprovalService;
+use Modules\Pharma\Services\UserOrderStockReadinessService;
 use Modules\Pharma\Services\UserBidAwardWorkspace;
 use Modules\Pharma\Services\ClientBidAwardWorkflow;
 use Modules\Pharma\Services\UserPriceListWorkflow;
@@ -1243,6 +1244,7 @@ final class PharmaApplicationController extends Controller
         Request $request,
         ApplicationRegistry $registry,
         UserInventoryIssueWorkspace $workspace,
+        UserOrderStockReadinessService $stockReadiness,
     ): View {
         $application = $registry->find('pharma');
         abort_if($application === null, 404);
@@ -1268,6 +1270,7 @@ final class PharmaApplicationController extends Controller
                 && $visibleIssue->status === \Modules\Pharma\Models\InventoryIssue::DRAFT,
             'canApproveOrder' => $canApproveOrder
                 && $visibleIssue->status === \Modules\Pharma\Models\InventoryIssue::PENDING_APPROVAL,
+            'stockReadiness' => $canApproveOrder ? $stockReadiness->forIssue($visibleIssue) : null,
         ]);
     }
 
