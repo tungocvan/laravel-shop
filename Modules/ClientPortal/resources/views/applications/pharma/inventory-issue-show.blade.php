@@ -52,6 +52,51 @@
             </div>
         </section>
 
+        @if($canApproveOrder && $stockReadiness)
+            <section class="rounded-3xl border {{ $stockReadiness['is_ready'] ? 'border-emerald-200 bg-emerald-50/40' : 'border-amber-200 bg-amber-50/50' }} p-5 shadow-sm">
+                <div class="flex items-start justify-between gap-3">
+                    <div>
+                        <p class="text-xs font-black uppercase tracking-wide text-slate-500">Kiểm tra khả năng xuất kho</p>
+                        <p class="mt-1 text-sm font-bold text-slate-900">Tồn kho hiện tại · chỉ đọc</p>
+                    </div>
+                    <span class="shrink-0 rounded-full px-3 py-1 text-xs font-black {{ $stockReadiness['is_ready'] ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900' }}">
+                        {{ $stockReadiness['is_ready'] ? 'Đủ hàng' : 'Không đủ hàng' }}
+                    </span>
+                </div>
+                <div class="mt-4 space-y-3">
+                    @foreach($stockReadiness['rows'] as $stockRow)
+                        <article class="rounded-2xl border border-slate-200 bg-white p-4">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="min-w-0">
+                                    <p class="truncate font-black text-slate-900">{{ $stockRow['medicine_name'] }}</p>
+                                    @if($stockRow['medicine_code'])<p class="mt-0.5 text-xs text-slate-500">{{ $stockRow['medicine_code'] }}</p>@endif
+                                </div>
+                                <span class="shrink-0 text-xs font-black {{ $stockRow['is_ready'] ? 'text-emerald-700' : 'text-amber-800' }}">{{ $stockRow['is_ready'] ? 'Đủ hàng' : 'Thiếu '.number_format($stockRow['shortage_quantity'],3,'.','') }}</span>
+                            </div>
+                            <div class="mt-3 grid grid-cols-2 gap-3 text-sm">
+                                <div><p class="text-xs text-slate-500">SL đơn hàng</p><p class="font-black text-slate-900">{{ number_format($stockRow['requested_quantity'],3,'.','') }}</p></div>
+                                <div><p class="text-xs text-slate-500">Tồn khả dụng</p><p class="font-black text-slate-900">{{ number_format($stockRow['available_stock'],3,'.','') }}</p></div>
+                            </div>
+                            <details class="mt-3 rounded-xl bg-slate-50 px-3 py-2">
+                                <summary class="cursor-pointer text-xs font-black text-slate-700">Lô khả dụng · {{ count($stockRow['lots']) }}</summary>
+                                <div class="mt-2 space-y-2">
+                                    @forelse($stockRow['lots'] as $lot)
+                                        <div class="flex items-center justify-between gap-3 border-t border-slate-200 pt-2 text-xs">
+                                            <div><span class="font-black text-slate-800">{{ $lot['batch_number'] }}</span><span class="ml-2 text-slate-500">HSD {{ $lot['expiry_date'] }}</span></div>
+                                            <span class="font-black text-slate-900">Còn {{ number_format($lot['quantity_on_hand'],3,'.','') }}</span>
+                                        </div>
+                                    @empty
+                                        <p class="text-xs font-bold text-amber-800">Không có lô còn tồn và còn hạn sử dụng.</p>
+                                    @endforelse
+                                </div>
+                            </details>
+                        </article>
+                    @endforeach
+                </div>
+                <p class="mt-3 text-xs leading-5 text-slate-500">Thông tin này không giữ hàng. Chọn lô thực xuất ở bước xử lý kho sau khi đơn được phê duyệt.</p>
+            </section>
+        @endif
+
         @if($issue->notes)
             <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-black uppercase tracking-wide text-slate-500">Ghi chú</p><p class="mt-2 whitespace-pre-line text-sm leading-6 text-slate-700">{{ $issue->notes }}</p></section>
         @endif
