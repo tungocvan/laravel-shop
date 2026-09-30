@@ -8,12 +8,12 @@ class CommissionContractTest extends TestCase
 {
     public function test_bid_commission_is_snapshotted_when_issue_is_posted(): void
     {
-        $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
+        $inventoryService=file_get_contents(base_path('Modules/Pharma/Services/InventoryService.php'));
         $service=file_get_contents(base_path('Modules/Pharma/Services/DrugBidCommissionService.php'));
         $migration=file_get_contents(base_path('Modules/Pharma/database/migrations/2026_09_24_123000_create_pharma_inventory_issue_commissions_table.php'));
 
-        $this->assertStringContainsString('snapshotPostedIssue', $controller);
-        $this->assertStringContainsString('function()use($issue,$data,$inventory,$commissions)', $controller);
+        $this->assertStringContainsString('private readonly DrugBidCommissionService $commissions', $inventoryService);
+        $this->assertStringContainsString("$this->commissions->snapshotPostedIssue($issue->fresh('items'),$userId)", $inventoryService);
         $this->assertStringContainsString('DrugBidAwardManagementAssignment::query()', $service);
         $this->assertStringContainsString('DrugBidAwardProductPolicy::query()', $service);
         $this->assertStringContainsString('round($revenue*$percentage/100,2)', $service);
@@ -24,10 +24,10 @@ class CommissionContractTest extends TestCase
 
     public function test_reverting_bid_issue_removes_commission_cost(): void
     {
-        $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
+        $inventoryService=file_get_contents(base_path('Modules/Pharma/Services/InventoryService.php'));
         $service=file_get_contents(base_path('Modules/Pharma/Services/DrugBidCommissionService.php'));
 
-        $this->assertStringContainsString('reverseIssue', $controller);
+        $this->assertStringContainsString('$this->commissions->reverseIssue($issue->fresh(),$userId)', $inventoryService);
         $this->assertStringContainsString('Phiếu đã từng ghi sổ và phát sinh nhật ký hoa hồng', $controller);
         $this->assertStringContainsString("->where('issue_id',\$issue->id)", $service);
         $this->assertStringContainsString('->lockForUpdate()', $service);
