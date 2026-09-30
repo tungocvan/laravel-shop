@@ -25,6 +25,11 @@ final class UserOrderAuthoringService
                     ->orWhereExists(fn ($sub) => $sub->selectRaw('1')->from('pharma_price_list_users as plu')
                         ->join('pharma_price_lists as pl', 'pl.id', '=', 'plu.price_list_id')
                         ->whereColumn('plu.user_id', 'users.id')->where('pl.status', PriceList::STATUS_ACTIVE))
+                    ->orWhereExists(fn ($sub) => $sub->selectRaw('1')->from('pharma_price_lists as pl')
+                        ->where('pl.type', PriceList::TYPE_GLOBAL)
+                        ->where('pl.status', PriceList::STATUS_ACTIVE)
+                        ->whereNotExists(fn ($assigned) => $assigned->selectRaw('1')->from('pharma_price_list_users as plu')
+                            ->whereColumn('plu.price_list_id', 'pl.id')))
                     ->orWhereExists(fn ($sub) => $sub->selectRaw('1')->from('pharma_drug_bid_award_management_assignments as a')
                         ->whereColumn('a.user_id', 'users.id')->where('a.status', DrugBidAwardManagementAssignment::STATUS_ACTIVE));
             })
@@ -45,7 +50,10 @@ final class UserOrderAuthoringService
             ->where(function ($query) use ($userId): void {
                 $query->where(function ($global) use ($userId): void {
                     $global->where('type', PriceList::TYPE_GLOBAL)
-                        ->whereHas('globalUsers', fn ($users) => $users->whereKey($userId));
+                        ->where(function ($scope) use ($userId): void {
+                            $scope->whereDoesntHave('globalUsers')
+                                ->orWhereHas('globalUsers', fn ($users) => $users->whereKey($userId));
+                        });
                 })->orWhere(function ($customer) use ($userId): void {
                     $customer->where('type', PriceList::TYPE_CUSTOMER)
                         ->where('manager_user_id', $userId);
