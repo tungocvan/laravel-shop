@@ -236,7 +236,7 @@ class InventoryContractTest extends TestCase
         $this->assertStringNotContainsString('refreshEditPriceLists', $issueEdit);
         $this->assertStringContainsString("(int)\$data['price_list_id'] !== (int)\$issue->price_list_id", $controller);
         $this->assertStringContainsString('Bảng giá áp dụng của phiếu đã lập không được phép thay đổi.', $controller);
-        $this->assertStringContainsString("? \$priceList->globalUsers->contains", $controller);
+        $this->assertStringContainsString("? (\$priceList->globalUsers->isEmpty() || \$priceList->globalUsers->contains", $controller);
         $this->assertStringContainsString("Bảng giá áp dụng không còn hoạt động hoặc không còn hiệu lực tại ngày xuất.", $controller);
         $this->assertStringContainsString("Khách hàng không còn hoạt động. Vui lòng chọn lại khách hàng / nơi nhận.", $controller);
         $this->assertStringContainsString("Lô tồn kho đã chọn không còn khả dụng. Vui lòng chọn lại lô.", $controller);
