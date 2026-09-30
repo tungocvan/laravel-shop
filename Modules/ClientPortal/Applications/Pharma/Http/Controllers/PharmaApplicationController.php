@@ -1033,6 +1033,7 @@ final class PharmaApplicationController extends Controller
             )->withQueryString(),
             'summary' => $workspace->summary($canViewCosts),
             'canViewCosts' => $canViewCosts,
+            'canViewIssues' => $registry->userCan($user, 'client.pharma.inventory.issues'),
             'filters' => [
                 'q' => trim((string) ($validated['q'] ?? '')),
                 'expiry' => $validated['expiry'] ?? '',
