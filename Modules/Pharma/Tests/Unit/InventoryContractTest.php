@@ -347,6 +347,11 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("'status'=>InventoryReceipt::DRAFT,'posted_by'=>null,'posted_at'=>null", $service);
         $this->assertStringContainsString('$balance->delete()', $service);
         $this->assertStringContainsString("@can('delete_pharma')", $documents);
+        $this->assertStringContainsString("in_array(\$doc->status, ['draft','rejected'], true)", $documents);
+        $this->assertStringContainsString("'Xóa phiếu xuất đã từ chối?'", $documents);
+        $this->assertStringContainsString("[InventoryIssue::DRAFT,InventoryIssue::REJECTED]", $controller);
+        $this->assertStringContainsString('Chỉ phiếu xuất nháp hoặc đã từ chối mới được xóa.', $controller);
+        $this->assertStringContainsString('Đã xóa phiếu xuất chưa ghi sổ.', $controller);
         $this->assertStringContainsString('Hoàn tác ghi sổ', $documents);
         $this->assertStringContainsString('Hoàn tác ghi sổ?', $documents);
         $this->assertStringContainsString('>Hoàn tác ghi sổ</button>', $documents);
