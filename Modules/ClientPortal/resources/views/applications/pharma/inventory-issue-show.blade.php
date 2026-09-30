@@ -8,7 +8,7 @@
 @section('content')
 @php
     $money = fn ($value) => number_format((float) $value, 0, ',', '.').' đ';
-    $statusLabels = ['draft'=>'Nháp','posted'=>'Đã xuất','cancelled'=>'Đã hủy'];
+    $statusLabels = ['draft'=>'Nháp','pending_approval'=>'Chờ duyệt','posted'=>'Đã xuất','cancelled'=>'Đã hủy'];
     $source = ($issue->issue_source ?? 'normal') === 'bid' ? 'Theo kết quả trúng thầu' : 'Theo bảng giá';
     $total = $issue->items->sum(fn($item)=>(float)$item->quantity*(float)$item->unit_price);
 @endphp
@@ -56,5 +56,11 @@
             <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-black uppercase tracking-wide text-slate-500">Ghi chú</p><p class="mt-2 whitespace-pre-line text-sm leading-6 text-slate-700">{{ $issue->notes }}</p></section>
         @endif
     </main>
+    @if($canEditOrder || $canSubmitOrder)
+        <div class="sticky bottom-0 z-20 mx-auto mt-4 grid max-w-4xl {{ $canEditOrder && $canSubmitOrder ? 'grid-cols-2' : 'grid-cols-1' }} gap-3 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur lg:rounded-2xl lg:border">
+            @if($canEditOrder)<a href="{{ route('client.pharma.orders.edit',$issue) }}" class="flex h-13 items-center justify-center rounded-2xl border border-slate-300 font-black text-slate-700">Sửa đơn</a>@endif
+            @if($canSubmitOrder)<form method="POST" action="{{ route('client.pharma.orders.submit',$issue) }}">@csrf<button class="h-13 w-full rounded-2xl bg-slate-950 font-black text-white">Gửi duyệt</button></form>@endif
+        </div>
+    @endif
 </div>
 @endsection
