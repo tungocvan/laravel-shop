@@ -158,7 +158,8 @@ return [
                     'sort_order' => 10,
                 ],
                 'issues' => [
-                    'name' => 'Phiếu xuất',
+                    'name' => 'Đơn hàng / Phiếu xuất',
+                    'route' => 'client.pharma.inventory.issues',
                     'permission' => 'client.pharma.inventory.issues',
                     'sort_order' => 20,
                 ],
