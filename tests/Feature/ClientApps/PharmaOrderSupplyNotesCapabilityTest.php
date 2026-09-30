@@ -28,7 +28,9 @@ final class PharmaOrderSupplyNotesCapabilityTest extends TestCase
         $this->assertStringContainsString('Hiện kho đang hết/thiếu hàng', $view);
         $this->assertStringContainsString('Dự kiến cung cấp lại', $view);
         $this->assertStringContainsString('Ghi chú *', $view);
-        $this->assertStringContainsString('Lưu ghi chú chờ cung cấp', $view);
-        $this->assertStringContainsString('Khi toàn bộ sản phẩm đủ hàng, nút Phê duyệt sẽ tự bật', $view);
+        $this->assertStringContainsString('Lưu ghi chú', $view);
+        $this->assertStringContainsString('Hiện kho đang hết hàng. Đơn hàng dự kiến cung cấp lại.', $view);
+        $this->assertStringContainsString('sản phẩm thiếu hàng phải có ghi chú chờ cung cấp', $view);
+        $this->assertStringContainsString("'can_approve'", file_get_contents($root.'/Modules/Pharma/Services/UserOrderStockReadinessService.php'));
     }
 }
