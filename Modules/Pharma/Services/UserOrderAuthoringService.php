@@ -2,6 +2,7 @@
 
 namespace Modules\Pharma\Services;
 
+use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -14,6 +15,22 @@ use Modules\Pharma\Models\PriceListItem;
 
 final class UserOrderAuthoringService
 {
+    public function orderManagers(): Collection
+    {
+        return User::query()
+            ->where('is_active', true)
+            ->where(function ($query): void {
+                $query->whereExists(fn ($sub) => $sub->selectRaw('1')->from('pharma_price_lists as pl')
+                    ->whereColumn('pl.manager_user_id', 'users.id')->where('pl.status', PriceList::STATUS_ACTIVE))
+                    ->orWhereExists(fn ($sub) => $sub->selectRaw('1')->from('pharma_price_list_users as plu')
+                        ->join('pharma_price_lists as pl', 'pl.id', '=', 'plu.price_list_id')
+                        ->whereColumn('plu.user_id', 'users.id')->where('pl.status', PriceList::STATUS_ACTIVE))
+                    ->orWhereExists(fn ($sub) => $sub->selectRaw('1')->from('pharma_drug_bid_award_management_assignments as a')
+                        ->whereColumn('a.user_id', 'users.id')->where('a.status', DrugBidAwardManagementAssignment::STATUS_ACTIVE));
+            })
+            ->orderBy('name')->get(['id', 'name', 'email']);
+    }
+
     public function priceLists(int $userId, string $date): Collection
     {
         return PriceList::query()
@@ -81,14 +98,14 @@ final class UserOrderAuthoringService
         })->filter(fn ($row) => $row->medicine_id > 0 && $row->remaining_quantity > 0)->values();
     }
 
-    public function createDraft(int $userId, array $data): InventoryIssue
+    public function createDraft(int $actorUserId, int $managerUserId, array $data): InventoryIssue
     {
-        return DB::transaction(function () use ($userId, $data): InventoryIssue {
+        return DB::transaction(function () use ($actorUserId, $managerUserId, $data): InventoryIssue {
             $source = $data['source'];
             $date = $data['issue_date'];
             $items = $source === 'bid'
-                ? $this->resolveBidItems($userId, $date, $data)
-                : $this->resolvePriceListItems($userId, $date, $data);
+                ? $this->resolveBidItems($managerUserId, $date, $data)
+                : $this->resolvePriceListItems($managerUserId, $date, $data);
 
             $partner = Partner::query()->whereKey($items['partner_id'])->where('status', 'active')->firstOrFail();
             $warehouse = app(InventoryService::class)->defaultWarehouse();
@@ -98,14 +115,14 @@ final class UserOrderAuthoringService
                 'issue_date' => $date,
                 'recipient_name' => $partner->name,
                 'recipient_partner_id' => $partner->id,
-                'manager_user_id' => $userId,
+                'manager_user_id' => $managerUserId,
                 'price_list_id' => $items['price_list_id'],
                 'issue_source' => $source === 'bid' ? 'bid' : 'normal',
                 'bid_partner_id' => $source === 'bid' ? $partner->id : null,
                 'bid_investor_name' => $items['investor_name'],
                 'status' => InventoryIssue::DRAFT,
                 'notes' => $data['notes'] ?? null,
-                'created_by' => $userId,
+                'created_by' => $actorUserId,
             ]);
             $issue->items()->createMany($items['rows']);
 
@@ -113,21 +130,22 @@ final class UserOrderAuthoringService
         });
     }
 
-    public function updateDraft(int $userId, InventoryIssue $issue, array $data): InventoryIssue
+    public function updateDraft(int $actorUserId, int $managerUserId, InventoryIssue $issue, array $data): InventoryIssue
     {
-        $this->guardEditable($userId, $issue);
+        $this->guardEditable($actorUserId, $issue);
         if (($issue->issue_source === 'bid' ? 'bid' : 'price_list') !== $data['source']) {
             throw ValidationException::withMessages(['source' => 'Nguồn đơn hàng không được thay đổi sau khi tạo nháp.']);
         }
 
-        return DB::transaction(function () use ($userId, $issue, $data): InventoryIssue {
+        return DB::transaction(function () use ($managerUserId, $issue, $data): InventoryIssue {
             $items = $data['source'] === 'bid'
-                ? $this->resolveBidItems($userId, $data['issue_date'], $data)
-                : $this->resolvePriceListItems($userId, $data['issue_date'], $data);
+                ? $this->resolveBidItems($managerUserId, $data['issue_date'], $data)
+                : $this->resolvePriceListItems($managerUserId, $data['issue_date'], $data);
             $partner = Partner::query()->whereKey($items['partner_id'])->where('status', 'active')->firstOrFail();
 
             $issue->update([
                 'issue_date' => $data['issue_date'], 'recipient_name' => $partner->name,
+                'manager_user_id' => $managerUserId,
                 'recipient_partner_id' => $partner->id, 'price_list_id' => $items['price_list_id'],
                 'bid_partner_id' => $data['source'] === 'bid' ? $partner->id : null,
                 'bid_investor_name' => $items['investor_name'], 'notes' => $data['notes'] ?? null,
