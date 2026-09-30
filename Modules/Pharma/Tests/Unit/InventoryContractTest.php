@@ -713,6 +713,12 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("priceListManagers->contains('id',\$issue->manager->id)", $controller);
         $this->assertStringContainsString("@selected((string)old('manager_user_id',\$selectedManagerId)===(string)\$manager->id)", $editView);
         $this->assertStringContainsString('refreshPostState()', $editView);
+        $this->assertStringContainsString("const postable=active.filter(tr=>!(tr.querySelector('.supply-note-value')?.value.trim()))", $editView);
+        $this->assertStringContainsString("postable.length>0&&postable.every", $editView);
+        $this->assertStringContainsString('Ghi sổ các mặt hàng đủ hàng; mặt hàng có ghi chú cung ứng sẽ không xuất kho', $editView);
+        $this->assertStringContainsString('id="aside-post-value"', $editView);
+        $this->assertStringContainsString('Ghi sổ lần này', $editView);
+        $this->assertStringContainsString('Không xuất · chờ cung ứng', $editView);
         $this->assertStringContainsString('$doc->total_quantity', $documents);
         $this->assertStringContainsString("compact('warehouse','availableBalances','partners','customerPriceLists','priceListManagers','issueSalePrices')", $controller);
         $this->assertStringContainsString("'manager_user_id'=>'required|integer|exists:users,id'", $controller);
