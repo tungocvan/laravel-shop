@@ -10,9 +10,13 @@
     $money = fn ($value) => number_format((float) $value, 0, ',', '.').' đ';
     $statusLabels = ['draft'=>'Nháp','pending_approval'=>'Chờ duyệt','approved'=>'Đã duyệt','rejected'=>'Từ chối','posted'=>'Đã xuất','cancelled'=>'Đã hủy'];
     $source = ($issue->issue_source ?? 'normal') === 'bid' ? 'Theo kết quả trúng thầu' : 'Theo bảng giá';
-    $deferredAllocationIds = $savedSupplyNotes->keys()->map(fn($id)=>(int)$id);
-    $fulfilledItems = $issue->items->filter(fn($item)=>!$deferredAllocationIds->contains((int)$item->drug_bid_award_allocation_id));
-    $deferredItems = $issue->items->filter(fn($item)=>$deferredAllocationIds->contains((int)$item->drug_bid_award_allocation_id));
+    $deferredAllocationIds = $savedSupplyNotes->keys()->map(fn($id) => (int) $id);
+    $fulfilledItems = $issue->items->filter(function ($item) use ($deferredAllocationIds) {
+        return ! $deferredAllocationIds->contains((int) $item->drug_bid_award_allocation_id);
+    });
+    $deferredItems = $issue->items->filter(function ($item) use ($deferredAllocationIds) {
+        return $deferredAllocationIds->contains((int) $item->drug_bid_award_allocation_id);
+    });
     $displayItems = $issue->status === 'approved' ? $fulfilledItems : $issue->items;
     $total = $displayItems->sum(fn($item)=>(float)$item->quantity*(float)$item->unit_price);
 @endphp
