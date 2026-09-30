@@ -139,17 +139,17 @@
         </form>
     </aside>
     @if($canCreateOrders)
-        <a href="{{ route('client.pharma.orders.create') }}" data-create-order class="fixed bottom-[88px] right-5 z-30 inline-flex h-11 w-11 items-center justify-center rounded-full bg-slate-950 text-xl font-light leading-none text-white shadow-lg transition active:scale-95 lg:bottom-6 lg:right-8 lg:h-10 lg:w-10 lg:text-lg" aria-label="Thêm mới đơn hàng">+</a>
+        <a href="{{ route('client.pharma.orders.create') }}" data-create-order class="fixed bottom-[76px] right-4 z-30 inline-flex h-11 w-11 items-center justify-center rounded-full bg-slate-950 text-xl font-light leading-none text-white shadow-lg transition active:scale-95 lg:bottom-8 lg:right-8 lg:h-11 lg:w-auto lg:gap-2 lg:rounded-xl lg:px-4 lg:text-sm lg:font-black" aria-label="Lập đơn hàng"><span class="text-lg font-light leading-none">+</span><span class="hidden lg:inline">Lập đơn hàng</span></a>
     @endif
 </div>
 
-<dialog id="shortage-note-dialog" class="w-[calc(100%-32px)] max-w-[480px] rounded-[26px] border-0 p-0 shadow-2xl backdrop:bg-slate-950/55">
-    <div class="p-5"><div class="flex items-center justify-between gap-3"><div><p class="text-xs font-black uppercase tracking-wide text-amber-700">Thiếu hàng</p><h2 class="mt-1 text-lg font-black text-slate-950">Ghi chú cung ứng</h2></div><button type="button" data-shortage-close class="h-10 w-10 rounded-full bg-slate-100 text-xl text-slate-700" aria-label="Đóng">×</button></div><p id="shortage-note-content" class="mt-4 whitespace-pre-line rounded-2xl bg-amber-50 p-4 text-sm font-medium leading-6 text-amber-950"></p></div>
+<dialog id="shortage-note-dialog" class="w-[calc(100%-16px)] max-w-[520px] rounded-[26px] border-0 p-0 shadow-2xl backdrop:bg-slate-950/55">
+    <div class="p-4 sm:p-5"><div class="flex items-center justify-between gap-3"><div><p class="text-xs font-black uppercase tracking-wide text-amber-700">Thiếu hàng</p><h2 class="mt-1 text-lg font-black text-slate-950">Ghi chú cung ứng</h2></div><button type="button" data-shortage-close class="h-10 w-10 rounded-full bg-slate-100 text-xl text-slate-700" aria-label="Đóng">×</button></div><p id="shortage-note-content" class="mt-4 whitespace-pre-line rounded-2xl bg-amber-50 p-4 text-sm font-medium leading-6 text-amber-950"></p></div>
 </dialog>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const shortageDialog=document.getElementById('shortage-note-dialog'), shortageContent=document.getElementById('shortage-note-content');
-    const centerShortageDialog=()=>{if(!shortageDialog)return;shortageDialog.style.position='fixed';shortageDialog.style.inset='50% auto auto 50%';shortageDialog.style.margin='0';shortageDialog.style.transform='translate(-50%, -50%)';shortageDialog.style.maxHeight='calc(100dvh - 32px)';};
+    const centerShortageDialog=()=>{if(!shortageDialog)return;shortageDialog.style.position='fixed';shortageDialog.style.inset='50% auto auto 50%';shortageDialog.style.margin='0';shortageDialog.style.transform='translate(-50%, -50%)';shortageDialog.style.maxHeight='calc(100dvh - 24px)';};
     document.addEventListener('click',(event)=>{const button=event.target.closest('[data-shortage-note]');if(!button)return;event.preventDefault();event.stopPropagation();if(shortageContent)shortageContent.textContent=button.dataset.shortageNote||'';centerShortageDialog();shortageDialog?.showModal();});
     document.querySelector('[data-shortage-close]')?.addEventListener('click',()=>shortageDialog?.close());
     const search = document.getElementById('issue-search-input');
