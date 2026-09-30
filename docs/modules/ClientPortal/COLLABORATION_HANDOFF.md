@@ -10,6 +10,8 @@
 - Submit transitions only `draft -> pending_approval`, recording `submitted_by/submitted_at`; it does not call `InventoryService::postIssue()`, create inventory transactions or mutate stock balances.
 - Schema adds `recipient_partner_id`, `submitted_by`, `submitted_at` to the existing InventoryIssue-backed order document. No approval/posting audit fields are introduced in MR2.
 - Mobile-first create/edit UI follows the approved reference: simple centered header, segmented source selector, large controls, searchable customer/bid rows, product quantity cards and sticky `Quay lại | Lưu nháp`. Draft detail exposes `Sửa đơn | Gửi duyệt` only when authorized.
+- UX refinement after operator screenshot: create CTA is available to own-create OR delegated-create permission; delegated authoring uses `client.pharma.orders.create-for-user`, searchable User selector, then reloads canonical price-list/bid scope for that User. `created_by` remains the real actor while `manager_user_id` is the responsible User.
+- Professional authoring UI: desktop two-column context/catalog layout, mobile single-column, searchable customer combobox, product search, selected-card emphasis, live item/quantity/value summary, sticky draft actions. Customer-bound price lists auto-lock the assigned customer.
 - Required checkpoint: pull branch; Test 1 = focused `PharmaOrderAuthoringCapabilityTest + PharmaInventoryIssuesCapabilityTest`; on PASS run Test 2 = `tests/Feature/ClientApps`. Stop on any failure and send raw output. Real mobile + desktop UI acceptance remains mandatory before PR.
 - Status: **IMPLEMENTED — AWAITING OPERATOR PULL / TEST.**
 
