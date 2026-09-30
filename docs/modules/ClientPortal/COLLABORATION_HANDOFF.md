@@ -295,8 +295,10 @@ Recommended sequence remains:
 - Detail is read-only and shows source, recipient, manager, price list when applicable, product lines, quantity, unit price, lot/expiry when present, total and notes.
 - `Đơn hàng` appears directly in the Pharma capability/navigation surface. The Inventory screen no longer exposes a nested order/issue entry.
 - Focused test added: `tests/Feature/ClientApps/PharmaInventoryIssuesCapabilityTest.php`.
-- Required operator checkpoint: `git pull --ff-only`, run the focused Inventory Issues capability test first. Stop on FAIL/500. After PASS run impacted ClientApps regression and then real Desktop + Tablet/Mobile/PWA acceptance.
-- Status: **IMPLEMENTED — AWAITING OPERATOR PULL / FOCUSED TEST / UI ACCEPTANCE.**
+- UI acceptance reported PASS for the independent Orders capability, mobile list/detail, responsive overflow containment, quick `Xóa bộ lọc`, and centered desktop filter modal.
+- MR1 intentionally remains read-only. Draft orders do not expose approve/post actions. The next mutation sequence is explicitly deferred: Draft -> Submit for approval -> Pending approval -> Approve/Reject -> Warehouse issue/post. Sales/order permissions must remain separate from warehouse Inventory permissions.
+- Required operator checkpoint: `git pull --ff-only`, run the focused Inventory Issues capability test first. Stop on FAIL/500. After PASS run the full `tests/Feature/ClientApps` regression. Do not add mutation to MR1.
+- Status: **IMPLEMENTED — REAL UI PASS — AWAITING FOCUSED + CLIENTAPPS REGRESSION BEFORE PR GATE.**
 
 ## Current delivery — ClientPortal Feature Page Content & PWA AI Workflow
 
