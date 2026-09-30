@@ -754,10 +754,13 @@ final class InventoryController extends Controller
                 if(! $balance || (int)$balance->medicine_id!==$medicineId) throw ValidationException::withMessages(['items'=>'Lô tồn kho đã chọn không còn khả dụng. Vui lòng chọn lại lô.']);
             }
             $note=trim((string)($item['supply_note']??''));
-            if(! $balance && $note==='') throw ValidationException::withMessages(['items'=>'Mặt hàng chưa chọn lô phải có Ghi chú cung ứng.']);
+            $availableQuantity=(float)InventoryBalance::query()->where('warehouse_id',$warehouse->id)
+                ->where('medicine_id',$medicineId)->sum('quantity_on_hand');
+            $hasShortage=$availableQuantity+0.00005 < (float)$item['quantity'];
+            if($hasShortage && $note==='') throw ValidationException::withMessages(['items'=>'Mặt hàng chưa đủ tồn phải có Ghi chú cung ứng.']);
             return ['medicine_id'=>$medicineId,'batch_number'=>$balance?->batch_number,'expiry_date'=>$balance?->expiry_date?->toDateString(),
-                'quantity'=>$item['quantity'],'unit_price'=>(float)$item['unit_price'],'supply_note'=>$note,
-                'expected_supply_date'=>$item['expected_supply_date']??null];
+                'quantity'=>$item['quantity'],'unit_price'=>(float)$item['unit_price'],'supply_note'=>$hasShortage?$note:'',
+                'expected_supply_date'=>$hasShortage?($item['expected_supply_date']??null):null,'has_shortage'=>$hasShortage];
         })->all();
         DB::transaction(function()use($issue,$metadata,$data,$items){
             $locked=InventoryIssue::query()->whereKey($issue->id)->lockForUpdate()->first();
@@ -767,10 +770,10 @@ final class InventoryController extends Controller
             $locked->deferredSupplies()->whereNull('drug_bid_award_allocation_id')->delete();
             $locked->items()->delete();
             foreach($items as $item){
-                $supplyNote=$item['supply_note']; $expectedSupplyDate=$item['expected_supply_date'];
-                unset($item['supply_note'],$item['expected_supply_date']);
+                $supplyNote=$item['supply_note']; $expectedSupplyDate=$item['expected_supply_date']; $hasShortage=$item['has_shortage'];
+                unset($item['supply_note'],$item['expected_supply_date'],$item['has_shortage']);
                 $created=$locked->items()->create($item);
-                if(blank($item['batch_number'])){
+                if($hasShortage){
                     $locked->deferredSupplies()->create(['medicine_id'=>$created->medicine_id,'quantity'=>$created->quantity,
                         'expected_supply_date'=>$expectedSupplyDate,'note'=>$supplyNote,'status'=>InventoryIssueDeferredSupply::PENDING,'created_by'=>auth('admin')->id()]);
                 }
