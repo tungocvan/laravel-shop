@@ -433,6 +433,7 @@ final class InventoryController extends Controller
         if($dateFrom>$dateTo) [$dateFrom,$dateTo]=[$dateTo,$dateFrom];
         $query=InventoryIssue::query()->withCount('items')
             ->with(['items:id,issue_id,medicine_id,drug_bid_award_id,batch_number,expiry_date,quantity','manager:id,name'])
+            ->withSum('items as total_quantity','quantity')
             ->withSum('items as total_value',DB::raw('quantity * unit_price'))
             ->where('warehouse_id',$warehouse->id)
             ->when($request->filled('q'),fn($q)=>$q->where(fn($x)=>$x->where('number','like','%'.$request->q.'%')->orWhere('recipient_name','like','%'.$request->q.'%')))
@@ -753,6 +754,11 @@ final class InventoryController extends Controller
             $locked->items()->delete();
             $locked->items()->createMany($items);
         });
+        if($request->input('after_save')==='post'){
+            $inventory->postIssue($issue->fresh('items'),auth('admin')->id());
+            return redirect()->route('admin.pharma.inventory.issues.show',$issue)
+                ->with('success',"Đã lưu và ghi sổ {$issue->number}; tồn kho và hoa hồng đã được cập nhật.");
+        }
         $route=$request->input('after_save')==='view' ? 'admin.pharma.inventory.issues.show' : 'admin.pharma.inventory.issues.edit';
         return redirect()->route($route,$issue)->with('success',"Đã cập nhật đầy đủ phiếu nháp {$issue->number}.");
     }
