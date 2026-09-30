@@ -25,13 +25,17 @@
  <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
   <p class="text-xs font-black uppercase tracking-wide text-slate-500">Thiết lập đơn hàng</p>
   @if($canCreateForUser)
-   <label class="mt-4 block"><span class="mb-2 block text-sm font-black">Người phụ trách</span>
-    <input id="manager-search" type="search" placeholder="Tìm User phụ trách..." class="h-12 w-full rounded-2xl border border-slate-300 px-4">
-    <select id="manager-select" name="manager_user_id" size="4" class="mt-2 w-full rounded-2xl border border-slate-300 bg-white p-2 text-sm">
-     @foreach($orderManagers as $manager)<option value="{{ $manager->id }}" @selected((int)old('manager_user_id',$managerUserId)===(int)$manager->id)>{{ $manager->name }}{{ $manager->email ? ' · '.$manager->email : '' }}</option>@endforeach
-    </select>
+   <div class="mt-4" data-manager-combobox><span class="mb-2 block text-sm font-black">Người phụ trách</span>
+    <div class="relative">
+     <button id="manager-toggle" type="button" class="flex h-12 w-full items-center justify-between rounded-2xl border border-slate-300 bg-white px-4 text-left"><span id="manager-label" class="min-w-0 truncate text-sm text-slate-700">Chọn User phụ trách</span><span class="ml-2 shrink-0 text-slate-400">⌄</span></button>
+     <div id="manager-panel" class="absolute z-50 mt-1 hidden w-full rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+      <input id="manager-search" type="search" autocomplete="off" placeholder="Tìm User phụ trách..." class="h-11 w-full rounded-xl border border-slate-300 px-3">
+      <div id="manager-results" class="mt-2 max-h-56 overflow-y-auto"></div>
+     </div>
+    </div>
+    <input id="manager-id" type="hidden" name="manager_user_id" value="{{ old('manager_user_id',$managerUserId) }}">
     <p class="mt-2 text-xs text-slate-500">Bạn đang lên đơn thay User; hệ thống vẫn lưu người tạo thực tế để audit.</p>
-   </label>
+   </div>
   @else
    <input type="hidden" name="manager_user_id" value="{{ $managerUserId }}"><div class="mt-4 rounded-2xl bg-slate-50 p-3"><p class="text-xs font-bold text-slate-500">Người phụ trách</p><p class="mt-1 font-black">{{ $orderManagers->first()?->name }}</p></div>
   @endif
@@ -84,9 +88,13 @@
 
 <script>
 document.addEventListener('DOMContentLoaded',()=>{
- const manager=document.getElementById('manager-select'), managerSearch=document.getElementById('manager-search');
- managerSearch?.addEventListener('input',()=>{const q=managerSearch.value.toLocaleLowerCase('vi');[...manager.options].forEach(o=>o.hidden=!o.text.toLocaleLowerCase('vi').includes(q));});
- manager?.addEventListener('change',()=>{const u=new URL(location.href);u.searchParams.set('manager_user_id',manager.value);location.href=u.toString();});
+ const managers=@json($orderManagers->map(fn($m)=>['id'=>$m->id,'name'=>$m->name,'email'=>$m->email])->values());
+ const managerBox=document.querySelector('[data-manager-combobox]'), managerToggle=document.getElementById('manager-toggle'), managerPanel=document.getElementById('manager-panel'), managerSearch=document.getElementById('manager-search'), managerResults=document.getElementById('manager-results'), managerId=document.getElementById('manager-id'), managerLabel=document.getElementById('manager-label');
+ const renderManagers=()=>{if(!managerResults)return;const q=(managerSearch?.value||'').toLocaleLowerCase('vi').trim();managerResults.innerHTML='';managers.filter(m=>(m.name+' '+(m.email||'')).toLocaleLowerCase('vi').includes(q)).slice(0,25).forEach(m=>{const b=document.createElement('button');b.type='button';b.className='block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100';b.textContent=m.name+(m.email?' · '+m.email:'');b.onclick=()=>{managerId.value=m.id;managerLabel.textContent=m.name+(m.email?' · '+m.email:'');managerPanel.classList.add('hidden');const u=new URL(location.href);u.searchParams.set('manager_user_id',m.id);location.href=u.toString();};managerResults.appendChild(b);});};
+ const openManagers=()=>{managerPanel?.classList.remove('hidden');renderManagers();setTimeout(()=>managerSearch?.focus(),0);};
+ managerToggle?.addEventListener('click',()=>{if(managerPanel.classList.contains('hidden'))openManagers();else managerPanel.classList.add('hidden');});
+ managerSearch?.addEventListener('input',renderManagers);
+ if(managerId?.value){const m=managers.find(x=>String(x.id)===String(managerId.value));if(m)managerLabel.textContent=m.name+(m.email?' · '+m.email:'');}
 
  const priceContext=document.getElementById('price-list-context'), priceProducts=document.getElementById('price-list-products'), bidProducts=document.getElementById('bid-products');
  const source=()=>document.querySelector('input[name="source"]:checked')?.value||document.querySelector('input[type="hidden"][name="source"]')?.value||'price_list';
@@ -103,6 +111,8 @@ document.addEventListener('DOMContentLoaded',()=>{
  window.selectCustomer=(id,locked=false)=>{const c=customers.find(x=>String(x.id)===String(id));if(!c)return;cid.value=c.id;cs.value=c.name;csel.textContent='Đã chọn: '+c.name;cs.readOnly=locked;cr.classList.add('hidden');};
  const renderCustomers=()=>{const q=cs.value.toLocaleLowerCase('vi').trim();cr.innerHTML='';customers.filter(c=>(c.name+' '+(c.tax_code||'')).toLocaleLowerCase('vi').includes(q)).slice(0,25).forEach(c=>{const b=document.createElement('button');b.type='button';b.className='block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100';b.textContent=c.name+(c.tax_code?' · '+c.tax_code:'');b.onclick=()=>selectCustomer(c.id);cr.appendChild(b);});cr.classList.toggle('hidden',cr.children.length===0);};
  cs?.addEventListener('input',()=>{cid.value='';csel.textContent='';renderCustomers();});cs?.addEventListener('focus',renderCustomers);if(cid?.value)selectCustomer(cid.value,false);
+ document.addEventListener('click',e=>{if(managerBox&&!managerBox.contains(e.target))managerPanel?.classList.add('hidden');const customerBox=cs?.closest('.relative');if(customerBox&&!customerBox.contains(e.target))cr?.classList.add('hidden');});
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'){managerPanel?.classList.add('hidden');cr?.classList.add('hidden');}});
 
  const bidSearch=document.getElementById('bid-search');bidSearch?.addEventListener('input',()=>{const q=bidSearch.value.toLocaleLowerCase('vi');document.querySelectorAll('[data-bid-item]').forEach(el=>el.classList.toggle('hidden',!el.dataset.search.includes(q)));});
  const summary=()=>{let count=0,qty=0,total=0;document.querySelectorAll('[data-quantity]:not(:disabled)').forEach(i=>{const q=parseFloat(i.value)||0;if(q>0){count++;qty+=q;total+=q*(parseFloat(i.closest('[data-price]')?.dataset.price)||0);i.closest('[data-price]')?.classList.add('ring-2','ring-slate-900');}else{i.closest('[data-price]')?.classList.remove('ring-2','ring-slate-900');}});document.getElementById('order-summary').textContent=count+' sản phẩm · '+qty.toLocaleString('vi-VN')+' SL · '+Math.round(total).toLocaleString('vi-VN')+' đ';};
