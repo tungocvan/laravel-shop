@@ -16,6 +16,7 @@ final class PharmaOrderApprovalCapabilityTest extends TestCase
         $this->assertSame(2, substr_count($manifest, "'permission' => 'client.pharma.orders.approve'"));
         $this->assertStringContainsString("Route::post('/orders/{issue}/approve'", $routes);
         $this->assertStringContainsString("Route::post('/orders/{issue}/reject'", $routes);
+        $this->assertStringContainsString("Route::delete('/orders/{issue}'", $routes);
         $this->assertStringContainsString('final class UserOrderApprovalService', $service);
         $this->assertStringContainsString('InventoryIssue::PENDING_APPROVAL', $service);
         $this->assertStringContainsString('InventoryIssue::APPROVED', $service);
@@ -25,6 +26,9 @@ final class PharmaOrderApprovalCapabilityTest extends TestCase
         $this->assertStringContainsString("stockReadiness->forIssue(\$issue)['is_ready']", $service);
         $this->assertStringContainsString('toàn bộ sản phẩm phải đủ tồn kho khả dụng', $service);
         $this->assertStringContainsString('undoApproval', $service);
+        $this->assertStringContainsString('deleteNonStockOrder', $service);
+        $this->assertStringContainsString('[InventoryIssue::DRAFT, InventoryIssue::REJECTED]', $service);
+        $this->assertStringContainsString("\$issue->items()->delete()", $service);
         $this->assertStringContainsString('APPROVED', $service);
         $this->assertStringNotContainsString('postIssue(', $service);
         $this->assertStringNotContainsString('InventoryTransaction', $service);
@@ -51,6 +55,8 @@ final class PharmaOrderApprovalCapabilityTest extends TestCase
         $this->assertStringContainsString('rejection_reason', $view);
         $this->assertStringContainsString("@disabled(!(\$stockReadiness['is_ready'] ?? false))", $view);
         $this->assertStringContainsString('Hoàn tác phê duyệt', $view);
+        $this->assertStringContainsString('Xóa đơn', $view);
+        $this->assertStringContainsString('không ảnh hưởng tồn kho', $view);
         $this->assertStringContainsString('toàn bộ sản phẩm phải đủ tồn kho khả dụng', $view);
     }
 
