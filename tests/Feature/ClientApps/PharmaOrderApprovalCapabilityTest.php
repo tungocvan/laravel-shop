@@ -23,8 +23,8 @@ final class PharmaOrderApprovalCapabilityTest extends TestCase
         $this->assertStringContainsString('InventoryIssue::REJECTED', $service);
         $this->assertStringContainsString("'approved_by' => \$actorUserId", $service);
         $this->assertStringContainsString("'rejected_by' => \$actorUserId", $service);
-        $this->assertStringContainsString("stockReadiness->forIssue(\$issue)['is_ready']", $service);
-        $this->assertStringContainsString('toàn bộ sản phẩm phải đủ tồn kho khả dụng', $service);
+        $this->assertStringContainsString("stockReadiness->forIssue(\$issue)['can_approve']", $service);
+        $this->assertStringContainsString('ít nhất 1 sản phẩm đủ tồn', $service);
         $this->assertStringContainsString('undoApproval', $service);
         $this->assertStringContainsString('deleteNonStockOrder', $service);
         $this->assertStringContainsString('[InventoryIssue::DRAFT, InventoryIssue::REJECTED]', $service);
@@ -53,11 +53,11 @@ final class PharmaOrderApprovalCapabilityTest extends TestCase
         $this->assertStringContainsString('Từ chối', $view);
         $this->assertStringContainsString('Lý do từ chối', $view);
         $this->assertStringContainsString('rejection_reason', $view);
-        $this->assertStringContainsString("@disabled(!(\$stockReadiness['is_ready'] ?? false))", $view);
+        $this->assertStringContainsString("@disabled(!(\$stockReadiness['can_approve'] ?? false))", $view);
         $this->assertStringContainsString('Hoàn tác phê duyệt', $view);
         $this->assertStringContainsString('Xóa đơn', $view);
         $this->assertStringContainsString('không ảnh hưởng tồn kho', $view);
-        $this->assertStringContainsString('toàn bộ sản phẩm phải đủ tồn kho khả dụng', $view);
+        $this->assertStringContainsString('ít nhất 1 sản phẩm đủ tồn', $view);
     }
 
     public function test_approval_schema_is_audit_only_and_does_not_add_stock_fields(): void
