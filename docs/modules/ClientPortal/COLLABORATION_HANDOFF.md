@@ -5,7 +5,8 @@
 - Added independent action permission `client.pharma.orders.approve`; it does not reuse Inventory permissions.
 - Approvers can see the pending approval queue even when they are not the order manager/creator, while normal Users retain their existing scoped order visibility.
 - Pending order detail exposes mobile-first `Từ chối | Phê duyệt` actions only to authorized approvers. Rejection requires a reason.
-- Self-approval is blocked when the approver is the creator, responsible manager or submitter.
+- Before the decision actions, approvers get a read-only `Kiểm tra khả năng xuất kho` panel: requested quantity, currently available non-expired stock, shortage/ready state, and expandable lot/expiry balances. This is informational only: it does not reserve stock, select the fulfillment lot, or mutate inventory.
+- Explicit `client.pharma.orders.approve` is the approval authority. Admin/on-behalf authors are not implicitly blocked when they also hold this permission; the permission remains auditable and separately assignable.
 - Canonical mutation owner is `Modules/Pharma/Services/UserOrderApprovalService`; ClientPortal only authorizes, delegates and renders.
 - Approval audit schema adds `approved_by/approved_at/rejected_by/rejected_at/rejection_reason`. It adds no lot, expiry or stock-posting fields.
 - New statuses: `approved` and `rejected`. Approved means commercial/order approval only; it does not mean stock has been issued.
