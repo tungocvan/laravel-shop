@@ -58,7 +58,7 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
 
         $this->assertStringContainsString('Thêm mới đơn hàng', $view);
         $this->assertStringContainsString('Theo bảng giá', $view);
-        $this->assertStringContainsString('Theo kết quả trúng thầu', $view);
+        $this->assertStringContainsString('Theo trúng thầu', $view);
         $this->assertStringContainsString('Tìm tên / MST khách hàng...', $view);
         $this->assertStringContainsString('Tìm User phụ trách...', $view);
         $this->assertStringContainsString('Tìm tên thuốc / mã thuốc / hoạt chất...', $view);
