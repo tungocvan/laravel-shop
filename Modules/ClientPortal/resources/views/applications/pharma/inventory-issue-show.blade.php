@@ -129,15 +129,20 @@
             <section class="rounded-3xl border border-rose-200 bg-rose-50 p-5"><p class="text-xs font-black uppercase tracking-wide text-rose-700">Lý do từ chối</p><p class="mt-2 whitespace-pre-line text-sm leading-6 text-rose-900">{{ $issue->rejection_reason }}</p></section>
         @endif
     </main>
-    @if($canEditOrder || $canSubmitOrder || $canApproveOrder)
+    @if($canEditOrder || $canSubmitOrder || $canApproveOrder || ($canUndoApproval ?? false))
         <div class="sticky bottom-0 z-20 mx-auto mt-4 max-w-4xl border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur lg:rounded-2xl lg:border">
-            @if($canApproveOrder)
+            @if($canUndoApproval ?? false)
+                <form method="POST" action="{{ route('client.pharma.orders.undo-approval',$issue) }}">@csrf
+                    <button class="h-13 w-full rounded-2xl border border-amber-300 bg-amber-50 font-black text-amber-900">Hoàn tác phê duyệt</button>
+                </form>
+                <p class="mt-2 text-xs leading-5 text-slate-500">Đơn chưa ghi sổ kho nên có thể đưa về Chờ duyệt để kiểm tra lại tồn hàng.</p>
+            @elseif($canApproveOrder)
                 <div class="grid grid-cols-2 gap-3">
                     <button type="button" id="order-reject-toggle" class="h-13 rounded-2xl border border-rose-300 bg-white font-black text-rose-700">Từ chối</button>
-                    <form method="POST" action="{{ route('client.pharma.orders.approve',$issue) }}">@csrf<button @disabled(!($stockReadiness['can_approve'] ?? false)) class="h-13 w-full rounded-2xl bg-slate-950 font-black text-white disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500">Phê duyệt</button></form>
+                    <form method="POST" action="{{ route('client.pharma.orders.approve',$issue) }}">@csrf<button @disabled(!($stockReadiness['is_ready'] ?? false)) class="h-13 w-full rounded-2xl bg-slate-950 font-black text-white disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500">Phê duyệt</button></form>
                 </div>
-                @if(!($stockReadiness['can_approve'] ?? false))
-                    <p class="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs font-bold leading-5 text-amber-900">Chưa thể phê duyệt: hãy lưu ghi chú cho từng sản phẩm đang thiếu hàng, hoặc Từ chối để User điều chỉnh số lượng.</p>
+                @if(!($stockReadiness['is_ready'] ?? false))
+                    <p class="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs font-bold leading-5 text-amber-900">Chưa thể phê duyệt: toàn bộ sản phẩm phải đủ tồn kho khả dụng. Ghi chú chờ cung cấp chỉ dùng để theo dõi hàng thiếu.</p>
                 @endif
                 <form id="order-reject-form" method="POST" action="{{ route('client.pharma.orders.reject',$issue) }}" class="mt-3 hidden rounded-2xl border border-rose-200 bg-rose-50 p-3">
                     @csrf
