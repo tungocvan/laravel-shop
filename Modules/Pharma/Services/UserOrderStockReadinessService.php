@@ -47,9 +47,26 @@ final class UserOrderStockReadinessService
             ];
         })->values();
 
+        $deferredAllocationIds = $issue->deferredSupplies()
+            ->where('status', \Modules\Pharma\Models\InventoryIssueDeferredSupply::PENDING)
+            ->pluck('drug_bid_award_allocation_id')
+            ->map(fn ($id) => (int) $id);
+
+        $itemAllocationIds = $issue->items->pluck('drug_bid_award_allocation_id', 'id')
+            ->map(fn ($id) => (int) $id);
+
+        $rows = $rows->map(function (array $row) use ($deferredAllocationIds, $itemAllocationIds): array {
+            $allocationId = $itemAllocationIds->get($row['item_id']);
+            $row['has_supply_note'] = ! $row['is_ready'] && $allocationId
+                && $deferredAllocationIds->contains((int) $allocationId);
+            $row['approval_ready'] = $row['is_ready'] || $row['has_supply_note'];
+            return $row;
+        });
+
         return [
             'warehouse_id' => (int) $issue->warehouse_id,
             'is_ready' => $rows->every(fn (array $row): bool => $row['is_ready']),
+            'can_approve' => $rows->every(fn (array $row): bool => $row['approval_ready']),
             'rows' => $rows->all(),
         ];
     }
