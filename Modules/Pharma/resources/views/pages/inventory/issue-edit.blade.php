@@ -4,10 +4,7 @@
 @section('content')
 @php
     $selectedPriceList=$issue->priceList;
-    $priceListManagers=$selectedPriceList?->type==='global'
-        ? $selectedPriceList->globalUsers->unique('id')->sortBy('name')->values()
-        : collect([$selectedPriceList?->manager])->filter()->unique('id')->values();
-    $selectedManagerId=$issue->manager_user_id ?: ($selectedPriceList?->type==='global' ? ($selectedPriceList?->globalUsers?->first()?->id ?? auth()->id()) : $selectedPriceList?->manager_user_id);
+    $selectedManagerId=$issue->manager_user_id ?: ($selectedPriceList?->manager_user_id ?? auth()->id());
     $initialItems=$issue->items->map(function ($item) {
         return [
             'medicine_id'=>$item->medicine_id,'batch_number'=>$item->batch_number,'expiry_date'=>$item->expiry_date?->format('Y-m-d'),
