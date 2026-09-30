@@ -36,7 +36,7 @@
                 <span class="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Đến</span>
                 <input type="date" name="date_to" value="{{ $dateTo }}" data-auto-submit-filter aria-label="Đến ngày" title="Đến ngày" class="min-h-11 w-full rounded-xl border border-slate-300 bg-white pl-12 pr-2 text-sm text-slate-700">
             </div>
-            <select name="status" onchange="this.form.submit()" class="min-h-11 min-w-[125px] rounded-xl border border-slate-300 bg-white px-3 text-sm"><option value="">Tất cả trạng thái</option><option value="draft" @selected(request('status') === 'draft')>Nháp</option><option value="posted" @selected(request('status') === 'posted')>Đã ghi sổ</option></select>
+            <select name="status" onchange="this.form.submit()" class="min-h-11 min-w-[125px] rounded-xl border border-slate-300 bg-white px-3 text-sm"><option value="">Tất cả trạng thái</option><option value="draft" @selected(request('status') === 'draft')>Nháp</option><option value="pending_approval" @selected(request('status') === 'pending_approval')>Chờ duyệt</option><option value="approved" @selected(request('status') === 'approved')>Đã duyệt</option><option value="rejected" @selected(request('status') === 'rejected')>Từ chối</option><option value="posted" @selected(request('status') === 'posted')>Đã ghi sổ</option></select>
             <select name="per_page" onchange="this.form.submit()" class="min-h-11 min-w-[105px] rounded-xl border border-slate-300 bg-white px-3 text-sm">@foreach([25,50,100] as $size)<option value="{{ $size }}" @selected((int)request('per_page',25)===$size)>{{ $size }} / trang</option>@endforeach</select>
             <a href="{{ route('admin.pharma.inventory.issues.index') }}" class="inline-flex min-h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900">Đặt lại</a>
         </div>
@@ -88,7 +88,7 @@
                             <td class="px-4 py-4 text-right font-semibold">{{ number_format((float)$doc->total_value,0,',','.').' đ' }}</td>
                             <td class="px-4 py-4">
                                 <span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $doc->status === 'posted' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }}">
-                                    {{ $doc->status === 'posted' ? 'Đã ghi sổ' : 'Nháp' }}
+                                    {{ ['draft'=>'Nháp','pending_approval'=>'Chờ duyệt','approved'=>'Đã duyệt','rejected'=>'Từ chối','posted'=>'Đã ghi sổ','cancelled'=>'Đã hủy'][$doc->status] ?? $doc->status }}
                                 </span>
                             </td>
                             <td class="px-4 py-4 text-right">
@@ -115,7 +115,7 @@
                                             <div class="absolute right-0 z-30 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-left shadow-xl">
                                                 @can('edit_pharma')
                                                     @if(($doc->issue_source ?? 'normal') === 'bid')
-                                                        @if($doc->status === 'draft')
+                                                        @if(in_array($doc->status, ['draft','approved'], true))
                                                             <a href="{{ route('admin.pharma.inventory.issues.bid-sales.edit',$doc) }}" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Sửa đơn hàng thầu</a>
                                                         @endif
                                                     @else
