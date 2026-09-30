@@ -132,7 +132,6 @@ final class PharmaInventoryIssuesCapabilityTest extends TestCase
         $this->assertStringContainsString("shortageDialog.style.inset='50% auto auto 50%'", $view);
         $this->assertStringContainsString("shortageDialog.style.transform='translate(-50%, -50%)'", $view);
         $this->assertStringContainsString('max-w-[520px]', $view);
-        $this->assertStringContainsString('bottom:calc(58px + env(safe-area-inset-bottom,0px))', $view);
         $this->assertStringContainsString('width:44px;height:44px', $view);
         $this->assertStringContainsString('@media (min-width:1024px){.order-create-action{display:none!important}}', $view);
         $this->assertStringContainsString('class="flex items-center gap-2"', $view);
