@@ -41,12 +41,19 @@
         </form>
     </section>
 
-    <nav class="mt-4 flex max-w-full gap-2 overflow-x-auto overscroll-x-contain pb-1 [scrollbar-width:none]" aria-label="Trạng thái đơn hàng">
+    <nav class="-mx-1 mt-4 flex max-w-full gap-2 overflow-x-auto overscroll-x-contain px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Trạng thái đơn hàng">
         @foreach([''=>'Tất cả','draft'=>'Nháp','pending_approval'=>'Chờ duyệt','approved'=>'Đã duyệt','rejected'=>'Từ chối','posted'=>'Đã xuất','cancelled'=>'Đã hủy'] as $value=>$label)
-            <a href="{{ route('client.pharma.orders', array_filter(['q'=>$filters['q'],'status'=>$value,'source'=>$filters['source'],'from_date'=>$filters['from_date'],'to_date'=>$filters['to_date'],'manager_user_id'=>$filters['manager_user_id']], fn($v)=>$v!=='' && $v!==null)) }}"
-               class="shrink-0 rounded-full border px-4 py-2 text-sm font-bold {{ $filters['status']===$value ? 'border-slate-950 bg-slate-950 text-white' : 'border-slate-200 bg-white text-slate-600' }}">
-                {{ $label }} <span class="ml-1 opacity-70">{{ $value==='' ? $counts['all'] : ($counts[$value] ?? 0) }}</span>
-            </a>
+            @php($statusCount = $value==='' ? $counts['all'] : ($counts[$value] ?? 0))
+            @if($statusCount > 0 || $filters['status']===$value)
+                <a href="{{ route('client.pharma.orders', array_filter(['q'=>$filters['q'],'status'=>$value,'source'=>$filters['source'],'from_date'=>$filters['from_date'],'to_date'=>$filters['to_date'],'manager_user_id'=>$filters['manager_user_id']], fn($v)=>$v!=='' && $v!==null)) }}"
+                   class="shrink-0 whitespace-nowrap rounded-full border px-3.5 py-2 text-sm font-bold {{ $filters['status']===$value ? 'border-slate-950 bg-slate-950 text-white' : 'border-slate-200 bg-white text-slate-600' }}">
+                    {{ $label }} <span class="ml-1 opacity-70">{{ $statusCount }}</span>
+                </a>
+            @else
+                <span aria-disabled="true" data-disabled-status class="shrink-0 cursor-not-allowed whitespace-nowrap rounded-full border border-slate-100 bg-slate-50 px-3.5 py-2 text-sm font-bold text-slate-300">
+                    {{ $label }} <span class="ml-1">{{ $statusCount }}</span>
+                </span>
+            @endif
         @endforeach
         @if($filters['q'] || $hasFilters)
             <a data-clear-order-filters href="{{ route('client.pharma.orders') }}" class="shrink-0 rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-bold text-rose-700 active:scale-95">
