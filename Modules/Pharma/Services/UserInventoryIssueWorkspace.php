@@ -60,6 +60,15 @@ final class UserInventoryIssueWorkspace
             ->find($issueId);
     }
 
+    public function findByCreator(int $creatorUserId, int $issueId): ?InventoryIssue
+    {
+        return InventoryIssue::query()
+            ->where('created_by', $creatorUserId)
+            ->with(['manager:id,name', 'priceList:id,code,name,type', 'items.medicine'])
+            ->withCount('items')
+            ->find($issueId);
+    }
+
     private function visibleQuery(int $userId): Builder
     {
         return InventoryIssue::query()->where(function (Builder $query) use ($userId): void {
