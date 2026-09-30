@@ -120,11 +120,14 @@ final class UserInventoryIssueWorkspace
 
     private function visibleQuery(int $userId, bool $includeApprovalScope = false): Builder
     {
-        return InventoryIssue::query()->where(function (Builder $query) use ($userId, $includeApprovalScope): void {
+        $query = InventoryIssue::query();
+
+        if ($includeApprovalScope) {
+            return $query;
+        }
+
+        return $query->where(function (Builder $query) use ($userId): void {
             $query->where('manager_user_id', $userId)->orWhere('created_by', $userId);
-            if ($includeApprovalScope) {
-                $query->orWhereIn('status', [InventoryIssue::PENDING_APPROVAL, InventoryIssue::APPROVED, InventoryIssue::REJECTED]);
-            }
         });
     }
 }
