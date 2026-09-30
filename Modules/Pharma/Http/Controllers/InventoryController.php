@@ -399,7 +399,11 @@ final class InventoryController extends Controller
             ->whereDate('expiry_date','>=',now()->toDateString())
             ->orderBy('expiry_date')->orderBy('medicine_id')->get();
         $partners=Partner::query()->withPartnerType('customer')->where('status','active')->orderBy('name')->get(['id','name','tax_code']);
-        $customerPriceLists=collect();
+        $customerPriceLists=PriceList::query()
+            ->with(['manager:id,name','globalUsers:id,name'])
+            ->whereIn('type',[PriceList::TYPE_GLOBAL,PriceList::TYPE_CUSTOMER])
+            ->activeAt(now()->toDateString())
+            ->orderByDesc('priority')->orderByDesc('effective_from')->orderByDesc('id')->get();
         $issueSalePrices=$this->issueSalePriceCandidates();
         return view('Pharma::pages.inventory.issue-form',compact('warehouse','availableBalances','partners','customerPriceLists','issueSalePrices'));
     }
