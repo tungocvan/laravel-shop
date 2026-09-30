@@ -17,10 +17,11 @@ final class UserInventoryIssueWorkspace
         ?string $toDate = null,
         int $perPage = 20,
         int $page = 1,
+        bool $includePendingApproval = false,
     ): LengthAwarePaginator {
         $search = trim((string) $search);
 
-        return $this->visibleQuery($userId)
+        return $this->visibleQuery($userId, $includePendingApproval)
             ->with(['manager:id,name', 'priceList:id,code,name,type'])
             ->withCount('items')
             ->withSum('items as total_quantity', 'quantity')
@@ -39,14 +40,16 @@ final class UserInventoryIssueWorkspace
             ->paginate(perPage: in_array($perPage, [20, 25, 50, 100], true) ? $perPage : 20, page: max(1, $page));
     }
 
-    public function counts(int $userId): array
+    public function counts(int $userId, bool $includePendingApproval = false): array
     {
-        $query = $this->visibleQuery($userId);
+        $query = $this->visibleQuery($userId, $includePendingApproval);
 
         return [
             'all' => (clone $query)->count(),
             InventoryIssue::DRAFT => (clone $query)->where('status', InventoryIssue::DRAFT)->count(),
             InventoryIssue::PENDING_APPROVAL => (clone $query)->where('status', InventoryIssue::PENDING_APPROVAL)->count(),
+            InventoryIssue::APPROVED => (clone $query)->where('status', InventoryIssue::APPROVED)->count(),
+            InventoryIssue::REJECTED => (clone $query)->where('status', InventoryIssue::REJECTED)->count(),
             InventoryIssue::POSTED => (clone $query)->where('status', InventoryIssue::POSTED)->count(),
             InventoryIssue::CANCELLED => (clone $query)->where('status', InventoryIssue::CANCELLED)->count(),
         ];
@@ -55,6 +58,15 @@ final class UserInventoryIssueWorkspace
     public function findVisible(int $userId, int $issueId): ?InventoryIssue
     {
         return $this->visibleQuery($userId)
+            ->with(['manager:id,name', 'priceList:id,code,name,type', 'items.medicine'])
+            ->withCount('items')
+            ->find($issueId);
+    }
+
+    public function findPendingForApproval(int $issueId): ?InventoryIssue
+    {
+        return InventoryIssue::query()
+            ->where('status', InventoryIssue::PENDING_APPROVAL)
             ->with(['manager:id,name', 'priceList:id,code,name,type', 'items.medicine'])
             ->withCount('items')
             ->find($issueId);
@@ -69,10 +81,13 @@ final class UserInventoryIssueWorkspace
             ->find($issueId);
     }
 
-    private function visibleQuery(int $userId): Builder
+    private function visibleQuery(int $userId, bool $includePendingApproval = false): Builder
     {
-        return InventoryIssue::query()->where(function (Builder $query) use ($userId): void {
+        return InventoryIssue::query()->where(function (Builder $query) use ($userId, $includePendingApproval): void {
             $query->where('manager_user_id', $userId)->orWhere('created_by', $userId);
+            if ($includePendingApproval) {
+                $query->orWhere('status', InventoryIssue::PENDING_APPROVAL);
+            }
         });
     }
 }
