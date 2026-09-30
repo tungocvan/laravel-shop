@@ -18,7 +18,9 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
         $this->assertStringContainsString("Route::put('/orders/{issue}'", $routes);
         $this->assertStringContainsString("Route::post('/orders/{issue}/submit'", $routes);
         $this->assertStringContainsString("middleware('client.feature:pharma,orders')", $routes);
-        $this->assertStringContainsString('client.pharma.orders.create-for-user', $manifest);
+        $this->assertSame(2, substr_count($manifest, "'permission' => 'client.pharma.orders.create'"));
+        $this->assertSame(2, substr_count($manifest, "'permission' => 'client.pharma.orders.submit'"));
+        $this->assertSame(2, substr_count($manifest, "'permission' => 'client.pharma.orders.create-for-user'"));
         $this->assertStringContainsString("'permission' => 'client.pharma.orders.create'", $manifest);
         $this->assertStringContainsString("'permission' => 'client.pharma.orders.submit'", $manifest);
         $this->assertStringNotContainsString('client.pharma.inventory.issues', $routes);
@@ -61,6 +63,10 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
         $this->assertStringContainsString('Theo trúng thầu', $view);
         $this->assertStringContainsString('Tìm tên / MST khách hàng...', $view);
         $this->assertStringContainsString('Tìm User phụ trách...', $view);
+        $this->assertStringContainsString('data-manager-combobox', $view);
+        $this->assertStringContainsString('manager-toggle', $view);
+        $this->assertStringContainsString("!managerBox.contains(e.target)", $view);
+        $this->assertStringContainsString("!customerBox.contains(e.target)", $view);
         $this->assertStringContainsString('Tìm tên thuốc / mã thuốc / hoạt chất...', $view);
         $this->assertStringContainsString('Sản phẩm theo bảng giá', $view);
         $this->assertStringContainsString('Sản phẩm trúng thầu được phân công', $view);
