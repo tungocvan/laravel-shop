@@ -52,6 +52,12 @@
  </section>
 
  <section id="price-list-context" class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+  @if($priceLists->isEmpty())
+   <div id="price-list-unassigned-warning" class="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+    <p class="text-sm font-black text-amber-900">Bạn chưa được phân công bảng giá đang hiệu lực</p>
+    <p class="mt-1 text-xs leading-5 text-amber-800">Không thể lập đơn theo bảng giá. Vui lòng liên hệ người quản lý để được phân công bảng giá phù hợp.</p>
+   </div>
+  @endif
   <label class="block"><span class="mb-2 block text-sm font-black">Bảng giá của User</span><select id="price-list-select" name="price_list_id" class="h-12 w-full rounded-2xl border border-slate-300 bg-white px-3"><option value="">Chọn bảng giá</option>@foreach($priceLists as $pl)<option value="{{ $pl->id }}" data-partner="{{ $pl->partner_id }}" @selected((int)old('price_list_id',$issue?->price_list_id)===$pl->id)>{{ $pl->name }}{{ $pl->partner ? ' · '.$pl->partner->name : '' }}</option>@endforeach</select></label>
   <label class="mt-4 block"><span class="mb-2 block text-sm font-black">Khách hàng</span>
    <div class="relative"><input id="customer-search" type="search" autocomplete="off" placeholder="Tìm tên / MST khách hàng..." class="h-12 w-full rounded-2xl border border-slate-300 px-4"><div id="customer-results" class="absolute z-40 mt-1 hidden max-h-64 w-full overflow-y-auto rounded-2xl border border-slate-200 bg-white p-1 shadow-xl"></div></div>
