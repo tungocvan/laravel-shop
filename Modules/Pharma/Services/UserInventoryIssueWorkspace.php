@@ -4,6 +4,7 @@ namespace Modules\Pharma\Services;
 
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use App\Models\User;
 use Modules\Pharma\Models\InventoryIssue;
 
 final class UserInventoryIssueWorkspace
@@ -15,6 +16,7 @@ final class UserInventoryIssueWorkspace
         ?string $source = null,
         ?string $fromDate = null,
         ?string $toDate = null,
+        ?int $managerUserId = null,
         int $perPage = 20,
         int $page = 1,
         bool $includeApprovalScope = false,
@@ -35,14 +37,16 @@ final class UserInventoryIssueWorkspace
             ->when($source, fn (Builder $query) => $query->where('issue_source', $source))
             ->when($fromDate, fn (Builder $query) => $query->whereDate('issue_date', '>=', $fromDate))
             ->when($toDate, fn (Builder $query) => $query->whereDate('issue_date', '<=', $toDate))
+            ->when($managerUserId, fn (Builder $query) => $query->where('manager_user_id', $managerUserId))
             ->orderByDesc('issue_date')
             ->orderByDesc('id')
             ->paginate(perPage: in_array($perPage, [20, 25, 50, 100], true) ? $perPage : 20, page: max(1, $page));
     }
 
-    public function counts(int $userId, bool $includeApprovalScope = false): array
+    public function counts(int $userId, bool $includeApprovalScope = false, ?int $managerUserId = null): array
     {
-        $query = $this->visibleQuery($userId, $includeApprovalScope);
+        $query = $this->visibleQuery($userId, $includeApprovalScope)
+            ->when($managerUserId, fn (Builder $builder) => $builder->where('manager_user_id', $managerUserId));
 
         return [
             'all' => (clone $query)->count(),
@@ -53,6 +57,19 @@ final class UserInventoryIssueWorkspace
             InventoryIssue::POSTED => (clone $query)->where('status', InventoryIssue::POSTED)->count(),
             InventoryIssue::CANCELLED => (clone $query)->where('status', InventoryIssue::CANCELLED)->count(),
         ];
+    }
+
+    public function managerOptions(int $userId, bool $includeApprovalScope = false)
+    {
+        $managerIds = $this->visibleQuery($userId, $includeApprovalScope)
+            ->whereNotNull('manager_user_id')
+            ->distinct()
+            ->pluck('manager_user_id');
+
+        return User::query()
+            ->whereIn('id', $managerIds)
+            ->orderBy('name')
+            ->get(['id', 'name']);
     }
 
     public function findVisible(int $userId, int $issueId): ?InventoryIssue
