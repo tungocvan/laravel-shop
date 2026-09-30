@@ -31,7 +31,9 @@ final class PharmaOrderSupplyNotesCapabilityTest extends TestCase
         $this->assertStringContainsString('Lưu ghi chú', $view);
         $this->assertStringContainsString('Hiện kho đang hết hàng. Đơn hàng dự kiến cung cấp lại.', $view);
         $this->assertStringContainsString("now()->addMonth()->format('Y-m-d')", $view);
-        $this->assertStringContainsString("{{ \$savedSupply ? 'Cập nhật ghi chú' : 'Lưu ghi chú' }}", $view);
+        $this->assertStringContainsString("{{ \$stockRow['has_supply_note'] ? 'Cập nhật ghi chú' : 'Lưu ghi chú' }}", $view);
+        $this->assertStringContainsString("@unless(\$stockRow['is_ready'])", $view);
+        $this->assertStringNotContainsString('$savedSupply?->', $view);
         $this->assertStringNotContainsString('data-copy-from', $view);
         $this->assertStringContainsString("'can_approve'", file_get_contents($root.'/Modules/Pharma/Services/UserOrderStockReadinessService.php'));
         $this->assertStringContainsString('ít nhất 1 sản phẩm đủ tồn', $view);
