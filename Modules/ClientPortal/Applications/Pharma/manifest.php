@@ -170,6 +170,23 @@ return [
             'permission' => 'client.pharma.orders',
             'icon' => 'clipboard-document-list',
             'sort_order' => 60,
+            'actions' => [
+                'create' => [
+                    'name' => 'Tạo đơn hàng',
+                    'permission' => 'client.pharma.orders.create',
+                    'sort_order' => 10,
+                ],
+                'submit' => [
+                    'name' => 'Gửi duyệt đơn hàng',
+                    'permission' => 'client.pharma.orders.submit',
+                    'sort_order' => 20,
+                ],
+                'create-for-user' => [
+                    'name' => 'Lên đơn thay User',
+                    'permission' => 'client.pharma.orders.create-for-user',
+                    'sort_order' => 30,
+                ],
+            ],
         ],
         'inventory' => [
             'name' => 'Tồn kho',
