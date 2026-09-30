@@ -66,6 +66,23 @@ final class PharmaOrderApprovalCapabilityTest extends TestCase
         $this->assertStringContainsString('ít nhất 1 sản phẩm đủ tồn', $view);
     }
 
+    public function test_admin_inventory_reuses_canonical_posting_and_commission_flow_for_pwa_approved_orders(): void
+    {
+        $root = base_path();
+        $controller = file_get_contents($root.'/Modules/Pharma/Http/Controllers/InventoryController.php');
+        $inventory = file_get_contents($root.'/Modules/Pharma/Services/InventoryService.php');
+        $documents = file_get_contents($root.'/Modules/Pharma/resources/views/pages/inventory/documents.blade.php');
+
+        $this->assertStringContainsString('[InventoryIssue::DRAFT,InventoryIssue::APPROVED]', $controller);
+        $this->assertStringContainsString("snapshotPostedIssue(\$issue->fresh('items')", $controller);
+        $this->assertStringContainsString("reverseIssue(\$issue->fresh()", $controller);
+        $this->assertStringContainsString('[InventoryIssue::DRAFT,InventoryIssue::APPROVED]', $inventory);
+        $this->assertStringContainsString("\$issue->approved_at ? InventoryIssue::APPROVED : InventoryIssue::DRAFT", $inventory);
+        $this->assertStringContainsString('pending_approval', $documents);
+        $this->assertStringContainsString('Đã duyệt', $documents);
+        $this->assertStringContainsString('Đã ghi sổ', $documents);
+    }
+
     public function test_approval_schema_is_audit_only_and_does_not_add_stock_fields(): void
     {
         $root = base_path();
