@@ -33,6 +33,9 @@ final class PharmaOrderStockReadinessCapabilityTest extends TestCase
         $this->assertStringContainsString('chạm để ẩn/hiện', $view);
         $this->assertStringContainsString('<details class="rounded-3xl border', $view);
         $this->assertStringContainsString('Tồn khả dụng', $view);
+        $this->assertStringContainsString("'has_stocked_item'", $service);
+        $this->assertStringContainsString("'can_approve' => \$hasStockedItem && \$allRowsCovered", $service);
+        $this->assertStringContainsString("'has_complete_supply_note'", $service);
         $this->assertStringContainsString('SL đơn hàng', $view);
         $this->assertStringContainsString('Đủ hàng', $view);
         $this->assertStringContainsString('Không đủ hàng', $view);
