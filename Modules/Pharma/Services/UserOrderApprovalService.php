@@ -47,6 +47,20 @@ final class UserOrderApprovalService
         });
     }
 
+    public function deleteNonStockOrder(int $actorUserId, InventoryIssue $issue): void
+    {
+        if (! in_array($issue->status, [InventoryIssue::DRAFT, InventoryIssue::REJECTED], true)
+            || $issue->posted_at !== null) {
+            throw ValidationException::withMessages(['order' => 'Chỉ được xóa đơn Nháp hoặc Từ chối chưa ghi sổ kho.']);
+        }
+
+        DB::transaction(function () use ($issue): void {
+            $issue->deferredSupplies()->delete();
+            $issue->items()->delete();
+            $issue->delete();
+        });
+    }
+
     public function reject(int $actorUserId, InventoryIssue $issue, string $reason): InventoryIssue
     {
         $this->guardPending($actorUserId, $issue);
