@@ -27,6 +27,7 @@ use Modules\Pharma\Models\SupplierTracking;
 use Modules\Pharma\Services\InventoryService;
 use Modules\Pharma\Services\InventoryMovementSummaryService;
 use Modules\Pharma\Services\UserOrderApprovalService;
+use Modules\Pharma\Services\UserOrderAuthoringService;
 use Modules\Pharma\Services\DrugBidCommissionService;
 use Modules\Partner\Models\Partner;
 use Rap2hpoutre\FastExcel\FastExcel;
@@ -404,9 +405,7 @@ final class InventoryController extends Controller
             ->whereIn('type',[PriceList::TYPE_GLOBAL,PriceList::TYPE_CUSTOMER])
             ->activeAt(now()->toDateString())
             ->orderByDesc('priority')->orderByDesc('effective_from')->orderByDesc('id')->get();
-        $priceListUserIds=$customerPriceLists->pluck('manager_user_id')->filter()
-            ->merge($customerPriceLists->pluck('globalUsers')->flatten()->pluck('id'))->map(fn($id)=>(int)$id)->unique()->values();
-        $priceListManagers=User::query()->whereIn('id',$priceListUserIds)->orderBy('name')->get(['id','name']);
+        $priceListManagers=app(UserOrderAuthoringService::class)->orderManagers();
         $issueSalePrices=$this->issueSalePriceCandidates();
         return view('Pharma::pages.inventory.issue-form',compact('warehouse','availableBalances','partners','customerPriceLists','priceListManagers','issueSalePrices'));
     }
