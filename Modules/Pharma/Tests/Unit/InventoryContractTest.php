@@ -680,6 +680,14 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("? (\$priceList->globalUsers->isEmpty() || \$priceList->globalUsers->contains", $controller);
         $this->assertStringContainsString('Bảng giá không được phân cho Người phụ trách đã chọn.', $controller);
         $this->assertStringContainsString("withSum('items as total_quantity','quantity')", $controller);
+        $this->assertStringContainsString("InventoryTransaction::query()->where('source_type',InventoryIssue::class)", $controller);
+        $this->assertStringContainsString("\$postedItems=\$issue->items->filter", $controller);
+        $this->assertStringContainsString("\$issue->items_count=\$postedItems->count()", $controller);
+        $this->assertStringContainsString("\$issue->total_value=(float)\$postedItems->sum", $controller);
+        $this->assertStringContainsString("\$issue->shortage_note=\$issue->deferredSupplies->map", $controller);
+        $this->assertStringContainsString('Ghi chú thiếu hàng', $documents);
+        $this->assertStringContainsString("\$doc->shortage_note", $documents);
+        $this->assertStringContainsString("'Ghi chu thieu hang'=>\$shortage", $controller);
         $this->assertStringContainsString("request->input('after_save')==='post'", $controller);
         $this->assertStringContainsString("postIssue(\$issue->fresh('items')", $controller);
         $this->assertStringContainsString("\$issue->load(['items','deferredSupplies'])", $service);
