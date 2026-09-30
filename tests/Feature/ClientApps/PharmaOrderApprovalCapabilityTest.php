@@ -42,7 +42,8 @@ final class PharmaOrderApprovalCapabilityTest extends TestCase
         $controller = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php');
         $view = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-issue-show.blade.php');
 
-        $this->assertStringContainsString('includePendingApproval', $workspace);
+        $this->assertStringContainsString('includeApprovalScope', $workspace);
+        $this->assertStringContainsString("orWhereIn('status', [InventoryIssue::PENDING_APPROVAL, InventoryIssue::APPROVED, InventoryIssue::REJECTED])", $workspace);
         $this->assertStringContainsString('findPendingForApproval', $workspace);
         $this->assertStringContainsString("client.pharma.orders.approve", $controller);
         $this->assertStringContainsString("'canApproveOrder' => \$canApproveOrder", $controller);
@@ -59,6 +60,7 @@ final class PharmaOrderApprovalCapabilityTest extends TestCase
         $this->assertStringContainsString('Không tính là hàng đã duyệt xuất', $view);
         $this->assertStringContainsString('$displayItems->count()', $view);
         $this->assertStringContainsString('$deferredItems->isNotEmpty()', $view);
+        $this->assertStringContainsString('function ($item) use ($deferredAllocationIds)', $view);
         $this->assertStringContainsString('Xóa đơn', $view);
         $this->assertStringContainsString('không ảnh hưởng tồn kho', $view);
         $this->assertStringContainsString('ít nhất 1 sản phẩm đủ tồn', $view);
