@@ -1216,6 +1216,25 @@ final class PharmaApplicationController extends Controller
             ->with('success', 'Đã lưu ghi chú chờ cung cấp. Khả năng xuất kho được kiểm tra lại theo tồn hiện tại.');
     }
 
+    public function deleteOrder(
+        int $issue, Request $request, ApplicationRegistry $registry,
+        UserInventoryIssueWorkspace $workspace, UserOrderApprovalService $approval,
+    ) {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.orders.approve'), 403);
+
+        $visible = $workspace->findVisible((int) $user->id, $issue)
+            ?? $workspace->findByCreator((int) $user->id, $issue);
+        if ($visible === null && in_array($request->input('status'), ['draft', 'rejected'], true)) {
+            $visible = \Modules\Pharma\Models\InventoryIssue::query()->find($issue);
+        }
+        abort_if($visible === null, 404);
+        $approval->deleteNonStockOrder((int) $user->id, $visible);
+
+        return redirect()->route('client.pharma.orders')
+            ->with('success', 'Đã xóa đơn hàng. Thao tác không làm thay đổi tồn kho.');
+    }
+
     public function approveOrder(
         int $issue, Request $request, ApplicationRegistry $registry,
         UserInventoryIssueWorkspace $workspace, UserOrderApprovalService $approval,
@@ -1304,6 +1323,9 @@ final class PharmaApplicationController extends Controller
                 && $visibleIssue->status === \Modules\Pharma\Models\InventoryIssue::DRAFT,
             'canApproveOrder' => $canApproveOrder
                 && $visibleIssue->status === \Modules\Pharma\Models\InventoryIssue::PENDING_APPROVAL,
+            'canDeleteOrder' => $canApproveOrder
+                && in_array($visibleIssue->status, [\Modules\Pharma\Models\InventoryIssue::DRAFT, \Modules\Pharma\Models\InventoryIssue::REJECTED], true)
+                && $visibleIssue->posted_at === null,
             'canUndoApproval' => $canApproveOrder
                 && $visibleIssue->status === \Modules\Pharma\Models\InventoryIssue::APPROVED
                 && $visibleIssue->posted_at === null,
