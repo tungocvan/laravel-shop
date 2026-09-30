@@ -17,11 +17,11 @@ final class UserInventoryIssueWorkspace
         ?string $toDate = null,
         int $perPage = 20,
         int $page = 1,
-        bool $includePendingApproval = false,
+        bool $includeApprovalScope = false,
     ): LengthAwarePaginator {
         $search = trim((string) $search);
 
-        return $this->visibleQuery($userId, $includePendingApproval)
+        return $this->visibleQuery($userId, $includeApprovalScope)
             ->with(['manager:id,name', 'priceList:id,code,name,type'])
             ->withCount('items')
             ->withSum('items as total_quantity', 'quantity')
@@ -40,9 +40,9 @@ final class UserInventoryIssueWorkspace
             ->paginate(perPage: in_array($perPage, [20, 25, 50, 100], true) ? $perPage : 20, page: max(1, $page));
     }
 
-    public function counts(int $userId, bool $includePendingApproval = false): array
+    public function counts(int $userId, bool $includeApprovalScope = false): array
     {
-        $query = $this->visibleQuery($userId, $includePendingApproval);
+        $query = $this->visibleQuery($userId, $includeApprovalScope);
 
         return [
             'all' => (clone $query)->count(),
@@ -101,12 +101,12 @@ final class UserInventoryIssueWorkspace
             ->find($issueId);
     }
 
-    private function visibleQuery(int $userId, bool $includePendingApproval = false): Builder
+    private function visibleQuery(int $userId, bool $includeApprovalScope = false): Builder
     {
-        return InventoryIssue::query()->where(function (Builder $query) use ($userId, $includePendingApproval): void {
+        return InventoryIssue::query()->where(function (Builder $query) use ($userId, $includeApprovalScope): void {
             $query->where('manager_user_id', $userId)->orWhere('created_by', $userId);
-            if ($includePendingApproval) {
-                $query->orWhere('status', InventoryIssue::PENDING_APPROVAL);
+            if ($includeApprovalScope) {
+                $query->orWhereIn('status', [InventoryIssue::PENDING_APPROVAL, InventoryIssue::APPROVED, InventoryIssue::REJECTED]);
             }
         });
     }
