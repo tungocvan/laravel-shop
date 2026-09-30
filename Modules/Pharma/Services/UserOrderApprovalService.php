@@ -12,8 +12,8 @@ final class UserOrderApprovalService
     public function approve(int $actorUserId, InventoryIssue $issue): InventoryIssue
     {
         $this->guardPending($actorUserId, $issue);
-        if (! $this->stockReadiness->forIssue($issue)['can_approve']) {
-            throw ValidationException::withMessages(['order' => 'Chưa thể phê duyệt: sản phẩm thiếu hàng phải được lưu ghi chú chờ cung cấp trước.']);
+        if (! $this->stockReadiness->forIssue($issue)['is_ready']) {
+            throw ValidationException::withMessages(['order' => 'Chưa thể phê duyệt: toàn bộ sản phẩm phải đủ tồn kho khả dụng. Ghi chú chờ cung cấp chỉ dùng để theo dõi hàng thiếu.']);
         }
 
         return DB::transaction(function () use ($actorUserId, $issue): InventoryIssue {
@@ -24,6 +24,23 @@ final class UserOrderApprovalService
                 'rejected_by' => null,
                 'rejected_at' => null,
                 'rejection_reason' => null,
+            ]);
+
+            return $issue->refresh();
+        });
+    }
+
+    public function undoApproval(int $actorUserId, InventoryIssue $issue): InventoryIssue
+    {
+        if ($issue->status !== InventoryIssue::APPROVED || $issue->posted_at !== null) {
+            throw ValidationException::withMessages(['order' => 'Chỉ đơn đã duyệt nhưng chưa ghi sổ kho mới được hoàn tác duyệt.']);
+        }
+
+        return DB::transaction(function () use ($issue): InventoryIssue {
+            $issue->update([
+                'status' => InventoryIssue::PENDING_APPROVAL,
+                'approved_by' => null,
+                'approved_at' => null,
             ]);
 
             return $issue->refresh();
