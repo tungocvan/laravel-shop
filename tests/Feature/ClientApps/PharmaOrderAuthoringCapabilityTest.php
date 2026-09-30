@@ -77,6 +77,8 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
         $this->assertStringContainsString('h-9 w-24 rounded-xl', $view);
         $this->assertStringContainsString('lg:left-[calc(50%+130px)]', $view);
         $this->assertStringContainsString('selected-products-empty', $view);
+        $this->assertStringContainsString("((int)(\$issue?->price_list_id ?? 0)===(int)\$pl->id)", $view);
+        $this->assertStringContainsString("!eligible||q<=0", $view);
         $this->assertStringContainsString('Sản phẩm theo bảng giá', $view);
         $this->assertStringContainsString('Sản phẩm trúng thầu được phân công', $view);
         $this->assertStringContainsString('Lưu nháp', $view);
