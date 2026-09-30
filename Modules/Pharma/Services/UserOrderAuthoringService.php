@@ -43,8 +43,11 @@ final class UserOrderAuthoringService
             ->whereIn('type', [PriceList::TYPE_GLOBAL, PriceList::TYPE_CUSTOMER])
             ->activeAt($date)
             ->where(function ($query) use ($userId): void {
-                $query->where('manager_user_id', $userId)
-                    ->orWhereHas('globalUsers', fn ($users) => $users->where('users.id', $userId));
+                $query->where('type', PriceList::TYPE_GLOBAL)
+                    ->orWhere(function ($customer) use ($userId): void {
+                        $customer->where('type', PriceList::TYPE_CUSTOMER)
+                            ->where('manager_user_id', $userId);
+                    });
             })
             ->orderByDesc('priority')->orderBy('name')->get();
     }
