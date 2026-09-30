@@ -63,10 +63,14 @@ final class UserOrderStockReadinessService
             return $row;
         });
 
+        $hasStockedItem = $rows->contains(fn (array $row): bool => $row['is_ready']);
+        $allRowsCovered = $rows->every(fn (array $row): bool => $row['approval_ready']);
+
         return [
             'warehouse_id' => (int) $issue->warehouse_id,
             'is_ready' => $rows->every(fn (array $row): bool => $row['is_ready']),
-            'can_approve' => $rows->every(fn (array $row): bool => $row['approval_ready']),
+            'has_stocked_item' => $hasStockedItem,
+            'can_approve' => $hasStockedItem && $allRowsCovered,
             'rows' => $rows->all(),
         ];
     }
