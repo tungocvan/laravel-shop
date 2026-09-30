@@ -53,8 +53,16 @@
         </section>
 
         @if($canApproveOrder && $stockReadiness)
-            <section class="rounded-3xl border {{ $stockReadiness['is_ready'] ? 'border-emerald-200 bg-emerald-50/40' : 'border-amber-200 bg-amber-50/50' }} p-5 shadow-sm">
-                <div class="flex items-start justify-between gap-3">
+            <details class="rounded-3xl border {{ $stockReadiness['is_ready'] ? 'border-emerald-200 bg-emerald-50/40' : 'border-amber-200 bg-amber-50/50' }} shadow-sm" open>
+                <summary class="flex cursor-pointer list-none items-start justify-between gap-3 p-5">
+                    <div>
+                        <p class="text-xs font-black uppercase tracking-wide text-slate-500">Kiểm tra khả năng xuất kho</p>
+                        <p class="mt-1 text-sm font-bold text-slate-900">Tồn kho hiện tại · chạm để ẩn/hiện</p>
+                    </div>
+                    <span class="shrink-0 rounded-full px-3 py-1 text-xs font-black {{ $stockReadiness['is_ready'] ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900' }}">{{ $stockReadiness['is_ready'] ? 'Đủ hàng' : 'Không đủ hàng' }}</span>
+                </summary>
+                <div class="px-5 pb-5">
+                <div class="hidden">
                     <div>
                         <p class="text-xs font-black uppercase tracking-wide text-slate-500">Kiểm tra khả năng xuất kho</p>
                         <p class="mt-1 text-sm font-bold text-slate-900">Tồn kho hiện tại · chỉ đọc</p>
@@ -63,7 +71,7 @@
                         {{ $stockReadiness['is_ready'] ? 'Đủ hàng' : 'Không đủ hàng' }}
                     </span>
                 </div>
-                <div class="mt-4 space-y-3">
+                <div class="mt-0 space-y-3">
                     @foreach($stockReadiness['rows'] as $stockRow)
                         <article class="rounded-2xl border border-slate-200 bg-white p-4">
                             <div class="flex items-start justify-between gap-3">
@@ -82,19 +90,16 @@
                                     $issueItem = $issue->items->firstWhere('id', $stockRow['item_id']);
                                     $savedSupply = $issueItem ? $savedSupplyNotes->get($issueItem->drug_bid_award_allocation_id) : null;
                                 @endphp
-                                <div class="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
+                                <form method="POST" action="{{ route('client.pharma.orders.supply-notes',$issue) }}" class="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
+                                    @csrf
                                     <p class="text-xs font-black text-amber-900">Hiện kho đang hết/thiếu hàng</p>
                                     <p class="mt-1 text-xs leading-5 text-amber-800">Ghi chú ngày dự kiến và tình trạng cung cấp để theo dõi mặt hàng đang thiếu.</p>
                                     <div class="mt-3 grid gap-2 sm:grid-cols-2">
-                                        <label class="block"><span class="mb-1 block text-[11px] font-bold text-slate-600">Dự kiến cung cấp lại</span><input type="date" name="supply_notes[{{ $stockRow['item_id'] }}][expected_supply_date]" value="{{ old('supply_notes.'.$stockRow['item_id'].'.expected_supply_date', $savedSupply?->expected_supply_date?->format('Y-m-d')) }}" class="h-10 w-full rounded-lg border border-amber-200 bg-white px-2 text-sm"></label>
-                                        <label class="block"><span class="mb-1 block text-[11px] font-bold text-slate-600">Ghi chú *</span><input type="text" required maxlength="2000" name="supply_notes[{{ $stockRow['item_id'] }}][note]" value="{{ old('supply_notes.'.$stockRow['item_id'].'.note', $savedSupply?->note ?? 'Hiện kho đang hết hàng. Đơn hàng dự kiến cung cấp lại.') }}" placeholder="VD: Đang hỏi NCC, dự kiến hàng về..." class="h-10 w-full rounded-lg border border-amber-200 bg-white px-2 text-sm"></label>
+                                        <label class="block"><span class="mb-1 block text-[11px] font-bold text-slate-600">Dự kiến cung cấp lại</span><input type="date" name="supply_notes[{{ $stockRow['item_id'] }}][expected_supply_date]" value="{{ old('supply_notes.'.$stockRow['item_id'].'.expected_supply_date', $savedSupply?->expected_supply_date?->format('Y-m-d') ?? now()->addMonth()->format('Y-m-d')) }}" class="h-10 w-full rounded-lg border border-amber-200 bg-white px-2 text-sm"></label>
+                                        <label class="block"><span class="mb-1 block text-[11px] font-bold text-slate-600">Ghi chú *</span><input type="text" required maxlength="2000" name="supply_notes[{{ $stockRow['item_id'] }}][note]" value="{{ old('supply_notes.'.$stockRow['item_id'].'.note', $savedSupply?->note ?? 'Hiện kho đang hết hàng. Đơn hàng dự kiến cung cấp lại.') }}" class="h-10 w-full rounded-lg border border-amber-200 bg-white px-2 text-sm"></label>
                                     </div>
-                                    <button form="supply-note-{{ $stockRow['item_id'] }}" class="mt-2 h-9 w-full rounded-lg border border-amber-300 bg-white text-xs font-black text-amber-900">Lưu ghi chú</button>
-                                    <form id="supply-note-{{ $stockRow['item_id'] }}" method="POST" action="{{ route('client.pharma.orders.supply-notes',$issue) }}" class="hidden">@csrf
-                                        <input type="hidden" name="supply_notes[{{ $stockRow['item_id'] }}][expected_supply_date]" data-copy-from="supply_notes[{{ $stockRow['item_id'] }}][expected_supply_date]">
-                                        <input type="hidden" name="supply_notes[{{ $stockRow['item_id'] }}][note]" data-copy-from="supply_notes[{{ $stockRow['item_id'] }}][note]">
-                                    </form>
-                                </div>
+                                    <button class="mt-2 h-9 w-full rounded-lg border border-amber-300 bg-white text-xs font-black text-amber-900">{{ $savedSupply ? 'Cập nhật ghi chú' : 'Lưu ghi chú' }}</button>
+                                </form>
                             @endif
                             <details class="mt-3 rounded-xl bg-slate-50 px-3 py-2">
                                 <summary class="cursor-pointer text-xs font-black text-slate-700">Lô khả dụng · {{ count($stockRow['lots']) }}</summary>
@@ -113,7 +118,8 @@
                     @endforeach
                 </div>
                 <p class="mt-3 text-xs leading-5 text-slate-500">Thông tin này không giữ hàng. Sản phẩm đủ hàng được duyệt theo tồn hiện tại; sản phẩm thiếu hàng phải có ghi chú chờ cung cấp. Khi tất cả mặt hàng đạt một trong hai điều kiện này, nút Phê duyệt sẽ bật. Chọn lô thực xuất ở bước xử lý kho sau khi đơn được phê duyệt.</p>
-            </section>
+                </div>
+            </details>
         @endif
 
         @if($issue->notes)
