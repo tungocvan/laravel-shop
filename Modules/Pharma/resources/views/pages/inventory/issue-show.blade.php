@@ -16,12 +16,32 @@ $signatures=collect([
   <div><a href="{{ route('admin.pharma.inventory.issues.index') }}" class="text-sm font-semibold text-indigo-700">← Danh sách phiếu xuất</a><div class="mt-2 flex items-center gap-3"><h1 class="text-2xl font-bold text-slate-950">Phiếu xuất kho</h1><span class="rounded-full px-3 py-1 text-xs font-bold uppercase {{ $issue->status==='posted'?'bg-emerald-100 text-emerald-700':'bg-amber-100 text-amber-800' }}">{{ ['draft'=>'Nháp','pending_approval'=>'Chờ duyệt','approved'=>'Đã duyệt','rejected'=>'Từ chối','posted'=>'Đã ghi sổ','cancelled'=>'Đã hủy'][$issue->status] ?? $issue->status }}</span></div><p class="mt-1 text-sm text-slate-500">Chứng từ xuất hàng · {{ $issue->number }}</p></div>
   <div class="flex flex-wrap gap-2">@if(in_array($issue->status,['draft','approved'],true))<a href="{{ ($issue->issue_source ?? 'normal')==='bid' ? route('admin.pharma.inventory.issues.bid-sales.edit',$issue) : route('admin.pharma.inventory.issues.edit',$issue) }}" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">{{ ($issue->issue_source ?? 'normal')==='bid' ? 'Sửa đơn hàng thầu' : 'Sửa phiếu' }}</a>@endif<a href="{{ route('admin.pharma.inventory.issues.pdf',$issue) }}" class="rounded-xl border border-indigo-200 bg-white px-4 py-2.5 text-sm font-semibold text-indigo-700">↓ Tải PDF</a><a href="{{ route('admin.pharma.inventory.issues.print',$issue) }}" target="_blank" rel="noopener" class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm">▣ In trực tiếp</a></div>
  </div>
+ @if($issue->status === 'pending_approval')
+ @can('approve_pharma_inventory_issue')
+ <section class="rounded-2xl border border-amber-200 bg-amber-50/50 p-5 shadow-sm">
+  <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+   <div><div class="flex items-center gap-2"><span class="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-800">CHỜ DUYỆT</span><h2 class="font-bold text-slate-950">Xử lý đơn hàng</h2></div><p class="mt-2 text-sm text-slate-600">Phê duyệt chỉ xác nhận đơn được phép chuyển sang xử lý kho. Bước này chưa chọn lô, chưa trừ tồn và chưa ghi nhận hoa hồng.</p></div>
+   <div class="flex flex-wrap gap-2">
+    <button type="button" onclick="document.getElementById('reject-order-dialog').showModal()" class="rounded-xl border border-rose-300 bg-white px-4 py-2.5 text-sm font-bold text-rose-700 hover:bg-rose-50">Từ chối</button>
+    <form method="POST" action="{{ route('admin.pharma.inventory.issues.approve-order',$issue) }}">@csrf<button class="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-emerald-700">Phê duyệt đơn</button></form>
+   </div>
+  </div>
+ </section>
+ <dialog id="reject-order-dialog" class="m-auto w-[calc(100%-24px)] max-w-[520px] rounded-[28px] border-0 bg-white p-0 shadow-2xl backdrop:bg-slate-950/60">
+  <form method="POST" action="{{ route('admin.pharma.inventory.issues.reject-order',$issue) }}" class="p-6">@csrf
+   <div class="flex items-start justify-between gap-4"><div><h3 class="text-lg font-bold text-slate-950">Từ chối đơn hàng</h3><p class="mt-1 text-sm text-slate-500">{{ $issue->number }}</p></div><button type="button" onclick="this.closest('dialog').close()" class="rounded-lg p-2 text-xl text-slate-400 hover:bg-slate-100">×</button></div>
+   <label class="mt-5 block text-sm font-semibold text-slate-700">Lý do từ chối *<textarea name="rejection_reason" rows="4" required maxlength="1000" class="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" placeholder="Nhập lý do để User biết và điều chỉnh đơn..."></textarea></label>
+   <div class="mt-5 flex justify-end gap-2"><button type="button" onclick="this.closest('dialog').close()" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold">Hủy</button><button class="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-bold text-white">Xác nhận từ chối</button></div>
+  </form>
+ </dialog>
+ @endcan
+ @endif
  <section class="rounded-2xl border border-slate-200 bg-white shadow-sm">
   <div class="border-b border-slate-100 px-5 py-4"><h2 class="font-bold text-slate-900">Thông tin chứng từ</h2><p class="mt-0.5 text-xs text-slate-500">Thông tin giao hàng và chính sách giá tại thời điểm lập phiếu.</p></div>
   <div class="grid gap-px bg-slate-100 md:grid-cols-4">
    <div class="bg-white p-5"><p class="text-[11px] font-bold uppercase tracking-wide text-slate-400">Số phiếu</p><p class="mt-2 font-mono font-bold">{{ $issue->number }}</p></div>
    <div class="bg-white p-5"><p class="text-[11px] font-bold uppercase tracking-wide text-slate-400">Ngày lên đơn</p><p class="mt-2 font-bold">{{ $issue->issue_date->format('d/m/Y') }}</p></div>
-   <div class="bg-white p-5"><p class="text-[11px] font-bold uppercase tracking-wide text-slate-400">Trạng thái</p><p class="mt-2 font-bold">{{ $issue->status==='posted'?'Đã ghi sổ':'Nháp' }}</p></div>
+   <div class="bg-white p-5"><p class="text-[11px] font-bold uppercase tracking-wide text-slate-400">Trạng thái</p><p class="mt-2 font-bold">{{ ['draft'=>'Nháp','pending_approval'=>'Chờ duyệt','approved'=>'Đã duyệt','rejected'=>'Từ chối','posted'=>'Đã ghi sổ','cancelled'=>'Đã hủy'][$issue->status] ?? $issue->status }}</p></div>
    <div class="bg-white p-5"><p class="text-[11px] font-bold uppercase tracking-wide text-slate-400">{{ $issue->posted_at ? 'Ngày ghi sổ' : 'Kho xuất' }}</p><p class="mt-2 font-bold">{{ $issue->posted_at ? $issue->posted_at->format('d/m/Y H:i') : $settings->warehouse_name }}</p>@if($issue->posted_at)<p class="mt-1 text-xs text-slate-500">{{ $settings->warehouse_name }}</p>@endif</div>
   </div>
   <div class="grid gap-4 border-t border-slate-100 bg-slate-50/70 p-5 md:grid-cols-4">
