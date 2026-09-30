@@ -1086,7 +1086,7 @@ final class PharmaApplicationController extends Controller
                 toDate: $validated['to_date'] ?? null,
                 perPage: 20,
                 page: (int) ($validated['page'] ?? 1),
-                includePendingApproval: $canApproveOrders,
+                includeApprovalScope: $canApproveOrders,
             )->withQueryString(),
             'counts' => $workspace->counts((int) $user->id, $canApproveOrders),
             'canApproveOrders' => $canApproveOrders,
