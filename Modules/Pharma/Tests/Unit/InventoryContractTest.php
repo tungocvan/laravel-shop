@@ -652,6 +652,12 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("whereIn('type',[PriceList::TYPE_GLOBAL,PriceList::TYPE_CUSTOMER])", $controller);
         $this->assertStringContainsString("'globalUsers:id,name'", $controller);
         $this->assertStringContainsString("app(UserOrderAuthoringService::class)->orderManagers()", $controller);
+        $this->assertStringContainsString("withSum('items as total_quantity','quantity')", $controller);
+        $this->assertStringContainsString("request->input('after_save')==='post'", $controller);
+        $this->assertStringContainsString("postIssue($issue->fresh('items')", $controller);
+        $this->assertStringContainsString('id="save-post-issue"', $editView);
+        $this->assertStringContainsString('refreshPostState()', $editView);
+        $this->assertStringContainsString('$doc->total_quantity', $documents);
         $this->assertStringContainsString("compact('warehouse','availableBalances','partners','customerPriceLists','priceListManagers','issueSalePrices')", $controller);
         $this->assertStringContainsString("'manager_user_id'=>'required|integer|exists:users,id'", $controller);
         $this->assertStringContainsString('Bảng giá không được phân cho Người phụ trách đã chọn.', $controller);
