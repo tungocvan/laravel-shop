@@ -120,6 +120,12 @@ final class PharmaInventoryIssuesCapabilityTest extends TestCase
         $this->assertStringContainsString('data-shortage-note', $view);
         $this->assertStringContainsString('shortage-note-dialog', $view);
         $this->assertStringContainsString('Ghi chú cung ứng', $view);
+        $this->assertStringContainsString('order-create-action', $view);
+        $this->assertStringContainsString('bottom:calc(82px + env(safe-area-inset-bottom,0px))', $view);
+        $this->assertStringContainsString('@media (min-width:1024px)', $view);
+        $this->assertStringContainsString('order-create-label{display:inline}', $view);
+        $this->assertStringContainsString("document.body.appendChild(createAction)", $view);
+        $this->assertStringContainsString("' · Dự kiến: '", $workspace);
         $this->assertStringContainsString("shortageDialog.style.inset='50% auto auto 50%'", $view);
         $this->assertStringContainsString("shortageDialog.style.transform='translate(-50%, -50%)'", $view);
         $this->assertStringContainsString('max-w-[520px]', $view);
