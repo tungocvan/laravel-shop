@@ -48,6 +48,11 @@ final class PharmaInventoryIssuesCapabilityTest extends TestCase
         $this->assertStringNotContainsString('lg:right-6 lg:bottom-6', $view);
         $this->assertStringContainsString('Lọc đơn hàng', $view);
         $this->assertStringContainsString('Xóa lọc', $view);
+        $this->assertStringContainsString('data-clear-order-filters', $view);
+        $this->assertStringContainsString('Xóa bộ lọc', $view);
+        $this->assertStringContainsString('min-w-0 max-w-full overflow-x-hidden', $view);
+        $this->assertStringContainsString('grid min-w-0 max-w-full grid-cols-1', $view);
+        $this->assertStringContainsString('line-clamp-2 break-words', $view);
         $this->assertStringContainsString('Hủy', $view);
         $this->assertStringContainsString('Áp dụng', $view);
         $this->assertStringContainsString('Không có dữ liệu phù hợp!', $view);
