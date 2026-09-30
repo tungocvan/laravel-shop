@@ -8,7 +8,7 @@
 @section('content')
 @php
     $money = fn ($value) => number_format((float) $value, 0, ',', '.').' đ';
-    $statusLabels = ['draft'=>'Nháp','pending_approval'=>'Chờ duyệt','posted'=>'Đã xuất','cancelled'=>'Đã hủy'];
+    $statusLabels = ['draft'=>'Nháp','pending_approval'=>'Chờ duyệt','approved'=>'Đã duyệt','rejected'=>'Từ chối','posted'=>'Đã xuất','cancelled'=>'Đã hủy'];
     $sourceLabels = ['normal'=>'Theo bảng giá','bid'=>'Theo kết quả trúng thầu'];
     $hasFilters = $filters['status'] || $filters['source'] || $filters['from_date'] || $filters['to_date'];
 @endphp
@@ -42,7 +42,7 @@
     </section>
 
     <nav class="mt-4 flex max-w-full gap-2 overflow-x-auto overscroll-x-contain pb-1 [scrollbar-width:none]" aria-label="Trạng thái đơn hàng">
-        @foreach([''=>'Tất cả','draft'=>'Nháp','pending_approval'=>'Chờ duyệt','posted'=>'Đã xuất','cancelled'=>'Đã hủy'] as $value=>$label)
+        @foreach([''=>'Tất cả','draft'=>'Nháp','pending_approval'=>'Chờ duyệt','approved'=>'Đã duyệt','rejected'=>'Từ chối','posted'=>'Đã xuất','cancelled'=>'Đã hủy'] as $value=>$label)
             <a href="{{ route('client.pharma.orders', array_filter(['q'=>$filters['q'],'status'=>$value,'source'=>$filters['source'],'from_date'=>$filters['from_date'],'to_date'=>$filters['to_date']], fn($v)=>$v!=='' && $v!==null)) }}"
                class="shrink-0 rounded-full border px-4 py-2 text-sm font-bold {{ $filters['status']===$value ? 'border-slate-950 bg-slate-950 text-white' : 'border-slate-200 bg-white text-slate-600' }}">
                 {{ $label }} <span class="ml-1 opacity-70">{{ $value==='' ? $counts['all'] : ($counts[$value] ?? 0) }}</span>
@@ -54,6 +54,12 @@
             </a>
         @endif
     </nav>
+
+    @if($canApproveOrders && ($counts['pending_approval'] ?? 0) > 0)
+        <div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900">
+            Có {{ number_format($counts['pending_approval']) }} đơn đang chờ phê duyệt. Chọn trạng thái “Chờ duyệt” để xử lý.
+        </div>
+    @endif
 
     <section id="issue-mobile-list" class="mt-4 grid min-w-0 max-w-full grid-cols-1 gap-3 md:grid-cols-2 xl:hidden">
         @forelse($issues as $issue)
