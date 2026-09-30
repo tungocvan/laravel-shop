@@ -102,7 +102,7 @@
 document.addEventListener('DOMContentLoaded',()=>{
  const sourceInputs=[...document.querySelectorAll('input[name="source"]')], price=document.getElementById('price-list-source'), bid=document.getElementById('bid-source');
  const selectedSource=()=>document.querySelector('input[name="source"]:checked')?.value || document.querySelector('input[type="hidden"][name="source"]')?.value || 'price_list';
- const syncSource=()=>{const isBid=selectedSource()==='bid';price?.classList.toggle('hidden',isBid);bid?.classList.toggle('hidden',!isBid);};
+ const syncSource=()=>{const isBid=selectedSource()==='bid';price?.classList.toggle('hidden',isBid);bid?.classList.toggle('hidden',!isBid);price?.querySelectorAll('input,select,textarea').forEach(el=>el.disabled=isBid);bid?.querySelectorAll('input,select,textarea').forEach(el=>el.disabled=!isBid);};
  sourceInputs.forEach(el=>el.addEventListener('change',syncSource));syncSource();
  const priceSelect=document.getElementById('price-list-select');
  const syncPrice=()=>document.querySelectorAll('[data-price-item]').forEach(el=>el.classList.toggle('hidden',el.dataset.priceList!==priceSelect?.value));
