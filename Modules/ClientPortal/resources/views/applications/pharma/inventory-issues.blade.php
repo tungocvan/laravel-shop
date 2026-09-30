@@ -22,7 +22,8 @@
     </header>
 
     <section class="mt-4">
-        <form id="issue-search-form" method="GET" action="{{ route('client.pharma.orders') }}" class="flex gap-2">
+        <div class="flex items-center gap-2">
+        <form id="issue-search-form" method="GET" action="{{ route('client.pharma.orders') }}" class="flex min-w-0 flex-1 gap-2 xl:max-w-[760px]">
             @foreach(['status','source','from_date','to_date','manager_user_id'] as $key)
                 @if($filters[$key])<input type="hidden" name="{{ $key }}" value="{{ $filters[$key] }}">@endif
             @endforeach
@@ -40,12 +41,11 @@
             </button>
         </form>
         @if($canCreateOrders)
-            <div class="mt-3 hidden justify-end xl:flex">
-                <a href="{{ route('client.pharma.orders.create') }}" class="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-black text-white shadow-sm transition active:scale-[0.985]">
-                    <span class="text-base font-light leading-none">+</span><span>Lập đơn hàng</span>
-                </a>
-            </div>
+            <a href="{{ route('client.pharma.orders.create') }}" class="ml-auto hidden h-14 shrink-0 items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 text-sm font-black text-white shadow-sm transition active:scale-[0.985] xl:inline-flex">
+                <span class="text-base font-light leading-none">+</span><span>Lập đơn hàng</span>
+            </a>
         @endif
+        </div>
     </section>
 
     @php
