@@ -67,7 +67,13 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
         $this->assertStringContainsString('manager-toggle', $view);
         $this->assertStringContainsString("!managerBox.contains(e.target)", $view);
         $this->assertStringContainsString("!customerBox.contains(e.target)", $view);
+        $this->assertStringContainsString("!productBox.contains(e.target)", $view);
         $this->assertStringContainsString('Tìm tên thuốc / mã thuốc / hoạt chất...', $view);
+        $this->assertStringContainsString('data-product-picker', $view);
+        $this->assertStringContainsString('Chọn sản phẩm từ bảng giá...', $view);
+        $this->assertStringContainsString('+ Thêm vào đơn', $view);
+        $this->assertStringContainsString('data-remove-product', $view);
+        $this->assertStringContainsString('selected-products-empty', $view);
         $this->assertStringContainsString('Sản phẩm theo bảng giá', $view);
         $this->assertStringContainsString('Sản phẩm trúng thầu được phân công', $view);
         $this->assertStringContainsString('Lưu nháp', $view);
