@@ -120,12 +120,12 @@ final class PharmaInventoryIssuesCapabilityTest extends TestCase
         $this->assertStringContainsString('data-shortage-note', $view);
         $this->assertStringContainsString('shortage-note-dialog', $view);
         $this->assertStringContainsString('Ghi chú cung ứng', $view);
-        $this->assertStringContainsString('order-create-action xl:hidden', $view);
+        $this->assertStringContainsString('order-create-action lg:hidden', $view);
         $this->assertStringContainsString('bottom:calc(70px + env(safe-area-inset-bottom,0px))', $view);
         $this->assertStringContainsString('class="flex items-center gap-2"', $view);
-        $this->assertStringContainsString('xl:max-w-[760px]', $view);
+        $this->assertStringContainsString('lg:max-w-[720px]', $view);
         $this->assertStringContainsString('ml-auto hidden h-14', $view);
-        $this->assertStringContainsString('xl:inline-flex', $view);
+        $this->assertStringContainsString('lg:inline-flex', $view);
         $this->assertStringContainsString('<span>Lập đơn hàng</span>', $view);
         $this->assertStringNotContainsString("document.body.appendChild(createAction)", $view);
         $this->assertStringContainsString("' · Dự kiến: '", $workspace);
