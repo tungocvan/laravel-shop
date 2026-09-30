@@ -26,6 +26,7 @@ use Modules\Pharma\Models\PriceListItem;
 use Modules\Pharma\Models\SupplierTracking;
 use Modules\Pharma\Services\InventoryService;
 use Modules\Pharma\Services\InventoryMovementSummaryService;
+use Modules\Pharma\Services\UserOrderApprovalService;
 use Modules\Pharma\Services\DrugBidCommissionService;
 use Modules\Partner\Models\Partner;
 use Rap2hpoutre\FastExcel\FastExcel;
@@ -798,6 +799,27 @@ final class InventoryController extends Controller
             $commissions->reverseIssue($issue->fresh(),auth('admin')->id());
         });
         return redirect()->route('admin.pharma.inventory.issues.index')->with('success',"Đã hoàn tác ghi sổ {$issue->number}; hàng đã được cộng trả tồn kho và hoa hồng phát sinh đã được đảo.");
+    }
+
+    public function approveUserOrder(InventoryIssue $issue, InventoryService $inventory, UserOrderApprovalService $approval): RedirectResponse
+    {
+        $this->guardIssueWarehouse($issue,$inventory);
+        abort_unless($issue->status === InventoryIssue::PENDING_APPROVAL,404);
+        $approval->approve((int) auth('admin')->id(),$issue);
+
+        return redirect()->route('admin.pharma.inventory.issues.show',$issue)
+            ->with('success',"Đã phê duyệt đơn hàng {$issue->number}. Đơn đã sẵn sàng chuyển sang bước xử lý kho.");
+    }
+
+    public function rejectUserOrder(Request $request, InventoryIssue $issue, InventoryService $inventory, UserOrderApprovalService $approval): RedirectResponse
+    {
+        $this->guardIssueWarehouse($issue,$inventory);
+        abort_unless($issue->status === InventoryIssue::PENDING_APPROVAL,404);
+        $data=$request->validate(['rejection_reason'=>'required|string|max:1000']);
+        $approval->reject((int) auth('admin')->id(),$issue,$data['rejection_reason']);
+
+        return redirect()->route('admin.pharma.inventory.issues.show',$issue)
+            ->with('success',"Đã từ chối đơn hàng {$issue->number}.");
     }
 
     public function postIssue(InventoryIssue $issue, InventoryService $inventory, DrugBidCommissionService $commissions): RedirectResponse
