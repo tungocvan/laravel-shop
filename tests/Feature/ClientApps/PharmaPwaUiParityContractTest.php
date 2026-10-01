@@ -69,9 +69,10 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertStringContainsString('const persistAndLoadSource = () =>', $view);
         $this->assertStringContainsString('formmethod="GET"', $view);
         $this->assertStringContainsString("formaction=\"{{ route('client.pharma.price-lists.create') }}\"", $view);
-        $this->assertStringContainsString("type=\"{{ !\$isGlobalMode && !\$sourcePriceListId ? 'submit' : 'button' }}\"", $view);
+        $this->assertStringContainsString('id="source-price-list" name="source_price_list_id"', $view);
+        $this->assertStringContainsString('form?.requestSubmit(load)', $view);
         $this->assertStringContainsString('if (target > currentStep) return;', $view);
-        $this->assertStringContainsString('load.addEventListener(\'click\', () => persistAndLoadSource())', $view);
+        $this->assertStringNotContainsString("load.addEventListener('click', () => persistAndLoadSource())", $view);
         $this->assertStringContainsString('disabled:cursor-not-allowed disabled:bg-slate-200', $view);
         $this->assertStringContainsString('Chọn bảng giá tại Bước 01 để tải sản phẩm.', $view);
         $this->assertStringNotContainsString('Chọn bảng giá tại Bước 02 để tải sản phẩm.', $view);
