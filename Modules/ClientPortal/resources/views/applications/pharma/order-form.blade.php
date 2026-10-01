@@ -4,6 +4,7 @@
 @section('app-name', $application['name'])
 @section('app-subtitle', 'Workspace Pharma dành cho User')
 @section('app-dashboard-route', route('client.pharma.dashboard'))
+@section('hide-mobile-navigation', true)
 
 @section('content')
 @php
@@ -13,7 +14,7 @@
     $currentByAllocation = $editing ? $issue->items->whereNotNull('drug_bid_award_allocation_id')->keyBy('drug_bid_award_allocation_id') : collect();
     $money = fn($value) => number_format((float)$value, 0, ',', '.').' đ';
 @endphp
-<div class="min-w-0 max-w-full bg-slate-50 pb-32" data-order-authoring>
+<div class="min-w-0 max-w-full bg-slate-50 pb-6" data-order-authoring>
 <header class="sticky top-0 z-30 -mx-4 border-b border-slate-200 bg-white/95 px-4 py-4 backdrop-blur sm:-mx-6 sm:px-6 lg:static lg:mx-auto lg:max-w-7xl lg:rounded-3xl lg:border">
  <div class="relative flex items-center justify-center"><a href="{{ $editing ? route('client.pharma.orders.show',$issue) : route('client.pharma.orders') }}" class="absolute left-0 flex h-11 w-11 items-center justify-center rounded-full text-2xl">←</a><div class="text-center"><h1 class="text-xl font-black text-slate-950">{{ $editing ? 'Sửa đơn hàng' : 'Thêm mới đơn hàng' }}</h1><p class="mt-1 text-xs font-semibold text-slate-500">Lập đơn đúng phạm vi User · giá lấy từ nguồn canonical</p></div></div>
 </header>
@@ -33,12 +34,8 @@
 [data-order-source-picker] input:checked + [data-source-card] span{color:inherit!important}
 [data-customer-field].is-open{padding-bottom:min(300px,38dvh)}
 [data-customer-field].is-open #customer-results{display:block!important}
-[data-order-actions]{isolation:isolate;bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+[data-order-actions]{isolation:isolate}
 #product-picker-panel,#customer-results{z-index:120!important}
-@media(max-width:1023px){
- [data-order-actions][data-step="1"]{position:relative!important;inset:auto!important;margin:12px 12px calc(84px + env(safe-area-inset-bottom,0px))!important;width:auto!important;transform:none!important}
-}
-@media(min-width:1024px){[data-order-actions]{bottom:16px}}
 [data-order-actions][data-step="3"] #order-step-next{display:none!important}
 [data-order-actions][data-step="3"] #order-submit{display:inline-flex!important}
 </style>
@@ -174,12 +171,12 @@
   <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><label><span class="mb-2 block text-sm font-black">Ghi chú</span><textarea name="notes" rows="3" class="w-full rounded-2xl border border-slate-300 px-4 py-3">{{ old('notes',$issue?->notes) }}</textarea></label></section>
  </section>
 
-<div data-order-actions class="fixed inset-x-3 bottom-[calc(84px+env(safe-area-inset-bottom,0px))] z-[100] rounded-2xl border border-slate-200 bg-white/95 px-3 py-2 shadow-[0_8px_30px_rgba(15,23,42,.14)] backdrop-blur sm:inset-x-6 lg:left-1/2 lg:right-auto lg:bottom-4 lg:w-[min(680px,calc(100%-48px))] lg:-translate-x-1/2">
+<div data-order-actions class="relative z-20 mx-auto mt-4 max-w-3xl rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
  <div class="mx-auto flex max-w-3xl items-center gap-2 sm:gap-3">
   <button type="button" id="order-step-back" class="hidden h-9 shrink-0 items-center justify-center rounded-xl border border-slate-300 px-3 text-xs font-black">← Quay lại</button>
   <div class="min-w-0 flex-1"><div class="flex items-center gap-2"><span class="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-600">Nháp</span><p id="order-summary" class="min-w-0 truncate text-xs font-black sm:text-sm">0 sản phẩm · 0 SL · 0 đ</p></div></div>
   <button type="button" id="order-step-next" class="h-9 shrink-0 rounded-xl bg-indigo-600 px-4 text-xs font-black text-white shadow-sm active:scale-[.985]">Tiếp tục →</button>
-  <button type="submit" id="order-submit" style="display:none" class="h-9 shrink-0 items-center justify-center rounded-xl bg-slate-950 px-3 text-[11px] font-black text-white shadow-sm active:scale-[.985] sm:px-4 sm:text-xs">Lưu</button>
+  <button type="submit" id="order-submit" style="display:none" class="h-9 shrink-0 items-center justify-center rounded-xl bg-slate-950 px-3 text-[11px] font-black text-white shadow-sm active:scale-[.985] sm:px-4 sm:text-xs">Lưu nháp</button>
  </div>
 </div>
 </form></div>
