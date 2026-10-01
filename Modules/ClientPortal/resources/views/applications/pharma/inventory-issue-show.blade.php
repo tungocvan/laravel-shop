@@ -154,7 +154,7 @@
             <section class="rounded-3xl border border-rose-200 bg-rose-50 p-5"><p class="text-xs font-black uppercase tracking-wide text-rose-700">Lý do từ chối</p><p class="mt-2 whitespace-pre-line text-sm leading-6 text-rose-900">{{ $issue->rejection_reason }}</p></section>
         @endif
     </main>
-    @if($canEditOrder || $canSubmitOrder || $canApproveOrder || ($canUndoApproval ?? false) || ($canDeleteOrder ?? false))
+    @if($canEditOrder || $canSubmitOrder || $canApproveOrder || ($canUndoApproval ?? false) || ($canDeleteOrder ?? false) || ($canPostOrder ?? false))
         <div class="mx-auto mt-3 max-w-4xl rounded-2xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
             @if($canDeleteOrder ?? false)
                 <form method="POST" action="{{ route('client.pharma.orders.delete',$issue) }}" onsubmit="return confirm('Xóa đơn {{ $issue->number }}? Đơn chưa ghi sổ nên thao tác này không ảnh hưởng tồn kho.');">
@@ -162,6 +162,23 @@
                     <button class="h-13 w-full rounded-2xl border border-rose-300 bg-white font-black text-rose-700">Xóa đơn</button>
                 </form>
                 <p class="mt-2 text-xs leading-5 text-slate-500">Chỉ xóa đơn Nháp/Từ chối chưa ghi sổ. Không tạo giao dịch kho và không thay đổi tồn.</p>
+            @elseif($canPostOrder ?? false)
+                <div class="flex items-center justify-end gap-2">
+                    @if($canUndoApproval ?? false)
+                        <form method="POST" action="{{ route('client.pharma.orders.undo-approval',$issue) }}">@csrf
+                            <button class="h-10 rounded-xl border border-amber-300 bg-amber-50 px-4 text-sm font-black text-amber-900">Hoàn tác</button>
+                        </form>
+                    @endif
+                    <form method="POST" action="{{ route('client.pharma.orders.post',$issue) }}">@csrf
+                        <button class="h-10 min-w-[108px] rounded-xl bg-emerald-700 px-4 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+                            @disabled(!($stockReadiness['can_post_directly'] ?? false))>Ghi sổ</button>
+                    </form>
+                </div>
+                @if(!($stockReadiness['can_post_directly'] ?? false))
+                    <p class="mt-2 text-xs leading-5 text-amber-800">Chưa thể ghi sổ trực tiếp: mỗi sản phẩm phải có một lô còn hạn đủ số lượng. Tồn kho sẽ được kiểm tra lại khi ghi sổ.</p>
+                @else
+                    <p class="mt-2 text-xs leading-5 text-slate-500">Ghi sổ sẽ chọn lô còn hạn gần nhất đủ số lượng, trừ tồn và ghi nhận doanh thu/hoa hồng theo luồng kho canonical.</p>
+                @endif
             @elseif($canUndoApproval ?? false)
                 <form method="POST" action="{{ route('client.pharma.orders.undo-approval',$issue) }}">@csrf
                     <button class="h-13 w-full rounded-2xl border border-amber-300 bg-amber-50 font-black text-amber-900">Hoàn tác phê duyệt</button>
