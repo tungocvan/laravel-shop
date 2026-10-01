@@ -173,7 +173,7 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertSame('client.pharma.bid-awards.allocate', $feature['actions']['allocate']['permission']);
         $this->assertSame('client.pharma.bid-awards.commercial-policy', $feature['actions']['commercial-policy']['permission']);
 
-        $this->assertStringContainsString("featurePresentation('pharma', 'bid-awards'", $controller);
+        $this->assertStringContainsString("\$settings->featurePresentation(\$application['key'], \$feature)", $controller);
         $this->assertStringContainsString('public function featurePresentation', $settings);
         $this->assertStringContainsString('page_title', $settings);
         $this->assertStringContainsString('page_description', $settings);
