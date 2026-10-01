@@ -95,11 +95,9 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertStringContainsString('Bảng giá khách hàng', $view);
         $this->assertStringContainsString("route('client.pharma.price-lists.create', ['type'=>'global'])", $view);
         $this->assertStringContainsString('Kích hoạt trực tiếp', $view);
-        $this->assertStringContainsString('data-date-display name="effective_from"', $view);
-        $this->assertStringContainsString('data-date-display name="effective_to"', $view);
-        $this->assertStringContainsString('type="date" data-date-display name="effective_from"', $view);
-        $this->assertStringContainsString('type="date" data-date-display name="effective_to"', $view);
-        $this->assertStringContainsString('lang="en-GB"', $view);
+        $this->assertStringContainsString('data-date-display="{{ $dateName }}"', $view);
+        $this->assertStringContainsString('type="date" data-date-native="{{ $dateName }}" name="{{ $dateName }}"', $view);
+        $this->assertStringContainsString("format('d/m/Y')", $view);
         $this->assertStringNotContainsString('data-price-list-manager-combobox', $view);
         $this->assertStringContainsString('id="price-list-bootstrap" method="GET"', $view);
         $this->assertStringContainsString('<select id="source-price-list" name="source_price_list_id"', $view);
@@ -113,6 +111,8 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertStringContainsString("document.getElementById('source-price-list')", $wizard);
         $this->assertStringContainsString('const isoDate = raw =>', $wizard);
         $this->assertStringContainsString("document.querySelectorAll('[data-date-display]')", $wizard);
+        $this->assertStringContainsString("document.querySelectorAll('[data-date-native]')", $wizard);
+        $this->assertStringContainsString('const syncDateDisplay = native =>', $wizard);
         $this->assertStringContainsString('name="source_price_list_id" value="{{ old(\'source_price_list_id\', $sourcePriceListId) }}"', $view);
     }
 }
