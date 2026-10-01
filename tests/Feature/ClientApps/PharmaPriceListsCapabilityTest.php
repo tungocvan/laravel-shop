@@ -132,7 +132,7 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringNotContainsString('clear-source-product-search', $create);
         $this->assertStringContainsString("search?.tomselect?.on('change', filterRows)", $create);
         $this->assertStringContainsString("source.tomselect?.on('change', clearSourceError)", $create);
-        $this->assertStringContainsString("form?.elements.namedItem('source_price_list_id')?.value", $create);
+        $this->assertStringContainsString("bootstrapForm?.elements.namedItem('source_price_list_id')?.value", $create);
         $this->assertStringContainsString('source-price-list-error', $create);
         $this->assertStringContainsString("source?.tomselect?.getValue?.() || source?.value", $create);
         $this->assertStringContainsString('formmethod="GET"', $create);
