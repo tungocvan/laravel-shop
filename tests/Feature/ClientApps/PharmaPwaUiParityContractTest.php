@@ -22,6 +22,21 @@ class PharmaPwaUiParityContractTest extends TestCase
         );
     }
 
+    public function test_price_list_capability_leaves_global_navigation_at_the_pharma_hub(): void
+    {
+        $index = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/price-lists.blade.php'));
+        $detail = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/price-list-show.blade.php'));
+        $approval = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/price-list-approval-show.blade.php'));
+
+        foreach ([$index, $detail, $approval] as $view) {
+            $this->assertStringContainsString("@section('hide-application-header', true)", $view);
+            $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $view);
+        }
+
+        $this->assertStringContainsString('aria-label="Quay lại Không gian làm việc Pharma"', $index);
+        $this->assertStringContainsString("route('client.pharma.dashboard')", $index);
+    }
+
     public function test_price_list_editor_uses_focused_task_shell_and_canonical_business_selectors(): void
     {
         $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/price-list-create.blade.php'));
