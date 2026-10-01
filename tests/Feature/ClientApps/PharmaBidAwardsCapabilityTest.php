@@ -147,7 +147,10 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString('md:grid-cols-2 xl:grid-cols-3', $list);
         $this->assertStringContainsString('\\Carbon\\Carbon::parse', $list);
         $this->assertStringNotContainsString('CarbonCarbon::parse', $list);
-        $this->assertStringContainsString("setTimeout(()=>form.requestSubmit(),350)", $list);
+        $this->assertStringContainsString("const initialSearch=(input?.value||'').trim()", $list);
+        $this->assertStringContainsString("if(nextSearch===initialSearch) return", $list);
+        $this->assertStringContainsString("},750)", $list);
+        $this->assertStringNotContainsString("setTimeout(()=>form.requestSubmit(),350)", $list);
         $this->assertStringContainsString('Trong phạm vi tôi phụ trách', $list);
         $this->assertStringContainsString('md:grid-cols-2 xl:grid-cols-3', $list);
         $this->assertStringNotContainsString('BV của tôi', $detail);
