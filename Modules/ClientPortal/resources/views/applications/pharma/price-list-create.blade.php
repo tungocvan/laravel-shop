@@ -13,15 +13,15 @@
     $isEditing = $editingPriceList !== null;
     $field = fn (string $name, $fallback = null) => old($name, $isEditing ? data_get($editingPriceList, $name, $fallback) : $fallback);
     $selectedExisting = $isEditing ? $editingPriceList->items->keyBy('medicine_variant_id') : collect();
-    // ClientPortal authoring is customer-specific only. Global price lists are administered in Pharma Admin.
-    $isGlobalMode = false;
+    $canApprove = $canApprove ?? false;
+    $isGlobalMode = !$isEditing && $canApprove && request('type') === 'global';
 @endphp
 <div class="mx-auto max-w-7xl space-y-4 pb-24 lg:pb-6">
     <header class="sticky top-0 z-40 -mx-4 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 lg:static lg:mx-0 lg:rounded-3xl lg:border lg:px-5">
         <div class="flex min-h-11 items-center gap-3">
             <a href="{{ route('client.pharma.price-lists') }}" class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-xl font-black text-slate-700 shadow-sm" aria-label="Quay lại Bảng giá của tôi">←</a>
-            <div class="min-w-0 flex-1"><p class="truncate text-sm font-black text-slate-950">{{ $isEditing ? 'Sửa bảng giá' : 'Tạo bảng giá' }}</p><p class="truncate text-xs text-slate-500">Bảng giá khách hàng</p></div>
-            <span class="shrink-0 rounded-full bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-800">Nháp</span>
+            <div class="min-w-0 flex-1"><p class="truncate text-sm font-black text-slate-950">{{ $isEditing ? 'Sửa bảng giá' : 'Tạo bảng giá' }}</p><p class="truncate text-xs text-slate-500">{{ $isGlobalMode ? 'Bảng giá chung' : 'Bảng giá khách hàng' }}</p></div>
+            <span class="shrink-0 rounded-full bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-800">{{ $isGlobalMode ? 'Kích hoạt trực tiếp' : 'Nháp' }}</span>
         </div>
     </header>
     @if($errors->any())<div class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">{{ $errors->first() }}</div>@endif
@@ -38,12 +38,12 @@
     </nav>
 
     <form id="price-list-bootstrap" method="GET" action="{{ route('client.pharma.price-lists.create') }}" class="space-y-5">
-        <section data-wizard-panel="1" class="{{ $sourcePriceListId ? 'hidden' : '' }} rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div><p class="text-xs font-black uppercase tracking-[0.14em] text-slate-400">01 · Khởi tạo bảng giá</p><h2 class="mt-1 text-lg font-black text-slate-950">{{ $isEditing ? 'Sửa bảng giá' : 'Tạo bảng giá cho khách hàng' }}</h2><p class="mt-1 text-sm text-slate-500">Chọn loại bảng giá và nguồn khởi tạo phù hợp trước khi nhập thông tin.</p>
-            @if(!$isEditing)<div class="mt-4 rounded-2xl border-2 border-indigo-500 bg-indigo-50 p-4"><span class="block font-black text-slate-950">Bảng giá khách hàng</span><span class="mt-1 block text-xs text-slate-500">User chỉ lập bảng giá riêng cho khách hàng từ bảng giá gốc được phân quyền. Sau khi lưu Nháp, bảng giá phải gửi duyệt trước khi có hiệu lực.</span></div>@endif
+        <section data-wizard-panel="1" class="{{ $sourcePriceListId || $isGlobalMode ? 'hidden' : '' }} rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div><p class="text-xs font-black uppercase tracking-[0.14em] text-slate-400">01 · Khởi tạo bảng giá</p><h2 class="mt-1 text-lg font-black text-slate-950">{{ $isEditing ? 'Sửa bảng giá' : ($isGlobalMode ? 'Tạo bảng giá chung' : 'Tạo bảng giá cho khách hàng') }}</h2><p class="mt-1 text-sm text-slate-500">Chọn loại bảng giá và nguồn khởi tạo phù hợp trước khi nhập thông tin.</p>
+            @if(!$isEditing && $canApprove)<div class="mt-4 grid gap-3 sm:grid-cols-2"><a href="{{ route('client.pharma.price-lists.create') }}" class="rounded-2xl border-2 p-4 {{ !$isGlobalMode ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200' }}"><span class="block font-black text-slate-950">Bảng giá khách hàng</span><span class="mt-1 block text-xs text-slate-500">Bảng giá riêng theo khách hàng, phục vụ chào giá và bán hàng.</span></a><a href="{{ route('client.pharma.price-lists.create', ['type'=>'global']) }}" class="rounded-2xl border-2 p-4 {{ $isGlobalMode ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200' }}"><span class="block font-black text-slate-950">Bảng giá chung</span><span class="mt-1 block text-xs text-slate-500">Bảng giá áp dụng chung, dùng làm bảng giá gốc hoặc tham chiếu.</span></a></div>@endif
             </div>
-            <div class="mt-5"><p class="text-xs font-black uppercase tracking-[0.12em] text-slate-500">Khởi tạo từ bảng giá</p></div>
-            <div><p class="mt-1 text-sm text-slate-500">Chỉ hiển thị bảng giá chung đang ACTIVE và nằm trong phạm vi Admin cấp cho User.</p></div>
+            @if(!$isGlobalMode)<div class="mt-5"><p class="text-xs font-black uppercase tracking-[0.12em] text-slate-500">Khởi tạo từ bảng giá</p></div>@endif
+            <div class="{{ $isGlobalMode ? 'hidden' : '' }}"><p class="mt-1 text-sm text-slate-500">Chỉ hiển thị bảng giá chung đang ACTIVE và nằm trong phạm vi Admin cấp cho User.</p></div>
             @if($sourcePriceLists->isEmpty())
                 <div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800">Hiện chưa có bảng giá chung ACTIVE được cấp cho bạn. Vui lòng liên hệ người quản trị Pharma.</div>
             @else
@@ -63,9 +63,9 @@
         </section>
     </form>
 
-    <form id="price-list-editor" method="POST" action="{{ $isEditing ? route('client.pharma.price-lists.update', $editingPriceList->id) : route('client.pharma.price-lists.store') }}" class="space-y-5">@csrf @if($isEditing) @method('PUT') @endif
-        <input type="hidden" name="source_price_list_id" value="{{ old('source_price_list_id', $sourcePriceListId) }}">
-        <section data-wizard-panel="2" class="{{ $sourcePriceListId ? '' : 'hidden' }} rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+    <form id="price-list-editor" method="POST" action="{{ $isEditing ? route('client.pharma.price-lists.update', $editingPriceList->id) : ($isGlobalMode ? route('client.pharma.price-lists.global.store') : route('client.pharma.price-lists.store')) }}" class="space-y-5">@csrf @if($isEditing) @method('PUT') @endif
+        @if(!$isGlobalMode)<input type="hidden" name="source_price_list_id" value="{{ old('source_price_list_id', $sourcePriceListId) }}">@endif
+        <section data-wizard-panel="2" class="{{ $sourcePriceListId || $isGlobalMode ? '' : 'hidden' }} rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
             <div class="mb-5"><p class="text-xs font-black uppercase tracking-[0.14em] text-slate-400">02 · Khách hàng & mục đích</p><h2 class="mt-1 text-lg font-black text-slate-950">Thông tin cơ bản</h2></div>
             <div class="grid gap-4 lg:grid-cols-2">
                 <label><span class="mb-1.5 block text-xs font-bold text-slate-500">Tên bảng giá *</span><input name="name" value="{{ $field('name') }}" required maxlength="255" class="h-12 w-full rounded-2xl border border-slate-300 px-4" placeholder="VD: Bảng giá BV An Bình Q4/2026"></label>
