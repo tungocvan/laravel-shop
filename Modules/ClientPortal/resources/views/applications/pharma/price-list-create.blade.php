@@ -156,7 +156,7 @@ window.addEventListener('load', () => {
     };
     const persistAndLoadSource = () => {
         const source = document.getElementById('source-price-list');
-        const sourceValue = String(source?.tomselect?.getValue?.() || form?.elements.namedItem('source_price_list_id')?.value || source?.value || '').trim();
+        const sourceValue = String(source?.tomselect?.getValue?.() || source?.value || source?.querySelector('option:checked')?.value || form?.elements.namedItem('source_price_list_id')?.value || '').trim();
         const sourceError = document.getElementById('source-price-list-error');
         if (!sourceValue || !form) {
             sourceError?.classList.remove('hidden');
@@ -177,7 +177,7 @@ window.addEventListener('load', () => {
         }));
         const url = new URL(window.location.href);
         url.searchParams.set('source_price_list_id', sourceValue);
-        window.location.href = url.toString();
+        window.location.assign(url.toString());
         return true;
         @else
         showStep(2);
