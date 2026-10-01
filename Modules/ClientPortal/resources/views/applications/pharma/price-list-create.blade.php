@@ -136,13 +136,18 @@ window.addEventListener('load', () => {
         stepButtons.forEach(button => {
             const active = Number(button.dataset.stepJump) === currentStep;
             const completed = Number(button.dataset.stepJump) < currentStep;
-            button.classList.toggle('text-slate-950', active || completed);
+            button.classList.toggle('bg-slate-100', active);
+            button.classList.toggle('text-slate-950', active);
+            button.classList.toggle('text-slate-600', completed);
             button.classList.toggle('text-slate-400', !active && !completed);
             const dot = button.querySelector('.step-dot');
             dot?.classList.toggle('bg-slate-950', active);
+            dot?.classList.toggle('border-slate-950', active || completed);
             dot?.classList.toggle('text-white', active);
+            dot?.classList.toggle('bg-slate-100', completed && !active);
+            if (dot) dot.textContent = completed ? '✓' : button.dataset.stepJump;
         });
-        backButton?.classList.toggle('invisible', currentStep === 1);
+        backButton?.classList.toggle('hidden', currentStep === 1);
         nextButton?.classList.toggle('hidden', currentStep === 4);
         submitButton?.classList.toggle('hidden', currentStep !== 4);
         if (currentStep === 4) syncReview();
@@ -156,9 +161,13 @@ window.addEventListener('load', () => {
         return String(sourceSelect?.tomselect?.getValue?.() || sourceSelect?.value || '').trim() !== '';
         @endif
     };
+    const fieldValue = name => {
+        const field = form?.elements.namedItem(name);
+        return String(field?.tomselect?.getValue?.() || field?.value || '').trim();
+    };
     const stepTwoReady = () => {
         const requiredNames = [{{ $isGlobalMode ? "'name','manager_user_id','effective_from','effective_to'" : "'name','partner_id','purpose_id','effective_from','effective_to'" }}];
-        return requiredNames.every(name => String(form?.elements.namedItem(name)?.value || '').trim() !== '');
+        return requiredNames.every(name => fieldValue(name) !== '');
     };
     const syncWizardActions = () => {
         if (nextButton) nextButton.disabled = currentStep === 2 ? !stepTwoReady() : false;
@@ -209,7 +218,7 @@ window.addEventListener('load', () => {
     nextButton?.addEventListener('click', () => {
         @if(!$isGlobalMode && !$sourcePriceListId)
         if (currentStep === 1) {
-            bootstrapForm?.requestSubmit(load);
+            load?.click();
             return;
         }
         @endif
@@ -231,6 +240,7 @@ window.addEventListener('load', () => {
     if (customer && window.TomSelect && !customer.tomselect) {
         new TomSelect(customer, { plugins: ['dropdown_input'], placeholder: 'Tra cứu khách hàng...', create: false, allowEmptyOption: true, dropdownParent: 'body' });
     }
+    customer?.tomselect?.on('change', syncWizardActions);
 
     const draftKey = 'client-pharma-price-list-form-state';
     const restore = sessionStorage.getItem(draftKey);
