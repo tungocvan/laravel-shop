@@ -226,7 +226,9 @@ window.addEventListener('load', () => {
     }
 
     const search = document.getElementById('source-product-search');
-    const clear = document.getElementById('clear-source-product-search');
+    if (search && window.TomSelect && !search.tomselect) {
+        new TomSelect(search, { plugins: ['dropdown_input'], placeholder: 'Tên thuốc, SKU, hoạt chất, SĐK...', create: false, allowEmptyOption: true, dropdownParent: 'body' });
+    }
     const selectAll = document.getElementById('select-all-source-products');
     const rows = [...document.querySelectorAll('.source-product-row')];
     const visibleCheckboxes = () => rows.filter(row => !row.classList.contains('hidden')).map(row => row.querySelector('[data-source-product-checkbox]')).filter(Boolean);
@@ -238,13 +240,16 @@ window.addEventListener('load', () => {
         selectAll.indeterminate = checked > 0 && checked < boxes.length;
     };
     const filterRows = () => {
-        const q = (search?.value || '').trim().toLowerCase();
-        rows.forEach(row => row.classList.toggle('hidden', q !== '' && !row.dataset.search.includes(q)));
-        if (clear) clear.classList.toggle('hidden', q === '');
+        const productId = String(search?.value || '');
+        rows.forEach(row => {
+            const checkbox = row.querySelector('[data-source-product-checkbox]');
+            const rowProductId = checkbox?.name?.match(/selected\[(\d+)\]/)?.[1] || '';
+            row.classList.toggle('hidden', productId !== '' && rowProductId !== productId);
+        });
         syncSelectAll();
     };
-    search?.addEventListener('input', filterRows);
-    clear?.addEventListener('click', () => { search.value = ''; filterRows(); search.focus(); });
+    search?.addEventListener('change', filterRows);
+    search?.tomselect?.on('change', filterRows);
     selectAll?.addEventListener('change', () => { visibleCheckboxes().forEach(box => box.checked = selectAll.checked); syncSelectAll(); });
     rows.forEach(row => row.querySelector('[data-source-product-checkbox]')?.addEventListener('change', syncSelectAll));
     syncSelectAll();
