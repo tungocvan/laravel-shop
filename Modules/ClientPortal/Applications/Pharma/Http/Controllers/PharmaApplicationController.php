@@ -11,6 +11,7 @@ use Modules\ClientPortal\Services\ApplicationRegistry;
 use Modules\ClientPortal\Services\ClientPortalSettingsService;
 use Modules\Pharma\Models\PriceList;
 use Modules\Pharma\Services\MedicineCatalog;
+use Modules\Pharma\Services\InventoryService;
 use Modules\Pharma\Services\UserPriceListWorkspace;
 use Modules\Pharma\Services\UserCommercialHospitalWorkspace;
 use Modules\Pharma\Services\UserInventoryWorkspace;
@@ -1269,6 +1270,29 @@ final class PharmaApplicationController extends Controller
             ->with('success', 'Đã hoàn tác phê duyệt. Đơn trở lại trạng thái Chờ duyệt để kiểm tra lại điều kiện.');
     }
 
+    public function postOrder(
+        int $issue, Request $request, ApplicationRegistry $registry,
+        UserInventoryIssueWorkspace $workspace, UserOrderStockReadinessService $stockReadiness,
+        InventoryService $inventory,
+    ) {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.orders.post'), 403);
+
+        $approved = $workspace->findVisible((int) $user->id, $issue, true);
+        abort_if($approved === null || $approved->status !== \Modules\Pharma\Models\InventoryIssue::APPROVED, 404);
+
+        $readiness = $stockReadiness->forIssue($approved);
+        if (! ($readiness['can_post_directly'] ?? false)) {
+            return redirect()->route('client.pharma.orders.show', $issue)
+                ->withErrors(['stock' => 'Đơn chưa đủ điều kiện ghi sổ trực tiếp. Mỗi sản phẩm phải có một lô còn hạn đủ số lượng.']);
+        }
+
+        $inventory->postApprovedIssueFromAvailableStock($approved, (int) $user->id);
+
+        return redirect()->route('client.pharma.orders', ['status' => 'posted'])
+            ->with('success', 'Đã ghi sổ đơn hàng và cập nhật tồn kho.');
+    }
+
     public function rejectOrder(
         int $issue, Request $request, ApplicationRegistry $registry,
         UserInventoryIssueWorkspace $workspace, UserOrderApprovalService $approval,
@@ -1313,6 +1337,7 @@ final class PharmaApplicationController extends Controller
 
         $canCreateForUser = $registry->userCan($user, 'client.pharma.orders.create-for-user');
         $canApproveOrder = $registry->userCan($user, 'client.pharma.orders.approve');
+        $canPostOrder = $registry->userCan($user, 'client.pharma.orders.post');
         $visibleIssue = $workspace->findVisible((int) $user->id, $issue, $canApproveOrder);
         if ($visibleIssue === null && $canCreateForUser) $visibleIssue = $workspace->findByCreator((int) $user->id, $issue);
         if ($visibleIssue === null && $canApproveOrder) $visibleIssue = $workspace->findPendingForApproval($issue) ?? $workspace->findApprovedForUndo($issue);
@@ -1335,7 +1360,10 @@ final class PharmaApplicationController extends Controller
             'canUndoApproval' => $canApproveOrder
                 && $visibleIssue->status === \Modules\Pharma\Models\InventoryIssue::APPROVED
                 && $visibleIssue->posted_at === null,
-            'stockReadiness' => $canApproveOrder ? $stockReadiness->forIssue($visibleIssue) : null,
+            'canPostOrder' => $canPostOrder
+                && $visibleIssue->status === \Modules\Pharma\Models\InventoryIssue::APPROVED
+                && $visibleIssue->posted_at === null,
+            'stockReadiness' => ($canApproveOrder || $canPostOrder) ? $stockReadiness->forIssue($visibleIssue) : null,
             'savedSupplyNotes' => ($canApproveOrder || $visibleIssue->status === \Modules\Pharma\Models\InventoryIssue::APPROVED)
                 ? $visibleIssue->deferredSupplies()->where('status', \Modules\Pharma\Models\InventoryIssueDeferredSupply::PENDING)->get()->keyBy('drug_bid_award_allocation_id')
                 : collect(),
