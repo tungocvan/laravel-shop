@@ -311,7 +311,7 @@ final class PharmaApplicationController extends Controller
 
         $approval->approve((int) $user->id, $priceList);
 
-        return redirect()->route('client.pharma.price-list-approvals')
+        return redirect()->route('client.pharma.price-lists.show', $priceList)
             ->with('success', 'Đã phê duyệt và kích hoạt bảng giá.');
     }
 
