@@ -213,6 +213,16 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertGreaterThanOrEqual(3, substr_count($allocation, '<details'));
         $this->assertStringContainsString('md:grid-cols-2', $allocation);
         $this->assertStringContainsString('Thiết lập chính sách kinh doanh', $policy);
+        $this->assertStringContainsString("'commercialPolicyReady' => \$workflow->commercialPolicyReady(\$award)", $controller);
+        $this->assertStringContainsString("@section('hide-application-header', true)", $policy);
+        $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $policy);
+        $this->assertStringContainsString('data-policy-product-search', $policy);
+        $this->assertStringContainsString('data-policy-product-clear', $policy);
+        $this->assertStringContainsString('data-policy-product-empty', $policy);
+        $this->assertStringContainsString('data-policy-product-card', $policy);
+        $this->assertStringContainsString('@if($commercialPolicyReady)', $policy);
+        $this->assertStringContainsString('Phân công User quản lý · lưu CSKD trước', $policy);
+        $this->assertStringContainsString('Lưu chính sách & tiếp tục', $policy);
         $this->assertStringContainsString('Cần hoàn tất phân bổ số lượng trước.', $detail);
         $this->assertStringContainsString('active:scale-[.985]', $detail);
         $this->assertStringContainsString("const initialSearch=(input?.value||'').trim()", $detail);
