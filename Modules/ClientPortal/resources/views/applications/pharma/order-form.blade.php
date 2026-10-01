@@ -27,6 +27,10 @@
 [data-order-stepper] [data-step-target].is-active .step-label{color:#4f46e5;font-weight:900}
 [data-order-stepper] [data-step-target].is-complete .step-line{background:#a5b4fc}
 @media(min-width:768px){[data-order-stepper]{max-width:760px;padding-left:24px;padding-right:24px}}
+[data-order-source-picker] [data-source-card]{min-height:48px;padding-top:0;padding-bottom:0}
+[data-order-source-picker] input:checked + [data-source-card]{background:#4f46e5!important;border-color:#4f46e5!important;color:#fff!important;box-shadow:0 5px 14px rgba(79,70,229,.2)}
+[data-order-source-picker] input[value="bid"]:checked + [data-source-card]{background:#0f172a!important;border-color:#0f172a!important;color:#fff!important}
+[data-order-source-picker] input:checked + [data-source-card] span{color:inherit!important}
 </style>
 <nav class="mx-auto mt-3 max-w-3xl" aria-label="Tiến trình lập đơn" data-order-stepper>
  <div class="grid grid-cols-3 items-start">
@@ -48,13 +52,13 @@
 
 <form id="order-form" method="POST" action="{{ $editing ? route('client.pharma.orders.update',$issue) : route('client.pharma.orders.store') }}" class="mx-auto mt-4 max-w-7xl" data-order-wizard>
 @csrf @if($editing) @method('PUT') @endif
-<aside class="mx-auto max-w-3xl space-y-0 px-0 sm:px-1" data-order-step-panel="1">
+<aside class="mx-auto min-h-[calc(100dvh-250px)] max-w-3xl space-y-0 px-0 pb-28 sm:px-1" data-order-step-panel="1">
  <section class="rounded-t-3xl border border-b-0 border-slate-200 bg-white p-5 pb-4 shadow-sm">
   <p class="text-xs font-black uppercase tracking-wide text-slate-500">Thiết lập đơn hàng</p>
   <div class="mt-4" data-order-source-picker>
    <div class="grid grid-cols-2 gap-2">
-    <label class="min-w-0 cursor-pointer"><input class="peer sr-only" type="radio" name="source" value="price_list" @checked($currentSource==='price_list') @disabled($editing)><span class="flex min-h-16 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-2 text-center text-xs font-black text-slate-500 transition active:scale-[.985] peer-checked:border-indigo-600 peer-checked:bg-indigo-600 peer-checked:text-white peer-checked:shadow-md peer-checked:ring-2 peer-checked:ring-indigo-100"><span class="text-base">▤</span><span class="whitespace-nowrap">Theo bảng giá</span><span class="hidden rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] text-white peer-checked:inline">✓</span></span></label>
-    <label class="min-w-0 cursor-pointer"><input class="peer sr-only" type="radio" name="source" value="bid" @checked($currentSource==='bid') @disabled($editing)><span class="flex min-h-16 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-2 text-center text-xs font-black text-slate-500 transition active:scale-[.985] peer-checked:border-slate-950 peer-checked:bg-slate-950 peer-checked:text-white peer-checked:shadow-md peer-checked:ring-2 peer-checked:ring-slate-200"><span class="text-base">◎</span><span class="whitespace-nowrap">Theo trúng thầu</span><span class="hidden rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] text-white peer-checked:inline">✓</span></span></label>
+    <label class="min-w-0 cursor-pointer"><input class="peer sr-only" type="radio" name="source" value="price_list" @checked($currentSource==='price_list') @disabled($editing)><span data-source-card class="flex h-12 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 text-center text-xs font-black text-slate-700 transition active:scale-[.985]"><span class="text-base">▤</span><span class="whitespace-nowrap">Theo bảng giá</span><span class="hidden rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] text-white peer-checked:inline">✓</span></span></label>
+    <label class="min-w-0 cursor-pointer"><input class="peer sr-only" type="radio" name="source" value="bid" @checked($currentSource==='bid') @disabled($editing)><span data-source-card class="flex h-12 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 text-center text-xs font-black text-slate-700 transition active:scale-[.985]"><span class="text-base">◎</span><span class="whitespace-nowrap">Theo trúng thầu</span><span class="hidden rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] text-white peer-checked:inline">✓</span></span></label>
    </div>
    <p id="order-source-hint" class="px-2 pb-1 pt-2 text-center text-[11px] font-semibold text-slate-500">Giá bán theo bảng giá đang hiệu lực</p>
   </div>@if($editing)<input type="hidden" name="source" value="{{ $currentSource }}">@endif
@@ -87,14 +91,14 @@
   @endif
   <label class="block"><span class="mb-2 block text-sm font-black">Bảng giá của User</span><select id="price-list-select" name="price_list_id" class="h-12 w-full rounded-2xl border border-slate-300 bg-white px-3"><option value="">Chọn bảng giá</option>@foreach($priceLists as $pl)<option value="{{ $pl->id }}" data-partner="{{ $pl->partner_id }}" @selected((int)old('price_list_id',$issue?->price_list_id)===$pl->id)>{{ $pl->name }}{{ $pl->partner ? ' · '.$pl->partner->name : '' }}</option>@endforeach</select></label>
   <label class="mt-4 block"><span class="mb-2 block text-sm font-black">Khách hàng</span>
-   <div class="relative"><input id="customer-search" type="search" autocomplete="off" placeholder="Tìm tên / MST khách hàng..." class="h-12 w-full rounded-2xl border border-slate-300 px-4"><div id="customer-results" class="absolute z-40 mt-1 hidden max-h-64 w-full overflow-y-auto rounded-2xl border border-slate-200 bg-white p-1 shadow-xl"></div></div>
+   <div class="relative"><input id="customer-search" type="search" autocomplete="off" placeholder="Tìm tên / MST khách hàng..." class="h-12 w-full rounded-2xl border border-slate-300 px-4"><div id="customer-results" class="absolute left-0 right-0 top-full z-[70] mt-1 hidden max-h-[min(320px,42dvh)] overflow-y-auto overscroll-contain rounded-2xl border border-slate-200 bg-white p-1 shadow-2xl"></div></div>
    <input id="customer-id" type="hidden" name="recipient_partner_id" value="{{ old('recipient_partner_id',$issue?->recipient_partner_id) }}">
    <p id="customer-selected" class="mt-2 min-h-5 text-xs font-bold text-slate-600"></p>
   </label>
  </section>
 </aside>
 
-<main class="mx-auto hidden max-w-3xl min-w-0 space-y-4 px-0 sm:px-1" data-order-step-panel="2">
+<main class="mx-auto hidden min-h-[calc(100dvh-250px)] max-w-3xl min-w-0 space-y-4 px-0 pb-32 sm:px-1" data-order-step-panel="2">
  <section id="price-list-products" class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
   <div class="flex items-end justify-between gap-3"><div><h2 class="text-lg font-black">Sản phẩm theo bảng giá</h2><p class="mt-1 text-sm text-slate-500">Chọn sản phẩm, nhập số lượng rồi thêm vào đơn.</p></div><span id="product-count" class="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-black">0 đã thêm</span></div>
   <div class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3" data-product-picker>
@@ -142,7 +146,7 @@
    @endforeach</div>
   </section>
  </section>
- <section class="mx-auto hidden max-w-3xl space-y-4 px-0 sm:px-1" data-order-review data-order-step-panel="3">
+ <section class="mx-auto hidden min-h-[calc(100dvh-250px)] max-w-3xl space-y-4 px-0 pb-32 sm:px-1" data-order-review data-order-step-panel="3">
   <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
    <div class="flex items-center justify-between gap-3"><div><p class="text-xs font-black uppercase tracking-wide text-slate-500">Xem lại đơn hàng</p><h2 class="mt-1 text-lg font-black text-slate-950">Thông tin trước khi lưu nháp</h2></div><button type="button" data-step-target="1" class="text-xs font-black text-indigo-600">Chỉnh sửa</button></div>
    <dl class="mt-4 divide-y divide-slate-100 text-sm">
@@ -203,7 +207,7 @@ document.addEventListener('DOMContentLoaded',()=>{
  const priceContext=document.getElementById('price-list-context'), priceProducts=document.getElementById('price-list-products'), bidProducts=document.getElementById('bid-products');
  const source=()=>document.querySelector('input[name="source"]:checked')?.value||document.querySelector('input[type="hidden"][name="source"]')?.value||'price_list';
  const syncSource=()=>{const b=source()==='bid';const hint=document.getElementById('order-source-hint');if(hint)hint.textContent=b?'Giá và số lượng theo phân bổ trúng thầu':'Giá bán theo bảng giá đang hiệu lực';document.getElementById('manager-context')?.classList.remove('hidden');priceContext.classList.toggle('hidden',b);priceProducts.classList.toggle('hidden',b);bidProducts.classList.toggle('hidden',!b);priceContext.querySelectorAll('input,select').forEach(el=>el.disabled=b);priceProducts.querySelectorAll('input').forEach(el=>el.disabled=b);bidProducts.querySelectorAll('input').forEach(el=>el.disabled=!b);summary();};
- document.querySelectorAll('input[name="source"]').forEach(x=>x.addEventListener('change',syncSource));
+ document.querySelectorAll('input[name="source"]').forEach(x=>x.addEventListener('change',()=>{syncSource();document.querySelectorAll('[data-source-card]').forEach(card=>card.classList.remove('opacity-60'));}));
 
  const pl=document.getElementById('price-list-select'), productBox=document.querySelector('[data-product-picker]'), productToggle=document.getElementById('product-toggle'), productPanel=document.getElementById('product-panel'), productSearch=document.getElementById('product-search'), productResults=document.getElementById('product-results'), productAddPanel=document.getElementById('product-add-panel'), productAddQty=document.getElementById('product-add-qty');
  let pendingProduct=null;
