@@ -892,6 +892,7 @@ final class PharmaApplicationController extends Controller
         return view('ClientPortal::applications.pharma.bid-award-commercial-policy', [
             'application' => $registry->find('pharma'), 'scope' => $scope, 'award' => $award,
             'products' => $workflow->products($award), 'policies' => $workflow->productPolicies($award),
+            'commercialPolicyReady' => $workflow->commercialPolicyReady($award),
         ]);
     }
 
