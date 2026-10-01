@@ -179,7 +179,7 @@
   <button type="button" id="order-step-back" class="hidden h-9 shrink-0 items-center justify-center rounded-xl border border-slate-300 px-3 text-xs font-black">← Quay lại</button>
   <div class="min-w-0 flex-1"><div class="flex items-center gap-2"><span class="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-600">Nháp</span><p id="order-summary" class="min-w-0 truncate text-xs font-black sm:text-sm">0 sản phẩm · 0 SL · 0 đ</p></div></div>
   <button type="button" id="order-step-next" class="h-9 shrink-0 rounded-xl bg-indigo-600 px-4 text-xs font-black text-white shadow-sm active:scale-[.985]">Tiếp tục →</button>
-  <button type="submit" id="order-submit" style="display:none" class="h-9 shrink-0 items-center justify-center rounded-xl bg-slate-950 px-4 text-xs font-black text-white shadow-sm active:scale-[.985]">Lưu nháp</button>
+  <button type="submit" id="order-submit" style="display:none" class="h-9 shrink-0 items-center justify-center rounded-xl bg-slate-950 px-3 text-[11px] font-black text-white shadow-sm active:scale-[.985] sm:px-4 sm:text-xs">Lưu</button>
  </div>
 </div>
 </form></div>
