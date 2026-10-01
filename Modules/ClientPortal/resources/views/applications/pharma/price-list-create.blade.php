@@ -68,7 +68,17 @@
             <div class="mb-5"><p class="text-xs font-black uppercase tracking-[0.14em] text-slate-400">02 · Khách hàng & mục đích</p><h2 class="mt-1 text-lg font-black text-slate-950">Thông tin cơ bản</h2></div>
             <div class="grid gap-4 lg:grid-cols-2">
                 <label><span class="mb-1.5 block text-xs font-bold text-slate-500">Tên bảng giá *</span><input name="name" value="{{ $field('name') }}" required maxlength="255" class="h-12 w-full rounded-2xl border border-slate-300 px-4" placeholder="VD: Bảng giá BV An Bình Q4/2026"></label>
-                @if($isGlobalMode)<div><span class="mb-1.5 block text-xs font-bold text-slate-500">User phụ trách *</span><x-select-search id="client-price-list-manager" name="manager_user_id" placeholder="Tra cứu User phụ trách..." :value="old('manager_user_id')"><option value="">Chọn User phụ trách</option>@foreach($activeUsers as $assignedUser)<option value="{{ $assignedUser->id }}" @selected((string)old('manager_user_id') === (string)$assignedUser->id)>{{ $assignedUser->name }}{{ $assignedUser->email ? ' · '.$assignedUser->email : '' }}</option>@endforeach</x-select-search></div>@else<div><span class="mb-1.5 block text-xs font-bold text-slate-500">Khách hàng *</span><div class="rounded-2xl border border-slate-300 bg-white px-1 shadow-sm focus-within:border-slate-950"><x-select-search id="client-price-list-customer" name="partner_id" placeholder="Tra cứu khách hàng..." :value="$field('partner_id')"><option value="">Chọn khách hàng</option>@foreach($customers as $customer)<option value="{{ $customer->id }}" @selected((string)$field('partner_id') === (string)$customer->id)>{{ $customer->name }}{{ $customer->tax_code ? ' · MST '.$customer->tax_code : '' }}</option>@endforeach</x-select-search></div></div>@endif
+                @if($isGlobalMode)<div><span class="mb-1.5 block text-xs font-bold text-slate-500">User phụ trách *</span><x-select-search id="client-price-list-manager" name="manager_user_id" placeholder="Tra cứu User phụ trách..." :value="old('manager_user_id')"><option value="">Chọn User phụ trách</option>@foreach($activeUsers as $assignedUser)<option value="{{ $assignedUser->id }}" @selected((string)old('manager_user_id') === (string)$assignedUser->id)>{{ $assignedUser->name }}{{ $assignedUser->email ? ' · '.$assignedUser->email : '' }}</option>@endforeach</x-select-search></div>@else<div>
+<span class="mb-1.5 block text-xs font-bold text-slate-500">Khách hàng *</span>
+@php $selectedCustomer = $customers->firstWhere('id', (int) $field('partner_id')); @endphp
+<div data-customer-combobox class="relative">
+<input id="client-price-list-customer-search" type="search" autocomplete="off" value="{{ $selectedCustomer?->name ?? '' }}" placeholder="Tìm tên khách hàng / MST..." class="h-12 w-full rounded-2xl border border-slate-300 bg-white px-4 pr-10 text-sm font-semibold outline-none focus:border-slate-950 focus:ring-2 focus:ring-slate-100">
+<input id="client-price-list-customer" type="hidden" name="partner_id" value="{{ $field('partner_id') }}">
+<div id="client-price-list-customer-results" class="absolute left-0 right-0 top-[calc(100%+6px)] z-[80] hidden max-h-72 overflow-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl">
+@foreach($customers as $customer)
+<button type="button" data-customer-option data-value="{{ $customer->id }}" data-label="{{ $customer->name }}" data-search="{{ mb_strtolower($customer->name.' '.($customer->tax_code ?? '')) }}" class="block w-full rounded-xl px-3 py-3 text-left text-sm hover:bg-slate-100"><strong class="block font-bold text-slate-900">{{ $customer->name }}</strong>@if($customer->tax_code)<small class="mt-0.5 block text-xs text-slate-500">MST {{ $customer->tax_code }}</small>@endif</button>
+@endforeach
+</div></div></div>@endif
                 @if(!$isGlobalMode)<label><span class="mb-1.5 block text-xs font-bold text-slate-500">Mục đích *</span><select name="purpose_id" required class="h-12 w-full rounded-2xl border border-slate-300 px-4"><option value="">Chọn mục đích</option>@foreach($purposes as $purpose)<option value="{{ $purpose->id }}" @selected((string)$field('purpose_id') === (string)$purpose->id)>{{ $purpose->name }}</option>@endforeach</select></label>@endif
                 <div class="grid grid-cols-2 gap-3"><label><span class="mb-1.5 block text-xs font-bold text-slate-500">Hiệu lực từ *</span><input type="date" name="effective_from" value="{{ $field('effective_from', now()->toDateString()) instanceof \Carbon\CarbonInterface ? $field('effective_from')->toDateString() : $field('effective_from', now()->toDateString()) }}" required class="h-12 w-full rounded-2xl border border-slate-300 px-3"></label><label><span class="mb-1.5 block text-xs font-bold text-slate-500">Đến *</span><input type="date" name="effective_to" value="{{ $field('effective_to', now()->addMonth()->toDateString()) instanceof \Carbon\CarbonInterface ? $field('effective_to')->toDateString() : $field('effective_to', now()->addMonth()->toDateString()) }}" required class="h-12 w-full rounded-2xl border border-slate-300 px-3"></label></div>
             </div>
@@ -76,7 +86,7 @@
         </section>
 
         <section data-wizard-panel="3" class="hidden overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-            <div class="border-b border-slate-100 p-5"><p class="text-xs font-black uppercase tracking-[0.14em] text-slate-400">03 · Sản phẩm & giá</p><div class="mt-1 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between"><div><h2 class="text-lg font-black text-slate-950">Chọn sản phẩm từ bảng giá gốc</h2><p class="mt-1 text-sm text-slate-500">Giá bán CT mặc định lấy từ bảng giá gốc. Bỏ checkbox nếu sản phẩm không áp dụng cho khách hàng này.</p></div>@if($sourcePriceListId)<div class="w-full lg:w-96"><span class="mb-1 block text-xs font-bold text-slate-500">Tìm / chọn sản phẩm</span><div class="rounded-2xl border border-slate-300 bg-white px-1 shadow-sm focus-within:border-slate-950"><x-select-search id="source-product-search" name="product_search" placeholder="Tên thuốc, SKU, hoạt chất, SĐK..."><option value="">Tất cả sản phẩm</option>@foreach($sourceProducts as $searchItem) @php $searchProduct=$searchItem->variant; $searchMedicine=$searchProduct?->medicine; @endphp @if($searchProduct)<option value="{{ $searchProduct->id }}">{{ $searchMedicine?->name }} · {{ $searchProduct->sku }} · {{ $searchMedicine?->active_ingredients }}</option>@endif @endforeach</x-select-search></div></div>@endif</div></div>
+            <div class="border-b border-slate-100 p-5"><p class="text-xs font-black uppercase tracking-[0.14em] text-slate-400">03 · Sản phẩm & giá</p><div class="mt-1 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between"><div><h2 class="text-lg font-black text-slate-950">Chọn sản phẩm từ bảng giá gốc</h2><p class="mt-1 text-sm text-slate-500">Giá bán CT mặc định lấy từ bảng giá gốc. Bỏ checkbox nếu sản phẩm không áp dụng cho khách hàng này.</p></div>@if($sourcePriceListId)<div class="w-full lg:w-96"><span class="mb-1 block text-xs font-bold text-slate-500">Tìm / chọn sản phẩm</span><div class="relative"><input id="source-product-search" type="search" autocomplete="off" placeholder="Tên thuốc, SKU, hoạt chất, SĐK..." class="h-12 w-full rounded-2xl border border-slate-300 bg-white px-4 text-sm font-semibold outline-none focus:border-slate-950 focus:ring-2 focus:ring-slate-100"></div></div>@endif</div></div>
             @if(!$sourcePriceListId)
                 <div class="p-8 text-center text-sm text-slate-500">Chọn bảng giá tại Bước 01 để tải sản phẩm.</div>
             @else
@@ -106,212 +116,4 @@
         </div>
     </div>
 </div>
-<script>
-const initPriceListWizard = () => {
-    const wizardRoot = document.getElementById('price-list-editor');
-    if (!wizardRoot || wizardRoot.dataset.wizardInitialized === '1') return;
-    wizardRoot.dataset.wizardInitialized = '1';
-    const form = document.getElementById('price-list-editor');
-    const bootstrapForm = document.getElementById('price-list-bootstrap');
-    let currentStep = 1;
-    const panels = [...document.querySelectorAll('[data-wizard-panel]')];
-    const stepButtons = [...document.querySelectorAll('[data-step-jump]')];
-    const backButton = document.getElementById('wizard-back');
-    const nextButton = document.getElementById('wizard-next');
-    const submitButton = document.getElementById('wizard-submit');
-    const formatDate = value => {
-        if (!value) return '—';
-        const [y,m,d] = value.split('-');
-        return [d,m,y].filter(Boolean).join('/');
-    };
-    const selectedProductCount = () => document.querySelectorAll('[data-source-product-checkbox]:checked').length;
-    const syncReview = () => {
-        const name = form?.elements.namedItem('name')?.value || '—';
-        const from = form?.elements.namedItem('effective_from')?.value || '';
-        const to = form?.elements.namedItem('effective_to')?.value || '';
-        document.querySelector('[data-review-name]')?.replaceChildren(document.createTextNode(name));
-        document.querySelector('[data-review-dates]')?.replaceChildren(document.createTextNode(formatDate(from) + ' → ' + formatDate(to)));
-        document.querySelector('[data-review-products]')?.replaceChildren(document.createTextNode(selectedProductCount() + ' sản phẩm'));
-    };
-    const showStep = step => {
-        currentStep = Math.min(4, Math.max(1, Number(step) || 1));
-        panels.forEach(panel => panel.classList.toggle('hidden', Number(panel.dataset.wizardPanel) !== currentStep));
-        stepButtons.forEach(button => {
-            const active = Number(button.dataset.stepJump) === currentStep;
-            const completed = Number(button.dataset.stepJump) < currentStep;
-            button.classList.toggle('bg-slate-100', active);
-            button.classList.toggle('text-slate-950', active);
-            button.classList.toggle('text-slate-600', completed);
-            button.classList.toggle('text-slate-400', !active && !completed);
-            const dot = button.querySelector('.step-dot');
-            dot?.classList.toggle('bg-slate-950', active);
-            dot?.classList.toggle('border-slate-950', active || completed);
-            dot?.classList.toggle('text-white', active);
-            dot?.classList.toggle('bg-slate-100', completed && !active);
-            if (dot) dot.textContent = completed ? '✓' : button.dataset.stepJump;
-        });
-        backButton?.classList.toggle('hidden', currentStep === 1);
-        nextButton?.classList.toggle('hidden', currentStep === 4);
-        submitButton?.classList.toggle('hidden', currentStep !== 4);
-        if (currentStep === 4) syncReview();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-    const sourceReady = () => {
-        @if($isGlobalMode)
-        return true;
-        @else
-        const sourceSelect = document.getElementById('source-price-list');
-        return String(sourceSelect?.tomselect?.getValue?.() || sourceSelect?.value || '').trim() !== '';
-        @endif
-    };
-    const fieldValue = name => {
-        const field = form?.elements.namedItem(name);
-        return String(field?.tomselect?.getValue?.() || field?.value || '').trim();
-    };
-    const stepTwoReady = () => {
-        const requiredNames = [{{ $isGlobalMode ? "'name','manager_user_id','effective_from','effective_to'" : "'name','partner_id','purpose_id','effective_from','effective_to'" }}];
-        return requiredNames.every(name => fieldValue(name) !== '');
-    };
-    const syncWizardActions = () => {
-        if (nextButton) nextButton.disabled = currentStep === 2 ? !stepTwoReady() : false;
-        if (submitButton) submitButton.disabled = selectedProductCount() === 0;
-    };
-    const persistAndLoadSource = () => {
-        const source = document.getElementById('source-price-list');
-        const sourceValue = String(source?.tomselect?.getValue?.() || source?.value || source?.querySelector('option:checked')?.value || bootstrapForm?.elements.namedItem('source_price_list_id')?.value || '').trim();
-        const sourceError = document.getElementById('source-price-list-error');
-        if (!sourceValue || !form) {
-            sourceError?.classList.remove('hidden');
-            source?.tomselect?.focus?.();
-            source?.focus?.();
-            return false;
-        }
-        sourceError?.classList.add('hidden');
-        @if(!$isGlobalMode)
-        const partner = form.elements.namedItem('partner_id');
-        sessionStorage.setItem('client-pharma-price-list-form-state', JSON.stringify({
-            name: form.elements.namedItem('name')?.value || '',
-            partner_id: partner?.value || '',
-            purpose_id: form.elements.namedItem('purpose_id')?.value || '',
-            effective_from: form.elements.namedItem('effective_from')?.value || '',
-            effective_to: form.elements.namedItem('effective_to')?.value || '',
-            notes: form.elements.namedItem('notes')?.value || '',
-        }));
-        const url = new URL(window.location.href);
-        url.searchParams.set('source_price_list_id', sourceValue);
-        window.location.assign(url.toString());
-        return true;
-        @else
-        showStep(2);
-        return true;
-        @endif
-    };
-    const source = document.getElementById('source-price-list');
-    const load = document.getElementById('load-source-price-list');
-    if (source && window.TomSelect && !source.tomselect) {
-        new TomSelect(source, { plugins: ['dropdown_input'], placeholder: 'Chọn bảng giá chung...', create: false, allowEmptyOption: true, dropdownParent: 'body' });
-    }
-    if (source && load) {
-        const clearSourceError = () => document.getElementById('source-price-list-error')?.classList.add('hidden');
-        source.addEventListener('change', clearSourceError);
-        source.tomselect?.on('change', clearSourceError);
-    }
-
-    backButton?.addEventListener('click', () => showStep(currentStep - 1));
-    nextButton?.addEventListener('click', () => {
-        @if(!$isGlobalMode && !$sourcePriceListId)
-        if (currentStep === 1) {
-            load?.click();
-            return;
-        }
-        @endif
-        if (currentStep === 2 && !stepTwoReady()) return;
-        showStep(currentStep + 1);
-        syncWizardActions();
-    });
-    stepButtons.forEach(button => button.addEventListener('click', () => {
-        const target = Number(button.dataset.stepJump);
-        if (target > currentStep) return;
-        showStep(target);
-        syncWizardActions();
-    }));
-    form?.addEventListener('input', () => { if (currentStep === 4) syncReview(); syncWizardActions(); });
-    form?.addEventListener('change', syncWizardActions);
-    showStep({{ $sourcePriceListId || $isGlobalMode ? '2' : '1' }});
-    syncWizardActions();
-    const customer = document.getElementById('client-price-list-customer');
-    if (customer && window.TomSelect && !customer.tomselect) {
-        new TomSelect(customer, { plugins: ['dropdown_input'], placeholder: 'Tra cứu khách hàng...', create: false, allowEmptyOption: true, dropdownParent: 'body' });
-    }
-    customer?.tomselect?.on('change', syncWizardActions);
-
-    const draftKey = 'client-pharma-price-list-form-state';
-    const restore = sessionStorage.getItem(draftKey);
-    if (restore && form) {
-        try {
-            const state = JSON.parse(restore);
-            ['name','purpose_id','effective_from','effective_to','notes'].forEach(name => {
-                const el = form.elements.namedItem(name);
-                if (el && state[name] !== undefined) el.value = state[name];
-            });
-            if (state.partner_id) {
-                const partner = form.elements.namedItem('partner_id');
-                if (partner) {
-                    partner.value = state.partner_id;
-                    if (partner.tomselect) partner.tomselect.setValue(state.partner_id, true);
-                }
-            }
-        } finally {
-            sessionStorage.removeItem(draftKey);
-        }
-    }
-
-    const search = document.getElementById('source-product-search');
-    if (search && window.TomSelect && !search.tomselect) {
-        new TomSelect(search, { plugins: ['dropdown_input'], placeholder: 'Tên thuốc, SKU, hoạt chất, SĐK...', create: false, allowEmptyOption: true, dropdownParent: 'body' });
-    }
-    const selectAll = document.getElementById('select-all-source-products');
-    const rows = [...document.querySelectorAll('.source-product-row')];
-    const visibleCheckboxes = () => rows.filter(row => !row.classList.contains('hidden')).map(row => row.querySelector('[data-source-product-checkbox]')).filter(Boolean);
-    const syncSelectAll = () => {
-        if (!selectAll) return;
-        const boxes = visibleCheckboxes();
-        const checked = boxes.filter(box => box.checked).length;
-        selectAll.checked = boxes.length > 0 && checked === boxes.length;
-        selectAll.indeterminate = checked > 0 && checked < boxes.length;
-    };
-    const filterRows = () => {
-        const productId = String(search?.value || '');
-        rows.forEach(row => {
-            const checkbox = row.querySelector('[data-source-product-checkbox]');
-            const rowProductId = checkbox?.name?.match(/selected\[(\d+)\]/)?.[1] || '';
-            row.classList.toggle('hidden', productId !== '' && rowProductId !== productId);
-        });
-        syncSelectAll();
-    };
-    search?.addEventListener('change', filterRows);
-    search?.tomselect?.on('change', filterRows);
-    selectAll?.addEventListener('change', () => { visibleCheckboxes().forEach(box => box.checked = selectAll.checked); syncSelectAll(); });
-    rows.forEach(row => row.querySelector('[data-source-product-checkbox]')?.addEventListener('change', syncSelectAll));
-    syncSelectAll();
-
-    const moneyInputs = [...document.querySelectorAll('[data-money-input]')];
-    const digits = value => String(value || '').replace(/\D/g, '');
-    const formatMoney = value => digits(value).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-    moneyInputs.forEach(input => {
-        input.value = formatMoney(input.value);
-        input.addEventListener('input', () => {
-            const caretAtEnd = input.selectionStart === input.value.length;
-            input.value = formatMoney(input.value);
-            if (caretAtEnd) input.setSelectionRange(input.value.length, input.value.length);
-        });
-    });
-    form?.addEventListener('submit', () => moneyInputs.forEach(input => { input.value = digits(input.value); }));
-};
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initPriceListWizard, { once: true });
-} else {
-    initPriceListWizard();
-}
-</script>
 @endsection
