@@ -158,7 +158,7 @@
     <div class="flex items-center justify-between gap-4 py-3"><dt class="text-slate-500">Nguồn đơn</dt><dd id="review-source" class="text-right font-black">Theo bảng giá</dd></div>
     <div class="flex items-center justify-between gap-4 py-3"><dt class="text-slate-500">Ngày lập đơn</dt><dd id="review-date" class="text-right font-black">—</dd></div>
     <div class="flex items-center justify-between gap-4 py-3"><dt class="text-slate-500">Bảng giá</dt><dd id="review-price-list" class="max-w-[65%] truncate text-right font-black">—</dd></div>
-    <div class="flex items-center justify-between gap-4 py-3"><dt class="text-slate-500">Khách hàng</dt><dd id="review-customer" class="max-w-[65%] truncate text-right font-black">—</dd></div>
+    <div class="flex items-center justify-between gap-4 py-3"><dt class="text-slate-500">Khách hàng</dt><dd id="review-customer" class="max-w-[65%] break-words text-right font-black">—</dd></div>
    </dl>
   </section>
   <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -169,7 +169,7 @@
   <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><label><span class="mb-2 block text-sm font-black">Ghi chú</span><textarea name="notes" rows="3" class="w-full rounded-2xl border border-slate-300 px-4 py-3">{{ old('notes',$issue?->notes) }}</textarea></label></section>
  </section>
 
-<div data-order-actions class="fixed inset-x-3 bottom-[calc(78px+env(safe-area-inset-bottom,0px))] z-[100] rounded-2xl border border-slate-200 bg-white/95 px-3 py-2 shadow-[0_8px_30px_rgba(15,23,42,.14)] backdrop-blur sm:inset-x-6 lg:left-1/2 lg:right-auto lg:bottom-4 lg:w-[min(680px,calc(100%-48px))] lg:-translate-x-1/2">
+<div data-order-actions class="fixed inset-x-3 bottom-[calc(84px+env(safe-area-inset-bottom,0px))] z-[100] rounded-2xl border border-slate-200 bg-white/95 px-3 py-2 shadow-[0_8px_30px_rgba(15,23,42,.14)] backdrop-blur sm:inset-x-6 lg:left-1/2 lg:right-auto lg:bottom-4 lg:w-[min(680px,calc(100%-48px))] lg:-translate-x-1/2">
  <div class="mx-auto flex max-w-3xl items-center gap-2 sm:gap-3">
   <button type="button" id="order-step-back" class="hidden h-9 shrink-0 items-center justify-center rounded-xl border border-slate-300 px-3 text-xs font-black">← Quay lại</button>
   <div class="min-w-0 flex-1"><div class="flex items-center gap-2"><span class="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-600">Nháp</span><p id="order-summary" class="min-w-0 truncate text-xs font-black sm:text-sm">0 sản phẩm · 0 SL · 0 đ</p></div></div>
@@ -189,12 +189,12 @@ document.addEventListener('DOMContentLoaded',()=>{
   const date=document.querySelector('input[name="issue_date"]')?.value||'—';
   const price=document.getElementById('price-list-select');
   document.getElementById('review-source').textContent=source==='bid'?'Theo trúng thầu':'Theo bảng giá';
-  document.getElementById('review-date').textContent=date||'—';
+  document.getElementById('review-date').textContent=/^\d{4}-\d{2}-\d{2}$/.test(date)?date.split('-').reverse().join('/'):date||'—';
   document.getElementById('review-price-list').textContent=source==='bid'?'Theo phân bổ trúng thầu':(price?.selectedOptions?.[0]?.textContent?.trim()||'—');
   document.getElementById('review-customer').textContent=document.getElementById('customer-selected')?.textContent?.trim()||document.getElementById('bid-partner-label')?.textContent?.trim()||'—';
-  const rows=[];document.querySelectorAll('[data-quantity]:not(:disabled)').forEach(i=>{const q=parseFloat(i.value)||0;if(q<=0)return;const card=i.closest('[data-price]');const name=card?.querySelector('p.font-black')?.textContent?.trim()||'Sản phẩm';const priceValue=parseFloat(card?.dataset.price)||0;rows.push('<div class="flex items-start justify-between gap-3 rounded-2xl bg-slate-50 px-3 py-3"><div class="min-w-0"><p class="truncate text-sm font-black">'+name.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))+'</p><p class="mt-1 text-xs text-slate-500">Số lượng '+q.toLocaleString('vi-VN')+'</p></div><p class="shrink-0 text-sm font-black">'+Math.round(q*priceValue).toLocaleString('vi-VN')+' đ</p></div>');});
+  const rows=[];const reviewInputs=source==='bid'?[...document.querySelectorAll('#bid-products [data-quantity]:not(:disabled)')]:[...document.querySelectorAll('[data-price-item] [data-quantity]:not(:disabled)')].filter(i=>i.closest('[data-price-item]')?.dataset.priceList===price?.value);reviewInputs.forEach(i=>{const q=parseFloat(i.value)||0;if(q<=0)return;const card=i.closest('[data-price]');const name=card?.querySelector('p.font-black')?.textContent?.trim()||'Sản phẩm';const priceValue=parseFloat(card?.dataset.price)||0;rows.push('<div class="flex items-start justify-between gap-3 rounded-2xl bg-slate-50 px-3 py-3"><div class="min-w-0"><p class="truncate text-sm font-black">'+name.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))+'</p><p class="mt-1 text-xs text-slate-500">Số lượng '+q.toLocaleString('vi-VN')+'</p></div><p class="shrink-0 text-sm font-black">'+Math.round(q*priceValue).toLocaleString('vi-VN')+' đ</p></div>');});
   document.getElementById('review-products').innerHTML=rows.join('')||'<p class="rounded-2xl border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500">Chưa có sản phẩm trong đơn.</p>';
-  document.getElementById('review-summary').textContent=document.getElementById('order-summary')?.textContent||'';
+  let reviewQty=0,reviewTotal=0;reviewInputs.forEach(i=>{const q=parseFloat(i.value)||0;if(q<=0)return;reviewQty+=q;reviewTotal+=q*(parseFloat(i.closest('[data-price]')?.dataset.price)||0);});document.getElementById('review-summary').textContent=rows.length+' sản phẩm · '+reviewQty.toLocaleString('vi-VN')+' SL · '+Math.round(reviewTotal).toLocaleString('vi-VN')+' đ';
  };
  const setOrderStep=(step)=>{orderStep=Math.max(1,Math.min(3,step));document.querySelector('[data-order-actions]')?.setAttribute('data-step',String(orderStep));stepPanels.forEach(p=>p.classList.toggle('hidden',Number(p.dataset.orderStepPanel)!==orderStep));stepButtons.forEach(b=>{const n=Number(b.dataset.stepTarget),dot=b.querySelector('.order-step-dot');if(!dot)return;dot.textContent=n<orderStep?'✓':String(n);b.classList.toggle('is-active',n===orderStep);b.classList.toggle('is-complete',n<orderStep);});stepBack?.classList.toggle('hidden',orderStep===1);stepBack?.classList.toggle('flex',orderStep!==1);stepNext?.classList.toggle('hidden',orderStep===3);orderSubmit?.classList.toggle('hidden',orderStep!==3);if(orderStep===3)refreshReview();window.scrollTo({top:0,behavior:'smooth'});};
  stepButtons.forEach(b=>b.addEventListener('click',()=>setOrderStep(Number(b.dataset.stepTarget))));
