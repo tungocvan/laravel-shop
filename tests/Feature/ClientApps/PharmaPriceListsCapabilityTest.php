@@ -115,6 +115,12 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString("'draft' => 'Nháp'", $view);
         $this->assertStringContainsString('STATUS_PENDING_APPROVAL', $detail);
         $this->assertStringContainsString('Không thể hoàn tất thao tác', $detail);
+        $this->assertStringContainsString('Sửa thông tin', $detail);
+        $this->assertStringContainsString('pending-price-list-edit-dialog', $detail);
+        $this->assertStringContainsString("route('client.pharma.price-list-approvals.header.update'", $detail);
+        $this->assertStringContainsString('updatePendingPriceListHeader', $controller);
+        $this->assertStringContainsString("'effective_to' => ['required', 'date', 'after_or_equal:effective_from']", $controller);
+
         $this->assertStringContainsString('$errors->first()', $detail);
         $this->assertStringContainsString("redirect()->route('client.pharma.price-lists.show', \$priceList)", $controller);
 
