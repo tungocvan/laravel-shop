@@ -22,7 +22,7 @@
     $displayItems = $issue->status === 'approved' ? $fulfilledItems : $issue->items;
     $total = $displayItems->sum(fn($item)=>(float)$item->quantity*(float)$item->unit_price);
 @endphp
-<div class="min-h-[calc(100vh-5rem)] bg-slate-50 pb-24 lg:pb-8">
+<div class="min-h-screen bg-slate-50 pb-8">
     <header class="sticky top-0 z-30 -mx-4 border-b border-slate-200 bg-white/95 px-4 py-4 backdrop-blur sm:-mx-6 sm:px-6 lg:static lg:mx-0 lg:rounded-3xl lg:border lg:px-6">
         <div class="relative flex items-center justify-center">
             <a href="{{ route('client.pharma.orders') }}" class="absolute left-0 inline-flex h-11 w-11 items-center justify-center rounded-full text-2xl text-slate-900 active:scale-95" aria-label="Quay lại">←</a>
@@ -30,13 +30,13 @@
         </div>
     </header>
 
-    <main class="mx-auto mt-4 max-w-4xl space-y-4">
-        <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+    <main class="mx-auto mt-3 max-w-4xl space-y-3">
+        <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
             <div class="flex items-start justify-between gap-3">
                 <div><p class="text-xs font-black uppercase tracking-wide text-slate-500">{{ $issue->number }}</p><h2 class="mt-1 text-xl font-black text-slate-950">{{ $issue->recipient_name ?: 'Chưa xác định nơi nhận' }}</h2></div>
                 <span class="rounded-full px-3 py-1 text-xs font-black {{ $issue->status==='posted' ? 'bg-emerald-100 text-emerald-800' : ($issue->status==='cancelled' ? 'bg-slate-200 text-slate-600' : 'bg-amber-100 text-amber-800') }}">{{ $statusLabels[$issue->status] ?? $issue->status }}</span>
             </div>
-            <dl class="mt-5 grid grid-cols-2 gap-x-4 gap-y-4 border-t border-slate-100 pt-4 text-sm">
+            <dl class="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-slate-100 pt-3 text-sm">
                 <div><dt class="text-slate-500">Nguồn đơn hàng</dt><dd class="mt-1 font-black text-slate-900">{{ $source }}</dd></div>
                 <div><dt class="text-slate-500">Ngày lập</dt><dd class="mt-1 font-black text-slate-900">{{ $issue->issue_date?->format('d/m/Y') }}</dd></div>
                 <div><dt class="text-slate-500">Người phụ trách</dt><dd class="mt-1 font-black text-slate-900">{{ $issue->manager?->name ?: '—' }}</dd></div>
@@ -155,7 +155,7 @@
         @endif
     </main>
     @if($canEditOrder || $canSubmitOrder || $canApproveOrder || ($canUndoApproval ?? false) || ($canDeleteOrder ?? false))
-        <div class="sticky bottom-0 z-20 mx-auto mt-4 max-w-4xl border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur lg:rounded-2xl lg:border">
+        <div class="mx-auto mt-3 max-w-4xl rounded-2xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
             @if($canDeleteOrder ?? false)
                 <form method="POST" action="{{ route('client.pharma.orders.delete',$issue) }}" onsubmit="return confirm('Xóa đơn {{ $issue->number }}? Đơn chưa ghi sổ nên thao tác này không ảnh hưởng tồn kho.');">
                     @csrf @method('DELETE')
@@ -181,9 +181,9 @@
                     <button class="mt-3 h-11 w-full rounded-xl bg-rose-700 font-black text-white">Xác nhận từ chối</button>
                 </form>
             @else
-                <div class="grid {{ $canEditOrder && $canSubmitOrder ? 'grid-cols-2' : 'grid-cols-1' }} gap-3">
-                    @if($canEditOrder)<a href="{{ route('client.pharma.orders.edit',$issue) }}" class="flex h-13 items-center justify-center rounded-2xl border border-slate-300 font-black text-slate-700">Sửa đơn</a>@endif
-                    @if($canSubmitOrder)<form method="POST" action="{{ route('client.pharma.orders.submit',$issue) }}">@csrf<button class="h-13 w-full rounded-2xl bg-slate-950 font-black text-white">Gửi duyệt</button></form>@endif
+                <div class="flex items-center justify-end gap-2">
+                    @if($canEditOrder)<a href="{{ route('client.pharma.orders.edit',$issue) }}" class="inline-flex h-10 min-w-[108px] items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-black text-slate-700 active:scale-[0.985]">Sửa đơn</a>@endif
+                    @if($canSubmitOrder)<form method="POST" action="{{ route('client.pharma.orders.submit',$issue) }}">@csrf<button class="h-10 min-w-[118px] rounded-xl bg-slate-950 px-4 text-sm font-black text-white active:scale-[0.985]">Gửi duyệt</button></form>@endif
                 </div>
             @endif
         </div>
