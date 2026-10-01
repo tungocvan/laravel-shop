@@ -62,6 +62,9 @@ class PharmaPwaUiParityContractTest extends TestCase
         $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/price-list-create.blade.php'));
 
         $this->assertStringContainsString('const sourceReady = () =>', $view);
+        $this->assertStringContainsString("new TomSelect(source, { plugins: ['dropdown_input']", $view);
+        $this->assertStringContainsString("source.tomselect?.on('change', syncWizardActions)", $view);
+        $this->assertStringContainsString('Kích hoạt bảng giá chung', $view);
         $this->assertStringContainsString('const stepTwoReady = () =>', $view);
         $this->assertStringContainsString('const persistAndLoadSource = () =>', $view);
         $this->assertStringContainsString('nextButton.disabled = currentStep === 1 ? !sourceReady()', $view);
