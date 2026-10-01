@@ -97,7 +97,9 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertStringContainsString('Kích hoạt trực tiếp', $view);
         $this->assertStringContainsString('data-date-display name="effective_from"', $view);
         $this->assertStringContainsString('data-date-display name="effective_to"', $view);
-        $this->assertStringContainsString('placeholder="dd/mm/yyyy"', $view);
+        $this->assertStringContainsString('type="date" data-date-display name="effective_from"', $view);
+        $this->assertStringContainsString('type="date" data-date-display name="effective_to"', $view);
+        $this->assertStringContainsString('lang="en-GB"', $view);
         $this->assertStringNotContainsString('data-price-list-manager-combobox', $view);
         $this->assertStringContainsString('id="price-list-bootstrap" method="GET"', $view);
         $this->assertStringContainsString('<select id="source-price-list" name="source_price_list_id"', $view);
