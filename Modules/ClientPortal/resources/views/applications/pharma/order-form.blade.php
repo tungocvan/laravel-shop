@@ -17,11 +17,28 @@
 <header class="sticky top-0 z-30 -mx-4 border-b border-slate-200 bg-white/95 px-4 py-4 backdrop-blur sm:-mx-6 sm:px-6 lg:static lg:mx-auto lg:max-w-7xl lg:rounded-3xl lg:border">
  <div class="relative flex items-center justify-center"><a href="{{ $editing ? route('client.pharma.orders.show',$issue) : route('client.pharma.orders') }}" class="absolute left-0 flex h-11 w-11 items-center justify-center rounded-full text-2xl">←</a><div class="text-center"><h1 class="text-xl font-black text-slate-950">{{ $editing ? 'Sửa đơn hàng' : 'Thêm mới đơn hàng' }}</h1><p class="mt-1 text-xs font-semibold text-slate-500">Lập đơn đúng phạm vi User · giá lấy từ nguồn canonical</p></div></div>
 </header>
+
+<nav class="mx-auto mt-3 max-w-7xl px-1" aria-label="Tiến trình lập đơn" data-order-stepper>
+ <div class="grid grid-cols-3 items-start">
+  <button type="button" data-step-target="1" class="group flex min-w-0 flex-col items-center text-center">
+   <span class="flex w-full items-center before:h-px before:flex-1 before:bg-transparent after:h-px after:flex-1 after:bg-indigo-200"><span class="order-step-dot flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-xs font-black text-white shadow-sm">1</span></span>
+   <span class="mt-1 text-[11px] font-black text-indigo-600 sm:text-xs">Thiết lập</span>
+  </button>
+  <button type="button" data-step-target="2" class="group flex min-w-0 flex-col items-center text-center">
+   <span class="flex w-full items-center before:h-px before:flex-1 before:bg-indigo-200 after:h-px after:flex-1 after:bg-slate-200"><span class="order-step-dot flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-black text-slate-500">2</span></span>
+   <span class="mt-1 text-[11px] font-bold text-slate-500 sm:text-xs">Sản phẩm</span>
+  </button>
+  <button type="button" data-step-target="3" class="group flex min-w-0 flex-col items-center text-center">
+   <span class="flex w-full items-center before:h-px before:flex-1 before:bg-slate-200 after:h-px after:flex-1 after:bg-transparent"><span class="order-step-dot flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-black text-slate-500">3</span></span>
+   <span class="mt-1 text-[11px] font-bold text-slate-500 sm:text-xs">Xem lại</span>
+  </button>
+ </div>
+</nav>
 @if($errors->any())<div class="mx-auto mt-4 max-w-7xl rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-bold text-rose-700">{{ $errors->first() }}</div>@endif
 
-<form id="order-form" method="POST" action="{{ $editing ? route('client.pharma.orders.update',$issue) : route('client.pharma.orders.store') }}" class="mx-auto mt-4 grid max-w-7xl gap-4 lg:grid-cols-[360px_minmax(0,1fr)] lg:items-start">
+<form id="order-form" method="POST" action="{{ $editing ? route('client.pharma.orders.update',$issue) : route('client.pharma.orders.store') }}" class="mx-auto mt-4 max-w-7xl" data-order-wizard>
 @csrf @if($editing) @method('PUT') @endif
-<aside class="space-y-4 lg:sticky lg:top-4">
+<aside class="space-y-4" data-order-step-panel="1">
  <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
   <p class="text-xs font-black uppercase tracking-wide text-slate-500">Thiết lập đơn hàng</p>
   <div class="mt-4" data-order-source-picker>
@@ -67,7 +84,7 @@
  </section>
 </aside>
 
-<main class="min-w-0 space-y-4">
+<main class="hidden min-w-0 space-y-4" data-order-step-panel="2">
  <section id="price-list-products" class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
   <div class="flex items-end justify-between gap-3"><div><h2 class="text-lg font-black">Sản phẩm theo bảng giá</h2><p class="mt-1 text-sm text-slate-500">Chọn sản phẩm, nhập số lượng rồi thêm vào đơn.</p></div><span id="product-count" class="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-black">0 đã thêm</span></div>
   <div class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3" data-product-picker>
@@ -115,20 +132,56 @@
    @endforeach</div>
   </section>
  </section>
- <section class="rounded-3xl border border-slate-200 bg-white p-5"><label><span class="mb-2 block text-sm font-black">Ghi chú</span><textarea name="notes" rows="3" class="w-full rounded-2xl border border-slate-300 px-4 py-3">{{ old('notes',$issue?->notes) }}</textarea></label></section>
+ <section class="hidden space-y-4" data-order-review data-order-step-panel="3">
+  <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+   <div class="flex items-center justify-between gap-3"><div><p class="text-xs font-black uppercase tracking-wide text-slate-500">Xem lại đơn hàng</p><h2 class="mt-1 text-lg font-black text-slate-950">Thông tin trước khi lưu nháp</h2></div><button type="button" data-step-target="1" class="text-xs font-black text-indigo-600">Chỉnh sửa</button></div>
+   <dl class="mt-4 divide-y divide-slate-100 text-sm">
+    <div class="flex items-center justify-between gap-4 py-3"><dt class="text-slate-500">Nguồn đơn</dt><dd id="review-source" class="text-right font-black">Theo bảng giá</dd></div>
+    <div class="flex items-center justify-between gap-4 py-3"><dt class="text-slate-500">Ngày lập đơn</dt><dd id="review-date" class="text-right font-black">—</dd></div>
+    <div class="flex items-center justify-between gap-4 py-3"><dt class="text-slate-500">Bảng giá</dt><dd id="review-price-list" class="max-w-[65%] truncate text-right font-black">—</dd></div>
+    <div class="flex items-center justify-between gap-4 py-3"><dt class="text-slate-500">Khách hàng</dt><dd id="review-customer" class="max-w-[65%] truncate text-right font-black">—</dd></div>
+   </dl>
+  </section>
+  <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+   <div class="flex items-center justify-between gap-3"><h2 class="font-black">Danh sách sản phẩm</h2><button type="button" data-step-target="2" class="text-xs font-black text-indigo-600">Chỉnh sửa</button></div>
+   <div id="review-products" class="mt-3 space-y-2"></div>
+   <div class="mt-4 border-t border-slate-100 pt-4"><p id="review-summary" class="text-right text-base font-black text-slate-950">0 sản phẩm · 0 SL · 0 đ</p></div>
+  </section>
+  <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><label><span class="mb-2 block text-sm font-black">Ghi chú</span><textarea name="notes" rows="3" class="w-full rounded-2xl border border-slate-300 px-4 py-3">{{ old('notes',$issue?->notes) }}</textarea></label></section>
+ </section>
 </main>
 
-<div class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-8px_30px_rgba(15,23,42,.08)] backdrop-blur lg:left-[calc(50%+130px)] lg:right-auto lg:bottom-6 lg:w-[568px] lg:-translate-x-1/2 lg:rounded-3xl lg:border lg:px-4">
- <div class="flex items-center gap-3">
-  <div class="min-w-0 flex-1"><div class="flex items-center gap-2"><span class="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-600">Nháp</span><p id="order-summary" class="min-w-0 truncate text-sm font-black">0 sản phẩm · 0 SL · 0 đ</p></div></div>
-  <a href="{{ $editing ? route('client.pharma.orders.show',$issue) : route('client.pharma.orders') }}" class="hidden h-11 w-24 shrink-0 items-center justify-center rounded-2xl border border-slate-300 font-black sm:flex">Hủy</a><button type="submit" class="h-11 w-32 shrink-0 rounded-2xl bg-slate-950 font-black text-white">Lưu nháp</button>
+<div class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 pb-[calc(12px+env(safe-area-inset-bottom,0px))] pt-3 shadow-[0_-8px_30px_rgba(15,23,42,.08)] backdrop-blur sm:px-6 lg:left-1/2 lg:right-auto lg:bottom-5 lg:w-[min(760px,calc(100%-48px))] lg:-translate-x-1/2 lg:rounded-3xl lg:border lg:pb-3">
+ <div class="mx-auto flex max-w-3xl items-center gap-2 sm:gap-3">
+  <button type="button" id="order-step-back" class="hidden h-12 shrink-0 items-center justify-center rounded-2xl border border-slate-300 px-5 text-sm font-black">← Quay lại</button>
+  <div class="min-w-0 flex-1"><div class="flex items-center gap-2"><span class="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-600">Nháp</span><p id="order-summary" class="min-w-0 truncate text-xs font-black sm:text-sm">0 sản phẩm · 0 SL · 0 đ</p></div></div>
+  <button type="button" id="order-step-next" class="h-12 shrink-0 rounded-2xl bg-indigo-600 px-6 text-sm font-black text-white shadow-sm active:scale-[.985]">Tiếp tục →</button>
+  <button type="submit" id="order-submit" class="hidden h-12 shrink-0 rounded-2xl bg-slate-950 px-6 text-sm font-black text-white shadow-sm active:scale-[.985]">Lưu nháp</button>
  </div>
- <a href="{{ $editing ? route('client.pharma.orders.show',$issue) : route('client.pharma.orders') }}" class="mt-2 flex h-11 items-center justify-center rounded-2xl border border-slate-300 font-black sm:hidden">Hủy</a>
 </div>
 </form></div>
 
 <script>
 document.addEventListener('DOMContentLoaded',()=>{
+ let orderStep=1;
+ const stepPanels=[...document.querySelectorAll('[data-order-step-panel]')], stepButtons=[...document.querySelectorAll('[data-step-target]')];
+ const stepBack=document.getElementById('order-step-back'),stepNext=document.getElementById('order-step-next'),orderSubmit=document.getElementById('order-submit');
+ const refreshReview=()=>{
+  const source=document.querySelector('input[name="source"]:checked')?.value;
+  const date=document.querySelector('input[name="issue_date"]')?.value||'—';
+  const price=document.getElementById('price-list-select');
+  document.getElementById('review-source').textContent=source==='bid'?'Theo trúng thầu':'Theo bảng giá';
+  document.getElementById('review-date').textContent=date||'—';
+  document.getElementById('review-price-list').textContent=source==='bid'?'Theo phân bổ trúng thầu':(price?.selectedOptions?.[0]?.textContent?.trim()||'—');
+  document.getElementById('review-customer').textContent=document.getElementById('customer-selected')?.textContent?.trim()||document.getElementById('bid-partner-label')?.textContent?.trim()||'—';
+  const rows=[];document.querySelectorAll('[data-quantity]:not(:disabled)').forEach(i=>{const q=parseFloat(i.value)||0;if(q<=0)return;const card=i.closest('[data-price]');const name=card?.querySelector('p.font-black')?.textContent?.trim()||'Sản phẩm';const priceValue=parseFloat(card?.dataset.price)||0;rows.push('<div class="flex items-start justify-between gap-3 rounded-2xl bg-slate-50 px-3 py-3"><div class="min-w-0"><p class="truncate text-sm font-black">'+name.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))+'</p><p class="mt-1 text-xs text-slate-500">Số lượng '+q.toLocaleString('vi-VN')+'</p></div><p class="shrink-0 text-sm font-black">'+Math.round(q*priceValue).toLocaleString('vi-VN')+' đ</p></div>');});
+  document.getElementById('review-products').innerHTML=rows.join('')||'<p class="rounded-2xl border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500">Chưa có sản phẩm trong đơn.</p>';
+  document.getElementById('review-summary').textContent=document.getElementById('order-summary')?.textContent||'';
+ };
+ const setOrderStep=(step)=>{orderStep=Math.max(1,Math.min(3,step));stepPanels.forEach(p=>p.classList.toggle('hidden',Number(p.dataset.orderStepPanel)!==orderStep));stepButtons.forEach(b=>{const n=Number(b.dataset.stepTarget),dot=b.querySelector('.order-step-dot'),label=b.querySelector('span:last-child');if(!dot)return;dot.textContent=n<orderStep?'✓':String(n);dot.className='order-step-dot flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-black '+(n<=orderStep?'bg-indigo-600 text-white shadow-sm':'bg-slate-100 text-slate-500');if(label)label.className='mt-1 text-[11px] sm:text-xs '+(n===orderStep?'font-black text-indigo-600':'font-bold text-slate-500');});stepBack?.classList.toggle('hidden',orderStep===1);stepBack?.classList.toggle('flex',orderStep!==1);stepNext?.classList.toggle('hidden',orderStep===3);orderSubmit?.classList.toggle('hidden',orderStep!==3);if(orderStep===3)refreshReview();window.scrollTo({top:0,behavior:'smooth'});};
+ stepButtons.forEach(b=>b.addEventListener('click',()=>setOrderStep(Number(b.dataset.stepTarget))));
+ stepBack?.addEventListener('click',()=>setOrderStep(orderStep-1));stepNext?.addEventListener('click',()=>setOrderStep(orderStep+1));
+ setOrderStep(1);
  const managers=@json($orderManagers->map(fn($m)=>['id'=>$m->id,'name'=>$m->name,'email'=>$m->email])->values());
  const managerBox=document.querySelector('[data-manager-combobox]'), managerToggle=document.getElementById('manager-toggle'), managerPanel=document.getElementById('manager-panel'), managerSearch=document.getElementById('manager-search'), managerResults=document.getElementById('manager-results'), managerId=document.getElementById('manager-id'), managerLabel=document.getElementById('manager-label');
  const renderManagers=()=>{if(!managerResults)return;const q=(managerSearch?.value||'').toLocaleLowerCase('vi').trim();managerResults.innerHTML='';managers.filter(m=>(m.name+' '+(m.email||'')).toLocaleLowerCase('vi').includes(q)).slice(0,25).forEach(m=>{const b=document.createElement('button');b.type='button';b.className='block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100';b.textContent=m.name+(m.email?' · '+m.email:'');b.onclick=()=>{managerId.value=m.id;managerLabel.textContent=m.name+(m.email?' · '+m.email:'');managerPanel.classList.add('hidden');const u=new URL(location.href);u.searchParams.set('manager_user_id',m.id);location.href=u.toString();};managerResults.appendChild(b);});};
