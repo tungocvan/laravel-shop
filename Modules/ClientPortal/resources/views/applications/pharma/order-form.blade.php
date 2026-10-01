@@ -35,6 +35,9 @@
 [data-customer-field].is-open #customer-results{display:block!important}
 [data-order-actions]{isolation:isolate;bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 #product-picker-panel,#customer-results{z-index:120!important}
+@media(max-width:1023px){
+ [data-order-actions][data-step="1"]{position:relative!important;inset:auto!important;margin:12px 12px calc(84px + env(safe-area-inset-bottom,0px))!important;width:auto!important;transform:none!important}
+}
 @media(min-width:1024px){[data-order-actions]{bottom:16px}}
 [data-order-actions][data-step="3"] #order-step-next{display:none!important}
 [data-order-actions][data-step="3"] #order-submit{display:inline-flex!important}
@@ -59,7 +62,7 @@
 
 <form id="order-form" method="POST" action="{{ $editing ? route('client.pharma.orders.update',$issue) : route('client.pharma.orders.store') }}" class="mx-auto mt-4 max-w-7xl" data-order-wizard>
 @csrf @if($editing) @method('PUT') @endif
-<aside class="mx-auto min-h-[calc(100dvh-250px)] max-w-3xl space-y-0 px-0 pb-28 sm:px-1" data-order-step-panel="1">
+<aside class="mx-auto min-h-[calc(100dvh-250px)] max-w-3xl space-y-0 px-0 pb-4 sm:px-1" data-order-step-panel="1">
  <section class="rounded-t-3xl border border-b-0 border-slate-200 bg-white p-5 pb-4 shadow-sm">
   <p class="text-xs font-black uppercase tracking-wide text-slate-500">Thiết lập đơn hàng</p>
   <div class="mt-4" data-order-source-picker>
