@@ -511,6 +511,15 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString('data-assignment-checkbox', $view);
         $this->assertStringContainsString('data-toggle-hospital', $view);
         $this->assertStringContainsString('data-toggle-all-assignments', $view);
+        $this->assertStringContainsString("@section('hide-application-header', true)", $view);
+        $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $view);
+        $this->assertStringContainsString("@section('app-dashboard-route', route('client.pharma.dashboard'))", $view);
+        $this->assertStringContainsString('aria-label="Quay lại phân công User quản lý"', $view);
+        $this->assertStringContainsString('data-adjust-search', $view);
+        $this->assertStringContainsString('data-adjust-search-clear', $view);
+        $this->assertStringContainsString('data-adjust-search-empty', $view);
+        $this->assertStringContainsString('data-adjust-hospital', $view);
+        $this->assertStringContainsString('Không có phân công phù hợp.', $view);
         $this->assertStringContainsString('Thay User mục đã chọn', $view);
         $this->assertStringContainsString('Gỡ mục đã chọn', $view);
         $this->assertStringContainsString('data-remove-selected-modal', $view);
