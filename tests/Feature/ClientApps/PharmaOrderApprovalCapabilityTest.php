@@ -131,10 +131,16 @@ final class PharmaOrderApprovalCapabilityTest extends TestCase
         $this->assertStringContainsString("status !== \\Modules\\Pharma\\Models\\InventoryIssue::APPROVED", $controller);
         $this->assertStringContainsString("['status' => 'posted']", $controller);
         $this->assertStringContainsString('can_post_directly', $readiness);
-        $this->assertStringContainsString('$deferredSupplies->isEmpty()', $readiness);
+        $this->assertStringContainsString("if (\$row['has_supply_note']) return false;", $readiness);
+        $this->assertStringContainsString('$rows->contains(function (array $row): bool', $readiness);
         $this->assertStringContainsString('postApprovedIssueFromAvailableStock', $inventory);
         $this->assertStringContainsString("where('quantity_on_hand', '>=', (float) \$item->quantity)", $inventory);
         $this->assertStringContainsString("orderBy('expiry_date')", $inventory);
+        $this->assertStringContainsString('$deferredMedicineIds = $issue->deferredSupplies', $inventory);
+        $this->assertStringContainsString('$postedItems = $issue->items', $inventory);
+        $this->assertStringContainsString("reject(fn (\$item) => \$deferredMedicineIds->contains((int) \$item->medicine_id))", $inventory);
+        $this->assertStringContainsString('toàn bộ mặt hàng đang chờ cung ứng', $inventory);
+        $this->assertStringContainsString('Ghi sổ chỉ xuất các sản phẩm đủ tồn', $view);
         $this->assertStringContainsString("route('client.pharma.orders.post',\$issue)", $view);
         $this->assertStringContainsString('>Ghi sổ</button>', $view);
         $this->assertStringContainsString("@disabled(!(\$stockReadiness['can_post_directly'] ?? false))", $view);
