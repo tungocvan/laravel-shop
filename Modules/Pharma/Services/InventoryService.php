@@ -97,8 +97,18 @@ final class InventoryService
                 throw ValidationException::withMessages(['status' => 'Chỉ đơn đã duyệt mới được ghi sổ từ PWA.']);
             }
 
-            $issue->load('items');
-            foreach ($issue->items as $item) {
+            $issue->load(['items', 'deferredSupplies']);
+            $deferredMedicineIds = $issue->deferredSupplies
+                ->pluck('medicine_id')->map(fn ($id) => (int) $id)->unique();
+            $postedItems = $issue->items
+                ->reject(fn ($item) => $deferredMedicineIds->contains((int) $item->medicine_id))
+                ->values();
+
+            if ($postedItems->isEmpty()) {
+                throw ValidationException::withMessages(['stock' => 'Không có mặt hàng đủ điều kiện xuất kho; toàn bộ mặt hàng đang chờ cung ứng.']);
+            }
+
+            foreach ($postedItems as $item) {
                 $balance = InventoryBalance::query()
                     ->where('warehouse_id', $issue->warehouse_id)
                     ->where('medicine_id', $item->medicine_id)
@@ -111,7 +121,7 @@ final class InventoryService
 
                 if (! $balance) {
                     throw ValidationException::withMessages([
-                        'stock' => 'Tồn kho đã thay đổi hoặc chưa có một lô đủ số lượng để ghi sổ trực tiếp. Vui lòng kiểm tra lại.',
+                        'stock' => 'Tồn kho đã thay đổi hoặc mặt hàng thực xuất chưa có một lô đủ số lượng. Vui lòng kiểm tra lại.',
                     ]);
                 }
 
