@@ -137,7 +137,14 @@ window.addEventListener('load', () => {
         if (currentStep === 4) syncReview();
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
-    const sourceReady = () => {{ $isGlobalMode ? 'true' : "(document.getElementById('source-price-list')?.value || '') !== ''" }};
+    const sourceReady = () => {
+        @if($isGlobalMode)
+        return true;
+        @else
+        const sourceSelect = document.getElementById('source-price-list');
+        return String(sourceSelect?.tomselect?.getValue?.() || sourceSelect?.value || '').trim() !== '';
+        @endif
+    };
     const stepTwoReady = () => {
         const requiredNames = [{{ $isGlobalMode ? "'name','manager_user_id','effective_from','effective_to'" : "'name','partner_id','purpose_id','effective_from','effective_to'" }}];
         return requiredNames.every(name => String(form?.elements.namedItem(name)?.value || '').trim() !== '');
@@ -162,7 +169,7 @@ window.addEventListener('load', () => {
             notes: form.elements.namedItem('notes')?.value || '',
         }));
         const url = new URL(window.location.href);
-        url.searchParams.set('source_price_list_id', source.value);
+        url.searchParams.set('source_price_list_id', source.tomselect?.getValue?.() || source.value);
         window.location.href = url.toString();
         return true;
         @else
@@ -220,8 +227,17 @@ window.addEventListener('load', () => {
     const source = document.getElementById('source-price-list');
     const load = document.getElementById('load-source-price-list');
     if (source && load) {
-        source.addEventListener('change', syncWizardActions);
-        source.tomselect?.on('change', syncWizardActions);
+        const bindSourceSelector = () => {
+            source.addEventListener('change', syncWizardActions);
+            if (source.tomselect && !source.dataset.wizardBound) {
+                source.tomselect.on('change', syncWizardActions);
+                source.dataset.wizardBound = '1';
+            }
+            syncWizardActions();
+        };
+        bindSourceSelector();
+        requestAnimationFrame(bindSourceSelector);
+        setTimeout(bindSourceSelector, 0);
         load.addEventListener('click', () => persistAndLoadSource());
     }
 
