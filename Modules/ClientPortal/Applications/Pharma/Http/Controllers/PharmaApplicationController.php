@@ -905,6 +905,11 @@ final class PharmaApplicationController extends Controller
         $data = $request->validate(['percentages' => ['required', 'array'], 'percentages.*' => ['nullable', 'numeric', 'between:0,100']]);
         $workflow->saveProductPolicies($award, $data['percentages'], (int) $user->id);
 
+        if (! $workflow->commercialPolicyReady($award)) {
+            return redirect()->route('client.pharma.bid-awards.commercial-policy', $scope)
+                ->withErrors(['commercial_policy' => 'Hãy nhập chính sách (%) cho tất cả sản phẩm đang được phân bổ trước khi tiếp tục phân công User quản lý.']);
+        }
+
         return redirect()->route('client.pharma.bid-awards.manager-assignment', $scope)->with('success', 'Đã lưu chính sách kinh doanh. Tiếp tục chọn cách phân công User quản lý.');
     }
 
