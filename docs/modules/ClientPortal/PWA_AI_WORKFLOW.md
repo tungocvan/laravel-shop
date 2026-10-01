@@ -81,10 +81,10 @@ Treat the ClientPortal application page (for example the Pharma PWA page headed 
 After the User enters a capability from that Hub, distinguish browse/index screens from task/workspace screens:
 
 - **Application Hub**: keep the global application shell.
-- **Capability browse/index**: may keep the application shell when global navigation remains useful.
-- **Focused task/workspace** (create, edit, detail that drives a task, approval, allocation, policy, assignment, wizard): hide the application header and mobile bottom navigation by default. Provide a local back affordance, local task title/context and task-specific actions instead.
+- **Pharma capability browse/index**: after entering a capability from `/apps/pharma`, hide the application header and mobile bottom navigation. Provide a local route back to the Pharma Hub; the Hub remains the canonical place for switching capabilities.
+- **Focused task/workspace** (create, edit, detail that drives a task, approval, allocation, policy, assignment, wizard): also hide the application header and mobile bottom navigation. Provide a local back affordance, local task title/context and task-specific actions instead.
 - Do not mechanically render both global application navigation and local task navigation on a focused screen.
-- A capability may intentionally keep its shell on a browse/index screen, but this must be a deliberate UX choice rather than inherited layout behavior.
+- For Pharma PWA, do not restore the global capability navigation inside a capability merely because a screen is an index/list. Return to `/apps/pharma` to switch capabilities.
 
 For Blade screens using `ClientPortal::layouts.application`, the established focused-screen sections are:
 
