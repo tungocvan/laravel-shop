@@ -849,3 +849,60 @@ Invoices GDT Smart Sync PWA: UI/RUNTIME PASS — FINAL PINT CONFIRMATION PENDING
 - remove root model aliases only after caller proof;
 - avoid speculative consolidation of small ClientPortal resolver/presenter services without concrete duplication or caller evidence;
 - keep Invoices Google Drive configuration, backup/restore and destructive recovery outside ClientPortal PWA unless a separate security/operations scope explicitly authorizes them.
+
+## PWA UI/UX & Web Admin parity rules
+
+These rules apply when implementing or refactoring ClientPortal/PWA capabilities, including Pharma.
+
+### Focused task screens
+
+- After the user enters a concrete PWA task/workspace, prefer hiding the shared **application header** and **mobile bottom navigation** so the task has maximum usable space.
+- Keep a compact task-local header/back action so the user can return to the parent workspace.
+- List/create/edit/detail screens may use this focused shell when persistent application navigation would distract from the task.
+
+### Searchable business selectors
+
+- User/Người phụ trách, medicine/product, customer/Partner/facility/hospital and other potentially long business datasets should prefer the shared `<x-search-select>` pattern rather than a long native `<select>`.
+- The control should provide a text input for searching. For large datasets, prefer server-side search and bounded results instead of loading every option.
+- Reuse the existing shared component and established option/wire contracts before creating a new selector implementation.
+
+### Web Admin -> PWA parity first
+
+Before designing a PWA business capability that already exists in Web Admin:
+
+1. inspect the corresponding Admin route/controller/service/view and current business rules;
+2. identify the canonical service, validation, permission and state-transition flow that can be reused;
+3. give a short implementation proposal summarizing **Admin currently has -> PWA currently has -> what should be reused/ported -> what should change only for mobile/PWA UX**;
+4. preserve business behavior and domain ownership by default; PWA should normally differ in presentation, responsive interaction and client-safe authorization, not invent a parallel business workflow;
+5. any intentional business-rule difference requires explicit review/approval before implementation.
+
+ClientPortal remains an adapter/presentation layer. Canonical Pharma business behavior remains owned by `Modules/Pharma`.
+
+### UI sketch gate
+
+For a request to create or materially redesign a UI/UX screen, ask one short question before implementation:
+
+> Bạn có muốn tôi phác họa UI/UX trước khi viết code không?
+
+If the user agrees, prepare the wireframe/sketch and get acceptance before coding. Do not require this gate for small corrective changes such as spacing, width, alignment, button position, typo or an obvious UI bug unless a sketch would materially help.
+
+### Pharma order workflow accepted checkpoint — 2026-10-01
+
+The ClientPortal Pharma order delivery has reached **focused tests PASS + manual UI PASS** for the approved workflow through PWA posting.
+
+Accepted behavior includes:
+
+- focused order list/create/edit/detail screens may hide the application header and mobile bottom navigation;
+- order authoring uses searchable selectors for business entities where applicable;
+- draft edit authorization is aligned for the creator/assigned manager under the established permissions;
+- order approval remains separate from stock posting;
+- `client.pharma.orders.post` is an independent PWA permission;
+- an approved order may be posted from PWA only by a permitted user;
+- stock is revalidated server-side at posting time;
+- **partial posting is canonical**: stocked items may be posted while deferred/chờ cung ứng items remain excluded from stock movement, actual revenue and commission;
+- when all items are deferred, posting is blocked;
+- deferred items do not create a complex backorder; when stock later arrives, the user creates a new order;
+- posting/reversal continues through the canonical Pharma inventory/commission services rather than duplicating accounting logic in ClientPortal.
+
+Do not regress these accepted rules without an explicit new business decision.
+
