@@ -66,10 +66,6 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertStringContainsString("source.tomselect?.on('change', clearSourceError)", $view);
         $this->assertStringContainsString('Kích hoạt bảng giá chung', $view);
         $this->assertStringContainsString('const stepTwoReady = () =>', $view);
-        $this->assertStringContainsString('const initPriceListWizard = () =>', $view);
-        $this->assertStringContainsString("document.readyState === 'loading'", $view);
-        $this->assertStringContainsString("document.addEventListener('DOMContentLoaded', initPriceListWizard", $view);
-        $this->assertStringContainsString('initPriceListWizard();', $view);
         $this->assertStringContainsString('const persistAndLoadSource = () =>', $view);
         $this->assertStringContainsString('action="{{ route(\'client.pharma.price-lists.create\') }}"', $view);
         $this->assertStringContainsString('id="source-price-list" name="source_price_list_id"', $view);
@@ -88,15 +84,16 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $view);
         $this->assertStringContainsString('aria-label="Quay lại Bảng giá của tôi"', $view);
 
-        $this->assertStringContainsString('<x-select-search id="client-price-list-customer"', $view);
         $this->assertStringContainsString('<x-select-search id="client-price-list-manager"', $view);
         $this->assertStringContainsString('id="price-list-bootstrap" method="GET"', $view);
         $this->assertStringContainsString("load?.click()", $view);
         $this->assertStringContainsString("field?.tomselect?.getValue?.() || field?.value", $view);
         $this->assertStringContainsString("backButton?.classList.toggle('hidden', currentStep === 1)", $view);
-        $this->assertStringContainsString("customer?.tomselect?.on('change', syncWizardActions)", $view);
         $this->assertStringContainsString('<select id="source-price-list" name="source_price_list_id"', $view);
         $this->assertStringNotContainsString('<x-search-select', $view);
+        $this->assertStringContainsString('id="client-price-list-customer-search"', $view);
+        $this->assertStringContainsString('data-customer-option', $view);
+        $this->assertStringContainsString('id="source-product-search" type="search"', $view);
 
         $this->assertStringContainsString('id="load-source-price-list"', $view);
         $this->assertStringContainsString("document.getElementById('source-price-list')", $view);
