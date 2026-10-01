@@ -151,11 +151,9 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('source_price_list_id', $create);
         $this->assertStringContainsString('name="source_price_list_id" value="{{ old(\'source_price_list_id\', $sourcePriceListId) }}"', $create);
         $this->assertStringContainsString("route('client.pharma.price-lists.create', ['type'=>'global'])", $create);
-        $this->assertStringContainsString('data-date-display name="effective_from"', $create);
-        $this->assertStringContainsString('data-date-display name="effective_to"', $create);
-        $this->assertStringContainsString('type="date" data-date-display name="effective_from"', $create);
-        $this->assertStringContainsString('type="date" data-date-display name="effective_to"', $create);
-        $this->assertStringContainsString('lang="en-GB"', $create);
+        $this->assertStringContainsString('data-date-display="{{ $dateName }}"', $create);
+        $this->assertStringContainsString('type="date" data-date-native="{{ $dateName }}" name="{{ $dateName }}"', $create);
+        $this->assertStringContainsString("format('d/m/Y')", $create);
         $this->assertStringNotContainsString('sticky bottom-4', $create);
         $this->assertStringContainsString('Lưu bảng giá Nháp', $create);
         $this->assertStringContainsString('name="selected[', $create);
