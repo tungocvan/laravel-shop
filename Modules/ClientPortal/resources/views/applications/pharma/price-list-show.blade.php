@@ -26,7 +26,23 @@
         <section class="flex flex-col gap-3 rounded-3xl border border-blue-200 bg-blue-50 p-5 sm:flex-row sm:items-center sm:justify-between">
             <div><p class="font-black text-blue-950">Đang chờ phê duyệt</p><p class="mt-1 text-sm text-blue-700">Đã gửi{{ $priceList->submitted_at ? ' lúc '.$priceList->submitted_at->format('H:i d/m/Y') : '' }}.</p></div>
             @if($canApprove)
-                <form method="POST" action="{{ route('client.pharma.price-list-approvals.approve',$priceList->id) }}" onsubmit="return confirm('Phê duyệt và kích hoạt bảng giá này?')">@csrf<button class="rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white">Phê duyệt & kích hoạt</button></form>
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" onclick="document.getElementById('pending-price-list-edit-dialog').showModal()" class="rounded-2xl border border-blue-300 bg-white px-5 py-3 text-sm font-black text-blue-800">Sửa thông tin</button>
+                    <form method="POST" action="{{ route('client.pharma.price-list-approvals.approve',$priceList->id) }}" onsubmit="return confirm('Phê duyệt và kích hoạt bảng giá này?')">@csrf<button class="rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white">Phê duyệt & kích hoạt</button></form>
+                </div>
+                <dialog id="pending-price-list-edit-dialog" class="m-auto w-[calc(100%-24px)] max-w-[520px] rounded-[28px] border-0 p-0 shadow-2xl backdrop:bg-slate-950/55">
+                    <form method="POST" action="{{ route('client.pharma.price-list-approvals.header.update',$priceList->id) }}" class="flex max-h-[92dvh] flex-col">@csrf @method('PUT')
+                        <div class="space-y-4 overflow-y-auto p-5 sm:p-6">
+                            <div class="flex items-start justify-between gap-4"><div><p class="font-black text-slate-950">Sửa thông tin trước khi kích hoạt</p><p class="mt-1 text-xs leading-5 text-slate-500">Chỉ điều chỉnh tên và thời gian hiệu lực. Sản phẩm, giá và trạng thái chờ duyệt được giữ nguyên.</p></div><button type="button" onclick="this.closest('dialog').close()" class="min-h-11 rounded-xl px-3 text-sm font-black text-slate-500">✕</button></div>
+                            <label class="block"><span class="mb-1.5 block text-xs font-bold text-slate-500">Tên bảng giá *</span><input name="name" required maxlength="255" value="{{ old('name',$priceList->name) }}" class="h-12 w-full rounded-2xl border border-slate-300 px-4 text-sm font-semibold outline-none focus:border-slate-950"></label>
+                            <div class="grid grid-cols-2 gap-3">
+                                <label class="block"><span class="mb-1.5 block text-xs font-bold text-slate-500">Hiệu lực từ *</span><input type="date" name="effective_from" required value="{{ old('effective_from',optional($priceList->effective_from)->format('Y-m-d')) }}" class="h-12 w-full rounded-2xl border border-slate-300 px-3 text-sm font-semibold outline-none focus:border-slate-950"></label>
+                                <label class="block"><span class="mb-1.5 block text-xs font-bold text-slate-500">Đến *</span><input type="date" name="effective_to" required value="{{ old('effective_to',optional($priceList->effective_to)->format('Y-m-d')) }}" class="h-12 w-full rounded-2xl border border-slate-300 px-3 text-sm font-semibold outline-none focus:border-slate-950"></label>
+                            </div>
+                        </div>
+                        <div class="flex gap-2 border-t border-slate-100 bg-white p-4"><button type="button" onclick="this.closest('dialog').close()" class="min-h-11 flex-1 rounded-2xl border border-slate-300 px-4 text-sm font-black text-slate-700">Hủy</button><button class="min-h-11 flex-1 rounded-2xl bg-slate-950 px-4 text-sm font-black text-white">Lưu thay đổi</button></div>
+                    </form>
+                </dialog>
             @endif
         </section>
     @elseif($priceList->status === \Modules\Pharma\Models\PriceList::STATUS_REJECTED)
