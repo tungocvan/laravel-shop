@@ -317,6 +317,24 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString('commercial_policy_percentage !== null', $policy);
     }
 
+    public function test_hospital_policy_uses_focused_pwa_workspace_and_local_product_search(): void
+    {
+        $view=file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/bid-award-hospital-policy.blade.php'));
+
+        $this->assertStringContainsString("@section('app-dashboard-route', route('client.pharma.dashboard'))", $view);
+        $this->assertStringContainsString("@section('hide-application-header', true)", $view);
+        $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $view);
+        $this->assertStringContainsString('aria-label="Quay lại phân bổ bệnh viện"', $view);
+        $this->assertStringContainsString('data-hospital-policy-search', $view);
+        $this->assertStringContainsString('data-hospital-policy-clear', $view);
+        $this->assertStringContainsString('data-hospital-policy-empty', $view);
+        $this->assertStringContainsString('data-hospital-policy-product', $view);
+        $this->assertStringContainsString('Không có sản phẩm phù hợp.', $view);
+        $this->assertStringContainsString('CSKD gốc', $view);
+        $this->assertStringContainsString('Để trống để dùng chính sách gốc.', $view);
+        $this->assertStringContainsString('Lưu CSKD bệnh viện', $view);
+    }
+
     public function test_base_policy_values_are_compact_and_allocation_overview_filters_incomplete_products(): void
     {
         $policy=file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/bid-award-commercial-policy.blade.php'));
