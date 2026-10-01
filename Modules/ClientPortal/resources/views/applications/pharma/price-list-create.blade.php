@@ -69,24 +69,25 @@
             <div class="mb-5"><p class="text-xs font-black uppercase tracking-[0.14em] text-slate-400">02 · Khách hàng & mục đích</p><h2 class="mt-1 text-lg font-black text-slate-950">Thông tin cơ bản</h2></div>
             <div class="grid gap-4 lg:grid-cols-2">
                 <label><span class="mb-1.5 block text-xs font-bold text-slate-500">Tên bảng giá *</span><input name="name" value="{{ $field('name') }}" required maxlength="255" class="h-12 w-full rounded-2xl border border-slate-300 px-4" placeholder="VD: Bảng giá BV An Bình Q4/2026"></label>
-                @if($isGlobalMode)<div data-price-list-manager-combobox>
-                    <span class="mb-1.5 block text-xs font-bold text-slate-500">User phụ trách *</span>
-                    @php $selectedManager = $activeUsers->firstWhere('id', (int) old('manager_user_id')); @endphp
-                    <div class="relative">
-                        <button id="client-price-list-manager-toggle" type="button" class="flex h-12 w-full items-center justify-between rounded-2xl border border-slate-300 bg-white px-4 text-left">
-                            <span id="client-price-list-manager-label" class="min-w-0 truncate text-sm text-slate-700">{{ $selectedManager?->name ?? 'Chọn User phụ trách' }}</span>
-                            <span class="ml-2 shrink-0 text-slate-400">⌄</span>
-                        </button>
-                        <div id="client-price-list-manager-panel" class="absolute z-[80] mt-1 hidden w-full rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
-                            <input id="client-price-list-manager-search" type="search" autocomplete="off" placeholder="Tìm User phụ trách..." class="h-11 w-full rounded-xl border border-slate-300 px-3">
-                            <div id="client-price-list-manager-results" class="mt-2 max-h-56 overflow-y-auto">
-                                @foreach($activeUsers as $assignedUser)
-                                    <button type="button" data-manager-option data-value="{{ $assignedUser->id }}" data-label="{{ $assignedUser->name }}{{ $assignedUser->email ? ' · '.$assignedUser->email : '' }}" data-search="{{ mb_strtolower($assignedUser->name.' '.($assignedUser->email ?? '')) }}" class="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100">{{ $assignedUser->name }}{{ $assignedUser->email ? ' · '.$assignedUser->email : '' }}</button>
-                                @endforeach
-                            </div>
+                @if($isGlobalMode)<div class="lg:col-span-2" data-global-user-scope>
+                    <span class="mb-1.5 block text-xs font-bold text-slate-500">User áp dụng *</span>
+                    <label class="flex min-h-12 items-center gap-3 rounded-2xl border border-slate-300 bg-white px-4">
+                        <input id="apply-all-global-users" type="checkbox" name="apply_all_users" value="1" @checked(old('apply_all_users', true)) class="h-5 w-5 rounded border-slate-300">
+                        <span><strong class="block text-sm text-slate-900">Áp dụng tất cả User</strong><small class="block text-xs text-slate-500">Tất cả User được phép dùng bảng giá chung này để khởi tạo bảng giá khách hàng.</small></span>
+                    </label>
+                    <div id="global-user-picker" class="{{ old('apply_all_users', true) ? 'hidden' : '' }} mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                        <input id="global-user-search" type="search" autocomplete="off" placeholder="Tìm User theo tên / email..." class="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-slate-950">
+                        <div class="mt-3 flex items-center justify-between gap-2"><p class="text-xs font-bold text-slate-500">Chọn một hoặc nhiều User</p><button id="global-user-select-all" type="button" class="min-h-11 rounded-xl px-3 text-xs font-black text-indigo-700">Chọn tất cả</button></div>
+                        <div id="global-user-results" class="mt-1 max-h-64 space-y-1 overflow-y-auto">
+                            @foreach($activeUsers as $assignedUser)
+                                <label data-global-user-option data-search="{{ mb_strtolower($assignedUser->name.' '.($assignedUser->email ?? '')) }}" class="flex min-h-11 items-center gap-3 rounded-xl bg-white px-3 py-2 hover:bg-slate-100">
+                                    <input type="checkbox" name="global_user_ids[]" value="{{ $assignedUser->id }}" @checked(in_array((string)$assignedUser->id, array_map('strval', old('global_user_ids', [])), true)) class="h-5 w-5 rounded border-slate-300">
+                                    <span class="min-w-0"><strong class="block truncate text-sm text-slate-900">{{ $assignedUser->name }}</strong>@if($assignedUser->email)<small class="block truncate text-xs text-slate-500">{{ $assignedUser->email }}</small>@endif</span>
+                                </label>
+                            @endforeach
                         </div>
+                        <p id="global-user-scope-error" class="mt-2 hidden text-sm font-bold text-red-600">Vui lòng chọn ít nhất một User hoặc bật Áp dụng tất cả User.</p>
                     </div>
-                    <input id="client-price-list-manager" type="hidden" name="manager_user_id" value="{{ old('manager_user_id') }}">
                 </div>@else<div>
 <span class="mb-1.5 block text-xs font-bold text-slate-500">Khách hàng *</span>
 @php $selectedCustomer = $customers->firstWhere('id', (int) $field('partner_id')); @endphp
@@ -125,7 +126,7 @@
                 <p><span class="block text-xs font-bold text-slate-400">Tên bảng giá</span><strong data-review-name>—</strong></p>
                 <p><span class="block text-xs font-bold text-slate-400">Sản phẩm đã chọn</span><strong data-review-products>0 sản phẩm</strong></p>
             </div>
-            <div class="mt-4"><h2 class="text-lg font-black text-slate-950">{{ $isEditing ? 'Cập nhật bảng giá Nháp' : ($isGlobalMode ? 'Kiểm tra & kích hoạt bảng giá chung' : 'Lưu bảng giá Nháp') }}</h2><p class="mt-1 text-sm text-slate-500">{{ $isGlobalMode ? 'Bảng giá chung sẽ được kiểm tra, gán cho User phụ trách và ACTIVE ngay khi lưu.' : 'Sau khi lưu, bạn có thể kiểm tra lại chi tiết trước khi Gửi duyệt.' }}</p></div>
+            <div class="mt-4"><h2 class="text-lg font-black text-slate-950">{{ $isEditing ? 'Cập nhật bảng giá Nháp' : ($isGlobalMode ? 'Kiểm tra & kích hoạt bảng giá chung' : 'Lưu bảng giá Nháp') }}</h2><p class="mt-1 text-sm text-slate-500">{{ $isGlobalMode ? 'Bảng giá chung sẽ được kiểm tra, áp dụng cho phạm vi User đã chọn và ACTIVE ngay khi lưu.' : 'Sau khi lưu, bạn có thể kiểm tra lại chi tiết trước khi Gửi duyệt.' }}</p></div>
         </section>
     </form>
     <div class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur lg:sticky lg:bottom-4 lg:ml-auto lg:w-fit lg:rounded-2xl lg:border lg:shadow-lg">
