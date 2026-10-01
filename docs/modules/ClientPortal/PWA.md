@@ -321,6 +321,23 @@ The Header presentation remains ClientPortal-owned. Logout, session invalidation
 
 ---
 
+## 10.1 Application Hub and focused capability navigation
+
+The PWA application home is the capability discovery hub. For Pharma, the screen presented as **Không gian làm việc Pharma** remains the application-level shell and exposes only capabilities allowed by the User's `web` permissions.
+
+Navigation follows this hierarchy:
+
+```text
+/my-apps
+    -> /apps/pharma                 Application Hub / App Shell
+        -> capability browse/index  shell only when useful
+            -> business task        Focused Workspace
+```
+
+Focused business tasks such as create/edit/detail workflows, approval, allocation, commercial policy and assignment should not carry redundant global application chrome. They hide the application header and mobile bottom navigation and provide local back/title/actions for the task.
+
+This is a project-wide ClientPortal/PWA UI rule, not a Price List-specific exception. New capabilities and refactors must classify screens as Hub, Browse/Index or Focused Task/Workspace and preserve this hierarchy. Domain data and business rules remain owned by the source module; changing the shell never changes authorization or business ownership.
+
 ## 11. Ownership boundaries
 
 ### Website owns
