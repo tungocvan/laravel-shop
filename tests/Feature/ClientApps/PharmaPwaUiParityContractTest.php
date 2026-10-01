@@ -70,7 +70,10 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertStringContainsString('id="source-product-search" type="search"', $view);
         $this->assertStringContainsString('const stepTwoReady = () =>', $wizard);
         $this->assertStringContainsString("back.classList.toggle('hidden', currentStep === 1)", $wizard);
-        $this->assertStringContainsString('if (currentStep === 2 && !stepTwoReady()) return;', $wizard);
+        $this->assertStringContainsString('if (currentStep === 2 && !stepTwoReady()) {', $wizard);
+        $this->assertStringContainsString("globalUserPicker?.classList.remove('hidden')", $wizard);
+        $this->assertStringContainsString("globalUserSearch?.focus()", $wizard);
+        $this->assertStringContainsString('form.reportValidity()', $wizard);
         $this->assertStringContainsString("button.dataset.state = active ? 'active' : completed ? 'completed' : 'pending'", $wizard);
         $this->assertStringContainsString("import './clientportal/pharma-price-list-wizard';", $bundle);
         $this->assertStringContainsString('disabled:cursor-not-allowed disabled:bg-slate-200', $view);
