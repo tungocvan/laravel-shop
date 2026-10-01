@@ -4,9 +4,15 @@
 @section('app-name', $applicationPresentation['name'] ?? $application['name'])
 @section('app-subtitle', 'Bảng giá do bạn phụ trách')
 @section('app-dashboard-route', route('client.pharma.dashboard'))
+@section('hide-application-header', true)
+@section('hide-mobile-navigation', true)
 
 @section('content')
 <div class="space-y-5">
+    <div class="flex min-h-11 items-center gap-3">
+        <a href="{{ route('client.pharma.dashboard') }}" class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-xl font-black text-slate-700 shadow-sm" aria-label="Quay lại Không gian làm việc Pharma">←</a>
+        <div class="min-w-0"><p class="font-black text-slate-950">Bảng giá</p><p class="text-xs text-slate-500">Không gian làm việc Pharma</p></div>
+    </div>
     @if(session('success'))<div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">{{ session('success') }}</div>@endif
     <section class="rounded-[2rem] bg-slate-950 px-5 py-6 text-white shadow-sm sm:px-7">
         <p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-300">My Price Lists</p>
