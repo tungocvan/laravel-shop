@@ -3,6 +3,8 @@
 @section('app-name',$applicationPresentation['name'] ?? $application['name'])
 @section('app-subtitle','Kiểm tra trước khi kích hoạt')
 @section('app-dashboard-route',route('client.pharma.dashboard'))
+@section('hide-application-header', true)
+@section('hide-mobile-navigation', true)
 @section('content')
 @php $customer=$priceList->partner?->name ?? '—'; @endphp
 <div class="mx-auto max-w-6xl space-y-5">
