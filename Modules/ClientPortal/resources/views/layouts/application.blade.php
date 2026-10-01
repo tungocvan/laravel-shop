@@ -20,6 +20,7 @@
     @stack('application-head')
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-900 antialiased">
+@unless(View::hasSection('hide-application-header'))
 <header class="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur">
     <div class="mx-auto flex max-w-[1536px] items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8 xl:px-10 2xl:px-12">
         <div class="flex min-w-0 items-center gap-3">
@@ -32,6 +33,7 @@
         </div>
     </div>
 </header>
+@endunless
 @php
     $portalNavigation = $applicationContext
         ? app(\Modules\ClientPortal\Services\PortalNavigationResolver::class)->forApplication($applicationContext, auth('web')->user())
@@ -39,7 +41,7 @@
     $primaryNavigation = $portalNavigation->where('placement', 'primary')->values();
     $moreNavigation = $portalNavigation->where('placement', 'more')->values();
 @endphp
-<div class="mx-auto flex min-h-[calc(100dvh-65px)] w-full max-w-[1536px]">
+<div class="mx-auto flex {{ View::hasSection('hide-application-header') ? 'min-h-screen' : 'min-h-[calc(100dvh-65px)]' }} w-full max-w-[1536px]">
     @include('ClientPortal::partials.adaptive-navigation', [
         'primaryNavigation' => $primaryNavigation,
         'moreNavigation' => $moreNavigation,
