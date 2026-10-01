@@ -88,6 +88,10 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertStringContainsString('<x-select-search id="client-price-list-customer"', $view);
         $this->assertStringContainsString('<x-select-search id="client-price-list-manager"', $view);
         $this->assertStringContainsString('id="price-list-bootstrap" method="GET"', $view);
+        $this->assertStringContainsString("load?.click()", $view);
+        $this->assertStringContainsString("field?.tomselect?.getValue?.() || field?.value", $view);
+        $this->assertStringContainsString("backButton?.classList.toggle('hidden', currentStep === 1)", $view);
+        $this->assertStringContainsString("customer?.tomselect?.on('change', syncWizardActions)", $view);
         $this->assertStringContainsString('<select id="source-price-list" name="source_price_list_id"', $view);
         $this->assertStringNotContainsString('<x-search-select', $view);
 
