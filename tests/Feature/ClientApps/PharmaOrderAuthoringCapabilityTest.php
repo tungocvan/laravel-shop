@@ -106,9 +106,9 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
         $this->assertStringContainsString('customerField?.classList.toggle(\'is-open\',has)', $view);
         $this->assertStringContainsString('data-order-actions', $view);
         $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $view);
+        $this->assertStringContainsString("@section('hide-application-header', true)", $view);
         $this->assertStringContainsString('relative z-20 mx-auto mt-4 max-w-3xl', $view);
         $this->assertStringNotContainsString('data-order-actions class="fixed', $view);
-        $this->assertStringContainsString('z-[100]', $view);
         $this->assertStringContainsString('id="order-source-hint"', $view);
         $this->assertStringContainsString("hint.textContent=b?'Giá và số lượng theo phân bổ trúng thầu':'Giá bán theo bảng giá đang hiệu lực'", $view);
         $this->assertStringContainsString('Giá bán theo bảng giá đang hiệu lực', $view);
