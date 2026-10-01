@@ -166,7 +166,7 @@ class PharmaPwaUiParityContractTest extends TestCase
         $manifest = require base_path('Modules/ClientPortal/Applications/Pharma/manifest.php');
         $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php'));
         $settings = file_get_contents(base_path('Modules/ClientPortal/Services/ClientPortalSettingsService.php'));
-        $admin = file_get_contents(base_path('Modules/ClientPortal/Http/Controllers/PwaSettingsController.php'));
+        $admin = file_get_contents(base_path('Modules/ClientPortal/Http/Controllers/Admin/PwaSettingsController.php'));
 
         $feature = $manifest['features']['bid-awards'];
         $this->assertSame('client.pharma.bid-awards.view', $feature['permission']);
