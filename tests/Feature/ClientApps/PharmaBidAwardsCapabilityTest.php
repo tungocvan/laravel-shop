@@ -203,6 +203,10 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString('Thiết lập chính sách kinh doanh', $policy);
         $this->assertStringContainsString('Cần hoàn tất phân bổ số lượng trước.', $detail);
         $this->assertStringContainsString('active:scale-[.985]', $detail);
+        $this->assertStringContainsString("const initialSearch=(input?.value||'').trim()", $detail);
+        $this->assertStringContainsString("if(nextSearch===initialSearch)return", $detail);
+        $this->assertStringContainsString("},750)", $detail);
+        $this->assertStringNotContainsString("setTimeout(()=>form.requestSubmit(),350)", $detail);
     }
 
     public function test_bid_award_allocation_is_collapsible_and_hospital_first(): void
