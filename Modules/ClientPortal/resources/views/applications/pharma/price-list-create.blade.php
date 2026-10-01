@@ -37,18 +37,7 @@
         </ol>
     </nav>
 
-    <form id="price-list-editor" method="POST" action="{{ $isEditing ? route('client.pharma.price-lists.update', $editingPriceList->id) : ($isGlobalMode ? route('client.pharma.price-lists.global.store') : route('client.pharma.price-lists.store')) }}" class="space-y-5">@csrf @if($isEditing) @method('PUT') @endif
-        <section data-wizard-panel="2" class="{{ $sourcePriceListId || $isGlobalMode ? '' : 'hidden' }} rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div class="mb-5"><p class="text-xs font-black uppercase tracking-[0.14em] text-slate-400">02 · Khách hàng & mục đích</p><h2 class="mt-1 text-lg font-black text-slate-950">Thông tin cơ bản</h2></div>
-            <div class="grid gap-4 lg:grid-cols-2">
-                <label><span class="mb-1.5 block text-xs font-bold text-slate-500">Tên bảng giá *</span><input name="name" value="{{ $field('name') }}" required maxlength="255" class="h-12 w-full rounded-2xl border border-slate-300 px-4" placeholder="VD: Bảng giá BV An Bình Q4/2026"></label>
-                @if($isGlobalMode)<div><span class="mb-1.5 block text-xs font-bold text-slate-500">User phụ trách *</span><x-select-search id="client-price-list-manager" name="manager_user_id" placeholder="Tra cứu User phụ trách..." :value="old('manager_user_id')"><option value="">Chọn User phụ trách</option>@foreach($activeUsers as $assignedUser)<option value="{{ $assignedUser->id }}" @selected((string)old('manager_user_id') === (string)$assignedUser->id)>{{ $assignedUser->name }}{{ $assignedUser->email ? ' · '.$assignedUser->email : '' }}</option>@endforeach</x-select-search></div>@else<div><span class="mb-1.5 block text-xs font-bold text-slate-500">Khách hàng *</span><div class="rounded-2xl border border-slate-300 bg-white px-1 shadow-sm focus-within:border-slate-950"><x-select-search id="client-price-list-customer" name="partner_id" placeholder="Tra cứu khách hàng..." :value="$field('partner_id')"><option value="">Chọn khách hàng</option>@foreach($customers as $customer)<option value="{{ $customer->id }}" @selected((string)$field('partner_id') === (string)$customer->id)>{{ $customer->name }}{{ $customer->tax_code ? ' · MST '.$customer->tax_code : '' }}</option>@endforeach</x-select-search></div></div>@endif
-                @if(!$isGlobalMode)<label><span class="mb-1.5 block text-xs font-bold text-slate-500">Mục đích *</span><select name="purpose_id" required class="h-12 w-full rounded-2xl border border-slate-300 px-4"><option value="">Chọn mục đích</option>@foreach($purposes as $purpose)<option value="{{ $purpose->id }}" @selected((string)$field('purpose_id') === (string)$purpose->id)>{{ $purpose->name }}</option>@endforeach</select></label>@endif
-                <div class="grid grid-cols-2 gap-3"><label><span class="mb-1.5 block text-xs font-bold text-slate-500">Hiệu lực từ *</span><input type="date" name="effective_from" value="{{ $field('effective_from', now()->toDateString()) instanceof \Carbon\CarbonInterface ? $field('effective_from')->toDateString() : $field('effective_from', now()->toDateString()) }}" required class="h-12 w-full rounded-2xl border border-slate-300 px-3"></label><label><span class="mb-1.5 block text-xs font-bold text-slate-500">Đến *</span><input type="date" name="effective_to" value="{{ $field('effective_to', now()->addMonth()->toDateString()) instanceof \Carbon\CarbonInterface ? $field('effective_to')->toDateString() : $field('effective_to', now()->addMonth()->toDateString()) }}" required class="h-12 w-full rounded-2xl border border-slate-300 px-3"></label></div>
-            </div>
-            <label class="mt-4 block"><span class="mb-1.5 block text-xs font-bold text-slate-500">Ghi chú</span><textarea name="notes" rows="2" maxlength="1000" class="w-full rounded-2xl border border-slate-300 px-4 py-3">{{ $field('notes') }}</textarea></label>
-        </section>
-
+    <form id="price-list-bootstrap" method="GET" action="{{ route('client.pharma.price-lists.create') }}" class="space-y-5">
         <section data-wizard-panel="1" class="{{ $sourcePriceListId || $isGlobalMode ? 'hidden' : '' }} rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
             <div><p class="text-xs font-black uppercase tracking-[0.14em] text-slate-400">01 · Khởi tạo bảng giá</p><h2 class="mt-1 text-lg font-black text-slate-950">{{ $isEditing ? 'Sửa bảng giá' : ($isGlobalMode ? 'Tạo bảng giá chung' : 'Tạo bảng giá cho khách hàng') }}</h2><p class="mt-1 text-sm text-slate-500">Chọn loại bảng giá và nguồn khởi tạo phù hợp trước khi nhập thông tin.</p>
             @if(!$isEditing && $canApprove)<div class="mt-4 grid gap-3 sm:grid-cols-2"><a href="{{ route('client.pharma.price-lists.create') }}" class="rounded-2xl border-2 p-4 {{ !$isGlobalMode ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200' }}"><span class="block font-black text-slate-950">Bảng giá khách hàng</span><span class="mt-1 block text-xs text-slate-500">Bảng giá riêng theo khách hàng, phục vụ chào giá và bán hàng.</span></a><a href="{{ route('client.pharma.price-lists.create', ['type'=>'global']) }}" class="rounded-2xl border-2 p-4 {{ $isGlobalMode ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200' }}"><span class="block font-black text-slate-950">Bảng giá chung</span><span class="mt-1 block text-xs text-slate-500">Bảng giá áp dụng chung, dùng làm bảng giá gốc hoặc tham chiếu.</span></a></div>@endif
@@ -67,10 +56,23 @@
                             @endforeach
                         </select>
                     </div>
-                    <button id="load-source-price-list" type="submit" formmethod="GET" formaction="{{ route('client.pharma.price-lists.create') }}" class="h-12 rounded-2xl bg-slate-950 px-5 text-sm font-black text-white">Khởi tạo từ bảng giá</button>
+                    <button id="load-source-price-list" type="submit" class="h-12 rounded-2xl bg-slate-950 px-5 text-sm font-black text-white">Khởi tạo từ bảng giá</button>
                     <p id="source-price-list-error" class="hidden text-sm font-bold text-red-600 lg:col-span-2">Vui lòng chọn bảng giá gốc trước khi tiếp tục.</p>
                 </div>
             @endif
+        </section>
+    </form>
+
+    <form id="price-list-editor" method="POST" action="{{ $isEditing ? route('client.pharma.price-lists.update', $editingPriceList->id) : ($isGlobalMode ? route('client.pharma.price-lists.global.store') : route('client.pharma.price-lists.store')) }}" class="space-y-5">@csrf @if($isEditing) @method('PUT') @endif
+        <section data-wizard-panel="2" class="{{ $sourcePriceListId || $isGlobalMode ? '' : 'hidden' }} rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="mb-5"><p class="text-xs font-black uppercase tracking-[0.14em] text-slate-400">02 · Khách hàng & mục đích</p><h2 class="mt-1 text-lg font-black text-slate-950">Thông tin cơ bản</h2></div>
+            <div class="grid gap-4 lg:grid-cols-2">
+                <label><span class="mb-1.5 block text-xs font-bold text-slate-500">Tên bảng giá *</span><input name="name" value="{{ $field('name') }}" required maxlength="255" class="h-12 w-full rounded-2xl border border-slate-300 px-4" placeholder="VD: Bảng giá BV An Bình Q4/2026"></label>
+                @if($isGlobalMode)<div><span class="mb-1.5 block text-xs font-bold text-slate-500">User phụ trách *</span><x-select-search id="client-price-list-manager" name="manager_user_id" placeholder="Tra cứu User phụ trách..." :value="old('manager_user_id')"><option value="">Chọn User phụ trách</option>@foreach($activeUsers as $assignedUser)<option value="{{ $assignedUser->id }}" @selected((string)old('manager_user_id') === (string)$assignedUser->id)>{{ $assignedUser->name }}{{ $assignedUser->email ? ' · '.$assignedUser->email : '' }}</option>@endforeach</x-select-search></div>@else<div><span class="mb-1.5 block text-xs font-bold text-slate-500">Khách hàng *</span><div class="rounded-2xl border border-slate-300 bg-white px-1 shadow-sm focus-within:border-slate-950"><x-select-search id="client-price-list-customer" name="partner_id" placeholder="Tra cứu khách hàng..." :value="$field('partner_id')"><option value="">Chọn khách hàng</option>@foreach($customers as $customer)<option value="{{ $customer->id }}" @selected((string)$field('partner_id') === (string)$customer->id)>{{ $customer->name }}{{ $customer->tax_code ? ' · MST '.$customer->tax_code : '' }}</option>@endforeach</x-select-search></div></div>@endif
+                @if(!$isGlobalMode)<label><span class="mb-1.5 block text-xs font-bold text-slate-500">Mục đích *</span><select name="purpose_id" required class="h-12 w-full rounded-2xl border border-slate-300 px-4"><option value="">Chọn mục đích</option>@foreach($purposes as $purpose)<option value="{{ $purpose->id }}" @selected((string)$field('purpose_id') === (string)$purpose->id)>{{ $purpose->name }}</option>@endforeach</select></label>@endif
+                <div class="grid grid-cols-2 gap-3"><label><span class="mb-1.5 block text-xs font-bold text-slate-500">Hiệu lực từ *</span><input type="date" name="effective_from" value="{{ $field('effective_from', now()->toDateString()) instanceof \Carbon\CarbonInterface ? $field('effective_from')->toDateString() : $field('effective_from', now()->toDateString()) }}" required class="h-12 w-full rounded-2xl border border-slate-300 px-3"></label><label><span class="mb-1.5 block text-xs font-bold text-slate-500">Đến *</span><input type="date" name="effective_to" value="{{ $field('effective_to', now()->addMonth()->toDateString()) instanceof \Carbon\CarbonInterface ? $field('effective_to')->toDateString() : $field('effective_to', now()->addMonth()->toDateString()) }}" required class="h-12 w-full rounded-2xl border border-slate-300 px-3"></label></div>
+            </div>
+            <label class="mt-4 block"><span class="mb-1.5 block text-xs font-bold text-slate-500">Ghi chú</span><textarea name="notes" rows="2" maxlength="1000" class="w-full rounded-2xl border border-slate-300 px-4 py-3">{{ $field('notes') }}</textarea></label>
         </section>
 
         <section data-wizard-panel="3" class="hidden overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
@@ -107,6 +109,7 @@
 <script>
 window.addEventListener('load', () => {
     const form = document.getElementById('price-list-editor');
+    const bootstrapForm = document.getElementById('price-list-bootstrap');
     let currentStep = 1;
     const panels = [...document.querySelectorAll('[data-wizard-panel]')];
     const stepButtons = [...document.querySelectorAll('[data-step-jump]')];
@@ -163,7 +166,7 @@ window.addEventListener('load', () => {
     };
     const persistAndLoadSource = () => {
         const source = document.getElementById('source-price-list');
-        const sourceValue = String(source?.tomselect?.getValue?.() || source?.value || source?.querySelector('option:checked')?.value || form?.elements.namedItem('source_price_list_id')?.value || '').trim();
+        const sourceValue = String(source?.tomselect?.getValue?.() || source?.value || source?.querySelector('option:checked')?.value || bootstrapForm?.elements.namedItem('source_price_list_id')?.value || '').trim();
         const sourceError = document.getElementById('source-price-list-error');
         if (!sourceValue || !form) {
             sourceError?.classList.remove('hidden');
@@ -206,7 +209,7 @@ window.addEventListener('load', () => {
     nextButton?.addEventListener('click', () => {
         @if(!$isGlobalMode && !$sourcePriceListId)
         if (currentStep === 1) {
-            form?.requestSubmit(load);
+            bootstrapForm?.requestSubmit(load);
             return;
         }
         @endif
