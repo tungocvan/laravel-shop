@@ -280,6 +280,13 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString("preg_replace('/[^0-9]/', '', (string)\$value)", $controller);
         $this->assertStringContainsString("'quantities.*'=>['nullable','integer','gt:0']", $controller);
         $this->assertStringContainsString('data-quantity-input', $allocation);
+        $this->assertStringContainsString("'products'=>\$workflow->productAllocationCards(\$award)", $controller);
+        $this->assertStringContainsString('SL trúng thầu', $allocation);
+        $this->assertStringContainsString('Đã phân bổ', $allocation);
+        $this->assertStringContainsString('Còn lại', $allocation);
+        $this->assertStringContainsString('Bệnh viện hiện có:', $allocation);
+        $this->assertStringContainsString('\$product->pwa_allocated_quantity', $allocation);
+        $this->assertStringContainsString('\$product->pwa_remaining_quantity', $allocation);
         $this->assertStringContainsString("@section('hide-application-header', true)", $allocation);
         $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $allocation);
         $this->assertStringContainsString("@section('app-dashboard-route', route('client.pharma.dashboard'))", $allocation);
