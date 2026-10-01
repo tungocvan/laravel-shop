@@ -9,10 +9,6 @@
         'expiry'=>$b->expiry_date->format('Y-m-d'),'expiry_label'=>$b->expiry_date->format('d/m/Y'),
         'quantity'=>(float)$b->quantity_on_hand,
     ])->values();
-    $priceListManagers=collect()
-        ->merge($customerPriceLists->pluck('manager')->filter())
-        ->merge($customerPriceLists->pluck('globalUsers')->flatten())
-        ->unique('id')->sortBy('name')->values();
 @endphp
 <div class="w-full space-y-6">
     <header>

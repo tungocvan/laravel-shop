@@ -67,6 +67,21 @@ return [
                     'permission' => 'client.pharma.orders.create-for-user',
                     'sort_order' => 30,
                 ],
+                'approve' => [
+                    'name' => 'Phê duyệt đơn hàng',
+                    'permission' => 'client.pharma.orders.approve',
+                    'sort_order' => 40,
+                ],
+                'post' => [
+                    'name' => 'Ghi sổ đơn hàng',
+                    'permission' => 'client.pharma.orders.post',
+                    'sort_order' => 50,
+                ],
+                'post' => [
+                    'name' => 'Ghi sổ đơn hàng',
+                    'permission' => 'client.pharma.orders.post',
+                    'sort_order' => 50,
+                ],
             ],
         ],
         'inventory' => [
@@ -185,6 +200,11 @@ return [
                     'name' => 'Lên đơn thay User',
                     'permission' => 'client.pharma.orders.create-for-user',
                     'sort_order' => 30,
+                ],
+                'approve' => [
+                    'name' => 'Phê duyệt đơn hàng',
+                    'permission' => 'client.pharma.orders.approve',
+                    'sort_order' => 40,
                 ],
             ],
         ],

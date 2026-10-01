@@ -25,6 +25,11 @@ final class UserOrderAuthoringService
                     ->orWhereExists(fn ($sub) => $sub->selectRaw('1')->from('pharma_price_list_users as plu')
                         ->join('pharma_price_lists as pl', 'pl.id', '=', 'plu.price_list_id')
                         ->whereColumn('plu.user_id', 'users.id')->where('pl.status', PriceList::STATUS_ACTIVE))
+                    ->orWhereExists(fn ($sub) => $sub->selectRaw('1')->from('pharma_price_lists as pl')
+                        ->where('pl.type', PriceList::TYPE_GLOBAL)
+                        ->where('pl.status', PriceList::STATUS_ACTIVE)
+                        ->whereNotExists(fn ($assigned) => $assigned->selectRaw('1')->from('pharma_price_list_users as plu')
+                            ->whereColumn('plu.price_list_id', 'pl.id')))
                     ->orWhereExists(fn ($sub) => $sub->selectRaw('1')->from('pharma_drug_bid_award_management_assignments as a')
                         ->whereColumn('a.user_id', 'users.id')->where('a.status', DrugBidAwardManagementAssignment::STATUS_ACTIVE));
             })
@@ -43,8 +48,16 @@ final class UserOrderAuthoringService
             ->whereIn('type', [PriceList::TYPE_GLOBAL, PriceList::TYPE_CUSTOMER])
             ->activeAt($date)
             ->where(function ($query) use ($userId): void {
-                $query->where('manager_user_id', $userId)
-                    ->orWhereHas('globalUsers', fn ($users) => $users->where('users.id', $userId));
+                $query->where(function ($global) use ($userId): void {
+                    $global->where('type', PriceList::TYPE_GLOBAL)
+                        ->where(function ($scope) use ($userId): void {
+                            $scope->whereDoesntHave('globalUsers')
+                                ->orWhereHas('globalUsers', fn ($users) => $users->whereKey($userId));
+                        });
+                })->orWhere(function ($customer) use ($userId): void {
+                    $customer->where('type', PriceList::TYPE_CUSTOMER)
+                        ->where('manager_user_id', $userId);
+                });
             })
             ->orderByDesc('priority')->orderBy('name')->get();
     }
@@ -163,7 +176,7 @@ final class UserOrderAuthoringService
 
     public function submit(int $userId, InventoryIssue $issue): InventoryIssue
     {
-        $this->guardEditable($userId, $issue);
+        $this->guardSubmittable($userId, $issue);
         if (! $issue->items()->exists()) {
             throw ValidationException::withMessages(['order' => 'Đơn hàng chưa có sản phẩm để gửi duyệt.']);
         }
@@ -232,10 +245,19 @@ final class UserOrderAuthoringService
         ];
     }
 
+    private function guardSubmittable(int $userId, InventoryIssue $issue): void
+    {
+        if ($issue->status !== InventoryIssue::DRAFT
+            || ! in_array($userId, [(int) $issue->created_by, (int) $issue->manager_user_id], true)) {
+            throw ValidationException::withMessages(['order' => 'Chỉ người tạo hoặc User phụ trách mới được gửi duyệt đơn đang ở trạng thái Nháp.']);
+        }
+    }
+
     private function guardEditable(int $userId, InventoryIssue $issue): void
     {
-        if ((int) $issue->created_by !== $userId || $issue->status !== InventoryIssue::DRAFT) {
-            throw ValidationException::withMessages(['order' => 'Chỉ người tạo mới được sửa hoặc gửi duyệt đơn đang ở trạng thái Nháp.']);
+        if ($issue->status !== InventoryIssue::DRAFT
+            || ! in_array($userId, [(int) $issue->created_by, (int) $issue->manager_user_id], true)) {
+            throw ValidationException::withMessages(['order' => 'Chỉ người tạo hoặc User phụ trách mới được sửa đơn đang ở trạng thái Nháp.']);
         }
     }
 }

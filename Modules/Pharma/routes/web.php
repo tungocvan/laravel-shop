@@ -127,6 +127,8 @@ Route::prefix('admin/pharma')->name('admin.pharma.')->middleware(['web', 'auth:a
         Route::get('/issues/{issue}/edit', [InventoryController::class, 'editIssue'])->middleware('can:edit_pharma')->name('issues.edit');
         Route::put('/issues/{issue}', [InventoryController::class, 'updateIssue'])->middleware('can:edit_pharma')->name('issues.update');
         Route::delete('/issues/{issue}', [InventoryController::class, 'destroyIssue'])->middleware('can:delete_pharma')->name('issues.destroy');
+        Route::post('/issues/{issue}/approve-order', [InventoryController::class, 'approveUserOrder'])->middleware('can:approve_pharma_inventory_issue')->name('issues.approve-order');
+        Route::post('/issues/{issue}/reject-order', [InventoryController::class, 'rejectUserOrder'])->middleware('can:approve_pharma_inventory_issue')->name('issues.reject-order');
         Route::post('/issues/{issue}/post', [InventoryController::class, 'postIssue'])->middleware('can:approve_pharma_inventory_issue')->name('issues.post');
         Route::post('/issues/{issue}/revert', [InventoryController::class, 'revertIssue'])->middleware('can:delete_pharma')->name('issues.revert');
     });

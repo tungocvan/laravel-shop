@@ -239,6 +239,11 @@ class PriceListV2ContractTest extends TestCase
         $this->assertStringContainsString('<x-select-search id="global-user-ids"', $view);
         $this->assertStringContainsString('wire:model="globalUserIds"', $view);
         $this->assertStringNotContainsString('wire:model.live="globalUserIds"', $view);
+        $show = file_get_contents(base_path('Modules/Pharma/resources/views/pages/price-list/show.blade.php'));
+        $controller = file_get_contents(base_path('Modules/Pharma/Http/Controllers/PriceListController.php'));
+        $this->assertStringContainsString("'globalUsers:id,name,email'", $controller);
+        $this->assertStringContainsString("'User áp dụng'", $show);
+        $this->assertStringContainsString("\$priceList->globalUsers->isEmpty() ? 'Tất cả User'", $show);
     }
 
     #[Test]

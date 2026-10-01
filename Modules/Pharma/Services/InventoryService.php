@@ -11,6 +11,8 @@ use Modules\Pharma\Models\InventoryWarehouse;
 
 final class InventoryService
 {
+    public function __construct(private readonly DrugBidCommissionService $commissions) {}
+
     public function defaultWarehouse(): InventoryWarehouse
     {
         return InventoryWarehouse::query()->firstOrCreate(['code'=>'MAIN'], ['name'=>'Kho chính','is_active'=>true]);
@@ -87,21 +89,71 @@ final class InventoryService
         });
     }
 
+    public function postApprovedIssueFromAvailableStock(InventoryIssue $issue, ?int $userId): void
+    {
+        DB::transaction(function () use ($issue, $userId): void {
+            $issue = InventoryIssue::query()->lockForUpdate()->findOrFail($issue->getKey());
+            if ($issue->status !== InventoryIssue::APPROVED) {
+                throw ValidationException::withMessages(['status' => 'Chỉ đơn đã duyệt mới được ghi sổ từ PWA.']);
+            }
+
+            $issue->load(['items', 'deferredSupplies']);
+            $deferredMedicineIds = $issue->deferredSupplies
+                ->pluck('medicine_id')->map(fn ($id) => (int) $id)->unique();
+            $postedItems = $issue->items
+                ->reject(fn ($item) => $deferredMedicineIds->contains((int) $item->medicine_id))
+                ->values();
+
+            if ($postedItems->isEmpty()) {
+                throw ValidationException::withMessages(['stock' => 'Không có mặt hàng đủ điều kiện xuất kho; toàn bộ mặt hàng đang chờ cung ứng.']);
+            }
+
+            foreach ($postedItems as $item) {
+                $balance = InventoryBalance::query()
+                    ->where('warehouse_id', $issue->warehouse_id)
+                    ->where('medicine_id', $item->medicine_id)
+                    ->where('quantity_on_hand', '>=', (float) $item->quantity)
+                    ->whereDate('expiry_date', '>=', now()->toDateString())
+                    ->orderBy('expiry_date')
+                    ->orderBy('batch_number')
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $balance) {
+                    throw ValidationException::withMessages([
+                        'stock' => 'Tồn kho đã thay đổi hoặc mặt hàng thực xuất chưa có một lô đủ số lượng. Vui lòng kiểm tra lại.',
+                    ]);
+                }
+
+                $item->update([
+                    'batch_number' => $balance->batch_number,
+                    'expiry_date' => $balance->expiry_date,
+                ]);
+            }
+
+            $this->postIssue($issue->fresh(), $userId);
+        });
+    }
+
     public function postIssue(InventoryIssue $issue, ?int $userId): void
     {
         DB::transaction(function () use ($issue,$userId): void {
             $issue=InventoryIssue::query()->lockForUpdate()->findOrFail($issue->getKey());
-            if ($issue->status !== InventoryIssue::DRAFT) throw ValidationException::withMessages(['status'=>'Chỉ phiếu nháp mới được ghi sổ.']);
+            if (! in_array($issue->status,[InventoryIssue::DRAFT,InventoryIssue::APPROVED],true)) throw ValidationException::withMessages(['status'=>'Chỉ phiếu nháp hoặc đơn đã duyệt mới được ghi sổ.']);
             $this->assertDocumentDateAfterOpeningCutoff($issue->warehouse_id,$issue->issue_date,'Ngày phiếu xuất');
-            $issue->load('items');
+            $issue->load(['items','deferredSupplies']);
             if ($issue->items->isEmpty()) throw ValidationException::withMessages(['items'=>'Phiếu xuất phải có ít nhất một dòng.']);
-            foreach ($issue->items as $item) {
-                if(blank($item->batch_number) || !$item->expiry_date) throw ValidationException::withMessages(['stock'=>'Phiếu có mặt hàng chưa chọn lô/HSD, chưa thể ghi sổ.']);
+            $deferredMedicineIds=$issue->deferredSupplies->pluck('medicine_id')->map(fn($id)=>(int)$id)->unique();
+            $postedItems=$issue->items->reject(fn($item)=>$deferredMedicineIds->contains((int)$item->medicine_id))->values();
+            if ($postedItems->isEmpty()) throw ValidationException::withMessages(['stock'=>'Không có mặt hàng đủ điều kiện xuất kho; toàn bộ mặt hàng đang chờ cung ứng.']);
+            foreach ($postedItems as $item) {
+                if(blank($item->batch_number) || !$item->expiry_date) throw ValidationException::withMessages(['stock'=>'Mặt hàng thực xuất chưa chọn lô/HSD, chưa thể ghi sổ.']);
                 $balance=$this->lockedBalance($issue->warehouse_id,$item->medicine_id,$item->batch_number,$item->expiry_date->toDateString());
                 if((float)$balance->quantity_on_hand < (float)$item->quantity) throw ValidationException::withMessages(['stock'=>"Không đủ tồn cho lô {$item->batch_number}. Tồn khả dụng: ".number_format((float)$balance->quantity_on_hand,3,'.','').', cần xuất: '.number_format((float)$item->quantity,3,'.','').'.']);
             }
-            foreach ($issue->items as $item) $this->move($issue->warehouse_id,$item->medicine_id,$item->batch_number,$item->expiry_date->toDateString(),-(float)$item->quantity,'issue',$issue,$userId);
+            foreach ($postedItems as $item) $this->move($issue->warehouse_id,$item->medicine_id,$item->batch_number,$item->expiry_date->toDateString(),-(float)$item->quantity,'issue',$issue,$userId);
             $issue->update(['status'=>InventoryIssue::POSTED,'posted_by'=>$userId,'posted_at'=>now()]);
+            $this->commissions->snapshotPostedIssue($issue->fresh(['items','deferredSupplies']),$userId);
         });
     }
 
@@ -129,7 +181,8 @@ final class InventoryService
                     'source_type'=>InventoryIssue::class,'source_id'=>$issue->getKey(),'created_by'=>$userId,'notes'=>"Hoàn tác ghi sổ {$issue->number}",
                 ]);
             }
-            $issue->update(['status'=>InventoryIssue::DRAFT,'posted_by'=>null,'posted_at'=>null]);
+            $issue->update(['status'=>$issue->approved_at ? InventoryIssue::APPROVED : InventoryIssue::DRAFT,'posted_by'=>null,'posted_at'=>null]);
+            $this->commissions->reverseIssue($issue->fresh(),$userId);
         });
     }
 

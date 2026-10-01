@@ -4,6 +4,8 @@
 @section('app-name', $application['name'])
 @section('app-subtitle', 'Workspace Pharma dành cho User')
 @section('app-dashboard-route', route('client.pharma.dashboard'))
+@section('hide-mobile-navigation', true)
+@section('hide-application-header', true)
 
 @section('content')
 @php
@@ -13,20 +15,60 @@
     $currentByAllocation = $editing ? $issue->items->whereNotNull('drug_bid_award_allocation_id')->keyBy('drug_bid_award_allocation_id') : collect();
     $money = fn($value) => number_format((float)$value, 0, ',', '.').' đ';
 @endphp
-<div class="min-w-0 max-w-full overflow-x-hidden bg-slate-50 pb-32" data-order-authoring>
+<div class="min-w-0 max-w-full bg-slate-50 pb-6" data-order-authoring>
 <header class="sticky top-0 z-30 -mx-4 border-b border-slate-200 bg-white/95 px-4 py-4 backdrop-blur sm:-mx-6 sm:px-6 lg:static lg:mx-auto lg:max-w-7xl lg:rounded-3xl lg:border">
  <div class="relative flex items-center justify-center"><a href="{{ $editing ? route('client.pharma.orders.show',$issue) : route('client.pharma.orders') }}" class="absolute left-0 flex h-11 w-11 items-center justify-center rounded-full text-2xl">←</a><div class="text-center"><h1 class="text-xl font-black text-slate-950">{{ $editing ? 'Sửa đơn hàng' : 'Thêm mới đơn hàng' }}</h1><p class="mt-1 text-xs font-semibold text-slate-500">Lập đơn đúng phạm vi User · giá lấy từ nguồn canonical</p></div></div>
 </header>
+
+<style>
+[data-order-stepper]{padding:0 18px}
+[data-order-stepper] .step-track{display:flex;width:100%;align-items:center}
+[data-order-stepper] .step-line{height:2px;flex:1;background:#e2e8f0}
+[data-order-stepper] .step-dot{display:flex;width:30px;height:30px;flex:0 0 30px;align-items:center;justify-content:center;border-radius:9999px;background:#f1f5f9;color:#64748b;font-size:12px;font-weight:900}
+[data-order-stepper] [data-step-target].is-active .step-dot,[data-order-stepper] [data-step-target].is-complete .step-dot{background:#4f46e5;color:#fff;box-shadow:0 4px 12px rgba(79,70,229,.22)}
+[data-order-stepper] [data-step-target].is-active .step-label{color:#4f46e5;font-weight:900}
+[data-order-stepper] [data-step-target].is-complete .step-line{background:#a5b4fc}
+@media(min-width:768px){[data-order-stepper]{max-width:760px;padding-left:24px;padding-right:24px}}
+[data-order-source-picker] [data-source-card]{min-height:48px;padding-top:0;padding-bottom:0}
+[data-order-source-picker] input:checked + [data-source-card]{background:#4f46e5!important;border-color:#4f46e5!important;color:#fff!important;box-shadow:0 5px 14px rgba(79,70,229,.2)}
+[data-order-source-picker] input[value="bid"]:checked + [data-source-card]{background:#0f172a!important;border-color:#0f172a!important;color:#fff!important}
+[data-order-source-picker] input:checked + [data-source-card] span{color:inherit!important}
+[data-customer-field].is-open{padding-bottom:min(300px,38dvh)}
+[data-customer-field].is-open #customer-results{display:block!important}
+[data-order-actions]{isolation:isolate}
+#product-picker-panel,#customer-results{z-index:120!important}
+[data-order-actions][data-step="3"] #order-step-next{display:none!important}
+[data-order-actions][data-step="3"] #order-submit{display:inline-flex!important}
+</style>
+<nav class="mx-auto mt-3 max-w-3xl" aria-label="Tiến trình lập đơn" data-order-stepper>
+ <div class="grid grid-cols-3 items-start">
+  <button type="button" data-step-target="1" class="group flex min-w-0 flex-col items-center text-center">
+   <span class="step-track"><span class="step-line opacity-0"></span><span class="step-dot order-step-dot">1</span><span class="step-line"></span></span>
+   <span class="step-label mt-1 text-[11px] sm:text-xs">Thiết lập</span>
+  </button>
+  <button type="button" data-step-target="2" class="group flex min-w-0 flex-col items-center text-center">
+   <span class="step-track"><span class="step-line"></span><span class="step-dot order-step-dot">2</span><span class="step-line"></span></span>
+   <span class="step-label mt-1 text-[11px] font-bold text-slate-500 sm:text-xs">Sản phẩm</span>
+  </button>
+  <button type="button" data-step-target="3" class="group flex min-w-0 flex-col items-center text-center">
+   <span class="step-track"><span class="step-line"></span><span class="step-dot order-step-dot">3</span><span class="step-line opacity-0"></span></span>
+   <span class="step-label mt-1 text-[11px] font-bold text-slate-500 sm:text-xs">Xem lại</span>
+  </button>
+ </div>
+</nav>
 @if($errors->any())<div class="mx-auto mt-4 max-w-7xl rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-bold text-rose-700">{{ $errors->first() }}</div>@endif
 
-<form id="order-form" method="POST" action="{{ $editing ? route('client.pharma.orders.update',$issue) : route('client.pharma.orders.store') }}" class="mx-auto mt-4 grid max-w-7xl gap-4 lg:grid-cols-[360px_minmax(0,1fr)] lg:items-start">
+<form id="order-form" method="POST" action="{{ $editing ? route('client.pharma.orders.update',$issue) : route('client.pharma.orders.store') }}" class="mx-auto mt-4 max-w-7xl" data-order-wizard>
 @csrf @if($editing) @method('PUT') @endif
-<aside class="space-y-4 lg:sticky lg:top-4">
- <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+<aside class="mx-auto min-h-[calc(100dvh-250px)] max-w-3xl space-y-0 px-0 pb-4 sm:px-1" data-order-step-panel="1">
+ <section class="rounded-t-3xl border border-b-0 border-slate-200 bg-white p-5 pb-4 shadow-sm">
   <p class="text-xs font-black uppercase tracking-wide text-slate-500">Thiết lập đơn hàng</p>
-  <div class="mt-4 grid grid-cols-2 gap-2 rounded-2xl bg-slate-100 p-1.5">
-   <label><input class="peer sr-only" type="radio" name="source" value="price_list" @checked($currentSource==='price_list') @disabled($editing)><span class="block rounded-xl px-2 py-3 text-center text-xs font-black text-slate-600 peer-checked:bg-white peer-checked:text-slate-950 peer-checked:shadow-sm">Theo bảng giá</span></label>
-   <label><input class="peer sr-only" type="radio" name="source" value="bid" @checked($currentSource==='bid') @disabled($editing)><span class="block rounded-xl px-2 py-3 text-center text-xs font-black text-slate-600 peer-checked:bg-white peer-checked:text-slate-950 peer-checked:shadow-sm">Theo trúng thầu</span></label>
+  <div class="mt-4" data-order-source-picker>
+   <div class="grid grid-cols-2 gap-2">
+    <label class="min-w-0 cursor-pointer"><input class="peer sr-only" type="radio" name="source" value="price_list" @checked($currentSource==='price_list') @disabled($editing)><span data-source-card class="flex h-12 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 text-center text-xs font-black text-slate-700 transition active:scale-[.985]"><span class="text-base">▤</span><span class="whitespace-nowrap">Theo bảng giá</span><span class="hidden rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] text-white peer-checked:inline">✓</span></span></label>
+    <label class="min-w-0 cursor-pointer"><input class="peer sr-only" type="radio" name="source" value="bid" @checked($currentSource==='bid') @disabled($editing)><span data-source-card class="flex h-12 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 text-center text-xs font-black text-slate-700 transition active:scale-[.985]"><span class="text-base">◎</span><span class="whitespace-nowrap">Theo trúng thầu</span><span class="hidden rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] text-white peer-checked:inline">✓</span></span></label>
+   </div>
+   <p id="order-source-hint" class="px-2 pb-1 pt-2 text-center text-[11px] font-semibold text-slate-500">Giá bán theo bảng giá đang hiệu lực</p>
   </div>@if($editing)<input type="hidden" name="source" value="{{ $currentSource }}">@endif
   <div id="manager-context" class="mt-4">
   @if($canCreateForUser)
@@ -48,17 +90,23 @@
   <label class="mt-4 block"><span class="mb-2 block text-sm font-black">Ngày lập đơn</span><input type="date" name="issue_date" value="{{ old('issue_date',$issueDate) }}" class="h-12 w-full rounded-2xl border border-slate-300 px-4"></label>
  </section>
 
- <section id="price-list-context" class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+ <section id="price-list-context" class="rounded-b-3xl border border-t-0 border-slate-200 bg-white p-5 pt-1 shadow-sm">
+  @if($priceLists->isEmpty())
+   <div id="price-list-unassigned-warning" class="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+    <p class="text-sm font-black text-amber-900">Bạn chưa được phân công bảng giá đang hiệu lực</p>
+    <p class="mt-1 text-xs leading-5 text-amber-800">Không thể lập đơn theo bảng giá. Vui lòng liên hệ người quản lý để được phân công bảng giá phù hợp.</p>
+   </div>
+  @endif
   <label class="block"><span class="mb-2 block text-sm font-black">Bảng giá của User</span><select id="price-list-select" name="price_list_id" class="h-12 w-full rounded-2xl border border-slate-300 bg-white px-3"><option value="">Chọn bảng giá</option>@foreach($priceLists as $pl)<option value="{{ $pl->id }}" data-partner="{{ $pl->partner_id }}" @selected((int)old('price_list_id',$issue?->price_list_id)===$pl->id)>{{ $pl->name }}{{ $pl->partner ? ' · '.$pl->partner->name : '' }}</option>@endforeach</select></label>
-  <label class="mt-4 block"><span class="mb-2 block text-sm font-black">Khách hàng</span>
-   <div class="relative"><input id="customer-search" type="search" autocomplete="off" placeholder="Tìm tên / MST khách hàng..." class="h-12 w-full rounded-2xl border border-slate-300 px-4"><div id="customer-results" class="absolute z-40 mt-1 hidden max-h-64 w-full overflow-y-auto rounded-2xl border border-slate-200 bg-white p-1 shadow-xl"></div></div>
+  <label class="mt-4 block" data-customer-field><span class="mb-2 block text-sm font-black">Khách hàng</span>
+   <div class="relative z-[80]"><input id="customer-search" type="search" autocomplete="off" placeholder="Tìm tên / MST khách hàng..." class="h-12 w-full rounded-2xl border border-slate-300 bg-white px-4"><div id="customer-results" class="absolute left-0 right-0 top-full z-[90] mt-1 hidden max-h-[min(300px,38dvh)] overflow-y-auto overscroll-contain rounded-2xl border border-slate-200 bg-white p-1 shadow-2xl"></div></div>
    <input id="customer-id" type="hidden" name="recipient_partner_id" value="{{ old('recipient_partner_id',$issue?->recipient_partner_id) }}">
    <p id="customer-selected" class="mt-2 min-h-5 text-xs font-bold text-slate-600"></p>
   </label>
  </section>
 </aside>
 
-<main class="min-w-0 space-y-4">
+<main class="mx-auto hidden min-h-[calc(100dvh-250px)] max-w-3xl min-w-0 space-y-4 px-0 pb-44 sm:px-1" data-order-step-panel="2">
  <section id="price-list-products" class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
   <div class="flex items-end justify-between gap-3"><div><h2 class="text-lg font-black">Sản phẩm theo bảng giá</h2><p class="mt-1 text-sm text-slate-500">Chọn sản phẩm, nhập số lượng rồi thêm vào đơn.</p></div><span id="product-count" class="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-black">0 đã thêm</span></div>
   <div class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3" data-product-picker>
@@ -77,11 +125,10 @@
   </div>
   <div id="selected-products" class="mt-4 space-y-3">
    @foreach($priceLists as $pl) @foreach($pl->items as $item) @php $current=((int)($issue?->price_list_id ?? 0)===(int)$pl->id) ? $currentByMedicine->get($item->medicine_id) : null; @endphp
-   <article data-price-item data-item-id="{{ $item->id }}" data-price-list="{{ $pl->id }}" data-search="{{ mb_strtolower(($item->medicine?->name ?? '').' '.($item->medicine?->medicine_code ?? '').' '.($item->medicine?->active_ingredient ?? '')) }}" data-name="{{ $item->medicine?->name }}" data-meta="{{ $item->medicine?->medicine_code }} · {{ $item->medicine?->unit }} · {{ $money($item->company_sale_price) }}" data-price="{{ (float)$item->company_sale_price }}" class="{{ $current && (float)$current->quantity>0 ? '' : 'hidden' }} min-w-0 rounded-2xl border border-slate-200 bg-white p-4">
-    <div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2">
-     <div class="min-w-0"><p class="truncate font-black">{{ $item->medicine?->name }}</p><p class="mt-0.5 truncate text-xs text-slate-500">{{ $item->medicine?->medicine_code }} · {{ $item->medicine?->unit }}</p></div>
-     <p class="shrink-0 text-right text-sm font-black">{{ $money($item->company_sale_price) }}</p>
-     <div class="col-span-2 flex items-center justify-between gap-3 border-t border-slate-100 pt-2 sm:col-span-1 sm:border-0 sm:pt-0"><div class="flex items-center gap-2"><span class="whitespace-nowrap text-xs font-bold text-slate-500">SL</span><input aria-label="Số lượng" data-quantity name="quantities[{{ $item->id }}]" value="{{ old('quantities.'.$item->id,$current?->quantity) }}" inputmode="decimal" class="h-9 w-24 rounded-xl border border-slate-300 px-2 text-right text-sm font-black" placeholder="0"></div><button data-remove-product type="button" class="flex h-9 items-center rounded-xl px-2 text-xs font-black text-rose-600 hover:bg-rose-50">Xóa</button></div>
+   <article data-price-item data-item-id="{{ $item->id }}" data-price-list="{{ $pl->id }}" data-search="{{ mb_strtolower(($item->medicine?->name ?? '').' '.($item->medicine?->medicine_code ?? '').' '.($item->medicine?->active_ingredient ?? '')) }}" data-name="{{ $item->medicine?->name }}" data-meta="{{ $item->medicine?->medicine_code }} · {{ $item->medicine?->unit }} · {{ $money($item->company_sale_price) }}" data-price="{{ (float)$item->company_sale_price }}" class="{{ $current && (float)$current->quantity>0 ? '' : 'hidden' }} min-w-0 rounded-2xl border border-slate-200 bg-white px-3 py-3">
+    <div class="flex min-w-0 items-center gap-3">
+     <div class="min-w-0 flex-1"><p class="truncate text-sm font-black">{{ $item->medicine?->name }}</p><div class="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-500"><span>{{ $item->medicine?->medicine_code }} · {{ $item->medicine?->unit }}</span><span class="font-bold text-slate-700">SL</span><input aria-label="Số lượng" data-quantity name="quantities[{{ $item->id }}]" value="{{ old('quantities.'.$item->id,$current?->quantity) }}" inputmode="decimal" class="h-8 w-16 rounded-lg border border-slate-300 px-2 text-right text-xs font-black" placeholder="0"><span class="whitespace-nowrap">Thành tiền: <strong data-line-total class="text-slate-950">0 đ</strong></span></div></div>
+     <button data-remove-product type="button" class="flex h-8 shrink-0 items-center rounded-lg px-2 text-[11px] font-black text-rose-600 hover:bg-rose-50">Xóa</button>
     </div>
    </article>
    @endforeach @endforeach
@@ -106,20 +153,56 @@
    @endforeach</div>
   </section>
  </section>
- <section class="rounded-3xl border border-slate-200 bg-white p-5"><label><span class="mb-2 block text-sm font-black">Ghi chú</span><textarea name="notes" rows="3" class="w-full rounded-2xl border border-slate-300 px-4 py-3">{{ old('notes',$issue?->notes) }}</textarea></label></section>
 </main>
+<section class="mx-auto hidden min-h-[calc(100dvh-250px)] max-w-3xl space-y-4 px-0 pb-52 sm:px-1" data-order-review data-order-step-panel="3">
+  <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+   <div class="flex items-center justify-between gap-3"><div><p class="text-xs font-black uppercase tracking-wide text-slate-500">Xem lại đơn hàng</p><h2 class="mt-1 text-lg font-black text-slate-950">Thông tin trước khi lưu nháp</h2></div><button type="button" data-step-target="1" class="text-xs font-black text-indigo-600">Chỉnh sửa</button></div>
+   <dl class="mt-4 divide-y divide-slate-100 text-sm">
+    <div class="flex items-center justify-between gap-4 py-3"><dt class="text-slate-500">Nguồn đơn</dt><dd id="review-source" class="text-right font-black">Theo bảng giá</dd></div>
+    <div class="flex items-center justify-between gap-4 py-3"><dt class="text-slate-500">Ngày lập đơn</dt><dd id="review-date" class="text-right font-black">—</dd></div>
+    <div class="flex items-center justify-between gap-4 py-3"><dt class="text-slate-500">Bảng giá</dt><dd id="review-price-list" class="max-w-[65%] truncate text-right font-black">—</dd></div>
+    <div class="flex items-center justify-between gap-4 py-3"><dt class="text-slate-500">Khách hàng</dt><dd id="review-customer" class="max-w-[65%] break-words text-right font-black">—</dd></div>
+   </dl>
+  </section>
+  <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+   <div class="flex items-center justify-between gap-3"><h2 class="font-black">Danh sách sản phẩm</h2><button type="button" data-step-target="2" class="text-xs font-black text-indigo-600">Chỉnh sửa</button></div>
+   <div id="review-products" class="mt-3 space-y-2"></div>
+   <div class="mt-4 border-t border-slate-100 pt-4"><p id="review-summary" class="text-right text-base font-black text-slate-950">0 sản phẩm · 0 SL · 0 đ</p></div>
+  </section>
+  <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><label><span class="mb-2 block text-sm font-black">Ghi chú</span><textarea name="notes" rows="3" class="w-full rounded-2xl border border-slate-300 px-4 py-3">{{ old('notes',$issue?->notes) }}</textarea></label></section>
+ </section>
 
-<div class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-8px_30px_rgba(15,23,42,.08)] backdrop-blur lg:left-[calc(50%+130px)] lg:right-auto lg:bottom-6 lg:w-[568px] lg:-translate-x-1/2 lg:rounded-3xl lg:border lg:px-4">
- <div class="flex items-center gap-3">
-  <div class="min-w-0 flex-1"><div class="flex items-center gap-2"><span class="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-600">Nháp</span><p id="order-summary" class="min-w-0 truncate text-sm font-black">0 sản phẩm · 0 SL · 0 đ</p></div></div>
-  <a href="{{ $editing ? route('client.pharma.orders.show',$issue) : route('client.pharma.orders') }}" class="hidden h-11 w-24 shrink-0 items-center justify-center rounded-2xl border border-slate-300 font-black sm:flex">Hủy</a><button type="submit" class="h-11 w-32 shrink-0 rounded-2xl bg-slate-950 font-black text-white">Lưu nháp</button>
+<div data-order-actions class="relative z-20 mx-auto mt-4 max-w-3xl rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+ <div class="mx-auto flex max-w-3xl items-center gap-2 sm:gap-3">
+  <button type="button" id="order-step-back" class="hidden h-9 shrink-0 items-center justify-center rounded-xl border border-slate-300 px-3 text-xs font-black">← Quay lại</button>
+  <div class="min-w-0 flex-1"><div class="flex items-center gap-2"><span class="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-600">Nháp</span><p id="order-summary" class="min-w-0 truncate text-xs font-black sm:text-sm">0 sản phẩm · 0 SL · 0 đ</p></div></div>
+  <button type="button" id="order-step-next" class="h-9 shrink-0 rounded-xl bg-indigo-600 px-4 text-xs font-black text-white shadow-sm active:scale-[.985]">Tiếp tục →</button>
+  <button type="submit" id="order-submit" style="display:none" class="h-9 shrink-0 items-center justify-center rounded-xl bg-slate-950 px-3 text-[11px] font-black text-white shadow-sm active:scale-[.985] sm:px-4 sm:text-xs">Lưu nháp</button>
  </div>
- <a href="{{ $editing ? route('client.pharma.orders.show',$issue) : route('client.pharma.orders') }}" class="mt-2 flex h-11 items-center justify-center rounded-2xl border border-slate-300 font-black sm:hidden">Hủy</a>
 </div>
 </form></div>
 
 <script>
 document.addEventListener('DOMContentLoaded',()=>{
+ let orderStep=1;
+ const stepPanels=[...document.querySelectorAll('[data-order-step-panel]')], stepButtons=[...document.querySelectorAll('[data-step-target]')];
+ const stepBack=document.getElementById('order-step-back'),stepNext=document.getElementById('order-step-next'),orderSubmit=document.getElementById('order-submit');
+ const refreshReview=()=>{
+  const source=document.querySelector('input[name="source"]:checked')?.value;
+  const date=document.querySelector('input[name="issue_date"]')?.value||'—';
+  const price=document.getElementById('price-list-select');
+  document.getElementById('review-source').textContent=source==='bid'?'Theo trúng thầu':'Theo bảng giá';
+  document.getElementById('review-date').textContent=/^\d{4}-\d{2}-\d{2}$/.test(date)?date.split('-').reverse().join('/'):date||'—';
+  document.getElementById('review-price-list').textContent=source==='bid'?'Theo phân bổ trúng thầu':(price?.selectedOptions?.[0]?.textContent?.trim()||'—');
+  document.getElementById('review-customer').textContent=document.getElementById('customer-selected')?.textContent?.trim()||document.getElementById('bid-partner-label')?.textContent?.trim()||'—';
+  const rows=[];const reviewInputs=source==='bid'?[...document.querySelectorAll('#bid-products [data-quantity]:not(:disabled)')]:[...document.querySelectorAll('[data-price-item] [data-quantity]:not(:disabled)')].filter(i=>i.closest('[data-price-item]')?.dataset.priceList===price?.value);reviewInputs.forEach(i=>{const q=parseFloat(i.value)||0;if(q<=0)return;const card=i.closest('[data-price]');const name=card?.querySelector('p.font-black')?.textContent?.trim()||'Sản phẩm';const priceValue=parseFloat(card?.dataset.price)||0;rows.push('<div class="flex items-start justify-between gap-3 rounded-2xl bg-slate-50 px-3 py-3"><div class="min-w-0"><p class="truncate text-sm font-black">'+name.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))+'</p><p class="mt-1 text-xs text-slate-500">Số lượng '+q.toLocaleString('vi-VN')+'</p></div><p class="shrink-0 text-sm font-black">'+Math.round(q*priceValue).toLocaleString('vi-VN')+' đ</p></div>');});
+  document.getElementById('review-products').innerHTML=rows.join('')||'<p class="rounded-2xl border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500">Chưa có sản phẩm trong đơn.</p>';
+  let reviewQty=0,reviewTotal=0;reviewInputs.forEach(i=>{const q=parseFloat(i.value)||0;if(q<=0)return;reviewQty+=q;reviewTotal+=q*(parseFloat(i.closest('[data-price]')?.dataset.price)||0);});document.getElementById('review-summary').textContent=rows.length+' sản phẩm · '+reviewQty.toLocaleString('vi-VN')+' SL · '+Math.round(reviewTotal).toLocaleString('vi-VN')+' đ';
+ };
+ const setOrderStep=(step)=>{orderStep=Math.max(1,Math.min(3,step));document.querySelector('[data-order-actions]')?.setAttribute('data-step',String(orderStep));stepPanels.forEach(p=>p.classList.toggle('hidden',Number(p.dataset.orderStepPanel)!==orderStep));stepButtons.forEach(b=>{const n=Number(b.dataset.stepTarget),dot=b.querySelector('.order-step-dot');if(!dot)return;dot.textContent=n<orderStep?'✓':String(n);b.classList.toggle('is-active',n===orderStep);b.classList.toggle('is-complete',n<orderStep);});stepBack?.classList.toggle('hidden',orderStep===1);stepBack?.classList.toggle('flex',orderStep!==1);stepNext?.classList.toggle('hidden',orderStep===3);if(orderSubmit)orderSubmit.style.display=orderStep===3?'inline-flex':'none';if(orderStep===3)refreshReview();window.scrollTo({top:0,behavior:'smooth'});};
+ stepButtons.forEach(b=>b.addEventListener('click',()=>setOrderStep(Number(b.dataset.stepTarget))));
+ stepBack?.addEventListener('click',()=>setOrderStep(orderStep-1));stepNext?.addEventListener('click',()=>setOrderStep(orderStep+1));
+ setOrderStep(1);
  const managers=@json($orderManagers->map(fn($m)=>['id'=>$m->id,'name'=>$m->name,'email'=>$m->email])->values());
  const managerBox=document.querySelector('[data-manager-combobox]'), managerToggle=document.getElementById('manager-toggle'), managerPanel=document.getElementById('manager-panel'), managerSearch=document.getElementById('manager-search'), managerResults=document.getElementById('manager-results'), managerId=document.getElementById('manager-id'), managerLabel=document.getElementById('manager-label');
  const renderManagers=()=>{if(!managerResults)return;const q=(managerSearch?.value||'').toLocaleLowerCase('vi').trim();managerResults.innerHTML='';managers.filter(m=>(m.name+' '+(m.email||'')).toLocaleLowerCase('vi').includes(q)).slice(0,25).forEach(m=>{const b=document.createElement('button');b.type='button';b.className='block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100';b.textContent=m.name+(m.email?' · '+m.email:'');b.onclick=()=>{managerId.value=m.id;managerLabel.textContent=m.name+(m.email?' · '+m.email:'');managerPanel.classList.add('hidden');const u=new URL(location.href);u.searchParams.set('manager_user_id',m.id);location.href=u.toString();};managerResults.appendChild(b);});};
@@ -130,8 +213,8 @@ document.addEventListener('DOMContentLoaded',()=>{
 
  const priceContext=document.getElementById('price-list-context'), priceProducts=document.getElementById('price-list-products'), bidProducts=document.getElementById('bid-products');
  const source=()=>document.querySelector('input[name="source"]:checked')?.value||document.querySelector('input[type="hidden"][name="source"]')?.value||'price_list';
- const syncSource=()=>{const b=source()==='bid';document.getElementById('manager-context')?.classList.remove('hidden');priceContext.classList.toggle('hidden',b);priceProducts.classList.toggle('hidden',b);bidProducts.classList.toggle('hidden',!b);priceContext.querySelectorAll('input,select').forEach(el=>el.disabled=b);priceProducts.querySelectorAll('input').forEach(el=>el.disabled=b);bidProducts.querySelectorAll('input').forEach(el=>el.disabled=!b);summary();};
- document.querySelectorAll('input[name="source"]').forEach(x=>x.addEventListener('change',syncSource));
+ const syncSource=()=>{const b=source()==='bid';const hint=document.getElementById('order-source-hint');if(hint)hint.textContent=b?'Giá và số lượng theo phân bổ trúng thầu':'Giá bán theo bảng giá đang hiệu lực';document.getElementById('manager-context')?.classList.remove('hidden');priceContext.classList.toggle('hidden',b);priceProducts.classList.toggle('hidden',b);bidProducts.classList.toggle('hidden',!b);priceContext.querySelectorAll('input,select').forEach(el=>el.disabled=b);priceProducts.querySelectorAll('input').forEach(el=>el.disabled=b);bidProducts.querySelectorAll('input').forEach(el=>el.disabled=!b);summary();};
+ document.querySelectorAll('input[name="source"]').forEach(x=>x.addEventListener('change',()=>{syncSource();document.querySelectorAll('[data-source-card]').forEach(card=>card.classList.remove('opacity-60'));}));
 
  const pl=document.getElementById('price-list-select'), productBox=document.querySelector('[data-product-picker]'), productToggle=document.getElementById('product-toggle'), productPanel=document.getElementById('product-panel'), productSearch=document.getElementById('product-search'), productResults=document.getElementById('product-results'), productAddPanel=document.getElementById('product-add-panel'), productAddQty=document.getElementById('product-add-qty');
  let pendingProduct=null;
@@ -146,11 +229,11 @@ document.addEventListener('DOMContentLoaded',()=>{
  pl?.addEventListener('change',()=>{pendingProduct=null;productPanel.classList.add('hidden');productAddPanel.classList.add('hidden');productAddPanel.classList.remove('grid');document.getElementById('product-picker-label').textContent='Chọn sản phẩm từ bảng giá...';document.querySelectorAll('[data-price-item]').forEach(el=>{if(el.dataset.priceList!==pl.value)el.querySelector('[data-quantity]').value='';});syncSelectedProducts();const partner=pl.selectedOptions[0]?.dataset.partner;if(partner){selectCustomer(partner,true);}else{document.getElementById('customer-search').readOnly=false;}});
  const customers=@json($customers->map(fn($c)=>['id'=>$c->id,'name'=>$c->name,'tax_code'=>$c->tax_code])->values());
  const cs=document.getElementById('customer-search'), cr=document.getElementById('customer-results'), cid=document.getElementById('customer-id'), csel=document.getElementById('customer-selected');
- window.selectCustomer=(id,locked=false)=>{const c=customers.find(x=>String(x.id)===String(id));if(!c)return;cid.value=c.id;cs.value=c.name;csel.textContent='Đã chọn: '+c.name;cs.readOnly=locked;cr.classList.add('hidden');};
- const renderCustomers=()=>{const q=cs.value.toLocaleLowerCase('vi').trim();cr.innerHTML='';customers.filter(c=>(c.name+' '+(c.tax_code||'')).toLocaleLowerCase('vi').includes(q)).slice(0,25).forEach(c=>{const b=document.createElement('button');b.type='button';b.className='block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100';b.textContent=c.name+(c.tax_code?' · '+c.tax_code:'');b.onclick=()=>selectCustomer(c.id);cr.appendChild(b);});cr.classList.toggle('hidden',cr.children.length===0);};
+ window.selectCustomer=(id,locked=false)=>{const c=customers.find(x=>String(x.id)===String(id));if(!c)return;cid.value=c.id;cs.value=c.name;csel.textContent='Đã chọn: '+c.name;cs.readOnly=locked;closeCustomers();};
+ const customerField=document.querySelector('[data-customer-field]');const closeCustomers=()=>{cr?.classList.add('hidden');customerField?.classList.remove('is-open');};const renderCustomers=()=>{const q=cs.value.toLocaleLowerCase('vi').trim();cr.innerHTML='';customers.filter(c=>(c.name+' '+(c.tax_code||'')).toLocaleLowerCase('vi').includes(q)).slice(0,25).forEach(c=>{const b=document.createElement('button');b.type='button';b.className='block w-full rounded-xl px-3 py-3 text-left text-sm font-bold hover:bg-slate-100';b.textContent=c.name+(c.tax_code?' · '+c.tax_code:'');b.onclick=()=>selectCustomer(c.id);cr.appendChild(b);});const has=cr.children.length>0;cr.classList.toggle('hidden',!has);customerField?.classList.toggle('is-open',has);};
  cs?.addEventListener('input',()=>{cid.value='';csel.textContent='';renderCustomers();});cs?.addEventListener('focus',renderCustomers);if(cid?.value)selectCustomer(cid.value,false);
- document.addEventListener('click',e=>{if(managerBox&&!managerBox.contains(e.target))managerPanel?.classList.add('hidden');const customerBox=cs?.closest('.relative');if(customerBox&&!customerBox.contains(e.target))cr?.classList.add('hidden');if(productBox&&!productBox.contains(e.target))productPanel?.classList.add('hidden');});
- document.addEventListener('keydown',e=>{if(e.key==='Escape'){managerPanel?.classList.add('hidden');cr?.classList.add('hidden');productPanel?.classList.add('hidden');}});
+ document.addEventListener('click',e=>{if(managerBox&&!managerBox.contains(e.target))managerPanel?.classList.add('hidden');const customerBox=cs?.closest('.relative');if(customerBox&&!customerBox.contains(e.target))closeCustomers();if(productBox&&!productBox.contains(e.target))productPanel?.classList.add('hidden');});
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'){managerPanel?.classList.add('hidden');closeCustomers();productPanel?.classList.add('hidden');}});
 
  const bidInvestor=document.getElementById('bid-investor'),bidPartner=document.getElementById('bid-partner'),bidItems=[...document.querySelectorAll('[data-bid-item]')];
  const bidInvestorBox=document.querySelector('[data-bid-investor-combobox]'),bidInvestorToggle=document.getElementById('bid-investor-toggle'),bidInvestorPanel=document.getElementById('bid-investor-panel'),bidInvestorSearch=document.getElementById('bid-investor-search'),bidInvestorResults=document.getElementById('bid-investor-results'),bidInvestorLabel=document.getElementById('bid-investor-label');
@@ -172,7 +255,7 @@ document.addEventListener('DOMContentLoaded',()=>{
  bidProductToggle?.addEventListener('click',()=>{if(bidProductToggle.disabled)return;const open=bidProductPanel.classList.contains('hidden');closeBidPickers();if(open){bidProductPanel.classList.remove('hidden');renderBidProducts();setTimeout(()=>bidSearch.focus(),0);}});bidSearch?.addEventListener('input',renderBidProducts);
  document.addEventListener('click',e=>{if(bidInvestorBox&&!bidInvestorBox.contains(e.target))bidInvestorPanel?.classList.add('hidden');if(bidPartnerBox&&!bidPartnerBox.contains(e.target))bidPartnerPanel?.classList.add('hidden');if(bidProductBox&&!bidProductBox.contains(e.target))bidProductPanel?.classList.add('hidden');});document.addEventListener('keydown',e=>{if(e.key==='Escape')closeBidPickers();});
  bidItems.forEach(el=>el.querySelector('[data-quantity]')?.addEventListener('input',()=>{renderBidSelected();summary();}));hydrateBidContext();
- const summary=()=>{let count=0,qty=0,total=0;document.querySelectorAll('[data-quantity]:not(:disabled)').forEach(i=>{const q=parseFloat(i.value)||0;if(q>0){count++;qty+=q;total+=q*(parseFloat(i.closest('[data-price]')?.dataset.price)||0);i.closest('[data-price]')?.classList.add('ring-2','ring-slate-900');}else{i.closest('[data-price]')?.classList.remove('ring-2','ring-slate-900');}});document.getElementById('order-summary').textContent=count+' sản phẩm · '+qty.toLocaleString('vi-VN')+' SL · '+Math.round(total).toLocaleString('vi-VN')+' đ';};
+ const summary=()=>{let count=0,qty=0,total=0;document.querySelectorAll('[data-quantity]:not(:disabled)').forEach(i=>{const q=parseFloat(i.value)||0;if(q>0){count++;qty+=q;total+=q*(parseFloat(i.closest('[data-price]')?.dataset.price)||0);i.closest('[data-price]')?.classList.add('ring-2','ring-slate-900');}else{i.closest('[data-price]')?.classList.remove('ring-2','ring-slate-900');}});document.getElementById('order-summary').textContent=count+' sản phẩm · '+qty.toLocaleString('vi-VN')+' SL · '+Math.round(total).toLocaleString('vi-VN')+' đ';document.querySelectorAll('[data-price-item]').forEach(card=>{const q=parseFloat(card.querySelector('[data-quantity]')?.value)||0,line=card.querySelector('[data-line-total]');if(line)line.textContent=Math.round(q*(parseFloat(card.dataset.price)||0)).toLocaleString('vi-VN')+' đ';});};
  document.querySelectorAll('[data-quantity]').forEach(i=>i.addEventListener('input',summary));syncSource();syncSelectedProducts();summary();
 });
 </script>

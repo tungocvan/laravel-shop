@@ -1,0 +1,163 @@
+<?php
+
+namespace Tests\Feature\ClientApps;
+
+use Tests\TestCase;
+
+final class PharmaOrderApprovalCapabilityTest extends TestCase
+{
+    public function test_order_approval_has_independent_permission_routes_and_canonical_service(): void
+    {
+        $root = base_path();
+        $manifest = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/manifest.php');
+        $routes = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/routes.php');
+        $service = file_get_contents($root.'/Modules/Pharma/Services/UserOrderApprovalService.php');
+
+        $this->assertSame(2, substr_count($manifest, "'permission' => 'client.pharma.orders.approve'"));
+        $this->assertStringContainsString("Route::post('/orders/{issue}/approve'", $routes);
+        $this->assertStringContainsString("Route::post('/orders/{issue}/reject'", $routes);
+        $this->assertStringContainsString("Route::delete('/orders/{issue}'", $routes);
+        $this->assertStringContainsString('final class UserOrderApprovalService', $service);
+        $this->assertStringContainsString('InventoryIssue::PENDING_APPROVAL', $service);
+        $this->assertStringContainsString('InventoryIssue::APPROVED', $service);
+        $this->assertStringContainsString('InventoryIssue::REJECTED', $service);
+        $this->assertStringContainsString("'approved_by' => \$actorUserId", $service);
+        $this->assertStringContainsString("'rejected_by' => \$actorUserId", $service);
+        $this->assertStringNotContainsString('UserOrderStockReadinessService', $service);
+        $this->assertStringNotContainsString("stockReadiness->forIssue(\$issue)", $service);
+        $this->assertStringContainsString('undoApproval', $service);
+        $this->assertStringContainsString('deleteNonStockOrder', $service);
+        $this->assertStringContainsString('[InventoryIssue::DRAFT, InventoryIssue::REJECTED]', $service);
+        $this->assertStringContainsString("\$issue->items()->delete()", $service);
+        $this->assertStringContainsString('APPROVED', $service);
+        $this->assertStringNotContainsString('postIssue(', $service);
+        $this->assertStringNotContainsString('InventoryTransaction', $service);
+        $this->assertStringNotContainsString('quantity_on_hand', $service);
+    }
+
+    public function test_approver_can_see_pending_queue_and_detail_actions_without_warehouse_posting(): void
+    {
+        $root = base_path();
+        $workspace = file_get_contents($root.'/Modules/Pharma/Services/UserInventoryIssueWorkspace.php');
+        $controller = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php');
+        $view = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-issue-show.blade.php');
+
+        $this->assertStringContainsString('includeApprovalScope', $workspace);
+        $this->assertStringContainsString("if (\$includeApprovalScope) {", $workspace);
+        $this->assertStringContainsString("return \$query;", $workspace);
+        $this->assertStringNotContainsString("orWhereIn('status', [InventoryIssue::PENDING_APPROVAL, InventoryIssue::APPROVED, InventoryIssue::REJECTED])", $workspace);
+        $this->assertStringContainsString('findPendingForApproval', $workspace);
+        $this->assertStringContainsString("client.pharma.orders.approve", $controller);
+        $this->assertStringContainsString("'canApproveOrder' => \$canApproveOrder", $controller);
+        $this->assertStringContainsString("&& \$visibleIssue->status === \\Modules\\Pharma\\Models\\InventoryIssue::PENDING_APPROVAL", $controller);
+        $this->assertStringContainsString('approveOrder', $controller);
+        $this->assertStringContainsString("return redirect()->route('client.pharma.orders')->with('success', 'Đơn hàng đã được gửi duyệt.');", $controller);
+        $this->assertStringContainsString('h-10 min-w-[108px]', $view);
+        $this->assertStringContainsString('h-10 min-w-[118px]', $view);
+        $this->assertStringNotContainsString('sticky bottom-0 z-20', $view);
+        $this->assertStringContainsString('rejectOrder', $controller);
+        $this->assertStringContainsString('Phê duyệt', $view);
+        $this->assertStringContainsString('Từ chối', $view);
+        $this->assertStringContainsString('Lý do từ chối', $view);
+        $this->assertStringContainsString('rejection_reason', $view);
+        $this->assertStringNotContainsString("@disabled(!(\$stockReadiness['can_approve'] ?? false))", $view);
+        $this->assertStringContainsString('Hoàn tác phê duyệt', $view);
+        $this->assertStringContainsString('Chờ cung cấp', $view);
+        $this->assertStringContainsString('Không tính là hàng đã duyệt xuất', $view);
+        $this->assertStringContainsString('$displayItems->count()', $view);
+        $this->assertStringContainsString('$deferredItems->isNotEmpty()', $view);
+        $this->assertStringContainsString('function ($item) use ($deferredAllocationIds)', $view);
+        $this->assertStringContainsString('Xóa đơn', $view);
+        $this->assertStringContainsString('không ảnh hưởng tồn kho', $view);
+        $this->assertStringContainsString('Thiếu tồn không chặn phê duyệt đơn', $view);
+        $this->assertStringContainsString('kiểm tra đủ tồn ở bước xử lý kho/Ghi sổ', $view);
+    }
+
+    public function test_admin_inventory_can_process_pending_pwa_order_without_posting_stock(): void
+    {
+        $root = base_path();
+        $routes = file_get_contents($root.'/Modules/Pharma/routes/web.php');
+        $controller = file_get_contents($root.'/Modules/Pharma/Http/Controllers/InventoryController.php');
+        $list = file_get_contents($root.'/Modules/Pharma/resources/views/pages/inventory/documents.blade.php');
+        $detail = file_get_contents($root.'/Modules/Pharma/resources/views/pages/inventory/issue-show.blade.php');
+
+        $this->assertStringContainsString("issues/{issue}/approve-order", $routes);
+        $this->assertStringContainsString("issues/{issue}/reject-order", $routes);
+        $this->assertStringContainsString("can:approve_pharma_inventory_issue", $routes);
+        $this->assertStringContainsString('approveUserOrder', $controller);
+        $this->assertStringContainsString('rejectUserOrder', $controller);
+        $this->assertStringContainsString('UserOrderApprovalService $approval', $controller);
+        $this->assertStringContainsString('Xử lý phê duyệt', $list);
+        $this->assertStringContainsString('Phê duyệt đơn', $detail);
+        $this->assertStringContainsString('Từ chối đơn hàng', $detail);
+        $this->assertStringContainsString('Bước này chưa chọn lô, chưa trừ tồn và chưa ghi nhận hoa hồng.', $detail);
+        $this->assertStringContainsString("route('admin.pharma.inventory.issues.bid-sales.edit',\$issue)", $detail);
+        $this->assertStringContainsString('Sửa đơn hàng thầu', $detail);
+        $this->assertStringNotContainsString('Xử lý kho · Chọn lô', $detail);
+    }
+
+    public function test_admin_inventory_reuses_canonical_posting_and_commission_flow_for_pwa_approved_orders(): void
+    {
+        $root = base_path();
+        $controller = file_get_contents($root.'/Modules/Pharma/Http/Controllers/InventoryController.php');
+        $inventory = file_get_contents($root.'/Modules/Pharma/Services/InventoryService.php');
+        $documents = file_get_contents($root.'/Modules/Pharma/resources/views/pages/inventory/documents.blade.php');
+
+        $this->assertGreaterThanOrEqual(3, substr_count($controller, '[InventoryIssue::DRAFT,InventoryIssue::APPROVED]'));
+        $this->assertStringContainsString("if(!in_array(\$locked->status,[InventoryIssue::DRAFT,InventoryIssue::APPROVED],true)", $controller);
+        $this->assertStringContainsString("\$this->commissions->snapshotPostedIssue(\$issue->fresh(['items','deferredSupplies'])", $inventory);
+        $this->assertStringContainsString("\$this->commissions->reverseIssue(\$issue->fresh()", $inventory);
+        $this->assertStringContainsString('[InventoryIssue::DRAFT,InventoryIssue::APPROVED]', $inventory);
+        $this->assertStringContainsString("\$issue->approved_at ? InventoryIssue::APPROVED : InventoryIssue::DRAFT", $inventory);
+        $this->assertStringContainsString('pending_approval', $documents);
+        $this->assertStringContainsString('Đã duyệt', $documents);
+        $this->assertStringContainsString('Đã ghi sổ', $documents);
+    }
+
+    public function test_approved_order_can_be_posted_from_pwa_only_with_independent_permission_and_direct_stock_readiness(): void
+    {
+        $root = base_path();
+        $manifest = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/manifest.php');
+        $routes = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/routes.php');
+        $controller = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php');
+        $view = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-issue-show.blade.php');
+        $readiness = file_get_contents($root.'/Modules/Pharma/Services/UserOrderStockReadinessService.php');
+        $inventory = file_get_contents($root.'/Modules/Pharma/Services/InventoryService.php');
+
+        $this->assertSame(2, substr_count($manifest, "'permission' => 'client.pharma.orders.post'"));
+        $this->assertStringContainsString("Route::post('/orders/{issue}/post'", $routes);
+        $this->assertStringContainsString("client.pharma.orders.post", $controller);
+        $this->assertStringContainsString('postOrder(', $controller);
+        $this->assertStringContainsString("status !== \\Modules\\Pharma\\Models\\InventoryIssue::APPROVED", $controller);
+        $this->assertStringContainsString("['status' => 'posted']", $controller);
+        $this->assertStringContainsString('can_post_directly', $readiness);
+        $this->assertStringContainsString("if (\$row['has_supply_note']) return false;", $readiness);
+        $this->assertStringContainsString('$rows->contains(function (array $row): bool', $readiness);
+        $this->assertStringContainsString('postApprovedIssueFromAvailableStock', $inventory);
+        $this->assertStringContainsString("where('quantity_on_hand', '>=', (float) \$item->quantity)", $inventory);
+        $this->assertStringContainsString("orderBy('expiry_date')", $inventory);
+        $this->assertStringContainsString('$deferredMedicineIds = $issue->deferredSupplies', $inventory);
+        $this->assertStringContainsString('$postedItems = $issue->items', $inventory);
+        $this->assertStringContainsString("reject(fn (\$item) => \$deferredMedicineIds->contains((int) \$item->medicine_id))", $inventory);
+        $this->assertStringContainsString('toàn bộ mặt hàng đang chờ cung ứng', $inventory);
+        $this->assertStringContainsString('Ghi sổ chỉ xuất các sản phẩm đủ tồn', $view);
+        $this->assertStringContainsString("route('client.pharma.orders.post',\$issue)", $view);
+        $this->assertStringContainsString('>Ghi sổ</button>', $view);
+        $this->assertStringContainsString("@disabled(!(\$stockReadiness['can_post_directly'] ?? false))", $view);
+    }
+
+    public function test_approval_schema_is_audit_only_and_does_not_add_stock_fields(): void
+    {
+        $root = base_path();
+        $migration = file_get_contents($root.'/Modules/Pharma/database/migrations/2026_09_30_140000_add_order_approval_audit_to_inventory_issues.php');
+
+        $this->assertStringContainsString("'approved_by'", $migration);
+        $this->assertStringContainsString("'approved_at'", $migration);
+        $this->assertStringContainsString("'rejected_by'", $migration);
+        $this->assertStringContainsString("'rejected_at'", $migration);
+        $this->assertStringContainsString("'rejection_reason'", $migration);
+        $this->assertStringNotContainsString('batch_number', $migration);
+        $this->assertStringNotContainsString('expiry_date', $migration);
+        $this->assertStringNotContainsString('quantity_on_hand', $migration);
+    }
+}
