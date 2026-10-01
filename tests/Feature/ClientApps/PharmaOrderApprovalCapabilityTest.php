@@ -51,6 +51,10 @@ final class PharmaOrderApprovalCapabilityTest extends TestCase
         $this->assertStringContainsString("'canApproveOrder' => \$canApproveOrder", $controller);
         $this->assertStringContainsString("&& \$visibleIssue->status === \\Modules\\Pharma\\Models\\InventoryIssue::PENDING_APPROVAL", $controller);
         $this->assertStringContainsString('approveOrder', $controller);
+        $this->assertStringContainsString("return redirect()->route('client.pharma.orders')->with('success', 'Đơn hàng đã được gửi duyệt.');", $controller);
+        $this->assertStringContainsString('h-10 min-w-[108px]', $view);
+        $this->assertStringContainsString('h-10 min-w-[118px]', $view);
+        $this->assertStringNotContainsString('sticky bottom-0 z-20', $view);
         $this->assertStringContainsString('rejectOrder', $controller);
         $this->assertStringContainsString('Phê duyệt', $view);
         $this->assertStringContainsString('Từ chối', $view);
