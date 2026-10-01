@@ -839,7 +839,7 @@ final class PharmaApplicationController extends Controller
         $award=$workflow->contextAward($scope); abort_if($award===null,404); $hospital=$workflow->hospital($award,$partner); abort_if($hospital===null,404);
         return view('ClientPortal::applications.pharma.bid-award-hospital-allocation',[
             'application'=>$registry->find('pharma'),'scope'=>$scope,'award'=>$award,'hospital'=>$hospital,
-            'products'=>$workflow->products($award),'allocations'=>$workflow->hospitalAllocations($award,$partner),
+            'products'=>$workflow->productAllocationCards($award),'allocations'=>$workflow->hospitalAllocations($award,$partner),
             'canManageCommercialPolicy'=>$registry->userCan($user,'client.pharma.bid-awards.commercial-policy'),
         ]);
     }
