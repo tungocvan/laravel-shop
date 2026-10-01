@@ -1,0 +1,158 @@
+const initPharmaPriceListWizard = () => {
+    const form = document.getElementById('price-list-editor');
+    if (!form || form.dataset.viteWizardInitialized === '1') return;
+    form.dataset.viteWizardInitialized = '1';
+
+    const panels = [...document.querySelectorAll('[data-wizard-panel]')];
+    const steps = [...document.querySelectorAll('[data-step-jump]')];
+    const back = document.getElementById('wizard-back');
+    const next = document.getElementById('wizard-next');
+    const submit = document.getElementById('wizard-submit');
+    const source = document.getElementById('source-price-list');
+    const loadSource = document.getElementById('load-source-price-list');
+    let currentStep = panels.find(panel => !panel.classList.contains('hidden'))?.dataset.wizardPanel === '2' ? 2 : 1;
+
+    const value = name => String(form.elements.namedItem(name)?.value || '').trim();
+    const stepTwoReady = () => {
+        const names = form.elements.namedItem('manager_user_id')
+            ? ['name','manager_user_id','effective_from','effective_to']
+            : ['name','partner_id','purpose_id','effective_from','effective_to'];
+        return names.every(name => value(name) !== '');
+    };
+    const selectedCount = () => document.querySelectorAll('[data-source-product-checkbox]:checked').length;
+    const formatDate = raw => /^\d{4}-\d{2}-\d{2}$/.test(raw || '') ? raw.split('-').reverse().join('/') : '—';
+
+    const syncReview = () => {
+        document.querySelector('[data-review-name]')?.replaceChildren(document.createTextNode(value('name') || '—'));
+        document.querySelector('[data-review-dates]')?.replaceChildren(document.createTextNode(formatDate(value('effective_from')) + ' → ' + formatDate(value('effective_to'))));
+        document.querySelector('[data-review-products]')?.replaceChildren(document.createTextNode(selectedCount() + ' sản phẩm'));
+    };
+    const syncActions = () => {
+        if (back) back.classList.toggle('hidden', currentStep === 1);
+        if (next) {
+            next.classList.toggle('hidden', currentStep === 4);
+            next.disabled = currentStep === 1 ? !(source?.value || document.querySelector('[data-global-price-list-mode]')) : currentStep === 2 ? !stepTwoReady() : false;
+        }
+        if (submit) {
+            submit.classList.toggle('hidden', currentStep !== 4);
+            submit.disabled = selectedCount() === 0;
+        }
+    };
+    const showStep = step => {
+        currentStep = Math.max(1, Math.min(4, Number(step) || 1));
+        panels.forEach(panel => panel.classList.toggle('hidden', Number(panel.dataset.wizardPanel) !== currentStep));
+        steps.forEach(button => {
+            const number = Number(button.dataset.stepJump);
+            const active = number === currentStep;
+            const completed = number < currentStep;
+            button.dataset.state = active ? 'active' : completed ? 'completed' : 'pending';
+            button.classList.toggle('bg-slate-950', active);
+            button.classList.toggle('text-white', active);
+            button.classList.toggle('bg-slate-100', completed);
+            button.classList.toggle('text-slate-700', completed);
+            button.classList.toggle('text-slate-400', !active && !completed);
+            const dot = button.querySelector('.step-dot');
+            if (dot) {
+                dot.textContent = completed ? '✓' : String(number);
+                dot.classList.toggle('bg-white', active);
+                dot.classList.toggle('text-slate-950', active);
+                dot.classList.toggle('border-white', active);
+            }
+        });
+        if (currentStep === 4) syncReview();
+        syncActions();
+        window.scrollTo({top: 0, behavior: 'smooth'});
+    };
+
+    source?.addEventListener('change', () => {
+        document.getElementById('source-price-list-error')?.classList.add('hidden');
+        syncActions();
+    });
+    loadSource?.addEventListener('click', event => {
+        if (source && !source.value) {
+            event.preventDefault();
+            document.getElementById('source-price-list-error')?.classList.remove('hidden');
+            source.focus();
+        }
+    });
+    back?.addEventListener('click', () => showStep(currentStep - 1));
+    next?.addEventListener('click', () => {
+        if (currentStep === 1) {
+            if (loadSource) loadSource.click(); else showStep(2);
+            return;
+        }
+        if (currentStep === 2 && !stepTwoReady()) return;
+        showStep(currentStep + 1);
+    });
+    steps.forEach(button => button.addEventListener('click', () => {
+        const target = Number(button.dataset.stepJump);
+        if (target <= currentStep) showStep(target);
+    }));
+    form.addEventListener('input', syncActions);
+    form.addEventListener('change', syncActions);
+
+    const customerSearch = document.getElementById('client-price-list-customer-search');
+    const customerId = document.getElementById('client-price-list-customer');
+    const customerResults = document.getElementById('client-price-list-customer-results');
+    const customerOptions = [...document.querySelectorAll('[data-customer-option]')];
+    const closeCustomers = () => customerResults?.classList.add('hidden');
+    const renderCustomers = () => {
+        if (!customerResults) return;
+        const q = (customerSearch?.value || '').toLocaleLowerCase('vi').trim();
+        let visible = 0;
+        customerOptions.forEach(option => {
+            const match = !q || (option.dataset.search || '').includes(q);
+            option.classList.toggle('hidden', !match);
+            if (match && visible++ < 25) option.classList.remove('hidden');
+            else if (match) option.classList.add('hidden');
+        });
+        customerResults.classList.toggle('hidden', visible === 0);
+    };
+    customerSearch?.addEventListener('focus', renderCustomers);
+    customerSearch?.addEventListener('input', () => {
+        if (customerId) customerId.value = '';
+        renderCustomers();
+        syncActions();
+    });
+    customerOptions.forEach(option => option.addEventListener('click', () => {
+        if (customerId) customerId.value = option.dataset.value || '';
+        if (customerSearch) customerSearch.value = option.dataset.label || option.textContent.trim();
+        closeCustomers();
+        syncActions();
+    }));
+    document.addEventListener('click', event => {
+        if (customerResults && !event.target.closest('[data-customer-combobox]')) closeCustomers();
+    });
+
+    const productSearch = document.getElementById('source-product-search');
+    const productRows = [...document.querySelectorAll('.source-product-row')];
+    const filterProducts = () => {
+        const q = (productSearch?.value || '').toLocaleLowerCase('vi').trim();
+        productRows.forEach(row => row.classList.toggle('hidden', q !== '' && !(row.dataset.search || '').includes(q)));
+    };
+    productSearch?.addEventListener('input', filterProducts);
+
+    const selectAll = document.getElementById('select-all-source-products');
+    selectAll?.addEventListener('change', () => {
+        productRows.filter(row => !row.classList.contains('hidden')).forEach(row => {
+            const checkbox = row.querySelector('[data-source-product-checkbox]');
+            if (checkbox) checkbox.checked = selectAll.checked;
+        });
+        syncActions();
+    });
+    document.querySelectorAll('[data-source-product-checkbox]').forEach(box => box.addEventListener('change', syncActions));
+
+    const moneyInputs = [...document.querySelectorAll('[data-money-input]')];
+    const digits = input => String(input || '').replace(/\D/g, '');
+    const money = input => digits(input).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    moneyInputs.forEach(input => {
+        input.value = money(input.value);
+        input.addEventListener('input', () => { input.value = money(input.value); });
+    });
+    form.addEventListener('submit', () => moneyInputs.forEach(input => { input.value = digits(input.value); }));
+
+    showStep(currentStep);
+};
+
+document.addEventListener('DOMContentLoaded', initPharmaPriceListWizard);
+if (document.readyState !== 'loading') initPharmaPriceListWizard();
