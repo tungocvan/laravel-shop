@@ -150,18 +150,18 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('id="source-price-list" name="source_price_list_id"', $create);
         $this->assertStringContainsString('source_price_list_id', $create);
         $this->assertStringContainsString('name="source_price_list_id" value="{{ old(\'source_price_list_id\', $sourcePriceListId) }}"', $create);
-        $this->assertStringContainsString('data-global-user-scope', $create);
-        $this->assertStringContainsString('id="apply-all-global-users"', $create);
-        $this->assertStringContainsString('name="global_user_ids[]"', $create);
+        $this->assertStringNotContainsString("route('client.pharma.price-lists.create', ['type'=>'global'])", $create);
+        $this->assertStringContainsString('data-date-display name="effective_from"', $create);
+        $this->assertStringContainsString('data-date-display name="effective_to"', $create);
+        $this->assertStringContainsString('placeholder="dd/mm/yyyy"', $create);
         $this->assertStringNotContainsString('sticky bottom-4', $create);
         $this->assertStringContainsString('Lưu bảng giá Nháp', $create);
         $this->assertStringContainsString('name="selected[', $create);
         $this->assertStringContainsString('name="company_price[', $create);
         $this->assertStringContainsString('Giá Bán (VAT) *', $create);
-        $this->assertStringContainsString('Bảng giá chung', $create);
+        $this->assertStringContainsString('Bảng giá khách hàng', $create);
         $this->assertStringNotContainsString("name=\"manager_user_id\"", $create);
-        $this->assertStringContainsString('Áp dụng tất cả User', $create);
-        $this->assertStringContainsString('Kích hoạt bảng giá chung', $create);
+        $this->assertStringNotContainsString('Kích hoạt trực tiếp', $create);
         $this->assertStringNotContainsString('>Giá gốc<', $create);
         $this->assertStringContainsString('data-money-input', $create);
 
