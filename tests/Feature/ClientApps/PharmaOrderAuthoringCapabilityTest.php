@@ -50,6 +50,9 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
         $this->assertStringContainsString('createDraft(int $actorUserId, int $managerUserId', $service);
         $this->assertStringContainsString('guardSubmittable($userId, $issue)', $service);
         $this->assertStringContainsString('(int) $issue->manager_user_id', $service);
+        $this->assertStringContainsString("in_array(\$userId, [(int) \$issue->created_by, (int) \$issue->manager_user_id], true)", $service);
+        $this->assertStringContainsString("in_array((int) \$user->id, [(int) \$visibleIssue->created_by, (int) \$visibleIssue->manager_user_id], true)", $controller);
+        $this->assertStringContainsString("in_array((int) \$user->id, [(int) \$visible->created_by, (int) \$visible->manager_user_id], true)", $controller);
         $this->assertStringContainsString("'manager_user_id' => \$managerUserId", $service);
         $this->assertStringContainsString("'created_by' => \$actorUserId", $service);
         $this->assertStringContainsString("'allocated_quantity' => (float) \$allocation->allocated_quantity", $service);
