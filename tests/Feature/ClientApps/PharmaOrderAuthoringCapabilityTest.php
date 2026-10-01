@@ -66,6 +66,22 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
         $detail = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-issue-show.blade.php');
 
         $this->assertStringContainsString('Thêm mới đơn hàng', $view);
+        $this->assertStringContainsString('data-order-stepper', $view);
+        $this->assertStringContainsString('data-order-wizard', $view);
+        $this->assertStringContainsString('data-order-step-panel="1"', $view);
+        $this->assertStringContainsString('data-order-step-panel="2"', $view);
+        $this->assertStringContainsString('data-order-step-panel="3"', $view);
+        $this->assertStringContainsString('Thiết lập', $view);
+        $this->assertStringContainsString('Sản phẩm', $view);
+        $this->assertStringContainsString('Xem lại', $view);
+        $this->assertStringContainsString('id="order-step-back"', $view);
+        $this->assertStringContainsString('id="order-step-next"', $view);
+        $this->assertStringContainsString('id="order-submit"', $view);
+        $this->assertStringContainsString('pb-[calc(12px+env(safe-area-inset-bottom,0px))]', $view);
+        $this->assertStringContainsString('id="review-products"', $view);
+        $this->assertStringContainsString('id="review-summary"', $view);
+        $this->assertStringContainsString('refreshReview', $view);
+        $this->assertStringContainsString('setOrderStep', $view);
         $this->assertStringContainsString('Theo bảng giá', $view);
         $this->assertStringContainsString('Theo trúng thầu', $view);
         $this->assertStringContainsString('id="price-list-unassigned-warning"', $view);
@@ -119,7 +135,6 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
         $this->assertStringContainsString('hydrateBidContext', $view);
         $this->assertStringContainsString('Lưu nháp', $view);
         $this->assertStringContainsString('order-summary', $view);
-        $this->assertStringContainsString('lg:grid-cols-[360px_minmax(0,1fr)]', $view);
         $this->assertStringContainsString("el.disabled=b", $view);
         $this->assertStringContainsString("el.disabled=!b", $view);
         $this->assertStringNotContainsString('name="unit_price', $view);
