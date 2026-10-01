@@ -129,6 +129,15 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString('Sản phẩm', $list);
         $this->assertStringContainsString('Giá trị', $list);
         $this->assertStringContainsString('Thiết lập kinh doanh', $list);
+        $this->assertStringContainsString('data-bid-filter-combobox', $list);
+        $this->assertStringContainsString('data-bid-filter-search', $list);
+        $this->assertStringContainsString('data-bid-filter-option', $list);
+        $this->assertStringContainsString("['investor','Chủ đầu tư','Tìm chủ đầu tư...'", $list);
+        $this->assertStringContainsString("['medicine','Sản phẩm','Tìm sản phẩm...'", $list);
+        $this->assertStringNotContainsString('name="investor" data-searchable-filter', $list);
+        $this->assertStringNotContainsString('name="medicine" data-searchable-filter', $list);
+        $this->assertStringContainsString('<select name="value_sort"', $list);
+        $this->assertStringContainsString('<select name="business_setup"', $list);
         $this->assertStringContainsString('Phân bổ:', $list);
         $this->assertStringContainsString('CSKD:', $list);
         $this->assertStringNotContainsString('SP của tôi', $list);
