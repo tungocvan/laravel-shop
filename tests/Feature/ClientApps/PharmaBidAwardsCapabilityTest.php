@@ -307,6 +307,11 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString("ps?.addEventListener('input',applyProducts)", $allocation);
         $this->assertStringContainsString("pt?.addEventListener('click'", $allocation);
         $this->assertStringContainsString('Không có sản phẩm phù hợp bộ lọc.', $allocation);
+        $this->assertStringContainsString('autocomplete="off"', $allocation);
+        $this->assertStringContainsString('data-hospital-clear', $allocation);
+        $this->assertStringContainsString('data-hospital-empty', $allocation);
+        $this->assertStringContainsString('Không có bệnh viện phù hợp.', $allocation);
+        $this->assertStringContainsString("filter('[data-hospital-search]','[data-hospital-card]','[data-hospital-clear]')", $allocation);
     }
 
     public function test_manager_assignment_starts_with_assignment_mode_and_reuses_canonical_services(): void
