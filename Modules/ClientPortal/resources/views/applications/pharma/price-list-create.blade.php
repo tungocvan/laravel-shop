@@ -64,8 +64,8 @@
     </form>
 
     <form id="price-list-editor" method="POST" action="{{ $isEditing ? route('client.pharma.price-lists.update', $editingPriceList->id) : ($isGlobalMode ? route('client.pharma.price-lists.global.store') : route('client.pharma.price-lists.store')) }}" class="space-y-5">@csrf @if($isEditing) @method('PUT') @endif
-        @if(!$isGlobalMode)<input type="hidden" name="source_price_list_id" value="{{ old('source_price_list_id', $sourcePriceListId) }}">@endif
-        <section data-wizard-panel="2" class="{{ $sourcePriceListId || $isGlobalMode ? '' : 'hidden' }} rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <input type="hidden" name="source_price_list_id" value="{{ old('source_price_list_id', $sourcePriceListId) }}">
+        <section data-wizard-panel="2" class="{{ $sourcePriceListId ? '' : 'hidden' }} rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
             <div class="mb-5"><p class="text-xs font-black uppercase tracking-[0.14em] text-slate-400">02 · Khách hàng & mục đích</p><h2 class="mt-1 text-lg font-black text-slate-950">Thông tin cơ bản</h2></div>
             <div class="grid gap-4 lg:grid-cols-2">
                 <label><span class="mb-1.5 block text-xs font-bold text-slate-500">Tên bảng giá *</span><input name="name" value="{{ $field('name') }}" required maxlength="255" class="h-12 w-full rounded-2xl border border-slate-300 px-4" placeholder="VD: Bảng giá BV An Bình Q4/2026"></label>
@@ -100,7 +100,22 @@
 @endforeach
 </div></div></div>@endif
                 @if(!$isGlobalMode)<label><span class="mb-1.5 block text-xs font-bold text-slate-500">Mục đích *</span><select name="purpose_id" required class="h-12 w-full rounded-2xl border border-slate-300 px-4"><option value="">Chọn mục đích</option>@foreach($purposes as $purpose)<option value="{{ $purpose->id }}" @selected((string)$field('purpose_id') === (string)$purpose->id)>{{ $purpose->name }}</option>@endforeach</select></label>@endif
-                <div class="grid grid-cols-2 gap-3"><label><span class="mb-1.5 block text-xs font-bold text-slate-500">Hiệu lực từ *</span><input type="date" data-date-display name="effective_from" value="{{ ($date = $field('effective_from', now()->toDateString())) instanceof \Carbon\CarbonInterface ? $date->format('Y-m-d') : (preg_match('/^\\d{2}\/\\d{2}\/\\d{4}$/', (string)$date) ? \Carbon\Carbon::createFromFormat('d/m/Y', $date)->format('Y-m-d') : $date) }}" required lang="en-GB" class="h-12 w-full rounded-2xl border border-slate-300 px-3"></label><label><span class="mb-1.5 block text-xs font-bold text-slate-500">Đến *</span><input type="date" data-date-display name="effective_to" value="{{ ($date = $field('effective_to', now()->addMonth()->toDateString())) instanceof \Carbon\CarbonInterface ? $date->format('Y-m-d') : (preg_match('/^\\d{2}\/\\d{2}\/\\d{4}$/', (string)$date) ? \Carbon\Carbon::createFromFormat('d/m/Y', $date)->format('Y-m-d') : $date) }}" required lang="en-GB" class="h-12 w-full rounded-2xl border border-slate-300 px-3"></label></div>
+                <div class="grid grid-cols-2 gap-3">
+                    @foreach([['effective_from','Hiệu lực từ',now()->toDateString()],['effective_to','Đến',now()->addMonth()->toDateString()]] as [$dateName,$dateLabel,$dateDefault])
+                        @php
+                            $dateValue = $field($dateName, $dateDefault);
+                            $dateIso = $dateValue instanceof \Carbon\CarbonInterface ? $dateValue->format('Y-m-d') : (preg_match('/^\\d{2}\/\\d{2}\/\\d{4}$/', (string)$dateValue) ? \Carbon\Carbon::createFromFormat('d/m/Y', $dateValue)->format('Y-m-d') : $dateValue);
+                            $dateText = preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', (string)$dateIso) ? \Carbon\Carbon::parse($dateIso)->format('d/m/Y') : '';
+                        @endphp
+                        <label><span class="mb-1.5 block text-xs font-bold text-slate-500">{{ $dateLabel }} *</span>
+                            <span class="relative block">
+                                <input type="text" data-date-display="{{ $dateName }}" value="{{ $dateText }}" readonly tabindex="-1" aria-hidden="true" class="pointer-events-none h-12 w-full rounded-2xl border border-slate-300 bg-white px-3 pr-10 text-slate-900">
+                                <input type="date" data-date-native="{{ $dateName }}" name="{{ $dateName }}" value="{{ $dateIso }}" required aria-label="{{ $dateLabel }}" class="absolute inset-0 h-12 w-full cursor-pointer opacity-0">
+                                <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-500" aria-hidden="true">▾</span>
+                            </span>
+                        </label>
+                    @endforeach
+                </div>
             </div>
             <label class="mt-4 block"><span class="mb-1.5 block text-xs font-bold text-slate-500">Ghi chú</span><textarea name="notes" rows="2" maxlength="1000" class="w-full rounded-2xl border border-slate-300 px-4 py-3">{{ $field('notes') }}</textarea></label>
         </section>
