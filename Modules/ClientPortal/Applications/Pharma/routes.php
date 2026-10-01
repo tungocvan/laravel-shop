@@ -101,9 +101,6 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
         Route::post('/price-lists', [PharmaApplicationController::class, 'storePriceList'])
             ->middleware('client.feature:pharma,price-lists')
             ->name('price-lists.store');
-        Route::post('/price-lists/global', [PharmaApplicationController::class, 'storeGlobalPriceList'])
-            ->middleware('client.feature:pharma,price-lists')
-            ->name('price-lists.global.store');
         Route::get('/price-lists/{priceList}/edit', [PharmaApplicationController::class, 'editPriceList'])
             ->whereNumber('priceList')
             ->middleware('client.feature:pharma,price-lists')
@@ -137,10 +134,6 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->whereNumber(['priceList', 'item'])
             ->middleware('client.feature:pharma,price-lists')
             ->name('price-list-approvals.items.delete');
-        Route::post('/price-lists/{priceList}/activate-own-draft', [PharmaApplicationController::class, 'activateOwnDraftPriceList'])
-            ->whereNumber('priceList')
-            ->middleware('client.feature:pharma,price-lists')
-            ->name('price-lists.activate-own-draft');
         Route::put('/price-list-approvals/{priceList}/header', [PharmaApplicationController::class, 'updatePendingPriceListHeader'])
             ->middleware('client.feature:pharma,price-lists')
             ->name('price-list-approvals.header.update');
