@@ -92,7 +92,7 @@
     <div class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur lg:sticky lg:bottom-4 lg:ml-auto lg:w-fit lg:rounded-2xl lg:border lg:shadow-lg">
         <div class="mx-auto flex max-w-7xl items-center justify-between gap-3">
             <button id="wizard-back" type="button" class="h-11 rounded-2xl border border-slate-200 px-5 text-sm font-bold text-slate-600">← Quay lại</button>
-            <div class="ml-auto flex gap-2"><button id="wizard-next" type="button" class="h-11 rounded-2xl bg-slate-950 px-6 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">Tiếp tục →</button><button id="wizard-submit" type="submit" form="price-list-editor" class="hidden h-11 rounded-2xl bg-slate-950 px-6 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">{{ $isEditing ? 'Cập nhật bảng giá' : ($isGlobalMode ? 'Tạo bảng giá' : 'Lưu bảng giá') }}</button></div>
+            <div class="ml-auto flex gap-2"><button id="wizard-next" type="button" class="h-11 rounded-2xl bg-slate-950 px-6 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">Tiếp tục →</button><button id="wizard-submit" type="submit" form="price-list-editor" class="hidden h-11 rounded-2xl bg-slate-950 px-6 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">{{ $isEditing ? 'Cập nhật bảng giá' : ($isGlobalMode ? 'Kích hoạt bảng giá chung' : 'Lưu bảng giá') }}</button></div>
         </div>
     </div>
 </div>
@@ -177,6 +177,17 @@ window.addEventListener('load', () => {
         return true;
         @endif
     };
+    const source = document.getElementById('source-price-list');
+    const load = document.getElementById('load-source-price-list');
+    if (source && window.TomSelect && !source.tomselect) {
+        new TomSelect(source, { plugins: ['dropdown_input'], placeholder: 'Chọn bảng giá chung...', create: false, allowEmptyOption: true, dropdownParent: 'body' });
+    }
+    if (source && load) {
+        source.addEventListener('change', syncWizardActions);
+        source.tomselect?.on('change', syncWizardActions);
+        load.addEventListener('click', () => persistAndLoadSource());
+    }
+
     backButton?.addEventListener('click', () => showStep(currentStep - 1));
     nextButton?.addEventListener('click', () => {
         if (currentStep === 1) {
@@ -222,23 +233,6 @@ window.addEventListener('load', () => {
         } finally {
             sessionStorage.removeItem(draftKey);
         }
-    }
-
-    const source = document.getElementById('source-price-list');
-    const load = document.getElementById('load-source-price-list');
-    if (source && load) {
-        const bindSourceSelector = () => {
-            source.addEventListener('change', syncWizardActions);
-            if (source.tomselect && !source.dataset.wizardBound) {
-                source.tomselect.on('change', syncWizardActions);
-                source.dataset.wizardBound = '1';
-            }
-            syncWizardActions();
-        };
-        bindSourceSelector();
-        requestAnimationFrame(bindSourceSelector);
-        setTimeout(bindSourceSelector, 0);
-        load.addEventListener('click', () => persistAndLoadSource());
     }
 
     const search = document.getElementById('source-product-search');
