@@ -13,7 +13,7 @@
     $currentByAllocation = $editing ? $issue->items->whereNotNull('drug_bid_award_allocation_id')->keyBy('drug_bid_award_allocation_id') : collect();
     $money = fn($value) => number_format((float)$value, 0, ',', '.').' đ';
 @endphp
-<div class="min-w-0 max-w-full overflow-x-hidden bg-slate-50 pb-32" data-order-authoring>
+<div class="min-w-0 max-w-full bg-slate-50 pb-32" data-order-authoring>
 <header class="sticky top-0 z-30 -mx-4 border-b border-slate-200 bg-white/95 px-4 py-4 backdrop-blur sm:-mx-6 sm:px-6 lg:static lg:mx-auto lg:max-w-7xl lg:rounded-3xl lg:border">
  <div class="relative flex items-center justify-center"><a href="{{ $editing ? route('client.pharma.orders.show',$issue) : route('client.pharma.orders') }}" class="absolute left-0 flex h-11 w-11 items-center justify-center rounded-full text-2xl">←</a><div class="text-center"><h1 class="text-xl font-black text-slate-950">{{ $editing ? 'Sửa đơn hàng' : 'Thêm mới đơn hàng' }}</h1><p class="mt-1 text-xs font-semibold text-slate-500">Lập đơn đúng phạm vi User · giá lấy từ nguồn canonical</p></div></div>
 </header>
@@ -31,6 +31,9 @@
 [data-order-source-picker] input:checked + [data-source-card]{background:#4f46e5!important;border-color:#4f46e5!important;color:#fff!important;box-shadow:0 5px 14px rgba(79,70,229,.2)}
 [data-order-source-picker] input[value="bid"]:checked + [data-source-card]{background:#0f172a!important;border-color:#0f172a!important;color:#fff!important}
 [data-order-source-picker] input:checked + [data-source-card] span{color:inherit!important}
+[data-customer-field].is-open{padding-bottom:min(300px,38dvh)}
+[data-customer-field].is-open #customer-results{display:block!important}
+[data-order-actions]{isolation:isolate}
 </style>
 <nav class="mx-auto mt-3 max-w-3xl" aria-label="Tiến trình lập đơn" data-order-stepper>
  <div class="grid grid-cols-3 items-start">
@@ -90,8 +93,8 @@
    </div>
   @endif
   <label class="block"><span class="mb-2 block text-sm font-black">Bảng giá của User</span><select id="price-list-select" name="price_list_id" class="h-12 w-full rounded-2xl border border-slate-300 bg-white px-3"><option value="">Chọn bảng giá</option>@foreach($priceLists as $pl)<option value="{{ $pl->id }}" data-partner="{{ $pl->partner_id }}" @selected((int)old('price_list_id',$issue?->price_list_id)===$pl->id)>{{ $pl->name }}{{ $pl->partner ? ' · '.$pl->partner->name : '' }}</option>@endforeach</select></label>
-  <label class="mt-4 block"><span class="mb-2 block text-sm font-black">Khách hàng</span>
-   <div class="relative"><input id="customer-search" type="search" autocomplete="off" placeholder="Tìm tên / MST khách hàng..." class="h-12 w-full rounded-2xl border border-slate-300 px-4"><div id="customer-results" class="absolute left-0 right-0 top-full z-[70] mt-1 hidden max-h-[min(320px,42dvh)] overflow-y-auto overscroll-contain rounded-2xl border border-slate-200 bg-white p-1 shadow-2xl"></div></div>
+  <label class="mt-4 block" data-customer-field><span class="mb-2 block text-sm font-black">Khách hàng</span>
+   <div class="relative z-[80]"><input id="customer-search" type="search" autocomplete="off" placeholder="Tìm tên / MST khách hàng..." class="h-12 w-full rounded-2xl border border-slate-300 bg-white px-4"><div id="customer-results" class="absolute left-0 right-0 top-full z-[90] mt-1 hidden max-h-[min(300px,38dvh)] overflow-y-auto overscroll-contain rounded-2xl border border-slate-200 bg-white p-1 shadow-2xl"></div></div>
    <input id="customer-id" type="hidden" name="recipient_partner_id" value="{{ old('recipient_partner_id',$issue?->recipient_partner_id) }}">
    <p id="customer-selected" class="mt-2 min-h-5 text-xs font-bold text-slate-600"></p>
   </label>
@@ -165,7 +168,7 @@
  </section>
 </main>
 
-<div class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 pb-[calc(12px+env(safe-area-inset-bottom,0px))] pt-3 shadow-[0_-8px_30px_rgba(15,23,42,.08)] backdrop-blur sm:px-6 lg:left-1/2 lg:right-auto lg:bottom-5 lg:w-[min(760px,calc(100%-48px))] lg:-translate-x-1/2 lg:rounded-3xl lg:border lg:pb-3">
+<div data-order-actions class="fixed inset-x-0 bottom-0 z-[100] border-t border-slate-200 bg-white px-4 pb-[calc(12px+env(safe-area-inset-bottom,0px))] pt-3 shadow-[0_-8px_30px_rgba(15,23,42,.08)] sm:px-6 lg:left-1/2 lg:right-auto lg:w-[min(760px,calc(100%-48px))] lg:-translate-x-1/2 lg:rounded-t-3xl lg:border lg:pb-3">
  <div class="mx-auto flex max-w-3xl items-center gap-2 sm:gap-3">
   <button type="button" id="order-step-back" class="hidden h-12 shrink-0 items-center justify-center rounded-2xl border border-slate-300 px-5 text-sm font-black">← Quay lại</button>
   <div class="min-w-0 flex-1"><div class="flex items-center gap-2"><span class="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-600">Nháp</span><p id="order-summary" class="min-w-0 truncate text-xs font-black sm:text-sm">0 sản phẩm · 0 SL · 0 đ</p></div></div>
@@ -222,11 +225,11 @@ document.addEventListener('DOMContentLoaded',()=>{
  pl?.addEventListener('change',()=>{pendingProduct=null;productPanel.classList.add('hidden');productAddPanel.classList.add('hidden');productAddPanel.classList.remove('grid');document.getElementById('product-picker-label').textContent='Chọn sản phẩm từ bảng giá...';document.querySelectorAll('[data-price-item]').forEach(el=>{if(el.dataset.priceList!==pl.value)el.querySelector('[data-quantity]').value='';});syncSelectedProducts();const partner=pl.selectedOptions[0]?.dataset.partner;if(partner){selectCustomer(partner,true);}else{document.getElementById('customer-search').readOnly=false;}});
  const customers=@json($customers->map(fn($c)=>['id'=>$c->id,'name'=>$c->name,'tax_code'=>$c->tax_code])->values());
  const cs=document.getElementById('customer-search'), cr=document.getElementById('customer-results'), cid=document.getElementById('customer-id'), csel=document.getElementById('customer-selected');
- window.selectCustomer=(id,locked=false)=>{const c=customers.find(x=>String(x.id)===String(id));if(!c)return;cid.value=c.id;cs.value=c.name;csel.textContent='Đã chọn: '+c.name;cs.readOnly=locked;cr.classList.add('hidden');};
- const renderCustomers=()=>{const q=cs.value.toLocaleLowerCase('vi').trim();cr.innerHTML='';customers.filter(c=>(c.name+' '+(c.tax_code||'')).toLocaleLowerCase('vi').includes(q)).slice(0,25).forEach(c=>{const b=document.createElement('button');b.type='button';b.className='block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100';b.textContent=c.name+(c.tax_code?' · '+c.tax_code:'');b.onclick=()=>selectCustomer(c.id);cr.appendChild(b);});cr.classList.toggle('hidden',cr.children.length===0);};
+ window.selectCustomer=(id,locked=false)=>{const c=customers.find(x=>String(x.id)===String(id));if(!c)return;cid.value=c.id;cs.value=c.name;csel.textContent='Đã chọn: '+c.name;cs.readOnly=locked;closeCustomers();};
+ const customerField=document.querySelector('[data-customer-field]');const closeCustomers=()=>{cr?.classList.add('hidden');customerField?.classList.remove('is-open');};const renderCustomers=()=>{const q=cs.value.toLocaleLowerCase('vi').trim();cr.innerHTML='';customers.filter(c=>(c.name+' '+(c.tax_code||'')).toLocaleLowerCase('vi').includes(q)).slice(0,25).forEach(c=>{const b=document.createElement('button');b.type='button';b.className='block w-full rounded-xl px-3 py-3 text-left text-sm font-bold hover:bg-slate-100';b.textContent=c.name+(c.tax_code?' · '+c.tax_code:'');b.onclick=()=>selectCustomer(c.id);cr.appendChild(b);});const has=cr.children.length>0;cr.classList.toggle('hidden',!has);customerField?.classList.toggle('is-open',has);};
  cs?.addEventListener('input',()=>{cid.value='';csel.textContent='';renderCustomers();});cs?.addEventListener('focus',renderCustomers);if(cid?.value)selectCustomer(cid.value,false);
- document.addEventListener('click',e=>{if(managerBox&&!managerBox.contains(e.target))managerPanel?.classList.add('hidden');const customerBox=cs?.closest('.relative');if(customerBox&&!customerBox.contains(e.target))cr?.classList.add('hidden');if(productBox&&!productBox.contains(e.target))productPanel?.classList.add('hidden');});
- document.addEventListener('keydown',e=>{if(e.key==='Escape'){managerPanel?.classList.add('hidden');cr?.classList.add('hidden');productPanel?.classList.add('hidden');}});
+ document.addEventListener('click',e=>{if(managerBox&&!managerBox.contains(e.target))managerPanel?.classList.add('hidden');const customerBox=cs?.closest('.relative');if(customerBox&&!customerBox.contains(e.target))closeCustomers();if(productBox&&!productBox.contains(e.target))productPanel?.classList.add('hidden');});
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'){managerPanel?.classList.add('hidden');closeCustomers();productPanel?.classList.add('hidden');}});
 
  const bidInvestor=document.getElementById('bid-investor'),bidPartner=document.getElementById('bid-partner'),bidItems=[...document.querySelectorAll('[data-bid-item]')];
  const bidInvestorBox=document.querySelector('[data-bid-investor-combobox]'),bidInvestorToggle=document.getElementById('bid-investor-toggle'),bidInvestorPanel=document.getElementById('bid-investor-panel'),bidInvestorSearch=document.getElementById('bid-investor-search'),bidInvestorResults=document.getElementById('bid-investor-results'),bidInvestorLabel=document.getElementById('bid-investor-label');
