@@ -330,13 +330,13 @@ Navigation follows this hierarchy:
 ```text
 /my-apps
     -> /apps/pharma                 Application Hub / App Shell
-        -> capability browse/index  shell only when useful
+        -> capability browse/index  Focused Capability (no global header/bottom nav)
             -> business task        Focused Workspace
 ```
 
-Focused business tasks such as create/edit/detail workflows, approval, allocation, commercial policy and assignment should not carry redundant global application chrome. They hide the application header and mobile bottom navigation and provide local back/title/actions for the task.
+For Pharma PWA, entering a capability from `/apps/pharma` crosses the global-navigation boundary. Capability index/list screens and focused business tasks such as create/edit/detail workflows, approval, allocation, commercial policy and assignment hide the application header and mobile bottom navigation. The capability provides its own local back/title/actions; switching to another capability happens by returning to the Pharma Hub.
 
-This is a project-wide ClientPortal/PWA UI rule, not a Price List-specific exception. New capabilities and refactors must classify screens as Hub, Browse/Index or Focused Task/Workspace and preserve this hierarchy. Domain data and business rules remain owned by the source module; changing the shell never changes authorization or business ownership.
+This is a project-wide ClientPortal/PWA UI rule for Pharma capabilities, not a Price List-specific exception. New capabilities and refactors must classify screens as Hub, Browse/Index or Focused Task/Workspace and preserve this hierarchy. Domain data and business rules remain owned by the source module; changing the shell never changes authorization or business ownership.
 
 ## 11. Ownership boundaries
 
