@@ -10,6 +10,7 @@
 @section('content')
 <div class="mx-auto max-w-6xl space-y-5">
     @if(session('success'))<div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">{{ session('success') }}</div>@endif
+    @if($errors->any())<div class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700"><p class="font-black">Không thể hoàn tất thao tác</p><p class="mt-1">{{ $errors->first() }}</p></div>@endif
     <a href="{{ route('client.pharma.price-lists') }}" class="inline-flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-slate-950">← Bảng giá của tôi</a>
     @php $customer = $priceList->partner?->name ?? $priceList->officialFacility?->facility_name ?? $priceList->officialFacility?->name ?? 'Bảng giá chung'; @endphp
     <section class="rounded-[2rem] bg-slate-950 px-5 py-6 text-white shadow-sm sm:px-7">
