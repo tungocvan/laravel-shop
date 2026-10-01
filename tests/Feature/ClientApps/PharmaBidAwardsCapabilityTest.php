@@ -192,6 +192,13 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString('② Chọn cơ sở KCB', $allocation);
         $this->assertStringContainsString('③ Kiểm tra & lưu', $allocation);
         $this->assertStringContainsString('data-review-checkbox', $allocation);
+        $this->assertStringContainsString('data-province-clear', $allocation);
+        $this->assertStringContainsString('data-facility-clear', $allocation);
+        $this->assertStringContainsString('aria-label="Xóa tìm Tỉnh/Thành"', $allocation);
+        $this->assertStringContainsString('aria-label="Xóa tìm bệnh viện"', $allocation);
+        $this->assertStringContainsString('grid-cols-1 gap-3 sm:grid-cols-2', $allocation);
+        $this->assertStringContainsString("filter('[data-province-search]','[data-province-card]','[data-province-clear]')", $allocation);
+        $this->assertStringContainsString("filter('[data-facility-search]','[data-facility-card]','[data-facility-clear]')", $allocation);
         $this->assertStringContainsString('@checked(in_array((int)$facility->id,$draftFacilityIds,true))', $allocation);
         $this->assertStringContainsString('Lưu thiết lập phân bổ', $allocation);
         $this->assertStringContainsString('Bệnh viện nhận phân bổ', $allocation);
