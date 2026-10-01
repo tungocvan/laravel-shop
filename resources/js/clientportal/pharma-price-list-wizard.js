@@ -24,11 +24,27 @@ const initPharmaPriceListWizard = () => {
     };
     const selectedCount = () => document.querySelectorAll('[data-source-product-checkbox]:checked').length;
     const dateDisplays = [...document.querySelectorAll('[data-date-display]')];
+    const dateNatives = [...document.querySelectorAll('[data-date-native]')];
     const displayDate = raw => /^\d{4}-\d{2}-\d{2}$/.test(raw || '') ? raw.split('-').reverse().join('/') : String(raw || '');
+    const isoDate = raw => {
+        const match = String(raw || '').match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+        return match ? `${match[3]}-${match[2]}-${match[1]}` : String(raw || '');
+    };
     const formatDate = raw => {
         const displayed = displayDate(raw);
         return /^\d{2}\/\d{2}\/\d{4}$/.test(displayed) ? displayed : '—';
     };
+    const syncDateDisplay = native => {
+        const display = document.querySelector(`[data-date-display="${native.dataset.dateNative}"]`);
+        if (display) display.value = displayDate(native.value);
+    };
+    dateNatives.forEach(native => {
+        syncDateDisplay(native);
+        native.addEventListener('change', () => {
+            syncDateDisplay(native);
+            syncActions();
+        });
+    });
 
     const syncReview = () => {
         document.querySelector('[data-review-name]')?.replaceChildren(document.createTextNode(value('name') || '—'));
@@ -232,7 +248,6 @@ const initPharmaPriceListWizard = () => {
     });
     form.addEventListener('submit', () => {
         moneyInputs.forEach(input => { input.value = digits(input.value); });
-        dateDisplays.forEach(input => { input.value = isoDate(input.value); });
     });
 
     showStep(currentStep);
