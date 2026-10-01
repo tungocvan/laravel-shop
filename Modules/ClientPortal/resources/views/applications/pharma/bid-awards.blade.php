@@ -167,7 +167,16 @@
         clear?.addEventListener('click',()=>{ hidden.value=''; search.value=''; options?.classList.add('hidden'); clear.classList.add('hidden'); form.requestSubmit(); });
         document.addEventListener('click',event=>{ if(!box.contains(event.target)) options?.classList.add('hidden'); });
     });
-    let timer; input?.addEventListener('input',()=>{ clearTimeout(timer); timer=setTimeout(()=>form.requestSubmit(),350); });
+    const initialSearch=(input?.value||'').trim();
+    let timer;
+    input?.addEventListener('input',()=>{
+        clearTimeout(timer);
+        timer=setTimeout(()=>{
+            const nextSearch=(input.value||'').trim();
+            if(nextSearch===initialSearch) return;
+            form.requestSubmit();
+        },750);
+    });
     const more=document.getElementById('bid-award-load-more');
     more?.addEventListener('click',async(event)=>{
         event.preventDefault(); more.classList.add('pointer-events-none','opacity-60');
