@@ -144,6 +144,29 @@ final class PriceListApprovalWorkflow
         });
     }
 
+    public function updatePendingHeader(int $approverUserId, int $priceListId, array $changes): PriceList
+    {
+        return DB::transaction(function () use ($approverUserId, $priceListId, $changes): PriceList {
+            $list = PriceList::query()->lockForUpdate()->findOrFail($priceListId);
+            $this->assertPending($list);
+
+            $candidate = array_merge($list->toArray(), [
+                'name' => trim((string) ($changes['name'] ?? $list->name)),
+                'effective_from' => $changes['effective_from'] ?? $list->effective_from,
+                'effective_to' => $changes['effective_to'] ?? $list->effective_to,
+            ]);
+            $validated = $this->manager->validateHeader($candidate, $list);
+
+            $list->forceFill([
+                'name' => $validated['name'],
+                'effective_from' => $validated['effective_from'],
+                'effective_to' => $validated['effective_to'],
+            ])->save();
+
+            return $list->refresh();
+        });
+    }
+
     public function approve(int $approverUserId, int $priceListId): PriceList
     {
         return DB::transaction(function () use ($approverUserId, $priceListId): PriceList {
