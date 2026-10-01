@@ -384,7 +384,10 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString('Bệnh viện × Sản phẩm', $assignment);
         $this->assertStringContainsString('Cần gỡ toàn bộ phân công trước khi chuyển sang cách khác.', $assignment);
         $this->assertStringContainsString('Phân công User quản lý', $policy);
-        $this->assertStringContainsString('Lưu & tiếp tục', $policy);
+        $this->assertStringContainsString("if (! \$workflow->commercialPolicyReady(\$award))", $controller);
+        $this->assertStringContainsString("route('client.pharma.bid-awards.commercial-policy', \$scope)", $controller);
+        $this->assertStringContainsString('Hãy nhập chính sách (%) cho tất cả sản phẩm đang được phân bổ trước khi tiếp tục phân công User quản lý.', $controller);
+        $this->assertStringContainsString('Lưu chính sách & tiếp tục', $policy);
         $this->assertStringNotContainsString('Admin::', $assignment);
         $this->assertStringNotContainsString('wire:', $assignment);
     }
