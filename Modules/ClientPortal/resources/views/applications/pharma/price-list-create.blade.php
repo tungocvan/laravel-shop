@@ -54,13 +54,13 @@
             @if(!$isEditing && $canApprove)<div class="mt-4 grid gap-3 sm:grid-cols-2"><a href="{{ route('client.pharma.price-lists.create') }}" class="rounded-2xl border-2 p-4 {{ !$isGlobalMode ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200' }}"><span class="block font-black text-slate-950">Bảng giá khách hàng</span><span class="mt-1 block text-xs text-slate-500">Bảng giá riêng theo khách hàng, phục vụ chào giá và bán hàng.</span></a><a href="{{ route('client.pharma.price-lists.create', ['type'=>'global']) }}" class="rounded-2xl border-2 p-4 {{ $isGlobalMode ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200' }}"><span class="block font-black text-slate-950">Bảng giá chung</span><span class="mt-1 block text-xs text-slate-500">Bảng giá áp dụng chung, dùng làm bảng giá gốc hoặc tham chiếu.</span></a></div>@endif
             </div>
             @if(!$isGlobalMode)<div class="mt-5"><p class="text-xs font-black uppercase tracking-[0.12em] text-slate-500">Khởi tạo từ bảng giá</p></div>@endif
-            <div class="{{ $isGlobalMode ? 'hidden' : '' }}"><p class="mt-1 text-sm text-slate-500">Chỉ hiển thị bảng giá chung đang ACTIVE và nằm trong phạm vi Admin cấp cho User.</p></div><p class="mt-1 text-sm text-slate-500">Chỉ hiển thị bảng giá chung đang ACTIVE và nằm trong phạm vi Admin cấp cho User.</p></div>
+            <div class="{{ $isGlobalMode ? 'hidden' : '' }}"><p class="mt-1 text-sm text-slate-500">Chỉ hiển thị bảng giá chung đang ACTIVE và nằm trong phạm vi Admin cấp cho User.</p></div>
             @if($sourcePriceLists->isEmpty())
                 <div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800">Hiện chưa có bảng giá chung ACTIVE được cấp cho bạn. Vui lòng liên hệ người quản trị Pharma.</div>
             @else
                 <div class="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
-                    <x-select-search id="source-price-list" name="source_price_list_id" placeholder="Tra cứu bảng giá gốc..." :value="old('source_price_list_id',$sourcePriceListId)"><option value="">Chọn bảng giá gốc</option>@foreach($sourcePriceLists as $source)<option value="{{ $source->id }}" @selected((string)old('source_price_list_id',$sourcePriceListId) === (string)$source->id)>{{ $source->code }} — {{ $source->name }} · {{ $source->items_count }} SP</option>@endforeach</x-select-search>
-                    <button id="load-source-price-list" type="button" class="h-12 rounded-2xl bg-slate-950 px-5 text-sm font-black text-white">Khởi tạo từ bảng giá</button>
+                    <div class="rounded-2xl border-2 border-slate-200 bg-white p-1 shadow-sm focus-within:border-slate-950"><x-select-search id="source-price-list" name="source_price_list_id" placeholder="Tra cứu bảng giá gốc..." :value="old('source_price_list_id',$sourcePriceListId)"><option value="">Chọn bảng giá gốc</option>@foreach($sourcePriceLists as $source)<option value="{{ $source->id }}" @selected((string)old('source_price_list_id',$sourcePriceListId) === (string)$source->id)>{{ $source->code }} — {{ $source->name }} · {{ $source->items_count }} SP</option>@endforeach</x-select-search></div>
+                    <button id="load-source-price-list" type="button" class="h-12 rounded-2xl bg-slate-950 px-5 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400" disabled>Khởi tạo từ bảng giá</button>
                 </div>
             @endif
         </section>
@@ -68,11 +68,11 @@
         <section data-wizard-panel="3" class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
             <div class="border-b border-slate-100 p-5"><p class="text-xs font-black uppercase tracking-[0.14em] text-slate-400">03 · Sản phẩm & giá</p><div class="mt-1 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between"><div><h2 class="text-lg font-black text-slate-950">Chọn sản phẩm từ bảng giá gốc</h2><p class="mt-1 text-sm text-slate-500">Giá bán CT mặc định lấy từ bảng giá gốc. Bỏ checkbox nếu sản phẩm không áp dụng cho khách hàng này.</p></div>@if($sourcePriceListId)<label class="w-full lg:w-80"><span class="mb-1 block text-xs font-bold text-slate-500">Tìm sản phẩm</span><div class="relative"><input id="source-product-search" type="search" class="h-11 w-full rounded-2xl border border-slate-300 pl-4 pr-10 text-sm" placeholder="Tên thuốc, SKU, hoạt chất, SĐK..."><button id="clear-source-product-search" type="button" class="absolute right-2 top-1/2 hidden h-7 w-7 -translate-y-1/2 rounded-full text-lg font-bold text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Xóa tìm kiếm">×</button></div></label>@endif</div></div>
             @if(!$sourcePriceListId)
-                <div class="p-8 text-center text-sm text-slate-500">Chọn bảng giá tại Bước 02 để tải sản phẩm.</div>
+                <div class="p-8 text-center text-sm text-slate-500">Chọn bảng giá tại Bước 01 để tải sản phẩm.</div>
             @else
                 <div class="max-h-[620px] overflow-auto"><table class="w-full min-w-[980px] text-left text-sm"><thead class="sticky top-0 bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-500"><tr><th class="w-12 px-4 py-3"><input id="select-all-source-products" type="checkbox" class="h-5 w-5 rounded border-slate-300" title="Chọn/bỏ tất cả sản phẩm đang hiển thị"></th><th class="px-4 py-3">Thuốc</th><th class="px-4 py-3">Hoạt chất</th><th class="px-4 py-3 text-right">Giá kê khai</th><th class="w-48 px-4 py-3 text-right">Giá Bán (VAT) *</th></tr></thead><tbody class="divide-y divide-slate-100">
                 @forelse($sourceProducts as $sourceItem) @php $product=$sourceItem->variant; $medicine=$product?->medicine; @endphp
-                    <tr class="source-product-row" data-search="{{ mb_strtolower(($medicine?->name ?? '').' '.($product?->sku ?? '').' '.($medicine?->active_ingredients ?? '').' '.($medicine?->registration_number ?? '')) }}"><td class="px-4 py-3"><input type="checkbox" data-source-product-checkbox name="selected[{{ $product->id }}]" value="1" @checked(old('selected.'.$product->id, $isEditing ? $selectedExisting->has($product->id) : true)) class="h-5 w-5 rounded border-slate-300"></td><td class="px-4 py-3"><p class="font-black">{{ $medicine?->name }}</p><p class="mt-1 text-xs text-slate-400">{{ $product?->sku }} · {{ $medicine?->packaging_specification }}</p></td><td class="px-4 py-3 text-slate-600">{{ $medicine?->active_ingredients ?: '—' }}</td><td class="px-4 py-3 text-right font-bold tabular-nums">{{ $sourceItem->declared_price_snapshot !== null ? number_format((float)$sourceItem->declared_price_snapshot,0,',','.') : '—' }}</td><td class="px-4 py-3"><input type="text" inputmode="numeric" data-money-input data-raw-value="{{ old('company_price.'.$product->id, $isEditing && $selectedExisting->has($product->id) ? (int)$selectedExisting->get($product->id)->company_sale_price : ($sourceItem->company_sale_price !== null ? (int)$sourceItem->company_sale_price : '')) }}" name="company_price[{{ $product->id }}]" value="{{ ($v = old('company_price.'.$product->id, $isEditing && $selectedExisting->has($product->id) ? (int)$selectedExisting->get($product->id)->company_sale_price : ($sourceItem->company_sale_price !== null ? (int)$sourceItem->company_sale_price : ''))) !== '' ? number_format((float)str_replace('.', '', (string)$v),0,',','.') : '' }}" class="h-10 w-full rounded-xl border border-slate-300 px-3 text-right font-bold tabular-nums"></td></tr>
+                    <tr class="source-product-row" data-search="{{ mb_strtolower(($medicine?->name ?? '').' '.($product?->sku ?? '').' '.($medicine?->active_ingredients ?? '').' '.($medicine?->registration_number ?? '')) }}"><td class="px-4 py-3"><input type="checkbox" data-source-product-checkbox name="selected[{{ $product->id }}]" value="1" @checked(old('selected.'.$product->id, $isEditing ? $selectedExisting->has($product->id) : true)) class="h-5 w-5 rounded border-slate-300"></td><td class="px-4 py-3"><p class="font-black">{{ $medicine?->name }}</p><p class="mt-1 text-xs text-slate-400">{{ $product?->sku }} · {{ $medicine?->packaging_specification }}</p></td><td class="px-4 py-3 text-slate-600">{{ $medicine?->active_ingredients ?: '—' }}</td><td class="px-4 py-3 text-right font-bold tabular-nums">{{ $sourceItem->declared_price_snapshot !== null ? number_format((float)$sourceItem->declared_price_snapshot,0,',','.') : '—' }}</td><td class="px-4 py-3"><input type="text" inputmode="numeric" data-money-input data-raw-value="{{ old('company_price.'.$product->id, $isEditing && $selectedExisting->has($product->id) ? (int)$selectedExisting->get($product->id)->company_sale_price : ($sourceItem->company_sale_price !== null ? (int)$sourceItem->company_sale_price : '')) }}" name="company_price[{{ $product->id }}]" value="{{ ($v = old('company_price.'.$product->id, $isEditing && $selectedExisting->has($product->id) ? (int)$selectedExisting->get($product->id)->company_sale_price : ($sourceItem->company_sale_price !== null ? (int)$sourceItem->company_sale_price : ''))) !== '' ? number_format((float)str_replace('.', '', (string)$v),0,',','.') : '' }}" class="h-12 w-full min-w-28 rounded-2xl border-2 border-slate-200 bg-white px-3 text-right text-base font-black tabular-nums shadow-sm outline-none focus:border-slate-950 focus:ring-2 focus:ring-slate-100"></td></tr>
                 @empty <tr><td colspan="5" class="p-8 text-center text-slate-500">Bảng giá gốc chưa có sản phẩm ACTIVE.</td></tr> @endforelse
                 </tbody></table></div>
             @endif
@@ -86,13 +86,13 @@
                 <p><span class="block text-xs font-bold text-slate-400">Tên bảng giá</span><strong data-review-name>—</strong></p>
                 <p><span class="block text-xs font-bold text-slate-400">Sản phẩm đã chọn</span><strong data-review-products>0 sản phẩm</strong></p>
             </div>
-            <div class="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><h2 class="text-lg font-black text-slate-950">{{ $isEditing ? 'Cập nhật bảng giá Nháp' : ($isGlobalMode ? 'Kiểm tra & kích hoạt bảng giá chung' : 'Lưu bảng giá Nháp') }}</h2><p class="mt-1 text-sm text-slate-500">{{ $isGlobalMode ? 'Bảng giá chung sẽ được kiểm tra, gán cho User phụ trách và ACTIVE ngay khi lưu.' : 'Sau khi lưu, bạn có thể kiểm tra lại chi tiết trước khi Gửi duyệt.' }}</p></div><div class="flex gap-2"><a href="{{ route('client.pharma.price-lists') }}" class="rounded-2xl border border-slate-300 px-5 py-3 text-sm font-bold text-slate-600">Hủy</a><button type="submit" @disabled(!$sourcePriceListId || $sourceProducts->isEmpty()) class="rounded-2xl bg-slate-950 px-6 py-3 text-sm font-black text-white disabled:opacity-40">{{ $isEditing ? 'Cập nhật bản Nháp' : ($isGlobalMode ? 'Kích hoạt bảng giá chung' : 'Lưu bảng giá Nháp') }}</button></div></div>
+            <div class="mt-4"><h2 class="text-lg font-black text-slate-950">{{ $isEditing ? 'Cập nhật bảng giá Nháp' : ($isGlobalMode ? 'Kiểm tra & kích hoạt bảng giá chung' : 'Lưu bảng giá Nháp') }}</h2><p class="mt-1 text-sm text-slate-500">{{ $isGlobalMode ? 'Bảng giá chung sẽ được kiểm tra, gán cho User phụ trách và ACTIVE ngay khi lưu.' : 'Sau khi lưu, bạn có thể kiểm tra lại chi tiết trước khi Gửi duyệt.' }}</p></div>
         </section>
     </form>
     <div class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur lg:sticky lg:bottom-4 lg:ml-auto lg:w-fit lg:rounded-2xl lg:border lg:shadow-lg">
         <div class="mx-auto flex max-w-7xl items-center justify-between gap-3">
             <button id="wizard-back" type="button" class="h-11 rounded-2xl border border-slate-200 px-5 text-sm font-bold text-slate-600">← Quay lại</button>
-            <div class="ml-auto flex gap-2"><button id="wizard-next" type="button" class="h-11 rounded-2xl bg-slate-950 px-6 text-sm font-black text-white">Tiếp tục →</button><button id="wizard-submit" type="submit" form="price-list-editor" class="hidden h-11 rounded-2xl bg-slate-950 px-6 text-sm font-black text-white">{{ $isEditing ? 'Cập nhật bảng giá' : ($isGlobalMode ? 'Tạo bảng giá' : 'Lưu bảng giá') }}</button></div>
+            <div class="ml-auto flex gap-2"><button id="wizard-next" type="button" class="h-11 rounded-2xl bg-slate-950 px-6 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">Tiếp tục →</button><button id="wizard-submit" type="submit" form="price-list-editor" class="hidden h-11 rounded-2xl bg-slate-950 px-6 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">{{ $isEditing ? 'Cập nhật bảng giá' : ($isGlobalMode ? 'Tạo bảng giá' : 'Lưu bảng giá') }}</button></div>
         </div>
     </div>
 </div>
@@ -137,11 +137,60 @@ window.addEventListener('load', () => {
         if (currentStep === 4) syncReview();
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
+    const sourceReady = () => {{ $isGlobalMode ? 'true' : "(document.getElementById('source-price-list')?.value || '') !== ''" }};
+    const stepTwoReady = () => {
+        const requiredNames = [{{ $isGlobalMode ? "'name','manager_user_id','effective_from','effective_to'" : "'name','partner_id','purpose_id','effective_from','effective_to'" }}];
+        return requiredNames.every(name => String(form?.elements.namedItem(name)?.value || '').trim() !== '');
+    };
+    const syncWizardActions = () => {
+        if (nextButton) nextButton.disabled = currentStep === 1 ? !sourceReady() : (currentStep === 2 ? !stepTwoReady() : false);
+        const loadSource = document.getElementById('load-source-price-list');
+        if (loadSource) loadSource.disabled = !sourceReady();
+        if (submitButton) submitButton.disabled = selectedProductCount() === 0;
+    };
+    const persistAndLoadSource = () => {
+        const source = document.getElementById('source-price-list');
+        if (!sourceReady() || !form) return false;
+        @if(!$isGlobalMode)
+        const partner = form.elements.namedItem('partner_id');
+        sessionStorage.setItem('client-pharma-price-list-form-state', JSON.stringify({
+            name: form.elements.namedItem('name')?.value || '',
+            partner_id: partner?.value || '',
+            purpose_id: form.elements.namedItem('purpose_id')?.value || '',
+            effective_from: form.elements.namedItem('effective_from')?.value || '',
+            effective_to: form.elements.namedItem('effective_to')?.value || '',
+            notes: form.elements.namedItem('notes')?.value || '',
+        }));
+        const url = new URL(window.location.href);
+        url.searchParams.set('source_price_list_id', source.value);
+        window.location.href = url.toString();
+        return true;
+        @else
+        showStep(2);
+        return true;
+        @endif
+    };
     backButton?.addEventListener('click', () => showStep(currentStep - 1));
-    nextButton?.addEventListener('click', () => showStep(currentStep + 1));
-    stepButtons.forEach(button => button.addEventListener('click', () => showStep(button.dataset.stepJump)));
-    form?.addEventListener('input', () => { if (currentStep === 4) syncReview(); });
-    showStep(1);
+    nextButton?.addEventListener('click', () => {
+        if (currentStep === 1) {
+            @if(!$isGlobalMode)
+            if (!{{ $sourcePriceListId ? 'true' : 'false' }}) { persistAndLoadSource(); return; }
+            @endif
+        }
+        if (currentStep === 2 && !stepTwoReady()) return;
+        showStep(currentStep + 1);
+        syncWizardActions();
+    });
+    stepButtons.forEach(button => button.addEventListener('click', () => {
+        const target = Number(button.dataset.stepJump);
+        if (target > currentStep) return;
+        showStep(target);
+        syncWizardActions();
+    }));
+    form?.addEventListener('input', () => { if (currentStep === 4) syncReview(); syncWizardActions(); });
+    form?.addEventListener('change', syncWizardActions);
+    showStep({{ $sourcePriceListId || $isGlobalMode ? '2' : '1' }});
+    syncWizardActions();
     const customer = document.getElementById('client-price-list-customer');
     if (customer && window.TomSelect && !customer.tomselect) {
         new TomSelect(customer, { plugins: ['dropdown_input'], placeholder: 'Tra cứu khách hàng...', create: false, allowEmptyOption: true, dropdownParent: 'body' });
@@ -171,21 +220,9 @@ window.addEventListener('load', () => {
     const source = document.getElementById('source-price-list');
     const load = document.getElementById('load-source-price-list');
     if (source && load) {
-        load.addEventListener('click', () => {
-            if (!source.value || !form) return;
-            const partner = form.elements.namedItem('partner_id');
-            sessionStorage.setItem(draftKey, JSON.stringify({
-                name: form.elements.namedItem('name')?.value || '',
-                partner_id: partner?.value || '',
-                purpose_id: form.elements.namedItem('purpose_id')?.value || '',
-                effective_from: form.elements.namedItem('effective_from')?.value || '',
-                effective_to: form.elements.namedItem('effective_to')?.value || '',
-                notes: form.elements.namedItem('notes')?.value || '',
-            }));
-            const url = new URL(window.location.href);
-            url.searchParams.set('source_price_list_id', source.value);
-            window.location.href = url.toString();
-        });
+        source.addEventListener('change', syncWizardActions);
+        source.tomselect?.on('change', syncWizardActions);
+        load.addEventListener('click', () => persistAndLoadSource());
     }
 
     const search = document.getElementById('source-product-search');
