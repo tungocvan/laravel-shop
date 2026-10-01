@@ -5,6 +5,7 @@
 @section('app-subtitle', 'Workspace Pharma dành cho User')
 @section('app-dashboard-route', route('client.pharma.dashboard'))
 @section('hide-mobile-navigation', true)
+@section('hide-application-header', true)
 
 @section('content')
 @php
