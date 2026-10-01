@@ -125,9 +125,13 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString("redirect()->route('client.pharma.price-lists.show', \$priceList)", $controller);
 
         $this->assertStringContainsString('Tạo bảng giá cho khách hàng', $create);
-        $this->assertStringContainsString('<x-select-search', $create);
+        // The price-list wizard uses the same searchable business-selector UX contract as
+        // the order authoring flow, but keeps its own lightweight combobox markup so wizard
+        // state and validation stay deterministic across steps.
         $this->assertStringNotContainsString('<x-search-select', $create);
+        $this->assertStringContainsString('data-customer-combobox', $create);
         $this->assertStringContainsString('id="client-price-list-customer-search"', $create);
+        $this->assertStringContainsString('type="hidden" name="partner_id"', $create);
         $this->assertStringContainsString('data-customer-option', $create);
         $this->assertStringContainsString("document.getElementById('client-price-list-customer')", $createWizard);
         $this->assertStringContainsString('const stepTwoReady = () =>', $createWizard);
