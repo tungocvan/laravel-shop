@@ -65,6 +65,12 @@ class PharmaPwaUiParityContractTest extends TestCase
         $bundle = file_get_contents(base_path('resources/js/tailwind.js'));
 
         $this->assertStringContainsString('id="source-price-list" name="source_price_list_id"', $view);
+        $this->assertStringContainsString('@if($isGlobalMode)<input type="hidden" name="type" value="global">@endif', $view);
+        $this->assertStringContainsString("class=\"{{ \$sourcePriceListId ? 'hidden' : '' }} rounded-3xl", $view);
+        $this->assertStringContainsString("class=\"{{ \$sourcePriceListId ? '' : 'hidden' }} rounded-3xl", $view);
+        $this->assertStringContainsString("<input type=\"hidden\" name=\"source_price_list_id\" value=\"{{ old('source_price_list_id', \$sourcePriceListId) }}\">", $view);
+        $this->assertStringContainsString("? !source?.value", $wizard);
+        $this->assertStringNotContainsString("source?.value || document.querySelector('[data-global-price-list-mode]')", $wizard);
         $this->assertStringContainsString('id="client-price-list-customer-search"', $view);
         $this->assertStringContainsString('data-customer-option', $view);
         $this->assertStringContainsString('id="source-product-search" type="search"', $view);
