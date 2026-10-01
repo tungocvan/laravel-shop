@@ -84,7 +84,9 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $view);
         $this->assertStringContainsString('aria-label="Quay lại Bảng giá của tôi"', $view);
 
-        $this->assertStringContainsString('<x-select-search id="client-price-list-manager"', $view);
+        $this->assertStringContainsString('data-price-list-manager-combobox', $view);
+        $this->assertStringContainsString('id="client-price-list-manager-search"', $view);
+        $this->assertStringContainsString('type="hidden" name="manager_user_id"', $view);
         $this->assertStringContainsString('id="price-list-bootstrap" method="GET"', $view);
         $this->assertStringContainsString('<select id="source-price-list" name="source_price_list_id"', $view);
         $this->assertStringNotContainsString('<x-search-select', $view);
@@ -93,6 +95,8 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertStringContainsString('id="source-product-search" type="search"', $view);
 
         $this->assertStringContainsString('id="load-source-price-list"', $view);
-        $this->assertStringContainsString("document.getElementById('source-price-list')", $view);
+        $wizard = file_get_contents(base_path('resources/js/clientportal/pharma-price-list-wizard.js'));
+        $this->assertStringContainsString("document.getElementById('source-price-list')", $wizard);
+        $this->assertStringContainsString('name="source_price_list_id" value="{{ old(\'source_price_list_id\', $sourcePriceListId) }}"', $view);
     }
 }
