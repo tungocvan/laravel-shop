@@ -1200,7 +1200,7 @@ final class PharmaApplicationController extends Controller
         abort_if($visible === null, 404);
         $authoring->submit((int) $user->id, $visible);
 
-        return redirect()->route('client.pharma.orders.show', $visible)->with('success', 'Đơn hàng đã được gửi duyệt.');
+        return redirect()->route('client.pharma.orders')->with('success', 'Đơn hàng đã được gửi duyệt.');
     }
 
     public function saveOrderSupplyNotes(
