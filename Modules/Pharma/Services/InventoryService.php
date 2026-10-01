@@ -89,6 +89,42 @@ final class InventoryService
         });
     }
 
+    public function postApprovedIssueFromAvailableStock(InventoryIssue $issue, ?int $userId): void
+    {
+        DB::transaction(function () use ($issue, $userId): void {
+            $issue = InventoryIssue::query()->lockForUpdate()->findOrFail($issue->getKey());
+            if ($issue->status !== InventoryIssue::APPROVED) {
+                throw ValidationException::withMessages(['status' => 'Chỉ đơn đã duyệt mới được ghi sổ từ PWA.']);
+            }
+
+            $issue->load('items');
+            foreach ($issue->items as $item) {
+                $balance = InventoryBalance::query()
+                    ->where('warehouse_id', $issue->warehouse_id)
+                    ->where('medicine_id', $item->medicine_id)
+                    ->where('quantity_on_hand', '>=', (float) $item->quantity)
+                    ->whereDate('expiry_date', '>=', now()->toDateString())
+                    ->orderBy('expiry_date')
+                    ->orderBy('batch_number')
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $balance) {
+                    throw ValidationException::withMessages([
+                        'stock' => 'Tồn kho đã thay đổi hoặc chưa có một lô đủ số lượng để ghi sổ trực tiếp. Vui lòng kiểm tra lại.',
+                    ]);
+                }
+
+                $item->update([
+                    'batch_number' => $balance->batch_number,
+                    'expiry_date' => $balance->expiry_date,
+                ]);
+            }
+
+            $this->postIssue($issue->fresh(), $userId);
+        });
+    }
+
     public function postIssue(InventoryIssue $issue, ?int $userId): void
     {
         DB::transaction(function () use ($issue,$userId): void {
