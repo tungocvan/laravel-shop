@@ -16,7 +16,7 @@
     $canApprove = $canApprove ?? false;
     $isGlobalMode = !$isEditing && $canApprove && request('type') === 'global';
 @endphp
-<div class="mx-auto max-w-7xl space-y-5">
+<div class="mx-auto max-w-7xl space-y-4 pb-24 lg:pb-6">
     <header class="sticky top-0 z-40 -mx-4 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 lg:static lg:mx-0 lg:rounded-3xl lg:border lg:px-5">
         <div class="flex min-h-11 items-center gap-3">
             <a href="{{ route('client.pharma.price-lists') }}" class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-xl font-black text-slate-700 shadow-sm" aria-label="Quay lại Bảng giá của tôi">←</a>
@@ -24,14 +24,22 @@
             <span class="shrink-0 rounded-full bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-800">{{ $isGlobalMode ? 'Kích hoạt trực tiếp' : 'Nháp' }}</span>
         </div>
     </header>
-    <section class="rounded-[2rem] bg-slate-950 px-5 py-6 text-white shadow-sm sm:px-7"><p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-300">Create Price List</p><h1 class="mt-2 text-2xl font-black sm:text-3xl">{{ $isEditing ? 'Sửa bảng giá Nháp' : ($isGlobalMode ? 'Tạo bảng giá chung' : 'Tạo bảng giá cho khách hàng') }}</h1><p class="mt-2 text-sm text-slate-300">{{ $isGlobalMode ? 'Bảng giá chung được User phê duyệt tạo, gán User phụ trách và kích hoạt trực tiếp sau khi kiểm tra.' : 'Bảng giá khách hàng phải được khởi tạo từ bảng giá chung ACTIVE mà Admin đã cấp cho bạn.' }}</p></section>
     @if($errors->any())<div class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">{{ $errors->first() }}</div>@endif
 
-    @if(!$isEditing && $canApprove)<div class="flex gap-2 rounded-2xl border border-slate-200 bg-white p-2"><a href="{{ route('client.pharma.price-lists.create') }}" class="rounded-xl px-4 py-2 text-sm font-black {{ !$isGlobalMode ? 'bg-slate-950 text-white' : 'text-slate-600' }}">Bảng giá khách hàng</a><a href="{{ route('client.pharma.price-lists.create', ['type'=>'global']) }}" class="rounded-xl px-4 py-2 text-sm font-black {{ $isGlobalMode ? 'bg-slate-950 text-white' : 'text-slate-600' }}">Bảng giá chung</a></div>@endif
+    <nav class="rounded-3xl border border-slate-200 bg-white px-3 py-3 shadow-sm" aria-label="Các bước tạo bảng giá">
+        <ol class="grid grid-cols-4 gap-1">
+            @foreach([1 => ['Khởi tạo','Chọn loại bảng giá'], 2 => ['Khách hàng','Thông tin & mục đích'], 3 => ['Sản phẩm','Chọn sản phẩm và giá'], 4 => ['Xem lại','Kiểm tra và lưu']] as $step => [$label,$hint])
+            <li><button type="button" data-step-jump="{{ $step }}" class="price-step flex w-full flex-col items-center gap-1 rounded-2xl px-1 py-2 text-center text-[10px] font-bold text-slate-400 lg:flex-row lg:justify-start lg:px-3 lg:text-left">
+                <span class="step-dot inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-xs font-black">{{ $step }}</span>
+                <span><strong class="block text-[11px] lg:text-sm">{{ $label }}</strong><small class="hidden font-medium lg:block">{{ $hint }}</small></span>
+            </button></li>
+            @endforeach
+        </ol>
+    </nav>
 
     <form id="price-list-editor" method="POST" action="{{ $isEditing ? route('client.pharma.price-lists.update', $editingPriceList->id) : ($isGlobalMode ? route('client.pharma.price-lists.global.store') : route('client.pharma.price-lists.store')) }}" class="space-y-5">@csrf @if($isEditing) @method('PUT') @endif
-        <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div class="mb-5"><p class="text-xs font-black uppercase tracking-[0.14em] text-slate-400">01 · Khách hàng & mục đích</p><h2 class="mt-1 text-lg font-black text-slate-950">Thông tin bảng giá</h2></div>
+        <section data-wizard-panel="2" class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="mb-5"><p class="text-xs font-black uppercase tracking-[0.14em] text-slate-400">02 · Khách hàng & mục đích</p><h2 class="mt-1 text-lg font-black text-slate-950">Thông tin cơ bản</h2></div>
             <div class="grid gap-4 lg:grid-cols-2">
                 <label><span class="mb-1.5 block text-xs font-bold text-slate-500">Tên bảng giá *</span><input name="name" value="{{ $field('name') }}" required maxlength="255" class="h-12 w-full rounded-2xl border border-slate-300 px-4" placeholder="VD: Bảng giá BV An Bình Q4/2026"></label>
                 @if($isGlobalMode)<div><span class="mb-1.5 block text-xs font-bold text-slate-500">User phụ trách *</span><x-select-search id="client-price-list-manager" name="manager_user_id" placeholder="Tra cứu User phụ trách..." :value="old('manager_user_id')"><option value="">Chọn User phụ trách</option>@foreach($activeUsers as $assignedUser)<option value="{{ $assignedUser->id }}" @selected((string)old('manager_user_id') === (string)$assignedUser->id)>{{ $assignedUser->name }}{{ $assignedUser->email ? ' · '.$assignedUser->email : '' }}</option>@endforeach</x-select-search></div>@else<div><span class="mb-1.5 block text-xs font-bold text-slate-500">Khách hàng *</span><x-select-search id="client-price-list-customer" name="partner_id" placeholder="Tra cứu khách hàng..." :value="$field('partner_id')"><option value="">Chọn khách hàng</option>@foreach($customers as $customer)<option value="{{ $customer->id }}" @selected((string)$field('partner_id') === (string)$customer->id)>{{ $customer->name }}{{ $customer->tax_code ? ' · MST '.$customer->tax_code : '' }}</option>@endforeach</x-select-search></div>@endif
@@ -41,8 +49,12 @@
             <label class="mt-4 block"><span class="mb-1.5 block text-xs font-bold text-slate-500">Ghi chú</span><textarea name="notes" rows="2" maxlength="1000" class="w-full rounded-2xl border border-slate-300 px-4 py-3">{{ $field('notes') }}</textarea></label>
         </section>
 
-        <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div><p class="text-xs font-black uppercase tracking-[0.14em] text-slate-400">02 · Bảng giá gốc</p><h2 class="mt-1 text-lg font-black text-slate-950">Chọn bảng giá để khởi tạo</h2><p class="mt-1 text-sm text-slate-500">Chỉ hiển thị bảng giá chung đang ACTIVE và nằm trong phạm vi Admin cấp cho User.</p></div>
+        <section data-wizard-panel="1" class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div><p class="text-xs font-black uppercase tracking-[0.14em] text-slate-400">01 · Khởi tạo bảng giá</p><h2 class="mt-1 text-lg font-black text-slate-950">Chọn loại bảng giá</h2>
+            @if(!$isEditing && $canApprove)<div class="mt-4 grid gap-3 sm:grid-cols-2"><a href="{{ route('client.pharma.price-lists.create') }}" class="rounded-2xl border-2 p-4 {{ !$isGlobalMode ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200' }}"><span class="block font-black text-slate-950">Bảng giá khách hàng</span><span class="mt-1 block text-xs text-slate-500">Bảng giá riêng theo khách hàng, phục vụ chào giá và bán hàng.</span></a><a href="{{ route('client.pharma.price-lists.create', ['type'=>'global']) }}" class="rounded-2xl border-2 p-4 {{ $isGlobalMode ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200' }}"><span class="block font-black text-slate-950">Bảng giá chung</span><span class="mt-1 block text-xs text-slate-500">Bảng giá áp dụng chung, dùng làm bảng giá gốc hoặc tham chiếu.</span></a></div>@endif
+            </div>
+            @if(!$isGlobalMode)<div class="mt-5"><p class="text-xs font-black uppercase tracking-[0.12em] text-slate-500">Khởi tạo từ bảng giá</p></div>@endif
+            <div class="{{ $isGlobalMode ? 'hidden' : '' }}"><p class="mt-1 text-sm text-slate-500">Chỉ hiển thị bảng giá chung đang ACTIVE và nằm trong phạm vi Admin cấp cho User.</p></div><p class="mt-1 text-sm text-slate-500">Chỉ hiển thị bảng giá chung đang ACTIVE và nằm trong phạm vi Admin cấp cho User.</p></div>
             @if($sourcePriceLists->isEmpty())
                 <div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800">Hiện chưa có bảng giá chung ACTIVE được cấp cho bạn. Vui lòng liên hệ người quản trị Pharma.</div>
             @else
@@ -53,7 +65,7 @@
             @endif
         </section>
 
-        <section class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <section data-wizard-panel="3" class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
             <div class="border-b border-slate-100 p-5"><p class="text-xs font-black uppercase tracking-[0.14em] text-slate-400">03 · Sản phẩm & giá</p><div class="mt-1 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between"><div><h2 class="text-lg font-black text-slate-950">Chọn sản phẩm từ bảng giá gốc</h2><p class="mt-1 text-sm text-slate-500">Giá bán CT mặc định lấy từ bảng giá gốc. Bỏ checkbox nếu sản phẩm không áp dụng cho khách hàng này.</p></div>@if($sourcePriceListId)<label class="w-full lg:w-80"><span class="mb-1 block text-xs font-bold text-slate-500">Tìm sản phẩm</span><div class="relative"><input id="source-product-search" type="search" class="h-11 w-full rounded-2xl border border-slate-300 pl-4 pr-10 text-sm" placeholder="Tên thuốc, SKU, hoạt chất, SĐK..."><button id="clear-source-product-search" type="button" class="absolute right-2 top-1/2 hidden h-7 w-7 -translate-y-1/2 rounded-full text-lg font-bold text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Xóa tìm kiếm">×</button></div></label>@endif</div></div>
             @if(!$sourcePriceListId)
                 <div class="p-8 text-center text-sm text-slate-500">Chọn bảng giá tại Bước 02 để tải sản phẩm.</div>
@@ -66,15 +78,70 @@
             @endif
         </section>
 
-        <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p class="text-xs font-black uppercase tracking-[0.14em] text-slate-400">04 · Kiểm tra & lưu</p>
+        <section data-wizard-panel="4" class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p class="text-xs font-black uppercase tracking-[0.14em] text-slate-400">04 · Xem lại & lưu</p>
+            <div id="price-list-review" class="mt-4 grid gap-3 rounded-2xl bg-slate-50 p-4 text-sm sm:grid-cols-2">
+                <p><span class="block text-xs font-bold text-slate-400">Loại bảng giá</span><strong>{{ $isGlobalMode ? 'Bảng giá chung' : 'Bảng giá khách hàng' }}</strong></p>
+                <p><span class="block text-xs font-bold text-slate-400">Hiệu lực</span><strong data-review-dates>—</strong></p>
+                <p><span class="block text-xs font-bold text-slate-400">Tên bảng giá</span><strong data-review-name>—</strong></p>
+                <p><span class="block text-xs font-bold text-slate-400">Sản phẩm đã chọn</span><strong data-review-products>0 sản phẩm</strong></p>
+            </div>
             <div class="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><h2 class="text-lg font-black text-slate-950">{{ $isEditing ? 'Cập nhật bảng giá Nháp' : ($isGlobalMode ? 'Kiểm tra & kích hoạt bảng giá chung' : 'Lưu bảng giá Nháp') }}</h2><p class="mt-1 text-sm text-slate-500">{{ $isGlobalMode ? 'Bảng giá chung sẽ được kiểm tra, gán cho User phụ trách và ACTIVE ngay khi lưu.' : 'Sau khi lưu, bạn có thể kiểm tra lại chi tiết trước khi Gửi duyệt.' }}</p></div><div class="flex gap-2"><a href="{{ route('client.pharma.price-lists') }}" class="rounded-2xl border border-slate-300 px-5 py-3 text-sm font-bold text-slate-600">Hủy</a><button type="submit" @disabled(!$sourcePriceListId || $sourceProducts->isEmpty()) class="rounded-2xl bg-slate-950 px-6 py-3 text-sm font-black text-white disabled:opacity-40">{{ $isEditing ? 'Cập nhật bản Nháp' : ($isGlobalMode ? 'Kích hoạt bảng giá chung' : 'Lưu bảng giá Nháp') }}</button></div></div>
         </section>
     </form>
+    <div class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur lg:sticky lg:bottom-4 lg:ml-auto lg:w-fit lg:rounded-2xl lg:border lg:shadow-lg">
+        <div class="mx-auto flex max-w-7xl items-center justify-between gap-3">
+            <button id="wizard-back" type="button" class="h-11 rounded-2xl border border-slate-200 px-5 text-sm font-bold text-slate-600">← Quay lại</button>
+            <div class="ml-auto flex gap-2"><button id="wizard-next" type="button" class="h-11 rounded-2xl bg-slate-950 px-6 text-sm font-black text-white">Tiếp tục →</button><button id="wizard-submit" type="submit" form="price-list-editor" class="hidden h-11 rounded-2xl bg-slate-950 px-6 text-sm font-black text-white">{{ $isEditing ? 'Cập nhật bảng giá' : ($isGlobalMode ? 'Tạo bảng giá' : 'Lưu bảng giá') }}</button></div>
+        </div>
+    </div>
 </div>
 <script>
 window.addEventListener('load', () => {
     const form = document.getElementById('price-list-editor');
+    let currentStep = 1;
+    const panels = [...document.querySelectorAll('[data-wizard-panel]')];
+    const stepButtons = [...document.querySelectorAll('[data-step-jump]')];
+    const backButton = document.getElementById('wizard-back');
+    const nextButton = document.getElementById('wizard-next');
+    const submitButton = document.getElementById('wizard-submit');
+    const formatDate = value => {
+        if (!value) return '—';
+        const [y,m,d] = value.split('-');
+        return [d,m,y].filter(Boolean).join('/');
+    };
+    const selectedProductCount = () => document.querySelectorAll('[data-source-product-checkbox]:checked').length;
+    const syncReview = () => {
+        const name = form?.elements.namedItem('name')?.value || '—';
+        const from = form?.elements.namedItem('effective_from')?.value || '';
+        const to = form?.elements.namedItem('effective_to')?.value || '';
+        document.querySelector('[data-review-name]')?.replaceChildren(document.createTextNode(name));
+        document.querySelector('[data-review-dates]')?.replaceChildren(document.createTextNode(formatDate(from) + ' → ' + formatDate(to)));
+        document.querySelector('[data-review-products]')?.replaceChildren(document.createTextNode(selectedProductCount() + ' sản phẩm'));
+    };
+    const showStep = step => {
+        currentStep = Math.min(4, Math.max(1, Number(step) || 1));
+        panels.forEach(panel => panel.classList.toggle('hidden', Number(panel.dataset.wizardPanel) !== currentStep));
+        stepButtons.forEach(button => {
+            const active = Number(button.dataset.stepJump) === currentStep;
+            const completed = Number(button.dataset.stepJump) < currentStep;
+            button.classList.toggle('text-slate-950', active || completed);
+            button.classList.toggle('text-slate-400', !active && !completed);
+            const dot = button.querySelector('.step-dot');
+            dot?.classList.toggle('bg-slate-950', active);
+            dot?.classList.toggle('text-white', active);
+        });
+        backButton?.classList.toggle('invisible', currentStep === 1);
+        nextButton?.classList.toggle('hidden', currentStep === 4);
+        submitButton?.classList.toggle('hidden', currentStep !== 4);
+        if (currentStep === 4) syncReview();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+    backButton?.addEventListener('click', () => showStep(currentStep - 1));
+    nextButton?.addEventListener('click', () => showStep(currentStep + 1));
+    stepButtons.forEach(button => button.addEventListener('click', () => showStep(button.dataset.stepJump)));
+    form?.addEventListener('input', () => { if (currentStep === 4) syncReview(); });
+    showStep(1);
     const customer = document.getElementById('client-price-list-customer');
     if (customer && window.TomSelect && !customer.tomselect) {
         new TomSelect(customer, { plugins: ['dropdown_input'], placeholder: 'Tra cứu khách hàng...', create: false, allowEmptyOption: true, dropdownParent: 'body' });
