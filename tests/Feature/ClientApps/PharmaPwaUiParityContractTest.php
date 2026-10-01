@@ -67,10 +67,9 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertStringContainsString('Kích hoạt bảng giá chung', $view);
         $this->assertStringContainsString('const stepTwoReady = () =>', $view);
         $this->assertStringContainsString('const persistAndLoadSource = () =>', $view);
-        $this->assertStringContainsString('formmethod="GET"', $view);
-        $this->assertStringContainsString("formaction=\"{{ route('client.pharma.price-lists.create') }}\"", $view);
+        $this->assertStringContainsString('action="{{ route(\'client.pharma.price-lists.create\') }}"', $view);
         $this->assertStringContainsString('id="source-price-list" name="source_price_list_id"', $view);
-        $this->assertStringContainsString('form?.requestSubmit(load)', $view);
+        $this->assertStringContainsString('bootstrapForm?.requestSubmit(load)', $view);
         $this->assertStringContainsString('if (target > currentStep) return;', $view);
         $this->assertStringNotContainsString("load.addEventListener('click', () => persistAndLoadSource())", $view);
         $this->assertStringContainsString('disabled:cursor-not-allowed disabled:bg-slate-200', $view);
@@ -88,7 +87,8 @@ class PharmaPwaUiParityContractTest extends TestCase
 
         $this->assertStringContainsString('<x-select-search id="client-price-list-customer"', $view);
         $this->assertStringContainsString('<x-select-search id="client-price-list-manager"', $view);
-        $this->assertStringContainsString('<x-select-search id="source-price-list"', $view);
+        $this->assertStringContainsString('id="price-list-bootstrap" method="GET"', $view);
+        $this->assertStringContainsString('<select id="source-price-list" name="source_price_list_id"', $view);
         $this->assertStringNotContainsString('<x-search-select', $view);
 
         $this->assertStringContainsString('id="load-source-price-list"', $view);
