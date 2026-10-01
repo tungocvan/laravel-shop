@@ -63,11 +63,12 @@ class PharmaPwaUiParityContractTest extends TestCase
 
         $this->assertStringContainsString('const sourceReady = () =>', $view);
         $this->assertStringContainsString("new TomSelect(source, { plugins: ['dropdown_input']", $view);
-        $this->assertStringContainsString("source.tomselect?.on('change', syncWizardActions)", $view);
+        $this->assertStringContainsString("source.tomselect?.on('change', clearSourceError)", $view);
         $this->assertStringContainsString('Kích hoạt bảng giá chung', $view);
         $this->assertStringContainsString('const stepTwoReady = () =>', $view);
         $this->assertStringContainsString('const persistAndLoadSource = () =>', $view);
-        $this->assertStringContainsString('nextButton.disabled = currentStep === 1 ? !sourceReady()', $view);
+        $this->assertStringContainsString("window.location.assign(url.toString())", $view);
+        $this->assertStringContainsString("source?.querySelector('option:checked')?.value", $view);
         $this->assertStringContainsString('if (target > currentStep) return;', $view);
         $this->assertStringContainsString('load.addEventListener(\'click\', () => persistAndLoadSource())', $view);
         $this->assertStringContainsString('disabled:cursor-not-allowed disabled:bg-slate-200', $view);
