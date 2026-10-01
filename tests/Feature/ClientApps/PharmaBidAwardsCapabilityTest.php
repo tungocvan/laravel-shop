@@ -363,6 +363,15 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString('assignManagerToProducts', $workflow);
         $this->assertStringContainsString("where('is_active', true)", $workflow);
         $this->assertStringContainsString('Hãy hoàn tất chính sách kinh doanh trước khi phân công User quản lý.', $workflow);
+        $this->assertStringContainsString("@section('hide-application-header', true)", $assignment);
+        $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $assignment);
+        $this->assertStringContainsString("@section('app-dashboard-route', route('client.pharma.dashboard'))", $assignment);
+        $this->assertStringContainsString('aria-label="Quay lại chính sách kinh doanh"', $assignment);
+        $this->assertStringContainsString('data-manager-clear', $assignment);
+        $this->assertStringContainsString('aria-label="Xóa tìm User"', $assignment);
+        $this->assertStringContainsString('data-management-hospital-clear', $assignment);
+        $this->assertStringContainsString('data-management-hospital-empty', $assignment);
+        $this->assertStringContainsString('Không có bệnh viện phù hợp.', $assignment);
         $this->assertStringContainsString("whereIn('pharma_drug_bid_award_allocations.drug_bid_award_id', \$awardIds)", $workflow);
         $this->assertStringContainsString("where('pharma_drug_bid_award_allocations.status', DrugBidAwardAllocation::STATUS_ACTIVE)", $workflow);
 
