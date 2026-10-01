@@ -1,8 +1,11 @@
 @extends('ClientPortal::layouts.application')
 @section('title','Phân công User quản lý')
+@section('app-dashboard-route', route('client.pharma.dashboard'))
+@section('hide-application-header', true)
+@section('hide-mobile-navigation', true)
 @section('content')
-<div class="mx-auto max-w-[860px] space-y-4 px-3 py-4 sm:px-5">
-    <a href="{{ route('client.pharma.bid-awards.commercial-policy',$scope) }}" class="text-sm font-bold text-slate-700">← Chính sách kinh doanh</a>
+<div class="mx-auto w-full max-w-[860px] space-y-4 px-1 pb-24 sm:px-3 lg:px-4">
+    <div class="flex min-h-16 items-center gap-3 border-b border-slate-200 bg-white pb-4"><a href="{{ route('client.pharma.bid-awards.commercial-policy',$scope) }}" aria-label="Quay lại chính sách kinh doanh" class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-lg font-black text-slate-700 shadow-sm">←</a><div class="min-w-0"><h1 class="truncate text-lg font-black text-slate-950">Phân công User quản lý</h1><p class="truncate text-xs text-slate-500">{{ $award->bidding_notice_code }}</p></div></div>
 
     <header class="rounded-[26px] bg-slate-950 p-5 text-white">
         <p class="text-[10px] font-black uppercase tracking-[.18em] text-indigo-200">Management assignment</p>
@@ -60,7 +63,7 @@
         <h2 class="mt-1 text-lg font-black">{{ $assignmentMode === 'single' ? ($assignmentState['persisted_mode'] === 'single' ? 'User đang phụ trách' : 'Chọn User phụ trách toàn bộ') : 'Chọn User quản lý' }}</h2>
         <div class="mt-4">
             <label class="text-xs font-bold text-slate-600">Tìm User</label>
-            <input type="search" data-manager-search placeholder="Tên hoặc email..." autocomplete="off" class="mt-1.5 h-11 w-full rounded-xl border border-slate-300 px-3 text-sm">
+            <div class="relative mt-1.5"><input type="search" data-manager-search placeholder="Tên hoặc email..." autocomplete="off" class="h-11 w-full rounded-xl border border-slate-300 px-3 pr-11 text-sm"><button type="button" data-manager-clear class="absolute right-1 top-1 hidden h-9 w-9 rounded-lg text-slate-400" aria-label="Xóa tìm User">×</button></div>
             <div data-manager-results class="mt-2 hidden max-h-56 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-1 shadow-lg">
                 @foreach($users as $manager)
                 <button type="button" data-manager-result data-user-id="{{ $manager->id }}" data-search="{{ str($manager->name.' '.$manager->email)->lower() }}" class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-slate-50 active:bg-slate-100">
@@ -107,7 +110,7 @@
                 </div>
                 @else
                 <div data-hospital-picker>
-                    <input type="search" data-management-hospital-search placeholder="Tìm bệnh viện..." class="mt-3 h-11 w-full rounded-xl border border-slate-300 px-3 text-sm" @disabled(!($selectedManagerId ?? 0))>
+                    <div class="relative mt-3"><input type="search" data-management-hospital-search placeholder="Tìm bệnh viện..." autocomplete="off" class="h-11 w-full rounded-xl border border-slate-300 px-3 pr-11 text-sm" @disabled(!($selectedManagerId ?? 0))><button type="button" data-management-hospital-clear class="absolute right-1 top-1 hidden h-9 w-9 rounded-lg text-slate-400" aria-label="Xóa tìm bệnh viện">×</button></div><p data-management-hospital-empty class="mt-2 hidden rounded-xl bg-slate-50 p-3 text-xs text-slate-500">Không có bệnh viện phù hợp.</p>
                     <div class="mt-3 grid gap-2 md:grid-cols-2">
                         @foreach($hospitalCards as $hospital)
                         @if($hospital->pwa_management_complete)
@@ -162,20 +165,20 @@
 @endif
 <script>
 document.addEventListener('DOMContentLoaded',()=>{
- const q=document.querySelector('[data-manager-search]'),select=document.querySelector('[data-manager-select]'),results=document.querySelector('[data-manager-results]'),resultButtons=[...document.querySelectorAll('[data-manager-result]')],empty=document.querySelector('[data-manager-empty]');
+ const q=document.querySelector('[data-manager-search]'),qClear=document.querySelector('[data-manager-clear]'),select=document.querySelector('[data-manager-select]'),results=document.querySelector('[data-manager-results]'),resultButtons=[...document.querySelectorAll('[data-manager-result]')],empty=document.querySelector('[data-manager-empty]');
  const selectedCard=document.querySelector('[data-selected-manager-card]'),selectedName=document.querySelector('[data-selected-manager-name]');
- const renderUsers=()=>{const term=(q?.value||'').trim().toLocaleLowerCase('vi');let visible=0;resultButtons.forEach(btn=>{const show=!term||(btn.dataset.search||'').includes(term);btn.classList.toggle('hidden',!show);if(show)visible++});empty?.classList.toggle('hidden',visible!==0);results?.classList.remove('hidden')};
- q?.addEventListener('focus',renderUsers);q?.addEventListener('input',renderUsers);
+ const renderUsers=()=>{const term=(q?.value||'').trim().toLocaleLowerCase('vi');let visible=0;resultButtons.forEach(btn=>{const show=!term||(btn.dataset.search||'').includes(term);btn.classList.toggle('hidden',!show);if(show)visible++});empty?.classList.toggle('hidden',visible!==0);qClear?.classList.toggle('hidden',!q?.value);results?.classList.remove('hidden')};
+ q?.addEventListener('focus',renderUsers);q?.addEventListener('input',renderUsers);qClear?.addEventListener('click',()=>{q.value='';renderUsers();q.focus()});
  resultButtons.forEach(btn=>btn.addEventListener('click',()=>{if(select){select.value=btn.dataset.userId;select.dispatchEvent(new Event('change',{bubbles:true}))}if(q)q.value=btn.querySelector('b')?.textContent?.trim()||'';if(selectedName)selectedName.textContent=btn.querySelector('b')?.textContent?.trim()||'';selectedCard?.classList.remove('hidden');results?.classList.add('hidden')}));
  document.addEventListener('click',e=>{if(results&&!results.contains(e.target)&&e.target!==q)results.classList.add('hidden')});
  document.querySelector('[data-change-manager]')?.addEventListener('click',()=>{q?.focus();renderUsers()});
 
  const modal=document.querySelector('[data-remove-managers-modal]');document.querySelector('[data-open-remove-managers]')?.addEventListener('click',()=>{modal?.classList.remove('hidden');modal?.classList.add('flex')});document.querySelector('[data-close-remove-managers]')?.addEventListener('click',()=>{modal?.classList.add('hidden');modal?.classList.remove('flex')});modal?.addEventListener('click',e=>{if(e.target===modal){modal.classList.add('hidden');modal.classList.remove('flex')}});
 
- const multipleManager=document.querySelector('[data-multiple-manager]'),hospitalStep=document.querySelector('[data-hospital-step]'),hospitalSearch=document.querySelector('[data-management-hospital-search]'),selectedManager=document.querySelector('[data-selected-manager]'),hospitalLinks=[...document.querySelectorAll('[data-selectable-hospital]')];
+ const multipleManager=document.querySelector('[data-multiple-manager]'),hospitalStep=document.querySelector('[data-hospital-step]'),hospitalSearch=document.querySelector('[data-management-hospital-search]'),hospitalClear=document.querySelector('[data-management-hospital-clear]'),hospitalEmpty=document.querySelector('[data-management-hospital-empty]'),selectedManager=document.querySelector('[data-selected-manager]'),hospitalLinks=[...document.querySelectorAll('[data-selectable-hospital]')];
  const syncMultiple=()=>{const userId=multipleManager?.value||'';hospitalStep?.classList.toggle('opacity-50',!userId);if(hospitalSearch)hospitalSearch.disabled=!userId;hospitalLinks.forEach(link=>{link.classList.toggle('pointer-events-none',!userId);const url=new URL(link.href,window.location.origin);if(userId)url.searchParams.set('manager_id',userId);else url.searchParams.delete('manager_id');link.href=url.pathname+url.search});if(selectedManager)selectedManager.value=userId};
  multipleManager?.addEventListener('change',syncMultiple);syncMultiple();
- hospitalSearch?.addEventListener('input',()=>{const term=hospitalSearch.value.toLocaleLowerCase('vi');document.querySelectorAll('[data-management-hospital-card]').forEach(card=>card.classList.toggle('hidden',!(card.dataset.name||'').includes(term)))}); 
+ const filterHospitals=()=>{const term=(hospitalSearch?.value||'').toLocaleLowerCase('vi');const cards=[...document.querySelectorAll('[data-management-hospital-card]')];cards.forEach(card=>card.classList.toggle('hidden',!(card.dataset.name||'').includes(term)));hospitalEmpty?.classList.toggle('hidden',cards.some(card=>(card.dataset.name||'').includes(term)));hospitalClear?.classList.toggle('hidden',!hospitalSearch?.value)};hospitalSearch?.addEventListener('input',filterHospitals);hospitalClear?.addEventListener('click',()=>{hospitalSearch.value='';filterHospitals();hospitalSearch.focus()}); 
 
  const all=document.querySelector('[data-select-all-products]'),boxes=[...document.querySelectorAll('[data-product-checkbox]')],count=document.querySelector('[data-selected-product-count]');
  const syncCount=()=>{if(count)count.textContent=boxes.filter(x=>x.checked).length;if(all)all.textContent=boxes.length>0&&boxes.every(x=>x.checked)?'Bỏ chọn tất cả':'Chọn tất cả'};
