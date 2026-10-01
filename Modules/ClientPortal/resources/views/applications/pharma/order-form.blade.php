@@ -34,6 +34,8 @@
 [data-customer-field].is-open{padding-bottom:min(300px,38dvh)}
 [data-customer-field].is-open #customer-results{display:block!important}
 [data-order-actions]{isolation:isolate}
+[data-order-actions][data-step="3"] #order-step-next{display:none!important}
+[data-order-actions][data-step="3"] #order-submit{display:inline-flex!important}
 </style>
 <nav class="mx-auto mt-3 max-w-3xl" aria-label="Tiến trình lập đơn" data-order-stepper>
  <div class="grid grid-cols-3 items-start">
@@ -101,7 +103,7 @@
  </section>
 </aside>
 
-<main class="mx-auto hidden min-h-[calc(100dvh-250px)] max-w-3xl min-w-0 space-y-4 px-0 pb-32 sm:px-1" data-order-step-panel="2">
+<main class="mx-auto hidden min-h-[calc(100dvh-250px)] max-w-3xl min-w-0 space-y-4 px-0 pb-44 sm:px-1" data-order-step-panel="2">
  <section id="price-list-products" class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
   <div class="flex items-end justify-between gap-3"><div><h2 class="text-lg font-black">Sản phẩm theo bảng giá</h2><p class="mt-1 text-sm text-slate-500">Chọn sản phẩm, nhập số lượng rồi thêm vào đơn.</p></div><span id="product-count" class="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-black">0 đã thêm</span></div>
   <div class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3" data-product-picker>
@@ -149,7 +151,7 @@
   </section>
  </section>
 </main>
-<section class="mx-auto hidden min-h-[calc(100dvh-250px)] max-w-3xl space-y-4 px-0 pb-32 sm:px-1" data-order-review data-order-step-panel="3">
+<section class="mx-auto hidden min-h-[calc(100dvh-250px)] max-w-3xl space-y-4 px-0 pb-44 sm:px-1" data-order-review data-order-step-panel="3">
   <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
    <div class="flex items-center justify-between gap-3"><div><p class="text-xs font-black uppercase tracking-wide text-slate-500">Xem lại đơn hàng</p><h2 class="mt-1 text-lg font-black text-slate-950">Thông tin trước khi lưu nháp</h2></div><button type="button" data-step-target="1" class="text-xs font-black text-indigo-600">Chỉnh sửa</button></div>
    <dl class="mt-4 divide-y divide-slate-100 text-sm">
@@ -167,7 +169,7 @@
   <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><label><span class="mb-2 block text-sm font-black">Ghi chú</span><textarea name="notes" rows="3" class="w-full rounded-2xl border border-slate-300 px-4 py-3">{{ old('notes',$issue?->notes) }}</textarea></label></section>
  </section>
 
-<div data-order-actions class="fixed inset-x-3 bottom-[calc(10px+env(safe-area-inset-bottom,0px))] z-[100] rounded-2xl border border-slate-200 bg-white/95 px-3 py-2 shadow-[0_8px_30px_rgba(15,23,42,.14)] backdrop-blur sm:inset-x-6 lg:left-1/2 lg:right-auto lg:w-[min(680px,calc(100%-48px))] lg:-translate-x-1/2">
+<div data-order-actions class="fixed inset-x-3 bottom-[calc(78px+env(safe-area-inset-bottom,0px))] z-[100] rounded-2xl border border-slate-200 bg-white/95 px-3 py-2 shadow-[0_8px_30px_rgba(15,23,42,.14)] backdrop-blur sm:inset-x-6 lg:left-1/2 lg:right-auto lg:bottom-4 lg:w-[min(680px,calc(100%-48px))] lg:-translate-x-1/2">
  <div class="mx-auto flex max-w-3xl items-center gap-2 sm:gap-3">
   <button type="button" id="order-step-back" class="hidden h-9 shrink-0 items-center justify-center rounded-xl border border-slate-300 px-3 text-xs font-black">← Quay lại</button>
   <div class="min-w-0 flex-1"><div class="flex items-center gap-2"><span class="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-600">Nháp</span><p id="order-summary" class="min-w-0 truncate text-xs font-black sm:text-sm">0 sản phẩm · 0 SL · 0 đ</p></div></div>
@@ -194,7 +196,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('review-products').innerHTML=rows.join('')||'<p class="rounded-2xl border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500">Chưa có sản phẩm trong đơn.</p>';
   document.getElementById('review-summary').textContent=document.getElementById('order-summary')?.textContent||'';
  };
- const setOrderStep=(step)=>{orderStep=Math.max(1,Math.min(3,step));stepPanels.forEach(p=>p.classList.toggle('hidden',Number(p.dataset.orderStepPanel)!==orderStep));stepButtons.forEach(b=>{const n=Number(b.dataset.stepTarget),dot=b.querySelector('.order-step-dot');if(!dot)return;dot.textContent=n<orderStep?'✓':String(n);b.classList.toggle('is-active',n===orderStep);b.classList.toggle('is-complete',n<orderStep);});stepBack?.classList.toggle('hidden',orderStep===1);stepBack?.classList.toggle('flex',orderStep!==1);stepNext?.classList.toggle('hidden',orderStep===3);orderSubmit?.classList.toggle('hidden',orderStep!==3);if(orderStep===3)refreshReview();window.scrollTo({top:0,behavior:'smooth'});};
+ const setOrderStep=(step)=>{orderStep=Math.max(1,Math.min(3,step));document.querySelector('[data-order-actions]')?.setAttribute('data-step',String(orderStep));stepPanels.forEach(p=>p.classList.toggle('hidden',Number(p.dataset.orderStepPanel)!==orderStep));stepButtons.forEach(b=>{const n=Number(b.dataset.stepTarget),dot=b.querySelector('.order-step-dot');if(!dot)return;dot.textContent=n<orderStep?'✓':String(n);b.classList.toggle('is-active',n===orderStep);b.classList.toggle('is-complete',n<orderStep);});stepBack?.classList.toggle('hidden',orderStep===1);stepBack?.classList.toggle('flex',orderStep!==1);stepNext?.classList.toggle('hidden',orderStep===3);orderSubmit?.classList.toggle('hidden',orderStep!==3);if(orderStep===3)refreshReview();window.scrollTo({top:0,behavior:'smooth'});};
  stepButtons.forEach(b=>b.addEventListener('click',()=>setOrderStep(Number(b.dataset.stepTarget))));
  stepBack?.addEventListener('click',()=>setOrderStep(orderStep-1));stepNext?.addEventListener('click',()=>setOrderStep(orderStep+1));
  setOrderStep(1);
