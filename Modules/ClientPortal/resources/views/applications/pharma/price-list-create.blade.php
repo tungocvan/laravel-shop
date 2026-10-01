@@ -4,6 +4,8 @@
 @section('app-name', $applicationPresentation['name'] ?? $application['name'])
 @section('app-subtitle', 'Lập bảng giá cho khách hàng')
 @section('app-dashboard-route', route('client.pharma.dashboard'))
+@section('hide-application-header', true)
+@section('hide-mobile-navigation', true)
 
 @section('content')
 @php
@@ -15,7 +17,13 @@
     $isGlobalMode = !$isEditing && $canApprove && request('type') === 'global';
 @endphp
 <div class="mx-auto max-w-7xl space-y-5">
-    <div class="flex items-center justify-between gap-3"><a href="{{ route('client.pharma.price-lists') }}" class="text-sm font-bold text-slate-600">← Bảng giá của tôi</a><span class="rounded-full bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-800">{{ $isGlobalMode ? 'Kích hoạt trực tiếp' : 'Lưu ở trạng thái Nháp' }}</span></div>
+    <header class="sticky top-0 z-40 -mx-4 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 lg:static lg:mx-0 lg:rounded-3xl lg:border lg:px-5">
+        <div class="flex min-h-11 items-center gap-3">
+            <a href="{{ route('client.pharma.price-lists') }}" class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-xl font-black text-slate-700 shadow-sm" aria-label="Quay lại Bảng giá của tôi">←</a>
+            <div class="min-w-0 flex-1"><p class="truncate text-sm font-black text-slate-950">{{ $isEditing ? 'Sửa bảng giá' : 'Tạo bảng giá' }}</p><p class="truncate text-xs text-slate-500">{{ $isGlobalMode ? 'Bảng giá chung' : 'Bảng giá khách hàng' }}</p></div>
+            <span class="shrink-0 rounded-full bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-800">{{ $isGlobalMode ? 'Kích hoạt trực tiếp' : 'Nháp' }}</span>
+        </div>
+    </header>
     <section class="rounded-[2rem] bg-slate-950 px-5 py-6 text-white shadow-sm sm:px-7"><p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-300">Create Price List</p><h1 class="mt-2 text-2xl font-black sm:text-3xl">{{ $isEditing ? 'Sửa bảng giá Nháp' : ($isGlobalMode ? 'Tạo bảng giá chung' : 'Tạo bảng giá cho khách hàng') }}</h1><p class="mt-2 text-sm text-slate-300">{{ $isGlobalMode ? 'Bảng giá chung được User phê duyệt tạo, gán User phụ trách và kích hoạt trực tiếp sau khi kiểm tra.' : 'Bảng giá khách hàng phải được khởi tạo từ bảng giá chung ACTIVE mà Admin đã cấp cho bạn.' }}</p></section>
     @if($errors->any())<div class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">{{ $errors->first() }}</div>@endif
 
@@ -26,7 +34,7 @@
             <div class="mb-5"><p class="text-xs font-black uppercase tracking-[0.14em] text-slate-400">01 · Khách hàng & mục đích</p><h2 class="mt-1 text-lg font-black text-slate-950">Thông tin bảng giá</h2></div>
             <div class="grid gap-4 lg:grid-cols-2">
                 <label><span class="mb-1.5 block text-xs font-bold text-slate-500">Tên bảng giá *</span><input name="name" value="{{ $field('name') }}" required maxlength="255" class="h-12 w-full rounded-2xl border border-slate-300 px-4" placeholder="VD: Bảng giá BV An Bình Q4/2026"></label>
-                @if($isGlobalMode)<div><span class="mb-1.5 block text-xs font-bold text-slate-500">User phụ trách *</span><select id="client-price-list-manager" name="manager_user_id" required class="h-12 w-full rounded-2xl border border-slate-300 px-4"><option value="">Chọn User phụ trách</option>@foreach($activeUsers as $assignedUser)<option value="{{ $assignedUser->id }}" @selected((string)old('manager_user_id') === (string)$assignedUser->id)>{{ $assignedUser->name }}{{ $assignedUser->email ? ' · '.$assignedUser->email : '' }}</option>@endforeach</select></div>@else<div><span class="mb-1.5 block text-xs font-bold text-slate-500">Khách hàng *</span><x-select-search id="client-price-list-customer" name="partner_id" placeholder="Tra cứu khách hàng..." :value="$field('partner_id')"><option value="">Chọn khách hàng</option>@foreach($customers as $customer)<option value="{{ $customer->id }}" @selected((string)$field('partner_id') === (string)$customer->id)>{{ $customer->name }}{{ $customer->tax_code ? ' · MST '.$customer->tax_code : '' }}</option>@endforeach</x-select-search></div>@endif
+                @if($isGlobalMode)<div><span class="mb-1.5 block text-xs font-bold text-slate-500">User phụ trách *</span><x-select-search id="client-price-list-manager" name="manager_user_id" placeholder="Tra cứu User phụ trách..." :value="old('manager_user_id')"><option value="">Chọn User phụ trách</option>@foreach($activeUsers as $assignedUser)<option value="{{ $assignedUser->id }}" @selected((string)old('manager_user_id') === (string)$assignedUser->id)>{{ $assignedUser->name }}{{ $assignedUser->email ? ' · '.$assignedUser->email : '' }}</option>@endforeach</x-select-search></div>@else<div><span class="mb-1.5 block text-xs font-bold text-slate-500">Khách hàng *</span><x-select-search id="client-price-list-customer" name="partner_id" placeholder="Tra cứu khách hàng..." :value="$field('partner_id')"><option value="">Chọn khách hàng</option>@foreach($customers as $customer)<option value="{{ $customer->id }}" @selected((string)$field('partner_id') === (string)$customer->id)>{{ $customer->name }}{{ $customer->tax_code ? ' · MST '.$customer->tax_code : '' }}</option>@endforeach</x-select-search></div>@endif
                 @if(!$isGlobalMode)<label><span class="mb-1.5 block text-xs font-bold text-slate-500">Mục đích *</span><select name="purpose_id" required class="h-12 w-full rounded-2xl border border-slate-300 px-4"><option value="">Chọn mục đích</option>@foreach($purposes as $purpose)<option value="{{ $purpose->id }}" @selected((string)$field('purpose_id') === (string)$purpose->id)>{{ $purpose->name }}</option>@endforeach</select></label>@endif
                 <div class="grid grid-cols-2 gap-3"><label><span class="mb-1.5 block text-xs font-bold text-slate-500">Hiệu lực từ *</span><input type="date" name="effective_from" value="{{ $field('effective_from', now()->toDateString()) instanceof \Carbon\CarbonInterface ? $field('effective_from')->toDateString() : $field('effective_from', now()->toDateString()) }}" required class="h-12 w-full rounded-2xl border border-slate-300 px-3"></label><label><span class="mb-1.5 block text-xs font-bold text-slate-500">Đến *</span><input type="date" name="effective_to" value="{{ $field('effective_to', now()->addMonth()->toDateString()) instanceof \Carbon\CarbonInterface ? $field('effective_to')->toDateString() : $field('effective_to', now()->addMonth()->toDateString()) }}" required class="h-12 w-full rounded-2xl border border-slate-300 px-3"></label></div>
             </div>
@@ -39,7 +47,7 @@
                 <div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800">Hiện chưa có bảng giá chung ACTIVE được cấp cho bạn. Vui lòng liên hệ người quản trị Pharma.</div>
             @else
                 <div class="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
-                    <select id="source-price-list" name="source_price_list_id" required class="h-12 w-full rounded-2xl border border-slate-300 px-4"><option value="">Chọn bảng giá gốc</option>@foreach($sourcePriceLists as $source)<option value="{{ $source->id }}" @selected((string)old('source_price_list_id',$sourcePriceListId) === (string)$source->id)>{{ $source->code }} — {{ $source->name }} · {{ $source->items_count }} SP</option>@endforeach</select>
+                    <x-select-search id="source-price-list" name="source_price_list_id" placeholder="Tra cứu bảng giá gốc..." :value="old('source_price_list_id',$sourcePriceListId)"><option value="">Chọn bảng giá gốc</option>@foreach($sourcePriceLists as $source)<option value="{{ $source->id }}" @selected((string)old('source_price_list_id',$sourcePriceListId) === (string)$source->id)>{{ $source->code }} — {{ $source->name }} · {{ $source->items_count }} SP</option>@endforeach</x-select-search>
                     <button id="load-source-price-list" type="button" class="h-12 rounded-2xl bg-slate-950 px-5 text-sm font-black text-white">Khởi tạo từ bảng giá</button>
                 </div>
             @endif
