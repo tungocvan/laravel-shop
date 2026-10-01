@@ -66,10 +66,13 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertStringContainsString("source.tomselect?.on('change', clearSourceError)", $view);
         $this->assertStringContainsString('Kích hoạt bảng giá chung', $view);
         $this->assertStringContainsString('const stepTwoReady = () =>', $view);
+        $this->assertStringContainsString('const initPriceListWizard = () =>', $view);
+        $this->assertStringContainsString("document.readyState === 'loading'", $view);
+        $this->assertStringContainsString("document.addEventListener('DOMContentLoaded', initPriceListWizard", $view);
+        $this->assertStringContainsString('initPriceListWizard();', $view);
         $this->assertStringContainsString('const persistAndLoadSource = () =>', $view);
         $this->assertStringContainsString('action="{{ route(\'client.pharma.price-lists.create\') }}"', $view);
         $this->assertStringContainsString('id="source-price-list" name="source_price_list_id"', $view);
-        $this->assertStringContainsString('bootstrapForm?.requestSubmit(load)', $view);
         $this->assertStringContainsString('if (target > currentStep) return;', $view);
         $this->assertStringNotContainsString("load.addEventListener('click', () => persistAndLoadSource())", $view);
         $this->assertStringContainsString('disabled:cursor-not-allowed disabled:bg-slate-200', $view);
