@@ -255,8 +255,9 @@ final class UserOrderAuthoringService
 
     private function guardEditable(int $userId, InventoryIssue $issue): void
     {
-        if ((int) $issue->created_by !== $userId || $issue->status !== InventoryIssue::DRAFT) {
-            throw ValidationException::withMessages(['order' => 'Chỉ người tạo mới được sửa hoặc gửi duyệt đơn đang ở trạng thái Nháp.']);
+        if ($issue->status !== InventoryIssue::DRAFT
+            || ! in_array($userId, [(int) $issue->created_by, (int) $issue->manager_user_id], true)) {
+            throw ValidationException::withMessages(['order' => 'Chỉ người tạo hoặc User phụ trách mới được sửa đơn đang ở trạng thái Nháp.']);
         }
     }
 }
