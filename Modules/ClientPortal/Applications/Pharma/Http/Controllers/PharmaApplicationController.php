@@ -90,15 +90,26 @@ final class PharmaApplicationController extends Controller
         [$header, $items] = $this->validatedPriceListPayload($request, true);
         $header['code'] = 'BG-GLOBAL-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4));
 
+        $scope = $request->validate([
+            'apply_all_users' => ['nullable', 'boolean'],
+            'global_user_ids' => ['nullable', 'array'],
+            'global_user_ids.*' => ['integer'],
+        ]);
+        $applyAllUsers = $request->boolean('apply_all_users');
+        $userIds = $scope['global_user_ids'] ?? [];
+
         $list = $globalWorkflow->createAndActivate(
             (int) $user->id,
-            (int) $request->validate(['manager_user_id' => ['required', 'integer']])['manager_user_id'],
+            $applyAllUsers,
+            $userIds,
             $header,
             $items,
         );
 
         return redirect()->route('client.pharma.price-lists')
-            ->with('success', 'Đã tạo, gán User phụ trách và kích hoạt bảng giá chung '.$list->code.'.');
+            ->with('success', $applyAllUsers
+                ? 'Đã kích hoạt bảng giá chung cho tất cả User '.$list->code.'.'
+                : 'Đã kích hoạt bảng giá chung cho '.count($userIds).' User '.$list->code.'.');
     }
 
     public function editPriceList(
