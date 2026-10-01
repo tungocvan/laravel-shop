@@ -140,4 +140,48 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertStringContainsString("route('client.pharma.bid-awards')", $detail);
     }
 
+    public function test_bid_award_subworkspaces_keep_the_focused_pwa_shell_contract(): void
+    {
+        $paths = [
+            'bid-award-allocation.blade.php',
+            'bid-award-hospital-allocation.blade.php',
+            'bid-award-hospital-policy.blade.php',
+            'bid-award-commercial-policy.blade.php',
+            'bid-award-manager-assignment.blade.php',
+            'bid-award-manager-assignment-user.blade.php',
+        ];
+
+        foreach ($paths as $path) {
+            $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/'.$path));
+            $this->assertStringContainsString("@section('app-dashboard-route', route('client.pharma.dashboard'))", $view, $path);
+            $this->assertStringContainsString("@section('hide-application-header', true)", $view, $path);
+            $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $view, $path);
+            $this->assertStringNotContainsString('Admin::', $view, $path);
+            $this->assertStringNotContainsString('wire:', $view, $path);
+        }
+    }
+
+    public function test_bid_award_closeout_keeps_feature_presentation_admin_managed_without_business_rule_drift(): void
+    {
+        $manifest = require base_path('Modules/ClientPortal/Applications/Pharma/manifest.php');
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php'));
+        $settings = file_get_contents(base_path('Modules/ClientPortal/Services/ClientPortalSettingsService.php'));
+        $admin = file_get_contents(base_path('Modules/ClientPortal/Http/Controllers/PwaSettingsController.php'));
+
+        $feature = $manifest['features']['bid-awards'];
+        $this->assertSame('client.pharma.bid-awards.view', $feature['permission']);
+        $this->assertSame('client.pharma.bid-awards.allocate', $feature['actions']['allocate']['permission']);
+        $this->assertSame('client.pharma.bid-awards.commercial-policy', $feature['actions']['commercial-policy']['permission']);
+
+        $this->assertStringContainsString("featurePresentation('pharma', 'bid-awards'", $controller);
+        $this->assertStringContainsString('public function featurePresentation', $settings);
+        $this->assertStringContainsString('page_title', $settings);
+        $this->assertStringContainsString('page_description', $settings);
+        $this->assertStringContainsString('maintenance_message', $settings);
+        $this->assertStringContainsString('function updateFeature', $admin);
+        $this->assertStringContainsString('page_title', $admin);
+        $this->assertStringContainsString('page_description', $admin);
+        $this->assertStringContainsString('maintenance_message', $admin);
+    }
+
 }
