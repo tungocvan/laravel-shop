@@ -60,7 +60,8 @@
             @else
                 <div class="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
                     <div class="rounded-2xl border-2 border-slate-200 bg-white p-1 shadow-sm focus-within:border-slate-950"><x-select-search id="source-price-list" name="source_price_list_id" placeholder="Tra cứu bảng giá gốc..." :value="old('source_price_list_id',$sourcePriceListId)"><option value="">Chọn bảng giá gốc</option>@foreach($sourcePriceLists as $source)<option value="{{ $source->id }}" @selected((string)old('source_price_list_id',$sourcePriceListId) === (string)$source->id)>{{ $source->code }} — {{ $source->name }} · {{ $source->items_count }} SP</option>@endforeach</x-select-search></div>
-                    <button id="load-source-price-list" type="button" class="h-12 rounded-2xl bg-slate-950 px-5 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400" disabled>Khởi tạo từ bảng giá</button>
+                    <button id="load-source-price-list" type="button" class="h-12 rounded-2xl bg-slate-950 px-5 text-sm font-black text-white">Khởi tạo từ bảng giá</button>
+                    <p id="source-price-list-error" class="hidden text-sm font-bold text-red-600 lg:col-span-2">Vui lòng chọn bảng giá gốc trước khi tiếp tục.</p>
                 </div>
             @endif
         </section>
@@ -150,14 +151,20 @@ window.addEventListener('load', () => {
         return requiredNames.every(name => String(form?.elements.namedItem(name)?.value || '').trim() !== '');
     };
     const syncWizardActions = () => {
-        if (nextButton) nextButton.disabled = currentStep === 1 ? !sourceReady() : (currentStep === 2 ? !stepTwoReady() : false);
-        const loadSource = document.getElementById('load-source-price-list');
-        if (loadSource) loadSource.disabled = !sourceReady();
+        if (nextButton) nextButton.disabled = currentStep === 2 ? !stepTwoReady() : false;
         if (submitButton) submitButton.disabled = selectedProductCount() === 0;
     };
     const persistAndLoadSource = () => {
         const source = document.getElementById('source-price-list');
-        if (!sourceReady() || !form) return false;
+        const sourceValue = String(source?.tomselect?.getValue?.() || form?.elements.namedItem('source_price_list_id')?.value || source?.value || '').trim();
+        const sourceError = document.getElementById('source-price-list-error');
+        if (!sourceValue || !form) {
+            sourceError?.classList.remove('hidden');
+            source?.tomselect?.focus?.();
+            source?.focus?.();
+            return false;
+        }
+        sourceError?.classList.add('hidden');
         @if(!$isGlobalMode)
         const partner = form.elements.namedItem('partner_id');
         sessionStorage.setItem('client-pharma-price-list-form-state', JSON.stringify({
@@ -169,7 +176,7 @@ window.addEventListener('load', () => {
             notes: form.elements.namedItem('notes')?.value || '',
         }));
         const url = new URL(window.location.href);
-        url.searchParams.set('source_price_list_id', source.tomselect?.getValue?.() || source.value);
+        url.searchParams.set('source_price_list_id', sourceValue);
         window.location.href = url.toString();
         return true;
         @else
@@ -183,8 +190,9 @@ window.addEventListener('load', () => {
         new TomSelect(source, { plugins: ['dropdown_input'], placeholder: 'Chọn bảng giá chung...', create: false, allowEmptyOption: true, dropdownParent: 'body' });
     }
     if (source && load) {
-        source.addEventListener('change', syncWizardActions);
-        source.tomselect?.on('change', syncWizardActions);
+        const clearSourceError = () => document.getElementById('source-price-list-error')?.classList.add('hidden');
+        source.addEventListener('change', clearSourceError);
+        source.tomselect?.on('change', clearSourceError);
         load.addEventListener('click', () => persistAndLoadSource());
     }
 
