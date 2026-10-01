@@ -43,6 +43,7 @@
     @include('ClientPortal::partials.adaptive-navigation', [
         'primaryNavigation' => $primaryNavigation,
         'moreNavigation' => $moreNavigation,
+        'hideMobileNavigation' => View::hasSection('hide-mobile-navigation'),
     ])
     <main class="min-w-0 flex-1 px-4 py-6 pb-24 sm:px-6 sm:py-8 sm:pb-10 lg:px-8 xl:px-10 2xl:px-12">@yield('content')</main>
 </div>
