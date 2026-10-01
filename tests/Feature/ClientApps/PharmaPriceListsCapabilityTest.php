@@ -136,6 +136,9 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('source-price-list-error', $create);
         $this->assertStringContainsString('id="source-price-list" name="source_price_list_id"', $create);
         $this->assertStringContainsString('source_price_list_id', $create);
+        $this->assertStringContainsString('name="source_price_list_id" value="{{ old(\'source_price_list_id\', $sourcePriceListId) }}"', $create);
+        $this->assertStringContainsString('data-price-list-manager-combobox', $create);
+        $this->assertStringContainsString('id="client-price-list-manager-search"', $create);
         $this->assertStringNotContainsString('sticky bottom-4', $create);
         $this->assertStringContainsString('Lưu bảng giá Nháp', $create);
         $this->assertStringContainsString('name="selected[', $create);
