@@ -15,6 +15,7 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/price-lists.blade.php'));
         $detail = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/price-list-show.blade.php'));
         $create = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/price-list-create.blade.php'));
+        $createWizard = file_get_contents(base_path('resources/js/clientportal/pharma-price-list-wizard.js'));
         $workflow = file_get_contents(base_path('Modules/Pharma/Services/UserPriceListWorkflow.php'));
         $model = file_get_contents(base_path('Modules/Pharma/Models/PriceList.php'));
         $approval = file_get_contents(base_path('Modules/Pharma/Services/PriceListApprovalWorkflow.php'));
@@ -119,11 +120,11 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringNotContainsString('<x-search-select', $create);
         $this->assertStringContainsString('id="client-price-list-customer-search"', $create);
         $this->assertStringContainsString('data-customer-option', $create);
+        $this->assertStringContainsString("document.getElementById('client-price-list-customer')", $createWizard);
+        $this->assertStringContainsString('const stepTwoReady = () =>', $createWizard);
+        $this->assertStringContainsString("back.classList.toggle('hidden', currentStep === 1)", $createWizard);
+        $this->assertStringContainsString("replace(/\\D/g, '')", $createWizard);
         $this->assertStringContainsString('id="source-product-search" type="search"', $create);
-        $this->assertStringContainsString("document.getElementById('client-price-list-customer')", $create);
-        $this->assertStringContainsString('window.TomSelect', $create);
-        $this->assertStringContainsString('!customer.tomselect', $create);
-        $this->assertStringContainsString("plugins: ['dropdown_input']", $create);
         $this->assertStringContainsString('01 · Khởi tạo bảng giá', $create);
         $this->assertStringContainsString('02 · Khách hàng & mục đích', $create);
         $this->assertStringContainsString('03 · Sản phẩm & giá', $create);
@@ -132,13 +133,8 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('select-all-source-products', $create);
         $this->assertStringContainsString('source-product-search', $create);
         $this->assertStringNotContainsString('clear-source-product-search', $create);
-        $this->assertStringContainsString("source.tomselect?.on('change', clearSourceError)", $create);
-        $this->assertStringContainsString("bootstrapForm?.elements.namedItem('source_price_list_id')?.value", $create);
         $this->assertStringContainsString('source-price-list-error', $create);
-        $this->assertStringContainsString("source?.tomselect?.getValue?.() || source?.value", $create);
         $this->assertStringContainsString('id="source-price-list" name="source_price_list_id"', $create);
-        $this->assertStringContainsString('sessionStorage.setItem', $create);
-        $this->assertStringContainsString('sessionStorage.getItem', $create);
         $this->assertStringContainsString('source_price_list_id', $create);
         $this->assertStringNotContainsString('sticky bottom-4', $create);
         $this->assertStringContainsString('Lưu bảng giá Nháp', $create);
@@ -150,7 +146,6 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('Kích hoạt bảng giá chung', $create);
         $this->assertStringNotContainsString('>Giá gốc<', $create);
         $this->assertStringContainsString('data-money-input', $create);
-        $this->assertStringContainsString("replace(/\\D/g, '')", $create);
 
         $this->assertStringContainsString("public const STATUS_PENDING_APPROVAL = 'pending_approval'", $model);
         $this->assertStringContainsString("public const STATUS_REJECTED = 'rejected'", $model);
