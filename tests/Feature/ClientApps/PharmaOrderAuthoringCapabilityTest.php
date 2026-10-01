@@ -83,13 +83,8 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
         $this->assertStringContainsString('id="order-submit"', $view);
         $this->assertStringContainsString('id="review-products"', $view);
         $this->assertStringContainsString('data-order-review data-order-step-panel="3"', $view);
-        $this->assertStringContainsString('bottom-[calc(84px+env(safe-area-inset-bottom,0px))]', $view);
-        $this->assertStringContainsString('[data-order-actions]{isolation:isolate;bottom:calc(84px + env(safe-area-inset-bottom,0px))}', $view);
-        $this->assertStringContainsString('[data-order-actions][data-step="1"]{position:relative!important', $view);
-        $this->assertStringContainsString('margin:12px 12px calc(84px + env(safe-area-inset-bottom,0px))!important', $view);
         $this->assertStringContainsString('#product-picker-panel,#customer-results{z-index:120!important}', $view);
         $this->assertStringContainsString("orderSubmit.style.display=orderStep===3?'inline-flex':'none'", $view);
-        $this->assertStringContainsString('lg:bottom-4', $view);
         $this->assertStringContainsString('[data-order-actions][data-step="3"] #order-submit', $view);
         $this->assertStringContainsString("setAttribute('data-step',String(orderStep))", $view);
         $this->assertStringContainsString('h-9 shrink-0 rounded-xl', $view);
@@ -110,6 +105,9 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
         $this->assertStringContainsString('max-h-[min(300px,38dvh)]', $view);
         $this->assertStringContainsString('customerField?.classList.toggle(\'is-open\',has)', $view);
         $this->assertStringContainsString('data-order-actions', $view);
+        $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $view);
+        $this->assertStringContainsString('relative z-20 mx-auto mt-4 max-w-3xl', $view);
+        $this->assertStringNotContainsString('data-order-actions class="fixed', $view);
         $this->assertStringContainsString('z-[100]', $view);
         $this->assertStringContainsString('id="order-source-hint"', $view);
         $this->assertStringContainsString("hint.textContent=b?'Giá và số lượng theo phân bổ trúng thầu':'Giá bán theo bảng giá đang hiệu lực'", $view);
@@ -133,8 +131,6 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
         $this->assertStringContainsString("source==='bid'?[...document.querySelectorAll('#bid-products [data-quantity]:not(:disabled)')]", $view);
         $this->assertStringContainsString("dataset.priceList===price?.value", $view);
         $this->assertStringContainsString("date.split('-').reverse().join('/')", $view);
-        $this->assertStringContainsString('lg:left-1/2', $view);
-        $this->assertStringContainsString('lg:w-[min(680px,calc(100%-48px))]', $view);
         $this->assertStringContainsString('selected-products-empty', $view);
         $this->assertStringContainsString("((int)(\$issue?->price_list_id ?? 0)===(int)\$pl->id)", $view);
         $this->assertStringContainsString("!eligible||q<=0", $view);
