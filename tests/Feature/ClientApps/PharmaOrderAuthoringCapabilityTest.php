@@ -67,6 +67,10 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
 
         $this->assertStringContainsString('Thêm mới đơn hàng', $view);
         $this->assertStringContainsString('data-order-stepper', $view);
+        $this->assertStringContainsString('step-track', $view);
+        $this->assertStringContainsString('step-dot', $view);
+        $this->assertStringContainsString('is-active', $view);
+        $this->assertStringContainsString('max-w-3xl space-y-0', $view);
         $this->assertStringContainsString('data-order-wizard', $view);
         $this->assertStringContainsString('data-order-step-panel="1"', $view);
         $this->assertStringContainsString('data-order-step-panel="2"', $view);
@@ -110,7 +114,8 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
         $this->assertStringContainsString('data-remove-product', $view);
         $this->assertStringContainsString('aria-label="Số lượng"', $view);
         $this->assertStringContainsString('h-9 w-24 rounded-xl', $view);
-        $this->assertStringContainsString('lg:left-[calc(50%+130px)]', $view);
+        $this->assertStringContainsString('lg:left-1/2', $view);
+        $this->assertStringContainsString('lg:w-[min(760px,calc(100%-48px))]', $view);
         $this->assertStringContainsString('selected-products-empty', $view);
         $this->assertStringContainsString("((int)(\$issue?->price_list_id ?? 0)===(int)\$pl->id)", $view);
         $this->assertStringContainsString("!eligible||q<=0", $view);
