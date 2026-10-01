@@ -1157,7 +1157,11 @@ final class PharmaApplicationController extends Controller
         $visible = $workspace->findVisible((int) $user->id, $issue);
         if ($visible === null && $canCreateForUser) $visible = $workspace->findByCreator((int) $user->id, $issue);
         abort_if($visible === null, 404);
-        abort_unless((int) $visible->created_by === (int) $user->id && $visible->status === \Modules\Pharma\Models\InventoryIssue::DRAFT, 403);
+        abort_unless(
+            in_array((int) $user->id, [(int) $visible->created_by, (int) $visible->manager_user_id], true)
+                && $visible->status === \Modules\Pharma\Models\InventoryIssue::DRAFT,
+            403
+        );
         $date = $visible->issue_date->toDateString();
         $managerUserId = (int) ($visible->manager_user_id ?: $user->id);
 
@@ -1317,8 +1321,8 @@ final class PharmaApplicationController extends Controller
         return view('ClientPortal::applications.pharma.inventory-issue-show', [
             'application' => $application,
             'issue' => $visibleIssue,
-            'canEditOrder' => $registry->userCan($user, 'client.pharma.orders.create')
-                && (int) $visibleIssue->created_by === (int) $user->id
+            'canEditOrder' => ($registry->userCan($user, 'client.pharma.orders.create') || $canCreateForUser)
+                && in_array((int) $user->id, [(int) $visibleIssue->created_by, (int) $visibleIssue->manager_user_id], true)
                 && $visibleIssue->status === \Modules\Pharma\Models\InventoryIssue::DRAFT,
             'canSubmitOrder' => $registry->userCan($user, 'client.pharma.orders.submit')
                 && in_array((int) $user->id, [(int) $visibleIssue->created_by, (int) $visibleIssue->manager_user_id], true)
