@@ -25,21 +25,10 @@ const initPharmaPriceListWizard = () => {
     const selectedCount = () => document.querySelectorAll('[data-source-product-checkbox]:checked').length;
     const dateDisplays = [...document.querySelectorAll('[data-date-display]')];
     const displayDate = raw => /^\d{4}-\d{2}-\d{2}$/.test(raw || '') ? raw.split('-').reverse().join('/') : String(raw || '');
-    const isoDate = raw => {
-        const match = String(raw || '').match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-        return match ? `${match[3]}-${match[2]}-${match[1]}` : raw;
-    };
     const formatDate = raw => {
         const displayed = displayDate(raw);
         return /^\d{2}\/\d{2}\/\d{4}$/.test(displayed) ? displayed : '—';
     };
-    dateDisplays.forEach(input => {
-        input.value = displayDate(input.value);
-        input.addEventListener('input', () => {
-            const digits = input.value.replace(/\D/g, '').slice(0, 8);
-            input.value = [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4, 8)].filter(Boolean).join('/');
-        });
-    });
 
     const syncReview = () => {
         document.querySelector('[data-review-name]')?.replaceChildren(document.createTextNode(value('name') || '—'));
