@@ -40,6 +40,7 @@ class PharmaPwaUiParityContractTest extends TestCase
     public function test_price_list_editor_exposes_the_four_step_responsive_wizard_contract(): void
     {
         $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/price-list-create.blade.php'));
+        $wizard = file_get_contents(base_path('resources/js/clientportal/pharma-price-list-wizard.js'));
 
         foreach ([1, 2, 3, 4] as $step) {
             $this->assertStringContainsString('data-wizard-panel="'.$step.'"', $view);
@@ -53,27 +54,26 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertStringContainsString('id="wizard-back"', $view);
         $this->assertStringContainsString('id="wizard-next"', $view);
         $this->assertStringContainsString('id="wizard-submit"', $view);
-        $this->assertStringContainsString("const formatDate = value =>", $view);
-        $this->assertStringContainsString("return [d,m,y].filter(Boolean).join('/')", $view);
+        $this->assertStringContainsString('const initPharmaPriceListWizard = () =>', $wizard);
+        $this->assertStringContainsString("raw.split('-').reverse().join('/')", $wizard);
     }
 
     public function test_price_list_wizard_gates_progress_and_keeps_source_initialization_in_step_one(): void
     {
         $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/price-list-create.blade.php'));
+        $wizard = file_get_contents(base_path('resources/js/clientportal/pharma-price-list-wizard.js'));
+        $bundle = file_get_contents(base_path('resources/js/tailwind.js'));
 
-        $this->assertStringContainsString('const sourceReady = () =>', $view);
-        $this->assertStringContainsString("new TomSelect(source, { plugins: ['dropdown_input']", $view);
-        $this->assertStringContainsString("source.tomselect?.on('change', clearSourceError)", $view);
-        $this->assertStringContainsString('Kích hoạt bảng giá chung', $view);
-        $this->assertStringContainsString('const stepTwoReady = () =>', $view);
-        $this->assertStringContainsString('const persistAndLoadSource = () =>', $view);
-        $this->assertStringContainsString('action="{{ route(\'client.pharma.price-lists.create\') }}"', $view);
         $this->assertStringContainsString('id="source-price-list" name="source_price_list_id"', $view);
-        $this->assertStringContainsString('if (target > currentStep) return;', $view);
-        $this->assertStringNotContainsString("load.addEventListener('click', () => persistAndLoadSource())", $view);
+        $this->assertStringContainsString('id="client-price-list-customer-search"', $view);
+        $this->assertStringContainsString('data-customer-option', $view);
+        $this->assertStringContainsString('id="source-product-search" type="search"', $view);
+        $this->assertStringContainsString('const stepTwoReady = () =>', $wizard);
+        $this->assertStringContainsString("back.classList.toggle('hidden', currentStep === 1)", $wizard);
+        $this->assertStringContainsString('if (currentStep === 2 && !stepTwoReady()) return;', $wizard);
+        $this->assertStringContainsString("button.dataset.state = active ? 'active' : completed ? 'completed' : 'pending'", $wizard);
+        $this->assertStringContainsString("import './clientportal/pharma-price-list-wizard';", $bundle);
         $this->assertStringContainsString('disabled:cursor-not-allowed disabled:bg-slate-200', $view);
-        $this->assertStringContainsString('Chọn bảng giá tại Bước 01 để tải sản phẩm.', $view);
-        $this->assertStringNotContainsString('Chọn bảng giá tại Bước 02 để tải sản phẩm.', $view);
     }
 
     public function test_price_list_editor_uses_focused_task_shell_and_canonical_business_selectors(): void
@@ -86,9 +86,6 @@ class PharmaPwaUiParityContractTest extends TestCase
 
         $this->assertStringContainsString('<x-select-search id="client-price-list-manager"', $view);
         $this->assertStringContainsString('id="price-list-bootstrap" method="GET"', $view);
-        $this->assertStringContainsString("load?.click()", $view);
-        $this->assertStringContainsString("field?.tomselect?.getValue?.() || field?.value", $view);
-        $this->assertStringContainsString("backButton?.classList.toggle('hidden', currentStep === 1)", $view);
         $this->assertStringContainsString('<select id="source-price-list" name="source_price_list_id"', $view);
         $this->assertStringNotContainsString('<x-search-select', $view);
         $this->assertStringContainsString('id="client-price-list-customer-search"', $view);
