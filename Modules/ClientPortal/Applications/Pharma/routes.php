@@ -77,6 +77,8 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->whereNumber('issue')->middleware('client.feature:pharma,orders')->name('orders.approve');
         Route::post('/orders/{issue}/undo-approval', [PharmaApplicationController::class, 'undoOrderApproval'])
             ->whereNumber('issue')->middleware('client.feature:pharma,orders')->name('orders.undo-approval');
+        Route::post('/orders/{issue}/post', [PharmaApplicationController::class, 'postOrder'])
+            ->whereNumber('issue')->middleware('client.feature:pharma,orders')->name('orders.post');
         Route::post('/orders/{issue}/reject', [PharmaApplicationController::class, 'rejectOrder'])
             ->whereNumber('issue')->middleware('client.feature:pharma,orders')->name('orders.reject');
         Route::get('/orders/{issue}', [PharmaApplicationController::class, 'order'])
