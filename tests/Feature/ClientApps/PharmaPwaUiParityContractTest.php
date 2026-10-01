@@ -115,4 +115,29 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertStringContainsString('const syncDateDisplay = native =>', $wizard);
         $this->assertStringContainsString('name="source_price_list_id" value="{{ old(\'source_price_list_id\', $sourcePriceListId) }}"', $view);
     }
+
+    public function test_bid_awards_use_focused_mobile_shell_and_managed_feature_presentation(): void
+    {
+        $manifest = require base_path('Modules/ClientPortal/Applications/Pharma/manifest.php');
+        $index = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/bid-awards.blade.php'));
+        $detail = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/bid-award-show.blade.php'));
+
+        $feature = $manifest['features']['bid-awards'];
+        $this->assertSame('client.pharma.bid-awards', $feature['route']);
+        $this->assertArrayHasKey('eyebrow', $feature);
+        $this->assertArrayHasKey('page_title', $feature);
+        $this->assertArrayHasKey('page_description', $feature);
+
+        foreach ([$index, $detail] as $view) {
+            $this->assertStringContainsString("@section('hide-application-header', true)", $view);
+            $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $view);
+            $this->assertStringContainsString("\$featurePresentation['page_title']", $view);
+        }
+
+        $this->assertStringContainsString('aria-label="Quay lại Không gian làm việc Pharma"', $index);
+        $this->assertStringContainsString("route('client.pharma.dashboard')", $index);
+        $this->assertStringContainsString('aria-label="Quay lại Trúng thầu"', $detail);
+        $this->assertStringContainsString("route('client.pharma.bid-awards')", $detail);
+    }
+
 }
