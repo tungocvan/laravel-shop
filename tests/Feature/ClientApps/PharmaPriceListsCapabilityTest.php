@@ -114,6 +114,9 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString("route('client.pharma.price-lists.delete'", $view);
         $this->assertStringContainsString("'draft' => 'Nháp'", $view);
         $this->assertStringContainsString('STATUS_PENDING_APPROVAL', $detail);
+        $this->assertStringContainsString('Không thể hoàn tất thao tác', $detail);
+        $this->assertStringContainsString('$errors->first()', $detail);
+        $this->assertStringContainsString("redirect()->route('client.pharma.price-lists.show', \$priceList)", $controller);
 
         $this->assertStringContainsString('Tạo bảng giá cho khách hàng', $create);
         $this->assertStringContainsString('<x-select-search', $create);
