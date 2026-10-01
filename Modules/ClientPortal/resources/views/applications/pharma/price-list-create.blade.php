@@ -59,7 +59,14 @@
                 <div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800">Hiện chưa có bảng giá chung ACTIVE được cấp cho bạn. Vui lòng liên hệ người quản trị Pharma.</div>
             @else
                 <div class="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
-                    <div class="rounded-2xl border-2 border-slate-200 bg-white p-1 shadow-sm focus-within:border-slate-950"><x-select-search id="source-price-list" name="source_price_list_id" placeholder="Tra cứu bảng giá gốc..." :value="old('source_price_list_id',$sourcePriceListId)"><option value="">Chọn bảng giá gốc</option>@foreach($sourcePriceLists as $source)<option value="{{ $source->id }}" @selected((string)old('source_price_list_id',$sourcePriceListId) === (string)$source->id)>{{ $source->code }} — {{ $source->name }} · {{ $source->items_count }} SP</option>@endforeach</x-select-search></div>
+                    <div class="rounded-2xl border-2 border-slate-200 bg-white p-1 shadow-sm focus-within:border-slate-950">
+                        <select id="source-price-list" name="source_price_list_id" class="h-11 w-full rounded-xl border-0 bg-white px-3 text-sm font-bold text-slate-800 outline-none">
+                            <option value="">Chọn bảng giá gốc</option>
+                            @foreach($sourcePriceLists as $source)
+                                <option value="{{ $source->id }}" @selected((string)old('source_price_list_id',$sourcePriceListId) === (string)$source->id)>{{ $source->code }} — {{ $source->name }} · {{ $source->items_count }} SP</option>
+                            @endforeach
+                        </select>
+                    </div>
                     <button id="load-source-price-list" type="submit" formmethod="GET" formaction="{{ route('client.pharma.price-lists.create') }}" class="h-12 rounded-2xl bg-slate-950 px-5 text-sm font-black text-white">Khởi tạo từ bảng giá</button>
                     <p id="source-price-list-error" class="hidden text-sm font-bold text-red-600 lg:col-span-2">Vui lòng chọn bảng giá gốc trước khi tiếp tục.</p>
                 </div>
@@ -193,15 +200,15 @@ window.addEventListener('load', () => {
         const clearSourceError = () => document.getElementById('source-price-list-error')?.classList.add('hidden');
         source.addEventListener('change', clearSourceError);
         source.tomselect?.on('change', clearSourceError);
-        @if($sourcePriceListId || $isGlobalMode)
-        load.addEventListener('click', () => persistAndLoadSource());
-        @endif
     }
 
     backButton?.addEventListener('click', () => showStep(currentStep - 1));
     nextButton?.addEventListener('click', () => {
         @if(!$isGlobalMode && !$sourcePriceListId)
-        return;
+        if (currentStep === 1) {
+            form?.requestSubmit(load);
+            return;
+        }
         @endif
         if (currentStep === 2 && !stepTwoReady()) return;
         showStep(currentStep + 1);
