@@ -18,19 +18,29 @@
  <div class="relative flex items-center justify-center"><a href="{{ $editing ? route('client.pharma.orders.show',$issue) : route('client.pharma.orders') }}" class="absolute left-0 flex h-11 w-11 items-center justify-center rounded-full text-2xl">←</a><div class="text-center"><h1 class="text-xl font-black text-slate-950">{{ $editing ? 'Sửa đơn hàng' : 'Thêm mới đơn hàng' }}</h1><p class="mt-1 text-xs font-semibold text-slate-500">Lập đơn đúng phạm vi User · giá lấy từ nguồn canonical</p></div></div>
 </header>
 
-<nav class="mx-auto mt-3 max-w-7xl px-1" aria-label="Tiến trình lập đơn" data-order-stepper>
+<style>
+[data-order-stepper]{padding:0 18px}
+[data-order-stepper] .step-track{display:flex;width:100%;align-items:center}
+[data-order-stepper] .step-line{height:2px;flex:1;background:#e2e8f0}
+[data-order-stepper] .step-dot{display:flex;width:30px;height:30px;flex:0 0 30px;align-items:center;justify-content:center;border-radius:9999px;background:#f1f5f9;color:#64748b;font-size:12px;font-weight:900}
+[data-order-stepper] [data-step-target].is-active .step-dot,[data-order-stepper] [data-step-target].is-complete .step-dot{background:#4f46e5;color:#fff;box-shadow:0 4px 12px rgba(79,70,229,.22)}
+[data-order-stepper] [data-step-target].is-active .step-label{color:#4f46e5;font-weight:900}
+[data-order-stepper] [data-step-target].is-complete .step-line{background:#a5b4fc}
+@media(min-width:768px){[data-order-stepper]{max-width:760px;padding-left:24px;padding-right:24px}}
+</style>
+<nav class="mx-auto mt-3 max-w-3xl" aria-label="Tiến trình lập đơn" data-order-stepper>
  <div class="grid grid-cols-3 items-start">
   <button type="button" data-step-target="1" class="group flex min-w-0 flex-col items-center text-center">
-   <span class="flex w-full items-center before:h-px before:flex-1 before:bg-transparent after:h-px after:flex-1 after:bg-indigo-200"><span class="order-step-dot flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-xs font-black text-white shadow-sm">1</span></span>
-   <span class="mt-1 text-[11px] font-black text-indigo-600 sm:text-xs">Thiết lập</span>
+   <span class="step-track"><span class="step-line opacity-0"></span><span class="step-dot order-step-dot">1</span><span class="step-line"></span></span>
+   <span class="step-label mt-1 text-[11px] sm:text-xs">Thiết lập</span>
   </button>
   <button type="button" data-step-target="2" class="group flex min-w-0 flex-col items-center text-center">
-   <span class="flex w-full items-center before:h-px before:flex-1 before:bg-indigo-200 after:h-px after:flex-1 after:bg-slate-200"><span class="order-step-dot flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-black text-slate-500">2</span></span>
-   <span class="mt-1 text-[11px] font-bold text-slate-500 sm:text-xs">Sản phẩm</span>
+   <span class="step-track"><span class="step-line"></span><span class="step-dot order-step-dot">2</span><span class="step-line"></span></span>
+   <span class="step-label mt-1 text-[11px] font-bold text-slate-500 sm:text-xs">Sản phẩm</span>
   </button>
   <button type="button" data-step-target="3" class="group flex min-w-0 flex-col items-center text-center">
-   <span class="flex w-full items-center before:h-px before:flex-1 before:bg-slate-200 after:h-px after:flex-1 after:bg-transparent"><span class="order-step-dot flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-black text-slate-500">3</span></span>
-   <span class="mt-1 text-[11px] font-bold text-slate-500 sm:text-xs">Xem lại</span>
+   <span class="step-track"><span class="step-line"></span><span class="step-dot order-step-dot">3</span><span class="step-line opacity-0"></span></span>
+   <span class="step-label mt-1 text-[11px] font-bold text-slate-500 sm:text-xs">Xem lại</span>
   </button>
  </div>
 </nav>
@@ -38,8 +48,8 @@
 
 <form id="order-form" method="POST" action="{{ $editing ? route('client.pharma.orders.update',$issue) : route('client.pharma.orders.store') }}" class="mx-auto mt-4 max-w-7xl" data-order-wizard>
 @csrf @if($editing) @method('PUT') @endif
-<aside class="space-y-4" data-order-step-panel="1">
- <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+<aside class="mx-auto max-w-3xl space-y-0 px-0 sm:px-1" data-order-step-panel="1">
+ <section class="rounded-t-3xl border border-b-0 border-slate-200 bg-white p-5 pb-4 shadow-sm">
   <p class="text-xs font-black uppercase tracking-wide text-slate-500">Thiết lập đơn hàng</p>
   <div class="mt-4" data-order-source-picker>
    <div class="grid grid-cols-2 gap-2">
@@ -68,7 +78,7 @@
   <label class="mt-4 block"><span class="mb-2 block text-sm font-black">Ngày lập đơn</span><input type="date" name="issue_date" value="{{ old('issue_date',$issueDate) }}" class="h-12 w-full rounded-2xl border border-slate-300 px-4"></label>
  </section>
 
- <section id="price-list-context" class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+ <section id="price-list-context" class="rounded-b-3xl border border-t-0 border-slate-200 bg-white p-5 pt-1 shadow-sm">
   @if($priceLists->isEmpty())
    <div id="price-list-unassigned-warning" class="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
     <p class="text-sm font-black text-amber-900">Bạn chưa được phân công bảng giá đang hiệu lực</p>
@@ -84,7 +94,7 @@
  </section>
 </aside>
 
-<main class="hidden min-w-0 space-y-4" data-order-step-panel="2">
+<main class="mx-auto hidden max-w-3xl min-w-0 space-y-4 px-0 sm:px-1" data-order-step-panel="2">
  <section id="price-list-products" class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
   <div class="flex items-end justify-between gap-3"><div><h2 class="text-lg font-black">Sản phẩm theo bảng giá</h2><p class="mt-1 text-sm text-slate-500">Chọn sản phẩm, nhập số lượng rồi thêm vào đơn.</p></div><span id="product-count" class="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-black">0 đã thêm</span></div>
   <div class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3" data-product-picker>
@@ -132,7 +142,7 @@
    @endforeach</div>
   </section>
  </section>
- <section class="hidden space-y-4" data-order-review data-order-step-panel="3">
+ <section class="mx-auto hidden max-w-3xl space-y-4 px-0 sm:px-1" data-order-review data-order-step-panel="3">
   <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
    <div class="flex items-center justify-between gap-3"><div><p class="text-xs font-black uppercase tracking-wide text-slate-500">Xem lại đơn hàng</p><h2 class="mt-1 text-lg font-black text-slate-950">Thông tin trước khi lưu nháp</h2></div><button type="button" data-step-target="1" class="text-xs font-black text-indigo-600">Chỉnh sửa</button></div>
    <dl class="mt-4 divide-y divide-slate-100 text-sm">
@@ -178,7 +188,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('review-products').innerHTML=rows.join('')||'<p class="rounded-2xl border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500">Chưa có sản phẩm trong đơn.</p>';
   document.getElementById('review-summary').textContent=document.getElementById('order-summary')?.textContent||'';
  };
- const setOrderStep=(step)=>{orderStep=Math.max(1,Math.min(3,step));stepPanels.forEach(p=>p.classList.toggle('hidden',Number(p.dataset.orderStepPanel)!==orderStep));stepButtons.forEach(b=>{const n=Number(b.dataset.stepTarget),dot=b.querySelector('.order-step-dot'),label=b.querySelector('span:last-child');if(!dot)return;dot.textContent=n<orderStep?'✓':String(n);dot.className='order-step-dot flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-black '+(n<=orderStep?'bg-indigo-600 text-white shadow-sm':'bg-slate-100 text-slate-500');if(label)label.className='mt-1 text-[11px] sm:text-xs '+(n===orderStep?'font-black text-indigo-600':'font-bold text-slate-500');});stepBack?.classList.toggle('hidden',orderStep===1);stepBack?.classList.toggle('flex',orderStep!==1);stepNext?.classList.toggle('hidden',orderStep===3);orderSubmit?.classList.toggle('hidden',orderStep!==3);if(orderStep===3)refreshReview();window.scrollTo({top:0,behavior:'smooth'});};
+ const setOrderStep=(step)=>{orderStep=Math.max(1,Math.min(3,step));stepPanels.forEach(p=>p.classList.toggle('hidden',Number(p.dataset.orderStepPanel)!==orderStep));stepButtons.forEach(b=>{const n=Number(b.dataset.stepTarget),dot=b.querySelector('.order-step-dot');if(!dot)return;dot.textContent=n<orderStep?'✓':String(n);b.classList.toggle('is-active',n===orderStep);b.classList.toggle('is-complete',n<orderStep);});stepBack?.classList.toggle('hidden',orderStep===1);stepBack?.classList.toggle('flex',orderStep!==1);stepNext?.classList.toggle('hidden',orderStep===3);orderSubmit?.classList.toggle('hidden',orderStep!==3);if(orderStep===3)refreshReview();window.scrollTo({top:0,behavior:'smooth'});};
  stepButtons.forEach(b=>b.addEventListener('click',()=>setOrderStep(Number(b.dataset.stepTarget))));
  stepBack?.addEventListener('click',()=>setOrderStep(orderStep-1));stepNext?.addEventListener('click',()=>setOrderStep(orderStep+1));
  setOrderStep(1);
