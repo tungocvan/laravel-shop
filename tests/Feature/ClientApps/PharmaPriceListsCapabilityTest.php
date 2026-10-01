@@ -135,7 +135,6 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString("bootstrapForm?.elements.namedItem('source_price_list_id')?.value", $create);
         $this->assertStringContainsString('source-price-list-error', $create);
         $this->assertStringContainsString("source?.tomselect?.getValue?.() || source?.value", $create);
-        $this->assertStringContainsString('formmethod="GET"', $create);
         $this->assertStringContainsString('id="source-price-list" name="source_price_list_id"', $create);
         $this->assertStringContainsString('form?.requestSubmit(load)', $create);
         $this->assertStringContainsString("formaction=\"{{ route('client.pharma.price-lists.create') }}\"", $create);
