@@ -84,9 +84,10 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $view);
         $this->assertStringContainsString('aria-label="Quay lại Bảng giá của tôi"', $view);
 
-        $this->assertStringContainsString('data-price-list-manager-combobox', $view);
-        $this->assertStringContainsString('id="client-price-list-manager-search"', $view);
-        $this->assertStringContainsString('type="hidden" name="manager_user_id"', $view);
+        $this->assertStringContainsString('data-global-user-scope', $view);
+        $this->assertStringContainsString('id="apply-all-global-users"', $view);
+        $this->assertStringContainsString('name="global_user_ids[]"', $view);
+        $this->assertStringNotContainsString('data-price-list-manager-combobox', $view);
         $this->assertStringContainsString('id="price-list-bootstrap" method="GET"', $view);
         $this->assertStringContainsString('<select id="source-price-list" name="source_price_list_id"', $view);
         $this->assertStringNotContainsString('<x-search-select', $view);
