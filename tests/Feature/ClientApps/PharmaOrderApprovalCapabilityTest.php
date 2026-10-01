@@ -114,6 +114,32 @@ final class PharmaOrderApprovalCapabilityTest extends TestCase
         $this->assertStringContainsString('Đã ghi sổ', $documents);
     }
 
+    public function test_approved_order_can_be_posted_from_pwa_only_with_independent_permission_and_direct_stock_readiness(): void
+    {
+        $root = base_path();
+        $manifest = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/manifest.php');
+        $routes = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/routes.php');
+        $controller = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php');
+        $view = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-issue-show.blade.php');
+        $readiness = file_get_contents($root.'/Modules/Pharma/Services/UserOrderStockReadinessService.php');
+        $inventory = file_get_contents($root.'/Modules/Pharma/Services/InventoryService.php');
+
+        $this->assertSame(2, substr_count($manifest, "'permission' => 'client.pharma.orders.post'"));
+        $this->assertStringContainsString("Route::post('/orders/{issue}/post'", $routes);
+        $this->assertStringContainsString("client.pharma.orders.post", $controller);
+        $this->assertStringContainsString('postOrder(', $controller);
+        $this->assertStringContainsString("status !== \\Modules\\Pharma\\Models\\InventoryIssue::APPROVED", $controller);
+        $this->assertStringContainsString("['status' => 'posted']", $controller);
+        $this->assertStringContainsString('can_post_directly', $readiness);
+        $this->assertStringContainsString('$deferredSupplies->isEmpty()', $readiness);
+        $this->assertStringContainsString('postApprovedIssueFromAvailableStock', $inventory);
+        $this->assertStringContainsString("where('quantity_on_hand', '>=', (float) \$item->quantity)", $inventory);
+        $this->assertStringContainsString("orderBy('expiry_date')", $inventory);
+        $this->assertStringContainsString("route('client.pharma.orders.post',\$issue)", $view);
+        $this->assertStringContainsString('>Ghi sổ</button>', $view);
+        $this->assertStringContainsString("@disabled(!(\$stockReadiness['can_post_directly'] ?? false))", $view);
+    }
+
     public function test_approval_schema_is_audit_only_and_does_not_add_stock_fields(): void
     {
         $root = base_path();
