@@ -107,7 +107,10 @@
     </div>
 </div>
 <script>
-window.addEventListener('load', () => {
+const initPriceListWizard = () => {
+    const wizardRoot = document.getElementById('price-list-editor');
+    if (!wizardRoot || wizardRoot.dataset.wizardInitialized === '1') return;
+    wizardRoot.dataset.wizardInitialized = '1';
     const form = document.getElementById('price-list-editor');
     const bootstrapForm = document.getElementById('price-list-bootstrap');
     let currentStep = 1;
@@ -304,6 +307,11 @@ window.addEventListener('load', () => {
         });
     });
     form?.addEventListener('submit', () => moneyInputs.forEach(input => { input.value = digits(input.value); }));
-});
+};
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initPriceListWizard, { once: true });
+} else {
+    initPriceListWizard();
+}
 </script>
 @endsection
