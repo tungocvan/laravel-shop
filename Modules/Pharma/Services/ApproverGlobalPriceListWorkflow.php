@@ -20,15 +20,21 @@ final class ApproverGlobalPriceListWorkflow
             ->get(['id', 'name', 'email']);
     }
 
-    public function createAndActivate(int $approverUserId, int $managerUserId, array $header, array $items): PriceList
+    public function createAndActivate(int $approverUserId, bool $applyAllUsers, array $userIds, array $header, array $items): PriceList
     {
         if ($items === []) {
             throw ValidationException::withMessages(['items' => 'Vui lòng chọn ít nhất một sản phẩm.']);
         }
 
-        $managerUser = User::query()->whereKey($managerUserId)->where('is_active', true)->first();
-        if (! $managerUser) {
-            throw ValidationException::withMessages(['manager_user_id' => 'User phụ trách phải đang hoạt động.']);
+        $userIds = collect($userIds)->map(fn ($id) => (int) $id)->filter()->unique()->values()->all();
+        if (! $applyAllUsers && $userIds === []) {
+            throw ValidationException::withMessages(['global_user_ids' => 'Vui lòng chọn ít nhất một User hoặc bật Áp dụng tất cả User.']);
+        }
+        if (! $applyAllUsers) {
+            $activeUserIds = User::query()->whereIn('id', $userIds)->where('is_active', true)->pluck('id')->map(fn ($id) => (int) $id)->all();
+            if (count($activeUserIds) !== count($userIds)) {
+                throw ValidationException::withMessages(['global_user_ids' => 'Danh sách áp dụng chỉ được chứa User đang hoạt động.']);
+            }
         }
 
         $sourceId = (int) ($header['source_price_list_id'] ?? 0);
@@ -45,7 +51,7 @@ final class ApproverGlobalPriceListWorkflow
 
         $sourceItems = $source->items->where('status', 'active')->keyBy('medicine_variant_id');
 
-        return DB::transaction(function () use ($approverUserId, $managerUserId, $header, $items, $sourceItems): PriceList {
+        return DB::transaction(function () use ($approverUserId, $applyAllUsers, $userIds, $header, $items, $sourceItems): PriceList {
             $validatedHeader = $this->manager->validateHeader(array_merge($header, [
                 'type' => PriceList::TYPE_GLOBAL,
                 'partner_id' => null,
@@ -53,7 +59,7 @@ final class ApproverGlobalPriceListWorkflow
             ]));
 
             $list = PriceList::query()->create(array_merge($validatedHeader, [
-                'manager_user_id' => $managerUserId,
+                'manager_user_id' => null,
                 'status' => PriceList::STATUS_DRAFT,
                 'created_by' => $approverUserId,
                 'submitted_by' => null,
@@ -80,9 +86,9 @@ final class ApproverGlobalPriceListWorkflow
                 ]));
             }
 
-            $list->globalUsers()->sync([$managerUserId]);
+            $list->globalUsers()->sync($applyAllUsers ? [] : $userIds);
 
-            return $this->manager->activate($list, $approverUserId)->load(['items', 'manager', 'globalUsers']);
+            return $this->manager->activate($list, $approverUserId)->load(['items', 'globalUsers']);
         });
     }
 }

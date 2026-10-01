@@ -74,6 +74,29 @@ Do not introduce desktop-only patterns that degrade one-hand/mobile use. Reuse t
 
 For long lists on mobile, preserve the established native-like progressive loading pattern where the feature already uses it rather than reintroducing desktop pagination mechanically.
 
+## Hub -> Capability -> Focused Workspace navigation contract
+
+Treat the ClientPortal application page (for example the Pharma PWA page headed `Không gian làm việc Pharma`) as the **Application Hub / App Shell**. It is the place where the User discovers permitted capabilities. The Hub keeps the application-level header/navigation.
+
+After the User enters a capability from that Hub, distinguish browse/index screens from task/workspace screens:
+
+- **Application Hub**: keep the global application shell.
+- **Pharma capability browse/index**: after entering a capability from `/apps/pharma`, hide the application header and mobile bottom navigation. Provide a local route back to the Pharma Hub; the Hub remains the canonical place for switching capabilities.
+- **Focused task/workspace** (create, edit, detail that drives a task, approval, allocation, policy, assignment, wizard): also hide the application header and mobile bottom navigation. Provide a local back affordance, local task title/context and task-specific actions instead.
+- Do not mechanically render both global application navigation and local task navigation on a focused screen.
+- For Pharma PWA, do not restore the global capability navigation inside a capability merely because a screen is an index/list. Return to `/apps/pharma` to switch capabilities.
+
+For Blade screens using `ClientPortal::layouts.application`, the established focused-screen sections are:
+
+```blade
+@section('hide-application-header', true)
+@section('hide-mobile-navigation', true)
+```
+
+The exact UI may evolve, but the architectural rule is stable: **Hub for discovery/navigation; focused workspace for completing a business task.**
+
+When auditing or creating a PWA capability, explicitly classify every route/screen as `Hub`, `Browse/Index`, or `Focused Task/Workspace` before changing its shell. Verify the classification on Mobile/PWA and Desktop during the real UI acceptance gate.
+
 ## Managed page content — no hard-coded feature hero copy
 
 Every user-facing routable PWA feature must expose default page presentation in its application manifest:

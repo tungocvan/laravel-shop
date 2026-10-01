@@ -59,3 +59,19 @@ Client permissions use guard `web`. Admin permissions continue to use guard `adm
 5. Add ClientPortal views under `resources/views/applications/{application}`.
 6. Run ClientPortal permission sync from `/admin/client-apps`.
 7. Add focused tests under `tests/Feature/ClientApps`.
+
+
+## PWA feature completion and `/admin/client-apps` parity
+
+Every ClientPortal/PWA feature must keep its editable presentation contract in sync with `/admin/client-apps`.
+
+When a feature is implemented, refactored, or declared UI-complete:
+
+1. Confirm the feature is declared in the application's `manifest.php` with its canonical key, route, permission, name, description and actions.
+2. Confirm `/admin/client-apps` can discover that feature through the manifest and its existing Application/Feature presentation flow.
+3. Route user-editable presentation copy through `ClientPortalSettingsService::featurePresentation()` instead of introducing new hard-coded configurable copy in the PWA view.
+4. Keep authorization and business contracts immutable from presentation settings: route names, permission names, domain rules and workflow state must remain manifest/domain owned.
+5. Add or update focused contract tests whenever a completed feature adds configurable presentation fields.
+6. Do not mark a PWA feature complete until this parity check has been performed. If the current delivery intentionally defers the Admin UI wiring, record that deferral in the handoff/checklist and complete it before the overall PWA parity refactor is closed.
+
+For the Pharma PWA refactor, apply this rule progressively to each remaining feature (Products, Price Lists, Bid Awards, Commercial, Orders, Inventory, Receipts, Commissions and subsequent manifest features) as that feature reaches its completion checkpoint. Do not build a second settings engine; extend the existing manifest + `ClientPortalSettingsService` + `/admin/client-apps` presentation mechanism.

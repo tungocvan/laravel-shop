@@ -1,8 +1,11 @@
 @extends('ClientPortal::layouts.application')
 @section('title','Điều chỉnh phân công User')
+@section('app-dashboard-route', route('client.pharma.dashboard'))
+@section('hide-application-header', true)
+@section('hide-mobile-navigation', true)
 @section('content')
-<div class="mx-auto max-w-[860px] space-y-4 px-3 py-4 sm:px-5">
-    <a href="{{ route('client.pharma.bid-awards.manager-assignment',$scope) }}" class="text-sm font-bold text-slate-700">← Phân công User quản lý</a>
+<div class="mx-auto w-full max-w-[860px] space-y-4 px-1 pb-28 sm:px-3 lg:px-4">
+    <div class="flex min-h-16 items-center gap-3 border-b border-slate-200 bg-white pb-4"><a href="{{ route('client.pharma.bid-awards.manager-assignment',$scope) }}" aria-label="Quay lại phân công User quản lý" class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-lg font-black text-slate-700 shadow-sm">←</a><div class="min-w-0"><h1 class="truncate text-lg font-black text-slate-950">Điều chỉnh phân công</h1><p class="truncate text-xs text-slate-500">{{ $workspace->user->name }} · {{ $award->bidding_notice_code }}</p></div></div>
 
     <header class="rounded-[26px] bg-slate-950 p-5 text-white">
         <p class="text-[10px] font-black uppercase tracking-[.18em] text-indigo-200">Manager adjustment</p>
@@ -27,9 +30,9 @@
                 <button type="button" data-toggle-all-assignments class="shrink-0 rounded-xl border border-slate-200 px-3 py-2 text-xs font-black">Chọn tất cả</button>
             </div>
 
-            <div class="mt-4 space-y-3">
+            <div class="relative mt-4"><input type="search" data-adjust-search placeholder="Tìm bệnh viện / sản phẩm..." autocomplete="off" class="h-11 w-full rounded-xl border border-slate-300 px-3 pr-11 text-sm"><button type="button" data-adjust-search-clear class="absolute right-1 top-1 hidden h-9 w-9 rounded-lg text-slate-400" aria-label="Xóa tìm phân công">×</button></div><p data-adjust-search-empty class="mt-2 hidden rounded-xl bg-slate-50 p-3 text-xs text-slate-500">Không có phân công phù hợp.</p><div class="mt-4 space-y-3">
                 @foreach($workspace->hospitals as $group)
-                <article class="rounded-2xl border border-slate-200 p-3">
+                <article data-adjust-hospital data-search="{{ str($group->hospital->name.' '.$group->assignments->map(fn($row) => $row->pwa_product?->medicine_name.' '.$row->pwa_product?->active_ingredient)->implode(' '))->lower() }}" class="rounded-2xl border border-slate-200 p-3">
                     <div class="flex items-center justify-between gap-3">
                         <div class="min-w-0"><b class="block truncate text-sm">{{ $group->hospital->name }}</b><span class="text-xs text-slate-500">{{ $group->assignments->count() }} sản phẩm đang phụ trách</span></div>
                         <button type="button" data-toggle-hospital class="shrink-0 text-xs font-black text-indigo-600">Chọn BV</button>
@@ -47,7 +50,7 @@
             </div>
         </section>
 
-        <section class="sticky bottom-16 z-20 rounded-[22px] border border-indigo-200 bg-white/95 p-4 shadow-xl backdrop-blur">
+        <section class="sticky bottom-3 z-20 rounded-[22px] border border-indigo-200 bg-white/95 p-4 shadow-xl backdrop-blur">
             <div class="flex items-center justify-between gap-3"><div><b class="text-sm"><span data-adjust-count>0</span> phân công đã chọn</b><p class="mt-0.5 text-xs text-slate-500">Chuyển sang User khác hoặc gỡ để đưa về danh sách chưa phân công.</p></div></div>
             <label class="mt-3 block text-xs font-bold text-slate-600">User nhận phân công
                 <select name="to_user_id" class="mt-1.5 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm">
@@ -74,6 +77,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded',()=>{
+ const search=document.querySelector('[data-adjust-search]'),searchClear=document.querySelector('[data-adjust-search-clear]'),searchEmpty=document.querySelector('[data-adjust-search-empty]'),hospitalGroups=[...document.querySelectorAll('[data-adjust-hospital]')];const filter=()=>{const term=(search?.value||'').trim().toLocaleLowerCase('vi');hospitalGroups.forEach(group=>group.classList.toggle('hidden',!(group.dataset.search||'').includes(term)));searchEmpty?.classList.toggle('hidden',hospitalGroups.some(group=>(group.dataset.search||'').includes(term)));searchClear?.classList.toggle('hidden',!search?.value)};search?.addEventListener('input',filter);searchClear?.addEventListener('click',()=>{search.value='';filter();search.focus()});
  const form=document.querySelector('[data-manager-adjust-form]'),method=document.querySelector('[data-adjust-method]'),boxes=[...document.querySelectorAll('[data-assignment-checkbox]')],count=document.querySelector('[data-adjust-count]'),transfer=document.querySelector('[data-transfer-selected]'),remove=document.querySelector('[data-remove-selected]'),all=document.querySelector('[data-toggle-all-assignments]');
  const sync=()=>{const n=boxes.filter(x=>x.checked).length;if(count)count.textContent=n;if(transfer)transfer.disabled=n===0;if(remove)remove.disabled=n===0;if(all)all.textContent=n===boxes.length&&boxes.length?'Bỏ chọn tất cả':'Chọn tất cả'};
  boxes.forEach(x=>x.addEventListener('change',sync));

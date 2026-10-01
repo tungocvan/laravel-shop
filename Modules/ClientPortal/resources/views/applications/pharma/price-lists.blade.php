@@ -4,9 +4,15 @@
 @section('app-name', $applicationPresentation['name'] ?? $application['name'])
 @section('app-subtitle', 'Bảng giá do bạn phụ trách')
 @section('app-dashboard-route', route('client.pharma.dashboard'))
+@section('hide-application-header', true)
+@section('hide-mobile-navigation', true)
 
 @section('content')
 <div class="space-y-5">
+    <div class="flex min-h-11 items-center gap-3">
+        <a href="{{ route('client.pharma.dashboard') }}" class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-xl font-black text-slate-700 shadow-sm" aria-label="Quay lại Không gian làm việc Pharma">←</a>
+        <div class="min-w-0"><p class="font-black text-slate-950">Bảng giá</p><p class="text-xs text-slate-500">Không gian làm việc Pharma</p></div>
+    </div>
     @if(session('success'))<div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">{{ session('success') }}</div>@endif
     <section class="rounded-[2rem] bg-slate-950 px-5 py-6 text-white shadow-sm sm:px-7">
         <p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-300">My Price Lists</p>
@@ -52,14 +58,38 @@
                         <label><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">User phụ trách</span><select name="manager_user_id" onchange="this.form.submit()" class="h-[46px] w-full rounded-2xl border border-slate-300 bg-white px-3 text-sm"><option value="">Tất cả User</option>@foreach($managerUsers as $managerUser)<option value="{{ $managerUser->id }}" @selected((int)$managerUserId === (int)$managerUser->id)>{{ $managerUser->name }}</option>@endforeach</select></label>
                     @endif
                     <div class="grid grid-cols-2 gap-2 lg:contents">
-                        <label><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Từ ngày</span><input type="date" name="from_date" value="{{ $fromDate }}" onchange="this.form.submit()" class="h-[46px] w-full rounded-2xl border border-slate-300 bg-white px-2 text-sm sm:px-3"></label>
-                        <label><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Đến ngày</span><input type="date" name="to_date" value="{{ $toDate }}" onchange="this.form.submit()" class="h-[46px] w-full rounded-2xl border border-slate-300 bg-white px-2 text-sm sm:px-3"></label>
+                        @foreach([['from_date','Từ ngày',$fromDate],['to_date','Đến ngày',$toDate]] as [$dateName,$dateLabel,$dateIso])
+                            <label><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">{{ $dateLabel }}</span>
+                                <span class="relative block">
+                                    <input type="text" data-filter-date-display="{{ $dateName }}" value="{{ $dateIso ? \Carbon\Carbon::parse($dateIso)->format('d/m/Y') : '' }}" readonly tabindex="-1" aria-hidden="true" class="pointer-events-none h-[46px] w-full rounded-2xl border border-slate-300 bg-white px-2 pr-9 text-sm text-slate-900 sm:px-3">
+                                    <input type="date" data-filter-date-native="{{ $dateName }}" name="{{ $dateName }}" value="{{ $dateIso }}" aria-label="{{ $dateLabel }}" class="absolute inset-0 h-[46px] w-full cursor-pointer opacity-0">
+                                    <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-500" aria-hidden="true">▾</span>
+                                </span>
+                            </label>
+                        @endforeach
                     </div>
                     <label><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Hiển thị</span><select name="per_page" onchange="this.form.submit()" class="h-[46px] w-full rounded-2xl border border-slate-300 bg-white px-3 text-sm">@foreach([25,50,100] as $size)<option value="{{ $size }}" @selected($perPage === $size)>{{ $size }} / trang</option>@endforeach</select></label>
                     @if($hasAnyFilters)<a href="{{ route('client.pharma.price-lists', ['from_date' => $defaultFromDate, 'to_date' => $defaultToDate, 'per_page' => 25]) }}" class="flex min-h-11 items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-600 hover:bg-slate-50">Đặt lại bộ lọc</a>@endif
                 </div>
             </details>
         </form>
+
+        <script>
+            (() => {
+                const displayDate = raw => /^\d{4}-\d{2}-\d{2}$/.test(raw || '') ? raw.split('-').reverse().join('/') : String(raw || '');
+                document.querySelectorAll('[data-filter-date-native]').forEach(input => {
+                    const sync = () => {
+                        const display = document.querySelector(`[data-filter-date-display="${input.dataset.filterDateNative}"]`);
+                        if (display) display.value = displayDate(input.value);
+                    };
+                    sync();
+                    input.addEventListener('change', () => {
+                        sync();
+                        input.form?.requestSubmit();
+                    });
+                });
+            })();
+        </script>
 
         <div class="-mx-4 mt-4 overflow-x-auto px-4 pb-1 sm:-mx-5 sm:px-5" data-status-rail>
             <div class="flex w-max flex-nowrap gap-2 whitespace-nowrap">
@@ -103,7 +133,7 @@
                         @if($priceList->effective_from || $priceList->effective_to)<span class="tabular-nums">@if($priceList->effective_from){{ $priceList->effective_from->format('d/m/Y') }}@endif @if($priceList->effective_from && $priceList->effective_to)→@endif @if($priceList->effective_to){{ $priceList->effective_to->format('d/m/Y') }}@endif</span>@endif
                     </div>
                 </a>
-                @if($exportShare)<a href="{{ $exportShare['url'] }}" title="Tải Excel đã xuất" aria-label="Tải Excel {{ $priceList->name }}" class="absolute bottom-3 right-3 z-10 inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 text-base font-black text-emerald-700 shadow-sm" onclick="event.stopPropagation()">↓</a>@else<span class="pointer-events-none absolute bottom-4 right-4 text-xl text-slate-300">›</span>@endif
+                @if($exportShare)<a href="{{ $exportShare['url'] }}" data-pwa-file-handoff data-file-name="{{ $exportShare['download_name'] ?? ($priceList->code.'.xlsx') }}" title="Tải Excel đã xuất" aria-label="Tải Excel {{ $priceList->name }}" class="absolute bottom-3 right-3 z-10 inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 text-base font-black text-emerald-700 shadow-sm" onclick="event.stopPropagation()">↓</a>@else<span class="pointer-events-none absolute bottom-4 right-4 text-xl text-slate-300">›</span>@endif
             </article>
         @empty <div class="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">Bạn chưa có bảng giá nào trong phạm vi quản lý.</div> @endforelse
     </div>
@@ -117,11 +147,70 @@
                 $exportShare = $exportShares[(int)$priceList->id] ?? null;
                 $statusLabel = match($priceList->status) { 'draft' => 'Nháp', 'pending_approval' => 'Chờ duyệt', 'active' => 'Đang hiệu lực', 'pending_deactivation' => 'Chờ ngừng', 'rejected' => 'Từ chối', 'inactive' => 'Ngưng', 'archived' => 'Lưu trữ', default => $priceList->status };
             @endphp
-            <tr class="transition hover:bg-slate-50"><td class="px-5 py-4"><a href="{{ route('client.pharma.price-lists.show', $priceList->id) }}" class="font-black text-slate-950 hover:underline">{{ $priceList->name }}</a><div class="mt-1 flex items-center gap-2"><p class="text-xs text-slate-400">{{ $priceList->code }}</p>@if($exportShare)<a href="{{ $exportShare['url'] }}" title="Tải Excel đã xuất" aria-label="Tải Excel {{ $priceList->name }}" class="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-sm font-black text-emerald-700 hover:bg-emerald-100">↓</a>@endif</div>@if(in_array($priceList->status, ['draft', 'rejected'], true) && $canCreate)<div class="mt-2 flex items-center gap-3 text-xs font-bold"><a href="{{ route('client.pharma.price-lists.edit', $priceList->id) }}" class="text-blue-700 hover:underline">Sửa</a>@if($priceList->status === 'draft')<form method="POST" action="{{ route('client.pharma.price-lists.delete', $priceList->id) }}" onsubmit="return confirm('Xóa bảng giá Nháp này?')">@csrf @method('DELETE')<button class="text-red-600 hover:underline">Xóa</button></form>@endif</div>@endif</td><td class="px-5 py-4 text-slate-700">{{ $customer }}</td>@if($canApprove)<td class="px-5 py-4 text-slate-700">{{ $priceList->manager?->name ?: '—' }}</td>@endif<td class="px-5 py-4 text-slate-600">{{ $priceList->purpose?->name ?: '—' }}</td><td class="px-5 py-4 text-center font-bold">{{ $priceList->items_count }}</td><td class="px-5 py-4 text-slate-600">{{ $priceList->effective_from?->format('d/m/Y') ?: '—' }} → {{ $priceList->effective_to?->format('d/m/Y') ?: '—' }}</td><td class="px-5 py-4"><span class="rounded-full px-2.5 py-1 text-xs font-bold {{ $priceList->status === 'active' ? 'bg-emerald-100 text-emerald-700' : ($priceList->status === 'draft' ? 'bg-amber-100 text-amber-700' : ($priceList->status === 'pending_approval' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600')) }}">{{ $statusLabel }}</span></td></tr>
+            <tr class="transition hover:bg-slate-50"><td class="px-5 py-4"><a href="{{ route('client.pharma.price-lists.show', $priceList->id) }}" class="font-black text-slate-950 hover:underline">{{ $priceList->name }}</a><div class="mt-1 flex items-center gap-2"><p class="text-xs text-slate-400">{{ $priceList->code }}</p>@if($exportShare)<a href="{{ $exportShare['url'] }}" data-pwa-file-handoff data-file-name="{{ $exportShare['download_name'] ?? ($priceList->code.'.xlsx') }}" title="Tải Excel đã xuất" aria-label="Tải Excel {{ $priceList->name }}" class="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-sm font-black text-emerald-700 hover:bg-emerald-100">↓</a>@endif</div>@if(in_array($priceList->status, ['draft', 'rejected'], true) && $canCreate)<div class="mt-2 flex items-center gap-3 text-xs font-bold"><a href="{{ route('client.pharma.price-lists.edit', $priceList->id) }}" class="text-blue-700 hover:underline">Sửa</a>@if($priceList->status === 'draft')<form method="POST" action="{{ route('client.pharma.price-lists.delete', $priceList->id) }}" onsubmit="return confirm('Xóa bảng giá Nháp này?')">@csrf @method('DELETE')<button class="text-red-600 hover:underline">Xóa</button></form>@endif</div>@endif</td><td class="px-5 py-4 text-slate-700">{{ $customer }}</td>@if($canApprove)<td class="px-5 py-4 text-slate-700">{{ $priceList->manager?->name ?: '—' }}</td>@endif<td class="px-5 py-4 text-slate-600">{{ $priceList->purpose?->name ?: '—' }}</td><td class="px-5 py-4 text-center font-bold">{{ $priceList->items_count }}</td><td class="px-5 py-4 text-slate-600">{{ $priceList->effective_from?->format('d/m/Y') ?: '—' }} → {{ $priceList->effective_to?->format('d/m/Y') ?: '—' }}</td><td class="px-5 py-4"><span class="rounded-full px-2.5 py-1 text-xs font-bold {{ $priceList->status === 'active' ? 'bg-emerald-100 text-emerald-700' : ($priceList->status === 'draft' ? 'bg-amber-100 text-amber-700' : ($priceList->status === 'pending_approval' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600')) }}">{{ $statusLabel }}</span></td></tr>
         @empty <tr><td colspan="{{ $canApprove ? 7 : 6 }}" class="px-5 py-10 text-center text-slate-500">Bạn chưa có bảng giá nào trong phạm vi quản lý.</td></tr> @endforelse
         </tbody></table>
     </section>
     @if($priceLists->hasPages())<div>{{ $priceLists->links() }}</div>@endif
 </div>
-<script>document.addEventListener('DOMContentLoaded',()=>{const f=document.getElementById('price-list-search-form'),i=document.getElementById('price-list-search-input'),d=document.getElementById('price-list-advanced-filters');if(!f||!i)return;if(d&&window.matchMedia('(min-width: 1024px)').matches)d.open=true;let t;i.addEventListener('input',()=>{clearTimeout(t);t=setTimeout(()=>f.requestSubmit(),350);});});</script>
+
+<dialog id="price-list-pwa-file-handoff" class="mb-0 mt-auto w-full max-w-[560px] rounded-t-[28px] border-0 p-0 shadow-2xl backdrop:bg-slate-950/55 sm:m-auto sm:w-[min(92vw,560px)] sm:rounded-[28px]">
+    <div class="p-5 sm:p-6">
+        <p class="text-lg font-black text-slate-950" data-file-title>Chuẩn bị tệp</p>
+        <p class="mt-2 text-sm leading-6 text-slate-600" data-file-message>Đang chuẩn bị tệp trong PWA. Màn hình hiện tại sẽ được giữ nguyên.</p>
+        <div class="mt-5 flex gap-2">
+            <button type="button" data-file-cancel class="min-h-11 flex-1 rounded-2xl border border-slate-300 px-4 py-3 text-sm font-black text-slate-700">Đóng</button>
+            <button type="button" data-file-share disabled class="min-h-11 flex-1 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40">Mở / chia sẻ tệp</button>
+        </div>
+    </div>
+</dialog>
+
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+    const f=document.getElementById('price-list-search-form'),i=document.getElementById('price-list-search-input'),d=document.getElementById('price-list-advanced-filters');
+    if(f&&i){if(d&&window.matchMedia('(min-width: 1024px)').matches)d.open=true;let t;i.addEventListener('input',()=>{clearTimeout(t);t=setTimeout(()=>f.requestSubmit(),350);});}
+
+    const isInstalledPwa=()=>window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
+    const dialog=document.getElementById('price-list-pwa-file-handoff');
+    let preparedPwaFile=null;
+    const canNativeSharePreparedFile=()=>{if(!preparedPwaFile||!navigator.share)return false;const payload={files:[preparedPwaFile]};return !navigator.canShare||navigator.canShare(payload)};
+    const downloadPreparedPwaFile=()=>{
+        if(!preparedPwaFile)return;
+        const objectUrl=URL.createObjectURL(preparedPwaFile),download=document.createElement('a');
+        download.href=objectUrl;download.download=preparedPwaFile.name;download.hidden=true;document.body.appendChild(download);download.click();download.remove();
+        setTimeout(()=>URL.revokeObjectURL(objectUrl),30000);
+    };
+    const preparePwaFile=async(event,anchor)=>{
+        if(!isInstalledPwa())return;
+        event.preventDefault();
+        event.stopPropagation();
+        if(!dialog)return;
+        const title=dialog.querySelector('[data-file-title]'),message=dialog.querySelector('[data-file-message]'),share=dialog.querySelector('[data-file-share]');
+        preparedPwaFile=null;share.disabled=true;share.textContent='Mở / chia sẻ tệp';title.textContent='Chuẩn bị tệp';message.textContent='Đang chuẩn bị tệp trong PWA. Màn hình hiện tại sẽ được giữ nguyên.';dialog.showModal();
+        try{
+            const response=await fetch(anchor.href,{credentials:'same-origin',cache:'no-store',headers:{'X-PWA-File-Handoff':'1'}});
+            if(!response.ok)throw new Error('download failed');
+            const blob=await response.blob(),name=anchor.dataset.fileName||'bang-gia.xlsx';
+            preparedPwaFile=new File([blob],name,{type:blob.type||'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+            title.textContent='Tệp đã sẵn sàng';share.disabled=false;
+            if(canNativeSharePreparedFile()){
+                message.textContent='Chọn “Mở / chia sẻ tệp” để bàn giao sang Files, Excel hoặc ứng dụng phù hợp. Màn hình PWA vẫn được giữ nguyên.';
+            }else{
+                share.textContent='Lưu tệp';message.textContent='Chọn “Lưu tệp” để tải Excel xuống mà không thay thế màn hình PWA.';
+            }
+        }catch(_){title.textContent='Không thể chuẩn bị tệp';message.textContent='Không tải được tệp trong phiên hiện tại. PWA vẫn giữ nguyên màn hình để bạn có thể thử lại.'}
+    };
+    document.querySelectorAll('[data-pwa-file-handoff]').forEach(anchor=>anchor.addEventListener('click',event=>preparePwaFile(event,anchor)));
+    dialog?.querySelector('[data-file-cancel]')?.addEventListener('click',()=>dialog.close());
+    dialog?.querySelector('[data-file-share]')?.addEventListener('click',async()=>{
+        if(!preparedPwaFile)return;
+        if(canNativeSharePreparedFile()){
+            try{await navigator.share({files:[preparedPwaFile],title:'Bảng giá'});dialog.close();return}catch(error){if(error?.name==='AbortError')return}
+        }
+        downloadPreparedPwaFile();
+        const message=dialog.querySelector('[data-file-message]');if(message)message.textContent='Đã chuyển tệp sang trình tải xuống. Màn hình PWA vẫn được giữ nguyên.';
+        const button=dialog.querySelector('[data-file-share]');if(button)button.textContent='Lưu lại tệp';
+    });
+});
+</script>
 @endsection

@@ -90,15 +90,26 @@ final class PharmaApplicationController extends Controller
         [$header, $items] = $this->validatedPriceListPayload($request, true);
         $header['code'] = 'BG-GLOBAL-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4));
 
+        $scope = $request->validate([
+            'apply_all_users' => ['nullable', 'boolean'],
+            'global_user_ids' => ['nullable', 'array'],
+            'global_user_ids.*' => ['integer'],
+        ]);
+        $applyAllUsers = $request->boolean('apply_all_users');
+        $userIds = $scope['global_user_ids'] ?? [];
+
         $list = $globalWorkflow->createAndActivate(
             (int) $user->id,
-            (int) $request->validate(['manager_user_id' => ['required', 'integer']])['manager_user_id'],
+            $applyAllUsers,
+            $userIds,
             $header,
             $items,
         );
 
         return redirect()->route('client.pharma.price-lists')
-            ->with('success', 'Đã tạo, gán User phụ trách và kích hoạt bảng giá chung '.$list->code.'.');
+            ->with('success', $applyAllUsers
+                ? 'Đã kích hoạt bảng giá chung cho tất cả User '.$list->code.'.'
+                : 'Đã kích hoạt bảng giá chung cho '.count($userIds).' User '.$list->code.'.');
     }
 
     public function editPriceList(
@@ -299,6 +310,28 @@ final class PharmaApplicationController extends Controller
             ->with('success', 'Đã kích hoạt trực tiếp bảng giá.');
     }
 
+    public function updatePendingPriceListHeader(
+        int $priceList,
+        Request $request,
+        ApplicationRegistry $registry,
+        PriceListApprovalWorkflow $approval,
+    ) {
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.price-lists.approve'), 403);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'effective_from' => ['required', 'date'],
+            'effective_to' => ['required', 'date', 'after_or_equal:effective_from'],
+        ]);
+
+        $approval->updatePendingHeader((int) $user->id, $priceList, $validated);
+
+        return redirect()->route('client.pharma.price-lists.show', $priceList)
+            ->with('success', 'Đã cập nhật thông tin bảng giá. Bảng giá vẫn đang chờ phê duyệt.');
+    }
+
     public function approvePriceList(
         int $priceList,
         Request $request,
@@ -311,7 +344,7 @@ final class PharmaApplicationController extends Controller
 
         $approval->approve((int) $user->id, $priceList);
 
-        return redirect()->route('client.pharma.price-list-approvals')
+        return redirect()->route('client.pharma.price-lists.show', $priceList)
             ->with('success', 'Đã phê duyệt và kích hoạt bảng giá.');
     }
 
@@ -806,7 +839,7 @@ final class PharmaApplicationController extends Controller
         $award=$workflow->contextAward($scope); abort_if($award===null,404); $hospital=$workflow->hospital($award,$partner); abort_if($hospital===null,404);
         return view('ClientPortal::applications.pharma.bid-award-hospital-allocation',[
             'application'=>$registry->find('pharma'),'scope'=>$scope,'award'=>$award,'hospital'=>$hospital,
-            'products'=>$workflow->products($award),'allocations'=>$workflow->hospitalAllocations($award,$partner),
+            'products'=>$workflow->productAllocationCards($award),'allocations'=>$workflow->hospitalAllocations($award,$partner),
             'canManageCommercialPolicy'=>$registry->userCan($user,'client.pharma.bid-awards.commercial-policy'),
         ]);
     }
@@ -859,6 +892,7 @@ final class PharmaApplicationController extends Controller
         return view('ClientPortal::applications.pharma.bid-award-commercial-policy', [
             'application' => $registry->find('pharma'), 'scope' => $scope, 'award' => $award,
             'products' => $workflow->products($award), 'policies' => $workflow->productPolicies($award),
+            'commercialPolicyReady' => $workflow->commercialPolicyReady($award),
         ]);
     }
 
@@ -870,6 +904,11 @@ final class PharmaApplicationController extends Controller
         $award = $workflow->contextAward($scope); abort_if($award === null, 404);
         $data = $request->validate(['percentages' => ['required', 'array'], 'percentages.*' => ['nullable', 'numeric', 'between:0,100']]);
         $workflow->saveProductPolicies($award, $data['percentages'], (int) $user->id);
+
+        if (! $workflow->commercialPolicyReady($award)) {
+            return redirect()->route('client.pharma.bid-awards.commercial-policy', $scope)
+                ->withErrors(['commercial_policy' => 'Hãy nhập chính sách (%) cho tất cả sản phẩm đang được phân bổ trước khi tiếp tục phân công User quản lý.']);
+        }
 
         return redirect()->route('client.pharma.bid-awards.manager-assignment', $scope)->with('success', 'Đã lưu chính sách kinh doanh. Tiếp tục chọn cách phân công User quản lý.');
     }

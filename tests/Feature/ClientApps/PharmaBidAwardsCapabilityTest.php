@@ -129,6 +129,15 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString('Sản phẩm', $list);
         $this->assertStringContainsString('Giá trị', $list);
         $this->assertStringContainsString('Thiết lập kinh doanh', $list);
+        $this->assertStringContainsString('data-bid-filter-combobox', $list);
+        $this->assertStringContainsString('data-bid-filter-search', $list);
+        $this->assertStringContainsString('data-bid-filter-option', $list);
+        $this->assertStringContainsString("['investor','Chủ đầu tư','Tìm chủ đầu tư...'", $list);
+        $this->assertStringContainsString("['medicine','Sản phẩm','Tìm sản phẩm...'", $list);
+        $this->assertStringNotContainsString('name="investor" data-searchable-filter', $list);
+        $this->assertStringNotContainsString('name="medicine" data-searchable-filter', $list);
+        $this->assertStringContainsString('<select name="value_sort"', $list);
+        $this->assertStringContainsString('<select name="business_setup"', $list);
         $this->assertStringContainsString('Phân bổ:', $list);
         $this->assertStringContainsString('CSKD:', $list);
         $this->assertStringNotContainsString('SP của tôi', $list);
@@ -138,7 +147,10 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString('md:grid-cols-2 xl:grid-cols-3', $list);
         $this->assertStringContainsString('\\Carbon\\Carbon::parse', $list);
         $this->assertStringNotContainsString('CarbonCarbon::parse', $list);
-        $this->assertStringContainsString("setTimeout(()=>form.requestSubmit(),350)", $list);
+        $this->assertStringContainsString("const initialSearch=(input?.value||'').trim()", $list);
+        $this->assertStringContainsString("if(nextSearch===initialSearch) return", $list);
+        $this->assertStringContainsString("},750)", $list);
+        $this->assertStringNotContainsString("setTimeout(()=>form.requestSubmit(),350)", $list);
         $this->assertStringContainsString('Trong phạm vi tôi phụ trách', $list);
         $this->assertStringContainsString('md:grid-cols-2 xl:grid-cols-3', $list);
         $this->assertStringNotContainsString('BV của tôi', $detail);
@@ -171,10 +183,22 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString('Cần hoàn tất phân bổ số lượng trước', $workflow);
         $this->assertStringContainsString('Sản phẩm phải được phân bổ số lượng trước', $workflow);
         $this->assertStringContainsString('Thiết lập chung', $allocation);
+        $this->assertStringContainsString("@section('hide-application-header', true)", $allocation);
+        $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $allocation);
+        $this->assertStringContainsString("@section('app-dashboard-route', route('client.pharma.dashboard'))", $allocation);
+        $this->assertStringContainsString('aria-label="Quay lại kết quả trúng thầu"', $allocation);
+        $this->assertStringContainsString("route('client.pharma.bid-awards.show',\$scope)", $allocation);
         $this->assertStringContainsString('① Phạm vi & hiệu lực', $allocation);
         $this->assertStringContainsString('② Chọn cơ sở KCB', $allocation);
         $this->assertStringContainsString('③ Kiểm tra & lưu', $allocation);
         $this->assertStringContainsString('data-review-checkbox', $allocation);
+        $this->assertStringContainsString('data-province-clear', $allocation);
+        $this->assertStringContainsString('data-facility-clear', $allocation);
+        $this->assertStringContainsString('aria-label="Xóa tìm Tỉnh/Thành"', $allocation);
+        $this->assertStringContainsString('aria-label="Xóa tìm bệnh viện"', $allocation);
+        $this->assertStringContainsString('grid-cols-1 gap-3 sm:grid-cols-2', $allocation);
+        $this->assertStringContainsString("filter('[data-province-search]','[data-province-card]','[data-province-clear]')", $allocation);
+        $this->assertStringContainsString("filter('[data-facility-search]','[data-facility-card]','[data-facility-clear]')", $allocation);
         $this->assertStringContainsString('@checked(in_array((int)$facility->id,$draftFacilityIds,true))', $allocation);
         $this->assertStringContainsString('Lưu thiết lập phân bổ', $allocation);
         $this->assertStringContainsString('Bệnh viện nhận phân bổ', $allocation);
@@ -189,8 +213,22 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertGreaterThanOrEqual(3, substr_count($allocation, '<details'));
         $this->assertStringContainsString('md:grid-cols-2', $allocation);
         $this->assertStringContainsString('Thiết lập chính sách kinh doanh', $policy);
+        $this->assertStringContainsString("'commercialPolicyReady' => \$workflow->commercialPolicyReady(\$award)", $controller);
+        $this->assertStringContainsString("@section('hide-application-header', true)", $policy);
+        $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $policy);
+        $this->assertStringContainsString('data-policy-product-search', $policy);
+        $this->assertStringContainsString('data-policy-product-clear', $policy);
+        $this->assertStringContainsString('data-policy-product-empty', $policy);
+        $this->assertStringContainsString('data-policy-product-card', $policy);
+        $this->assertStringContainsString('@if($commercialPolicyReady)', $policy);
+        $this->assertStringContainsString('Phân công User quản lý · lưu CSKD trước', $policy);
+        $this->assertStringContainsString('Lưu chính sách & tiếp tục', $policy);
         $this->assertStringContainsString('Cần hoàn tất phân bổ số lượng trước.', $detail);
         $this->assertStringContainsString('active:scale-[.985]', $detail);
+        $this->assertStringContainsString("const initialSearch=(input?.value||'').trim()", $detail);
+        $this->assertStringContainsString("if(nextSearch===initialSearch)return", $detail);
+        $this->assertStringContainsString("},750)", $detail);
+        $this->assertStringNotContainsString("setTimeout(()=>form.requestSubmit(),350)", $detail);
     }
 
     public function test_bid_award_allocation_is_collapsible_and_hospital_first(): void
@@ -252,6 +290,23 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString("preg_replace('/[^0-9]/', '', (string)\$value)", $controller);
         $this->assertStringContainsString("'quantities.*'=>['nullable','integer','gt:0']", $controller);
         $this->assertStringContainsString('data-quantity-input', $allocation);
+        $this->assertStringContainsString("'products'=>\$workflow->productAllocationCards(\$award)", $controller);
+        $this->assertStringContainsString('SL trúng thầu', $allocation);
+        $this->assertStringContainsString('Đã phân bổ', $allocation);
+        $this->assertStringContainsString('Còn lại', $allocation);
+        $this->assertStringContainsString('Bệnh viện hiện có:', $allocation);
+        $this->assertStringContainsString('$product->pwa_allocated_quantity', $allocation);
+        $this->assertStringContainsString('$product->pwa_remaining_quantity', $allocation);
+        $this->assertStringContainsString("@section('hide-application-header', true)", $allocation);
+        $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $allocation);
+        $this->assertStringContainsString("@section('app-dashboard-route', route('client.pharma.dashboard'))", $allocation);
+        $this->assertStringContainsString('aria-label="Quay lại danh sách bệnh viện"', $allocation);
+        $this->assertStringContainsString('data-allocation-product-search', $allocation);
+        $this->assertStringContainsString('data-allocation-product-clear', $allocation);
+        $this->assertStringContainsString('data-allocation-product-empty', $allocation);
+        $this->assertStringContainsString('data-allocation-product-card', $allocation);
+        $this->assertStringContainsString('Không có sản phẩm phù hợp.', $allocation);
+        $this->assertStringContainsString('bg-white/95', $allocation);
         $this->assertStringContainsString("number_format((float)\$row->allocated_quantity,0,',','.')", $allocation);
         $this->assertStringContainsString("replace(/\\D/g,'')", $allocation);
         $this->assertStringContainsString("toLocaleString('vi-VN')", $allocation);
@@ -260,6 +315,24 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString('Để trống để dùng chính sách gốc.', $policy);
         $this->assertStringContainsString('saveHospitalPolicyOverride', $workflow);
         $this->assertStringContainsString('commercial_policy_percentage !== null', $policy);
+    }
+
+    public function test_hospital_policy_uses_focused_pwa_workspace_and_local_product_search(): void
+    {
+        $view=file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/bid-award-hospital-policy.blade.php'));
+
+        $this->assertStringContainsString("@section('app-dashboard-route', route('client.pharma.dashboard'))", $view);
+        $this->assertStringContainsString("@section('hide-application-header', true)", $view);
+        $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $view);
+        $this->assertStringContainsString('aria-label="Quay lại phân bổ bệnh viện"', $view);
+        $this->assertStringContainsString('data-hospital-policy-search', $view);
+        $this->assertStringContainsString('data-hospital-policy-clear', $view);
+        $this->assertStringContainsString('data-hospital-policy-empty', $view);
+        $this->assertStringContainsString('data-hospital-policy-product', $view);
+        $this->assertStringContainsString('Không có sản phẩm phù hợp.', $view);
+        $this->assertStringContainsString('CSKD gốc', $view);
+        $this->assertStringContainsString('Để trống để dùng chính sách gốc.', $view);
+        $this->assertStringContainsString('Lưu CSKD bệnh viện', $view);
     }
 
     public function test_base_policy_values_are_compact_and_allocation_overview_filters_incomplete_products(): void
@@ -279,6 +352,11 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString("ps?.addEventListener('input',applyProducts)", $allocation);
         $this->assertStringContainsString("pt?.addEventListener('click'", $allocation);
         $this->assertStringContainsString('Không có sản phẩm phù hợp bộ lọc.', $allocation);
+        $this->assertStringContainsString('autocomplete="off"', $allocation);
+        $this->assertStringContainsString('data-hospital-clear', $allocation);
+        $this->assertStringContainsString('data-hospital-empty', $allocation);
+        $this->assertStringContainsString('Không có bệnh viện phù hợp.', $allocation);
+        $this->assertStringContainsString("filter('[data-hospital-search]','[data-hospital-card]','[data-hospital-clear]')", $allocation);
     }
 
     public function test_manager_assignment_starts_with_assignment_mode_and_reuses_canonical_services(): void
@@ -303,6 +381,15 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString('assignManagerToProducts', $workflow);
         $this->assertStringContainsString("where('is_active', true)", $workflow);
         $this->assertStringContainsString('Hãy hoàn tất chính sách kinh doanh trước khi phân công User quản lý.', $workflow);
+        $this->assertStringContainsString("@section('hide-application-header', true)", $assignment);
+        $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $assignment);
+        $this->assertStringContainsString("@section('app-dashboard-route', route('client.pharma.dashboard'))", $assignment);
+        $this->assertStringContainsString('aria-label="Quay lại chính sách kinh doanh"', $assignment);
+        $this->assertStringContainsString('data-manager-clear', $assignment);
+        $this->assertStringContainsString('aria-label="Xóa tìm User"', $assignment);
+        $this->assertStringContainsString('data-management-hospital-clear', $assignment);
+        $this->assertStringContainsString('data-management-hospital-empty', $assignment);
+        $this->assertStringContainsString('Không có bệnh viện phù hợp.', $assignment);
         $this->assertStringContainsString("whereIn('pharma_drug_bid_award_allocations.drug_bid_award_id', \$awardIds)", $workflow);
         $this->assertStringContainsString("where('pharma_drug_bid_award_allocations.status', DrugBidAwardAllocation::STATUS_ACTIVE)", $workflow);
 
@@ -315,7 +402,10 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString('Bệnh viện × Sản phẩm', $assignment);
         $this->assertStringContainsString('Cần gỡ toàn bộ phân công trước khi chuyển sang cách khác.', $assignment);
         $this->assertStringContainsString('Phân công User quản lý', $policy);
-        $this->assertStringContainsString('Lưu & tiếp tục', $policy);
+        $this->assertStringContainsString("if (! \$workflow->commercialPolicyReady(\$award))", $controller);
+        $this->assertStringContainsString("route('client.pharma.bid-awards.commercial-policy', \$scope)", $controller);
+        $this->assertStringContainsString('Hãy nhập chính sách (%) cho tất cả sản phẩm đang được phân bổ trước khi tiếp tục phân công User quản lý.', $controller);
+        $this->assertStringContainsString('Lưu chính sách & tiếp tục', $policy);
         $this->assertStringNotContainsString('Admin::', $assignment);
         $this->assertStringNotContainsString('wire:', $assignment);
     }
@@ -439,6 +529,15 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString('data-assignment-checkbox', $view);
         $this->assertStringContainsString('data-toggle-hospital', $view);
         $this->assertStringContainsString('data-toggle-all-assignments', $view);
+        $this->assertStringContainsString("@section('hide-application-header', true)", $view);
+        $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $view);
+        $this->assertStringContainsString("@section('app-dashboard-route', route('client.pharma.dashboard'))", $view);
+        $this->assertStringContainsString('aria-label="Quay lại phân công User quản lý"', $view);
+        $this->assertStringContainsString('data-adjust-search', $view);
+        $this->assertStringContainsString('data-adjust-search-clear', $view);
+        $this->assertStringContainsString('data-adjust-search-empty', $view);
+        $this->assertStringContainsString('data-adjust-hospital', $view);
+        $this->assertStringContainsString('Không có phân công phù hợp.', $view);
         $this->assertStringContainsString('Thay User mục đã chọn', $view);
         $this->assertStringContainsString('Gỡ mục đã chọn', $view);
         $this->assertStringContainsString('data-remove-selected-modal', $view);
