@@ -84,7 +84,10 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
         $this->assertStringContainsString('pb-[calc(12px+env(safe-area-inset-bottom,0px))]', $view);
         $this->assertStringContainsString('id="review-products"', $view);
         $this->assertStringContainsString('data-order-review data-order-step-panel="3"', $view);
-        $this->assertStringContainsString('bottom-[calc(10px+env(safe-area-inset-bottom,0px))]', $view);
+        $this->assertStringContainsString('bottom-[calc(78px+env(safe-area-inset-bottom,0px))]', $view);
+        $this->assertStringContainsString('lg:bottom-4', $view);
+        $this->assertStringContainsString('[data-order-actions][data-step="3"] #order-submit', $view);
+        $this->assertStringContainsString("setAttribute('data-step',String(orderStep))", $view);
         $this->assertStringContainsString('h-9 shrink-0 rounded-xl', $view);
         $this->assertStringContainsString('id="review-summary"', $view);
         $this->assertStringContainsString('refreshReview', $view);
