@@ -91,6 +91,33 @@ const initPharmaPriceListWizard = () => {
     form.addEventListener('input', syncActions);
     form.addEventListener('change', syncActions);
 
+    const managerBox = document.querySelector('[data-price-list-manager-combobox]');
+    const managerToggle = document.getElementById('client-price-list-manager-toggle');
+    const managerPanel = document.getElementById('client-price-list-manager-panel');
+    const managerSearch = document.getElementById('client-price-list-manager-search');
+    const managerId = document.getElementById('client-price-list-manager');
+    const managerLabel = document.getElementById('client-price-list-manager-label');
+    const managerOptions = [...document.querySelectorAll('[data-manager-option]')];
+    const renderManagers = () => {
+        if (!managerPanel) return;
+        const q = (managerSearch?.value || '').toLocaleLowerCase('vi').trim();
+        managerOptions.forEach(option => option.classList.toggle('hidden', q !== '' && !(option.dataset.search || '').includes(q)));
+    };
+    managerToggle?.addEventListener('click', () => {
+        managerPanel?.classList.toggle('hidden');
+        if (!managerPanel?.classList.contains('hidden')) {
+            renderManagers();
+            setTimeout(() => managerSearch?.focus(), 0);
+        }
+    });
+    managerSearch?.addEventListener('input', renderManagers);
+    managerOptions.forEach(option => option.addEventListener('click', () => {
+        if (managerId) managerId.value = option.dataset.value || '';
+        if (managerLabel) managerLabel.textContent = option.dataset.label || option.textContent.trim();
+        managerPanel?.classList.add('hidden');
+        syncActions();
+    }));
+
     const customerSearch = document.getElementById('client-price-list-customer-search');
     const customerId = document.getElementById('client-price-list-customer');
     const customerResults = document.getElementById('client-price-list-customer-results');
@@ -122,6 +149,7 @@ const initPharmaPriceListWizard = () => {
     }));
     document.addEventListener('click', event => {
         if (customerResults && !event.target.closest('[data-customer-combobox]')) closeCustomers();
+        if (managerBox && !managerBox.contains(event.target)) managerPanel?.classList.add('hidden');
     });
 
     const productSearch = document.getElementById('source-product-search');
