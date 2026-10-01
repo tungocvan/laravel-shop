@@ -280,6 +280,16 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString("preg_replace('/[^0-9]/', '', (string)\$value)", $controller);
         $this->assertStringContainsString("'quantities.*'=>['nullable','integer','gt:0']", $controller);
         $this->assertStringContainsString('data-quantity-input', $allocation);
+        $this->assertStringContainsString("@section('hide-application-header', true)", $allocation);
+        $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $allocation);
+        $this->assertStringContainsString("@section('app-dashboard-route', route('client.pharma.dashboard'))", $allocation);
+        $this->assertStringContainsString('aria-label="Quay lại danh sách bệnh viện"', $allocation);
+        $this->assertStringContainsString('data-allocation-product-search', $allocation);
+        $this->assertStringContainsString('data-allocation-product-clear', $allocation);
+        $this->assertStringContainsString('data-allocation-product-empty', $allocation);
+        $this->assertStringContainsString('data-allocation-product-card', $allocation);
+        $this->assertStringContainsString('Không có sản phẩm phù hợp.', $allocation);
+        $this->assertStringContainsString('bg-white/95', $allocation);
         $this->assertStringContainsString("number_format((float)\$row->allocated_quantity,0,',','.')", $allocation);
         $this->assertStringContainsString("replace(/\\D/g,'')", $allocation);
         $this->assertStringContainsString("toLocaleString('vi-VN')", $allocation);
