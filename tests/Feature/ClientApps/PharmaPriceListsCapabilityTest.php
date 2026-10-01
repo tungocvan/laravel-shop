@@ -85,8 +85,8 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('Chỉ hiển thị các bảng giá bạn là người phụ trách', $view);
         $this->assertStringContainsString('25,50,100', $view);
         $this->assertStringContainsString("setTimeout(()=>f.requestSubmit(),350)", $view);
-        $this->assertStringContainsString('name="from_date"', $view);
-        $this->assertStringContainsString('name="to_date"', $view);
+        $this->assertStringContainsString("['from_date','Từ ngày',\$fromDate]", $view);
+        $this->assertStringContainsString("['to_date','Đến ngày',\$toDate]", $view);
         $this->assertStringContainsString('data-filter-date-display="{{ $dateName }}"', $view);
         $this->assertStringContainsString('type="date" data-filter-date-native="{{ $dateName }}" name="{{ $dateName }}"', $view);
         $this->assertStringContainsString("format('d/m/Y')", $view);
