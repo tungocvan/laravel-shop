@@ -134,7 +134,8 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString("source.tomselect?.on('change', clearSourceError)", $create);
         $this->assertStringContainsString("form?.elements.namedItem('source_price_list_id')?.value", $create);
         $this->assertStringContainsString('source-price-list-error', $create);
-        $this->assertStringContainsString("source.tomselect?.getValue?.() || source.value", $create);
+        $this->assertStringContainsString("source?.tomselect?.getValue?.() || source?.value", $create);
+        $this->assertStringContainsString("window.location.assign(url.toString())", $create);
         $this->assertStringContainsString('sessionStorage.setItem', $create);
         $this->assertStringContainsString('sessionStorage.getItem', $create);
         $this->assertStringContainsString('source_price_list_id', $create);
