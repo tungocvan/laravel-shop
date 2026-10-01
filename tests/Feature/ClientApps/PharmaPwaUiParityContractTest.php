@@ -37,6 +37,26 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertStringContainsString("route('client.pharma.dashboard')", $index);
     }
 
+    public function test_price_list_editor_exposes_the_four_step_responsive_wizard_contract(): void
+    {
+        $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/price-list-create.blade.php'));
+
+        foreach ([1, 2, 3, 4] as $step) {
+            $this->assertStringContainsString('data-wizard-panel="'.$step.'"', $view);
+            $this->assertStringContainsString('data-step-jump="{{ $step }}"', $view);
+        }
+
+        $this->assertStringContainsString('01 · Khởi tạo bảng giá', $view);
+        $this->assertStringContainsString('02 · Khách hàng & mục đích', $view);
+        $this->assertStringContainsString('03 · Sản phẩm & giá', $view);
+        $this->assertStringContainsString('04 · Xem lại & lưu', $view);
+        $this->assertStringContainsString('id="wizard-back"', $view);
+        $this->assertStringContainsString('id="wizard-next"', $view);
+        $this->assertStringContainsString('id="wizard-submit"', $view);
+        $this->assertStringContainsString("const formatDate = value =>", $view);
+        $this->assertStringContainsString("return [d,m,y].filter(Boolean).join('/')", $view);
+    }
+
     public function test_price_list_editor_uses_focused_task_shell_and_canonical_business_selectors(): void
     {
         $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/price-list-create.blade.php'));
