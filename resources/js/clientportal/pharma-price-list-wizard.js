@@ -34,7 +34,12 @@ const initPharmaPriceListWizard = () => {
         if (back) back.classList.toggle('hidden', currentStep === 1);
         if (next) {
             next.classList.toggle('hidden', currentStep === 4);
-            next.disabled = currentStep === 1 ? !(source?.value || document.querySelector('[data-global-price-list-mode]')) : currentStep === 2 ? !stepTwoReady() : false;
+            const isGlobalStepTwo = currentStep === 2 && !!document.querySelector('[data-global-user-scope]');
+            next.disabled = currentStep === 1
+                ? !(source?.value || document.querySelector('[data-global-price-list-mode]'))
+                : currentStep === 2 && !isGlobalStepTwo
+                    ? !stepTwoReady()
+                    : false;
         }
         if (submit) {
             submit.classList.toggle('hidden', currentStep !== 4);
@@ -84,7 +89,21 @@ const initPharmaPriceListWizard = () => {
             if (loadSource) loadSource.click(); else showStep(2);
             return;
         }
-        if (currentStep === 2 && !stepTwoReady()) return;
+        if (currentStep === 2 && !stepTwoReady()) {
+            const globalScope = document.querySelector('[data-global-user-scope]');
+            if (globalScope) {
+                const applyAll = document.getElementById('apply-all-global-users')?.checked;
+                const selectedUsers = document.querySelectorAll('input[name="global_user_ids[]"]:checked').length;
+                globalUserError?.classList.toggle('hidden', !!applyAll || selectedUsers > 0);
+                if (!applyAll && selectedUsers === 0) {
+                    globalUserPicker?.classList.remove('hidden');
+                    globalUserSearch?.focus();
+                    return;
+                }
+            }
+            form.reportValidity();
+            return;
+        }
         showStep(currentStep + 1);
     });
     steps.forEach(button => button.addEventListener('click', () => {
