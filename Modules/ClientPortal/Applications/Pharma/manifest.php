@@ -77,6 +77,11 @@ return [
                     'permission' => 'client.pharma.orders.post',
                     'sort_order' => 50,
                 ],
+                'post' => [
+                    'name' => 'Ghi sổ đơn hàng',
+                    'permission' => 'client.pharma.orders.post',
+                    'sort_order' => 50,
+                ],
             ],
         ],
         'inventory' => [
