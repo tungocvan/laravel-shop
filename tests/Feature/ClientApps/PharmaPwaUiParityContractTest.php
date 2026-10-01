@@ -93,8 +93,8 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertStringContainsString('aria-label="Quay lại Bảng giá của tôi"', $view);
 
         $this->assertStringContainsString('Bảng giá khách hàng', $view);
-        $this->assertStringNotContainsString("route('client.pharma.price-lists.create', ['type'=>'global'])", $view);
-        $this->assertStringNotContainsString('Kích hoạt trực tiếp', $view);
+        $this->assertStringContainsString("route('client.pharma.price-lists.create', ['type'=>'global'])", $view);
+        $this->assertStringContainsString('Kích hoạt trực tiếp', $view);
         $this->assertStringContainsString('data-date-display name="effective_from"', $view);
         $this->assertStringContainsString('data-date-display name="effective_to"', $view);
         $this->assertStringContainsString('placeholder="dd/mm/yyyy"', $view);
