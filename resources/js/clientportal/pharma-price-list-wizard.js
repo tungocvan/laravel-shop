@@ -36,7 +36,7 @@ const initPharmaPriceListWizard = () => {
             next.classList.toggle('hidden', currentStep === 4);
             const isGlobalStepTwo = currentStep === 2 && !!document.querySelector('[data-global-user-scope]');
             next.disabled = currentStep === 1
-                ? !(source?.value || document.querySelector('[data-global-price-list-mode]'))
+                ? !source?.value
                 : currentStep === 2 && !isGlobalStepTwo
                     ? !stepTwoReady()
                     : false;
