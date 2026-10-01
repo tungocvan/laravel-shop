@@ -183,6 +183,11 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString('Cần hoàn tất phân bổ số lượng trước', $workflow);
         $this->assertStringContainsString('Sản phẩm phải được phân bổ số lượng trước', $workflow);
         $this->assertStringContainsString('Thiết lập chung', $allocation);
+        $this->assertStringContainsString("@section('hide-application-header', true)", $allocation);
+        $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $allocation);
+        $this->assertStringContainsString("@section('app-dashboard-route', route('client.pharma.dashboard'))", $allocation);
+        $this->assertStringContainsString('aria-label="Quay lại kết quả trúng thầu"', $allocation);
+        $this->assertStringContainsString("route('client.pharma.bid-awards.show',\$scope)", $allocation);
         $this->assertStringContainsString('① Phạm vi & hiệu lực', $allocation);
         $this->assertStringContainsString('② Chọn cơ sở KCB', $allocation);
         $this->assertStringContainsString('③ Kiểm tra & lưu', $allocation);
