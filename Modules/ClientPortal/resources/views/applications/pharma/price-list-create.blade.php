@@ -64,11 +64,30 @@
     </form>
 
     <form id="price-list-editor" method="POST" action="{{ $isEditing ? route('client.pharma.price-lists.update', $editingPriceList->id) : ($isGlobalMode ? route('client.pharma.price-lists.global.store') : route('client.pharma.price-lists.store')) }}" class="space-y-5">@csrf @if($isEditing) @method('PUT') @endif
+        @if(!$isGlobalMode)<input type="hidden" name="source_price_list_id" value="{{ old('source_price_list_id', $sourcePriceListId) }}">@endif
         <section data-wizard-panel="2" class="{{ $sourcePriceListId || $isGlobalMode ? '' : 'hidden' }} rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
             <div class="mb-5"><p class="text-xs font-black uppercase tracking-[0.14em] text-slate-400">02 · Khách hàng & mục đích</p><h2 class="mt-1 text-lg font-black text-slate-950">Thông tin cơ bản</h2></div>
             <div class="grid gap-4 lg:grid-cols-2">
                 <label><span class="mb-1.5 block text-xs font-bold text-slate-500">Tên bảng giá *</span><input name="name" value="{{ $field('name') }}" required maxlength="255" class="h-12 w-full rounded-2xl border border-slate-300 px-4" placeholder="VD: Bảng giá BV An Bình Q4/2026"></label>
-                @if($isGlobalMode)<div><span class="mb-1.5 block text-xs font-bold text-slate-500">User phụ trách *</span><x-select-search id="client-price-list-manager" name="manager_user_id" placeholder="Tra cứu User phụ trách..." :value="old('manager_user_id')"><option value="">Chọn User phụ trách</option>@foreach($activeUsers as $assignedUser)<option value="{{ $assignedUser->id }}" @selected((string)old('manager_user_id') === (string)$assignedUser->id)>{{ $assignedUser->name }}{{ $assignedUser->email ? ' · '.$assignedUser->email : '' }}</option>@endforeach</x-select-search></div>@else<div>
+                @if($isGlobalMode)<div data-price-list-manager-combobox>
+                    <span class="mb-1.5 block text-xs font-bold text-slate-500">User phụ trách *</span>
+                    @php $selectedManager = $activeUsers->firstWhere('id', (int) old('manager_user_id')); @endphp
+                    <div class="relative">
+                        <button id="client-price-list-manager-toggle" type="button" class="flex h-12 w-full items-center justify-between rounded-2xl border border-slate-300 bg-white px-4 text-left">
+                            <span id="client-price-list-manager-label" class="min-w-0 truncate text-sm text-slate-700">{{ $selectedManager?->name ?? 'Chọn User phụ trách' }}</span>
+                            <span class="ml-2 shrink-0 text-slate-400">⌄</span>
+                        </button>
+                        <div id="client-price-list-manager-panel" class="absolute z-[80] mt-1 hidden w-full rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+                            <input id="client-price-list-manager-search" type="search" autocomplete="off" placeholder="Tìm User phụ trách..." class="h-11 w-full rounded-xl border border-slate-300 px-3">
+                            <div id="client-price-list-manager-results" class="mt-2 max-h-56 overflow-y-auto">
+                                @foreach($activeUsers as $assignedUser)
+                                    <button type="button" data-manager-option data-value="{{ $assignedUser->id }}" data-label="{{ $assignedUser->name }}{{ $assignedUser->email ? ' · '.$assignedUser->email : '' }}" data-search="{{ mb_strtolower($assignedUser->name.' '.($assignedUser->email ?? '')) }}" class="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100">{{ $assignedUser->name }}{{ $assignedUser->email ? ' · '.$assignedUser->email : '' }}</button>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
+                    <input id="client-price-list-manager" type="hidden" name="manager_user_id" value="{{ old('manager_user_id') }}">
+                </div>@else<div>
 <span class="mb-1.5 block text-xs font-bold text-slate-500">Khách hàng *</span>
 @php $selectedCustomer = $customers->firstWhere('id', (int) $field('partner_id')); @endphp
 <div data-customer-combobox class="relative">
