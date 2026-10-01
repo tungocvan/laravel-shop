@@ -2,6 +2,8 @@
     $allNavigation = $primaryNavigation->concat($moreNavigation)->values();
 @endphp
 
+@php($hideMobileNavigation = $hideMobileNavigation ?? false)
+
 @if($allNavigation->isNotEmpty())
     <aside class="hidden sm:flex sm:w-20 sm:shrink-0 sm:flex-col sm:border-r sm:border-slate-200 sm:bg-white lg:w-56 xl:w-60" aria-label="Điều hướng ứng dụng">
         <div class="sticky top-[65px] flex min-h-[calc(100dvh-65px)] flex-col px-2 py-4 lg:px-3">
@@ -38,6 +40,7 @@
         </div>
     </aside>
 
+    @unless($hideMobileNavigation)
     <nav class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-2 pb-[max(.7rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur sm:hidden" aria-label="Điều hướng ứng dụng">
         <div class="mx-auto flex max-w-md items-end justify-around gap-1 text-center text-[11px] font-semibold text-slate-500">
             @foreach($primaryNavigation as $item)
@@ -72,7 +75,9 @@
             @endif
         </div>
     </nav>
+    @endunless
 @else
+    @unless($hideMobileNavigation)
     <nav class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-2 pb-[max(.7rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur sm:hidden" aria-label="Điều hướng ứng dụng">
         <div class="mx-auto max-w-md text-center text-xs font-semibold text-slate-500">
             <a href="{{ route('client.apps.index') }}" class="inline-flex min-h-11 items-center gap-2 rounded-xl px-4 py-2">
@@ -81,4 +86,5 @@
             </a>
         </div>
     </nav>
+    @endunless
 @endif
