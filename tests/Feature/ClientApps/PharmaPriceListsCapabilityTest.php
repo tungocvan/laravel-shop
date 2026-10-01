@@ -204,7 +204,7 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('Chọn một hoặc nhiều User', $create);
         $this->assertStringContainsString("document.getElementById('apply-all-global-users')", $createWizard);
         $this->assertStringContainsString("input[name=\"global_user_ids[]\"]:checked", $createWizard);
-        $this->assertStringContainsString("$request->boolean('apply_all_users')", $controller);
+        $this->assertStringContainsString("\$request->boolean('apply_all_users')", $controller);
         $this->assertStringContainsString('$this->manager->activate($list, $approverUserId)', $globalWorkflow);
         $this->assertStringContainsString("userCan(\$user, 'client.pharma.price-lists.approve')", $controller);
         $this->assertStringContainsString('storeGlobalPriceList(', $controller);
