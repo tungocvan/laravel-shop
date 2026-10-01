@@ -71,8 +71,9 @@
 </div>
 <script>
 (() => {
- const form=document.getElementById('bid-product-search-form'), input=form?.querySelector('input[name="q"]'); let timer;
- input?.addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(()=>form.requestSubmit(),350);});
+ const form=document.getElementById('bid-product-search-form'), input=form?.querySelector('input[name="q"]');
+ const initialSearch=(input?.value||'').trim(); let timer;
+ input?.addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(()=>{const nextSearch=(input.value||'').trim();if(nextSearch===initialSearch)return;form.requestSubmit();},750);});
  const more=document.getElementById('bid-product-load-more');
  more?.addEventListener('click',async(e)=>{e.preventDefault();more.classList.add('pointer-events-none','opacity-60');try{const r=await fetch(more.href,{headers:{'X-Requested-With':'XMLHttpRequest'},credentials:'same-origin'});const d=new DOMParser().parseFromString(await r.text(),'text/html');d.querySelectorAll('[data-bid-product]').forEach(x=>document.getElementById('bid-products').append(x));const n=d.getElementById('bid-product-load-more');if(n)more.href=n.href;else more.remove();}catch(error){window.location.href=more.href;}finally{more?.classList.remove('pointer-events-none','opacity-60');}});
 })();
