@@ -141,6 +141,9 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->whereNumber('priceList')
             ->middleware('client.feature:pharma,price-lists')
             ->name('price-lists.activate-own-draft');
+        Route::put('/price-list-approvals/{priceList}/header', [PharmaApplicationController::class, 'updatePendingPriceListHeader'])
+            ->middleware('client.feature:pharma,price-lists')
+            ->name('price-list-approvals.header.update');
         Route::post('/price-list-approvals/{priceList}/approve', [PharmaApplicationController::class, 'approvePriceList'])
             ->whereNumber('priceList')
             ->middleware('client.feature:pharma,price-lists')
