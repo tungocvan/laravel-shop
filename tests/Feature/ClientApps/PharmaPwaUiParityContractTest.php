@@ -57,6 +57,21 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertStringContainsString("return [d,m,y].filter(Boolean).join('/')", $view);
     }
 
+    public function test_price_list_wizard_gates_progress_and_keeps_source_initialization_in_step_one(): void
+    {
+        $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/price-list-create.blade.php'));
+
+        $this->assertStringContainsString('const sourceReady = () =>', $view);
+        $this->assertStringContainsString('const stepTwoReady = () =>', $view);
+        $this->assertStringContainsString('const persistAndLoadSource = () =>', $view);
+        $this->assertStringContainsString('nextButton.disabled = currentStep === 1 ? !sourceReady()', $view);
+        $this->assertStringContainsString('if (target > currentStep) return;', $view);
+        $this->assertStringContainsString('load.addEventListener(\'click\', () => persistAndLoadSource())', $view);
+        $this->assertStringContainsString('disabled:cursor-not-allowed disabled:bg-slate-200', $view);
+        $this->assertStringContainsString('Chọn bảng giá tại Bước 01 để tải sản phẩm.', $view);
+        $this->assertStringNotContainsString('Chọn bảng giá tại Bước 02 để tải sản phẩm.', $view);
+    }
+
     public function test_price_list_editor_uses_focused_task_shell_and_canonical_business_selectors(): void
     {
         $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/price-list-create.blade.php'));
