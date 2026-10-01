@@ -65,7 +65,6 @@ class PharmaPwaUiParityContractTest extends TestCase
         $bundle = file_get_contents(base_path('resources/js/tailwind.js'));
 
         $this->assertStringContainsString('id="source-price-list" name="source_price_list_id"', $view);
-        $this->assertStringContainsString('@if($isGlobalMode)<input type="hidden" name="type" value="global">@endif', $view);
         $this->assertStringContainsString("class=\"{{ \$sourcePriceListId ? 'hidden' : '' }} rounded-3xl", $view);
         $this->assertStringContainsString("class=\"{{ \$sourcePriceListId ? '' : 'hidden' }} rounded-3xl", $view);
         $this->assertStringContainsString("<input type=\"hidden\" name=\"source_price_list_id\" value=\"{{ old('source_price_list_id', \$sourcePriceListId) }}\">", $view);
@@ -93,9 +92,12 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $view);
         $this->assertStringContainsString('aria-label="Quay lại Bảng giá của tôi"', $view);
 
-        $this->assertStringContainsString('data-global-user-scope', $view);
-        $this->assertStringContainsString('id="apply-all-global-users"', $view);
-        $this->assertStringContainsString('name="global_user_ids[]"', $view);
+        $this->assertStringContainsString('Bảng giá khách hàng', $view);
+        $this->assertStringNotContainsString("route('client.pharma.price-lists.create', ['type'=>'global'])", $view);
+        $this->assertStringNotContainsString('Kích hoạt trực tiếp', $view);
+        $this->assertStringContainsString('data-date-display name="effective_from"', $view);
+        $this->assertStringContainsString('data-date-display name="effective_to"', $view);
+        $this->assertStringContainsString('placeholder="dd/mm/yyyy"', $view);
         $this->assertStringNotContainsString('data-price-list-manager-combobox', $view);
         $this->assertStringContainsString('id="price-list-bootstrap" method="GET"', $view);
         $this->assertStringContainsString('<select id="source-price-list" name="source_price_list_id"', $view);
@@ -107,11 +109,8 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertStringContainsString('id="load-source-price-list"', $view);
         $wizard = file_get_contents(base_path('resources/js/clientportal/pharma-price-list-wizard.js'));
         $this->assertStringContainsString("document.getElementById('source-price-list')", $wizard);
-        $this->assertStringContainsString("document.getElementById('apply-all-global-users')", $wizard);
-        $this->assertStringContainsString("document.getElementById('global-user-search')", $wizard);
-        $this->assertStringContainsString("globalUserPicker?.classList.remove('hidden')", $wizard);
-        $this->assertStringContainsString("globalUserSearch?.focus()", $wizard);
-        $this->assertStringContainsString('const isGlobalStepTwo', $wizard);
+        $this->assertStringContainsString('const isoDate = raw =>', $wizard);
+        $this->assertStringContainsString("document.querySelectorAll('[data-date-display]')", $wizard);
         $this->assertStringContainsString('name="source_price_list_id" value="{{ old(\'source_price_list_id\', $sourcePriceListId) }}"', $view);
     }
 }
