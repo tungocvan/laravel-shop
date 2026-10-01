@@ -129,7 +129,10 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString("new TomSelect(search, { plugins: ['dropdown_input']", $create);
         $this->assertStringContainsString('select-all-source-products', $create);
         $this->assertStringContainsString('source-product-search', $create);
-        $this->assertStringContainsString('clear-source-product-search', $create);
+        $this->assertStringNotContainsString('clear-source-product-search', $create);
+        $this->assertStringContainsString("search?.tomselect?.on('change', filterRows)", $create);
+        $this->assertStringContainsString("source.tomselect.on('change', syncWizardActions)", $create);
+        $this->assertStringContainsString("source.tomselect?.getValue?.() || source.value", $create);
         $this->assertStringContainsString('sessionStorage.setItem', $create);
         $this->assertStringContainsString('sessionStorage.getItem', $create);
         $this->assertStringContainsString('source_price_list_id', $create);
