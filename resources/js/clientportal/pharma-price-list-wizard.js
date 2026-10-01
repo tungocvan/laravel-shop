@@ -14,10 +14,13 @@ const initPharmaPriceListWizard = () => {
 
     const value = name => String(form.elements.namedItem(name)?.value || '').trim();
     const stepTwoReady = () => {
-        const names = form.elements.namedItem('manager_user_id')
-            ? ['name','manager_user_id','effective_from','effective_to']
-            : ['name','partner_id','purpose_id','effective_from','effective_to'];
-        return names.every(name => value(name) !== '');
+        const globalScope = document.querySelector('[data-global-user-scope]');
+        if (globalScope) {
+            const applyAll = document.getElementById('apply-all-global-users')?.checked;
+            const selectedUsers = document.querySelectorAll('input[name="global_user_ids[]"]:checked').length;
+            return ['name','effective_from','effective_to'].every(name => value(name) !== '') && (applyAll || selectedUsers > 0);
+        }
+        return ['name','partner_id','purpose_id','effective_from','effective_to'].every(name => value(name) !== '');
     };
     const selectedCount = () => document.querySelectorAll('[data-source-product-checkbox]:checked').length;
     const formatDate = raw => /^\d{4}-\d{2}-\d{2}$/.test(raw || '') ? raw.split('-').reverse().join('/') : '—';
@@ -117,6 +120,32 @@ const initPharmaPriceListWizard = () => {
         managerPanel?.classList.add('hidden');
         syncActions();
     }));
+
+    const applyAllGlobalUsers = document.getElementById('apply-all-global-users');
+    const globalUserPicker = document.getElementById('global-user-picker');
+    const globalUserSearch = document.getElementById('global-user-search');
+    const globalUserOptions = [...document.querySelectorAll('[data-global-user-option]')];
+    const globalUserError = document.getElementById('global-user-scope-error');
+    const syncGlobalUserScope = () => {
+        if (!applyAllGlobalUsers) return;
+        globalUserPicker?.classList.toggle('hidden', applyAllGlobalUsers.checked);
+        globalUserError?.classList.toggle('hidden', applyAllGlobalUsers.checked || document.querySelectorAll('input[name="global_user_ids[]"]:checked').length > 0);
+        syncActions();
+    };
+    applyAllGlobalUsers?.addEventListener('change', syncGlobalUserScope);
+    globalUserSearch?.addEventListener('input', () => {
+        const q = (globalUserSearch.value || '').toLocaleLowerCase('vi').trim();
+        globalUserOptions.forEach(option => option.classList.toggle('hidden', q !== '' && !(option.dataset.search || '').includes(q)));
+    });
+    globalUserOptions.forEach(option => option.querySelector('input')?.addEventListener('change', syncGlobalUserScope));
+    document.getElementById('global-user-select-all')?.addEventListener('click', () => {
+        globalUserOptions.filter(option => !option.classList.contains('hidden')).forEach(option => {
+            const checkbox = option.querySelector('input');
+            if (checkbox) checkbox.checked = true;
+        });
+        syncGlobalUserScope();
+    });
+    syncGlobalUserScope();
 
     const customerSearch = document.getElementById('client-price-list-customer-search');
     const customerId = document.getElementById('client-price-list-customer');
