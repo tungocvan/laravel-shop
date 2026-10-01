@@ -120,11 +120,10 @@
   </div>
   <div id="selected-products" class="mt-4 space-y-3">
    @foreach($priceLists as $pl) @foreach($pl->items as $item) @php $current=((int)($issue?->price_list_id ?? 0)===(int)$pl->id) ? $currentByMedicine->get($item->medicine_id) : null; @endphp
-   <article data-price-item data-item-id="{{ $item->id }}" data-price-list="{{ $pl->id }}" data-search="{{ mb_strtolower(($item->medicine?->name ?? '').' '.($item->medicine?->medicine_code ?? '').' '.($item->medicine?->active_ingredient ?? '')) }}" data-name="{{ $item->medicine?->name }}" data-meta="{{ $item->medicine?->medicine_code }} · {{ $item->medicine?->unit }} · {{ $money($item->company_sale_price) }}" data-price="{{ (float)$item->company_sale_price }}" class="{{ $current && (float)$current->quantity>0 ? '' : 'hidden' }} min-w-0 rounded-2xl border border-slate-200 bg-white p-4">
-    <div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2">
-     <div class="min-w-0"><p class="truncate font-black">{{ $item->medicine?->name }}</p><p class="mt-0.5 truncate text-xs text-slate-500">{{ $item->medicine?->medicine_code }} · {{ $item->medicine?->unit }}</p></div>
-     <p class="shrink-0 text-right text-sm font-black">{{ $money($item->company_sale_price) }}</p>
-     <div class="col-span-2 flex items-center justify-between gap-3 border-t border-slate-100 pt-2 sm:col-span-1 sm:border-0 sm:pt-0"><div class="flex items-center gap-2"><span class="whitespace-nowrap text-xs font-bold text-slate-500">SL</span><input aria-label="Số lượng" data-quantity name="quantities[{{ $item->id }}]" value="{{ old('quantities.'.$item->id,$current?->quantity) }}" inputmode="decimal" class="h-9 w-24 rounded-xl border border-slate-300 px-2 text-right text-sm font-black" placeholder="0"></div><button data-remove-product type="button" class="flex h-9 items-center rounded-xl px-2 text-xs font-black text-rose-600 hover:bg-rose-50">Xóa</button></div>
+   <article data-price-item data-item-id="{{ $item->id }}" data-price-list="{{ $pl->id }}" data-search="{{ mb_strtolower(($item->medicine?->name ?? '').' '.($item->medicine?->medicine_code ?? '').' '.($item->medicine?->active_ingredient ?? '')) }}" data-name="{{ $item->medicine?->name }}" data-meta="{{ $item->medicine?->medicine_code }} · {{ $item->medicine?->unit }} · {{ $money($item->company_sale_price) }}" data-price="{{ (float)$item->company_sale_price }}" class="{{ $current && (float)$current->quantity>0 ? '' : 'hidden' }} min-w-0 rounded-2xl border border-slate-200 bg-white px-3 py-3">
+    <div class="flex min-w-0 items-center gap-3">
+     <div class="min-w-0 flex-1"><p class="truncate text-sm font-black">{{ $item->medicine?->name }}</p><div class="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-500"><span>{{ $item->medicine?->medicine_code }} · {{ $item->medicine?->unit }}</span><span class="font-bold text-slate-700">SL</span><input aria-label="Số lượng" data-quantity name="quantities[{{ $item->id }}]" value="{{ old('quantities.'.$item->id,$current?->quantity) }}" inputmode="decimal" class="h-8 w-16 rounded-lg border border-slate-300 px-2 text-right text-xs font-black" placeholder="0"><span class="whitespace-nowrap">Thành tiền: <strong data-line-total class="text-slate-950">0 đ</strong></span></div></div>
+     <button data-remove-product type="button" class="flex h-8 shrink-0 items-center rounded-lg px-2 text-[11px] font-black text-rose-600 hover:bg-rose-50">Xóa</button>
     </div>
    </article>
    @endforeach @endforeach
@@ -149,7 +148,8 @@
    @endforeach</div>
   </section>
  </section>
- <section class="mx-auto hidden min-h-[calc(100dvh-250px)] max-w-3xl space-y-4 px-0 pb-32 sm:px-1" data-order-review data-order-step-panel="3">
+</main>
+<section class="mx-auto hidden min-h-[calc(100dvh-250px)] max-w-3xl space-y-4 px-0 pb-32 sm:px-1" data-order-review data-order-step-panel="3">
   <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
    <div class="flex items-center justify-between gap-3"><div><p class="text-xs font-black uppercase tracking-wide text-slate-500">Xem lại đơn hàng</p><h2 class="mt-1 text-lg font-black text-slate-950">Thông tin trước khi lưu nháp</h2></div><button type="button" data-step-target="1" class="text-xs font-black text-indigo-600">Chỉnh sửa</button></div>
    <dl class="mt-4 divide-y divide-slate-100 text-sm">
@@ -166,14 +166,13 @@
   </section>
   <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><label><span class="mb-2 block text-sm font-black">Ghi chú</span><textarea name="notes" rows="3" class="w-full rounded-2xl border border-slate-300 px-4 py-3">{{ old('notes',$issue?->notes) }}</textarea></label></section>
  </section>
-</main>
 
-<div data-order-actions class="fixed inset-x-0 bottom-0 z-[100] border-t border-slate-200 bg-white px-4 pb-[calc(12px+env(safe-area-inset-bottom,0px))] pt-3 shadow-[0_-8px_30px_rgba(15,23,42,.08)] sm:px-6 lg:left-1/2 lg:right-auto lg:w-[min(760px,calc(100%-48px))] lg:-translate-x-1/2 lg:rounded-t-3xl lg:border lg:pb-3">
+<div data-order-actions class="fixed inset-x-3 bottom-[calc(10px+env(safe-area-inset-bottom,0px))] z-[100] rounded-2xl border border-slate-200 bg-white/95 px-3 py-2 shadow-[0_8px_30px_rgba(15,23,42,.14)] backdrop-blur sm:inset-x-6 lg:left-1/2 lg:right-auto lg:w-[min(680px,calc(100%-48px))] lg:-translate-x-1/2">
  <div class="mx-auto flex max-w-3xl items-center gap-2 sm:gap-3">
-  <button type="button" id="order-step-back" class="hidden h-12 shrink-0 items-center justify-center rounded-2xl border border-slate-300 px-5 text-sm font-black">← Quay lại</button>
+  <button type="button" id="order-step-back" class="hidden h-9 shrink-0 items-center justify-center rounded-xl border border-slate-300 px-3 text-xs font-black">← Quay lại</button>
   <div class="min-w-0 flex-1"><div class="flex items-center gap-2"><span class="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-600">Nháp</span><p id="order-summary" class="min-w-0 truncate text-xs font-black sm:text-sm">0 sản phẩm · 0 SL · 0 đ</p></div></div>
-  <button type="button" id="order-step-next" class="h-12 shrink-0 rounded-2xl bg-indigo-600 px-6 text-sm font-black text-white shadow-sm active:scale-[.985]">Tiếp tục →</button>
-  <button type="submit" id="order-submit" class="hidden h-12 shrink-0 rounded-2xl bg-slate-950 px-6 text-sm font-black text-white shadow-sm active:scale-[.985]">Lưu nháp</button>
+  <button type="button" id="order-step-next" class="h-9 shrink-0 rounded-xl bg-indigo-600 px-4 text-xs font-black text-white shadow-sm active:scale-[.985]">Tiếp tục →</button>
+  <button type="submit" id="order-submit" class="hidden h-9 shrink-0 rounded-xl bg-slate-950 px-4 text-xs font-black text-white shadow-sm active:scale-[.985]">Lưu nháp</button>
  </div>
 </div>
 </form></div>
@@ -251,7 +250,7 @@ document.addEventListener('DOMContentLoaded',()=>{
  bidProductToggle?.addEventListener('click',()=>{if(bidProductToggle.disabled)return;const open=bidProductPanel.classList.contains('hidden');closeBidPickers();if(open){bidProductPanel.classList.remove('hidden');renderBidProducts();setTimeout(()=>bidSearch.focus(),0);}});bidSearch?.addEventListener('input',renderBidProducts);
  document.addEventListener('click',e=>{if(bidInvestorBox&&!bidInvestorBox.contains(e.target))bidInvestorPanel?.classList.add('hidden');if(bidPartnerBox&&!bidPartnerBox.contains(e.target))bidPartnerPanel?.classList.add('hidden');if(bidProductBox&&!bidProductBox.contains(e.target))bidProductPanel?.classList.add('hidden');});document.addEventListener('keydown',e=>{if(e.key==='Escape')closeBidPickers();});
  bidItems.forEach(el=>el.querySelector('[data-quantity]')?.addEventListener('input',()=>{renderBidSelected();summary();}));hydrateBidContext();
- const summary=()=>{let count=0,qty=0,total=0;document.querySelectorAll('[data-quantity]:not(:disabled)').forEach(i=>{const q=parseFloat(i.value)||0;if(q>0){count++;qty+=q;total+=q*(parseFloat(i.closest('[data-price]')?.dataset.price)||0);i.closest('[data-price]')?.classList.add('ring-2','ring-slate-900');}else{i.closest('[data-price]')?.classList.remove('ring-2','ring-slate-900');}});document.getElementById('order-summary').textContent=count+' sản phẩm · '+qty.toLocaleString('vi-VN')+' SL · '+Math.round(total).toLocaleString('vi-VN')+' đ';};
+ const summary=()=>{let count=0,qty=0,total=0;document.querySelectorAll('[data-quantity]:not(:disabled)').forEach(i=>{const q=parseFloat(i.value)||0;if(q>0){count++;qty+=q;total+=q*(parseFloat(i.closest('[data-price]')?.dataset.price)||0);i.closest('[data-price]')?.classList.add('ring-2','ring-slate-900');}else{i.closest('[data-price]')?.classList.remove('ring-2','ring-slate-900');}});document.getElementById('order-summary').textContent=count+' sản phẩm · '+qty.toLocaleString('vi-VN')+' SL · '+Math.round(total).toLocaleString('vi-VN')+' đ';document.querySelectorAll('[data-price-item]').forEach(card=>{const q=parseFloat(card.querySelector('[data-quantity]')?.value)||0,line=card.querySelector('[data-line-total]');if(line)line.textContent=Math.round(q*(parseFloat(card.dataset.price)||0)).toLocaleString('vi-VN')+' đ';});};
  document.querySelectorAll('[data-quantity]').forEach(i=>i.addEventListener('input',summary));syncSource();syncSelectedProducts();summary();
 });
 </script>
