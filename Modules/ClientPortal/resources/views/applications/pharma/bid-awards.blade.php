@@ -61,18 +61,23 @@
                 <span class="text-xs text-slate-500 group-open:hidden">Hiển thị</span><span class="hidden text-xs text-slate-500 group-open:inline">Thu gọn</span>
             </summary>
             <div class="mt-3 grid gap-3 md:grid-cols-2">
-                <label class="block text-xs font-bold text-slate-600">Chủ đầu tư
-                    <select name="investor" data-searchable-filter class="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm">
-                        <option value="">Tất cả chủ đầu tư</option>
-                        @foreach($filterOptions['investors'] as $option)<option value="{{ $option }}" @selected($filters['investor'] === $option)>{{ $option }}</option>@endforeach
-                    </select>
-                </label>
-                <label class="block text-xs font-bold text-slate-600">Sản phẩm
-                    <select name="medicine" data-searchable-filter class="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm">
-                        <option value="">Tất cả sản phẩm</option>
-                        @foreach($filterOptions['medicines'] as $option)<option value="{{ $option }}" @selected($filters['medicine'] === $option)>{{ $option }}</option>@endforeach
-                    </select>
-                </label>
+                @foreach([['investor','Chủ đầu tư','Tìm chủ đầu tư...',$filterOptions['investors']],['medicine','Sản phẩm','Tìm sản phẩm...',$filterOptions['medicines']]] as [$filterName,$filterLabel,$filterPlaceholder,$filterItems])
+                    <div class="relative" data-bid-filter-combobox>
+                        <label for="bid-filter-{{ $filterName }}-search" class="block text-xs font-bold text-slate-600">{{ $filterLabel }}</label>
+                        <input type="hidden" name="{{ $filterName }}" value="{{ $filters[$filterName] }}">
+                        <div class="relative mt-1.5">
+                            <input id="bid-filter-{{ $filterName }}-search" type="search" value="{{ $filters[$filterName] }}" placeholder="{{ $filterPlaceholder }}" autocomplete="off" data-bid-filter-search
+                                class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 pr-10 text-sm outline-none focus:border-slate-400">
+                            <button type="button" data-bid-filter-clear aria-label="Xóa {{ mb_strtolower($filterLabel) }}" class="{{ $filters[$filterName] === '' ? 'hidden ' : '' }}absolute right-1.5 top-1.5 flex h-8 w-8 items-center justify-center rounded-full text-slate-400">×</button>
+                        </div>
+                        <div data-bid-filter-options class="absolute z-30 mt-1 hidden max-h-64 w-full overflow-y-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl">
+                            @foreach($filterItems as $option)
+                                <button type="button" data-bid-filter-option data-value="{{ $option }}" class="block min-h-10 w-full rounded-xl px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">{{ $option }}</button>
+                            @endforeach
+                            <p data-bid-filter-empty class="hidden px-3 py-3 text-sm text-slate-500">Không tìm thấy kết quả.</p>
+                        </div>
+                    </div>
+                @endforeach
                 <label class="block text-xs font-bold text-slate-600">Giá trị
                     <select name="value_sort" class="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm">
                         <option value="">Mặc định</option><option value="desc" @selected($filters['value_sort'] === 'desc')>Cao nhất → thấp nhất</option><option value="asc" @selected($filters['value_sort'] === 'asc')>Thấp nhất → cao nhất</option>
@@ -146,6 +151,22 @@
 (() => {
     const form=document.getElementById('bid-award-search-form'), input=form?.querySelector('input[name="q"]');
     form?.querySelectorAll('select').forEach(select=>select.addEventListener('change',()=>form.requestSubmit()));
+    form?.querySelectorAll('[data-bid-filter-combobox]').forEach(box=>{
+        const search=box.querySelector('[data-bid-filter-search]'), hidden=box.querySelector('input[type="hidden"]'), options=box.querySelector('[data-bid-filter-options]'), clear=box.querySelector('[data-bid-filter-clear]'), empty=box.querySelector('[data-bid-filter-empty]');
+        const rows=[...box.querySelectorAll('[data-bid-filter-option]')];
+        const filter=()=>{
+            const term=(search.value||'').trim().toLocaleLowerCase('vi');
+            let visible=0;
+            rows.forEach(row=>{ const show=!term||row.dataset.value.toLocaleLowerCase('vi').includes(term); row.classList.toggle('hidden',!show); if(show) visible++; });
+            empty?.classList.toggle('hidden',visible!==0);
+            options?.classList.remove('hidden');
+        };
+        search?.addEventListener('focus',filter);
+        search?.addEventListener('input',()=>{ hidden.value=''; clear?.classList.toggle('hidden',search.value===''); filter(); });
+        rows.forEach(row=>row.addEventListener('click',()=>{ hidden.value=row.dataset.value; search.value=row.dataset.value; options?.classList.add('hidden'); clear?.classList.remove('hidden'); form.requestSubmit(); }));
+        clear?.addEventListener('click',()=>{ hidden.value=''; search.value=''; options?.classList.add('hidden'); clear.classList.add('hidden'); form.requestSubmit(); });
+        document.addEventListener('click',event=>{ if(!box.contains(event.target)) options?.classList.add('hidden'); });
+    });
     let timer; input?.addEventListener('input',()=>{ clearTimeout(timer); timer=setTimeout(()=>form.requestSubmit(),350); });
     const more=document.getElementById('bid-award-load-more');
     more?.addEventListener('click',async(event)=>{
