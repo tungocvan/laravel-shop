@@ -175,9 +175,9 @@
                     </form>
                 </div>
                 @if(!($stockReadiness['can_post_directly'] ?? false))
-                    <p class="mt-2 text-xs leading-5 text-amber-800">Chưa thể ghi sổ trực tiếp: mỗi sản phẩm phải có một lô còn hạn đủ số lượng. Tồn kho sẽ được kiểm tra lại khi ghi sổ.</p>
+                    <p class="mt-2 text-xs leading-5 text-amber-800">Chưa có sản phẩm đủ điều kiện ghi sổ. Sản phẩm chờ cung ứng sẽ không bị trừ tồn.</p>
                 @else
-                    <p class="mt-2 text-xs leading-5 text-slate-500">Ghi sổ sẽ chọn lô còn hạn gần nhất đủ số lượng, trừ tồn và ghi nhận doanh thu/hoa hồng theo luồng kho canonical.</p>
+                    <p class="mt-2 text-xs leading-5 text-slate-500">Ghi sổ chỉ xuất các sản phẩm đủ tồn; sản phẩm chờ cung ứng được giữ lại, không trừ tồn và không tính doanh thu/hoa hồng.</p>
                 @endif
             @elseif($canUndoApproval ?? false)
                 <form method="POST" action="{{ route('client.pharma.orders.undo-approval',$issue) }}">@csrf
