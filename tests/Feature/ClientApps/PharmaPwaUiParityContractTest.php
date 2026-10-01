@@ -98,6 +98,11 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertStringContainsString('id="load-source-price-list"', $view);
         $wizard = file_get_contents(base_path('resources/js/clientportal/pharma-price-list-wizard.js'));
         $this->assertStringContainsString("document.getElementById('source-price-list')", $wizard);
+        $this->assertStringContainsString("document.getElementById('apply-all-global-users')", $wizard);
+        $this->assertStringContainsString("document.getElementById('global-user-search')", $wizard);
+        $this->assertStringContainsString("globalUserPicker?.classList.remove('hidden')", $wizard);
+        $this->assertStringContainsString("globalUserSearch?.focus()", $wizard);
+        $this->assertStringContainsString('const isGlobalStepTwo', $wizard);
         $this->assertStringContainsString('name="source_price_list_id" value="{{ old(\'source_price_list_id\', $sourcePriceListId) }}"', $view);
     }
 }
