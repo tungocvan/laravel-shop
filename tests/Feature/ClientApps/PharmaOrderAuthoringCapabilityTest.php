@@ -83,6 +83,9 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
         $this->assertStringContainsString('id="order-submit"', $view);
         $this->assertStringContainsString('pb-[calc(12px+env(safe-area-inset-bottom,0px))]', $view);
         $this->assertStringContainsString('id="review-products"', $view);
+        $this->assertStringContainsString('data-order-review data-order-step-panel="3"', $view);
+        $this->assertStringContainsString('bottom-[calc(10px+env(safe-area-inset-bottom,0px))]', $view);
+        $this->assertStringContainsString('h-9 shrink-0 rounded-xl', $view);
         $this->assertStringContainsString('id="review-summary"', $view);
         $this->assertStringContainsString('refreshReview', $view);
         $this->assertStringContainsString('setOrderStep', $view);
@@ -118,7 +121,8 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
         $this->assertStringContainsString('+ Thêm vào đơn', $view);
         $this->assertStringContainsString('data-remove-product', $view);
         $this->assertStringContainsString('aria-label="Số lượng"', $view);
-        $this->assertStringContainsString('h-9 w-24 rounded-xl', $view);
+        $this->assertStringContainsString('h-8 w-16 rounded-lg', $view);
+        $this->assertStringContainsString('data-line-total', $view);
         $this->assertStringContainsString('lg:left-1/2', $view);
         $this->assertStringContainsString('lg:w-[min(760px,calc(100%-48px))]', $view);
         $this->assertStringContainsString('selected-products-empty', $view);
