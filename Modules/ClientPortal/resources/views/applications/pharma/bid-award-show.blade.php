@@ -4,10 +4,18 @@
 @section('app-name', $applicationPresentation['name'] ?? $application['name'])
 @section('app-subtitle', 'Chi tiết kết quả trúng thầu')
 @section('app-dashboard-route', route('client.pharma.dashboard'))
+@section('hide-application-header', true)
+@section('hide-mobile-navigation', true)
 
 @section('content')
 <div class="min-w-0 space-y-5 overflow-x-hidden">
-    <a href="{{ route('client.pharma.bid-awards') }}" class="inline-flex min-h-11 items-center text-sm font-bold text-slate-600">← Quay lại Trúng thầu</a>
+    <header class="flex min-h-16 items-center gap-3 border-b border-slate-200 bg-white px-1 pb-4">
+        <a href="{{ route('client.pharma.bid-awards') }}" aria-label="Quay lại Trúng thầu" class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-lg font-black text-slate-700 shadow-sm">←</a>
+        <div class="min-w-0">
+            <h1 class="truncate text-lg font-black text-slate-950">Chi tiết kết quả trúng thầu</h1>
+            <p class="truncate text-xs text-slate-500">{{ $featurePresentation['page_title'] }}</p>
+        </div>
+    </header>
     <section class="rounded-[2rem] bg-slate-950 px-5 py-6 text-white shadow-sm sm:px-7">
         <p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-300">{{ $featurePresentation['eyebrow'] }}</p>
         <h1 class="mt-2 text-2xl font-black sm:text-3xl">{{ $result->investor_name ?: $featurePresentation['page_title'] }}</h1>
