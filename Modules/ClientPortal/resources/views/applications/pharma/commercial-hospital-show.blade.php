@@ -1,6 +1,6 @@
 @extends('ClientPortal::layouts.application')
 
-@section('title', $hospital->name)
+@section('title', $featurePresentation['page_title'].' · '.$hospital->name)
 @section('app-name', $applicationPresentation['name'] ?? $application['name'])
 @section('app-subtitle', 'Commercial Workspace · bệnh viện')
 @section('app-dashboard-route', route('client.pharma.dashboard'))
@@ -12,7 +12,7 @@
     <a href="{{ route('client.pharma.commercial', array_filter(['manager_user_id' => $managerUserId, 'award_scope' => $awardScopeKey])) }}" aria-label="Quay lại Công việc bệnh viện" data-pwa-navigation-feedback="#commercial-navigation-feedback" class="inline-flex h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm">← Công việc bệnh viện</a>
 
     <section class="rounded-[2rem] bg-slate-950 px-5 py-6 text-white shadow-sm sm:px-7">
-        <p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-300">Bệnh viện được phân công</p>
+        <p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-300">{{ $featurePresentation['eyebrow'] }} · Bệnh viện được phân công</p>
         <h1 class="mt-2 text-2xl font-black tracking-tight sm:text-3xl">{{ $hospital->name }}</h1>
         @if($hospital->address)
             <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-300">{{ $hospital->address }}</p>
@@ -91,7 +91,7 @@
                     </div>
                 </div>
 
-                @if($product->sale_price || $product->supplier)
+                @if($product->sale_price || ($canViewSupplierPricing && $product->supplier))
                     <div class="mt-3 grid gap-2 md:grid-cols-2">
                         @if($product->sale_price)
                             <div class="rounded-2xl border border-slate-200 p-3">
@@ -100,7 +100,7 @@
                                 <p class="mt-1 text-xs font-semibold text-slate-500">{{ $product->sale_price['source_type'] === 'customer' ? 'Bảng giá bệnh viện' : 'Bảng giá chung' }}</p>
                             </div>
                         @endif
-                        @if($product->supplier)
+                        @if($canViewSupplierPricing && $product->supplier)
                             <div class="rounded-2xl border border-slate-200 p-3">
                                 <p class="text-[11px] font-bold uppercase tracking-wide text-slate-400">Điều kiện NCC hiện hành</p>
                                 <p class="mt-1 break-words text-sm font-black text-slate-900">{{ $product->supplier['supplier_name'] ?: 'Nhà cung cấp' }}</p>
