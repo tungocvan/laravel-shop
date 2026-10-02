@@ -235,4 +235,34 @@ class PharmaPwaUiParityContractTest extends TestCase
     }
 
 
+    public function test_commercial_closeout_keeps_supplier_pricing_and_admin_presentation_contracts(): void
+    {
+        $manifest = require base_path('Modules/ClientPortal/Applications/Pharma/manifest.php');
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php'));
+        $detail = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/commercial-hospital-show.blade.php'));
+        $settings = file_get_contents(base_path('Modules/ClientPortal/Services/ClientPortalSettingsService.php'));
+        $admin = file_get_contents(base_path('Modules/ClientPortal/Http/Controllers/Admin/PwaSettingsController.php'));
+
+        $feature = $manifest['features']['commercial'];
+        $this->assertSame('client.pharma.commercial.view', $feature['permission']);
+        $this->assertSame('client.pharma.commercial.view-team', $feature['actions']['view-team']['permission']);
+
+        $this->assertStringContainsString("\$canViewSupplierPricing = \$registry->userCan(\$user, 'client.pharma.products.supplier-pricing')", $controller);
+        $this->assertStringContainsString('includeSupplierPricing: $canViewSupplierPricing', $controller);
+        $this->assertStringContainsString("'canViewSupplierPricing' => \$canViewSupplierPricing", $controller);
+        $this->assertStringContainsString('@if($canViewSupplierPricing && $product->supplier)', $detail);
+
+        $this->assertStringContainsString("'featurePresentation' => \$settings->featurePresentation(\$application['key'], \$commercialFeature)", $controller);
+        $this->assertStringContainsString("\$featurePresentation['eyebrow']", $detail);
+        $this->assertStringContainsString("\$featurePresentation['page_title']", $detail);
+        $this->assertStringContainsString('public function featurePresentation', $settings);
+        $this->assertStringContainsString("'eyebrow' =>", $settings);
+        $this->assertStringContainsString("'page_title' =>", $settings);
+        $this->assertStringContainsString("'page_description' =>", $settings);
+        $this->assertStringContainsString('function updateFeature', $admin);
+        $this->assertStringContainsString("'eyebrow' => ['required', 'string', 'max:80']", $admin);
+        $this->assertStringContainsString("'page_title' => ['required', 'string', 'max:160']", $admin);
+        $this->assertStringContainsString("'page_description' => ['nullable', 'string', 'max:500']", $admin);
+    }
+
 }
