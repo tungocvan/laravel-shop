@@ -4,6 +4,8 @@
 @section('app-name', $applicationPresentation['name'] ?? $application['name'])
 @section('app-subtitle', 'Workspace Pharma dành cho User')
 @section('app-dashboard-route', route('client.pharma.dashboard'))
+@section('hide-application-header', true)
+@section('hide-mobile-navigation', true)
 
 @section('content')
 @php
@@ -11,10 +13,10 @@
     $expiryLabels = ['expired'=>'Đã hết hạn','lt1'=>'< 1 tháng','lt3'=>'< 3 tháng','lt6'=>'< 6 tháng','safe'=>'≥ 6 tháng'];
     $hasFilters = $filters['q'] || $filters['expiry'] || ($canViewCosts && ($filters['cost_status'] || $filters['sort']));
 @endphp
-<div class="min-w-0 space-y-4 overflow-x-hidden pb-24 xl:pb-8">
+<div class="min-w-0 space-y-4 overflow-x-hidden pb-8">
     <section class="rounded-[1.75rem] bg-slate-950 px-5 py-5 text-white shadow-sm sm:px-7 sm:py-6">
-        <a href="{{ route('client.pharma.dashboard') }}" class="hidden text-sm font-bold text-slate-300 hover:text-white lg:inline-flex">← Quay về dashboard</a>
-        <p class="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400 lg:mt-5">{{ $featurePresentation['eyebrow'] ?? 'Inventory' }}</p>
+        <a href="{{ route('client.pharma.dashboard') }}" aria-label="Quay lại Không gian làm việc Pharma" class="inline-flex min-h-10 items-center rounded-xl px-1 text-sm font-bold text-slate-300 hover:text-white">← Quay về dashboard</a>
+        <p class="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400 mt-2">{{ $featurePresentation['eyebrow'] ?? 'Inventory' }}</p>
         <h1 class="mt-1.5 text-2xl font-black tracking-tight sm:text-3xl">{{ $featurePresentation['page_title'] ?? 'Tồn kho Pharma' }}</h1>
         <p class="mt-1.5 max-w-3xl text-sm leading-5 text-slate-300 sm:leading-6">{{ $featurePresentation['page_description'] ?? 'Theo dõi số lượng tồn, giá trị, lô và hạn dùng.' }}</p>
     </section>
@@ -45,6 +47,12 @@
             <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm"><p class="text-xs font-bold text-slate-500">Lô đang còn hàng</p><p class="mt-2 text-2xl font-black text-slate-950">{{ number_format($summary['balance_count']) }}</p></div>
             <a href="{{ route('client.pharma.inventory', ['expiry'=>'lt6']) }}" class="rounded-3xl border border-amber-200 bg-amber-50 p-4 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none"><p class="text-xs font-bold text-amber-700">Sắp hết hạn ≤ 6 tháng</p><p class="mt-2 text-2xl font-black text-amber-950">{{ number_format($summary['near_expiry_count']) }}</p></a>
         </section>
+    @endif
+
+    @if(auth('web')->user()?->can('client.pharma.inventory.receipts'))
+        <a href="{{ route('client.pharma.inventory.receipts') }}" class="flex items-center justify-between gap-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">
+            <div><p class="font-black text-slate-950">Phiếu nhập kho</p><p class="mt-1 text-xs text-slate-500">Tra cứu phiếu nhập · Chi tiết lô hàng · Chỉ đọc</p></div><span class="text-xl text-slate-400">›</span>
+        </a>
     @endif
 
     <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">

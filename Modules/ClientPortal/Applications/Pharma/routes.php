@@ -56,6 +56,32 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
         Route::get('/inventory', [PharmaApplicationController::class, 'inventory'])
             ->middleware('client.feature:pharma,inventory')
             ->name('inventory');
+        Route::get('/inventory/receipts', [PharmaApplicationController::class, 'inventoryReceipts'])
+            ->middleware('client.feature:pharma,inventory')->name('inventory.receipts');
+        Route::get('/inventory/receipts/create', [PharmaApplicationController::class, 'createInventoryReceipt'])
+            ->middleware('client.feature:pharma,inventory')->name('inventory.receipts.create');
+        Route::post('/inventory/receipts', [PharmaApplicationController::class, 'storeInventoryReceipt'])
+            ->middleware('client.feature:pharma,inventory')->name('inventory.receipts.store');
+        Route::get('/inventory/receipts/{receipt}/edit', [PharmaApplicationController::class, 'editInventoryReceipt'])
+            ->whereNumber('receipt')->middleware('client.feature:pharma,inventory')->name('inventory.receipts.edit');
+        Route::put('/inventory/receipts/{receipt}', [PharmaApplicationController::class, 'updateInventoryReceipt'])
+            ->whereNumber('receipt')->middleware('client.feature:pharma,inventory')->name('inventory.receipts.update');
+        Route::delete('/inventory/receipts/{receipt}', [PharmaApplicationController::class, 'deleteInventoryReceipt'])
+            ->whereNumber('receipt')->middleware('client.feature:pharma,inventory')->name('inventory.receipts.delete');
+        Route::post('/inventory/receipts/{receipt}/submit', [PharmaApplicationController::class, 'submitInventoryReceipt'])
+            ->whereNumber('receipt')->middleware('client.feature:pharma,inventory')->name('inventory.receipts.submit');
+        Route::post('/inventory/receipts/{receipt}/undo-submit', [PharmaApplicationController::class, 'undoInventoryReceiptSubmit'])
+            ->whereNumber('receipt')->middleware('client.feature:pharma,inventory')->name('inventory.receipts.undo-submit');
+        Route::post('/inventory/receipts/{receipt}/approve', [PharmaApplicationController::class, 'approveInventoryReceipt'])
+            ->whereNumber('receipt')->middleware('client.feature:pharma,inventory')->name('inventory.receipts.approve');
+        Route::post('/inventory/receipts/{receipt}/undo-approval', [PharmaApplicationController::class, 'undoInventoryReceiptApproval'])
+            ->whereNumber('receipt')->middleware('client.feature:pharma,inventory')->name('inventory.receipts.undo-approval');
+        Route::post('/inventory/receipts/{receipt}/post', [PharmaApplicationController::class, 'postInventoryReceipt'])
+            ->whereNumber('receipt')->middleware('client.feature:pharma,inventory')->name('inventory.receipts.post');
+        Route::post('/inventory/receipts/{receipt}/revert', [PharmaApplicationController::class, 'revertInventoryReceipt'])
+            ->whereNumber('receipt')->middleware('client.feature:pharma,inventory')->name('inventory.receipts.revert');
+        Route::get('/inventory/receipts/{receipt}', [PharmaApplicationController::class, 'inventoryReceipt'])
+            ->whereNumber('receipt')->middleware('client.feature:pharma,inventory')->name('inventory.receipts.show');
         Route::get('/orders', [PharmaApplicationController::class, 'orders'])
             ->middleware('client.feature:pharma,orders')
             ->name('orders');

@@ -265,4 +265,59 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertStringContainsString("'page_description' => ['nullable', 'string', 'max:500']", $admin);
     }
 
+
+    public function test_overview_products_and_price_lists_consume_admin_managed_page_presentation(): void
+    {
+        $manifest = require base_path('Modules/ClientPortal/Applications/Pharma/manifest.php');
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php'));
+        $views = [
+            'overview' => file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/dashboard.blade.php')),
+            'products' => file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/products.blade.php')),
+            'price-lists' => file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/price-lists.blade.php')),
+        ];
+
+        foreach (['overview', 'products', 'price-lists'] as $key) {
+            $feature = $manifest['features'][$key];
+            $this->assertNotSame('', trim((string) ($feature['eyebrow'] ?? '')), $key.' eyebrow');
+            $this->assertNotSame('', trim((string) ($feature['page_title'] ?? '')), $key.' page title');
+            $this->assertArrayHasKey('page_description', $feature, $key.' page description');
+            $this->assertStringContainsString("\$featurePresentation['eyebrow']", $views[$key]);
+            $this->assertStringContainsString("\$featurePresentation['page_title']", $views[$key]);
+            $this->assertStringContainsString("\$featurePresentation['page_description']", $views[$key]);
+        }
+
+        $this->assertStringContainsString("\$productsFeature = collect(\$application['features']", $controller);
+        $this->assertStringContainsString("\$priceListsFeature = collect(\$application['features']", $controller);
+        $this->assertStringContainsString("\$overviewFeature = collect(\$application['features']", $controller);
+
+        $commissions = $manifest['features']['commissions'];
+        $this->assertSame('Commissions', $commissions['eyebrow']);
+        $this->assertSame('Hoa hồng của tôi', $commissions['page_title']);
+        $this->assertArrayNotHasKey('route', $commissions, 'Commissions remains intentionally unrouted until its PWA surface is implemented.');
+    }
+
+
+    public function test_product_catalog_uses_focused_pwa_shell(): void
+    {
+        $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/products.blade.php'));
+        $detail = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/product-show.blade.php'));
+
+        foreach ([$view, $detail] as $surface) {
+            $this->assertStringContainsString("@section('app-dashboard-route', route('client.pharma.dashboard'))", $surface);
+            $this->assertStringContainsString("@section('hide-application-header', true)", $surface);
+            $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $surface);
+        }
+
+        $this->assertStringContainsString("@section('app-dashboard-route', route('client.pharma.dashboard'))", $view);
+        $this->assertStringContainsString("@section('hide-application-header', true)", $view);
+        $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $view);
+        $this->assertStringContainsString('aria-label="Quay lại Không gian làm việc Pharma"', $view);
+        $this->assertStringContainsString("route('client.pharma.dashboard')", $view);
+        $this->assertStringContainsString('← Quay về dashboard', $view);
+        $this->assertStringContainsString("\$featurePresentation['page_title']", $view);
+        $this->assertStringContainsString("\$featurePresentation['page_description']", $view);
+        $this->assertStringContainsString("route('client.pharma.products')", $detail);
+        $this->assertStringContainsString('Danh mục thuốc', $detail);
+    }
+
 }

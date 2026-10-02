@@ -1,19 +1,22 @@
 @extends('ClientPortal::layouts.application')
 
-@section('title', 'Danh mục thuốc')
+@section('title', $featurePresentation['page_title'] ?? 'Danh mục thuốc')
 @section('app-name', $applicationPresentation['name'] ?? $application['name'])
 @section('app-subtitle', 'Danh mục thuốc · chỉ đọc')
 @section('app-dashboard-route', route('client.pharma.dashboard'))
+@section('hide-application-header', true)
+@section('hide-mobile-navigation', true)
 
 @section('content')
 <div class="min-w-0 space-y-4 overflow-x-hidden">
     <section class="rounded-[2rem] bg-slate-950 px-5 py-6 text-white shadow-sm sm:px-7">
-        <p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-300">Medicine Catalog</p>
+        <a href="{{ route('client.pharma.dashboard') }}" aria-label="Quay lại Không gian làm việc Pharma" class="inline-flex min-h-10 items-center rounded-xl px-1 text-sm font-bold text-slate-300 transition hover:text-white active:scale-[0.985] motion-reduce:transform-none">← Quay về dashboard</a>
+        <p class="mt-2 text-xs font-bold uppercase tracking-[0.16em] text-slate-300">{{ $featurePresentation['eyebrow'] }}</p>
         <div class="mt-2 flex flex-wrap items-center gap-3">
-            <h1 class="text-2xl font-black tracking-tight sm:text-3xl">Danh mục thuốc</h1>
+            <h1 class="text-2xl font-black tracking-tight sm:text-3xl">{{ $featurePresentation['page_title'] }}</h1>
             <span class="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-slate-200">{{ number_format($products->total(), 0, ',', '.') }} SKU</span>
         </div>
-        <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-300">Tra cứu danh mục chuẩn theo tên thuốc, mã thuốc, SKU, hoạt chất hoặc giấy phép lưu hành. PWA chỉ đọc và không thay đổi Medicine Master.</p>
+        <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-300">{{ $featurePresentation['page_description'] }}</p>
     </section>
 
     <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">

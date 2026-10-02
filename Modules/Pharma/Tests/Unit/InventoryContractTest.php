@@ -344,7 +344,7 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("whereIn('type',['receipt','receipt_reversal'])", $service);
         $this->assertStringContainsString("havingRaw('SUM(quantity_delta) > 0')", $service);
         $this->assertStringContainsString("'type'=>'receipt_reversal'", $service);
-        $this->assertStringContainsString("'status'=>InventoryReceipt::DRAFT,'posted_by'=>null,'posted_at'=>null", $service);
+        $this->assertStringContainsString("'status'=>\$receipt->approved_at ? InventoryReceipt::APPROVED : InventoryReceipt::DRAFT,'posted_by'=>null,'posted_at'=>null", $service);
         $this->assertStringContainsString('$balance->delete()', $service);
         $this->assertStringContainsString("@can('delete_pharma')", $documents);
         $this->assertStringContainsString("in_array(\$doc->status, ['draft','rejected'], true)", $documents);

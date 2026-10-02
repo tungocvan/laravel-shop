@@ -5,6 +5,7 @@ namespace Modules\ClientPortal\Applications\Pharma\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Modules\ClientPortal\Services\ApplicationRegistry;
@@ -15,6 +16,7 @@ use Modules\Pharma\Services\InventoryService;
 use Modules\Pharma\Services\UserPriceListWorkspace;
 use Modules\Pharma\Services\UserCommercialHospitalWorkspace;
 use Modules\Pharma\Services\UserInventoryWorkspace;
+use Modules\Pharma\Services\UserInventoryReceiptWorkspace;
 use Modules\Pharma\Services\UserInventoryIssueWorkspace;
 use Modules\Pharma\Services\UserOrderAuthoringService;
 use Modules\Pharma\Services\UserOrderApprovalService;
@@ -588,6 +590,8 @@ final class PharmaApplicationController extends Controller
 
         $user = $request->user('web');
         abort_if($user === null, 401);
+        $priceListsFeature = collect($application['features'] ?? [])->first(fn (array $feature): bool => $feature['key'] === 'price-lists');
+        abort_if($priceListsFeature === null, 404);
 
         $status = $validated['status'] ?? null;
         $fromDate = $validated['from_date'] ?? now()->startOfMonth()->toDateString();
@@ -614,6 +618,7 @@ final class PharmaApplicationController extends Controller
         return view('ClientPortal::applications.pharma.price-lists', [
             'application' => $application,
             'applicationPresentation' => $settings->applicationPresentation($application),
+            'featurePresentation' => $settings->featurePresentation($application['key'], $priceListsFeature),
             'priceLists' => $priceLists,
             'exportShares' => $exportShares,
             'counts' => $workspace->counts((int) $user->id, $managerUserId, $canApprove),
@@ -642,6 +647,8 @@ final class PharmaApplicationController extends Controller
         $user = request()->user('web');
         abort_if($user === null, 401);
 
+        $productsFeature = collect($application['features'] ?? [])->first(fn (array $feature): bool => $feature['key'] === 'products');
+        abort_if($productsFeature === null, 404);
         $canViewSupplierPricing = $registry->userCan($user, 'client.pharma.products.supplier-pricing');
         $overview = $catalog->overview($variant, $canViewSupplierPricing);
         abort_if($overview === null, 404);
@@ -649,6 +656,7 @@ final class PharmaApplicationController extends Controller
         return view('ClientPortal::applications.pharma.product-show', [
             'application' => $application,
             'applicationPresentation' => $settings->applicationPresentation($application),
+            'featurePresentation' => $settings->featurePresentation($application['key'], $productsFeature),
             'product' => $overview['product'],
             'medicine' => $overview['medicine'],
             'profile' => $overview['profile'],
@@ -677,6 +685,8 @@ final class PharmaApplicationController extends Controller
 
         $user = $request->user('web');
         abort_if($user === null, 401);
+        $productsFeature = collect($application['features'] ?? [])->first(fn (array $feature): bool => $feature['key'] === 'products');
+        abort_if($productsFeature === null, 404);
 
         $canViewSupplierPricing = $registry->userCan($user, 'client.pharma.products.supplier-pricing');
         $filter = $validated['filter'] ?? null;
@@ -686,6 +696,7 @@ final class PharmaApplicationController extends Controller
         return view('ClientPortal::applications.pharma.products', [
             'application' => $application,
             'applicationPresentation' => $settings->applicationPresentation($application),
+            'featurePresentation' => $settings->featurePresentation($application['key'], $productsFeature),
             'products' => $catalog->browse(
                 search: $validated['q'] ?? null,
                 perPage: (int) ($validated['per_page'] ?? 25),
@@ -1087,6 +1098,211 @@ final class PharmaApplicationController extends Controller
         ]);
     }
 
+    public function inventoryReceipts(
+        Request $request,
+        ApplicationRegistry $registry,
+        ClientPortalSettingsService $settings,
+        UserInventoryReceiptWorkspace $workspace,
+    ): View {
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:120'],
+            'status' => ['nullable', 'in:draft,pending_approval,approved,posted,cancelled'],
+            'page' => ['nullable', 'integer', 'min:1'],
+        ]);
+        $application = $registry->find('pharma'); abort_if($application === null, 404);
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.inventory.receipts'), 403);
+        $feature = collect($application['features'] ?? [])->first(fn (array $feature): bool => $feature['key'] === 'inventory');
+        abort_if($feature === null, 404);
+
+        return view('ClientPortal::applications.pharma.inventory-receipts', [
+            'application' => $application,
+            'applicationPresentation' => $settings->applicationPresentation($application),
+            'featurePresentation' => $settings->featurePresentation($application['key'], $feature),
+            'receipts' => $workspace->browse($validated['q'] ?? null, $validated['status'] ?? null, 20, (int) ($validated['page'] ?? 1))->withQueryString(),
+            'filters' => ['q' => trim((string) ($validated['q'] ?? '')), 'status' => $validated['status'] ?? ''],
+        ]);
+    }
+
+    public function createInventoryReceipt(
+        Request $request,
+        ApplicationRegistry $registry,
+        ClientPortalSettingsService $settings,
+        UserInventoryReceiptWorkspace $workspace,
+    ): View {
+        $application = $registry->find('pharma'); abort_if($application === null, 404);
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.inventory.receipts.create'), 403);
+        $feature = collect($application['features'] ?? [])->first(fn (array $feature): bool => $feature['key'] === 'inventory');
+        $canViewCosts = $registry->userCan($user, 'client.pharma.inventory.costs');
+        $options = $workspace->authoringOptions($canViewCosts);
+
+        return view('ClientPortal::applications.pharma.inventory-receipt-create', [
+            'application' => $application,
+            'applicationPresentation' => $settings->applicationPresentation($application),
+            'featurePresentation' => $settings->featurePresentation($application['key'], $feature),
+            ...$options,
+        ]);
+    }
+
+    public function storeInventoryReceipt(
+        Request $request,
+        ApplicationRegistry $registry,
+        UserInventoryReceiptWorkspace $workspace,
+    ): RedirectResponse {
+        $application = $registry->find('pharma'); abort_if($application === null, 404);
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.inventory.receipts.create'), 403);
+
+        $data = $request->validate([
+            'receipt_date' => ['required', 'date'],
+            'supplier_id' => ['required', 'integer'],
+            'invoice_number' => ['nullable', 'string', 'max:100'],
+            'invoice_symbol' => ['nullable', 'string', 'max:100'],
+            'invoice_date' => ['nullable', 'date'],
+            'notes' => ['nullable', 'string', 'max:2000'],
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.medicine_id' => ['required', 'integer', 'exists:pharma_medicines,id'],
+            'items.*.batch_number' => ['required', 'string', 'max:100'],
+            'items.*.expiry_date' => ['required', 'date'],
+            'items.*.quantity' => ['required', 'numeric', 'gt:0'],
+            'items.*.unit_price_ex_vat' => ['required', 'numeric', 'min:0'],
+            'items.*.invoice_unit_price_ex_vat' => ['nullable', 'numeric', 'min:0'],
+            'items.*.vat_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
+        ]);
+
+        $receipt = $workspace->createDraft($data, (int) $user->id);
+
+        return redirect()->route('client.pharma.inventory.receipts.show', $receipt)
+            ->with('success', "Đã lưu phiếu nhập {$receipt->number} ở trạng thái nháp. Tồn kho chưa thay đổi.");
+    }
+
+    public function editInventoryReceipt(
+        int $receipt, Request $request, ApplicationRegistry $registry,
+        ClientPortalSettingsService $settings, UserInventoryReceiptWorkspace $workspace,
+    ): View {
+        $application = $registry->find('pharma'); abort_if($application === null, 404);
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.inventory.receipts.create'), 403);
+        $visibleReceipt = $workspace->find($receipt); abort_if($visibleReceipt === null || $visibleReceipt->status !== \Modules\Pharma\Models\InventoryReceipt::DRAFT, 404);
+        $feature = collect($application['features'] ?? [])->first(fn (array $feature): bool => $feature['key'] === 'inventory');
+        $canViewCosts = $registry->userCan($user, 'client.pharma.inventory.costs');
+
+        return view('ClientPortal::applications.pharma.inventory-receipt-create', [
+            'application' => $application, 'applicationPresentation' => $settings->applicationPresentation($application),
+            'featurePresentation' => $settings->featurePresentation($application['key'], $feature),
+            'receipt' => $visibleReceipt, ...$workspace->authoringOptions($canViewCosts),
+        ]);
+    }
+
+    public function updateInventoryReceipt(
+        int $receipt, Request $request, ApplicationRegistry $registry, UserInventoryReceiptWorkspace $workspace,
+    ): RedirectResponse {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.inventory.receipts.create'), 403);
+        $visibleReceipt = $workspace->find($receipt); abort_if($visibleReceipt === null, 404);
+        $data = $request->validate([
+            'receipt_date' => ['required', 'date'], 'supplier_id' => ['required', 'integer'],
+            'invoice_number' => ['nullable', 'string', 'max:100'], 'invoice_symbol' => ['nullable', 'string', 'max:100'], 'invoice_date' => ['nullable', 'date'],
+            'notes' => ['nullable', 'string', 'max:2000'], 'items' => ['required', 'array', 'min:1'],
+            'items.*.medicine_id' => ['required', 'integer', 'exists:pharma_medicines,id'],
+            'items.*.batch_number' => ['required', 'string', 'max:100'], 'items.*.expiry_date' => ['required', 'date'],
+            'items.*.quantity' => ['required', 'numeric', 'gt:0'], 'items.*.unit_price_ex_vat' => ['required', 'numeric', 'min:0'],
+            'items.*.invoice_unit_price_ex_vat' => ['nullable', 'numeric', 'min:0'],
+            'items.*.vat_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
+        ]);
+        $workspace->updateDraft($visibleReceipt, $data);
+        return redirect()->route('client.pharma.inventory.receipts.show', $receipt)->with('success', 'Đã cập nhật phiếu nhập nháp. Tồn kho chưa thay đổi.');
+    }
+
+    public function deleteInventoryReceipt(int $receipt, Request $request, ApplicationRegistry $registry, UserInventoryReceiptWorkspace $workspace): RedirectResponse
+    {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.inventory.receipts.create'), 403);
+        $visibleReceipt = $workspace->find($receipt); abort_if($visibleReceipt === null, 404);
+        $workspace->deleteDraft($visibleReceipt);
+        return redirect()->route('client.pharma.inventory.receipts')->with('success', 'Đã xóa phiếu nhập nháp.');
+    }
+
+    public function submitInventoryReceipt(int $receipt, Request $request, ApplicationRegistry $registry, UserInventoryReceiptWorkspace $workspace): RedirectResponse
+    {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.inventory.receipts.submit'), 403);
+        $visibleReceipt = $workspace->find($receipt); abort_if($visibleReceipt === null, 404);
+        $workspace->submit($visibleReceipt, (int) $user->id);
+        return back()->with('success', 'Đã gửi duyệt phiếu nhập. Tồn kho chưa thay đổi.');
+    }
+
+    public function undoInventoryReceiptSubmit(int $receipt, Request $request, ApplicationRegistry $registry, UserInventoryReceiptWorkspace $workspace): RedirectResponse
+    {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.inventory.receipts.submit'), 403);
+        $visibleReceipt = $workspace->find($receipt); abort_if($visibleReceipt === null, 404);
+        $workspace->undoSubmit($visibleReceipt);
+        return back()->with('success', 'Đã hoàn tác gửi duyệt về Nháp.');
+    }
+
+    public function approveInventoryReceipt(int $receipt, Request $request, ApplicationRegistry $registry, UserInventoryReceiptWorkspace $workspace): RedirectResponse
+    {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.inventory.receipts.approve'), 403);
+        $visibleReceipt = $workspace->find($receipt); abort_if($visibleReceipt === null, 404);
+        $workspace->approve($visibleReceipt, (int) $user->id);
+        return back()->with('success', 'Đã duyệt phiếu nhập. Tồn kho chưa thay đổi.');
+    }
+
+    public function undoInventoryReceiptApproval(int $receipt, Request $request, ApplicationRegistry $registry, UserInventoryReceiptWorkspace $workspace): RedirectResponse
+    {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.inventory.receipts.approve'), 403);
+        $visibleReceipt = $workspace->find($receipt); abort_if($visibleReceipt === null, 404);
+        $workspace->undoApproval($visibleReceipt);
+        return back()->with('success', 'Đã hoàn tác duyệt về Chờ duyệt.');
+    }
+
+    public function postInventoryReceipt(int $receipt, Request $request, ApplicationRegistry $registry, UserInventoryReceiptWorkspace $workspace): RedirectResponse
+    {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.inventory.receipts.post'), 403);
+        $visibleReceipt = $workspace->find($receipt); abort_if($visibleReceipt === null, 404);
+        $workspace->post($visibleReceipt, (int) $user->id);
+        return back()->with('success', 'Đã ghi sổ phiếu nhập và cộng tồn kho.');
+    }
+
+    public function revertInventoryReceipt(int $receipt, Request $request, ApplicationRegistry $registry, UserInventoryReceiptWorkspace $workspace): RedirectResponse
+    {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.inventory.receipts.post'), 403);
+        $visibleReceipt = $workspace->find($receipt); abort_if($visibleReceipt === null, 404);
+        $workspace->revertPost($visibleReceipt, (int) $user->id);
+        return back()->with('success', 'Đã hoàn tác ghi sổ. Phiếu trở về trạng thái Đã duyệt.');
+    }
+
+    public function inventoryReceipt(
+        int $receipt,
+        Request $request,
+        ApplicationRegistry $registry,
+        ClientPortalSettingsService $settings,
+        UserInventoryReceiptWorkspace $workspace,
+    ): View {
+        $application = $registry->find('pharma'); abort_if($application === null, 404);
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.inventory.receipts'), 403);
+        $visibleReceipt = $workspace->find($receipt); abort_if($visibleReceipt === null, 404);
+        $feature = collect($application['features'] ?? [])->first(fn (array $feature): bool => $feature['key'] === 'inventory');
+
+        return view('ClientPortal::applications.pharma.inventory-receipt-show', [
+            'application' => $application,
+            'applicationPresentation' => $settings->applicationPresentation($application),
+            'featurePresentation' => $settings->featurePresentation($application['key'], $feature),
+            'receipt' => $visibleReceipt,
+            'canEditReceipt' => $registry->userCan($user, 'client.pharma.inventory.receipts.create'),
+            'canSubmitReceipt' => $registry->userCan($user, 'client.pharma.inventory.receipts.submit'),
+            'canApproveReceipt' => $registry->userCan($user, 'client.pharma.inventory.receipts.approve'),
+            'canPostReceipt' => $registry->userCan($user, 'client.pharma.inventory.receipts.post'),
+        ]);
+    }
+
     public function orders(
         Request $request,
         ApplicationRegistry $registry,
@@ -1323,7 +1539,7 @@ final class PharmaApplicationController extends Controller
         $readiness = $stockReadiness->forIssue($approved);
         if (! ($readiness['can_post_directly'] ?? false)) {
             return redirect()->route('client.pharma.orders.show', $issue)
-                ->withErrors(['stock' => 'Đơn chưa đủ điều kiện ghi sổ trực tiếp. Mỗi sản phẩm phải có một lô còn hạn đủ số lượng.']);
+                ->withErrors(['stock' => 'Đơn chưa đủ điều kiện ghi sổ trực tiếp. Mỗi sản phẩm cần đủ tổng tồn khả dụng qua các lô còn hạn.']);
         }
 
         $inventory->postApprovedIssueFromAvailableStock($approved, (int) $user->id);
@@ -1592,9 +1808,13 @@ final class PharmaApplicationController extends Controller
                 return $feature;
             });
 
+        $overviewFeature = collect($application['features'] ?? [])->first(fn (array $feature): bool => $feature['key'] === 'overview');
+        abort_if($overviewFeature === null, 404);
+
         return view('ClientPortal::applications.pharma.dashboard', [
             'application' => $application,
             'applicationPresentation' => $settings->applicationPresentation($application),
+            'featurePresentation' => $settings->featurePresentation($application['key'], $overviewFeature),
             'features' => $features,
         ]);
     }

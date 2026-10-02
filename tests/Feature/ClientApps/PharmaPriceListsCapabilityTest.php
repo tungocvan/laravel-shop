@@ -81,8 +81,12 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('public function findVisible(int $userId, int $priceListId, bool $approverScope = false)', $service);
         $this->assertStringNotContainsString('auth(', $service);
 
-        $this->assertStringContainsString('Bảng giá của tôi', $view);
-        $this->assertStringContainsString('Chỉ hiển thị các bảng giá bạn là người phụ trách', $view);
+        $manifest = require base_path('Modules/ClientPortal/Applications/Pharma/manifest.php');
+        $priceListFeature = $manifest['features']['price-lists'];
+        $this->assertSame('Bảng giá của tôi', $priceListFeature['page_title']);
+        $this->assertStringContainsString('Chỉ hiển thị các bảng giá bạn là người phụ trách', $priceListFeature['page_description']);
+        $this->assertStringContainsString("\$featurePresentation['page_title']", $view);
+        $this->assertStringContainsString("\$featurePresentation['page_description']", $view);
         $this->assertStringContainsString('25,50,100', $view);
         $this->assertStringContainsString("setTimeout(()=>f.requestSubmit(),350)", $view);
         $this->assertStringContainsString("['from_date','Từ ngày',\$fromDate]", $view);

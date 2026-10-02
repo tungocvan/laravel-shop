@@ -26,16 +26,18 @@ final class PharmaInventoryCapabilityTest extends TestCase
         $this->assertStringNotContainsString('SupplierTracking::query()', $controller);
     }
 
-    public function test_inventory_pwa_is_read_only_responsive_and_uses_managed_presentation(): void
+    public function test_inventory_pwa_is_responsive_uses_managed_presentation_and_exposes_receipt_workflow(): void
     {
         $root = base_path();
         $routes = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/routes.php');
         $view = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory.blade.php');
         $manifest = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/manifest.php');
 
-        $this->assertStringNotContainsString("Route::post('/inventory", $routes);
-        $this->assertStringNotContainsString("Route::put('/inventory", $routes);
-        $this->assertStringNotContainsString("Route::delete('/inventory", $routes);
+        $this->assertStringContainsString("Route::post('/inventory/receipts'", $routes);
+        $this->assertStringContainsString("Route::post('/inventory/receipts/{receipt}/post", $routes);
+        $this->assertStringContainsString("Route::post('/inventory/receipts/{receipt}/revert", $routes);
+        $this->assertStringContainsString("Route::put('/inventory/receipts/{receipt}'", $routes);
+        $this->assertStringContainsString("Route::delete('/inventory/receipts/{receipt}'", $routes);
         $this->assertStringContainsString("featurePresentation['page_title']", $view);
         $this->assertStringContainsString("featurePresentation['page_description']", $view);
         $this->assertStringContainsString('xl:hidden', $view);
@@ -77,9 +79,12 @@ final class PharmaInventoryCapabilityTest extends TestCase
         $this->assertStringContainsString('Giá trị hàng cận hạn ≤ 6 tháng', $view);
         $this->assertStringContainsString('Hàng hết hạn còn tồn', $view);
         $this->assertStringContainsString('@if($canViewCosts)', $view);
-        $this->assertStringContainsString('pb-24 xl:pb-8', $view);
         $this->assertStringContainsString("'page_title' => 'Tồn kho Pharma'", $manifest);
         $this->assertStringContainsString("'permission' => 'client.pharma.inventory.costs'", $manifest);
+        $this->assertStringContainsString("@section('hide-application-header', true)", $view);
+        $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $view);
+        $this->assertStringContainsString('aria-label="Quay lại Không gian làm việc Pharma"', $view);
+        $this->assertStringNotContainsString('pb-24 xl:pb-8', $view);
     }
 
     public function test_inventory_costs_and_search_are_permission_scoped(): void

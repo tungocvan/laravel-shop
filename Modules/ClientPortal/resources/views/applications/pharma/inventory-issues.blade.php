@@ -32,10 +32,8 @@
             <label class="relative min-w-0 flex-1">
                 <span class="sr-only">Tìm kiếm đơn hàng</span>
                 <span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xl text-slate-500">⌕</span>
-                <input id="issue-search-input" name="q" value="{{ $filters['q'] }}" placeholder="Tìm đơn hàng / khách hàng / bệnh viện" class="h-14 w-full rounded-2xl border border-slate-300 bg-white pl-12 pr-11 text-[15px] font-medium text-slate-900 placeholder:text-[13px] placeholder:font-normal outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200">
-                @if($filters['q'])
-                    <a href="{{ route('client.pharma.orders', array_filter(['status'=>$filters['status'],'source'=>$filters['source'],'from_date'=>$filters['from_date'],'to_date'=>$filters['to_date'],'manager_user_id'=>$filters['manager_user_id']])) }}" class="absolute right-3 top-1/2 -translate-y-1/2 rounded-full px-2 py-1 text-xl text-slate-500" aria-label="Xóa từ khóa tìm kiếm">×</a>
-                @endif
+                <input id="issue-search-input" name="q" value="{{ $filters['q'] }}" placeholder="Tìm đơn hàng / khách hàng / bệnh viện" data-pwa-debounced-search="600" data-pwa-search-region="#orders-search-region" data-pwa-search-clear="#issue-search-clear" class="h-14 w-full rounded-2xl border border-slate-300 bg-white pl-12 pr-11 text-[15px] font-medium text-slate-900 placeholder:text-[13px] placeholder:font-normal outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200">
+                <button id="issue-search-clear" type="button" data-pwa-search-clear-button="#issue-search-input" class="absolute right-3 top-1/2 -translate-y-1/2 rounded-full px-2 py-1 text-xl text-slate-500 {{ $filters['q'] ? '' : 'hidden' }}" aria-label="Xóa từ khóa tìm kiếm">×</button>
             </label>
             <button id="issue-filter-toggle" type="button" class="relative inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-slate-300 bg-white text-xl text-slate-700 active:scale-95" aria-controls="issue-filter-sheet" aria-expanded="false">
                 ⏷
@@ -77,6 +75,7 @@
         </div>
     @endif
 
+    <div id="orders-search-region">
     <section id="issue-mobile-list" class="mt-4 grid min-w-0 max-w-full grid-cols-1 gap-3 md:grid-cols-2 xl:hidden">
         @forelse($issues as $issue)
             <a data-issue-card href="{{ route('client.pharma.orders.show', $issue->id) }}" class="min-w-0 max-w-full overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">
@@ -114,8 +113,9 @@
     </section>
 
     @if($issues->hasMorePages())
-        <div id="issue-load-more-wrap" class="mt-5 text-center"><a id="issue-load-more" href="{{ $issues->nextPageUrl() }}" class="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-300 bg-white px-6 text-sm font-black text-slate-800">Xem thêm</a><div id="issue-load-more-sentinel" class="h-1"></div></div>
+        <div id="issue-load-more-wrap" class="mt-5 text-center"><a id="issue-load-more" href="{{ $issues->nextPageUrl() }}" data-pwa-load-more data-pwa-load-more-target="#issue-mobile-list" data-pwa-load-more-items="#issue-mobile-list [data-issue-card]" data-pwa-load-more-wrap="#issue-load-more-wrap" data-pwa-pending-label="Đang tải…" class="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-300 bg-white px-6 text-sm font-black text-slate-800">Xem thêm</a></div>
     @endif
+</div>
 
     <div id="issue-filter-backdrop" class="fixed inset-0 z-40 hidden bg-slate-950/55"></div>
     <aside id="issue-filter-sheet" class="fixed inset-x-0 bottom-0 z-50 hidden rounded-t-[2rem] bg-white shadow-2xl lg:inset-0 lg:m-auto lg:h-fit lg:max-h-[calc(100vh-3rem)] lg:w-[34rem] lg:overflow-y-auto lg:rounded-[2rem]" aria-hidden="true">
@@ -168,11 +168,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const centerShortageDialog=()=>{if(!shortageDialog)return;shortageDialog.style.position='fixed';shortageDialog.style.inset='50% auto auto 50%';shortageDialog.style.margin='0';shortageDialog.style.transform='translate(-50%, -50%)';shortageDialog.style.maxHeight='calc(100dvh - 24px)';};
     document.addEventListener('click',(event)=>{const button=event.target.closest('[data-shortage-note]');if(!button)return;event.preventDefault();event.stopPropagation();if(shortageContent)shortageContent.textContent=button.dataset.shortageNote||'';centerShortageDialog();shortageDialog?.showModal();});
     document.querySelector('[data-shortage-close]')?.addEventListener('click',()=>shortageDialog?.close());
-    const search = document.getElementById('issue-search-input');
-    const searchForm = document.getElementById('issue-search-form');
-    let timer;
-    search?.addEventListener('input', () => { window.clearTimeout(timer); timer = window.setTimeout(() => searchForm.requestSubmit(), 350); });
-
     const toggle = document.getElementById('issue-filter-toggle');
     const sheet = document.getElementById('issue-filter-sheet');
     const backdrop = document.getElementById('issue-filter-backdrop');
@@ -182,25 +177,6 @@ document.addEventListener('DOMContentLoaded', () => {
     toggle?.addEventListener('click', openSheet); closeButtons.forEach((button) => button?.addEventListener('click', closeSheet));
 
 
-    const more = document.getElementById('issue-load-more');
-    const mobile = document.getElementById('issue-mobile-list');
-    const desktop = document.getElementById('issue-desktop-body');
-    const sentinel = document.getElementById('issue-load-more-sentinel');
-    const loadMore = async () => {
-        if (!more || more.dataset.loading === '1') return;
-        more.dataset.loading='1'; more.textContent='Đang tải...';
-        try {
-            const response=await fetch(more.href,{headers:{'X-Requested-With':'XMLHttpRequest'}});
-            if(!response.ok) throw new Error('load-more');
-            const doc=new DOMParser().parseFromString(await response.text(),'text/html');
-            doc.querySelectorAll('#issue-mobile-list [data-issue-card]').forEach((node)=>mobile?.appendChild(node));
-            doc.querySelectorAll('#issue-desktop-body [data-issue-row]').forEach((node)=>desktop?.appendChild(node));
-            const next=doc.getElementById('issue-load-more');
-            if(next){more.href=next.href;more.textContent='Xem thêm';more.dataset.loading='0';}else{document.getElementById('issue-load-more-wrap')?.remove();}
-        } catch(e){more.textContent='Thử lại';more.dataset.loading='0';}
-    };
-    more?.addEventListener('click',(event)=>{event.preventDefault();loadMore();});
-    if(more && sentinel && 'IntersectionObserver' in window){new IntersectionObserver((entries)=>{if(entries.some((entry)=>entry.isIntersecting))loadMore();},{rootMargin:'320px 0px'}).observe(sentinel);}
 });
 </script>
 @endsection
