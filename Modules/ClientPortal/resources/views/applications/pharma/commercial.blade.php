@@ -69,16 +69,15 @@
         </form>
 
         @if($awardScope)
+        <div id="commercial-hospital-search-region" class="space-y-4">
         <form id="commercial-hospital-search-form" data-pwa-pending-feedback="#commercial-navigation-feedback" method="GET" action="{{ route('client.pharma.commercial') }}" class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
             @if($managerUserId)<input type="hidden" name="manager_user_id" value="{{ $managerUserId }}">@endif
             <input type="hidden" name="award_scope" value="{{ $awardScopeKey }}">
-            <label class="min-w-0">
+            <label class="relative min-w-0">
                 <span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Tìm bệnh viện</span>
-                <input id="commercial-hospital-search-input" data-pwa-debounced-search="600" type="search" name="q" value="{{ $search }}" autocomplete="off" placeholder="Tên bệnh viện, địa chỉ, mã tỉnh..." class="h-[46px] w-full rounded-2xl border border-slate-300 px-4 text-sm text-slate-950 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200">
+                <input id="commercial-hospital-search-input" data-pwa-debounced-search="800" data-pwa-search-region="#commercial-hospital-search-region" data-pwa-search-clear="#commercial-hospital-search-clear" type="search" name="q" value="{{ $search }}" autocomplete="off" placeholder="Tên bệnh viện, địa chỉ, mã tỉnh..." class="h-[46px] w-full rounded-2xl border border-slate-300 px-4 pr-11 text-sm text-slate-950 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200">
+                <button id="commercial-hospital-search-clear" data-pwa-search-clear-button="#commercial-hospital-search-input" type="button" aria-label="Xóa tìm kiếm bệnh viện" class="absolute bottom-[7px] right-1.5 inline-flex h-8 w-8 items-center justify-center rounded-full text-lg font-bold text-slate-400 hover:bg-slate-100 hover:text-slate-700 {{ $search === '' ? 'hidden' : '' }}">×</button>
             </label>
-            @if($search !== '')
-                <a href="{{ route('client.pharma.commercial', array_filter(['manager_user_id' => $managerUserId, 'award_scope' => $awardScopeKey])) }}" class="inline-flex h-[46px] items-center justify-center whitespace-nowrap rounded-2xl border border-slate-300 px-4 text-sm font-bold text-slate-700 transition hover:border-slate-400 hover:text-slate-950">Xóa bộ lọc</a>
-            @endif
         </form>
         @endif
     </section>
@@ -123,6 +122,9 @@
             <p class="mt-2 text-xs font-semibold text-slate-400">Đã hiển thị {{ $hospitals->count() }} / {{ $hospitals->total() }}</p>
         </div>
     @endif
+    @endif
+    @if($awardScope)
+        </div>
     @endif
 </div>
 <div id="commercial-navigation-feedback" class="pointer-events-none fixed inset-x-0 bottom-20 z-50 mx-auto hidden w-fit items-center gap-2 rounded-full bg-slate-950/95 px-4 py-2.5 text-sm font-bold text-white shadow-xl backdrop-blur sm:bottom-6" role="status" aria-live="polite">
