@@ -73,6 +73,22 @@ class AdmissionController extends Controller
             ->with('success', 'Đã cập nhật tên tỉnh và phường/xã.');
     }
 
+    public function deleteDvhcSelected(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1', 'max:200'],
+            'ids.*' => ['required', 'integer', 'distinct', 'exists:admission_locations,id'],
+        ]);
+
+        $deleted = AdmissionLocation::query()
+            ->whereKey($validated['ids'])
+            ->delete();
+
+        return redirect()
+            ->route('admin.admission.dvhc')
+            ->with('success', "Đã xóa {$deleted} đơn vị hành chính.");
+    }
+
     public function search()
     {
         return view('Admission::pages.public.search');
