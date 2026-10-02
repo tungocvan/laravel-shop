@@ -184,6 +184,8 @@ final class UserOrderAuthoringService
             }
             if (($issue->issue_source ?? 'normal') === 'normal') {
                 $this->guardPriceListDraftCurrent($issue);
+            } else {
+                $this->guardBidDraftCurrent($issue);
             }
 
             $issue->update(['status' => InventoryIssue::PENDING_APPROVAL, 'submitted_by' => $userId, 'submitted_at' => now()]);
@@ -255,6 +257,61 @@ final class UserOrderAuthoringService
             );
             if (! $priceStillCurrent) {
                 throw ValidationException::withMessages(['order' => 'Sản phẩm hoặc đơn giá trong đơn Nháp đã thay đổi so với bảng giá hiệu lực. Vui lòng sửa lại đơn trước khi gửi duyệt.']);
+            }
+        }
+    }
+
+    private function guardBidDraftCurrent(InventoryIssue $issue): void
+    {
+        $date = $issue->issue_date?->format('Y-m-d') ?: (string) $issue->issue_date;
+        $draftItems = $issue->items()->get([
+            'id', 'medicine_id', 'drug_bid_award_id', 'drug_bid_award_allocation_id', 'quantity', 'unit_price',
+        ]);
+
+        foreach ($draftItems as $draftItem) {
+            $allocation = DrugBidAwardAllocation::query()
+                ->with(['award:id,medicine_id,winning_price,unit_price,investor_code,investor_name'])
+                ->whereKey((int) $draftItem->drug_bid_award_allocation_id)
+                ->where('status', DrugBidAwardAllocation::STATUS_ACTIVE)
+                ->where(fn ($q) => $q->whereNull('effective_from')->orWhereDate('effective_from', '<=', $date))
+                ->where(fn ($q) => $q->whereNull('effective_until')->orWhereDate('effective_until', '>=', $date))
+                ->lockForUpdate()
+                ->first();
+
+            if (! $allocation
+                || (int) $allocation->partner_id !== (int) $issue->recipient_partner_id
+                || (int) $allocation->drug_bid_award_id !== (int) $draftItem->drug_bid_award_id) {
+                throw ValidationException::withMessages(['order' => 'Phân bổ hàng thầu của đơn Nháp không còn hiệu lực hoặc không còn đúng bệnh viện. Vui lòng sửa lại đơn trước khi gửi duyệt.']);
+            }
+
+            $assignmentExists = DrugBidAwardManagementAssignment::query()
+                ->where('drug_bid_award_id', $allocation->drug_bid_award_id)
+                ->where('partner_id', $allocation->partner_id)
+                ->where('user_id', (int) $issue->manager_user_id)
+                ->where('status', DrugBidAwardManagementAssignment::STATUS_ACTIVE)
+                ->exists();
+            if (! $assignmentExists) {
+                throw ValidationException::withMessages(['order' => 'User phụ trách không còn được phân công quản lý bệnh viện/kết quả thầu này. Vui lòng sửa lại đơn trước khi gửi duyệt.']);
+            }
+
+            $award = $allocation->award;
+            $canonicalPrice = (float) ($award?->winning_price ?? $award?->unit_price ?? 0);
+            if (! $award
+                || (int) $award->medicine_id !== (int) $draftItem->medicine_id
+                || abs($canonicalPrice - (float) $draftItem->unit_price) >= 0.005) {
+                throw ValidationException::withMessages(['order' => 'Sản phẩm hoặc đơn giá trúng thầu trong đơn Nháp đã thay đổi. Vui lòng sửa lại đơn trước khi gửi duyệt.']);
+            }
+
+            $committedQuantity = (float) DB::table('pharma_inventory_issue_items as ii')
+                ->join('pharma_inventory_issues as i', 'i.id', '=', 'ii.issue_id')
+                ->where('i.issue_source', 'bid')
+                ->whereIn('i.status', [InventoryIssue::PENDING_APPROVAL, InventoryIssue::APPROVED, InventoryIssue::POSTED])
+                ->where('i.id', '<>', $issue->id)
+                ->where('ii.drug_bid_award_allocation_id', $allocation->id)
+                ->sum('ii.quantity');
+
+            if ($committedQuantity + (float) $draftItem->quantity > (float) $allocation->allocated_quantity + 0.00005) {
+                throw ValidationException::withMessages(['order' => 'Số lượng hàng thầu đã vượt phân bổ còn lại sau khi tính các đơn đang chờ duyệt/đã duyệt. Vui lòng giảm số lượng hoặc kiểm tra các đơn hiện có.']);
             }
         }
     }
