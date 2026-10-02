@@ -80,6 +80,10 @@ final class PharmaInventoryCapabilityTest extends TestCase
         $this->assertStringContainsString('pb-24 xl:pb-8', $view);
         $this->assertStringContainsString("'page_title' => 'Tồn kho Pharma'", $manifest);
         $this->assertStringContainsString("'permission' => 'client.pharma.inventory.costs'", $manifest);
+        $this->assertStringContainsString("@section('hide-application-header', true)", $view);
+        $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $view);
+        $this->assertStringContainsString('aria-label="Quay lại Không gian làm việc Pharma"', $view);
+        $this->assertStringNotContainsString('pb-24 xl:pb-8', $view);
     }
 
     public function test_inventory_costs_and_search_are_permission_scoped(): void
