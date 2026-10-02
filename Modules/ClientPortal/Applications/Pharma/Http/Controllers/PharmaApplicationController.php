@@ -1314,11 +1314,13 @@ final class PharmaApplicationController extends Controller
         ApplicationRegistry $registry,
         ClientPortalSettingsService $settings,
         UserInventoryReceiptWorkspace $workspace,
+        UserInventoryWorkspace $inventoryWorkspace,
     ): View {
         $application = $registry->find('pharma'); abort_if($application === null, 404);
         $user = $request->user('web'); abort_if($user === null, 401);
         abort_unless($registry->userCan($user, 'client.pharma.inventory.receipts'), 403);
         $visibleReceipt = $workspace->find($receipt); abort_if($visibleReceipt === null, 404);
+        $canViewInventory = $registry->userCan($user, 'client.pharma.inventory.view');
         $feature = collect($application['features'] ?? [])->first(fn (array $feature): bool => $feature['key'] === 'inventory');
 
         return view('ClientPortal::applications.pharma.inventory-receipt-show', [
@@ -1326,6 +1328,8 @@ final class PharmaApplicationController extends Controller
             'applicationPresentation' => $settings->applicationPresentation($application),
             'featurePresentation' => $settings->featurePresentation($application['key'], $feature),
             'receipt' => $visibleReceipt,
+            'inventoryBalanceLinks' => $canViewInventory ? $inventoryWorkspace->balanceLinksForItems($visibleReceipt->items) : [],
+            'canViewInventory' => $canViewInventory,
             'canEditReceipt' => $registry->userCan($user, 'client.pharma.inventory.receipts.create'),
             'canSubmitReceipt' => $registry->userCan($user, 'client.pharma.inventory.receipts.submit'),
             'canApproveReceipt' => $registry->userCan($user, 'client.pharma.inventory.receipts.approve'),
@@ -1613,6 +1617,7 @@ final class PharmaApplicationController extends Controller
         ApplicationRegistry $registry,
         UserInventoryIssueWorkspace $workspace,
         UserOrderStockReadinessService $stockReadiness,
+        UserInventoryWorkspace $inventoryWorkspace,
     ): View {
         $application = $registry->find('pharma');
         abort_if($application === null, 404);
@@ -1627,10 +1632,13 @@ final class PharmaApplicationController extends Controller
         if ($visibleIssue === null && $canCreateForUser) $visibleIssue = $workspace->findByCreator((int) $user->id, $issue);
         if ($visibleIssue === null && $canApproveOrder) $visibleIssue = $workspace->findPendingForApproval($issue) ?? $workspace->findApprovedForUndo($issue);
         abort_if($visibleIssue === null, 404);
+        $canViewInventory = $registry->userCan($user, 'client.pharma.inventory.view');
 
         return view('ClientPortal::applications.pharma.inventory-issue-show', [
             'application' => $application,
             'issue' => $visibleIssue,
+            'inventoryBalanceLinks' => $canViewInventory ? $inventoryWorkspace->balanceLinksForItems($visibleIssue->items) : [],
+            'canViewInventory' => $canViewInventory,
             'canEditOrder' => ($registry->userCan($user, 'client.pharma.orders.create') || $canCreateForUser)
                 && in_array((int) $user->id, [(int) $visibleIssue->created_by, (int) $visibleIssue->manager_user_id], true)
                 && $visibleIssue->status === \Modules\Pharma\Models\InventoryIssue::DRAFT,
