@@ -184,4 +184,41 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertStringContainsString('maintenance_message', $admin);
     }
 
+    public function test_commercial_workspace_uses_focused_shell_and_shared_native_interactions(): void
+    {
+        $manifest = require base_path('Modules/ClientPortal/Applications/Pharma/manifest.php');
+        $index = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/commercial.blade.php'));
+        $detail = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/commercial-hospital-show.blade.php'));
+        $foundation = file_get_contents(base_path('resources/js/clientportal/native-interactions.js'));
+        $bundle = file_get_contents(base_path('resources/js/tailwind.js'));
+
+        $feature = $manifest['features']['commercial'];
+        $this->assertSame('client.pharma.commercial', $feature['route']);
+        $this->assertSame('client.pharma.commercial.view', $feature['permission']);
+        $this->assertArrayHasKey('eyebrow', $feature);
+        $this->assertArrayHasKey('page_title', $feature);
+        $this->assertArrayHasKey('page_description', $feature);
+
+        foreach ([$index, $detail] as $view) {
+            $this->assertStringContainsString("@section('hide-application-header', true)", $view);
+            $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $view);
+            $this->assertStringContainsString('data-pwa-debounced-search="600"', $view);
+            $this->assertStringContainsString('data-pwa-load-more', $view);
+            $this->assertStringNotContainsString("document.addEventListener('DOMContentLoaded'", $view);
+        }
+
+        $this->assertStringContainsString('aria-label="Quay lại Không gian làm việc Pharma"', $index);
+        $this->assertStringContainsString("route('client.pharma.dashboard')", $index);
+        $this->assertStringContainsString('aria-label="Quay lại Công việc bệnh viện"', $detail);
+        $this->assertStringContainsString("route('client.pharma.commercial'", $detail);
+
+        $this->assertStringContainsString("import './clientportal/native-interactions';", $bundle);
+        $this->assertStringContainsString('export const bindNativeInteractions', $foundation);
+        $this->assertStringContainsString('[data-pwa-debounced-search]', $foundation);
+        $this->assertStringContainsString('[data-pwa-load-more]', $foundation);
+        $this->assertStringContainsString("button.getAttribute('aria-busy') === 'true'", $foundation);
+        $this->assertStringContainsString("input.form?.requestSubmit()", $foundation);
+    }
+
+
 }
