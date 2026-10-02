@@ -46,6 +46,25 @@ class AdmissionRegistrationService
         return AdmissionApplication::query()->findOrFail($id);
     }
 
+    private function normalizeDateForForm(mixed $value): string
+    {
+        if ($value instanceof \DateTimeInterface) {
+            return Carbon::instance($value)->format('Y-m-d');
+        }
+
+        $value = trim((string) $value);
+
+        foreach (['Y-m-d', 'd/m/Y'] as $format) {
+            try {
+                return Carbon::createFromFormat($format, $value)->format('Y-m-d');
+            } catch (\Throwable) {
+                // Try the next supported legacy format.
+            }
+        }
+
+        return '';
+    }
+
     public function toForm(AdmissionApplication $application): array
     {
         return [
@@ -117,7 +136,7 @@ class AdmissionRegistrationService
             'SchoolCampusName' => $application->school_campus_name ?? '',
             'SchoolCampusAddress' => $application->school_campus_address ?? '',
             'NgayLamDon' => $application->ngay_lam_don
-                ? Carbon::parse($application->ngay_lam_don)->format('Y-m-d')
+                ? $this->normalizeDateForForm($application->ngay_lam_don)
                 : '',
             'NguoiLamDon' => $application->nguoi_lam_don ?? '',
         ];
