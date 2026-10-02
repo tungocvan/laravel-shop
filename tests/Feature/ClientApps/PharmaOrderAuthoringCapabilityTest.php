@@ -33,6 +33,10 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
         $controller = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php');
 
         $this->assertStringContainsString('final class UserOrderAuthoringService', $service);
+        // guard locked order draft transitions marker
+        $this->assertGreaterThanOrEqual(2, substr_count($service, "InventoryIssue::query()->lockForUpdate()->findOrFail(\$issue->getKey())"));
+        $this->assertStringContainsString('return DB::transaction(function () use ($userId, $issue): InventoryIssue {', $service);
+        $this->assertStringContainsString('return DB::transaction(function () use ($actorUserId, $managerUserId, $issue, $data): InventoryIssue {', $service);
         $this->assertStringContainsString("->activeAt(\$date)", $service);
         $this->assertStringContainsString("->where('type', PriceList::TYPE_GLOBAL)", $service);
         $this->assertStringContainsString("->whereDoesntHave('globalUsers')", $service);
