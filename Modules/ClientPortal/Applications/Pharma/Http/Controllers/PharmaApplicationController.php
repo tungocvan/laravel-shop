@@ -1125,7 +1125,8 @@ final class PharmaApplicationController extends Controller
         $user = $request->user('web'); abort_if($user === null, 401);
         abort_unless($registry->userCan($user, 'client.pharma.inventory.receipts.create'), 403);
         $feature = collect($application['features'] ?? [])->first(fn (array $feature): bool => $feature['key'] === 'inventory');
-        $options = $workspace->authoringOptions();
+        $canViewCosts = $registry->userCan($user, 'client.pharma.inventory.costs');
+        $options = $workspace->authoringOptions($canViewCosts);
 
         return view('ClientPortal::applications.pharma.inventory-receipt-create', [
             'application' => $application,
