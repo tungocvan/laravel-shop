@@ -11,7 +11,7 @@
 <section class="rounded-[1.75rem] bg-slate-950 px-5 py-5 text-white shadow-sm sm:px-7">
 <a href="{{ route('client.pharma.inventory') }}" class="text-sm font-bold text-slate-300 hover:text-white">← Tồn kho</a>
 <p class="mt-4 text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Inventory · Receipts</p>
-<h1 class="mt-1.5 text-2xl font-black">Phiếu nhập kho</h1><p class="mt-1.5 text-sm text-slate-300">Tra cứu phiếu nhập và hàng hóa đã tiếp nhận. PWA chỉ đọc; ghi sổ và hoàn tác thực hiện tại Web Admin.</p>
+<div class="mt-1.5 flex flex-wrap items-center justify-between gap-3"><h1 class="text-2xl font-black">Phiếu nhập kho</h1>@can('client.pharma.inventory.receipts.create')<a href="{{ route('client.pharma.inventory.receipts.create') }}" class="inline-flex min-h-11 items-center rounded-2xl bg-white px-4 py-2 text-sm font-black text-slate-950">+ Thêm phiếu nhập</a>@endcan</div><p class="mt-1.5 text-sm text-slate-300">Tra cứu phiếu nhập và hàng hóa đã tiếp nhận. Phiếu mới được lưu nháp; chỉ khi ghi sổ tại Web Admin mới cộng tồn kho.</p>
 </section>
 <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
 <form method="GET" action="{{ route('client.pharma.inventory.receipts') }}" data-pwa-debounced-search data-delay="350">
