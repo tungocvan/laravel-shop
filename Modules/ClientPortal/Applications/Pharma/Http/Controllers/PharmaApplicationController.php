@@ -1539,7 +1539,7 @@ final class PharmaApplicationController extends Controller
         $readiness = $stockReadiness->forIssue($approved);
         if (! ($readiness['can_post_directly'] ?? false)) {
             return redirect()->route('client.pharma.orders.show', $issue)
-                ->withErrors(['stock' => 'Đơn chưa đủ điều kiện ghi sổ trực tiếp. Mỗi sản phẩm phải có một lô còn hạn đủ số lượng.']);
+                ->withErrors(['stock' => 'Đơn chưa đủ điều kiện ghi sổ trực tiếp. Mỗi sản phẩm cần đủ tổng tồn khả dụng qua các lô còn hạn.']);
         }
 
         $inventory->postApprovedIssueFromAvailableStock($approved, (int) $user->id);
