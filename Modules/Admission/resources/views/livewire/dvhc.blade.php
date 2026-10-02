@@ -145,7 +145,6 @@
                             <td class="px-6 py-3">
                                 <input
                                     wire:model="rows.{{ $index }}.province_name"
-                                    wire:blur="updateRow({{ $index }})"
                                     class="w-full rounded-lg border-gray-300 px-3 py-2 text-sm font-medium text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                                 >
                             </td>
@@ -161,18 +160,21 @@
                             <td class="px-6 py-3">
                                 <input
                                     wire:model="rows.{{ $index }}.ward_name"
-                                    wire:blur="updateRow({{ $index }})"
                                     class="w-full rounded-lg border-gray-300 px-3 py-2 text-sm
                                            focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 >
                             </td>
 
-                            {{-- STATUS --}}
+                            {{-- SAVE --}}
                             <td class="px-6 py-4 text-center">
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-full
-                                             border border-emerald-200 text-emerald-600 text-xs font-medium">
-                                    Đã lưu
-                                </span>
+                                <button type="button"
+                                        wire:click="updateRow({{ $index }})"
+                                        wire:loading.attr="disabled"
+                                        wire:target="updateRow({{ $index }})"
+                                        class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-700 disabled:cursor-wait disabled:opacity-60">
+                                    <span wire:loading.remove wire:target="updateRow({{ $index }})">Lưu</span>
+                                    <span wire:loading wire:target="updateRow({{ $index }})">Đang lưu...</span>
+                                </button>
                             </td>
 
                         </tr>
