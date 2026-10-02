@@ -1501,9 +1501,14 @@ final class PharmaApplicationController extends Controller
         $scopedHospital = $workspace->findHospital($targetUserId, $hospital, $awardScope);
         abort_if($scopedHospital === null, 404);
 
+        $commercialFeature = collect($application['features'] ?? [])->first(fn (array $feature): bool => $feature['key'] === 'commercial');
+        abort_if($commercialFeature === null, 404);
+        $canViewSupplierPricing = $registry->userCan($user, 'client.pharma.products.supplier-pricing');
+
         return view('ClientPortal::applications.pharma.commercial-hospital-show', [
             'application' => $application,
             'applicationPresentation' => $settings->applicationPresentation($application),
+            'featurePresentation' => $settings->featurePresentation($application['key'], $commercialFeature),
             'hospital' => $scopedHospital,
             'products' => $workspace->assignedProducts(
                 userId: $targetUserId,
@@ -1511,7 +1516,7 @@ final class PharmaApplicationController extends Controller
                 search: $validated['q'] ?? null,
                 perPage: 20,
                 page: (int) ($validated['page'] ?? 1),
-                includeSupplierPricing: $registry->userCan($user, 'client.pharma.products.supplier-pricing'),
+                includeSupplierPricing: $canViewSupplierPricing,
                 awardScope: $awardScope,
             )->withQueryString(),
             'search' => trim((string) ($validated['q'] ?? '')),
@@ -1519,6 +1524,7 @@ final class PharmaApplicationController extends Controller
             'scopeUser' => $targetUser ?? $user,
             'awardScopeKey' => $awardScopeKey,
             'awardScope' => $awardScope,
+            'canViewSupplierPricing' => $canViewSupplierPricing,
         ]);
     }
 
