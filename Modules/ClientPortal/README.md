@@ -75,3 +75,37 @@ When a feature is implemented, refactored, or declared UI-complete:
 6. Do not mark a PWA feature complete until this parity check has been performed. If the current delivery intentionally defers the Admin UI wiring, record that deferral in the handoff/checklist and complete it before the overall PWA parity refactor is closed.
 
 For the Pharma PWA refactor, apply this rule progressively to each remaining feature (Products, Price Lists, Bid Awards, Commercial, Orders, Inventory, Receipts, Commissions and subsequent manifest features) as that feature reaches its completion checkpoint. Do not build a second settings engine; extend the existing manifest + `ClientPortalSettingsService` + `/admin/client-apps` presentation mechanism.
+
+## PWA native interaction and motion
+
+ClientPortal PWA surfaces should feel responsive and app-like on touch devices without adding artificial latency or changing business semantics.
+
+When a PWA feature is implemented or refactored:
+
+1. Provide immediate visual press feedback for tappable controls and cards. Keep motion subtle and short; do not add arbitrary `setTimeout()` delays before navigation or server actions.
+2. Give server-backed actions an explicit pending state when practical: disable duplicate submission and show clear loading/progress feedback while preserving the existing authorization and workflow contract.
+3. Use short, consistent transitions for UI state changes such as page/content entry, expandable filters, dialogs, bottom sheets, status changes and load-more results. Motion must support comprehension rather than decoration.
+4. Avoid layout jumps. Preserve stable space, scroll context and task context while loading or changing local UI state where practical.
+5. Prefer skeleton/pending feedback for perceptible loading instead of leaving an apparently unresponsive control or blank region.
+6. Respect `prefers-reduced-motion` (including Tailwind `motion-reduce:*` utilities where applicable). Core navigation, submission and business actions must never depend on animation completing.
+7. Keep touch targets suitable for mobile use (normally at least about 44px for primary interactive controls) and make pressed, disabled and pending states visually distinguishable.
+8. Centralize repeated interaction behavior into existing/shared ClientPortal primitives when multiple active screens need the same contract. Do not scatter incompatible per-view timing scripts across Blade templates.
+9. Preserve the file-handoff rules in `docs/PWA_EXTERNAL_FILE_HANDOFF.md`; motion or loading feedback must not reintroduce top-level binary navigation in installed PWAs.
+10. Validate interaction quality manually on an installed iOS PWA as well as normal desktop/browser behavior before declaring a feature UI-complete.
+
+Recommended interaction sequence:
+
+```text
+touch
+  ↓ immediate pressed feedback
+action/navigation
+  ↓ pending feedback when work is perceptible
+content/state transition
+  ↓ short settled state
+success/error feedback when applicable
+```
+
+The goal is immediate tactile feedback plus meaningful transition, not simulated slowness. Navigation and actions should remain as fast as the underlying workflow allows.
+
+For the Pharma PWA parity program, treat this as a shared UI/UX contract. Commercial, Inventory, Orders, Receipts, Commissions and subsequent refactors should consume the same interaction principles, while already-completed screens can be brought into parity through a separately reviewed shared-foundation checkpoint rather than ad-hoc rewrites.
+
