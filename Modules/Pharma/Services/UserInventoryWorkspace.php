@@ -129,6 +129,42 @@ final class UserInventoryWorkspace
         ];
     }
 
+    public function balanceLinksForItems(iterable $items): array
+    {
+        $warehouse = $this->inventory->defaultWarehouse();
+        $keys = collect($items)
+            ->filter(fn ($item): bool => filled($item->medicine_id) && filled($item->batch_number) && $item->expiry_date !== null)
+            ->map(fn ($item): array => [
+                'item_id' => (int) $item->id,
+                'medicine_id' => (int) $item->medicine_id,
+                'batch_number' => (string) $item->batch_number,
+                'expiry_date' => $item->expiry_date->toDateString(),
+            ]);
+
+        if ($keys->isEmpty()) {
+            return [];
+        }
+
+        $balances = InventoryBalance::query()
+            ->where('warehouse_id', $warehouse->id)
+            ->where(function (Builder $query) use ($keys): void {
+                foreach ($keys->unique(fn (array $key): string => $key['medicine_id'].'|'.$key['batch_number'].'|'.$key['expiry_date']) as $key) {
+                    $query->orWhere(fn (Builder $candidate) => $candidate
+                        ->where('medicine_id', $key['medicine_id'])
+                        ->where('batch_number', $key['batch_number'])
+                        ->whereDate('expiry_date', $key['expiry_date']));
+                }
+            })
+            ->get(['id', 'medicine_id', 'batch_number', 'expiry_date'])
+            ->keyBy(fn (InventoryBalance $balance): string => $balance->medicine_id.'|'.$balance->batch_number.'|'.$balance->expiry_date->toDateString());
+
+        return $keys->mapWithKeys(function (array $key) use ($balances): array {
+            $balance = $balances->get($key['medicine_id'].'|'.$key['batch_number'].'|'.$key['expiry_date']);
+
+            return $balance ? [$key['item_id'] => (int) $balance->id] : [];
+        })->all();
+    }
+
     public function summary(bool $canViewCosts = false): array
     {
         $warehouse = $this->inventory->defaultWarehouse();
