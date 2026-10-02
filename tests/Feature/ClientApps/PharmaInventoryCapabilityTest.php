@@ -120,7 +120,7 @@ final class PharmaInventoryCapabilityTest extends TestCase
         $this->assertStringContainsString('$workspace->detail($balance, $canViewCosts)', $controller);
         $this->assertStringContainsString('abort_if($detail === null, 404)', $controller);
         $this->assertStringContainsString('public function detail(int $balanceId, bool $canViewCosts = false): ?array', $workspace);
-        $this->assertStringContainsString("->where('warehouse_id', $warehouse->id)", $workspace);
+        $this->assertStringContainsString("->where('warehouse_id', \$warehouse->id)", $workspace);
         $this->assertStringContainsString('InventoryTransaction::query()', $workspace);
         $this->assertStringContainsString('InventoryReceipt::class', $workspace);
         $this->assertStringContainsString('InventoryIssue::class', $workspace);
