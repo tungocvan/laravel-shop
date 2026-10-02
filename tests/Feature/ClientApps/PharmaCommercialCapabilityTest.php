@@ -89,6 +89,9 @@ class PharmaCommercialCapabilityTest extends TestCase
         $this->assertStringContainsString('$workspace->assignedProducts(', $controller);
         $this->assertStringContainsString('partnerId: (int) $scopedHospital->id', $controller);
         $this->assertStringContainsString('perPage: 20', $controller);
+        $this->assertStringContainsString("\$canViewSupplierPricing = \$registry->userCan(\$user, 'client.pharma.products.supplier-pricing')", $controller);
+        $this->assertStringContainsString('includeSupplierPricing: $canViewSupplierPricing', $controller);
+        $this->assertStringContainsString("'canViewSupplierPricing' => \$canViewSupplierPricing", $controller);
 
         $this->assertStringContainsString("\$featurePresentation['eyebrow']", $view);
         $this->assertStringContainsString("\$featurePresentation['page_title']", $view);
@@ -150,6 +153,8 @@ class PharmaCommercialCapabilityTest extends TestCase
         $this->assertStringContainsString('Điều kiện NCC hiện hành', $view);
         $this->assertStringContainsString('Giá vốn NCC', $view);
         $this->assertStringContainsString('Giá vốn tính toán', $view);
+        $this->assertStringContainsString('@if($product->sale_price || ($canViewSupplierPricing && $product->supplier))', $view);
+        $this->assertStringContainsString('@if($canViewSupplierPricing && $product->supplier)', $view);
         $this->assertStringContainsString('Thời gian phân bổ hiệu lực', $view);
         $this->assertStringContainsString('md:grid-cols-4', $view);
         $this->assertStringContainsString('md:grid-cols-2', $view);
