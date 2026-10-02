@@ -22,7 +22,7 @@ final class InventoryService
     {
         DB::transaction(function () use ($receipt,$userId): void {
             $receipt=InventoryReceipt::query()->lockForUpdate()->findOrFail($receipt->getKey());
-            if ($receipt->status !== InventoryReceipt::DRAFT) throw ValidationException::withMessages(['status'=>'Chỉ phiếu nháp mới được ghi sổ.']);
+            if (! in_array($receipt->status, [InventoryReceipt::DRAFT, InventoryReceipt::APPROVED], true)) throw ValidationException::withMessages(['status'=>'Chỉ phiếu nháp legacy hoặc phiếu đã duyệt mới được ghi sổ.']);
             $this->assertDocumentDateAfterOpeningCutoff($receipt->warehouse_id,$receipt->receipt_date,'Ngày phiếu nhập');
             $receipt->load('items');
             if ($receipt->items->isEmpty()) throw ValidationException::withMessages(['items'=>'Phiếu nhập phải có ít nhất một dòng.']);
@@ -85,7 +85,7 @@ final class InventoryService
                 }
             }
 
-            $receipt->update(['status'=>InventoryReceipt::DRAFT,'posted_by'=>null,'posted_at'=>null]);
+            $receipt->update(['status'=>$receipt->approved_at ? InventoryReceipt::APPROVED : InventoryReceipt::DRAFT,'posted_by'=>null,'posted_at'=>null]);
         });
     }
 
