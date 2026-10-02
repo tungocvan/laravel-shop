@@ -1097,7 +1097,7 @@ final class PharmaApplicationController extends Controller
     ): View {
         $validated = $request->validate([
             'q' => ['nullable', 'string', 'max:120'],
-            'status' => ['nullable', 'in:draft,posted,cancelled'],
+            'status' => ['nullable', 'in:draft,pending_approval,approved,posted,cancelled'],
             'page' => ['nullable', 'integer', 'min:1'],
         ]);
         $application = $registry->find('pharma'); abort_if($application === null, 404);
@@ -1166,6 +1166,106 @@ final class PharmaApplicationController extends Controller
             ->with('success', "Đã lưu phiếu nhập {$receipt->number} ở trạng thái nháp. Tồn kho chưa thay đổi.");
     }
 
+    public function editInventoryReceipt(
+        int $receipt, Request $request, ApplicationRegistry $registry,
+        ClientPortalSettingsService $settings, UserInventoryReceiptWorkspace $workspace,
+    ): View {
+        $application = $registry->find('pharma'); abort_if($application === null, 404);
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.inventory.receipts.create'), 403);
+        $visibleReceipt = $workspace->find($receipt); abort_if($visibleReceipt === null || $visibleReceipt->status !== \Modules\Pharma\Models\InventoryReceipt::DRAFT, 404);
+        $feature = collect($application['features'] ?? [])->first(fn (array $feature): bool => $feature['key'] === 'inventory');
+        $canViewCosts = $registry->userCan($user, 'client.pharma.inventory.costs');
+
+        return view('ClientPortal::applications.pharma.inventory-receipt-create', [
+            'application' => $application, 'applicationPresentation' => $settings->applicationPresentation($application),
+            'featurePresentation' => $settings->featurePresentation($application['key'], $feature),
+            'receipt' => $visibleReceipt, ...$workspace->authoringOptions($canViewCosts),
+        ]);
+    }
+
+    public function updateInventoryReceipt(
+        int $receipt, Request $request, ApplicationRegistry $registry, UserInventoryReceiptWorkspace $workspace,
+    ): RedirectResponse {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.inventory.receipts.create'), 403);
+        $visibleReceipt = $workspace->find($receipt); abort_if($visibleReceipt === null, 404);
+        $data = $request->validate([
+            'receipt_date' => ['required', 'date'], 'supplier_id' => ['required', 'integer'],
+            'invoice_number' => ['nullable', 'string', 'max:100'], 'invoice_date' => ['nullable', 'date'],
+            'notes' => ['nullable', 'string', 'max:2000'], 'items' => ['required', 'array', 'min:1'],
+            'items.*.medicine_id' => ['required', 'integer', 'exists:pharma_medicines,id'],
+            'items.*.batch_number' => ['required', 'string', 'max:100'], 'items.*.expiry_date' => ['required', 'date'],
+            'items.*.quantity' => ['required', 'numeric', 'gt:0'], 'items.*.unit_price_ex_vat' => ['required', 'numeric', 'min:0'],
+            'items.*.vat_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
+        ]);
+        $workspace->updateDraft($visibleReceipt, $data);
+        return redirect()->route('client.pharma.inventory.receipts.show', $receipt)->with('success', 'Đã cập nhật phiếu nhập nháp. Tồn kho chưa thay đổi.');
+    }
+
+    public function deleteInventoryReceipt(int $receipt, Request $request, ApplicationRegistry $registry, UserInventoryReceiptWorkspace $workspace): RedirectResponse
+    {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.inventory.receipts.create'), 403);
+        $visibleReceipt = $workspace->find($receipt); abort_if($visibleReceipt === null, 404);
+        $workspace->deleteDraft($visibleReceipt);
+        return redirect()->route('client.pharma.inventory.receipts')->with('success', 'Đã xóa phiếu nhập nháp.');
+    }
+
+    public function submitInventoryReceipt(int $receipt, Request $request, ApplicationRegistry $registry, UserInventoryReceiptWorkspace $workspace): RedirectResponse
+    {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.inventory.receipts.submit'), 403);
+        $visibleReceipt = $workspace->find($receipt); abort_if($visibleReceipt === null, 404);
+        $workspace->submit($visibleReceipt, (int) $user->id);
+        return back()->with('success', 'Đã gửi duyệt phiếu nhập. Tồn kho chưa thay đổi.');
+    }
+
+    public function undoInventoryReceiptSubmit(int $receipt, Request $request, ApplicationRegistry $registry, UserInventoryReceiptWorkspace $workspace): RedirectResponse
+    {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.inventory.receipts.submit'), 403);
+        $visibleReceipt = $workspace->find($receipt); abort_if($visibleReceipt === null, 404);
+        $workspace->undoSubmit($visibleReceipt);
+        return back()->with('success', 'Đã hoàn tác gửi duyệt về Nháp.');
+    }
+
+    public function approveInventoryReceipt(int $receipt, Request $request, ApplicationRegistry $registry, UserInventoryReceiptWorkspace $workspace): RedirectResponse
+    {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.inventory.receipts.approve'), 403);
+        $visibleReceipt = $workspace->find($receipt); abort_if($visibleReceipt === null, 404);
+        $workspace->approve($visibleReceipt, (int) $user->id);
+        return back()->with('success', 'Đã duyệt phiếu nhập. Tồn kho chưa thay đổi.');
+    }
+
+    public function undoInventoryReceiptApproval(int $receipt, Request $request, ApplicationRegistry $registry, UserInventoryReceiptWorkspace $workspace): RedirectResponse
+    {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.inventory.receipts.approve'), 403);
+        $visibleReceipt = $workspace->find($receipt); abort_if($visibleReceipt === null, 404);
+        $workspace->undoApproval($visibleReceipt);
+        return back()->with('success', 'Đã hoàn tác duyệt về Chờ duyệt.');
+    }
+
+    public function postInventoryReceipt(int $receipt, Request $request, ApplicationRegistry $registry, UserInventoryReceiptWorkspace $workspace): RedirectResponse
+    {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.inventory.receipts.post'), 403);
+        $visibleReceipt = $workspace->find($receipt); abort_if($visibleReceipt === null, 404);
+        $workspace->post($visibleReceipt, (int) $user->id);
+        return back()->with('success', 'Đã ghi sổ phiếu nhập và cộng tồn kho.');
+    }
+
+    public function revertInventoryReceipt(int $receipt, Request $request, ApplicationRegistry $registry, UserInventoryReceiptWorkspace $workspace): RedirectResponse
+    {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.inventory.receipts.post'), 403);
+        $visibleReceipt = $workspace->find($receipt); abort_if($visibleReceipt === null, 404);
+        $workspace->revertPost($visibleReceipt, (int) $user->id);
+        return back()->with('success', 'Đã hoàn tác ghi sổ. Phiếu trở về trạng thái Đã duyệt.');
+    }
+
     public function inventoryReceipt(
         int $receipt,
         Request $request,
@@ -1184,6 +1284,10 @@ final class PharmaApplicationController extends Controller
             'applicationPresentation' => $settings->applicationPresentation($application),
             'featurePresentation' => $settings->featurePresentation($application['key'], $feature),
             'receipt' => $visibleReceipt,
+            'canEditReceipt' => $registry->userCan($user, 'client.pharma.inventory.receipts.create'),
+            'canSubmitReceipt' => $registry->userCan($user, 'client.pharma.inventory.receipts.submit'),
+            'canApproveReceipt' => $registry->userCan($user, 'client.pharma.inventory.receipts.approve'),
+            'canPostReceipt' => $registry->userCan($user, 'client.pharma.inventory.receipts.post'),
         ]);
     }
 
