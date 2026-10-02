@@ -4,6 +4,8 @@
 @section('app-name', $applicationPresentation['name'] ?? $application['name'])
 @section('app-subtitle', 'Workspace Pharma dành cho User')
 @section('app-dashboard-route', route('client.pharma.dashboard'))
+@section('hide-application-header', true)
+@section('hide-mobile-navigation', true)
 
 @section('content')
 @php
@@ -11,7 +13,7 @@
     $expiryLabels = ['expired'=>'Đã hết hạn','lt1'=>'< 1 tháng','lt3'=>'< 3 tháng','lt6'=>'< 6 tháng','safe'=>'≥ 6 tháng'];
     $hasFilters = $filters['q'] || $filters['expiry'] || ($canViewCosts && ($filters['cost_status'] || $filters['sort']));
 @endphp
-<div class="min-w-0 space-y-4 overflow-x-hidden pb-24 xl:pb-8">
+<div class="min-w-0 space-y-4 overflow-x-hidden pb-8">
     <section class="rounded-[1.75rem] bg-slate-950 px-5 py-5 text-white shadow-sm sm:px-7 sm:py-6">
         <a href="{{ route('client.pharma.dashboard') }}" class="hidden text-sm font-bold text-slate-300 hover:text-white lg:inline-flex">← Quay về dashboard</a>
         <p class="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400 lg:mt-5">{{ $featurePresentation['eyebrow'] ?? 'Inventory' }}</p>
