@@ -54,6 +54,11 @@ final class PharmaInventoryReceiptsCapabilityTest extends TestCase
         $this->assertStringContainsString('Lưu nháp không làm thay đổi tồn kho', $create);
         $this->assertStringContainsString('Lưu nháp', $create);
         $this->assertStringContainsString('id="add-receipt-item"', $create);
+        $this->assertStringContainsString('<x-select-search id="receipt-supplier"', $create);
+        $this->assertStringContainsString('<x-select-search id="receipt-medicine-__INDEX__"', $create);
+        $this->assertStringContainsString('placeholder="Tìm nhà cung cấp..."', $create);
+        $this->assertStringContainsString('placeholder="Tìm thuốc..."', $create);
+        $this->assertStringContainsString("replaceAll('__INDEX__',String(index))", $create);
         $this->assertStringContainsString("@section('hide-application-header', true)", $create);
         $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $create);
     }
