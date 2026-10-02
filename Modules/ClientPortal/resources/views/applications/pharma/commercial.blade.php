@@ -38,9 +38,10 @@
         </dl>
     </section>
 
-    <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+    <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <div class="grid gap-3 lg:grid-cols-2">
         @if($canViewTeam)
-            <form method="GET" action="{{ route('client.pharma.commercial') }}" class="mb-4 rounded-2xl bg-slate-50 p-3">
+            <form method="GET" action="{{ route('client.pharma.commercial') }}" class="rounded-2xl bg-slate-50 p-3">
                 <label class="block">
                     <span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Nhân viên phụ trách</span>
                     <select name="manager_user_id" class="h-12 w-full rounded-2xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-950 shadow-sm transition duration-150 focus:border-slate-500 focus:ring-2 focus:ring-slate-200 active:scale-[0.995]" onchange="this.form.requestSubmit()">
@@ -53,7 +54,7 @@
             </form>
         @endif
 
-        <form method="GET" action="{{ route('client.pharma.commercial') }}" class="mb-4 rounded-2xl bg-slate-50 p-3">
+        <form method="GET" action="{{ route('client.pharma.commercial') }}" class="rounded-2xl bg-slate-50 p-3">
             @if($managerUserId)<input type="hidden" name="manager_user_id" value="{{ $managerUserId }}">@endif
             <label class="block">
                 <span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Chủ đầu tư / Kết quả trúng thầu</span>
@@ -67,9 +68,10 @@
                 </select>
             </label>
         </form>
+        </div>
 
         @if($awardScope)
-        <form id="commercial-hospital-search-form" data-pwa-pending-feedback="#commercial-navigation-feedback" method="GET" action="{{ route('client.pharma.commercial') }}" class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+        <form id="commercial-hospital-search-form" data-pwa-pending-feedback="#commercial-navigation-feedback" method="GET" action="{{ route('client.pharma.commercial') }}" class="mt-4">
             @if($managerUserId)<input type="hidden" name="manager_user_id" value="{{ $managerUserId }}">@endif
             <input type="hidden" name="award_scope" value="{{ $awardScopeKey }}">
             <label class="relative min-w-0">
@@ -88,20 +90,19 @@
         </section>
     @else
     <div id="commercial-hospital-results" class="space-y-4">
-    <section id="commercial-hospital-list" class="space-y-3">
+    <section id="commercial-hospital-list" class="grid gap-3 lg:grid-cols-2">
         @forelse($hospitals as $hospital)
             <a href="{{ route('client.pharma.commercial.hospitals.show', array_filter(['hospital' => $hospital->id, 'manager_user_id' => $managerUserId, 'award_scope' => $awardScopeKey])) }}" data-commercial-item data-pwa-navigation-feedback="#commercial-navigation-feedback" class="group block min-w-0 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition duration-150 ease-out hover:border-slate-300 hover:shadow-md active:scale-[0.985] active:bg-slate-50 motion-reduce:transform-none motion-reduce:transition-none">
                 <div class="flex min-w-0 items-start justify-between gap-4">
                     <div class="min-w-0">
-                        <h2 class="truncate font-black text-slate-950">{{ $hospital->name }}</h2>
+                        <h2 class="line-clamp-2 font-black leading-6 text-slate-950">{{ $hospital->name }}</h2>
                         @if($hospital->address)
                             <p class="mt-1 line-clamp-2 text-sm leading-6 text-slate-500">{{ $hospital->address }}</p>
                         @endif
-                        <p class="mt-3 text-sm font-bold text-slate-600">
-                            {{ str_pad((string) ((int) $hospital->assigned_products_count), 2, '0', STR_PAD_LEFT) }} SKU
-                            <span class="text-slate-300">·</span>
-                            Tổng giá trị trúng thầu {{ number_format((float) $hospital->allocated_award_value, 0, ',', '.') }} đ
-                        </p>
+                        <div class="mt-4 flex flex-wrap gap-2 text-xs font-bold">
+                            <span class="rounded-full bg-slate-100 px-3 py-1.5 text-slate-700">{{ str_pad((string) ((int) $hospital->assigned_products_count), 2, '0', STR_PAD_LEFT) }} SKU</span>
+                            <span class="rounded-full bg-slate-100 px-3 py-1.5 text-slate-700">{{ number_format((float) $hospital->allocated_award_value, 0, ',', '.') }} đ trúng thầu</span>
+                        </div>
                     </div>
                     <span class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 text-lg text-slate-500 transition group-hover:bg-slate-50 group-hover:text-slate-950" aria-hidden="true">→</span>
                 </div>
