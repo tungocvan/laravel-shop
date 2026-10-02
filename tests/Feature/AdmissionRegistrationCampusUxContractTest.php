@@ -33,17 +33,21 @@ class AdmissionRegistrationCampusUxContractTest extends TestCase
     }
 
     #[Test]
-    public function dvhc_row_edit_does_not_send_a_live_request_before_blur_update(): void
+    public function dvhc_row_save_uses_a_standard_laravel_post_instead_of_livewire(): void
     {
+        $routes = file_get_contents(base_path('Modules/Admission/routes/web.php'));
+        $controller = file_get_contents(base_path('Modules/Admission/Http/Controllers/AdmissionController.php'));
         $view = file_get_contents(base_path('Modules/Admission/resources/views/livewire/dvhc.blade.php'));
 
-        $this->assertStringContainsString('wire:model="rows.{{ $index }}.province_name"', $view);
-        $this->assertStringContainsString('wire:model="rows.{{ $index }}.ward_name"', $view);
-        $this->assertStringNotContainsString('wire:model.live="rows.{{ $index }}.province_name"', $view);
-        $this->assertStringNotContainsString('wire:model.live="rows.{{ $index }}.ward_name"', $view);
-        $this->assertStringNotContainsString('wire:blur="updateRow({{ $index }})"', $view);
-        $this->assertStringContainsString('wire:click="updateRow({{ $index }})"', $view);
-        $this->assertStringContainsString('>Lưu</span>', $view);
+        $this->assertStringContainsString("Route::post('/dvhc/{location}'", $routes);
+        $this->assertStringContainsString("->name('dvhc.update')", $routes);
+        $this->assertStringContainsString('public function updateDvhc(Request $request, AdmissionLocation $location)', $controller);
+        $this->assertStringContainsString("->with('success', 'Đã cập nhật tên tỉnh và phường/xã.')", $controller);
+        $this->assertStringContainsString('method="POST" action="{{ route(\'admin.admission.dvhc.update\', $row[\'id\']) }}"', $view);
+        $this->assertStringContainsString('@csrf', $view);
+        $this->assertStringContainsString('name="province_name"', $view);
+        $this->assertStringContainsString('name="ward_name"', $view);
+        $this->assertStringNotContainsString('wire:click="updateRow(', $view);
     }
 
     #[Test]
