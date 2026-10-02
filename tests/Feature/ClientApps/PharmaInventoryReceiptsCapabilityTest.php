@@ -96,6 +96,12 @@ final class PharmaInventoryReceiptsCapabilityTest extends TestCase
         $this->assertStringContainsString('Giá xuất HĐ chưa VAT', $detail);
         $this->assertStringContainsString('Thành tiền giá vốn', $detail);
         $this->assertStringContainsString('Thành tiền hóa đơn chưa VAT', $detail);
+        $this->assertStringContainsString('xl:grid-cols-12', $detail);
+        $this->assertStringContainsString('xl:col-span-5', $detail);
+        $this->assertStringContainsString('Thông tin hóa đơn', $detail);
+        $this->assertStringContainsString('Tham khảo chứng từ', $detail);
+        $this->assertStringContainsString('Số HĐ', $detail);
+        $this->assertStringContainsString('Ngày HĐ', $detail);
         $this->assertStringContainsString("number_format((float)\$receipt->total_quantity,0,',','.')", $list);
         $this->assertStringContainsString("number_format((float)\$item->quantity,0,',','.')", $detail);
         $this->assertStringContainsString('xl:hidden', $list);
