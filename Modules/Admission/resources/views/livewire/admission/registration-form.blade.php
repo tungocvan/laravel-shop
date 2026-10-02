@@ -33,6 +33,44 @@
 
     <div x-data="{
         open: false,
+        step: 1,
+        stepName: '',
+        message: '',
+
+        show(event) {
+            const data = event.detail?.[0] ?? event.detail;
+            this.step = data.step;
+            this.stepName = data.stepName;
+            this.message = data.message;
+            this.open = true;
+        },
+
+        async goToStep() {
+            const target = this.step;
+            this.open = false;
+            await $wire.goToValidationStep(target);
+        }
+    }"
+        x-on:show-validation-modal.window="show($event)"
+        x-on:admission-validation-step-opened.window="$nextTick(() => window.scrollTo({ top: 0, behavior: 'smooth' }))">
+        <div x-show="open" x-cloak class="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 px-3 py-4 backdrop-blur-sm" x-transition>
+            <div class="m-auto w-[calc(100%-24px)] max-w-[520px] rounded-[28px] bg-white p-6 shadow-2xl" @click.stop>
+                <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-2xl text-amber-700">!</div>
+                <h2 class="mt-4 text-center text-xl font-bold text-gray-900">Hồ sơ chưa đầy đủ thông tin</h2>
+                <p class="mt-2 text-center font-semibold text-indigo-700">
+                    Bước <span x-text="step"></span> – <span x-text="stepName"></span>
+                </p>
+                <p class="mt-3 text-center text-sm leading-6 text-gray-600" x-text="message"></p>
+                <button type="button" @click="goToStep()"
+                    class="mt-6 w-full rounded-xl bg-indigo-600 px-5 py-3 font-semibold text-white hover:bg-indigo-700">
+                    Về bước cần cập nhật
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div x-data="{
+        open: false,
         name: '',
         redirectUrl: '',
 
