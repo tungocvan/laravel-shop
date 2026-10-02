@@ -219,8 +219,8 @@ class RegistrationForm extends Component
             'form.Lop' => ['nullable', 'string', 'max:100'],
             'form.Gvcn' => ['nullable', 'string', 'max:255'],
             'form.BaoMau' => ['nullable', 'string', 'max:255'],
-            'form.SchoolCampusName' => ['nullable', 'string', 'max:255', Rule::in(array_column($this->schoolCampuses, 'name'))],
-            'form.SchoolCampusAddress' => ['nullable', 'string', 'max:500'],
+            'form.SchoolCampusName' => ['nullable', 'required_with:form.Lop', 'string', 'max:255', Rule::in(array_column($this->schoolCampuses, 'name'))],
+            'form.SchoolCampusAddress' => ['nullable', 'required_with:form.SchoolCampusName', 'string', 'max:500'],
             'form.NgayLamDon' => ['nullable', 'date'],
             'form.NguoiLamDon' => ['nullable', 'string', 'max:255'],
         ];
@@ -390,6 +390,7 @@ class RegistrationForm extends Component
     {
         return [
             'required' => ':attribute là thông tin bắt buộc.',
+            'required_with' => ':attribute là thông tin bắt buộc khi đã thực hiện sắp xếp lớp.',
             'string' => ':attribute phải là nội dung hợp lệ.',
             'min' => ':attribute chưa đạt độ dài tối thiểu.',
             'max' => ':attribute vượt quá độ dài cho phép.',
@@ -400,6 +401,7 @@ class RegistrationForm extends Component
             'in' => ':attribute không nằm trong danh sách cho phép.',
             'array' => ':attribute có dữ liệu không hợp lệ.',
             'boolean' => ':attribute có giá trị không hợp lệ.',
+            'distinct' => ':attribute không được trùng nhau.',
         ];
     }
 
