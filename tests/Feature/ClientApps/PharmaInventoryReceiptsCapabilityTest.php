@@ -54,11 +54,15 @@ final class PharmaInventoryReceiptsCapabilityTest extends TestCase
         $this->assertStringContainsString('Lưu nháp không làm thay đổi tồn kho', $create);
         $this->assertStringContainsString('Lưu nháp', $create);
         $this->assertStringContainsString('id="add-receipt-item"', $create);
-        $this->assertStringContainsString('<x-select-search id="receipt-supplier"', $create);
-        $this->assertStringContainsString('<x-select-search id="receipt-medicine-__INDEX__"', $create);
-        $this->assertStringContainsString('placeholder="Tìm nhà cung cấp..."', $create);
-        $this->assertStringContainsString('placeholder="Tìm thuốc..."', $create);
-        $this->assertStringContainsString("replaceAll('__INDEX__',String(index))", $create);
+        $this->assertStringContainsString('data-receipt-combobox', $create);
+        $this->assertStringContainsString('data-combobox-search', $create);
+        $this->assertStringContainsString('data-combobox-results', $create);
+        $this->assertStringContainsString('data-combobox-clear', $create);
+        $this->assertStringContainsString('placeholder="Tìm tên nhà cung cấp / MST..."', $create);
+        $this->assertStringContainsString('placeholder="Tìm tên thuốc / mã thuốc / hoạt chất..."', $create);
+        $this->assertStringContainsString("toLocaleLowerCase('vi').normalize('NFD')", $create);
+        $this->assertStringContainsString("article.querySelectorAll('[data-receipt-combobox]').forEach(wireCombobox)", $create);
+        $this->assertStringNotContainsString('<x-select-search', $create);
         $this->assertStringContainsString("@section('hide-application-header', true)", $create);
         $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $create);
     }
