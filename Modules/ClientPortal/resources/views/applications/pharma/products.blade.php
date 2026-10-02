@@ -4,6 +4,8 @@
 @section('app-name', $applicationPresentation['name'] ?? $application['name'])
 @section('app-subtitle', 'Danh mục thuốc · chỉ đọc')
 @section('app-dashboard-route', route('client.pharma.dashboard'))
+@section('hide-application-header', true)
+@section('hide-mobile-navigation', true)
 
 @section('content')
 <div class="min-w-0 space-y-4 overflow-x-hidden">
