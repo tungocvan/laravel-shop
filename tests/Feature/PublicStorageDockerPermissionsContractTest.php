@@ -24,13 +24,14 @@ class PublicStorageDockerPermissionsContractTest extends TestCase
     {
         $entrypoint = file_get_contents(base_path('docker/entrypoint.sh'));
 
-        $privateDirectoryRule = 'find storage/app -type d -exec chmod 2770 {} \\;';
+        $privateDirectoryRule = 'find storage/app -mindepth 1 -type d -exec chmod 2770 {} \\;';
         $privateFileRule = 'find storage/app -type f -exec chmod 0660 {} \\;';
         $parentTraverseRule = 'chmod 2771 storage/app';
         $publicDirectoryRule = 'find storage/app/public -type d -exec chmod 2775 {} \\;';
         $publicFileRule = 'find storage/app/public -type f -exec chmod 0664 {} \\;';
 
         $this->assertStringContainsString($privateDirectoryRule, $entrypoint);
+        $this->assertStringNotContainsString('find storage/app -type d -exec chmod 2770 {} \\;', $entrypoint);
         $this->assertStringContainsString($privateFileRule, $entrypoint);
         $this->assertStringContainsString($parentTraverseRule, $entrypoint);
         $this->assertStringContainsString($publicDirectoryRule, $entrypoint);

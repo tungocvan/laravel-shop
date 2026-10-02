@@ -1,7 +1,10 @@
 <div>
     @php
         $siteName = $schoolSettings['school_name'] ?? '';
-        $siteLogo = asset('storage/admission/img/logo.png');
+        $siteLogoPath = \Modules\System\Models\Setting::getValue('site_logo');
+        $siteLogo = $siteLogoPath && \Illuminate\Support\Facades\Storage::disk('public')->exists($siteLogoPath)
+            ? asset('storage/'.$siteLogoPath)
+            : asset('storage/admission/img/logo.png');
     @endphp
     <form wire:submit.prevent="login">
 
