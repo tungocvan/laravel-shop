@@ -51,11 +51,11 @@ final class PharmaOrderStockReadinessCapabilityTest extends TestCase
         $service = file_get_contents(base_path('Modules/Pharma/Services/UserOrderStockReadinessService.php'));
         $inventory = file_get_contents(base_path('Modules/Pharma/Services/InventoryService.php'));
 
-        $this->assertStringContainsString("$fulfillableRows = $rows->reject(fn (array $row): bool => $row['has_supply_note']);", $service);
-        $this->assertStringContainsString("$canPostDirectly = $fulfillableRows->isNotEmpty()", $service);
-        $this->assertStringContainsString("$fulfillableRows->every(fn (array $row): bool => collect($row['lots'])->contains(", $service);
-        $this->assertStringContainsString("fn (array $lot): bool => (float) $lot['quantity_on_hand'] + 0.00005 >= (float) $row['requested_quantity']", $service);
-        $this->assertStringContainsString("where('quantity_on_hand', '>=', (float) $item->quantity)", $inventory);
+        $this->assertStringContainsString("\$fulfillableRows = \$rows->reject(fn (array \$row): bool => \$row['has_supply_note']);", $service);
+        $this->assertStringContainsString("\$canPostDirectly = \$fulfillableRows->isNotEmpty()", $service);
+        $this->assertStringContainsString("\$fulfillableRows->every(fn (array \$row): bool => collect(\$row['lots'])->contains(", $service);
+        $this->assertStringContainsString("fn (array \$lot): bool => (float) \$lot['quantity_on_hand'] + 0.00005 >= (float) \$row['requested_quantity']", $service);
+        $this->assertStringContainsString("where('quantity_on_hand', '>=', (float) \$item->quantity)", $inventory);
         $this->assertStringContainsString("->lockForUpdate()", $inventory);
         $this->assertStringContainsString('Tồn kho đã thay đổi hoặc mặt hàng thực xuất chưa có một lô đủ số lượng.', $inventory);
     }
