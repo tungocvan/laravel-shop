@@ -196,4 +196,27 @@ final class PharmaInventoryCapabilityTest extends TestCase
     }
 
 
+    public function test_receipt_authoring_collapses_existing_items_and_opens_only_the_active_editor(): void
+    {
+        $root = base_path();
+        $receipt = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-receipt-create.blade.php');
+
+        $this->assertStringContainsString('receipt-item-summary-name', $receipt);
+        $this->assertStringContainsString('receipt-item-summary-meta', $receipt);
+        $this->assertStringContainsString('toggle-receipt-item', $receipt);
+        $this->assertStringContainsString('receipt-item-editor', $receipt);
+        $this->assertStringContainsString("toggle.textContent=open?'Ẩn':'Sửa'", $receipt);
+        $this->assertStringContainsString('const closeOthers=(current)=>', $receipt);
+        $this->assertStringContainsString('if(item){', $receipt);
+        $this->assertStringContainsString('setOpen(article,false);', $receipt);
+        $this->assertStringContainsString('else{closeOthers(article);setOpen(article,true);}', $receipt);
+        $this->assertStringContainsString("add.addEventListener('click',()=>{append();", $receipt);
+        $this->assertStringContainsString("el.name='items['+index+']['+el.dataset.field+']'", $receipt);
+        $this->assertStringContainsString('Sản phẩm mới', $receipt);
+        $this->assertStringContainsString('Lô ', $receipt);
+        $this->assertStringContainsString('HSD ', $receipt);
+        $this->assertStringContainsString('SL ', $receipt);
+    }
+
+
 }
