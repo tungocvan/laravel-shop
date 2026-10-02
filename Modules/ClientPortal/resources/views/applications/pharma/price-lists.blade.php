@@ -1,6 +1,6 @@
 @extends('ClientPortal::layouts.application')
 
-@section('title', 'Bảng giá của tôi')
+@section('title', $featurePresentation['page_title'] ?? 'Bảng giá của tôi')
 @section('app-name', $applicationPresentation['name'] ?? $application['name'])
 @section('app-subtitle', 'Bảng giá do bạn phụ trách')
 @section('app-dashboard-route', route('client.pharma.dashboard'))
@@ -15,12 +15,12 @@
     </div>
     @if(session('success'))<div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">{{ session('success') }}</div>@endif
     <section class="rounded-[2rem] bg-slate-950 px-5 py-6 text-white shadow-sm sm:px-7">
-        <p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-300">My Price Lists</p>
+        <p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-300">{{ $featurePresentation['eyebrow'] }}</p>
         <div class="mt-2 flex flex-wrap items-center gap-3">
-            <h1 class="text-2xl font-black tracking-tight sm:text-3xl">Bảng giá của tôi</h1>
+            <h1 class="text-2xl font-black tracking-tight sm:text-3xl">{{ $featurePresentation['page_title'] }}</h1>
             <span class="rounded-full bg-white/10 px-3 py-1 text-xs font-bold">{{ number_format($counts['all'] ?? 0, 0, ',', '.') }} bảng giá</span>
         </div>
-        <div class="mt-3 flex flex-wrap items-center justify-between gap-3"><p class="max-w-3xl text-sm leading-6 text-slate-300">Chỉ hiển thị các bảng giá bạn là người phụ trách. Tạo, gửi duyệt và phê duyệt được kiểm soát theo quyền nghiệp vụ.</p>@if($canCreate)<a href="{{ route('client.pharma.price-lists.create') }}" class="rounded-2xl bg-white px-4 py-2.5 text-sm font-black text-slate-950">+ Tạo bảng giá</a>@endif</div>
+        <div class="mt-3 flex flex-wrap items-center justify-between gap-3"><p class="max-w-3xl text-sm leading-6 text-slate-300">{{ $featurePresentation['page_description'] }}</p>@if($canCreate)<a href="{{ route('client.pharma.price-lists.create') }}" class="rounded-2xl bg-white px-4 py-2.5 text-sm font-black text-slate-950">+ Tạo bảng giá</a>@endif</div>
     </section>
 
     @php
