@@ -1,3 +1,12 @@
+## Pharma PWA Inventory Traceability P6.2 — 2026-10-02
+
+- Branch: `feat/clientportal-pharma-inventory-traceability`.
+- Adds navigation-only traceability from receipt/order line items back to the exact canonical inventory balance detail when warehouse + medicine + batch + expiry match.
+- Balance resolution stays in `Modules/Pharma/Services/UserInventoryWorkspace`; ClientPortal does not query `InventoryBalance` directly.
+- Links require `client.pharma.inventory.view`; documents without a resolved lot/balance remain unchanged and do not receive a guessed link.
+- Existing receipt/order approval, posting, reversal, stock-readiness, ledger, and permission behavior is unchanged.
+- Local feature checkpoint: fetch/switch branch and run `php artisan test tests/Feature/ClientApps/PharmaInventoryCapabilityTest.php`; do not `git pull` the feature branch before merge. Continue using `npm run dev`.
+
 ## Checkpoint — Pharma PWA Inventory Detail & Movement History — 2026-10-02
 
 - Branch: `feat/clientportal-pharma-inventory-detail`, based on current `main` after merged PR #248.
