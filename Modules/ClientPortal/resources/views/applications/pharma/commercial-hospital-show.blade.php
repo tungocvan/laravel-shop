@@ -24,7 +24,7 @@
     </section>
 
     <div id="commercial-product-search-region" class="space-y-4">
-    <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+    <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 lg:max-w-3xl">
         <form data-pwa-pending-feedback="#commercial-navigation-feedback" method="GET" action="{{ route('client.pharma.commercial.hospitals.show', $hospital->id) }}" class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
             @if($managerUserId)<input type="hidden" name="manager_user_id" value="{{ $managerUserId }}">@endif
             <input type="hidden" name="award_scope" value="{{ $awardScopeKey }}">
@@ -50,7 +50,7 @@
                 $winningPrice = $product->winning_price ?? $product->unit_price;
                 $policy = $product->effective_policy_percentage;
             @endphp
-            <article data-commercial-product class="min-w-0 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+            <article data-commercial-product class="min-w-0 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 lg:p-6">
                 <div class="min-w-0">
                     <div class="flex flex-wrap items-center gap-2 text-xs font-bold text-slate-500">
                         @if($product->bidding_notice_code)
@@ -69,7 +69,7 @@
                     @endif
                 </div>
 
-                <div class="mt-4 grid grid-cols-2 gap-2 lg:grid-cols-4">
+                <div class="mt-4 grid grid-cols-2 gap-2 md:grid-cols-4">
                     <div class="rounded-2xl bg-slate-50 p-3">
                         <p class="text-[11px] font-bold uppercase tracking-wide text-slate-400">Giá trúng thầu</p>
                         <p class="mt-1 text-sm font-black text-slate-900">{{ $winningPrice !== null ? number_format((float) $winningPrice, 0, ',', '.') . ' đ' : 'Chưa có' }}</p>
@@ -92,7 +92,7 @@
                 </div>
 
                 @if($product->sale_price || $product->supplier)
-                    <div class="mt-3 grid gap-2 sm:grid-cols-2">
+                    <div class="mt-3 grid gap-2 md:grid-cols-2">
                         @if($product->sale_price)
                             <div class="rounded-2xl border border-slate-200 p-3">
                                 <p class="text-[11px] font-bold uppercase tracking-wide text-slate-400">Giá bán hiện hành</p>
@@ -118,12 +118,15 @@
                 @endif
 
                 @if($product->effective_from || $product->effective_until)
-                    <p class="mt-3 text-xs font-semibold text-slate-400">
-                        Hiệu lực
+                    <div class="mt-3 border-t border-slate-100 pt-3">
+                    <p class="text-[11px] font-bold uppercase tracking-wide text-slate-400">Thời gian phân bổ hiệu lực</p>
+                    <p class="mt-1 text-xs font-semibold text-slate-500">
+                        
                         {{ $product->effective_from ? \Illuminate\Support\Carbon::parse($product->effective_from)->format('d/m/Y') : 'không giới hạn' }}
                         →
                         {{ $product->effective_until ? \Illuminate\Support\Carbon::parse($product->effective_until)->format('d/m/Y') : 'không giới hạn' }}
                     </p>
+                    </div>
                 @endif
             </article>
         @empty
