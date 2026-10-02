@@ -59,7 +59,7 @@ class SchoolSettingsForm extends Component
             'registration_classes' => ['required', 'array', 'min:1'],
             'registration_classes.*' => ['required', 'string', 'max:255', 'distinct'],
             'school_campuses' => ['required', 'array', 'min:1'],
-            'school_campuses.*.name' => ['required', 'string', 'max:255'],
+            'school_campuses.*.name' => ['required', 'string', 'max:255', 'distinct'],
             'school_campuses.*.address' => ['required', 'string', 'max:500'],
             'new_logo' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:2048'],
             'new_favicon' => ['nullable', 'file', 'mimes:png,ico', 'max:1024'],
@@ -72,6 +72,7 @@ class SchoolSettingsForm extends Component
             'school_campuses.required' => 'Phải có ít nhất một cơ sở trường.',
             'school_campuses.min' => 'Phải có ít nhất một cơ sở trường.',
             'school_campuses.*.name.required' => 'Tên cơ sở trường không được để trống.',
+            'school_campuses.*.name.distinct' => 'Tên cơ sở trường không được trùng nhau.',
             'school_campuses.*.address.required' => 'Địa chỉ cơ sở trường không được để trống.',
         ]);
 
