@@ -105,4 +105,44 @@ final class PharmaInventoryCapabilityTest extends TestCase
         $this->assertStringContainsString("'valid_value' =>", $workspace);
     }
 
+    public function test_inventory_balance_detail_uses_canonical_ledger_and_permission_aware_pwa_navigation(): void
+    {
+        $root = base_path();
+        $routes = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/routes.php');
+        $controller = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php');
+        $workspace = file_get_contents($root.'/Modules/Pharma/Services/UserInventoryWorkspace.php');
+        $index = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory.blade.php');
+        $detail = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-show.blade.php');
+
+        $this->assertStringContainsString("Route::get('/inventory/balances/{balance}'", $routes);
+        $this->assertStringContainsString("->name('inventory.balances.show')", $routes);
+        $this->assertStringContainsString('public function inventoryBalance(', $controller);
+        $this->assertStringContainsString('$workspace->detail($balance, $canViewCosts)', $controller);
+        $this->assertStringContainsString('abort_if($detail === null, 404)', $controller);
+        $this->assertStringContainsString('public function detail(int $balanceId, bool $canViewCosts = false): ?array', $workspace);
+        $this->assertStringContainsString("->where('warehouse_id', $warehouse->id)", $workspace);
+        $this->assertStringContainsString('InventoryTransaction::query()', $workspace);
+        $this->assertStringContainsString('InventoryReceipt::class', $workspace);
+        $this->assertStringContainsString('InventoryIssue::class', $workspace);
+        $this->assertStringNotContainsString('InventoryTransaction::query()', $controller);
+        $this->assertStringContainsString("route('client.pharma.inventory.balances.show'", $index);
+        $this->assertStringContainsString('Xem biến động lô', $index);
+        $this->assertStringContainsString('Lịch sử biến động lô', $detail);
+        $this->assertStringContainsString('Tồn đầu kỳ', $detail);
+        $this->assertStringContainsString('Hoàn tác nhập', $detail);
+        $this->assertStringContainsString('Hoàn tác xuất', $detail);
+        $this->assertStringContainsString("@if(\$canViewCosts)", $detail);
+        $this->assertStringContainsString("can('client.pharma.inventory.receipts')", $detail);
+        $this->assertStringContainsString("can('client.pharma.orders')", $detail);
+        $this->assertStringContainsString("@section('hide-application-header', true)", $detail);
+        $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $detail);
+        $this->assertStringContainsString('← Tồn kho', $detail);
+        $this->assertStringContainsString('← Quay về dashboard', $detail);
+        $this->assertStringContainsString('xl:hidden', $detail);
+        $this->assertStringContainsString('xl:block', $detail);
+        $this->assertStringNotContainsString('method="POST"', $detail);
+        $this->assertStringNotContainsString('method="DELETE"', $detail);
+        $this->assertStringNotContainsString('Admin::', $detail);
+    }
+
 }
