@@ -153,6 +153,14 @@
                             <td class="py-2">➤ Bảo mẫu:</td>
                             <td class="border-b border-white/20">{{ $app['bao_mau'] ?? '' }}</td>
                         </tr>
+                        <tr>
+                            <td class="py-2">➤ Cơ sở / Phân hiệu:</td>
+                            <td class="border-b border-white/20">{{ $app['school_campus_name'] ?? '' }}</td>
+                        </tr>
+                        <tr>
+                            <td class="py-2 align-top">➤ Địa chỉ:</td>
+                            <td class="border-b border-white/20">{{ $app['school_campus_address'] ?? '' }}</td>
+                        </tr>
                     </table>
                 </div>
 
