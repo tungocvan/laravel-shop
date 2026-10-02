@@ -51,6 +51,40 @@ class AdmissionRegistrationCampusUxContractTest extends TestCase
     }
 
     #[Test]
+    public function dvhc_bulk_delete_uses_standard_post_instead_of_livewire(): void
+    {
+        $routes = file_get_contents(base_path('Modules/Admission/routes/web.php'));
+        $controller = file_get_contents(base_path('Modules/Admission/Http/Controllers/AdmissionController.php'));
+        $view = file_get_contents(base_path('Modules/Admission/resources/views/livewire/dvhc.blade.php'));
+
+        $this->assertStringContainsString("Route::post('/dvhc-delete-selected'", $routes);
+        $this->assertStringContainsString('public function deleteDvhcSelected(Request $request)', $controller);
+        $this->assertStringContainsString("route('admin.admission.dvhc.delete-selected')", $view);
+        $this->assertStringContainsString('name="ids[]"', $view);
+        $this->assertStringNotContainsString('wire:click="deleteSelected"', $view);
+    }
+
+    #[Test]
+    public function edit_wizard_allows_direct_step_review_and_reports_exact_validation_errors(): void
+    {
+        $component = file_get_contents(base_path('Modules/Admission/Livewire/Public/RegistrationForm.php'));
+
+        $this->assertStringContainsString('if ($this->isEdit)', $component);
+        $this->assertStringContainsString("'Cần cập nhật: '.\$details", $component);
+        $this->assertStringContainsString("collect(\$errors)->take(5)->implode(' • ')", $component);
+    }
+
+    #[Test]
+    public function public_search_result_shows_assigned_campus_and_address(): void
+    {
+        $view = file_get_contents(base_path('Modules/Admission/resources/views/livewire/search.blade.php'));
+
+        $this->assertStringContainsString('Cơ sở / Phân hiệu:', $view);
+        $this->assertStringContainsString("school_campus_name", $view);
+        $this->assertStringContainsString("school_campus_address", $view);
+    }
+
+    #[Test]
     public function campus_snapshot_is_persisted_on_the_application(): void
     {
         $model = file_get_contents(base_path('Modules/Admission/Models/AdmissionApplication.php'));
