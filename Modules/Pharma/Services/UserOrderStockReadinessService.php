@@ -70,13 +70,11 @@ final class UserOrderStockReadinessService
 
         $hasStockedItem = $rows->contains(fn (array $row): bool => $row['is_ready']);
         $allRowsCovered = $rows->every(fn (array $row): bool => $row['approval_ready']);
-        $canPostDirectly = $rows->contains(function (array $row): bool {
-            if ($row['has_supply_note']) return false;
-
-            return collect($row['lots'])->contains(
+        $fulfillableRows = $rows->reject(fn (array $row): bool => $row['has_supply_note']);
+        $canPostDirectly = $fulfillableRows->isNotEmpty()
+            && $fulfillableRows->every(fn (array $row): bool => collect($row['lots'])->contains(
                 fn (array $lot): bool => (float) $lot['quantity_on_hand'] + 0.00005 >= (float) $row['requested_quantity']
-            );
-        });
+            ));
 
         return [
             'warehouse_id' => (int) $issue->warehouse_id,
