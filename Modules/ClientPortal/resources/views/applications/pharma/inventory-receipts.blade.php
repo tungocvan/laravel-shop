@@ -3,9 +3,11 @@
 @section('app-name', $applicationPresentation['name'] ?? $application['name'])
 @section('app-subtitle','Workspace Pharma dành cho User')
 @section('app-dashboard-route', route('client.pharma.dashboard'))
+@section('hide-application-header', true)
+@section('hide-mobile-navigation', true)
 @section('content')
 @php $labels=['draft'=>'Nháp','posted'=>'Đã ghi sổ','cancelled'=>'Đã hủy']; @endphp
-<div class="min-w-0 space-y-4 overflow-x-hidden pb-24 xl:pb-8">
+<div class="min-w-0 space-y-4 overflow-x-hidden pb-8">
 <section class="rounded-[1.75rem] bg-slate-950 px-5 py-5 text-white shadow-sm sm:px-7">
 <a href="{{ route('client.pharma.inventory') }}" class="text-sm font-bold text-slate-300 hover:text-white">← Tồn kho</a>
 <p class="mt-4 text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Inventory · Receipts</p>
