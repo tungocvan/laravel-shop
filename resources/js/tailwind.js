@@ -17,4 +17,5 @@ class AdminSortable extends Sortable {
 
 window.Sortable = AdminSortable;
 
+import './clientportal/native-interactions';
 import './clientportal/pharma-price-list-wizard';
