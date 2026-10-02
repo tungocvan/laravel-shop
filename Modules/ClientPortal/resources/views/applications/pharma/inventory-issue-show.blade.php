@@ -22,7 +22,7 @@
     $displayItems = $issue->status === 'approved' ? $fulfilledItems : $issue->items;
     $total = $displayItems->sum(fn($item)=>(float)$item->quantity*(float)$item->unit_price);
 @endphp
-<div class="min-h-screen bg-slate-50 pb-8">
+<div class="min-h-screen bg-slate-50 pb-[max(1.5rem,env(safe-area-inset-bottom))]" data-order-detail-workspace>
     <header class="sticky top-0 z-30 -mx-4 border-b border-slate-200 bg-white/95 px-4 py-4 backdrop-blur sm:-mx-6 sm:px-6 lg:static lg:mx-0 lg:rounded-3xl lg:border lg:px-6">
         <div class="relative flex items-center justify-center">
             <a href="{{ route('client.pharma.orders') }}" class="absolute left-0 inline-flex h-11 w-11 items-center justify-center rounded-full text-2xl text-slate-900 active:scale-95" aria-label="Quay lại">←</a>
@@ -30,7 +30,7 @@
         </div>
     </header>
 
-    <main class="mx-auto mt-3 max-w-4xl space-y-3">
+    <main class="mx-auto mt-3 max-w-4xl space-y-3 px-0 sm:px-1">
         <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
             <div class="flex items-start justify-between gap-3">
                 <div><p class="text-xs font-black uppercase tracking-wide text-slate-500">{{ $issue->number }}</p><h2 class="mt-1 text-xl font-black text-slate-950">{{ $issue->recipient_name ?: 'Chưa xác định nơi nhận' }}</h2></div>
@@ -155,7 +155,7 @@
         @endif
     </main>
     @if($canEditOrder || $canSubmitOrder || $canApproveOrder || ($canUndoApproval ?? false) || ($canDeleteOrder ?? false) || ($canPostOrder ?? false))
-        <div class="mx-auto mt-3 max-w-4xl rounded-2xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+        <div class="mx-auto mt-3 max-w-4xl rounded-2xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm" data-order-actions>
             @if($canDeleteOrder ?? false)
                 <form method="POST" action="{{ route('client.pharma.orders.delete',$issue) }}" onsubmit="return confirm('Xóa đơn {{ $issue->number }}? Đơn chưa ghi sổ nên thao tác này không ảnh hưởng tồn kho.');">
                     @csrf @method('DELETE')
@@ -186,13 +186,13 @@
                 <p class="mt-2 text-xs leading-5 text-slate-500">Đơn chưa ghi sổ kho nên có thể đưa về Chờ duyệt để kiểm tra lại tồn hàng.</p>
             @elseif($canApproveOrder)
                 <div class="grid grid-cols-2 gap-3">
-                    <button type="button" id="order-reject-toggle" class="h-13 rounded-2xl border border-rose-300 bg-white font-black text-rose-700">Từ chối</button>
+                    <button type="button" id="order-reject-toggle" aria-controls="order-reject-form" aria-expanded="false" class="h-13 rounded-2xl border border-rose-300 bg-white font-black text-rose-700">Từ chối</button>
                     <form method="POST" action="{{ route('client.pharma.orders.approve',$issue) }}">@csrf<button  class="h-13 w-full rounded-2xl bg-slate-950 font-black text-white disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500">Phê duyệt</button></form>
                 </div>
                 @if(!($stockReadiness['can_approve'] ?? false))
                     <p class="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs font-bold leading-5 text-amber-900">Chưa thể phê duyệt: đơn phải có ít nhất 1 sản phẩm đủ tồn; mọi sản phẩm thiếu phải lưu đầy đủ ngày dự kiến cung cấp và ghi chú.</p>
                 @endif
-                <form id="order-reject-form" method="POST" action="{{ route('client.pharma.orders.reject',$issue) }}" class="mt-3 hidden rounded-2xl border border-rose-200 bg-rose-50 p-3">
+                <form id="order-reject-form" data-order-reject-panel method="POST" action="{{ route('client.pharma.orders.reject',$issue) }}" class="mt-3 hidden rounded-2xl border border-rose-200 bg-rose-50 p-3">
                     @csrf
                     <label class="block"><span class="mb-2 block text-sm font-black text-rose-900">Lý do từ chối *</span><textarea name="rejection_reason" rows="3" required maxlength="1000" class="w-full rounded-xl border border-rose-200 bg-white px-3 py-2 text-sm" placeholder="Nhập lý do để User biết cần điều chỉnh gì...">{{ old('rejection_reason') }}</textarea></label>
                     <button class="mt-3 h-11 w-full rounded-xl bg-rose-700 font-black text-white">Xác nhận từ chối</button>
@@ -206,7 +206,15 @@
         </div>
     @endif
     @if($canApproveOrder)
-        <script>document.getElementById('order-reject-toggle')?.addEventListener('click',()=>document.getElementById('order-reject-form')?.classList.toggle('hidden'));</script>
+        <script>
+        document.getElementById('order-reject-toggle')?.addEventListener('click', (event) => {
+            const panel = document.getElementById('order-reject-form');
+            if (!panel) return;
+            panel.classList.toggle('hidden');
+            event.currentTarget.setAttribute('aria-expanded', panel.classList.contains('hidden') ? 'false' : 'true');
+            if (!panel.classList.contains('hidden')) panel.querySelector('textarea')?.focus({preventScroll:true});
+        });
+        </script>
     @endif
 </div>
 @endsection
