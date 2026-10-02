@@ -44,7 +44,7 @@ final class UserInventoryReceiptWorkspace
     {
         return [
             'suppliers' => Partner::query()->withPartnerType('supplier')->where('status', 'active')->orderBy('name')->get(['id', 'name', 'tax_code']),
-            'medicines' => Medicine::query()->orderBy('name')->limit(500)->get(['id', 'medicine_code', 'name', 'unit']),
+            'medicines' => Medicine::query()->orderBy('name')->limit(500)->get(['id', 'medicine_code', 'name', 'unit', 'active_ingredients']),
         ];
     }
 
