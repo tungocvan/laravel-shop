@@ -188,4 +188,21 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
         $this->assertStringNotContainsString('InventoryTransaction', $service);
         $this->assertStringNotContainsString('quantity_on_hand', $service);
     }
+    public function test_price_list_orders_revalidate_customer_scope_and_canonical_price_before_submit(): void
+    {
+        $service = file_get_contents(base_path('Modules/Pharma/Services/UserOrderAuthoringService.php'));
+
+        $this->assertStringContainsString("Partner::query()->withPartnerType('customer')->whereKey(\$partnerId)->where('status', 'active')->exists()", $service);
+        $this->assertStringContainsString("if ((\$issue->issue_source ?? 'normal') === 'normal')", $service);
+        $this->assertStringContainsString('\$this->guardPriceListDraftCurrent(\$issue);', $service);
+        $this->assertStringContainsString('private function guardPriceListDraftCurrent(InventoryIssue $issue): void', $service);
+        $this->assertStringContainsString("\$this->priceLists((int) \$issue->manager_user_id, \$date)", $service);
+        $this->assertStringContainsString("->firstWhere('id', (int) \$issue->price_list_id)", $service);
+        $this->assertStringContainsString("->groupBy(fn (PriceListItem \$item): int => (int) \$item->medicine_id)", $service);
+        $this->assertStringContainsString("abs((float) \$item->company_sale_price - (float) \$draftItem->unit_price) < 0.005", $service);
+        $this->assertStringContainsString('Sản phẩm hoặc đơn giá trong đơn Nháp đã thay đổi so với bảng giá hiệu lực.', $service);
+        $this->assertStringContainsString('Khách hàng của đơn Nháp không còn hợp lệ với bảng giá.', $service);
+    }
+
+
 }
