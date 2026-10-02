@@ -84,8 +84,14 @@ final class PharmaInventoryIssuesCapabilityTest extends TestCase
         $this->assertStringContainsString('xl:hidden', $view);
         $this->assertStringContainsString('xl:block', $view);
         $this->assertStringContainsString('Xem thêm', $view);
-        $this->assertStringContainsString('IntersectionObserver', $view);
-        $this->assertStringContainsString("window.setTimeout(() => searchForm.requestSubmit(), 350)", $view);
+        $this->assertStringContainsString('id="orders-search-region"', $view);
+        $this->assertStringContainsString('data-pwa-debounced-search="600"', $view);
+        $this->assertStringContainsString('data-pwa-search-region="#orders-search-region"', $view);
+        $this->assertStringContainsString('data-pwa-search-clear-button="#issue-search-input"', $view);
+        $this->assertStringContainsString('data-pwa-load-more', $view);
+        $this->assertStringContainsString('data-pwa-load-more-target="#issue-mobile-list"', $view);
+        $this->assertStringNotContainsString('IntersectionObserver', $view);
+        $this->assertStringNotContainsString("window.setTimeout(() => searchForm.requestSubmit(), 350)", $view);
     }
 
     public function test_inventory_issue_detail_shows_order_source_products_totals_and_draft_actions(): void
@@ -102,6 +108,11 @@ final class PharmaInventoryIssuesCapabilityTest extends TestCase
         $this->assertStringContainsString('Đơn giá', $view);
         $this->assertStringContainsString('Sửa đơn', $view);
         $this->assertStringContainsString('Gửi duyệt', $view);
+        $this->assertStringContainsString('data-order-detail-workspace', $view);
+        $this->assertStringContainsString('data-order-actions', $view);
+        $this->assertStringContainsString('aria-controls="order-reject-form"', $view);
+        $this->assertStringContainsString('aria-expanded="false"', $view);
+        $this->assertStringContainsString("panel.querySelector('textarea')?.focus({preventScroll:true})", $view);
     }
 
     public function test_posted_order_list_uses_actual_stock_movement_totals(): void
