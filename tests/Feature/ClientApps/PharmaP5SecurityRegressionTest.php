@@ -26,8 +26,8 @@ final class PharmaP5SecurityRegressionTest extends TestCase
         $this->assertStringContainsString('$this->resolvePriceListItems($managerUserId, $date, $data)', $service);
         $this->assertStringContainsString('$this->resolveBidItems($managerUserId, $date, $data)', $service);
         $this->assertStringContainsString("withPartnerType('customer')", $service);
-        $this->assertStringContainsString("'unit_price' => (float) $item->company_sale_price", $service);
-        $this->assertStringContainsString("'unit_price' => $row->unit_price", $service);
+        $this->assertStringContainsString("'unit_price' => (float) \$item->company_sale_price", $service);
+        $this->assertStringContainsString("'unit_price' => \$row->unit_price", $service);
         $this->assertStringContainsString('$this->guardPriceListDraftCurrent($issue);', $service);
         $this->assertStringContainsString('$this->guardBidDraftCurrent($issue);', $service);
         $this->assertStringContainsString('lockForUpdate()', $service);
@@ -44,7 +44,7 @@ final class PharmaP5SecurityRegressionTest extends TestCase
             'client.pharma.orders.approve',
             'client.pharma.orders.post',
         ] as $permission) {
-            $this->assertStringContainsString("userCan($user, '{$permission}')", $controller, $permission);
+            $this->assertStringContainsString("userCan(\$user, '{$permission}')", $controller, $permission);
         }
 
         $this->assertStringContainsString('InventoryIssue::query()->lockForUpdate()->findOrFail', $approval);
@@ -68,7 +68,7 @@ final class PharmaP5SecurityRegressionTest extends TestCase
             'client.pharma.inventory.receipts.approve',
             'client.pharma.inventory.receipts.post',
         ] as $permission) {
-            $this->assertStringContainsString("userCan($user, '{$permission}')", $controller, $permission);
+            $this->assertStringContainsString("userCan(\$user, '{$permission}')", $controller, $permission);
         }
 
         $this->assertStringContainsString('InventoryReceipt::query()->lockForUpdate()->findOrFail', $workspace);
