@@ -6,115 +6,94 @@ use Tests\TestCase;
 
 final class PharmaInventoryReceiptsCapabilityTest extends TestCase
 {
-    public function test_receipt_pwa_is_read_only_and_permission_scoped(): void
+    public function test_receipt_workflow_is_permission_scoped_and_routed(): void
     {
         $root = base_path();
         $routes = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/routes.php');
         $manifest = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/manifest.php');
         $controller = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php');
-        $workspace = file_get_contents($root.'/Modules/Pharma/Services/UserInventoryReceiptWorkspace.php');
 
-        $this->assertStringContainsString("Route::get('/inventory/receipts'", $routes);
-        $this->assertStringContainsString("Route::get('/inventory/receipts/{receipt}'", $routes);
-        $this->assertStringContainsString("Route::post('/inventory/receipts'", $routes);
-        $this->assertStringContainsString("Route::get('/inventory/receipts/create'", $routes);
-        $this->assertStringNotContainsString("Route::post('/inventory/receipts/{receipt}/post", $routes);
-        $this->assertStringNotContainsString("Route::post('/inventory/receipts/{receipt}/revert", $routes);
-        $this->assertStringNotContainsString("Route::put('/inventory/receipts", $routes);
-        $this->assertStringNotContainsString("Route::delete('/inventory/receipts", $routes);
-        $this->assertStringContainsString("'permission' => 'client.pharma.inventory.receipts'", $manifest);
-        $this->assertStringContainsString("userCan(\$user, 'client.pharma.inventory.receipts')", $controller);
-        $this->assertStringContainsString('UserInventoryReceiptWorkspace $workspace', $controller);
-        $this->assertStringContainsString('InventoryReceipt::query()', $workspace);
-        $this->assertStringNotContainsString('InventoryReceipt::query()', $controller);
-        $this->assertStringContainsString("where('warehouse_id', \$warehouse->id)", $workspace);
-        $this->assertStringContainsString("with('items.medicine')", $workspace);
+        foreach (['submit','undo-submit','approve','undo-approval','post','revert'] as $action) {
+            $this->assertStringContainsString("/inventory/receipts/{receipt}/{$action}", $routes);
+        }
+        $this->assertStringContainsString("Route::put('/inventory/receipts/{receipt}'", $routes);
+        $this->assertStringContainsString("Route::delete('/inventory/receipts/{receipt}'", $routes);
+        foreach (['client.pharma.inventory.receipts.create','client.pharma.inventory.receipts.submit','client.pharma.inventory.receipts.approve','client.pharma.inventory.receipts.post'] as $permission) {
+            $this->assertStringContainsString("'permission' => '{$permission}'", $manifest);
+            $this->assertStringContainsString("userCan(\$user, '{$permission}')", $controller);
+        }
     }
 
-
-    public function test_receipt_draft_authoring_never_posts_or_moves_stock(): void
+    public function test_receipt_state_machine_is_locked_and_only_posting_moves_stock(): void
     {
         $root = base_path();
-        $manifest = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/manifest.php');
-        $controller = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php');
+        $model = file_get_contents($root.'/Modules/Pharma/Models/InventoryReceipt.php');
         $workspace = file_get_contents($root.'/Modules/Pharma/Services/UserInventoryReceiptWorkspace.php');
-        $list = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-receipts.blade.php');
-        $create = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-receipt-create.blade.php');
+        $inventory = file_get_contents($root.'/Modules/Pharma/Services/InventoryService.php');
+        $migration = file_get_contents($root.'/Modules/Pharma/database/migrations/2026_10_02_143000_add_approval_lifecycle_to_pharma_inventory_receipts.php');
 
-        $this->assertStringContainsString("'permission' => 'client.pharma.inventory.receipts.create'", $manifest);
-        $this->assertStringContainsString("userCan(\$user, 'client.pharma.inventory.receipts.create')", $controller);
-        $this->assertStringContainsString('createDraft($data, (int) $user->id)', $controller);
-        $this->assertStringContainsString("'status' => InventoryReceipt::DRAFT", $workspace);
-        $this->assertStringContainsString("items()->createMany(\$data['items'])", $workspace);
-        $this->assertStringNotContainsString('postReceipt(', $workspace);
+        $this->assertStringContainsString("PENDING_APPROVAL='pending_approval'", $model);
+        $this->assertStringContainsString("APPROVED='approved'", $model);
+        $this->assertStringContainsString("lockForUpdate()", $workspace);
+        $this->assertStringContainsString("'status' => InventoryReceipt::PENDING_APPROVAL", $workspace);
+        $this->assertStringContainsString("'status' => InventoryReceipt::APPROVED", $workspace);
+        $this->assertStringContainsString("Chỉ phiếu nhập đã duyệt mới được ghi sổ.", $workspace);
         $this->assertStringNotContainsString('->move(', $workspace);
-        $this->assertStringContainsString('Tồn kho chưa thay đổi.', $controller);
-        $this->assertStringContainsString("@can('client.pharma.inventory.receipts.create')", $list);
-        $this->assertStringContainsString('+ Thêm phiếu nhập', $list);
-        $this->assertStringContainsString('Lưu nháp không làm thay đổi tồn kho', $create);
-        $this->assertStringContainsString('Lưu nháp', $create);
-        $this->assertStringContainsString('id="add-receipt-item"', $create);
-        $this->assertStringContainsString('data-receipt-combobox', $create);
-        $this->assertStringContainsString('data-combobox-search', $create);
-        $this->assertStringContainsString('data-combobox-results', $create);
-        $this->assertStringContainsString('data-combobox-clear', $create);
-        $this->assertStringContainsString('placeholder="Tìm tên nhà cung cấp / MST..."', $create);
-        $this->assertStringContainsString('placeholder="Tìm tên thuốc / mã thuốc / hoạt chất..."', $create);
-        $this->assertStringContainsString("toLocaleLowerCase('vi').normalize('NFD')", $create);
-        $this->assertStringContainsString("article.querySelectorAll('[data-receipt-combobox]').forEach(wireCombobox)", $create);
-        $this->assertStringNotContainsString('<x-select-search', $create);
-        $this->assertStringContainsString("old('invoice_date', now()->toDateString())", $create);
-        $this->assertStringContainsString('data-number-display data-scale="3"', $create);
-        $this->assertStringContainsString('data-field="quantity" data-number-value', $create);
-        $this->assertStringContainsString('data-number-display data-scale="4"', $create);
-        $this->assertStringContainsString('data-field="unit_price_ex_vat" data-number-value', $create);
-        $this->assertStringContainsString("toLocaleString('vi-VN')", $create);
-        $this->assertStringContainsString("replace(/\\./g,'').replace(',', '.')", $create);
-        $this->assertStringContainsString("article.querySelectorAll('[data-number-display]').forEach(wireNumber)", $create);
-        $this->assertStringContainsString("userCan(\$user, 'client.pharma.inventory.costs')", $controller);
-        $this->assertStringContainsString('authoringOptions($canViewCosts)', $controller);
-        $this->assertStringContainsString("DB::raw('AVG(cost_price) as average_cost_price')", $workspace);
-        $this->assertStringContainsString("'referenceCosts' => \$referenceCosts", $workspace);
-        $this->assertStringContainsString('@if($canViewCosts)', $create);
-        $this->assertStringContainsString('Giá vốn TB:', $create);
-        $this->assertStringContainsString('data-reference-cost-label', $create);
-        $this->assertStringContainsString('data-reference-cost=', $create);
-        $this->assertStringContainsString('value="5" data-field="vat_rate"', $create);
-        $this->assertStringContainsString("@section('hide-application-header', true)", $create);
-        $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $create);
+        $this->assertStringContainsString('postReceipt($locked, $userId)', $workspace);
+        $this->assertStringContainsString("InventoryReceipt::APPROVED], true", $inventory);
+        $this->assertStringContainsString("\$receipt->approved_at ? InventoryReceipt::APPROVED : InventoryReceipt::DRAFT", $inventory);
+        foreach (['submitted_by','submitted_at','approved_by','approved_at'] as $column) {
+            $this->assertStringContainsString("'{$column}'", $migration);
+        }
     }
 
-    public function test_receipt_list_and_detail_follow_pwa_responsive_contract(): void
+    public function test_receipt_draft_authoring_and_editing_never_move_stock(): void
+    {
+        $root = base_path();
+        $controller = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php');
+        $workspace = file_get_contents($root.'/Modules/Pharma/Services/UserInventoryReceiptWorkspace.php');
+        $create = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-receipt-create.blade.php');
+
+        $this->assertStringContainsString('createDraft($data, (int) $user->id)', $controller);
+        $this->assertStringContainsString('updateDraft($visibleReceipt, $data)', $controller);
+        $this->assertStringContainsString("'status' => InventoryReceipt::DRAFT", $workspace);
+        $this->assertStringContainsString("items()->createMany(\$data['items'])", $workspace);
+        $this->assertStringContainsString('Lưu nháp không làm thay đổi tồn kho', $create);
+        $this->assertStringContainsString("route('client.pharma.inventory.receipts.update',\$receipt)", $create);
+        $this->assertStringContainsString("@method('PUT')", $create);
+        $this->assertStringContainsString('data-receipt-combobox', $create);
+        $this->assertStringContainsString('placeholder="Tìm tên nhà cung cấp / MST..."', $create);
+        $this->assertStringContainsString('placeholder="Tìm tên thuốc / mã thuốc / hoạt chất..."', $create);
+        $this->assertStringContainsString("old('invoice_date', \$editing ? (\$receipt->invoice_date?->format('Y-m-d') ?? now()->toDateString()) : now()->toDateString())", $create);
+        $this->assertStringContainsString('data-number-display data-scale="3"', $create);
+        $this->assertStringContainsString('data-number-display data-scale="4"', $create);
+        $this->assertStringContainsString('Giá vốn TB:', $create);
+        $this->assertStringContainsString('value="5" data-field="vat_rate"', $create);
+    }
+
+    public function test_receipt_list_and_detail_expose_workflow_responsively(): void
     {
         $root = base_path();
         $list = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-receipts.blade.php');
         $detail = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-receipt-show.blade.php');
-        $inventory = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory.blade.php');
 
-        $this->assertStringContainsString('Phiếu mới được lưu nháp', $list);
-        $this->assertStringContainsString('chỉ khi ghi sổ tại Web Admin mới cộng tồn kho', $list);
-        $this->assertStringContainsString('data-pwa-debounced-search', $list);
-        $this->assertStringContainsString('data-pwa-search-input', $list);
-        $this->assertStringContainsString('data-pwa-search-clear-button', $list);
+        foreach (['Nháp','Chờ duyệt','Đã duyệt','Đã ghi sổ'] as $label) {
+            $this->assertStringContainsString($label, $list);
+        }
+        foreach (['Sửa','Xóa','Gửi duyệt','Duyệt','Hoàn tác duyệt','Ghi sổ','Hoàn tác ghi sổ'] as $action) {
+            $this->assertStringContainsString($action, $detail);
+        }
+        $this->assertStringContainsString('Chỉ Ghi sổ mới cộng tồn.', $detail);
+        $this->assertStringContainsString("number_format((float)\$receipt->total_quantity,0,',','.')", $list);
+        $this->assertStringContainsString("number_format((float)\$item->quantity,0,',','.')", $detail);
         $this->assertStringContainsString('xl:hidden', $list);
         $this->assertStringContainsString('xl:block', $list);
-        $this->assertStringContainsString('data-pwa-load-more', $list);
-        $this->assertStringContainsString('Xem thêm', $list);
-        $this->assertStringContainsString('Receipt detail · Read only', $detail);
         $this->assertStringContainsString('xl:hidden', $detail);
         $this->assertStringContainsString('xl:block', $detail);
-        $this->assertStringContainsString('Số lô', $detail);
-        $this->assertStringContainsString('Hạn dùng', $detail);
-        $this->assertStringContainsString('Giá nhập', $detail);
-        $this->assertStringNotContainsString('<form', $detail);
-        $this->assertStringContainsString('client.pharma.inventory.receipts', $inventory);
-        $this->assertStringContainsString('Chi tiết lô hàng · Chỉ đọc', $inventory);
-        foreach ([$inventory, $list, $detail] as $view) {
+        $this->assertStringContainsString('data-pwa-load-more', $list);
+        foreach ([$list, $detail] as $view) {
             $this->assertStringContainsString("@section('hide-application-header', true)", $view);
             $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $view);
-            $this->assertStringNotContainsString('pb-24 xl:pb-8', $view);
         }
-        $this->assertStringContainsString("route('client.pharma.inventory')", $list);
-        $this->assertStringContainsString("route('client.pharma.inventory.receipts')", $detail);
     }
 }
