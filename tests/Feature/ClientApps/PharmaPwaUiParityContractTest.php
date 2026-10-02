@@ -202,7 +202,7 @@ class PharmaPwaUiParityContractTest extends TestCase
         foreach ([$index, $detail] as $view) {
             $this->assertStringContainsString("@section('hide-application-header', true)", $view);
             $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $view);
-            $this->assertStringContainsString('data-pwa-debounced-search="600"', $view);
+            $this->assertStringContainsString('data-pwa-debounced-search="800"', $view);
             $this->assertStringContainsString('data-pwa-load-more', $view);
             $this->assertStringNotContainsString("document.addEventListener('DOMContentLoaded'", $view);
         }
@@ -220,7 +220,12 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertStringContainsString("typeof form.requestSubmit === 'function'", $foundation);
         $this->assertStringContainsString('form.requestSubmit()', $foundation);
         $this->assertStringContainsString('form.submit()', $foundation);
-        $this->assertStringContainsString('submitForm(input.form)', $foundation);
+        $this->assertStringContainsString('replaceSearchRegion(input)', $foundation);
+        $this->assertStringContainsString('new AbortController()', $foundation);
+        $this->assertStringContainsString("window.history.replaceState({}, '', url.toString())", $foundation);
+        $this->assertStringContainsString('[data-pwa-search-clear-button]', $foundation);
+        $this->assertStringContainsString('data-pwa-search-clear-button="#commercial-product-search-input"', $detail);
+        $this->assertStringContainsString('aria-label="Xóa tìm kiếm sản phẩm"', $detail);
     }
 
 
