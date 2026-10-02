@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Modules\Admission\Models\AdmissionApplication;
 use Modules\Admission\Models\AdmissionImportRun;
+use Modules\Admission\Models\AdmissionLocation;
 use Modules\Admission\Services\AdmissionApplicationAdminService;
 use Modules\Admission\Services\AdmissionDocumentService;
 use Modules\Admission\Services\AdmissionImportService;
@@ -47,6 +48,29 @@ class AdmissionController extends Controller
     public function dvhc()
     {
         return view('Admission::pages.admin.dvhc');
+    }
+
+    public function updateDvhc(Request $request, AdmissionLocation $location)
+    {
+        $validated = $request->validate([
+            'province_name' => ['required', 'string', 'max:255'],
+            'ward_name' => ['required', 'string', 'max:255'],
+        ]);
+
+        $provinceName = trim($validated['province_name']);
+        $wardName = trim($validated['ward_name']);
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($location, $provinceName, $wardName): void {
+            AdmissionLocation::query()
+                ->where('province_code', $location->province_code)
+                ->update(['province_name' => $provinceName]);
+
+            $location->update(['ward_name' => $wardName]);
+        });
+
+        return redirect()
+            ->route('admin.admission.dvhc')
+            ->with('success', 'Đã cập nhật tên tỉnh và phường/xã.');
     }
 
     public function search()
