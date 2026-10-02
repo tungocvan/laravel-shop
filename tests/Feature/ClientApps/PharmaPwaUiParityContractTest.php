@@ -304,6 +304,9 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertStringContainsString("@section('app-dashboard-route', route('client.pharma.dashboard'))", $view);
         $this->assertStringContainsString("@section('hide-application-header', true)", $view);
         $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $view);
+        $this->assertStringContainsString('aria-label="Quay lại Không gian làm việc Pharma"', $view);
+        $this->assertStringContainsString("route('client.pharma.dashboard')", $view);
+        $this->assertStringContainsString('← Quay về dashboard', $view);
         $this->assertStringContainsString("\$featurePresentation['page_title']", $view);
         $this->assertStringContainsString("\$featurePresentation['page_description']", $view);
     }
