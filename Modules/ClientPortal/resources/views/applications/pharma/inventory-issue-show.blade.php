@@ -187,7 +187,7 @@
             @elseif($canApproveOrder)
                 <div class="grid grid-cols-2 gap-3">
                     <button type="button" id="order-reject-toggle" aria-controls="order-reject-form" aria-expanded="false" class="h-13 rounded-2xl border border-rose-300 bg-white font-black text-rose-700">Từ chối</button>
-                    <form method="POST" action="{{ route('client.pharma.orders.approve',$issue) }}">@csrf<button  class="h-13 w-full rounded-2xl bg-slate-950 font-black text-white disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500">Phê duyệt</button></form>
+                    <form method="POST" action="{{ route('client.pharma.orders.approve',$issue) }}">@csrf<button class="h-13 w-full rounded-2xl bg-slate-950 font-black text-white disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500" @disabled(!($stockReadiness['can_approve'] ?? false))>Phê duyệt</button></form>
                 </div>
                 @if(!($stockReadiness['can_approve'] ?? false))
                     <p class="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs font-bold leading-5 text-amber-900">Chưa thể phê duyệt: đơn phải có ít nhất 1 sản phẩm đủ tồn; mọi sản phẩm thiếu phải lưu đầy đủ ngày dự kiến cung cấp và ghi chú.</p>
