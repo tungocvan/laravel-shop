@@ -41,6 +41,9 @@ class AdmissionRegistrationCampusUxContractTest extends TestCase
         $this->assertStringContainsString('wire:model="rows.{{ $index }}.ward_name"', $view);
         $this->assertStringNotContainsString('wire:model.live="rows.{{ $index }}.province_name"', $view);
         $this->assertStringNotContainsString('wire:model.live="rows.{{ $index }}.ward_name"', $view);
+        $this->assertStringNotContainsString('wire:blur="updateRow({{ $index }})"', $view);
+        $this->assertStringContainsString('wire:click="updateRow({{ $index }})"', $view);
+        $this->assertStringContainsString('>Lưu</span>', $view);
     }
 
     #[Test]
