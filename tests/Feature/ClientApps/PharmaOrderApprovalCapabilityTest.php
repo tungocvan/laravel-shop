@@ -137,8 +137,8 @@ final class PharmaOrderApprovalCapabilityTest extends TestCase
         $this->assertStringContainsString("status !== \\Modules\\Pharma\\Models\\InventoryIssue::APPROVED", $controller);
         $this->assertStringContainsString("['status' => 'posted']", $controller);
         $this->assertStringContainsString('can_post_directly', $readiness);
-        $this->assertStringContainsString("if (\$row['has_supply_note']) return false;", $readiness);
-        $this->assertStringContainsString('$rows->contains(function (array $row): bool', $readiness);
+        $this->assertStringContainsString("\$fulfillableRows = \$rows->reject(fn (array \$row): bool => \$row['has_supply_note']);", $readiness);
+        $this->assertStringContainsString('$fulfillableRows->every(fn (array $row): bool', $readiness);
         $this->assertStringContainsString('postApprovedIssueFromAvailableStock', $inventory);
         $this->assertStringContainsString("where('quantity_on_hand', '>=', (float) \$item->quantity)", $inventory);
         $this->assertStringContainsString("orderBy('expiry_date')", $inventory);
