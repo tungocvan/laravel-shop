@@ -5,6 +5,7 @@ namespace Modules\Admission\Livewire\Public;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Modules\Admission\Services\AdmissionRegistrationService;
 
@@ -31,6 +32,8 @@ class RegistrationForm extends Component
     public $religions = [];
 
     public array $registrationClasses = [];
+
+    public array $schoolCampuses = [];
 
     public $copyNoiSinhToQueQuan = false;
 
@@ -107,6 +110,8 @@ class RegistrationForm extends Component
         'Lop' => '',
         'Gvcn' => '',
         'BaoMau' => '',
+        'SchoolCampusName' => '',
+        'SchoolCampusAddress' => '',
         'NgayLamDon' => '',
         'NguoiLamDon' => '',
     ];
@@ -120,6 +125,7 @@ class RegistrationForm extends Component
         $this->ethnicities = $options['ethnicities'];
         $this->religions = $options['religions'];
         $this->registrationClasses = $options['registrationClasses'];
+        $this->schoolCampuses = $options['schoolCampuses'];
         $this->form['LoaiLopDangKy'] = $this->registrationClasses[0] ?? '';
         $this->form['NgayLamDon'] = now()->format('Y-m-d');
 
@@ -213,6 +219,8 @@ class RegistrationForm extends Component
             'form.Lop' => ['nullable', 'string', 'max:100'],
             'form.Gvcn' => ['nullable', 'string', 'max:255'],
             'form.BaoMau' => ['nullable', 'string', 'max:255'],
+            'form.SchoolCampusName' => ['nullable', 'string', 'max:255', Rule::in(array_column($this->schoolCampuses, 'name'))],
+            'form.SchoolCampusAddress' => ['nullable', 'string', 'max:500'],
             'form.NgayLamDon' => ['nullable', 'date'],
             'form.NguoiLamDon' => ['nullable', 'string', 'max:255'],
         ];
@@ -223,7 +231,10 @@ class RegistrationForm extends Component
         $target = max(1, min($this->totalSteps, (int) $step));
 
         if ($target > $this->currentStep) {
-            $this->validateCurrentStep();
+            if (! $this->validateStepOrNotify((int) $this->currentStep)) {
+                return;
+            }
+
             $target = min($target, $this->currentStep + 1);
         }
 
@@ -290,6 +301,11 @@ class RegistrationForm extends Component
         if (isset($map[$key])) {
             $this->form[$map[$key]] = $value;
         }
+
+        if ($key === 'SchoolCampusName') {
+            $campus = collect($this->schoolCampuses)->firstWhere('name', $value);
+            $this->form['SchoolCampusAddress'] = $campus['address'] ?? '';
+        }
     }
 
     public function nextStep(): void
@@ -298,8 +314,9 @@ class RegistrationForm extends Component
             return;
         }
 
-        $this->validateCurrentStep();
-        $this->currentStep++;
+        if ($this->validateStepOrNotify((int) $this->currentStep)) {
+            $this->currentStep++;
+        }
     }
 
     public function prevStep(): void
@@ -312,7 +329,12 @@ class RegistrationForm extends Component
     public function save(AdmissionRegistrationService $service): void
     {
         $this->authorizeAdmin($this->isEdit ? 'edit_admission' : 'create_admission');
-        $this->validate();
+
+        for ($step = 1; $step <= $this->totalSteps; $step++) {
+            if (! $this->validateStepOrNotify($step)) {
+                return;
+            }
+        }
 
         try {
             $data = $this->form;
@@ -355,23 +377,92 @@ class RegistrationForm extends Component
         return view('Admission::livewire.admission.registration-form');
     }
 
+    public function goToValidationStep(int $step): void
+    {
+        $this->currentStep = max(1, min($this->totalSteps, $step));
+        $this->dispatch('admission-validation-step-opened');
+    }
+
+    protected function messages(): array
+    {
+        return [
+            'required' => ':attribute là thông tin bắt buộc.',
+            'string' => ':attribute phải là nội dung hợp lệ.',
+            'min' => ':attribute chưa đạt độ dài tối thiểu.',
+            'max' => ':attribute vượt quá độ dài cho phép.',
+            'digits' => ':attribute phải gồm đúng :digits chữ số.',
+            'integer' => ':attribute phải là số nguyên.',
+            'date' => ':attribute không đúng định dạng ngày.',
+            'regex' => ':attribute không đúng định dạng.',
+            'in' => ':attribute không nằm trong danh sách cho phép.',
+            'array' => ':attribute có dữ liệu không hợp lệ.',
+            'boolean' => ':attribute có giá trị không hợp lệ.',
+        ];
+    }
+
+    protected function validationAttributes(): array
+    {
+        return [
+            'form.HoVaTenHocSinh' => 'Họ và tên học sinh',
+            'form.MaDinhDanh' => 'Mã định danh',
+            'form.SDTEnetViet' => 'Số điện thoại eNetViet',
+            'form.LoaiLopDangKy' => 'Lớp đăng ký',
+            'form.SchoolCampusName' => 'Cơ sở trường',
+            'form.SchoolCampusAddress' => 'Địa chỉ cơ sở trường',
+            'form.DienThoaiCha' => 'Điện thoại cha',
+            'form.DienThoaiMe' => 'Điện thoại mẹ',
+            'form.DienThoaiNguoiGiamHo' => 'Điện thoại người giám hộ',
+            'form.CCCDCha' => 'CCCD cha',
+            'form.CCCDMe' => 'CCCD mẹ',
+            'form.CCCDGiamHo' => 'CCCD người giám hộ',
+        ];
+    }
+
     private function validateCurrentStep(): void
     {
+        $this->validate($this->rulesForStep((int) $this->currentStep));
+    }
+
+    private function validateStepOrNotify(int $step): bool
+    {
+        try {
+            $this->validate($this->rulesForStep($step));
+
+            return true;
+        } catch (ValidationException $e) {
+            $stepNames = [
+                1 => 'Thông tin học sinh',
+                2 => 'Địa chỉ cư trú',
+                3 => 'Thông tin bổ sung',
+                4 => 'Thông tin cha, mẹ và người giám hộ',
+                5 => 'Xác nhận và sắp xếp lớp',
+            ];
+
+            $this->dispatch('show-validation-modal', [
+                'step' => $step,
+                'stepName' => $stepNames[$step] ?? 'Thông tin hồ sơ',
+                'message' => 'Hồ sơ còn thông tin thiếu hoặc chưa hợp lệ. Vui lòng quay lại bước này để kiểm tra và cập nhật các trường được đánh dấu.',
+            ]);
+
+            return false;
+        }
+    }
+
+    private function rulesForStep(int $step): array
+    {
         $allRules = $this->rules();
-        $fields = match ((int) $this->currentStep) {
+        $fields = match ($step) {
             1 => ['HoVaTenHocSinh', 'GioiTinh', 'NgaySinh', 'DanToc', 'MaDinhDanh', 'QuocTich', 'TonGiao', 'SDTEnetViet', 'NoiSinh', 'NoiSinhPx', 'NoiSinhTt', 'NoiSinhChiTiet', 'NoiDangKyKhaiSinhPx', 'NoiDangKyKhaiSinhTt', 'QueQuan', 'QueQuanPx', 'QueQuanTt'],
             2 => ['TTSN', 'TTD', 'TTKP', 'TTPX', 'TTTTP', 'HTSN', 'HTD', 'HTKP', 'HTPX', 'HTTTP'],
             3 => ['OChungVoi', 'QuanHeNguoiNuoiDuong', 'ConThu', 'TSAnhChiEm', 'HoanThanhLopLa', 'TruongMamNon', 'KhaNangHocSinh', 'SucKhoeCanLuuY', 'SucKhoeKhac'],
             4 => ['HoTenCha', 'NamSinhCha', 'TdvhCha', 'TdcmCha', 'NgheNghiepCha', 'ChucVuCha', 'DienThoaiCha', 'CCCDCha', 'HoTenMe', 'NamSinhMe', 'TdvhMe', 'TdcmMe', 'NgheNghiepMe', 'ChucVuMe', 'DienThoaiMe', 'CCCDMe', 'HoTenNguoiGiamHo', 'QuanHeGiamHo', 'DienThoaiGiamHo', 'CCCDGiamHo'],
-            5 => ['LoaiLopDangKy', 'CK_GocHocTap', 'CK_SachVo', 'CK_HopPH', 'CK_ThamGiaHD', 'CK_GanGui', 'Lop', 'Gvcn', 'BaoMau', 'NgayLamDon', 'NguoiLamDon'],
+            5 => ['LoaiLopDangKy', 'CK_GocHocTap', 'CK_SachVo', 'CK_HopPH', 'CK_ThamGiaHD', 'CK_GanGui', 'Lop', 'Gvcn', 'BaoMau', 'SchoolCampusName', 'SchoolCampusAddress', 'NgayLamDon', 'NguoiLamDon'],
             default => [],
         };
 
-        $rules = collect($allRules)
+        return collect($allRules)
             ->filter(fn ($rule, $key) => collect($fields)->contains(fn ($field) => $key === "form.{$field}" || str_starts_with($key, "form.{$field}.")))
             ->all();
-
-        $this->validate($rules);
     }
 
     private function loadWardLists(): void
