@@ -1,0 +1,23 @@
+@extends('ClientPortal::layouts.application')
+@section('title','Phiếu nhập kho')
+@section('app-name', $applicationPresentation['name'] ?? $application['name'])
+@section('app-subtitle','Workspace Pharma dành cho User')
+@section('app-dashboard-route', route('client.pharma.dashboard'))
+@section('content')
+@php $labels=['draft'=>'Nháp','posted'=>'Đã ghi sổ','cancelled'=>'Đã hủy']; @endphp
+<div class="min-w-0 space-y-4 overflow-x-hidden pb-24 xl:pb-8">
+<section class="rounded-[1.75rem] bg-slate-950 px-5 py-5 text-white shadow-sm sm:px-7">
+<a href="{{ route('client.pharma.inventory') }}" class="text-sm font-bold text-slate-300 hover:text-white">← Tồn kho</a>
+<p class="mt-4 text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Inventory · Receipts</p>
+<h1 class="mt-1.5 text-2xl font-black">Phiếu nhập kho</h1><p class="mt-1.5 text-sm text-slate-300">Tra cứu phiếu nhập và hàng hóa đã tiếp nhận. PWA chỉ đọc; ghi sổ và hoàn tác thực hiện tại Web Admin.</p>
+</section>
+<section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+<form method="GET" action="{{ route('client.pharma.inventory.receipts') }}" data-pwa-debounced-search data-delay="350">
+<div class="grid gap-3 lg:grid-cols-12"><div class="relative lg:col-span-8"><input type="search" name="q" value="{{ $filters['q'] }}" placeholder="Số phiếu / nhà cung cấp / số hóa đơn" class="h-12 w-full rounded-2xl border border-slate-300 px-4 pr-11 text-sm" data-pwa-search-input>@if($filters['q'])<a href="{{ route('client.pharma.inventory.receipts',['status'=>$filters['status'] ?: null]) }}" class="absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-500" aria-label="Xóa tìm kiếm" data-pwa-search-clear-button>×</a>@endif</div>
+<select name="status" onchange="this.form.submit()" class="h-12 rounded-2xl border border-slate-300 bg-white px-4 text-sm lg:col-span-4"><option value="">Tất cả trạng thái</option>@foreach($labels as $value=>$label)<option value="{{ $value }}" @selected($filters['status']===$value)>{{ $label }}</option>@endforeach</select></div></form>
+</section>
+<section class="grid gap-3 xl:hidden">@forelse($receipts as $receipt)<a href="{{ route('client.pharma.inventory.receipts.show',$receipt) }}" class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition active:scale-[0.985]"><div class="flex justify-between gap-3"><div><h2 class="font-black text-slate-950">{{ $receipt->number }}</h2><p class="mt-1 text-sm text-slate-600">{{ $receipt->supplier_name }}</p></div><span class="h-fit rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold">{{ $labels[$receipt->status] ?? $receipt->status }}</span></div><div class="mt-3 flex justify-between text-xs text-slate-500"><span>{{ $receipt->receipt_date?->format('d/m/Y') }}</span><span>{{ number_format((float)$receipt->total_quantity,3,',','.') }} · {{ $receipt->items_count }} dòng</span></div></a>@empty<div class="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">Không có phiếu nhập phù hợp.</div>@endforelse</section>
+<section class="hidden overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm xl:block"><table class="w-full text-sm"><thead class="bg-slate-50 text-left text-xs font-black uppercase text-slate-500"><tr><th class="px-4 py-3">Số phiếu</th><th class="px-4 py-3">Ngày nhập</th><th class="px-4 py-3">Nhà cung cấp</th><th class="px-4 py-3">Hóa đơn</th><th class="px-4 py-3 text-right">Số lượng</th><th class="px-4 py-3">Trạng thái</th></tr></thead><tbody class="divide-y divide-slate-100">@foreach($receipts as $receipt)<tr><td class="px-4 py-3"><a class="font-black text-slate-950 hover:underline" href="{{ route('client.pharma.inventory.receipts.show',$receipt) }}">{{ $receipt->number }}</a></td><td class="px-4 py-3">{{ $receipt->receipt_date?->format('d/m/Y') }}</td><td class="px-4 py-3">{{ $receipt->supplier_name }}</td><td class="px-4 py-3">{{ $receipt->invoice_number ?: '—' }}</td><td class="px-4 py-3 text-right font-bold">{{ number_format((float)$receipt->total_quantity,3,',','.') }}</td><td class="px-4 py-3">{{ $labels[$receipt->status] ?? $receipt->status }}</td></tr>@endforeach</tbody></table></section>
+@if($receipts->hasMorePages())<div class="flex justify-center"><a href="{{ $receipts->nextPageUrl() }}" class="inline-flex min-h-11 items-center rounded-2xl border border-slate-300 bg-white px-6 py-2.5 text-sm font-black" data-pwa-load-more>Xem thêm</a></div>@endif
+</div>
+@endsection
