@@ -63,6 +63,14 @@ final class PharmaInventoryReceiptsCapabilityTest extends TestCase
         $this->assertStringContainsString("toLocaleLowerCase('vi').normalize('NFD')", $create);
         $this->assertStringContainsString("article.querySelectorAll('[data-receipt-combobox]').forEach(wireCombobox)", $create);
         $this->assertStringNotContainsString('<x-select-search', $create);
+        $this->assertStringContainsString("old('invoice_date', now()->toDateString())", $create);
+        $this->assertStringContainsString('data-number-display data-scale="3"', $create);
+        $this->assertStringContainsString('data-field="quantity" data-number-value', $create);
+        $this->assertStringContainsString('data-number-display data-scale="4"', $create);
+        $this->assertStringContainsString('data-field="unit_price_ex_vat" data-number-value', $create);
+        $this->assertStringContainsString("toLocaleString('vi-VN')", $create);
+        $this->assertStringContainsString("replace(/\\./g,'').replace(',', '.')", $create);
+        $this->assertStringContainsString("article.querySelectorAll('[data-number-display]').forEach(wireNumber)", $create);
         $this->assertStringContainsString("@section('hide-application-header', true)", $create);
         $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $create);
     }
