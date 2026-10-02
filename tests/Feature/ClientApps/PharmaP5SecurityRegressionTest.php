@@ -89,4 +89,22 @@ final class PharmaP5SecurityRegressionTest extends TestCase
         $this->assertStringNotContainsString('name="permission"', $admin);
         $this->assertStringContainsString('Route, permission và nghiệp vụ vẫn do source code kiểm soát.', $admin);
     }
+
+    public function test_receipt_schema_changes_remain_additive_nullable_and_reversible(): void
+    {
+        $lifecycle = file_get_contents(base_path('Modules/Pharma/database/migrations/2026_10_02_143000_add_approval_lifecycle_to_pharma_inventory_receipts.php'));
+        $invoice = file_get_contents(base_path('Modules/Pharma/database/migrations/2026_10_02_150000_add_invoice_reference_fields_to_pharma_inventory_receipts.php'));
+
+        foreach (['submitted_by', 'submitted_at', 'approved_by', 'approved_at'] as $column) {
+            $this->assertStringContainsString("'{$column}'", $lifecycle);
+        }
+        $this->assertGreaterThanOrEqual(4, substr_count($lifecycle, '->nullable()'));
+        $this->assertStringContainsString("dropColumn(['submitted_by', 'submitted_at', 'approved_by', 'approved_at'])", $lifecycle);
+
+        $this->assertStringContainsString("string('invoice_symbol', 100)->nullable()", $invoice);
+        $this->assertStringContainsString("decimal('invoice_unit_price_ex_vat', 18, 4)->nullable()", $invoice);
+        $this->assertStringContainsString("dropColumn('invoice_unit_price_ex_vat')", $invoice);
+        $this->assertStringContainsString("dropColumn('invoice_symbol')", $invoice);
+    }
+
 }
