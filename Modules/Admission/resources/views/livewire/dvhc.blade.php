@@ -132,6 +132,9 @@
 
                     @forelse($rows as $index => $row)
                         <tr class="hover:bg-gray-50/50 transition-colors">
+                            <form id="dvhc-row-{{ $row['id'] }}" method="POST" action="{{ route('admin.admission.dvhc.update', $row['id']) }}">
+                                @csrf
+                            </form>
 
                             <td class="px-4 py-4 text-center">
                                 <input type="checkbox"
@@ -144,7 +147,11 @@
                             {{-- PROVINCE --}}
                             <td class="px-6 py-3">
                                 <input
-                                    wire:model="rows.{{ $index }}.province_name"
+                                    form="dvhc-row-{{ $row['id'] }}"
+                                    name="province_name"
+                                    value="{{ $row['province_name'] }}"
+                                    required
+                                    maxlength="255"
                                     class="w-full rounded-lg border-gray-300 px-3 py-2 text-sm font-medium text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                                 >
                             </td>
@@ -159,7 +166,11 @@
                             {{-- EDIT --}}
                             <td class="px-6 py-3">
                                 <input
-                                    wire:model="rows.{{ $index }}.ward_name"
+                                    form="dvhc-row-{{ $row['id'] }}"
+                                    name="ward_name"
+                                    value="{{ $row['ward_name'] }}"
+                                    required
+                                    maxlength="255"
                                     class="w-full rounded-lg border-gray-300 px-3 py-2 text-sm
                                            focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 >
@@ -167,13 +178,10 @@
 
                             {{-- SAVE --}}
                             <td class="px-6 py-4 text-center">
-                                <button type="button"
-                                        wire:click="updateRow({{ $index }})"
-                                        wire:loading.attr="disabled"
-                                        wire:target="updateRow({{ $index }})"
-                                        class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-700 disabled:cursor-wait disabled:opacity-60">
-                                    <span wire:loading.remove wire:target="updateRow({{ $index }})">Lưu</span>
-                                    <span wire:loading wire:target="updateRow({{ $index }})">Đang lưu...</span>
+                                <button type="submit"
+                                        form="dvhc-row-{{ $row['id'] }}"
+                                        class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-700">
+                                    Lưu
                                 </button>
                             </td>
 
