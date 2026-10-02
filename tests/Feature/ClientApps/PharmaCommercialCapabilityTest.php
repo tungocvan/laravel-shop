@@ -115,7 +115,9 @@ class PharmaCommercialCapabilityTest extends TestCase
         $this->assertStringContainsString('data-pwa-load-more', $view);
         $this->assertStringContainsString('DOMParser', $foundation);
         $this->assertStringNotContainsString('{{ $size }} / trang', $view);
-        $this->assertStringContainsString('Xóa bộ lọc', $view);
+        $this->assertStringContainsString('data-pwa-search-clear-button="#commercial-hospital-search-input"', $view);
+        $this->assertStringContainsString('aria-label="Xóa tìm kiếm bệnh viện"', $view);
+        $this->assertStringContainsString('[data-pwa-search-clear-button]', $foundation);
         $this->assertStringContainsString('min-w-0', $view);
         $this->assertStringContainsString('h-11 w-11', $view);
         $this->assertStringContainsString("route('client.pharma.commercial.hospitals.show'", $view);
