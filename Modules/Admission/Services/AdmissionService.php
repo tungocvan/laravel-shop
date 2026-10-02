@@ -157,6 +157,8 @@ class AdmissionService
             'lop' => $formData['Lop'] ?? '',
             'gvcn' => $formData['Gvcn'] ?? '',
             'bao_mau' => $formData['BaoMau'] ?? '',
+            'school_campus_name' => $formData['SchoolCampusName'] ?? null,
+            'school_campus_address' => $formData['SchoolCampusAddress'] ?? null,
         ];
 
         // dd($data);
