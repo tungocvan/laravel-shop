@@ -69,6 +69,14 @@ final class PharmaInventoryReceiptsCapabilityTest extends TestCase
         $this->assertStringContainsString('data-number-display data-scale="4"', $create);
         $this->assertStringContainsString('Giá vốn TB:', $create);
         $this->assertStringContainsString('value="5" data-field="vat_rate"', $create);
+        $this->assertStringContainsString('name="invoice_symbol"', $create);
+        $this->assertStringContainsString('Ký hiệu hóa đơn', $create);
+        $this->assertStringContainsString('Giá nhập / Giá vốn *', $create);
+        $this->assertStringContainsString('Giá xuất HĐ chưa VAT', $create);
+        $this->assertStringContainsString('data-field="invoice_unit_price_ex_vat"', $create);
+        $this->assertStringContainsString("'invoice_symbol' => ['nullable', 'string', 'max:100']", $controller);
+        $this->assertStringContainsString("'items.*.invoice_unit_price_ex_vat' => ['nullable', 'numeric', 'min:0']", $controller);
+        $this->assertStringContainsString("'invoice_symbol' => \$data['invoice_symbol'] ?? null", $workspace);
     }
 
     public function test_receipt_list_and_detail_expose_workflow_responsively(): void
@@ -84,6 +92,10 @@ final class PharmaInventoryReceiptsCapabilityTest extends TestCase
             $this->assertStringContainsString($action, $detail);
         }
         $this->assertStringContainsString('Chỉ Ghi sổ mới cộng tồn.', $detail);
+        $this->assertStringContainsString('Ký hiệu HĐ', $detail);
+        $this->assertStringContainsString('Giá xuất HĐ chưa VAT', $detail);
+        $this->assertStringContainsString('Thành tiền giá vốn', $detail);
+        $this->assertStringContainsString('Thành tiền hóa đơn chưa VAT', $detail);
         $this->assertStringContainsString("number_format((float)\$receipt->total_quantity,0,',','.')", $list);
         $this->assertStringContainsString("number_format((float)\$item->quantity,0,',','.')", $detail);
         $this->assertStringContainsString('xl:hidden', $list);
@@ -95,5 +107,16 @@ final class PharmaInventoryReceiptsCapabilityTest extends TestCase
             $this->assertStringContainsString("@section('hide-application-header', true)", $view);
             $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $view);
         }
+    }
+
+    public function test_receipt_invoice_reference_schema_is_additive_and_nullable(): void
+    {
+        $root = base_path();
+        $migration = file_get_contents($root.'/Modules/Pharma/database/migrations/2026_10_02_150000_add_invoice_reference_fields_to_pharma_inventory_receipts.php');
+        $item = file_get_contents($root.'/Modules/Pharma/Models/InventoryReceiptItem.php');
+
+        $this->assertStringContainsString("string('invoice_symbol', 100)->nullable()", $migration);
+        $this->assertStringContainsString("decimal('invoice_unit_price_ex_vat', 18, 4)->nullable()", $migration);
+        $this->assertStringContainsString("'invoice_unit_price_ex_vat'=>'decimal:4'", $item);
     }
 }
