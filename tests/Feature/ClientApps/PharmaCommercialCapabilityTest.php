@@ -150,6 +150,9 @@ class PharmaCommercialCapabilityTest extends TestCase
         $this->assertStringContainsString('Điều kiện NCC hiện hành', $view);
         $this->assertStringContainsString('Giá vốn NCC', $view);
         $this->assertStringContainsString('Giá vốn tính toán', $view);
+        $this->assertStringContainsString('Thời gian phân bổ hiệu lực', $view);
+        $this->assertStringContainsString('md:grid-cols-4', $view);
+        $this->assertStringContainsString('md:grid-cols-2', $view);
         $this->assertStringNotContainsString('Admin::', $view);
     }
 
