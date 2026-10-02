@@ -148,12 +148,12 @@ final class UserOrderAuthoringService
 
     public function updateDraft(int $actorUserId, int $managerUserId, InventoryIssue $issue, array $data): InventoryIssue
     {
-        $this->guardEditable($actorUserId, $issue);
-        if (($issue->issue_source === 'bid' ? 'bid' : 'price_list') !== $data['source']) {
-            throw ValidationException::withMessages(['source' => 'Nguồn đơn hàng không được thay đổi sau khi tạo nháp.']);
-        }
-
-        return DB::transaction(function () use ($managerUserId, $issue, $data): InventoryIssue {
+        return DB::transaction(function () use ($actorUserId, $managerUserId, $issue, $data): InventoryIssue {
+            $issue = InventoryIssue::query()->lockForUpdate()->findOrFail($issue->getKey());
+            $this->guardEditable($actorUserId, $issue);
+            if (($issue->issue_source === 'bid' ? 'bid' : 'price_list') !== $data['source']) {
+                throw ValidationException::withMessages(['source' => 'Nguồn đơn hàng không được thay đổi sau khi tạo nháp.']);
+            }
             $items = $data['source'] === 'bid'
                 ? $this->resolveBidItems($managerUserId, $data['issue_date'], $data)
                 : $this->resolvePriceListItems($managerUserId, $data['issue_date'], $data);
@@ -176,14 +176,17 @@ final class UserOrderAuthoringService
 
     public function submit(int $userId, InventoryIssue $issue): InventoryIssue
     {
-        $this->guardSubmittable($userId, $issue);
-        if (! $issue->items()->exists()) {
-            throw ValidationException::withMessages(['order' => 'Đơn hàng chưa có sản phẩm để gửi duyệt.']);
-        }
+        return DB::transaction(function () use ($userId, $issue): InventoryIssue {
+            $issue = InventoryIssue::query()->lockForUpdate()->findOrFail($issue->getKey());
+            $this->guardSubmittable($userId, $issue);
+            if (! $issue->items()->exists()) {
+                throw ValidationException::withMessages(['order' => 'Đơn hàng chưa có sản phẩm để gửi duyệt.']);
+            }
 
-        $issue->update(['status' => InventoryIssue::PENDING_APPROVAL, 'submitted_by' => $userId, 'submitted_at' => now()]);
+            $issue->update(['status' => InventoryIssue::PENDING_APPROVAL, 'submitted_by' => $userId, 'submitted_at' => now()]);
 
-        return $issue->refresh();
+            return $issue->refresh();
+        });
     }
 
     private function resolvePriceListItems(int $userId, string $date, array $data): array
