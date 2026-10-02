@@ -91,6 +91,7 @@ final class UserInventoryReceiptWorkspace
                 'receipt_date' => $data['receipt_date'],
                 'supplier_name' => $supplier->name,
                 'invoice_number' => $data['invoice_number'] ?? null,
+                'invoice_symbol' => $data['invoice_symbol'] ?? null,
                 'invoice_date' => $data['invoice_date'] ?? null,
                 'notes' => $data['notes'] ?? null,
                 'created_by' => $userId,
@@ -119,7 +120,7 @@ final class UserInventoryReceiptWorkspace
             }
             $locked->update([
                 'receipt_date' => $data['receipt_date'], 'supplier_name' => $supplier->name,
-                'invoice_number' => $data['invoice_number'] ?? null, 'invoice_date' => $data['invoice_date'] ?? null,
+                'invoice_number' => $data['invoice_number'] ?? null, 'invoice_symbol' => $data['invoice_symbol'] ?? null, 'invoice_date' => $data['invoice_date'] ?? null,
                 'notes' => $data['notes'] ?? null,
             ]);
             $locked->items()->delete();
