@@ -144,7 +144,7 @@
                             {{-- PROVINCE --}}
                             <td class="px-6 py-3">
                                 <input
-                                    wire:model.live="rows.{{ $index }}.province_name"
+                                    wire:model="rows.{{ $index }}.province_name"
                                     wire:blur="updateRow({{ $index }})"
                                     class="w-full rounded-lg border-gray-300 px-3 py-2 text-sm font-medium text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                                 >
@@ -160,7 +160,7 @@
                             {{-- EDIT --}}
                             <td class="px-6 py-3">
                                 <input
-                                    wire:model.live="rows.{{ $index }}.ward_name"
+                                    wire:model="rows.{{ $index }}.ward_name"
                                     wire:blur="updateRow({{ $index }})"
                                     class="w-full rounded-lg border-gray-300 px-3 py-2 text-sm
                                            focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
