@@ -56,6 +56,10 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
         Route::get('/inventory', [PharmaApplicationController::class, 'inventory'])
             ->middleware('client.feature:pharma,inventory')
             ->name('inventory');
+        Route::get('/inventory/receipts', [PharmaApplicationController::class, 'inventoryReceipts'])
+            ->middleware('client.feature:pharma,inventory')->name('inventory.receipts');
+        Route::get('/inventory/receipts/{receipt}', [PharmaApplicationController::class, 'inventoryReceipt'])
+            ->whereNumber('receipt')->middleware('client.feature:pharma,inventory')->name('inventory.receipts.show');
         Route::get('/orders', [PharmaApplicationController::class, 'orders'])
             ->middleware('client.feature:pharma,orders')
             ->name('orders');
