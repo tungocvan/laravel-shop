@@ -97,6 +97,7 @@ final class InventoryService
                 throw ValidationException::withMessages(['status' => 'Chỉ đơn đã duyệt mới được ghi sổ từ PWA.']);
             }
 
+            $this->assertDocumentDateAfterOpeningCutoff($issue->warehouse_id, $issue->issue_date, 'Ngày phiếu xuất');
             $issue->load(['items', 'deferredSupplies']);
             $deferredMedicineIds = $issue->deferredSupplies
                 ->pluck('medicine_id')->map(fn ($id) => (int) $id)->unique();
@@ -108,30 +109,49 @@ final class InventoryService
                 throw ValidationException::withMessages(['stock' => 'Không có mặt hàng đủ điều kiện xuất kho; toàn bộ mặt hàng đang chờ cung ứng.']);
             }
 
+            $allocations = [];
             foreach ($postedItems as $item) {
-                $balance = InventoryBalance::query()
+                $remaining = (float) $item->quantity;
+                $lots = InventoryBalance::query()
                     ->where('warehouse_id', $issue->warehouse_id)
                     ->where('medicine_id', $item->medicine_id)
-                    ->where('quantity_on_hand', '>=', (float) $item->quantity)
+                    ->where('quantity_on_hand', '>', 0)
                     ->whereDate('expiry_date', '>=', now()->toDateString())
                     ->orderBy('expiry_date')
                     ->orderBy('batch_number')
                     ->lockForUpdate()
-                    ->first();
+                    ->get();
 
-                if (! $balance) {
-                    throw ValidationException::withMessages([
-                        'stock' => 'Tồn kho đã thay đổi hoặc mặt hàng thực xuất chưa có một lô đủ số lượng. Vui lòng kiểm tra lại.',
-                    ]);
+                foreach ($lots as $balance) {
+                    if ($remaining <= 0.00005) break;
+                    $quantity = min($remaining, (float) $balance->quantity_on_hand);
+                    if ($quantity <= 0) continue;
+                    $allocations[] = [$item, $balance, $quantity];
+                    $remaining -= $quantity;
                 }
 
-                $item->update([
-                    'batch_number' => $balance->batch_number,
-                    'expiry_date' => $balance->expiry_date,
-                ]);
+                if ($remaining > 0.00005) {
+                    throw ValidationException::withMessages([
+                        'stock' => 'Tồn kho đã thay đổi hoặc tổng tồn các lô còn hạn không đủ số lượng thực xuất. Vui lòng kiểm tra lại.',
+                    ]);
+                }
             }
 
-            $this->postIssue($issue->fresh(), $userId);
+            foreach ($allocations as [$item, $balance, $quantity]) {
+                $this->move(
+                    $issue->warehouse_id,
+                    $item->medicine_id,
+                    $balance->batch_number,
+                    $balance->expiry_date->toDateString(),
+                    -$quantity,
+                    'issue',
+                    $issue,
+                    $userId,
+                );
+            }
+
+            $issue->update(['status' => InventoryIssue::POSTED, 'posted_by' => $userId, 'posted_at' => now()]);
+            $this->commissions->snapshotPostedIssue($issue->fresh(['items', 'deferredSupplies']), $userId);
         });
     }
 
