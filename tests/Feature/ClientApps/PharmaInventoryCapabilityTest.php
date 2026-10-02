@@ -34,10 +34,10 @@ final class PharmaInventoryCapabilityTest extends TestCase
         $manifest = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/manifest.php');
 
         $this->assertStringContainsString("Route::post('/inventory/receipts'", $routes);
-        $this->assertStringNotContainsString("Route::post('/inventory/receipts/{receipt}/post", $routes);
-        $this->assertStringNotContainsString("Route::post('/inventory/receipts/{receipt}/revert", $routes);
-        $this->assertStringNotContainsString("Route::put('/inventory", $routes);
-        $this->assertStringNotContainsString("Route::delete('/inventory", $routes);
+        $this->assertStringContainsString("Route::post('/inventory/receipts/{receipt}/post", $routes);
+        $this->assertStringContainsString("Route::post('/inventory/receipts/{receipt}/revert", $routes);
+        $this->assertStringContainsString("Route::put('/inventory/receipts/{receipt}'", $routes);
+        $this->assertStringContainsString("Route::delete('/inventory/receipts/{receipt}'", $routes);
         $this->assertStringContainsString("featurePresentation['page_title']", $view);
         $this->assertStringContainsString("featurePresentation['page_description']", $view);
         $this->assertStringContainsString('xl:hidden', $view);
