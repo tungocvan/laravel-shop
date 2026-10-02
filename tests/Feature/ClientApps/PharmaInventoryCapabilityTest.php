@@ -26,7 +26,7 @@ final class PharmaInventoryCapabilityTest extends TestCase
         $this->assertStringNotContainsString('SupplierTracking::query()', $controller);
     }
 
-    public function test_inventory_pwa_is_read_only_responsive_and_uses_managed_presentation(): void
+    public function test_inventory_pwa_is_responsive_uses_managed_presentation_and_exposes_receipt_workflow(): void
     {
         $root = base_path();
         $routes = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/routes.php');
