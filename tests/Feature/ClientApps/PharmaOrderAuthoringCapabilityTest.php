@@ -194,7 +194,7 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
 
         $this->assertStringContainsString("Partner::query()->withPartnerType('customer')->whereKey(\$partnerId)->where('status', 'active')->exists()", $service);
         $this->assertStringContainsString("if ((\$issue->issue_source ?? 'normal') === 'normal')", $service);
-        $this->assertStringContainsString('\$this->guardPriceListDraftCurrent(\$issue);', $service);
+        $this->assertStringContainsString('$this->guardPriceListDraftCurrent($issue);', $service);
         $this->assertStringContainsString('private function guardPriceListDraftCurrent(InventoryIssue $issue): void', $service);
         $this->assertStringContainsString("\$this->priceLists((int) \$issue->manager_user_id, \$date)", $service);
         $this->assertStringContainsString("->firstWhere('id', (int) \$issue->price_list_id)", $service);
