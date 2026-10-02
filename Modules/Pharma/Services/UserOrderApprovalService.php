@@ -13,6 +13,12 @@ final class UserOrderApprovalService
         return DB::transaction(function () use ($actorUserId, $issue): InventoryIssue {
             $issue = $this->lockIssue($issue);
             $this->guardPending($issue);
+            $readiness = app(UserOrderStockReadinessService::class)->forIssue($issue);
+            if (! ($readiness['can_approve'] ?? false)) {
+                throw ValidationException::withMessages([
+                    'order' => 'Chưa thể phê duyệt: đơn phải có ít nhất 1 sản phẩm đủ tồn; mọi sản phẩm thiếu phải có ngày dự kiến cung cấp và ghi chú.',
+                ]);
+            }
             $issue->update([
                 'status' => InventoryIssue::APPROVED,
                 'approved_by' => $actorUserId,
