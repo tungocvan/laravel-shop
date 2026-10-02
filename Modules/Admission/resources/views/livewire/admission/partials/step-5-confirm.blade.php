@@ -52,6 +52,28 @@
                         @enderror
                     </div>
                 </div>
+
+                <div class="grid gap-4 md:grid-cols-2">
+                    <div>
+                        <label class="text-sm font-medium">Cơ sở trường</label>
+                        <select wire:model.live="form.SchoolCampusName"
+                            class="w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-indigo-500">
+                            <option value="">-- Chọn cơ sở trường --</option>
+                            @foreach ($schoolCampuses as $campus)
+                                <option value="{{ $campus['name'] }}">{{ $campus['name'] }}</option>
+                            @endforeach
+                        </select>
+                        @error('form.SchoolCampusName')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    <div>
+                        <label class="text-sm font-medium">Địa chỉ cơ sở</label>
+                        <input type="text" value="{{ $form['SchoolCampusAddress'] ?? '' }}" readonly
+                            class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-600"
+                            placeholder="Địa chỉ được tự động điền theo cơ sở đã chọn">
+                    </div>
+                </div>
             </div>
         @endcan
     @endif

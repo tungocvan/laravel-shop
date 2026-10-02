@@ -22,6 +22,7 @@ class AdmissionRegistrationService
             'ethnicities' => AdmissionCatalog::query()->where('type', 'ethnicity')->orderBy('value')->get()->toArray(),
             'religions' => AdmissionCatalog::query()->where('type', 'religion')->orderBy('value')->get()->toArray(),
             'registrationClasses' => $this->schoolSettingService->registrationClasses(),
+            'schoolCampuses' => $this->schoolSettingService->schoolCampuses(),
         ];
     }
 
@@ -113,6 +114,8 @@ class AdmissionRegistrationService
             'Lop' => $application->lop ?? '',
             'Gvcn' => $application->gvcn ?? '',
             'BaoMau' => $application->bao_mau ?? '',
+            'SchoolCampusName' => $application->school_campus_name ?? '',
+            'SchoolCampusAddress' => $application->school_campus_address ?? '',
             'NgayLamDon' => $application->ngay_lam_don ?? '',
             'NguoiLamDon' => $application->nguoi_lam_don ?? '',
         ];

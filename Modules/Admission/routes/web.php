@@ -64,6 +64,10 @@ Route::middleware(['web', 'auth:admin'])
             ->middleware('permission:manage_admission_locations,admin')
             ->name('dvhc');
 
+        Route::post('/dvhc/{location}', [AdmissionController::class, 'updateDvhc'])
+            ->middleware('permission:manage_admission_locations,admin')
+            ->name('dvhc.update');
+
         Route::get('/list-class', [AdmissionController::class, 'listClass'])
             ->middleware('permission:view_admission,admin')
             ->name('list-class');

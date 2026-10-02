@@ -108,6 +108,43 @@
 
             <div class="border-t border-gray-200 pt-5">
                 <div class="mb-3">
+                    <h2 class="text-base font-semibold text-gray-900">Cơ sở / địa điểm trường</h2>
+                    <p class="mt-1 text-sm text-gray-500">Danh sách này được dùng khi sắp xếp lớp ở Bước 5. Địa chỉ sẽ tự động đi theo cơ sở được chọn.</p>
+                </div>
+
+                <div class="space-y-3">
+                    @foreach ($school_campuses as $index => $campus)
+                        <div wire:key="school-campus-{{ $index }}" class="grid gap-2 rounded-xl border border-gray-200 p-4 md:grid-cols-[1fr_2fr_auto]">
+                            <div>
+                                <label class="mb-1 block text-xs font-medium text-gray-600">Tên cơ sở</label>
+                                <input type="text" wire:model="school_campuses.{{ $index }}.name"
+                                    class="block w-full rounded-md border px-3 py-2 @error('school_campuses.'.$index.'.name') border-red-500 @else border-gray-300 @enderror">
+                                @error('school_campuses.'.$index.'.name')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                            </div>
+                            <div>
+                                <label class="mb-1 block text-xs font-medium text-gray-600">Địa chỉ</label>
+                                <input type="text" wire:model="school_campuses.{{ $index }}.address"
+                                    class="block w-full rounded-md border px-3 py-2 @error('school_campuses.'.$index.'.address') border-red-500 @else border-gray-300 @enderror">
+                                @error('school_campuses.'.$index.'.address')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                            </div>
+                            <div class="flex items-end">
+                                <button type="button" wire:click="removeSchoolCampus({{ $index }})"
+                                    wire:confirm="Xóa cơ sở trường này khỏi danh sách?"
+                                    class="rounded-md border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50">Xóa</button>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+
+                <button type="button" wire:click="addSchoolCampus"
+                    class="mt-4 rounded-md bg-slate-700 px-4 py-2 font-medium text-white hover:bg-slate-800">
+                    + Thêm cơ sở trường
+                </button>
+                @error('school_campuses')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+            </div>
+
+            <div class="border-t border-gray-200 pt-5">
+                <div class="mb-3">
                     <h2 class="text-base font-semibold text-gray-900">Lớp đăng ký</h2>
                     <p class="mt-1 text-sm text-gray-500">Danh sách này được hiển thị ở bước xác nhận hồ sơ tuyển sinh.</p>
                 </div>

@@ -92,6 +92,8 @@ class AdmissionApplication extends Model
         'lop',
         'gvcn',
         'bao_mau',
+        'school_campus_name',
+        'school_campus_address',
         'pdf_path',
         'word_path',
     ];

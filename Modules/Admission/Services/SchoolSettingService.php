@@ -22,6 +22,11 @@ class SchoolSettingService
             'Tích hợp',
             'Tăng cường TA + Toán và Khoa học',
         ],
+        'school_campuses' => [
+            ['name' => 'Cơ sở chính', 'address' => '203 Lâm Văn Bền, phường Tân Thuận, Thành phố Hồ Chí Minh'],
+            ['name' => 'Phân hiệu', 'address' => '215 Trần Xuân Soạn, phường Tân Thuận, Thành phố Hồ Chí Minh'],
+            ['name' => 'Điểm trường', 'address' => '37/2 Huỳnh Tấn Phát, phường Tân Thuận, Thành phố Hồ Chí Minh'],
+        ],
     ];
 
     public function all(): array
@@ -43,6 +48,17 @@ class SchoolSettingService
             ? array_values(array_filter($classes, fn (mixed $class): bool => is_string($class) && trim($class) !== ''))
             : self::DEFAULTS['registration_classes'];
 
+        $campuses = is_array($settings['school_campuses'])
+            ? $settings['school_campuses']
+            : json_decode((string) $settings['school_campuses'], true);
+        $settings['school_campuses'] = is_array($campuses)
+            ? array_values(array_filter($campuses, static fn (mixed $campus): bool =>
+                is_array($campus)
+                && trim((string) ($campus['name'] ?? '')) !== ''
+                && trim((string) ($campus['address'] ?? '')) !== ''
+            ))
+            : self::DEFAULTS['school_campuses'];
+
         return $settings;
     }
 
@@ -56,6 +72,11 @@ class SchoolSettingService
     public function registrationClasses(): array
     {
         return $this->all()['registration_classes'];
+    }
+
+    public function schoolCampuses(): array
+    {
+        return $this->all()['school_campuses'];
     }
 
     public function save(array $settings): void
