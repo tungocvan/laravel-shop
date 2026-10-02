@@ -24,6 +24,8 @@ class SchoolSettingsForm extends Component
 
     public array $registration_classes = [];
 
+    public array $school_campuses = [];
+
     public ?string $site_logo = null;
 
     public ?string $site_favicon = null;
@@ -56,6 +58,9 @@ class SchoolSettingsForm extends Component
             'school_login_description' => ['required', 'string', 'max:500'],
             'registration_classes' => ['required', 'array', 'min:1'],
             'registration_classes.*' => ['required', 'string', 'max:255', 'distinct'],
+            'school_campuses' => ['required', 'array', 'min:1'],
+            'school_campuses.*.name' => ['required', 'string', 'max:255'],
+            'school_campuses.*.address' => ['required', 'string', 'max:500'],
             'new_logo' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:2048'],
             'new_favicon' => ['nullable', 'file', 'mimes:png,ico', 'max:1024'],
         ], [
@@ -64,6 +69,10 @@ class SchoolSettingsForm extends Component
             'registration_classes.min' => 'Phải có ít nhất một lớp đăng ký.',
             'registration_classes.*.required' => 'Tên lớp đăng ký không được để trống.',
             'registration_classes.*.distinct' => 'Tên lớp đăng ký không được trùng nhau.',
+            'school_campuses.required' => 'Phải có ít nhất một cơ sở trường.',
+            'school_campuses.min' => 'Phải có ít nhất một cơ sở trường.',
+            'school_campuses.*.name.required' => 'Tên cơ sở trường không được để trống.',
+            'school_campuses.*.address.required' => 'Địa chỉ cơ sở trường không được để trống.',
         ]);
 
         $normalizedClasses = collect($validated['registration_classes'])
@@ -101,6 +110,21 @@ class SchoolSettingsForm extends Component
         }
 
         session()->flash('success', 'Đã xóa hình ảnh.');
+    }
+
+    public function addSchoolCampus(): void
+    {
+        $this->school_campuses[] = ['name' => '', 'address' => ''];
+    }
+
+    public function removeSchoolCampus(int $index): void
+    {
+        if (! array_key_exists($index, $this->school_campuses)) {
+            return;
+        }
+
+        unset($this->school_campuses[$index]);
+        $this->school_campuses = array_values($this->school_campuses);
     }
 
     public function addRegistrationClass(): void
