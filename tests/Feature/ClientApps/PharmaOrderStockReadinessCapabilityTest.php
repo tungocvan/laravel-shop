@@ -37,7 +37,8 @@ final class PharmaOrderStockReadinessCapabilityTest extends TestCase
         $this->assertStringContainsString("'can_approve' => \$hasStockedItem && \$allRowsCovered", $service);
         $this->assertStringContainsString("\$fulfillableRows = \$rows->reject(fn (array \$row): bool => \$row['has_supply_note']);", $service);
         $this->assertStringContainsString("\$fulfillableRows->isNotEmpty()", $service);
-        $this->assertStringContainsString("\$fulfillableRows->every(fn (array \$row): bool", $service);
+        $this->assertStringContainsString("\$fulfillableRows->every(", $service);
+        $this->assertStringContainsString("(float) \$row['available_stock'] + 0.00005 >= (float) \$row['requested_quantity']", $service);
         $this->assertStringContainsString("'has_complete_supply_note'", $service);
         $this->assertStringContainsString('SL đơn hàng', $view);
         $this->assertStringContainsString('Đủ hàng', $view);
@@ -46,18 +47,25 @@ final class PharmaOrderStockReadinessCapabilityTest extends TestCase
         $this->assertStringContainsString('Chọn lô thực xuất và kiểm tra đủ tồn ở bước xử lý kho/Ghi sổ', $view);
         $this->assertStringNotContainsString('name="batches', $view);
     }
-    public function test_direct_post_requires_every_non_deferred_item_to_fit_one_available_lot(): void
+    public function test_direct_post_supports_full_fefo_fulfillment_across_multiple_lots(): void
     {
         $service = file_get_contents(base_path('Modules/Pharma/Services/UserOrderStockReadinessService.php'));
         $inventory = file_get_contents(base_path('Modules/Pharma/Services/InventoryService.php'));
 
-        $this->assertStringContainsString("\$fulfillableRows = \$rows->reject(fn (array \$row): bool => \$row['has_supply_note']);", $service);
-        $this->assertStringContainsString("\$canPostDirectly = \$fulfillableRows->isNotEmpty()", $service);
-        $this->assertStringContainsString("\$fulfillableRows->every(fn (array \$row): bool => collect(\$row['lots'])->contains(", $service);
-        $this->assertStringContainsString("fn (array \$lot): bool => (float) \$lot['quantity_on_hand'] + 0.00005 >= (float) \$row['requested_quantity']", $service);
-        $this->assertStringContainsString("where('quantity_on_hand', '>=', (float) \$item->quantity)", $inventory);
+        $this->assertStringContainsString("$fulfillableRows = $rows->reject(fn (array $row): bool => $row['has_supply_note']);", $service);
+        $this->assertStringContainsString("$canPostDirectly = $fulfillableRows->isNotEmpty()", $service);
+        $this->assertStringContainsString("(float) $row['available_stock'] + 0.00005 >= (float) $row['requested_quantity']", $service);
+        $this->assertStringContainsString("$remaining = (float) $item->quantity;", $inventory);
+        $this->assertStringContainsString("->where('quantity_on_hand', '>', 0)", $inventory);
+        $this->assertStringContainsString("->orderBy('expiry_date')", $inventory);
+        $this->assertStringContainsString("->orderBy('batch_number')", $inventory);
         $this->assertStringContainsString("->lockForUpdate()", $inventory);
-        $this->assertStringContainsString('Tồn kho đã thay đổi hoặc mặt hàng thực xuất chưa có một lô đủ số lượng.', $inventory);
+        $this->assertStringContainsString("$quantity = min($remaining, (float) $balance->quantity_on_hand);", $inventory);
+        $this->assertStringContainsString("$allocations[] = [$item, $balance, $quantity];", $inventory);
+        $this->assertStringContainsString("if ($remaining > 0.00005)", $inventory);
+        $this->assertStringContainsString("foreach ($allocations as [$item, $balance, $quantity])", $inventory);
+        $this->assertStringContainsString("'issue'", $inventory);
+        $this->assertStringContainsString('snapshotPostedIssue', $inventory);
     }
 
 
