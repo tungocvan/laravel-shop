@@ -25,7 +25,8 @@ final class UserInventoryReceiptWorkspace
             ->when(filled($search), fn ($query) => $query->where(fn ($scope) => $scope
                 ->where('number', 'like', '%'.trim((string) $search).'%')
                 ->orWhere('supplier_name', 'like', '%'.trim((string) $search).'%')
-                ->orWhere('invoice_number', 'like', '%'.trim((string) $search).'%')))
+                ->orWhere('invoice_number', 'like', '%'.trim((string) $search).'%')
+                ->orWhere('invoice_symbol', 'like', '%'.trim((string) $search).'%')))
             ->when(in_array($status, [InventoryReceipt::DRAFT, InventoryReceipt::PENDING_APPROVAL, InventoryReceipt::APPROVED, InventoryReceipt::POSTED, InventoryReceipt::CANCELLED], true), fn ($query) => $query->where('status', $status))
             ->latest('receipt_date')->latest('id')
             ->paginate($perPage, ['*'], 'page', $page);
