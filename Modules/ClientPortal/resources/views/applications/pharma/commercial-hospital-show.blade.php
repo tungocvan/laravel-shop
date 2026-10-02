@@ -23,17 +23,16 @@
         </div>
     </section>
 
+    <div id="commercial-product-search-region" class="space-y-4">
     <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
         <form data-pwa-pending-feedback="#commercial-navigation-feedback" method="GET" action="{{ route('client.pharma.commercial.hospitals.show', $hospital->id) }}" class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
             @if($managerUserId)<input type="hidden" name="manager_user_id" value="{{ $managerUserId }}">@endif
             <input type="hidden" name="award_scope" value="{{ $awardScopeKey }}">
-            <label class="min-w-0">
+            <label class="relative min-w-0">
                 <span class="sr-only">Tìm sản phẩm</span>
-                <input name="q" value="{{ $search }}" data-pwa-debounced-search="600" type="search" placeholder="Tên thuốc, hoạt chất, số đăng ký..." class="h-11 w-full min-w-0 rounded-2xl border border-slate-200 px-4 text-sm outline-none focus:border-slate-400">
+                <input id="commercial-product-search-input" name="q" value="{{ $search }}" data-pwa-debounced-search="800" data-pwa-search-region="#commercial-product-search-region" data-pwa-search-clear="#commercial-product-search-clear" type="search" autocomplete="off" placeholder="Tên thuốc, hoạt chất, số đăng ký..." class="h-11 w-full min-w-0 rounded-2xl border border-slate-200 px-4 pr-11 text-sm outline-none focus:border-slate-400">
+                <button id="commercial-product-search-clear" data-pwa-search-clear-button="#commercial-product-search-input" type="button" aria-label="Xóa tìm kiếm sản phẩm" class="absolute right-1.5 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-lg font-bold text-slate-400 hover:bg-slate-100 hover:text-slate-700 {{ $search === '' ? 'hidden' : '' }}">×</button>
             </label>
-            @if($search !== '')
-                <a href="{{ route('client.pharma.commercial.hospitals.show', array_filter(['hospital' => $hospital->id, 'manager_user_id' => $managerUserId, 'award_scope' => $awardScopeKey])) }}" class="inline-flex h-11 items-center justify-center rounded-2xl border border-slate-200 px-4 text-sm font-bold text-slate-600">Xóa bộ lọc</a>
-            @endif
         </form>
     </section>
 
@@ -144,6 +143,7 @@
             </div>
         @endif
     </section>
+</div>
 </div>
 
 <div id="commercial-navigation-feedback" class="pointer-events-none fixed inset-x-0 bottom-6 z-50 mx-auto hidden w-fit items-center gap-2 rounded-full bg-slate-950/95 px-4 py-2.5 text-sm font-bold text-white shadow-xl backdrop-blur" role="status" aria-live="polite">
