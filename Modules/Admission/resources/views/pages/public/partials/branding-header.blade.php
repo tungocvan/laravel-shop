@@ -1,8 +1,8 @@
 @php
-    $websiteLogo = 'logo.png';
+    $siteLogo = \Modules\System\Models\Setting::getValue('site_logo');
     $admissionFallbackLogo = 'admission/img/logo.png';
-    $logoPath = \Illuminate\Support\Facades\Storage::disk('public')->exists($websiteLogo)
-        ? $websiteLogo
+    $logoPath = $siteLogo && \Illuminate\Support\Facades\Storage::disk('public')->exists($siteLogo)
+        ? $siteLogo
         : $admissionFallbackLogo;
     $logoUrl = asset('storage/'.$logoPath);
 @endphp
