@@ -65,7 +65,8 @@ final class PharmaInventoryReceiptsCapabilityTest extends TestCase
         $detail = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-receipt-show.blade.php');
         $inventory = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory.blade.php');
 
-        $this->assertStringContainsString('PWA chỉ đọc', $list);
+        $this->assertStringContainsString('Phiếu mới được lưu nháp', $list);
+        $this->assertStringContainsString('chỉ khi ghi sổ tại Web Admin mới cộng tồn kho', $list);
         $this->assertStringContainsString('data-pwa-debounced-search', $list);
         $this->assertStringContainsString('data-pwa-search-input', $list);
         $this->assertStringContainsString('data-pwa-search-clear-button', $list);
