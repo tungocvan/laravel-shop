@@ -27,8 +27,10 @@ final class PharmaOrderApprovalCapabilityTest extends TestCase
         $this->assertStringContainsString('InventoryIssue::REJECTED', $service);
         $this->assertStringContainsString("'approved_by' => \$actorUserId", $service);
         $this->assertStringContainsString("'rejected_by' => \$actorUserId", $service);
-        $this->assertStringNotContainsString('UserOrderStockReadinessService', $service);
-        $this->assertStringNotContainsString("stockReadiness->forIssue(\$issue)", $service);
+        $this->assertStringContainsString('UserOrderStockReadinessService::class', $service);
+        $this->assertStringContainsString("->forIssue(\$issue)", $service);
+        $this->assertStringContainsString("if (! (\$readiness['can_approve'] ?? false))", $service);
+        $this->assertStringContainsString('đơn phải có ít nhất 1 sản phẩm đủ tồn', $service);
         $this->assertStringContainsString('undoApproval', $service);
         $this->assertStringContainsString('deleteNonStockOrder', $service);
         $this->assertStringContainsString('[InventoryIssue::DRAFT, InventoryIssue::REJECTED]', $service);
@@ -64,7 +66,7 @@ final class PharmaOrderApprovalCapabilityTest extends TestCase
         $this->assertStringContainsString('Từ chối', $view);
         $this->assertStringContainsString('Lý do từ chối', $view);
         $this->assertStringContainsString('rejection_reason', $view);
-        $this->assertStringNotContainsString("@disabled(!(\$stockReadiness['can_approve'] ?? false))", $view);
+        $this->assertStringContainsString("@disabled(!(\$stockReadiness['can_approve'] ?? false))", $view);
         $this->assertStringContainsString('Hoàn tác phê duyệt', $view);
         $this->assertStringContainsString('Chờ cung cấp', $view);
         $this->assertStringContainsString('Không tính là hàng đã duyệt xuất', $view);
@@ -164,4 +166,17 @@ final class PharmaOrderApprovalCapabilityTest extends TestCase
         $this->assertStringNotContainsString('expiry_date', $migration);
         $this->assertStringNotContainsString('quantity_on_hand', $migration);
     }
+    public function test_approval_readiness_is_enforced_by_canonical_service_and_ui(): void
+    {
+        $service = file_get_contents(base_path('Modules/Pharma/Services/UserOrderApprovalService.php'));
+        $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/inventory-issue-show.blade.php'));
+
+        $this->assertStringContainsString('$readiness = app(UserOrderStockReadinessService::class)->forIssue($issue);', $service);
+        $this->assertStringContainsString("if (! (\$readiness['can_approve'] ?? false))", $service);
+        $this->assertStringContainsString('mọi sản phẩm thiếu phải có ngày dự kiến cung cấp và ghi chú', $service);
+        $this->assertStringContainsString("@disabled(!(\$stockReadiness['can_approve'] ?? false))>Phê duyệt", $view);
+        $this->assertStringContainsString('Chưa thể phê duyệt:', $view);
+    }
+
+
 }
