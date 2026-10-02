@@ -234,6 +234,21 @@ return [
                     'permission' => 'client.pharma.inventory.receipts.create',
                     'sort_order' => 20,
                 ],
+                'receipts-submit' => [
+                    'name' => 'Gửi duyệt phiếu nhập',
+                    'permission' => 'client.pharma.inventory.receipts.submit',
+                    'sort_order' => 30,
+                ],
+                'receipts-approve' => [
+                    'name' => 'Phê duyệt phiếu nhập',
+                    'permission' => 'client.pharma.inventory.receipts.approve',
+                    'sort_order' => 40,
+                ],
+                'receipts-post' => [
+                    'name' => 'Ghi sổ phiếu nhập',
+                    'permission' => 'client.pharma.inventory.receipts.post',
+                    'sort_order' => 50,
+                ],
             ],
         ],
         'commissions' => [
