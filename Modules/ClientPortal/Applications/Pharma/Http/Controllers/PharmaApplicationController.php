@@ -1149,6 +1149,7 @@ final class PharmaApplicationController extends Controller
             'receipt_date' => ['required', 'date'],
             'supplier_id' => ['required', 'integer'],
             'invoice_number' => ['nullable', 'string', 'max:100'],
+            'invoice_symbol' => ['nullable', 'string', 'max:100'],
             'invoice_date' => ['nullable', 'date'],
             'notes' => ['nullable', 'string', 'max:2000'],
             'items' => ['required', 'array', 'min:1'],
@@ -1157,6 +1158,7 @@ final class PharmaApplicationController extends Controller
             'items.*.expiry_date' => ['required', 'date'],
             'items.*.quantity' => ['required', 'numeric', 'gt:0'],
             'items.*.unit_price_ex_vat' => ['required', 'numeric', 'min:0'],
+            'items.*.invoice_unit_price_ex_vat' => ['nullable', 'numeric', 'min:0'],
             'items.*.vat_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ]);
 
@@ -1192,11 +1194,12 @@ final class PharmaApplicationController extends Controller
         $visibleReceipt = $workspace->find($receipt); abort_if($visibleReceipt === null, 404);
         $data = $request->validate([
             'receipt_date' => ['required', 'date'], 'supplier_id' => ['required', 'integer'],
-            'invoice_number' => ['nullable', 'string', 'max:100'], 'invoice_date' => ['nullable', 'date'],
+            'invoice_number' => ['nullable', 'string', 'max:100'], 'invoice_symbol' => ['nullable', 'string', 'max:100'], 'invoice_date' => ['nullable', 'date'],
             'notes' => ['nullable', 'string', 'max:2000'], 'items' => ['required', 'array', 'min:1'],
             'items.*.medicine_id' => ['required', 'integer', 'exists:pharma_medicines,id'],
             'items.*.batch_number' => ['required', 'string', 'max:100'], 'items.*.expiry_date' => ['required', 'date'],
             'items.*.quantity' => ['required', 'numeric', 'gt:0'], 'items.*.unit_price_ex_vat' => ['required', 'numeric', 'min:0'],
+            'items.*.invoice_unit_price_ex_vat' => ['nullable', 'numeric', 'min:0'],
             'items.*.vat_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ]);
         $workspace->updateDraft($visibleReceipt, $data);
