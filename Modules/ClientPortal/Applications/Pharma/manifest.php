@@ -229,6 +229,11 @@ return [
                     'permission' => 'client.pharma.inventory.receipts',
                     'sort_order' => 10,
                 ],
+                'receipts-create' => [
+                    'name' => 'Lập phiếu nhập nháp',
+                    'permission' => 'client.pharma.inventory.receipts.create',
+                    'sort_order' => 20,
+                ],
             ],
         ],
         'commissions' => [
