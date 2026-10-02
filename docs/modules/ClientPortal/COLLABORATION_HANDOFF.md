@@ -4,6 +4,7 @@
 - Presentation-only compact layout for receipt detail: shorter header, workflow actions integrated into the header, combined receipt/supplier/invoice metadata, and one compact total-value card.
 - Existing receipt Draft → Submit → Approve → Post → Revert actions, permissions, routes, inventory effects, and `Xem tồn lô` traceability are unchanged.
 - No controller, service, schema, or business-rule changes.
+- P6.3.1 receipt authoring: existing item editors start collapsed with a medicine/lot/expiry/quantity summary; opening one editor closes the others; `+ Thêm dòng` leaves existing items collapsed and opens only the new row. Existing `items[...]` submission fields and validation remain intact.
 - Local checkpoint: `git fetch origin`, switch to the feature branch, then run `php artisan test tests/Feature/ClientApps/PharmaInventoryCapabilityTest.php`. Do not `git pull` the feature branch before merge; continue using `npm run dev`.
 
 ## Pharma PWA Inventory Traceability P6.2 — 2026-10-02
