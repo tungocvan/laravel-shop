@@ -116,7 +116,9 @@ class AdmissionRegistrationService
             'BaoMau' => $application->bao_mau ?? '',
             'SchoolCampusName' => $application->school_campus_name ?? '',
             'SchoolCampusAddress' => $application->school_campus_address ?? '',
-            'NgayLamDon' => $application->ngay_lam_don ?? '',
+            'NgayLamDon' => $application->ngay_lam_don
+                ? Carbon::parse($application->ngay_lam_don)->format('Y-m-d')
+                : '',
             'NguoiLamDon' => $application->nguoi_lam_don ?? '',
         ];
     }
