@@ -138,10 +138,12 @@ final class PharmaOrderApprovalCapabilityTest extends TestCase
         $this->assertStringContainsString("['status' => 'posted']", $controller);
         $this->assertStringContainsString('can_post_directly', $readiness);
         $this->assertStringContainsString("\$fulfillableRows = \$rows->reject(fn (array \$row): bool => \$row['has_supply_note']);", $readiness);
-        $this->assertStringContainsString('$fulfillableRows->every(fn (array $row): bool', $readiness);
+        $this->assertStringContainsString('$fulfillableRows->every(', $readiness);
+        $this->assertStringContainsString("(float) \$row['available_stock'] + 0.00005 >= (float) \$row['requested_quantity']", $readiness);
         $this->assertStringContainsString('postApprovedIssueFromAvailableStock', $inventory);
-        $this->assertStringContainsString("where('quantity_on_hand', '>=', (float) \$item->quantity)", $inventory);
+        $this->assertStringContainsString("where('quantity_on_hand', '>', 0)", $inventory);
         $this->assertStringContainsString("orderBy('expiry_date')", $inventory);
+        $this->assertStringContainsString("\$quantity = min(\$remaining, (float) \$balance->quantity_on_hand);", $inventory);
         $this->assertStringContainsString('$deferredMedicineIds = $issue->deferredSupplies', $inventory);
         $this->assertStringContainsString('$postedItems = $issue->items', $inventory);
         $this->assertStringContainsString("reject(fn (\$item) => \$deferredMedicineIds->contains((int) \$item->medicine_id))", $inventory);
