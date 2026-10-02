@@ -52,5 +52,12 @@ final class PharmaInventoryReceiptsCapabilityTest extends TestCase
         $this->assertStringNotContainsString('<form', $detail);
         $this->assertStringContainsString('client.pharma.inventory.receipts', $inventory);
         $this->assertStringContainsString('Chi tiết lô hàng · Chỉ đọc', $inventory);
+        foreach ([$inventory, $list, $detail] as $view) {
+            $this->assertStringContainsString("@section('hide-application-header', true)", $view);
+            $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $view);
+            $this->assertStringNotContainsString('pb-24 xl:pb-8', $view);
+        }
+        $this->assertStringContainsString("route('client.pharma.inventory')", $list);
+        $this->assertStringContainsString("route('client.pharma.inventory.receipts')", $detail);
     }
 }
