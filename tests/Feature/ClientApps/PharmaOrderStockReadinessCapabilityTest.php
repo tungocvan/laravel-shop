@@ -52,18 +52,18 @@ final class PharmaOrderStockReadinessCapabilityTest extends TestCase
         $service = file_get_contents(base_path('Modules/Pharma/Services/UserOrderStockReadinessService.php'));
         $inventory = file_get_contents(base_path('Modules/Pharma/Services/InventoryService.php'));
 
-        $this->assertStringContainsString("$fulfillableRows = $rows->reject(fn (array $row): bool => $row['has_supply_note']);", $service);
-        $this->assertStringContainsString("$canPostDirectly = $fulfillableRows->isNotEmpty()", $service);
-        $this->assertStringContainsString("(float) $row['available_stock'] + 0.00005 >= (float) $row['requested_quantity']", $service);
-        $this->assertStringContainsString("$remaining = (float) $item->quantity;", $inventory);
+        $this->assertStringContainsString("\$fulfillableRows = \$rows->reject(fn (array \$row): bool => \$row['has_supply_note']);", $service);
+        $this->assertStringContainsString("\$canPostDirectly = \$fulfillableRows->isNotEmpty()", $service);
+        $this->assertStringContainsString("(float) \$row['available_stock'] + 0.00005 >= (float) \$row['requested_quantity']", $service);
+        $this->assertStringContainsString("\$remaining = (float) \$item->quantity;", $inventory);
         $this->assertStringContainsString("->where('quantity_on_hand', '>', 0)", $inventory);
         $this->assertStringContainsString("->orderBy('expiry_date')", $inventory);
         $this->assertStringContainsString("->orderBy('batch_number')", $inventory);
         $this->assertStringContainsString("->lockForUpdate()", $inventory);
-        $this->assertStringContainsString("$quantity = min($remaining, (float) $balance->quantity_on_hand);", $inventory);
-        $this->assertStringContainsString("$allocations[] = [$item, $balance, $quantity];", $inventory);
-        $this->assertStringContainsString("if ($remaining > 0.00005)", $inventory);
-        $this->assertStringContainsString("foreach ($allocations as [$item, $balance, $quantity])", $inventory);
+        $this->assertStringContainsString("\$quantity = min(\$remaining, (float) \$balance->quantity_on_hand);", $inventory);
+        $this->assertStringContainsString("\$allocations[] = [\$item, \$balance, \$quantity];", $inventory);
+        $this->assertStringContainsString("if (\$remaining > 0.00005)", $inventory);
+        $this->assertStringContainsString("foreach (\$allocations as [\$item, \$balance, \$quantity])", $inventory);
         $this->assertStringContainsString("'issue'", $inventory);
         $this->assertStringContainsString('snapshotPostedIssue', $inventory);
     }
