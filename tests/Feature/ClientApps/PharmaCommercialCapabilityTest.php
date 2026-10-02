@@ -71,6 +71,7 @@ class PharmaCommercialCapabilityTest extends TestCase
     {
         $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php'));
         $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/commercial.blade.php'));
+        $foundation = file_get_contents(base_path('resources/js/clientportal/native-interactions.js'));
 
         $this->assertStringContainsString('UserCommercialHospitalWorkspace $workspace', $controller);
         $this->assertStringContainsString("'client.pharma.commercial.view-team'", $controller);
@@ -88,6 +89,9 @@ class PharmaCommercialCapabilityTest extends TestCase
         $this->assertStringContainsString('$workspace->assignedProducts(', $controller);
         $this->assertStringContainsString('partnerId: (int) $scopedHospital->id', $controller);
         $this->assertStringContainsString('perPage: 20', $controller);
+        $this->assertStringContainsString("\$canViewSupplierPricing = \$registry->userCan(\$user, 'client.pharma.products.supplier-pricing')", $controller);
+        $this->assertStringContainsString('includeSupplierPricing: $canViewSupplierPricing', $controller);
+        $this->assertStringContainsString("'canViewSupplierPricing' => \$canViewSupplierPricing", $controller);
 
         $this->assertStringContainsString("\$featurePresentation['eyebrow']", $view);
         $this->assertStringContainsString("\$featurePresentation['page_title']", $view);
@@ -111,9 +115,12 @@ class PharmaCommercialCapabilityTest extends TestCase
         $this->assertStringContainsString('Xem thêm bệnh viện', $view);
         $this->assertStringContainsString('commercial-load-more', $view);
         $this->assertStringContainsString('data-commercial-item', $view);
-        $this->assertStringContainsString('DOMParser', $view);
+        $this->assertStringContainsString('data-pwa-load-more', $view);
+        $this->assertStringContainsString('DOMParser', $foundation);
         $this->assertStringNotContainsString('{{ $size }} / trang', $view);
-        $this->assertStringContainsString('Xóa bộ lọc', $view);
+        $this->assertStringContainsString('data-pwa-search-clear-button="#commercial-hospital-search-input"', $view);
+        $this->assertStringContainsString('aria-label="Xóa tìm kiếm bệnh viện"', $view);
+        $this->assertStringContainsString('[data-pwa-search-clear-button]', $foundation);
         $this->assertStringContainsString('min-w-0', $view);
         $this->assertStringContainsString('h-11 w-11', $view);
         $this->assertStringContainsString("route('client.pharma.commercial.hospitals.show'", $view);
@@ -146,7 +153,41 @@ class PharmaCommercialCapabilityTest extends TestCase
         $this->assertStringContainsString('Điều kiện NCC hiện hành', $view);
         $this->assertStringContainsString('Giá vốn NCC', $view);
         $this->assertStringContainsString('Giá vốn tính toán', $view);
+        $this->assertStringContainsString('@if($product->sale_price || ($canViewSupplierPricing && $product->supplier))', $view);
+        $this->assertStringContainsString('@if($canViewSupplierPricing && $product->supplier)', $view);
+        $this->assertStringContainsString('Thời gian phân bổ hiệu lực', $view);
+        $this->assertStringContainsString('md:grid-cols-4', $view);
+        $this->assertStringContainsString('md:grid-cols-2', $view);
         $this->assertStringNotContainsString('Admin::', $view);
+    }
+
+
+    public function test_commercial_pwa_closeout_remains_read_only_and_outside_pharma_domain_ownership(): void
+    {
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php'));
+        $index = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/commercial.blade.php'));
+        $detail = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/commercial-hospital-show.blade.php'));
+
+        $commercialStart = strpos($controller, 'public function commercial(');
+        $commercialEnd = strpos($controller, 'private function validatedPriceListPayload', $commercialStart);
+        $commercialController = substr($controller, $commercialStart, $commercialEnd - $commercialStart);
+
+        $this->assertStringContainsString('UserCommercialHospitalWorkspace $workspace', $commercialController);
+        $this->assertStringContainsString('$workspace->browseHospitals(', $commercialController);
+        $this->assertStringContainsString('$workspace->summary(', $commercialController);
+        $this->assertStringContainsString('$workspace->findHospital(', $commercialController);
+        $this->assertStringContainsString('$workspace->assignedProducts(', $commercialController);
+
+        foreach ([$index, $detail] as $view) {
+            $this->assertStringNotContainsString('method="POST"', $view);
+            $this->assertStringNotContainsString('method="PATCH"', $view);
+            $this->assertStringNotContainsString('method="PUT"', $view);
+            $this->assertStringNotContainsString('method="DELETE"', $view);
+            $this->assertStringNotContainsString('@csrf', $view);
+            $this->assertStringNotContainsString('@method(', $view);
+            $this->assertStringNotContainsString('wire:', $view);
+            $this->assertStringNotContainsString('Admin::', $view);
+        }
     }
 
     public function test_database_price_resolver_qualifies_item_columns_after_join(): void

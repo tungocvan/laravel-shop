@@ -104,4 +104,19 @@ class ClientPwaFoundationTest extends TestCase
             ->assertSee('/service-worker.js', false)
             ->assertSee('Ứng dụng của tôi');
     }
+    public function test_shared_native_interaction_foundation_is_loaded_by_the_client_bundle(): void
+    {
+        $foundation = file_get_contents(base_path('resources/js/clientportal/native-interactions.js'));
+        $bundle = file_get_contents(base_path('resources/js/tailwind.js'));
+
+        $this->assertStringContainsString("import './clientportal/native-interactions';", $bundle);
+        $this->assertStringContainsString('data-pwa-navigation-feedback', $foundation);
+        $this->assertStringContainsString('data-pwa-pending-feedback', $foundation);
+        $this->assertStringContainsString('data-pwa-debounced-search', $foundation);
+        $this->assertStringContainsString('data-pwa-load-more', $foundation);
+        $this->assertStringContainsString("aria-busy", $foundation);
+        $this->assertStringNotContainsString('setTimeout(() => window.location', $foundation);
+    }
+
+
 }

@@ -184,4 +184,85 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertStringContainsString('maintenance_message', $admin);
     }
 
+    public function test_commercial_workspace_uses_focused_shell_and_shared_native_interactions(): void
+    {
+        $manifest = require base_path('Modules/ClientPortal/Applications/Pharma/manifest.php');
+        $index = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/commercial.blade.php'));
+        $detail = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/commercial-hospital-show.blade.php'));
+        $foundation = file_get_contents(base_path('resources/js/clientportal/native-interactions.js'));
+        $bundle = file_get_contents(base_path('resources/js/tailwind.js'));
+
+        $feature = $manifest['features']['commercial'];
+        $this->assertSame('client.pharma.commercial', $feature['route']);
+        $this->assertSame('client.pharma.commercial.view', $feature['permission']);
+        $this->assertArrayHasKey('eyebrow', $feature);
+        $this->assertArrayHasKey('page_title', $feature);
+        $this->assertArrayHasKey('page_description', $feature);
+
+        foreach ([$index, $detail] as $view) {
+            $this->assertStringContainsString("@section('hide-application-header', true)", $view);
+            $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $view);
+            $this->assertStringContainsString('data-pwa-debounced-search="800"', $view);
+            $this->assertStringContainsString('data-pwa-load-more', $view);
+            $this->assertStringNotContainsString("document.addEventListener('DOMContentLoaded'", $view);
+        }
+
+        $this->assertStringContainsString('aria-label="Quay lại Không gian làm việc Pharma"', $index);
+        $this->assertStringContainsString("route('client.pharma.dashboard')", $index);
+        $this->assertStringContainsString('aria-label="Quay lại Công việc bệnh viện"', $detail);
+        $this->assertStringContainsString("route('client.pharma.commercial'", $detail);
+
+        $this->assertStringContainsString("import './clientportal/native-interactions';", $bundle);
+        $this->assertStringContainsString('export const bindNativeInteractions', $foundation);
+        $this->assertStringContainsString('[data-pwa-debounced-search]', $foundation);
+        $this->assertStringContainsString('[data-pwa-load-more]', $foundation);
+        $this->assertStringContainsString("button.getAttribute('aria-busy') === 'true'", $foundation);
+        $this->assertStringContainsString("typeof form.requestSubmit === 'function'", $foundation);
+        $this->assertStringContainsString('form.requestSubmit()', $foundation);
+        $this->assertStringContainsString('form.submit()', $foundation);
+        $this->assertStringContainsString('replaceSearchRegion(input)', $foundation);
+        $this->assertStringContainsString('new AbortController()', $foundation);
+        $this->assertStringContainsString("window.history.replaceState({}, '', url.toString())", $foundation);
+        $this->assertStringContainsString('[data-pwa-search-clear-button]', $foundation);
+        $this->assertStringContainsString('data-pwa-search-clear-button="#commercial-product-search-input"', $detail);
+        $this->assertStringContainsString('aria-label="Xóa tìm kiếm sản phẩm"', $detail);
+        $this->assertStringContainsString('grid gap-3 lg:grid-cols-2', $index);
+        $this->assertStringContainsString('id="commercial-hospital-list" class="grid gap-3 lg:grid-cols-2"', $index);
+        $this->assertStringContainsString('line-clamp-2 font-black leading-6', $index);
+        $this->assertStringContainsString('md:grid-cols-4', $detail);
+        $this->assertStringContainsString('Thời gian phân bổ hiệu lực', $detail);
+        $this->assertStringContainsString('lg:max-w-3xl', $detail);
+    }
+
+
+    public function test_commercial_closeout_keeps_supplier_pricing_and_admin_presentation_contracts(): void
+    {
+        $manifest = require base_path('Modules/ClientPortal/Applications/Pharma/manifest.php');
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php'));
+        $detail = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/commercial-hospital-show.blade.php'));
+        $settings = file_get_contents(base_path('Modules/ClientPortal/Services/ClientPortalSettingsService.php'));
+        $admin = file_get_contents(base_path('Modules/ClientPortal/Http/Controllers/Admin/PwaSettingsController.php'));
+
+        $feature = $manifest['features']['commercial'];
+        $this->assertSame('client.pharma.commercial.view', $feature['permission']);
+        $this->assertSame('client.pharma.commercial.view-team', $feature['actions']['view-team']['permission']);
+
+        $this->assertStringContainsString("\$canViewSupplierPricing = \$registry->userCan(\$user, 'client.pharma.products.supplier-pricing')", $controller);
+        $this->assertStringContainsString('includeSupplierPricing: $canViewSupplierPricing', $controller);
+        $this->assertStringContainsString("'canViewSupplierPricing' => \$canViewSupplierPricing", $controller);
+        $this->assertStringContainsString('@if($canViewSupplierPricing && $product->supplier)', $detail);
+
+        $this->assertStringContainsString("'featurePresentation' => \$settings->featurePresentation(\$application['key'], \$commercialFeature)", $controller);
+        $this->assertStringContainsString("\$featurePresentation['eyebrow']", $detail);
+        $this->assertStringContainsString("\$featurePresentation['page_title']", $detail);
+        $this->assertStringContainsString('public function featurePresentation', $settings);
+        $this->assertStringContainsString("'eyebrow' =>", $settings);
+        $this->assertStringContainsString("'page_title' =>", $settings);
+        $this->assertStringContainsString("'page_description' =>", $settings);
+        $this->assertStringContainsString('function updateFeature', $admin);
+        $this->assertStringContainsString("'eyebrow' => ['required', 'string', 'max:80']", $admin);
+        $this->assertStringContainsString("'page_title' => ['required', 'string', 'max:160']", $admin);
+        $this->assertStringContainsString("'page_description' => ['nullable', 'string', 'max:500']", $admin);
+    }
+
 }
