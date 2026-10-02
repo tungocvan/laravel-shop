@@ -1,4 +1,5 @@
 const debounceTimers = new WeakMap();
+const searchControllers = new WeakMap();
 
 const submitForm = (form) => {
     if (!form) return;
@@ -45,15 +46,85 @@ const bindPendingForms = (root = document) => {
     });
 };
 
+const syncSearchClear = (input) => {
+    const selector = input?.dataset?.pwaSearchClear;
+    if (!selector) return;
+
+    const clear = document.querySelector(selector);
+    if (!clear) return;
+
+    clear.classList.toggle('hidden', input.value === '');
+};
+
+const replaceSearchRegion = async (input) => {
+    const form = input.form;
+    const regionSelector = input.dataset.pwaSearchRegion;
+    const region = regionSelector ? document.querySelector(regionSelector) : null;
+
+    if (!form || !region || !window.fetch || !window.DOMParser) {
+        submitForm(form);
+        return;
+    }
+
+    searchControllers.get(input)?.abort();
+    const controller = new AbortController();
+    searchControllers.set(input, controller);
+
+    const url = new URL(form.action, window.location.href);
+    new FormData(form).forEach((value, key) => url.searchParams.set(key, value));
+    url.searchParams.delete('page');
+
+    input.setAttribute('aria-busy', 'true');
+
+    try {
+        const response = await fetch(url.toString(), {
+            headers: {'X-Requested-With': 'XMLHttpRequest'},
+            signal: controller.signal,
+        });
+        if (!response.ok) throw new Error('pwa-search');
+
+        const doc = new DOMParser().parseFromString(await response.text(), 'text/html');
+        const nextRegion = doc.querySelector(regionSelector);
+        if (!nextRegion) throw new Error('pwa-search-region');
+
+        region.replaceWith(nextRegion);
+        window.history.replaceState({}, '', url.toString());
+        bindNativeInteractions(document);
+        nextRegion.querySelector('[data-pwa-debounced-search]')?.focus({preventScroll: true});
+    } catch (error) {
+        if (error.name !== 'AbortError') submitForm(form);
+    } finally {
+        input.removeAttribute('aria-busy');
+    }
+};
+
+const bindSearchClear = (root = document) => {
+    root.querySelectorAll('[data-pwa-search-clear-button]').forEach((button) => {
+        if (button.dataset.pwaSearchClearBound) return;
+        const input = document.querySelector(button.dataset.pwaSearchClearButton);
+        if (!input) return;
+
+        button.dataset.pwaSearchClearBound = '1';
+        button.addEventListener('click', () => {
+            window.clearTimeout(debounceTimers.get(input));
+            input.value = '';
+            syncSearchClear(input);
+            replaceSearchRegion(input);
+        });
+    });
+};
+
 const bindDebouncedSearch = (root = document) => {
     root.querySelectorAll('[data-pwa-debounced-search]').forEach((input) => {
         if (input.dataset.pwaSearchBound) return;
         input.dataset.pwaSearchBound = '1';
+        syncSearchClear(input);
 
         input.addEventListener('input', () => {
+            syncSearchClear(input);
             window.clearTimeout(debounceTimers.get(input));
             const delay = Number.parseInt(input.dataset.pwaDebouncedSearch || '600', 10);
-            const timer = window.setTimeout(() => submitForm(input.form), Number.isFinite(delay) ? delay : 600);
+            const timer = window.setTimeout(() => replaceSearchRegion(input), Number.isFinite(delay) ? delay : 800);
             debounceTimers.set(input, timer);
         });
     });
@@ -107,6 +178,7 @@ export const bindNativeInteractions = (root = document) => {
     bindNavigationFeedback(root);
     bindPendingForms(root);
     bindDebouncedSearch(root);
+    bindSearchClear(root);
     bindLoadMore(root);
 };
 
