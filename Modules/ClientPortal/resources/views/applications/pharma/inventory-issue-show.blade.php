@@ -49,7 +49,7 @@
             <div class="mt-4 divide-y divide-slate-100">
                 @foreach($displayItems as $item)
                     <article class="py-4 first:pt-0 last:pb-0">
-                        <h3 class="font-black text-slate-950">{{ $item->medicine?->name ?: 'Sản phẩm #'.$item->medicine_id }}</h3>
+                        <div class="flex items-start justify-between gap-3"><h3 class="font-black text-slate-950">{{ $item->medicine?->name ?: 'Sản phẩm #'.$item->medicine_id }}</h3>@if($canViewInventory && isset($inventoryBalanceLinks[$item->id]))<a href="{{ route('client.pharma.inventory.balances.show', $inventoryBalanceLinks[$item->id]) }}" class="inline-flex min-h-11 shrink-0 items-center rounded-2xl border border-slate-300 bg-white px-3 text-xs font-black text-slate-700">Xem tồn lô ›</a>@endif</div>
                         <div class="mt-2 grid grid-cols-2 gap-3 text-sm">
                             <div><p class="text-xs text-slate-500">Số lượng</p><p class="font-bold text-slate-800">{{ rtrim(rtrim(number_format((float)$item->quantity,3,'.',''),'0'),'.') }}</p></div>
                             <div class="text-right"><p class="text-xs text-slate-500">Đơn giá</p><p class="font-bold text-slate-800">{{ $money($item->unit_price) }}</p></div>
