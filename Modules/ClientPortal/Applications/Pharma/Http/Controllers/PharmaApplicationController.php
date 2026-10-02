@@ -590,6 +590,8 @@ final class PharmaApplicationController extends Controller
 
         $user = $request->user('web');
         abort_if($user === null, 401);
+        $priceListsFeature = collect($application['features'] ?? [])->first(fn (array $feature): bool => $feature['key'] === 'price-lists');
+        abort_if($priceListsFeature === null, 404);
 
         $status = $validated['status'] ?? null;
         $fromDate = $validated['from_date'] ?? now()->startOfMonth()->toDateString();
@@ -616,6 +618,7 @@ final class PharmaApplicationController extends Controller
         return view('ClientPortal::applications.pharma.price-lists', [
             'application' => $application,
             'applicationPresentation' => $settings->applicationPresentation($application),
+            'featurePresentation' => $settings->featurePresentation($application['key'], $priceListsFeature),
             'priceLists' => $priceLists,
             'exportShares' => $exportShares,
             'counts' => $workspace->counts((int) $user->id, $managerUserId, $canApprove),
@@ -644,6 +647,8 @@ final class PharmaApplicationController extends Controller
         $user = request()->user('web');
         abort_if($user === null, 401);
 
+        $productsFeature = collect($application['features'] ?? [])->first(fn (array $feature): bool => $feature['key'] === 'products');
+        abort_if($productsFeature === null, 404);
         $canViewSupplierPricing = $registry->userCan($user, 'client.pharma.products.supplier-pricing');
         $overview = $catalog->overview($variant, $canViewSupplierPricing);
         abort_if($overview === null, 404);
@@ -651,6 +656,7 @@ final class PharmaApplicationController extends Controller
         return view('ClientPortal::applications.pharma.product-show', [
             'application' => $application,
             'applicationPresentation' => $settings->applicationPresentation($application),
+            'featurePresentation' => $settings->featurePresentation($application['key'], $productsFeature),
             'product' => $overview['product'],
             'medicine' => $overview['medicine'],
             'profile' => $overview['profile'],
@@ -679,6 +685,8 @@ final class PharmaApplicationController extends Controller
 
         $user = $request->user('web');
         abort_if($user === null, 401);
+        $productsFeature = collect($application['features'] ?? [])->first(fn (array $feature): bool => $feature['key'] === 'products');
+        abort_if($productsFeature === null, 404);
 
         $canViewSupplierPricing = $registry->userCan($user, 'client.pharma.products.supplier-pricing');
         $filter = $validated['filter'] ?? null;
@@ -688,6 +696,7 @@ final class PharmaApplicationController extends Controller
         return view('ClientPortal::applications.pharma.products', [
             'application' => $application,
             'applicationPresentation' => $settings->applicationPresentation($application),
+            'featurePresentation' => $settings->featurePresentation($application['key'], $productsFeature),
             'products' => $catalog->browse(
                 search: $validated['q'] ?? null,
                 perPage: (int) ($validated['per_page'] ?? 25),
@@ -1799,9 +1808,13 @@ final class PharmaApplicationController extends Controller
                 return $feature;
             });
 
+        $overviewFeature = collect($application['features'] ?? [])->first(fn (array $feature): bool => $feature['key'] === 'overview');
+        abort_if($overviewFeature === null, 404);
+
         return view('ClientPortal::applications.pharma.dashboard', [
             'application' => $application,
             'applicationPresentation' => $settings->applicationPresentation($application),
+            'featurePresentation' => $settings->featurePresentation($application['key'], $overviewFeature),
             'features' => $features,
         ]);
     }
