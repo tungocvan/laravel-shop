@@ -9,9 +9,9 @@
 <div class="min-w-0 space-y-5 overflow-x-hidden">
     <section class="overflow-hidden rounded-[2rem] bg-slate-950 px-5 py-6 text-white shadow-sm sm:px-7 sm:py-7">
         <div class="max-w-3xl">
-            <span class="inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-slate-200">Pharma PWA</span>
-            <h1 class="mt-3 text-3xl font-black tracking-tight sm:text-4xl">Không gian làm việc Pharma</h1>
-            <p class="mt-3 text-sm leading-6 text-slate-300 sm:text-base">Các chức năng hiển thị theo quyền Web của User. Dữ liệu và business rules vẫn thuộc Modules/Pharma; PWA không sử dụng giao diện hoặc quyền Admin Pharma.</p>
+            <span class="inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-slate-200">{{ $featurePresentation['eyebrow'] }}</span>
+            <h1 class="mt-3 text-3xl font-black tracking-tight sm:text-4xl">{{ $featurePresentation['page_title'] }}</h1>
+            <p class="mt-3 text-sm leading-6 text-slate-300 sm:text-base">{{ $featurePresentation['page_description'] }}</p>
         </div>
     </section>
 
