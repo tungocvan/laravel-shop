@@ -300,6 +300,13 @@ class PharmaPwaUiParityContractTest extends TestCase
     public function test_product_catalog_uses_focused_pwa_shell(): void
     {
         $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/products.blade.php'));
+        $detail = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/product-show.blade.php'));
+
+        foreach ([$view, $detail] as $surface) {
+            $this->assertStringContainsString("@section('app-dashboard-route', route('client.pharma.dashboard'))", $surface);
+            $this->assertStringContainsString("@section('hide-application-header', true)", $surface);
+            $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $surface);
+        }
 
         $this->assertStringContainsString("@section('app-dashboard-route', route('client.pharma.dashboard'))", $view);
         $this->assertStringContainsString("@section('hide-application-header', true)", $view);
@@ -309,6 +316,8 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertStringContainsString('← Quay về dashboard', $view);
         $this->assertStringContainsString("\$featurePresentation['page_title']", $view);
         $this->assertStringContainsString("\$featurePresentation['page_description']", $view);
+        $this->assertStringContainsString("route('client.pharma.products')", $detail);
+        $this->assertStringContainsString('Danh mục thuốc', $detail);
     }
 
 }
