@@ -71,6 +71,7 @@ class PharmaCommercialCapabilityTest extends TestCase
     {
         $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php'));
         $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/commercial.blade.php'));
+        $foundation = file_get_contents(base_path('resources/js/clientportal/native-interactions.js'));
 
         $this->assertStringContainsString('UserCommercialHospitalWorkspace $workspace', $controller);
         $this->assertStringContainsString("'client.pharma.commercial.view-team'", $controller);
@@ -111,7 +112,8 @@ class PharmaCommercialCapabilityTest extends TestCase
         $this->assertStringContainsString('Xem thêm bệnh viện', $view);
         $this->assertStringContainsString('commercial-load-more', $view);
         $this->assertStringContainsString('data-commercial-item', $view);
-        $this->assertStringContainsString('DOMParser', $view);
+        $this->assertStringContainsString('data-pwa-load-more', $view);
+        $this->assertStringContainsString('DOMParser', $foundation);
         $this->assertStringNotContainsString('{{ $size }} / trang', $view);
         $this->assertStringContainsString('Xóa bộ lọc', $view);
         $this->assertStringContainsString('min-w-0', $view);
