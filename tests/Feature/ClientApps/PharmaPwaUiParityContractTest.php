@@ -296,4 +296,16 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertArrayNotHasKey('route', $commissions, 'Commissions remains intentionally unrouted until its PWA surface is implemented.');
     }
 
+
+    public function test_product_catalog_uses_focused_pwa_shell(): void
+    {
+        $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/products.blade.php'));
+
+        $this->assertStringContainsString("@section('app-dashboard-route', route('client.pharma.dashboard'))", $view);
+        $this->assertStringContainsString("@section('hide-application-header', true)", $view);
+        $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $view);
+        $this->assertStringContainsString("\$featurePresentation['page_title']", $view);
+        $this->assertStringContainsString("\$featurePresentation['page_description']", $view);
+    }
+
 }
