@@ -95,4 +95,18 @@ class AdmissionRegistrationCampusUxContractTest extends TestCase
         $this->assertStringContainsString("'school_campus_name' => \$formData['SchoolCampusName']", $service);
         $this->assertStringContainsString("'school_campus_address' => \$formData['SchoolCampusAddress']", $service);
     }
+    #[Test]
+    public function edit_wizard_navigation_is_client_side_while_create_keeps_server_validation(): void
+    {
+        $form = file_get_contents(base_path('Modules/Admission/resources/views/livewire/admission/registration-form.blade.php'));
+        $stepper = file_get_contents(base_path('Modules/Admission/resources/views/livewire/admission/partials/stepper.blade.php'));
+        $actions = file_get_contents(base_path('Modules/Admission/resources/views/livewire/admission/partials/actions.blade.php'));
+
+        $this->assertStringContainsString("x-data=\"{ uiStep: @entangle('currentStep').defer }\"", $form);
+        $this->assertStringContainsString('x-show="uiStep === 5"', $form);
+        $this->assertStringContainsString('x-on:click="uiStep = {{ $stepNumber }}"', $stepper);
+        $this->assertStringContainsString('wire:click="setStep({{ $stepNumber }})"', $stepper);
+        $this->assertStringContainsString('x-on:click="uiStep = Math.min(5, uiStep + 1)"', $actions);
+        $this->assertStringContainsString('wire:click="nextStep"', $actions);
+    }
 }
