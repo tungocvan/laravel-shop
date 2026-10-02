@@ -35,6 +35,9 @@ final class PharmaOrderStockReadinessCapabilityTest extends TestCase
         $this->assertStringContainsString('Tồn khả dụng', $view);
         $this->assertStringContainsString("'has_stocked_item'", $service);
         $this->assertStringContainsString("'can_approve' => \$hasStockedItem && \$allRowsCovered", $service);
+        $this->assertStringContainsString("\$fulfillableRows = \$rows->reject(fn (array \$row): bool => \$row['has_supply_note']);", $service);
+        $this->assertStringContainsString("\$fulfillableRows->isNotEmpty()", $service);
+        $this->assertStringContainsString("\$fulfillableRows->every(fn (array \$row): bool", $service);
         $this->assertStringContainsString("'has_complete_supply_note'", $service);
         $this->assertStringContainsString('SL đơn hàng', $view);
         $this->assertStringContainsString('Đủ hàng', $view);
@@ -43,4 +46,19 @@ final class PharmaOrderStockReadinessCapabilityTest extends TestCase
         $this->assertStringContainsString('Chọn lô thực xuất và kiểm tra đủ tồn ở bước xử lý kho/Ghi sổ', $view);
         $this->assertStringNotContainsString('name="batches', $view);
     }
+    public function test_direct_post_requires_every_non_deferred_item_to_fit_one_available_lot(): void
+    {
+        $service = file_get_contents(base_path('Modules/Pharma/Services/UserOrderStockReadinessService.php'));
+        $inventory = file_get_contents(base_path('Modules/Pharma/Services/InventoryService.php'));
+
+        $this->assertStringContainsString("$fulfillableRows = $rows->reject(fn (array $row): bool => $row['has_supply_note']);", $service);
+        $this->assertStringContainsString("$canPostDirectly = $fulfillableRows->isNotEmpty()", $service);
+        $this->assertStringContainsString("$fulfillableRows->every(fn (array $row): bool => collect($row['lots'])->contains(", $service);
+        $this->assertStringContainsString("fn (array $lot): bool => (float) $lot['quantity_on_hand'] + 0.00005 >= (float) $row['requested_quantity']", $service);
+        $this->assertStringContainsString("where('quantity_on_hand', '>=', (float) $item->quantity)", $inventory);
+        $this->assertStringContainsString("->lockForUpdate()", $inventory);
+        $this->assertStringContainsString('Tồn kho đã thay đổi hoặc mặt hàng thực xuất chưa có một lô đủ số lượng.', $inventory);
+    }
+
+
 }
