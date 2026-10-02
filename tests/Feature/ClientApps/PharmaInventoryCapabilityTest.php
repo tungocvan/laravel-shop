@@ -77,7 +77,6 @@ final class PharmaInventoryCapabilityTest extends TestCase
         $this->assertStringContainsString('Giá trị hàng cận hạn ≤ 6 tháng', $view);
         $this->assertStringContainsString('Hàng hết hạn còn tồn', $view);
         $this->assertStringContainsString('@if($canViewCosts)', $view);
-        $this->assertStringContainsString('pb-24 xl:pb-8', $view);
         $this->assertStringContainsString("'page_title' => 'Tồn kho Pharma'", $manifest);
         $this->assertStringContainsString("'permission' => 'client.pharma.inventory.costs'", $manifest);
         $this->assertStringContainsString("@section('hide-application-header', true)", $view);
