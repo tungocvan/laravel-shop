@@ -49,7 +49,7 @@
 
     @if(auth('web')->user()?->can('client.pharma.inventory.receipts'))
         <a href="{{ route('client.pharma.inventory.receipts') }}" class="flex items-center justify-between gap-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">
-            <div><p class="font-black text-slate-950">Phiếu nhập kho</p><p class="mt-1 text-xs text-slate-500">Tra cứu phiếu nhập và chi tiết lô hàng · Chỉ đọc</p></div><span class="text-xl text-slate-400">›</span>
+            <div><p class="font-black text-slate-950">Phiếu nhập kho</p><p class="mt-1 text-xs text-slate-500">Tra cứu phiếu nhập · Chi tiết lô hàng · Chỉ đọc</p></div><span class="text-xl text-slate-400">›</span>
         </a>
     @endif
 
