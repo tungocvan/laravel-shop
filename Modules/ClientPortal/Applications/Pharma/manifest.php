@@ -91,6 +91,9 @@ return [
         'overview' => [
             'name' => 'Tổng quan',
             'description' => 'Điểm vào PWA Pharma và các capability được cấp cho User.',
+            'eyebrow' => 'Pharma PWA',
+            'page_title' => 'Không gian làm việc Pharma',
+            'page_description' => 'Các chức năng hiển thị theo quyền Web của User. Dữ liệu và business rules vẫn thuộc Modules/Pharma; PWA không sử dụng giao diện hoặc quyền Admin Pharma.',
             'route' => 'client.pharma.dashboard',
             'permission' => 'client.pharma.overview.view',
             'icon' => 'home',
@@ -99,6 +102,9 @@ return [
         'products' => [
             'name' => 'Danh mục thuốc',
             'description' => 'Tra cứu Medicine Master và thông tin sản phẩm theo phạm vi được cấp.',
+            'eyebrow' => 'Medicine Catalog',
+            'page_title' => 'Danh mục thuốc',
+            'page_description' => 'Tra cứu danh mục chuẩn theo tên thuốc, mã thuốc, SKU, hoạt chất hoặc giấy phép lưu hành. PWA chỉ đọc và không thay đổi Medicine Master.',
             'route' => 'client.pharma.products',
             'permission' => 'client.pharma.products.view',
             'icon' => 'beaker',
@@ -107,6 +113,9 @@ return [
         'price-lists' => [
             'name' => 'Bảng giá',
             'description' => 'Quản lý các bảng giá do User phụ trách và theo dõi vòng đời phê duyệt.',
+            'eyebrow' => 'My Price Lists',
+            'page_title' => 'Bảng giá của tôi',
+            'page_description' => 'Chỉ hiển thị các bảng giá bạn là người phụ trách. Tạo, gửi duyệt và phê duyệt được kiểm soát theo quyền nghiệp vụ.',
             'route' => 'client.pharma.price-lists',
             'permission' => 'client.pharma.price-lists.view',
             'icon' => 'document-chart-bar',
@@ -254,6 +263,9 @@ return [
         'commissions' => [
             'name' => 'Hoa hồng',
             'description' => 'Theo dõi hoa hồng thuộc phạm vi của User.',
+            'eyebrow' => 'Commissions',
+            'page_title' => 'Hoa hồng của tôi',
+            'page_description' => 'Theo dõi hoa hồng thuộc phạm vi được phân quyền khi capability được đưa vào vận hành.',
             'permission' => 'client.pharma.commissions.view',
             'icon' => 'banknotes',
             'sort_order' => 80,
