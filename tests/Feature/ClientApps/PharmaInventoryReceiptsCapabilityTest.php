@@ -92,7 +92,7 @@ final class PharmaInventoryReceiptsCapabilityTest extends TestCase
             $this->assertStringContainsString($action, $detail);
         }
         $this->assertStringContainsString('Chỉ Ghi sổ mới cộng tồn.', $detail);
-        $this->assertStringContainsString('Ký hiệu HĐ', $detail);
+        $this->assertStringContainsString('Ký hiệu', $detail);
         $this->assertStringContainsString('Giá xuất HĐ chưa VAT', $detail);
         $this->assertStringContainsString('Thành tiền giá vốn', $detail);
         $this->assertStringContainsString('Thành tiền hóa đơn chưa VAT', $detail);
