@@ -145,4 +145,32 @@ final class PharmaInventoryCapabilityTest extends TestCase
         $this->assertStringNotContainsString('Admin::', $detail);
     }
 
+    public function test_inventory_documents_link_back_to_exact_canonical_balance_when_available(): void
+    {
+        $root = base_path();
+        $controller = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php');
+        $workspace = file_get_contents($root.'/Modules/Pharma/Services/UserInventoryWorkspace.php');
+        $receipt = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-receipt-show.blade.php');
+        $issue = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-issue-show.blade.php');
+
+        $this->assertStringContainsString('public function balanceLinksForItems(iterable $items): array', $workspace);
+        $this->assertStringContainsString("->where('warehouse_id', \$warehouse->id)", $workspace);
+        $this->assertStringContainsString("->where('medicine_id', \$key['medicine_id'])", $workspace);
+        $this->assertStringContainsString("->where('batch_number', \$key['batch_number'])", $workspace);
+        $this->assertStringContainsString("->whereDate('expiry_date', \$key['expiry_date'])", $workspace);
+        $this->assertStringNotContainsString('InventoryBalance::query()', $controller);
+        $this->assertStringContainsString("userCan(\$user, 'client.pharma.inventory.view')", $controller);
+        $this->assertStringContainsString('balanceLinksForItems($visibleReceipt->items)', $controller);
+        $this->assertStringContainsString('balanceLinksForItems($visibleIssue->items)', $controller);
+        $this->assertStringContainsString("'inventoryBalanceLinks' =>", $controller);
+        $this->assertStringContainsString("'canViewInventory' => \$canViewInventory", $controller);
+        $this->assertStringContainsString("route('client.pharma.inventory.balances.show'", $receipt);
+        $this->assertStringContainsString("route('client.pharma.inventory.balances.show'", $issue);
+        $this->assertStringContainsString('Xem tồn lô', $receipt);
+        $this->assertStringContainsString('Xem tồn lô', $issue);
+        $this->assertStringContainsString('$canViewInventory && isset($inventoryBalanceLinks[$item->id])', $receipt);
+        $this->assertStringContainsString('$canViewInventory && isset($inventoryBalanceLinks[$item->id])', $issue);
+    }
+
+
 }
