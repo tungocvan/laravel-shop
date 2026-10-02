@@ -161,6 +161,35 @@ class PharmaCommercialCapabilityTest extends TestCase
         $this->assertStringNotContainsString('Admin::', $view);
     }
 
+
+    public function test_commercial_pwa_closeout_remains_read_only_and_outside_pharma_domain_ownership(): void
+    {
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php'));
+        $index = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/commercial.blade.php'));
+        $detail = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/commercial-hospital-show.blade.php'));
+
+        $commercialStart = strpos($controller, 'public function commercial(');
+        $commercialEnd = strpos($controller, 'private function validatedPriceListPayload', $commercialStart);
+        $commercialController = substr($controller, $commercialStart, $commercialEnd - $commercialStart);
+
+        $this->assertStringContainsString('UserCommercialHospitalWorkspace $workspace', $commercialController);
+        $this->assertStringContainsString('$workspace->browseHospitals(', $commercialController);
+        $this->assertStringContainsString('$workspace->summary(', $commercialController);
+        $this->assertStringContainsString('$workspace->findHospital(', $commercialController);
+        $this->assertStringContainsString('$workspace->assignedProducts(', $commercialController);
+
+        foreach ([$index, $detail] as $view) {
+            $this->assertStringNotContainsString('method="POST"', $view);
+            $this->assertStringNotContainsString('method="PATCH"', $view);
+            $this->assertStringNotContainsString('method="PUT"', $view);
+            $this->assertStringNotContainsString('method="DELETE"', $view);
+            $this->assertStringNotContainsString('@csrf', $view);
+            $this->assertStringNotContainsString('@method(', $view);
+            $this->assertStringNotContainsString('wire:', $view);
+            $this->assertStringNotContainsString('Admin::', $view);
+        }
+    }
+
     public function test_database_price_resolver_qualifies_item_columns_after_join(): void
     {
         $resolver = file_get_contents(base_path('Modules/Pharma/Services/DatabasePriceResolver.php'));
