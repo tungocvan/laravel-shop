@@ -15,8 +15,8 @@
 @endphp
 <div class="min-w-0 space-y-4 overflow-x-hidden pb-8">
     <section class="rounded-[1.75rem] bg-slate-950 px-5 py-5 text-white shadow-sm sm:px-7 sm:py-6">
-        <a href="{{ route('client.pharma.dashboard') }}" class="hidden text-sm font-bold text-slate-300 hover:text-white lg:inline-flex">← Quay về dashboard</a>
-        <p class="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400 lg:mt-5">{{ $featurePresentation['eyebrow'] ?? 'Inventory' }}</p>
+        <a href="{{ route('client.pharma.dashboard') }}" aria-label="Quay lại Không gian làm việc Pharma" class="inline-flex min-h-10 items-center rounded-xl px-1 text-sm font-bold text-slate-300 hover:text-white">← Quay về dashboard</a>
+        <p class="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400 mt-2">{{ $featurePresentation['eyebrow'] ?? 'Inventory' }}</p>
         <h1 class="mt-1.5 text-2xl font-black tracking-tight sm:text-3xl">{{ $featurePresentation['page_title'] ?? 'Tồn kho Pharma' }}</h1>
         <p class="mt-1.5 max-w-3xl text-sm leading-5 text-slate-300 sm:leading-6">{{ $featurePresentation['page_description'] ?? 'Theo dõi số lượng tồn, giá trị, lô và hạn dùng.' }}</p>
     </section>
