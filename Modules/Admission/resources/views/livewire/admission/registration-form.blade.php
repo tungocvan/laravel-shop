@@ -1,6 +1,6 @@
 <div class="max-w-7xl mx-auto py-10 px-4 space-y-6"
     @if($isEdit)
-        x-data="{ uiStep: @entangle('currentStep').defer }"
+        x-data="{ uiStep: {{ (int) $currentStep }} }"
         x-on:admission-validation-step-opened.window="uiStep = Number($event.detail?.step ?? $event.detail?.[0]?.step ?? uiStep)"
     @endif
 >
