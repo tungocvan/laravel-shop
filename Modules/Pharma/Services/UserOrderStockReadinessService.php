@@ -72,9 +72,9 @@ final class UserOrderStockReadinessService
         $allRowsCovered = $rows->every(fn (array $row): bool => $row['approval_ready']);
         $fulfillableRows = $rows->reject(fn (array $row): bool => $row['has_supply_note']);
         $canPostDirectly = $fulfillableRows->isNotEmpty()
-            && $fulfillableRows->every(fn (array $row): bool => collect($row['lots'])->contains(
-                fn (array $lot): bool => (float) $lot['quantity_on_hand'] + 0.00005 >= (float) $row['requested_quantity']
-            ));
+            && $fulfillableRows->every(
+                fn (array $row): bool => (float) $row['available_stock'] + 0.00005 >= (float) $row['requested_quantity']
+            );
 
         return [
             'warehouse_id' => (int) $issue->warehouse_id,
