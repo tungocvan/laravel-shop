@@ -1,5 +1,16 @@
 const debounceTimers = new WeakMap();
 
+const submitForm = (form) => {
+    if (!form) return;
+
+    if (typeof form.requestSubmit === 'function') {
+        form.requestSubmit();
+        return;
+    }
+
+    form.submit();
+};
+
 const showNavigationFeedback = (element) => {
     const selector = element?.dataset?.pwaNavigationFeedback;
     if (!selector) return;
@@ -42,7 +53,7 @@ const bindDebouncedSearch = (root = document) => {
         input.addEventListener('input', () => {
             window.clearTimeout(debounceTimers.get(input));
             const delay = Number.parseInt(input.dataset.pwaDebouncedSearch || '600', 10);
-            const timer = window.setTimeout(() => input.form?.requestSubmit(), Number.isFinite(delay) ? delay : 600);
+            const timer = window.setTimeout(() => submitForm(input.form), Number.isFinite(delay) ? delay : 600);
             debounceTimers.set(input, timer);
         });
     });
