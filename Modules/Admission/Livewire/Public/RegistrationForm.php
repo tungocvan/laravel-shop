@@ -422,6 +422,8 @@ class RegistrationForm extends Component
             'form.LoaiLopDangKy' => 'Lớp đăng ký',
             'form.SchoolCampusName' => 'Cơ sở trường',
             'form.SchoolCampusAddress' => 'Địa chỉ cơ sở trường',
+            'form.NgayLamDon' => 'Ngày làm đơn',
+            'form.NguoiLamDon' => 'Người làm đơn',
             'form.DienThoaiCha' => 'Điện thoại cha',
             'form.DienThoaiMe' => 'Điện thoại mẹ',
             'form.DienThoaiNguoiGiamHo' => 'Điện thoại người giám hộ',
