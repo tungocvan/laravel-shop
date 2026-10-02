@@ -15,6 +15,7 @@ use Modules\Pharma\Services\InventoryService;
 use Modules\Pharma\Services\UserPriceListWorkspace;
 use Modules\Pharma\Services\UserCommercialHospitalWorkspace;
 use Modules\Pharma\Services\UserInventoryWorkspace;
+use Modules\Pharma\Services\UserInventoryReceiptWorkspace;
 use Modules\Pharma\Services\UserInventoryIssueWorkspace;
 use Modules\Pharma\Services\UserOrderAuthoringService;
 use Modules\Pharma\Services\UserOrderApprovalService;
@@ -1084,6 +1085,53 @@ final class PharmaApplicationController extends Controller
                 'sort' => $validated['sort'] ?? '',
                 'per_page' => (int) ($validated['per_page'] ?? 25),
             ],
+        ]);
+    }
+
+    public function inventoryReceipts(
+        Request $request,
+        ApplicationRegistry $registry,
+        ClientPortalSettingsService $settings,
+        UserInventoryReceiptWorkspace $workspace,
+    ): View {
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:120'],
+            'status' => ['nullable', 'in:draft,posted,cancelled'],
+            'page' => ['nullable', 'integer', 'min:1'],
+        ]);
+        $application = $registry->find('pharma'); abort_if($application === null, 404);
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.inventory.receipts'), 403);
+        $feature = collect($application['features'] ?? [])->first(fn (array $feature): bool => $feature['key'] === 'inventory');
+        abort_if($feature === null, 404);
+
+        return view('ClientPortal::applications.pharma.inventory-receipts', [
+            'application' => $application,
+            'applicationPresentation' => $settings->applicationPresentation($application),
+            'featurePresentation' => $settings->featurePresentation($application['key'], $feature),
+            'receipts' => $workspace->browse($validated['q'] ?? null, $validated['status'] ?? null, 20, (int) ($validated['page'] ?? 1))->withQueryString(),
+            'filters' => ['q' => trim((string) ($validated['q'] ?? '')), 'status' => $validated['status'] ?? ''],
+        ]);
+    }
+
+    public function inventoryReceipt(
+        int $receipt,
+        Request $request,
+        ApplicationRegistry $registry,
+        ClientPortalSettingsService $settings,
+        UserInventoryReceiptWorkspace $workspace,
+    ): View {
+        $application = $registry->find('pharma'); abort_if($application === null, 404);
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.inventory.receipts'), 403);
+        $visibleReceipt = $workspace->find($receipt); abort_if($visibleReceipt === null, 404);
+        $feature = collect($application['features'] ?? [])->first(fn (array $feature): bool => $feature['key'] === 'inventory');
+
+        return view('ClientPortal::applications.pharma.inventory-receipt-show', [
+            'application' => $application,
+            'applicationPresentation' => $settings->applicationPresentation($application),
+            'featurePresentation' => $settings->featurePresentation($application['key'], $feature),
+            'receipt' => $visibleReceipt,
         ]);
     }
 
