@@ -182,6 +182,9 @@ final class UserOrderAuthoringService
             if (! $issue->items()->exists()) {
                 throw ValidationException::withMessages(['order' => 'Đơn hàng chưa có sản phẩm để gửi duyệt.']);
             }
+            if (($issue->issue_source ?? 'normal') === 'normal') {
+                $this->guardPriceListDraftCurrent($issue);
+            }
 
             $issue->update(['status' => InventoryIssue::PENDING_APPROVAL, 'submitted_by' => $userId, 'submitted_at' => now()]);
 
@@ -198,6 +201,9 @@ final class UserOrderAuthoringService
         if ($partnerId <= 0) throw ValidationException::withMessages(['recipient_partner_id' => 'Vui lòng chọn khách hàng.']);
         if ($priceList->partner_id && (int) $priceList->partner_id !== $partnerId) {
             throw ValidationException::withMessages(['recipient_partner_id' => 'Bảng giá này chỉ áp dụng cho khách hàng đã liên kết.']);
+        }
+        if (! Partner::query()->withPartnerType('customer')->whereKey($partnerId)->where('status', 'active')->exists()) {
+            throw ValidationException::withMessages(['recipient_partner_id' => 'Khách hàng không còn hoạt động hoặc không có vai trò customer.']);
         }
 
         $quantities = collect($data['quantities'] ?? [])->mapWithKeys(fn ($qty, $id) => [(int) $id => (float) $qty])->filter(fn ($qty) => $qty > 0);
@@ -218,6 +224,39 @@ final class UserOrderAuthoringService
                     'quantity' => $quantity, 'unit_price' => (float) $item->company_sale_price];
             })->values()->all(),
         ];
+    }
+
+    private function guardPriceListDraftCurrent(InventoryIssue $issue): void
+    {
+        $date = $issue->issue_date?->format('Y-m-d') ?: (string) $issue->issue_date;
+        $priceList = $this->priceLists((int) $issue->manager_user_id, $date)
+            ->firstWhere('id', (int) $issue->price_list_id);
+
+        if (! $priceList) {
+            throw ValidationException::withMessages(['order' => 'Bảng giá của đơn Nháp không còn hiệu lực hoặc không còn thuộc phạm vi User phụ trách. Vui lòng sửa lại đơn trước khi gửi duyệt.']);
+        }
+
+        $partnerId = (int) $issue->recipient_partner_id;
+        if ($partnerId <= 0
+            || ($priceList->partner_id && (int) $priceList->partner_id !== $partnerId)
+            || ! Partner::query()->withPartnerType('customer')->whereKey($partnerId)->where('status', 'active')->exists()) {
+            throw ValidationException::withMessages(['order' => 'Khách hàng của đơn Nháp không còn hợp lệ với bảng giá. Vui lòng sửa lại đơn trước khi gửi duyệt.']);
+        }
+
+        $canonicalItems = $priceList->items
+            ->filter(fn (PriceListItem $item): bool => $item->medicine_id !== null)
+            ->groupBy(fn (PriceListItem $item): int => (int) $item->medicine_id);
+
+        $draftItems = $issue->items()->get(['medicine_id', 'unit_price']);
+        foreach ($draftItems as $draftItem) {
+            $matches = $canonicalItems->get((int) $draftItem->medicine_id, collect());
+            $priceStillCurrent = $matches->contains(
+                fn (PriceListItem $item): bool => abs((float) $item->company_sale_price - (float) $draftItem->unit_price) < 0.005
+            );
+            if (! $priceStillCurrent) {
+                throw ValidationException::withMessages(['order' => 'Sản phẩm hoặc đơn giá trong đơn Nháp đã thay đổi so với bảng giá hiệu lực. Vui lòng sửa lại đơn trước khi gửi duyệt.']);
+            }
+        }
     }
 
     private function resolveBidItems(int $userId, string $date, array $data): array
