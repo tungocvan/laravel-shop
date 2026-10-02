@@ -1,3 +1,14 @@
+## Checkpoint — Pharma PWA Inventory Detail & Movement History — 2026-10-02
+
+- Branch: `feat/clientportal-pharma-inventory-detail`, based on current `main` after merged PR #248.
+- Scope is read-only P6.1 only: inventory balance detail by medicine/lot/expiry plus canonical inventory transaction history. No balance edit/delete, receipt/order mutation, posting, reversal or schema change is introduced.
+- `Modules/Pharma/Services/UserInventoryWorkspace::detail()` is the public Pharma read contract. It guards the default warehouse, reads `InventoryTransaction` for the exact medicine + batch + expiry identity, and resolves canonical Receipt/Issue sources for navigation.
+- Financial presentation remains protected by `client.pharma.inventory.costs`; cost/value are not calculated for detail requests without that permission.
+- ClientPortal adds `GET /apps/pharma/inventory/balances/{balance}` under the existing inventory feature guard. The focused PWA shell remains active and the detail is mobile-card / desktop-table responsive.
+- Inventory list cards/rows now navigate to the lot traceability detail. Receipt and Order links are rendered only when the authenticated Web User has the corresponding ClientPortal permission.
+- Focused contract coverage is extended in `tests/Feature/ClientApps/PharmaInventoryCapabilityTest.php`.
+- Required operator checkpoint: `git pull --ff-only origin feat/clientportal-pharma-inventory-detail`, run focused `PharmaInventoryCapabilityTest` first, stop on FAIL/500, then perform Desktop + Mobile UI acceptance. Do not run `npm run build` for the user's local `npm run dev` workflow.
+
 ## Checkpoint — Pharma PWA Order Approval MR3 — 2026-09-30
 
 - Branch: `feat/clientportal-pharma-order-approval`, based on merged PR #240 / `main` at `27e46951`.
