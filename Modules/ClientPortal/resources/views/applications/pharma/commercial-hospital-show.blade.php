@@ -4,10 +4,12 @@
 @section('app-name', $applicationPresentation['name'] ?? $application['name'])
 @section('app-subtitle', 'Commercial Workspace · bệnh viện')
 @section('app-dashboard-route', route('client.pharma.dashboard'))
+@section('hide-application-header', true)
+@section('hide-mobile-navigation', true)
 
 @section('content')
 <div class="min-w-0 space-y-4 overflow-x-hidden">
-    <a href="{{ route('client.pharma.commercial', array_filter(['manager_user_id' => $managerUserId, 'award_scope' => $awardScopeKey])) }}" class="inline-flex h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm">← Công việc bệnh viện</a>
+    <a href="{{ route('client.pharma.commercial', array_filter(['manager_user_id' => $managerUserId, 'award_scope' => $awardScopeKey])) }}" aria-label="Quay lại Công việc bệnh viện" data-pwa-navigation-feedback="#commercial-navigation-feedback" class="inline-flex h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm">← Công việc bệnh viện</a>
 
     <section class="rounded-[2rem] bg-slate-950 px-5 py-6 text-white shadow-sm sm:px-7">
         <p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-300">Bệnh viện được phân công</p>
@@ -22,12 +24,12 @@
     </section>
 
     <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-        <form method="GET" action="{{ route('client.pharma.commercial.hospitals.show', $hospital->id) }}" class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+        <form data-pwa-pending-feedback="#commercial-navigation-feedback" method="GET" action="{{ route('client.pharma.commercial.hospitals.show', $hospital->id) }}" class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
             @if($managerUserId)<input type="hidden" name="manager_user_id" value="{{ $managerUserId }}">@endif
             <input type="hidden" name="award_scope" value="{{ $awardScopeKey }}">
             <label class="min-w-0">
                 <span class="sr-only">Tìm sản phẩm</span>
-                <input name="q" value="{{ $search }}" type="search" placeholder="Tên thuốc, hoạt chất, số đăng ký..." class="h-11 w-full min-w-0 rounded-2xl border border-slate-200 px-4 text-sm outline-none focus:border-slate-400">
+                <input name="q" value="{{ $search }}" data-pwa-debounced-search="600" type="search" placeholder="Tên thuốc, hoạt chất, số đăng ký..." class="h-11 w-full min-w-0 rounded-2xl border border-slate-200 px-4 text-sm outline-none focus:border-slate-400">
             </label>
             @if($search !== '')
                 <a href="{{ route('client.pharma.commercial.hospitals.show', array_filter(['hospital' => $hospital->id, 'manager_user_id' => $managerUserId, 'award_scope' => $awardScopeKey])) }}" class="inline-flex h-11 items-center justify-center rounded-2xl border border-slate-200 px-4 text-sm font-bold text-slate-600">Xóa bộ lọc</a>
@@ -135,7 +137,7 @@
 
         @if($products->hasMorePages())
             <div id="commercial-product-load-more-wrap" class="pt-1 text-center">
-                <a id="commercial-product-load-more" href="{{ $products->nextPageUrl() }}" class="inline-flex min-h-12 w-full items-center justify-center rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-black text-slate-800 shadow-sm transition duration-150 active:scale-[0.985] sm:w-auto motion-reduce:transform-none">
+                <a id="commercial-product-load-more" data-pwa-load-more data-pwa-load-more-target="#commercial-product-list" data-pwa-load-more-items="#commercial-product-list [data-commercial-product]" data-pwa-load-more-wrap="#commercial-product-load-more-wrap" data-pwa-pending-label="Đang tải…" href="{{ $products->nextPageUrl() }}" class="inline-flex min-h-12 w-full items-center justify-center rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-black text-slate-800 shadow-sm transition duration-150 active:scale-[0.985] sm:w-auto motion-reduce:transform-none">
                     Xem thêm sản phẩm
                 </a>
                 <p class="mt-2 text-xs font-semibold text-slate-400">Đã hiển thị {{ $products->count() }} / {{ $products->total() }}</p>
@@ -144,46 +146,9 @@
     </section>
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    const input = document.querySelector('input[name="q"]');
-    if (!input) return;
+<div id="commercial-navigation-feedback" class="pointer-events-none fixed inset-x-0 bottom-6 z-50 mx-auto hidden w-fit items-center gap-2 rounded-full bg-slate-950/95 px-4 py-2.5 text-sm font-bold text-white shadow-xl backdrop-blur" role="status" aria-live="polite">
+    <span class="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white motion-reduce:animate-none"></span>
+    Đang mở…
+</div>
 
-    const bindLoadMore = () => {
-        const button = document.getElementById('commercial-product-load-more');
-        const list = document.getElementById('commercial-product-list');
-        if (!button || !list || button.dataset.loadMoreBound) return;
-        button.dataset.loadMoreBound = '1';
-        button.addEventListener('click', async (event) => {
-            if (!window.fetch || !window.DOMParser) return;
-            event.preventDefault();
-            const original = button.textContent;
-            button.textContent = 'Đang tải…';
-            button.setAttribute('aria-busy', 'true');
-            try {
-                const response = await fetch(button.href, {headers: {'X-Requested-With': 'XMLHttpRequest'}});
-                if (!response.ok) throw new Error('load-more');
-                const doc = new DOMParser().parseFromString(await response.text(), 'text/html');
-                doc.querySelectorAll('#commercial-product-list [data-commercial-product]').forEach((item) => list.appendChild(item));
-                document.getElementById('commercial-product-load-more-wrap')?.remove();
-                const nextWrap = doc.getElementById('commercial-product-load-more-wrap');
-                if (nextWrap) list.insertAdjacentElement('afterend', nextWrap);
-                bindLoadMore();
-            } catch (error) {
-                window.location.href = button.href;
-            } finally {
-                button.textContent = original;
-                button.removeAttribute('aria-busy');
-            }
-        });
-    };
-    bindLoadMore();
-
-    let timer;
-    input.addEventListener('input', () => {
-        clearTimeout(timer);
-        timer = setTimeout(() => input.form.submit(), 350);
-    });
-});
-</script>
 @endsection
