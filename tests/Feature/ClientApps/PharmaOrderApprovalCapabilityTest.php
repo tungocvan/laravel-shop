@@ -18,6 +18,10 @@ final class PharmaOrderApprovalCapabilityTest extends TestCase
         $this->assertStringContainsString("Route::post('/orders/{issue}/reject'", $routes);
         $this->assertStringContainsString("Route::delete('/orders/{issue}'", $routes);
         $this->assertStringContainsString('final class UserOrderApprovalService', $service);
+        // guard locked order approval transitions marker
+        $this->assertStringContainsString("InventoryIssue::query()->lockForUpdate()->findOrFail(\$issue->getKey())", $service);
+        $this->assertGreaterThanOrEqual(4, substr_count($service, '$issue = $this->lockIssue($issue);'));
+        $this->assertStringContainsString('$this->guardPending($issue);', $service);
         $this->assertStringContainsString('InventoryIssue::PENDING_APPROVAL', $service);
         $this->assertStringContainsString('InventoryIssue::APPROVED', $service);
         $this->assertStringContainsString('InventoryIssue::REJECTED', $service);
