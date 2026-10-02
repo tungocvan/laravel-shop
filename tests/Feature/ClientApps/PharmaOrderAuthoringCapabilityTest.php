@@ -205,4 +205,24 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
     }
 
 
+    public function test_bid_orders_revalidate_assignment_price_and_committed_allocation_before_submit(): void
+    {
+        $service = file_get_contents(base_path('Modules/Pharma/Services/UserOrderAuthoringService.php'));
+
+        $this->assertStringContainsString('$this->guardBidDraftCurrent($issue);', $service);
+        $this->assertStringContainsString('private function guardBidDraftCurrent(InventoryIssue $issue): void', $service);
+        $this->assertStringContainsString("->where('status', DrugBidAwardAllocation::STATUS_ACTIVE)", $service);
+        $this->assertStringContainsString('->lockForUpdate()', $service);
+        $this->assertStringContainsString("->where('user_id', (int) \$issue->manager_user_id)", $service);
+        $this->assertStringContainsString("->where('status', DrugBidAwardManagementAssignment::STATUS_ACTIVE)", $service);
+        $this->assertStringContainsString("\$canonicalPrice = (float) (\$award?->winning_price ?? \$award?->unit_price ?? 0);", $service);
+        $this->assertStringContainsString("abs(\$canonicalPrice - (float) \$draftItem->unit_price) >= 0.005", $service);
+        $this->assertStringContainsString("->whereIn('i.status', [InventoryIssue::PENDING_APPROVAL, InventoryIssue::APPROVED, InventoryIssue::POSTED])", $service);
+        $this->assertStringContainsString("->where('i.id', '<>', \$issue->id)", $service);
+        $this->assertStringContainsString("->where('ii.drug_bid_award_allocation_id', \$allocation->id)", $service);
+        $this->assertStringContainsString('Số lượng hàng thầu đã vượt phân bổ còn lại sau khi tính các đơn đang chờ duyệt/đã duyệt.', $service);
+        $this->assertStringContainsString('User phụ trách không còn được phân công quản lý bệnh viện/kết quả thầu này.', $service);
+    }
+
+
 }
