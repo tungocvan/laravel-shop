@@ -1098,6 +1098,36 @@ final class PharmaApplicationController extends Controller
         ]);
     }
 
+    public function inventoryBalance(
+        int $balance,
+        Request $request,
+        ApplicationRegistry $registry,
+        ClientPortalSettingsService $settings,
+        UserInventoryWorkspace $workspace,
+    ): View {
+        $application = $registry->find('pharma');
+        abort_if($application === null, 404);
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.inventory.view'), 403);
+        $canViewCosts = $registry->userCan($user, 'client.pharma.inventory.costs');
+
+        $inventoryFeature = collect($application['features'] ?? [])
+            ->first(fn (array $feature): bool => $feature['key'] === 'inventory');
+        abort_if($inventoryFeature === null, 404);
+
+        $detail = $workspace->detail($balance, $canViewCosts);
+        abort_if($detail === null, 404);
+
+        return view('ClientPortal::applications.pharma.inventory-show', [
+            'application' => $application,
+            'applicationPresentation' => $settings->applicationPresentation($application),
+            'featurePresentation' => $settings->featurePresentation($application['key'], $inventoryFeature),
+            'canViewCosts' => $canViewCosts,
+            ...$detail,
+        ]);
+    }
+
     public function inventoryReceipts(
         Request $request,
         ApplicationRegistry $registry,
