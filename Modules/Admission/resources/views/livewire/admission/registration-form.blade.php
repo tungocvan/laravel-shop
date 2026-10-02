@@ -1,4 +1,9 @@
-<div class="max-w-7xl mx-auto py-10 px-4 space-y-6">
+<div class="max-w-7xl mx-auto py-10 px-4 space-y-6"
+    @if($isEdit)
+        x-data="{ uiStep: @entangle('currentStep').defer }"
+        x-on:admission-validation-step-opened.window="uiStep = Number($event.detail?.step ?? $event.detail?.[0]?.step ?? uiStep)"
+    @endif
+>
 
     @include('Admission::livewire.admission.partials.error-summary')
 
@@ -6,24 +11,28 @@
 
     <form wire:submit.prevent="save" class="space-y-8">
 
-        @if ($currentStep == 1)
-            @include('Admission::livewire.admission.partials.step-1-student')
-        @endif
-
-        @if ($currentStep == 2)
-            @include('Admission::livewire.admission.partials.step-2-address')
-        @endif
-
-        @if ($currentStep == 3)
-            @include('Admission::livewire.admission.partials.step-3-extra')
-        @endif
-
-        @if ($currentStep == 4)
-            @include('Admission::livewire.admission.partials.step-4-parent')
-        @endif
-
-        @if ($currentStep == 5)
-            @include('Admission::livewire.admission.partials.step-5-confirm')
+        @if ($isEdit)
+            <div x-show="uiStep === 1" x-cloak>@include('Admission::livewire.admission.partials.step-1-student')</div>
+            <div x-show="uiStep === 2" x-cloak>@include('Admission::livewire.admission.partials.step-2-address')</div>
+            <div x-show="uiStep === 3" x-cloak>@include('Admission::livewire.admission.partials.step-3-extra')</div>
+            <div x-show="uiStep === 4" x-cloak>@include('Admission::livewire.admission.partials.step-4-parent')</div>
+            <div x-show="uiStep === 5" x-cloak>@include('Admission::livewire.admission.partials.step-5-confirm')</div>
+        @else
+            @if ($currentStep == 1)
+                @include('Admission::livewire.admission.partials.step-1-student')
+            @endif
+            @if ($currentStep == 2)
+                @include('Admission::livewire.admission.partials.step-2-address')
+            @endif
+            @if ($currentStep == 3)
+                @include('Admission::livewire.admission.partials.step-3-extra')
+            @endif
+            @if ($currentStep == 4)
+                @include('Admission::livewire.admission.partials.step-4-parent')
+            @endif
+            @if ($currentStep == 5)
+                @include('Admission::livewire.admission.partials.step-5-confirm')
+            @endif
         @endif
 
         @include('Admission::livewire.admission.partials.actions')
