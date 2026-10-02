@@ -226,6 +226,12 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertStringContainsString('[data-pwa-search-clear-button]', $foundation);
         $this->assertStringContainsString('data-pwa-search-clear-button="#commercial-product-search-input"', $detail);
         $this->assertStringContainsString('aria-label="Xóa tìm kiếm sản phẩm"', $detail);
+        $this->assertStringContainsString('grid gap-3 lg:grid-cols-2', $index);
+        $this->assertStringContainsString('id="commercial-hospital-list" class="grid gap-3 lg:grid-cols-2"', $index);
+        $this->assertStringContainsString('line-clamp-2 font-black leading-6', $index);
+        $this->assertStringContainsString('md:grid-cols-4', $detail);
+        $this->assertStringContainsString('Thời gian phân bổ hiệu lực', $detail);
+        $this->assertStringContainsString('lg:max-w-3xl', $detail);
     }
 
 
