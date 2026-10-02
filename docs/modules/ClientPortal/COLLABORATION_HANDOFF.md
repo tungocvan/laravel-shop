@@ -1,3 +1,11 @@
+## Pharma PWA Receipt Detail Polish P6.3 — 2026-10-02
+
+- Branch: `refactor/clientportal-pharma-receipt-detail-compact`, based on merged P6.2 main.
+- Presentation-only compact layout for receipt detail: shorter header, workflow actions integrated into the header, combined receipt/supplier/invoice metadata, and one compact total-value card.
+- Existing receipt Draft → Submit → Approve → Post → Revert actions, permissions, routes, inventory effects, and `Xem tồn lô` traceability are unchanged.
+- No controller, service, schema, or business-rule changes.
+- Local checkpoint: `git fetch origin`, switch to the feature branch, then run `php artisan test tests/Feature/ClientApps/PharmaInventoryCapabilityTest.php`. Do not `git pull` the feature branch before merge; continue using `npm run dev`.
+
 ## Pharma PWA Inventory Traceability P6.2 — 2026-10-02
 
 - Branch: `feat/clientportal-pharma-inventory-traceability`.
