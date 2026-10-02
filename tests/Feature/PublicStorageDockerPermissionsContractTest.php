@@ -14,6 +14,7 @@ class PublicStorageDockerPermissionsContractTest extends TestCase
 
         $this->assertStringContainsString('find storage/app -type d -exec chmod 2770 {} \\;', $dockerfile);
         $this->assertStringContainsString('find storage/app -type f -exec chmod 0660 {} \\;', $dockerfile);
+        $this->assertStringContainsString('chmod 2771 storage/app', $dockerfile);
         $this->assertStringContainsString('find storage/app/public -type d -exec chmod 2775 {} \\;', $dockerfile);
         $this->assertStringContainsString('find storage/app/public -type f -exec chmod 0664 {} \\;', $dockerfile);
     }
@@ -25,18 +26,25 @@ class PublicStorageDockerPermissionsContractTest extends TestCase
 
         $privateDirectoryRule = 'find storage/app -type d -exec chmod 2770 {} \\;';
         $privateFileRule = 'find storage/app -type f -exec chmod 0660 {} \\;';
+        $parentTraverseRule = 'chmod 2771 storage/app';
         $publicDirectoryRule = 'find storage/app/public -type d -exec chmod 2775 {} \\;';
         $publicFileRule = 'find storage/app/public -type f -exec chmod 0664 {} \\;';
 
         $this->assertStringContainsString($privateDirectoryRule, $entrypoint);
         $this->assertStringContainsString($privateFileRule, $entrypoint);
+        $this->assertStringContainsString($parentTraverseRule, $entrypoint);
         $this->assertStringContainsString($publicDirectoryRule, $entrypoint);
         $this->assertStringContainsString($publicFileRule, $entrypoint);
 
         $this->assertLessThan(
-            strpos($entrypoint, $publicDirectoryRule),
+            strpos($entrypoint, $parentTraverseRule),
             strpos($entrypoint, $privateDirectoryRule),
-            'Public directory permissions must be applied after the private storage defaults.'
+            'Parent traverse permission must be applied after the private storage defaults.'
+        );
+        $this->assertLessThan(
+            strpos($entrypoint, $publicDirectoryRule),
+            strpos($entrypoint, $parentTraverseRule),
+            'Public directory permissions must be applied after parent traversal is restored.'
         );
         $this->assertLessThan(
             strpos($entrypoint, $publicFileRule),
