@@ -50,6 +50,10 @@ RUN chmod 0755 /usr/local/bin/entrypoint \
     && chown -R www-data:www-data storage bootstrap/cache Modules \
     && find storage/app -type d -exec chmod 2770 {} \; \
     && find storage/app -type f -exec chmod 0660 {} \; \
+    && chmod 2771 storage/app \
+    && mkdir -p storage/app/public \
+    && find storage/app/public -type d -exec chmod 2775 {} \; \
+    && find storage/app/public -type f -exec chmod 0664 {} \; \
     && find storage/framework storage/logs bootstrap/cache -type d -exec chmod 2770 {} \; \
     && find storage/framework storage/logs bootstrap/cache -type f -exec chmod 0660 {} \; \
     && find Modules -type d -exec chmod ug+rwx {} \; \
