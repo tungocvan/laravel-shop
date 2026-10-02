@@ -71,6 +71,15 @@ final class PharmaInventoryReceiptsCapabilityTest extends TestCase
         $this->assertStringContainsString("toLocaleString('vi-VN')", $create);
         $this->assertStringContainsString("replace(/\\./g,'').replace(',', '.')", $create);
         $this->assertStringContainsString("article.querySelectorAll('[data-number-display]').forEach(wireNumber)", $create);
+        $this->assertStringContainsString("userCan(\$user, 'client.pharma.inventory.costs')", $controller);
+        $this->assertStringContainsString('authoringOptions($canViewCosts)', $controller);
+        $this->assertStringContainsString("DB::raw('AVG(cost_price) as average_cost_price')", $workspace);
+        $this->assertStringContainsString("'referenceCosts' => \$referenceCosts", $workspace);
+        $this->assertStringContainsString('@if($canViewCosts)', $create);
+        $this->assertStringContainsString('Giá vốn TB:', $create);
+        $this->assertStringContainsString('data-reference-cost-label', $create);
+        $this->assertStringContainsString('data-reference-cost=', $create);
+        $this->assertStringContainsString('value="5" data-field="vat_rate"', $create);
         $this->assertStringContainsString("@section('hide-application-header', true)", $create);
         $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $create);
     }
