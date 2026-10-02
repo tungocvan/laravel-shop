@@ -8,6 +8,7 @@ use Illuminate\Validation\ValidationException;
 use Modules\Partner\Models\Partner;
 use Modules\Pharma\Models\Medicine;
 use Modules\Pharma\Models\InventoryReceipt;
+use Modules\Pharma\Models\SupplierTracking;
 
 final class UserInventoryReceiptWorkspace
 {
@@ -40,11 +41,29 @@ final class UserInventoryReceiptWorkspace
             ->find($receiptId);
     }
 
-    public function authoringOptions(): array
+    public function authoringOptions(bool $canViewCosts = false): array
     {
+        $medicines = Medicine::query()->orderBy('name')->limit(500)->get(['id', 'medicine_code', 'name', 'unit', 'active_ingredients']);
+
+        $referenceCosts = collect();
+        if ($canViewCosts) {
+            $today = now()->toDateString();
+            $referenceCosts = SupplierTracking::query()
+                ->select('medicine_id', DB::raw('AVG(cost_price) as average_cost_price'))
+                ->whereIn('medicine_id', $medicines->pluck('id'))
+                ->where('status', 'active')
+                ->whereNotNull('cost_price')
+                ->where(fn ($query) => $query->whereNull('start_date')->orWhereDate('start_date', '<=', $today))
+                ->where(fn ($query) => $query->whereNull('end_date')->orWhereDate('end_date', '>=', $today))
+                ->groupBy('medicine_id')
+                ->pluck('average_cost_price', 'medicine_id');
+        }
+
         return [
             'suppliers' => Partner::query()->withPartnerType('supplier')->where('status', 'active')->orderBy('name')->get(['id', 'name', 'tax_code']),
-            'medicines' => Medicine::query()->orderBy('name')->limit(500)->get(['id', 'medicine_code', 'name', 'unit', 'active_ingredients']),
+            'medicines' => $medicines,
+            'referenceCosts' => $referenceCosts,
+            'canViewCosts' => $canViewCosts,
         ];
     }
 
