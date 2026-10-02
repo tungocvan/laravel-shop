@@ -102,7 +102,7 @@ class AdmissionRegistrationCampusUxContractTest extends TestCase
         $stepper = file_get_contents(base_path('Modules/Admission/resources/views/livewire/admission/partials/stepper.blade.php'));
         $actions = file_get_contents(base_path('Modules/Admission/resources/views/livewire/admission/partials/actions.blade.php'));
 
-        $this->assertStringContainsString("x-data=\"{ uiStep: @entangle('currentStep').defer }\"", $form);
+        $this->assertStringContainsString('x-data="{ uiStep: {{ (int) $currentStep }} }"', $form);
         $this->assertStringContainsString('x-show="uiStep === 5"', $form);
         $this->assertStringContainsString('x-on:click="uiStep = {{ $stepNumber }}"', $stepper);
         $this->assertStringContainsString('wire:click="setStep({{ $stepNumber }})"', $stepper);
