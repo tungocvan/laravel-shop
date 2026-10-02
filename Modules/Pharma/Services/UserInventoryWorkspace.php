@@ -6,6 +6,9 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Modules\Pharma\Models\InventoryBalance;
+use Modules\Pharma\Models\InventoryIssue;
+use Modules\Pharma\Models\InventoryReceipt;
+use Modules\Pharma\Models\InventoryTransaction;
 use Modules\Pharma\Models\SupplierTracking;
 
 final class UserInventoryWorkspace
@@ -59,6 +62,71 @@ final class UserInventoryWorkspace
             perPage: in_array($perPage, [25, 50, 100], true) ? $perPage : 25,
             page: max(1, $page),
         );
+    }
+
+    public function detail(int $balanceId, bool $canViewCosts = false): ?array
+    {
+        $warehouse = $this->inventory->defaultWarehouse();
+
+        $balance = InventoryBalance::query()
+            ->with('medicine')
+            ->where('warehouse_id', $warehouse->id)
+            ->find($balanceId);
+
+        if (! $balance) {
+            return null;
+        }
+
+        $averageCost = null;
+        $inventoryValue = null;
+        if ($canViewCosts) {
+            $supplier = $this->activeSupplierCosts()->get($balance->medicine_id)?->average_cost_price;
+            $averageCost = $balance->manual_cost_price !== null
+                ? (float) $balance->manual_cost_price
+                : ($supplier !== null ? (float) $supplier : null);
+            $inventoryValue = $averageCost === null ? null : (float) $balance->quantity_on_hand * $averageCost;
+        }
+
+        $transactions = InventoryTransaction::query()
+            ->where('warehouse_id', $warehouse->id)
+            ->where('medicine_id', $balance->medicine_id)
+            ->where('batch_number', $balance->batch_number)
+            ->whereDate('expiry_date', $balance->expiry_date)
+            ->latest('created_at')
+            ->latest('id')
+            ->get();
+
+        $receiptIds = $transactions->where('source_type', InventoryReceipt::class)->pluck('source_id')->filter()->map(fn ($id) => (int) $id)->unique();
+        $issueIds = $transactions->where('source_type', InventoryIssue::class)->pluck('source_id')->filter()->map(fn ($id) => (int) $id)->unique();
+        $receipts = InventoryReceipt::query()->where('warehouse_id', $warehouse->id)->whereIn('id', $receiptIds)->get(['id', 'number'])->keyBy('id');
+        $issues = InventoryIssue::query()->where('warehouse_id', $warehouse->id)->whereIn('id', $issueIds)->get(['id', 'number'])->keyBy('id');
+
+        $movements = $transactions->map(function (InventoryTransaction $transaction) use ($receipts, $issues): array {
+            $source = null;
+            if ($transaction->source_type === InventoryReceipt::class) {
+                $record = $receipts->get((int) $transaction->source_id);
+                $source = $record ? ['kind' => 'receipt', 'id' => (int) $record->id, 'number' => $record->number] : null;
+            } elseif ($transaction->source_type === InventoryIssue::class) {
+                $record = $issues->get((int) $transaction->source_id);
+                $source = $record ? ['kind' => 'issue', 'id' => (int) $record->id, 'number' => $record->number] : null;
+            }
+
+            return [
+                'id' => (int) $transaction->id,
+                'type' => (string) $transaction->type,
+                'quantity_delta' => (float) $transaction->quantity_delta,
+                'balance_after' => (float) $transaction->balance_after,
+                'created_at' => $transaction->created_at,
+                'source' => $source,
+            ];
+        });
+
+        return [
+            'balance' => $balance,
+            'average_cost_price' => $averageCost,
+            'inventory_value' => $inventoryValue,
+            'movements' => $movements,
+        ];
     }
 
     public function summary(bool $canViewCosts = false): array
