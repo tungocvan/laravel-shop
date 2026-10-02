@@ -286,6 +286,13 @@ class RegistrationForm extends Component
 
     public function updatedForm($value, $key): void
     {
+        if ($key === 'SchoolCampusName') {
+            $campus = collect($this->schoolCampuses)->firstWhere('name', $value);
+            $this->form['SchoolCampusAddress'] = $campus['address'] ?? '';
+
+            return;
+        }
+
         if (! $this->sameAddress) {
             return;
         }
@@ -302,10 +309,6 @@ class RegistrationForm extends Component
             $this->form[$map[$key]] = $value;
         }
 
-        if ($key === 'SchoolCampusName') {
-            $campus = collect($this->schoolCampuses)->firstWhere('name', $value);
-            $this->form['SchoolCampusAddress'] = $campus['address'] ?? '';
-        }
     }
 
     public function nextStep(): void
