@@ -217,7 +217,10 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertStringContainsString('[data-pwa-debounced-search]', $foundation);
         $this->assertStringContainsString('[data-pwa-load-more]', $foundation);
         $this->assertStringContainsString("button.getAttribute('aria-busy') === 'true'", $foundation);
-        $this->assertStringContainsString("input.form?.requestSubmit()", $foundation);
+        $this->assertStringContainsString("typeof form.requestSubmit === 'function'", $foundation);
+        $this->assertStringContainsString('form.requestSubmit()', $foundation);
+        $this->assertStringContainsString('form.submit()', $foundation);
+        $this->assertStringContainsString('submitForm(input.form)', $foundation);
     }
 
 
