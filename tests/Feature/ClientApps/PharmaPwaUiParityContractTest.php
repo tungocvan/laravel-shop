@@ -293,7 +293,9 @@ class PharmaPwaUiParityContractTest extends TestCase
         $commissions = $manifest['features']['commissions'];
         $this->assertSame('Commissions', $commissions['eyebrow']);
         $this->assertSame('Hoa hồng của tôi', $commissions['page_title']);
-        $this->assertArrayNotHasKey('route', $commissions, 'Commissions remains intentionally unrouted until its PWA surface is implemented.');
+        $this->assertSame('client.pharma.commissions', $commissions['route']);
+        $this->assertSame('client.pharma.commissions.view', $commissions['permission']);
+        $this->assertSame('client.pharma.commissions.view-team', $commissions['actions']['view-team']['permission']);
     }
 
 
