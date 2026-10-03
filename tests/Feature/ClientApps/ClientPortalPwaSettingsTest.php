@@ -202,6 +202,23 @@ class ClientPortalPwaSettingsTest extends TestCase
         $this->assertSame('Ranh giới Foundation', $presentation['supporting_title']);
     }
 
+    public function test_unrelated_legacy_overview_setting_does_not_override_hub_copy(): void
+    {
+        $registry = app(ApplicationRegistry::class);
+        $settings = app(ClientPortalSettingsService::class);
+        $application = $registry->find('pharma');
+
+        $settings->updateFeaturePresentation('pharma', 'overview', [
+            'maintenance' => true,
+            'maintenance_message' => 'Legacy maintenance only',
+        ]);
+
+        $presentation = $settings->applicationHubPresentation($application);
+        $this->assertSame('Pharma PWA', $presentation['eyebrow']);
+        $this->assertSame('Không gian làm việc Pharma', $presentation['title']);
+        $this->assertSame($application['hub']['description'], $presentation['description']);
+    }
+
     public function test_global_bottom_navigation_appearance_defaults_match_existing_mobile_shell(): void
     {
         $settings = app(ClientPortalSettingsService::class);
