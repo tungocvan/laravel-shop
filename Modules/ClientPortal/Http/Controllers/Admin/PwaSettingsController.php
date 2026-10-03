@@ -17,6 +17,7 @@ class PwaSettingsController extends Controller
             'general' => $settings->pwaGeneral(),
             'login' => $settings->pwaLogin(),
             'bottomNavigation' => $settings->pwaBottomNavigation(),
+            'bottomNavigationThemes' => $settings->pwaBottomNavigationThemes(),
             'adminUi' => config('clientportal.pwa.admin', []),
         ]);
     }
@@ -72,6 +73,26 @@ class PwaSettingsController extends Controller
         ]);
         $settings->updatePwaBottomNavigation($validated, $request->user('admin')?->getAuthIdentifier());
         return back()->with('success', 'Đã cập nhật giao diện Bottom Navigation dùng chung.');
+    }
+
+    public function resetBottomNavigation(Request $request, ClientPortalSettingsService $settings): RedirectResponse
+    {
+        $settings->resetPwaBottomNavigation($request->user('admin')?->getAuthIdentifier());
+        return back()->with('success', 'Đã khôi phục Bottom Navigation về giao diện mặc định.');
+    }
+
+    public function saveBottomNavigationTheme(Request $request, ClientPortalSettingsService $settings): RedirectResponse
+    {
+        $validated = $request->validate(['theme_name' => ['required', 'string', 'max:80']]);
+        $settings->savePwaBottomNavigationTheme($validated['theme_name'], $settings->pwaBottomNavigation());
+        return back()->with('success', 'Đã lưu theme Bottom Navigation "'.$validated['theme_name'].'".');
+    }
+
+    public function applyBottomNavigationTheme(Request $request, ClientPortalSettingsService $settings): RedirectResponse
+    {
+        $validated = $request->validate(['theme_key' => ['required', 'string', 'max:191']]);
+        abort_unless($settings->applyPwaBottomNavigationTheme($validated['theme_key'], $request->user('admin')?->getAuthIdentifier()), 404);
+        return back()->with('success', 'Đã áp dụng theme Bottom Navigation.');
     }
 
     public function updateLogin(Request $request, ClientPortalSettingsService $settings): RedirectResponse
