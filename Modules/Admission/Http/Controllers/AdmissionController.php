@@ -45,9 +45,45 @@ class AdmissionController extends Controller
         return view('Admission::pages.public.list-class');
     }
 
-    public function dvhc()
+    public function dvhc(Request $request)
     {
-        return view('Admission::pages.admin.dvhc');
+        $province = trim($request->string('province')->toString());
+        $search = trim($request->string('search')->toString());
+
+        $query = AdmissionLocation::query()
+            ->when($province !== '', fn ($query) => $query->where('province_name', $province))
+            ->when($search !== '', fn ($query) => $query->where('ward_name', 'like', "%{$search}%"));
+
+        return view('Admission::pages.admin.dvhc', [
+            'provinces' => AdmissionLocation::query()
+                ->select('province_name')
+                ->distinct()
+                ->orderBy('province_name')
+                ->pluck('province_name'),
+            'rows' => (clone $query)->orderBy('ward_name')->limit(200)->get(),
+            'totalRows' => (clone $query)->count(),
+            'province' => $province,
+            'search' => $search,
+        ]);
+    }
+
+    public function updateDvhcProvince(Request $request)
+    {
+        $validated = $request->validate([
+            'current_province_name' => ['required', 'string', 'max:255'],
+            'province_name' => ['required', 'string', 'max:255'],
+        ]);
+
+        $currentProvinceName = trim($validated['current_province_name']);
+        $provinceName = trim($validated['province_name']);
+
+        $updated = AdmissionLocation::query()
+            ->where('province_name', $currentProvinceName)
+            ->update(['province_name' => $provinceName]);
+
+        return redirect()
+            ->route('admin.admission.dvhc', ['province' => $provinceName])
+            ->with('success', "Đã cập nhật {$updated} đơn vị thuộc tỉnh/thành phố.");
     }
 
     public function updateDvhc(Request $request, AdmissionLocation $location)
