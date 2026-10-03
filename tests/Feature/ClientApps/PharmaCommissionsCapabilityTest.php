@@ -76,8 +76,11 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('Người phụ trách',$view);
         $this->assertStringContainsString('<x-select-search id="commission-manager-user"',$view);
         $this->assertStringContainsString('@if($canViewTeam)',$view);
-        $this->assertStringContainsString('min-w-0 overflow-hidden',$view);
-        $this->assertStringContainsString('style="width:100%;min-width:0;max-width:100%;"',$view);
+        $this->assertStringContainsString('data-commission-date-display="from"',$view);
+        $this->assertStringContainsString('data-commission-date-display="to"',$view);
+        $this->assertStringContainsString("format('d/m/Y')",$view);
+        $this->assertStringContainsString('data-commission-date-value="from"',$view);
+        $this->assertStringContainsString('rounded-2xl border border-slate-200 bg-white px-1',$view);
         $this->assertStringContainsString('data-pwa-debounced-search="800"',$view);
         $this->assertStringContainsString('data-pwa-search-clear-button="#commission-search-input"',$view);
         $this->assertStringContainsString('data-pwa-load-more',$view);
