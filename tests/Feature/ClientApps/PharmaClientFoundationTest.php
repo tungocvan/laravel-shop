@@ -26,9 +26,12 @@ class PharmaClientFoundationTest extends TestCase
         $this->assertSame('Không gian làm việc Pharma', $application['hub']['title']);
         $this->assertSame('Ranh giới Foundation', $application['hub']['supporting']['title']);
         $this->assertSame(
-            ['overview', 'products', 'price-lists', 'bid-awards', 'commercial', 'orders', 'inventory', 'commissions'],
+            ['products', 'price-lists', 'bid-awards', 'commercial', 'orders', 'inventory', 'commissions'],
             collect($application['features'])->pluck('key')->all(),
         );
+        $this->assertSame('overview', collect($application['navigation'])->firstWhere('key', 'overview')['key']);
+        $this->assertSame('client.pharma.dashboard', collect($application['navigation'])->firstWhere('key', 'overview')['route']);
+        $this->assertNull(collect($application['features'])->firstWhere('key', 'overview'));
         $commercial = collect($application['features'])->firstWhere('key', 'commercial');
         $this->assertNotNull($commercial);
         $this->assertSame('client.pharma.commercial', $commercial['route']);
