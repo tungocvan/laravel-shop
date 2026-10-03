@@ -57,7 +57,7 @@
             <button class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">Lưu Navigation</button>
         </div>
         @php($bottomIconChoices = ['home','beaker','document-chart-bar','clipboard-document-list','archive-box','banknotes','building-library','briefcase','magnifying-glass','document-text','inbox','check-circle','plus-circle','clock','heart','squares-2x2'])
-        <div class="mt-5 overflow-hidden rounded-2xl border border-gray-200">
+        <div class="mt-5 rounded-2xl border border-gray-200">
             @foreach(collect($application['navigation'] ?? [])->values() as $index => $item)
                 @php($navPresentation = collect($navigationPresentation['items'])->firstWhere('key', $item['key']))
                 <div class="grid gap-3 border-b border-gray-100 p-4 last:border-b-0 sm:grid-cols-[1fr_auto_auto_auto] sm:items-center">
