@@ -35,14 +35,20 @@
             @if($canViewTeam)
                 <label class="min-w-0">
                     <span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Người phụ trách</span>
-                    <div class="min-w-0 rounded-2xl border border-slate-200 bg-white px-1 shadow-sm transition focus-within:border-slate-300 focus-within:ring-2 focus-within:ring-slate-100">
-                    <x-select-search id="commission-manager-user" name="manager_user_id" class="min-w-0 border-0 bg-transparent shadow-none" placeholder="Tất cả người phụ trách" onchange="this.form.requestSubmit()">
-                        <option value="">Tất cả người phụ trách</option>
+                    <x-pwa-select-search
+                        id="commission-manager-user"
+                        name="manager_user_id"
+                        :selected="$filters['manager_user_id'] ?? ''"
+                        placeholder="Tất cả người phụ trách"
+                        search-placeholder="Tìm tên hoặc email..."
+                        data-pwa-select-search-submit="change"
+                    >
+                        <button type="button" data-pwa-select-search-option data-value="" data-label="Tất cả người phụ trách" data-search="tất cả người phụ trách" class="flex w-full items-center rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-700 hover:bg-slate-100">Tất cả người phụ trách</button>
                         @foreach($commissionUsers as $commissionUser)
-                            <option value="{{ $commissionUser->id }}" @selected($filters['manager_user_id']===(int)$commissionUser->id)>{{ $commissionUser->name }}{{ $commissionUser->email ? ' · '.$commissionUser->email : '' }}</option>
+                            @php($commissionUserLabel=$commissionUser->name.($commissionUser->email ? ' · '.$commissionUser->email : ''))
+                            <button type="button" data-pwa-select-search-option data-value="{{ $commissionUser->id }}" data-label="{{ $commissionUserLabel }}" data-search="{{ $commissionUserLabel }}" class="flex w-full items-center rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-700 hover:bg-slate-100">{{ $commissionUserLabel }}</button>
                         @endforeach
-                    </x-select-search>
-                    </div>
+                    </x-pwa-select-search>
                 </label>
             @endif
             <input type="hidden" name="source" value="{{ $filters['source'] }}">
