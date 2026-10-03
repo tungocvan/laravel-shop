@@ -45,7 +45,9 @@
                     >
                         <button type="button" data-pwa-select-search-option data-value="" data-label="Tất cả người phụ trách" data-search="tất cả người phụ trách" class="flex w-full items-center rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-700 hover:bg-slate-100">Tất cả người phụ trách</button>
                         @foreach($commissionUsers as $commissionUser)
-                            @php($commissionUserLabel=$commissionUser->name.($commissionUser->email ? ' · '.$commissionUser->email : ''))
+                            @php
+                                $commissionUserLabel = $commissionUser->name.($commissionUser->email ? ' · '.$commissionUser->email : '');
+                            @endphp
                             <button type="button" data-pwa-select-search-option data-value="{{ $commissionUser->id }}" data-label="{{ $commissionUserLabel }}" data-search="{{ $commissionUserLabel }}" class="flex w-full items-center rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-700 hover:bg-slate-100">{{ $commissionUserLabel }}</button>
                         @endforeach
                     </x-pwa-select-search>
