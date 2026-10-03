@@ -39,9 +39,9 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('return $this->commissions->userQuery($userId,$filters);',$service);
         $this->assertStringContainsString('return $this->commissions->adminQuery($filters);',$service);
         $this->assertStringContainsString("if(\$managerUserId!==null)",$service);
-        $this->assertStringContainsString("whereHas('medicine'",$service);
-        $this->assertStringContainsString("orWhereHas('partner'",$service);
-        $this->assertStringContainsString("orWhereHas('issue'",$service);
+        $this->assertStringContainsString("if(\$partnerId!==null)",$service);
+        $this->assertStringContainsString("where('partner_id',\$partnerId)",$service);
+        $this->assertStringContainsString('public function commissionPartners(',$service);
         $this->assertStringContainsString("SUM(revenue_amount)",$service);
         $this->assertStringContainsString("SUM(commission_amount)",$service);
         $this->assertStringContainsString("groupBy('issue_id')",$service);
@@ -74,6 +74,8 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString("'permission' => 'client.pharma.commissions.view-team'",$manifest);
         $this->assertStringContainsString("\$registry->userCan(\$user,'client.pharma.commissions.view-team')",$controller);
         $this->assertStringContainsString("'manager_user_id'=>['nullable','integer','min:1']",$controller);
+        $this->assertStringContainsString("'partner_id'=>['nullable','integer','min:1']",$controller);
+        $this->assertStringContainsString('$workspace->commissionPartners((int)$user->id',$controller);
         $this->assertStringContainsString("\$canViewTeam ? \$workspace->commissionUsers() : collect()",$controller);
 
         $this->assertStringContainsString("@section('hide-application-header', true)",$view);
@@ -94,6 +96,11 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('Hoa hồng ròng',$view);
         $this->assertStringContainsString('Chưa xác định',$view);
         $this->assertStringContainsString('Xóa bộ lọc',$view);
+        $this->assertStringContainsString('id="commission-partner"',$view);
+        $this->assertStringContainsString('search-placeholder="Tìm khách hàng..."',$view);
+        $this->assertStringContainsString('id="commission-mobile-list"',$view);
+        $this->assertStringContainsString('hidden overflow-hidden rounded-3xl',$view);
+        $this->assertStringContainsString('table-fixed',$view);
         $this->assertStringContainsString('Người phụ trách',$view);
         $this->assertStringContainsString('<x-pwa-select-search',$view);
         $this->assertStringContainsString('search-placeholder="Tìm tên hoặc email..."',$view);
@@ -112,9 +119,8 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('data-commission-date-picker="from"',$view);
         $this->assertStringContainsString("format('d/m/Y')",$view);
         $this->assertStringContainsString('rounded-2xl border border-slate-200 bg-white',$pwaSelectSearch);
-        $this->assertStringContainsString('data-pwa-debounced-search="800"',$view);
-        $this->assertStringContainsString('data-pwa-search-clear-button="#commission-search-input"',$view);
-        $this->assertStringContainsString('data-pwa-load-more',$view);
+        $this->assertStringNotContainsString('id="commission-search-input"',$view);
+        $this->assertStringNotContainsString('data-pwa-debounced-search="800"',$view);
         $this->assertStringContainsString('data-commission-item',$view);
         $this->assertStringContainsString('active:scale-[0.985]',$view);
         $this->assertStringContainsString('motion-reduce:transform-none',$view);
