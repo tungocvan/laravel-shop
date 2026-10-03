@@ -45,8 +45,8 @@ class ClientAdaptiveNavigationTest extends TestCase
         $this->assertStringContainsString("'bottom_sort_order'", $resolver);
         $this->assertStringContainsString("'bottom_icon'", $resolver);
         $this->assertStringContainsString("pwaBottomNavigation", $layout);
-        $this->assertStringContainsString("$bottomIconSize", $navigation);
-        $this->assertStringContainsString("$bottomTextSize", $navigation);
+        $this->assertStringContainsString("\$bottomIconSize", $navigation);
+        $this->assertStringContainsString("\$bottomTextSize", $navigation);
         $this->assertStringContainsString("access->can", $resolver);
         $this->assertStringNotContainsString("['route'] =", $resolver);
         $this->assertStringNotContainsString("['permission'] =", $resolver);
