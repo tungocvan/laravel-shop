@@ -74,6 +74,26 @@ class ClientPortalSettingsService
         return $settings;
     }
 
+    public function applicationNavigationPresentation(array $application): array
+    {
+        $defaults = collect($application['navigation'] ?? [])->map(fn (array $item): array => [
+            'key' => $item['key'],
+            'bottom_enabled' => true,
+            'bottom_sort_order' => (int) ($item['sort_order'] ?? 100),
+        ])->values()->all();
+        $settings = $this->group('application.'.$application['key'].'.navigation', ['items' => $defaults]);
+        $stored = collect($settings['items'] ?? [])->filter(fn ($item): bool => is_array($item) && isset($item['key']))->keyBy('key');
+
+        return ['items' => collect($defaults)->map(function (array $item) use ($stored): array {
+            $override = (array) $stored->get($item['key'], []);
+            return [
+                'key' => $item['key'],
+                'bottom_enabled' => $this->bool($override['bottom_enabled'] ?? $item['bottom_enabled'], true),
+                'bottom_sort_order' => (int) ($override['bottom_sort_order'] ?? $item['bottom_sort_order']),
+            ];
+        })->values()->all()];
+    }
+
     public function featurePresentation(string $applicationKey, array $feature): array
     {
         $defaults = [
@@ -129,6 +149,7 @@ class ClientPortalSettingsService
     public function updatePwaLauncher(array $values, ?int $updatedBy = null): void { $this->updateGroup('pwa.launcher', $values, $updatedBy); }
     public function updateApplicationPresentation(string $applicationKey, array $values, ?int $updatedBy = null): void { $this->updateGroup('application.'.trim($applicationKey).'.presentation', $values, $updatedBy); }
     public function updateApplicationHubPresentation(string $applicationKey, array $values, ?int $updatedBy = null): void { $this->updateGroup('application.'.trim($applicationKey).'.hub', $values, $updatedBy); }
+    public function updateApplicationNavigationPresentation(string $applicationKey, array $values, ?int $updatedBy = null): void { $this->updateGroup('application.'.trim($applicationKey).'.navigation', $values, $updatedBy); }
     public function updateFeaturePresentation(string $applicationKey, string $featureKey, array $values, ?int $updatedBy = null): void { $this->updateGroup('application.'.trim($applicationKey).'.feature.'.trim($featureKey).'.presentation', $values, $updatedBy); }
 
     private function groupHasStoredValues(string $group): bool
