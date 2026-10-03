@@ -66,35 +66,63 @@
     </section>
 
     <div id="commission-results" class="space-y-4">
-        <section id="commission-list" class="grid gap-3 xl:grid-cols-2">
-            @forelse($rows as $row)
-                @php
-                    $isReversal=$row->entry_type===\Modules\Pharma\Models\InventoryIssueCommission::TYPE_REVERSAL;
-                    $isUnresolved=$row->status===\Modules\Pharma\Models\InventoryIssueCommission::STATUS_UNRESOLVED;
-                    $customer=$row->partner?->name ?: $row->issue?->recipient_name ?: '—';
-                @endphp
-                <article data-commission-item class="min-w-0 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0">
-                            <p class="text-xs font-bold uppercase tracking-wide text-slate-400">{{ $row->calculated_at?->format('d/m/Y H:i') }} · {{ $row->source_type==='bid' ? 'Trúng thầu' : 'Bảng giá' }}</p>
-                            <h2 class="mt-1 line-clamp-2 font-black text-slate-950">{{ $row->medicine?->name ?: 'Sản phẩm #'.$row->medicine_id }}</h2>
-                            <p class="mt-1 truncate text-sm text-slate-500">{{ $row->medicine?->medicine_code ?: '—' }} · {{ $customer }}</p>
-                            @if($canViewTeam)<p class="mt-1 truncate text-xs font-bold text-slate-400">Người phụ trách: {{ $row->user?->name ?: '#'.$row->user_id }}</p>@endif
-                        </div>
-                        <span class="shrink-0 rounded-full px-3 py-1.5 text-xs font-black {{ $isUnresolved ? 'bg-amber-100 text-amber-800' : ($isReversal ? 'bg-slate-200 text-slate-700' : 'bg-emerald-100 text-emerald-800') }}">{{ $isUnresolved ? 'Chưa xác định' : ($isReversal ? 'Hoàn tác' : 'Đã ghi nhận') }}</span>
-                    </div>
-                    <dl class="mt-4 grid grid-cols-2 gap-3 rounded-2xl bg-slate-50 p-4 text-sm">
-                        <div><dt class="text-xs font-bold text-slate-400">SL thực xuất</dt><dd class="mt-1 font-black tabular-nums text-slate-800">{{ number_format((float)$row->quantity,0,',','.') }}</dd></div>
-                        <div><dt class="text-xs font-bold text-slate-400">Doanh số</dt><dd class="mt-1 font-black tabular-nums text-slate-800">{{ number_format((float)$row->revenue_amount,0,',','.') }} đ</dd></div>
-                        <div><dt class="text-xs font-bold text-slate-400">Chính sách</dt><dd class="mt-1 font-black tabular-nums text-slate-800">{{ $row->commission_percentage!==null ? rtrim(rtrim(number_format((float)$row->commission_percentage,4,'.',''), '0'),'.').'%' : '—' }}</dd></div>
-                        <div><dt class="text-xs font-bold text-slate-400">Hoa hồng</dt><dd class="mt-1 font-black tabular-nums {{ (float)$row->commission_amount<0 ? 'text-rose-700' : 'text-slate-950' }}">{{ number_format((float)$row->commission_amount,0,',','.') }} đ</dd></div>
-                    </dl>
-                    <p class="mt-3 text-xs font-semibold text-slate-400">Phiếu {{ $row->issue?->number ?: '#'.$row->issue_id }}{{ $row->resolution_note ? ' · '.$row->resolution_note : '' }}</p>
-                </article>
-            @empty
-                <div class="xl:col-span-2 rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center"><h2 class="font-black text-slate-800">Chưa có hoa hồng phù hợp</h2><p class="mt-2 text-sm text-slate-500">Thử thay đổi khoảng ngày, nguồn hoặc từ khóa tìm kiếm.</p></div>
-            @endforelse
-        </section>
+        <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+            <table class="w-full border-collapse text-left">
+                <thead class="hidden bg-slate-50 text-xs font-black uppercase tracking-wide text-slate-500 md:table-header-group">
+                    <tr>
+                        <th class="px-4 py-3">Ngày xuất</th>
+                        <th class="px-4 py-3">Khách hàng</th>
+                        <th class="px-4 py-3">Người phụ trách</th>
+                        <th class="px-4 py-3 text-right">Tổng giá trị</th>
+                        <th class="px-4 py-3 text-right">Tổng hoa hồng</th>
+                    </tr>
+                </thead>
+                <tbody id="commission-list" class="block divide-y divide-slate-200 md:table-row-group">
+                    @forelse($rows as $row)
+                        @php
+                            $issue=$row->issue;
+                            $customer=$issue?->recipientPartner?->name ?: $issue?->recipient_name ?: '—';
+                            $manager=$issue?->manager?->name ?: '—';
+                            $detailUrl=route('client.pharma.commissions.show',['issue'=>$row->issue_id]);
+                        @endphp
+                        <tr data-commission-item class="block p-4 transition active:scale-[0.985] md:table-row md:p-0 motion-reduce:transform-none">
+                            <td class="block md:table-cell md:px-4 md:py-4">
+                                <a href="{{ $detailUrl }}" class="flex items-center justify-between gap-3 md:block">
+                                    <span class="text-xs font-bold uppercase tracking-wide text-slate-400 md:hidden">Ngày xuất</span>
+                                    <span class="font-black text-slate-950">{{ $issue?->issue_date?->format('d/m/Y') ?: $row->calculated_at?->format('d/m/Y') }}</span>
+                                </a>
+                            </td>
+                            <td class="mt-2 block md:mt-0 md:table-cell md:px-4 md:py-4">
+                                <a href="{{ $detailUrl }}" class="flex items-start justify-between gap-3 md:block">
+                                    <span class="shrink-0 text-xs font-bold uppercase tracking-wide text-slate-400 md:hidden">Khách hàng</span>
+                                    <span class="min-w-0 text-right font-bold text-slate-800 md:text-left">{{ $customer }}</span>
+                                </a>
+                            </td>
+                            <td class="mt-2 block md:mt-0 md:table-cell md:px-4 md:py-4">
+                                <a href="{{ $detailUrl }}" class="flex items-center justify-between gap-3 md:block">
+                                    <span class="text-xs font-bold uppercase tracking-wide text-slate-400 md:hidden">Người phụ trách</span>
+                                    <span class="font-semibold text-slate-700">{{ $manager }}</span>
+                                </a>
+                            </td>
+                            <td class="mt-2 block md:mt-0 md:table-cell md:px-4 md:py-4 md:text-right">
+                                <a href="{{ $detailUrl }}" class="flex items-center justify-between gap-3 md:block">
+                                    <span class="text-xs font-bold uppercase tracking-wide text-slate-400 md:hidden">Tổng giá trị</span>
+                                    <span class="font-black tabular-nums text-slate-950">{{ number_format((float)$row->revenue_amount,0,',','.') }} đ</span>
+                                </a>
+                            </td>
+                            <td class="mt-2 block border-t border-slate-100 pt-3 md:mt-0 md:table-cell md:border-0 md:px-4 md:py-4 md:text-right">
+                                <a href="{{ $detailUrl }}" class="flex items-center justify-between gap-3 md:block">
+                                    <span class="text-xs font-bold uppercase tracking-wide text-slate-400 md:hidden">Tổng hoa hồng</span>
+                                    <span class="font-black tabular-nums {{ (float)$row->commission_amount<0 ? 'text-rose-700' : 'text-emerald-700' }}">{{ number_format((float)$row->commission_amount,0,',','.') }} đ <span class="ml-1 text-slate-400">›</span></span>
+                                </a>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="5" class="px-5 py-10 text-center"><h2 class="font-black text-slate-800">Chưa có phiếu xuất phù hợp</h2><p class="mt-2 text-sm text-slate-500">Thử thay đổi khoảng ngày, nguồn hoặc từ khóa tìm kiếm.</p></td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
 
         @if($rows->hasMorePages())
             <div id="commission-load-more-wrap" class="pt-1 text-center">
