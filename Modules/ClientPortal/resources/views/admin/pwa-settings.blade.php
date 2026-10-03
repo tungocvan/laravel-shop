@@ -70,9 +70,10 @@
                             <select name="theme_key" form="bottom-navigation-theme-apply" onchange="if(this.value){this.form.requestSubmit()}" class="min-w-0 flex-1 rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm">
                                 <option value="">Chọn theme...</option>
                                 @foreach($bottomNavigationThemes as $theme)
-                                    <option value="{{ $theme['key'] }}">{{ $theme['name'] }}</option>
+                                    <option value="{{ $theme['key'] }}">{{ $theme['builtin'] ? '★ ' : '' }}{{ $theme['name'] }}</option>
                                 @endforeach
                             </select>
+                            <p class="mt-2 text-xs text-gray-500">★ Theme thiết kế sẵn · Theme tự tạo được lưu trong System Settings.</p>
                         </div>
                     </div>
                     <button type="submit" form="bottom-navigation-reset" class="self-end rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700">Reset mặc định</button>
@@ -82,6 +83,9 @@
                     <label class="block"><span class="text-sm font-semibold text-gray-800">Độ trong nền (%)</span><input type="number" min="0" max="100" name="background_opacity" value="{{ old('background_opacity', $bottomNavigation['background_opacity']) }}" class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm"></label>
                     <label class="block"><span class="text-sm font-semibold text-gray-800">Màu icon</span><input type="color" name="icon_color" value="{{ old('icon_color', $bottomNavigation['icon_color']) }}" class="mt-1 h-11 w-full rounded-xl border border-gray-300 bg-white p-1"></label>
                     <label class="block"><span class="text-sm font-semibold text-gray-800">Màu text</span><input type="color" name="text_color" value="{{ old('text_color', $bottomNavigation['text_color']) }}" class="mt-1 h-11 w-full rounded-xl border border-gray-300 bg-white p-1"></label>
+                    <label class="block"><span class="text-sm font-semibold text-gray-800">Màu icon đang chọn</span><input type="color" name="active_icon_color" value="{{ old('active_icon_color', $bottomNavigation['active_icon_color']) }}" class="mt-1 h-11 w-full rounded-xl border border-gray-300 bg-white p-1"></label>
+                    <label class="block"><span class="text-sm font-semibold text-gray-800">Màu text đang chọn</span><input type="color" name="active_text_color" value="{{ old('active_text_color', $bottomNavigation['active_text_color']) }}" class="mt-1 h-11 w-full rounded-xl border border-gray-300 bg-white p-1"></label>
+                    <label class="block"><span class="text-sm font-semibold text-gray-800">Nền mục đang chọn</span><input type="color" name="active_background_color" value="{{ old('active_background_color', $bottomNavigation['active_background_color']) }}" class="mt-1 h-11 w-full rounded-xl border border-gray-300 bg-white p-1"></label>
                     <label class="block"><span class="text-sm font-semibold text-gray-800">Font-size text (px)</span><input type="number" min="9" max="18" name="text_font_size" value="{{ old('text_font_size', $bottomNavigation['text_font_size']) }}" class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm"></label>
                     <label class="block"><span class="text-sm font-semibold text-gray-800">Kích thước icon (px)</span><input type="number" min="16" max="36" name="icon_size" value="{{ old('icon_size', $bottomNavigation['icon_size']) }}" class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm"></label>
                     <label class="block"><span class="text-sm font-semibold text-gray-800">Chiều cao tối thiểu (px)</span><input type="number" min="56" max="120" name="min_height" value="{{ old('min_height', $bottomNavigation['min_height']) }}" class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm"><span class="mt-1 block text-xs text-gray-500">Safe-area iPhone vẫn được cộng riêng.</span></label>
