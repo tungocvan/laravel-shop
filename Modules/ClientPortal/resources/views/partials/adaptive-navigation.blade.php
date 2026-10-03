@@ -92,8 +92,8 @@
     @endunless
 @else
     @unless($hideMobileNavigation)
-    <nav class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-2 pb-[max(.7rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur sm:hidden" aria-label="Điều hướng ứng dụng">
-        <div class="mx-auto max-w-md text-center text-xs font-semibold text-slate-500">
+    <nav class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 px-2 pb-[max(.7rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur sm:hidden" style="background-color: {{ $bottomBackgroundRgba }}; min-height: calc({{ $bottomMinHeight }}px + env(safe-area-inset-bottom, 0px));" aria-label="Điều hướng ứng dụng">
+        <div class="mx-auto max-w-md text-center font-semibold" style="font-size: {{ $bottomTextSize }}px; color: {{ $bottomTextColor }};">
             <a href="{{ route('client.apps.index') }}" class="inline-flex min-h-11 items-center gap-2 rounded-xl px-4 py-2">
                 @include('ClientPortal::partials.navigation-icon', ['name' => 'squares-2x2', 'class' => 'h-5 w-5'])
                 <span>Ứng dụng</span>
