@@ -68,6 +68,10 @@ Route::middleware(['web', 'auth:admin'])
             ->middleware('permission:manage_admission_locations,admin')
             ->name('dvhc.update');
 
+        Route::post('/dvhc-delete-selected', [AdmissionController::class, 'deleteDvhcSelected'])
+            ->middleware('permission:manage_admission_locations,admin')
+            ->name('dvhc.delete-selected');
+
         Route::get('/list-class', [AdmissionController::class, 'listClass'])
             ->middleware('permission:view_admission,admin')
             ->name('list-class');

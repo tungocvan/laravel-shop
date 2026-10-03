@@ -230,6 +230,14 @@ class RegistrationForm extends Component
     {
         $target = max(1, min($this->totalSteps, (int) $step));
 
+        // Admin edit is a review workspace: allow direct navigation between all
+        // steps and validate the complete record only when Save is requested.
+        if ($this->isEdit) {
+            $this->currentStep = $target;
+
+            return;
+        }
+
         if ($target > $this->currentStep) {
             if (! $this->validateStepOrNotify((int) $this->currentStep)) {
                 return;
@@ -414,6 +422,8 @@ class RegistrationForm extends Component
             'form.LoaiLopDangKy' => 'Lớp đăng ký',
             'form.SchoolCampusName' => 'Cơ sở trường',
             'form.SchoolCampusAddress' => 'Địa chỉ cơ sở trường',
+            'form.NgayLamDon' => 'Ngày làm đơn',
+            'form.NguoiLamDon' => 'Người làm đơn',
             'form.DienThoaiCha' => 'Điện thoại cha',
             'form.DienThoaiMe' => 'Điện thoại mẹ',
             'form.DienThoaiNguoiGiamHo' => 'Điện thoại người giám hộ',
@@ -443,10 +453,15 @@ class RegistrationForm extends Component
                 5 => 'Xác nhận và sắp xếp lớp',
             ];
 
+            $errors = $e->validator->errors()->all();
+            $details = collect($errors)->take(5)->implode(' • ');
+
             $this->dispatch('show-validation-modal', [
                 'step' => $step,
                 'stepName' => $stepNames[$step] ?? 'Thông tin hồ sơ',
-                'message' => 'Hồ sơ còn thông tin thiếu hoặc chưa hợp lệ. Vui lòng quay lại bước này để kiểm tra và cập nhật các trường được đánh dấu.',
+                'message' => $details !== ''
+                    ? 'Cần cập nhật: '.$details
+                    : 'Hồ sơ còn thông tin thiếu hoặc chưa hợp lệ. Vui lòng quay lại bước này để kiểm tra.',
             ]);
 
             return false;

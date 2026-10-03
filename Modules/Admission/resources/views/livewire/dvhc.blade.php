@@ -1,4 +1,4 @@
-<div class="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
+<div class="max-w-7xl mx-auto p-4 sm:p-6 space-y-6" x-data="{ selectedCount: 0, allSelected: false }">
 
     @livewire('shared.import-export.panel', [
         'serviceClass' => \Modules\Admission\Services\ImportExport::class,
@@ -96,14 +96,15 @@
                    placeholder="Tìm kiếm phường..."
                    class="w-full rounded-xl border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:max-w-md">
 
-            <button type="button"
-                    wire:click="deleteSelected"
-                    wire:confirm="Bạn chắc chắn muốn xóa các đơn vị hành chính đã chọn?"
-                    wire:loading.attr="disabled"
-                    @disabled(count($selectedIds) === 0)
-                    class="inline-flex items-center justify-center rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50">
-                Xóa đã chọn ({{ count($selectedIds) }})
-            </button>
+            <form id="dvhc-bulk-delete" method="POST" action="{{ route('admin.admission.dvhc.delete-selected') }}"
+                  onsubmit="return confirm('Bạn chắc chắn muốn xóa các đơn vị hành chính đã chọn?')">
+                @csrf
+                <button type="submit"
+                        x-bind:disabled="selectedCount === 0"
+                        class="inline-flex items-center justify-center rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50">
+                    Xóa đã chọn (<span x-text="selectedCount">0</span>)
+                </button>
+            </form>
         </div>
 
         @error('selectedIds')
@@ -117,7 +118,11 @@
                     <tr class="text-left text-gray-600">
                         <th class="w-12 px-4 py-4 text-center">
                             <input type="checkbox"
-                                   wire:model.live="selectAll"
+                                   x-model="allSelected"
+                                   x-on:change="
+                                       document.querySelectorAll('.dvhc-select-row').forEach(el => el.checked = allSelected);
+                                       selectedCount = allSelected ? document.querySelectorAll('.dvhc-select-row').length : 0;
+                                   "
                                    aria-label="Chọn tất cả dòng đang hiển thị"
                                    class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                         </th>
@@ -138,10 +143,15 @@
 
                             <td class="px-4 py-4 text-center">
                                 <input type="checkbox"
-                                       wire:model.live="selectedIds"
+                                       form="dvhc-bulk-delete"
+                                       name="ids[]"
                                        value="{{ $row['id'] }}"
+                                       x-on:change="
+                                           selectedCount = document.querySelectorAll('.dvhc-select-row:checked').length;
+                                           allSelected = selectedCount === document.querySelectorAll('.dvhc-select-row').length;
+                                       "
                                        aria-label="Chọn {{ $row['ward_name'] }}"
-                                       class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                       class="dvhc-select-row rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                             </td>
 
                             {{-- PROVINCE --}}
