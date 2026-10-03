@@ -29,7 +29,10 @@ final class PharmaCommissionsCapabilityTest extends TestCase
 
         $this->assertStringContainsString('CommissionQueryService $commissions',$service);
         $this->assertStringContainsString('->userQuery($userId',$service);
-        $this->assertStringNotContainsString('->adminQuery(',$service);
+        $this->assertStringContainsString('if(!$canViewTeam)',$service);
+        $this->assertStringContainsString('return $this->commissions->userQuery($userId,$filters);',$service);
+        $this->assertStringContainsString('return $this->commissions->adminQuery($filters);',$service);
+        $this->assertStringContainsString("if(\$managerUserId!==null)",$service);
         $this->assertStringContainsString("whereHas('medicine'",$service);
         $this->assertStringContainsString("orWhereHas('partner'",$service);
         $this->assertStringContainsString("orWhereHas('issue'",$service);
@@ -56,6 +59,10 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString("'route' => 'client.pharma.commissions'",$manifest);
         $this->assertStringContainsString("'page_title' => 'Hoa hồng của tôi'",$manifest);
         $this->assertStringContainsString("'permission' => 'client.pharma.commissions.view'",$manifest);
+        $this->assertStringContainsString("'permission' => 'client.pharma.commissions.view-team'",$manifest);
+        $this->assertStringContainsString("\$registry->userCan(\$user,'client.pharma.commissions.view-team')",$controller);
+        $this->assertStringContainsString("'manager_user_id'=>['nullable','integer','min:1']",$controller);
+        $this->assertStringContainsString("\$canViewTeam ? \$workspace->commissionUsers() : collect()",$controller);
 
         $this->assertStringContainsString("@section('hide-application-header', true)",$view);
         $this->assertStringContainsString("@section('hide-mobile-navigation', true)",$view);
@@ -66,6 +73,11 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('Hoa hồng ròng',$view);
         $this->assertStringContainsString('Chưa xác định',$view);
         $this->assertStringContainsString('Xóa bộ lọc',$view);
+        $this->assertStringContainsString('Người phụ trách',$view);
+        $this->assertStringContainsString('<x-select-search id="commission-manager-user"',$view);
+        $this->assertStringContainsString('@if($canViewTeam)',$view);
+        $this->assertStringContainsString('min-w-0 overflow-hidden',$view);
+        $this->assertStringContainsString('style="width:100%;min-width:0;max-width:100%;"',$view);
         $this->assertStringContainsString('data-pwa-debounced-search="800"',$view);
         $this->assertStringContainsString('data-pwa-search-clear-button="#commission-search-input"',$view);
         $this->assertStringContainsString('data-pwa-load-more',$view);
