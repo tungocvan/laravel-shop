@@ -25,10 +25,20 @@
     </section>
 
     <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-        <nav class="flex gap-2 overflow-x-auto pb-1" aria-label="Nguồn hoa hồng">
+        @php
+            $hasCommissionFilters=$filters['source']!=='all'
+                || !empty($filters['manager_user_id'])
+                || !empty($filters['partner_id'])
+                || $filters['from']!==now()->startOfMonth()->toDateString()
+                || $filters['to']!==now()->toDateString();
+        @endphp
+        <nav class="flex items-center gap-2 overflow-x-auto pb-1" aria-label="Nguồn hoa hồng">
             @foreach($sources as $value=>$label)
                 <a href="{{ route('client.pharma.commissions', array_filter(['source'=>$value==='all' ? null : $value,'from'=>$filters['from'],'to'=>$filters['to'],'partner_id'=>$filters['partner_id'],'manager_user_id'=>$filters['manager_user_id']])) }}" class="whitespace-nowrap rounded-full border px-4 py-2 text-sm font-black transition active:scale-[0.985] motion-reduce:transform-none {{ $filters['source']===$value ? 'border-slate-950 bg-slate-950 text-white' : 'border-slate-200 bg-white text-slate-600' }}">{{ $label }}</a>
             @endforeach
+            @if($hasCommissionFilters)
+                <a href="{{ route('client.pharma.commissions') }}" aria-label="Xóa bộ lọc" title="Xóa bộ lọc" class="ml-1 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-lg font-black text-slate-500 transition hover:bg-slate-100 active:scale-[0.96] motion-reduce:transform-none">↺</a>
+            @endif
         </nav>
 
         <form id="commission-filter-form" method="GET" action="{{ route('client.pharma.commissions') }}" class="mt-4 min-w-0 space-y-3">
@@ -61,10 +71,9 @@
                 </label>
             </div>
 
-            <div class="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_46px] sm:items-end">
+            <div class="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 md:items-end">
                 <label class="min-w-0"><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Từ ngày</span><span class="relative block h-[46px] min-w-0 overflow-hidden rounded-2xl border border-slate-300 bg-white"><span data-commission-date-label="from" class="pointer-events-none flex h-full items-center px-3 pr-11 text-sm font-semibold text-slate-950">{{ \Carbon\Carbon::parse($filters['from'])->format('d/m/Y') }}</span><span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">▾</span><input type="date" name="from" value="{{ $filters['from'] }}" data-commission-date-picker="from" aria-label="Chọn từ ngày" class="absolute inset-0 h-full w-full cursor-pointer opacity-0" style="min-width:100%;max-width:100%;" onchange="window.syncCommissionDate(this)"></span></label>
                 <label class="min-w-0"><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Đến ngày</span><span class="relative block h-[46px] min-w-0 overflow-hidden rounded-2xl border border-slate-300 bg-white"><span data-commission-date-label="to" class="pointer-events-none flex h-full items-center px-3 pr-11 text-sm font-semibold text-slate-950">{{ \Carbon\Carbon::parse($filters['to'])->format('d/m/Y') }}</span><span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">▾</span><input type="date" name="to" value="{{ $filters['to'] }}" data-commission-date-picker="to" aria-label="Chọn đến ngày" class="absolute inset-0 h-full w-full cursor-pointer opacity-0" style="min-width:100%;max-width:100%;" onchange="window.syncCommissionDate(this)"></span></label>
-                <a href="{{ route('client.pharma.commissions') }}" aria-label="Xóa bộ lọc" title="Xóa bộ lọc" class="inline-flex h-[46px] w-full items-center justify-center rounded-2xl border border-slate-300 bg-white text-xl font-black text-slate-500 transition active:scale-[0.96] sm:w-[46px] motion-reduce:transform-none">↺<span class="ml-2 text-sm sm:hidden">Xóa bộ lọc</span></a>
             </div>
         </form>
     </section>
@@ -135,7 +144,6 @@ window.syncCommissionDate=(input)=>{
     const [year,month,day]=input.value.split('-');
     const label=document.querySelector('[data-commission-date-label="'+input.dataset.commissionDatePicker+'"]');
     if(label) label.textContent=day+'/'+month+'/'+year;
-    input.form.requestSubmit();
 };
 </script>
 @endsection
