@@ -16,6 +16,7 @@ class PwaSettingsController extends Controller
         return view('ClientPortal::admin.pwa-settings', [
             'general' => $settings->pwaGeneral(),
             'login' => $settings->pwaLogin(),
+            'bottomNavigation' => $settings->pwaBottomNavigation(),
             'adminUi' => config('clientportal.pwa.admin', []),
         ]);
     }
@@ -56,6 +57,21 @@ class PwaSettingsController extends Controller
         ]);
         $settings->updatePwaGeneral($validated, $request->user('admin')?->getAuthIdentifier());
         return back()->with('success', 'Đã cập nhật cấu hình PWA chung.');
+    }
+
+    public function updateBottomNavigation(Request $request, ClientPortalSettingsService $settings): RedirectResponse
+    {
+        $validated = $request->validate([
+            'background_color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'background_opacity' => ['required', 'integer', 'min:0', 'max:100'],
+            'icon_color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'text_color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'text_font_size' => ['required', 'integer', 'min:9', 'max:18'],
+            'icon_size' => ['required', 'integer', 'min:16', 'max:36'],
+            'min_height' => ['required', 'integer', 'min:56', 'max:120'],
+        ]);
+        $settings->updatePwaBottomNavigation($validated, $request->user('admin')?->getAuthIdentifier());
+        return back()->with('success', 'Đã cập nhật giao diện Bottom Navigation dùng chung.');
     }
 
     public function updateLogin(Request $request, ClientPortalSettingsService $settings): RedirectResponse
@@ -116,12 +132,14 @@ class PwaSettingsController extends Controller
             'items.*.key' => ['required', 'string'],
             'items.*.bottom_enabled' => ['required', 'boolean'],
             'items.*.bottom_sort_order' => ['required', 'integer', 'min:0', 'max:9999'],
+            'items.*.bottom_icon' => ['required', 'string', 'max:60'],
         ]);
         $allowed = collect($manifest['navigation'] ?? [])->pluck('key')->flip();
         $items = collect($validated['items'])->filter(fn (array $item): bool => $allowed->has($item['key']))->map(fn (array $item): array => [
             'key' => $item['key'],
             'bottom_enabled' => (bool) $item['bottom_enabled'],
             'bottom_sort_order' => (int) $item['bottom_sort_order'],
+            'bottom_icon' => trim((string) $item['bottom_icon']),
         ])->values()->all();
         $settings->updateApplicationNavigationPresentation($manifest['key'], ['items' => $items], $request->user('admin')?->getAuthIdentifier());
         return back()->with('success', 'Đã cập nhật Bottom Navigation của ứng dụng '.$manifest['name'].'.');
