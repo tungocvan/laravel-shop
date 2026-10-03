@@ -57,6 +57,23 @@
                 </div>
             </form>
 
+            <form method="POST" action="{{ route('admin.client-apps.pwa.bottom-navigation.update') }}" class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+                @csrf @method('PUT')
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div><h2 class="text-lg font-bold text-gray-900">Bottom Navigation dùng chung</h2><p class="mt-1 text-sm text-gray-500">Áp dụng cho Bottom Navigation mobile của tất cả Client Applications. Giá trị mặc định giữ giao diện hiện tại.</p></div>
+                    <button class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Lưu Bottom Navigation</button>
+                </div>
+                <div class="mt-6 grid gap-5 md:grid-cols-2">
+                    <label class="block"><span class="text-sm font-semibold text-gray-800">Màu nền</span><input type="color" name="background_color" value="{{ old('background_color', $bottomNavigation['background_color']) }}" class="mt-1 h-11 w-full rounded-xl border border-gray-300 bg-white p-1"></label>
+                    <label class="block"><span class="text-sm font-semibold text-gray-800">Độ trong nền (%)</span><input type="number" min="0" max="100" name="background_opacity" value="{{ old('background_opacity', $bottomNavigation['background_opacity']) }}" class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm"></label>
+                    <label class="block"><span class="text-sm font-semibold text-gray-800">Màu icon</span><input type="color" name="icon_color" value="{{ old('icon_color', $bottomNavigation['icon_color']) }}" class="mt-1 h-11 w-full rounded-xl border border-gray-300 bg-white p-1"></label>
+                    <label class="block"><span class="text-sm font-semibold text-gray-800">Màu text</span><input type="color" name="text_color" value="{{ old('text_color', $bottomNavigation['text_color']) }}" class="mt-1 h-11 w-full rounded-xl border border-gray-300 bg-white p-1"></label>
+                    <label class="block"><span class="text-sm font-semibold text-gray-800">Font-size text (px)</span><input type="number" min="9" max="18" name="text_font_size" value="{{ old('text_font_size', $bottomNavigation['text_font_size']) }}" class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm"></label>
+                    <label class="block"><span class="text-sm font-semibold text-gray-800">Kích thước icon (px)</span><input type="number" min="16" max="36" name="icon_size" value="{{ old('icon_size', $bottomNavigation['icon_size']) }}" class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm"></label>
+                    <label class="block"><span class="text-sm font-semibold text-gray-800">Chiều cao tối thiểu (px)</span><input type="number" min="56" max="120" name="min_height" value="{{ old('min_height', $bottomNavigation['min_height']) }}" class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm"><span class="mt-1 block text-xs text-gray-500">Safe-area iPhone vẫn được cộng riêng.</span></label>
+                </div>
+            </form>
+
             <form method="POST" action="{{ route('admin.client-apps.pwa.login.update') }}" class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
                 @csrf
                 @method('PUT')
