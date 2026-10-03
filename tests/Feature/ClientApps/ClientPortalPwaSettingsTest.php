@@ -211,9 +211,34 @@ class ClientPortalPwaSettingsTest extends TestCase
         $this->assertSame(95, $bottom['background_opacity']);
         $this->assertSame('#64748b', $bottom['icon_color']);
         $this->assertSame('#64748b', $bottom['text_color']);
+        $this->assertSame('#020617', $bottom['active_icon_color']);
+        $this->assertSame('#020617', $bottom['active_text_color']);
+        $this->assertSame('#f1f5f9', $bottom['active_background_color']);
         $this->assertSame(11, $bottom['text_font_size']);
         $this->assertSame(20, $bottom['icon_size']);
         $this->assertSame(72, $bottom['min_height']);
+    }
+
+    public function test_bottom_navigation_has_three_built_in_designed_themes(): void
+    {
+        $settings = app(ClientPortalSettingsService::class);
+        $themes = $settings->pwaBottomNavigationThemes()->keyBy('key');
+
+        $this->assertTrue($themes->has('builtin:clinical-blue'));
+        $this->assertTrue($themes->has('builtin:slate-professional'));
+        $this->assertTrue($themes->has('builtin:emerald-healthcare'));
+        $this->assertTrue($themes['builtin:clinical-blue']['builtin']);
+        $this->assertSame('#2563eb', $themes['builtin:clinical-blue']['values']['icon_color']);
+        $this->assertSame('#eff6ff', $themes['builtin:clinical-blue']['values']['active_background_color']);
+        $this->assertSame(22, $themes['builtin:emerald-healthcare']['values']['icon_size']);
+
+        $this->assertTrue($settings->applyPwaBottomNavigationTheme('builtin:clinical-blue', 71));
+        $active = $settings->pwaBottomNavigation();
+        $this->assertSame('#2563eb', $active['icon_color']);
+        $this->assertSame('#1d4ed8', $active['active_icon_color']);
+        $this->assertSame('#1e3a8a', $active['active_text_color']);
+        $this->assertSame('#eff6ff', $active['active_background_color']);
+        $this->assertSame(68, $active['min_height']);
     }
 
     public function test_bottom_navigation_theme_presets_use_system_settings_and_can_reset(): void
