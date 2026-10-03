@@ -149,6 +149,58 @@ class ClientPortalPwaSettingsTest extends TestCase
         ]);
     }
 
+    public function test_application_hub_uses_manifest_defaults_and_admin_overrides(): void
+    {
+        $registry = app(ApplicationRegistry::class);
+        $settings = app(ClientPortalSettingsService::class);
+        $application = $registry->find('pharma');
+
+        $this->assertNotNull($application);
+        $defaults = $settings->applicationHubPresentation($application);
+        $this->assertSame('Pharma PWA', $defaults['eyebrow']);
+        $this->assertSame('Không gian làm việc Pharma', $defaults['title']);
+        $this->assertSame('Ranh giới Foundation', $defaults['supporting_title']);
+        $this->assertTrue($defaults['supporting_visible']);
+
+        $settings->updateApplicationHubPresentation('pharma', [
+            'eyebrow' => 'Pharma Workspace',
+            'title' => 'Không gian Pharma',
+            'description' => 'Nội dung Hub do Admin quản lý.',
+            'supporting_visible' => false,
+            'supporting_title' => 'Ghi chú',
+            'supporting_body' => 'Nội dung hỗ trợ.',
+        ], 76);
+
+        $presentation = $settings->applicationHubPresentation($application);
+        $this->assertSame('Pharma Workspace', $presentation['eyebrow']);
+        $this->assertSame('Không gian Pharma', $presentation['title']);
+        $this->assertFalse($presentation['supporting_visible']);
+        $this->assertDatabaseHas('client_portal_settings', [
+            'group_name' => 'application.pharma.hub',
+            'key' => 'title',
+            'updated_by' => 76,
+        ]);
+    }
+
+    public function test_application_hub_keeps_legacy_overview_copy_as_compatibility_fallback(): void
+    {
+        $registry = app(ApplicationRegistry::class);
+        $settings = app(ClientPortalSettingsService::class);
+        $application = $registry->find('pharma');
+
+        $settings->updateFeaturePresentation('pharma', 'overview', [
+            'eyebrow' => 'Legacy eyebrow',
+            'page_title' => 'Legacy title',
+            'page_description' => 'Legacy description',
+        ]);
+
+        $presentation = $settings->applicationHubPresentation($application);
+        $this->assertSame('Legacy eyebrow', $presentation['eyebrow']);
+        $this->assertSame('Legacy title', $presentation['title']);
+        $this->assertSame('Legacy description', $presentation['description']);
+        $this->assertSame('Ranh giới Foundation', $presentation['supporting_title']);
+    }
+
     public function test_application_presentation_override_preserves_manifest_contract(): void
     {
         $registry = app(ApplicationRegistry::class);
@@ -233,6 +285,7 @@ class ClientPortalPwaSettingsTest extends TestCase
             'admin.client-apps.pwa.launcher.edit',
             'admin.client-apps.pwa.launcher.update',
             'admin.client-apps.pwa.applications.update',
+            'admin.client-apps.pwa.applications.hub.update',
         ] as $name) {
             $route = Route::getRoutes()->getByName($name);
 
