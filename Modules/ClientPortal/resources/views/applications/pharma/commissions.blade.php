@@ -35,12 +35,14 @@
             @if($canViewTeam)
                 <label class="min-w-0">
                     <span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Người phụ trách</span>
-                    <x-select-search id="commission-manager-user" name="manager_user_id" placeholder="Tất cả người phụ trách" onchange="this.form.requestSubmit()">
+                    <div class="min-w-0 rounded-2xl border border-slate-200 bg-white px-1 shadow-sm transition focus-within:border-slate-300 focus-within:ring-2 focus-within:ring-slate-100">
+                    <x-select-search id="commission-manager-user" name="manager_user_id" class="min-w-0 border-0 bg-transparent shadow-none" placeholder="Tất cả người phụ trách" onchange="this.form.requestSubmit()">
                         <option value="">Tất cả người phụ trách</option>
                         @foreach($commissionUsers as $commissionUser)
                             <option value="{{ $commissionUser->id }}" @selected($filters['manager_user_id']===(int)$commissionUser->id)>{{ $commissionUser->name }}{{ $commissionUser->email ? ' · '.$commissionUser->email : '' }}</option>
                         @endforeach
                     </x-select-search>
+                    </div>
                 </label>
             @endif
             <input type="hidden" name="source" value="{{ $filters['source'] }}">
@@ -49,8 +51,8 @@
                 <input id="commission-search-input" data-pwa-debounced-search="800" data-pwa-search-region="#commission-results" data-pwa-search-clear="#commission-search-clear" type="search" name="q" value="{{ $filters['q'] }}" autocomplete="off" placeholder="Thuốc, mã thuốc, khách hàng, số phiếu..." class="h-[46px] w-full rounded-2xl border border-slate-300 px-4 pr-11 text-sm text-slate-950 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200">
                 <button id="commission-search-clear" data-pwa-search-clear-button="#commission-search-input" type="button" aria-label="Xóa tìm kiếm hoa hồng" class="absolute bottom-[7px] right-1.5 inline-flex h-8 w-8 items-center justify-center rounded-full text-lg font-bold text-slate-400 hover:bg-slate-100 hover:text-slate-700 {{ $filters['q']==='' ? 'hidden' : '' }}">×</button>
             </label>
-            <label class="min-w-0 overflow-hidden"><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Từ ngày</span><input type="date" name="from" value="{{ $filters['from'] }}" class="block h-[46px] min-w-0 max-w-full rounded-2xl border border-slate-300 bg-white px-3 text-sm font-semibold" style="width:100%;min-width:0;max-width:100%;" onchange="this.form.requestSubmit()"></label>
-            <label class="min-w-0 overflow-hidden"><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Đến ngày</span><input type="date" name="to" value="{{ $filters['to'] }}" class="block h-[46px] min-w-0 max-w-full rounded-2xl border border-slate-300 bg-white px-3 text-sm font-semibold" style="width:100%;min-width:0;max-width:100%;" onchange="this.form.requestSubmit()"></label>
+            <label class="min-w-0"><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Từ ngày</span><input type="text" inputmode="numeric" autocomplete="off" data-commission-date-display="from" value="{{ \Carbon\Carbon::parse($filters['from'])->format('d/m/Y') }}" placeholder="dd/mm/yyyy" class="block h-[46px] w-full min-w-0 rounded-2xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-950 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"><input type="hidden" name="from" value="{{ $filters['from'] }}" data-commission-date-value="from"></label>
+            <label class="min-w-0"><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Đến ngày</span><input type="text" inputmode="numeric" autocomplete="off" data-commission-date-display="to" value="{{ \Carbon\Carbon::parse($filters['to'])->format('d/m/Y') }}" placeholder="dd/mm/yyyy" class="block h-[46px] w-full min-w-0 rounded-2xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-950 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"><input type="hidden" name="to" value="{{ $filters['to'] }}" data-commission-date-value="to"></label>
             <a href="{{ route('client.pharma.commissions') }}" class="inline-flex h-[46px] items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 text-sm font-black text-slate-700">Xóa bộ lọc</a>
         </form>
     </section>
@@ -94,4 +96,22 @@
         @endif
     </div>
 </div>
+
+<script>
+document.querySelectorAll('[data-commission-date-display]').forEach((input) => {
+    const key=input.dataset.commissionDateDisplay;
+    const hidden=document.querySelector('[data-commission-date-value="'+key+'"]');
+    const sync=() => {
+        const match=input.value.trim().match(/^(\\d{2})\\/(\\d{2})\\/(\\d{4})$/);
+        if(!match) return;
+        const [,day,month,year]=match;
+        const date=new Date(Number(year),Number(month)-1,Number(day));
+        if(date.getFullYear()!==Number(year) || date.getMonth()!==Number(month)-1 || date.getDate()!==Number(day)) return;
+        hidden.value=year+'-'+month+'-'+day;
+        input.form.requestSubmit();
+    };
+    input.addEventListener('change',sync);
+    input.addEventListener('blur',sync);
+});
+</script>
 @endsection
