@@ -51,8 +51,8 @@
                 <input id="commission-search-input" data-pwa-debounced-search="800" data-pwa-search-region="#commission-results" data-pwa-search-clear="#commission-search-clear" type="search" name="q" value="{{ $filters['q'] }}" autocomplete="off" placeholder="Thuốc, mã thuốc, khách hàng, số phiếu..." class="h-[46px] w-full rounded-2xl border border-slate-300 px-4 pr-11 text-sm text-slate-950 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200">
                 <button id="commission-search-clear" data-pwa-search-clear-button="#commission-search-input" type="button" aria-label="Xóa tìm kiếm hoa hồng" class="absolute bottom-[7px] right-1.5 inline-flex h-8 w-8 items-center justify-center rounded-full text-lg font-bold text-slate-400 hover:bg-slate-100 hover:text-slate-700 {{ $filters['q']==='' ? 'hidden' : '' }}">×</button>
             </label>
-            <label class="min-w-0"><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Từ ngày</span><input type="text" inputmode="numeric" autocomplete="off" data-commission-date-display="from" value="{{ \Carbon\Carbon::parse($filters['from'])->format('d/m/Y') }}" placeholder="dd/mm/yyyy" class="block h-[46px] w-full min-w-0 rounded-2xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-950 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"><input type="hidden" name="from" value="{{ $filters['from'] }}" data-commission-date-value="from"></label>
-            <label class="min-w-0"><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Đến ngày</span><input type="text" inputmode="numeric" autocomplete="off" data-commission-date-display="to" value="{{ \Carbon\Carbon::parse($filters['to'])->format('d/m/Y') }}" placeholder="dd/mm/yyyy" class="block h-[46px] w-full min-w-0 rounded-2xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-950 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"><input type="hidden" name="to" value="{{ $filters['to'] }}" data-commission-date-value="to"></label>
+            <label class="min-w-0"><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Từ ngày</span><span class="relative block h-[46px] min-w-0 overflow-hidden rounded-2xl border border-slate-300 bg-white"><span data-commission-date-label="from" class="pointer-events-none flex h-full items-center px-3 pr-11 text-sm font-semibold text-slate-950">{{ \Carbon\Carbon::parse($filters['from'])->format('d/m/Y') }}</span><span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">▾</span><input type="date" name="from" value="{{ $filters['from'] }}" data-commission-date-picker="from" aria-label="Chọn từ ngày" class="absolute inset-0 h-full w-full cursor-pointer opacity-0" style="min-width:100%;max-width:100%;" onchange="window.syncCommissionDate(this)"></span></label>
+            <label class="min-w-0"><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Đến ngày</span><span class="relative block h-[46px] min-w-0 overflow-hidden rounded-2xl border border-slate-300 bg-white"><span data-commission-date-label="to" class="pointer-events-none flex h-full items-center px-3 pr-11 text-sm font-semibold text-slate-950">{{ \Carbon\Carbon::parse($filters['to'])->format('d/m/Y') }}</span><span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">▾</span><input type="date" name="to" value="{{ $filters['to'] }}" data-commission-date-picker="to" aria-label="Chọn đến ngày" class="absolute inset-0 h-full w-full cursor-pointer opacity-0" style="min-width:100%;max-width:100%;" onchange="window.syncCommissionDate(this)"></span></label>
             <a href="{{ route('client.pharma.commissions') }}" class="inline-flex h-[46px] items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 text-sm font-black text-slate-700">Xóa bộ lọc</a>
         </form>
     </section>
@@ -98,20 +98,12 @@
 </div>
 
 <script>
-document.querySelectorAll('[data-commission-date-display]').forEach((input) => {
-    const key=input.dataset.commissionDateDisplay;
-    const hidden=document.querySelector('[data-commission-date-value="'+key+'"]');
-    const sync=() => {
-        const match=input.value.trim().match(/^(\\d{2})\\/(\\d{2})\\/(\\d{4})$/);
-        if(!match) return;
-        const [,day,month,year]=match;
-        const date=new Date(Number(year),Number(month)-1,Number(day));
-        if(date.getFullYear()!==Number(year) || date.getMonth()!==Number(month)-1 || date.getDate()!==Number(day)) return;
-        hidden.value=year+'-'+month+'-'+day;
-        input.form.requestSubmit();
-    };
-    input.addEventListener('change',sync);
-    input.addEventListener('blur',sync);
-});
+window.syncCommissionDate=(input)=>{
+    if(!input.value) return;
+    const [year,month,day]=input.value.split('-');
+    const label=document.querySelector('[data-commission-date-label="'+input.dataset.commissionDatePicker+'"]');
+    if(label) label.textContent=day+'/'+month+'/'+year;
+    input.form.requestSubmit();
+};
 </script>
 @endsection
