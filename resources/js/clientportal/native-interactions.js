@@ -159,7 +159,10 @@ const bindLoadMore = (root = document) => {
 
                 document.querySelector(wrapSelector)?.remove();
                 const nextWrap = doc.querySelector(wrapSelector);
-                if (nextWrap) list.insertAdjacentElement('afterend', nextWrap);
+                if (nextWrap) {
+                    const insertionAnchor = list.closest('table') || list;
+                    insertionAnchor.insertAdjacentElement('afterend', nextWrap);
+                }
 
                 bindNativeInteractions(list);
                 bindNativeInteractions(document);
