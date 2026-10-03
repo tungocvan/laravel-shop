@@ -5,7 +5,7 @@
 @php($hideMobileNavigation = $hideMobileNavigation ?? false)
 @php($mobilePrimaryNavigation = $mobilePrimaryNavigation ?? $primaryNavigation)
 @php($mobileMoreNavigation = $mobileMoreNavigation ?? $moreNavigation)
-@php($bottomNav = array_replace(['background_color' => '#ffffff', 'background_opacity' => 95, 'icon_color' => '#64748b', 'text_color' => '#64748b', 'text_font_size' => 11, 'icon_size' => 20, 'min_height' => 72], $bottomNavigationAppearance ?? []))
+@php($bottomNav = array_replace(['background_color' => '#ffffff', 'background_opacity' => 95, 'icon_color' => '#64748b', 'text_color' => '#64748b', 'active_icon_color' => '#020617', 'active_text_color' => '#020617', 'active_background_color' => '#f1f5f9', 'text_font_size' => 11, 'icon_size' => 20, 'min_height' => 72], $bottomNavigationAppearance ?? []))
 
 
 @if($allNavigation->isNotEmpty())
@@ -50,19 +50,19 @@
             @foreach($mobilePrimaryNavigation as $item)
                 @php($active = request()->routeIs($item['route'], $item['route'].'.*'))
                 <a href="{{ route($item['route']) }}"
-                   class="min-w-0 flex-1 rounded-xl px-1 py-2 {{ $active ? 'bg-slate-100 text-slate-950' : 'text-slate-500' }}"
+                   class="min-w-0 flex-1 rounded-xl px-1 py-2" style="{{ $active ? 'background-color: '.$bottomNav['active_background_color'].';' : '' }}"
                    @if($active) aria-current="page" @endif>
-                    <span class="mx-auto mb-1 block" style="width: {{ (int) $bottomNav['icon_size'] }}px; height: {{ (int) $bottomNav['icon_size'] }}px; color: {{ $active ? '#020617' : $bottomNav['icon_color'] }};">@include('ClientPortal::partials.navigation-icon', ['name' => $item['bottom_icon'] ?? $item['icon'], 'class' => 'h-full w-full'])</span>
-                    <span class="block truncate" style="color: {{ $active ? '#020617' : $bottomNav['text_color'] }};">{{ $item['name'] }}</span>
+                    <span class="mx-auto mb-1 block" style="width: {{ (int) $bottomNav['icon_size'] }}px; height: {{ (int) $bottomNav['icon_size'] }}px; color: {{ $active ? $bottomNav['active_icon_color'] : $bottomNav['icon_color'] }};">@include('ClientPortal::partials.navigation-icon', ['name' => $item['bottom_icon'] ?? $item['icon'], 'class' => 'h-full w-full'])</span>
+                    <span class="block truncate" style="color: {{ $active ? $bottomNav['active_text_color'] : $bottomNav['text_color'] }};">{{ $item['name'] }}</span>
                 </a>
             @endforeach
 
             @if($mobileMoreNavigation->isNotEmpty())
                 @php($moreActive = $mobileMoreNavigation->contains(fn (array $item): bool => request()->routeIs($item['route'], $item['route'].'.*')))
                 <details class="group relative min-w-0 flex-1">
-                    <summary class="cursor-pointer list-none rounded-xl px-1 py-2 [&::-webkit-details-marker]:hidden {{ $moreActive ? 'bg-slate-100 text-slate-950' : 'text-slate-500' }}" @if($moreActive) aria-current="page" @endif>
-                        <span class="mx-auto mb-1 block" style="width: {{ (int) $bottomNav['icon_size'] }}px; height: {{ (int) $bottomNav['icon_size'] }}px; color: {{ $moreActive ? '#020617' : $bottomNav['icon_color'] }};">@include('ClientPortal::partials.navigation-icon', ['name' => 'ellipsis-horizontal', 'class' => 'h-full w-full'])</span>
-                        <span class="block truncate" style="color: {{ $moreActive ? '#020617' : $bottomNav['text_color'] }};">Thêm</span>
+                    <summary class="cursor-pointer list-none rounded-xl px-1 py-2 [&::-webkit-details-marker]:hidden" style="{{ $moreActive ? 'background-color: '.$bottomNav['active_background_color'].';' : '' }}" @if($moreActive) aria-current="page" @endif>
+                        <span class="mx-auto mb-1 block" style="width: {{ (int) $bottomNav['icon_size'] }}px; height: {{ (int) $bottomNav['icon_size'] }}px; color: {{ $moreActive ? $bottomNav['active_icon_color'] : $bottomNav['icon_color'] }};">@include('ClientPortal::partials.navigation-icon', ['name' => 'ellipsis-horizontal', 'class' => 'h-full w-full'])</span>
+                        <span class="block truncate" style="color: {{ $moreActive ? $bottomNav['active_text_color'] : $bottomNav['text_color'] }};">Thêm</span>
                     </summary>
                     <div class="absolute bottom-full right-0 mb-3 w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 text-left shadow-xl">
                         @foreach($mobileMoreNavigation as $item)
