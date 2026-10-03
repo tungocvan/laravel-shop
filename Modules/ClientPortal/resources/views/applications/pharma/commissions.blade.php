@@ -27,19 +27,30 @@
     <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
         <nav class="flex gap-2 overflow-x-auto pb-1" aria-label="Nguồn hoa hồng">
             @foreach($sources as $value=>$label)
-                <a href="{{ route('client.pharma.commissions', array_filter(['source'=>$value==='all' ? null : $value,'from'=>$filters['from'],'to'=>$filters['to'],'q'=>$filters['q']])) }}" class="whitespace-nowrap rounded-full border px-4 py-2 text-sm font-black transition active:scale-[0.985] motion-reduce:transform-none {{ $filters['source']===$value ? 'border-slate-950 bg-slate-950 text-white' : 'border-slate-200 bg-white text-slate-600' }}">{{ $label }}</a>
+                <a href="{{ route('client.pharma.commissions', array_filter(['source'=>$value==='all' ? null : $value,'from'=>$filters['from'],'to'=>$filters['to'],'q'=>$filters['q'],'manager_user_id'=>$filters['manager_user_id']])) }}" class="whitespace-nowrap rounded-full border px-4 py-2 text-sm font-black transition active:scale-[0.985] motion-reduce:transform-none {{ $filters['source']===$value ? 'border-slate-950 bg-slate-950 text-white' : 'border-slate-200 bg-white text-slate-600' }}">{{ $label }}</a>
             @endforeach
         </nav>
 
-        <form id="commission-filter-form" method="GET" action="{{ route('client.pharma.commissions') }}" class="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_160px_160px_auto] lg:items-end">
+        <form id="commission-filter-form" method="GET" action="{{ route('client.pharma.commissions') }}" class="mt-4 grid min-w-0 gap-3 {{ $canViewTeam ? 'lg:grid-cols-[220px_minmax(0,1fr)_160px_160px_auto]' : 'lg:grid-cols-[minmax(0,1fr)_160px_160px_auto]' }} lg:items-end">
+            @if($canViewTeam)
+                <label class="min-w-0">
+                    <span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Người phụ trách</span>
+                    <x-select-search id="commission-manager-user" name="manager_user_id" placeholder="Tất cả người phụ trách" onchange="this.form.requestSubmit()">
+                        <option value="">Tất cả người phụ trách</option>
+                        @foreach($commissionUsers as $commissionUser)
+                            <option value="{{ $commissionUser->id }}" @selected($filters['manager_user_id']===(int)$commissionUser->id)>{{ $commissionUser->name }}{{ $commissionUser->email ? ' · '.$commissionUser->email : '' }}</option>
+                        @endforeach
+                    </x-select-search>
+                </label>
+            @endif
             <input type="hidden" name="source" value="{{ $filters['source'] }}">
             <label class="relative min-w-0">
                 <span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Tìm kiếm</span>
                 <input id="commission-search-input" data-pwa-debounced-search="800" data-pwa-search-region="#commission-results" data-pwa-search-clear="#commission-search-clear" type="search" name="q" value="{{ $filters['q'] }}" autocomplete="off" placeholder="Thuốc, mã thuốc, khách hàng, số phiếu..." class="h-[46px] w-full rounded-2xl border border-slate-300 px-4 pr-11 text-sm text-slate-950 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200">
                 <button id="commission-search-clear" data-pwa-search-clear-button="#commission-search-input" type="button" aria-label="Xóa tìm kiếm hoa hồng" class="absolute bottom-[7px] right-1.5 inline-flex h-8 w-8 items-center justify-center rounded-full text-lg font-bold text-slate-400 hover:bg-slate-100 hover:text-slate-700 {{ $filters['q']==='' ? 'hidden' : '' }}">×</button>
             </label>
-            <label><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Từ ngày</span><input type="date" name="from" value="{{ $filters['from'] }}" class="h-[46px] w-full rounded-2xl border border-slate-300 bg-white px-3 text-sm font-semibold" onchange="this.form.requestSubmit()"></label>
-            <label><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Đến ngày</span><input type="date" name="to" value="{{ $filters['to'] }}" class="h-[46px] w-full rounded-2xl border border-slate-300 bg-white px-3 text-sm font-semibold" onchange="this.form.requestSubmit()"></label>
+            <label class="min-w-0 overflow-hidden"><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Từ ngày</span><input type="date" name="from" value="{{ $filters['from'] }}" class="block h-[46px] min-w-0 max-w-full rounded-2xl border border-slate-300 bg-white px-3 text-sm font-semibold" style="width:100%;min-width:0;max-width:100%;" onchange="this.form.requestSubmit()"></label>
+            <label class="min-w-0 overflow-hidden"><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Đến ngày</span><input type="date" name="to" value="{{ $filters['to'] }}" class="block h-[46px] min-w-0 max-w-full rounded-2xl border border-slate-300 bg-white px-3 text-sm font-semibold" style="width:100%;min-width:0;max-width:100%;" onchange="this.form.requestSubmit()"></label>
             <a href="{{ route('client.pharma.commissions') }}" class="inline-flex h-[46px] items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 text-sm font-black text-slate-700">Xóa bộ lọc</a>
         </form>
     </section>
@@ -58,6 +69,7 @@
                             <p class="text-xs font-bold uppercase tracking-wide text-slate-400">{{ $row->calculated_at?->format('d/m/Y H:i') }} · {{ $row->source_type==='bid' ? 'Trúng thầu' : 'Bảng giá' }}</p>
                             <h2 class="mt-1 line-clamp-2 font-black text-slate-950">{{ $row->medicine?->name ?: 'Sản phẩm #'.$row->medicine_id }}</h2>
                             <p class="mt-1 truncate text-sm text-slate-500">{{ $row->medicine?->medicine_code ?: '—' }} · {{ $customer }}</p>
+                            @if($canViewTeam)<p class="mt-1 truncate text-xs font-bold text-slate-400">Người phụ trách: {{ $row->user?->name ?: '#'.$row->user_id }}</p>@endif
                         </div>
                         <span class="shrink-0 rounded-full px-3 py-1.5 text-xs font-black {{ $isUnresolved ? 'bg-amber-100 text-amber-800' : ($isReversal ? 'bg-slate-200 text-slate-700' : 'bg-emerald-100 text-emerald-800') }}">{{ $isUnresolved ? 'Chưa xác định' : ($isReversal ? 'Hoàn tác' : 'Đã ghi nhận') }}</span>
                     </div>
