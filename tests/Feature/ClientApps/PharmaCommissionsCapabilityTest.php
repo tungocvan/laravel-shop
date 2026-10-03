@@ -31,8 +31,8 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('->userQuery($userId',$service);
         $this->assertStringNotContainsString('->adminQuery(',$service);
         $this->assertStringContainsString("whereHas('medicine'",$service);
-        $this->assertStringContainsString("whereHas('partner'",$service);
-        $this->assertStringContainsString("whereHas('issue'",$service);
+        $this->assertStringContainsString("orWhereHas('partner'",$service);
+        $this->assertStringContainsString("orWhereHas('issue'",$service);
         $this->assertStringContainsString("SUM(revenue_amount)",$service);
         $this->assertStringContainsString("SUM(commission_amount)",$service);
 
