@@ -49,7 +49,8 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $controller=file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php'));
         $manifest=file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/manifest.php'));
         $view=file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/commissions.blade.php'));
-        $selectSearch=file_get_contents(base_path('resources/views/components/select-search.blade.php'));
+        $pwaSelectSearch=file_get_contents(base_path('resources/views/components/pwa-select-search.blade.php'));
+        $nativeInteractions=file_get_contents(base_path('resources/js/clientportal/native-interactions.js'));
 
         $this->assertStringContainsString('UserCommissionWorkspace $workspace',$controller);
         $this->assertStringContainsString("'client.pharma.commissions.view'",$controller);
@@ -75,17 +76,20 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('Chưa xác định',$view);
         $this->assertStringContainsString('Xóa bộ lọc',$view);
         $this->assertStringContainsString('Người phụ trách',$view);
-        $this->assertStringContainsString('<x-select-search id="commission-manager-user"',$view);
-        $this->assertStringContainsString("plugins: ['dropdown_input']",$selectSearch);
-        $this->assertStringContainsString("@if(\$attributes->wire('model')->value()) wire:ignore @endif",$selectSearch);
-        $this->assertStringContainsString('config.model && this.$wire',$selectSearch);
+        $this->assertStringContainsString('<x-pwa-select-search',$view);
+        $this->assertStringContainsString('search-placeholder="Tìm tên hoặc email..."',$view);
+        $this->assertStringContainsString('data-pwa-select-search-option',$view);
+        $this->assertStringContainsString('data-pwa-select-search-input',$pwaSelectSearch);
+        $this->assertStringContainsString('data-pwa-select-search-panel',$pwaSelectSearch);
+        $this->assertStringContainsString('const bindPwaSelectSearch',$nativeInteractions);
+        $this->assertStringContainsString("toLocaleLowerCase('vi')",$nativeInteractions);
         $this->assertStringContainsString('@if($canViewTeam)',$view);
         $this->assertStringContainsString('type="date" name="from"',$view);
         $this->assertStringContainsString('type="date" name="to"',$view);
         $this->assertStringContainsString('data-commission-date-label="from"',$view);
         $this->assertStringContainsString('data-commission-date-picker="from"',$view);
         $this->assertStringContainsString("format('d/m/Y')",$view);
-        $this->assertStringContainsString('rounded-2xl border border-slate-200 bg-white px-1',$view);
+        $this->assertStringContainsString('rounded-2xl border border-slate-200 bg-white',$pwaSelectSearch);
         $this->assertStringContainsString('data-pwa-debounced-search="800"',$view);
         $this->assertStringContainsString('data-pwa-search-clear-button="#commission-search-input"',$view);
         $this->assertStringContainsString('data-pwa-load-more',$view);
