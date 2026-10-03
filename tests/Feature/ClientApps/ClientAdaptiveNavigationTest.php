@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\ClientApps;
 
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 class ClientAdaptiveNavigationTest extends TestCase
@@ -86,7 +88,10 @@ class ClientAdaptiveNavigationTest extends TestCase
             'bottom_icon' => 'home',
         ]]);
 
-        $this->get(route('client.apps.index'));
+        $request = Request::create(route('client.apps.index', absolute: false), 'GET');
+        $matchedRoute = Route::getRoutes()->match($request);
+        $request->setRouteResolver(fn () => $matchedRoute);
+        app()->instance('request', $request);
 
         $html = view('ClientPortal::partials.adaptive-navigation', [
             'primaryNavigation' => $item,
