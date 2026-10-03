@@ -201,6 +201,29 @@ class ClientPortalPwaSettingsTest extends TestCase
         $this->assertSame('Ranh giới Foundation', $presentation['supporting_title']);
     }
 
+    public function test_bottom_navigation_presentation_uses_manifest_defaults_and_safe_overrides(): void
+    {
+        $registry = app(ApplicationRegistry::class);
+        $settings = app(ClientPortalSettingsService::class);
+        $application = $registry->find('pharma');
+
+        $defaults = collect($settings->applicationNavigationPresentation($application)['items'])->keyBy('key');
+        $this->assertTrue($defaults['overview']['bottom_enabled']);
+        $this->assertSame(10, $defaults['overview']['bottom_sort_order']);
+
+        $settings->updateApplicationNavigationPresentation('pharma', ['items' => [
+            ['key' => 'overview', 'bottom_enabled' => false, 'bottom_sort_order' => 90],
+            ['key' => 'products', 'bottom_enabled' => true, 'bottom_sort_order' => 5],
+        ]], 75);
+
+        $items = collect($settings->applicationNavigationPresentation($application)['items'])->keyBy('key');
+        $this->assertFalse($items['overview']['bottom_enabled']);
+        $this->assertSame(90, $items['overview']['bottom_sort_order']);
+        $this->assertTrue($items['products']['bottom_enabled']);
+        $this->assertSame(5, $items['products']['bottom_sort_order']);
+        $this->assertSame('json', ClientPortalSetting::query()->where('group_name', 'application.pharma.navigation')->where('key', 'items')->value('type'));
+    }
+
     public function test_application_presentation_override_preserves_manifest_contract(): void
     {
         $registry = app(ApplicationRegistry::class);
@@ -286,6 +309,7 @@ class ClientPortalPwaSettingsTest extends TestCase
             'admin.client-apps.pwa.launcher.update',
             'admin.client-apps.pwa.applications.update',
             'admin.client-apps.pwa.applications.hub.update',
+            'admin.client-apps.pwa.applications.navigation.update',
         ] as $name) {
             $route = Route::getRoutes()->getByName($name);
 
