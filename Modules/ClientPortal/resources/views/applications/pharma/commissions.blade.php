@@ -71,9 +71,10 @@
                 </label>
             </div>
 
-            <div class="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 md:items-end">
+            <div class="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end">
                 <label class="min-w-0"><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Từ ngày</span><span class="relative block h-[46px] min-w-0 overflow-hidden rounded-2xl border border-slate-300 bg-white"><span data-commission-date-label="from" class="pointer-events-none flex h-full items-center px-3 pr-11 text-sm font-semibold text-slate-950">{{ \Carbon\Carbon::parse($filters['from'])->format('d/m/Y') }}</span><span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">▾</span><input type="date" name="from" value="{{ $filters['from'] }}" data-commission-date-picker="from" aria-label="Chọn từ ngày" class="absolute inset-0 h-full w-full cursor-pointer opacity-0" style="min-width:100%;max-width:100%;" onchange="window.syncCommissionDate(this)"></span></label>
                 <label class="min-w-0"><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Đến ngày</span><span class="relative block h-[46px] min-w-0 overflow-hidden rounded-2xl border border-slate-300 bg-white"><span data-commission-date-label="to" class="pointer-events-none flex h-full items-center px-3 pr-11 text-sm font-semibold text-slate-950">{{ \Carbon\Carbon::parse($filters['to'])->format('d/m/Y') }}</span><span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">▾</span><input type="date" name="to" value="{{ $filters['to'] }}" data-commission-date-picker="to" aria-label="Chọn đến ngày" class="absolute inset-0 h-full w-full cursor-pointer opacity-0" style="min-width:100%;max-width:100%;" onchange="window.syncCommissionDate(this)"></span></label>
+                <button type="submit" class="inline-flex h-[46px] w-full items-center justify-center rounded-2xl bg-slate-950 px-5 text-sm font-black text-white transition active:scale-[0.985] md:w-auto motion-reduce:transform-none">Áp dụng</button>
             </div>
         </form>
     </section>
