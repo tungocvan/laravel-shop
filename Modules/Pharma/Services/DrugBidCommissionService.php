@@ -26,6 +26,7 @@ final class DrugBidCommissionService
             $postedItems=$issue->items->reject(fn($item)=>$deferredMedicineIds->contains((int)$item->medicine_id));
 
             foreach ($postedItems as $item) {
+                if ($this->hasActiveEarnedSnapshot((int)$item->id)) continue;
                 $assignment=DrugBidAwardManagementAssignment::query()
                     ->where('drug_bid_award_id',$item->drug_bid_award_id)
                     ->where('partner_id',$issue->bid_partner_id)
@@ -67,6 +68,7 @@ final class DrugBidCommissionService
                 ->get()->groupBy('medicine_id');
 
             foreach($postedItems as $item){
+                if ($this->hasActiveEarnedSnapshot((int)$item->id)) continue;
                 $priceItem=$priceItems->get($item->medicine_id)?->first();
                 $sale=(float)$item->unit_price;
                 $receivable=$priceItem?->actual_receivable_price !== null ? (float)$priceItem->actual_receivable_price : null;
@@ -86,6 +88,15 @@ final class DrugBidCommissionService
                 ]);
             }
         },3);
+    }
+
+    private function hasActiveEarnedSnapshot(int $issueItemId): bool
+    {
+        return InventoryIssueCommission::query()
+            ->where('issue_item_id',$issueItemId)
+            ->where('entry_type',InventoryIssueCommission::TYPE_EARNED)
+            ->whereIn('status',[InventoryIssueCommission::STATUS_EARNED,InventoryIssueCommission::STATUS_UNRESOLVED])
+            ->exists();
     }
 
     public function reverseIssue(InventoryIssue $issue, ?int $actorId): void
