@@ -1056,7 +1056,7 @@ final class PharmaApplicationController extends Controller
         UserCommissionWorkspace $workspace,
     ): View {
         $validated=$request->validate([
-            'q'=>['nullable','string','max:120'],
+            'partner_id'=>['nullable','integer','min:1'],
             'source'=>['nullable','in:all,bid,price_list'],
             'from'=>['nullable','date'],
             'to'=>['nullable','date','after_or_equal:from'],
@@ -1077,17 +1077,21 @@ final class PharmaApplicationController extends Controller
         $from=!empty($validated['from']) ? Carbon::parse($validated['from'])->startOfDay() : now()->startOfMonth();
         $to=!empty($validated['to']) ? Carbon::parse($validated['to'])->endOfDay() : now()->endOfMonth();
         $source=$validated['source'] ?? 'all';
+        $partnerId=!empty($validated['partner_id']) ? (int)$validated['partner_id'] : null;
+        $commissionPartners=$workspace->commissionPartners((int)$user->id,$source,$from,$to,$canViewTeam,$managerUserId);
+        abort_if($partnerId!==null && $commissionPartners->firstWhere('id',$partnerId)===null,404);
 
         return view('ClientPortal::applications.pharma.commissions',[
             'application'=>$application,
             'applicationPresentation'=>$settings->applicationPresentation($application),
             'featurePresentation'=>$settings->featurePresentation($application['key'],$feature),
-            'rows'=>$workspace->browse((int)$user->id,$validated['q'] ?? null,$source,$from,$to,20,(int)($validated['page'] ?? 1),$canViewTeam,$managerUserId)->withQueryString(),
+            'rows'=>$workspace->browse((int)$user->id,$partnerId,$source,$from,$to,20,(int)($validated['page'] ?? 1),$canViewTeam,$managerUserId)->withQueryString(),
             'summary'=>$workspace->summary((int)$user->id,$source,$from,$to,$canViewTeam,$managerUserId),
             'canViewTeam'=>$canViewTeam,
             'commissionUsers'=>$commissionUsers,
+            'commissionPartners'=>$commissionPartners,
             'filters'=>[
-                'q'=>trim((string)($validated['q'] ?? '')),
+                'partner_id'=>$partnerId,
                 'source'=>$source,
                 'from'=>$from->toDateString(),
                 'to'=>$to->toDateString(),
