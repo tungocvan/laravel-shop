@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\ClientPortal\Models\ClientPortalSetting;
 use Modules\ClientPortal\Services\ApplicationRegistry;
 use Modules\ClientPortal\Services\ClientPortalSettingsService;
+use Modules\System\Models\Setting;
 use Tests\TestCase;
 
 class ClientPortalPwaSettingsTest extends TestCase
@@ -215,6 +216,31 @@ class ClientPortalPwaSettingsTest extends TestCase
         $this->assertSame(72, $bottom['min_height']);
     }
 
+    public function test_bottom_navigation_theme_presets_use_system_settings_and_can_reset(): void
+    {
+        $settings = app(ClientPortalSettingsService::class);
+        $custom = array_replace($settings->pwaBottomNavigationDefaults(), [
+            'background_color' => '#112233',
+            'text_font_size' => 14,
+            'min_height' => 80,
+        ]);
+
+        $theme = $settings->savePwaBottomNavigationTheme('Blue Compact', $custom);
+
+        $this->assertSame('clientportal.pwa.bottom_navigation.themes', $theme->group_name);
+        $this->assertSame('json', $theme->type);
+        $this->assertSame('Blue Compact', $theme->label);
+        $this->assertTrue(Setting::query()->whereKey($theme->getKey())->exists());
+
+        $settings->updatePwaBottomNavigation($settings->pwaBottomNavigationDefaults());
+        $this->assertTrue($settings->applyPwaBottomNavigationTheme($theme->key));
+        $this->assertSame('#112233', $settings->pwaBottomNavigation()['background_color']);
+        $this->assertSame(14, $settings->pwaBottomNavigation()['text_font_size']);
+
+        $settings->resetPwaBottomNavigation();
+        $this->assertSame($settings->pwaBottomNavigationDefaults(), $settings->pwaBottomNavigation());
+    }
+
     public function test_bottom_navigation_presentation_uses_manifest_defaults_and_safe_overrides(): void
     {
         $registry = app(ApplicationRegistry::class);
@@ -321,6 +347,9 @@ class ClientPortalPwaSettingsTest extends TestCase
             'admin.client-apps.pwa.edit',
             'admin.client-apps.pwa.general.update',
             'admin.client-apps.pwa.bottom-navigation.update',
+            'admin.client-apps.pwa.bottom-navigation.reset',
+            'admin.client-apps.pwa.bottom-navigation.themes.store',
+            'admin.client-apps.pwa.bottom-navigation.themes.apply',
             'admin.client-apps.pwa.login.update',
             'admin.client-apps.pwa.launcher.edit',
             'admin.client-apps.pwa.launcher.update',
