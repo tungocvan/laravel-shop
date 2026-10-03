@@ -67,13 +67,12 @@
                     <div>
                         <label class="text-sm font-semibold text-gray-800">Theme đã lưu</label>
                         <div class="mt-2 flex flex-col gap-2 sm:flex-row">
-                            <select name="theme_key" form="bottom-navigation-theme-apply" class="min-w-0 flex-1 rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm">
+                            <select name="theme_key" form="bottom-navigation-theme-apply" onchange="if(this.value){this.form.requestSubmit()}" class="min-w-0 flex-1 rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm">
                                 <option value="">Chọn theme...</option>
                                 @foreach($bottomNavigationThemes as $theme)
                                     <option value="{{ $theme['key'] }}">{{ $theme['name'] }}</option>
                                 @endforeach
                             </select>
-                            <button type="submit" form="bottom-navigation-theme-apply" class="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm font-semibold text-indigo-700">Áp dụng theme</button>
                         </div>
                     </div>
                     <button type="submit" form="bottom-navigation-reset" class="self-end rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700">Reset mặc định</button>
