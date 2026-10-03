@@ -47,6 +47,32 @@
         </div>
     </form>
 
+    <form method="POST" action="{{ route('admin.client-apps.pwa.applications.navigation.update', $application['key']) }}" class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        @csrf @method('PUT')
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+                <h2 class="text-lg font-bold text-gray-900">Bottom Navigation</h2>
+                <p class="mt-1 text-sm text-gray-500">Chỉ điều khiển shortcut trên mobile. Sidebar tablet/desktop, route và permission vẫn giữ nguyên theo manifest.</p>
+            </div>
+            <button class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">Lưu Navigation</button>
+        </div>
+        <div class="mt-5 overflow-hidden rounded-2xl border border-gray-200">
+            @foreach(collect($application['navigation'] ?? [])->values() as $index => $item)
+                @php($navPresentation = collect($navigationPresentation['items'])->firstWhere('key', $item['key']))
+                <div class="grid gap-3 border-b border-gray-100 p-4 last:border-b-0 sm:grid-cols-[1fr_auto_auto] sm:items-center">
+                    <div>
+                        <div class="font-semibold text-gray-900">{{ $item['name'] }}</div>
+                        <div class="mt-1 text-xs text-gray-500"><code>{{ $item['route'] }}</code> · <code>{{ $item['permission'] ?? '—' }}</code></div>
+                    </div>
+                    <input type="hidden" name="items[{{ $index }}][key]" value="{{ $item['key'] }}">
+                    <input type="hidden" name="items[{{ $index }}][bottom_enabled]" value="0">
+                    <label class="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" name="items[{{ $index }}][bottom_enabled]" value="1" @checked(old("items.$index.bottom_enabled", $navPresentation['bottom_enabled'] ?? true))> Hiển thị mobile</label>
+                    <label class="flex items-center gap-2 text-sm"><span class="font-semibold">Thứ tự</span><input type="number" min="0" max="9999" name="items[{{ $index }}][bottom_sort_order]" value="{{ old("items.$index.bottom_sort_order", $navPresentation['bottom_sort_order'] ?? $item['sort_order']) }}" class="w-24 rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm"></label>
+                </div>
+            @endforeach
+        </div>
+    </form>
+
     <div class="grid gap-5 lg:grid-cols-2">
         @foreach($features as $row)
             @php($feature = $row['manifest'])
