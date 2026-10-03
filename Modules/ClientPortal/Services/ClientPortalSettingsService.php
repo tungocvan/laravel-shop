@@ -27,6 +27,9 @@ class ClientPortalSettingsService
             'background_opacity' => 95,
             'icon_color' => '#64748b',
             'text_color' => '#64748b',
+            'active_icon_color' => '#020617',
+            'active_text_color' => '#020617',
+            'active_background_color' => '#f1f5f9',
             'text_font_size' => 11,
             'icon_size' => 20,
             'min_height' => 72,
@@ -43,11 +46,56 @@ class ClientPortalSettingsService
         return $settings;
     }
 
+    public function pwaBottomNavigationBuiltInThemes(): Collection
+    {
+        return collect([
+            [
+                'key' => 'builtin:clinical-blue',
+                'name' => 'Clinical Blue',
+                'builtin' => true,
+                'description' => 'Y tế hiện đại, rõ trạng thái và phù hợp thao tác nghiệp vụ hằng ngày.',
+                'values' => [
+                    'background_color' => '#ffffff', 'background_opacity' => 98,
+                    'icon_color' => '#2563eb', 'text_color' => '#475569',
+                    'active_icon_color' => '#1d4ed8', 'active_text_color' => '#1e3a8a', 'active_background_color' => '#eff6ff',
+                    'text_font_size' => 11, 'icon_size' => 22, 'min_height' => 68,
+                ],
+            ],
+            [
+                'key' => 'builtin:slate-professional',
+                'name' => 'Slate Professional',
+                'builtin' => true,
+                'description' => 'Enterprise tối giản, trung tính và dễ nhìn khi làm việc trong thời gian dài.',
+                'values' => [
+                    'background_color' => '#f8fafc', 'background_opacity' => 98,
+                    'icon_color' => '#475569', 'text_color' => '#334155',
+                    'active_icon_color' => '#0f172a', 'active_text_color' => '#0f172a', 'active_background_color' => '#e2e8f0',
+                    'text_font_size' => 11, 'icon_size' => 21, 'min_height' => 66,
+                ],
+            ],
+            [
+                'key' => 'builtin:emerald-healthcare',
+                'name' => 'Emerald Healthcare',
+                'builtin' => true,
+                'description' => 'Healthcare nhẹ nhàng, thân thiện nhưng vẫn giữ độ tương phản cho thao tác nhanh.',
+                'values' => [
+                    'background_color' => '#f0fdf4', 'background_opacity' => 98,
+                    'icon_color' => '#059669', 'text_color' => '#3f5f55',
+                    'active_icon_color' => '#047857', 'active_text_color' => '#065f46', 'active_background_color' => '#d1fae5',
+                    'text_font_size' => 11, 'icon_size' => 22, 'min_height' => 68,
+                ],
+            ],
+        ])->map(fn (array $theme): array => array_replace($theme, [
+            'values' => array_replace($this->pwaBottomNavigationDefaults(), $theme['values']),
+        ]));
+    }
+
     public function pwaBottomNavigationThemes(): Collection
     {
-        if (! Schema::hasTable('settings')) return collect();
+        $builtIn = $this->pwaBottomNavigationBuiltInThemes();
+        if (! Schema::hasTable('settings')) return $builtIn;
 
-        return Setting::query()
+        $custom = Setting::query()
             ->where('group_name', self::BOTTOM_NAV_THEME_GROUP)
             ->where('type', 'json')
             ->orderBy('label')
@@ -57,10 +105,14 @@ class ClientPortalSettingsService
                 return [
                     'key' => $setting->key,
                     'name' => $setting->label ?: $setting->key,
+                    'builtin' => false,
+                    'description' => 'Theme tùy chỉnh do Admin lưu.',
                     'values' => array_replace($this->pwaBottomNavigationDefaults(), array_intersect_key($values, $this->pwaBottomNavigationDefaults())),
                 ];
             })
             ->values();
+
+        return $builtIn->concat($custom)->values();
     }
 
     public function savePwaBottomNavigationTheme(string $name, array $values): Setting
@@ -85,6 +137,12 @@ class ClientPortalSettingsService
 
     public function applyPwaBottomNavigationTheme(string $key, ?int $updatedBy = null): bool
     {
+        $builtIn = $this->pwaBottomNavigationBuiltInThemes()->firstWhere('key', $key);
+        if ($builtIn) {
+            $this->updatePwaBottomNavigation($builtIn['values'], $updatedBy);
+            return true;
+        }
+
         if (! Schema::hasTable('settings')) return false;
         $theme = Setting::query()->where('group_name', self::BOTTOM_NAV_THEME_GROUP)->where('key', $key)->where('type', 'json')->first();
         if (! $theme) return false;
