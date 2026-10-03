@@ -105,17 +105,6 @@ return [
         ],
     ],
     'features' => [
-        'overview' => [
-            'name' => 'Tổng quan',
-            'description' => 'Điểm vào PWA Pharma và các capability được cấp cho User.',
-            'eyebrow' => 'Pharma PWA',
-            'page_title' => 'Không gian làm việc Pharma',
-            'page_description' => 'Các chức năng hiển thị theo quyền Web của User. Dữ liệu và business rules vẫn thuộc Modules/Pharma; PWA không sử dụng giao diện hoặc quyền Admin Pharma.',
-            'route' => 'client.pharma.dashboard',
-            'permission' => 'client.pharma.overview.view',
-            'icon' => 'home',
-            'sort_order' => 10,
-        ],
         'products' => [
             'name' => 'Danh mục thuốc',
             'description' => 'Tra cứu Medicine Master và thông tin sản phẩm theo phạm vi được cấp.',
