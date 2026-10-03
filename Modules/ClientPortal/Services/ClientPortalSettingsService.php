@@ -7,19 +7,22 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Modules\ClientPortal\Models\ClientPortalSetting;
+use Modules\System\Models\Setting;
 
 class ClientPortalSettingsService
 {
     private const CACHE_PREFIX = 'clientportal.settings.';
+    private const BOTTOM_NAV_THEME_GROUP = 'clientportal.pwa.bottom_navigation.themes';
+    private const BOTTOM_NAV_THEME_PREFIX = 'clientportal.pwa.bottom_navigation.theme.';
 
     public function pwaGeneral(): array
     {
         return $this->group('pwa.general', config('clientportal.pwa.general', []));
     }
 
-    public function pwaBottomNavigation(): array
+    public function pwaBottomNavigationDefaults(): array
     {
-        $settings = $this->group('pwa.bottom_navigation', [
+        return [
             'background_color' => '#ffffff',
             'background_opacity' => 95,
             'icon_color' => '#64748b',
@@ -27,12 +30,73 @@ class ClientPortalSettingsService
             'text_font_size' => 11,
             'icon_size' => 20,
             'min_height' => 72,
-        ]);
+        ];
+    }
+
+    public function pwaBottomNavigation(): array
+    {
+        $settings = $this->group('pwa.bottom_navigation', $this->pwaBottomNavigationDefaults());
         $settings['background_opacity'] = (int) ($settings['background_opacity'] ?? 95);
         $settings['text_font_size'] = (int) ($settings['text_font_size'] ?? 11);
         $settings['icon_size'] = (int) ($settings['icon_size'] ?? 20);
         $settings['min_height'] = (int) ($settings['min_height'] ?? 72);
         return $settings;
+    }
+
+    public function pwaBottomNavigationThemes(): Collection
+    {
+        if (! Schema::hasTable('settings')) return collect();
+
+        return Setting::query()
+            ->where('group_name', self::BOTTOM_NAV_THEME_GROUP)
+            ->where('type', 'json')
+            ->orderBy('label')
+            ->get()
+            ->map(function (Setting $setting): array {
+                $values = json_decode((string) $setting->value, true) ?: [];
+                return [
+                    'key' => $setting->key,
+                    'name' => $setting->label ?: $setting->key,
+                    'values' => array_replace($this->pwaBottomNavigationDefaults(), array_intersect_key($values, $this->pwaBottomNavigationDefaults())),
+                ];
+            })
+            ->values();
+    }
+
+    public function savePwaBottomNavigationTheme(string $name, array $values): Setting
+    {
+        $slug = \Illuminate\Support\Str::slug($name);
+        if ($slug === '') $slug = 'theme-'.now()->format('Ymd-His');
+        $baseKey = self::BOTTOM_NAV_THEME_PREFIX.$slug;
+        $key = $baseKey;
+        $suffix = 2;
+        while (Setting::query()->where('key', $key)->exists()) {
+            $key = $baseKey.'-'.$suffix++;
+        }
+
+        return Setting::query()->create([
+            'key' => $key,
+            'value' => json_encode(array_replace($this->pwaBottomNavigationDefaults(), array_intersect_key($values, $this->pwaBottomNavigationDefaults())), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+            'group_name' => self::BOTTOM_NAV_THEME_GROUP,
+            'type' => 'json',
+            'label' => trim($name),
+        ]);
+    }
+
+    public function applyPwaBottomNavigationTheme(string $key, ?int $updatedBy = null): bool
+    {
+        if (! Schema::hasTable('settings')) return false;
+        $theme = Setting::query()->where('group_name', self::BOTTOM_NAV_THEME_GROUP)->where('key', $key)->where('type', 'json')->first();
+        if (! $theme) return false;
+        $values = json_decode((string) $theme->value, true);
+        if (! is_array($values)) return false;
+        $this->updatePwaBottomNavigation(array_replace($this->pwaBottomNavigationDefaults(), array_intersect_key($values, $this->pwaBottomNavigationDefaults())), $updatedBy);
+        return true;
+    }
+
+    public function resetPwaBottomNavigation(?int $updatedBy = null): void
+    {
+        $this->updatePwaBottomNavigation($this->pwaBottomNavigationDefaults(), $updatedBy);
     }
 
     public function pwaLogin(): array
