@@ -92,7 +92,7 @@ class PharmaClientFoundationTest extends TestCase
         $this->assertStringContainsString('ClientPortal::applications.pharma.dashboard', $controller);
         $this->assertStringContainsString('Route::has($routeName)', $controller);
         $dashboardMethod = substr($controller, strrpos($controller, 'public function dashboard'));
-        $this->assertStringNotContainsString("featurePresentation($application['key'], $overviewFeature)", $dashboardMethod);
+        $this->assertStringNotContainsString('featurePresentation', $dashboardMethod);
         $this->assertStringNotContainsString('$overviewFeature', $dashboardMethod);
         $this->assertStringContainsString("ClientPortal::layouts.application", $view);
         $this->assertStringContainsString("route_available", $view);
