@@ -26,6 +26,9 @@ Route::middleware(['web', 'auth:admin'])->prefix('admin/client-apps')->name('adm
     Route::get('/pwa', [PwaSettingsController::class, 'edit'])->middleware('permission:edit_role,admin')->name('pwa.edit');
     Route::put('/pwa/general', [PwaSettingsController::class, 'updateGeneral'])->middleware('permission:edit_role,admin')->name('pwa.general.update');
     Route::put('/pwa/bottom-navigation', [PwaSettingsController::class, 'updateBottomNavigation'])->middleware('permission:edit_role,admin')->name('pwa.bottom-navigation.update');
+    Route::post('/pwa/bottom-navigation/reset', [PwaSettingsController::class, 'resetBottomNavigation'])->middleware('permission:edit_role,admin')->name('pwa.bottom-navigation.reset');
+    Route::post('/pwa/bottom-navigation/themes', [PwaSettingsController::class, 'saveBottomNavigationTheme'])->middleware('permission:edit_role,admin')->name('pwa.bottom-navigation.themes.store');
+    Route::post('/pwa/bottom-navigation/themes/apply', [PwaSettingsController::class, 'applyBottomNavigationTheme'])->middleware('permission:edit_role,admin')->name('pwa.bottom-navigation.themes.apply');
     Route::put('/pwa/login', [PwaSettingsController::class, 'updateLogin'])->middleware('permission:edit_role,admin')->name('pwa.login.update');
     Route::get('/pwa/launcher', [PwaSettingsController::class, 'editLauncher'])->middleware('permission:edit_role,admin')->name('pwa.launcher.edit');
     Route::put('/pwa/launcher', [PwaSettingsController::class, 'updateLauncher'])->middleware('permission:edit_role,admin')->name('pwa.launcher.update');
