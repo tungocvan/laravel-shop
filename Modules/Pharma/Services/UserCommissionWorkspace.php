@@ -23,8 +23,7 @@ final class UserCommissionWorkspace
         bool $canViewTeam=false,
         ?int $managerUserId=null,
     ): LengthAwarePaginator {
-        $query=$this->scopedQuery($userId,$canViewTeam,$managerUserId,$source,$from,$to)
-            ->with(['issue','medicine','partner','user']);
+        $query=$this->scopedQuery($userId,$canViewTeam,$managerUserId,$source,$from,$to);
 
         $search=trim((string)$search);
         if($search!==''){
@@ -36,7 +35,40 @@ final class UserCommissionWorkspace
             });
         }
 
-        return $query->orderByDesc('calculated_at')->orderByDesc('id')->paginate($perPage,['*'],'page',$page);
+        return $query
+            ->selectRaw('issue_id, MAX(calculated_at) calculated_at, COALESCE(SUM(revenue_amount),0) revenue_amount, COALESCE(SUM(commission_amount),0) commission_amount')
+            ->groupBy('issue_id')
+            ->with(['issue.manager','issue.recipientPartner'])
+            ->orderByDesc('calculated_at')
+            ->orderByDesc('issue_id')
+            ->paginate($perPage,['*'],'page',$page);
+    }
+
+    public function detail(
+        int $issueId,
+        int $userId,
+        bool $canViewTeam=false,
+        ?int $managerUserId=null,
+    ): ?array {
+        $query=$this->scopedQuery($userId,$canViewTeam,$managerUserId,'all',null,null)
+            ->where('issue_id',$issueId);
+
+        if(!(clone $query)->exists()){
+            return null;
+        }
+
+        $rows=$query
+            ->with(['issue.manager','issue.recipientPartner','medicine','partner','user'])
+            ->orderBy('calculated_at')
+            ->orderBy('id')
+            ->get();
+
+        return [
+            'issue'=>$rows->first()?->issue,
+            'rows'=>$rows,
+            'revenue'=>(float)$rows->sum(fn(InventoryIssueCommission $row)=>(float)$row->revenue_amount),
+            'commission'=>(float)$rows->sum(fn(InventoryIssueCommission $row)=>(float)$row->commission_amount),
+        ];
     }
 
     public function summary(
