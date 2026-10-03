@@ -54,7 +54,7 @@
                 <div>
                     <label for="dvhc-province-filter" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Tỉnh / Thành phố</label>
                     <select id="dvhc-province-filter" name="province"
-                            class="w-full rounded-xl border-gray-300 px-3 py-2.5 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-indigo-500 focus:ring-indigo-500"
                             onchange="this.form.submit()">
                         <option value="">Tất cả tỉnh / thành phố</option>
                         @foreach ($provinces as $provinceName)
@@ -68,7 +68,7 @@
                     <div class="relative">
                         <input id="dvhc-search" type="search" name="search" value="{{ $search }}"
                                placeholder="Nhập tên phường / xã..."
-                               class="w-full rounded-xl border-gray-300 px-3 py-2.5 pr-9 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                               class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 pr-9 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                         @if ($search !== '')
                             <a href="{{ route('admin.admission.dvhc', array_filter(['province' => $province])) }}"
                                class="absolute right-3 top-1/2 -translate-y-1/2 text-lg leading-none text-gray-400 hover:text-gray-700"
@@ -99,7 +99,7 @@
                     <div>
                         <label for="province-name" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Tên tỉnh / thành phố mới</label>
                         <input id="province-name" name="province_name" value="{{ old('province_name', $province) }}" required maxlength="255"
-                               class="w-full rounded-xl border-gray-300 px-3 py-2.5 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                               class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                     </div>
                     <button type="submit" class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700">Cập nhật tên tỉnh</button>
                 </div>
@@ -156,12 +156,12 @@
                                 </td>
                                 <td class="px-4 py-3">
                                     <input form="dvhc-row-{{ $row->id }}" name="province_name" value="{{ $row->province_name }}" required maxlength="255"
-                                           class="w-full min-w-48 rounded-lg border-gray-300 px-3 py-2 text-sm font-medium focus:border-indigo-500 focus:ring-indigo-500">
+                                           class="w-full min-w-48 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium focus:border-indigo-500 focus:ring-indigo-500">
                                 </td>
                                 <td class="px-4 py-3 text-xs text-gray-500">{{ $row->ward_code }}</td>
                                 <td class="px-4 py-3">
                                     <input form="dvhc-row-{{ $row->id }}" name="ward_name" value="{{ $row->ward_name }}" required maxlength="255"
-                                           class="w-full min-w-48 rounded-lg border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                           class="w-full min-w-48 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                                 </td>
                                 <td class="px-4 py-3 text-right">
                                     <button type="submit" form="dvhc-row-{{ $row->id }}"
