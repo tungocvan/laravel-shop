@@ -31,6 +31,23 @@ class ClientAdaptiveNavigationTest extends TestCase
         $this->assertStringContainsString('aria-current="page"', $navigation);
     }
 
+    public function test_mobile_bottom_navigation_has_independent_visibility_and_order_contract(): void
+    {
+        $layout = file_get_contents(base_path('Modules/ClientPortal/resources/views/layouts/application.blade.php'));
+        $navigation = file_get_contents(base_path('Modules/ClientPortal/resources/views/partials/adaptive-navigation.blade.php'));
+        $resolver = file_get_contents(base_path('Modules/ClientPortal/Services/PortalNavigationResolver.php'));
+
+        $this->assertStringContainsString("where('bottom_enabled', true)", $layout);
+        $this->assertStringContainsString("sortBy('bottom_sort_order')", $layout);
+        $this->assertStringContainsString('$mobilePrimaryNavigation', $navigation);
+        $this->assertStringContainsString('$mobileMoreNavigation', $navigation);
+        $this->assertStringContainsString("'bottom_enabled'", $resolver);
+        $this->assertStringContainsString("'bottom_sort_order'", $resolver);
+        $this->assertStringContainsString("access->can", $resolver);
+        $this->assertStringNotContainsString("['route'] =", $resolver);
+        $this->assertStringNotContainsString("['permission'] =", $resolver);
+    }
+
     public function test_shared_navigation_is_application_neutral_and_uses_manifest_icons(): void
     {
         $navigation = file_get_contents(base_path('Modules/ClientPortal/resources/views/partials/adaptive-navigation.blade.php'));
