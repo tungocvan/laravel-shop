@@ -17,6 +17,24 @@ class ClientPortalSettingsService
         return $this->group('pwa.general', config('clientportal.pwa.general', []));
     }
 
+    public function pwaBottomNavigation(): array
+    {
+        $settings = $this->group('pwa.bottom_navigation', [
+            'background_color' => '#ffffff',
+            'background_opacity' => 95,
+            'icon_color' => '#64748b',
+            'text_color' => '#64748b',
+            'text_font_size' => 11,
+            'icon_size' => 20,
+            'min_height' => 72,
+        ]);
+        $settings['background_opacity'] = (int) ($settings['background_opacity'] ?? 95);
+        $settings['text_font_size'] = (int) ($settings['text_font_size'] ?? 11);
+        $settings['icon_size'] = (int) ($settings['icon_size'] ?? 20);
+        $settings['min_height'] = (int) ($settings['min_height'] ?? 72);
+        return $settings;
+    }
+
     public function pwaLogin(): array
     {
         $defaults = config('clientportal.pwa.login', []);
@@ -80,6 +98,7 @@ class ClientPortalSettingsService
             'key' => $item['key'],
             'bottom_enabled' => true,
             'bottom_sort_order' => (int) ($item['sort_order'] ?? 100),
+            'bottom_icon' => $item['icon'] ?? 'squares-2x2',
         ])->values()->all();
         $settings = $this->group('application.'.$application['key'].'.navigation', ['items' => $defaults]);
         $stored = collect($settings['items'] ?? [])->filter(fn ($item): bool => is_array($item) && isset($item['key']))->keyBy('key');
@@ -90,6 +109,7 @@ class ClientPortalSettingsService
                 'key' => $item['key'],
                 'bottom_enabled' => $this->bool($override['bottom_enabled'] ?? $item['bottom_enabled'], true),
                 'bottom_sort_order' => (int) ($override['bottom_sort_order'] ?? $item['bottom_sort_order']),
+                'bottom_icon' => trim((string) ($override['bottom_icon'] ?? $item['bottom_icon'])),
             ];
         })->values()->all()];
     }
@@ -145,6 +165,7 @@ class ClientPortalSettingsService
     }
 
     public function updatePwaGeneral(array $values, ?int $updatedBy = null): void { $this->updateGroup('pwa.general', $values, $updatedBy); }
+    public function updatePwaBottomNavigation(array $values, ?int $updatedBy = null): void { $this->updateGroup('pwa.bottom_navigation', $values, $updatedBy); }
     public function updatePwaLogin(array $values, ?int $updatedBy = null): void { $this->updateGroup('pwa.login', $values, $updatedBy); }
     public function updatePwaLauncher(array $values, ?int $updatedBy = null): void { $this->updateGroup('pwa.launcher', $values, $updatedBy); }
     public function updateApplicationPresentation(string $applicationKey, array $values, ?int $updatedBy = null): void { $this->updateGroup('application.'.trim($applicationKey).'.presentation', $values, $updatedBy); }
