@@ -77,6 +77,38 @@ class ClientAdaptiveNavigationTest extends TestCase
         $this->assertStringNotContainsString('<x-client-portal::navigation-icon', $navigation);
     }
 
+    public function test_shared_navigation_renders_mobile_appearance_without_undefined_variables(): void
+    {
+        $item = collect([[
+            'name' => 'Tổng quan',
+            'route' => 'client.apps.index',
+            'icon' => 'home',
+            'bottom_icon' => 'home',
+        ]]);
+
+        $html = view('ClientPortal::partials.adaptive-navigation', [
+            'primaryNavigation' => $item,
+            'moreNavigation' => collect(),
+            'mobilePrimaryNavigation' => $item,
+            'mobileMoreNavigation' => collect(),
+            'bottomNavigationAppearance' => [
+                'background_color' => '#ffffff',
+                'background_opacity' => 95,
+                'icon_color' => '#64748b',
+                'text_color' => '#64748b',
+                'text_font_size' => 11,
+                'icon_size' => 20,
+                'min_height' => 72,
+            ],
+            'hideMobileNavigation' => false,
+        ])->render();
+
+        $this->assertStringContainsString('background-color:', $html);
+        $this->assertStringContainsString('font-size: 11px', $html);
+        $this->assertStringContainsString('width: 20px', $html);
+        $this->assertStringContainsString('#64748b', $html);
+    }
+
     public function test_navigation_icon_partial_has_generic_fallback(): void
     {
         $icon = file_get_contents(base_path('Modules/ClientPortal/resources/views/partials/navigation-icon.blade.php'));
