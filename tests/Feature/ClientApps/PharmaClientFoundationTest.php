@@ -90,8 +90,8 @@ class PharmaClientFoundationTest extends TestCase
         $this->assertStringContainsString('Route::has($routeName)', $controller);
         $this->assertStringContainsString("ClientPortal::layouts.application", $view);
         $this->assertStringContainsString("route_available", $view);
-        $this->assertStringContainsString("$hubPresentation['eyebrow']", $view);
-        $this->assertStringContainsString("$hubPresentation['supporting_title']", $view);
+        $this->assertStringContainsString("\$hubPresentation['eyebrow']", $view);
+        $this->assertStringContainsString("\$hubPresentation['supporting_title']", $view);
         $this->assertStringNotContainsString('<h2 class="font-black text-slate-950">Ranh giới Foundation</h2>', $view);
         $this->assertStringNotContainsString('IlluminateSupportFacadesRoute', $view);
         $this->assertStringNotContainsString('Route::has(', $view);
