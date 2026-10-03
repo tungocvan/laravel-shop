@@ -49,6 +49,7 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $controller=file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php'));
         $manifest=file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/manifest.php'));
         $view=file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/commissions.blade.php'));
+        $selectSearch=file_get_contents(base_path('resources/views/components/select-search.blade.php'));
 
         $this->assertStringContainsString('UserCommissionWorkspace $workspace',$controller);
         $this->assertStringContainsString("'client.pharma.commissions.view'",$controller);
@@ -75,6 +76,9 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('Xóa bộ lọc',$view);
         $this->assertStringContainsString('Người phụ trách',$view);
         $this->assertStringContainsString('<x-select-search id="commission-manager-user"',$view);
+        $this->assertStringContainsString("plugins: ['dropdown_input']",$selectSearch);
+        $this->assertStringContainsString("@if(\$attributes->wire('model')->value()) wire:ignore @endif",$selectSearch);
+        $this->assertStringContainsString('config.model && this.$wire',$selectSearch);
         $this->assertStringContainsString('@if($canViewTeam)',$view);
         $this->assertStringContainsString('type="date" name="from"',$view);
         $this->assertStringContainsString('type="date" name="to"',$view);
