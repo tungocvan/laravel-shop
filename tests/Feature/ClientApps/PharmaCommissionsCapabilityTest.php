@@ -97,8 +97,10 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('Chưa xác định',$view);
         $this->assertStringContainsString('Xóa bộ lọc',$view);
         $this->assertStringContainsString('$hasCommissionFilters',$view);
-        $this->assertStringContainsString('md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]',$view);
-        $this->assertStringContainsString('>Áp dụng</button>',$view);
+        $this->assertStringContainsString('md:grid-cols-2',$view);
+        $this->assertStringNotContainsString('>Áp dụng</button>',$view);
+        $this->assertStringContainsString('data-commission-date-trigger="from"',$view);
+        $this->assertStringContainsString("typeof input.showPicker==='function'",$view);
         $this->assertStringContainsString('id="commission-partner"',$view);
         $this->assertStringContainsString('search-placeholder="Tìm khách hàng..."',$view);
         $this->assertStringContainsString('id="commission-mobile-list"',$view);
@@ -120,7 +122,7 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('type="date" name="to"',$view);
         $this->assertStringContainsString('data-commission-date-label="from"',$view);
         $this->assertStringContainsString('data-commission-date-picker="from"',$view);
-        $this->assertStringNotContainsString('input.form.requestSubmit();',$view);
+        $this->assertStringContainsString('input.form.requestSubmit();',$view);
         $this->assertStringContainsString("format('d/m/Y')",$view);
         $this->assertStringContainsString('rounded-2xl border border-slate-200 bg-white',$pwaSelectSearch);
         $this->assertStringNotContainsString('id="commission-search-input"',$view);
