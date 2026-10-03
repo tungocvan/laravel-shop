@@ -1938,6 +1938,7 @@ final class PharmaApplicationController extends Controller
             'application' => $application,
             'applicationPresentation' => $settings->applicationPresentation($application),
             'featurePresentation' => $settings->featurePresentation($application['key'], $overviewFeature),
+            'hubPresentation' => $settings->applicationHubPresentation($application),
             'features' => $features,
         ]);
     }
