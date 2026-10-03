@@ -174,12 +174,86 @@ const bindLoadMore = (root = document) => {
     });
 };
 
+
+const bindPwaSelectSearch = (root = document) => {
+    root.querySelectorAll('[data-pwa-select-search]').forEach((select) => {
+        if (select.dataset.pwaSelectSearchBound) return;
+
+        const trigger = select.querySelector('[data-pwa-select-search-trigger]');
+        const panel = select.querySelector('[data-pwa-select-search-panel]');
+        const search = select.querySelector('[data-pwa-select-search-input]');
+        const clear = select.querySelector('[data-pwa-select-search-clear]');
+        const value = select.querySelector('[data-pwa-select-search-value]');
+        const label = select.querySelector('[data-pwa-select-search-label]');
+        const empty = select.querySelector('[data-pwa-select-search-empty]');
+        const options = [...select.querySelectorAll('[data-pwa-select-search-option]')];
+        if (!trigger || !panel || !search || !value || !label) return;
+
+        select.dataset.pwaSelectSearchBound = '1';
+
+        const close = () => {
+            panel.classList.add('hidden');
+            trigger.setAttribute('aria-expanded', 'false');
+        };
+
+        const open = () => {
+            panel.classList.remove('hidden');
+            trigger.setAttribute('aria-expanded', 'true');
+            search.value = '';
+            options.forEach((option) => option.classList.remove('hidden'));
+            empty?.classList.add('hidden');
+            clear?.classList.add('hidden');
+            window.setTimeout(() => search.focus({preventScroll: true}), 0);
+        };
+
+        const syncLabel = () => {
+            const selected = options.find((option) => String(option.dataset.value || '') === String(value.value || ''));
+            label.textContent = selected?.dataset.label || select.dataset.pwaSelectSearchPlaceholder || '';
+        };
+        syncLabel();
+
+        trigger.addEventListener('click', () => panel.classList.contains('hidden') ? open() : close());
+
+        search.addEventListener('input', () => {
+            const query = search.value.trim().toLocaleLowerCase('vi');
+            let visible = 0;
+            options.forEach((option) => {
+                const matches = !query || (option.dataset.search || option.textContent || '').toLocaleLowerCase('vi').includes(query);
+                option.classList.toggle('hidden', !matches);
+                if (matches) visible += 1;
+            });
+            empty?.classList.toggle('hidden', visible !== 0);
+            clear?.classList.toggle('hidden', search.value === '');
+            clear?.classList.toggle('flex', search.value !== '');
+        });
+
+        clear?.addEventListener('click', () => {
+            search.value = '';
+            search.dispatchEvent(new Event('input', {bubbles: true}));
+            search.focus({preventScroll: true});
+        });
+
+        options.forEach((option) => option.addEventListener('click', () => {
+            value.value = option.dataset.value || '';
+            label.textContent = option.dataset.label || option.textContent.trim();
+            value.dispatchEvent(new Event('change', {bubbles: true}));
+            close();
+            if (select.dataset.pwaSelectSearchSubmit === 'change') submitForm(value.form);
+        }));
+
+        document.addEventListener('click', (event) => {
+            if (!select.contains(event.target)) close();
+        });
+    });
+};
+
 export const bindNativeInteractions = (root = document) => {
     bindNavigationFeedback(root);
     bindPendingForms(root);
     bindDebouncedSearch(root);
     bindSearchClear(root);
     bindLoadMore(root);
+    bindPwaSelectSearch(root);
 };
 
 const boot = () => bindNativeInteractions(document);
