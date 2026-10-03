@@ -16,6 +16,9 @@ use Modules\Pharma\Services\InventoryService;
 use Modules\Pharma\Services\UserPriceListWorkspace;
 use Modules\Pharma\Services\UserCommercialHospitalWorkspace;
 use Modules\Pharma\Services\UserInventoryWorkspace;
+use Modules\Pharma\Services\UserCommissionWorkspace;
+use Modules\Pharma\Models\InventoryIssueCommission;
+use Carbon\Carbon;
 use Modules\Pharma\Services\UserInventoryReceiptWorkspace;
 use Modules\Pharma\Services\UserInventoryIssueWorkspace;
 use Modules\Pharma\Services\UserOrderAuthoringService;
@@ -1044,6 +1047,49 @@ final class PharmaApplicationController extends Controller
         return redirect()->route('client.pharma.bid-awards.manager-assignment', [
             'scope'=>$scope, 'mode'=>'multiple', 'manager_id'=>(int) $data['user_id'],
         ])->with('success', "Đã gán User cho {$count} sản phẩm tại bệnh viện đã chọn.");
+    }
+
+    public function commissions(
+        Request $request,
+        ApplicationRegistry $registry,
+        ClientPortalSettingsService $settings,
+        UserCommissionWorkspace $workspace,
+    ): View {
+        $validated=$request->validate([
+            'q'=>['nullable','string','max:120'],
+            'source'=>['nullable','in:all,bid,price_list'],
+            'from'=>['nullable','date'],
+            'to'=>['nullable','date','after_or_equal:from'],
+            'page'=>['nullable','integer','min:1'],
+        ]);
+        $application=$registry->find('pharma'); abort_if($application===null,404);
+        $user=$request->user('web'); abort_if($user===null,401);
+        abort_unless($registry->userCan($user,'client.pharma.commissions.view'),403);
+        $feature=collect($application['features'] ?? [])->first(fn(array $feature): bool=>$feature['key']==='commissions');
+        abort_if($feature===null,404);
+
+        $from=!empty($validated['from']) ? Carbon::parse($validated['from'])->startOfDay() : now()->startOfMonth();
+        $to=!empty($validated['to']) ? Carbon::parse($validated['to'])->endOfDay() : now()->endOfMonth();
+        $source=$validated['source'] ?? 'all';
+
+        return view('ClientPortal::applications.pharma.commissions',[
+            'application'=>$application,
+            'applicationPresentation'=>$settings->applicationPresentation($application),
+            'featurePresentation'=>$settings->featurePresentation($application['key'],$feature),
+            'rows'=>$workspace->browse((int)$user->id,$validated['q'] ?? null,$source,$from,$to,20,(int)($validated['page'] ?? 1))->withQueryString(),
+            'summary'=>$workspace->summary((int)$user->id,$source,$from,$to),
+            'filters'=>[
+                'q'=>trim((string)($validated['q'] ?? '')),
+                'source'=>$source,
+                'from'=>$from->toDateString(),
+                'to'=>$to->toDateString(),
+            ],
+            'sources'=>[
+                'all'=>'Tất cả',
+                InventoryIssueCommission::SOURCE_BID=>'Trúng thầu',
+                InventoryIssueCommission::SOURCE_PRICE_LIST=>'Bảng giá',
+            ],
+        ]);
     }
 
     public function inventory(
