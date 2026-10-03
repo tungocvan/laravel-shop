@@ -1060,6 +1060,7 @@ final class PharmaApplicationController extends Controller
             'source'=>['nullable','in:all,bid,price_list'],
             'from'=>['nullable','date'],
             'to'=>['nullable','date','after_or_equal:from'],
+            'manager_user_id'=>['nullable','integer','min:1'],
             'page'=>['nullable','integer','min:1'],
         ]);
         $application=$registry->find('pharma'); abort_if($application===null,404);
@@ -1067,6 +1068,11 @@ final class PharmaApplicationController extends Controller
         abort_unless($registry->userCan($user,'client.pharma.commissions.view'),403);
         $feature=collect($application['features'] ?? [])->first(fn(array $feature): bool=>$feature['key']==='commissions');
         abort_if($feature===null,404);
+
+        $canViewTeam=$registry->userCan($user,'client.pharma.commissions.view-team');
+        $commissionUsers=$canViewTeam ? $workspace->commissionUsers() : collect();
+        $managerUserId=$canViewTeam && !empty($validated['manager_user_id']) ? (int)$validated['manager_user_id'] : null;
+        abort_if($managerUserId!==null && $commissionUsers->firstWhere('id',$managerUserId)===null,404);
 
         $from=!empty($validated['from']) ? Carbon::parse($validated['from'])->startOfDay() : now()->startOfMonth();
         $to=!empty($validated['to']) ? Carbon::parse($validated['to'])->endOfDay() : now()->endOfMonth();
@@ -1076,13 +1082,16 @@ final class PharmaApplicationController extends Controller
             'application'=>$application,
             'applicationPresentation'=>$settings->applicationPresentation($application),
             'featurePresentation'=>$settings->featurePresentation($application['key'],$feature),
-            'rows'=>$workspace->browse((int)$user->id,$validated['q'] ?? null,$source,$from,$to,20,(int)($validated['page'] ?? 1))->withQueryString(),
-            'summary'=>$workspace->summary((int)$user->id,$source,$from,$to),
+            'rows'=>$workspace->browse((int)$user->id,$validated['q'] ?? null,$source,$from,$to,20,(int)($validated['page'] ?? 1),$canViewTeam,$managerUserId)->withQueryString(),
+            'summary'=>$workspace->summary((int)$user->id,$source,$from,$to,$canViewTeam,$managerUserId),
+            'canViewTeam'=>$canViewTeam,
+            'commissionUsers'=>$commissionUsers,
             'filters'=>[
                 'q'=>trim((string)($validated['q'] ?? '')),
                 'source'=>$source,
                 'from'=>$from->toDateString(),
                 'to'=>$to->toDateString(),
+                'manager_user_id'=>$managerUserId,
             ],
             'sources'=>[
                 'all'=>'Tất cả',
