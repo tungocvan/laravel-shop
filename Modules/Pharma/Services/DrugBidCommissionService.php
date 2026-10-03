@@ -26,6 +26,7 @@ final class DrugBidCommissionService
             $postedItems=$issue->items->reject(fn($item)=>$deferredMedicineIds->contains((int)$item->medicine_id));
 
             foreach ($postedItems as $item) {
+                if ($this->hasActiveEarnedSnapshot((int)$item->id)) continue;
                 $assignment=DrugBidAwardManagementAssignment::query()
                     ->where('drug_bid_award_id',$item->drug_bid_award_id)
                     ->where('partner_id',$issue->bid_partner_id)
@@ -38,18 +39,17 @@ final class DrugBidCommissionService
                 $note=!$assignment ? 'Chưa phân công User phụ trách cho Bệnh viện × Sản phẩm tại thời điểm ghi sổ.'
                     : ($percentage === null ? 'Chưa thiết lập chính sách % hoa hồng cho sản phẩm tại thời điểm ghi sổ.' : null);
 
-                InventoryIssueCommission::query()->updateOrCreate(
-                    ['issue_item_id'=>$item->id,'entry_type'=>InventoryIssueCommission::TYPE_EARNED],
-                    [
-                        'issue_id'=>$issue->id,'drug_bid_award_id'=>$item->drug_bid_award_id,
-                        'drug_bid_award_allocation_id'=>$item->drug_bid_award_allocation_id,'partner_id'=>$issue->bid_partner_id,
-                        'medicine_id'=>$item->medicine_id,'user_id'=>$assignment?->user_id,'quantity'=>$item->quantity,
-                        'unit_price'=>$item->unit_price,'revenue_amount'=>$revenue,'commission_percentage'=>$percentage,
-                        'commission_amount'=>$resolved ? round($revenue*$percentage/100,2) : 0,
-                        'status'=>$resolved ? InventoryIssueCommission::STATUS_EARNED : InventoryIssueCommission::STATUS_UNRESOLVED,
-                        'source_type'=>InventoryIssueCommission::SOURCE_BID,'resolution_note'=>$note,'calculated_at'=>$issue->posted_at ?? now(),'created_by'=>$actorId,
-                    ]
-                );
+                InventoryIssueCommission::query()->create([
+                    'issue_id'=>$issue->id,'issue_item_id'=>$item->id,'drug_bid_award_id'=>$item->drug_bid_award_id,
+                    'drug_bid_award_allocation_id'=>$item->drug_bid_award_allocation_id,'partner_id'=>$issue->bid_partner_id,
+                    'medicine_id'=>$item->medicine_id,'user_id'=>$assignment?->user_id,'quantity'=>$item->quantity,
+                    'unit_price'=>$item->unit_price,'revenue_amount'=>$revenue,'commission_percentage'=>$percentage,
+                    'commission_amount'=>$resolved ? round($revenue*$percentage/100,2) : 0,
+                    'entry_type'=>InventoryIssueCommission::TYPE_EARNED,
+                    'status'=>$resolved ? InventoryIssueCommission::STATUS_EARNED : InventoryIssueCommission::STATUS_UNRESOLVED,
+                    'source_type'=>InventoryIssueCommission::SOURCE_BID,'resolution_note'=>$note,
+                    'calculated_at'=>$issue->posted_at ?? now(),'created_by'=>$actorId,
+                ]);
             }
         },3);
     }
@@ -68,35 +68,64 @@ final class DrugBidCommissionService
                 ->get()->groupBy('medicine_id');
 
             foreach($postedItems as $item){
+                if ($this->hasActiveEarnedSnapshot((int)$item->id)) continue;
                 $priceItem=$priceItems->get($item->medicine_id)?->first();
                 $sale=(float)$item->unit_price;
                 $receivable=$priceItem?->actual_receivable_price !== null ? (float)$priceItem->actual_receivable_price : null;
                 $commission=$receivable !== null ? max(0,round(((float)$item->quantity)*($sale-$receivable),2)) : 0;
                 $percentage=($receivable !== null && $sale>0) ? round((($sale-$receivable)/$sale)*100,4) : null;
-                InventoryIssueCommission::query()->updateOrCreate(
-                    ['issue_item_id'=>$item->id,'entry_type'=>InventoryIssueCommission::TYPE_EARNED],
-                    [
-                        'issue_id'=>$issue->id,'partner_id'=>$issue->recipient_partner_id,'medicine_id'=>$item->medicine_id,
-                        'user_id'=>$issue->manager_user_id,'quantity'=>$item->quantity,'unit_price'=>$sale,
-                        'revenue_amount'=>round((float)$item->quantity*$sale,2),'commission_percentage'=>$percentage,
-                        'commission_amount'=>$commission,'status'=>$receivable !== null ? InventoryIssueCommission::STATUS_EARNED : InventoryIssueCommission::STATUS_UNRESOLVED,
-                        'resolution_note'=>$receivable !== null ? null : 'Bảng giá chưa có Giá thu cho sản phẩm tại thời điểm ghi sổ.',
-                        'calculated_at'=>$issue->posted_at ?? now(),'created_by'=>$actorId,
-                        'source_type'=>InventoryIssueCommission::SOURCE_PRICE_LIST,'price_list_id'=>$issue->price_list_id,
-                        'price_list_item_id'=>$priceItem?->id,'sale_price_snapshot'=>$sale,'receivable_price_snapshot'=>$receivable,
-                    ]
-                );
+                InventoryIssueCommission::query()->create([
+                    'issue_id'=>$issue->id,'issue_item_id'=>$item->id,'partner_id'=>$issue->recipient_partner_id,
+                    'medicine_id'=>$item->medicine_id,'user_id'=>$issue->manager_user_id,'quantity'=>$item->quantity,
+                    'unit_price'=>$sale,'revenue_amount'=>round((float)$item->quantity*$sale,2),
+                    'commission_percentage'=>$percentage,'commission_amount'=>$commission,
+                    'entry_type'=>InventoryIssueCommission::TYPE_EARNED,
+                    'status'=>$receivable !== null ? InventoryIssueCommission::STATUS_EARNED : InventoryIssueCommission::STATUS_UNRESOLVED,
+                    'resolution_note'=>$receivable !== null ? null : 'Bảng giá chưa có Giá thu cho sản phẩm tại thời điểm ghi sổ.',
+                    'calculated_at'=>$issue->posted_at ?? now(),'created_by'=>$actorId,
+                    'source_type'=>InventoryIssueCommission::SOURCE_PRICE_LIST,'price_list_id'=>$issue->price_list_id,
+                    'price_list_item_id'=>$priceItem?->id,'sale_price_snapshot'=>$sale,'receivable_price_snapshot'=>$receivable,
+                ]);
             }
         },3);
     }
 
+    private function hasActiveEarnedSnapshot(int $issueItemId): bool
+    {
+        return InventoryIssueCommission::query()
+            ->where('issue_item_id',$issueItemId)
+            ->where('entry_type',InventoryIssueCommission::TYPE_EARNED)
+            ->whereIn('status',[InventoryIssueCommission::STATUS_EARNED,InventoryIssueCommission::STATUS_UNRESOLVED])
+            ->exists();
+    }
+
     public function reverseIssue(InventoryIssue $issue, ?int $actorId): void
     {
-        DB::transaction(function () use ($issue): void {
-            InventoryIssueCommission::query()
+        DB::transaction(function () use ($issue,$actorId): void {
+            $earnedRows=InventoryIssueCommission::query()
                 ->where('issue_id',$issue->id)
+                ->where('entry_type',InventoryIssueCommission::TYPE_EARNED)
+                ->whereIn('status',[InventoryIssueCommission::STATUS_EARNED,InventoryIssueCommission::STATUS_UNRESOLVED])
                 ->lockForUpdate()
-                ->delete();
+                ->get();
+
+            foreach($earnedRows as $earned){
+                InventoryIssueCommission::query()->create([
+                    'issue_id'=>$earned->issue_id,'issue_item_id'=>$earned->issue_item_id,
+                    'original_commission_id'=>$earned->id,'drug_bid_award_id'=>$earned->drug_bid_award_id,
+                    'drug_bid_award_allocation_id'=>$earned->drug_bid_award_allocation_id,'price_list_id'=>$earned->price_list_id,
+                    'price_list_item_id'=>$earned->price_list_item_id,'partner_id'=>$earned->partner_id,
+                    'medicine_id'=>$earned->medicine_id,'user_id'=>$earned->user_id,
+                    'quantity'=>-(float)$earned->quantity,'unit_price'=>$earned->unit_price,
+                    'sale_price_snapshot'=>$earned->sale_price_snapshot,'receivable_price_snapshot'=>$earned->receivable_price_snapshot,
+                    'revenue_amount'=>-(float)$earned->revenue_amount,'commission_percentage'=>$earned->commission_percentage,
+                    'commission_amount'=>-(float)$earned->commission_amount,'entry_type'=>InventoryIssueCommission::TYPE_REVERSAL,
+                    'source_type'=>$earned->source_type,'status'=>InventoryIssueCommission::STATUS_REVERSED,
+                    'resolution_note'=>'Hoàn tác snapshot hoa hồng #'.$earned->id.'.',
+                    'calculated_at'=>now(),'created_by'=>$actorId,
+                ]);
+                $earned->update(['status'=>InventoryIssueCommission::STATUS_REVERSED]);
+            }
         },3);
     }
 }
