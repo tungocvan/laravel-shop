@@ -201,6 +201,20 @@ class ClientPortalPwaSettingsTest extends TestCase
         $this->assertSame('Ranh giới Foundation', $presentation['supporting_title']);
     }
 
+    public function test_global_bottom_navigation_appearance_defaults_match_existing_mobile_shell(): void
+    {
+        $settings = app(ClientPortalSettingsService::class);
+        $bottom = $settings->pwaBottomNavigation();
+
+        $this->assertSame('#ffffff', $bottom['background_color']);
+        $this->assertSame(95, $bottom['background_opacity']);
+        $this->assertSame('#64748b', $bottom['icon_color']);
+        $this->assertSame('#64748b', $bottom['text_color']);
+        $this->assertSame(11, $bottom['text_font_size']);
+        $this->assertSame(20, $bottom['icon_size']);
+        $this->assertSame(72, $bottom['min_height']);
+    }
+
     public function test_bottom_navigation_presentation_uses_manifest_defaults_and_safe_overrides(): void
     {
         $registry = app(ApplicationRegistry::class);
@@ -210,15 +224,17 @@ class ClientPortalPwaSettingsTest extends TestCase
         $defaults = collect($settings->applicationNavigationPresentation($application)['items'])->keyBy('key');
         $this->assertTrue($defaults['overview']['bottom_enabled']);
         $this->assertSame(10, $defaults['overview']['bottom_sort_order']);
+        $this->assertSame('home', $defaults['overview']['bottom_icon']);
 
         $settings->updateApplicationNavigationPresentation('pharma', ['items' => [
-            ['key' => 'overview', 'bottom_enabled' => false, 'bottom_sort_order' => 90],
-            ['key' => 'products', 'bottom_enabled' => true, 'bottom_sort_order' => 5],
+            ['key' => 'overview', 'bottom_enabled' => false, 'bottom_sort_order' => 90, 'bottom_icon' => 'squares-2x2'],
+            ['key' => 'products', 'bottom_enabled' => true, 'bottom_sort_order' => 5, 'bottom_icon' => 'magnifying-glass'],
         ]], 75);
 
         $items = collect($settings->applicationNavigationPresentation($application)['items'])->keyBy('key');
         $this->assertFalse($items['overview']['bottom_enabled']);
         $this->assertSame(90, $items['overview']['bottom_sort_order']);
+        $this->assertSame('squares-2x2', $items['overview']['bottom_icon']);
         $this->assertTrue($items['products']['bottom_enabled']);
         $this->assertSame(5, $items['products']['bottom_sort_order']);
         $this->assertSame('json', ClientPortalSetting::query()->where('group_name', 'application.pharma.navigation')->where('key', 'items')->value('type'));
@@ -304,6 +320,7 @@ class ClientPortalPwaSettingsTest extends TestCase
         foreach ([
             'admin.client-apps.pwa.edit',
             'admin.client-apps.pwa.general.update',
+            'admin.client-apps.pwa.bottom-navigation.update',
             'admin.client-apps.pwa.login.update',
             'admin.client-apps.pwa.launcher.edit',
             'admin.client-apps.pwa.launcher.update',
