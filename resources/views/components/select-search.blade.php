@@ -5,13 +5,13 @@
     'searchEvent' => null,
 ])
 
-<div wire:ignore class="w-full">
+<div @if($attributes->wire('model')->value()) wire:ignore @endif class="w-full">
     <select
         {{ $attributes->merge(['class' => 'w-full']) }}
         id="{{ $id }}"
         x-data="selectSearchComponent({
             id: '{{ $id }}',
-            model: '{{ $attributes->wire('model')->value() }}',
+            model: @js($attributes->wire('model')->value()),
             placeholder: '{{ $placeholder }}',
             optionsWire: @js($attributes->get('options-wire')),
             searchEvent: @js($searchEvent)
@@ -42,14 +42,14 @@ function selectSearchComponent(config) {
                 dropdownParent: 'body',
 
                 onChange: (value) => {
-                    if (config.model) {
+                    if (config.model && this.$wire) {
                         // Wait for Livewire to persist the selected value before a following
                         // action (for example Save) can be sent from the same component.
                         this.$wire.set(config.model, value);
                     }
                 },
                 onType: (query) => {
-                    if (config.searchEvent) {
+                    if (config.searchEvent && this.$wire) {
                         this.$wire.dispatch(config.searchEvent, { search: query || '' });
                     }
                 }
@@ -60,7 +60,7 @@ function selectSearchComponent(config) {
                 }
             });
             // ✅ CHỈ watch khi có options-wire
-            if (config.optionsWire) {
+            if (config.optionsWire && this.$wire) {
                 this.$watch('$wire.' + config.optionsWire, (newOptions) => {
                     if (!this.instance) return;
 
