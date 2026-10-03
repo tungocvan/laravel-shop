@@ -39,6 +39,7 @@ class PwaSettingsController extends Controller
             'application' => $manifest,
             'applicationPresentation' => $settings->applicationPresentation($manifest),
             'hubPresentation' => $settings->applicationHubPresentation($manifest),
+            'navigationPresentation' => $settings->applicationNavigationPresentation($manifest),
             'features' => collect($manifest['features'] ?? [])->map(fn (array $feature): array => [
                 'manifest' => $feature,
                 'presentation' => $settings->featurePresentation($manifest['key'], $feature),
@@ -105,6 +106,25 @@ class PwaSettingsController extends Controller
         ]);
         $settings->updateApplicationHubPresentation($manifest['key'], $validated, $request->user('admin')?->getAuthIdentifier());
         return back()->with('success', 'Đã cập nhật Hub của ứng dụng '.$manifest['name'].'.');
+    }
+
+    public function updateApplicationNavigation(Request $request, string $application, ApplicationRegistry $registry, ClientPortalSettingsService $settings): RedirectResponse
+    {
+        $manifest = $registry->find($application); abort_if($manifest === null, 404);
+        $validated = $request->validate([
+            'items' => ['required', 'array'],
+            'items.*.key' => ['required', 'string'],
+            'items.*.bottom_enabled' => ['required', 'boolean'],
+            'items.*.bottom_sort_order' => ['required', 'integer', 'min:0', 'max:9999'],
+        ]);
+        $allowed = collect($manifest['navigation'] ?? [])->pluck('key')->flip();
+        $items = collect($validated['items'])->filter(fn (array $item): bool => $allowed->has($item['key']))->map(fn (array $item): array => [
+            'key' => $item['key'],
+            'bottom_enabled' => (bool) $item['bottom_enabled'],
+            'bottom_sort_order' => (int) $item['bottom_sort_order'],
+        ])->values()->all();
+        $settings->updateApplicationNavigationPresentation($manifest['key'], ['items' => $items], $request->user('admin')?->getAuthIdentifier());
+        return back()->with('success', 'Đã cập nhật Bottom Navigation của ứng dụng '.$manifest['name'].'.');
     }
 
     public function updateFeature(Request $request, string $application, string $feature, ApplicationRegistry $registry, ClientPortalSettingsService $settings): RedirectResponse
