@@ -31,6 +31,7 @@ docs/modules/ClientPortal/MODULE.md
 docs/modules/ClientPortal/COLLABORATION_HANDOFF.md
 docs/modules/ClientPortal/PWA.md
 docs/modules/ClientPortal/PWA_ADMIN_SETTINGS.md
+docs/modules/ClientPortal/PWA_APPLICATION_STANDARD.md
 .codex/standards/ADMIN_UI_STANDARD.md
 ```
 
@@ -63,6 +64,16 @@ ClientPortal owns Client/PWA presentation, launcher/login shell, client permissi
 Client permissions use the `web` guard. Admin management remains independent under the `admin` guard. UI visibility is never a substitute for server-side authorization.
 
 Authenticated navigation must not be broadly cached as reusable private HTML by the service worker.
+
+## Project-wide application standard
+
+For every PWA Module/application — including new applications and refactors outside Pharma — apply:
+
+```text
+docs/modules/ClientPortal/PWA_APPLICATION_STANDARD.md
+```
+
+This standard is mandatory for Application Hub structure, managed hero/supporting content, configurable Bottom Navigation, Overview evolution, searchable entity selectors and iPhone/iOS-safe date controls. Module-specific implementations may add stricter rules but must not silently diverge from the shared contract.
 
 ## PWA UI contract
 
@@ -171,7 +182,7 @@ Before answering a new-chat request to develop or debug ClientPortal/PWA, the AI
 ```text
 [ ] I read the current GitHub collaboration workflow.
 [ ] I read this PWA AI workflow gate.
-[ ] I read ClientPortal README, MODULE, handoff, PWA and PWA Admin settings.
+[ ] I read ClientPortal README, MODULE, handoff, PWA, PWA Admin settings and PWA Application Standard.
 [ ] I read ADMIN_UI_STANDARD.
 [ ] I read PWA_EXTERNAL_FILE_HANDOFF if files/downloads are involved.
 [ ] I inspected the current target branch source and relevant tests.

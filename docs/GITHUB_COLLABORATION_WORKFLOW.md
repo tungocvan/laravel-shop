@@ -71,7 +71,9 @@ Khi task nhắc tới hoặc tác động tới `/my-apps`, `/apps/*`, `Modules/
 docs/modules/ClientPortal/PWA_AI_WORKFLOW.md
 ```
 
-Tài liệu này là entry point canonical cho AI và quy định thứ tự đọc tiếp theo, gồm tối thiểu ClientPortal `README.md`, `MODULE.md`, `COLLABORATION_HANDOFF.md`, `PWA.md`, `PWA_ADMIN_SETTINGS.md` và `.codex/standards/ADMIN_UI_STANDARD.md`.
+Tài liệu này là entry point canonical cho AI và quy định thứ tự đọc tiếp theo, gồm tối thiểu ClientPortal `README.md`, `MODULE.md`, `COLLABORATION_HANDOFF.md`, `PWA.md`, `PWA_ADMIN_SETTINGS.md`, `PWA_APPLICATION_STANDARD.md` và `.codex/standards/ADMIN_UI_STANDARD.md`.
+
+`PWA_APPLICATION_STANDARD.md` là contract dùng chung cho **mọi Module PWA**, không riêng Pharma. Khi tạo mới hoặc refactor PWA của bất kỳ Module nào, phải áp dụng cùng cấu trúc Application Hub, managed presentation, Bottom Navigation configurable, Overview contract, `<x-pwa-select-search>` cho searchable User/Product/Customer và date input iPhone/iOS-safe.
 
 Nếu task có download/open/share/export/attachment/binary trên PWA-capable surface, phải đọc thêm:
 
