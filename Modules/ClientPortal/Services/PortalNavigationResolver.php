@@ -7,14 +7,23 @@ use Illuminate\Support\Collection;
 
 class PortalNavigationResolver
 {
-    public function __construct(private readonly PortalAccessResolver $access)
+    public function __construct(private readonly PortalAccessResolver $access, private readonly ClientPortalSettingsService $settings)
     {
     }
 
     public function forApplication(array $application, ?User $user): Collection
     {
+        $presentation = collect($this->settings->applicationNavigationPresentation($application)['items'])->keyBy('key');
+
         return collect($application['navigation'] ?? [])
             ->filter(fn (array $item): bool => $this->access->can($user, $item['permission'] ?? null))
+            ->map(function (array $item) use ($presentation): array {
+                $override = (array) $presentation->get($item['key'], []);
+                return array_replace($item, [
+                    'bottom_enabled' => (bool) ($override['bottom_enabled'] ?? true),
+                    'bottom_sort_order' => (int) ($override['bottom_sort_order'] ?? ($item['sort_order'] ?? 100)),
+                ]);
+            })
             ->values();
     }
 
