@@ -21,6 +21,12 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertContains('client.application:pharma',$route->gatherMiddleware());
         $this->assertContains('client.feature:pharma,commissions',$route->gatherMiddleware());
         $this->assertNotContains('auth:admin',$route->gatherMiddleware());
+
+        $show=Route::getRoutes()->getByName('client.pharma.commissions.show');
+        $this->assertNotNull($show);
+        $this->assertSame('GET',$show->methods()[0]);
+        $this->assertSame('apps/pharma/commissions/{issue}',$show->uri());
+        $this->assertContains('client.feature:pharma,commissions',$show->gatherMiddleware());
     }
 
     public function test_user_workspace_starts_from_canonical_user_scope_and_never_admin_scope(): void
@@ -38,6 +44,9 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString("orWhereHas('issue'",$service);
         $this->assertStringContainsString("SUM(revenue_amount)",$service);
         $this->assertStringContainsString("SUM(commission_amount)",$service);
+        $this->assertStringContainsString("groupBy('issue_id')",$service);
+        $this->assertStringContainsString("public function detail(",$service);
+        $this->assertStringContainsString("->where('issue_id',\$issueId)",$service);
 
         $reflection=new ReflectionClass(UserCommissionWorkspace::class);
         $this->assertTrue($reflection->hasMethod('browse'));
@@ -49,6 +58,7 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $controller=file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php'));
         $manifest=file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/manifest.php'));
         $view=file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/commissions.blade.php'));
+        $detailView=file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/commission-show.blade.php'));
         $pwaSelectSearch=file_get_contents(base_path('resources/views/components/pwa-select-search.blade.php'));
         $nativeInteractions=file_get_contents(base_path('resources/js/clientportal/native-interactions.js'));
 
@@ -72,6 +82,15 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString("\$featurePresentation['page_title']",$view);
         $this->assertStringContainsString("\$featurePresentation['page_description']",$view);
         $this->assertStringContainsString('Doanh số ghi nhận',$view);
+        $this->assertStringContainsString('Ngày xuất',$view);
+        $this->assertStringContainsString('Khách hàng',$view);
+        $this->assertStringContainsString('Tổng giá trị',$view);
+        $this->assertStringContainsString('Tổng hoa hồng',$view);
+        $this->assertStringContainsString("route('client.pharma.commissions.show'",$view);
+        $this->assertStringContainsString('Chi tiết phiếu xuất',$detailView);
+        $this->assertStringContainsString('SL thực xuất',$detailView);
+        $this->assertStringContainsString('Chính sách',$detailView);
+        $this->assertStringContainsString("@section('hide-mobile-navigation', true)",$detailView);
         $this->assertStringContainsString('Hoa hồng ròng',$view);
         $this->assertStringContainsString('Chưa xác định',$view);
         $this->assertStringContainsString('Xóa bộ lọc',$view);
