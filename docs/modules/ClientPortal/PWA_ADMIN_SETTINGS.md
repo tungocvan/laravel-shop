@@ -168,6 +168,22 @@ When adding a new PWA capability or feature, implementation is incomplete until:
 
 Admin overrides must never change route names, permissions, source-module contracts, or business logic.
 
+## Application Hub and navigation presentation
+
+The project-wide target contract for every application is defined in `PWA_APPLICATION_STANDARD.md`.
+
+Application presentation should be able to evolve consistently across Pharma and future Module PWAs. The approved target includes, as applicable:
+
+- managed Hub hero `eyebrow`, `title`, `description`;
+- managed Supporting/Foundation card `visible`, `title`, `body`;
+- Bottom Navigation visibility per eligible item plus stable sort order;
+- capability page presentation;
+- an Overview area reserved for Module/capability summary and User-authorized configuration evolution.
+
+Bottom Navigation visibility is presentation-only. It must not grant/revoke a `web` permission and must not be used as route authorization. Runtime bottom items must satisfy both presentation visibility and the current User's capability availability/permission.
+
+New PWA applications and refactors must not hard-code their own incompatible Hub/navigation settings model. Reuse the ClientPortal settings contract and follow `PWA_APPLICATION_STANDARD.md`.
+
 ## Non-hardcode rule
 
 User-facing configurable PWA copy must be read through `ClientPortalSettingsService`. Blade may contain layout/CSS/accessibility structure, but editable branding/copy must not be duplicated as literals in login or launcher templates.
@@ -191,7 +207,7 @@ These remain controlled by manifests/routes/source code.
 
 Planned extensions using the same settings service/storage contract:
 
-1. application/feature presentation overrides — feature labels, descriptions, icons, order, navigation visibility and maintenance badges while preserving manifest permission contracts;
+1. complete the shared Application Hub presentation contract — managed hero/supporting content, Bottom Navigation visibility/order and capability presentation — while preserving manifest permission contracts;
 2. a canonical icon renderer before exposing icon editing in Admin;
 3. dynamic manifest presentation — selected safe manifest properties generated from ClientPortal settings while preserving `/my-apps` as the security-reviewed entry contract;
 4. dedicated Admin capability for PWA/presentation management.
