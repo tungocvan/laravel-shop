@@ -5,15 +5,7 @@
 @php($hideMobileNavigation = $hideMobileNavigation ?? false)
 @php($mobilePrimaryNavigation = $mobilePrimaryNavigation ?? $primaryNavigation)
 @php($mobileMoreNavigation = $mobileMoreNavigation ?? $moreNavigation)
-@php($bottomNav = array_replace([
-    'background_color' => '#ffffff',
-    'background_opacity' => 95,
-    'icon_color' => '#64748b',
-    'text_color' => '#64748b',
-    'text_font_size' => 11,
-    'icon_size' => 20,
-    'min_height' => 72,
-], $bottomNavigationAppearance ?? []))
+@php($bottomNav = array_replace(['background_color' => '#ffffff', 'background_opacity' => 95, 'icon_color' => '#64748b', 'text_color' => '#64748b', 'text_font_size' => 11, 'icon_size' => 20, 'min_height' => 72], $bottomNavigationAppearance ?? []))
 
 
 @if($allNavigation->isNotEmpty())
