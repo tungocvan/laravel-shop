@@ -51,7 +51,7 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString("'client.pharma.commissions.view'",$controller);
         $this->assertStringContainsString('$workspace->browse((int)$user->id',$controller);
         $this->assertStringContainsString('$workspace->summary((int)$user->id',$controller);
-        $this->assertStringContainsString("featurePresentation($application['key'],$feature)",$controller);
+        $this->assertStringContainsString("featurePresentation(\$application['key'],\$feature)",$controller);
 
         $this->assertStringContainsString("'route' => 'client.pharma.commissions'",$manifest);
         $this->assertStringContainsString("'page_title' => 'Hoa hồng của tôi'",$manifest);
@@ -59,9 +59,9 @@ final class PharmaCommissionsCapabilityTest extends TestCase
 
         $this->assertStringContainsString("@section('hide-application-header', true)",$view);
         $this->assertStringContainsString("@section('hide-mobile-navigation', true)",$view);
-        $this->assertStringContainsString("$featurePresentation['eyebrow']",$view);
-        $this->assertStringContainsString("$featurePresentation['page_title']",$view);
-        $this->assertStringContainsString("$featurePresentation['page_description']",$view);
+        $this->assertStringContainsString("\$featurePresentation['eyebrow']",$view);
+        $this->assertStringContainsString("\$featurePresentation['page_title']",$view);
+        $this->assertStringContainsString("\$featurePresentation['page_description']",$view);
         $this->assertStringContainsString('Doanh số ghi nhận',$view);
         $this->assertStringContainsString('Hoa hồng ròng',$view);
         $this->assertStringContainsString('Chưa xác định',$view);
