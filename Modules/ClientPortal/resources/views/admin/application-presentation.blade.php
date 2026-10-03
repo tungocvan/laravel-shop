@@ -56,6 +56,7 @@
             </div>
             <button class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">Lưu Navigation</button>
         </div>
+        @php($bottomIconChoices = ['home','beaker','document-chart-bar','clipboard-document-list','archive-box','banknotes','building-library','briefcase','magnifying-glass','document-text','inbox','check-circle','plus-circle','clock','heart','squares-2x2'])
         <div class="mt-5 overflow-hidden rounded-2xl border border-gray-200">
             @foreach(collect($application['navigation'] ?? [])->values() as $index => $item)
                 @php($navPresentation = collect($navigationPresentation['items'])->firstWhere('key', $item['key']))
@@ -66,7 +67,25 @@
                     </div>
                     <input type="hidden" name="items[{{ $index }}][key]" value="{{ $item['key'] }}">
                     <input type="hidden" name="items[{{ $index }}][bottom_enabled]" value="0">
-                    <label class="block text-sm"><span class="font-semibold">Icon</span><input name="items[{{ $index }}][bottom_icon]" value="{{ old("items.$index.bottom_icon", $navPresentation['bottom_icon'] ?? $item['icon']) }}" class="mt-1 w-36 rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm"></label>
+                    @php($selectedBottomIcon = old("items.$index.bottom_icon", $navPresentation['bottom_icon'] ?? $item['icon']))
+                    <details class="relative">
+                        <summary class="flex min-w-40 cursor-pointer list-none items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm [&::-webkit-details-marker]:hidden">
+                            @include('ClientPortal::partials.navigation-icon', ['name' => $selectedBottomIcon, 'class' => 'h-5 w-5'])
+                            <span class="max-w-28 truncate font-semibold">{{ $selectedBottomIcon }}</span>
+                            <span class="ml-auto text-gray-400">⌄</span>
+                        </summary>
+                        <div class="absolute right-0 z-30 mt-2 grid w-72 grid-cols-4 gap-2 rounded-2xl border border-gray-200 bg-white p-3 shadow-xl">
+                            @foreach($bottomIconChoices as $iconChoice)
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="items[{{ $index }}][bottom_icon]" value="{{ $iconChoice }}" @checked($selectedBottomIcon === $iconChoice) class="peer sr-only">
+                                    <span class="flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl border border-gray-200 p-2 text-[10px] text-gray-600 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-700">
+                                        @include('ClientPortal::partials.navigation-icon', ['name' => $iconChoice, 'class' => 'h-5 w-5'])
+                                        <span class="w-full truncate text-center">{{ $iconChoice }}</span>
+                                    </span>
+                                </label>
+                            @endforeach
+                        </div>
+                    </details>
                     <label class="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" name="items[{{ $index }}][bottom_enabled]" value="1" @checked(old("items.$index.bottom_enabled", $navPresentation['bottom_enabled'] ?? true))> Hiển thị mobile</label>
                     <label class="flex items-center gap-2 text-sm"><span class="font-semibold">Thứ tự</span><input type="number" min="0" max="9999" name="items[{{ $index }}][bottom_sort_order]" value="{{ old("items.$index.bottom_sort_order", $navPresentation['bottom_sort_order'] ?? $item['sort_order']) }}" class="w-24 rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm"></label>
                 </div>
