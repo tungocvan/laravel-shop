@@ -2,7 +2,8 @@
 
 namespace Modules\Pharma\Tests\Feature;
 
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 use Modules\Pharma\Models\InventoryIssue;
 use Modules\Pharma\Models\InventoryIssueCommission;
 use Modules\Pharma\Models\Medicine;
@@ -12,7 +13,11 @@ use Tests\TestCase;
 
 final class CommissionLedgerIntegrationTest extends TestCase
 {
-    use DatabaseTransactions;
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->createCommissionSchema();
+    }
 
     public function test_reversal_is_append_only_idempotent_and_preserves_original_snapshot(): void
     {
@@ -74,6 +79,42 @@ final class CommissionLedgerIntegrationTest extends TestCase
 
         $this->assertSame([$mine->id],$ids);
         $this->assertFalse(in_array($other->id,$ids,true));
+    }
+
+    private function createCommissionSchema(): void
+    {
+        Schema::create('pharma_medicines',function(Blueprint $table): void {
+            $table->id(); $table->string('active_ingredients'); $table->string('concentration'); $table->string('name');
+            $table->string('dosage_form'); $table->string('route_of_administration'); $table->string('unit');
+            $table->string('packaging_specification'); $table->string('registration_number'); $table->string('shelf_life');
+            $table->string('registered_company'); $table->string('manufacturing_company'); $table->string('manufacturing_country');
+            $table->string('medicine_code')->nullable(); $table->timestamps();
+        });
+        Schema::create('pharma_inventory_warehouses',function(Blueprint $table): void {
+            $table->id(); $table->string('code')->unique(); $table->string('name'); $table->boolean('is_active')->default(true); $table->timestamps();
+        });
+        Schema::create('pharma_inventory_issues',function(Blueprint $table): void {
+            $table->id(); $table->unsignedBigInteger('warehouse_id'); $table->string('number')->unique(); $table->date('issue_date');
+            $table->string('status'); $table->timestamp('posted_at')->nullable(); $table->timestamps();
+        });
+        Schema::create('pharma_inventory_issue_items',function(Blueprint $table): void {
+            $table->id(); $table->unsignedBigInteger('issue_id'); $table->unsignedBigInteger('medicine_id');
+            $table->string('batch_number'); $table->date('expiry_date'); $table->decimal('quantity',15,3);
+            $table->decimal('unit_price',18,4); $table->timestamps();
+        });
+        Schema::create('pharma_inventory_issue_commissions',function(Blueprint $table): void {
+            $table->id(); $table->unsignedBigInteger('issue_id'); $table->unsignedBigInteger('issue_item_id');
+            $table->unsignedBigInteger('original_commission_id')->nullable()->unique(); $table->unsignedBigInteger('drug_bid_award_id')->nullable();
+            $table->unsignedBigInteger('drug_bid_award_allocation_id')->nullable(); $table->unsignedBigInteger('price_list_id')->nullable();
+            $table->unsignedBigInteger('price_list_item_id')->nullable(); $table->unsignedBigInteger('partner_id')->nullable();
+            $table->unsignedBigInteger('medicine_id'); $table->unsignedBigInteger('user_id')->nullable();
+            $table->decimal('quantity',15,3); $table->decimal('unit_price',15,4); $table->decimal('sale_price_snapshot',15,4)->nullable();
+            $table->decimal('receivable_price_snapshot',15,4)->nullable(); $table->decimal('revenue_amount',18,2);
+            $table->decimal('commission_percentage',8,4)->nullable(); $table->decimal('commission_amount',18,2)->default(0);
+            $table->string('entry_type',20); $table->string('source_type',20); $table->string('status',20);
+            $table->string('resolution_note',500)->nullable(); $table->timestamp('calculated_at'); $table->unsignedBigInteger('created_by')->nullable();
+            $table->timestamps();
+        });
     }
 
     private function makeIssueGraph(): array
