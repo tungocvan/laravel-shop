@@ -30,6 +30,7 @@ use Modules\Pharma\Services\InventoryMovementSummaryService;
 use Modules\Pharma\Services\UserOrderApprovalService;
 use Modules\Pharma\Services\UserOrderAuthoringService;
 use Modules\Pharma\Services\DrugBidCommissionService;
+use Modules\Pharma\Services\CommissionQueryService;
 use Modules\Partner\Models\Partner;
 use Rap2hpoutre\FastExcel\FastExcel;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -1091,18 +1092,17 @@ final class InventoryController extends Controller
         return redirect()->route('admin.pharma.inventory.issues.show',$issue)->with('success',"Đã duyệt lô và ghi sổ {$issue->number}.");
     }
 
-    public function commissions(Request $request): View
+    public function commissions(Request $request, CommissionQueryService $commissions): View
     {
         $from=$request->filled('from') ? Carbon::parse($request->input('from'))->startOfDay() : now()->startOfMonth();
         $to=$request->filled('to') ? Carbon::parse($request->input('to'))->endOfDay() : now()->endOfMonth();
         $source=in_array($request->input('source','all'),['all',InventoryIssueCommission::SOURCE_PRICE_LIST,InventoryIssueCommission::SOURCE_BID],true) ? $request->input('source','all') : 'all';
         $userId=$request->integer('user_id'); $partnerId=$request->integer('partner_id'); $medicineId=$request->integer('medicine_id');
 
-        $base=InventoryIssueCommission::query()->whereBetween('calculated_at',[$from,$to])
-            ->when($source!=='all',fn($q)=>$q->where('source_type',$source))
-            ->when($userId>0,fn($q)=>$q->where('user_id',$userId))
-            ->when($partnerId>0,fn($q)=>$q->where('partner_id',$partnerId))
-            ->when($medicineId>0,fn($q)=>$q->where('medicine_id',$medicineId));
+        $base=$commissions->adminQuery([
+            'from'=>$from,'to'=>$to,'source'=>$source,'user_id'=>$userId,
+            'partner_id'=>$partnerId,'medicine_id'=>$medicineId,
+        ]);
         $totals=(clone $base)->selectRaw('COALESCE(SUM(revenue_amount),0) as revenue, COALESCE(SUM(commission_amount),0) as commission')->first();
         $receivableTotal=(clone $base)->where('source_type',InventoryIssueCommission::SOURCE_PRICE_LIST)
             ->selectRaw('COALESCE(SUM(quantity * receivable_price_snapshot),0) as amount')->value('amount') ?? 0;
@@ -1112,8 +1112,7 @@ final class InventoryController extends Controller
             $row->resolved_customer_name=$row->partner?->name ?: $row->issue?->recipient_name ?: '—';
         });
 
-        $filterRows=InventoryIssueCommission::query()->whereBetween('calculated_at',[$from,$to])
-            ->when($source!=='all',fn($q)=>$q->where('source_type',$source));
+        $filterRows=$commissions->adminQuery(['from'=>$from,'to'=>$to,'source'=>$source]);
 
         // Filters represent the configured commercial scope, not only historical
         // commission rows. A newly configured price list must be selectable before
@@ -1144,7 +1143,7 @@ final class InventoryController extends Controller
         return view('Pharma::pages.inventory.commissions',compact('rows','totals','receivableTotal','unresolved','source','users','partners','medicines','from','to','userId','partnerId','medicineId'));
     }
 
-    public function exportCommissions(Request $request): StreamedResponse
+    public function exportCommissions(Request $request, CommissionQueryService $commissions): StreamedResponse
     {
         $data=$request->validate([
             'from'=>'nullable|date','to'=>'nullable|date','user_id'=>'nullable|integer',
@@ -1154,14 +1153,11 @@ final class InventoryController extends Controller
         $from=!empty($data['from']) ? Carbon::parse($data['from'])->startOfDay() : now()->startOfMonth();
         $to=!empty($data['to']) ? Carbon::parse($data['to'])->endOfDay() : now()->endOfMonth();
 
-        $query=InventoryIssueCommission::query()
-            ->with(['issue','medicine','user','partner'])
-            ->whereBetween('calculated_at',[$from,$to])
-            ->when(!empty($data['source']) && $data['source']!=='all',fn($q)=>$q->where('source_type',$data['source']))
-            ->when(!empty($data['user_id']),fn($q)=>$q->where('user_id',(int)$data['user_id']))
-            ->when(!empty($data['partner_id']),fn($q)=>$q->where('partner_id',(int)$data['partner_id']))
-            ->when(!empty($data['medicine_id']),fn($q)=>$q->where('medicine_id',(int)$data['medicine_id']))
-            ->when(!empty($data['ids']),fn($q)=>$q->whereIn('id',$data['ids']))
+        $query=$commissions->adminQuery([
+            'from'=>$from,'to'=>$to,'source'=>$data['source'] ?? 'all',
+            'user_id'=>$data['user_id'] ?? null,'partner_id'=>$data['partner_id'] ?? null,
+            'medicine_id'=>$data['medicine_id'] ?? null,'ids'=>$data['ids'] ?? [],
+        ])->with(['issue','medicine','user','partner'])
             ->orderBy('calculated_at')->orderBy('id');
 
         $rows=$query->get()->map(fn(InventoryIssueCommission $row)=>[
