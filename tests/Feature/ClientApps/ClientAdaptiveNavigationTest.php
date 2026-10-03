@@ -96,6 +96,9 @@ class ClientAdaptiveNavigationTest extends TestCase
                 'background_opacity' => 95,
                 'icon_color' => '#64748b',
                 'text_color' => '#64748b',
+                'active_icon_color' => '#1d4ed8',
+                'active_text_color' => '#1e3a8a',
+                'active_background_color' => '#eff6ff',
                 'text_font_size' => 11,
                 'icon_size' => 20,
                 'min_height' => 72,
@@ -107,6 +110,9 @@ class ClientAdaptiveNavigationTest extends TestCase
         $this->assertStringContainsString('font-size: 11px', $html);
         $this->assertStringContainsString('width: 20px', $html);
         $this->assertStringContainsString('#64748b', $html);
+        $this->assertStringContainsString('#eff6ff', $html);
+        $this->assertStringContainsString('#1d4ed8', $html);
+        $this->assertStringContainsString('#1e3a8a', $html);
     }
 
     public function test_navigation_icon_partial_has_generic_fallback(): void
