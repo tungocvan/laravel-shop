@@ -3,6 +3,8 @@
 @endphp
 
 @php($hideMobileNavigation = $hideMobileNavigation ?? false)
+@php($mobilePrimaryNavigation = $mobilePrimaryNavigation ?? $primaryNavigation)
+@php($mobileMoreNavigation = $mobileMoreNavigation ?? $moreNavigation)
 
 @if($allNavigation->isNotEmpty())
     <aside class="hidden sm:flex sm:w-20 sm:shrink-0 sm:flex-col sm:border-r sm:border-slate-200 sm:bg-white lg:w-56 xl:w-60" aria-label="Điều hướng ứng dụng">
@@ -43,7 +45,7 @@
     @unless($hideMobileNavigation)
     <nav class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-2 pb-[max(.7rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur sm:hidden" aria-label="Điều hướng ứng dụng">
         <div class="mx-auto flex max-w-md items-end justify-around gap-1 text-center text-[11px] font-semibold text-slate-500">
-            @foreach($primaryNavigation as $item)
+            @foreach($mobilePrimaryNavigation as $item)
                 @php($active = request()->routeIs($item['route'], $item['route'].'.*'))
                 <a href="{{ route($item['route']) }}"
                    class="min-w-0 flex-1 rounded-xl px-1 py-2 {{ $active ? 'bg-slate-100 text-slate-950' : 'text-slate-500' }}"
@@ -53,15 +55,15 @@
                 </a>
             @endforeach
 
-            @if($moreNavigation->isNotEmpty())
-                @php($moreActive = $moreNavigation->contains(fn (array $item): bool => request()->routeIs($item['route'], $item['route'].'.*')))
+            @if($mobileMoreNavigation->isNotEmpty())
+                @php($moreActive = $mobileMoreNavigation->contains(fn (array $item): bool => request()->routeIs($item['route'], $item['route'].'.*')))
                 <details class="group relative min-w-0 flex-1">
                     <summary class="cursor-pointer list-none rounded-xl px-1 py-2 [&::-webkit-details-marker]:hidden {{ $moreActive ? 'bg-slate-100 text-slate-950' : 'text-slate-500' }}" @if($moreActive) aria-current="page" @endif>
                         @include('ClientPortal::partials.navigation-icon', ['name' => 'ellipsis-horizontal', 'class' => 'mx-auto mb-1 h-5 w-5'])
                         <span class="block truncate">Thêm</span>
                     </summary>
                     <div class="absolute bottom-full right-0 mb-3 w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 text-left shadow-xl">
-                        @foreach($moreNavigation as $item)
+                        @foreach($mobileMoreNavigation as $item)
                             @php($active = request()->routeIs($item['route'], $item['route'].'.*'))
                             <a href="{{ route($item['route']) }}"
                                class="flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm {{ $active ? 'bg-slate-100 font-bold text-slate-950' : 'font-semibold text-slate-600' }}"
