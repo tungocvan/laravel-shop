@@ -14,7 +14,7 @@ final class UserCommissionWorkspace
 
     public function browse(
         int $userId,
-        ?string $search=null,
+        ?int $partnerId=null,
         string $source='all',
         mixed $from=null,
         mixed $to=null,
@@ -25,14 +25,8 @@ final class UserCommissionWorkspace
     ): LengthAwarePaginator {
         $query=$this->scopedQuery($userId,$canViewTeam,$managerUserId,$source,$from,$to);
 
-        $search=trim((string)$search);
-        if($search!==''){
-            $query->where(function($q) use($search): void {
-                $like='%'.$search.'%';
-                $q->whereHas('medicine',fn($m)=>$m->where('name','like',$like)->orWhere('medicine_code','like',$like))
-                    ->orWhereHas('partner',fn($p)=>$p->where('name','like',$like))
-                    ->orWhereHas('issue',fn($i)=>$i->where('number','like',$like)->orWhere('recipient_name','like',$like));
-            });
+        if($partnerId!==null){
+            $query->where('partner_id',$partnerId);
         }
 
         return $query
@@ -88,6 +82,25 @@ final class UserCommissionWorkspace
             'unresolved'=>(clone $base)->where('entry_type',InventoryIssueCommission::TYPE_EARNED)
                 ->where('status',InventoryIssueCommission::STATUS_UNRESOLVED)->count(),
         ];
+    }
+
+    public function commissionPartners(
+        int $userId,
+        string $source='all',
+        mixed $from=null,
+        mixed $to=null,
+        bool $canViewTeam=false,
+        ?int $managerUserId=null,
+    ): Collection {
+        return $this->scopedQuery($userId,$canViewTeam,$managerUserId,$source,$from,$to)
+            ->whereNotNull('partner_id')
+            ->with('partner:id,name')
+            ->get(['partner_id'])
+            ->pluck('partner')
+            ->filter()
+            ->unique('id')
+            ->sortBy('name',SORT_NATURAL|SORT_FLAG_CASE)
+            ->values();
     }
 
     public function commissionUsers(): Collection
