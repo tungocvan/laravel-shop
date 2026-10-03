@@ -11,6 +11,9 @@ return [
     'sort_order' => 20,
     'layout' => ['mode' => 'workspace'],
     'hub' => [
+        'key' => 'overview',
+        'name' => 'Tổng quan',
+        'permission' => 'client.pharma.overview.view',
         'eyebrow' => 'Pharma PWA',
         'title' => 'Không gian làm việc Pharma',
         'description' => 'Các chức năng hiển thị theo quyền Web của User. Dữ liệu và business rules vẫn thuộc Modules/Pharma; PWA không sử dụng giao diện hoặc quyền Admin Pharma.',
