@@ -154,7 +154,7 @@
                             <td class="border-b border-white/20">{{ $app['bao_mau'] ?? '' }}</td>
                         </tr>
                         <tr>
-                            <td class="py-2">➤ Cơ sở / Phân hiệu:</td>
+                            <td class="py-2">➤ Cơ sở:</td>
                             <td class="border-b border-white/20">{{ $app['school_campus_name'] ?? '' }}</td>
                         </tr>
                         <tr>
