@@ -21,6 +21,32 @@
         </div>
     </section>
 
+    <form method="POST" action="{{ route('admin.client-apps.pwa.applications.hub.update', $application['key']) }}" class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        @csrf @method('PUT')
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+                <h2 class="text-lg font-bold text-gray-900">Hub / Dashboard</h2>
+                <p class="mt-1 text-sm text-gray-500">Quản trị Hero và nội dung hỗ trợ của application Hub. Route, permission và nghiệp vụ vẫn do source code kiểm soát.</p>
+            </div>
+            <button class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">Lưu Hub</button>
+        </div>
+
+        <div class="mt-5 grid gap-4 md:grid-cols-2">
+            <label class="block"><span class="text-sm font-semibold text-gray-800">Nhãn / Eyebrow</span><input name="eyebrow" required maxlength="80" value="{{ old('eyebrow', $hubPresentation['eyebrow']) }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm"></label>
+            <label class="block"><span class="text-sm font-semibold text-gray-800">Tiêu đề Hub</span><input name="title" required maxlength="160" value="{{ old('title', $hubPresentation['title']) }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm"></label>
+            <label class="block md:col-span-2"><span class="text-sm font-semibold text-gray-800">Mô tả Hub</span><textarea name="description" maxlength="500" rows="3" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm">{{ old('description', $hubPresentation['description']) }}</textarea></label>
+        </div>
+
+        <div class="mt-5 rounded-2xl border border-gray-200 bg-gray-50 p-4">
+            <input type="hidden" name="supporting_visible" value="0">
+            <label class="flex items-center gap-2 text-sm font-semibold text-gray-900"><input type="checkbox" name="supporting_visible" value="1" @checked(old('supporting_visible', $hubPresentation['supporting_visible']))> Hiển thị nội dung hỗ trợ</label>
+            <div class="mt-4 grid gap-4 md:grid-cols-2">
+                <label class="block"><span class="text-sm font-semibold text-gray-800">Tiêu đề hỗ trợ</span><input name="supporting_title" maxlength="160" value="{{ old('supporting_title', $hubPresentation['supporting_title']) }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm"></label>
+                <label class="block md:col-span-2"><span class="text-sm font-semibold text-gray-800">Nội dung hỗ trợ</span><textarea name="supporting_body" maxlength="1000" rows="3" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm">{{ old('supporting_body', $hubPresentation['supporting_body']) }}</textarea></label>
+            </div>
+        </div>
+    </form>
+
     <div class="grid gap-5 lg:grid-cols-2">
         @foreach($features as $row)
             @php($feature = $row['manifest'])
