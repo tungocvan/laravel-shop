@@ -86,6 +86,8 @@ class ClientAdaptiveNavigationTest extends TestCase
             'bottom_icon' => 'home',
         ]]);
 
+        $this->get(route('client.apps.index'));
+
         $html = view('ClientPortal::partials.adaptive-navigation', [
             'primaryNavigation' => $item,
             'moreNavigation' => collect(),
