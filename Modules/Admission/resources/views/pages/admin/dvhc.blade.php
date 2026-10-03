@@ -22,7 +22,7 @@
                 </div>
             </button>
 
-            <div x-cloak x-show="toolsOpen" x-collapse class="border-t border-gray-100">
+            <div x-cloak x-show="toolsOpen" class="border-t border-gray-100">
                 @livewire('shared.import-export.panel', [
                     'serviceClass' => \Modules\Admission\Services\ImportExport::class,
                     'title' => 'Import / Export Đơn vị Hành chính',
