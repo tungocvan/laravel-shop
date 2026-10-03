@@ -22,6 +22,8 @@ class PharmaClientFoundationTest extends TestCase
         $this->assertSame('client.pharma.dashboard', $application['route']);
         $this->assertSame('client.pharma.access', $application['permission']);
         $this->assertSame(['mode' => 'workspace'], $application['layout']);
+        $this->assertSame('overview', $application['hub']['key']);
+        $this->assertSame('client.pharma.overview.view', $application['hub']['permission']);
         $this->assertSame('Pharma PWA', $application['hub']['eyebrow']);
         $this->assertSame('Không gian làm việc Pharma', $application['hub']['title']);
         $this->assertSame('Ranh giới Foundation', $application['hub']['supporting']['title']);
@@ -82,6 +84,26 @@ class PharmaClientFoundationTest extends TestCase
         $this->assertContains('client.application:pharma', $route->gatherMiddleware());
         $this->assertContains('client.feature:pharma,overview', $route->gatherMiddleware());
         $this->assertNotContains('auth:admin', $route->gatherMiddleware());
+    }
+
+    public function test_hub_permission_is_resolved_without_restoring_overview_business_feature(): void
+    {
+        $middleware = file_get_contents(base_path('Modules/ClientPortal/Http/Middleware/EnsureFeatureAccess.php'));
+        $permissions = file_get_contents(base_path('Modules/ClientPortal/Services/ApplicationPermissionService.php'));
+
+        $this->assertStringContainsString("\$manifest['hub']", $middleware);
+        $this->assertStringContainsString("['permission']", $middleware);
+        $this->assertStringContainsString("\$application['hub']", $permissions);
+        $this->assertNull(collect(app(ApplicationRegistry::class)->find('pharma')['features'])->firstWhere('key', 'overview'));
+    }
+
+    public function test_pwa_404_home_action_returns_to_application_launcher(): void
+    {
+        $view = file_get_contents(base_path('resources/views/errors/404.blade.php'));
+
+        $this->assertStringContainsString("request()->is('apps/*')", $view);
+        $this->assertStringContainsString("route('client.apps.index')", $view);
+        $this->assertStringContainsString("{{ \$isClientPortal ? 'Trang chủ' : 'Về trang chủ' }}", $view);
     }
 
     public function test_pharma_foundation_does_not_reuse_admin_presentation_or_facade_calls_in_blade(): void
