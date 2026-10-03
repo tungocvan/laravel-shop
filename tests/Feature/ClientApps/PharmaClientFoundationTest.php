@@ -22,6 +22,9 @@ class PharmaClientFoundationTest extends TestCase
         $this->assertSame('client.pharma.dashboard', $application['route']);
         $this->assertSame('client.pharma.access', $application['permission']);
         $this->assertSame(['mode' => 'workspace'], $application['layout']);
+        $this->assertSame('Pharma PWA', $application['hub']['eyebrow']);
+        $this->assertSame('Không gian làm việc Pharma', $application['hub']['title']);
+        $this->assertSame('Ranh giới Foundation', $application['hub']['supporting']['title']);
         $this->assertSame(
             ['overview', 'products', 'price-lists', 'bid-awards', 'commercial', 'orders', 'inventory', 'commissions'],
             collect($application['features'])->pluck('key')->all(),
@@ -87,6 +90,9 @@ class PharmaClientFoundationTest extends TestCase
         $this->assertStringContainsString('Route::has($routeName)', $controller);
         $this->assertStringContainsString("ClientPortal::layouts.application", $view);
         $this->assertStringContainsString("route_available", $view);
+        $this->assertStringContainsString("$hubPresentation['eyebrow']", $view);
+        $this->assertStringContainsString("$hubPresentation['supporting_title']", $view);
+        $this->assertStringNotContainsString('<h2 class="font-black text-slate-950">Ranh giới Foundation</h2>', $view);
         $this->assertStringNotContainsString('IlluminateSupportFacadesRoute', $view);
         $this->assertStringNotContainsString('Route::has(', $view);
         $this->assertStringNotContainsString('Admin::layouts.master', $view);
