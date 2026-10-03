@@ -32,7 +32,7 @@ Before giving the first production command, read the current versions of:
 5. `docs/GITHUB_COLLABORATION_WORKFLOW.md`
 6. `docs/chuyen_chat.md`
 
-Then locate and read documentation for the module/capability that owns `TARGET_ROUTE`. Follow direct mandatory references from those documents when relevant to the incident.
+Then resolve the project key from `basename(PROJECT_PATH)` and, when present, read `docs/production/<project>/PRODUCTION_HISTORY.md`. Use it to avoid rediscovering stable project topology and prior proven incidents, while re-verifying volatile state. Then locate and read documentation for the module/capability that owns `TARGET_ROUTE`. Follow direct mandatory references from those documents when relevant to the incident.
 
 If documentation conflicts with this skill, the current repository documentation wins.
 
@@ -60,7 +60,15 @@ process/OPcache state
 
 A host `git pull` does not prove that the process serving production is executing the new code.
 
-## 3. First checkpoint
+## 3. Fast health gate
+
+Project history is an acceleration cache, not a replacement for current health. At the beginning of a new incident, verify only the volatile facts needed to know that it is safe to work: required services are running/healthy, the correct Compose project is targeted, and there is no degraded stack. `./production-debug.sh --docker` is the preferred single-command health gate.
+
+When this health gate is healthy and project history already establishes the stable topology, do not repeatedly rediscover Docker architecture. Move directly to Git/source alignment, target-route mapping and incident-specific evidence. From there, prefer fixing/testing source over broad runtime investigation unless new evidence points back to infrastructure.
+
+If the health gate is degraded, stop source implementation and diagnose the affected runtime first.
+
+## 4. First checkpoint
 
 Production diagnosis is read-only by default. The normal first checkpoint is exactly:
 
@@ -74,7 +82,7 @@ From its output establish the actual Compose project, app service/container, ser
 
 If any required service is `restarting`, `created`, `exited`, `dead`, `unhealthy`, or otherwise non-running, treat that state as diagnostic evidence. Do not automatically run `up`, restart, recreate or rebuild before understanding the cause.
 
-## 4. Checkpoint discipline
+## 5. Checkpoint discipline
 
 Work one evidence-producing checkpoint at a time. Format each checkpoint as:
 
@@ -103,7 +111,7 @@ After every meaningful result distinguish:
 
 Once the root cause is proven, stop collecting redundant evidence.
 
-## 5. Git/source baseline
+## 6. Git/source baseline
 
 When source/version can matter, inspect the production host without cleaning it:
 
@@ -121,7 +129,7 @@ compose.socket.yaml
 
 Never use `git clean -fd` or `git reset --hard` as a production diagnosis shortcut.
 
-## 6. Map the target route to real source
+## 7. Map the target route to real source
 
 Use the canonical Artisan helper rather than guessing a container name:
 
@@ -143,7 +151,7 @@ route
 
 Inspect the current source before proposing a fix. If source evidence already proves the defect, do not demand unnecessary runtime logs.
 
-## 7. Choose the narrow diagnostic branch
+## 8. Choose the narrow diagnostic branch
 
 Do not run every diagnostic helper. Classify the incident and collect the smallest relevant evidence.
 
@@ -213,7 +221,7 @@ Diagnosis and cleanup are separate. For a read-only report use:
 
 Only use `--logs` or `--docker` after the report and an explicit maintenance decision. Docker cleanup is host-wide on a shared production host.
 
-## 8. Mutation gate
+## 9. Mutation gate
 
 Before any mutating production command, state and understand:
 
@@ -243,7 +251,7 @@ restart/rebuild of the whole stack
 
 Never expose `APP_KEY`, database passwords, API keys, tokens or credentials.
 
-## 9. Source-defect workflow
+## 10. Source-defect workflow
 
 If evidence proves a source defect:
 
@@ -262,7 +270,7 @@ If evidence proves a source defect:
 
 Do not hide a source defect with a production-only workaround when a durable source fix is appropriate.
 
-## 10. Deployment mode and stale runtime
+## 11. Deployment mode and stale runtime
 
 Before deciding how new source reaches production, determine whether application code is supplied by a bind mount, baked into the image, or another deployment mechanism.
 
@@ -286,7 +294,7 @@ Do not run `optimize:clear` automatically.
 
 If behavior contradicts verified source, investigate compiled/process state. In particular, `opcache.validate_timestamps=Off` can leave PHP-FPM executing old bytecode. Do not blindly restart or signal PHP-FPM: first identify the correct app service/process and deployment mode, then use the smallest reload/restart allowed by the current production docs.
 
-## 11. Database/migration gate
+## 12. Database/migration gate
 
 Run production migrations only when the current code actually contains a required migration and it has been reviewed for the target production state.
 
@@ -294,7 +302,7 @@ Before applying, understand connection, expected tables, migration records, part
 
 Do not run `migrate` after every pull by habit. Do not use MariaDB initialization variables as a way to mutate credentials/schema of an existing named DB volume. Do not disable `ONLY_FULL_GROUP_BY` to hide an SQL defect.
 
-## 12. Test strategy
+## 13. Test strategy
 
 Production images may be built with Composer `--no-dev`. If `php artisan test` is unavailable, do not install development dependencies into production merely to run PHPUnit.
 
@@ -302,13 +310,13 @@ Production verification may use safe syntax/runtime checks, Artisan inspection, 
 
 Remember that production MariaDB/MySQL-compatible behavior and test SQLite behavior can differ. Identify the actual driver/runtime before attributing a failure to source.
 
-## 13. Livewire/performance branch
+## 14. Livewire/performance branch
 
 When the symptom is UI slowness, do not assume Docker is the cause. Inspect Livewire request count, public/snapshot state, payload size, render lifecycle, query behavior and server round trips.
 
 UI-only state such as tabs, accordions and wizard navigation should not require server round trips when no server validation/data mutation is needed; client-side Alpine state can be appropriate. Business mutations remain server-side.
 
-## 14. Acceptance gate
+## 15. Acceptance gate
 
 A route merely opening is not enough to declare production PASS. Evaluate every applicable gate:
 
@@ -331,7 +339,7 @@ A route merely opening is not enough to declare production PASS. Evaluate every 
 
 Do not force unrelated gates; explicitly decide applicability.
 
-## 15. Closeout
+## 16. Closeout
 
 After an approved deploy/merge, use the current repository docs and finish with an applicable baseline such as:
 
@@ -343,7 +351,7 @@ docker compose -p "$(basename "$PWD")" ps --all
 
 Confirm the intended base branch/SHA, healthy required runtime, target route/UI PASS, no new important exception, no forgotten temporary workaround and intact production overlays.
 
-## 16. Core decision order
+## 17. Core decision order
 
 Use this mental model:
 
@@ -384,7 +392,7 @@ When local/test passes but production fails, investigate in this order unless di
 11. application code defect
 ```
 
-## 17. Invocation contract
+## 18. Invocation contract
 
 A new chat can invoke the workflow with only:
 
