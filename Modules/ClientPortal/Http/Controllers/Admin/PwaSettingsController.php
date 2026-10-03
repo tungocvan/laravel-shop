@@ -38,6 +38,7 @@ class PwaSettingsController extends Controller
         return view('ClientPortal::admin.application-presentation', [
             'application' => $manifest,
             'applicationPresentation' => $settings->applicationPresentation($manifest),
+            'hubPresentation' => $settings->applicationHubPresentation($manifest),
             'features' => collect($manifest['features'] ?? [])->map(fn (array $feature): array => [
                 'manifest' => $feature,
                 'presentation' => $settings->featurePresentation($manifest['key'], $feature),
@@ -89,6 +90,21 @@ class PwaSettingsController extends Controller
         $validated = $request->validate(['enabled' => ['required', 'boolean'], 'name' => ['required', 'string', 'max:100'], 'description' => ['nullable', 'string', 'max:500'], 'sort_order' => ['required', 'integer', 'min:0', 'max:9999']]);
         $settings->updateApplicationPresentation($manifest['key'], $validated, $request->user('admin')?->getAuthIdentifier());
         return back()->with('success', 'Đã cập nhật cách hiển thị ứng dụng '.$manifest['name'].'.');
+    }
+
+    public function updateApplicationHub(Request $request, string $application, ApplicationRegistry $registry, ClientPortalSettingsService $settings): RedirectResponse
+    {
+        $manifest = $registry->find($application); abort_if($manifest === null, 404);
+        $validated = $request->validate([
+            'eyebrow' => ['required', 'string', 'max:80'],
+            'title' => ['required', 'string', 'max:160'],
+            'description' => ['nullable', 'string', 'max:500'],
+            'supporting_visible' => ['required', 'boolean'],
+            'supporting_title' => ['nullable', 'string', 'max:160'],
+            'supporting_body' => ['nullable', 'string', 'max:1000'],
+        ]);
+        $settings->updateApplicationHubPresentation($manifest['key'], $validated, $request->user('admin')?->getAuthIdentifier());
+        return back()->with('success', 'Đã cập nhật Hub của ứng dụng '.$manifest['name'].'.');
     }
 
     public function updateFeature(Request $request, string $application, string $feature, ApplicationRegistry $registry, ClientPortalSettingsService $settings): RedirectResponse
