@@ -18,6 +18,14 @@ class EnsureFeatureAccess
         $featureManifest = collect($manifest['features'] ?? [])->first(
             fn (array $item): bool => ($item['key'] ?? null) === $feature
         );
+
+        if ($featureManifest === null) {
+            $hub = (array) ($manifest['hub'] ?? []);
+            if (($hub['key'] ?? null) === $feature) {
+                $featureManifest = $hub;
+            }
+        }
+
         abort_if($featureManifest === null, 404);
 
         $user = $request->user('web');
