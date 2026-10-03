@@ -29,8 +29,13 @@ class RealtimeBrowserSocketConfigurationTest extends TestCase
             $socketClient
         );
 
+        $this->assertStringNotContainsString(
+            '<x-realtime-config />',
+            $authLayout,
+            'Auth layout must not bootstrap realtime before login.'
+        );
+
         foreach ([
-            'auth layout' => $authLayout,
             'admin head' => $adminHead,
             'website runtime head' => $websiteRuntimeHead,
         ] as $surface => $source) {
@@ -39,6 +44,13 @@ class RealtimeBrowserSocketConfigurationTest extends TestCase
                 $source,
                 "{$surface} must expose the canonical realtime browser config."
             );
+        }
+
+        foreach ([
+            'auth layout' => $authLayout,
+            'admin head' => $adminHead,
+            'website runtime head' => $websiteRuntimeHead,
+        ] as $surface => $source) {
 
             $this->assertStringNotContainsString(
                 'window.CHAT_CONFIG_HOST',
