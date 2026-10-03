@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@yield('title', 'HOMEPAGE')</title>
     @yield('css')
-    <x-realtime-config />
     @vite(['resources/css/tailwind.css', 'resources/js/tailwind.js'])
     @stack('styles')
     @livewireStyles
