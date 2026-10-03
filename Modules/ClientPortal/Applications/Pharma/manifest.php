@@ -277,6 +277,13 @@ return [
             'permission' => 'client.pharma.commissions.view',
             'icon' => 'banknotes',
             'sort_order' => 80,
+            'actions' => [
+                'view-team' => [
+                    'name' => 'Xem hoa hồng tất cả User',
+                    'permission' => 'client.pharma.commissions.view-team',
+                    'sort_order' => 10,
+                ],
+            ],
         ],
     ],
 ];
