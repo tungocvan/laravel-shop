@@ -1101,6 +1101,32 @@ final class PharmaApplicationController extends Controller
         ]);
     }
 
+    public function commission(
+        int $issue,
+        Request $request,
+        ApplicationRegistry $registry,
+        ClientPortalSettingsService $settings,
+        UserCommissionWorkspace $workspace,
+    ): View {
+        $application=$registry->find('pharma'); abort_if($application===null,404);
+        $user=$request->user('web'); abort_if($user===null,401);
+        abort_unless($registry->userCan($user,'client.pharma.commissions.view'),403);
+        $feature=collect($application['features'] ?? [])->first(fn(array $feature): bool=>$feature['key']==='commissions');
+        abort_if($feature===null,404);
+
+        $canViewTeam=$registry->userCan($user,'client.pharma.commissions.view-team');
+        $detail=$workspace->detail($issue,(int)$user->id,$canViewTeam);
+        abort_if($detail===null,404);
+
+        return view('ClientPortal::applications.pharma.commission-show',[
+            'application'=>$application,
+            'applicationPresentation'=>$settings->applicationPresentation($application),
+            'featurePresentation'=>$settings->featurePresentation($application['key'],$feature),
+            'detail'=>$detail,
+            'canViewTeam'=>$canViewTeam,
+        ]);
+    }
+
     public function inventory(
         Request $request,
         ApplicationRegistry $registry,
