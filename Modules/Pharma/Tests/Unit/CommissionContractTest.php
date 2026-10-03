@@ -66,7 +66,7 @@ class CommissionContractTest extends TestCase
         $this->assertStringContainsString('Export Excel đã chọn', $view);
     }
 
-    public function test_client_portal_commission_scope_exists_without_exposing_pwa_route_yet(): void
+    public function test_client_portal_commission_scope_is_exposed_through_guarded_pwa_route(): void
     {
         $queryService=file_get_contents(base_path('Modules/Pharma/Services/CommissionQueryService.php'));
         $clientRoutes=file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/routes.php'));
@@ -75,6 +75,8 @@ class CommissionContractTest extends TestCase
         $this->assertStringContainsString('public function userQuery(int $userId', $queryService);
         $this->assertStringContainsString("->where('user_id',\$userId)", $queryService);
         $this->assertStringContainsString("'client.pharma.commissions.view'", $manifest);
-        $this->assertStringNotContainsString("client.feature:pharma,commissions", $clientRoutes);
+        $this->assertStringContainsString("Route::get('/commissions'", $clientRoutes);
+        $this->assertStringContainsString("client.feature:pharma,commissions", $clientRoutes);
+        $this->assertStringContainsString("->name('commissions')", $clientRoutes);
     }
 }

@@ -79,6 +79,13 @@ return [
                 ],
             ],
         ],
+        'commissions' => [
+            'name' => 'Hoa hồng của tôi',
+            'route' => 'client.pharma.commissions',
+            'permission' => 'client.pharma.commissions.view',
+            'icon' => 'banknotes',
+            'sort_order' => 80,
+        ],
         'inventory' => [
             'name' => 'Tồn kho',
             'route' => 'client.pharma.inventory',
@@ -265,10 +272,18 @@ return [
             'description' => 'Theo dõi hoa hồng thuộc phạm vi của User.',
             'eyebrow' => 'Commissions',
             'page_title' => 'Hoa hồng của tôi',
-            'page_description' => 'Theo dõi hoa hồng thuộc phạm vi được phân quyền khi capability được đưa vào vận hành.',
+            'page_description' => 'Theo dõi doanh số và hoa hồng đã ghi nhận từ đơn hàng trúng thầu hoặc bảng giá thuộc chính tài khoản của bạn.',
+            'route' => 'client.pharma.commissions',
             'permission' => 'client.pharma.commissions.view',
             'icon' => 'banknotes',
             'sort_order' => 80,
+            'actions' => [
+                'view-team' => [
+                    'name' => 'Xem hoa hồng tất cả User',
+                    'permission' => 'client.pharma.commissions.view-team',
+                    'sort_order' => 10,
+                ],
+            ],
         ],
     ],
 ];
