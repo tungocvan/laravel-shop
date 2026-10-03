@@ -20,7 +20,7 @@
         <div class="mt-6 flex flex-col sm:flex-row gap-2 justify-center">
             <button type="button" data-error-back class="inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-base font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition">Quay lại</button>
             <a href="{{ $fallbackUrl }}" class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-slate-900 hover:bg-slate-800 transition">
-                {{ $isClientPortal ? 'Ứng dụng của tôi' : 'Về trang chủ' }}
+                {{ $isClientPortal ? 'Trang chủ' : 'Về trang chủ' }}
             </a>
         </div>
     </div>
