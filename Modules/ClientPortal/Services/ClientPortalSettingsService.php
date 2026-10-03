@@ -46,6 +46,34 @@ class ClientPortalSettingsService
         return $settings;
     }
 
+    public function applicationHubPresentation(array $application): array
+    {
+        $hub = (array) ($application['hub'] ?? []);
+        $supporting = (array) ($hub['supporting'] ?? []);
+        $defaults = [
+            'eyebrow' => $hub['eyebrow'] ?? $application['name'],
+            'title' => $hub['title'] ?? $application['name'],
+            'description' => $hub['description'] ?? $application['description'],
+            'supporting_visible' => $supporting['visible'] ?? true,
+            'supporting_title' => $supporting['title'] ?? '',
+            'supporting_body' => $supporting['body'] ?? '',
+        ];
+
+        $legacyOverview = collect($application['features'] ?? [])->firstWhere('key', 'overview');
+        $legacyGroup = 'application.'.$application['key'].'.feature.overview.presentation';
+        if (is_array($legacyOverview) && $this->groupHasStoredValues($legacyGroup)) {
+            $legacy = $this->featurePresentation($application['key'], $legacyOverview);
+            $defaults['eyebrow'] = $legacy['eyebrow'];
+            $defaults['title'] = $legacy['page_title'];
+            $defaults['description'] = $legacy['page_description'];
+        }
+
+        $settings = $this->group('application.'.$application['key'].'.hub', $defaults);
+        $settings['supporting_visible'] = $this->bool($settings['supporting_visible'] ?? true, true);
+
+        return $settings;
+    }
+
     public function featurePresentation(string $applicationKey, array $feature): array
     {
         $defaults = [
@@ -100,7 +128,14 @@ class ClientPortalSettingsService
     public function updatePwaLogin(array $values, ?int $updatedBy = null): void { $this->updateGroup('pwa.login', $values, $updatedBy); }
     public function updatePwaLauncher(array $values, ?int $updatedBy = null): void { $this->updateGroup('pwa.launcher', $values, $updatedBy); }
     public function updateApplicationPresentation(string $applicationKey, array $values, ?int $updatedBy = null): void { $this->updateGroup('application.'.trim($applicationKey).'.presentation', $values, $updatedBy); }
+    public function updateApplicationHubPresentation(string $applicationKey, array $values, ?int $updatedBy = null): void { $this->updateGroup('application.'.trim($applicationKey).'.hub', $values, $updatedBy); }
     public function updateFeaturePresentation(string $applicationKey, string $featureKey, array $values, ?int $updatedBy = null): void { $this->updateGroup('application.'.trim($applicationKey).'.feature.'.trim($featureKey).'.presentation', $values, $updatedBy); }
+
+    private function groupHasStoredValues(string $group): bool
+    {
+        return Schema::hasTable('client_portal_settings')
+            && ClientPortalSetting::query()->where('group_name', $group)->exists();
+    }
 
     private function group(string $group, array $defaults): array
     {
