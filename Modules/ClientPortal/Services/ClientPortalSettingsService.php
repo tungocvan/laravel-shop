@@ -199,10 +199,13 @@ class ClientPortalSettingsService
             'supporting_body' => $supporting['body'] ?? '',
         ];
 
-        $legacyOverview = collect($application['features'] ?? [])->firstWhere('key', 'overview');
         $legacyGroup = 'application.'.$application['key'].'.feature.overview.presentation';
-        if (is_array($legacyOverview) && $this->groupHasStoredValues($legacyGroup)) {
-            $legacy = $this->featurePresentation($application['key'], $legacyOverview);
+        if ($this->groupHasStoredValues($legacyGroup, ['eyebrow', 'page_title', 'page_description'])) {
+            $legacy = $this->group($legacyGroup, [
+                'eyebrow' => $defaults['eyebrow'],
+                'page_title' => $defaults['title'],
+                'page_description' => $defaults['description'],
+            ]);
             $defaults['eyebrow'] = $legacy['eyebrow'];
             $defaults['title'] = $legacy['page_title'];
             $defaults['description'] = $legacy['page_description'];
@@ -295,10 +298,14 @@ class ClientPortalSettingsService
     public function updateApplicationNavigationPresentation(string $applicationKey, array $values, ?int $updatedBy = null): void { $this->updateGroup('application.'.trim($applicationKey).'.navigation', $values, $updatedBy); }
     public function updateFeaturePresentation(string $applicationKey, string $featureKey, array $values, ?int $updatedBy = null): void { $this->updateGroup('application.'.trim($applicationKey).'.feature.'.trim($featureKey).'.presentation', $values, $updatedBy); }
 
-    private function groupHasStoredValues(string $group): bool
+    private function groupHasStoredValues(string $group, ?array $keys = null): bool
     {
-        return Schema::hasTable('client_portal_settings')
-            && ClientPortalSetting::query()->where('group_name', $group)->exists();
+        if (! Schema::hasTable('client_portal_settings')) return false;
+
+        $query = ClientPortalSetting::query()->where('group_name', $group);
+        if ($keys !== null) $query->whereIn('key', $keys);
+
+        return $query->exists();
     }
 
     private function group(string $group, array $defaults): array
