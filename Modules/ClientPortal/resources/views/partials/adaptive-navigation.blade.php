@@ -59,7 +59,7 @@
                    class="group/nav-item min-w-0 flex-1 select-none rounded-2xl px-1 py-1.5 transition-[transform,background-color,box-shadow] duration-100 ease-out active:scale-[0.97] motion-reduce:transform-none motion-reduce:transition-none" style="{{ $bottomTouchStyle }} {{ $active ? 'background-color: '.$bottomNav['active_background_color'].'; '.$bottomActiveShadow : $bottomItemShadow }}" onpointerdown="if({{ $bottomNeumorphism ? 'true' : 'false' }}){this.style.boxShadow='inset 4px 4px 8px rgba(100,116,139,.22), inset -4px -4px 8px rgba(255,255,255,.92)'}" onpointerup="this.style.boxShadow=''" onpointercancel="this.style.boxShadow=''" onpointerleave="this.style.boxShadow=''"
                    @if($active) aria-current="page" @endif>
                     <span class="mx-auto mb-1 block transition-transform duration-100 group-active/nav-item:translate-y-px motion-reduce:transform-none" style="width: {{ (int) $bottomNav['icon_size'] }}px; height: {{ (int) $bottomNav['icon_size'] }}px; color: {{ $active ? $bottomNav['active_icon_color'] : $bottomNav['icon_color'] }};">@include('ClientPortal::partials.navigation-icon', ['name' => $item['bottom_icon'] ?? $item['icon'], 'class' => 'h-full w-full'])</span>
-                    <span class="block min-h-[2.25em] overflow-hidden leading-[1.125em]" style="color: {{ $active ? $bottomNav['active_text_color'] : $bottomNav['text_color'] }};">{{ $item['name'] }}</span>
+                    <span class="block truncate leading-[1.125em]" title="{{ $item['name'] }}" style="color: {{ $active ? $bottomNav['active_text_color'] : $bottomNav['text_color'] }};">{{ $item['name'] }}</span>
                 </a>
             @endforeach
 
