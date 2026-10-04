@@ -15,6 +15,7 @@ use Modules\Pharma\Models\InventoryReceipt;
 use Modules\Pharma\Services\MedicineCatalog;
 use Modules\Pharma\Services\InventoryService;
 use Modules\Pharma\Services\InventoryReceiptDocumentService;
+use Modules\Pharma\Services\InventoryIssueDocumentService;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Modules\Pharma\Services\UserPriceListWorkspace;
 use Modules\Pharma\Services\UserCommercialHospitalWorkspace;
