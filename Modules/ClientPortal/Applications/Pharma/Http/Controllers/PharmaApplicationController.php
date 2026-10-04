@@ -1234,10 +1234,14 @@ final class PharmaApplicationController extends Controller
         abort_if($feature === null, 404);
 
         $receipts=$workspace->browse($validated['q'] ?? null, $validated['status'] ?? null, 20, (int) ($validated['page'] ?? 1))->withQueryString();
-        $receiptDocumentStatuses=$documents->statuses($receipts->getCollection());
-        $receiptShares=[];
+        $receiptPdfActions=[];
         foreach ($receipts->getCollection() as $receipt) {
-            $receiptShares[(int)$receipt->id]=$documents->latestInvoiceShare($receipt,(int)$user->id);
+            $canUsePdf=$receipt->status === InventoryReceipt::POSTED;
+            $receiptPdfActions[(int)$receipt->id]=[
+                'can_use_pdf'=>$canUsePdf,
+                'invoice_ready'=>$canUsePdf && $documents->current($receipt,InventoryReceiptDocumentService::INVOICE)!==null,
+                'share'=>$canUsePdf ? $documents->latestInvoiceShare($receipt,(int)$user->id) : null,
+            ];
         }
 
         return view('ClientPortal::applications.pharma.inventory-receipts', [
@@ -1247,8 +1251,7 @@ final class PharmaApplicationController extends Controller
             'receipts' => $receipts,
             'statusCounts' => $workspace->statusCounts($validated['q'] ?? null),
             'filters' => ['q' => trim((string) ($validated['q'] ?? '')), 'status' => $validated['status'] ?? ''],
-            'receiptDocumentStatuses'=>$receiptDocumentStatuses,
-            'receiptShares'=>$receiptShares,
+            'receiptPdfActions'=>$receiptPdfActions,
         ]);
     }
 
