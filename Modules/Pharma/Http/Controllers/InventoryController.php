@@ -28,6 +28,7 @@ use Modules\Pharma\Models\PriceListItem;
 use Modules\Pharma\Models\SupplierTracking;
 use Modules\Pharma\Services\InventoryService;
 use Modules\Pharma\Services\InventoryReceiptDocumentService;
+use Modules\Pharma\Services\InventoryIssueDocumentService;
 use Modules\Pharma\Services\UserInventoryReceiptWorkspace;
 use Modules\Pharma\Services\InventoryMovementSummaryService;
 use Modules\Pharma\Services\UserOrderApprovalService;
@@ -793,21 +794,27 @@ final class InventoryController extends Controller
         return view('Pharma::pages.inventory.issue-show',compact('issue','settings','bidManagerNames','approvalReadiness'));
     }
 
-    public function issuePdf(InventoryIssue $issue, InventoryService $inventory): Response
+    public function exportIssuePdf(InventoryIssue $issue, InventoryService $inventory, InventoryIssueDocumentService $documents): RedirectResponse
     {
         $this->guardIssueWarehouse($issue,$inventory);
-        $issue->load(['items.medicine','manager:id,name','priceList.manager']);
-        $settings=InventoryIssueDocumentSetting::current();
-        $pdf=Pdf::loadView('Pharma::pages.inventory.issue-pdf',compact('issue','settings'))->setPaper('a4','portrait');
-        return $pdf->download("phieu-xuat-kho-{$issue->number}.pdf");
+        $documents->generate($issue,(int)auth('admin')->id());
+        return back()->with('success',"Đã xuất PDF phiếu {$issue->number}.");
     }
 
-    public function issuePrint(InventoryIssue $issue, InventoryService $inventory): View
+    public function downloadIssuePdf(InventoryIssue $issue, InventoryService $inventory, InventoryIssueDocumentService $documents): BinaryFileResponse
     {
         $this->guardIssueWarehouse($issue,$inventory);
-        $issue->load(['items.medicine','manager:id,name','priceList.manager']);
-        $settings=InventoryIssueDocumentSetting::current();
-        return view('Pharma::pages.inventory.issue-print',compact('issue','settings'));
+        $document=$documents->current($issue);
+        abort_unless($document,404);
+        return response()->download($documents->path($document),$document->download_name,['Cache-Control'=>'private, no-store']);
+    }
+
+    public function printIssuePdf(InventoryIssue $issue, InventoryService $inventory, InventoryIssueDocumentService $documents): BinaryFileResponse
+    {
+        $this->guardIssueWarehouse($issue,$inventory);
+        $document=$documents->current($issue);
+        abort_unless($document,404);
+        return response()->file($documents->path($document),['Content-Type'=>'application/pdf','Cache-Control'=>'private, no-store']);
     }
 
     public function editIssue(InventoryIssue $issue, InventoryService $inventory): View|RedirectResponse
