@@ -126,7 +126,8 @@ class ClientAdaptiveNavigationTest extends TestCase
         $this->assertStringContainsString('box-shadow: 7px 7px 16px', $html);
         $this->assertStringContainsString('box-shadow: inset 4px 4px 8px', $html);
         $this->assertStringNotContainsString('box-shadow: 2px 2px 5px', $html);
-        $this->assertStringContainsString('min-h-[2.25em]', $html);
+        $this->assertStringContainsString('class="block truncate leading-[1.125em]"', $html);
+        $this->assertStringContainsString('title="Tổng quan"', $html);
         $this->assertStringContainsString('touch-action: manipulation', $html);
         $this->assertStringContainsString('-webkit-tap-highlight-color: transparent', $html);
         $this->assertStringContainsString('active:scale-[0.97]', $html);
