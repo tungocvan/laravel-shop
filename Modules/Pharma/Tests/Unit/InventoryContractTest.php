@@ -183,6 +183,17 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("data-document-actions", $documents);
         $this->assertStringContainsString("aria-label=\"Thao tác khác\">⋯", $documents);
         $this->assertStringNotContainsString('>Xem</a>', $documents);
+        $this->assertStringContainsString("name('receipts.pdf')", $routes);
+        $this->assertStringContainsString("name('receipts.print')", $routes);
+        $this->assertStringContainsString('function receiptPdf(', $controller);
+        $this->assertStringContainsString('function receiptPrint(', $controller);
+        $this->assertStringContainsString("Pdf::loadView('Pharma::pages.inventory.receipt-pdf'", $controller);
+        $this->assertStringContainsString("route('admin.pharma.inventory.receipts.pdf',\$doc)", $documents);
+        $this->assertStringContainsString("route('admin.pharma.inventory.receipts.print',\$doc)", $documents);
+        $receiptPdf=file_get_contents($root.'/Modules/Pharma/resources/views/pages/inventory/receipt-pdf.blade.php');
+        foreach (['PHIẾU NHẬP KHO','Nhà cung cấp','Hóa đơn','Số lô','Hạn dùng','Giá nhập','VAT','Giá HĐ chưa VAT','Thành tiền giá vốn'] as $receiptPdfLabel) {
+            $this->assertStringContainsString($receiptPdfLabel,$receiptPdf);
+        }
         $this->assertStringNotContainsString("return confirm('Ghi sổ", $documents);
         $this->assertStringNotContainsString('Phiếu nhập gần đây', $index);
         $this->assertStringNotContainsString('Phiếu xuất gần đây', $index);
