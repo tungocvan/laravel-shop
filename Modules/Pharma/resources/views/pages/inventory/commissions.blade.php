@@ -2,6 +2,7 @@
 @section('title','Trung tâm hoa hồng')
 @section('admin_container','full')
 @section('content')
+<style>@media (min-width:1280px){.commission-filter-grid{display:grid;grid-template-columns:220px minmax(360px,1fr) 260px 170px 170px;gap:12px;align-items:start}.commission-filter-grid>label{min-width:0}.commission-filter-grid select,.commission-filter-grid input{width:100%;min-width:0}}</style>
 <div class="w-full space-y-5 px-2 xl:px-3">
  <header><a href="{{ route('admin.pharma.dashboard') }}" class="text-sm font-semibold text-indigo-700 hover:text-indigo-900">← Trung tâm điều hành Pharma</a><h1 class="mt-2 text-2xl font-bold text-slate-950">Trung tâm hoa hồng</h1><p class="mt-1 text-sm text-slate-500">Tổng hợp hoa hồng từ mọi phiếu xuất đã ghi sổ. Dữ liệu chính sách được snapshot tại thời điểm ghi sổ.</p></header>
  <form method="GET" id="commission-filter-form" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
@@ -9,14 +10,14 @@
    @foreach(['all'=>'Tất cả','price_list'=>'Theo bảng giá','bid'=>'Hàng thầu'] as $key=>$label)<label class="cursor-pointer"><input type="radio" name="source" value="{{ $key }}" class="peer sr-only" @checked($source===$key) onchange="this.form.submit()"><span class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 px-4 text-sm font-semibold text-slate-700 peer-checked:border-indigo-600 peer-checked:bg-indigo-50 peer-checked:text-indigo-700">{{ $label }}</span></label>@endforeach
   </div></div>
   <div class="border-t border-slate-100 pt-4"><p class="text-xs font-bold uppercase tracking-wide text-indigo-600">2 · Phạm vi phát sinh</p>
-   <div class="mt-2 grid gap-3 md:grid-cols-2 xl:grid-cols-12">
+   <div class="commission-filter-grid mt-2 grid gap-3 md:grid-cols-2">
     <label class="text-sm font-semibold text-slate-700">Người phụ trách<x-select-search id="commission-user-filter" name="user_id" placeholder="Tìm người phụ trách..."><option value="">Tất cả User</option>@foreach($users as $user)<option value="{{ $user->id }}" @selected((int)$userId===$user->id)>{{ $user->name }}</option>@endforeach</x-select-search></label>
     <label class="text-sm font-semibold text-slate-700">Khách hàng / Bệnh viện<x-select-search id="commission-partner-filter" name="partner_id" placeholder="Tìm khách hàng / bệnh viện..."><option value="">Tất cả khách hàng</option>@foreach($partners as $partner)<option value="{{ $partner->id }}" @selected((int)$partnerId===$partner->id)>{{ $partner->name }}</option>@endforeach</x-select-search></label>
     <label class="text-sm font-semibold text-slate-700">Sản phẩm<x-select-search id="commission-medicine-filter" name="medicine_id" placeholder="Tìm sản phẩm..."><option value="">Tất cả sản phẩm</option>@foreach($medicines as $medicine)<option value="{{ $medicine->id }}" @selected((int)$medicineId===$medicine->id)>{{ $medicine->name }} · {{ $medicine->medicine_code }}</option>@endforeach</x-select-search></label>
     <label class="text-sm font-semibold text-slate-700">Từ ngày<input type="date" name="from" value="{{ $from->format('Y-m-d') }}" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3"></label>
     <label class="text-sm font-semibold text-slate-700">Đến ngày<input type="date" name="to" value="{{ $to->format('Y-m-d') }}" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3"></label>
    </div>
-   <div class="mt-3 flex justify-end gap-2"><a href="{{ route('admin.pharma.inventory.commissions.index') }}" class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 px-4 text-sm font-semibold">Xóa bộ lọc</a><button class="min-h-10 rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white">Áp dụng</button></div>
+   <div class="mt-3 flex flex-wrap items-center justify-end gap-2"><label for="commission-per-page-top" class="text-xs font-semibold text-slate-500">Hiển thị</label><select id="commission-per-page-top" name="per_page" class="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700"><option value="25" @selected(request('per_page',25)==25)>25 / trang</option><option value="50" @selected(request('per_page')==50)>50 / trang</option><option value="100" @selected(request('per_page')==100)>100 / trang</option></select><a href="{{ route('admin.pharma.inventory.commissions.index') }}" class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 px-4 text-sm font-semibold">Xóa bộ lọc</a><button class="min-h-10 rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white">Áp dụng</button></div>
   </div>
  </form>
  <div class="grid gap-3 md:grid-cols-4">
