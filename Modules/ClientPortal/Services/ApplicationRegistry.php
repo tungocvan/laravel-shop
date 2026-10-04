@@ -230,6 +230,9 @@ class ApplicationRegistry
         $supporting = (array) ($hub['supporting'] ?? []);
 
         return [
+            'key' => Str::lower(trim((string) ($hub['key'] ?? 'overview'))),
+            'name' => trim((string) ($hub['name'] ?? 'Tổng quan')),
+            'permission' => $this->nullableString($hub['permission'] ?? null),
             'eyebrow' => trim((string) ($hub['eyebrow'] ?? '')),
             'title' => trim((string) ($hub['title'] ?? '')),
             'description' => trim((string) ($hub['description'] ?? '')),
