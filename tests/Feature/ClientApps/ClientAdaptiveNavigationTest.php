@@ -99,6 +99,7 @@ class ClientAdaptiveNavigationTest extends TestCase
             'mobilePrimaryNavigation' => $item,
             'mobileMoreNavigation' => collect(),
             'bottomNavigationAppearance' => [
+                'presentation_style' => 'neumorphism',
                 'background_color' => '#ffffff',
                 'background_opacity' => 95,
                 'icon_color' => '#64748b',
@@ -120,6 +121,8 @@ class ClientAdaptiveNavigationTest extends TestCase
         $this->assertStringContainsString('#eff6ff', $html);
         $this->assertStringContainsString('#1d4ed8', $html);
         $this->assertStringContainsString('#1e3a8a', $html);
+        $this->assertStringContainsString('box-shadow: 0 -8px 20px', $html);
+        $this->assertStringContainsString('box-shadow: inset 3px 3px 7px', $html);
     }
 
     public function test_navigation_icon_partial_has_generic_fallback(): void
