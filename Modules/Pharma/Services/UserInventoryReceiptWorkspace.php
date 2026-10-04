@@ -12,7 +12,10 @@ use Modules\Pharma\Models\SupplierTracking;
 
 final class UserInventoryReceiptWorkspace
 {
-    public function __construct(private readonly InventoryService $inventory) {}
+    public function __construct(
+        private readonly InventoryService $inventory,
+        private readonly InventoryReceiptDocumentService $documents,
+    ) {}
 
     public function browse(?string $search = null, ?string $status = null, int $perPage = 20, int $page = 1): LengthAwarePaginator
     {
@@ -156,6 +159,7 @@ final class UserInventoryReceiptWorkspace
             ]);
             $locked->items()->delete();
             $locked->items()->createMany($data['items']);
+            $this->documents->invalidate($locked);
             return $locked->fresh(['items.medicine']);
         });
     }
@@ -168,6 +172,7 @@ final class UserInventoryReceiptWorkspace
                 throw ValidationException::withMessages(['receipt' => 'Chỉ phiếu nhập nháp mới được xóa.']);
             }
             $locked->items()->delete();
+            $this->documents->invalidate($locked);
             $locked->delete();
         });
     }
