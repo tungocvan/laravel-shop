@@ -100,6 +100,10 @@
                     <div class="text-right"><p class="text-xs text-slate-500">Tổng tiền</p><p class="mt-0.5 text-base font-black text-slate-950">{{ $money($issue->total_value ?? 0) }}</p></div>
                 </div>
                 <div class="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
+                    @if($issue->status === \Modules\Pharma\Models\InventoryIssue::APPROVED)
+                        @if($canApproveOrders)<form method="POST" action="{{ route('client.pharma.orders.undo-approval',$issue) }}">@csrf<button class="inline-flex min-h-10 items-center rounded-xl border border-amber-300 bg-amber-50 px-3 text-xs font-black text-amber-800 active:scale-[0.985]">Hoàn tác duyệt</button></form>@endif
+                        @if($canPostOrders && ($issue->issue_source ?? 'normal') !== 'bid')<form method="POST" action="{{ route('client.pharma.orders.post',$issue) }}" onsubmit="return confirm('Xác nhận ghi sổ phiếu xuất?')">@csrf<button class="inline-flex min-h-10 items-center rounded-xl bg-emerald-600 px-3 text-xs font-black text-white active:scale-[0.985]">Ghi sổ</button></form>@endif
+                    @endif
                     @if($issue->status === \Modules\Pharma\Models\InventoryIssue::POSTED)
                         @if($orderPdfActions[$issue->id]['ready'] ?? false)
                             <a href="{{ route('client.pharma.orders.pdf',$issue) }}" data-order-pdf-download class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-black text-slate-700">↓ PDF</a>
@@ -113,6 +117,7 @@
                         @else
                             <form method="POST" action="{{ route('client.pharma.orders.pdf.export',$issue) }}">@csrf<button class="inline-flex min-h-10 items-center rounded-xl bg-slate-950 px-3 text-xs font-black text-white">Xuất PDF</button></form>
                         @endif
+                        @if($canPostOrders)<form method="POST" action="{{ route('client.pharma.orders.revert',$issue) }}" onsubmit="return confirm('Hoàn tác ghi sổ? Hàng sẽ được cộng trả vào tồn kho.')">@csrf<button class="inline-flex min-h-10 items-center rounded-xl border border-amber-300 bg-amber-50 px-3 text-xs font-black text-amber-800 active:scale-[0.985]">Hoàn tác ghi sổ</button></form>@endif
                     @endif
                     <a href="{{ route('client.pharma.orders.show',$issue->id) }}" class="ml-auto inline-flex min-h-10 items-center text-xs font-black text-slate-600">Chi tiết ›</a>
                 </div>
@@ -137,6 +142,14 @@
                                 <summary class="flex min-h-9 cursor-pointer list-none items-center rounded-lg border border-slate-300 bg-white px-3 text-base font-bold leading-none text-slate-600 hover:bg-slate-50" aria-label="Thao tác khác">⋯</summary>
                                 <div class="absolute right-0 z-30 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-left shadow-xl">
                                     <a href="{{ route('client.pharma.orders.show',$issue->id) }}" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Xem chi tiết</a>
+                                    @if($issue->status === \Modules\Pharma\Models\InventoryIssue::APPROVED)
+                                        @if($canApproveOrders)
+                                            <form method="POST" action="{{ route('client.pharma.orders.undo-approval',$issue) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-amber-700 hover:bg-amber-50">Hoàn tác phê duyệt</button></form>
+                                        @endif
+                                        @if($canPostOrders && ($issue->issue_source ?? 'normal') !== 'bid')
+                                            <form method="POST" action="{{ route('client.pharma.orders.post',$issue) }}" onsubmit="return confirm('Xác nhận ghi sổ phiếu xuất?')">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-emerald-700 hover:bg-emerald-50">Ghi sổ</button></form>
+                                        @endif
+                                    @endif
                                     @if($issue->status === \Modules\Pharma\Models\InventoryIssue::POSTED)
                                         <div class="my-1 border-t border-slate-100"></div>
                                         @if($orderPdfActions[$issue->id]['ready'] ?? false)
@@ -150,6 +163,10 @@
                                             @endif
                                         @else
                                             <form method="POST" action="{{ route('client.pharma.orders.pdf.export',$issue) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50">Xuất PDF</button></form>
+                                        @endif
+                                        @if($canPostOrders)
+                                            <div class="my-1 border-t border-slate-100"></div>
+                                            <form method="POST" action="{{ route('client.pharma.orders.revert',$issue) }}" onsubmit="return confirm('Hoàn tác ghi sổ? Hàng sẽ được cộng trả vào tồn kho.')">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-amber-700 hover:bg-amber-50">Hoàn tác ghi sổ</button></form>
                                         @endif
                                     @endif
                                 </div>
