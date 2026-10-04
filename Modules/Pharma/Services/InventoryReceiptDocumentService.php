@@ -20,6 +20,7 @@ final class InventoryReceiptDocumentService
     public function generate(InventoryReceipt $receipt, string $profile, ?int $userId): InventoryReceiptDocument
     {
         $this->guardProfile($profile);
+        abort_unless($receipt->status === InventoryReceipt::POSTED, 409, 'Chỉ phiếu nhập đã ghi sổ mới được xuất PDF.');
         $receipt->loadMissing('items.medicine');
         $settings = InventoryReceiptDocumentSetting::current();
         $hash = $this->sourceHash($receipt, $settings, $profile);
@@ -52,6 +53,7 @@ final class InventoryReceiptDocumentService
     public function current(InventoryReceipt $receipt, string $profile): ?InventoryReceiptDocument
     {
         $this->guardProfile($profile);
+        if ($receipt->status !== InventoryReceipt::POSTED) return null;
         $document = InventoryReceiptDocument::query()->where('receipt_id',$receipt->id)->where('profile',$profile)->first();
         if (! $document || ! Storage::disk($document->disk)->exists($document->storage_path)) return null;
 
