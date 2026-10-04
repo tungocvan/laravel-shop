@@ -17,7 +17,7 @@ final class InventoryIssueDocumentService
     public function generate(InventoryIssue $issue, ?int $userId): InventoryIssueDocument
     {
         abort_unless($issue->status===InventoryIssue::POSTED,409,'Chỉ phiếu xuất đã ghi sổ mới được xuất PDF.');
-        $issue->loadMissing(['items.medicine','manager:id,name','priceList.manager']);
+        $issue=$this->canonicalIssue($issue);
         $settings=InventoryIssueDocumentSetting::current();
         $hash=$this->sourceHash($issue,$settings);
         $existing=InventoryIssueDocument::query()->where('issue_id',$issue->id)->first();
@@ -41,7 +41,7 @@ final class InventoryIssueDocumentService
         if($issue->status!==InventoryIssue::POSTED) return null;
         $document=InventoryIssueDocument::query()->where('issue_id',$issue->id)->first();
         if(!$document || !Storage::disk($document->disk)->exists($document->storage_path)) return null;
-        $issue->loadMissing(['items.medicine','manager:id,name','priceList.manager']);
+        $issue=$this->canonicalIssue($issue);
         return hash_equals($document->source_hash,$this->sourceHash($issue,InventoryIssueDocumentSetting::current())) ? $document : null;
     }
 
@@ -101,6 +101,13 @@ final class InventoryIssueDocumentService
     {
         abort_unless(Storage::disk($document->disk)->exists($document->storage_path),404);
         return Storage::disk($document->disk)->path($document->storage_path);
+    }
+
+    private function canonicalIssue(InventoryIssue $issue): InventoryIssue
+    {
+        return InventoryIssue::query()
+            ->with(['items.medicine','manager:id,name','priceList.manager'])
+            ->findOrFail($issue->getKey());
     }
 
     private function sourceHash(InventoryIssue $issue,InventoryIssueDocumentSetting $settings): string
