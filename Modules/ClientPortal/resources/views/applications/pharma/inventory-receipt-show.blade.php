@@ -16,14 +16,8 @@
 <a href="{{ route('client.pharma.inventory.receipts.edit',$receipt) }}" class="inline-flex min-h-11 items-center rounded-2xl border border-white/20 bg-white/10 px-4 text-sm font-black text-white">Sửa</a>
 <form method="POST" action="{{ route('client.pharma.inventory.receipts.delete',$receipt) }}">@csrf @method('DELETE')<button class="min-h-11 rounded-2xl border border-rose-300/40 bg-rose-400/10 px-4 text-sm font-black text-rose-200">Xóa</button></form>
 @endif
-@if($receipt->status === \Modules\Pharma\Models\InventoryReceipt::DRAFT && $canSubmitReceipt)
-<form method="POST" action="{{ route('client.pharma.inventory.receipts.submit',$receipt) }}">@csrf<button class="min-h-11 rounded-2xl bg-white px-4 text-sm font-black text-slate-950">Gửi duyệt</button></form>
-@endif
-@if($receipt->status === \Modules\Pharma\Models\InventoryReceipt::PENDING_APPROVAL && $canSubmitReceipt)
-<form method="POST" action="{{ route('client.pharma.inventory.receipts.undo-submit',$receipt) }}">@csrf<button class="min-h-11 rounded-2xl border border-white/20 bg-white/10 px-4 text-sm font-black text-white">Hoàn tác gửi duyệt</button></form>
-@endif
-@if($receipt->status === \Modules\Pharma\Models\InventoryReceipt::PENDING_APPROVAL && $canApproveReceipt)
-<form method="POST" action="{{ route('client.pharma.inventory.receipts.approve',$receipt) }}">@csrf<button class="min-h-11 rounded-2xl bg-white px-4 text-sm font-black text-slate-950">Duyệt</button></form>
+@if(in_array($receipt->status, [\Modules\Pharma\Models\InventoryReceipt::DRAFT, \Modules\Pharma\Models\InventoryReceipt::PENDING_APPROVAL], true) && $canApproveReceipt)
+<form method="POST" action="{{ route('client.pharma.inventory.receipts.approve',$receipt) }}">@csrf<button class="min-h-11 rounded-2xl bg-white px-4 text-sm font-black text-slate-950">Phê duyệt</button></form>
 @endif
 @if($receipt->status === \Modules\Pharma\Models\InventoryReceipt::APPROVED && $canApproveReceipt)
 <form method="POST" action="{{ route('client.pharma.inventory.receipts.undo-approval',$receipt) }}">@csrf<button class="min-h-11 rounded-2xl border border-white/20 bg-white/10 px-4 text-sm font-black text-white">Hoàn tác duyệt</button></form>
@@ -35,7 +29,7 @@
 <form method="POST" action="{{ route('client.pharma.inventory.receipts.revert',$receipt) }}">@csrf<button class="min-h-11 rounded-2xl border border-amber-300/50 bg-amber-300/10 px-4 text-sm font-black text-amber-200">Hoàn tác ghi sổ</button></form>
 @endif
 </div>
-<p class="mt-2 text-[11px] leading-4 text-slate-400">Nháp / Chờ duyệt / Đã duyệt chưa làm thay đổi tồn. Chỉ Ghi sổ mới cộng tồn.</p>
+<p class="mt-2 text-[11px] leading-4 text-slate-400">Nháp / Đã duyệt chưa làm thay đổi tồn. Chỉ Ghi sổ mới cộng tồn; Hoàn tác ghi sổ sẽ trừ lại đúng số lượng đã nhập.</p>
 </section>
 <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
 <div class="grid gap-3 sm:grid-cols-[9rem_minmax(0,1fr)] sm:items-start">
