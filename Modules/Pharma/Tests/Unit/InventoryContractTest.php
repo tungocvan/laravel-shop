@@ -183,6 +183,16 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("data-document-actions", $documents);
         $this->assertStringContainsString("aria-label=\"Thao tác khác\">⋯", $documents);
         $this->assertStringNotContainsString('>Xem</a>', $documents);
+        $this->assertStringContainsString("name('receipts.settings')", $routes);
+        $this->assertStringContainsString("name('receipts.settings.update')", $routes);
+        $this->assertStringContainsString('function receiptDocumentSettings(', $controller);
+        $this->assertStringContainsString('function updateReceiptDocumentSettings(', $controller);
+        $this->assertStringContainsString('InventoryReceiptDocumentSetting::current()', $controller);
+        $receiptSettings=file_get_contents($root.'/Modules/Pharma/resources/views/pages/inventory/receipt-settings.blade.php');
+        foreach (['Cấu hình phiếu nhập kho','Giá nhập','Giá HĐ chưa VAT','VAT','Chữ ký: Thủ kho'] as $receiptSettingLabel) {
+            $this->assertStringContainsString($receiptSettingLabel,$receiptSettings);
+        }
+        $this->assertStringContainsString("route('admin.pharma.inventory.receipts.settings')", $documents);
         $this->assertStringContainsString("name('receipts.pdf')", $routes);
         $this->assertStringContainsString("name('receipts.print')", $routes);
         $this->assertStringContainsString('function receiptPdf(', $controller);
