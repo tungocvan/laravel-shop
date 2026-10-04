@@ -9,11 +9,12 @@
 @php
 $editing = isset($receipt);
 $selectedSupplier = $editing ? $suppliers->firstWhere('name', $receipt->supplier_name) : null;
-$initialItems = $editing ? $receipt->items->map(fn($item) => [
+$persistedItems = $editing ? $receipt->items->map(fn($item) => [
     'medicine_id'=>(int)$item->medicine_id,'batch_number'=>$item->batch_number,
     'expiry_date'=>$item->expiry_date?->format('Y-m-d'),'quantity'=>(float)$item->quantity,
     'unit_price_ex_vat'=>(float)$item->unit_price_ex_vat,'invoice_unit_price_ex_vat'=>$item->invoice_unit_price_ex_vat !== null ? (float)$item->invoice_unit_price_ex_vat : null,
-])->values() : collect();
+])->values()->all() : [];
+$initialItems = collect(old('items', $persistedItems));
 $receiptVatRate = old('vat_rate', $editing ? (float) ($receipt->items->first()?->vat_rate ?? 5) : 5);
 
 @endphp
