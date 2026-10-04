@@ -105,9 +105,7 @@ final class InventoryIssueDocumentService
 
     private function canonicalIssue(InventoryIssue $issue): InventoryIssue
     {
-        return InventoryIssue::query()
-            ->with(['items.medicine','manager:id,name','priceList.manager'])
-            ->findOrFail($issue->getKey());
+        return $issue->loadMissing(['items.medicine','manager:id,name','priceList.manager']);
     }
 
     private function sourceHash(InventoryIssue $issue,InventoryIssueDocumentSetting $settings): string
