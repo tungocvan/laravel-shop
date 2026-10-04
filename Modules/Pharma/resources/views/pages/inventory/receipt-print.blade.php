@@ -3,14 +3,14 @@
 <div class="sheet">@php
 $totalCost=$receipt->items->sum(fn($i)=>(float)$i->quantity*(float)$i->unit_price_ex_vat);
 $signatures=collect([
- ['show'=>$settings->show_issuer_signature,'label'=>'Người lập phiếu','show_date'=>false],
- ['show'=>$settings->show_deliverer_signature,'label'=>'Người giao hàng','show_date'=>false],
- ['show'=>$settings->show_receiver_signature,'label'=>'Người nhận hàng','show_date'=>false],
+ ['show'=>$settings->show_issuer_signature,'label'=>$settings->issuer_label,'show_date'=>false],
+ ['show'=>$settings->show_deliverer_signature,'label'=>$settings->deliverer_label,'show_date'=>false],
+ ['show'=>$settings->show_receiver_signature,'label'=>$settings->receiver_label,'show_date'=>false],
  ['show'=>$settings->show_keeper_signature,'label'=>$settings->keeper_label,'show_date'=>true],
 ])->where('show',true)->values(); $signatureWidth=$signatures->count()>0 ? (100/$signatures->count()) : 100;
 @endphp
 <div class="head"><div><b>{{ $settings->organization_name ?: 'PHIẾU NHẬP KHO DƯỢC PHẨM' }}</b>@if($settings->organization_address)<br><span class="muted">{{ $settings->organization_address }}</span>@endif @if($settings->tax_code)<br><span class="muted">MST: {{ $settings->tax_code }}</span>@endif @if($settings->phone)<span class="muted"> · ĐT: {{ $settings->phone }}</span>@endif</div><div class="r"><b>{{ $receipt->number }}</b><br><span class="muted">{{ $receipt->receipt_date->format('d/m/Y') }}</span></div></div>
-<div class="title"><h1>PHIẾU NHẬP KHO</h1>@if($settings->document_subtitle)<div class="muted">{{ $settings->document_subtitle }}</div>@endif<b>Số: {{ $receipt->number }}</b></div>
+<div class="title"><h1>{{ $settings->document_title }}</h1>@if($settings->document_subtitle)<div class="muted">{{ $settings->document_subtitle }}</div>@endif<b>Số: {{ $receipt->number }}</b></div>
 <table class="meta"><tr><td class="label">Ngày nhập:</td><td>{{ $receipt->receipt_date->format('d/m/Y') }}</td></tr><tr><td class="label">Kho nhập:</td><td>{{ $settings->warehouse_name }}</td></tr><tr><td class="label">Nhà cung cấp:</td><td>{{ $receipt->supplier_name ?: '—' }}</td></tr><tr><td class="label">Hóa đơn:</td><td>{{ $receipt->invoice_number ?: '—' }}@if($receipt->invoice_symbol) · Ký hiệu: {{ $receipt->invoice_symbol }}@endif @if($receipt->invoice_date) · Ngày: {{ $receipt->invoice_date->format('d/m/Y') }}@endif</td></tr></table>
 <table><thead><tr><th>STT</th><th>Mã thuốc</th><th>Tên thuốc / Quy cách</th><th>ĐVT</th><th>Số lô</th><th>HSD</th><th>SL</th><th>Giá nhập</th><th>VAT</th><th>Giá HĐ chưa VAT</th><th>Thành tiền giá vốn</th></tr></thead><tbody>
 @foreach($receipt->items as $item)<tr><td class="c">{{ $loop->iteration }}</td><td>{{ $item->medicine->medicine_code }}</td><td><b>{{ $item->medicine->name }}</b>@if($item->medicine->packaging_specification)<br><span class="muted">{{ $item->medicine->packaging_specification }}</span>@endif</td><td class="c">{{ $item->unit ?: ($item->medicine->unit ?: '—') }}</td><td>{{ $item->batch_number }}</td><td class="c">{{ $item->expiry_date?->format('d/m/Y') ?: '—' }}</td><td class="r">{{ number_format((float)$item->quantity,0,',','.') }}</td><td class="r">{{ number_format((float)$item->unit_price_ex_vat,0,',','.') }}</td><td class="r">{{ rtrim(rtrim(number_format((float)$item->vat_rate,2,'.',''),'0'),'.') }}%</td><td class="r">{{ filled($item->invoice_unit_price_ex_vat) ? number_format((float)$item->invoice_unit_price_ex_vat,0,',','.') : '—' }}</td><td class="r"><b>{{ number_format((float)$item->quantity*(float)$item->unit_price_ex_vat,0,',','.') }}</b></td></tr>@endforeach
