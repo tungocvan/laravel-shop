@@ -36,7 +36,9 @@ final class PharmaInventoryReceiptsCapabilityTest extends TestCase
         $this->assertStringContainsString("APPROVED='approved'", $model);
         $this->assertStringContainsString("lockForUpdate()", $workspace);
         $this->assertStringContainsString("'status' => InventoryReceipt::PENDING_APPROVAL", $workspace);
+        $this->assertStringContainsString("[InventoryReceipt::DRAFT, InventoryReceipt::PENDING_APPROVAL]", $workspace);
         $this->assertStringContainsString("'status' => InventoryReceipt::APPROVED", $workspace);
+        $this->assertStringContainsString("'status' => InventoryReceipt::DRAFT", $workspace);
         $this->assertStringContainsString("Chỉ phiếu nhập đã duyệt mới được ghi sổ.", $workspace);
         $this->assertStringNotContainsString('->move(', $workspace);
         $this->assertStringContainsString('postReceipt($locked, $userId)', $workspace);
@@ -88,7 +90,7 @@ final class PharmaInventoryReceiptsCapabilityTest extends TestCase
         foreach (['Nháp','Chờ duyệt','Đã duyệt','Đã ghi sổ'] as $label) {
             $this->assertStringContainsString($label, $list);
         }
-        foreach (['Sửa','Xóa','Gửi duyệt','Duyệt','Hoàn tác duyệt','Ghi sổ','Hoàn tác ghi sổ'] as $action) {
+        foreach (['Sửa','Xóa','Phê duyệt','Hoàn tác phê duyệt','Ghi sổ','Hoàn tác ghi sổ'] as $action) {
             $this->assertStringContainsString($action, $detail);
         }
         $this->assertStringContainsString('Chỉ Ghi sổ mới cộng tồn.', $detail);
@@ -115,6 +117,7 @@ final class PharmaInventoryReceiptsCapabilityTest extends TestCase
         $this->assertStringContainsString('public function statusCounts(?string $search = null): array', $workspace);
         $this->assertStringContainsString("selectRaw('status, COUNT(*) as aggregate')", $workspace);
         $this->assertStringContainsString("'statusCounts' => \$workspace->statusCounts(\$validated['q'] ?? null)", $controller);
+        $this->assertStringContainsString("[''=>'Tất cả','draft'=>'Nháp','approved'=>'Đã duyệt','posted'=>'Đã ghi sổ','cancelled'=>'Đã hủy']", $list);
         $this->assertStringContainsString('data-receipt-status-bar', $list);
         $this->assertStringContainsString('data-disabled-status', $list);
         $this->assertStringContainsString('aria-disabled="true"', $list);
@@ -128,6 +131,31 @@ final class PharmaInventoryReceiptsCapabilityTest extends TestCase
             $this->assertStringContainsString("@section('hide-application-header', true)", $view);
             $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $view);
         }
+    }
+
+    public function test_receipt_admin_and_pwa_share_approval_posting_contract(): void
+    {
+        $root = base_path();
+        $adminRoutes = file_get_contents($root.'/Modules/Pharma/routes/web.php');
+        $adminController = file_get_contents($root.'/Modules/Pharma/Http/Controllers/InventoryController.php');
+        $adminList = file_get_contents($root.'/Modules/Pharma/resources/views/pages/inventory/documents.blade.php');
+        $adminDetail = file_get_contents($root.'/Modules/Pharma/resources/views/pages/inventory/receipt-show.blade.php');
+        $inventory = file_get_contents($root.'/Modules/Pharma/Services/InventoryService.php');
+
+        $this->assertStringContainsString("name('receipts.approve')", $adminRoutes);
+        $this->assertStringContainsString("name('receipts.undo-approval')", $adminRoutes);
+        $this->assertStringContainsString('function approveReceipt(', $adminController);
+        $this->assertStringContainsString('function undoReceiptApproval(', $adminController);
+        $this->assertStringContainsString("if (\$receipt->status !== InventoryReceipt::APPROVED)", $inventory);
+        $this->assertStringNotContainsString("[InventoryReceipt::DRAFT, InventoryReceipt::APPROVED]", $inventory);
+        $this->assertStringContainsString("'type'=>'receipt_reversal'", $inventory);
+        $this->assertStringContainsString("'quantity_delta'=>-\$quantity", $inventory);
+        $this->assertStringContainsString("status'=>\$receipt->approved_at ? InventoryReceipt::APPROVED : InventoryReceipt::DRAFT", $inventory);
+        foreach (['Phê duyệt','Hoàn tác phê duyệt','Ghi sổ','Hoàn tác ghi sổ'] as $action) {
+            $this->assertStringContainsString($action, $adminList.$adminDetail);
+        }
+        $this->assertStringContainsString('Chỉ Ghi sổ mới cộng tồn', $adminDetail);
+        $this->assertStringContainsString('Hoàn tác ghi sổ sẽ trừ lại đúng số lượng đã nhập', $adminDetail);
     }
 
     public function test_receipt_invoice_reference_schema_is_additive_and_nullable(): void
