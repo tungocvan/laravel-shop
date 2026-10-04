@@ -128,10 +128,34 @@
 
     <section class="mt-4 hidden overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm xl:block">
         <table class="w-full table-fixed text-left text-sm">
-            <thead class="bg-slate-50 text-xs font-black uppercase tracking-wide text-slate-500"><tr><th class="w-[17%] px-5 py-4">Số phiếu</th><th class="w-[27%] px-5 py-4">Khách hàng / bệnh viện</th><th class="w-[18%] px-5 py-4">Nguồn</th><th class="w-[13%] px-5 py-4">Ngày lập</th><th class="w-[12%] px-5 py-4 text-right">Tổng tiền</th><th class="w-[8%] px-5 py-4 text-center">Ghi chú</th><th class="w-[10%] px-5 py-4">Trạng thái</th><th class="w-[8%] px-5 py-4 text-right"><span class="sr-only">PDF</span></th></tr></thead>
+            <thead class="bg-slate-50 text-xs font-black uppercase tracking-wide text-slate-500"><tr><th class="w-[17%] px-5 py-4">Số phiếu</th><th class="w-[27%] px-5 py-4">Khách hàng / bệnh viện</th><th class="w-[18%] px-5 py-4">Nguồn</th><th class="w-[13%] px-5 py-4">Ngày lập</th><th class="w-[12%] px-5 py-4 text-right">Tổng tiền</th><th class="w-[8%] px-5 py-4 text-center">Ghi chú</th><th class="w-[10%] px-5 py-4">Trạng thái</th><th class="w-[8%] px-5 py-4 text-right"><span class="sr-only">Thao tác</span></th></tr></thead>
             <tbody id="issue-desktop-body" class="divide-y divide-slate-100">
                 @foreach($issues as $issue)
-                    <tr data-issue-row class="hover:bg-slate-50"><td class="px-5 py-4"><a class="font-black text-slate-950" href="{{ route('client.pharma.orders.show',$issue->id) }}">{{ $issue->number }}</a></td><td class="px-5 py-4 font-bold text-slate-800">{{ $issue->recipient_name ?: '—' }}</td><td class="px-5 py-4">{{ $sourceLabels[$issue->issue_source ?? 'normal'] ?? 'Theo bảng giá' }}</td><td class="px-5 py-4">{{ $issue->issue_date?->format('d/m/Y') }}</td><td class="px-5 py-4 text-right font-black">{{ $money($issue->total_value ?? 0) }}</td><td class="px-5 py-4 text-center">@if($issue->shortage_note)<button type="button" data-shortage-note="{{ $issue->shortage_note }}" class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-amber-200 bg-amber-50 text-base text-amber-800" aria-label="Xem ghi chú thiếu hàng" title="Xem ghi chú thiếu hàng">📝</button>@else<span class="text-slate-300">—</span>@endif</td><td class="px-5 py-4 font-bold">{{ $statusLabels[$issue->status] ?? $issue->status }}</td><td class="px-5 py-4 text-right">@if($issue->status === \Modules\Pharma\Models\InventoryIssue::POSTED) @if($orderPdfActions[$issue->id]['ready'] ?? false)<a href="{{ route('client.pharma.orders.pdf',$issue) }}" data-order-pdf-download class="inline-flex min-h-9 items-center rounded-lg border border-slate-300 px-2.5 text-xs font-black">↓ PDF</a>@else<form method="POST" action="{{ route('client.pharma.orders.pdf.export',$issue) }}">@csrf<button class="rounded-lg border border-slate-300 px-2.5 py-2 text-xs font-black">Xuất PDF</button></form>@endif @else<span class="text-slate-300">—</span>@endif</td></tr>
+                    <tr data-issue-row class="hover:bg-slate-50"><td class="px-5 py-4"><a class="font-black text-slate-950" href="{{ route('client.pharma.orders.show',$issue->id) }}">{{ $issue->number }}</a></td><td class="px-5 py-4 font-bold text-slate-800">{{ $issue->recipient_name ?: '—' }}</td><td class="px-5 py-4">{{ $sourceLabels[$issue->issue_source ?? 'normal'] ?? 'Theo bảng giá' }}</td><td class="px-5 py-4">{{ $issue->issue_date?->format('d/m/Y') }}</td><td class="px-5 py-4 text-right font-black">{{ $money($issue->total_value ?? 0) }}</td><td class="px-5 py-4 text-center">@if($issue->shortage_note)<button type="button" data-shortage-note="{{ $issue->shortage_note }}" class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-amber-200 bg-amber-50 text-base text-amber-800" aria-label="Xem ghi chú thiếu hàng" title="Xem ghi chú thiếu hàng">📝</button>@else<span class="text-slate-300">—</span>@endif</td><td class="px-5 py-4 font-bold">{{ $statusLabels[$issue->status] ?? $issue->status }}</td><td class="px-5 py-4 text-right">
+                        <div class="flex justify-end">
+                            <details class="relative" data-order-actions>
+                                <summary class="flex min-h-9 cursor-pointer list-none items-center rounded-lg border border-slate-300 bg-white px-3 text-base font-bold leading-none text-slate-600 hover:bg-slate-50" aria-label="Thao tác khác">⋯</summary>
+                                <div class="absolute right-0 z-30 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-left shadow-xl">
+                                    <a href="{{ route('client.pharma.orders.show',$issue->id) }}" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Xem chi tiết</a>
+                                    @if($issue->status === \Modules\Pharma\Models\InventoryIssue::POSTED)
+                                        <div class="my-1 border-t border-slate-100"></div>
+                                        @if($orderPdfActions[$issue->id]['ready'] ?? false)
+                                            <a href="{{ route('client.pharma.orders.pdf',$issue) }}" data-order-pdf-download class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Tải PDF</a>
+                                            <a href="{{ route('client.pharma.orders.print',$issue) }}" target="_blank" rel="noopener" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">In PDF</a>
+                                            @if($orderPdfActions[$issue->id]['share'] ?? null)
+                                                <button type="button" data-copy-order-share="{{ $orderPdfActions[$issue->id]['share']['url'] }}" class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50">Sao chép link</button>
+                                                <form method="POST" action="{{ route('client.pharma.orders.share.revoke',[$issue,$orderPdfActions[$issue->id]['share']['id']]) }}">@csrf @method('DELETE')<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-rose-700 hover:bg-rose-50">Thu hồi link</button></form>
+                                            @else
+                                                <form method="POST" action="{{ route('client.pharma.orders.share',$issue) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50">Chia sẻ link</button></form>
+                                            @endif
+                                        @else
+                                            <form method="POST" action="{{ route('client.pharma.orders.pdf.export',$issue) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50">Xuất PDF</button></form>
+                                        @endif
+                                    @endif
+                                </div>
+                            </details>
+                        </div>
+                    </td></tr>
                 @endforeach
             </tbody>
         </table>
@@ -187,6 +211,9 @@
 </dialog>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('click',(event)=>{
+        document.querySelectorAll('details[data-order-actions][open]').forEach((menu)=>{if(!menu.contains(event.target))menu.removeAttribute('open');});
+    });
     const orderShareFlash=document.querySelector('[data-order-share-flash]');
     const dismissOrderShare=()=>{if(!orderShareFlash)return;orderShareFlash.classList.add('opacity-0','-translate-y-1','pointer-events-none');setTimeout(()=>orderShareFlash.remove(),200);};
     document.addEventListener('click',(event)=>{if(event.target.closest('[data-dismiss-order-share]')){dismissOrderShare();return;}if(orderShareFlash&&!orderShareFlash.contains(event.target))dismissOrderShare();});
