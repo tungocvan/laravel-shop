@@ -11,12 +11,13 @@ class InventoryReceiptDocumentSetting extends Model
     protected $fillable=[
         'organization_name','organization_address','tax_code','phone','document_title','document_subtitle',
         'warehouse_name','issuer_label','deliverer_label','receiver_label','keeper_label','footer_note',
+        'cost_document_title','cost_document_subtitle','cost_show_invoice','invoice_document_title','invoice_document_subtitle',
         'show_unit_price','show_invoice_unit_price','show_vat','show_total_value','show_notes',
         'show_issuer_signature','show_deliverer_signature','show_receiver_signature','show_keeper_signature',
     ];
 
     protected $casts=[
-        'show_unit_price'=>'boolean','show_invoice_unit_price'=>'boolean','show_vat'=>'boolean',
+        'cost_show_invoice'=>'boolean','show_unit_price'=>'boolean','show_invoice_unit_price'=>'boolean','show_vat'=>'boolean',
         'show_total_value'=>'boolean','show_notes'=>'boolean','show_issuer_signature'=>'boolean',
         'show_deliverer_signature'=>'boolean','show_receiver_signature'=>'boolean','show_keeper_signature'=>'boolean',
     ];
