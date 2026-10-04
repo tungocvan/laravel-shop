@@ -32,6 +32,7 @@ use Modules\Pharma\Services\UserOrderAuthoringService;
 use Modules\Pharma\Services\UserOrderStockReadinessService;
 use Modules\Pharma\Services\DrugBidCommissionService;
 use Modules\Pharma\Services\CommissionQueryService;
+use Modules\Pharma\Services\CommissionExportProfileService;
 use Modules\Partner\Models\Partner;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -1209,9 +1210,9 @@ final class InventoryController extends Controller
             'from'=>'nullable|date','to'=>'nullable|date','user_id'=>'nullable|integer',
             'partner_id'=>'nullable|integer','medicine_id'=>'nullable|integer','source'=>'nullable|in:all,bid,price_list',
             'ids'=>'nullable|array|max:500','ids.*'=>'integer|distinct',
-            'excel_columns'=>'nullable|array|min:1|max:14','excel_columns.*'=>'string|in:date,issue,source,customer,manager,medicine_code,medicine,quantity,unit_price,receivable,revenue,percentage,commission,status',
-            'excel_auto_width'=>'nullable|boolean','excel_wrap'=>'nullable|boolean','excel_orientation'=>'nullable|in:landscape,portrait',
+            'excel_profile'=>'nullable|string|max:20000',
         ]);
+        $profile=CommissionExportProfileService::normalize(!empty($data['excel_profile'])?(json_decode($data['excel_profile'],true)?:[]):[]);
         $from=!empty($data['from'])?Carbon::parse($data['from'])->startOfDay():now()->startOfMonth();
         $to=!empty($data['to'])?Carbon::parse($data['to'])->endOfDay():now()->endOfMonth();
         $rows=$commissions->adminQuery([
@@ -1220,13 +1221,8 @@ final class InventoryController extends Controller
         ])->when(!empty($data['ids']),fn($q)=>$q->whereIn('issue_id',$data['ids']))
           ->with(['issue','medicine','user','partner'])->orderBy('calculated_at')->orderBy('issue_id')->orderBy('id')->get();
 
-        $columnMap=[
-            'date'=>'Ngày ghi sổ','issue'=>'Số phiếu','source'=>'Nguồn','customer'=>'Khách hàng / Bệnh viện','manager'=>'Người phụ trách',
-            'medicine_code'=>'Mã sản phẩm','medicine'=>'Sản phẩm','quantity'=>'SL thực xuất','unit_price'=>'Giá bán / Trúng thầu',
-            'receivable'=>'Giá thu','revenue'=>'Doanh thu','percentage'=>'CK / Chính sách (%)','commission'=>'Hoa hồng','status'=>'Trạng thái',
-        ];
-        $selected=array_values(array_intersect(array_keys($columnMap),$data['excel_columns']??array_keys($columnMap)));
-        $headers=array_merge(['STT'],array_map(fn($key)=>$columnMap[$key],$selected));
+        $selected=array_values(array_filter($profile['column_order'],fn($key)=>in_array($key,$profile['selected_columns'],true)&&isset(CommissionExportProfileService::COLUMNS[$key])));
+        $headers=array_merge(['STT'],array_map(fn($key)=>$profile['headers'][$key]??CommissionExportProfileService::COLUMNS[$key]['label'],$selected));
         $spreadsheet=new Spreadsheet();$sheet=$spreadsheet->getActiveSheet();$sheet->setTitle('Hoa hong');
         $lastColumn=Coordinate::stringFromColumnIndex(count($headers));
         $sheet->mergeCells("A1:{$lastColumn}1")->setCellValue('A1','TRUNG TÂM HOA HỒNG · CHI TIẾT PHÁT SINH');
@@ -1249,13 +1245,11 @@ final class InventoryController extends Controller
             $sheet->fromArray([[ $index+1,...array_map(fn($key)=>$values[$key],$selected) ]],null,"A{$excelRow}");
         }
         $lastRow=4+$rows->count();
-        $numericFormats=['quantity'=>'#,##0','unit_price'=>'#,##0','receivable'=>'#,##0','revenue'=>'#,##0','percentage'=>'0.##','commission'=>'#,##0'];
-        foreach($selected as $offset=>$key){$letter=Coordinate::stringFromColumnIndex($offset+2);if(isset($numericFormats[$key]))$sheet->getStyle("{$letter}5:{$letter}{$lastRow}")->getNumberFormat()->setFormatCode($numericFormats[$key]);}
         $sheet->getStyle("A5:A{$lastRow}")->getNumberFormat()->setFormatCode('#,##0');
-        if(($data['excel_auto_width']??true)){foreach(range(1,count($headers)) as $columnIndex)$sheet->getColumnDimension(Coordinate::stringFromColumnIndex($columnIndex))->setAutoSize(true);}
-        if(($data['excel_wrap']??true)){foreach(range(1,$lastRow) as $rowIndex)$sheet->getRowDimension($rowIndex)->setRowHeight(-1);$sheet->getStyle("A1:{$lastColumn}{$lastRow}")->getAlignment()->setWrapText(true);}
+        foreach($selected as $offset=>$key){$letter=Coordinate::stringFromColumnIndex($offset+2);$definition=CommissionExportProfileService::COLUMNS[$key];$type=$profile['data_types'][$key]??$definition['type'];$decimals=(int)($profile['decimals'][$key]??0);if($type==='number')$sheet->getStyle("{$letter}5:{$letter}{$lastRow}")->getNumberFormat()->setFormatCode('#,##0'.($decimals>0?'.'.str_repeat('0',$decimals):''));$sheet->getStyle("{$letter}4:{$letter}{$lastRow}")->getAlignment()->setHorizontal($profile['alignments'][$key]??$definition['align'])->setVertical('center')->setWrapText(true);if(($profile['page_setup']['auto_width']??false))$sheet->getColumnDimension($letter)->setAutoSize(true);else $sheet->getColumnDimension($letter)->setWidth(max(6,((int)($profile['widths'][$key]??$definition['width']))/7));}
+        if(($profile['page_setup']['auto_height']??true)){foreach(range(1,$lastRow) as $rowIndex)$sheet->getRowDimension($rowIndex)->setRowHeight(-1);}
         $sheet->freezePane('A5')->setAutoFilter("A4:{$lastColumn}{$lastRow}");
-        $orientation=($data['excel_orientation']??'landscape')==='portrait'?PageSetup::ORIENTATION_PORTRAIT:PageSetup::ORIENTATION_LANDSCAPE;
+        $orientation=($profile['page_setup']['orientation']??'landscape')==='portrait'?PageSetup::ORIENTATION_PORTRAIT:PageSetup::ORIENTATION_LANDSCAPE;
         $sheet->getPageSetup()->setPaperSize(PageSetup::PAPERSIZE_A4)->setOrientation($orientation)->setFitToWidth(1)->setFitToHeight(0);
         $sheet->getPageMargins()->setLeft(0.2)->setRight(0.2)->setTop(0.4)->setBottom(0.4);
         $sheet->getPageSetup()->setHorizontalCentered(true);
