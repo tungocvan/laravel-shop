@@ -802,7 +802,7 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("\$row->issue?->recipient_name", $controller);
         $this->assertStringContainsString("'ids'=>'nullable|array|max:500'", $controller);
         $this->assertStringContainsString('<div class="w-full space-y-5 px-2 xl:px-3">', $view);
-        $this->assertStringContainsString('min-w-[1520px] table-fixed', $view);
+        $this->assertStringContainsString('min-w-[1040px] table-fixed', $view);
         $this->assertStringContainsString('w-[155px] p-3 text-right">Hoa hồng', $view);
         $this->assertStringContainsString("calculated_at->format('d/m/Y')", $view);
         $this->assertStringNotContainsString("calculated_at->format('d/m/Y H:i')", $view);
