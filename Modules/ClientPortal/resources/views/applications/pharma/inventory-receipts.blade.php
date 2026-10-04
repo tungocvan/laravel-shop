@@ -131,7 +131,7 @@
         <section class="mt-4 hidden overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm xl:block">
             <table class="w-full table-fixed text-left text-sm">
                 <thead class="bg-slate-50 text-xs font-black uppercase tracking-wide text-slate-500">
-                    <tr><th class="w-[15%] px-5 py-4">Số phiếu</th><th class="w-[12%] px-5 py-4">Ngày nhập</th><th class="w-[22%] px-5 py-4">Nhà cung cấp</th><th class="w-[17%] px-5 py-4">Hóa đơn</th><th class="w-[10%] px-5 py-4 text-right">Số lượng</th><th class="w-[11%] px-5 py-4">Trạng thái</th><th class="w-[13%] px-5 py-4 text-right">Thao tác</th></tr>
+                    <tr><th class="w-[15%] px-5 py-4">Số phiếu</th><th class="w-[12%] px-5 py-4">Ngày nhập</th><th class="w-[22%] px-5 py-4">Nhà cung cấp</th><th class="w-[17%] px-5 py-4">Hóa đơn</th><th class="w-[10%] px-5 py-4 text-right">Số lượng</th><th class="w-[11%] px-5 py-4">Trạng thái</th><th class="w-[7%] px-5 py-4 text-right"><span class="sr-only">Thao tác</span></th></tr>
                 </thead>
                 <tbody id="receipt-desktop-body" class="divide-y divide-slate-100">
                     @foreach($receipts as $receipt)
@@ -142,44 +142,58 @@
                             <td class="px-5 py-4"><span class="font-semibold text-slate-700">{{ $receipt->invoice_number ?: '—' }}</span>@if($receipt->invoice_symbol)<span class="mt-0.5 block truncate text-xs text-slate-500">{{ $receipt->invoice_symbol }}</span>@endif</td>
                             <td class="px-5 py-4 text-right"><p class="font-black tabular-nums text-slate-950">{{ number_format((float)$receipt->total_quantity,0,',','.') }}</p><p class="mt-0.5 text-xs text-slate-400">{{ number_format($receipt->items_count) }} dòng</p></td>
                             <td class="px-5 py-4"><span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-700">{{ $labels[$receipt->status] ?? $receipt->status }}</span></td>
-                            <td class="px-5 py-4 text-right">
-                                <div class="flex justify-end gap-2">
-                                    @if($receiptPdfActions[$receipt->id]['invoice_ready'] ?? false)
-                                        <a href="{{ route('client.pharma.inventory.receipts.pdf',$receipt) }}" data-receipt-pdf-download class="inline-flex min-h-9 items-center rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50" title="Tải PDF hóa đơn" aria-label="Tải PDF hóa đơn">↓ PDF</a>
-                                        <a href="{{ route('client.pharma.inventory.receipts.print',$receipt) }}" target="_blank" rel="noopener" class="inline-flex min-h-9 items-center rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50" title="In phiếu nhập">In</a>
-                                    @endif
-                                    <details class="relative" data-receipt-actions>
-                                        <summary class="flex min-h-9 cursor-pointer list-none items-center rounded-lg border border-slate-300 bg-white px-3 text-base font-bold leading-none text-slate-600 hover:bg-slate-50" aria-label="Thao tác khác">⋯</summary>
-                                        <div class="absolute right-0 z-30 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-left shadow-xl">
-                                            @if($receiptPdfActions[$receipt->id]['can_use_pdf'] ?? false)
-                                                @if($receiptPdfActions[$receipt->id]['invoice_ready'] ?? false)
-                                                    <a href="{{ route('client.pharma.inventory.receipts.pdf',$receipt) }}" data-receipt-pdf-download class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Tải PDF hóa đơn</a>
-                                                    <a href="{{ route('client.pharma.inventory.receipts.print',$receipt) }}" target="_blank" rel="noopener" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">In PDF hóa đơn</a>
-                                                    @if($receiptPdfActions[$receipt->id]['share'] ?? null)
-                                                        <button type="button" data-copy-receipt-share="{{ $receiptPdfActions[$receipt->id]['share']['url'] }}" class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50">Sao chép link</button>
-                                                    @else
-                                                        <form method="POST" action="{{ route('client.pharma.inventory.receipts.share',$receipt) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50">Chia sẻ</button></form>
-                                                    @endif
+                            <td class="w-[4.5rem] px-5 py-4 text-right">
+                                <button type="button" data-receipt-action-trigger="receipt-actions-{{ $receipt->id }}" class="inline-flex min-h-9 min-w-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-base font-bold leading-none text-slate-600 hover:bg-slate-50" aria-haspopup="menu" aria-expanded="false" aria-label="Thao tác phiếu {{ $receipt->number }}">⋯</button>
+                                <template id="receipt-actions-{{ $receipt->id }}">
+                                    <div class="w-56 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-left shadow-2xl" role="menu">
+                                        <a href="{{ route('client.pharma.inventory.receipts.show',$receipt) }}" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Xem chi tiết</a>
+                                        @if($receiptPdfActions[$receipt->id]['can_use_pdf'] ?? false)
+                                            <div class="my-1 border-t border-slate-100"></div>
+                                            @if($receiptPdfActions[$receipt->id]['invoice_ready'] ?? false)
+                                                <a href="{{ route('client.pharma.inventory.receipts.pdf',$receipt) }}" data-receipt-pdf-download class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Tải PDF hóa đơn</a>
+                                                <a href="{{ route('client.pharma.inventory.receipts.print',$receipt) }}" target="_blank" rel="noopener" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">In PDF hóa đơn</a>
+                                                @if($receiptPdfActions[$receipt->id]['share'] ?? null)
+                                                    <button type="button" data-copy-receipt-share="{{ $receiptPdfActions[$receipt->id]['share']['url'] }}" class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50">Sao chép link</button>
                                                 @else
-                                                    <form method="POST" action="{{ route('client.pharma.inventory.receipts.pdf.export',$receipt) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50">Xuất PDF hóa đơn</button></form>
+                                                    <form method="POST" action="{{ route('client.pharma.inventory.receipts.share',$receipt) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50">Chia sẻ</button></form>
                                                 @endif
-                                                <div class="my-1 border-t border-slate-100"></div>
+                                            @else
+                                                <form method="POST" action="{{ route('client.pharma.inventory.receipts.pdf.export',$receipt) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50">Xuất PDF hóa đơn</button></form>
                                             @endif
-                                            @if(in_array($receipt->status,[\Modules\Pharma\Models\InventoryReceipt::DRAFT,\Modules\Pharma\Models\InventoryReceipt::PENDING_APPROVAL],true) && $canApproveReceipt)
-                                                <form method="POST" action="{{ route('client.pharma.inventory.receipts.approve',$receipt) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-emerald-700 hover:bg-emerald-50">Phê duyệt</button></form>
-                                            @elseif($receipt->status === \Modules\Pharma\Models\InventoryReceipt::APPROVED)
-                                                @if($canApproveReceipt)
-                                                    <form method="POST" action="{{ route('client.pharma.inventory.receipts.undo-approval',$receipt) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-amber-700 hover:bg-amber-50">Hoàn tác phê duyệt</button></form>
-                                                @endif
-                                                @if($canPostReceipt)
-                                                    <form method="POST" action="{{ route('client.pharma.inventory.receipts.post',$receipt) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-emerald-700 hover:bg-emerald-50">Ghi sổ</button></form>
-                                                @endif
-                                            @elseif($receipt->status === \Modules\Pharma\Models\InventoryReceipt::POSTED && $canPostReceipt)
-                                                <form method="POST" action="{{ route('client.pharma.inventory.receipts.revert',$receipt) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-amber-700 hover:bg-amber-50">Hoàn tác ghi sổ</button></form>
+                                        @endif
+                                        @if(in_array($receipt->status,[\Modules\Pharma\Models\InventoryReceipt::DRAFT,\Modules\Pharma\Models\InventoryReceipt::PENDING_APPROVAL],true) && $canApproveReceipt)
+                                            <div class="my-1 border-t border-slate-100"></div>
+                                            <form method="POST" action="{{ route('client.pharma.inventory.receipts.approve',$receipt) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-emerald-700 hover:bg-emerald-50">Phê duyệt</button></form>
+                                        @elseif($receipt->status === \Modules\Pharma\Models\InventoryReceipt::APPROVED)
+                                            @if($canApproveReceipt || $canPostReceipt)<div class="my-1 border-t border-slate-100"></div>@endif
+                                            @if($canApproveReceipt)
+                                                <form method="POST" action="{{ route('client.pharma.inventory.receipts.undo-approval',$receipt) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-amber-700 hover:bg-amber-50">Hoàn tác phê duyệt</button></form>
                                             @endif
-                                        </div>
-                                    </details>
-                                </div>
+                                            @if($canPostReceipt)
+                                                <button type="button" data-receipt-confirm-open="post-receipt-{{ $receipt->id }}" class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-emerald-700 hover:bg-emerald-50">Ghi sổ</button>
+                                            @endif
+                                        @elseif($receipt->status === \Modules\Pharma\Models\InventoryReceipt::POSTED && $canPostReceipt)
+                                            <div class="my-1 border-t border-slate-100"></div>
+                                            <button type="button" data-receipt-confirm-open="revert-receipt-{{ $receipt->id }}" class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-amber-700 hover:bg-amber-50">Hoàn tác ghi sổ</button>
+                                        @endif
+                                    </div>
+                                </template>
+                                @if($receipt->status === \Modules\Pharma\Models\InventoryReceipt::APPROVED && $canPostReceipt)
+                                    <dialog id="post-receipt-{{ $receipt->id }}" class="m-auto w-[calc(100%-2rem)] max-w-lg overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-2xl ring-1 ring-slate-200 backdrop:bg-slate-950/65 backdrop:backdrop-blur-[3px]">
+                                        <form method="POST" action="{{ route('client.pharma.inventory.receipts.post',$receipt) }}" class="overflow-hidden rounded-2xl bg-white">@csrf
+                                            <div class="p-6"><h3 class="text-lg font-black text-slate-950">Ghi sổ phiếu nhập?</h3><p class="mt-2 text-sm text-slate-600">Phiếu <b>{{ $receipt->number }}</b> sẽ cộng tồn kho theo đúng lô và số lượng đã nhập.</p></div>
+                                            <div class="flex justify-end gap-2 border-t border-slate-100 bg-slate-50 px-6 py-4"><button type="button" data-receipt-confirm-close class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">Hủy</button><button class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white">Ghi sổ</button></div>
+                                        </form>
+                                    </dialog>
+                                @endif
+                                @if($receipt->status === \Modules\Pharma\Models\InventoryReceipt::POSTED && $canPostReceipt)
+                                    <dialog id="revert-receipt-{{ $receipt->id }}" class="m-auto w-[calc(100%-2rem)] max-w-lg overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-2xl ring-1 ring-slate-200 backdrop:bg-slate-950/65 backdrop:backdrop-blur-[3px]">
+                                        <form method="POST" action="{{ route('client.pharma.inventory.receipts.revert',$receipt) }}" class="overflow-hidden rounded-2xl bg-white">@csrf
+                                            <div class="p-6"><h3 class="text-lg font-black text-slate-950">Hoàn tác ghi sổ?</h3><p class="mt-2 text-sm text-slate-600">Tồn kho của phiếu <b>{{ $receipt->number }}</b> sẽ được trừ lại và phiếu quay về trạng thái trước khi ghi sổ.</p></div>
+                                            <div class="flex justify-end gap-2 border-t border-slate-100 bg-slate-50 px-6 py-4"><button type="button" data-receipt-confirm-close class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">Hủy</button><button class="rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-bold text-white">Hoàn tác ghi sổ</button></div>
+                                        </form>
+                                    </dialog>
+                                @endif
                             </td>
                         </tr>
                     @endforeach
@@ -205,16 +219,58 @@
 </div>
 <script>
 document.addEventListener('DOMContentLoaded',()=>{
-    const receiptActionMenus=Array.from(document.querySelectorAll('details[data-receipt-actions]'));
-    receiptActionMenus.forEach((menu)=>{
-        menu.addEventListener('toggle',()=>{
-            if(!menu.open)return;
-            receiptActionMenus.forEach((other)=>{if(other!==menu)other.removeAttribute('open');});
-        });
-    });
+    const receiptActionPopover=document.createElement('div');
+    receiptActionPopover.dataset.receiptActionPopover='';
+    receiptActionPopover.className='fixed z-[100] hidden';
+    document.body.appendChild(receiptActionPopover);
+    let activeReceiptTrigger=null;
+    const closeReceiptActions=()=>{
+        receiptActionPopover.classList.add('hidden');
+        receiptActionPopover.replaceChildren();
+        if(activeReceiptTrigger)activeReceiptTrigger.setAttribute('aria-expanded','false');
+        activeReceiptTrigger=null;
+    };
+    const positionReceiptActions=()=>{
+        if(!activeReceiptTrigger||receiptActionPopover.classList.contains('hidden'))return;
+        const rect=activeReceiptTrigger.getBoundingClientRect();
+        const menu=receiptActionPopover.firstElementChild;
+        if(!menu)return;
+        const gap=8,pad=12,width=menu.offsetWidth,height=menu.offsetHeight;
+        let left=Math.min(rect.right-width,window.innerWidth-width-pad);
+        left=Math.max(pad,left);
+        const spaceBelow=window.innerHeight-rect.bottom-pad;
+        const top=spaceBelow>=height+gap ? rect.bottom+gap : Math.max(pad,rect.top-height-gap);
+        receiptActionPopover.style.left=left+'px';
+        receiptActionPopover.style.top=top+'px';
+    };
     document.addEventListener('click',(event)=>{
-        receiptActionMenus.forEach((menu)=>{if(menu.open&&!menu.contains(event.target))menu.removeAttribute('open');});
+        const trigger=event.target.closest('[data-receipt-action-trigger]');
+        if(trigger){
+            event.preventDefault();
+            if(activeReceiptTrigger===trigger){closeReceiptActions();return;}
+            closeReceiptActions();
+            const template=document.getElementById(trigger.dataset.receiptActionTrigger);
+            if(!template)return;
+            receiptActionPopover.appendChild(template.content.cloneNode(true));
+            receiptActionPopover.classList.remove('hidden');
+            activeReceiptTrigger=trigger;
+            trigger.setAttribute('aria-expanded','true');
+            positionReceiptActions();
+            return;
+        }
+        const openConfirm=event.target.closest('[data-receipt-confirm-open]');
+        if(openConfirm){
+            const dialog=document.getElementById(openConfirm.dataset.receiptConfirmOpen);
+            closeReceiptActions();
+            dialog?.showModal();
+            return;
+        }
+        const closeConfirm=event.target.closest('[data-receipt-confirm-close]');
+        if(closeConfirm){closeConfirm.closest('dialog')?.close();return;}
+        if(!receiptActionPopover.contains(event.target))closeReceiptActions();
     });
+    window.addEventListener('resize',positionReceiptActions);
+    window.addEventListener('scroll',closeReceiptActions,true);
 
     const prepared=new Map();
     const standalone=window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true;
