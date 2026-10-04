@@ -45,7 +45,11 @@ class InventoryContractTest extends TestCase
         token_get_all($compiled, TOKEN_PARSE);
         foreach (['issue-form.blade.php','documents.blade.php','receipt-show.blade.php','receipt-edit.blade.php','issue-show.blade.php','issue-edit.blade.php','receipt-settings.blade.php','receipt-pdf.blade.php','receipt-print.blade.php'] as $file) {
             $candidate=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/'.$file));
-            token_get_all(Blade::compileString($candidate), TOKEN_PARSE);
+            try {
+                token_get_all(Blade::compileString($candidate), TOKEN_PARSE);
+            } catch (\ParseError $e) {
+                $this->fail($file.': '.$e->getMessage());
+            }
         }
         $this->addToAssertionCount(10);
     }
@@ -188,7 +192,7 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('function receiptDocumentSettings(', $controller);
         $this->assertStringContainsString('function updateReceiptDocumentSettings(', $controller);
         $this->assertStringContainsString('InventoryReceiptDocumentSetting::current()', $controller);
-        $receiptSettings=file_get_contents($root.'/Modules/Pharma/resources/views/pages/inventory/receipt-settings.blade.php');
+        $receiptSettings=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/receipt-settings.blade.php'));
         foreach (['Cấu hình phiếu nhập kho','Giá nhập','Giá HĐ chưa VAT','VAT','Chữ ký: Thủ kho'] as $receiptSettingLabel) {
             $this->assertStringContainsString($receiptSettingLabel,$receiptSettings);
         }
@@ -204,7 +208,7 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("route('admin.pharma.inventory.receipts.pdf.invoice',\$doc)", $documents);
         $this->assertStringContainsString("@can('view_pharma_inventory_costs')", $documents);
         $this->assertStringContainsString("route('admin.pharma.inventory.receipts.pdf.cost',\$doc)", $documents);
-        $receiptPdf=file_get_contents($root.'/Modules/Pharma/resources/views/pages/inventory/receipt-pdf.blade.php');
+        $receiptPdf=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/receipt-pdf.blade.php'));
         foreach (['Nhà cung cấp','Hóa đơn','Số lô','Hạn dùng','Giá nhập','VAT','Giá HĐ chưa VAT','Thành tiền giá vốn','Tiền VAT','Tổng thanh toán'] as $receiptPdfLabel) {
             $this->assertStringContainsString($receiptPdfLabel,$receiptPdf);
         }
