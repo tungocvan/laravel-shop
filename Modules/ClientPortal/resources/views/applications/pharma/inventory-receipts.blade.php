@@ -135,7 +135,8 @@
                             <td class="px-5 py-4 text-right">
                                 @php($desktopPdfReady=(bool)($receiptDocumentStatuses[$receipt->id]['invoice'] ?? false))
                                 @if($desktopPdfReady)
-                                    <div class="flex justify-end gap-1"><a href="{{ route('client.pharma.inventory.receipts.pdf',$receipt) }}" data-receipt-pdf-download class="rounded-lg border border-slate-300 px-2 py-1.5 text-xs font-black">↓ PDF</a><a href="{{ route('client.pharma.inventory.receipts.print',$receipt) }}" target="_blank" rel="noopener" class="rounded-lg border border-slate-300 px-2 py-1.5 text-xs font-black">In</a></div>
+                                    @php($desktopShare=$receiptShares[$receipt->id] ?? null)
+                                    <div class="flex justify-end gap-1"><a href="{{ route('client.pharma.inventory.receipts.pdf',$receipt) }}" data-receipt-pdf-download class="rounded-lg border border-slate-300 px-2 py-1.5 text-xs font-black">↓ PDF</a><a href="{{ route('client.pharma.inventory.receipts.print',$receipt) }}" target="_blank" rel="noopener" class="rounded-lg border border-slate-300 px-2 py-1.5 text-xs font-black">In</a>@if($desktopShare)<button type="button" data-copy-receipt-share="{{ $desktopShare['url'] }}" class="rounded-lg border border-slate-300 px-2 py-1.5 text-xs font-black">Link</button>@else<form method="POST" action="{{ route('client.pharma.inventory.receipts.share',$receipt) }}">@csrf<button class="rounded-lg border border-slate-300 px-2 py-1.5 text-xs font-black">Chia sẻ</button></form>@endif</div>
                                 @else
                                     <form method="POST" action="{{ route('client.pharma.inventory.receipts.pdf.export',$receipt) }}">@csrf<button class="rounded-lg bg-slate-950 px-2.5 py-1.5 text-xs font-black text-white">Xuất PDF</button></form>
                                 @endif
