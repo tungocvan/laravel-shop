@@ -114,7 +114,7 @@ final class PharmaInventoryReceiptsCapabilityTest extends TestCase
         $controller = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php');
         $this->assertStringContainsString('public function statusCounts(?string $search = null): array', $workspace);
         $this->assertStringContainsString("selectRaw('status, COUNT(*) as aggregate')", $workspace);
-        $this->assertStringContainsString("'statusCounts' => $workspace->statusCounts($validated['q'] ?? null)", $controller);
+        $this->assertStringContainsString("'statusCounts' => \$workspace->statusCounts(\$validated['q'] ?? null)", $controller);
         $this->assertStringContainsString('data-receipt-status-bar', $list);
         $this->assertStringContainsString('data-disabled-status', $list);
         $this->assertStringContainsString('aria-disabled="true"', $list);
