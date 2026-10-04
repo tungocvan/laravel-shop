@@ -162,7 +162,7 @@ CONTRACT, $documents);
         $this->assertStringContainsString(<<<'CONTRACT'
 'token_hash'=>hash('sha256',$token)
 CONTRACT, $documents);
-        $this->assertStringContainsString('expires_at'=>now()->addDays(30)', $documents);
+        $this->assertStringContainsString("expires_at'=>now()->addDays(30)", $documents);
         $this->assertStringContainsString('data-receipt-pdf-download',$list);
         $this->assertStringContainsString(<<<'CONTRACT'
 fetch(link.href,{credentials:'same-origin',cache:'no-store'})
