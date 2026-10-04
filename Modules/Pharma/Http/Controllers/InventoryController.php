@@ -1234,7 +1234,7 @@ final class InventoryController extends Controller
         foreach($rows as $index=>$row){
             $excelRow=5+$index;
             $values=[
-                'date'=>$row->calculated_at?->format('d/m/Y H:i'),'issue'=>$row->issue?->number,
+                'date'=>$row->calculated_at?->format('d/m/Y'),'issue'=>$row->issue?->number,
                 'source'=>$row->source_type===InventoryIssueCommission::SOURCE_BID?'Hàng thầu':'Bảng giá',
                 'customer'=>$row->partner?->name?:$row->issue?->recipient_name,'manager'=>$row->user?->name?:'Chưa phân công',
                 'medicine_code'=>$row->medicine?->medicine_code,'medicine'=>$row->medicine?->name,'quantity'=>(float)$row->quantity,
