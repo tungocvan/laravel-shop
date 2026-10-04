@@ -1189,6 +1189,16 @@ final class InventoryController extends Controller
         return view('Pharma::pages.inventory.commissions',compact('rows','totals','receivableTotal','unresolved','source','users','partners','medicines','from','to','userId','partnerId','medicineId'));
     }
 
+    public function commissionShow(InventoryIssue $issue, InventoryService $inventory, CommissionQueryService $commissions): View
+    {
+        $this->guardIssueWarehouse($issue,$inventory);
+        $issue->load(['manager:id,name','recipientPartner:id,name']);
+        $rows=$commissions->active()->where('issue_id',$issue->id)->with(['medicine','user'])->orderBy('id')->get();
+        abort_if($rows->isEmpty(),404);
+        $detail=['issue'=>$issue,'rows'=>$rows,'revenue'=>(float)$rows->sum('revenue_amount'),'commission'=>(float)$rows->sum('commission_amount')];
+        return view('Pharma::pages.inventory.commission-show',compact('detail'));
+    }
+
     public function exportCommissions(Request $request, CommissionQueryService $commissions): StreamedResponse
     {
         $data=$request->validate([
