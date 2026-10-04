@@ -124,6 +124,8 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->whereNumber('issue')->middleware('client.feature:pharma,orders')->name('orders.undo-approval');
         Route::post('/orders/{issue}/post', [PharmaApplicationController::class, 'postOrder'])
             ->whereNumber('issue')->middleware('client.feature:pharma,orders')->name('orders.post');
+        Route::post('/orders/{issue}/revert', [PharmaApplicationController::class, 'revertPostedOrder'])
+            ->whereNumber('issue')->middleware('client.feature:pharma,orders')->name('orders.revert');
         Route::post('/orders/{issue}/pdf', [PharmaApplicationController::class, 'exportOrderPdf'])
             ->whereNumber('issue')->middleware('client.feature:pharma,orders')->name('orders.pdf.export');
         Route::get('/orders/{issue}/pdf', [PharmaApplicationController::class, 'downloadOrderPdf'])
