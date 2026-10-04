@@ -7,6 +7,10 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
+        if (Schema::hasTable('pharma_inventory_receipt_document_settings')) {
+            return;
+        }
+
         Schema::create('pharma_inventory_receipt_document_settings', function (Blueprint $table) {
             $table->id();
             $table->string('organization_name')->nullable();
