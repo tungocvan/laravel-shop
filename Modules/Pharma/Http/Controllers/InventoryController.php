@@ -1257,7 +1257,24 @@ final class InventoryController extends Controller
             if($profile['auto_widths'][$key]??true)$sheet->getColumnDimension($letter)->setAutoSize(true);
             else{$sheet->getColumnDimension($letter)->setAutoSize(false);$sheet->getColumnDimension($letter)->setWidth(max(6,((int)($profile['widths'][$key]??$definition['width']))/7));}
         }
-        if(($profile['page_setup']['auto_height']??true)){foreach(range(1,$lastRow) as $rowIndex)$sheet->getRowDimension($rowIndex)->setRowHeight(-1);}
+        $footerRow=$lastRow+2;
+        $revenueColumn=array_search('revenue',$selected,true);
+        $commissionColumn=array_search('commission',$selected,true);
+        $footerPairs=[];
+        if($revenueColumn!==false)$footerPairs[]=['label'=>'Tổng giá trị','column'=>Coordinate::stringFromColumnIndex($revenueColumn+1),'value'=>(float)$rows->sum('revenue_amount')];
+        if($commissionColumn!==false)$footerPairs[]=['label'=>'Tổng hoa hồng','column'=>Coordinate::stringFromColumnIndex($commissionColumn+1),'value'=>(float)$rows->sum('commission_amount')];
+        foreach($footerPairs as $pair){
+            $column=$pair['column'];
+            $labelColumn=Coordinate::stringFromColumnIndex(max(1,Coordinate::columnIndexFromString($column)-1));
+            $sheet->setCellValue("{$labelColumn}{$footerRow}",$pair['label']);
+            $sheet->setCellValue("{$column}{$footerRow}",$pair['value']);
+            $sheet->getStyle("{$labelColumn}{$footerRow}:{$column}{$footerRow}")->getFont()->setBold(true);
+            $sheet->getStyle("{$labelColumn}{$footerRow}:{$column}{$footerRow}")->getAlignment()->setVertical('center')->setWrapText(true);
+            $sheet->getStyle("{$labelColumn}{$footerRow}")->getAlignment()->setHorizontal('right');
+            $sheet->getStyle("{$column}{$footerRow}")->getAlignment()->setHorizontal('right');
+            $sheet->getStyle("{$column}{$footerRow}")->getNumberFormat()->setFormatCode('#,##0');
+        }
+        if(($profile['page_setup']['auto_height']??true)){foreach(range(1,$footerRow) as $rowIndex)$sheet->getRowDimension($rowIndex)->setRowHeight(-1);}
         $sheet->freezePane('A5')->setAutoFilter("A4:{$lastColumn}{$lastRow}");
         $orientation=($profile['page_setup']['orientation']??'landscape')==='portrait'?PageSetup::ORIENTATION_PORTRAIT:PageSetup::ORIENTATION_LANDSCAPE;
         $sheet->getPageSetup()->setPaperSize(PageSetup::PAPERSIZE_A4)->setOrientation($orientation)->setFitToWidth(1)->setFitToHeight(0);
