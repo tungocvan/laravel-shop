@@ -54,7 +54,9 @@ class CommissionContractTest extends TestCase
         $this->assertStringContainsString("SUM(revenue_amount)", $controller);
         $this->assertStringContainsString("SUM(commission_amount)", $controller);
         $this->assertStringContainsString('Trung tâm hoa hồng', $view);
-        $this->assertStringContainsString('Bảng giá: HH = SL × (Giá bán CT − Giá thu). Hàng thầu: giữ nguyên chính sách % đã snapshot.', $view);
+        $this->assertStringContainsString('Dữ liệu chính sách được snapshot tại thời điểm ghi sổ.', $view);
+        $this->assertStringContainsString('Giá trị thu · bảng giá', $view);
+        $this->assertStringContainsString('Hoa hồng phát sinh', $view);
         $this->assertStringContainsString('Chưa đủ dữ liệu', $view);
         $this->assertStringContainsString("name=\"partner_id\"", $view);
         $this->assertStringContainsString("name=\"medicine_id\"", $view);
