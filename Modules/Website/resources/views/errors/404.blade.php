@@ -1,3 +1,12 @@
+@php
+    $requestPath = trim(request()->path(), '/');
+    $routeName = request()->route()?->getName();
+    $isClientPortal = $requestPath === 'my-apps'
+        || str_starts_with($requestPath, 'my-apps/')
+        || $requestPath === 'apps'
+        || str_starts_with($requestPath, 'apps/')
+        || (is_string($routeName) && str_starts_with($routeName, 'client.'));
+@endphp
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -15,12 +24,18 @@
             Nội dung bạn đang tìm có thể đã được di chuyển, ngừng hiển thị hoặc đường dẫn không chính xác.
         </p>
         <div class="mt-8 flex flex-wrap justify-center gap-3">
-            <a href="{{ route('home') }}" class="rounded-xl bg-gray-900 px-6 py-3 font-bold text-white transition hover:bg-green-600">
-                Về trang chủ
-            </a>
-            <a href="{{ route('product.list') }}" class="rounded-xl border border-gray-300 px-6 py-3 font-bold text-gray-700 transition hover:border-green-600 hover:text-green-600">
-                Xem sản phẩm
-            </a>
+            @if($isClientPortal)
+                <a href="{{ url('/my-apps') }}" class="rounded-xl bg-gray-900 px-6 py-3 font-bold text-white transition hover:bg-green-600">
+                    Trang chủ
+                </a>
+            @else
+                <a href="{{ route('home') }}" class="rounded-xl bg-gray-900 px-6 py-3 font-bold text-white transition hover:bg-green-600">
+                    Về trang chủ
+                </a>
+                <a href="{{ route('product.list') }}" class="rounded-xl border border-gray-300 px-6 py-3 font-bold text-gray-700 transition hover:border-green-600 hover:text-green-600">
+                    Xem sản phẩm
+                </a>
+            @endif
         </div>
     </section>
 </body>
