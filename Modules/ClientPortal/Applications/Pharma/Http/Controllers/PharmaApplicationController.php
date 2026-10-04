@@ -1848,10 +1848,15 @@ final class PharmaApplicationController extends Controller
         if ($visibleIssue === null && $canApproveOrder) $visibleIssue = $workspace->findPendingForApproval($issue) ?? $workspace->findApprovedForUndo($issue);
         abort_if($visibleIssue === null, 404);
         $canViewInventory = $registry->userCan($user, 'client.pharma.inventory.view');
+        $issueDocuments=app(InventoryIssueDocumentService::class);
+        $orderPdfReady=$visibleIssue->status===\Modules\Pharma\Models\InventoryIssue::POSTED && $issueDocuments->current($visibleIssue)!==null;
+        $orderPdfShare=$orderPdfReady ? $issueDocuments->latestShare($visibleIssue,(int)$user->id) : null;
 
         return view('ClientPortal::applications.pharma.inventory-issue-show', [
             'application' => $application,
             'issue' => $visibleIssue,
+            'orderPdfReady' => $orderPdfReady,
+            'orderPdfShare' => $orderPdfShare,
             'inventoryBalanceLinks' => $canViewInventory ? $inventoryWorkspace->balanceLinksForItems($visibleIssue->items) : [],
             'canViewInventory' => $canViewInventory,
             'canEditOrder' => ($registry->userCan($user, 'client.pharma.orders.create') || $canCreateForUser)
