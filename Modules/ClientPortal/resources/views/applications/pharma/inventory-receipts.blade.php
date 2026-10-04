@@ -37,11 +37,12 @@
                 </label>
             </form>
             @if(session('receipt_share_url'))
-        <div class="fixed inset-x-4 top-4 z-[100] mx-auto max-w-xl rounded-2xl border border-emerald-200 bg-white p-4 shadow-2xl" data-share-flash>
-            <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Link chia sẻ PDF hóa đơn</p>
-            <div class="mt-2 flex gap-2"><input readonly value="{{ session('receipt_share_url') }}" class="min-w-0 flex-1 rounded-xl border border-slate-300 px-3 text-xs"><button type="button" data-copy-receipt-share="{{ session('receipt_share_url') }}" class="rounded-xl bg-slate-950 px-3 text-xs font-black text-white">Sao chép</button></div>
-        </div>
-    @endif
+                <div class="fixed inset-x-4 top-4 z-[100] mx-auto max-w-xl rounded-2xl border border-emerald-200 bg-white p-4 pr-12 shadow-2xl transition duration-200" data-share-flash>
+                    <button type="button" data-dismiss-share-flash class="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-lg text-lg font-bold text-emerald-700 hover:bg-emerald-50" aria-label="Đóng thông báo link chia sẻ">×</button>
+                    <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Link chia sẻ PDF hóa đơn</p>
+                    <div class="mt-2 flex gap-2"><input readonly value="{{ session('receipt_share_url') }}" class="min-w-0 flex-1 rounded-xl border border-slate-300 px-3 text-xs"><button type="button" data-copy-receipt-share="{{ session('receipt_share_url') }}" data-dismiss-share-after-copy class="rounded-xl bg-slate-950 px-3 text-xs font-black text-white">Sao chép</button></div>
+                </div>
+            @endif
 
     @can('client.pharma.inventory.receipts.create')
                 <a href="{{ route('client.pharma.inventory.receipts.create') }}" class="ml-auto hidden h-14 shrink-0 items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 text-sm font-black text-white shadow-sm transition active:scale-[0.985] lg:inline-flex motion-reduce:transform-none">
@@ -219,6 +220,18 @@
 </div>
 <script>
 document.addEventListener('DOMContentLoaded',()=>{
+    const shareFlash=document.querySelector('[data-share-flash]');
+    const dismissShareFlash=()=>{
+        if(!shareFlash)return;
+        shareFlash.classList.add('opacity-0','-translate-y-1','pointer-events-none');
+        window.setTimeout(()=>shareFlash.remove(),200);
+    };
+    document.addEventListener('click',(event)=>{
+        if(event.target.closest('[data-dismiss-share-flash]')){dismissShareFlash();return;}
+        if(shareFlash&&!shareFlash.contains(event.target))dismissShareFlash();
+    });
+    document.addEventListener('keydown',(event)=>{if(event.key==='Escape')dismissShareFlash();});
+
     const receiptActionPopover=document.createElement('div');
     receiptActionPopover.dataset.receiptActionPopover='';
     receiptActionPopover.className='fixed z-[100] hidden';
@@ -277,7 +290,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     document.addEventListener('click',async(event)=>{
         const copy=event.target.closest('[data-copy-receipt-share]');
         if(copy){
-            try{await navigator.clipboard.writeText(copy.dataset.copyReceiptShare);const old=copy.textContent;copy.textContent='Đã sao chép';setTimeout(()=>copy.textContent=old,1600);}catch(e){window.prompt('Sao chép link chia sẻ:',copy.dataset.copyReceiptShare);}
+            try{await navigator.clipboard.writeText(copy.dataset.copyReceiptShare);const old=copy.textContent;copy.textContent='Đã sao chép';if(copy.hasAttribute('data-dismiss-share-after-copy'))window.setTimeout(dismissShareFlash,650);else setTimeout(()=>copy.textContent=old,1600);}catch(e){window.prompt('Sao chép link chia sẻ:',copy.dataset.copyReceiptShare);}
             return;
         }
         const link=event.target.closest('[data-receipt-pdf-download]');
