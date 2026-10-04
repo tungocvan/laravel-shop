@@ -111,6 +111,7 @@ class ApplicationRegistry
             'permission' => $this->nullableString($manifest['permission'] ?? null),
             'sort_order' => (int) ($manifest['sort_order'] ?? 100),
             'layout' => $this->normalizeLayout((array) ($manifest['layout'] ?? [])),
+            'hub' => $this->normalizeHub((array) ($manifest['hub'] ?? [])),
             'capabilities' => $this->normalizeCapabilities((array) ($manifest['capabilities'] ?? [])),
             'quick_actions' => $this->normalizeQuickActions((array) ($manifest['quick_actions'] ?? [])),
             'navigation' => $navigation,
@@ -222,6 +223,25 @@ class ApplicationRegistry
 
             return [$slot => $rules];
         })->all();
+    }
+
+    private function normalizeHub(array $hub): array
+    {
+        $supporting = (array) ($hub['supporting'] ?? []);
+
+        return [
+            'key' => Str::lower(trim((string) ($hub['key'] ?? 'overview'))),
+            'name' => trim((string) ($hub['name'] ?? 'Tổng quan')),
+            'permission' => $this->nullableString($hub['permission'] ?? null),
+            'eyebrow' => trim((string) ($hub['eyebrow'] ?? '')),
+            'title' => trim((string) ($hub['title'] ?? '')),
+            'description' => trim((string) ($hub['description'] ?? '')),
+            'supporting' => [
+                'visible' => filter_var($supporting['visible'] ?? true, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE) ?? true,
+                'title' => trim((string) ($supporting['title'] ?? '')),
+                'body' => trim((string) ($supporting['body'] ?? '')),
+            ],
+        ];
     }
 
     private function normalizeCapabilities(array $capabilities): array

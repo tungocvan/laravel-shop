@@ -1,6 +1,6 @@
 # ClientPortal / PWA — AI Workflow Gate
 
-Updated: 2026-09-29
+Updated: 2026-10-04
 
 ## Purpose
 
@@ -73,7 +73,7 @@ For every PWA Module/application — including new applications and refactors ou
 docs/modules/ClientPortal/PWA_APPLICATION_STANDARD.md
 ```
 
-This standard is mandatory for Application Hub structure, managed hero/supporting content, configurable Bottom Navigation, Overview evolution, searchable entity selectors and iPhone/iOS-safe date controls. Module-specific implementations may add stricter rules but must not silently diverge from the shared contract.
+This standard is mandatory for Application Hub structure, managed hero/supporting content, configurable Bottom Navigation, Hub/Overview semantic separation, native touch interaction, searchable entity selectors and iPhone/iOS-safe date controls. Module-specific implementations may add stricter rules but must not silently diverge from the shared contract.
 
 ## PWA UI contract
 
@@ -139,6 +139,14 @@ Admin must be able to manage these values at:
 Do not duplicate the configurable eyebrow/title/description as hard-coded Blade copy. New PWA feature work is incomplete until the manifest defaults, Admin edit path, runtime consumption, automated contract tests and real UI acceptance are present.
 
 Presentation settings must not make route names, permissions, controller classes, source-module boundaries or business logic Admin-editable.
+
+## Native touch interaction gate
+
+PWA controls must feel like touch controls rather than plain web links. New/refactored button-like controls must follow the native-touch contract in `PWA_APPLICATION_STANDARD.md`.
+
+Prefer the shared `<x-native-touch>` primitive for standalone buttons/action links when its markup fits. Complex controls may implement the same contract directly. Preserve semantic button/link behavior, keyboard `focus-visible`, disabled states and reduced-motion behavior.
+
+Do not mass-apply transforms to Website/Admin buttons and do not treat animation as a substitute for a sufficiently large touch target.
 
 ## File handoff gate
 

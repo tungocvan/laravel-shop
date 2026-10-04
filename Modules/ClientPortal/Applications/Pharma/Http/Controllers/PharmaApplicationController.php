@@ -1931,13 +1931,10 @@ final class PharmaApplicationController extends Controller
                 return $feature;
             });
 
-        $overviewFeature = collect($application['features'] ?? [])->first(fn (array $feature): bool => $feature['key'] === 'overview');
-        abort_if($overviewFeature === null, 404);
-
         return view('ClientPortal::applications.pharma.dashboard', [
             'application' => $application,
             'applicationPresentation' => $settings->applicationPresentation($application),
-            'featurePresentation' => $settings->featurePresentation($application['key'], $overviewFeature),
+            'hubPresentation' => $settings->applicationHubPresentation($application),
             'features' => $features,
         ]);
     }

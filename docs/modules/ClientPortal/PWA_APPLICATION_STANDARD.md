@@ -211,6 +211,35 @@ Unless a capability has a documented exception:
 - touch actions need appropriate hit targets and pressed-state feedback;
 - tablet/desktop layout may become denser without breaking the mobile-first contract.
 
+## Native touch interaction contract
+
+ClientPortal PWA controls must feel like touch controls rather than plain web text links.
+
+Apply native pressed-state feedback to user-triggered controls such as:
+
+- primary/secondary action buttons;
+- links visually presented as buttons;
+- tappable action cards and floating action buttons;
+- action-footer controls;
+- mobile navigation controls.
+
+Use the shared `<x-native-touch>` primitive for new/refactored standalone controls when its markup contract fits. Existing complex controls may implement the same contract directly.
+
+Baseline interaction contract:
+
+- the whole visual control is the touch target, not only its text/icon;
+- provide immediate touch-down feedback, normally `active:scale-[0.985]`;
+- use a short transform transition (about 100ms) rather than a long animation;
+- use `touch-action: manipulation` and suppress WebKit tap highlight where appropriate;
+- respect `prefers-reduced-motion` with `motion-reduce:transform-none` and no required motion;
+- preserve keyboard `focus-visible` behavior and semantic button/link markup;
+- disabled or `aria-disabled` controls must not animate as actionable controls;
+- Neumorphism controls may add an immediate inset/pressed shadow in addition to the baseline scale feedback.
+
+Bottom Navigation may use a slightly stronger scale response where needed for a native dock feel, but it must follow the same accessibility and reduced-motion rules.
+
+Do not add a global CSS rule that blindly transforms every Website/Admin `button`. This contract is scoped to ClientPortal PWA and should be adopted incrementally when a screen is created or refactored.
+
 ## Admin configuration contract
 
 `/admin/client-apps` is the canonical Admin surface for ClientPortal application presentation.
@@ -257,6 +286,7 @@ A new Module PWA application is incomplete until all applicable items are satisf
 [ ] User/Product/Customer searchable selectors use x-pwa-select-search.
 [ ] Date controls follow the iPhone/iOS-safe contract.
 [ ] Mobile and desktop/tablet responsive behavior is tested.
+[ ] Interactive PWA buttons/actions follow the native touch interaction contract.
 [ ] Relevant automated contracts cover manifest/settings/permissions.
 [ ] Real rendered UI acceptance is PASS before merge.
 [ ] PWA file handoff rules are applied when downloads/exports exist.
@@ -275,6 +305,7 @@ When refactoring an existing PWA Module, audit before changing code:
 [ ] duplicated Admin business logic in ClientPortal
 [ ] capability pages that incorrectly retain global shell navigation
 [ ] desktop pagination reintroduced into mobile-first lists
+[ ] missing native touch feedback on button-like PWA controls
 [ ] missing presentation/settings contract tests
 ```
 

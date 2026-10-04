@@ -10,6 +10,19 @@ return [
     'permission' => 'client.pharma.access',
     'sort_order' => 20,
     'layout' => ['mode' => 'workspace'],
+    'hub' => [
+        'key' => 'overview',
+        'name' => 'Tổng quan',
+        'permission' => 'client.pharma.overview.view',
+        'eyebrow' => 'Pharma PWA',
+        'title' => 'Không gian làm việc Pharma',
+        'description' => 'Các chức năng hiển thị theo quyền Web của User. Dữ liệu và business rules vẫn thuộc Modules/Pharma; PWA không sử dụng giao diện hoặc quyền Admin Pharma.',
+        'supporting' => [
+            'visible' => true,
+            'title' => 'Ranh giới Foundation',
+            'body' => 'Đợt này chỉ thiết lập application, authorization và PWA shell. Các capability nghiệp vụ sẽ được nối lần lượt với service/query contract của Modules/Pharma, không sao chép logic từ Admin controller hoặc Blade.',
+        ],
+    ],
     'capabilities' => ['search', 'filter', 'background-jobs', 'export'],
     'navigation' => [
         'overview' => [
@@ -95,17 +108,6 @@ return [
         ],
     ],
     'features' => [
-        'overview' => [
-            'name' => 'Tổng quan',
-            'description' => 'Điểm vào PWA Pharma và các capability được cấp cho User.',
-            'eyebrow' => 'Pharma PWA',
-            'page_title' => 'Không gian làm việc Pharma',
-            'page_description' => 'Các chức năng hiển thị theo quyền Web của User. Dữ liệu và business rules vẫn thuộc Modules/Pharma; PWA không sử dụng giao diện hoặc quyền Admin Pharma.',
-            'route' => 'client.pharma.dashboard',
-            'permission' => 'client.pharma.overview.view',
-            'icon' => 'home',
-            'sort_order' => 10,
-        ],
         'products' => [
             'name' => 'Danh mục thuốc',
             'description' => 'Tra cứu Medicine Master và thông tin sản phẩm theo phạm vi được cấp.',

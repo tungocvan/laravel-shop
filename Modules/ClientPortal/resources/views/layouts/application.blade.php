@@ -35,16 +35,23 @@
 </header>
 @endunless
 @php
+    $bottomNavigationAppearance = app(\Modules\ClientPortal\Services\ClientPortalSettingsService::class)->pwaBottomNavigation();
     $portalNavigation = $applicationContext
         ? app(\Modules\ClientPortal\Services\PortalNavigationResolver::class)->forApplication($applicationContext, auth('web')->user())
         : collect();
     $primaryNavigation = $portalNavigation->where('placement', 'primary')->values();
     $moreNavigation = $portalNavigation->where('placement', 'more')->values();
+    $mobileNavigation = $portalNavigation->where('bottom_enabled', true)->sortBy('bottom_sort_order')->values();
+    $mobilePrimaryNavigation = $mobileNavigation->where('placement', 'primary')->values();
+    $mobileMoreNavigation = $mobileNavigation->where('placement', 'more')->values();
 @endphp
 <div class="mx-auto flex {{ View::hasSection('hide-application-header') ? 'min-h-screen' : 'min-h-[calc(100dvh-65px)]' }} w-full max-w-[1536px]">
     @include('ClientPortal::partials.adaptive-navigation', [
         'primaryNavigation' => $primaryNavigation,
         'moreNavigation' => $moreNavigation,
+        'mobilePrimaryNavigation' => $mobilePrimaryNavigation,
+        'mobileMoreNavigation' => $mobileMoreNavigation,
+        'bottomNavigationAppearance' => $bottomNavigationAppearance,
         'hideMobileNavigation' => View::hasSection('hide-mobile-navigation'),
     ])
     <main class="min-w-0 flex-1 px-4 py-6 pb-24 sm:px-6 sm:py-8 sm:pb-10 lg:px-8 xl:px-10 2xl:px-12">@yield('content')</main>

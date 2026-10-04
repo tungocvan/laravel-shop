@@ -1,6 +1,6 @@
 # ClientPortal — PWA Admin Settings
 
-Updated: 2026-08-20
+Updated: 2026-10-04
 
 ## Scope
 
@@ -170,17 +170,32 @@ Admin overrides must never change route names, permissions, source-module contra
 
 ## Application Hub and navigation presentation
 
-The project-wide target contract for every application is defined in `PWA_APPLICATION_STANDARD.md`.
+The project-wide contract for every application is defined in `PWA_APPLICATION_STANDARD.md`.
 
-Application presentation should be able to evolve consistently across Pharma and future Module PWAs. The approved target includes, as applicable:
+Implemented settings groups are:
 
-- managed Hub hero `eyebrow`, `title`, `description`;
-- managed Supporting/Foundation card `visible`, `title`, `body`;
-- Bottom Navigation visibility per eligible item plus stable sort order;
-- capability page presentation;
-- an Overview area reserved for Module/capability summary and User-authorized configuration evolution.
+- `application.{key}.hub` — Hub hero plus Supporting/Foundation presentation;
+- `application.{key}.navigation` — mobile Bottom Navigation visibility, order and icon overrides for manifest-declared navigation items;
+- `pwa.bottom_navigation` — global mobile Bottom Navigation appearance;
+- `application.{key}.feature.{feature}.presentation` — capability page presentation.
 
-Bottom Navigation visibility is presentation-only. It must not grant/revoke a `web` permission and must not be used as route authorization. Runtime bottom items must satisfy both presentation visibility and the current User's capability availability/permission.
+The Hub is application-owned. A Hub may use a stable key such as `overview` for route/middleware compatibility and navigation, but that does not require restoring Overview as a business capability in `features`. Hub authorization metadata remains source-controlled in the application manifest.
+
+Bottom Navigation visibility is presentation-only. It must not grant/revoke a `web` permission and must not be used as route authorization. Runtime bottom items must satisfy both presentation visibility and the current User's capability availability/permission. Admin cannot edit route names or permission names.
+
+### Global Bottom Navigation appearance and themes
+
+`pwa.bottom_navigation` controls the active runtime appearance, including:
+
+- presentation style (`default` or `neumorphism`);
+- background and opacity;
+- normal/active icon and text colors;
+- active background;
+- text/icon sizes and minimum height.
+
+Built-in themes are source-controlled presets. User-created reusable theme snapshots are stored through System Settings under `clientportal.pwa.bottom_navigation.themes`; applying a theme copies its presentation snapshot into the active ClientPortal settings. No schema migration is required for these presentation values.
+
+Neumorphism uses a single-surface mobile dock: the dock owns the outer relief, inactive items remain visually quiet, and the selected/pressed item may use inset relief. Bottom Navigation also follows the project native-touch contract so touch-down feedback is immediate. Tablet/desktop sidebar navigation is not restyled by this mobile presentation option.
 
 New PWA applications and refactors must not hard-code their own incompatible Hub/navigation settings model. Reuse the ClientPortal settings contract and follow `PWA_APPLICATION_STANDARD.md`.
 
@@ -207,10 +222,9 @@ These remain controlled by manifests/routes/source code.
 
 Planned extensions using the same settings service/storage contract:
 
-1. complete the shared Application Hub presentation contract — managed hero/supporting content, Bottom Navigation visibility/order and capability presentation — while preserving manifest permission contracts;
-2. a canonical icon renderer before exposing icon editing in Admin;
-3. dynamic manifest presentation — selected safe manifest properties generated from ClientPortal settings while preserving `/my-apps` as the security-reviewed entry contract;
-4. dedicated Admin capability for PWA/presentation management.
+1. dynamic manifest presentation — selected safe manifest properties generated from ClientPortal settings while preserving `/my-apps` as the security-reviewed entry contract;
+2. dedicated Admin capability for PWA/presentation management;
+3. incremental adoption of the shared native-touch primitive as existing PWA screens are refactored.
 
 ## Verification
 

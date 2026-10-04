@@ -9,9 +9,9 @@
 <div class="min-w-0 space-y-5 overflow-x-hidden">
     <section class="overflow-hidden rounded-[2rem] bg-slate-950 px-5 py-6 text-white shadow-sm sm:px-7 sm:py-7">
         <div class="max-w-3xl">
-            <span class="inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-slate-200">{{ $featurePresentation['eyebrow'] }}</span>
-            <h1 class="mt-3 text-3xl font-black tracking-tight sm:text-4xl">{{ $featurePresentation['page_title'] }}</h1>
-            <p class="mt-3 text-sm leading-6 text-slate-300 sm:text-base">{{ $featurePresentation['page_description'] }}</p>
+            <span class="inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-slate-200">{{ $hubPresentation['eyebrow'] }}</span>
+            <h1 class="mt-3 text-3xl font-black tracking-tight sm:text-4xl">{{ $hubPresentation['title'] }}</h1>
+            <p class="mt-3 text-sm leading-6 text-slate-300 sm:text-base">{{ $hubPresentation['description'] }}</p>
         </div>
     </section>
 
@@ -50,9 +50,11 @@
         </div>
     </section>
 
-    <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 class="font-black text-slate-950">Ranh giới Foundation</h2>
-        <p class="mt-2 text-sm leading-6 text-slate-500">Đợt này chỉ thiết lập application, authorization và PWA shell. Các capability nghiệp vụ sẽ được nối lần lượt với service/query contract của Modules/Pharma, không sao chép logic từ Admin controller hoặc Blade.</p>
-    </section>
+    @if($hubPresentation['supporting_visible'])
+        <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 class="font-black text-slate-950">{{ $hubPresentation['supporting_title'] }}</h2>
+            <p class="mt-2 text-sm leading-6 text-slate-500">{{ $hubPresentation['supporting_body'] }}</p>
+        </section>
+    @endif
 </div>
 @endsection

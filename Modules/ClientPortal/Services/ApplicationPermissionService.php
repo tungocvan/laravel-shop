@@ -40,6 +40,19 @@ class ApplicationPermissionService
                 ];
             }
 
+            $hub = (array) ($application['hub'] ?? []);
+            if (! empty($hub['permission'])) {
+                $rows[] = [
+                    'source' => 'application',
+                    'group' => $application['key'],
+                    'application' => $application['key'],
+                    'feature' => $hub['key'] ?? 'overview',
+                    'action' => null,
+                    'name' => $hub['permission'],
+                    'label' => $hub['name'] ?? 'Tổng quan',
+                ];
+            }
+
             foreach ($application['features'] as $feature) {
                 if (! empty($feature['permission'])) {
                     $rows[] = [

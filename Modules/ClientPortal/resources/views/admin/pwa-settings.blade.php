@@ -57,6 +57,60 @@
                 </div>
             </form>
 
+            <form method="POST" action="{{ route('admin.client-apps.pwa.bottom-navigation.update') }}" class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+                @csrf @method('PUT')
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div><h2 class="text-lg font-bold text-gray-900">Bottom Navigation dùng chung</h2><p class="mt-1 text-sm text-gray-500">Áp dụng cho Bottom Navigation mobile của tất cả Client Applications. Giá trị mặc định giữ giao diện hiện tại.</p></div>
+                    <button class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Lưu Bottom Navigation</button>
+                </div>
+                <div class="mt-5 grid gap-3 rounded-2xl border border-gray-200 bg-gray-50 p-4 lg:grid-cols-[minmax(0,1fr)_auto]">
+                    <div>
+                        <label class="text-sm font-semibold text-gray-800">Theme đã lưu</label>
+                        <div class="mt-2 flex flex-col gap-2 sm:flex-row">
+                            <select name="theme_key" form="bottom-navigation-theme-apply" onchange="if(this.value){this.form.requestSubmit()}" class="min-w-0 flex-1 rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm">
+                                <option value="">Chọn theme...</option>
+                                @foreach($bottomNavigationThemes as $theme)
+                                    <option value="{{ $theme['key'] }}">{{ $theme['builtin'] ? '★ ' : '' }}{{ $theme['name'] }}</option>
+                                @endforeach
+                            </select>
+                            <p class="mt-2 text-xs text-gray-500">★ Theme thiết kế sẵn · Theme tự tạo được lưu trong System Settings.</p>
+                        </div>
+                    </div>
+                    <button type="submit" form="bottom-navigation-reset" class="self-end rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700">Reset mặc định</button>
+                </div>
+                <div class="mt-6 grid gap-5 md:grid-cols-2">
+                    <label class="block md:col-span-2">
+                        <span class="text-sm font-semibold text-gray-800">Kiểu hiển thị</span>
+                        <select name="presentation_style" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm">
+                            <option value="default" @selected(old('presentation_style', $bottomNavigation['presentation_style'] ?? 'default') === 'default')>Mặc định · Flat</option>
+                            <option value="neumorphism" @selected(old('presentation_style', $bottomNavigation['presentation_style'] ?? 'default') === 'neumorphism')>Neumorphism · Nổi/lõm mềm</option>
+                        </select>
+                        <span class="mt-1 block text-xs text-gray-500">Neumorphism chỉ áp dụng cho Bottom Navigation mobile; sidebar tablet/desktop giữ nguyên.</span>
+                    </label>
+                    <label class="block"><span class="text-sm font-semibold text-gray-800">Màu nền</span><input type="color" name="background_color" value="{{ old('background_color', $bottomNavigation['background_color']) }}" class="mt-1 h-11 w-full rounded-xl border border-gray-300 bg-white p-1"></label>
+                    <label class="block"><span class="text-sm font-semibold text-gray-800">Độ trong nền (%)</span><input type="number" min="0" max="100" name="background_opacity" value="{{ old('background_opacity', $bottomNavigation['background_opacity']) }}" class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm"></label>
+                    <label class="block"><span class="text-sm font-semibold text-gray-800">Màu icon</span><input type="color" name="icon_color" value="{{ old('icon_color', $bottomNavigation['icon_color']) }}" class="mt-1 h-11 w-full rounded-xl border border-gray-300 bg-white p-1"></label>
+                    <label class="block"><span class="text-sm font-semibold text-gray-800">Màu text</span><input type="color" name="text_color" value="{{ old('text_color', $bottomNavigation['text_color']) }}" class="mt-1 h-11 w-full rounded-xl border border-gray-300 bg-white p-1"></label>
+                    <label class="block"><span class="text-sm font-semibold text-gray-800">Màu icon đang chọn</span><input type="color" name="active_icon_color" value="{{ old('active_icon_color', $bottomNavigation['active_icon_color']) }}" class="mt-1 h-11 w-full rounded-xl border border-gray-300 bg-white p-1"></label>
+                    <label class="block"><span class="text-sm font-semibold text-gray-800">Màu text đang chọn</span><input type="color" name="active_text_color" value="{{ old('active_text_color', $bottomNavigation['active_text_color']) }}" class="mt-1 h-11 w-full rounded-xl border border-gray-300 bg-white p-1"></label>
+                    <label class="block"><span class="text-sm font-semibold text-gray-800">Nền mục đang chọn</span><input type="color" name="active_background_color" value="{{ old('active_background_color', $bottomNavigation['active_background_color']) }}" class="mt-1 h-11 w-full rounded-xl border border-gray-300 bg-white p-1"></label>
+                    <label class="block"><span class="text-sm font-semibold text-gray-800">Font-size text (px)</span><input type="number" min="9" max="18" name="text_font_size" value="{{ old('text_font_size', $bottomNavigation['text_font_size']) }}" class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm"></label>
+                    <label class="block"><span class="text-sm font-semibold text-gray-800">Kích thước icon (px)</span><input type="number" min="16" max="36" name="icon_size" value="{{ old('icon_size', $bottomNavigation['icon_size']) }}" class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm"></label>
+                    <label class="block"><span class="text-sm font-semibold text-gray-800">Chiều cao tối thiểu (px)</span><input type="number" min="56" max="120" name="min_height" value="{{ old('min_height', $bottomNavigation['min_height']) }}" class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm"><span class="mt-1 block text-xs text-gray-500">Safe-area iPhone vẫn được cộng riêng.</span></label>
+                </div>
+                <div class="mt-5 border-t border-gray-200 pt-5">
+                    <div class="flex flex-col gap-2 sm:flex-row">
+                        <input name="theme_name" form="bottom-navigation-theme-store" maxlength="80" placeholder="Tên theme mới, ví dụ: Blue Compact" class="min-w-0 flex-1 rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm">
+                        <button type="submit" form="bottom-navigation-theme-store" class="rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-semibold text-gray-700">Lưu thành theme mới</button>
+                    </div>
+                    <p class="mt-2 text-xs text-gray-500">Theme lưu snapshot của kiểu hiển thị, toàn bộ màu sắc, kích thước và chiều cao Bottom Navigation hiện tại.</p>
+                </div>
+            </form>
+
+            <form id="bottom-navigation-reset" method="POST" action="{{ route('admin.client-apps.pwa.bottom-navigation.reset') }}" class="hidden">@csrf</form>
+            <form id="bottom-navigation-theme-store" method="POST" action="{{ route('admin.client-apps.pwa.bottom-navigation.themes.store') }}" class="hidden">@csrf</form>
+            <form id="bottom-navigation-theme-apply" method="POST" action="{{ route('admin.client-apps.pwa.bottom-navigation.themes.apply') }}" class="hidden">@csrf</form>
+
             <form method="POST" action="{{ route('admin.client-apps.pwa.login.update') }}" class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
                 @csrf
                 @method('PUT')

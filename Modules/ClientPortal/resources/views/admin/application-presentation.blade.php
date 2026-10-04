@@ -21,6 +21,78 @@
         </div>
     </section>
 
+    <form method="POST" action="{{ route('admin.client-apps.pwa.applications.hub.update', $application['key']) }}" class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        @csrf @method('PUT')
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+                <h2 class="text-lg font-bold text-gray-900">Hub / Dashboard</h2>
+                <p class="mt-1 text-sm text-gray-500">Quản trị Hero và nội dung hỗ trợ của application Hub. Route, permission và nghiệp vụ vẫn do source code kiểm soát.</p>
+            </div>
+            <button class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">Lưu Hub</button>
+        </div>
+
+        <div class="mt-5 grid gap-4 md:grid-cols-2">
+            <label class="block"><span class="text-sm font-semibold text-gray-800">Nhãn / Eyebrow</span><input name="eyebrow" required maxlength="80" value="{{ old('eyebrow', $hubPresentation['eyebrow']) }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm"></label>
+            <label class="block"><span class="text-sm font-semibold text-gray-800">Tiêu đề Hub</span><input name="title" required maxlength="160" value="{{ old('title', $hubPresentation['title']) }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm"></label>
+            <label class="block md:col-span-2"><span class="text-sm font-semibold text-gray-800">Mô tả Hub</span><textarea name="description" maxlength="500" rows="3" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm">{{ old('description', $hubPresentation['description']) }}</textarea></label>
+        </div>
+
+        <div class="mt-5 rounded-2xl border border-gray-200 bg-gray-50 p-4">
+            <input type="hidden" name="supporting_visible" value="0">
+            <label class="flex items-center gap-2 text-sm font-semibold text-gray-900"><input type="checkbox" name="supporting_visible" value="1" @checked(old('supporting_visible', $hubPresentation['supporting_visible']))> Hiển thị nội dung hỗ trợ</label>
+            <div class="mt-4 grid gap-4 md:grid-cols-2">
+                <label class="block"><span class="text-sm font-semibold text-gray-800">Tiêu đề hỗ trợ</span><input name="supporting_title" maxlength="160" value="{{ old('supporting_title', $hubPresentation['supporting_title']) }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm"></label>
+                <label class="block md:col-span-2"><span class="text-sm font-semibold text-gray-800">Nội dung hỗ trợ</span><textarea name="supporting_body" maxlength="1000" rows="3" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm">{{ old('supporting_body', $hubPresentation['supporting_body']) }}</textarea></label>
+            </div>
+        </div>
+    </form>
+
+    <form method="POST" action="{{ route('admin.client-apps.pwa.applications.navigation.update', $application['key']) }}" class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        @csrf @method('PUT')
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+                <h2 class="text-lg font-bold text-gray-900">Bottom Navigation</h2>
+                <p class="mt-1 text-sm text-gray-500">Chỉ điều khiển shortcut trên mobile. Sidebar tablet/desktop, route và permission vẫn giữ nguyên theo manifest.</p>
+            </div>
+            <button class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">Lưu Navigation</button>
+        </div>
+        @php($bottomIconChoices = ['home','beaker','document-chart-bar','clipboard-document-list','archive-box','banknotes','building-library','briefcase','magnifying-glass','document-text','inbox','check-circle','plus-circle','clock','heart','squares-2x2'])
+        <div class="mt-5 rounded-2xl border border-gray-200">
+            @foreach(collect($application['navigation'] ?? [])->values() as $index => $item)
+                @php($navPresentation = collect($navigationPresentation['items'])->firstWhere('key', $item['key']))
+                <div class="grid gap-3 border-b border-gray-100 p-4 last:border-b-0 sm:grid-cols-[1fr_auto_auto_auto] sm:items-center">
+                    <div>
+                        <div class="font-semibold text-gray-900">{{ $item['name'] }}</div>
+                        <div class="mt-1 text-xs text-gray-500"><code>{{ $item['route'] }}</code> · <code>{{ $item['permission'] ?? '—' }}</code></div>
+                    </div>
+                    <input type="hidden" name="items[{{ $index }}][key]" value="{{ $item['key'] }}">
+                    <input type="hidden" name="items[{{ $index }}][bottom_enabled]" value="0">
+                    @php($selectedBottomIcon = old("items.$index.bottom_icon", $navPresentation['bottom_icon'] ?? $item['icon']))
+                    <details class="relative">
+                        <summary class="flex min-w-40 cursor-pointer list-none items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm [&::-webkit-details-marker]:hidden">
+                            @include('ClientPortal::partials.navigation-icon', ['name' => $selectedBottomIcon, 'class' => 'h-5 w-5'])
+                            <span class="max-w-28 truncate font-semibold">{{ $selectedBottomIcon }}</span>
+                            <span class="ml-auto text-gray-400">⌄</span>
+                        </summary>
+                        <div class="absolute right-0 z-30 mt-2 grid w-72 grid-cols-4 gap-2 rounded-2xl border border-gray-200 bg-white p-3 shadow-xl">
+                            @foreach($bottomIconChoices as $iconChoice)
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="items[{{ $index }}][bottom_icon]" value="{{ $iconChoice }}" @checked($selectedBottomIcon === $iconChoice) class="peer sr-only">
+                                    <span class="flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl border border-gray-200 p-2 text-[10px] text-gray-600 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-700">
+                                        @include('ClientPortal::partials.navigation-icon', ['name' => $iconChoice, 'class' => 'h-5 w-5'])
+                                        <span class="w-full truncate text-center">{{ $iconChoice }}</span>
+                                    </span>
+                                </label>
+                            @endforeach
+                        </div>
+                    </details>
+                    <label class="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" name="items[{{ $index }}][bottom_enabled]" value="1" @checked(old("items.$index.bottom_enabled", $navPresentation['bottom_enabled'] ?? true))> Hiển thị mobile</label>
+                    <label class="flex items-center gap-2 text-sm"><span class="font-semibold">Thứ tự</span><input type="number" min="0" max="9999" name="items[{{ $index }}][bottom_sort_order]" value="{{ old("items.$index.bottom_sort_order", $navPresentation['bottom_sort_order'] ?? $item['sort_order']) }}" class="w-24 rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm"></label>
+                </div>
+            @endforeach
+        </div>
+    </form>
+
     <div class="grid gap-5 lg:grid-cols-2">
         @foreach($features as $row)
             @php($feature = $row['manifest'])
