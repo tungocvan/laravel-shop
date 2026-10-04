@@ -173,7 +173,7 @@ final class PharmaInventoryCapabilityTest extends TestCase
     }
 
 
-    public function test_receipt_detail_uses_compact_pwa_layout_without_changing_workflow_actions(): void
+    public function test_receipt_detail_uses_compact_pwa_layout_with_three_step_workflow_actions(): void
     {
         $root = base_path();
         $receipt = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-receipt-show.blade.php');
@@ -185,10 +185,10 @@ final class PharmaInventoryCapabilityTest extends TestCase
         $this->assertStringContainsString('Tổng giá trị', $receipt);
         $this->assertStringContainsString('Hóa đơn chưa VAT', $receipt);
         $this->assertStringNotContainsString('Receipt detail · Workflow', $receipt);
-        $this->assertStringContainsString('Gửi duyệt', $receipt);
-        $this->assertStringContainsString('Hoàn tác gửi duyệt', $receipt);
-        $this->assertStringContainsString('Duyệt', $receipt);
-        $this->assertStringContainsString('Hoàn tác duyệt', $receipt);
+        $this->assertStringContainsString('Phê duyệt', $receipt);
+        $this->assertStringContainsString('Hoàn tác phê duyệt', $receipt);
+        $this->assertStringNotContainsString('Gửi duyệt', $receipt);
+        $this->assertStringNotContainsString('Hoàn tác gửi duyệt', $receipt);
         $this->assertStringContainsString('Ghi sổ', $receipt);
         $this->assertStringContainsString('Hoàn tác ghi sổ', $receipt);
         $this->assertStringContainsString('Xem tồn lô', $receipt);
