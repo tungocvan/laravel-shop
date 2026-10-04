@@ -1524,26 +1524,28 @@ final class PharmaApplicationController extends Controller
             ->first(fn (array $feature): bool => $feature['key'] === 'orders');
         abort_if($ordersFeature === null, 404);
 
+        $issues=$workspace->browse(
+            userId:(int)$user->id,search:$validated['q'] ?? null,status:$validated['status'] ?? null,
+            source:$validated['source'] ?? null,fromDate:$validated['from_date'] ?? null,toDate:$validated['to_date'] ?? null,
+            managerUserId:$managerUserId,perPage:20,page:(int)($validated['page'] ?? 1),includeApprovalScope:$canApproveOrders,
+        )->withQueryString();
+        $issueDocuments=app(InventoryIssueDocumentService::class);
+        $orderPdfActions=[];
+        foreach($issues->getCollection() as $issue){
+            $ready=$issue->status===\Modules\Pharma\Models\InventoryIssue::POSTED && $issueDocuments->current($issue)!==null;
+            $orderPdfActions[(int)$issue->id]=['ready'=>$ready,'share'=>$ready ? $issueDocuments->latestShare($issue,(int)$user->id) : null];
+        }
+
         return view('ClientPortal::applications.pharma.inventory-issues', [
             'application' => $application,
             'applicationPresentation' => $settings->applicationPresentation($application),
             'featurePresentation' => $settings->featurePresentation($application['key'], $ordersFeature),
-            'issues' => $workspace->browse(
-                userId: (int) $user->id,
-                search: $validated['q'] ?? null,
-                status: $validated['status'] ?? null,
-                source: $validated['source'] ?? null,
-                fromDate: $validated['from_date'] ?? null,
-                toDate: $validated['to_date'] ?? null,
-                managerUserId: $managerUserId,
-                perPage: 20,
-                page: (int) ($validated['page'] ?? 1),
-                includeApprovalScope: $canApproveOrders,
-            )->withQueryString(),
+            'issues' => $issues,
             'counts' => $workspace->counts((int) $user->id, $canApproveOrders, $managerUserId),
             'managerOptions' => $canApproveOrders ? $workspace->managerOptions((int) $user->id, true) : collect(),
             'canApproveOrders' => $canApproveOrders,
-            'canCreateOrders' => $registry->userCan($user, 'client.pharma.orders.create')
+            'canCreateOrders' => $registry->userCan($user, 'client.pharma.orders.create'),
+            'orderPdfActions' => $orderPdfActions
                 || $registry->userCan($user, 'client.pharma.orders.create-for-user'),
             'filters' => [
                 'q' => trim((string) ($validated['q'] ?? '')),
