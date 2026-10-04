@@ -143,26 +143,42 @@
                             <td class="px-5 py-4 text-right"><p class="font-black tabular-nums text-slate-950">{{ number_format((float)$receipt->total_quantity,0,',','.') }}</p><p class="mt-0.5 text-xs text-slate-400">{{ number_format($receipt->items_count) }} dòng</p></td>
                             <td class="px-5 py-4"><span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-700">{{ $labels[$receipt->status] ?? $receipt->status }}</span></td>
                             <td class="px-5 py-4 text-right">
-                                <div class="flex flex-wrap justify-end gap-1.5">
-                                @if(in_array($receipt->status,[\Modules\Pharma\Models\InventoryReceipt::DRAFT,\Modules\Pharma\Models\InventoryReceipt::PENDING_APPROVAL],true) && $canApproveReceipt)
-                                    <form method="POST" action="{{ route('client.pharma.inventory.receipts.approve',$receipt) }}">@csrf<button class="rounded-lg bg-slate-950 px-2.5 py-1.5 text-xs font-black text-white">Duyệt</button></form>
-                                @endif
-                                @if($receipt->status === \Modules\Pharma\Models\InventoryReceipt::APPROVED && $canApproveReceipt)
-                                    <form method="POST" action="{{ route('client.pharma.inventory.receipts.undo-approval',$receipt) }}">@csrf<button class="rounded-lg border border-slate-300 px-2 py-1.5 text-xs font-black text-slate-700">Hoàn tác</button></form>
-                                @endif
-                                @if($receipt->status === \Modules\Pharma\Models\InventoryReceipt::APPROVED && $canPostReceipt)
-                                    <form method="POST" action="{{ route('client.pharma.inventory.receipts.post',$receipt) }}">@csrf<button class="rounded-lg bg-emerald-600 px-2.5 py-1.5 text-xs font-black text-white">Ghi sổ</button></form>
-                                @endif
-                                @if($receipt->status === \Modules\Pharma\Models\InventoryReceipt::POSTED && $canPostReceipt)
-                                    <form method="POST" action="{{ route('client.pharma.inventory.receipts.revert',$receipt) }}">@csrf<button class="rounded-lg border border-amber-300 bg-amber-50 px-2 py-1.5 text-xs font-black text-amber-700">Hoàn tác ghi sổ</button></form>
-                                @endif
-                                @if(! ($receiptPdfActions[$receipt->id]['can_use_pdf'] ?? false))
-                                    <span class="text-xs font-bold text-slate-400">—</span>
-                                @elseif($receiptPdfActions[$receipt->id]['invoice_ready'] ?? false)
-                                    <div class="flex justify-end gap-1"><a href="{{ route('client.pharma.inventory.receipts.pdf',$receipt) }}" data-receipt-pdf-download class="rounded-lg border border-slate-300 px-2 py-1.5 text-xs font-black">↓ PDF</a><a href="{{ route('client.pharma.inventory.receipts.print',$receipt) }}" target="_blank" rel="noopener" class="rounded-lg border border-slate-300 px-2 py-1.5 text-xs font-black">In</a>@if($receiptPdfActions[$receipt->id]['share'] ?? null)<button type="button" data-copy-receipt-share="{{ $receiptPdfActions[$receipt->id]['share']['url'] }}" class="rounded-lg border border-slate-300 px-2 py-1.5 text-xs font-black">Link</button>@else<form method="POST" action="{{ route('client.pharma.inventory.receipts.share',$receipt) }}">@csrf<button class="rounded-lg border border-slate-300 px-2 py-1.5 text-xs font-black">Chia sẻ</button></form>@endif</div>
-                                @else
-                                    <form method="POST" action="{{ route('client.pharma.inventory.receipts.pdf.export',$receipt) }}">@csrf<button class="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-black text-slate-700">Xuất PDF</button></form>
-                                @endif
+                                <div class="flex justify-end gap-2">
+                                    @if($receiptPdfActions[$receipt->id]['invoice_ready'] ?? false)
+                                        <a href="{{ route('client.pharma.inventory.receipts.pdf',$receipt) }}" data-receipt-pdf-download class="inline-flex min-h-9 items-center rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50" title="Tải PDF hóa đơn" aria-label="Tải PDF hóa đơn">↓ PDF</a>
+                                        <a href="{{ route('client.pharma.inventory.receipts.print',$receipt) }}" target="_blank" rel="noopener" class="inline-flex min-h-9 items-center rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50" title="In phiếu nhập">In</a>
+                                    @endif
+                                    <details class="relative" data-receipt-actions>
+                                        <summary class="flex min-h-9 cursor-pointer list-none items-center rounded-lg border border-slate-300 bg-white px-3 text-base font-bold leading-none text-slate-600 hover:bg-slate-50" aria-label="Thao tác khác">⋯</summary>
+                                        <div class="absolute right-0 z-30 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-left shadow-xl">
+                                            @if($receiptPdfActions[$receipt->id]['can_use_pdf'] ?? false)
+                                                @if($receiptPdfActions[$receipt->id]['invoice_ready'] ?? false)
+                                                    <a href="{{ route('client.pharma.inventory.receipts.pdf',$receipt) }}" data-receipt-pdf-download class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Tải PDF hóa đơn</a>
+                                                    <a href="{{ route('client.pharma.inventory.receipts.print',$receipt) }}" target="_blank" rel="noopener" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">In PDF hóa đơn</a>
+                                                    @if($receiptPdfActions[$receipt->id]['share'] ?? null)
+                                                        <button type="button" data-copy-receipt-share="{{ $receiptPdfActions[$receipt->id]['share']['url'] }}" class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50">Sao chép link</button>
+                                                    @else
+                                                        <form method="POST" action="{{ route('client.pharma.inventory.receipts.share',$receipt) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50">Chia sẻ</button></form>
+                                                    @endif
+                                                @else
+                                                    <form method="POST" action="{{ route('client.pharma.inventory.receipts.pdf.export',$receipt) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50">Xuất PDF hóa đơn</button></form>
+                                                @endif
+                                                <div class="my-1 border-t border-slate-100"></div>
+                                            @endif
+                                            @if(in_array($receipt->status,[\Modules\Pharma\Models\InventoryReceipt::DRAFT,\Modules\Pharma\Models\InventoryReceipt::PENDING_APPROVAL],true) && $canApproveReceipt)
+                                                <form method="POST" action="{{ route('client.pharma.inventory.receipts.approve',$receipt) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-emerald-700 hover:bg-emerald-50">Phê duyệt</button></form>
+                                            @elseif($receipt->status === \Modules\Pharma\Models\InventoryReceipt::APPROVED)
+                                                @if($canApproveReceipt)
+                                                    <form method="POST" action="{{ route('client.pharma.inventory.receipts.undo-approval',$receipt) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-amber-700 hover:bg-amber-50">Hoàn tác phê duyệt</button></form>
+                                                @endif
+                                                @if($canPostReceipt)
+                                                    <form method="POST" action="{{ route('client.pharma.inventory.receipts.post',$receipt) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-emerald-700 hover:bg-emerald-50">Ghi sổ</button></form>
+                                                @endif
+                                            @elseif($receipt->status === \Modules\Pharma\Models\InventoryReceipt::POSTED && $canPostReceipt)
+                                                <form method="POST" action="{{ route('client.pharma.inventory.receipts.revert',$receipt) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-amber-700 hover:bg-amber-50">Hoàn tác ghi sổ</button></form>
+                                            @endif
+                                        </div>
+                                    </details>
                                 </div>
                             </td>
                         </tr>
@@ -189,6 +205,17 @@
 </div>
 <script>
 document.addEventListener('DOMContentLoaded',()=>{
+    const receiptActionMenus=Array.from(document.querySelectorAll('details[data-receipt-actions]'));
+    receiptActionMenus.forEach((menu)=>{
+        menu.addEventListener('toggle',()=>{
+            if(!menu.open)return;
+            receiptActionMenus.forEach((other)=>{if(other!==menu)other.removeAttribute('open');});
+        });
+    });
+    document.addEventListener('click',(event)=>{
+        receiptActionMenus.forEach((menu)=>{if(menu.open&&!menu.contains(event.target))menu.removeAttribute('open');});
+    });
+
     const prepared=new Map();
     const standalone=window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true;
     document.addEventListener('click',async(event)=>{
