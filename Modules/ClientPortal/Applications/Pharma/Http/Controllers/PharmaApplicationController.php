@@ -13,6 +13,8 @@ use Modules\ClientPortal\Services\ClientPortalSettingsService;
 use Modules\Pharma\Models\PriceList;
 use Modules\Pharma\Services\MedicineCatalog;
 use Modules\Pharma\Services\InventoryService;
+use Modules\Pharma\Services\InventoryReceiptDocumentService;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Modules\Pharma\Services\UserPriceListWorkspace;
 use Modules\Pharma\Services\UserCommercialHospitalWorkspace;
 use Modules\Pharma\Services\UserInventoryWorkspace;
@@ -1218,6 +1220,7 @@ final class PharmaApplicationController extends Controller
         ApplicationRegistry $registry,
         ClientPortalSettingsService $settings,
         UserInventoryReceiptWorkspace $workspace,
+        InventoryReceiptDocumentService $documents,
     ): View {
         $validated = $request->validate([
             'q' => ['nullable', 'string', 'max:120'],
@@ -1230,13 +1233,22 @@ final class PharmaApplicationController extends Controller
         $feature = collect($application['features'] ?? [])->first(fn (array $feature): bool => $feature['key'] === 'inventory');
         abort_if($feature === null, 404);
 
+        $receipts=$workspace->browse($validated['q'] ?? null, $validated['status'] ?? null, 20, (int) ($validated['page'] ?? 1))->withQueryString();
+        $receiptDocumentStatuses=$documents->statuses($receipts->getCollection());
+        $receiptShares=[];
+        foreach ($receipts->getCollection() as $receipt) {
+            $receiptShares[(int)$receipt->id]=$documents->latestInvoiceShare($receipt,(int)$user->id);
+        }
+
         return view('ClientPortal::applications.pharma.inventory-receipts', [
             'application' => $application,
             'applicationPresentation' => $settings->applicationPresentation($application),
             'featurePresentation' => $settings->featurePresentation($application['key'], $feature),
-            'receipts' => $workspace->browse($validated['q'] ?? null, $validated['status'] ?? null, 20, (int) ($validated['page'] ?? 1))->withQueryString(),
+            'receipts' => $receipts,
             'statusCounts' => $workspace->statusCounts($validated['q'] ?? null),
             'filters' => ['q' => trim((string) ($validated['q'] ?? '')), 'status' => $validated['status'] ?? ''],
+            'receiptDocumentStatuses'=>$receiptDocumentStatuses,
+            'receiptShares'=>$receiptShares,
         ]);
     }
 
@@ -1392,6 +1404,59 @@ final class PharmaApplicationController extends Controller
         $visibleReceipt = $workspace->find($receipt); abort_if($visibleReceipt === null, 404);
         $workspace->revertPost($visibleReceipt, (int) $user->id);
         return back()->with('success', 'Đã hoàn tác ghi sổ. Phiếu trở về trạng thái Đã duyệt.');
+    }
+
+    public function exportInventoryReceiptPdf(int $receipt, Request $request, ApplicationRegistry $registry, UserInventoryReceiptWorkspace $workspace, InventoryReceiptDocumentService $documents): RedirectResponse
+    {
+        $user=$request->user('web'); abort_if($user===null,401);
+        abort_unless($registry->userCan($user,'client.pharma.inventory.receipts'),403);
+        $visible=$workspace->find($receipt); abort_if($visible===null,404);
+        $documents->generate($visible,InventoryReceiptDocumentService::INVOICE,(int)$user->id);
+        return back()->with('success','Đã xuất PDF hóa đơn và lưu trên server.');
+    }
+
+    public function downloadInventoryReceiptPdf(int $receipt, Request $request, ApplicationRegistry $registry, UserInventoryReceiptWorkspace $workspace, InventoryReceiptDocumentService $documents): BinaryFileResponse
+    {
+        $user=$request->user('web'); abort_if($user===null,401);
+        abort_unless($registry->userCan($user,'client.pharma.inventory.receipts'),403);
+        $visible=$workspace->find($receipt); abort_if($visible===null,404);
+        $document=$documents->current($visible,InventoryReceiptDocumentService::INVOICE);
+        abort_unless($document,404);
+        return response()->download($documents->path($document),$document->download_name,['Cache-Control'=>'private, no-store']);
+    }
+
+    public function printInventoryReceiptPdf(int $receipt, Request $request, ApplicationRegistry $registry, UserInventoryReceiptWorkspace $workspace, InventoryReceiptDocumentService $documents): BinaryFileResponse
+    {
+        $user=$request->user('web'); abort_if($user===null,401);
+        abort_unless($registry->userCan($user,'client.pharma.inventory.receipts'),403);
+        $visible=$workspace->find($receipt); abort_if($visible===null,404);
+        $document=$documents->current($visible,InventoryReceiptDocumentService::INVOICE);
+        abort_unless($document,404);
+        return response()->file($documents->path($document),['Content-Type'=>'application/pdf','Cache-Control'=>'private, no-store']);
+    }
+
+    public function shareInventoryReceiptPdf(int $receipt, Request $request, ApplicationRegistry $registry, UserInventoryReceiptWorkspace $workspace, InventoryReceiptDocumentService $documents): RedirectResponse
+    {
+        $user=$request->user('web'); abort_if($user===null,401);
+        abort_unless($registry->userCan($user,'client.pharma.inventory.receipts'),403);
+        $visible=$workspace->find($receipt); abort_if($visible===null,404);
+        $share=$documents->createInvoiceShare($visible,(int)$user->id);
+        return back()->with('success','Đã tạo link chia sẻ PDF hóa đơn.')->with('receipt_share_url',$share['url']);
+    }
+
+    public function revokeInventoryReceiptPdfShare(int $receipt, int $share, Request $request, ApplicationRegistry $registry, UserInventoryReceiptWorkspace $workspace, InventoryReceiptDocumentService $documents): RedirectResponse
+    {
+        $user=$request->user('web'); abort_if($user===null,401);
+        abort_unless($registry->userCan($user,'client.pharma.inventory.receipts'),403);
+        abort_if($workspace->find($receipt)===null,404);
+        $documents->revokeShare($share,(int)$user->id);
+        return back()->with('success','Đã thu hồi link chia sẻ.');
+    }
+
+    public function downloadInventoryReceiptShare(string $token, InventoryReceiptDocumentService $documents): BinaryFileResponse
+    {
+        $document=$documents->resolveShare($token);
+        return response()->download($documents->path($document),$document->download_name,['Cache-Control'=>'private, no-store']);
     }
 
     public function inventoryReceipt(
