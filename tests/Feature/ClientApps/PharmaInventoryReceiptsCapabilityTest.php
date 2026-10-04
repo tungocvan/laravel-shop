@@ -110,6 +110,20 @@ final class PharmaInventoryReceiptsCapabilityTest extends TestCase
         $this->assertStringContainsString('xl:hidden', $detail);
         $this->assertStringContainsString('xl:block', $detail);
         $this->assertStringContainsString('data-pwa-load-more', $list);
+        $workspace = file_get_contents($root.'/Modules/Pharma/Services/UserInventoryReceiptWorkspace.php');
+        $controller = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php');
+        $this->assertStringContainsString('public function statusCounts(?string $search = null): array', $workspace);
+        $this->assertStringContainsString("selectRaw('status, COUNT(*) as aggregate')", $workspace);
+        $this->assertStringContainsString("'statusCounts' => $workspace->statusCounts($validated['q'] ?? null)", $controller);
+        $this->assertStringContainsString('data-receipt-status-bar', $list);
+        $this->assertStringContainsString('data-disabled-status', $list);
+        $this->assertStringContainsString('aria-disabled="true"', $list);
+        $this->assertStringContainsString('Xóa bộ lọc', $list);
+        $this->assertStringContainsString('data-pwa-debounced-search="600"', $list);
+        $this->assertStringContainsString('data-pwa-search-clear-button="#receipt-search-input"', $list);
+        $this->assertStringContainsString('data-receipt-card', $list);
+        $this->assertStringContainsString('motion-reduce:transform-none', $list);
+        $this->assertStringContainsString('data-pwa-load-more-target="#receipt-mobile-list"', $list);
         foreach ([$list, $detail] as $view) {
             $this->assertStringContainsString("@section('hide-application-header', true)", $view);
             $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $view);
