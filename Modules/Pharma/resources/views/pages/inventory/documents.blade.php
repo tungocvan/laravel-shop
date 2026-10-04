@@ -119,20 +119,6 @@
                                                 @endcan
                                             </div>
                                         </details>
-                                    @elseif($doc->status === 'pending_approval')
-                                                <form method="POST" action="{{ route('admin.pharma.inventory.receipts.approve',$doc) }}" class="inline">@csrf<button class="text-xs font-semibold text-indigo-700">Phê duyệt</button></form>
-                                            @elseif($doc->status === 'approved')
-                                                <form method="POST" action="{{ route('admin.pharma.inventory.receipts.undo-approval',$doc) }}" class="inline">@csrf<button class="text-xs font-semibold text-amber-700">Hoàn tác phê duyệt</button></form>
-                                                <button type="button" onclick="document.getElementById('post-{{ $type }}-{{ $doc->id }}').showModal()" class="text-xs font-semibold text-emerald-700">Ghi sổ</button>
-                                            @endif
-                                        @endcan
-                                        @can('delete_pharma')
-                                            @if($doc->status === 'draft')
-                                                <button type="button" onclick="document.getElementById('delete-receipt-{{ $doc->id }}').showModal()" class="text-xs font-semibold text-rose-700">Xóa</button>
-                                            @elseif($doc->status === 'posted')
-                                                <button type="button" onclick="document.getElementById('revert-receipt-{{ $doc->id }}').showModal()" class="text-xs font-semibold text-amber-700">Hoàn tác ghi sổ</button>
-                                            @endif
-                                        @endcan
                                     @else
                                         <details class="relative" data-document-actions>
                                             <summary class="flex min-h-9 cursor-pointer list-none items-center rounded-lg border border-slate-300 bg-white px-3 text-base font-bold leading-none text-slate-600 hover:bg-slate-50" aria-label="Thao tác khác">⋯</summary>
