@@ -11,6 +11,7 @@ use Illuminate\Support\Str;
 use Modules\ClientPortal\Services\ApplicationRegistry;
 use Modules\ClientPortal\Services\ClientPortalSettingsService;
 use Modules\Pharma\Models\PriceList;
+use Modules\Pharma\Models\InventoryReceipt;
 use Modules\Pharma\Services\MedicineCatalog;
 use Modules\Pharma\Services\InventoryService;
 use Modules\Pharma\Services\InventoryReceiptDocumentService;
