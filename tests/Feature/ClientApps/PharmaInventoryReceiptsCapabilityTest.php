@@ -176,6 +176,12 @@ CONTRACT, $list);
 abort_unless($receipt->status === InventoryReceipt::POSTED, 409, 'Chỉ phiếu nhập đã ghi sổ mới được xuất PDF.')
 CONTRACT, $documents);
         $this->assertStringContainsString('Ghi sổ để xuất PDF',$list);
+        $this->assertStringContainsString("route('client.pharma.inventory.receipts.approve',\$receipt)",$list);
+        $this->assertStringContainsString("route('client.pharma.inventory.receipts.undo-approval',\$receipt)",$list);
+        $this->assertStringContainsString("route('client.pharma.inventory.receipts.post',\$receipt)",$list);
+        $this->assertStringContainsString("route('client.pharma.inventory.receipts.revert',\$receipt)",$list);
+        $this->assertStringContainsString("'canApproveReceipt'=>\$registry->userCan(\$user,'client.pharma.inventory.receipts.approve')",$controller);
+        $this->assertStringContainsString("'canPostReceipt'=>\$registry->userCan(\$user,'client.pharma.inventory.receipts.post')",$controller);
         $this->assertStringNotContainsString('$canUseReceiptPdf=',$list);
         $this->assertStringNotContainsString('$desktopCanUsePdf=',$list);
         $compiled=app('blade.compiler')->compileString($list);
