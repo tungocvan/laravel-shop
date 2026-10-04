@@ -42,7 +42,8 @@ final class PharmaInventoryReceiptsCapabilityTest extends TestCase
         $this->assertStringContainsString("Chỉ phiếu nhập đã duyệt mới được ghi sổ.", $workspace);
         $this->assertStringNotContainsString('->move(', $workspace);
         $this->assertStringContainsString('postReceipt($locked, $userId)', $workspace);
-        $this->assertStringContainsString("InventoryReceipt::APPROVED], true", $inventory);
+        $this->assertStringContainsString("if (\$receipt->status !== InventoryReceipt::APPROVED)", $inventory);
+        $this->assertStringNotContainsString("[InventoryReceipt::DRAFT, InventoryReceipt::APPROVED]", $inventory);
         $this->assertStringContainsString("\$receipt->approved_at ? InventoryReceipt::APPROVED : InventoryReceipt::DRAFT", $inventory);
         foreach (['submitted_by','submitted_at','approved_by','approved_at'] as $column) {
             $this->assertStringContainsString("'{$column}'", $migration);
@@ -87,13 +88,14 @@ final class PharmaInventoryReceiptsCapabilityTest extends TestCase
         $list = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-receipts.blade.php');
         $detail = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-receipt-show.blade.php');
 
-        foreach (['Nháp','Chờ duyệt','Đã duyệt','Đã ghi sổ'] as $label) {
+        foreach (['Nháp','Đã duyệt','Đã ghi sổ'] as $label) {
             $this->assertStringContainsString($label, $list);
         }
         foreach (['Sửa','Xóa','Phê duyệt','Hoàn tác phê duyệt','Ghi sổ','Hoàn tác ghi sổ'] as $action) {
             $this->assertStringContainsString($action, $detail);
         }
-        $this->assertStringContainsString('Chỉ Ghi sổ mới cộng tồn.', $detail);
+        $this->assertStringContainsString('Chỉ Ghi sổ mới cộng tồn', $detail);
+        $this->assertStringContainsString('Hoàn tác ghi sổ sẽ trừ lại đúng số lượng đã nhập', $detail);
         $this->assertStringContainsString('Ký hiệu', $detail);
         $this->assertStringContainsString('Giá xuất HĐ chưa VAT', $detail);
         $this->assertStringContainsString('Tổng giá trị', $detail);
