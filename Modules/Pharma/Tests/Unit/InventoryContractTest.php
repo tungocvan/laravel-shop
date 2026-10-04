@@ -391,6 +391,13 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('type="submit" form="issue-edit-form" name="after_save" value="edit"', $edit);
         $this->assertStringContainsString("document.getElementById('issue-edit-form')?.addEventListener('submit'", $edit);
         $this->assertStringContainsString('Tóm tắt phiếu', $edit);
+        $this->assertStringContainsString('value="approve"', $edit);
+        $this->assertStringContainsString('Duyệt phiếu', $edit);
+        $this->assertStringContainsString("status!==InventoryIssue::APPROVED", $controller);
+        $this->assertStringContainsString('Phiếu phải được duyệt trước khi ghi sổ.', $controller);
+        $this->assertStringNotContainsString('id="summary-lines"', $edit);
+        $this->assertStringNotContainsString('id="summary-quantity"', $edit);
+        $this->assertStringNotContainsString('id="summary-value"', $edit);
         $this->assertStringContainsString("\$deferredByMedicine=", $show);
         $this->assertStringContainsString("\$deferredValue=", $show);
         $this->assertStringContainsString("\$availableValue=max(0,\$totalValue-\$deferredValue)", $show);
@@ -686,6 +693,10 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("\$issue->total_value=(float)\$postedItems->sum", $controller);
         $this->assertStringContainsString("\$issue->shortage_note=\$issue->deferredSupplies->map", $controller);
         $this->assertStringContainsString('Ghi chú thiếu hàng', $documents);
+        $this->assertStringContainsString("route('admin.pharma.inventory.issues.show',\$doc)", $documents);
+        $this->assertStringContainsString("shortage-note-{{ \$doc->id }}", $documents);
+        $this->assertStringContainsString('Xem ghi chú thiếu hàng', $documents);
+        $this->assertStringNotContainsString('>Xem</a>\n                                        <details', $documents);
         $this->assertStringContainsString("\$doc->shortage_note", $documents);
         $this->assertStringContainsString("'Ghi chu thieu hang'=>\$shortage", $controller);
         $this->assertStringContainsString("request->input('after_save')==='post'", $controller);
