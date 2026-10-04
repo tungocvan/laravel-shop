@@ -27,11 +27,87 @@ $signatureWidth=$signatures->count()>0 ? (100/$signatures->count()) : 100;
 <tr><td class="label">Nhà cung cấp:</td><td>{{ $receipt->supplier_name ?: '—' }}</td></tr>
 @if(!$isCost || $settings->cost_show_invoice)<tr><td class="label">Hóa đơn:</td><td>{{ $receipt->invoice_number ?: '—' }}@if($receipt->invoice_symbol) · Ký hiệu: {{ $receipt->invoice_symbol }}@endif @if($receipt->invoice_date) · Ngày: {{ $receipt->invoice_date->format('d/m/Y') }}@endif</td></tr>@endif
 </table>
-<table class="items"><thead><tr><th>STT</th><th>Mã thuốc</th><th>Tên thuốc / Quy cách</th><th>ĐVT</th><th>Số lô</th><th>Hạn dùng</th><th>SL</th>@if($isCost)<th>Giá nhập</th><th>Thành tiền giá vốn</th>@else<th>Giá HĐ chưa VAT</th><th>VAT</th><th>Tiền VAT</th><th>Thành tiền sau VAT</th>@endif</tr></thead><tbody>
-@foreach($receipt->items as $item)@php $invoiceBase=(float)$item->quantity*(float)($item->invoice_unit_price_ex_vat ?? 0); $vatAmount=$invoiceBase*(float)$item->vat_rate/100; @endphp<tr><td class="center">{{ $loop->iteration }}</td><td>{{ $item->medicine->medicine_code }}</td><td><span class="name">{{ $item->medicine->name }}</span>@if($item->medicine->packaging_specification)<br><span class="small">{{ $item->medicine->packaging_specification }}</span>@endif</td><td class="center">{{ $item->unit ?: ($item->medicine->unit ?: '—') }}</td><td>{{ $item->batch_number }}</td><td class="center">{{ $item->expiry_date?->format('d/m/Y') ?: '—' }}</td><td class="right">{{ number_format((float)$item->quantity,0,',','.') }}</td>@if($isCost)<td class="right">{{ number_format((float)$item->unit_price_ex_vat,0,',','.') }}</td><td class="right"><b>{{ number_format((float)$item->quantity*(float)$item->unit_price_ex_vat,0,',','.') }}</b></td>@else<td class="right">{{ number_format((float)($item->invoice_unit_price_ex_vat ?? 0),0,',','.') }}</td><td class="right">{{ rtrim(rtrim(number_format((float)$item->vat_rate,2,'.',''),'0'),'.') }}%</td><td class="right">{{ number_format($vatAmount,0,',','.') }}</td><td class="right"><b>{{ number_format($invoiceBase+$vatAmount,0,',','.') }}</b></td>@endif</tr>@endforeach
-@if($isCost)<tr><td colspan="8" class="right"><b>Tổng cộng</b></td><td class="right"><b>{{ number_format($totalCost,0,',','.') }} đ</b></td></tr>@else<tr><td colspan="9" class="right"><b>Tổng trước VAT</b></td><td colspan="2" class="right"><b>{{ number_format($totalInvoiceExVat,0,',','.') }} đ</b></td></tr><tr><td colspan="9" class="right"><b>Tiền VAT</b></td><td colspan="2" class="right"><b>{{ number_format($totalVat,0,',','.') }} đ</b></td></tr><tr><td colspan="9" class="right"><b>Tổng thanh toán</b></td><td colspan="2" class="right"><b>{{ number_format($totalInvoiceExVat+$totalVat,0,',','.') }} đ</b></td></tr>@endif
-</tbody></table>
-<div class="totals"><b>Tổng số mặt hàng:</b> {{ $receipt->items->count() }}@if($isCost)<br><b>Tổng giá trị giá vốn:</b> {{ number_format($totalCost,0,',','.') }} đồng@else<br><b>Tổng thanh toán hóa đơn:</b> {{ number_format($totalInvoiceExVat+$totalVat,0,',','.') }} đồng@endif</div>
+<table class="items">
+    <thead>
+        <tr>
+            <th>STT</th>
+            <th>Mã thuốc</th>
+            <th>Tên thuốc / Quy cách</th>
+            <th>ĐVT</th>
+            <th>Số lô</th>
+            <th>Hạn dùng</th>
+            <th>SL</th>
+            @if($isCost)
+                <th>Giá nhập</th>
+                <th>Thành tiền giá vốn</th>
+            @else
+                <th>Giá HĐ chưa VAT</th>
+                <th>VAT</th>
+                <th>Tiền VAT</th>
+                <th>Thành tiền sau VAT</th>
+            @endif
+        </tr>
+    </thead>
+    <tbody>
+        @foreach($receipt->items as $item)
+            @php
+                $invoiceBase=(float)$item->quantity*(float)($item->invoice_unit_price_ex_vat ?? 0);
+                $vatAmount=$invoiceBase*(float)$item->vat_rate/100;
+            @endphp
+            <tr>
+                <td class="center">{{ $loop->iteration }}</td>
+                <td>{{ $item->medicine->medicine_code }}</td>
+                <td>
+                    <span class="name">{{ $item->medicine->name }}</span>
+                    @if($item->medicine->packaging_specification)
+                        <br><span class="small">{{ $item->medicine->packaging_specification }}</span>
+                    @endif
+                </td>
+                <td class="center">{{ $item->unit ?: ($item->medicine->unit ?: '—') }}</td>
+                <td>{{ $item->batch_number }}</td>
+                <td class="center">{{ $item->expiry_date?->format('d/m/Y') ?: '—' }}</td>
+                <td class="right">{{ number_format((float)$item->quantity,0,',','.') }}</td>
+                @if($isCost)
+                    <td class="right">{{ number_format((float)$item->unit_price_ex_vat,0,',','.') }}</td>
+                    <td class="right"><b>{{ number_format((float)$item->quantity*(float)$item->unit_price_ex_vat,0,',','.') }}</b></td>
+                @else
+                    <td class="right">{{ number_format((float)($item->invoice_unit_price_ex_vat ?? 0),0,',','.') }}</td>
+                    <td class="right">{{ rtrim(rtrim(number_format((float)$item->vat_rate,2,'.',''),'0'),'.') }}%</td>
+                    <td class="right">{{ number_format($vatAmount,0,',','.') }}</td>
+                    <td class="right"><b>{{ number_format($invoiceBase+$vatAmount,0,',','.') }}</b></td>
+                @endif
+            </tr>
+        @endforeach
+
+        @if($isCost)
+            <tr>
+                <td colspan="8" class="right"><b>Tổng cộng</b></td>
+                <td class="right"><b>{{ number_format($totalCost,0,',','.') }} đ</b></td>
+            </tr>
+        @else
+            <tr>
+                <td colspan="9" class="right"><b>Tổng trước VAT</b></td>
+                <td colspan="2" class="right"><b>{{ number_format($totalInvoiceExVat,0,',','.') }} đ</b></td>
+            </tr>
+            <tr>
+                <td colspan="9" class="right"><b>Tiền VAT</b></td>
+                <td colspan="2" class="right"><b>{{ number_format($totalVat,0,',','.') }} đ</b></td>
+            </tr>
+            <tr>
+                <td colspan="9" class="right"><b>Tổng thanh toán</b></td>
+                <td colspan="2" class="right"><b>{{ number_format($totalInvoiceExVat+$totalVat,0,',','.') }} đ</b></td>
+            </tr>
+        @endif
+    </tbody>
+</table>
+<div class="totals">
+    <b>Tổng số mặt hàng:</b> {{ $receipt->items->count() }}
+    @if($isCost)
+        <br><b>Tổng giá trị giá vốn:</b> {{ number_format($totalCost,0,',','.') }} đồng
+    @else
+        <br><b>Tổng thanh toán hóa đơn:</b> {{ number_format($totalInvoiceExVat+$totalVat,0,',','.') }} đồng
+    @endif
+</div>
 @if($settings->show_notes && filled($receipt->notes))<div class="note"><b>Ghi chú:</b> {{ $receipt->notes }}</div>@endif
 @if($signatures->isNotEmpty())<table class="sign"><tr>@foreach($signatures as $signature)<td style="width: {{ $signatureWidth }}%">{{ $signature['label'] }}@if($signature['show_date'])<br><span class="muted small">Ngày ..... tháng ..... năm .....</span>@endif<br><span class="muted small">(Ký, ghi rõ họ tên)</span><div class="space"></div></td>@endforeach</tr></table>@endif
 @if($settings->footer_note)<div class="note center muted">{{ $settings->footer_note }}</div>@endif
