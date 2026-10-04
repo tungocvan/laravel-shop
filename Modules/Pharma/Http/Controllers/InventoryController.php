@@ -27,6 +27,7 @@ use Modules\Pharma\Models\PriceList;
 use Modules\Pharma\Models\PriceListItem;
 use Modules\Pharma\Models\SupplierTracking;
 use Modules\Pharma\Services\InventoryService;
+use Modules\Pharma\Services\InventoryReceiptDocumentService;
 use Modules\Pharma\Services\UserInventoryReceiptWorkspace;
 use Modules\Pharma\Services\InventoryMovementSummaryService;
 use Modules\Pharma\Services\UserOrderApprovalService;
@@ -418,43 +419,53 @@ final class InventoryController extends Controller
         return back()->with('success','Đã lưu cấu hình phiếu nhập kho.');
     }
 
-    public function receiptInvoicePdf(InventoryReceipt $receipt, InventoryService $inventory): Response
-    {
-        return $this->renderReceiptPdf($receipt,$inventory,'invoice');
-    }
-
-    public function receiptInvoicePrint(InventoryReceipt $receipt, InventoryService $inventory): View
-    {
-        return $this->renderReceiptPrint($receipt,$inventory,'invoice');
-    }
-
-    public function receiptCostPdf(InventoryReceipt $receipt, InventoryService $inventory): Response
-    {
-        abort_unless(request()->user()?->can('view_pharma_inventory_costs'),403);
-        return $this->renderReceiptPdf($receipt,$inventory,'cost');
-    }
-
-    public function receiptCostPrint(InventoryReceipt $receipt, InventoryService $inventory): View
-    {
-        abort_unless(request()->user()?->can('view_pharma_inventory_costs'),403);
-        return $this->renderReceiptPrint($receipt,$inventory,'cost');
-    }
-
-    private function renderReceiptPdf(InventoryReceipt $receipt, InventoryService $inventory, string $profile): Response
+    public function exportReceiptInvoicePdf(InventoryReceipt $receipt, InventoryService $inventory, InventoryReceiptDocumentService $documents): RedirectResponse
     {
         $this->guardReceiptWarehouse($receipt,$inventory);
-        $receipt->load('items.medicine');
-        $settings=InventoryReceiptDocumentSetting::current();
-        $pdf=Pdf::loadView('Pharma::pages.inventory.receipt-pdf',compact('receipt','settings','profile'))->setPaper('a4','portrait');
-        return $pdf->download(($profile === 'cost' ? 'phieu-nhap-gia-von-' : 'phieu-nhap-hoa-don-').$receipt->number.'.pdf');
+        $documents->generate($receipt,InventoryReceiptDocumentService::INVOICE,auth('admin')->id());
+        return back()->with('success','Đã xuất PDF hóa đơn và lưu trên server.');
     }
 
-    private function renderReceiptPrint(InventoryReceipt $receipt, InventoryService $inventory, string $profile): View
+    public function downloadReceiptInvoicePdf(InventoryReceipt $receipt, InventoryService $inventory, InventoryReceiptDocumentService $documents): BinaryFileResponse
     {
         $this->guardReceiptWarehouse($receipt,$inventory);
-        $receipt->load('items.medicine');
-        $settings=InventoryReceiptDocumentSetting::current();
-        return view('Pharma::pages.inventory.receipt-print',compact('receipt','settings','profile'));
+        $document=$documents->current($receipt,InventoryReceiptDocumentService::INVOICE);
+        abort_unless($document,404,'PDF hóa đơn chưa được xuất hoặc đã hết hiệu lực.');
+        return response()->download($documents->path($document),$document->download_name,['Cache-Control'=>'private, no-store']);
+    }
+
+    public function printReceiptInvoicePdf(InventoryReceipt $receipt, InventoryService $inventory, InventoryReceiptDocumentService $documents): BinaryFileResponse
+    {
+        $this->guardReceiptWarehouse($receipt,$inventory);
+        $document=$documents->current($receipt,InventoryReceiptDocumentService::INVOICE);
+        abort_unless($document,404,'PDF hóa đơn chưa được xuất hoặc đã hết hiệu lực.');
+        return response()->file($documents->path($document),['Content-Type'=>'application/pdf','Cache-Control'=>'private, no-store']);
+    }
+
+    public function exportReceiptCostPdf(InventoryReceipt $receipt, InventoryService $inventory, InventoryReceiptDocumentService $documents): RedirectResponse
+    {
+        $this->guardReceiptWarehouse($receipt,$inventory);
+        abort_unless(request()->user()?->can('view_pharma_inventory_costs'),403);
+        $documents->generate($receipt,InventoryReceiptDocumentService::COST,auth('admin')->id());
+        return back()->with('success','Đã xuất PDF giá vốn và lưu trên server.');
+    }
+
+    public function downloadReceiptCostPdf(InventoryReceipt $receipt, InventoryService $inventory, InventoryReceiptDocumentService $documents): BinaryFileResponse
+    {
+        $this->guardReceiptWarehouse($receipt,$inventory);
+        abort_unless(request()->user()?->can('view_pharma_inventory_costs'),403);
+        $document=$documents->current($receipt,InventoryReceiptDocumentService::COST);
+        abort_unless($document,404,'PDF giá vốn chưa được xuất hoặc đã hết hiệu lực.');
+        return response()->download($documents->path($document),$document->download_name,['Cache-Control'=>'private, no-store']);
+    }
+
+    public function printReceiptCostPdf(InventoryReceipt $receipt, InventoryService $inventory, InventoryReceiptDocumentService $documents): BinaryFileResponse
+    {
+        $this->guardReceiptWarehouse($receipt,$inventory);
+        abort_unless(request()->user()?->can('view_pharma_inventory_costs'),403);
+        $document=$documents->current($receipt,InventoryReceiptDocumentService::COST);
+        abort_unless($document,404,'PDF giá vốn chưa được xuất hoặc đã hết hiệu lực.');
+        return response()->file($documents->path($document),['Content-Type'=>'application/pdf','Cache-Control'=>'private, no-store']);
     }
 
     public function approveReceipt(InventoryReceipt $receipt, InventoryService $inventory, UserInventoryReceiptWorkspace $workspace): RedirectResponse
