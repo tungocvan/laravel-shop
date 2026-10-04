@@ -23,13 +23,18 @@ class InventoryReceiptDocumentSetting extends Model
 
     public static function current(): self
     {
-        return static::query()->firstOrCreate([],[
-            'document_title'=>'PHIẾU NHẬP KHO','warehouse_name'=>'Kho chính',
+        if ($current=static::query()->first()) return $current;
+
+        $issue=InventoryIssueDocumentSetting::current();
+
+        return static::query()->create([
+            'organization_name'=>$issue->organization_name,'organization_address'=>$issue->organization_address,
+            'tax_code'=>$issue->tax_code,'phone'=>$issue->phone,'document_title'=>'PHIẾU NHẬP KHO',
+            'document_subtitle'=>$issue->document_subtitle,'warehouse_name'=>$issue->warehouse_name ?: 'Kho chính',
             'issuer_label'=>'Người lập phiếu','deliverer_label'=>'Người giao hàng',
-            'receiver_label'=>'Người nhận hàng','keeper_label'=>'Thủ kho',
-            'show_unit_price'=>true,'show_invoice_unit_price'=>true,'show_vat'=>true,
-            'show_total_value'=>true,'show_notes'=>true,
-            'show_issuer_signature'=>true,'show_deliverer_signature'=>true,
+            'receiver_label'=>'Người nhận hàng','keeper_label'=>$issue->keeper_label ?: 'Thủ kho',
+            'footer_note'=>$issue->footer_note,'show_unit_price'=>true,'show_invoice_unit_price'=>true,'show_vat'=>true,
+            'show_total_value'=>true,'show_notes'=>true,'show_issuer_signature'=>true,'show_deliverer_signature'=>true,
             'show_receiver_signature'=>true,'show_keeper_signature'=>true,
         ]);
     }
