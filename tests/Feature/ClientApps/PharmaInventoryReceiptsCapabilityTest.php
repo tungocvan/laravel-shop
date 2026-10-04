@@ -156,15 +156,23 @@ final class PharmaInventoryReceiptsCapabilityTest extends TestCase
         $this->assertStringContainsString("name('client.pharma.inventory.receipts.share.download')",$routes);
         $this->assertStringContainsString('function exportInventoryReceiptPdf(',$controller);
         $this->assertStringContainsString('function downloadInventoryReceiptShare(',$controller);
-        $this->assertStringContainsString("Storage::disk('local')->put(\$path, \$binary)",$documents);
-        $this->assertStringContainsString("'token_hash'=>hash('sha256',\$token)",$documents);
+        $this->assertStringContainsString(<<<'CONTRACT'
+Storage::disk('local')->put($path, $binary)
+CONTRACT, $documents);
+        $this->assertStringContainsString(<<<'CONTRACT'
+'token_hash'=>hash('sha256',$token)
+CONTRACT, $documents);
         $this->assertStringContainsString('expires_at'=>now()->addDays(30)', $documents);
         $this->assertStringContainsString('data-receipt-pdf-download',$list);
-        $this->assertStringContainsString("fetch(link.href,{credentials:'same-origin',cache:'no-store'})",$list);
+        $this->assertStringContainsString(<<<'CONTRACT'
+fetch(link.href,{credentials:'same-origin',cache:'no-store'})
+CONTRACT, $list);
         $this->assertStringContainsString('navigator.canShare?.({files:[preparedFile]})', $list);
         $this->assertStringContainsString('Sao chép link',$list);
         $this->assertStringContainsString('Thu hồi',$list);
-        $this->assertStringContainsString("abort_unless(\$receipt->status === InventoryReceipt::POSTED, 409, 'Chỉ phiếu nhập đã ghi sổ mới được xuất PDF.')",$documents);
+        $this->assertStringContainsString(<<<'CONTRACT'
+abort_unless($receipt->status === InventoryReceipt::POSTED, 409, 'Chỉ phiếu nhập đã ghi sổ mới được xuất PDF.')
+CONTRACT, $documents);
         $this->assertStringContainsString('Ghi sổ để xuất PDF',$list);
         $compiled=app('blade.compiler')->compileString($list);
         $temporary=tempnam(sys_get_temp_dir(),'receipt-list-blade-');
