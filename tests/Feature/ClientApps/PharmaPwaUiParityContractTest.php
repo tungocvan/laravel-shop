@@ -266,29 +266,40 @@ class PharmaPwaUiParityContractTest extends TestCase
     }
 
 
-    public function test_overview_products_and_price_lists_consume_admin_managed_page_presentation(): void
+    public function test_hub_products_and_price_lists_consume_admin_managed_page_presentation(): void
     {
         $manifest = require base_path('Modules/ClientPortal/Applications/Pharma/manifest.php');
         $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php'));
-        $views = [
-            'overview' => file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/dashboard.blade.php')),
+        $dashboard = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/dashboard.blade.php'));
+        $featureViews = [
             'products' => file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/products.blade.php')),
             'price-lists' => file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/price-lists.blade.php')),
         ];
 
-        foreach (['overview', 'products', 'price-lists'] as $key) {
+        $hub = $manifest['hub'];
+        $this->assertSame('overview', $hub['key']);
+        $this->assertNotSame('', trim((string) ($hub['eyebrow'] ?? '')), 'hub eyebrow');
+        $this->assertNotSame('', trim((string) ($hub['title'] ?? '')), 'hub title');
+        $this->assertArrayHasKey('description', $hub);
+        $this->assertStringContainsString("\$hubPresentation['eyebrow']", $dashboard);
+        $this->assertStringContainsString("\$hubPresentation['title']", $dashboard);
+        $this->assertStringContainsString("\$hubPresentation['description']", $dashboard);
+        $this->assertNull($manifest['features']['overview'] ?? null);
+
+        foreach ($featureViews as $key => $view) {
             $feature = $manifest['features'][$key];
             $this->assertNotSame('', trim((string) ($feature['eyebrow'] ?? '')), $key.' eyebrow');
             $this->assertNotSame('', trim((string) ($feature['page_title'] ?? '')), $key.' page title');
             $this->assertArrayHasKey('page_description', $feature, $key.' page description');
-            $this->assertStringContainsString("\$featurePresentation['eyebrow']", $views[$key]);
-            $this->assertStringContainsString("\$featurePresentation['page_title']", $views[$key]);
-            $this->assertStringContainsString("\$featurePresentation['page_description']", $views[$key]);
+            $this->assertStringContainsString("\$featurePresentation['eyebrow']", $view);
+            $this->assertStringContainsString("\$featurePresentation['page_title']", $view);
+            $this->assertStringContainsString("\$featurePresentation['page_description']", $view);
         }
 
         $this->assertStringContainsString("\$productsFeature = collect(\$application['features']", $controller);
         $this->assertStringContainsString("\$priceListsFeature = collect(\$application['features']", $controller);
-        $this->assertStringContainsString("\$overviewFeature = collect(\$application['features']", $controller);
+        $this->assertStringContainsString("'hubPresentation' => \$settings->applicationHubPresentation(\$application)", $controller);
+        $this->assertStringNotContainsString("\$overviewFeature = collect(\$application['features']", $controller);
 
         $commissions = $manifest['features']['commissions'];
         $this->assertSame('Commissions', $commissions['eyebrow']);
