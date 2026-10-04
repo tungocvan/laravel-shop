@@ -80,7 +80,7 @@
                         @endphp
                         <tr class="transition hover:bg-slate-50/70">
                             @if($type === 'issue')<td class="px-4 py-4"><input type="checkbox" name="ids[]" value="{{ $doc->id }}" form="selected-export-form" data-row-select class="h-4 w-4 rounded border-slate-300" aria-label="Chọn phiếu {{ $doc->number }}"></td>@endif
-                            <td class="px-4 py-4"><div class="flex min-w-0 flex-col items-start gap-1">@if($type === 'issue')<a href="{{ route('admin.pharma.inventory.issues.show',$doc) }}" class="whitespace-nowrap font-mono font-bold text-indigo-700 hover:text-indigo-900 hover:underline">{{ $doc->number }}</a>@else<div class="whitespace-nowrap font-mono font-bold text-indigo-700">{{ $doc->number }}</div>@endif @if($type === 'issue' && ($doc->issue_source ?? 'normal') === 'bid')<span class="inline-flex rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-bold uppercase leading-4 text-violet-700">Hàng thầu</span>@endif</div></td>
+                            <td class="px-4 py-4"><div class="flex min-w-0 flex-col items-start gap-1">@if($type === 'issue')<a href="{{ route('admin.pharma.inventory.issues.show',$doc) }}" class="whitespace-nowrap font-mono font-bold text-indigo-700 hover:text-indigo-900 hover:underline">{{ $doc->number }}</a>@else<a href="{{ route('admin.pharma.inventory.receipts.show',$doc) }}" class="whitespace-nowrap font-mono font-bold text-indigo-700 hover:text-indigo-900 hover:underline">{{ $doc->number }}</a>@endif @if($type === 'issue' && ($doc->issue_source ?? 'normal') === 'bid')<span class="inline-flex rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-bold uppercase leading-4 text-violet-700">Hàng thầu</span>@endif</div></td>
                             <td class="whitespace-nowrap px-4 py-4 text-slate-600">{{ $date->format('d/m/Y') }}</td>
                             <td class="px-4 py-4"><div class="truncate font-semibold text-slate-800" title="{{ $party ?: '—' }}">{{ $party ?: '—' }}</div></td>
                             @if($type === 'issue')<td class="px-4 py-4"><div class="truncate font-medium text-slate-700" title="{{ $doc->resolved_manager_names ?: 'Chưa phân công' }}">{{ $doc->resolved_manager_names ?: '—' }}</div>@if(blank($doc->resolved_manager_names))<span class="mt-1 inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">Chưa phân công</span>@endif</td>@endif
@@ -94,12 +94,32 @@
                             <td class="px-4 py-4 text-right">
                                 <div class="flex flex-wrap justify-end gap-2">
                                     @if($type === 'receipt')
-                                        <a href="{{ route('admin.pharma.inventory.receipts.show',$doc) }}" class="text-xs font-semibold text-slate-700">Xem</a>
-                                        @can('edit_pharma')
-                                            @if($doc->status === 'draft')
-                                                <a href="{{ route('admin.pharma.inventory.receipts.edit',$doc) }}" class="text-xs font-semibold text-indigo-700">Sửa</a>
-                                                <form method="POST" action="{{ route('admin.pharma.inventory.receipts.approve',$doc) }}" class="inline">@csrf<button class="text-xs font-semibold text-indigo-700">Phê duyệt</button></form>
-                                            @elseif($doc->status === 'pending_approval')
+                                        <details class="relative" data-document-actions>
+                                            <summary class="flex min-h-9 cursor-pointer list-none items-center rounded-lg border border-slate-300 bg-white px-3 text-base font-bold leading-none text-slate-600 hover:bg-slate-50" aria-label="Thao tác khác">⋯</summary>
+                                            <div class="absolute right-0 z-30 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-left shadow-xl">
+                                                @can('edit_pharma')
+                                                    @if($doc->status === 'draft')
+                                                        <a href="{{ route('admin.pharma.inventory.receipts.edit',$doc) }}" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Sửa phiếu</a>
+                                                        <form method="POST" action="{{ route('admin.pharma.inventory.receipts.approve',$doc) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-emerald-700 hover:bg-emerald-50">Phê duyệt</button></form>
+                                                    @elseif($doc->status === 'pending_approval')
+                                                        <form method="POST" action="{{ route('admin.pharma.inventory.receipts.approve',$doc) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-emerald-700 hover:bg-emerald-50">Phê duyệt</button></form>
+                                                    @elseif($doc->status === 'approved')
+                                                        <form method="POST" action="{{ route('admin.pharma.inventory.receipts.undo-approval',$doc) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-amber-700 hover:bg-amber-50">Hoàn tác phê duyệt</button></form>
+                                                        <div class="my-1 border-t border-slate-100"></div>
+                                                        <button type="button" onclick="document.getElementById('post-receipt-{{ $doc->id }}').showModal()" class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-emerald-700 hover:bg-emerald-50">Ghi sổ</button>
+                                                    @endif
+                                                @endcan
+                                                @can('delete_pharma')
+                                                    @if($doc->status === 'draft')
+                                                        <div class="my-1 border-t border-slate-100"></div>
+                                                        <button type="button" onclick="document.getElementById('delete-receipt-{{ $doc->id }}').showModal()" class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-rose-700 hover:bg-rose-50">Xóa</button>
+                                                    @elseif($doc->status === 'posted')
+                                                        <button type="button" onclick="document.getElementById('revert-receipt-{{ $doc->id }}').showModal()" class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-amber-700 hover:bg-amber-50">Hoàn tác ghi sổ</button>
+                                                    @endif
+                                                @endcan
+                                            </div>
+                                        </details>
+                                    @elseif($doc->status === 'pending_approval')
                                                 <form method="POST" action="{{ route('admin.pharma.inventory.receipts.approve',$doc) }}" class="inline">@csrf<button class="text-xs font-semibold text-indigo-700">Phê duyệt</button></form>
                                             @elseif($doc->status === 'approved')
                                                 <form method="POST" action="{{ route('admin.pharma.inventory.receipts.undo-approval',$doc) }}" class="inline">@csrf<button class="text-xs font-semibold text-amber-700">Hoàn tác phê duyệt</button></form>
