@@ -178,6 +178,9 @@ final class PharmaInventoryIssuesCapabilityTest extends TestCase
         $this->assertStringContainsString('data-dismiss-order-share-after-copy',$list);
         $this->assertStringContainsString('Thu hồi',$list);
         $this->assertStringContainsString('data-order-pdf-actions',$detail);
+        $this->assertStringContainsString("'orderPdfActions' => \$orderPdfActions,", $controller);
+        $this->assertStringNotContainsString("'orderPdfActions' => \$orderPdfActions\n                ||", $controller);
+
         $this->assertStringContainsString('data-order-actions',$list);
         $this->assertStringContainsString('aria-label="Thao tác khác"',$list);
         $this->assertStringContainsString('>Xem chi tiết</a>',$list);
