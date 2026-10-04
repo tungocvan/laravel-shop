@@ -96,8 +96,13 @@
                                     @if($type === 'receipt')
                                         <a href="{{ route('admin.pharma.inventory.receipts.show',$doc) }}" class="text-xs font-semibold text-slate-700">Xem</a>
                                         @can('edit_pharma')
-                                            <a href="{{ route('admin.pharma.inventory.receipts.edit',$doc) }}" class="text-xs font-semibold text-indigo-700">{{ $doc->status === 'draft' ? 'Sửa' : 'Cập nhật' }}</a>
                                             @if($doc->status === 'draft')
+                                                <a href="{{ route('admin.pharma.inventory.receipts.edit',$doc) }}" class="text-xs font-semibold text-indigo-700">Sửa</a>
+                                                <form method="POST" action="{{ route('admin.pharma.inventory.receipts.approve',$doc) }}" class="inline">@csrf<button class="text-xs font-semibold text-indigo-700">Phê duyệt</button></form>
+                                            @elseif($doc->status === 'pending_approval')
+                                                <form method="POST" action="{{ route('admin.pharma.inventory.receipts.approve',$doc) }}" class="inline">@csrf<button class="text-xs font-semibold text-indigo-700">Phê duyệt</button></form>
+                                            @elseif($doc->status === 'approved')
+                                                <form method="POST" action="{{ route('admin.pharma.inventory.receipts.undo-approval',$doc) }}" class="inline">@csrf<button class="text-xs font-semibold text-amber-700">Hoàn tác phê duyệt</button></form>
                                                 <button type="button" onclick="document.getElementById('post-{{ $type }}-{{ $doc->id }}').showModal()" class="text-xs font-semibold text-emerald-700">Ghi sổ</button>
                                             @endif
                                         @endcan
@@ -190,7 +195,7 @@
                                             <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-amber-100 text-xl font-bold text-amber-700">!</div>
                                             <div class="min-w-0 flex-1">
                                                 <div class="flex items-start justify-between gap-3"><div><h3 class="text-lg font-bold text-slate-950">Hoàn tác ghi sổ?</h3><p class="mt-0.5 break-all font-mono text-xs font-semibold text-slate-500">{{ $doc->number }}</p></div><button type="button" onclick="this.closest('dialog').close()" class="rounded-lg p-1.5 text-xl leading-none text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Đóng">×</button></div>
-                                                <p class="mt-4 text-sm leading-6 text-slate-600">Phiếu sẽ được chuyển về <strong>Nháp</strong> và đúng số lượng đã nhập của phiếu này sẽ được rút khỏi tồn kho.</p>
+                                                <p class="mt-4 text-sm leading-6 text-slate-600">Phiếu sẽ trở về <strong>Đã duyệt</strong> và đúng số lượng đã nhập của phiếu này sẽ được rút khỏi tồn kho.</p>
                                                 <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm leading-5 text-amber-900"><strong>Kiểm tra tồn kho:</strong> nếu bất kỳ lô nào không đủ tồn để hoàn tác, hệ thống sẽ hủy toàn bộ thao tác và không thay đổi tồn kho.</div>
                                             </div>
                                         </div>
