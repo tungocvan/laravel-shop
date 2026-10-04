@@ -44,6 +44,7 @@
         </div>
     </section>
 
+    <div id="receipt-search-region">
     <nav class="mt-3 flex w-full max-w-full snap-x snap-proximity items-center gap-1.5 overflow-x-auto overscroll-x-contain pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" data-receipt-status-bar aria-label="Trạng thái phiếu nhập">
         @foreach($railStatuses as $value=>$label)
             @php($statusCount=$value==='' ? ($statusCounts['all'] ?? 0) : ($statusCounts[$value] ?? 0))
@@ -62,7 +63,6 @@
         @endif
     </nav>
 
-    <div id="receipt-search-region">
         <section id="receipt-mobile-list" class="mt-4 grid min-w-0 max-w-full grid-cols-1 gap-3 md:grid-cols-2 xl:hidden">
             @forelse($receipts as $receipt)
                 <a data-receipt-card href="{{ route('client.pharma.inventory.receipts.show',$receipt) }}" class="min-w-0 max-w-full overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">
@@ -113,9 +113,13 @@
         </section>
 
         @if($receipts->hasMorePages())
-            <div id="receipt-load-more-wrap" class="mt-5 text-center">
+            <div id="receipt-load-more-wrap" class="mt-5 text-center xl:hidden">
                 <a id="receipt-load-more" href="{{ $receipts->nextPageUrl() }}" data-pwa-load-more data-pwa-load-more-target="#receipt-mobile-list" data-pwa-load-more-items="#receipt-mobile-list [data-receipt-card]" data-pwa-load-more-wrap="#receipt-load-more-wrap" data-pwa-pending-label="Đang tải…" class="inline-flex min-h-12 w-full items-center justify-center rounded-2xl border border-slate-300 bg-white px-6 text-sm font-black text-slate-800 shadow-sm transition active:scale-[0.985] sm:w-auto motion-reduce:transform-none">Xem thêm</a>
                 <p class="mt-2 text-xs font-semibold text-slate-400">Đã hiển thị {{ $receipts->count() }} / {{ $receipts->total() }}</p>
+            </div>
+            <div class="mt-5 hidden text-center xl:block">
+                <a href="{{ $receipts->nextPageUrl() }}" class="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-300 bg-white px-6 text-sm font-black text-slate-800 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">Xem thêm</a>
+                <p class="mt-2 text-xs font-semibold text-slate-400">Trang {{ $receipts->currentPage() }} · {{ number_format($receipts->total()) }} phiếu</p>
             </div>
         @endif
     </div>
