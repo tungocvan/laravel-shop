@@ -416,21 +416,43 @@ final class InventoryController extends Controller
         return back()->with('success','Đã lưu cấu hình phiếu nhập kho.');
     }
 
-    public function receiptPdf(InventoryReceipt $receipt, InventoryService $inventory): Response
+    public function receiptInvoicePdf(InventoryReceipt $receipt, InventoryService $inventory): Response
     {
-        $this->guardReceiptWarehouse($receipt,$inventory);
-        $receipt->load('items.medicine');
-        $settings=InventoryReceiptDocumentSetting::current();
-        $pdf=Pdf::loadView('Pharma::pages.inventory.receipt-pdf',compact('receipt','settings'))->setPaper('a4','portrait');
-        return $pdf->download("phieu-nhap-kho-{$receipt->number}.pdf");
+        return $this->renderReceiptPdf($receipt,$inventory,'invoice');
     }
 
-    public function receiptPrint(InventoryReceipt $receipt, InventoryService $inventory): View
+    public function receiptInvoicePrint(InventoryReceipt $receipt, InventoryService $inventory): View
+    {
+        return $this->renderReceiptPrint($receipt,$inventory,'invoice');
+    }
+
+    public function receiptCostPdf(InventoryReceipt $receipt, InventoryService $inventory): Response
+    {
+        abort_unless(request()->user()?->can('view_pharma_inventory_costs'),403);
+        return $this->renderReceiptPdf($receipt,$inventory,'cost');
+    }
+
+    public function receiptCostPrint(InventoryReceipt $receipt, InventoryService $inventory): View
+    {
+        abort_unless(request()->user()?->can('view_pharma_inventory_costs'),403);
+        return $this->renderReceiptPrint($receipt,$inventory,'cost');
+    }
+
+    private function renderReceiptPdf(InventoryReceipt $receipt, InventoryService $inventory, string $profile): Response
     {
         $this->guardReceiptWarehouse($receipt,$inventory);
         $receipt->load('items.medicine');
         $settings=InventoryReceiptDocumentSetting::current();
-        return view('Pharma::pages.inventory.receipt-print',compact('receipt','settings'));
+        $pdf=Pdf::loadView('Pharma::pages.inventory.receipt-pdf',compact('receipt','settings','profile'))->setPaper('a4','portrait');
+        return $pdf->download(($profile === 'cost' ? 'phieu-nhap-gia-von-' : 'phieu-nhap-hoa-don-').$receipt->number.'.pdf');
+    }
+
+    private function renderReceiptPrint(InventoryReceipt $receipt, InventoryService $inventory, string $profile): View
+    {
+        $this->guardReceiptWarehouse($receipt,$inventory);
+        $receipt->load('items.medicine');
+        $settings=InventoryReceiptDocumentSetting::current();
+        return view('Pharma::pages.inventory.receipt-print',compact('receipt','settings','profile'));
     }
 
     public function approveReceipt(InventoryReceipt $receipt, InventoryService $inventory, UserInventoryReceiptWorkspace $workspace): RedirectResponse
