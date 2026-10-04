@@ -178,6 +178,13 @@ final class PharmaInventoryIssuesCapabilityTest extends TestCase
         $this->assertStringContainsString('data-dismiss-order-share-after-copy',$list);
         $this->assertStringContainsString('Thu hồi',$list);
         $this->assertStringContainsString('data-order-pdf-actions',$detail);
+        $this->assertStringContainsString('data-order-actions',$list);
+        $this->assertStringContainsString('aria-label="Thao tác khác"',$list);
+        $this->assertStringContainsString('>Xem chi tiết</a>',$list);
+        $this->assertStringContainsString('>Tải PDF</a>',$list);
+        $this->assertStringContainsString('>In PDF</a>',$list);
+        $this->assertStringContainsString('>Chia sẻ link</button>',$list);
+        $this->assertStringContainsString('>Thu hồi link</button>',$list);
 
         $compiled=app('blade.compiler')->compileString($list);
         token_get_all($compiled,TOKEN_PARSE);
