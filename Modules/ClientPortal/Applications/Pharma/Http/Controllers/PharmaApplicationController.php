@@ -1253,6 +1253,8 @@ final class PharmaApplicationController extends Controller
             'statusCounts' => $workspace->statusCounts($validated['q'] ?? null),
             'filters' => ['q' => trim((string) ($validated['q'] ?? '')), 'status' => $validated['status'] ?? ''],
             'receiptPdfActions'=>$receiptPdfActions,
+            'canApproveReceipt'=>$registry->userCan($user,'client.pharma.inventory.receipts.approve'),
+            'canPostReceipt'=>$registry->userCan($user,'client.pharma.inventory.receipts.post'),
         ]);
     }
 
