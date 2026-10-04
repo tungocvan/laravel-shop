@@ -23,6 +23,7 @@ class ClientPortalSettingsService
     public function pwaBottomNavigationDefaults(): array
     {
         return [
+            'presentation_style' => 'default',
             'background_color' => '#ffffff',
             'background_opacity' => 95,
             'icon_color' => '#64748b',
@@ -39,6 +40,9 @@ class ClientPortalSettingsService
     public function pwaBottomNavigation(): array
     {
         $settings = $this->group('pwa.bottom_navigation', $this->pwaBottomNavigationDefaults());
+        $settings['presentation_style'] = in_array($settings['presentation_style'] ?? 'default', ['default', 'neumorphism'], true)
+            ? $settings['presentation_style']
+            : 'default';
         $settings['background_opacity'] = (int) ($settings['background_opacity'] ?? 95);
         $settings['text_font_size'] = (int) ($settings['text_font_size'] ?? 11);
         $settings['icon_size'] = (int) ($settings['icon_size'] ?? 20);
