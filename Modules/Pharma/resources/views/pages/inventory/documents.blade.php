@@ -7,10 +7,20 @@
         <div>
             <a href="{{ route('admin.pharma.inventory.index') }}" class="text-sm font-semibold text-indigo-700">← Quay về Tồn kho</a>
             <h1 class="mt-2 text-2xl font-bold text-slate-950">{{ $title }}</h1>
-            <p class="mt-1 text-sm text-slate-500">Tra cứu chứng từ, trạng thái và ghi sổ phiếu nháp.</p>
+            <p class="mt-1 text-sm text-slate-500">Tra cứu chứng từ, phê duyệt và ghi sổ theo đúng trạng thái.</p>
         </div>
         <div class="flex flex-wrap gap-2">
-            @if($type === 'issue')@can('edit_pharma')<a href="{{ route('admin.pharma.inventory.issues.settings') }}" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">⚙ Cấu hình phiếu xuất</a>@endcan<a href="{{ route('admin.pharma.inventory.issues.export',request()->only(['q','status','manager_user_id','recipient_name','date_from','date_to'])) }}" class="rounded-xl border border-emerald-300 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-700">Export Excel</a>@endif
+            @if($type === 'issue')
+                @can('edit_pharma')
+                    <a href="{{ route('admin.pharma.inventory.issues.settings') }}" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">⚙ Cấu hình phiếu xuất</a>
+                @endcan
+                <a href="{{ route('admin.pharma.inventory.issues.export',request()->only(['q','status','manager_user_id','recipient_name','date_from','date_to'])) }}" class="rounded-xl border border-emerald-300 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-700">Export Excel</a>
+            @endif
+            @if($type === 'receipt')
+                @can('edit_pharma')
+                    <a href="{{ route('admin.pharma.inventory.receipts.settings') }}" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">⚙ Cấu hình phiếu nhập</a>
+                @endcan
+            @endif
             @if($type === 'issue')<a href="{{ route('admin.pharma.inventory.issues.bid-sales.create') }}" class="rounded-xl border border-indigo-300 bg-indigo-50 px-4 py-2.5 text-sm font-semibold text-indigo-700">+ Xuất bán hàng thầu</a>@endif
             <a href="{{ route($type === 'receipt' ? 'admin.pharma.inventory.receipts.create' : 'admin.pharma.inventory.issues.create') }}" class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white">+ {{ $type === 'receipt' ? 'Lập phiếu nhập' : 'Lập phiếu xuất' }}</a>
         </div>
@@ -80,7 +90,7 @@
                         @endphp
                         <tr class="transition hover:bg-slate-50/70">
                             @if($type === 'issue')<td class="px-4 py-4"><input type="checkbox" name="ids[]" value="{{ $doc->id }}" form="selected-export-form" data-row-select class="h-4 w-4 rounded border-slate-300" aria-label="Chọn phiếu {{ $doc->number }}"></td>@endif
-                            <td class="px-4 py-4"><div class="flex min-w-0 flex-col items-start gap-1">@if($type === 'issue')<a href="{{ route('admin.pharma.inventory.issues.show',$doc) }}" class="whitespace-nowrap font-mono font-bold text-indigo-700 hover:text-indigo-900 hover:underline">{{ $doc->number }}</a>@else<div class="whitespace-nowrap font-mono font-bold text-indigo-700">{{ $doc->number }}</div>@endif @if($type === 'issue' && ($doc->issue_source ?? 'normal') === 'bid')<span class="inline-flex rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-bold uppercase leading-4 text-violet-700">Hàng thầu</span>@endif</div></td>
+                            <td class="px-4 py-4"><div class="flex min-w-0 flex-col items-start gap-1">@if($type === 'issue')<a href="{{ route('admin.pharma.inventory.issues.show',$doc) }}" class="whitespace-nowrap font-mono font-bold text-indigo-700 hover:text-indigo-900 hover:underline">{{ $doc->number }}</a>@else<a href="{{ route('admin.pharma.inventory.receipts.show',$doc) }}" class="whitespace-nowrap font-mono font-bold text-indigo-700 hover:text-indigo-900 hover:underline">{{ $doc->number }}</a>@endif @if($type === 'issue' && ($doc->issue_source ?? 'normal') === 'bid')<span class="inline-flex rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-bold uppercase leading-4 text-violet-700">Hàng thầu</span>@endif</div></td>
                             <td class="whitespace-nowrap px-4 py-4 text-slate-600">{{ $date->format('d/m/Y') }}</td>
                             <td class="px-4 py-4"><div class="truncate font-semibold text-slate-800" title="{{ $party ?: '—' }}">{{ $party ?: '—' }}</div></td>
                             @if($type === 'issue')<td class="px-4 py-4"><div class="truncate font-medium text-slate-700" title="{{ $doc->resolved_manager_names ?: 'Chưa phân công' }}">{{ $doc->resolved_manager_names ?: '—' }}</div>@if(blank($doc->resolved_manager_names))<span class="mt-1 inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">Chưa phân công</span>@endif</td>@endif
@@ -94,20 +104,39 @@
                             <td class="px-4 py-4 text-right">
                                 <div class="flex flex-wrap justify-end gap-2">
                                     @if($type === 'receipt')
-                                        <a href="{{ route('admin.pharma.inventory.receipts.show',$doc) }}" class="text-xs font-semibold text-slate-700">Xem</a>
-                                        @can('edit_pharma')
-                                            <a href="{{ route('admin.pharma.inventory.receipts.edit',$doc) }}" class="text-xs font-semibold text-indigo-700">{{ $doc->status === 'draft' ? 'Sửa' : 'Cập nhật' }}</a>
-                                            @if($doc->status === 'draft')
-                                                <button type="button" onclick="document.getElementById('post-{{ $type }}-{{ $doc->id }}').showModal()" class="text-xs font-semibold text-emerald-700">Ghi sổ</button>
-                                            @endif
-                                        @endcan
-                                        @can('delete_pharma')
-                                            @if($doc->status === 'draft')
-                                                <button type="button" onclick="document.getElementById('delete-receipt-{{ $doc->id }}').showModal()" class="text-xs font-semibold text-rose-700">Xóa</button>
-                                            @elseif($doc->status === 'posted')
-                                                <button type="button" onclick="document.getElementById('revert-receipt-{{ $doc->id }}').showModal()" class="text-xs font-semibold text-amber-700">Hoàn tác ghi sổ</button>
-                                            @endif
-                                        @endcan
+                                        <details class="relative" data-document-actions>
+                                            <summary class="flex min-h-9 cursor-pointer list-none items-center rounded-lg border border-slate-300 bg-white px-3 text-base font-bold leading-none text-slate-600 hover:bg-slate-50" aria-label="Thao tác khác">⋯</summary>
+                                            <div class="absolute right-0 z-30 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-left shadow-xl">
+                                                <a href="{{ route('admin.pharma.inventory.receipts.pdf.invoice',$doc) }}" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Tải PDF hóa đơn</a>
+                                                <a href="{{ route('admin.pharma.inventory.receipts.print.invoice',$doc) }}" target="_blank" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">In theo hóa đơn</a>
+                                                @can('view_pharma_inventory_costs')
+                                                    <div class="my-1 border-t border-slate-100"></div>
+                                                    <a href="{{ route('admin.pharma.inventory.receipts.pdf.cost',$doc) }}" class="block px-4 py-2.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-50">Tải PDF giá vốn</a>
+                                                    <a href="{{ route('admin.pharma.inventory.receipts.print.cost',$doc) }}" target="_blank" class="block px-4 py-2.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-50">In theo giá vốn</a>
+                                                @endcan
+                                                <div class="my-1 border-t border-slate-100"></div>
+                                                @can('edit_pharma')
+                                                    @if($doc->status === 'draft')
+                                                        <a href="{{ route('admin.pharma.inventory.receipts.edit',$doc) }}" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Sửa phiếu</a>
+                                                        <form method="POST" action="{{ route('admin.pharma.inventory.receipts.approve',$doc) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-emerald-700 hover:bg-emerald-50">Phê duyệt</button></form>
+                                                    @elseif($doc->status === 'pending_approval')
+                                                        <form method="POST" action="{{ route('admin.pharma.inventory.receipts.approve',$doc) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-emerald-700 hover:bg-emerald-50">Phê duyệt</button></form>
+                                                    @elseif($doc->status === 'approved')
+                                                        <form method="POST" action="{{ route('admin.pharma.inventory.receipts.undo-approval',$doc) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-amber-700 hover:bg-amber-50">Hoàn tác phê duyệt</button></form>
+                                                        <div class="my-1 border-t border-slate-100"></div>
+                                                        <button type="button" onclick="document.getElementById('post-receipt-{{ $doc->id }}').showModal()" class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-emerald-700 hover:bg-emerald-50">Ghi sổ</button>
+                                                    @endif
+                                                @endcan
+                                                @can('delete_pharma')
+                                                    @if($doc->status === 'draft')
+                                                        <div class="my-1 border-t border-slate-100"></div>
+                                                        <button type="button" onclick="document.getElementById('delete-receipt-{{ $doc->id }}').showModal()" class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-rose-700 hover:bg-rose-50">Xóa</button>
+                                                    @elseif($doc->status === 'posted')
+                                                        <button type="button" onclick="document.getElementById('revert-receipt-{{ $doc->id }}').showModal()" class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-amber-700 hover:bg-amber-50">Hoàn tác ghi sổ</button>
+                                                    @endif
+                                                @endcan
+                                            </div>
+                                        </details>
                                     @else
                                         <details class="relative" data-document-actions>
                                             <summary class="flex min-h-9 cursor-pointer list-none items-center rounded-lg border border-slate-300 bg-white px-3 text-base font-bold leading-none text-slate-600 hover:bg-slate-50" aria-label="Thao tác khác">⋯</summary>
@@ -156,7 +185,7 @@
                                 <div class="whitespace-pre-line px-5 py-4 text-sm leading-6 text-slate-700">{{ $doc->shortage_note }}</div>
                             </dialog>
                         @endif
-                        @if((($type === 'issue' && $doc->status === 'approved') || ($type === 'receipt' && $doc->status === 'draft')) && !($type === 'issue' && ($doc->issue_source ?? 'normal') === 'bid') && ($type !== 'issue' || $doc->can_post_stock))
+                        @if((($type === 'issue' && $doc->status === 'approved') || ($type === 'receipt' && $doc->status === 'approved')) && !($type === 'issue' && ($doc->issue_source ?? 'normal') === 'bid') && ($type !== 'issue' || $doc->can_post_stock))
                             <dialog id="post-{{ $type }}-{{ $doc->id }}" class="m-auto w-[calc(100%-2rem)] max-w-lg overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-2xl ring-1 ring-slate-200 backdrop:bg-slate-950/65 backdrop:backdrop-blur-[3px]">
                                 <form method="POST" action="{{ $postRoute }}" class="overflow-hidden rounded-2xl bg-white">
                                     @csrf
@@ -190,7 +219,7 @@
                                             <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-amber-100 text-xl font-bold text-amber-700">!</div>
                                             <div class="min-w-0 flex-1">
                                                 <div class="flex items-start justify-between gap-3"><div><h3 class="text-lg font-bold text-slate-950">Hoàn tác ghi sổ?</h3><p class="mt-0.5 break-all font-mono text-xs font-semibold text-slate-500">{{ $doc->number }}</p></div><button type="button" onclick="this.closest('dialog').close()" class="rounded-lg p-1.5 text-xl leading-none text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Đóng">×</button></div>
-                                                <p class="mt-4 text-sm leading-6 text-slate-600">Phiếu sẽ được chuyển về <strong>Nháp</strong> và đúng số lượng đã nhập của phiếu này sẽ được rút khỏi tồn kho.</p>
+                                                <p class="mt-4 text-sm leading-6 text-slate-600">Phiếu sẽ trở về <strong>Đã duyệt</strong> và đúng số lượng đã nhập của phiếu này sẽ được rút khỏi tồn kho.</p>
                                                 <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm leading-5 text-amber-900"><strong>Kiểm tra tồn kho:</strong> nếu bất kỳ lô nào không đủ tồn để hoàn tác, hệ thống sẽ hủy toàn bộ thao tác và không thay đổi tồn kho.</div>
                                             </div>
                                         </div>

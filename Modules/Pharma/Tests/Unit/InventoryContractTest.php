@@ -43,11 +43,15 @@ class InventoryContractTest extends TestCase
 
         $this->assertNotEmpty($compiled);
         token_get_all($compiled, TOKEN_PARSE);
-        foreach (['issue-form.blade.php','documents.blade.php','receipt-show.blade.php','receipt-edit.blade.php','issue-show.blade.php','issue-edit.blade.php'] as $file) {
+        foreach (['issue-form.blade.php','documents.blade.php','receipt-show.blade.php','receipt-edit.blade.php','issue-show.blade.php','issue-edit.blade.php','receipt-settings.blade.php','receipt-pdf.blade.php','receipt-print.blade.php'] as $file) {
             $candidate=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/'.$file));
-            token_get_all(Blade::compileString($candidate), TOKEN_PARSE);
+            try {
+                token_get_all(Blade::compileString($candidate), TOKEN_PARSE);
+            } catch (\ParseError $e) {
+                $this->fail($file.': '.$e->getMessage());
+            }
         }
-        $this->addToAssertionCount(7);
+        $this->addToAssertionCount(10);
     }
 
     public function test_inventory_admin_ui_and_permissions_follow_pharma_conventions(): void
@@ -179,6 +183,37 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("lockForUpdate()", $controller);
         $this->assertStringContainsString("format('ymd')", $controller);
         $this->assertStringContainsString('Xác nhận ghi sổ', $documents);
+        $this->assertStringContainsString("route('admin.pharma.inventory.receipts.show',\$doc)", $documents);
+        $this->assertStringContainsString("data-document-actions", $documents);
+        $this->assertStringContainsString("aria-label=\"Thao tác khác\">⋯", $documents);
+        $this->assertStringNotContainsString('>Xem</a>', $documents);
+        $this->assertStringContainsString("name('receipts.settings')", $routes);
+        $this->assertStringContainsString("name('receipts.settings.update')", $routes);
+        $this->assertStringContainsString('function receiptDocumentSettings(', $controller);
+        $this->assertStringContainsString('function updateReceiptDocumentSettings(', $controller);
+        $this->assertStringContainsString('InventoryReceiptDocumentSetting::current()', $controller);
+        $receiptSettings=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/receipt-settings.blade.php'));
+        foreach (['Cấu hình phiếu nhập kho','Giá nhập','Giá HĐ chưa VAT','VAT','Chữ ký: Thủ kho'] as $receiptSettingLabel) {
+            $this->assertStringContainsString($receiptSettingLabel,$receiptSettings);
+        }
+        $this->assertStringContainsString("route('admin.pharma.inventory.receipts.settings')", $documents);
+        $this->assertStringContainsString("name('receipts.pdf.invoice')", $routes);
+        $this->assertStringContainsString("name('receipts.print.invoice')", $routes);
+        $this->assertStringContainsString("middleware('can:view_pharma_inventory_costs')->name('receipts.pdf.cost')", $routes);
+        $this->assertStringContainsString("middleware('can:view_pharma_inventory_costs')->name('receipts.print.cost')", $routes);
+        $this->assertStringContainsString('function receiptInvoicePdf(', $controller);
+        $this->assertStringContainsString('function receiptCostPdf(', $controller);
+        $this->assertStringContainsString("abort_unless(request()->user()?->can('view_pharma_inventory_costs'),403)", $controller);
+        $this->assertStringContainsString("Pdf::loadView('Pharma::pages.inventory.receipt-pdf'", $controller);
+        $this->assertStringContainsString("route('admin.pharma.inventory.receipts.pdf.invoice',\$doc)", $documents);
+        $this->assertStringContainsString("@can('view_pharma_inventory_costs')", $documents);
+        $this->assertStringContainsString("route('admin.pharma.inventory.receipts.pdf.cost',\$doc)", $documents);
+        $receiptPdf=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/receipt-pdf.blade.php'));
+        foreach (['Nhà cung cấp','Hóa đơn','Số lô','Hạn dùng','Giá nhập','VAT','Giá HĐ chưa VAT','Thành tiền giá vốn','Tiền VAT','Tổng thanh toán'] as $receiptPdfLabel) {
+            $this->assertStringContainsString($receiptPdfLabel,$receiptPdf);
+        }
+        $this->assertStringContainsString("\$isCost=\$profile === 'cost'", $receiptPdf);
+        $this->assertStringContainsString("@if(\$isCost)", $receiptPdf);
         $this->assertStringNotContainsString("return confirm('Ghi sổ", $documents);
         $this->assertStringNotContainsString('Phiếu nhập gần đây', $index);
         $this->assertStringNotContainsString('Phiếu xuất gần đây', $index);

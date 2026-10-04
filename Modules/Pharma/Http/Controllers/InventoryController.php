@@ -21,11 +21,13 @@ use Modules\Pharma\Models\InventoryIssueCommission;
 use Modules\Pharma\Models\InventoryIssueDeferredSupply;
 use Modules\Pharma\Models\InventoryTransaction;
 use Modules\Pharma\Models\InventoryReceipt;
+use Modules\Pharma\Models\InventoryReceiptDocumentSetting;
 use Modules\Pharma\Models\Medicine;
 use Modules\Pharma\Models\PriceList;
 use Modules\Pharma\Models\PriceListItem;
 use Modules\Pharma\Models\SupplierTracking;
 use Modules\Pharma\Services\InventoryService;
+use Modules\Pharma\Services\UserInventoryReceiptWorkspace;
 use Modules\Pharma\Services\InventoryMovementSummaryService;
 use Modules\Pharma\Services\UserOrderApprovalService;
 use Modules\Pharma\Services\UserOrderAuthoringService;
@@ -391,13 +393,96 @@ final class InventoryController extends Controller
         return redirect()->route('admin.pharma.inventory.receipts.index')->with('success','Đã xóa phiếu nhập nháp.');
     }
 
-    public function postReceipt(InventoryReceipt $receipt, InventoryService $inventory): RedirectResponse { $inventory->postReceipt($receipt,auth('admin')->id()); return back()->with('success',"Đã ghi sổ {$receipt->number}."); }
+    public function receiptDocumentSettings(): View
+    {
+        $settings=InventoryReceiptDocumentSetting::current();
+        return view('Pharma::pages.inventory.receipt-settings',compact('settings'));
+    }
+
+    public function updateReceiptDocumentSettings(Request $request): RedirectResponse
+    {
+        $data=$request->validate([
+            'organization_name'=>'nullable|string|max:255','organization_address'=>'nullable|string|max:500',
+            'tax_code'=>'nullable|string|max:50','phone'=>'nullable|string|max:50',
+            'document_title'=>'required|string|max:120','document_subtitle'=>'nullable|string|max:255',
+            'warehouse_name'=>'required|string|max:120','issuer_label'=>'required|string|max:120',
+            'deliverer_label'=>'required|string|max:120','receiver_label'=>'required|string|max:120',
+            'keeper_label'=>'required|string|max:120','footer_note'=>'nullable|string|max:1000',
+            'cost_document_title'=>'required|string|max:120','cost_document_subtitle'=>'nullable|string|max:255',
+            'invoice_document_title'=>'required|string|max:120','invoice_document_subtitle'=>'nullable|string|max:255',
+        ]);
+        foreach(['cost_show_invoice','show_unit_price','show_invoice_unit_price','show_vat','show_total_value','show_notes','show_issuer_signature','show_deliverer_signature','show_receiver_signature','show_keeper_signature'] as $field){
+            $data[$field]=$request->boolean($field);
+        }
+        InventoryReceiptDocumentSetting::current()->update($data);
+        return back()->with('success','Đã lưu cấu hình phiếu nhập kho.');
+    }
+
+    public function receiptInvoicePdf(InventoryReceipt $receipt, InventoryService $inventory): Response
+    {
+        return $this->renderReceiptPdf($receipt,$inventory,'invoice');
+    }
+
+    public function receiptInvoicePrint(InventoryReceipt $receipt, InventoryService $inventory): View
+    {
+        return $this->renderReceiptPrint($receipt,$inventory,'invoice');
+    }
+
+    public function receiptCostPdf(InventoryReceipt $receipt, InventoryService $inventory): Response
+    {
+        abort_unless(request()->user()?->can('view_pharma_inventory_costs'),403);
+        return $this->renderReceiptPdf($receipt,$inventory,'cost');
+    }
+
+    public function receiptCostPrint(InventoryReceipt $receipt, InventoryService $inventory): View
+    {
+        abort_unless(request()->user()?->can('view_pharma_inventory_costs'),403);
+        return $this->renderReceiptPrint($receipt,$inventory,'cost');
+    }
+
+    private function renderReceiptPdf(InventoryReceipt $receipt, InventoryService $inventory, string $profile): Response
+    {
+        $this->guardReceiptWarehouse($receipt,$inventory);
+        $receipt->load('items.medicine');
+        $settings=InventoryReceiptDocumentSetting::current();
+        $pdf=Pdf::loadView('Pharma::pages.inventory.receipt-pdf',compact('receipt','settings','profile'))->setPaper('a4','portrait');
+        return $pdf->download(($profile === 'cost' ? 'phieu-nhap-gia-von-' : 'phieu-nhap-hoa-don-').$receipt->number.'.pdf');
+    }
+
+    private function renderReceiptPrint(InventoryReceipt $receipt, InventoryService $inventory, string $profile): View
+    {
+        $this->guardReceiptWarehouse($receipt,$inventory);
+        $receipt->load('items.medicine');
+        $settings=InventoryReceiptDocumentSetting::current();
+        return view('Pharma::pages.inventory.receipt-print',compact('receipt','settings','profile'));
+    }
+
+    public function approveReceipt(InventoryReceipt $receipt, InventoryService $inventory, UserInventoryReceiptWorkspace $workspace): RedirectResponse
+    {
+        $this->guardReceiptWarehouse($receipt,$inventory);
+        $workspace->approve($receipt,(int)auth('admin')->id());
+        return back()->with('success',"Đã phê duyệt {$receipt->number}. Phiếu chưa làm thay đổi tồn kho.");
+    }
+
+    public function undoReceiptApproval(InventoryReceipt $receipt, InventoryService $inventory, UserInventoryReceiptWorkspace $workspace): RedirectResponse
+    {
+        $this->guardReceiptWarehouse($receipt,$inventory);
+        $workspace->undoApproval($receipt);
+        return back()->with('success',"Đã hoàn tác phê duyệt {$receipt->number}; phiếu trở về Nháp và tồn kho không thay đổi.");
+    }
+
+    public function postReceipt(InventoryReceipt $receipt, InventoryService $inventory): RedirectResponse
+    {
+        $this->guardReceiptWarehouse($receipt,$inventory);
+        $inventory->postReceipt($receipt,auth('admin')->id());
+        return back()->with('success',"Đã ghi sổ {$receipt->number}; tồn kho đã được cộng theo đúng lô của phiếu.");
+    }
 
     public function revertReceipt(InventoryReceipt $receipt, InventoryService $inventory): RedirectResponse
     {
         $this->guardReceiptWarehouse($receipt,$inventory);
         $inventory->revertReceipt($receipt,auth('admin')->id());
-        return redirect()->route('admin.pharma.inventory.receipts.index')->with('success',"Đã hoàn tác ghi sổ {$receipt->number}; tồn kho đã được cập nhật và phiếu trở về nháp.");
+        return redirect()->route('admin.pharma.inventory.receipts.index')->with('success',"Đã hoàn tác ghi sổ {$receipt->number}; số lượng đã nhập được trừ khỏi tồn kho và phiếu trở về Đã duyệt.");
     }
     public function createIssue(InventoryService $inventory): View
     {
