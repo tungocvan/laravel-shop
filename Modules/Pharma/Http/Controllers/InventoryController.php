@@ -1233,7 +1233,12 @@ final class InventoryController extends Controller
             'Trạng thái'=>$row->status===InventoryIssueCommission::STATUS_UNRESOLVED ? 'Chưa đủ dữ liệu' : 'Đã tính',
         ]);
 
-        return (new FastExcel($rows))->download('pharma-hoa-hong-'.now()->format('Ymd-His').'.xlsx');
+        $export=(new FastExcel($rows))
+            ->headerStyle((new \OpenSpout\Common\Entity\Style\Style())->setFontBold()->setShouldWrapText())
+            ->rowsStyle((new \OpenSpout\Common\Entity\Style\Style())->setShouldWrapText());
+        return $export->download('pharma-hoa-hong-'.now()->format('Ymd-His').'.xlsx',function($row){
+            return $row;
+        });
     }
 
     private function issueSalePriceCandidates()
