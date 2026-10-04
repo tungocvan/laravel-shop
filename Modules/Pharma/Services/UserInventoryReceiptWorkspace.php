@@ -32,6 +32,33 @@ final class UserInventoryReceiptWorkspace
             ->paginate($perPage, ['*'], 'page', $page);
     }
 
+    public function statusCounts(?string $search = null): array
+    {
+        $warehouse = $this->inventory->defaultWarehouse();
+
+        $query = InventoryReceipt::query()
+            ->where('warehouse_id', $warehouse->id)
+            ->when(filled($search), fn ($query) => $query->where(fn ($scope) => $scope
+                ->where('number', 'like', '%'.trim((string) $search).'%')
+                ->orWhere('supplier_name', 'like', '%'.trim((string) $search).'%')
+                ->orWhere('invoice_number', 'like', '%'.trim((string) $search).'%')
+                ->orWhere('invoice_symbol', 'like', '%'.trim((string) $search).'%')));
+
+        $counts = (clone $query)
+            ->selectRaw('status, COUNT(*) as aggregate')
+            ->groupBy('status')
+            ->pluck('aggregate', 'status');
+
+        return [
+            'all' => (int) $counts->sum(),
+            InventoryReceipt::DRAFT => (int) ($counts[InventoryReceipt::DRAFT] ?? 0),
+            InventoryReceipt::PENDING_APPROVAL => (int) ($counts[InventoryReceipt::PENDING_APPROVAL] ?? 0),
+            InventoryReceipt::APPROVED => (int) ($counts[InventoryReceipt::APPROVED] ?? 0),
+            InventoryReceipt::POSTED => (int) ($counts[InventoryReceipt::POSTED] ?? 0),
+            InventoryReceipt::CANCELLED => (int) ($counts[InventoryReceipt::CANCELLED] ?? 0),
+        ];
+    }
+
     public function find(int $receiptId): ?InventoryReceipt
     {
         $warehouse = $this->inventory->defaultWarehouse();
