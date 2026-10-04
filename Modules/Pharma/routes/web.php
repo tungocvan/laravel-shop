@@ -97,6 +97,8 @@ Route::prefix('admin/pharma')->name('admin.pharma.')->middleware(['web', 'auth:a
         Route::get('/opening/create', [InventoryController::class, 'createOpening'])->middleware('can:create_pharma')->name('opening.create');
         Route::post('/opening', [InventoryController::class, 'storeOpening'])->middleware('can:create_pharma')->name('opening.store');
         Route::get('/receipts', [InventoryController::class, 'receipts'])->name('receipts.index');
+        Route::get('/receipts/settings/document', [InventoryController::class, 'receiptDocumentSettings'])->middleware('can:edit_pharma')->name('receipts.settings');
+        Route::put('/receipts/settings/document', [InventoryController::class, 'updateReceiptDocumentSettings'])->middleware('can:edit_pharma')->name('receipts.settings.update');
         Route::get('/receipts/create', [InventoryController::class, 'createReceipt'])->middleware('can:create_pharma')->name('receipts.create');
         Route::post('/receipts', [InventoryController::class, 'storeReceipt'])->middleware('can:create_pharma')->name('receipts.store');
         Route::get('/receipts/{receipt}/pdf', [InventoryController::class, 'receiptPdf'])->name('receipts.pdf');
