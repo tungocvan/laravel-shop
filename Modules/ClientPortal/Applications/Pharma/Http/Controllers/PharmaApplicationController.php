@@ -1284,7 +1284,7 @@ final class PharmaApplicationController extends Controller
             'items.*.quantity' => ['required', 'numeric', 'gt:0'],
             'items.*.unit_price_ex_vat' => ['required', 'numeric', 'min:0'],
             'items.*.invoice_unit_price_ex_vat' => ['nullable', 'numeric', 'min:0'],
-            'items.*.vat_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'vat_rate' => ['required', 'numeric', 'min:0', 'max:100'],
         ]);
 
         $receipt = $workspace->createDraft($data, (int) $user->id);
@@ -1325,7 +1325,7 @@ final class PharmaApplicationController extends Controller
             'items.*.batch_number' => ['required', 'string', 'max:100'], 'items.*.expiry_date' => ['required', 'date'],
             'items.*.quantity' => ['required', 'numeric', 'gt:0'], 'items.*.unit_price_ex_vat' => ['required', 'numeric', 'min:0'],
             'items.*.invoice_unit_price_ex_vat' => ['nullable', 'numeric', 'min:0'],
-            'items.*.vat_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'vat_rate' => ['required', 'numeric', 'min:0', 'max:100'],
         ]);
         $workspace->updateDraft($visibleReceipt, $data);
         return redirect()->route('client.pharma.inventory.receipts.show', $receipt)->with('success', 'Đã cập nhật phiếu nhập nháp. Tồn kho chưa thay đổi.');
