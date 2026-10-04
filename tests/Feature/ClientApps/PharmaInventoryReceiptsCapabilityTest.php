@@ -65,13 +65,20 @@ final class PharmaInventoryReceiptsCapabilityTest extends TestCase
         $this->assertStringContainsString("route('client.pharma.inventory.receipts.update',\$receipt)", $create);
         $this->assertStringContainsString("@method('PUT')", $create);
         $this->assertStringContainsString('data-receipt-combobox', $create);
+        $this->assertStringContainsString("collect(old('items', \$persistedItems))", $create);
         $this->assertStringContainsString('placeholder="Tìm tên nhà cung cấp / MST..."', $create);
         $this->assertStringContainsString('placeholder="Tìm tên thuốc / mã thuốc / hoạt chất..."', $create);
         $this->assertStringContainsString("old('invoice_date', \$editing ? (\$receipt->invoice_date?->format('Y-m-d') ?? now()->toDateString()) : now()->toDateString())", $create);
         $this->assertStringContainsString('data-number-display data-scale="3"', $create);
         $this->assertStringContainsString('data-number-display data-scale="4"', $create);
         $this->assertStringContainsString('Giá vốn TB:', $create);
-        $this->assertStringContainsString('value="5" data-field="vat_rate"', $create);
+        $this->assertStringContainsString('id="toggle-receipt-invoice"', $create);
+        $this->assertStringContainsString('id="receipt-invoice-fields" class="mt-3 hidden"', $create);
+        $this->assertStringContainsString('name="vat_rate"', $create);
+        $this->assertStringContainsString('Một phiếu nhập chỉ áp dụng một mức VAT cho toàn bộ hàng nhập.', $create);
+        $this->assertStringNotContainsString('data-field="vat_rate"', $create);
+        $this->assertStringContainsString("'vat_rate' => ['required', 'numeric', 'min:0', 'max:100']", $controller);
+        $this->assertStringContainsString("'vat_rate' => (float) \$data['vat_rate']", $workspace);
         $this->assertStringContainsString('name="invoice_symbol"', $create);
         $this->assertStringContainsString('Ký hiệu hóa đơn', $create);
         $this->assertStringContainsString('Giá nhập / Giá vốn *', $create);
@@ -133,6 +140,70 @@ final class PharmaInventoryReceiptsCapabilityTest extends TestCase
             $this->assertStringContainsString("@section('hide-application-header', true)", $view);
             $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $view);
         }
+    }
+
+    public function test_receipt_pdf_artifacts_are_private_shareable_and_pwa_safe(): void
+    {
+        $root=base_path();
+        $routes=file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/routes.php');
+        $controller=file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php');
+        $list=file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-receipts.blade.php');
+        $documents=file_get_contents($root.'/Modules/Pharma/Services/InventoryReceiptDocumentService.php');
+
+        foreach (['inventory.receipts.pdf.export','inventory.receipts.pdf','inventory.receipts.print','inventory.receipts.share','inventory.receipts.share.revoke'] as $route) {
+            $this->assertStringContainsString("name('{$route}')",$routes);
+        }
+        $this->assertStringContainsString("name('client.pharma.inventory.receipts.share.download')",$routes);
+        $this->assertStringContainsString('use Modules\\Pharma\\Models\\InventoryReceipt;',$controller);
+        $this->assertStringContainsString('function exportInventoryReceiptPdf(',$controller);
+        $this->assertStringContainsString('function downloadInventoryReceiptShare(',$controller);
+        $this->assertStringContainsString(<<<'CONTRACT'
+Storage::disk('local')->put($path, $binary)
+CONTRACT, $documents);
+        $this->assertStringContainsString(<<<'CONTRACT'
+'token_hash'=>hash('sha256',$token)
+CONTRACT, $documents);
+        $this->assertStringContainsString("expires_at'=>now()->addDays(30)", $documents);
+        $this->assertStringContainsString('data-receipt-pdf-download',$list);
+        $this->assertStringContainsString(<<<'CONTRACT'
+fetch(link.href,{credentials:'same-origin',cache:'no-store'})
+CONTRACT, $list);
+        $this->assertStringContainsString('navigator.canShare?.({files:[cached]})', $list);
+        $this->assertStringContainsString('navigator.canShare?.({files:[file]})', $list);
+        $this->assertStringContainsString('Sao chép link',$list);
+        $this->assertStringContainsString('data-share-flash',$list);
+        $this->assertStringContainsString('data-dismiss-share-flash',$list);
+        $this->assertStringContainsString('data-dismiss-share-after-copy',$list);
+        $this->assertStringContainsString("if(shareFlash&&!shareFlash.contains(event.target))dismissShareFlash()",$list);
+        $this->assertStringContainsString("if(event.key==='Escape')dismissShareFlash()",$list);
+        $this->assertStringContainsString('Thu hồi',$list);
+        $this->assertStringContainsString(<<<'CONTRACT'
+abort_unless($receipt->status === InventoryReceipt::POSTED, 409, 'Chỉ phiếu nhập đã ghi sổ mới được xuất PDF.')
+CONTRACT, $documents);
+        $this->assertStringContainsString('Ghi sổ để xuất PDF',$list);
+        $this->assertStringContainsString("route('client.pharma.inventory.receipts.approve',\$receipt)",$list);
+        $this->assertStringContainsString("route('client.pharma.inventory.receipts.undo-approval',\$receipt)",$list);
+        $this->assertStringContainsString("route('client.pharma.inventory.receipts.post',\$receipt)",$list);
+        $this->assertStringContainsString("route('client.pharma.inventory.receipts.revert',\$receipt)",$list);
+        $this->assertStringContainsString('data-receipt-action-trigger="receipt-actions-{{ $receipt->id }}"',$list);
+        $this->assertStringContainsString('<template id="receipt-actions-{{ $receipt->id }}">',$list);
+        $this->assertStringContainsString("className='fixed z-[100] hidden'",$list);
+        $this->assertStringContainsString('spaceBelow>=height+gap',$list);
+        $this->assertStringContainsString('data-receipt-confirm-open="post-receipt-{{ $receipt->id }}"',$list);
+        $this->assertStringContainsString('data-receipt-confirm-open="revert-receipt-{{ $receipt->id }}"',$list);
+        $this->assertStringContainsString('Ghi sổ phiếu nhập?',$list);
+        $this->assertStringContainsString('Hoàn tác ghi sổ?',$list);
+        $this->assertStringNotContainsString('data-receipt-actions',$list);
+        $this->assertStringContainsString("'canApproveReceipt'=>\$registry->userCan(\$user,'client.pharma.inventory.receipts.approve')",$controller);
+        $this->assertStringContainsString("'canPostReceipt'=>\$registry->userCan(\$user,'client.pharma.inventory.receipts.post')",$controller);
+        $this->assertStringNotContainsString('$canUseReceiptPdf=',$list);
+        $this->assertStringNotContainsString('$desktopCanUsePdf=',$list);
+        $compiled=app('blade.compiler')->compileString($list);
+        $temporary=tempnam(sys_get_temp_dir(),'receipt-list-blade-');
+        file_put_contents($temporary,$compiled);
+        exec(PHP_BINARY.' -l '.escapeshellarg($temporary).' 2>&1',$lintOutput,$lintCode);
+        @unlink($temporary);
+        $this->assertSame(0,$lintCode,implode(PHP_EOL,$lintOutput));
     }
 
     public function test_receipt_admin_and_pwa_share_approval_posting_contract(): void

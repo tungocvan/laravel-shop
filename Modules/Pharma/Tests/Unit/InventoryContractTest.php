@@ -201,13 +201,35 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("name('receipts.print.invoice')", $routes);
         $this->assertStringContainsString("middleware('can:view_pharma_inventory_costs')->name('receipts.pdf.cost')", $routes);
         $this->assertStringContainsString("middleware('can:view_pharma_inventory_costs')->name('receipts.print.cost')", $routes);
-        $this->assertStringContainsString('function receiptInvoicePdf(', $controller);
-        $this->assertStringContainsString('function receiptCostPdf(', $controller);
+        $this->assertStringContainsString("name('receipts.pdf.invoice.export')", $routes);
+        $this->assertStringContainsString("name('receipts.pdf.cost.export')", $routes);
+        $this->assertStringContainsString('function exportReceiptInvoicePdf(', $controller);
+        $this->assertStringContainsString('function exportReceiptCostPdf(', $controller);
+        $this->assertStringContainsString('function downloadReceiptInvoicePdf(', $controller);
+        $this->assertStringContainsString('function printReceiptInvoicePdf(', $controller);
         $this->assertStringContainsString("abort_unless(request()->user()?->can('view_pharma_inventory_costs'),403)", $controller);
-        $this->assertStringContainsString("Pdf::loadView('Pharma::pages.inventory.receipt-pdf'", $controller);
+        $receiptDocumentService=file_get_contents(base_path('Modules/Pharma/Services/InventoryReceiptDocumentService.php'));
+        $this->assertStringContainsString("Storage::disk('local')->put(\$path, \$binary)", $receiptDocumentService);
+        $this->assertStringContainsString("Pdf::loadView('Pharma::pages.inventory.receipt-pdf'", $receiptDocumentService);
+        $this->assertStringContainsString('sourceHash(', $receiptDocumentService);
+        $this->assertStringContainsString('createInvoiceShare(', $receiptDocumentService);
+        $this->assertStringContainsString("abort_unless(\$receipt->status === InventoryReceipt::POSTED, 409, 'Chỉ phiếu nhập đã ghi sổ mới được xuất PDF.')", $receiptDocumentService);
+        $this->assertStringContainsString('@if($canUseReceiptPdf)', $documents);
+        $this->assertStringContainsString("route('admin.pharma.inventory.receipts.approve',\$doc)", $documents);
+        $this->assertStringContainsString("document.getElementById('post-receipt-{{ \$doc->id }}').showModal()", $documents);
         $this->assertStringContainsString("route('admin.pharma.inventory.receipts.pdf.invoice',\$doc)", $documents);
         $this->assertStringContainsString("@can('view_pharma_inventory_costs')", $documents);
         $this->assertStringContainsString("route('admin.pharma.inventory.receipts.pdf.cost',\$doc)", $documents);
+        $issueDocumentService=file_get_contents(base_path('Modules/Pharma/Services/InventoryIssueDocumentService.php'));
+        $this->assertStringContainsString("name('issues.pdf.export')",$routes);
+        $this->assertStringContainsString('function exportIssuePdf(',$controller);
+        $this->assertStringContainsString('function downloadIssuePdf(',$controller);
+        $this->assertStringContainsString('function printIssuePdf(',$controller);
+        $this->assertStringContainsString("abort_unless(\$issue->status===InventoryIssue::POSTED,409,'Chỉ phiếu xuất đã ghi sổ mới được xuất PDF.')",$issueDocumentService);
+        $this->assertStringContainsString("Storage::disk('local')->put(\$path,\$binary)",$issueDocumentService);
+        $this->assertStringContainsString("Pdf::loadView('Pharma::pages.inventory.issue-pdf'",$issueDocumentService);
+        $this->assertStringContainsString("route('admin.pharma.inventory.issues.pdf.export',\$doc)",$documents);
+        $this->assertStringContainsString("@if(\$doc->status === 'posted')",$documents);
         $receiptPdf=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/receipt-pdf.blade.php'));
         foreach (['Nhà cung cấp','Hóa đơn','Số lô','Hạn dùng','Giá nhập','VAT','Giá HĐ chưa VAT','Thành tiền giá vốn','Tiền VAT','Tổng thanh toán'] as $receiptPdfLabel) {
             $this->assertStringContainsString($receiptPdfLabel,$receiptPdf);
@@ -327,7 +349,7 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("min-w-[1320px]", $documents);
         $this->assertStringContainsString('Khách hàng / Nơi nhận', $documents);
         $this->assertStringContainsString('Tải PDF', $documents);
-        $this->assertStringContainsString('In trực tiếp', $documents);
+        $this->assertStringContainsString('In PDF', $documents);
         $this->assertStringContainsString('aria-label="Thao tác khác"', $documents);
         $this->assertStringContainsString('min-h-[calc(100vh-7.5rem)]', $documents);
         $this->assertStringContainsString('flex min-h-0 flex-1 flex-col', $documents);
@@ -410,7 +432,8 @@ class InventoryContractTest extends TestCase
         $edit=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-edit.blade.php'));
         $show=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-show.blade.php'));
 
-        $this->assertStringContainsString("['items.medicine','manager:id,name','priceList.manager']", $controller);
+        $issueDocumentService=file_get_contents(base_path('Modules/Pharma/Services/InventoryIssueDocumentService.php'));
+        $this->assertStringContainsString("loadMissing(['items.medicine','manager:id,name','priceList.manager'])", $issueDocumentService);
         $this->assertStringContainsString("'items'=>'required|array|min:1'", $controller);
         $this->assertStringContainsString("\$locked->items()->delete()", $controller);
         $this->assertStringContainsString("foreach(\$items as \$item)", $controller);
@@ -468,12 +491,14 @@ class InventoryContractTest extends TestCase
 
         $this->assertStringContainsString("name('issues.pdf')", $routes);
         $this->assertStringContainsString("name('issues.print')", $routes);
-        $this->assertStringContainsString('function issuePdf', $controller);
-        $this->assertStringContainsString("Pdf::loadView('Pharma::pages.inventory.issue-pdf'", $controller);
-        $this->assertStringContainsString("setPaper('a4','portrait')", $controller);
-        $this->assertStringContainsString('function issuePrint', $controller);
+        $service=file_get_contents(base_path('Modules/Pharma/Services/InventoryIssueDocumentService.php'));
+        $this->assertStringContainsString('function exportIssuePdf', $controller);
+        $this->assertStringContainsString('function downloadIssuePdf', $controller);
+        $this->assertStringContainsString('function printIssuePdf', $controller);
+        $this->assertStringContainsString("Pdf::loadView('Pharma::pages.inventory.issue-pdf'", $service);
+        $this->assertStringContainsString("setPaper('a4','portrait')", $service);
         $this->assertStringContainsString('↓ Tải PDF', $show);
-        $this->assertStringContainsString('▣ In trực tiếp', $show);
+        $this->assertStringContainsString('▣ In PDF', $show);
         $this->assertStringContainsString('Thông tin chứng từ', $show);
         $this->assertStringContainsString('Chi tiết hàng xuất', $show);
         $this->assertStringContainsString('Tóm tắt phiếu', $show);
@@ -988,7 +1013,7 @@ class InventoryContractTest extends TestCase
         $this->assertStringNotContainsString('Bảng giá xuất', $bidEdit);
         $this->assertStringContainsString("batch_number'=>null", $controller);
         $this->assertStringContainsString("issue_source ?? 'normal')==='bid'", $controller);
-        $this->assertStringNotContainsString("return redirect()->route('admin.pharma.inventory.issues.show',\$issue)", substr($controller, strpos($controller, 'public function showIssue'), strpos($controller, 'public function issuePdf') - strpos($controller, 'public function showIssue')));
+        $this->assertStringNotContainsString("return redirect()->route('admin.pharma.inventory.issues.show',\$issue)", substr($controller, strpos($controller, 'public function showIssue'), strpos($controller, 'public function exportIssuePdf') - strpos($controller, 'public function showIssue')));
         $issueEdit=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-edit.blade.php'));
         $this->assertStringContainsString("'expiry_date'=>\$item->expiry_date?->format('Y-m-d')", $issueEdit);
         $batchWorkspace=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/bid-sale-batches.blade.php'));

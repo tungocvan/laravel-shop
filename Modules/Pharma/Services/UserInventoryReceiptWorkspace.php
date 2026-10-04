@@ -12,7 +12,10 @@ use Modules\Pharma\Models\SupplierTracking;
 
 final class UserInventoryReceiptWorkspace
 {
-    public function __construct(private readonly InventoryService $inventory) {}
+    public function __construct(
+        private readonly InventoryService $inventory,
+        private readonly InventoryReceiptDocumentService $documents,
+    ) {}
 
     public function browse(?string $search = null, ?string $status = null, int $perPage = 20, int $page = 1): LengthAwarePaginator
     {
@@ -102,6 +105,8 @@ final class UserInventoryReceiptWorkspace
             throw ValidationException::withMessages(['supplier_id' => 'Nhà cung cấp không còn hoạt động hoặc không có vai trò supplier.']);
         }
 
+        $data['items'] = collect($data['items'])->map(fn (array $item): array => [...$item, 'vat_rate' => (float) $data['vat_rate']])->all();
+
         $duplicateKeys = collect($data['items'])->map(
             fn (array $item): string => (int) $item['medicine_id'].'|'.mb_strtolower(trim($item['batch_number'])).'|'.$item['expiry_date']
         );
@@ -142,6 +147,7 @@ final class UserInventoryReceiptWorkspace
             if (! $supplier) {
                 throw ValidationException::withMessages(['supplier_id' => 'Nhà cung cấp không còn hoạt động hoặc không có vai trò supplier.']);
             }
+            $data['items'] = collect($data['items'])->map(fn (array $item): array => [...$item, 'vat_rate' => (float) $data['vat_rate']])->all();
             $duplicateKeys = collect($data['items'])->map(fn (array $item): string => (int) $item['medicine_id'].'|'.mb_strtolower(trim($item['batch_number'])).'|'.$item['expiry_date']);
             if ($duplicateKeys->duplicates()->isNotEmpty()) {
                 throw ValidationException::withMessages(['items' => 'Không được trùng Thuốc + Số lô + Hạn dùng trong cùng phiếu nhập.']);
@@ -153,6 +159,7 @@ final class UserInventoryReceiptWorkspace
             ]);
             $locked->items()->delete();
             $locked->items()->createMany($data['items']);
+            $this->documents->invalidate($locked);
             return $locked->fresh(['items.medicine']);
         });
     }
@@ -165,6 +172,7 @@ final class UserInventoryReceiptWorkspace
                 throw ValidationException::withMessages(['receipt' => 'Chỉ phiếu nhập nháp mới được xóa.']);
             }
             $locked->items()->delete();
+            $this->documents->invalidate($locked);
             $locked->delete();
         });
     }

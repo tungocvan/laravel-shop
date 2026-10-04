@@ -154,6 +154,28 @@
             <section class="rounded-3xl border border-rose-200 bg-rose-50 p-5"><p class="text-xs font-black uppercase tracking-wide text-rose-700">Lý do từ chối</p><p class="mt-2 whitespace-pre-line text-sm leading-6 text-rose-900">{{ $issue->rejection_reason }}</p></section>
         @endif
     </main>
+    @if(session('order_share_url'))
+        <div class="mx-auto mb-3 max-w-4xl rounded-2xl border border-emerald-200 bg-emerald-50 p-4" data-order-share-flash>
+            <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Link chia sẻ PDF phiếu xuất</p>
+            <div class="mt-2 flex gap-2"><input readonly value="{{ session('order_share_url') }}" class="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 text-xs"><button type="button" data-copy-order-share="{{ session('order_share_url') }}" class="rounded-xl bg-slate-950 px-3 text-xs font-black text-white">Sao chép</button></div>
+        </div>
+    @endif
+    @if($issue->status === \Modules\Pharma\Models\InventoryIssue::POSTED)
+        <div class="mx-auto mt-3 flex max-w-4xl flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm" data-order-pdf-actions>
+            @if($orderPdfReady)
+                <a href="{{ route('client.pharma.orders.pdf',$issue) }}" data-order-pdf-download class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-black text-slate-700">↓ PDF</a>
+                <a href="{{ route('client.pharma.orders.print',$issue) }}" target="_blank" rel="noopener" class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-black text-slate-700">In</a>
+                @if($orderPdfShare)
+                    <button type="button" data-copy-order-share="{{ $orderPdfShare['url'] }}" class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-black text-slate-700">Sao chép link</button>
+                    <form method="POST" action="{{ route('client.pharma.orders.share.revoke',[$issue,$orderPdfShare['id']]) }}">@csrf @method('DELETE')<button class="inline-flex min-h-10 items-center rounded-xl border border-rose-200 bg-rose-50 px-3 text-xs font-black text-rose-700 transition active:scale-[0.985] motion-reduce:transform-none">Thu hồi</button></form>
+                @else
+                    <form method="POST" action="{{ route('client.pharma.orders.share',$issue) }}">@csrf<button class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-black text-slate-700">Chia sẻ</button></form>
+                @endif
+            @else
+                <form method="POST" action="{{ route('client.pharma.orders.pdf.export',$issue) }}">@csrf<button class="inline-flex min-h-10 items-center rounded-xl bg-slate-950 px-4 text-xs font-black text-white">Xuất PDF</button></form>
+            @endif
+        </div>
+    @endif
     @if($canEditOrder || $canSubmitOrder || $canApproveOrder || ($canUndoApproval ?? false) || ($canDeleteOrder ?? false) || ($canPostOrder ?? false))
         <div class="mx-auto mt-3 max-w-4xl rounded-2xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm" data-order-actions>
             @if($canDeleteOrder ?? false)
@@ -217,4 +239,13 @@
         </script>
     @endif
 </div>
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+    document.addEventListener('click',async(event)=>{
+        const copy=event.target.closest('[data-copy-order-share]');
+        if(!copy)return;
+        try{await navigator.clipboard.writeText(copy.dataset.copyOrderShare);const old=copy.textContent;copy.textContent='Đã sao chép';setTimeout(()=>copy.textContent=old,1600);}catch(e){window.prompt('Sao chép link chia sẻ:',copy.dataset.copyOrderShare);}
+    });
+});
+</script>
 @endsection

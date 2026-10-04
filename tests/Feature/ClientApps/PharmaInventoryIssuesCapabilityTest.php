@@ -155,4 +155,58 @@ final class PharmaInventoryIssuesCapabilityTest extends TestCase
         $this->assertStringContainsString('<span>Lập đơn hàng</span>', $view);
     }
 
+    public function test_posted_order_pdf_artifacts_are_private_shareable_and_pwa_safe(): void
+    {
+        $root=base_path();
+        $routes=file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/routes.php');
+        $controller=file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php');
+        $service=file_get_contents($root.'/Modules/Pharma/Services/InventoryIssueDocumentService.php');
+        $list=file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-issues.blade.php');
+        $detail=file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-issue-show.blade.php');
+
+        foreach(["Route::post('/orders/{issue}/pdf'","Route::get('/orders/{issue}/pdf'","Route::get('/orders/{issue}/print'","Route::post('/orders/{issue}/share'","Route::delete('/orders/{issue}/share/{share}'","/share/pharma/orders/{token}"] as $contract) $this->assertStringContainsString($contract,$routes);
+        foreach(['exportOrderPdf','downloadOrderPdf','printOrderPdf','shareOrderPdf','revokeOrderPdfShare','downloadOrderPdfShare'] as $method) $this->assertStringContainsString('function '.$method.'(',$controller);
+        $this->assertStringContainsString("abort_unless(\$issue->status===InventoryIssue::POSTED,409,'Chỉ phiếu xuất đã ghi sổ mới được xuất PDF.')",$service);
+        $this->assertStringContainsString("Storage::disk('local')->put(\$path,\$binary)",$service);
+        $this->assertStringContainsString('private function canonicalIssue(InventoryIssue $issue): InventoryIssue',$service);
+        $this->assertStringContainsString("loadMissing(['items.medicine','manager:id,name','priceList.manager'])",$service);
+
+        $this->assertStringContainsString("Pdf::loadView('Pharma::pages.inventory.issue-pdf'",$service);
+        $this->assertStringContainsString("'token_hash'=>hash('sha256',\$token)",$service);
+        $this->assertStringContainsString("'expires_at'=>now()->addDays(30)",$service);
+        $this->assertStringContainsString('data-order-pdf-download',$list);
+        $this->assertStringContainsString("fetch(link.href,{credentials:'same-origin',cache:'no-store'})",$list);
+        $this->assertStringContainsString('navigator.canShare?.({files:[file]})',$list);
+        $this->assertStringContainsString('data-copy-order-share',$list);
+        $this->assertStringContainsString('data-dismiss-order-share-after-copy',$list);
+        $this->assertStringContainsString('Thu hồi',$list);
+        $this->assertStringContainsString('data-order-pdf-actions',$detail);
+        $this->assertStringContainsString("'orderPdfActions' => \$orderPdfActions,", $controller);
+        $this->assertStringNotContainsString("'orderPdfActions' => \$orderPdfActions\n                ||", $controller);
+
+        $this->assertStringContainsString('data-order-actions',$list);
+        $this->assertStringContainsString('aria-label="Thao tác khác"',$list);
+        $this->assertStringContainsString('>Xem chi tiết</a>',$list);
+        $this->assertStringContainsString('>Tải PDF</a>',$list);
+        $this->assertStringContainsString('>In PDF</a>',$list);
+        $this->assertStringContainsString('>Chia sẻ link</button>',$list);
+        $this->assertStringContainsString('>Thu hồi link</button>',$list);
+        $this->assertStringContainsString("Route::post('/orders/{issue}/revert'",$routes);
+        $this->assertStringContainsString('function revertPostedOrder(',$controller);
+        $this->assertStringContainsString("'canPostOrders' => \$canPostOrders",$controller);
+        $this->assertStringContainsString("route('client.pharma.orders.undo-approval',\$issue)",$list);
+        $this->assertStringContainsString("route('client.pharma.orders.post',\$issue)",$list);
+        $this->assertStringContainsString("route('client.pharma.orders.revert',\$issue)",$list);
+        $this->assertStringContainsString('Hoàn tác phê duyệt',$list);
+        $this->assertStringContainsString('Hoàn tác ghi sổ',$list);
+        $this->assertStringContainsString('Ghi sổ',$list);
+        $this->assertStringContainsString("\$documents->invalidate(\$posted)",$controller);
+
+        $compiled=app('blade.compiler')->compileString($list);
+        token_get_all($compiled,TOKEN_PARSE);
+        $compiledDetail=app('blade.compiler')->compileString($detail);
+        token_get_all($compiledDetail,TOKEN_PARSE);
+        $this->addToAssertionCount(2);
+    }
+
 }

@@ -89,6 +89,16 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->whereNumber('receipt')->middleware('client.feature:pharma,inventory')->name('inventory.receipts.post');
         Route::post('/inventory/receipts/{receipt}/revert', [PharmaApplicationController::class, 'revertInventoryReceipt'])
             ->whereNumber('receipt')->middleware('client.feature:pharma,inventory')->name('inventory.receipts.revert');
+        Route::post('/inventory/receipts/{receipt}/pdf', [PharmaApplicationController::class, 'exportInventoryReceiptPdf'])
+            ->whereNumber('receipt')->middleware('client.feature:pharma,inventory')->name('inventory.receipts.pdf.export');
+        Route::get('/inventory/receipts/{receipt}/pdf', [PharmaApplicationController::class, 'downloadInventoryReceiptPdf'])
+            ->whereNumber('receipt')->middleware('client.feature:pharma,inventory')->name('inventory.receipts.pdf');
+        Route::get('/inventory/receipts/{receipt}/print', [PharmaApplicationController::class, 'printInventoryReceiptPdf'])
+            ->whereNumber('receipt')->middleware('client.feature:pharma,inventory')->name('inventory.receipts.print');
+        Route::post('/inventory/receipts/{receipt}/share', [PharmaApplicationController::class, 'shareInventoryReceiptPdf'])
+            ->whereNumber('receipt')->middleware('client.feature:pharma,inventory')->name('inventory.receipts.share');
+        Route::delete('/inventory/receipts/{receipt}/share/{share}', [PharmaApplicationController::class, 'revokeInventoryReceiptPdfShare'])
+            ->whereNumber(['receipt','share'])->middleware('client.feature:pharma,inventory')->name('inventory.receipts.share.revoke');
         Route::get('/inventory/receipts/{receipt}', [PharmaApplicationController::class, 'inventoryReceipt'])
             ->whereNumber('receipt')->middleware('client.feature:pharma,inventory')->name('inventory.receipts.show');
         Route::get('/orders', [PharmaApplicationController::class, 'orders'])
@@ -114,6 +124,18 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->whereNumber('issue')->middleware('client.feature:pharma,orders')->name('orders.undo-approval');
         Route::post('/orders/{issue}/post', [PharmaApplicationController::class, 'postOrder'])
             ->whereNumber('issue')->middleware('client.feature:pharma,orders')->name('orders.post');
+        Route::post('/orders/{issue}/revert', [PharmaApplicationController::class, 'revertPostedOrder'])
+            ->whereNumber('issue')->middleware('client.feature:pharma,orders')->name('orders.revert');
+        Route::post('/orders/{issue}/pdf', [PharmaApplicationController::class, 'exportOrderPdf'])
+            ->whereNumber('issue')->middleware('client.feature:pharma,orders')->name('orders.pdf.export');
+        Route::get('/orders/{issue}/pdf', [PharmaApplicationController::class, 'downloadOrderPdf'])
+            ->whereNumber('issue')->middleware('client.feature:pharma,orders')->name('orders.pdf');
+        Route::get('/orders/{issue}/print', [PharmaApplicationController::class, 'printOrderPdf'])
+            ->whereNumber('issue')->middleware('client.feature:pharma,orders')->name('orders.print');
+        Route::post('/orders/{issue}/share', [PharmaApplicationController::class, 'shareOrderPdf'])
+            ->whereNumber('issue')->middleware('client.feature:pharma,orders')->name('orders.share');
+        Route::delete('/orders/{issue}/share/{share}', [PharmaApplicationController::class, 'revokeOrderPdfShare'])
+            ->whereNumber(['issue','share'])->middleware('client.feature:pharma,orders')->name('orders.share.revoke');
         Route::post('/orders/{issue}/reject', [PharmaApplicationController::class, 'rejectOrder'])
             ->whereNumber('issue')->middleware('client.feature:pharma,orders')->name('orders.reject');
         Route::get('/orders/{issue}', [PharmaApplicationController::class, 'order'])
@@ -232,4 +254,10 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
     Route::middleware('web')->get('/share/pharma/price-lists/{token}/pdf', [PharmaApplicationController::class, 'downloadPriceListSharePdf'])
         ->where('token', '[A-Za-z0-9]{64}')
         ->name('client.pharma.price-lists.share.pdf');
+    Route::middleware('web')->get('/share/pharma/inventory/receipts/{token}', [PharmaApplicationController::class, 'downloadInventoryReceiptShare'])
+        ->where('token', '[A-Za-z0-9]{64}')
+        ->name('client.pharma.inventory.receipts.share.download');
+    Route::middleware('web')->get('/share/pharma/orders/{token}', [PharmaApplicationController::class, 'downloadOrderPdfShare'])
+        ->where('token', '[A-Za-z0-9]{64}')
+        ->name('client.pharma.orders.share.download');
 }

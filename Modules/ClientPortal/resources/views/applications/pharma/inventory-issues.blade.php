@@ -23,6 +23,14 @@
         </div>
     </header>
 
+    @if(session('order_share_url'))
+        <div class="fixed inset-x-4 top-4 z-[100] mx-auto max-w-xl rounded-2xl border border-emerald-200 bg-white p-4 pr-12 shadow-2xl transition duration-200" data-order-share-flash>
+            <button type="button" data-dismiss-order-share class="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-lg text-lg font-bold text-emerald-700 hover:bg-emerald-50" aria-label="Đóng thông báo link chia sẻ">×</button>
+            <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Link chia sẻ PDF phiếu xuất</p>
+            <div class="mt-2 flex gap-2"><input readonly value="{{ session('order_share_url') }}" class="min-w-0 flex-1 rounded-xl border border-slate-300 px-3 text-xs"><button type="button" data-copy-order-share="{{ session('order_share_url') }}" data-dismiss-order-share-after-copy class="rounded-xl bg-slate-950 px-3 text-xs font-black text-white">Sao chép</button></div>
+        </div>
+    @endif
+
     <section class="mt-4">
         <div class="flex items-center gap-2">
         <form id="issue-search-form" method="GET" action="{{ route('client.pharma.orders') }}" class="flex min-w-0 flex-1 gap-2 lg:max-w-[620px]">
@@ -78,7 +86,7 @@
     <div id="orders-search-region">
     <section id="issue-mobile-list" class="mt-4 grid min-w-0 max-w-full grid-cols-1 gap-3 md:grid-cols-2 xl:hidden">
         @forelse($issues as $issue)
-            <a data-issue-card href="{{ route('client.pharma.orders.show', $issue->id) }}" class="min-w-0 max-w-full overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">
+            <article data-issue-card class="min-w-0 max-w-full overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
                         <p class="break-all text-xs font-black uppercase tracking-wide text-slate-500">{{ $issue->number }}</p>
@@ -91,7 +99,29 @@
                     <div><p class="text-xs text-slate-500">Ngày lập</p><p class="mt-0.5 text-sm font-bold text-slate-800">{{ $issue->issue_date?->format('d/m/Y') }}</p></div>
                     <div class="text-right"><p class="text-xs text-slate-500">Tổng tiền</p><p class="mt-0.5 text-base font-black text-slate-950">{{ $money($issue->total_value ?? 0) }}</p></div>
                 </div>
-            </a>
+                <div class="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
+                    @if($issue->status === \Modules\Pharma\Models\InventoryIssue::APPROVED)
+                        @if($canApproveOrders)<form method="POST" action="{{ route('client.pharma.orders.undo-approval',$issue) }}">@csrf<button class="inline-flex min-h-10 items-center rounded-xl border border-amber-300 bg-amber-50 px-3 text-xs font-black text-amber-800 active:scale-[0.985]">Hoàn tác duyệt</button></form>@endif
+                        @if($canPostOrders && ($issue->issue_source ?? 'normal') !== 'bid')<form method="POST" action="{{ route('client.pharma.orders.post',$issue) }}" onsubmit="return confirm('Xác nhận ghi sổ phiếu xuất?')">@csrf<button class="inline-flex min-h-10 items-center rounded-xl bg-emerald-600 px-3 text-xs font-black text-white active:scale-[0.985]">Ghi sổ</button></form>@endif
+                    @endif
+                    @if($issue->status === \Modules\Pharma\Models\InventoryIssue::POSTED)
+                        @if($orderPdfActions[$issue->id]['ready'] ?? false)
+                            <a href="{{ route('client.pharma.orders.pdf',$issue) }}" data-order-pdf-download class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-black text-slate-700">↓ PDF</a>
+                            <a href="{{ route('client.pharma.orders.print',$issue) }}" target="_blank" rel="noopener" class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-black text-slate-700">In</a>
+                            @if($orderPdfActions[$issue->id]['share'] ?? null)
+                                <button type="button" data-copy-order-share="{{ $orderPdfActions[$issue->id]['share']['url'] }}" class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-black text-slate-700">Sao chép link</button>
+                                <form method="POST" action="{{ route('client.pharma.orders.share.revoke',[$issue,$orderPdfActions[$issue->id]['share']['id']]) }}">@csrf @method('DELETE')<button class="inline-flex min-h-10 items-center rounded-xl border border-rose-200 bg-rose-50 px-3 text-xs font-black text-rose-700 transition active:scale-[0.985] motion-reduce:transform-none">Thu hồi</button></form>
+                            @else
+                                <form method="POST" action="{{ route('client.pharma.orders.share',$issue) }}">@csrf<button class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-black text-slate-700">Chia sẻ</button></form>
+                            @endif
+                        @else
+                            <form method="POST" action="{{ route('client.pharma.orders.pdf.export',$issue) }}">@csrf<button class="inline-flex min-h-10 items-center rounded-xl bg-slate-950 px-3 text-xs font-black text-white">Xuất PDF</button></form>
+                        @endif
+                        @if($canPostOrders)<form method="POST" action="{{ route('client.pharma.orders.revert',$issue) }}" onsubmit="return confirm('Hoàn tác ghi sổ? Hàng sẽ được cộng trả vào tồn kho.')">@csrf<button class="inline-flex min-h-10 items-center rounded-xl border border-amber-300 bg-amber-50 px-3 text-xs font-black text-amber-800 active:scale-[0.985]">Hoàn tác ghi sổ</button></form>@endif
+                    @endif
+                    <a href="{{ route('client.pharma.orders.show',$issue->id) }}" class="ml-auto inline-flex min-h-10 items-center text-xs font-black text-slate-600">Chi tiết ›</a>
+                </div>
+            </article>
         @empty
             <div class="col-span-full flex min-h-[52vh] flex-col items-center justify-center px-6 text-center">
                 <div class="flex h-20 w-20 items-center justify-center rounded-3xl bg-slate-100 text-4xl text-slate-400">≡</div>
@@ -101,12 +131,48 @@
         @endforelse
     </section>
 
-    <section class="mt-4 hidden overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm xl:block">
+    <section class="relative mt-4 hidden min-h-[420px] overflow-visible rounded-3xl border border-slate-200 bg-white shadow-sm xl:block">
         <table class="w-full table-fixed text-left text-sm">
-            <thead class="bg-slate-50 text-xs font-black uppercase tracking-wide text-slate-500"><tr><th class="w-[17%] px-5 py-4">Số phiếu</th><th class="w-[27%] px-5 py-4">Khách hàng / bệnh viện</th><th class="w-[18%] px-5 py-4">Nguồn</th><th class="w-[13%] px-5 py-4">Ngày lập</th><th class="w-[12%] px-5 py-4 text-right">Tổng tiền</th><th class="w-[8%] px-5 py-4 text-center">Ghi chú</th><th class="w-[12%] px-5 py-4">Trạng thái</th></tr></thead>
+            <thead class="bg-slate-50 text-xs font-black uppercase tracking-wide text-slate-500"><tr><th class="w-[17%] px-5 py-4">Số phiếu</th><th class="w-[27%] px-5 py-4">Khách hàng / bệnh viện</th><th class="w-[18%] px-5 py-4">Nguồn</th><th class="w-[13%] px-5 py-4">Ngày lập</th><th class="w-[12%] px-5 py-4 text-right">Tổng tiền</th><th class="w-[8%] px-5 py-4 text-center">Ghi chú</th><th class="w-[10%] px-5 py-4">Trạng thái</th><th class="w-[8%] px-5 py-4 text-right"><span class="sr-only">Thao tác</span></th></tr></thead>
             <tbody id="issue-desktop-body" class="divide-y divide-slate-100">
                 @foreach($issues as $issue)
-                    <tr data-issue-row class="hover:bg-slate-50"><td class="px-5 py-4"><a class="font-black text-slate-950" href="{{ route('client.pharma.orders.show',$issue->id) }}">{{ $issue->number }}</a></td><td class="px-5 py-4 font-bold text-slate-800">{{ $issue->recipient_name ?: '—' }}</td><td class="px-5 py-4">{{ $sourceLabels[$issue->issue_source ?? 'normal'] ?? 'Theo bảng giá' }}</td><td class="px-5 py-4">{{ $issue->issue_date?->format('d/m/Y') }}</td><td class="px-5 py-4 text-right font-black">{{ $money($issue->total_value ?? 0) }}</td><td class="px-5 py-4 text-center">@if($issue->shortage_note)<button type="button" data-shortage-note="{{ $issue->shortage_note }}" class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-amber-200 bg-amber-50 text-base text-amber-800" aria-label="Xem ghi chú thiếu hàng" title="Xem ghi chú thiếu hàng">📝</button>@else<span class="text-slate-300">—</span>@endif</td><td class="px-5 py-4 font-bold">{{ $statusLabels[$issue->status] ?? $issue->status }}</td></tr>
+                    <tr data-issue-row class="hover:bg-slate-50"><td class="px-5 py-4"><a class="font-black text-slate-950" href="{{ route('client.pharma.orders.show',$issue->id) }}">{{ $issue->number }}</a></td><td class="px-5 py-4 font-bold text-slate-800">{{ $issue->recipient_name ?: '—' }}</td><td class="px-5 py-4">{{ $sourceLabels[$issue->issue_source ?? 'normal'] ?? 'Theo bảng giá' }}</td><td class="px-5 py-4">{{ $issue->issue_date?->format('d/m/Y') }}</td><td class="px-5 py-4 text-right font-black">{{ $money($issue->total_value ?? 0) }}</td><td class="px-5 py-4 text-center">@if($issue->shortage_note)<button type="button" data-shortage-note="{{ $issue->shortage_note }}" class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-amber-200 bg-amber-50 text-base text-amber-800" aria-label="Xem ghi chú thiếu hàng" title="Xem ghi chú thiếu hàng">📝</button>@else<span class="text-slate-300">—</span>@endif</td><td class="px-5 py-4 font-bold">{{ $statusLabels[$issue->status] ?? $issue->status }}</td><td class="px-5 py-4 text-right">
+                        <div class="flex justify-end">
+                            <details class="relative" data-order-actions>
+                                <summary class="flex min-h-9 cursor-pointer list-none items-center rounded-lg border border-slate-300 bg-white px-3 text-base font-bold leading-none text-slate-600 hover:bg-slate-50" aria-label="Thao tác khác">⋯</summary>
+                                <div class="absolute right-0 z-30 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-left shadow-xl">
+                                    <a href="{{ route('client.pharma.orders.show',$issue->id) }}" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Xem chi tiết</a>
+                                    @if($issue->status === \Modules\Pharma\Models\InventoryIssue::APPROVED)
+                                        @if($canApproveOrders)
+                                            <form method="POST" action="{{ route('client.pharma.orders.undo-approval',$issue) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-amber-700 hover:bg-amber-50">Hoàn tác phê duyệt</button></form>
+                                        @endif
+                                        @if($canPostOrders && ($issue->issue_source ?? 'normal') !== 'bid')
+                                            <form method="POST" action="{{ route('client.pharma.orders.post',$issue) }}" onsubmit="return confirm('Xác nhận ghi sổ phiếu xuất?')">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-emerald-700 hover:bg-emerald-50">Ghi sổ</button></form>
+                                        @endif
+                                    @endif
+                                    @if($issue->status === \Modules\Pharma\Models\InventoryIssue::POSTED)
+                                        <div class="my-1 border-t border-slate-100"></div>
+                                        @if($orderPdfActions[$issue->id]['ready'] ?? false)
+                                            <a href="{{ route('client.pharma.orders.pdf',$issue) }}" data-order-pdf-download class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Tải PDF</a>
+                                            <a href="{{ route('client.pharma.orders.print',$issue) }}" target="_blank" rel="noopener" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">In PDF</a>
+                                            @if($orderPdfActions[$issue->id]['share'] ?? null)
+                                                <button type="button" data-copy-order-share="{{ $orderPdfActions[$issue->id]['share']['url'] }}" class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50">Sao chép link</button>
+                                                <form method="POST" action="{{ route('client.pharma.orders.share.revoke',[$issue,$orderPdfActions[$issue->id]['share']['id']]) }}">@csrf @method('DELETE')<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-rose-700 hover:bg-rose-50">Thu hồi link</button></form>
+                                            @else
+                                                <form method="POST" action="{{ route('client.pharma.orders.share',$issue) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50">Chia sẻ link</button></form>
+                                            @endif
+                                        @else
+                                            <form method="POST" action="{{ route('client.pharma.orders.pdf.export',$issue) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50">Xuất PDF</button></form>
+                                        @endif
+                                        @if($canPostOrders)
+                                            <div class="my-1 border-t border-slate-100"></div>
+                                            <form method="POST" action="{{ route('client.pharma.orders.revert',$issue) }}" onsubmit="return confirm('Hoàn tác ghi sổ? Hàng sẽ được cộng trả vào tồn kho.')">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-amber-700 hover:bg-amber-50">Hoàn tác ghi sổ</button></form>
+                                        @endif
+                                    @endif
+                                </div>
+                            </details>
+                        </div>
+                    </td></tr>
                 @endforeach
             </tbody>
         </table>
@@ -162,6 +228,30 @@
 </dialog>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('click',(event)=>{
+        document.querySelectorAll('details[data-order-actions][open]').forEach((menu)=>{if(!menu.contains(event.target))menu.removeAttribute('open');});
+    });
+    const orderShareFlash=document.querySelector('[data-order-share-flash]');
+    const dismissOrderShare=()=>{if(!orderShareFlash)return;orderShareFlash.classList.add('opacity-0','-translate-y-1','pointer-events-none');setTimeout(()=>orderShareFlash.remove(),200);};
+    document.addEventListener('click',(event)=>{if(event.target.closest('[data-dismiss-order-share]')){dismissOrderShare();return;}if(orderShareFlash&&!orderShareFlash.contains(event.target))dismissOrderShare();});
+    document.addEventListener('keydown',(event)=>{if(event.key==='Escape')dismissOrderShare();});
+    const preparedOrderPdfs=new Map();
+    const standaloneOrder=window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true;
+    document.addEventListener('click',async(event)=>{
+        const copy=event.target.closest('[data-copy-order-share]');
+        if(copy){try{await navigator.clipboard.writeText(copy.dataset.copyOrderShare);const old=copy.textContent;copy.textContent='Đã sao chép';if(copy.hasAttribute('data-dismiss-order-share-after-copy'))setTimeout(dismissOrderShare,650);else setTimeout(()=>copy.textContent=old,1600);}catch(e){window.prompt('Sao chép link chia sẻ:',copy.dataset.copyOrderShare);}return;}
+        const link=event.target.closest('[data-order-pdf-download]');
+        if(!link||!standaloneOrder)return;
+        event.preventDefault();
+        const cached=preparedOrderPdfs.get(link.href);
+        if(cached&&navigator.canShare?.({files:[cached]})){await navigator.share({files:[cached],title:'Phiếu xuất kho'});return;}
+        const response=await fetch(link.href,{credentials:'same-origin',cache:'no-store'});
+        if(!response.ok){window.location.href=link.href;return;}
+        const blob=await response.blob(), file=new File([blob],'phieu-xuat-kho.pdf',{type:'application/pdf'});
+        preparedOrderPdfs.set(link.href,file);
+        if(navigator.canShare?.({files:[file]})){link.textContent='Mở / lưu PDF';return;}
+        const objectUrl=URL.createObjectURL(blob);window.open(objectUrl,'_blank','noopener');window.setTimeout(()=>URL.revokeObjectURL(objectUrl),60000);
+    });
     const createAction=document.querySelector('[data-create-order]');
     if(createAction && window.matchMedia('(max-width: 1023px)').matches) document.body.appendChild(createAction);
     const shortageDialog=document.getElementById('shortage-note-dialog'), shortageContent=document.getElementById('shortage-note-content');

@@ -11,8 +11,12 @@ use Illuminate\Support\Str;
 use Modules\ClientPortal\Services\ApplicationRegistry;
 use Modules\ClientPortal\Services\ClientPortalSettingsService;
 use Modules\Pharma\Models\PriceList;
+use Modules\Pharma\Models\InventoryReceipt;
 use Modules\Pharma\Services\MedicineCatalog;
 use Modules\Pharma\Services\InventoryService;
+use Modules\Pharma\Services\InventoryReceiptDocumentService;
+use Modules\Pharma\Services\InventoryIssueDocumentService;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Modules\Pharma\Services\UserPriceListWorkspace;
 use Modules\Pharma\Services\UserCommercialHospitalWorkspace;
 use Modules\Pharma\Services\UserInventoryWorkspace;
@@ -1218,6 +1222,7 @@ final class PharmaApplicationController extends Controller
         ApplicationRegistry $registry,
         ClientPortalSettingsService $settings,
         UserInventoryReceiptWorkspace $workspace,
+        InventoryReceiptDocumentService $documents,
     ): View {
         $validated = $request->validate([
             'q' => ['nullable', 'string', 'max:120'],
@@ -1230,13 +1235,27 @@ final class PharmaApplicationController extends Controller
         $feature = collect($application['features'] ?? [])->first(fn (array $feature): bool => $feature['key'] === 'inventory');
         abort_if($feature === null, 404);
 
+        $receipts=$workspace->browse($validated['q'] ?? null, $validated['status'] ?? null, 20, (int) ($validated['page'] ?? 1))->withQueryString();
+        $receiptPdfActions=[];
+        foreach ($receipts->getCollection() as $receipt) {
+            $canUsePdf=$receipt->status === InventoryReceipt::POSTED;
+            $receiptPdfActions[(int)$receipt->id]=[
+                'can_use_pdf'=>$canUsePdf,
+                'invoice_ready'=>$canUsePdf && $documents->current($receipt,InventoryReceiptDocumentService::INVOICE)!==null,
+                'share'=>$canUsePdf ? $documents->latestInvoiceShare($receipt,(int)$user->id) : null,
+            ];
+        }
+
         return view('ClientPortal::applications.pharma.inventory-receipts', [
             'application' => $application,
             'applicationPresentation' => $settings->applicationPresentation($application),
             'featurePresentation' => $settings->featurePresentation($application['key'], $feature),
-            'receipts' => $workspace->browse($validated['q'] ?? null, $validated['status'] ?? null, 20, (int) ($validated['page'] ?? 1))->withQueryString(),
+            'receipts' => $receipts,
             'statusCounts' => $workspace->statusCounts($validated['q'] ?? null),
             'filters' => ['q' => trim((string) ($validated['q'] ?? '')), 'status' => $validated['status'] ?? ''],
+            'receiptPdfActions'=>$receiptPdfActions,
+            'canApproveReceipt'=>$registry->userCan($user,'client.pharma.inventory.receipts.approve'),
+            'canPostReceipt'=>$registry->userCan($user,'client.pharma.inventory.receipts.post'),
         ]);
     }
 
@@ -1284,7 +1303,7 @@ final class PharmaApplicationController extends Controller
             'items.*.quantity' => ['required', 'numeric', 'gt:0'],
             'items.*.unit_price_ex_vat' => ['required', 'numeric', 'min:0'],
             'items.*.invoice_unit_price_ex_vat' => ['nullable', 'numeric', 'min:0'],
-            'items.*.vat_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'vat_rate' => ['required', 'numeric', 'min:0', 'max:100'],
         ]);
 
         $receipt = $workspace->createDraft($data, (int) $user->id);
@@ -1325,7 +1344,7 @@ final class PharmaApplicationController extends Controller
             'items.*.batch_number' => ['required', 'string', 'max:100'], 'items.*.expiry_date' => ['required', 'date'],
             'items.*.quantity' => ['required', 'numeric', 'gt:0'], 'items.*.unit_price_ex_vat' => ['required', 'numeric', 'min:0'],
             'items.*.invoice_unit_price_ex_vat' => ['nullable', 'numeric', 'min:0'],
-            'items.*.vat_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'vat_rate' => ['required', 'numeric', 'min:0', 'max:100'],
         ]);
         $workspace->updateDraft($visibleReceipt, $data);
         return redirect()->route('client.pharma.inventory.receipts.show', $receipt)->with('success', 'Đã cập nhật phiếu nhập nháp. Tồn kho chưa thay đổi.');
@@ -1394,6 +1413,59 @@ final class PharmaApplicationController extends Controller
         return back()->with('success', 'Đã hoàn tác ghi sổ. Phiếu trở về trạng thái Đã duyệt.');
     }
 
+    public function exportInventoryReceiptPdf(int $receipt, Request $request, ApplicationRegistry $registry, UserInventoryReceiptWorkspace $workspace, InventoryReceiptDocumentService $documents): RedirectResponse
+    {
+        $user=$request->user('web'); abort_if($user===null,401);
+        abort_unless($registry->userCan($user,'client.pharma.inventory.receipts'),403);
+        $visible=$workspace->find($receipt); abort_if($visible===null,404);
+        $documents->generate($visible,InventoryReceiptDocumentService::INVOICE,(int)$user->id);
+        return back()->with('success','Đã xuất PDF hóa đơn và lưu trên server.');
+    }
+
+    public function downloadInventoryReceiptPdf(int $receipt, Request $request, ApplicationRegistry $registry, UserInventoryReceiptWorkspace $workspace, InventoryReceiptDocumentService $documents): BinaryFileResponse
+    {
+        $user=$request->user('web'); abort_if($user===null,401);
+        abort_unless($registry->userCan($user,'client.pharma.inventory.receipts'),403);
+        $visible=$workspace->find($receipt); abort_if($visible===null,404);
+        $document=$documents->current($visible,InventoryReceiptDocumentService::INVOICE);
+        abort_unless($document,404);
+        return response()->download($documents->path($document),$document->download_name,['Cache-Control'=>'private, no-store']);
+    }
+
+    public function printInventoryReceiptPdf(int $receipt, Request $request, ApplicationRegistry $registry, UserInventoryReceiptWorkspace $workspace, InventoryReceiptDocumentService $documents): BinaryFileResponse
+    {
+        $user=$request->user('web'); abort_if($user===null,401);
+        abort_unless($registry->userCan($user,'client.pharma.inventory.receipts'),403);
+        $visible=$workspace->find($receipt); abort_if($visible===null,404);
+        $document=$documents->current($visible,InventoryReceiptDocumentService::INVOICE);
+        abort_unless($document,404);
+        return response()->file($documents->path($document),['Content-Type'=>'application/pdf','Cache-Control'=>'private, no-store']);
+    }
+
+    public function shareInventoryReceiptPdf(int $receipt, Request $request, ApplicationRegistry $registry, UserInventoryReceiptWorkspace $workspace, InventoryReceiptDocumentService $documents): RedirectResponse
+    {
+        $user=$request->user('web'); abort_if($user===null,401);
+        abort_unless($registry->userCan($user,'client.pharma.inventory.receipts'),403);
+        $visible=$workspace->find($receipt); abort_if($visible===null,404);
+        $share=$documents->createInvoiceShare($visible,(int)$user->id);
+        return back()->with('success','Đã tạo link chia sẻ PDF hóa đơn.')->with('receipt_share_url',$share['url']);
+    }
+
+    public function revokeInventoryReceiptPdfShare(int $receipt, int $share, Request $request, ApplicationRegistry $registry, UserInventoryReceiptWorkspace $workspace, InventoryReceiptDocumentService $documents): RedirectResponse
+    {
+        $user=$request->user('web'); abort_if($user===null,401);
+        abort_unless($registry->userCan($user,'client.pharma.inventory.receipts'),403);
+        abort_if($workspace->find($receipt)===null,404);
+        $documents->revokeShare($share,(int)$user->id);
+        return back()->with('success','Đã thu hồi link chia sẻ.');
+    }
+
+    public function downloadInventoryReceiptShare(string $token, InventoryReceiptDocumentService $documents): BinaryFileResponse
+    {
+        $document=$documents->resolveShare($token);
+        return response()->download($documents->path($document),$document->download_name,['Cache-Control'=>'private, no-store']);
+    }
+
     public function inventoryReceipt(
         int $receipt,
         Request $request,
@@ -1445,6 +1517,7 @@ final class PharmaApplicationController extends Controller
         abort_if($user === null, 401);
         abort_unless($registry->userCan($user, 'client.pharma.orders'), 403);
         $canApproveOrders = $registry->userCan($user, 'client.pharma.orders.approve');
+        $canPostOrders = $registry->userCan($user, 'client.pharma.orders.post');
         $managerUserId = $canApproveOrders ? (int) ($validated['manager_user_id'] ?? 0) : 0;
         $managerUserId = $managerUserId > 0 ? $managerUserId : null;
 
@@ -1452,27 +1525,30 @@ final class PharmaApplicationController extends Controller
             ->first(fn (array $feature): bool => $feature['key'] === 'orders');
         abort_if($ordersFeature === null, 404);
 
+        $issues=$workspace->browse(
+            userId:(int)$user->id,search:$validated['q'] ?? null,status:$validated['status'] ?? null,
+            source:$validated['source'] ?? null,fromDate:$validated['from_date'] ?? null,toDate:$validated['to_date'] ?? null,
+            managerUserId:$managerUserId,perPage:20,page:(int)($validated['page'] ?? 1),includeApprovalScope:$canApproveOrders,
+        )->withQueryString();
+        $issueDocuments=app(InventoryIssueDocumentService::class);
+        $orderPdfActions=[];
+        foreach($issues->getCollection() as $issue){
+            $ready=$issue->status===\Modules\Pharma\Models\InventoryIssue::POSTED && $issueDocuments->current($issue)!==null;
+            $orderPdfActions[(int)$issue->id]=['ready'=>$ready,'share'=>$ready ? $issueDocuments->latestShare($issue,(int)$user->id) : null];
+        }
+
         return view('ClientPortal::applications.pharma.inventory-issues', [
             'application' => $application,
             'applicationPresentation' => $settings->applicationPresentation($application),
             'featurePresentation' => $settings->featurePresentation($application['key'], $ordersFeature),
-            'issues' => $workspace->browse(
-                userId: (int) $user->id,
-                search: $validated['q'] ?? null,
-                status: $validated['status'] ?? null,
-                source: $validated['source'] ?? null,
-                fromDate: $validated['from_date'] ?? null,
-                toDate: $validated['to_date'] ?? null,
-                managerUserId: $managerUserId,
-                perPage: 20,
-                page: (int) ($validated['page'] ?? 1),
-                includeApprovalScope: $canApproveOrders,
-            )->withQueryString(),
+            'issues' => $issues,
             'counts' => $workspace->counts((int) $user->id, $canApproveOrders, $managerUserId),
             'managerOptions' => $canApproveOrders ? $workspace->managerOptions((int) $user->id, true) : collect(),
             'canApproveOrders' => $canApproveOrders,
+            'canPostOrders' => $canPostOrders,
             'canCreateOrders' => $registry->userCan($user, 'client.pharma.orders.create')
                 || $registry->userCan($user, 'client.pharma.orders.create-for-user'),
+            'orderPdfActions' => $orderPdfActions,
             'filters' => [
                 'q' => trim((string) ($validated['q'] ?? '')),
                 'status' => $validated['status'] ?? '',
@@ -1668,6 +1744,23 @@ final class PharmaApplicationController extends Controller
             ->with('success', 'Đã ghi sổ đơn hàng và cập nhật tồn kho.');
     }
 
+    public function revertPostedOrder(
+        int $issue, Request $request, ApplicationRegistry $registry,
+        UserInventoryIssueWorkspace $workspace, InventoryService $inventory,
+        InventoryIssueDocumentService $documents,
+    ) {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.orders.post'), 403);
+        $posted = $workspace->findVisible((int) $user->id, $issue, true);
+        abort_if($posted === null || $posted->status !== \Modules\Pharma\Models\InventoryIssue::POSTED, 404);
+
+        $inventory->revertIssue($posted, (int) $user->id);
+        $documents->invalidate($posted);
+
+        return redirect()->route('client.pharma.orders')
+            ->with('success', 'Đã hoàn tác ghi sổ. Tồn kho đã được cộng trả và PDF cũ đã hết hiệu lực.');
+    }
+
     public function rejectOrder(
         int $issue, Request $request, ApplicationRegistry $registry,
         UserInventoryIssueWorkspace $workspace, UserOrderApprovalService $approval,
@@ -1697,6 +1790,61 @@ final class PharmaApplicationController extends Controller
         ]);
     }
 
+    public function exportOrderPdf(int $issue, Request $request, ApplicationRegistry $registry, UserInventoryIssueWorkspace $workspace, InventoryIssueDocumentService $documents): RedirectResponse
+    {
+        [$user,$visible]=$this->visibleOrderForDocument($issue,$request,$registry,$workspace);
+        $documents->generate($visible,(int)$user->id);
+        return back()->with('success',"Đã xuất PDF phiếu {$visible->number}.");
+    }
+
+    public function downloadOrderPdf(int $issue, Request $request, ApplicationRegistry $registry, UserInventoryIssueWorkspace $workspace, InventoryIssueDocumentService $documents): BinaryFileResponse
+    {
+        [, $visible]=$this->visibleOrderForDocument($issue,$request,$registry,$workspace);
+        $document=$documents->current($visible);
+        abort_unless($document,404);
+        return response()->download($documents->path($document),$document->download_name,['Cache-Control'=>'private, no-store']);
+    }
+
+    public function printOrderPdf(int $issue, Request $request, ApplicationRegistry $registry, UserInventoryIssueWorkspace $workspace, InventoryIssueDocumentService $documents): BinaryFileResponse
+    {
+        [, $visible]=$this->visibleOrderForDocument($issue,$request,$registry,$workspace);
+        $document=$documents->current($visible);
+        abort_unless($document,404);
+        return response()->file($documents->path($document),['Content-Type'=>'application/pdf','Cache-Control'=>'private, no-store']);
+    }
+
+    public function shareOrderPdf(int $issue, Request $request, ApplicationRegistry $registry, UserInventoryIssueWorkspace $workspace, InventoryIssueDocumentService $documents): RedirectResponse
+    {
+        [$user,$visible]=$this->visibleOrderForDocument($issue,$request,$registry,$workspace);
+        $share=$documents->createShare($visible,(int)$user->id);
+        return back()->with('order_share_url',$share['url']);
+    }
+
+    public function revokeOrderPdfShare(int $issue, int $share, Request $request, ApplicationRegistry $registry, UserInventoryIssueWorkspace $workspace, InventoryIssueDocumentService $documents): RedirectResponse
+    {
+        [$user]=$this->visibleOrderForDocument($issue,$request,$registry,$workspace);
+        $documents->revokeShare($share,(int)$user->id);
+        return back()->with('success','Đã thu hồi link chia sẻ PDF.');
+    }
+
+    public function downloadOrderPdfShare(string $token, InventoryIssueDocumentService $documents): BinaryFileResponse
+    {
+        $document=$documents->resolveShare($token);
+        return response()->download($documents->path($document),$document->download_name,['Cache-Control'=>'private, no-store']);
+    }
+
+    private function visibleOrderForDocument(int $issue, Request $request, ApplicationRegistry $registry, UserInventoryIssueWorkspace $workspace): array
+    {
+        $user=$request->user('web');
+        abort_if($user===null,401);
+        abort_unless($registry->userCan($user,'client.pharma.orders'),403);
+        $canApprove=$registry->userCan($user,'client.pharma.orders.approve');
+        $visible=$workspace->findVisible((int)$user->id,$issue,$canApprove);
+        if($visible===null && $registry->userCan($user,'client.pharma.orders.create-for-user')) $visible=$workspace->findByCreator((int)$user->id,$issue);
+        abort_if($visible===null,404);
+        return [$user,$visible];
+    }
+
     public function order(
         int $issue,
         Request $request,
@@ -1719,10 +1867,15 @@ final class PharmaApplicationController extends Controller
         if ($visibleIssue === null && $canApproveOrder) $visibleIssue = $workspace->findPendingForApproval($issue) ?? $workspace->findApprovedForUndo($issue);
         abort_if($visibleIssue === null, 404);
         $canViewInventory = $registry->userCan($user, 'client.pharma.inventory.view');
+        $issueDocuments=app(InventoryIssueDocumentService::class);
+        $orderPdfReady=$visibleIssue->status===\Modules\Pharma\Models\InventoryIssue::POSTED && $issueDocuments->current($visibleIssue)!==null;
+        $orderPdfShare=$orderPdfReady ? $issueDocuments->latestShare($visibleIssue,(int)$user->id) : null;
 
         return view('ClientPortal::applications.pharma.inventory-issue-show', [
             'application' => $application,
             'issue' => $visibleIssue,
+            'orderPdfReady' => $orderPdfReady,
+            'orderPdfShare' => $orderPdfShare,
             'inventoryBalanceLinks' => $canViewInventory ? $inventoryWorkspace->balanceLinksForItems($visibleIssue->items) : [],
             'canViewInventory' => $canViewInventory,
             'canEditOrder' => ($registry->userCan($user, 'client.pharma.orders.create') || $canCreateForUser)
