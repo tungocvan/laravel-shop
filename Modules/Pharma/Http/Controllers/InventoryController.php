@@ -724,7 +724,7 @@ final class InventoryController extends Controller
         return view('Pharma::pages.inventory.issue-edit',compact('issue','warehouse','availableBalances','partners','customerPriceLists','priceListManagers','issueSalePrices'));
     }
 
-    public function updateIssue(Request $request, InventoryIssue $issue, InventoryService $inventory): RedirectResponse
+    public function updateIssue(Request $request, InventoryIssue $issue, InventoryService $inventory, UserOrderApprovalService $approval): RedirectResponse
     {
         $this->normalizeIssueNumericInputs($request);
         $this->guardIssueWarehouse($issue,$inventory);
@@ -797,10 +797,17 @@ final class InventoryController extends Controller
                 }
             }
         });
+        if($request->input('after_save')==='approve'){
+            $issue->refresh()->update(['status'=>InventoryIssue::PENDING_APPROVAL]);
+            $approval->approve((int)auth('admin')->id(),$issue->fresh());
+            return redirect()->route('admin.pharma.inventory.issues.edit',$issue)
+                ->with('success',"Đã duyệt phiếu {$issue->number}. Phiếu đã sẵn sàng ghi sổ kho.");
+        }
         if($request->input('after_save')==='post'){
+            if($issue->fresh()->status!==InventoryIssue::APPROVED) throw ValidationException::withMessages(['issue'=>'Phiếu phải được duyệt trước khi ghi sổ.']);
             $inventory->postIssue($issue->fresh('items'),auth('admin')->id());
             return redirect()->route('admin.pharma.inventory.issues.show',$issue)
-                ->with('success',"Đã lưu và ghi sổ {$issue->number}; tồn kho và hoa hồng đã được cập nhật.");
+                ->with('success',"Đã ghi sổ {$issue->number}; tồn kho và hoa hồng đã được cập nhật.");
         }
         $route=$request->input('after_save')==='view' ? 'admin.pharma.inventory.issues.show' : 'admin.pharma.inventory.issues.edit';
         return redirect()->route($route,$issue)->with('success',"Đã cập nhật đầy đủ phiếu nháp {$issue->number}.");
@@ -885,9 +892,11 @@ final class InventoryController extends Controller
 
     public function postIssue(InventoryIssue $issue, InventoryService $inventory): RedirectResponse
     {
+        $this->guardIssueWarehouse($issue,$inventory);
         if(($issue->issue_source ?? 'normal')==='bid' && in_array($issue->status,[InventoryIssue::DRAFT,InventoryIssue::APPROVED],true)){
             return redirect()->route('admin.pharma.inventory.issues.bid-sales.batches',$issue);
         }
+        if($issue->status!==InventoryIssue::APPROVED) throw ValidationException::withMessages(['issue'=>'Phiếu phải được duyệt trước khi ghi sổ.']);
         $inventory->postIssue($issue,auth('admin')->id());
         return back()->with('success',"Đã ghi sổ {$issue->number}.");
     }
