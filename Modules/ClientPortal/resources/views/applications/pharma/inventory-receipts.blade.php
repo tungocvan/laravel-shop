@@ -125,7 +125,7 @@
     </div>
 
     @can('client.pharma.inventory.receipts.create')
-        <a href="{{ route('client.pharma.inventory.receipts.create') }}" class="fixed right-[max(18px,env(safe-area-inset-right,0px))] z-40 inline-flex h-11 w-11 items-center justify-center rounded-full bg-slate-950 text-xl font-light text-white shadow-lg transition active:scale-[0.985] lg:hidden motion-reduce:transform-none" style="bottom:calc(18px + env(safe-area-inset-bottom,0px))" aria-label="Thêm phiếu nhập">+</a>
+        <a href="{{ route('client.pharma.inventory.receipts.create') }}" class="fixed z-40 inline-flex h-11 w-11 items-center justify-center rounded-full bg-slate-950 text-xl font-light text-white shadow-lg transition active:scale-[0.985] lg:hidden motion-reduce:transform-none" style="right:calc(18px + env(safe-area-inset-right,0px));bottom:calc(18px + env(safe-area-inset-bottom,0px))" aria-label="Thêm phiếu nhập">+</a>
     @endcan
 </div>
 @endsection
