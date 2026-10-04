@@ -62,7 +62,8 @@ class CommissionContractTest extends TestCase
         $this->assertStringContainsString("name=\"medicine_id\"", $view);
         $this->assertStringContainsString("Route::get('/commissions/export'", $routes);
         $this->assertStringContainsString("'ids'=>'nullable|array|max:500'", $controller);
-        $this->assertStringContainsString("'Hoa hồng'=>(float)\$row->commission_amount", $controller);
+        $this->assertStringContainsString("'commission'=>(float)\$row->commission_amount", $controller);
+        $this->assertStringContainsString("'commission'=>['label'=>'Hoa hồng'", file_get_contents(base_path('Modules/Pharma/Services/CommissionExportProfileService.php')));
         $this->assertStringContainsString('Xóa bộ lọc', $view);
         $this->assertStringContainsString('Xuất Excel theo bộ lọc', $view);
         $this->assertStringContainsString('Export Excel đã chọn', $view);
