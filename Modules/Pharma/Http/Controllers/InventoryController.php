@@ -29,6 +29,7 @@ use Modules\Pharma\Services\InventoryService;
 use Modules\Pharma\Services\InventoryMovementSummaryService;
 use Modules\Pharma\Services\UserOrderApprovalService;
 use Modules\Pharma\Services\UserOrderAuthoringService;
+use Modules\Pharma\Services\UserOrderStockReadinessService;
 use Modules\Pharma\Services\DrugBidCommissionService;
 use Modules\Pharma\Services\CommissionQueryService;
 use Modules\Partner\Models\Partner;
