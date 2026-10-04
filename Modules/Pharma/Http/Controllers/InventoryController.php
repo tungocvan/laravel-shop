@@ -481,12 +481,22 @@ final class InventoryController extends Controller
             }else{
                 $issue->shortage_note='';
             }
-            $issue->can_post_stock=($issue->issue_source ?? 'normal')!=='bid' && $issue->status===InventoryIssue::DRAFT
-                && $issue->items->isNotEmpty() && $issue->items->every(function($item)use($balanceKeys){
-                    if(blank($item->batch_number) || !$item->expiry_date) return false;
-                    $key=$item->medicine_id.'|'.$item->batch_number.'|'.$item->expiry_date->format('Y-m-d');
-                    return (float)($balanceKeys[$key]?->quantity_on_hand ?? 0) >= (float)$item->quantity;
-                });
+            $deferredMedicineIds=$issue->deferredSupplies->where('status',InventoryIssueDeferredSupply::PENDING)
+                ->pluck('medicine_id')->map(fn($id)=>(int)$id)->unique();
+            $postedItems=$issue->items->reject(fn($item)=>$deferredMedicineIds->contains((int)$item->medicine_id));
+            $allShortagesDocumented=$issue->items->every(function($item)use($balanceKeys,$deferredMedicineIds){
+                if($deferredMedicineIds->contains((int)$item->medicine_id)) return true;
+                if(blank($item->batch_number) || !$item->expiry_date) return false;
+                $key=$item->medicine_id.'|'.$item->batch_number.'|'.$item->expiry_date->format('Y-m-d');
+                return (float)($balanceKeys[$key]?->quantity_on_hand ?? 0) >= (float)$item->quantity;
+            });
+            $hasStockedItem=$postedItems->isNotEmpty() && $postedItems->every(function($item)use($balanceKeys){
+                if(blank($item->batch_number) || !$item->expiry_date) return false;
+                $key=$item->medicine_id.'|'.$item->batch_number.'|'.$item->expiry_date->format('Y-m-d');
+                return (float)($balanceKeys[$key]?->quantity_on_hand ?? 0) >= (float)$item->quantity;
+            });
+            $issue->can_post_stock=($issue->issue_source ?? 'normal')!=='bid' && $issue->status===InventoryIssue::APPROVED
+                && $allShortagesDocumented && $hasStockedItem;
             $issue->resolved_manager_names=$this->issueManagerNames($issue);
         });
         $directManagerIds=InventoryIssue::query()->where('warehouse_id',$warehouse->id)->whereNotNull('manager_user_id')->distinct()->pluck('manager_user_id');
