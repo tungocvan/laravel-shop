@@ -174,6 +174,8 @@ CONTRACT, $list);
 abort_unless($receipt->status === InventoryReceipt::POSTED, 409, 'Chỉ phiếu nhập đã ghi sổ mới được xuất PDF.')
 CONTRACT, $documents);
         $this->assertStringContainsString('Ghi sổ để xuất PDF',$list);
+        $this->assertStringNotContainsString('$canUseReceiptPdf=',$list);
+        $this->assertStringNotContainsString('$desktopCanUsePdf=',$list);
         $compiled=app('blade.compiler')->compileString($list);
         $temporary=tempnam(sys_get_temp_dir(),'receipt-list-blade-');
         file_put_contents($temporary,$compiled);
