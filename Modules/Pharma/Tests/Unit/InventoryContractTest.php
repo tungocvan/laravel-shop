@@ -67,7 +67,8 @@ class InventoryContractTest extends TestCase
         $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
         $this->assertStringContainsString('FastExcel', $controller);
         $this->assertStringContainsString('StreamedResponse', $controller);
-        $this->assertStringNotContainsString('BinaryFileResponse', $controller);
+        $this->assertStringContainsString('BinaryFileResponse', $controller);
+        $this->assertStringContainsString('new Spreadsheet()', $controller);
         $index=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/index.blade.php'));
         $opening=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/opening-form.blade.php'));
         $this->assertStringContainsString("route('admin.pharma.dashboard')", $index);
@@ -692,7 +693,7 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("\$issue->items_count=\$postedItems->count()", $controller);
         $this->assertStringContainsString("\$issue->total_value=(float)\$postedItems->sum", $controller);
         $this->assertStringContainsString("\$issue->shortage_note=\$issue->deferredSupplies->map", $controller);
-        $this->assertStringContainsString('Ghi chú thiếu hàng', $documents);
+        $this->assertStringContainsString('Xem ghi chú thiếu hàng', $documents);
         $this->assertStringContainsString("route('admin.pharma.inventory.issues.show',\$doc)", $documents);
         $this->assertStringContainsString("shortage-note-{{ \$doc->id }}", $documents);
         $this->assertStringContainsString('Xem ghi chú thiếu hàng', $documents);
@@ -776,7 +777,7 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("['all'=>'Tất cả','price_list'=>'Theo bảng giá','bid'=>'Hàng thầu']", $view);
         $this->assertStringContainsString('Khách hàng / Bệnh viện', $view);
         $this->assertStringContainsString('Giá trị thu · bảng giá', $view);
-        $this->assertStringContainsString('SL × (Giá bán CT − Giá thu)', $view);
+        $this->assertStringContainsString('Hoa hồng phát sinh', $view);
         $this->assertStringContainsString('SOURCE_PRICE_LIST', $model);
         $this->assertStringContainsString('snapshotPriceListIssue', $service);
         $this->assertStringContainsString('actual_receivable_price', $service);
@@ -862,8 +863,8 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('function updateBidSaleIssue', $controller);
         $this->assertStringContainsString('issues/{issue}/bid-sale-edit', $routes);
         $this->assertStringContainsString('Sửa đơn hàng thầu', $documents);
-        $this->assertStringContainsString("\$doc->status === 'draft' && (\$doc->issue_source ?? 'normal') !== 'bid'", $documents);
-        $this->assertStringContainsString('!($type === \'issue\' && ($doc->issue_source ?? \'normal\') === \'bid\')', $documents);
+        $this->assertStringContainsString("in_array(\$doc->status, ['draft','approved'], true)", $documents);
+        $this->assertStringContainsString("(\$doc->issue_source ?? 'normal') === 'bid'", $documents);
         $this->assertStringContainsString('DrugBidAwardManagementAssignment::query()', $controller);
         $this->assertStringNotContainsString("with(['partner','award.medicine','managementAssignments.user'])", $controller);
         $bidEdit=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/bid-sale-edit.blade.php'));
