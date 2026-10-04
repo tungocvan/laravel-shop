@@ -615,10 +615,11 @@ final class InventoryController extends Controller
         $issueManagers=User::query()->whereIn('id',$directManagerIds->merge($bidManagerIds)->unique())->orderBy('name')->get(['id','name']);
         $issueRecipients=InventoryIssue::query()->where('warehouse_id',$warehouse->id)->whereNotNull('recipient_name')
             ->where('recipient_name','<>','')->distinct()->orderBy('recipient_name')->pluck('recipient_name');
+        $issueDocumentStatuses=app(InventoryIssueDocumentService::class)->statuses($documents->getCollection());
         return view('Pharma::pages.inventory.documents',[
             'type'=>'issue','title'=>'Phiếu xuất kho','documents'=>$documents,
             'issueManagers'=>$issueManagers,'issueRecipients'=>$issueRecipients,
-            'dateFrom'=>$dateFrom,'dateTo'=>$dateTo,
+            'dateFrom'=>$dateFrom,'dateTo'=>$dateTo,'issueDocumentStatuses'=>$issueDocumentStatuses,
         ]);
     }
     public function issueDocumentSettings(): View
