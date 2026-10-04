@@ -25,10 +25,16 @@ class ClientPortalFileAvailabilityAndErrorRecoveryTest extends TestCase
         $forbidden = file_get_contents(resource_path('views/errors/403.blade.php'));
         $notFound = file_get_contents(resource_path('views/errors/404.blade.php'));
 
+        $this->assertStringContainsString("request()->is('apps/*')", $forbidden);
+        $this->assertStringContainsString("Route::has('client.apps.index')", $forbidden);
+        $this->assertStringContainsString("route('client.apps.index')", $forbidden);
+
+        $this->assertStringContainsString("str_starts_with(\$requestPath, 'apps/')", $notFound);
+        $this->assertStringContainsString("str_starts_with(\$requestPath, 'my-apps/')", $notFound);
+        $this->assertStringContainsString("str_starts_with(\$routeName, 'client.')", $notFound);
+        $this->assertStringContainsString("url('/my-apps')", $notFound);
+
         foreach ([$forbidden, $notFound] as $view) {
-            $this->assertStringContainsString("request()->is('apps/*')", $view);
-            $this->assertStringContainsString("Route::has('client.apps.index')", $view);
-            $this->assertStringContainsString("route('client.apps.index')", $view);
             $this->assertStringContainsString('data-error-back', $view);
             $this->assertStringContainsString('history.back()', $view);
             $this->assertStringContainsString('document.referrer', $view);
