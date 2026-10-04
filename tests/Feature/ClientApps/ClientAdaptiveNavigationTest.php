@@ -127,6 +127,13 @@ class ClientAdaptiveNavigationTest extends TestCase
         $this->assertStringContainsString('box-shadow: inset 4px 4px 8px', $html);
         $this->assertStringNotContainsString('box-shadow: 2px 2px 5px', $html);
         $this->assertStringContainsString('min-h-[2.25em]', $html);
+        $this->assertStringContainsString('touch-action: manipulation', $html);
+        $this->assertStringContainsString('-webkit-tap-highlight-color: transparent', $html);
+        $this->assertStringContainsString('active:scale-[0.97]', $html);
+        $this->assertStringContainsString('group-active/nav-item:translate-y-px', $html);
+        $this->assertStringContainsString('motion-reduce:transform-none', $html);
+        $this->assertStringContainsString('onpointerdown=', $html);
+        $this->assertStringContainsString('onpointercancel=', $html);
     }
 
     public function test_navigation_icon_partial_has_generic_fallback(): void
