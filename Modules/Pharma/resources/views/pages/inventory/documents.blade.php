@@ -104,15 +104,31 @@
                             <td class="px-4 py-4 text-right">
                                 <div class="flex flex-wrap justify-end gap-2">
                                     @if($type === 'receipt')
+                                        @php
+                                            $invoicePdfReady=(bool)($receiptDocumentStatuses[$doc->id]['invoice'] ?? false);
+                                            $costPdfReady=(bool)($receiptDocumentStatuses[$doc->id]['cost'] ?? false);
+                                        @endphp
+                                        @if($invoicePdfReady)
+                                            <a href="{{ route('admin.pharma.inventory.receipts.pdf.invoice',$doc) }}" class="inline-flex min-h-9 items-center rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50" title="Tải PDF hóa đơn" aria-label="Tải PDF hóa đơn">↓ PDF</a>
+                                            <a href="{{ route('admin.pharma.inventory.receipts.print.invoice',$doc) }}" target="_blank" rel="noopener" class="inline-flex min-h-9 items-center rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50" title="In phiếu nhập">In</a>
+                                        @endif
                                         <details class="relative" data-document-actions>
                                             <summary class="flex min-h-9 cursor-pointer list-none items-center rounded-lg border border-slate-300 bg-white px-3 text-base font-bold leading-none text-slate-600 hover:bg-slate-50" aria-label="Thao tác khác">⋯</summary>
                                             <div class="absolute right-0 z-30 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-left shadow-xl">
-                                                <a href="{{ route('admin.pharma.inventory.receipts.pdf.invoice',$doc) }}" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Tải PDF hóa đơn</a>
-                                                <a href="{{ route('admin.pharma.inventory.receipts.print.invoice',$doc) }}" target="_blank" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">In theo hóa đơn</a>
+                                                @if($invoicePdfReady)
+                                                    <a href="{{ route('admin.pharma.inventory.receipts.pdf.invoice',$doc) }}" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Tải PDF hóa đơn</a>
+                                                    <a href="{{ route('admin.pharma.inventory.receipts.print.invoice',$doc) }}" target="_blank" rel="noopener" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">In PDF hóa đơn</a>
+                                                @else
+                                                    <form method="POST" action="{{ route('admin.pharma.inventory.receipts.pdf.invoice.export',$doc) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50">Xuất PDF hóa đơn</button></form>
+                                                @endif
                                                 @can('view_pharma_inventory_costs')
                                                     <div class="my-1 border-t border-slate-100"></div>
-                                                    <a href="{{ route('admin.pharma.inventory.receipts.pdf.cost',$doc) }}" class="block px-4 py-2.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-50">Tải PDF giá vốn</a>
-                                                    <a href="{{ route('admin.pharma.inventory.receipts.print.cost',$doc) }}" target="_blank" class="block px-4 py-2.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-50">In theo giá vốn</a>
+                                                    @if($costPdfReady)
+                                                        <a href="{{ route('admin.pharma.inventory.receipts.pdf.cost',$doc) }}" class="block px-4 py-2.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-50">Tải PDF giá vốn</a>
+                                                        <a href="{{ route('admin.pharma.inventory.receipts.print.cost',$doc) }}" target="_blank" rel="noopener" class="block px-4 py-2.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-50">In PDF giá vốn</a>
+                                                    @else
+                                                        <form method="POST" action="{{ route('admin.pharma.inventory.receipts.pdf.cost.export',$doc) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-indigo-700 hover:bg-indigo-50">Xuất PDF giá vốn</button></form>
+                                                    @endif
                                                 @endcan
                                                 <div class="my-1 border-t border-slate-100"></div>
                                                 @can('edit_pharma')
