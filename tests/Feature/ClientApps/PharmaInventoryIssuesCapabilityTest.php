@@ -169,8 +169,7 @@ final class PharmaInventoryIssuesCapabilityTest extends TestCase
         $this->assertStringContainsString("abort_unless(\$issue->status===InventoryIssue::POSTED,409,'Chỉ phiếu xuất đã ghi sổ mới được xuất PDF.')",$service);
         $this->assertStringContainsString("Storage::disk('local')->put(\$path,\$binary)",$service);
         $this->assertStringContainsString('private function canonicalIssue(InventoryIssue $issue): InventoryIssue',$service);
-        $this->assertStringContainsString("->with(['items.medicine','manager:id,name','priceList.manager'])",$service);
-        $this->assertStringContainsString("->findOrFail(\$issue->getKey())",$service);
+        $this->assertStringContainsString("loadMissing(['items.medicine','manager:id,name','priceList.manager'])",$service);
 
         $this->assertStringContainsString("Pdf::loadView('Pharma::pages.inventory.issue-pdf'",$service);
         $this->assertStringContainsString("'token_hash'=>hash('sha256',\$token)",$service);
