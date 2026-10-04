@@ -67,7 +67,8 @@ class InventoryContractTest extends TestCase
         $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
         $this->assertStringContainsString('FastExcel', $controller);
         $this->assertStringContainsString('StreamedResponse', $controller);
-        $this->assertStringNotContainsString('BinaryFileResponse', $controller);
+        $this->assertStringContainsString('BinaryFileResponse', $controller);
+        $this->assertStringContainsString('new Spreadsheet()', $controller);
         $index=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/index.blade.php'));
         $opening=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/opening-form.blade.php'));
         $this->assertStringContainsString("route('admin.pharma.dashboard')", $index);
@@ -288,7 +289,7 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('Export Excel', $documents);
         $this->assertStringContainsString("@section('admin_container','full')", $documents);
         $this->assertStringContainsString("max-w-[1580px]", $documents);
-        $this->assertStringContainsString("min-w-[1580px]", $documents);
+        $this->assertStringContainsString("min-w-[1320px]", $documents);
         $this->assertStringContainsString('Khách hàng / Nơi nhận', $documents);
         $this->assertStringContainsString('Tải PDF', $documents);
         $this->assertStringContainsString('In trực tiếp', $documents);
@@ -391,6 +392,13 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('type="submit" form="issue-edit-form" name="after_save" value="edit"', $edit);
         $this->assertStringContainsString("document.getElementById('issue-edit-form')?.addEventListener('submit'", $edit);
         $this->assertStringContainsString('Tóm tắt phiếu', $edit);
+        $this->assertStringContainsString('value="approve"', $edit);
+        $this->assertStringContainsString('Duyệt phiếu', $edit);
+        $this->assertStringContainsString("status!==InventoryIssue::APPROVED", $controller);
+        $this->assertStringContainsString('Phiếu phải được duyệt trước khi ghi sổ.', $controller);
+        $this->assertStringNotContainsString('id="summary-lines"', $edit);
+        $this->assertStringNotContainsString('id="summary-quantity"', $edit);
+        $this->assertStringNotContainsString('id="summary-value"', $edit);
         $this->assertStringContainsString("\$deferredByMedicine=", $show);
         $this->assertStringContainsString("\$deferredValue=", $show);
         $this->assertStringContainsString("\$availableValue=max(0,\$totalValue-\$deferredValue)", $show);
@@ -685,7 +693,11 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("\$issue->items_count=\$postedItems->count()", $controller);
         $this->assertStringContainsString("\$issue->total_value=(float)\$postedItems->sum", $controller);
         $this->assertStringContainsString("\$issue->shortage_note=\$issue->deferredSupplies->map", $controller);
-        $this->assertStringContainsString('Ghi chú thiếu hàng', $documents);
+        $this->assertStringContainsString('Xem ghi chú thiếu hàng', $documents);
+        $this->assertStringContainsString("route('admin.pharma.inventory.issues.show',\$doc)", $documents);
+        $this->assertStringContainsString("shortage-note-{{ \$doc->id }}", $documents);
+        $this->assertStringContainsString('Xem ghi chú thiếu hàng', $documents);
+        $this->assertStringNotContainsString('>Xem</a>\n                                        <details', $documents);
         $this->assertStringContainsString("\$doc->shortage_note", $documents);
         $this->assertStringContainsString("'Ghi chu thieu hang'=>\$shortage", $controller);
         $this->assertStringContainsString("request->input('after_save')==='post'", $controller);
@@ -765,7 +777,7 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("['all'=>'Tất cả','price_list'=>'Theo bảng giá','bid'=>'Hàng thầu']", $view);
         $this->assertStringContainsString('Khách hàng / Bệnh viện', $view);
         $this->assertStringContainsString('Giá trị thu · bảng giá', $view);
-        $this->assertStringContainsString('SL × (Giá bán CT − Giá thu)', $view);
+        $this->assertStringContainsString('Hoa hồng phát sinh', $view);
         $this->assertStringContainsString('SOURCE_PRICE_LIST', $model);
         $this->assertStringContainsString('snapshotPriceListIssue', $service);
         $this->assertStringContainsString('actual_receivable_price', $service);
@@ -774,7 +786,8 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('price_list_item_id', $migration);
         $inventoryService=file_get_contents(base_path('Modules/Pharma/Services/InventoryService.php'));
         $this->assertStringContainsString("\$this->commissions->snapshotPostedIssue(\$issue->fresh(['items','deferredSupplies'])", $inventoryService);
-        $this->assertStringContainsString("when(\$source!=='all'", $controller);
+        $queryService=file_get_contents(base_path('Modules/Pharma/Services/CommissionQueryService.php'));
+        $this->assertStringContainsString("\$filters['source']!=='all'", $queryService);
         $this->assertStringContainsString("pharma_price_list_users", $controller);
         $this->assertStringContainsString("whereNotNull('manager_user_id')", $controller);
         $this->assertStringContainsString("newly configured price list must be selectable", $controller);
@@ -789,11 +802,11 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("\$row->issue?->recipient_name", $controller);
         $this->assertStringContainsString("'ids'=>'nullable|array|max:500'", $controller);
         $this->assertStringContainsString('<div class="w-full space-y-5 px-2 xl:px-3">', $view);
-        $this->assertStringContainsString('min-w-[1520px] table-fixed', $view);
-        $this->assertStringContainsString('w-[155px] p-3 text-right">Hoa hồng', $view);
-        $this->assertStringContainsString("calculated_at->format('d/m/Y')", $view);
+        $this->assertStringContainsString('min-w-[1040px] table-fixed', $view);
+        $this->assertStringContainsString('w-[160px] p-3 text-right">Tổng hoa hồng', $view);
+        $this->assertStringContainsString("issue_date?->format('d/m/Y') ?: \$row->calculated_at?->format('d/m/Y')", $view);
         $this->assertStringNotContainsString("calculated_at->format('d/m/Y H:i')", $view);
-        $this->assertStringContainsString('whitespace-nowrap p-3 text-right font-bold', $view);
+        $this->assertStringContainsString('p-3 text-right font-bold tabular-nums', $view);
     }
 
     public function test_bid_sale_issue_workspace_contracts(): void
@@ -851,8 +864,8 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('function updateBidSaleIssue', $controller);
         $this->assertStringContainsString('issues/{issue}/bid-sale-edit', $routes);
         $this->assertStringContainsString('Sửa đơn hàng thầu', $documents);
-        $this->assertStringContainsString("\$doc->status === 'draft' && (\$doc->issue_source ?? 'normal') !== 'bid'", $documents);
-        $this->assertStringContainsString('!($type === \'issue\' && ($doc->issue_source ?? \'normal\') === \'bid\')', $documents);
+        $this->assertStringContainsString("in_array(\$doc->status, ['draft','approved'], true)", $documents);
+        $this->assertStringContainsString("(\$doc->issue_source ?? 'normal') === 'bid'", $documents);
         $this->assertStringContainsString('DrugBidAwardManagementAssignment::query()', $controller);
         $this->assertStringNotContainsString("with(['partner','award.medicine','managementAssignments.user'])", $controller);
         $bidEdit=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/bid-sale-edit.blade.php'));
@@ -958,5 +971,42 @@ class InventoryContractTest extends TestCase
         $this->addToAssertionCount(3);
     }
 
+
+
+    public function test_commission_excel_designer_matches_price_list_column_workspace_contract(): void
+    {
+        $view=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/commissions.blade.php'));
+        $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
+        $profile=file_get_contents(base_path('Modules/Pharma/Services/CommissionExportProfileService.php'));
+
+        $this->assertStringContainsString('Thiết kế cột Excel',$view);
+        $this->assertStringContainsString('Kho dữ liệu',$view);
+        $this->assertStringContainsString('Cột sẽ xuất Excel',$view);
+        $this->assertStringContainsString('Column Inspector',$view);
+        $this->assertStringContainsString('Tiêu đề Excel',$view);
+        $this->assertStringContainsString('Kiểu dữ liệu',$view);
+        $this->assertStringContainsString('Độ rộng',$view);
+        $this->assertStringContainsString('excel_profile',$controller);
+        $this->assertStringContainsString('CommissionExportProfileService::normalize',$controller);
+        $this->assertStringContainsString("'commission'=>['label'=>'Hoa hồng'",$profile);
+        $this->assertStringContainsString("'quantity'=>['label'=>'SL thực xuất'",$profile);
+    }
+
+
+    public function test_commission_excel_designer_controls_stt_header_wrap_and_column_width(): void
+    {
+        $view=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/commissions.blade.php'));
+        $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
+        $profile=file_get_contents(base_path('Modules/Pharma/Services/CommissionExportProfileService.php'));
+
+        $this->assertStringContainsString("'stt'=>['label'=>'STT'",$profile);
+        $this->assertStringContainsString("'auto_widths'=>array_fill_keys",$profile);
+        $this->assertStringContainsString("'wrap_texts'=>array_fill_keys",$profile);
+        $this->assertStringContainsString('Auto độ rộng',$view);
+        $this->assertStringContainsString('Wrap Text',$view);
+        $this->assertStringContainsString("setHorizontal('center')",$controller);
+        $this->assertStringContainsString("profile['auto_widths']",$controller);
+        $this->assertStringContainsString("profile['wrap_texts']",$controller);
+    }
 
 }

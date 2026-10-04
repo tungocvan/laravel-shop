@@ -25,6 +25,28 @@ $signatures=collect([
    <a href="{{ route('admin.pharma.inventory.issues.pdf',$issue) }}" class="rounded-xl border border-indigo-200 bg-white px-4 py-2.5 text-sm font-semibold text-indigo-700">↓ Tải PDF</a><a href="{{ route('admin.pharma.inventory.issues.print',$issue) }}" target="_blank" rel="noopener" class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm">▣ In trực tiếp</a>
   </div>
  </div>
+ @if($issue->status === 'draft' && ($approvalReadiness['can_approve'] ?? false))
+ @can('approve_pharma_inventory_issue')
+ <section class="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-5 shadow-sm">
+  <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+   <div><div class="flex items-center gap-2"><span class="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-800">ĐỦ ĐIỀU KIỆN</span><h2 class="font-bold text-slate-950">Phiếu sẵn sàng phê duyệt</h2></div><p class="mt-2 text-sm text-slate-600">Các mặt hàng đủ tồn hoặc đã có thông tin cung ứng bổ sung. Phê duyệt chưa ghi sổ kho.</p></div>
+   <form method="POST" action="{{ route('admin.pharma.inventory.issues.update',$issue) }}">@csrf @method('PUT')<input type="hidden" name="approve_existing" value="1"><button class="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-emerald-700">Phê duyệt phiếu</button></form>
+  </div>
+ </section>
+ @endcan
+ @endif
+ @if($issue->status === 'approved')
+ @can('approve_pharma_inventory_issue')
+ <section class="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-5 shadow-sm">
+  <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"><div><div class="flex items-center gap-2"><span class="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-800">ĐÃ DUYỆT</span><h2 class="font-bold text-slate-950">Sẵn sàng xử lý kho</h2></div><p class="mt-2 text-sm text-slate-600">Phê duyệt chưa làm thay đổi tồn kho hoặc hoa hồng. Chỉ khi Ghi sổ mới trừ tồn và ghi nhận hoa hồng.</p></div><div class="flex flex-wrap gap-2"><form method="POST" action="{{ route('admin.pharma.inventory.issues.undo-approval',$issue) }}">@csrf<button class="rounded-xl border border-amber-300 bg-white px-4 py-2.5 text-sm font-bold text-amber-700 hover:bg-amber-50">Hoàn tác phê duyệt</button></form>@if(($issue->issue_source ?? 'normal') !== 'bid')<form method="POST" action="{{ route('admin.pharma.inventory.issues.post',$issue) }}">@csrf<button class="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-emerald-700">Ghi sổ</button></form>@endif</div></div>
+ </section>
+ @endcan
+ @endif
+ @if($issue->status === 'posted')
+ @can('delete_pharma')
+ <section class="rounded-2xl border border-amber-200 bg-amber-50/40 p-5 shadow-sm"><div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"><div><h2 class="font-bold text-slate-950">Phiếu đã ghi sổ</h2><p class="mt-2 text-sm text-slate-600">Tồn kho đã được trừ và hoa hồng đã được ghi nhận. Hoàn tác ghi sổ sẽ cộng trả tồn đúng lô và đảo hoa hồng phát sinh.</p></div><form method="POST" action="{{ route('admin.pharma.inventory.issues.revert',$issue) }}">@csrf<button class="rounded-xl border border-amber-300 bg-white px-4 py-2.5 text-sm font-bold text-amber-700 hover:bg-amber-50">Hoàn tác ghi sổ</button></form></div></section>
+ @endcan
+ @endif
  @if($issue->status === 'pending_approval')
  @can('approve_pharma_inventory_issue')
  <section class="rounded-2xl border border-amber-200 bg-amber-50/50 p-5 shadow-sm">

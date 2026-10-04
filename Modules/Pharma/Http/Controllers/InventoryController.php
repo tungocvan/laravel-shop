@@ -29,11 +29,16 @@ use Modules\Pharma\Services\InventoryService;
 use Modules\Pharma\Services\InventoryMovementSummaryService;
 use Modules\Pharma\Services\UserOrderApprovalService;
 use Modules\Pharma\Services\UserOrderAuthoringService;
+use Modules\Pharma\Services\UserOrderStockReadinessService;
 use Modules\Pharma\Services\DrugBidCommissionService;
 use Modules\Pharma\Services\CommissionQueryService;
+use Modules\Pharma\Services\CommissionExportProfileService;
 use Modules\Partner\Models\Partner;
-use Rap2hpoutre\FastExcel\FastExcel;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 final class InventoryController extends Controller
 {
@@ -434,7 +439,7 @@ final class InventoryController extends Controller
         $dateTo=$request->filled('date_to') ? Carbon::parse($request->date_to)->toDateString() : now()->toDateString();
         if($dateFrom>$dateTo) [$dateFrom,$dateTo]=[$dateTo,$dateFrom];
         $query=InventoryIssue::query()->withCount('items')
-            ->with(['items:id,issue_id,medicine_id,drug_bid_award_id,batch_number,expiry_date,quantity,unit_price','items.medicine:id,name,unit','deferredSupplies:id,issue_id,medicine_id,quantity,note,expected_supply_date','manager:id,name'])
+            ->with(['items:id,issue_id,medicine_id,drug_bid_award_id,batch_number,expiry_date,quantity,unit_price','items.medicine:id,name,unit','deferredSupplies:id,issue_id,medicine_id,quantity,note,expected_supply_date,status','manager:id,name'])
             ->withSum('items as total_quantity','quantity')
             ->withSum('items as total_value',DB::raw('quantity * unit_price'))
             ->where('warehouse_id',$warehouse->id)
@@ -480,12 +485,22 @@ final class InventoryController extends Controller
             }else{
                 $issue->shortage_note='';
             }
-            $issue->can_post_stock=($issue->issue_source ?? 'normal')!=='bid' && $issue->status===InventoryIssue::DRAFT
-                && $issue->items->isNotEmpty() && $issue->items->every(function($item)use($balanceKeys){
-                    if(blank($item->batch_number) || !$item->expiry_date) return false;
-                    $key=$item->medicine_id.'|'.$item->batch_number.'|'.$item->expiry_date->format('Y-m-d');
-                    return (float)($balanceKeys[$key]?->quantity_on_hand ?? 0) >= (float)$item->quantity;
-                });
+            $deferredMedicineIds=$issue->deferredSupplies->where('status',InventoryIssueDeferredSupply::PENDING)
+                ->pluck('medicine_id')->map(fn($id)=>(int)$id)->unique();
+            $postedItems=$issue->items->reject(fn($item)=>$deferredMedicineIds->contains((int)$item->medicine_id));
+            $allShortagesDocumented=$issue->items->every(function($item)use($balanceKeys,$deferredMedicineIds){
+                if($deferredMedicineIds->contains((int)$item->medicine_id)) return true;
+                if(blank($item->batch_number) || !$item->expiry_date) return false;
+                $key=$item->medicine_id.'|'.$item->batch_number.'|'.$item->expiry_date->format('Y-m-d');
+                return (float)($balanceKeys[$key]?->quantity_on_hand ?? 0) >= (float)$item->quantity;
+            });
+            $hasStockedItem=$postedItems->isNotEmpty() && $postedItems->every(function($item)use($balanceKeys){
+                if(blank($item->batch_number) || !$item->expiry_date) return false;
+                $key=$item->medicine_id.'|'.$item->batch_number.'|'.$item->expiry_date->format('Y-m-d');
+                return (float)($balanceKeys[$key]?->quantity_on_hand ?? 0) >= (float)$item->quantity;
+            });
+            $issue->can_post_stock=($issue->issue_source ?? 'normal')!=='bid' && $issue->status===InventoryIssue::APPROVED
+                && $allShortagesDocumented && $hasStockedItem;
             $issue->resolved_manager_names=$this->issueManagerNames($issue);
         });
         $directManagerIds=InventoryIssue::query()->where('warehouse_id',$warehouse->id)->whereNotNull('manager_user_id')->distinct()->pluck('manager_user_id');
@@ -675,7 +690,8 @@ final class InventoryController extends Controller
         $issue->load(['items.medicine','manager:id,name','priceList.manager','deferredSupplies.medicine']);
         $bidManagerNames=$this->bidIssueManagerNames($issue);
         $settings=InventoryIssueDocumentSetting::current();
-        return view('Pharma::pages.inventory.issue-show',compact('issue','settings','bidManagerNames'));
+        $approvalReadiness=app(UserOrderStockReadinessService::class)->forIssue($issue);
+        return view('Pharma::pages.inventory.issue-show',compact('issue','settings','bidManagerNames','approvalReadiness'));
     }
 
     public function issuePdf(InventoryIssue $issue, InventoryService $inventory): Response
@@ -724,12 +740,20 @@ final class InventoryController extends Controller
         return view('Pharma::pages.inventory.issue-edit',compact('issue','warehouse','availableBalances','partners','customerPriceLists','priceListManagers','issueSalePrices'));
     }
 
-    public function updateIssue(Request $request, InventoryIssue $issue, InventoryService $inventory): RedirectResponse
+    public function updateIssue(Request $request, InventoryIssue $issue, InventoryService $inventory, UserOrderApprovalService $approval): RedirectResponse
     {
         $this->normalizeIssueNumericInputs($request);
         $this->guardIssueWarehouse($issue,$inventory);
         if(($issue->issue_source ?? 'normal')==='bid'){
             throw ValidationException::withMessages(['issue'=>'Phiếu hàng thầu phải được chỉnh sửa tại workspace Xuất hàng thầu.']);
+        }
+        if($request->boolean('approve_existing')){
+            abort_unless(auth('admin')->user()?->can('approve_pharma_inventory_issue'),403);
+            abort_unless($issue->status===InventoryIssue::DRAFT,404);
+            $issue->update(['status'=>InventoryIssue::PENDING_APPROVAL]);
+            $approval->approve((int)auth('admin')->id(),$issue->fresh());
+            return redirect()->route('admin.pharma.inventory.issues.show',$issue)
+                ->with('success',"Đã phê duyệt phiếu {$issue->number}. Phiếu đã sẵn sàng ghi sổ kho.");
         }
         $metadata=$request->validate(['issue_date'=>'required|date','recipient_name'=>'nullable|string|max:255','notes'=>'nullable|string']);
         if($issue->status===InventoryIssue::POSTED){
@@ -797,10 +821,17 @@ final class InventoryController extends Controller
                 }
             }
         });
+        if($request->input('after_save')==='approve'){
+            $issue->refresh()->update(['status'=>InventoryIssue::PENDING_APPROVAL]);
+            $approval->approve((int)auth('admin')->id(),$issue->fresh());
+            return redirect()->route('admin.pharma.inventory.issues.edit',$issue)
+                ->with('success',"Đã duyệt phiếu {$issue->number}. Phiếu đã sẵn sàng ghi sổ kho.");
+        }
         if($request->input('after_save')==='post'){
+            if($issue->fresh()->status!==InventoryIssue::APPROVED) throw ValidationException::withMessages(['issue'=>'Phiếu phải được duyệt trước khi ghi sổ.']);
             $inventory->postIssue($issue->fresh('items'),auth('admin')->id());
             return redirect()->route('admin.pharma.inventory.issues.show',$issue)
-                ->with('success',"Đã lưu và ghi sổ {$issue->number}; tồn kho và hoa hồng đã được cập nhật.");
+                ->with('success',"Đã ghi sổ {$issue->number}; tồn kho và hoa hồng đã được cập nhật.");
         }
         $route=$request->input('after_save')==='view' ? 'admin.pharma.inventory.issues.show' : 'admin.pharma.inventory.issues.edit';
         return redirect()->route($route,$issue)->with('success',"Đã cập nhật đầy đủ phiếu nháp {$issue->number}.");
@@ -872,6 +903,14 @@ final class InventoryController extends Controller
             ->with('success',"Đã phê duyệt đơn hàng {$issue->number}. Đơn đã sẵn sàng chuyển sang bước xử lý kho.");
     }
 
+    public function undoIssueApproval(InventoryIssue $issue, InventoryService $inventory, UserOrderApprovalService $approval): RedirectResponse
+    {
+        $this->guardIssueWarehouse($issue,$inventory);
+        $approval->undoApproval((int)auth('admin')->id(),$issue);
+        return redirect()->route('admin.pharma.inventory.issues.show',$issue)
+            ->with('success',"Đã hoàn tác phê duyệt {$issue->number}. Phiếu trở về Chờ duyệt và chưa ảnh hưởng tồn kho hoặc hoa hồng.");
+    }
+
     public function rejectUserOrder(Request $request, InventoryIssue $issue, InventoryService $inventory, UserOrderApprovalService $approval): RedirectResponse
     {
         $this->guardIssueWarehouse($issue,$inventory);
@@ -885,9 +924,11 @@ final class InventoryController extends Controller
 
     public function postIssue(InventoryIssue $issue, InventoryService $inventory): RedirectResponse
     {
+        $this->guardIssueWarehouse($issue,$inventory);
         if(($issue->issue_source ?? 'normal')==='bid' && in_array($issue->status,[InventoryIssue::DRAFT,InventoryIssue::APPROVED],true)){
             return redirect()->route('admin.pharma.inventory.issues.bid-sales.batches',$issue);
         }
+        if($issue->status!==InventoryIssue::APPROVED) throw ValidationException::withMessages(['issue'=>'Phiếu phải được duyệt trước khi ghi sổ.']);
         $inventory->postIssue($issue,auth('admin')->id());
         return back()->with('success',"Đã ghi sổ {$issue->number}.");
     }
@@ -1107,10 +1148,20 @@ final class InventoryController extends Controller
         $receivableTotal=(clone $base)->where('source_type',InventoryIssueCommission::SOURCE_PRICE_LIST)
             ->selectRaw('COALESCE(SUM(quantity * receivable_price_snapshot),0) as amount')->value('amount') ?? 0;
         $unresolved=(clone $base)->where('entry_type',InventoryIssueCommission::TYPE_EARNED)->where('status',InventoryIssueCommission::STATUS_UNRESOLVED)->count();
-        $rows=(clone $base)->with(['issue','medicine','user','partner'])->orderByDesc('calculated_at')->orderByDesc('id')->paginate(50)->withQueryString();
-        $rows->getCollection()->each(function(InventoryIssueCommission $row){
-            $row->resolved_customer_name=$row->partner?->name ?: $row->issue?->recipient_name ?: '—';
-        });
+        $commissionRows=(clone $base)->with(['issue.manager:id,name','issue.recipientPartner:id,name'])->orderByDesc('calculated_at')->orderByDesc('id')->get();
+        $grouped=$commissionRows->groupBy('issue_id')->map(function($entries){
+            $first=$entries->first();
+            $first->revenue_amount=(float)$entries->sum('revenue_amount');
+            $first->commission_amount=(float)$entries->sum('commission_amount');
+            $first->resolved_customer_name=$first->issue?->recipientPartner?->name ?: $first->issue?->recipient_name ?: $first->partner?->name ?: '—';
+            $first->resolved_manager_name=$first->issue?->manager?->name ?: $first->user?->name ?: '—';
+            return $first;
+        })->values();
+        $page=max(1,(int)$request->input('page',1));
+        $perPage=in_array((int)$request->input('per_page',25),[25,50,100],true)?(int)$request->input('per_page',25):25;
+        $rows=new \Illuminate\Pagination\LengthAwarePaginator($grouped->forPage($page,$perPage)->values(),$grouped->count(),$perPage,$page,[
+            'path'=>$request->url(),'query'=>$request->query(),
+        ]);
 
         $filterRows=$commissions->adminQuery(['from'=>$from,'to'=>$to,'source'=>$source]);
 
@@ -1143,41 +1194,123 @@ final class InventoryController extends Controller
         return view('Pharma::pages.inventory.commissions',compact('rows','totals','receivableTotal','unresolved','source','users','partners','medicines','from','to','userId','partnerId','medicineId'));
     }
 
-    public function exportCommissions(Request $request, CommissionQueryService $commissions): StreamedResponse
+    public function commissionShow(InventoryIssue $issue, InventoryService $inventory, CommissionQueryService $commissions): View
+    {
+        $this->guardIssueWarehouse($issue,$inventory);
+        $issue->load(['manager:id,name','recipientPartner:id,name']);
+        $rows=$commissions->adminQuery()->where('issue_id',$issue->id)->with(['medicine','user'])->orderBy('id')->get();
+        abort_if($rows->isEmpty(),404);
+        $detail=['issue'=>$issue,'rows'=>$rows,'revenue'=>(float)$rows->sum('revenue_amount'),'commission'=>(float)$rows->sum('commission_amount')];
+        return view('Pharma::pages.inventory.commission-show',compact('detail'));
+    }
+
+    public function exportCommissions(Request $request, CommissionQueryService $commissions): BinaryFileResponse
     {
         $data=$request->validate([
             'from'=>'nullable|date','to'=>'nullable|date','user_id'=>'nullable|integer',
             'partner_id'=>'nullable|integer','medicine_id'=>'nullable|integer','source'=>'nullable|in:all,bid,price_list',
             'ids'=>'nullable|array|max:500','ids.*'=>'integer|distinct',
+            'excel_profile'=>'nullable|string|max:20000',
         ]);
-        $from=!empty($data['from']) ? Carbon::parse($data['from'])->startOfDay() : now()->startOfMonth();
-        $to=!empty($data['to']) ? Carbon::parse($data['to'])->endOfDay() : now()->endOfMonth();
+        $profile=CommissionExportProfileService::normalize(!empty($data['excel_profile'])?(json_decode($data['excel_profile'],true)?:[]):[]);
+        $from=!empty($data['from'])?Carbon::parse($data['from'])->startOfDay():now()->startOfMonth();
+        $to=!empty($data['to'])?Carbon::parse($data['to'])->endOfDay():now()->endOfMonth();
+        $rows=$commissions->adminQuery([
+            'from'=>$from,'to'=>$to,'source'=>$data['source']??'all','user_id'=>$data['user_id']??null,
+            'partner_id'=>$data['partner_id']??null,'medicine_id'=>$data['medicine_id']??null,
+        ])->when(!empty($data['ids']),fn($q)=>$q->whereIn('issue_id',$data['ids']))
+          ->with(['issue','medicine','user','partner'])->orderBy('calculated_at')->orderBy('issue_id')->orderBy('id')->get();
 
-        $query=$commissions->adminQuery([
-            'from'=>$from,'to'=>$to,'source'=>$data['source'] ?? 'all',
-            'user_id'=>$data['user_id'] ?? null,'partner_id'=>$data['partner_id'] ?? null,
-            'medicine_id'=>$data['medicine_id'] ?? null,'ids'=>$data['ids'] ?? [],
-        ])->with(['issue','medicine','user','partner'])
-            ->orderBy('calculated_at')->orderBy('id');
-
-        $rows=$query->get()->map(fn(InventoryIssueCommission $row)=>[
-            'Ngày ghi sổ'=>$row->calculated_at?->format('d/m/Y H:i'),
-            'Số phiếu'=>$row->issue?->number,
-            'Khách hàng / Bệnh viện'=>$row->partner?->name ?: $row->issue?->recipient_name,
-            'Mã sản phẩm'=>$row->medicine?->medicine_code,
-            'Sản phẩm'=>$row->medicine?->name,
-            'User phụ trách'=>$row->user?->name ?: 'Chưa phân công',
-            'SL thực xuất'=>(float)$row->quantity,
-            'Nguồn'=>$row->source_type===InventoryIssueCommission::SOURCE_BID ? 'Hàng thầu' : 'Bảng giá',
-            'Giá bán CT / Giá trúng thầu'=>(float)$row->unit_price,
-            'Giá thu'=>$row->receivable_price_snapshot !== null ? (float)$row->receivable_price_snapshot : null,
-            'Doanh thu'=>(float)$row->revenue_amount,
-            'CK / % chính sách'=>$row->commission_percentage !== null ? (float)$row->commission_percentage : null,
-            'Hoa hồng'=>(float)$row->commission_amount,
-            'Trạng thái'=>$row->status===InventoryIssueCommission::STATUS_UNRESOLVED ? 'Chưa đủ dữ liệu' : 'Đã tính',
-        ]);
-
-        return (new FastExcel($rows))->download('pharma-hoa-hong-'.now()->format('Ymd-His').'.xlsx');
+        $selected=array_values(array_filter($profile['column_order'],fn($key)=>in_array($key,$profile['selected_columns'],true)&&isset(CommissionExportProfileService::COLUMNS[$key])));
+        $headers=array_map(fn($key)=>$profile['headers'][$key]??CommissionExportProfileService::COLUMNS[$key]['label'],$selected);
+        $spreadsheet=new Spreadsheet();$sheet=$spreadsheet->getActiveSheet();$sheet->setTitle('Hoa hong');
+        $lastColumn=Coordinate::stringFromColumnIndex(count($headers));
+        $sheet->mergeCells("A1:{$lastColumn}1")->setCellValue('A1','TRUNG TÂM HOA HỒNG · CHI TIẾT PHÁT SINH');
+        $sheet->mergeCells("A2:{$lastColumn}2")->setCellValue('A2','Kỳ dữ liệu: '.$from->format('d/m/Y').' - '.$to->format('d/m/Y'));
+        $sheet->fromArray([$headers],null,'A4');
+        $sheet->getStyle("A1:{$lastColumn}1")->getFont()->setBold(true)->setSize(16);
+        $sheet->getStyle("A4:{$lastColumn}4")->getFont()->setBold(true);
+        $sheet->getStyle("A1:{$lastColumn}".max(4,4+$rows->count()))->getAlignment()->setVertical('center')->setWrapText(true);
+        foreach($rows as $index=>$row){
+            $excelRow=5+$index;
+            $values=[
+                'stt'=>$index+1,'date'=>$row->calculated_at?->format('d/m/Y'),'issue'=>$row->issue?->number,
+                'source'=>$row->source_type===InventoryIssueCommission::SOURCE_BID?'Hàng thầu':'Bảng giá',
+                'customer'=>$row->partner?->name?:$row->issue?->recipient_name,'manager'=>$row->user?->name?:'Chưa phân công',
+                'medicine_code'=>$row->medicine?->medicine_code,'medicine'=>$row->medicine?->name,'quantity'=>(float)$row->quantity,
+                'unit_price'=>(float)$row->unit_price,'receivable'=>$row->receivable_price_snapshot!==null?(float)$row->receivable_price_snapshot:null,
+                'revenue'=>(float)$row->revenue_amount,'percentage'=>$row->commission_percentage!==null?(float)$row->commission_percentage:null,
+                'commission'=>(float)$row->commission_amount,'status'=>$row->status===InventoryIssueCommission::STATUS_UNRESOLVED?'Chưa đủ dữ liệu':'Đã tính',
+            ];
+            $sheet->fromArray([array_map(fn($key)=>$values[$key],$selected)],null,"A{$excelRow}");
+        }
+        $lastRow=4+$rows->count();
+        $sheet->getStyle("A4:{$lastColumn}4")->getAlignment()->setHorizontal('center')->setVertical('center')->setWrapText(true);
+        $sheet->getStyle("A4:{$lastColumn}4")->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FFF1F5F9');
+        $sheet->getStyle("A4:{$lastColumn}{$lastRow}")->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_HAIR)->getColor()->setARGB('FFD9E2EC');
+        foreach($selected as $offset=>$key){
+            $letter=Coordinate::stringFromColumnIndex($offset+1);
+            $definition=CommissionExportProfileService::COLUMNS[$key];
+            $type=$profile['data_types'][$key]??$definition['type'];
+            $decimals=(int)($profile['decimals'][$key]??0);
+            if($type==='number')$sheet->getStyle("{$letter}5:{$letter}{$lastRow}")->getNumberFormat()->setFormatCode('#,##0'.($decimals>0?'.'.str_repeat('0',$decimals):''));
+            if($type==='date')$sheet->getStyle("{$letter}5:{$letter}{$lastRow}")->getNumberFormat()->setFormatCode('dd/mm/yyyy');
+            $sheet->getStyle("{$letter}5:{$letter}{$lastRow}")->getAlignment()->setHorizontal($profile['alignments'][$key]??$definition['align'])->setVertical('center')->setWrapText((bool)($profile['wrap_texts'][$key]??true));
+            if($profile['auto_widths'][$key]??true){
+                $maxChars=mb_strlen((string)($profile['headers'][$key]??$definition['label']));
+                foreach($rows as $exportRow){
+                    $sample=match($key){
+                        'stt'=>(string)$rows->search($exportRow)+1,
+                        'date'=>(string)$exportRow->calculated_at?->format('d/m/Y'),
+                        'issue'=>(string)$exportRow->issue?->number,
+                        'source'=>$exportRow->source_type===InventoryIssueCommission::SOURCE_BID?'Hàng thầu':'Bảng giá',
+                        'customer'=>(string)($exportRow->partner?->name?:$exportRow->issue?->recipient_name),
+                        'manager'=>(string)($exportRow->user?->name?:'Chưa phân công'),
+                        'medicine_code'=>(string)$exportRow->medicine?->medicine_code,
+                        'medicine'=>(string)$exportRow->medicine?->name,
+                        'quantity'=>(string)$exportRow->quantity,
+                        'unit_price'=>(string)$exportRow->unit_price,
+                        'receivable'=>(string)$exportRow->receivable_price_snapshot,
+                        'revenue'=>(string)$exportRow->revenue_amount,
+                        'percentage'=>(string)$exportRow->commission_percentage,
+                        'commission'=>(string)$exportRow->commission_amount,
+                        'status'=>$exportRow->status===InventoryIssueCommission::STATUS_UNRESOLVED?'Chưa đủ dữ liệu':'Đã tính',
+                        default=>'',
+                    };
+                    $maxChars=max($maxChars,mb_strlen($sample));
+                }
+                $sheet->getColumnDimension($letter)->setAutoSize(false);
+                $sheet->getColumnDimension($letter)->setWidth(max(7,min(28,$maxChars+2)));
+            }else{$sheet->getColumnDimension($letter)->setAutoSize(false);$sheet->getColumnDimension($letter)->setWidth(max(6,((int)($profile['widths'][$key]??$definition['width']))/7));}
+        }
+        $footerRow=$lastRow+2;
+        $revenueColumn=array_search('revenue',$selected,true);
+        $commissionColumn=array_search('commission',$selected,true);
+        $footerPairs=[];
+        if($revenueColumn!==false)$footerPairs[]=['label'=>'Tổng giá trị','column'=>Coordinate::stringFromColumnIndex($revenueColumn+1),'value'=>(float)$rows->sum('revenue_amount')];
+        if($commissionColumn!==false)$footerPairs[]=['label'=>'Tổng hoa hồng','column'=>Coordinate::stringFromColumnIndex($commissionColumn+1),'value'=>(float)$rows->sum('commission_amount')];
+        foreach($footerPairs as $pair){
+            $column=$pair['column'];
+            $labelColumn=Coordinate::stringFromColumnIndex(max(1,Coordinate::columnIndexFromString($column)-1));
+            $sheet->setCellValue("{$labelColumn}{$footerRow}",$pair['label']);
+            $sheet->setCellValue("{$column}{$footerRow}",$pair['value']);
+            $sheet->getStyle("{$labelColumn}{$footerRow}:{$column}{$footerRow}")->getFont()->setBold(true);
+            $sheet->getStyle("{$labelColumn}{$footerRow}:{$column}{$footerRow}")->getAlignment()->setVertical('center')->setWrapText(true);
+            $sheet->getStyle("{$labelColumn}{$footerRow}")->getAlignment()->setHorizontal('right');
+            $sheet->getStyle("{$column}{$footerRow}")->getAlignment()->setHorizontal('right');
+            $sheet->getStyle("{$column}{$footerRow}")->getNumberFormat()->setFormatCode('#,##0');
+        }
+        if(($profile['page_setup']['auto_height']??true)){foreach(range(1,$footerRow) as $rowIndex)$sheet->getRowDimension($rowIndex)->setRowHeight(-1);}
+        $sheet->freezePane('A5')->setAutoFilter("A4:{$lastColumn}{$lastRow}");
+        $orientation=($profile['page_setup']['orientation']??'landscape')==='portrait'?PageSetup::ORIENTATION_PORTRAIT:PageSetup::ORIENTATION_LANDSCAPE;
+        $sheet->getPageSetup()->setPaperSize(PageSetup::PAPERSIZE_A4)->setOrientation($orientation)->setFitToWidth(1)->setFitToHeight(0);
+        $sheet->getPageMargins()->setLeft(0.2)->setRight(0.2)->setTop(0.4)->setBottom(0.4);
+        $sheet->getPageSetup()->setHorizontalCentered(true);
+        $sheet->getHeaderFooter()->setOddFooter('&LTrung tâm hoa hồng&RTrang &P / &N');
+        $path=storage_path('app/private/exports/commissions/pharma-hoa-hong-'.now()->format('Ymd-His').'.xlsx');
+        if(!is_dir(dirname($path)))mkdir(dirname($path),0775,true);
+        (new Xlsx($spreadsheet))->save($path);
+        return response()->download($path)->deleteFileAfterSend(true);
     }
 
     private function issueSalePriceCandidates()
