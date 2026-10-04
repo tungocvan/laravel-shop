@@ -732,6 +732,14 @@ final class InventoryController extends Controller
         if(($issue->issue_source ?? 'normal')==='bid'){
             throw ValidationException::withMessages(['issue'=>'Phiếu hàng thầu phải được chỉnh sửa tại workspace Xuất hàng thầu.']);
         }
+        if($request->boolean('approve_existing')){
+            abort_unless(auth('admin')->user()?->can('approve_pharma_inventory_issue'),403);
+            abort_unless($issue->status===InventoryIssue::DRAFT,404);
+            $issue->update(['status'=>InventoryIssue::PENDING_APPROVAL]);
+            $approval->approve((int)auth('admin')->id(),$issue->fresh());
+            return redirect()->route('admin.pharma.inventory.issues.show',$issue)
+                ->with('success',"Đã phê duyệt phiếu {$issue->number}. Phiếu đã sẵn sàng ghi sổ kho.");
+        }
         $metadata=$request->validate(['issue_date'=>'required|date','recipient_name'=>'nullable|string|max:255','notes'=>'nullable|string']);
         if($issue->status===InventoryIssue::POSTED){
             $issue->update($metadata);
