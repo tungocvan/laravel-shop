@@ -202,10 +202,19 @@ final class UserInventoryReceiptWorkspace
     {
         DB::transaction(function () use ($receipt, $userId): void {
             $locked = InventoryReceipt::query()->lockForUpdate()->findOrFail($receipt->getKey());
-            if ($locked->status !== InventoryReceipt::PENDING_APPROVAL) {
-                throw ValidationException::withMessages(['status' => 'Chỉ phiếu đang chờ duyệt mới được duyệt.']);
+            if (! in_array($locked->status, [InventoryReceipt::DRAFT, InventoryReceipt::PENDING_APPROVAL], true)) {
+                throw ValidationException::withMessages(['status' => 'Chỉ phiếu nháp hoặc phiếu chờ duyệt legacy mới được phê duyệt.']);
             }
-            $locked->update(['status' => InventoryReceipt::APPROVED, 'approved_by' => $userId, 'approved_at' => now()]);
+            if (! $locked->items()->exists()) {
+                throw ValidationException::withMessages(['items' => 'Phiếu nhập phải có ít nhất một dòng trước khi phê duyệt.']);
+            }
+            $locked->update([
+                'status' => InventoryReceipt::APPROVED,
+                'submitted_by' => $locked->submitted_by ?: $userId,
+                'submitted_at' => $locked->submitted_at ?: now(),
+                'approved_by' => $userId,
+                'approved_at' => now(),
+            ]);
         });
     }
 
@@ -216,7 +225,13 @@ final class UserInventoryReceiptWorkspace
             if ($locked->status !== InventoryReceipt::APPROVED) {
                 throw ValidationException::withMessages(['status' => 'Chỉ phiếu đã duyệt mới được hoàn tác duyệt.']);
             }
-            $locked->update(['status' => InventoryReceipt::PENDING_APPROVAL, 'approved_by' => null, 'approved_at' => null]);
+            $locked->update([
+                'status' => InventoryReceipt::DRAFT,
+                'submitted_by' => null,
+                'submitted_at' => null,
+                'approved_by' => null,
+                'approved_at' => null,
+            ]);
         });
     }
 
