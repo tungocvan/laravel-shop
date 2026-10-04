@@ -99,12 +99,14 @@ class PharmaClientFoundationTest extends TestCase
 
     public function test_pwa_404_home_action_returns_to_application_launcher(): void
     {
-        $view = file_get_contents(base_path('resources/views/errors/404.blade.php'));
+        $view = file_get_contents(base_path('Modules/Website/resources/views/errors/404.blade.php'));
 
         $this->assertStringContainsString("str_starts_with(\$requestPath, 'apps/')", $view);
         $this->assertStringContainsString("str_starts_with(\$requestPath, 'my-apps/')", $view);
         $this->assertStringContainsString("url('/my-apps')", $view);
-        $this->assertStringContainsString("{{ \$isClientPortal ? 'Trang chủ' : 'Về trang chủ' }}", $view);
+        $this->assertStringContainsString('Trang chủ', $view);
+        $this->assertStringContainsString("route('home')", $view);
+        $this->assertStringContainsString("route('product.list')", $view);
     }
 
     public function test_pharma_foundation_does_not_reuse_admin_presentation_or_facade_calls_in_blade(): void
