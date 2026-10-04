@@ -792,7 +792,8 @@ final class InventoryController extends Controller
         $bidManagerNames=$this->bidIssueManagerNames($issue);
         $settings=InventoryIssueDocumentSetting::current();
         $approvalReadiness=app(UserOrderStockReadinessService::class)->forIssue($issue);
-        return view('Pharma::pages.inventory.issue-show',compact('issue','settings','bidManagerNames','approvalReadiness'));
+        $issuePdfReady=app(InventoryIssueDocumentService::class)->current($issue)!==null;
+        return view('Pharma::pages.inventory.issue-show',compact('issue','settings','bidManagerNames','approvalReadiness','issuePdfReady'));
     }
 
     public function exportIssuePdf(InventoryIssue $issue, InventoryService $inventory, InventoryIssueDocumentService $documents): RedirectResponse
