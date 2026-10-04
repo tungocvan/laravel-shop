@@ -392,6 +392,23 @@ final class InventoryController extends Controller
         return redirect()->route('admin.pharma.inventory.receipts.index')->with('success','Đã xóa phiếu nhập nháp.');
     }
 
+    public function receiptPdf(InventoryReceipt $receipt, InventoryService $inventory): Response
+    {
+        $this->guardReceiptWarehouse($receipt,$inventory);
+        $receipt->load('items.medicine');
+        $settings=InventoryIssueDocumentSetting::current();
+        $pdf=Pdf::loadView('Pharma::pages.inventory.receipt-pdf',compact('receipt','settings'))->setPaper('a4','portrait');
+        return $pdf->download("phieu-nhap-kho-{$receipt->number}.pdf");
+    }
+
+    public function receiptPrint(InventoryReceipt $receipt, InventoryService $inventory): View
+    {
+        $this->guardReceiptWarehouse($receipt,$inventory);
+        $receipt->load('items.medicine');
+        $settings=InventoryIssueDocumentSetting::current();
+        return view('Pharma::pages.inventory.receipt-print',compact('receipt','settings'));
+    }
+
     public function approveReceipt(InventoryReceipt $receipt, InventoryService $inventory, UserInventoryReceiptWorkspace $workspace): RedirectResponse
     {
         $this->guardReceiptWarehouse($receipt,$inventory);
