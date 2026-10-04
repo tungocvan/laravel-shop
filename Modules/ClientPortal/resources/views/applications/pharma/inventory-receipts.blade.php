@@ -121,7 +121,7 @@
         <section class="mt-4 hidden overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm xl:block">
             <table class="w-full table-fixed text-left text-sm">
                 <thead class="bg-slate-50 text-xs font-black uppercase tracking-wide text-slate-500">
-                    <tr><th class="w-[17%] px-5 py-4">Số phiếu</th><th class="w-[14%] px-5 py-4">Ngày nhập</th><th class="w-[25%] px-5 py-4">Nhà cung cấp</th><th class="w-[20%] px-5 py-4">Hóa đơn</th><th class="w-[12%] px-5 py-4 text-right">Số lượng</th><th class="w-[12%] px-5 py-4">Trạng thái</th></tr>
+                    <tr><th class="w-[15%] px-5 py-4">Số phiếu</th><th class="w-[12%] px-5 py-4">Ngày nhập</th><th class="w-[22%] px-5 py-4">Nhà cung cấp</th><th class="w-[17%] px-5 py-4">Hóa đơn</th><th class="w-[10%] px-5 py-4 text-right">Số lượng</th><th class="w-[11%] px-5 py-4">Trạng thái</th><th class="w-[13%] px-5 py-4 text-right">PDF</th></tr>
                 </thead>
                 <tbody id="receipt-desktop-body" class="divide-y divide-slate-100">
                     @foreach($receipts as $receipt)
@@ -132,6 +132,14 @@
                             <td class="px-5 py-4"><span class="font-semibold text-slate-700">{{ $receipt->invoice_number ?: '—' }}</span>@if($receipt->invoice_symbol)<span class="mt-0.5 block truncate text-xs text-slate-500">{{ $receipt->invoice_symbol }}</span>@endif</td>
                             <td class="px-5 py-4 text-right"><p class="font-black tabular-nums text-slate-950">{{ number_format((float)$receipt->total_quantity,0,',','.') }}</p><p class="mt-0.5 text-xs text-slate-400">{{ number_format($receipt->items_count) }} dòng</p></td>
                             <td class="px-5 py-4"><span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-700">{{ $labels[$receipt->status] ?? $receipt->status }}</span></td>
+                            <td class="px-5 py-4 text-right">
+                                @php($desktopPdfReady=(bool)($receiptDocumentStatuses[$receipt->id]['invoice'] ?? false))
+                                @if($desktopPdfReady)
+                                    <div class="flex justify-end gap-1"><a href="{{ route('client.pharma.inventory.receipts.pdf',$receipt) }}" data-receipt-pdf-download class="rounded-lg border border-slate-300 px-2 py-1.5 text-xs font-black">↓ PDF</a><a href="{{ route('client.pharma.inventory.receipts.print',$receipt) }}" target="_blank" rel="noopener" class="rounded-lg border border-slate-300 px-2 py-1.5 text-xs font-black">In</a></div>
+                                @else
+                                    <form method="POST" action="{{ route('client.pharma.inventory.receipts.pdf.export',$receipt) }}">@csrf<button class="rounded-lg bg-slate-950 px-2.5 py-1.5 text-xs font-black text-white">Xuất PDF</button></form>
+                                @endif
+                            </td>
                         </tr>
                     @endforeach
                 </tbody>
