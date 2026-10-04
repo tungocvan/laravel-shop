@@ -26,6 +26,7 @@ use Modules\Pharma\Models\PriceList;
 use Modules\Pharma\Models\PriceListItem;
 use Modules\Pharma\Models\SupplierTracking;
 use Modules\Pharma\Services\InventoryService;
+use Modules\Pharma\Services\UserInventoryReceiptWorkspace;
 use Modules\Pharma\Services\InventoryMovementSummaryService;
 use Modules\Pharma\Services\UserOrderApprovalService;
 use Modules\Pharma\Services\UserOrderAuthoringService;
@@ -391,13 +392,27 @@ final class InventoryController extends Controller
         return redirect()->route('admin.pharma.inventory.receipts.index')->with('success','Đã xóa phiếu nhập nháp.');
     }
 
+    public function approveReceipt(InventoryReceipt $receipt, InventoryService $inventory, UserInventoryReceiptWorkspace $workspace): RedirectResponse
+    {
+        $this->guardReceiptWarehouse($receipt,$inventory);
+        $workspace->approve($receipt,(int)auth('admin')->id());
+        return back()->with('success',"Đã phê duyệt {$receipt->number}. Phiếu chưa làm thay đổi tồn kho.");
+    }
+
+    public function undoReceiptApproval(InventoryReceipt $receipt, InventoryService $inventory, UserInventoryReceiptWorkspace $workspace): RedirectResponse
+    {
+        $this->guardReceiptWarehouse($receipt,$inventory);
+        $workspace->undoApproval($receipt);
+        return back()->with('success',"Đã hoàn tác phê duyệt {$receipt->number}; phiếu trở về Nháp và tồn kho không thay đổi.");
+    }
+
     public function postReceipt(InventoryReceipt $receipt, InventoryService $inventory): RedirectResponse { $inventory->postReceipt($receipt,auth('admin')->id()); return back()->with('success',"Đã ghi sổ {$receipt->number}."); }
 
     public function revertReceipt(InventoryReceipt $receipt, InventoryService $inventory): RedirectResponse
     {
         $this->guardReceiptWarehouse($receipt,$inventory);
         $inventory->revertReceipt($receipt,auth('admin')->id());
-        return redirect()->route('admin.pharma.inventory.receipts.index')->with('success',"Đã hoàn tác ghi sổ {$receipt->number}; tồn kho đã được cập nhật và phiếu trở về nháp.");
+        return redirect()->route('admin.pharma.inventory.receipts.index')->with('success',"Đã hoàn tác ghi sổ {$receipt->number}; số lượng đã nhập được trừ khỏi tồn kho và phiếu trở về Đã duyệt.");
     }
     public function createIssue(InventoryService $inventory): View
     {
