@@ -970,4 +970,24 @@ class InventoryContractTest extends TestCase
     }
 
 
+
+    public function test_commission_excel_designer_matches_price_list_column_workspace_contract(): void
+    {
+        $view=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/commissions.blade.php'));
+        $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
+        $profile=file_get_contents(base_path('Modules/Pharma/Services/CommissionExportProfileService.php'));
+
+        $this->assertStringContainsString('Thiết kế cột Excel',$view);
+        $this->assertStringContainsString('Kho dữ liệu',$view);
+        $this->assertStringContainsString('Cột sẽ xuất Excel',$view);
+        $this->assertStringContainsString('Column Inspector',$view);
+        $this->assertStringContainsString('Tiêu đề Excel',$view);
+        $this->assertStringContainsString('Kiểu dữ liệu',$view);
+        $this->assertStringContainsString('Độ rộng',$view);
+        $this->assertStringContainsString('excel_profile',$controller);
+        $this->assertStringContainsString('CommissionExportProfileService::normalize',$controller);
+        $this->assertStringContainsString("'commission'=>['label'=>'Hoa hồng'",$profile);
+        $this->assertStringContainsString("'quantity'=>['label'=>'SL thực xuất'",$profile);
+    }
+
 }
