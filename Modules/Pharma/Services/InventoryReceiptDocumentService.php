@@ -59,16 +59,12 @@ final class InventoryReceiptDocumentService
 
     public function statuses(iterable $receipts): array
     {
-        $ids = collect($receipts)->pluck('id')->map(fn ($id)=>(int)$id)->all();
-        if ($ids === []) return [];
-
-        $documents = InventoryReceiptDocument::query()->whereIn('receipt_id',$ids)->get()->groupBy('receipt_id');
-        $result = [];
+        $result=[];
         foreach ($receipts as $receipt) {
-            foreach ([self::INVOICE,self::COST] as $profile) {
-                $document = $documents->get($receipt->id)?->firstWhere('profile',$profile);
-                $result[(int)$receipt->id][$profile] = $document && Storage::disk($document->disk)->exists($document->storage_path);
-            }
+            $result[(int)$receipt->id]=[
+                self::INVOICE=>$this->current($receipt,self::INVOICE)!==null,
+                self::COST=>$this->current($receipt,self::COST)!==null,
+            ];
         }
         return $result;
     }
