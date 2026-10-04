@@ -109,6 +109,23 @@ class PharmaClientFoundationTest extends TestCase
         $this->assertStringContainsString("route('product.list')", $view);
     }
 
+    public function test_pwa_native_touch_standard_has_reusable_accessible_primitive(): void
+    {
+        $component = file_get_contents(base_path('Modules/ClientPortal/resources/views/components/native-touch.blade.php'));
+        $standard = file_get_contents(base_path('docs/modules/ClientPortal/PWA_APPLICATION_STANDARD.md'));
+
+        $this->assertStringContainsString("active:scale-[0.985]", $component);
+        $this->assertStringContainsString('touch-manipulation', $component);
+        $this->assertStringContainsString('[-webkit-tap-highlight-color:transparent]', $component);
+        $this->assertStringContainsString('motion-reduce:transform-none', $component);
+        $this->assertStringContainsString('disabled', $component);
+        $this->assertStringContainsString('aria-disabled="true"', $component);
+        $this->assertStringContainsString('<x-native-touch>', $standard);
+        $this->assertStringContainsString('Native touch interaction contract', $standard);
+        $this->assertStringContainsString('focus-visible', $standard);
+        $this->assertStringContainsString('disabled', $standard);
+    }
+
     public function test_pharma_foundation_does_not_reuse_admin_presentation_or_facade_calls_in_blade(): void
     {
         $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php'));
