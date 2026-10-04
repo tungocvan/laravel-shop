@@ -1544,9 +1544,9 @@ final class PharmaApplicationController extends Controller
             'counts' => $workspace->counts((int) $user->id, $canApproveOrders, $managerUserId),
             'managerOptions' => $canApproveOrders ? $workspace->managerOptions((int) $user->id, true) : collect(),
             'canApproveOrders' => $canApproveOrders,
-            'canCreateOrders' => $registry->userCan($user, 'client.pharma.orders.create'),
-            'orderPdfActions' => $orderPdfActions
+            'canCreateOrders' => $registry->userCan($user, 'client.pharma.orders.create')
                 || $registry->userCan($user, 'client.pharma.orders.create-for-user'),
+            'orderPdfActions' => $orderPdfActions,
             'filters' => [
                 'q' => trim((string) ($validated['q'] ?? '')),
                 'status' => $validated['status'] ?? '',
