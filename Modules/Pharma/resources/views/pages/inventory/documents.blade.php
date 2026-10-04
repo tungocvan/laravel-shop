@@ -105,13 +105,15 @@
                                 <div class="flex flex-wrap justify-end gap-2">
                                     @if($type === 'receipt')
                                         @php
-                                            $invoicePdfReady=(bool)($receiptDocumentStatuses[$doc->id]['invoice'] ?? false);
-                                            $costPdfReady=(bool)($receiptDocumentStatuses[$doc->id]['cost'] ?? false);
+                                            $canUseReceiptPdf=$doc->status === \Modules\Pharma\Models\InventoryReceipt::POSTED;
+                                            $invoicePdfReady=$canUseReceiptPdf && (bool)($receiptDocumentStatuses[$doc->id]['invoice'] ?? false);
+                                            $costPdfReady=$canUseReceiptPdf && (bool)($receiptDocumentStatuses[$doc->id]['cost'] ?? false);
                                         @endphp
                                         @if($invoicePdfReady)
                                             <a href="{{ route('admin.pharma.inventory.receipts.pdf.invoice',$doc) }}" class="inline-flex min-h-9 items-center rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50" title="Tải PDF hóa đơn" aria-label="Tải PDF hóa đơn">↓ PDF</a>
                                             <a href="{{ route('admin.pharma.inventory.receipts.print.invoice',$doc) }}" target="_blank" rel="noopener" class="inline-flex min-h-9 items-center rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50" title="In phiếu nhập">In</a>
                                         @endif
+                                        @if($canUseReceiptPdf)
                                         <details class="relative" data-document-actions>
                                             <summary class="flex min-h-9 cursor-pointer list-none items-center rounded-lg border border-slate-300 bg-white px-3 text-base font-bold leading-none text-slate-600 hover:bg-slate-50" aria-label="Thao tác khác">⋯</summary>
                                             <div class="absolute right-0 z-30 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-left shadow-xl">
@@ -153,6 +155,9 @@
                                                 @endcan
                                             </div>
                                         </details>
+                                        @else
+                                            <span class="text-xs font-semibold text-slate-400">Ghi sổ để xuất PDF</span>
+                                        @endif
                                     @else
                                         <details class="relative" data-document-actions>
                                             <summary class="flex min-h-9 cursor-pointer list-none items-center rounded-lg border border-slate-300 bg-white px-3 text-base font-bold leading-none text-slate-600 hover:bg-slate-50" aria-label="Thao tác khác">⋯</summary>
