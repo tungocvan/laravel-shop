@@ -675,7 +675,8 @@ final class InventoryController extends Controller
         $issue->load(['items.medicine','manager:id,name','priceList.manager','deferredSupplies.medicine']);
         $bidManagerNames=$this->bidIssueManagerNames($issue);
         $settings=InventoryIssueDocumentSetting::current();
-        return view('Pharma::pages.inventory.issue-show',compact('issue','settings','bidManagerNames'));
+        $approvalReadiness=app(UserOrderStockReadinessService::class)->forIssue($issue);
+        return view('Pharma::pages.inventory.issue-show',compact('issue','settings','bidManagerNames','approvalReadiness'));
     }
 
     public function issuePdf(InventoryIssue $issue, InventoryService $inventory): Response
