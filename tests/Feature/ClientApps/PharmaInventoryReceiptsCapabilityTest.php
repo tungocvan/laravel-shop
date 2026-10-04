@@ -164,6 +164,8 @@ final class PharmaInventoryReceiptsCapabilityTest extends TestCase
         $this->assertStringContainsString("navigator.canShare?.({files:[preparedFile]})",$list);
         $this->assertStringContainsString('Sao chép link',$list);
         $this->assertStringContainsString('Thu hồi',$list);
+        $this->assertStringContainsString("abort_unless(\$receipt->status === InventoryReceipt::POSTED, 409, 'Chỉ phiếu nhập đã ghi sổ mới được xuất PDF.')",$documents);
+        $this->assertStringContainsString('Ghi sổ để xuất PDF',$list);
     }
 
     public function test_receipt_admin_and_pwa_share_approval_posting_contract(): void
