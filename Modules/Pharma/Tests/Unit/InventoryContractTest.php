@@ -990,4 +990,21 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("'quantity'=>['label'=>'SL thực xuất'",$profile);
     }
 
+
+    public function test_commission_excel_designer_controls_stt_header_wrap_and_column_width(): void
+    {
+        $view=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/commissions.blade.php'));
+        $controller=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
+        $profile=file_get_contents(base_path('Modules/Pharma/Services/CommissionExportProfileService.php'));
+
+        $this->assertStringContainsString("'stt'=>['label'=>'STT'",$profile);
+        $this->assertStringContainsString("'auto_widths'=>array_fill_keys",$profile);
+        $this->assertStringContainsString("'wrap_texts'=>array_fill_keys",$profile);
+        $this->assertStringContainsString('Auto độ rộng',$view);
+        $this->assertStringContainsString('Wrap Text',$view);
+        $this->assertStringContainsString("setHorizontal('center')",$controller);
+        $this->assertStringContainsString("profile['auto_widths']",$controller);
+        $this->assertStringContainsString("profile['wrap_texts']",$controller);
+    }
+
 }
