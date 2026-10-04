@@ -126,9 +126,15 @@
                                                     @else
                                                         <a href="{{ route('admin.pharma.inventory.issues.edit',$doc) }}" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">{{ $doc->status === 'draft' ? 'Sửa phiếu' : 'Cập nhật phiếu' }}</a>
                                                     @endif
-                                                    @if($doc->status === 'approved' && ($doc->issue_source ?? 'normal') !== 'bid')
-                                                        @if($doc->can_post_stock)<button type="button" onclick="this.closest('details').removeAttribute('open'); document.getElementById('post-{{ $type }}-{{ $doc->id }}').showModal()" class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-emerald-700 hover:bg-emerald-50">Ghi sổ</button>
-                                                        @else<button type="button" disabled title="Không đủ tồn kho để ghi sổ" class="block w-full cursor-not-allowed px-4 py-2.5 text-left text-xs font-semibold text-slate-400">Ghi sổ · Không đủ tồn</button>@endif
+                                                @endcan
+                                                @can('approve_pharma_inventory_issue')
+                                                    @if($doc->status === 'approved')
+                                                        <form method="POST" action="{{ route('admin.pharma.inventory.issues.undo-approval',$doc) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-amber-700 hover:bg-amber-50">Hoàn tác phê duyệt</button></form>
+                                                        @if(($doc->issue_source ?? 'normal') !== 'bid')
+                                                            @if($doc->can_post_stock)<button type="button" onclick="this.closest('details').removeAttribute('open'); document.getElementById('post-{{ $type }}-{{ $doc->id }}').showModal()" class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-emerald-700 hover:bg-emerald-50">Ghi sổ</button>
+                                                            @else<button type="button" disabled title="Không đủ tồn kho để ghi sổ" class="block w-full cursor-not-allowed px-4 py-2.5 text-left text-xs font-semibold text-slate-400">Ghi sổ · Không đủ tồn</button>@endif
+                                                        @endif
+                                                        <div class="my-1 border-t border-slate-100"></div>
                                                     @endif
                                                 @endcan
                                                 <a href="{{ route('admin.pharma.inventory.issues.pdf',$doc) }}" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Tải PDF</a>
