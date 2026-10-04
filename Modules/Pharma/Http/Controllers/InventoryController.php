@@ -889,6 +889,14 @@ final class InventoryController extends Controller
             ->with('success',"Đã phê duyệt đơn hàng {$issue->number}. Đơn đã sẵn sàng chuyển sang bước xử lý kho.");
     }
 
+    public function undoIssueApproval(InventoryIssue $issue, InventoryService $inventory, UserOrderApprovalService $approval): RedirectResponse
+    {
+        $this->guardIssueWarehouse($issue,$inventory);
+        $approval->undoApproval((int)auth('admin')->id(),$issue);
+        return redirect()->route('admin.pharma.inventory.issues.show',$issue)
+            ->with('success',"Đã hoàn tác phê duyệt {$issue->number}. Phiếu trở về Chờ duyệt và chưa ảnh hưởng tồn kho hoặc hoa hồng.");
+    }
+
     public function rejectUserOrder(Request $request, InventoryIssue $issue, InventoryService $inventory, UserOrderApprovalService $approval): RedirectResponse
     {
         $this->guardIssueWarehouse($issue,$inventory);
