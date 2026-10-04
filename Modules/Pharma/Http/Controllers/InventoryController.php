@@ -522,8 +522,10 @@ final class InventoryController extends Controller
             ->when($request->filled('q'),fn($q)=>$q->where(fn($x)=>$x->where('number','like','%'.$request->q.'%')->orWhere('supplier_name','like','%'.$request->q.'%')))
             ->when(in_array($request->status,[InventoryIssue::DRAFT,InventoryIssue::PENDING_APPROVAL,InventoryIssue::APPROVED,InventoryIssue::REJECTED,InventoryIssue::POSTED,InventoryIssue::CANCELLED],true),fn($q)=>$q->where('status',$request->status))
             ->latest('receipt_date')->latest('id');
+        $documents=$query->paginate($this->documentPerPage($request))->withQueryString();
+        $receiptDocumentStatuses=app(InventoryReceiptDocumentService::class)->statuses($documents->getCollection());
         return view('Pharma::pages.inventory.documents',[
-            'type'=>'receipt','title'=>'Phiếu nhập kho','documents'=>$query->paginate($this->documentPerPage($request))->withQueryString(),
+            'type'=>'receipt','title'=>'Phiếu nhập kho','documents'=>$documents,'receiptDocumentStatuses'=>$receiptDocumentStatuses,
         ]);
     }
 
