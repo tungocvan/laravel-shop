@@ -161,7 +161,7 @@ final class PharmaInventoryReceiptsCapabilityTest extends TestCase
         $this->assertStringContainsString('expires_at'=>now()->addDays(30)', $documents);
         $this->assertStringContainsString('data-receipt-pdf-download',$list);
         $this->assertStringContainsString("fetch(link.href,{credentials:'same-origin',cache:'no-store'})",$list);
-        $this->assertStringContainsString("navigator.canShare?.({files:[preparedFile]})",$list);
+        $this->assertStringContainsString("navigator.canShare?.({files:[preparedFile]})", $list);
         $this->assertStringContainsString('Sao chép link',$list);
         $this->assertStringContainsString('Thu hồi',$list);
         $this->assertStringContainsString("abort_unless(\$receipt->status === InventoryReceipt::POSTED, 409, 'Chỉ phiếu nhập đã ghi sổ mới được xuất PDF.')",$documents);
