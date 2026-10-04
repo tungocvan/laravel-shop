@@ -154,6 +154,7 @@ final class PharmaInventoryReceiptsCapabilityTest extends TestCase
             $this->assertStringContainsString("name('{$route}')",$routes);
         }
         $this->assertStringContainsString("name('client.pharma.inventory.receipts.share.download')",$routes);
+        $this->assertStringContainsString('use Modules\\Pharma\\Models\\InventoryReceipt;',$controller);
         $this->assertStringContainsString('function exportInventoryReceiptPdf(',$controller);
         $this->assertStringContainsString('function downloadInventoryReceiptShare(',$controller);
         $this->assertStringContainsString(<<<'CONTRACT'
@@ -167,7 +168,8 @@ CONTRACT, $documents);
         $this->assertStringContainsString(<<<'CONTRACT'
 fetch(link.href,{credentials:'same-origin',cache:'no-store'})
 CONTRACT, $list);
-        $this->assertStringContainsString('navigator.canShare?.({files:[preparedFile]})', $list);
+        $this->assertStringContainsString('navigator.canShare?.({files:[cached]})', $list);
+        $this->assertStringContainsString('navigator.canShare?.({files:[file]})', $list);
         $this->assertStringContainsString('Sao chép link',$list);
         $this->assertStringContainsString('Thu hồi',$list);
         $this->assertStringContainsString(<<<'CONTRACT'
