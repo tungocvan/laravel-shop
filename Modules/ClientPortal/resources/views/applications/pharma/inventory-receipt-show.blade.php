@@ -20,7 +20,7 @@
 <form method="POST" action="{{ route('client.pharma.inventory.receipts.approve',$receipt) }}">@csrf<button class="min-h-11 rounded-2xl bg-white px-4 text-sm font-black text-slate-950">Phê duyệt</button></form>
 @endif
 @if($receipt->status === \Modules\Pharma\Models\InventoryReceipt::APPROVED && $canApproveReceipt)
-<form method="POST" action="{{ route('client.pharma.inventory.receipts.undo-approval',$receipt) }}">@csrf<button class="min-h-11 rounded-2xl border border-white/20 bg-white/10 px-4 text-sm font-black text-white">Hoàn tác duyệt</button></form>
+<form method="POST" action="{{ route('client.pharma.inventory.receipts.undo-approval',$receipt) }}">@csrf<button class="min-h-11 rounded-2xl border border-white/20 bg-white/10 px-4 text-sm font-black text-white">Hoàn tác phê duyệt</button></form>
 @endif
 @if($receipt->status === \Modules\Pharma\Models\InventoryReceipt::APPROVED && $canPostReceipt)
 <form method="POST" action="{{ route('client.pharma.inventory.receipts.post',$receipt) }}">@csrf<button class="min-h-11 rounded-2xl bg-emerald-400 px-4 text-sm font-black text-slate-950">Ghi sổ</button></form>
