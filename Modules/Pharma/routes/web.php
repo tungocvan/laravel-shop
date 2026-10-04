@@ -99,6 +99,8 @@ Route::prefix('admin/pharma')->name('admin.pharma.')->middleware(['web', 'auth:a
         Route::get('/receipts', [InventoryController::class, 'receipts'])->name('receipts.index');
         Route::get('/receipts/create', [InventoryController::class, 'createReceipt'])->middleware('can:create_pharma')->name('receipts.create');
         Route::post('/receipts', [InventoryController::class, 'storeReceipt'])->middleware('can:create_pharma')->name('receipts.store');
+        Route::get('/receipts/{receipt}/pdf', [InventoryController::class, 'receiptPdf'])->name('receipts.pdf');
+        Route::get('/receipts/{receipt}/print', [InventoryController::class, 'receiptPrint'])->name('receipts.print');
         Route::get('/receipts/{receipt}', [InventoryController::class, 'showReceipt'])->name('receipts.show');
         Route::get('/receipts/{receipt}/edit', [InventoryController::class, 'editReceipt'])->middleware('can:edit_pharma')->name('receipts.edit');
         Route::put('/receipts/{receipt}', [InventoryController::class, 'updateReceipt'])->middleware('can:edit_pharma')->name('receipts.update');
