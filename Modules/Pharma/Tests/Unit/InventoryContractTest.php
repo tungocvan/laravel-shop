@@ -432,7 +432,8 @@ class InventoryContractTest extends TestCase
         $edit=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-edit.blade.php'));
         $show=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-show.blade.php'));
 
-        $this->assertStringContainsString("['items.medicine','manager:id,name','priceList.manager']", $controller);
+        $issueDocumentService=file_get_contents(base_path('Modules/Pharma/Services/InventoryIssueDocumentService.php'));
+        $this->assertStringContainsString("loadMissing(['items.medicine','manager:id,name','priceList.manager'])", $issueDocumentService);
         $this->assertStringContainsString("'items'=>'required|array|min:1'", $controller);
         $this->assertStringContainsString("\$locked->items()->delete()", $controller);
         $this->assertStringContainsString("foreach(\$items as \$item)", $controller);
