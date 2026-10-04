@@ -36,7 +36,14 @@
                     <button id="receipt-search-clear" type="button" data-pwa-search-clear-button="#receipt-search-input" class="absolute right-3 top-1/2 -translate-y-1/2 rounded-full px-2 py-1 text-xl text-slate-500 {{ $filters['q'] ? '' : 'hidden' }}" aria-label="Xóa từ khóa tìm kiếm">×</button>
                 </label>
             </form>
-            @can('client.pharma.inventory.receipts.create')
+            @if(session('receipt_share_url'))
+        <div class="fixed inset-x-4 top-4 z-[100] mx-auto max-w-xl rounded-2xl border border-emerald-200 bg-white p-4 shadow-2xl" data-share-flash>
+            <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Link chia sẻ PDF hóa đơn</p>
+            <div class="mt-2 flex gap-2"><input readonly value="{{ session('receipt_share_url') }}" class="min-w-0 flex-1 rounded-xl border border-slate-300 px-3 text-xs"><button type="button" data-copy-receipt-share="{{ session('receipt_share_url') }}" class="rounded-xl bg-slate-950 px-3 text-xs font-black text-white">Sao chép</button></div>
+        </div>
+    @endif
+
+    @can('client.pharma.inventory.receipts.create')
                 <a href="{{ route('client.pharma.inventory.receipts.create') }}" class="ml-auto hidden h-14 shrink-0 items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 text-sm font-black text-white shadow-sm transition active:scale-[0.985] lg:inline-flex motion-reduce:transform-none">
                     <span class="text-base font-light leading-none">+</span><span>Thêm phiếu nhập</span>
                 </a>
@@ -65,10 +72,10 @@
 
         <section id="receipt-mobile-list" class="mt-4 grid min-w-0 max-w-full grid-cols-1 gap-3 md:grid-cols-2 xl:hidden">
             @forelse($receipts as $receipt)
-                <a data-receipt-card href="{{ route('client.pharma.inventory.receipts.show',$receipt) }}" class="min-w-0 max-w-full overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">
+                <article data-receipt-card class="min-w-0 max-w-full overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
                     <div class="flex items-start justify-between gap-3">
                         <div class="min-w-0">
-                            <p class="break-all text-xs font-black uppercase tracking-wide text-slate-500">{{ $receipt->number }}</p>
+                            <a href="{{ route('client.pharma.inventory.receipts.show',$receipt) }}" class="break-all text-xs font-black uppercase tracking-wide text-slate-500">{{ $receipt->number }}</a>
                             <h2 class="mt-1 line-clamp-2 break-words text-base font-black leading-5 text-slate-950">{{ $receipt->supplier_name ?: 'Chưa xác định nhà cung cấp' }}</h2>
                         </div>
                         <span class="h-fit shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-black text-slate-700">{{ $labels[$receipt->status] ?? $receipt->status }}</span>
@@ -81,7 +88,26 @@
                         <div class="min-w-0"><p class="text-[11px] font-bold uppercase tracking-wide text-slate-400">Hóa đơn</p><p class="mt-0.5 truncate text-sm font-bold text-slate-700">{{ $receipt->invoice_number ?: 'Chưa có số HĐ' }}@if($receipt->invoice_symbol) · {{ $receipt->invoice_symbol }}@endif</p></div>
                         <span class="shrink-0 text-xl font-black text-slate-300">›</span>
                     </div>
-                </a>
+                    @php
+                        $invoicePdfReady=(bool)($receiptDocumentStatuses[$receipt->id]['invoice'] ?? false);
+                        $receiptShare=$receiptShares[$receipt->id] ?? null;
+                    @endphp
+                    <div class="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
+                        @if($invoicePdfReady)
+                            <a href="{{ route('client.pharma.inventory.receipts.pdf',$receipt) }}" data-receipt-pdf-download class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-black text-slate-700 transition active:scale-[0.985] motion-reduce:transform-none">↓ PDF</a>
+                            <a href="{{ route('client.pharma.inventory.receipts.print',$receipt) }}" target="_blank" rel="noopener" class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-black text-slate-700 transition active:scale-[0.985] motion-reduce:transform-none">In</a>
+                            @if($receiptShare)
+                                <button type="button" data-copy-receipt-share="{{ $receiptShare['url'] }}" class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-black text-slate-700 transition active:scale-[0.985] motion-reduce:transform-none">Sao chép link</button>
+                                <form method="POST" action="{{ route('client.pharma.inventory.receipts.share.revoke',[$receipt,$receiptShare['id']]) }}">@csrf @method('DELETE')<button class="inline-flex min-h-10 items-center rounded-xl px-3 text-xs font-black text-rose-600">Thu hồi</button></form>
+                            @else
+                                <form method="POST" action="{{ route('client.pharma.inventory.receipts.share',$receipt) }}">@csrf<button class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-black text-slate-700 transition active:scale-[0.985] motion-reduce:transform-none">Chia sẻ</button></form>
+                            @endif
+                        @else
+                            <form method="POST" action="{{ route('client.pharma.inventory.receipts.pdf.export',$receipt) }}">@csrf<button class="inline-flex min-h-10 items-center rounded-xl bg-slate-950 px-3 text-xs font-black text-white transition active:scale-[0.985] motion-reduce:transform-none">Xuất PDF</button></form>
+                        @endif
+                        <a href="{{ route('client.pharma.inventory.receipts.show',$receipt) }}" class="ml-auto inline-flex min-h-10 items-center px-2 text-xs font-black text-slate-500">Chi tiết ›</a>
+                    </div>
+                </article>
             @empty
                 <div class="col-span-full flex min-h-[48vh] flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-white px-6 text-center">
                     <div class="flex h-20 w-20 items-center justify-center rounded-3xl bg-slate-100 text-4xl text-slate-400">≡</div>
@@ -128,4 +154,34 @@
         <a href="{{ route('client.pharma.inventory.receipts.create') }}" class="fixed z-40 inline-flex h-11 w-11 items-center justify-center rounded-full bg-slate-950 text-xl font-light text-white shadow-lg transition active:scale-[0.985] lg:hidden motion-reduce:transform-none" style="right:calc(18px + env(safe-area-inset-right,0px));bottom:calc(18px + env(safe-area-inset-bottom,0px))" aria-label="Thêm phiếu nhập">+</a>
     @endcan
 </div>
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+    document.querySelectorAll('[data-copy-receipt-share]').forEach(button=>button.addEventListener('click',async()=>{
+        try{await navigator.clipboard.writeText(button.dataset.copyReceiptShare);const old=button.textContent;button.textContent='Đã sao chép';setTimeout(()=>button.textContent=old,1600);}catch(e){window.prompt('Sao chép link chia sẻ:',button.dataset.copyReceiptShare);}
+    }));
+    const standalone=window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true;
+    if(!standalone)return;
+    document.querySelectorAll('[data-receipt-pdf-download]').forEach(link=>{
+        let preparedFile=null;
+        link.addEventListener('click',async(event)=>{
+            event.preventDefault();
+            if(preparedFile){
+                if(navigator.canShare?.({files:[preparedFile]})){await navigator.share({files:[preparedFile],title:'Phiếu nhập kho'});}
+                return;
+            }
+            const original=link.textContent;link.textContent='Đang chuẩn bị…';link.setAttribute('aria-disabled','true');
+            try{
+                const response=await fetch(link.href,{credentials:'same-origin',cache:'no-store'});
+                if(!response.ok)throw new Error('download');
+                const blob=await response.blob();
+                const disposition=response.headers.get('content-disposition')||'';
+                const match=disposition.match(/filename="?([^";]+)"?/i);
+                preparedFile=new File([blob],match?.[1]||'phieu-nhap-kho.pdf',{type:'application/pdf'});
+                link.textContent=navigator.canShare?.({files:[preparedFile]})?'Mở / lưu PDF':'PDF đã sẵn sàng';
+            }catch(e){link.textContent='Không thể chuẩn bị PDF';setTimeout(()=>link.textContent=original,1800);}
+            finally{link.removeAttribute('aria-disabled');}
+        });
+    });
+});
+</script>
 @endsection
