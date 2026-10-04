@@ -224,6 +224,7 @@ class ClientPortalPwaSettingsTest extends TestCase
         $settings = app(ClientPortalSettingsService::class);
         $bottom = $settings->pwaBottomNavigation();
 
+        $this->assertSame('default', $bottom['presentation_style']);
         $this->assertSame('#ffffff', $bottom['background_color']);
         $this->assertSame(95, $bottom['background_opacity']);
         $this->assertSame('#64748b', $bottom['icon_color']);
@@ -262,6 +263,7 @@ class ClientPortalPwaSettingsTest extends TestCase
     {
         $settings = app(ClientPortalSettingsService::class);
         $custom = array_replace($settings->pwaBottomNavigationDefaults(), [
+            'presentation_style' => 'neumorphism',
             'background_color' => '#112233',
             'text_font_size' => 14,
             'min_height' => 80,
@@ -276,6 +278,7 @@ class ClientPortalPwaSettingsTest extends TestCase
 
         $settings->updatePwaBottomNavigation($settings->pwaBottomNavigationDefaults());
         $this->assertTrue($settings->applyPwaBottomNavigationTheme($theme->key));
+        $this->assertSame('neumorphism', $settings->pwaBottomNavigation()['presentation_style']);
         $this->assertSame('#112233', $settings->pwaBottomNavigation()['background_color']);
         $this->assertSame(14, $settings->pwaBottomNavigation()['text_font_size']);
 
