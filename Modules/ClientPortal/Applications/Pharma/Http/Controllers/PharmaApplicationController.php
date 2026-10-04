@@ -1517,6 +1517,7 @@ final class PharmaApplicationController extends Controller
         abort_if($user === null, 401);
         abort_unless($registry->userCan($user, 'client.pharma.orders'), 403);
         $canApproveOrders = $registry->userCan($user, 'client.pharma.orders.approve');
+        $canPostOrders = $registry->userCan($user, 'client.pharma.orders.post');
         $managerUserId = $canApproveOrders ? (int) ($validated['manager_user_id'] ?? 0) : 0;
         $managerUserId = $managerUserId > 0 ? $managerUserId : null;
 
@@ -1544,6 +1545,7 @@ final class PharmaApplicationController extends Controller
             'counts' => $workspace->counts((int) $user->id, $canApproveOrders, $managerUserId),
             'managerOptions' => $canApproveOrders ? $workspace->managerOptions((int) $user->id, true) : collect(),
             'canApproveOrders' => $canApproveOrders,
+            'canPostOrders' => $canPostOrders,
             'canCreateOrders' => $registry->userCan($user, 'client.pharma.orders.create')
                 || $registry->userCan($user, 'client.pharma.orders.create-for-user'),
             'orderPdfActions' => $orderPdfActions,
@@ -1740,6 +1742,23 @@ final class PharmaApplicationController extends Controller
 
         return redirect()->route('client.pharma.orders', ['status' => 'posted'])
             ->with('success', 'Đã ghi sổ đơn hàng và cập nhật tồn kho.');
+    }
+
+    public function revertPostedOrder(
+        int $issue, Request $request, ApplicationRegistry $registry,
+        UserInventoryIssueWorkspace $workspace, InventoryService $inventory,
+        InventoryIssueDocumentService $documents,
+    ) {
+        $user = $request->user('web'); abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.orders.post'), 403);
+        $posted = $workspace->findVisible((int) $user->id, $issue, true);
+        abort_if($posted === null || $posted->status !== \Modules\Pharma\Models\InventoryIssue::POSTED, 404);
+
+        $inventory->revertIssue($posted, (int) $user->id);
+        $documents->invalidate($posted);
+
+        return redirect()->route('client.pharma.orders')
+            ->with('success', 'Đã hoàn tác ghi sổ. Tồn kho đã được cộng trả và PDF cũ đã hết hiệu lực.');
     }
 
     public function rejectOrder(
