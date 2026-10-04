@@ -7,9 +7,10 @@
 @php($mobileMoreNavigation = $mobileMoreNavigation ?? $moreNavigation)
 @php($bottomNav = array_replace(['presentation_style' => 'default', 'background_color' => '#ffffff', 'background_opacity' => 95, 'icon_color' => '#64748b', 'text_color' => '#64748b', 'active_icon_color' => '#020617', 'active_text_color' => '#020617', 'active_background_color' => '#f1f5f9', 'text_font_size' => 11, 'icon_size' => 20, 'min_height' => 72], $bottomNavigationAppearance ?? []))
 @php($bottomNeumorphism = ($bottomNav['presentation_style'] ?? 'default') === 'neumorphism')
-@php($bottomContainerShadow = $bottomNeumorphism ? 'box-shadow: 0 -10px 24px rgba(100,116,139,.20), 0 -2px 8px rgba(255,255,255,.95); border-top-color: transparent;' : '')
-@php($bottomItemShadow = $bottomNeumorphism ? 'background-color: '.$bottomNav['background_color'].'; box-shadow: 4px 4px 9px rgba(100,116,139,.20), -4px -4px 9px rgba(255,255,255,.92);' : '')
-@php($bottomActiveShadow = $bottomNeumorphism ? 'box-shadow: inset 3px 3px 7px rgba(100,116,139,.24), inset -3px -3px 7px rgba(255,255,255,.88);' : '')
+@php($bottomContainerShadow = $bottomNeumorphism ? 'border-top-color: transparent; background-color: transparent;' : '')
+@php($bottomDockStyle = $bottomNeumorphism ? 'background-color: '.$bottomNav['background_color'].'; border-radius: 24px; padding: 6px; box-shadow: 8px 8px 18px rgba(100,116,139,.22), -8px -8px 18px rgba(255,255,255,.96);' : '')
+@php($bottomItemShadow = $bottomNeumorphism ? 'background-color: transparent; box-shadow: 2px 2px 5px rgba(100,116,139,.12), -2px -2px 5px rgba(255,255,255,.72);' : '')
+@php($bottomActiveShadow = $bottomNeumorphism ? 'box-shadow: inset 4px 4px 8px rgba(100,116,139,.24), inset -4px -4px 8px rgba(255,255,255,.90);' : '')
 
 
 @if($allNavigation->isNotEmpty())
@@ -50,11 +51,11 @@
 
     @unless($hideMobileNavigation)
     <nav class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 px-2 pb-[max(.7rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur sm:hidden" style="background-color: {{ sprintf('%s%02X', $bottomNav['background_color'], (int) round(max(0, min(100, (int) $bottomNav['background_opacity'])) * 2.55)) }}; min-height: calc({{ (int) $bottomNav['min_height'] }}px + env(safe-area-inset-bottom, 0px)); {{ $bottomContainerShadow }}" aria-label="Điều hướng ứng dụng">
-        <div class="mx-auto flex max-w-md items-end justify-around gap-1 text-center font-semibold" style="font-size: {{ (int) $bottomNav['text_font_size'] }}px; color: {{ $bottomNav['text_color'] }};">
+        <div class="mx-auto flex max-w-md items-end justify-around text-center font-semibold {{ $bottomNeumorphism ? 'gap-1' : 'gap-1' }}" style="font-size: {{ (int) $bottomNav['text_font_size'] }}px; color: {{ $bottomNav['text_color'] }}; {{ $bottomDockStyle }}">
             @foreach($mobilePrimaryNavigation as $item)
                 @php($active = request()->routeIs($item['route'], $item['route'].'.*'))
                 <a href="{{ route($item['route']) }}"
-                   class="min-w-0 flex-1 rounded-xl px-1 py-2" style="{{ $active ? 'background-color: '.$bottomNav['active_background_color'].'; '.$bottomActiveShadow : $bottomItemShadow }}"
+                   class="min-w-0 flex-1 rounded-2xl px-1 py-2" style="{{ $active ? 'background-color: '.$bottomNav['active_background_color'].'; '.$bottomActiveShadow : $bottomItemShadow }}"
                    @if($active) aria-current="page" @endif>
                     <span class="mx-auto mb-1 block" style="width: {{ (int) $bottomNav['icon_size'] }}px; height: {{ (int) $bottomNav['icon_size'] }}px; color: {{ $active ? $bottomNav['active_icon_color'] : $bottomNav['icon_color'] }};">@include('ClientPortal::partials.navigation-icon', ['name' => $item['bottom_icon'] ?? $item['icon'], 'class' => 'h-full w-full'])</span>
                     <span class="block truncate" style="color: {{ $active ? $bottomNav['active_text_color'] : $bottomNav['text_color'] }};">{{ $item['name'] }}</span>
@@ -64,7 +65,7 @@
             @if($mobileMoreNavigation->isNotEmpty())
                 @php($moreActive = $mobileMoreNavigation->contains(fn (array $item): bool => request()->routeIs($item['route'], $item['route'].'.*')))
                 <details class="group relative min-w-0 flex-1">
-                    <summary class="cursor-pointer list-none rounded-xl px-1 py-2 [&::-webkit-details-marker]:hidden" style="{{ $moreActive ? 'background-color: '.$bottomNav['active_background_color'].'; '.$bottomActiveShadow : $bottomItemShadow }}" @if($moreActive) aria-current="page" @endif>
+                    <summary class="cursor-pointer list-none rounded-2xl px-1 py-2 [&::-webkit-details-marker]:hidden" style="{{ $moreActive ? 'background-color: '.$bottomNav['active_background_color'].'; '.$bottomActiveShadow : $bottomItemShadow }}" @if($moreActive) aria-current="page" @endif>
                         <span class="mx-auto mb-1 block" style="width: {{ (int) $bottomNav['icon_size'] }}px; height: {{ (int) $bottomNav['icon_size'] }}px; color: {{ $moreActive ? $bottomNav['active_icon_color'] : $bottomNav['icon_color'] }};">@include('ClientPortal::partials.navigation-icon', ['name' => 'ellipsis-horizontal', 'class' => 'h-full w-full'])</span>
                         <span class="block truncate" style="color: {{ $moreActive ? $bottomNav['active_text_color'] : $bottomNav['text_color'] }};">Thêm</span>
                     </summary>
