@@ -78,7 +78,7 @@
     <div id="orders-search-region">
     <section id="issue-mobile-list" class="mt-4 grid min-w-0 max-w-full grid-cols-1 gap-3 md:grid-cols-2 xl:hidden">
         @forelse($issues as $issue)
-            <a data-issue-card href="{{ route('client.pharma.orders.show', $issue->id) }}" class="min-w-0 max-w-full overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">
+            <article data-issue-card class="min-w-0 max-w-full overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
                         <p class="break-all text-xs font-black uppercase tracking-wide text-slate-500">{{ $issue->number }}</p>
@@ -91,7 +91,24 @@
                     <div><p class="text-xs text-slate-500">Ngày lập</p><p class="mt-0.5 text-sm font-bold text-slate-800">{{ $issue->issue_date?->format('d/m/Y') }}</p></div>
                     <div class="text-right"><p class="text-xs text-slate-500">Tổng tiền</p><p class="mt-0.5 text-base font-black text-slate-950">{{ $money($issue->total_value ?? 0) }}</p></div>
                 </div>
-            </a>
+                <div class="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
+                    @if($issue->status === \Modules\Pharma\Models\InventoryIssue::POSTED)
+                        @if($orderPdfActions[$issue->id]['ready'] ?? false)
+                            <a href="{{ route('client.pharma.orders.pdf',$issue) }}" data-order-pdf-download class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-black text-slate-700">↓ PDF</a>
+                            <a href="{{ route('client.pharma.orders.print',$issue) }}" target="_blank" rel="noopener" class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-black text-slate-700">In</a>
+                            @if($orderPdfActions[$issue->id]['share'] ?? null)
+                                <button type="button" data-copy-order-share="{{ $orderPdfActions[$issue->id]['share']['url'] }}" class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-black text-slate-700">Sao chép link</button>
+                                <form method="POST" action="{{ route('client.pharma.orders.share.revoke',[$issue,$orderPdfActions[$issue->id]['share']['id']]) }}">@csrf @method('DELETE')<button class="inline-flex min-h-10 items-center rounded-xl border border-rose-200 bg-rose-50 px-3 text-xs font-black text-rose-700 transition active:scale-[0.985] motion-reduce:transform-none">Thu hồi</button></form>
+                            @else
+                                <form method="POST" action="{{ route('client.pharma.orders.share',$issue) }}">@csrf<button class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-black text-slate-700">Chia sẻ</button></form>
+                            @endif
+                        @else
+                            <form method="POST" action="{{ route('client.pharma.orders.pdf.export',$issue) }}">@csrf<button class="inline-flex min-h-10 items-center rounded-xl bg-slate-950 px-3 text-xs font-black text-white">Xuất PDF</button></form>
+                        @endif
+                    @endif
+                    <a href="{{ route('client.pharma.orders.show',$issue->id) }}" class="ml-auto inline-flex min-h-10 items-center text-xs font-black text-slate-600">Chi tiết ›</a>
+                </div>
+            </article>
         @empty
             <div class="col-span-full flex min-h-[52vh] flex-col items-center justify-center px-6 text-center">
                 <div class="flex h-20 w-20 items-center justify-center rounded-3xl bg-slate-100 text-4xl text-slate-400">≡</div>
@@ -103,10 +120,10 @@
 
     <section class="mt-4 hidden overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm xl:block">
         <table class="w-full table-fixed text-left text-sm">
-            <thead class="bg-slate-50 text-xs font-black uppercase tracking-wide text-slate-500"><tr><th class="w-[17%] px-5 py-4">Số phiếu</th><th class="w-[27%] px-5 py-4">Khách hàng / bệnh viện</th><th class="w-[18%] px-5 py-4">Nguồn</th><th class="w-[13%] px-5 py-4">Ngày lập</th><th class="w-[12%] px-5 py-4 text-right">Tổng tiền</th><th class="w-[8%] px-5 py-4 text-center">Ghi chú</th><th class="w-[12%] px-5 py-4">Trạng thái</th></tr></thead>
+            <thead class="bg-slate-50 text-xs font-black uppercase tracking-wide text-slate-500"><tr><th class="w-[17%] px-5 py-4">Số phiếu</th><th class="w-[27%] px-5 py-4">Khách hàng / bệnh viện</th><th class="w-[18%] px-5 py-4">Nguồn</th><th class="w-[13%] px-5 py-4">Ngày lập</th><th class="w-[12%] px-5 py-4 text-right">Tổng tiền</th><th class="w-[8%] px-5 py-4 text-center">Ghi chú</th><th class="w-[10%] px-5 py-4">Trạng thái</th><th class="w-[8%] px-5 py-4 text-right"><span class="sr-only">PDF</span></th></tr></thead>
             <tbody id="issue-desktop-body" class="divide-y divide-slate-100">
                 @foreach($issues as $issue)
-                    <tr data-issue-row class="hover:bg-slate-50"><td class="px-5 py-4"><a class="font-black text-slate-950" href="{{ route('client.pharma.orders.show',$issue->id) }}">{{ $issue->number }}</a></td><td class="px-5 py-4 font-bold text-slate-800">{{ $issue->recipient_name ?: '—' }}</td><td class="px-5 py-4">{{ $sourceLabels[$issue->issue_source ?? 'normal'] ?? 'Theo bảng giá' }}</td><td class="px-5 py-4">{{ $issue->issue_date?->format('d/m/Y') }}</td><td class="px-5 py-4 text-right font-black">{{ $money($issue->total_value ?? 0) }}</td><td class="px-5 py-4 text-center">@if($issue->shortage_note)<button type="button" data-shortage-note="{{ $issue->shortage_note }}" class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-amber-200 bg-amber-50 text-base text-amber-800" aria-label="Xem ghi chú thiếu hàng" title="Xem ghi chú thiếu hàng">📝</button>@else<span class="text-slate-300">—</span>@endif</td><td class="px-5 py-4 font-bold">{{ $statusLabels[$issue->status] ?? $issue->status }}</td></tr>
+                    <tr data-issue-row class="hover:bg-slate-50"><td class="px-5 py-4"><a class="font-black text-slate-950" href="{{ route('client.pharma.orders.show',$issue->id) }}">{{ $issue->number }}</a></td><td class="px-5 py-4 font-bold text-slate-800">{{ $issue->recipient_name ?: '—' }}</td><td class="px-5 py-4">{{ $sourceLabels[$issue->issue_source ?? 'normal'] ?? 'Theo bảng giá' }}</td><td class="px-5 py-4">{{ $issue->issue_date?->format('d/m/Y') }}</td><td class="px-5 py-4 text-right font-black">{{ $money($issue->total_value ?? 0) }}</td><td class="px-5 py-4 text-center">@if($issue->shortage_note)<button type="button" data-shortage-note="{{ $issue->shortage_note }}" class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-amber-200 bg-amber-50 text-base text-amber-800" aria-label="Xem ghi chú thiếu hàng" title="Xem ghi chú thiếu hàng">📝</button>@else<span class="text-slate-300">—</span>@endif</td><td class="px-5 py-4 font-bold">{{ $statusLabels[$issue->status] ?? $issue->status }}</td><td class="px-5 py-4 text-right">@if($issue->status === \Modules\Pharma\Models\InventoryIssue::POSTED) @if($orderPdfActions[$issue->id]['ready'] ?? false)<a href="{{ route('client.pharma.orders.pdf',$issue) }}" data-order-pdf-download class="inline-flex min-h-9 items-center rounded-lg border border-slate-300 px-2.5 text-xs font-black">↓ PDF</a>@else<form method="POST" action="{{ route('client.pharma.orders.pdf.export',$issue) }}">@csrf<button class="rounded-lg border border-slate-300 px-2.5 py-2 text-xs font-black">Xuất PDF</button></form>@endif @else<span class="text-slate-300">—</span>@endif</td></tr>
                 @endforeach
             </tbody>
         </table>
@@ -162,6 +179,23 @@
 </dialog>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    const preparedOrderPdfs=new Map();
+    const standaloneOrder=window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true;
+    document.addEventListener('click',async(event)=>{
+        const copy=event.target.closest('[data-copy-order-share]');
+        if(copy){try{await navigator.clipboard.writeText(copy.dataset.copyOrderShare);const old=copy.textContent;copy.textContent='Đã sao chép';setTimeout(()=>copy.textContent=old,1600);}catch(e){window.prompt('Sao chép link chia sẻ:',copy.dataset.copyOrderShare);}return;}
+        const link=event.target.closest('[data-order-pdf-download]');
+        if(!link||!standaloneOrder)return;
+        event.preventDefault();
+        const cached=preparedOrderPdfs.get(link.href);
+        if(cached&&navigator.canShare?.({files:[cached]})){await navigator.share({files:[cached],title:'Phiếu xuất kho'});return;}
+        const response=await fetch(link.href,{credentials:'same-origin',cache:'no-store'});
+        if(!response.ok){window.location.href=link.href;return;}
+        const blob=await response.blob(), file=new File([blob],'phieu-xuat-kho.pdf',{type:'application/pdf'});
+        preparedOrderPdfs.set(link.href,file);
+        if(navigator.canShare?.({files:[file]})){link.textContent='Mở / lưu PDF';return;}
+        const objectUrl=URL.createObjectURL(blob);window.open(objectUrl,'_blank','noopener');window.setTimeout(()=>URL.revokeObjectURL(objectUrl),60000);
+    });
     const createAction=document.querySelector('[data-create-order]');
     if(createAction && window.matchMedia('(max-width: 1023px)').matches) document.body.appendChild(createAction);
     const shortageDialog=document.getElementById('shortage-note-dialog'), shortageContent=document.getElementById('shortage-note-content');
