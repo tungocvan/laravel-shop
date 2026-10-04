@@ -36,6 +36,9 @@ final class InventoryReceiptDocumentService
             ->output();
         Storage::disk('local')->put($path, $binary);
 
+        if ($existing && $existing->source_hash !== $hash) {
+            $existing->shares()->delete();
+        }
         if ($existing && Storage::disk($existing->disk)->exists($existing->storage_path)) {
             Storage::disk($existing->disk)->delete($existing->storage_path);
         }
