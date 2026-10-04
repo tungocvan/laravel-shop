@@ -89,6 +89,18 @@
                         <span class="shrink-0 text-xl font-black text-slate-300">›</span>
                     </div>
                     <div class="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
+                        @if(in_array($receipt->status,[\Modules\Pharma\Models\InventoryReceipt::DRAFT,\Modules\Pharma\Models\InventoryReceipt::PENDING_APPROVAL],true) && $canApproveReceipt)
+                            <form method="POST" action="{{ route('client.pharma.inventory.receipts.approve',$receipt) }}">@csrf<button class="inline-flex min-h-10 items-center rounded-xl bg-slate-950 px-3 text-xs font-black text-white transition active:scale-[0.985] motion-reduce:transform-none">Phê duyệt</button></form>
+                        @endif
+                        @if($receipt->status === \Modules\Pharma\Models\InventoryReceipt::APPROVED && $canApproveReceipt)
+                            <form method="POST" action="{{ route('client.pharma.inventory.receipts.undo-approval',$receipt) }}">@csrf<button class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-black text-slate-700 transition active:scale-[0.985] motion-reduce:transform-none">Hoàn tác duyệt</button></form>
+                        @endif
+                        @if($receipt->status === \Modules\Pharma\Models\InventoryReceipt::APPROVED && $canPostReceipt)
+                            <form method="POST" action="{{ route('client.pharma.inventory.receipts.post',$receipt) }}">@csrf<button class="inline-flex min-h-10 items-center rounded-xl bg-emerald-600 px-3 text-xs font-black text-white transition active:scale-[0.985] motion-reduce:transform-none">Ghi sổ</button></form>
+                        @endif
+                        @if($receipt->status === \Modules\Pharma\Models\InventoryReceipt::POSTED && $canPostReceipt)
+                            <form method="POST" action="{{ route('client.pharma.inventory.receipts.revert',$receipt) }}">@csrf<button class="inline-flex min-h-10 items-center rounded-xl border border-amber-300 bg-amber-50 px-3 text-xs font-black text-amber-700 transition active:scale-[0.985] motion-reduce:transform-none">Hoàn tác ghi sổ</button></form>
+                        @endif
                         @if(! ($receiptPdfActions[$receipt->id]['can_use_pdf'] ?? false))
                             <span class="text-xs font-bold text-slate-400">Ghi sổ để xuất PDF</span>
                         @elseif($receiptPdfActions[$receipt->id]['invoice_ready'] ?? false)
@@ -119,7 +131,7 @@
         <section class="mt-4 hidden overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm xl:block">
             <table class="w-full table-fixed text-left text-sm">
                 <thead class="bg-slate-50 text-xs font-black uppercase tracking-wide text-slate-500">
-                    <tr><th class="w-[15%] px-5 py-4">Số phiếu</th><th class="w-[12%] px-5 py-4">Ngày nhập</th><th class="w-[22%] px-5 py-4">Nhà cung cấp</th><th class="w-[17%] px-5 py-4">Hóa đơn</th><th class="w-[10%] px-5 py-4 text-right">Số lượng</th><th class="w-[11%] px-5 py-4">Trạng thái</th><th class="w-[13%] px-5 py-4 text-right">PDF</th></tr>
+                    <tr><th class="w-[15%] px-5 py-4">Số phiếu</th><th class="w-[12%] px-5 py-4">Ngày nhập</th><th class="w-[22%] px-5 py-4">Nhà cung cấp</th><th class="w-[17%] px-5 py-4">Hóa đơn</th><th class="w-[10%] px-5 py-4 text-right">Số lượng</th><th class="w-[11%] px-5 py-4">Trạng thái</th><th class="w-[13%] px-5 py-4 text-right">Thao tác</th></tr>
                 </thead>
                 <tbody id="receipt-desktop-body" class="divide-y divide-slate-100">
                     @foreach($receipts as $receipt)
@@ -131,13 +143,27 @@
                             <td class="px-5 py-4 text-right"><p class="font-black tabular-nums text-slate-950">{{ number_format((float)$receipt->total_quantity,0,',','.') }}</p><p class="mt-0.5 text-xs text-slate-400">{{ number_format($receipt->items_count) }} dòng</p></td>
                             <td class="px-5 py-4"><span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-700">{{ $labels[$receipt->status] ?? $receipt->status }}</span></td>
                             <td class="px-5 py-4 text-right">
+                                <div class="flex flex-wrap justify-end gap-1.5">
+                                @if(in_array($receipt->status,[\Modules\Pharma\Models\InventoryReceipt::DRAFT,\Modules\Pharma\Models\InventoryReceipt::PENDING_APPROVAL],true) && $canApproveReceipt)
+                                    <form method="POST" action="{{ route('client.pharma.inventory.receipts.approve',$receipt) }}">@csrf<button class="rounded-lg bg-slate-950 px-2.5 py-1.5 text-xs font-black text-white">Duyệt</button></form>
+                                @endif
+                                @if($receipt->status === \Modules\Pharma\Models\InventoryReceipt::APPROVED && $canApproveReceipt)
+                                    <form method="POST" action="{{ route('client.pharma.inventory.receipts.undo-approval',$receipt) }}">@csrf<button class="rounded-lg border border-slate-300 px-2 py-1.5 text-xs font-black text-slate-700">Hoàn tác</button></form>
+                                @endif
+                                @if($receipt->status === \Modules\Pharma\Models\InventoryReceipt::APPROVED && $canPostReceipt)
+                                    <form method="POST" action="{{ route('client.pharma.inventory.receipts.post',$receipt) }}">@csrf<button class="rounded-lg bg-emerald-600 px-2.5 py-1.5 text-xs font-black text-white">Ghi sổ</button></form>
+                                @endif
+                                @if($receipt->status === \Modules\Pharma\Models\InventoryReceipt::POSTED && $canPostReceipt)
+                                    <form method="POST" action="{{ route('client.pharma.inventory.receipts.revert',$receipt) }}">@csrf<button class="rounded-lg border border-amber-300 bg-amber-50 px-2 py-1.5 text-xs font-black text-amber-700">Hoàn tác ghi sổ</button></form>
+                                @endif
                                 @if(! ($receiptPdfActions[$receipt->id]['can_use_pdf'] ?? false))
                                     <span class="text-xs font-bold text-slate-400">—</span>
                                 @elseif($receiptPdfActions[$receipt->id]['invoice_ready'] ?? false)
                                     <div class="flex justify-end gap-1"><a href="{{ route('client.pharma.inventory.receipts.pdf',$receipt) }}" data-receipt-pdf-download class="rounded-lg border border-slate-300 px-2 py-1.5 text-xs font-black">↓ PDF</a><a href="{{ route('client.pharma.inventory.receipts.print',$receipt) }}" target="_blank" rel="noopener" class="rounded-lg border border-slate-300 px-2 py-1.5 text-xs font-black">In</a>@if($receiptPdfActions[$receipt->id]['share'] ?? null)<button type="button" data-copy-receipt-share="{{ $receiptPdfActions[$receipt->id]['share']['url'] }}" class="rounded-lg border border-slate-300 px-2 py-1.5 text-xs font-black">Link</button>@else<form method="POST" action="{{ route('client.pharma.inventory.receipts.share',$receipt) }}">@csrf<button class="rounded-lg border border-slate-300 px-2 py-1.5 text-xs font-black">Chia sẻ</button></form>@endif</div>
                                 @else
-                                    <form method="POST" action="{{ route('client.pharma.inventory.receipts.pdf.export',$receipt) }}">@csrf<button class="rounded-lg bg-slate-950 px-2.5 py-1.5 text-xs font-black text-white">Xuất PDF</button></form>
+                                    <form method="POST" action="{{ route('client.pharma.inventory.receipts.pdf.export',$receipt) }}">@csrf<button class="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-black text-slate-700">Xuất PDF</button></form>
                                 @endif
+                                </div>
                             </td>
                         </tr>
                     @endforeach
