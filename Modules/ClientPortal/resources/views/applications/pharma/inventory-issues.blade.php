@@ -23,6 +23,14 @@
         </div>
     </header>
 
+    @if(session('order_share_url'))
+        <div class="fixed inset-x-4 top-4 z-[100] mx-auto max-w-xl rounded-2xl border border-emerald-200 bg-white p-4 pr-12 shadow-2xl transition duration-200" data-order-share-flash>
+            <button type="button" data-dismiss-order-share class="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-lg text-lg font-bold text-emerald-700 hover:bg-emerald-50" aria-label="Đóng thông báo link chia sẻ">×</button>
+            <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Link chia sẻ PDF phiếu xuất</p>
+            <div class="mt-2 flex gap-2"><input readonly value="{{ session('order_share_url') }}" class="min-w-0 flex-1 rounded-xl border border-slate-300 px-3 text-xs"><button type="button" data-copy-order-share="{{ session('order_share_url') }}" data-dismiss-order-share-after-copy class="rounded-xl bg-slate-950 px-3 text-xs font-black text-white">Sao chép</button></div>
+        </div>
+    @endif
+
     <section class="mt-4">
         <div class="flex items-center gap-2">
         <form id="issue-search-form" method="GET" action="{{ route('client.pharma.orders') }}" class="flex min-w-0 flex-1 gap-2 lg:max-w-[620px]">
@@ -179,11 +187,15 @@
 </dialog>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    const orderShareFlash=document.querySelector('[data-order-share-flash]');
+    const dismissOrderShare=()=>{if(!orderShareFlash)return;orderShareFlash.classList.add('opacity-0','-translate-y-1','pointer-events-none');setTimeout(()=>orderShareFlash.remove(),200);};
+    document.addEventListener('click',(event)=>{if(event.target.closest('[data-dismiss-order-share]')){dismissOrderShare();return;}if(orderShareFlash&&!orderShareFlash.contains(event.target))dismissOrderShare();});
+    document.addEventListener('keydown',(event)=>{if(event.key==='Escape')dismissOrderShare();});
     const preparedOrderPdfs=new Map();
     const standaloneOrder=window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true;
     document.addEventListener('click',async(event)=>{
         const copy=event.target.closest('[data-copy-order-share]');
-        if(copy){try{await navigator.clipboard.writeText(copy.dataset.copyOrderShare);const old=copy.textContent;copy.textContent='Đã sao chép';setTimeout(()=>copy.textContent=old,1600);}catch(e){window.prompt('Sao chép link chia sẻ:',copy.dataset.copyOrderShare);}return;}
+        if(copy){try{await navigator.clipboard.writeText(copy.dataset.copyOrderShare);const old=copy.textContent;copy.textContent='Đã sao chép';if(copy.hasAttribute('data-dismiss-order-share-after-copy'))setTimeout(dismissOrderShare,650);else setTimeout(()=>copy.textContent=old,1600);}catch(e){window.prompt('Sao chép link chia sẻ:',copy.dataset.copyOrderShare);}return;}
         const link=event.target.closest('[data-order-pdf-download]');
         if(!link||!standaloneOrder)return;
         event.preventDefault();
