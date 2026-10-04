@@ -79,6 +79,14 @@
                     <button type="submit" form="bottom-navigation-reset" class="self-end rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700">Reset mặc định</button>
                 </div>
                 <div class="mt-6 grid gap-5 md:grid-cols-2">
+                    <label class="block md:col-span-2">
+                        <span class="text-sm font-semibold text-gray-800">Kiểu hiển thị</span>
+                        <select name="presentation_style" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm">
+                            <option value="default" @selected(old('presentation_style', $bottomNavigation['presentation_style'] ?? 'default') === 'default')>Mặc định · Flat</option>
+                            <option value="neumorphism" @selected(old('presentation_style', $bottomNavigation['presentation_style'] ?? 'default') === 'neumorphism')>Neumorphism · Nổi/lõm mềm</option>
+                        </select>
+                        <span class="mt-1 block text-xs text-gray-500">Neumorphism chỉ áp dụng cho Bottom Navigation mobile; sidebar tablet/desktop giữ nguyên.</span>
+                    </label>
                     <label class="block"><span class="text-sm font-semibold text-gray-800">Màu nền</span><input type="color" name="background_color" value="{{ old('background_color', $bottomNavigation['background_color']) }}" class="mt-1 h-11 w-full rounded-xl border border-gray-300 bg-white p-1"></label>
                     <label class="block"><span class="text-sm font-semibold text-gray-800">Độ trong nền (%)</span><input type="number" min="0" max="100" name="background_opacity" value="{{ old('background_opacity', $bottomNavigation['background_opacity']) }}" class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm"></label>
                     <label class="block"><span class="text-sm font-semibold text-gray-800">Màu icon</span><input type="color" name="icon_color" value="{{ old('icon_color', $bottomNavigation['icon_color']) }}" class="mt-1 h-11 w-full rounded-xl border border-gray-300 bg-white p-1"></label>
@@ -95,7 +103,7 @@
                         <input name="theme_name" form="bottom-navigation-theme-store" maxlength="80" placeholder="Tên theme mới, ví dụ: Blue Compact" class="min-w-0 flex-1 rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm">
                         <button type="submit" form="bottom-navigation-theme-store" class="rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-semibold text-gray-700">Lưu thành theme mới</button>
                     </div>
-                    <p class="mt-2 text-xs text-gray-500">Theme lưu snapshot của toàn bộ màu sắc, kích thước và chiều cao Bottom Navigation hiện tại.</p>
+                    <p class="mt-2 text-xs text-gray-500">Theme lưu snapshot của kiểu hiển thị, toàn bộ màu sắc, kích thước và chiều cao Bottom Navigation hiện tại.</p>
                 </div>
             </form>
 
