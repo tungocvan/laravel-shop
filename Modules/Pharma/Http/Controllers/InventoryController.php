@@ -435,7 +435,7 @@ final class InventoryController extends Controller
         $dateTo=$request->filled('date_to') ? Carbon::parse($request->date_to)->toDateString() : now()->toDateString();
         if($dateFrom>$dateTo) [$dateFrom,$dateTo]=[$dateTo,$dateFrom];
         $query=InventoryIssue::query()->withCount('items')
-            ->with(['items:id,issue_id,medicine_id,drug_bid_award_id,batch_number,expiry_date,quantity,unit_price','items.medicine:id,name,unit','deferredSupplies:id,issue_id,medicine_id,quantity,note,expected_supply_date','manager:id,name'])
+            ->with(['items:id,issue_id,medicine_id,drug_bid_award_id,batch_number,expiry_date,quantity,unit_price','items.medicine:id,name,unit','deferredSupplies:id,issue_id,medicine_id,quantity,note,expected_supply_date,status','manager:id,name'])
             ->withSum('items as total_quantity','quantity')
             ->withSum('items as total_value',DB::raw('quantity * unit_price'))
             ->where('warehouse_id',$warehouse->id)
