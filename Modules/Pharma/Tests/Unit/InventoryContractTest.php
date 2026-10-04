@@ -213,6 +213,8 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("Pdf::loadView('Pharma::pages.inventory.receipt-pdf'", $receiptDocumentService);
         $this->assertStringContainsString('sourceHash(', $receiptDocumentService);
         $this->assertStringContainsString('createInvoiceShare(', $receiptDocumentService);
+        $this->assertStringContainsString("abort_unless(\$receipt->status === InventoryReceipt::POSTED, 409, 'Chỉ phiếu nhập đã ghi sổ mới được xuất PDF.')", $receiptDocumentService);
+        $this->assertStringContainsString('Ghi sổ để xuất PDF', $documents);
         $this->assertStringContainsString("route('admin.pharma.inventory.receipts.pdf.invoice',\$doc)", $documents);
         $this->assertStringContainsString("@can('view_pharma_inventory_costs')", $documents);
         $this->assertStringContainsString("route('admin.pharma.inventory.receipts.pdf.cost',\$doc)", $documents);
