@@ -192,6 +192,16 @@ final class PharmaInventoryIssuesCapabilityTest extends TestCase
         $this->assertStringContainsString('>In PDF</a>',$list);
         $this->assertStringContainsString('>Chia sẻ link</button>',$list);
         $this->assertStringContainsString('>Thu hồi link</button>',$list);
+        $this->assertStringContainsString("Route::post('/orders/{issue}/revert'",$routes);
+        $this->assertStringContainsString('function revertPostedOrder(',$controller);
+        $this->assertStringContainsString("'canPostOrders' => \$canPostOrders",$controller);
+        $this->assertStringContainsString("route('client.pharma.orders.undo-approval',\$issue)",$list);
+        $this->assertStringContainsString("route('client.pharma.orders.post',\$issue)",$list);
+        $this->assertStringContainsString("route('client.pharma.orders.revert',\$issue)",$list);
+        $this->assertStringContainsString('Hoàn tác phê duyệt',$list);
+        $this->assertStringContainsString('Hoàn tác ghi sổ',$list);
+        $this->assertStringContainsString('Ghi sổ',$list);
+        $this->assertStringContainsString("\$documents->invalidate(\$posted)",$controller);
 
         $compiled=app('blade.compiler')->compileString($list);
         token_get_all($compiled,TOKEN_PARSE);
