@@ -7,7 +7,7 @@
         <div>
             <a href="{{ route('admin.pharma.inventory.index') }}" class="text-sm font-semibold text-indigo-700">← Quay về Tồn kho</a>
             <h1 class="mt-2 text-2xl font-bold text-slate-950">{{ $title }}</h1>
-            <p class="mt-1 text-sm text-slate-500">Tra cứu chứng từ, trạng thái và ghi sổ phiếu nháp.</p>
+            <p class="mt-1 text-sm text-slate-500">Tra cứu chứng từ, phê duyệt và ghi sổ theo đúng trạng thái.</p>
         </div>
         <div class="flex flex-wrap gap-2">
             @if($type === 'issue')@can('edit_pharma')<a href="{{ route('admin.pharma.inventory.issues.settings') }}" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">⚙ Cấu hình phiếu xuất</a>@endcan<a href="{{ route('admin.pharma.inventory.issues.export',request()->only(['q','status','manager_user_id','recipient_name','date_from','date_to'])) }}" class="rounded-xl border border-emerald-300 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-700">Export Excel</a>@endif
