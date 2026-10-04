@@ -166,6 +166,12 @@ final class PharmaInventoryReceiptsCapabilityTest extends TestCase
         $this->assertStringContainsString('Thu hồi',$list);
         $this->assertStringContainsString("abort_unless(\$receipt->status === InventoryReceipt::POSTED, 409, 'Chỉ phiếu nhập đã ghi sổ mới được xuất PDF.')",$documents);
         $this->assertStringContainsString('Ghi sổ để xuất PDF',$list);
+        $compiled=app('blade.compiler')->compileString($list);
+        $temporary=tempnam(sys_get_temp_dir(),'receipt-list-blade-');
+        file_put_contents($temporary,$compiled);
+        exec(PHP_BINARY.' -l '.escapeshellarg($temporary).' 2>&1',$lintOutput,$lintCode);
+        @unlink($temporary);
+        $this->assertSame(0,$lintCode,implode(PHP_EOL,$lintOutput));
     }
 
     public function test_receipt_admin_and_pwa_share_approval_posting_contract(): void
