@@ -406,7 +406,12 @@ final class InventoryController extends Controller
         return back()->with('success',"Đã hoàn tác phê duyệt {$receipt->number}; phiếu trở về Nháp và tồn kho không thay đổi.");
     }
 
-    public function postReceipt(InventoryReceipt $receipt, InventoryService $inventory): RedirectResponse { $inventory->postReceipt($receipt,auth('admin')->id()); return back()->with('success',"Đã ghi sổ {$receipt->number}."); }
+    public function postReceipt(InventoryReceipt $receipt, InventoryService $inventory): RedirectResponse
+    {
+        $this->guardReceiptWarehouse($receipt,$inventory);
+        $inventory->postReceipt($receipt,auth('admin')->id());
+        return back()->with('success',"Đã ghi sổ {$receipt->number}; tồn kho đã được cộng theo đúng lô của phiếu.");
+    }
 
     public function revertReceipt(InventoryReceipt $receipt, InventoryService $inventory): RedirectResponse
     {
