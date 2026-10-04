@@ -806,7 +806,7 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('w-[160px] p-3 text-right">Tổng hoa hồng', $view);
         $this->assertStringContainsString("issue_date?->format('d/m/Y') ?: \$row->calculated_at?->format('d/m/Y')", $view);
         $this->assertStringNotContainsString("calculated_at->format('d/m/Y H:i')", $view);
-        $this->assertStringContainsString('whitespace-nowrap p-3 text-right font-bold', $view);
+        $this->assertStringContainsString('p-3 text-right font-bold tabular-nums', $view);
     }
 
     public function test_bid_sale_issue_workspace_contracts(): void
