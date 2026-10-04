@@ -5,15 +5,15 @@
 $totalCost=$receipt->items->sum(fn($i)=>(float)$i->quantity*(float)$i->unit_price_ex_vat);
 $statusLabels=['draft'=>'Nháp','pending_approval'=>'Chờ duyệt','approved'=>'Đã duyệt','posted'=>'Đã ghi sổ','cancelled'=>'Đã hủy'];
 $signatures=collect([
- ['show'=>$settings->show_issuer_signature,'label'=>'Người lập phiếu','show_date'=>false],
- ['show'=>$settings->show_deliverer_signature,'label'=>'Người giao hàng','show_date'=>false],
- ['show'=>$settings->show_receiver_signature,'label'=>'Người nhận hàng','show_date'=>false],
+ ['show'=>$settings->show_issuer_signature,'label'=>$settings->issuer_label,'show_date'=>false],
+ ['show'=>$settings->show_deliverer_signature,'label'=>$settings->deliverer_label,'show_date'=>false],
+ ['show'=>$settings->show_receiver_signature,'label'=>$settings->receiver_label,'show_date'=>false],
  ['show'=>$settings->show_keeper_signature,'label'=>$settings->keeper_label,'show_date'=>true],
 ])->where('show',true)->values();
 $signatureWidth=$signatures->count()>0 ? (100/$signatures->count()) : 100;
 @endphp
 <table class="header"><tr><td><b>{{ $settings->organization_name ?: 'PHIẾU NHẬP KHO DƯỢC PHẨM' }}</b>@if($settings->organization_address)<br><span class="muted">{{ $settings->organization_address }}</span>@endif @if($settings->tax_code)<br><span class="muted">MST: {{ $settings->tax_code }}</span>@endif @if($settings->phone)<span class="muted"> · ĐT: {{ $settings->phone }}</span>@endif</td><td class="right"><b>Mẫu chứng từ nội bộ</b><br><span class="muted">Ngày lập: {{ $receipt->receipt_date->format('d/m/Y') }}</span></td></tr></table>
-<h1>PHIẾU NHẬP KHO</h1>
+<h1>{{ $settings->document_title }}</h1>
 @if($settings->document_subtitle)<div class="center muted">{{ $settings->document_subtitle }}</div>@endif
 <div class="center title-no">Số: {{ $receipt->number }}</div>
 <table class="meta">
