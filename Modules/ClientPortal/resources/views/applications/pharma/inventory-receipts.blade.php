@@ -9,7 +9,7 @@
 @section('content')
 @php
     $labels=['draft'=>'Nháp','pending_approval'=>'Chờ duyệt','approved'=>'Đã duyệt','posted'=>'Đã ghi sổ','cancelled'=>'Đã hủy'];
-    $railStatuses=[''=>'Tất cả', ...$labels];
+    $railStatuses=[''=>'Tất cả','draft'=>'Nháp','approved'=>'Đã duyệt','posted'=>'Đã ghi sổ','cancelled'=>'Đã hủy'];
     $activeStatus=(string)($filters['status'] ?? '');
     $hasFilters=filled($filters['q']) || $activeStatus!=='';
 @endphp
