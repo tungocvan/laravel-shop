@@ -33,8 +33,11 @@ use Modules\Pharma\Services\UserOrderStockReadinessService;
 use Modules\Pharma\Services\DrugBidCommissionService;
 use Modules\Pharma\Services\CommissionQueryService;
 use Modules\Partner\Models\Partner;
-use Rap2hpoutre\FastExcel\FastExcel;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 final class InventoryController extends Controller
 {
@@ -1200,46 +1203,57 @@ final class InventoryController extends Controller
         return view('Pharma::pages.inventory.commission-show',compact('detail'));
     }
 
-    public function exportCommissions(Request $request, CommissionQueryService $commissions): StreamedResponse
+    public function exportCommissions(Request $request, CommissionQueryService $commissions): BinaryFileResponse
     {
         $data=$request->validate([
             'from'=>'nullable|date','to'=>'nullable|date','user_id'=>'nullable|integer',
             'partner_id'=>'nullable|integer','medicine_id'=>'nullable|integer','source'=>'nullable|in:all,bid,price_list',
             'ids'=>'nullable|array|max:500','ids.*'=>'integer|distinct',
         ]);
-        $from=!empty($data['from']) ? Carbon::parse($data['from'])->startOfDay() : now()->startOfMonth();
-        $to=!empty($data['to']) ? Carbon::parse($data['to'])->endOfDay() : now()->endOfMonth();
+        $from=!empty($data['from'])?Carbon::parse($data['from'])->startOfDay():now()->startOfMonth();
+        $to=!empty($data['to'])?Carbon::parse($data['to'])->endOfDay():now()->endOfMonth();
+        $rows=$commissions->adminQuery([
+            'from'=>$from,'to'=>$to,'source'=>$data['source']??'all','user_id'=>$data['user_id']??null,
+            'partner_id'=>$data['partner_id']??null,'medicine_id'=>$data['medicine_id']??null,
+        ])->when(!empty($data['ids']),fn($q)=>$q->whereIn('issue_id',$data['ids']))
+          ->with(['issue','medicine','user','partner'])->orderBy('calculated_at')->orderBy('issue_id')->orderBy('id')->get();
 
-        $query=$commissions->adminQuery([
-            'from'=>$from,'to'=>$to,'source'=>$data['source'] ?? 'all',
-            'user_id'=>$data['user_id'] ?? null,'partner_id'=>$data['partner_id'] ?? null,
-            'medicine_id'=>$data['medicine_id'] ?? null,
-        ])->when(!empty($data['ids']),fn($q)=>$q->whereIn('issue_id',$data['ids']))->with(['issue','medicine','user','partner'])
-            ->orderBy('calculated_at')->orderBy('id');
-
-        $rows=$query->get()->map(fn(InventoryIssueCommission $row)=>[
-            'Ngày ghi sổ'=>$row->calculated_at?->format('d/m/Y H:i'),
-            'Số phiếu'=>$row->issue?->number,
-            'Khách hàng / Bệnh viện'=>$row->partner?->name ?: $row->issue?->recipient_name,
-            'Mã sản phẩm'=>$row->medicine?->medicine_code,
-            'Sản phẩm'=>$row->medicine?->name,
-            'User phụ trách'=>$row->user?->name ?: 'Chưa phân công',
-            'SL thực xuất'=>(float)$row->quantity,
-            'Nguồn'=>$row->source_type===InventoryIssueCommission::SOURCE_BID ? 'Hàng thầu' : 'Bảng giá',
-            'Giá bán CT / Giá trúng thầu'=>(float)$row->unit_price,
-            'Giá thu'=>$row->receivable_price_snapshot !== null ? (float)$row->receivable_price_snapshot : null,
-            'Doanh thu'=>(float)$row->revenue_amount,
-            'CK / % chính sách'=>$row->commission_percentage !== null ? (float)$row->commission_percentage : null,
-            'Hoa hồng'=>(float)$row->commission_amount,
-            'Trạng thái'=>$row->status===InventoryIssueCommission::STATUS_UNRESOLVED ? 'Chưa đủ dữ liệu' : 'Đã tính',
-        ]);
-
-        $export=(new FastExcel($rows))
-            ->headerStyle((new \OpenSpout\Common\Entity\Style\Style())->setFontBold()->setShouldWrapText())
-            ->rowsStyle((new \OpenSpout\Common\Entity\Style\Style())->setShouldWrapText());
-        return $export->download('pharma-hoa-hong-'.now()->format('Ymd-His').'.xlsx',function($row){
-            return $row;
-        });
+        $headers=['STT','Ngày ghi sổ','Số phiếu','Nguồn','Khách hàng / Bệnh viện','Người phụ trách','Mã sản phẩm','Sản phẩm','SL thực xuất','Giá bán / Trúng thầu','Giá thu','Doanh thu','CK / Chính sách (%)','Hoa hồng','Trạng thái'];
+        $spreadsheet=new Spreadsheet();$sheet=$spreadsheet->getActiveSheet();$sheet->setTitle('Hoa hong');
+        $lastColumn=Coordinate::stringFromColumnIndex(count($headers));
+        $sheet->mergeCells("A1:{$lastColumn}1")->setCellValue('A1','TRUNG TÂM HOA HỒNG · CHI TIẾT PHÁT SINH');
+        $sheet->mergeCells("A2:{$lastColumn}2")->setCellValue('A2','Kỳ dữ liệu: '.$from->format('d/m/Y').' - '.$to->format('d/m/Y'));
+        $sheet->fromArray([$headers],null,'A4');
+        $sheet->getStyle("A1:{$lastColumn}1")->getFont()->setBold(true)->setSize(16);
+        $sheet->getStyle("A4:{$lastColumn}4")->getFont()->setBold(true);
+        $sheet->getStyle("A1:{$lastColumn}".max(4,4+$rows->count()))->getAlignment()->setVertical('center')->setWrapText(true);
+        foreach($rows as $index=>$row){
+            $excelRow=5+$index;
+            $sheet->fromArray([[
+                $index+1,$row->calculated_at?->format('d/m/Y H:i'),$row->issue?->number,
+                $row->source_type===InventoryIssueCommission::SOURCE_BID?'Hàng thầu':'Bảng giá',
+                $row->partner?->name?:$row->issue?->recipient_name,$row->user?->name?:'Chưa phân công',
+                $row->medicine?->medicine_code,$row->medicine?->name,(float)$row->quantity,(float)$row->unit_price,
+                $row->receivable_price_snapshot!==null?(float)$row->receivable_price_snapshot:null,(float)$row->revenue_amount,
+                $row->commission_percentage!==null?(float)$row->commission_percentage:null,(float)$row->commission_amount,
+                $row->status===InventoryIssueCommission::STATUS_UNRESOLVED?'Chưa đủ dữ liệu':'Đã tính',
+            ]],null,"A{$excelRow}");
+        }
+        $lastRow=4+$rows->count();
+        foreach(['A','I'] as $column)$sheet->getStyle("{$column}5:{$column}{$lastRow}")->getNumberFormat()->setFormatCode('#,##0');
+        foreach(['J','K','L','N'] as $column)$sheet->getStyle("{$column}5:{$column}{$lastRow}")->getNumberFormat()->setFormatCode('#,##0');
+        $sheet->getStyle("M5:M{$lastRow}")->getNumberFormat()->setFormatCode('0.##');
+        foreach(range(1,count($headers)) as $columnIndex){$letter=Coordinate::stringFromColumnIndex($columnIndex);$sheet->getColumnDimension($letter)->setAutoSize(true);}
+        foreach(range(1,$lastRow) as $rowIndex)$sheet->getRowDimension($rowIndex)->setRowHeight(-1);
+        $sheet->freezePane('A5')->setAutoFilter("A4:{$lastColumn}{$lastRow}");
+        $sheet->getPageSetup()->setPaperSize(PageSetup::PAPERSIZE_A4)->setOrientation(PageSetup::ORIENTATION_LANDSCAPE)->setFitToWidth(1)->setFitToHeight(0);
+        $sheet->getPageMargins()->setLeft(0.2)->setRight(0.2)->setTop(0.4)->setBottom(0.4);
+        $sheet->getPageSetup()->setHorizontalCentered(true);
+        $sheet->getHeaderFooter()->setOddFooter('&LTrung tâm hoa hồng&RTrang &P / &N');
+        $path=storage_path('app/private/exports/commissions/pharma-hoa-hong-'.now()->format('Ymd-His').'.xlsx');
+        if(!is_dir(dirname($path)))mkdir(dirname($path),0775,true);
+        (new Xlsx($spreadsheet))->save($path);
+        return response()->download($path)->deleteFileAfterSend(true);
     }
 
     private function issueSalePriceCandidates()
