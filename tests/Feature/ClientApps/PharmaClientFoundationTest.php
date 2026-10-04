@@ -126,6 +126,21 @@ class PharmaClientFoundationTest extends TestCase
         $this->assertStringContainsString('disabled', $standard);
     }
 
+    public function test_pwa_closeout_docs_preserve_hub_navigation_and_native_touch_boundaries(): void
+    {
+        $adminSettings = file_get_contents(base_path('docs/modules/ClientPortal/PWA_ADMIN_SETTINGS.md'));
+        $workflow = file_get_contents(base_path('docs/modules/ClientPortal/PWA_AI_WORKFLOW.md'));
+
+        $this->assertStringContainsString('application.{key}.hub', $adminSettings);
+        $this->assertStringContainsString('application.{key}.navigation', $adminSettings);
+        $this->assertStringContainsString('pwa.bottom_navigation', $adminSettings);
+        $this->assertStringContainsString('clientportal.pwa.bottom_navigation.themes', $adminSettings);
+        $this->assertStringContainsString('single-surface mobile dock', $adminSettings);
+        $this->assertStringContainsString('does not require restoring Overview as a business capability', $adminSettings);
+        $this->assertStringContainsString('Native touch interaction gate', $workflow);
+        $this->assertStringContainsString('<x-native-touch>', $workflow);
+    }
+
     public function test_pharma_foundation_does_not_reuse_admin_presentation_or_facade_calls_in_blade(): void
     {
         $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php'));
