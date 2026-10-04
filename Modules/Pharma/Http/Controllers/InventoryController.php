@@ -1209,6 +1209,8 @@ final class InventoryController extends Controller
             'from'=>'nullable|date','to'=>'nullable|date','user_id'=>'nullable|integer',
             'partner_id'=>'nullable|integer','medicine_id'=>'nullable|integer','source'=>'nullable|in:all,bid,price_list',
             'ids'=>'nullable|array|max:500','ids.*'=>'integer|distinct',
+            'excel_columns'=>'nullable|array|min:1|max:14','excel_columns.*'=>'string|in:date,issue,source,customer,manager,medicine_code,medicine,quantity,unit_price,receivable,revenue,percentage,commission,status',
+            'excel_auto_width'=>'nullable|boolean','excel_wrap'=>'nullable|boolean','excel_orientation'=>'nullable|in:landscape,portrait',
         ]);
         $from=!empty($data['from'])?Carbon::parse($data['from'])->startOfDay():now()->startOfMonth();
         $to=!empty($data['to'])?Carbon::parse($data['to'])->endOfDay():now()->endOfMonth();
@@ -1218,7 +1220,13 @@ final class InventoryController extends Controller
         ])->when(!empty($data['ids']),fn($q)=>$q->whereIn('issue_id',$data['ids']))
           ->with(['issue','medicine','user','partner'])->orderBy('calculated_at')->orderBy('issue_id')->orderBy('id')->get();
 
-        $headers=['STT','Ngày ghi sổ','Số phiếu','Nguồn','Khách hàng / Bệnh viện','Người phụ trách','Mã sản phẩm','Sản phẩm','SL thực xuất','Giá bán / Trúng thầu','Giá thu','Doanh thu','CK / Chính sách (%)','Hoa hồng','Trạng thái'];
+        $columnMap=[
+            'date'=>'Ngày ghi sổ','issue'=>'Số phiếu','source'=>'Nguồn','customer'=>'Khách hàng / Bệnh viện','manager'=>'Người phụ trách',
+            'medicine_code'=>'Mã sản phẩm','medicine'=>'Sản phẩm','quantity'=>'SL thực xuất','unit_price'=>'Giá bán / Trúng thầu',
+            'receivable'=>'Giá thu','revenue'=>'Doanh thu','percentage'=>'CK / Chính sách (%)','commission'=>'Hoa hồng','status'=>'Trạng thái',
+        ];
+        $selected=array_values(array_intersect(array_keys($columnMap),$data['excel_columns']??array_keys($columnMap)));
+        $headers=array_merge(['STT'],array_map(fn($key)=>$columnMap[$key],$selected));
         $spreadsheet=new Spreadsheet();$sheet=$spreadsheet->getActiveSheet();$sheet->setTitle('Hoa hong');
         $lastColumn=Coordinate::stringFromColumnIndex(count($headers));
         $sheet->mergeCells("A1:{$lastColumn}1")->setCellValue('A1','TRUNG TÂM HOA HỒNG · CHI TIẾT PHÁT SINH');
@@ -1229,24 +1237,26 @@ final class InventoryController extends Controller
         $sheet->getStyle("A1:{$lastColumn}".max(4,4+$rows->count()))->getAlignment()->setVertical('center')->setWrapText(true);
         foreach($rows as $index=>$row){
             $excelRow=5+$index;
-            $sheet->fromArray([[
-                $index+1,$row->calculated_at?->format('d/m/Y H:i'),$row->issue?->number,
-                $row->source_type===InventoryIssueCommission::SOURCE_BID?'Hàng thầu':'Bảng giá',
-                $row->partner?->name?:$row->issue?->recipient_name,$row->user?->name?:'Chưa phân công',
-                $row->medicine?->medicine_code,$row->medicine?->name,(float)$row->quantity,(float)$row->unit_price,
-                $row->receivable_price_snapshot!==null?(float)$row->receivable_price_snapshot:null,(float)$row->revenue_amount,
-                $row->commission_percentage!==null?(float)$row->commission_percentage:null,(float)$row->commission_amount,
-                $row->status===InventoryIssueCommission::STATUS_UNRESOLVED?'Chưa đủ dữ liệu':'Đã tính',
-            ]],null,"A{$excelRow}");
+            $values=[
+                'date'=>$row->calculated_at?->format('d/m/Y H:i'),'issue'=>$row->issue?->number,
+                'source'=>$row->source_type===InventoryIssueCommission::SOURCE_BID?'Hàng thầu':'Bảng giá',
+                'customer'=>$row->partner?->name?:$row->issue?->recipient_name,'manager'=>$row->user?->name?:'Chưa phân công',
+                'medicine_code'=>$row->medicine?->medicine_code,'medicine'=>$row->medicine?->name,'quantity'=>(float)$row->quantity,
+                'unit_price'=>(float)$row->unit_price,'receivable'=>$row->receivable_price_snapshot!==null?(float)$row->receivable_price_snapshot:null,
+                'revenue'=>(float)$row->revenue_amount,'percentage'=>$row->commission_percentage!==null?(float)$row->commission_percentage:null,
+                'commission'=>(float)$row->commission_amount,'status'=>$row->status===InventoryIssueCommission::STATUS_UNRESOLVED?'Chưa đủ dữ liệu':'Đã tính',
+            ];
+            $sheet->fromArray([[ $index+1,...array_map(fn($key)=>$values[$key],$selected) ]],null,"A{$excelRow}");
         }
         $lastRow=4+$rows->count();
-        foreach(['A','I'] as $column)$sheet->getStyle("{$column}5:{$column}{$lastRow}")->getNumberFormat()->setFormatCode('#,##0');
-        foreach(['J','K','L','N'] as $column)$sheet->getStyle("{$column}5:{$column}{$lastRow}")->getNumberFormat()->setFormatCode('#,##0');
-        $sheet->getStyle("M5:M{$lastRow}")->getNumberFormat()->setFormatCode('0.##');
-        foreach(range(1,count($headers)) as $columnIndex){$letter=Coordinate::stringFromColumnIndex($columnIndex);$sheet->getColumnDimension($letter)->setAutoSize(true);}
-        foreach(range(1,$lastRow) as $rowIndex)$sheet->getRowDimension($rowIndex)->setRowHeight(-1);
+        $numericFormats=['quantity'=>'#,##0','unit_price'=>'#,##0','receivable'=>'#,##0','revenue'=>'#,##0','percentage'=>'0.##','commission'=>'#,##0'];
+        foreach($selected as $offset=>$key){$letter=Coordinate::stringFromColumnIndex($offset+2);if(isset($numericFormats[$key]))$sheet->getStyle("{$letter}5:{$letter}{$lastRow}")->getNumberFormat()->setFormatCode($numericFormats[$key]);}
+        $sheet->getStyle("A5:A{$lastRow}")->getNumberFormat()->setFormatCode('#,##0');
+        if(($data['excel_auto_width']??true)){foreach(range(1,count($headers)) as $columnIndex)$sheet->getColumnDimension(Coordinate::stringFromColumnIndex($columnIndex))->setAutoSize(true);}
+        if(($data['excel_wrap']??true)){foreach(range(1,$lastRow) as $rowIndex)$sheet->getRowDimension($rowIndex)->setRowHeight(-1);$sheet->getStyle("A1:{$lastColumn}{$lastRow}")->getAlignment()->setWrapText(true);}
         $sheet->freezePane('A5')->setAutoFilter("A4:{$lastColumn}{$lastRow}");
-        $sheet->getPageSetup()->setPaperSize(PageSetup::PAPERSIZE_A4)->setOrientation(PageSetup::ORIENTATION_LANDSCAPE)->setFitToWidth(1)->setFitToHeight(0);
+        $orientation=($data['excel_orientation']??'landscape')==='portrait'?PageSetup::ORIENTATION_PORTRAIT:PageSetup::ORIENTATION_LANDSCAPE;
+        $sheet->getPageSetup()->setPaperSize(PageSetup::PAPERSIZE_A4)->setOrientation($orientation)->setFitToWidth(1)->setFitToHeight(0);
         $sheet->getPageMargins()->setLeft(0.2)->setRight(0.2)->setTop(0.4)->setBottom(0.4);
         $sheet->getPageSetup()->setHorizontalCentered(true);
         $sheet->getHeaderFooter()->setOddFooter('&LTrung tâm hoa hồng&RTrang &P / &N');
