@@ -65,6 +65,7 @@ final class PharmaInventoryReceiptsCapabilityTest extends TestCase
         $this->assertStringContainsString("route('client.pharma.inventory.receipts.update',\$receipt)", $create);
         $this->assertStringContainsString("@method('PUT')", $create);
         $this->assertStringContainsString('data-receipt-combobox', $create);
+        $this->assertStringContainsString("collect(old('items', \$persistedItems))", $create);
         $this->assertStringContainsString('placeholder="Tìm tên nhà cung cấp / MST..."', $create);
         $this->assertStringContainsString('placeholder="Tìm tên thuốc / mã thuốc / hoạt chất..."', $create);
         $this->assertStringContainsString("old('invoice_date', \$editing ? (\$receipt->invoice_date?->format('Y-m-d') ?? now()->toDateString()) : now()->toDateString())", $create);
