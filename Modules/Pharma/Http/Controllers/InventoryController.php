@@ -378,6 +378,7 @@ final class InventoryController extends Controller
             $locked->update($metadata);
             $locked->items()->delete();
             $locked->items()->createMany($data['items']);
+            app(InventoryReceiptDocumentService::class)->invalidate($locked);
         });
         return redirect()->route('admin.pharma.inventory.receipts.index')->with('success',"Đã cập nhật phiếu nháp {$receipt->number}.");
     }
