@@ -29,15 +29,16 @@
  <form id="commission-selected-export" method="GET" action="{{ route('admin.pharma.inventory.commissions.export') }}">@foreach(request()->only(['source','from','to','user_id','partner_id','medicine_id']) as $key=>$value)@if(filled($value))<input type="hidden" name="{{ $key }}" value="{{ $value }}">@endif @endforeach<div id="commission-selected-inputs"></div></form>
  <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
   <div class="border-b border-slate-100 px-5 py-4"><h2 class="font-bold">Chi tiết phát sinh</h2><p class="mt-1 text-xs text-slate-500">Mỗi dòng là một phiếu xuất đã ghi sổ, đồng bộ cách trình bày với PWA. Bấm mã phiếu để xem chi tiết.</p></div>
-  <div class="overflow-x-auto"><table class="w-full min-w-[980px] table-fixed text-sm"><thead class="bg-slate-50 text-xs uppercase text-slate-500"><tr><th class="w-[130px] p-3 text-left">Ngày xuất</th><th class="w-[210px] p-3 text-left">Mã phiếu</th><th class="w-[30%] p-3 text-left">Khách hàng</th><th class="w-[22%] p-3 text-left">Người phụ trách</th><th class="w-[150px] p-3 text-right">Tổng giá trị</th><th class="w-[160px] p-3 text-right">Tổng hoa hồng</th></tr></thead>
+  <div class="overflow-x-auto"><table class="w-full min-w-[980px] table-fixed text-sm"><thead class="bg-slate-50 text-xs uppercase text-slate-500"><tr><th class="w-[48px] p-3 text-center"><input id="commission-select-all" type="checkbox" class="h-4 w-4 rounded border-slate-300"></th><th class="w-[130px] p-3 text-left">Ngày xuất</th><th class="w-[210px] p-3 text-left">Mã phiếu</th><th class="w-[30%] p-3 text-left">Khách hàng</th><th class="w-[22%] p-3 text-left">Người phụ trách</th><th class="w-[150px] p-3 text-right">Tổng giá trị</th><th class="w-[160px] p-3 text-right">Tổng hoa hồng</th></tr></thead>
   <tbody class="divide-y divide-slate-100">@forelse($rows as $row)@php($issue=$row->issue)<tr class="hover:bg-slate-50/60">
+   <td class="p-3 text-center"><input type="checkbox" class="commission-row-checkbox h-4 w-4 rounded border-slate-300" value="{{ $row->issue_id }}"></td>
    <td class="p-3 font-semibold">{{ $issue?->issue_date?->format('d/m/Y') ?: $row->calculated_at?->format('d/m/Y') }}</td>
    <td class="p-3"><a class="font-mono font-bold text-indigo-700 hover:underline" href="{{ route('admin.pharma.inventory.commissions.show',$row->issue_id) }}">{{ $issue?->number }}</a><div class="mt-1"><span class="rounded-lg px-2 py-0.5 text-[10px] font-bold {{ $row->source_type==='bid' ? 'bg-violet-50 text-violet-700' : 'bg-sky-50 text-sky-700' }}">{{ $row->source_type==='bid' ? 'HÀNG THẦU' : 'BẢNG GIÁ' }}</span></div></td>
    <td class="p-3"><div class="truncate font-semibold text-slate-800" title="{{ $row->resolved_customer_name }}">{{ $row->resolved_customer_name }}</div></td>
    <td class="p-3"><div class="truncate text-slate-700">{{ $row->resolved_manager_name }}</div></td>
    <td class="p-3 text-right font-bold tabular-nums">{{ number_format((float)$row->revenue_amount,0,',','.') }} đ</td>
    <td class="p-3 text-right font-bold tabular-nums text-emerald-700">{{ number_format((float)$row->commission_amount,0,',','.') }} đ <span class="text-slate-300">›</span></td>
-  </tr>@empty<tr><td colspan="6" class="p-10 text-center text-slate-500">Chưa có phiếu xuất phát sinh hoa hồng trong phạm vi đã chọn.</td></tr>@endforelse</tbody></table></div>
+  </tr>@empty<tr><td colspan="7" class="p-10 text-center text-slate-500">Chưa có phiếu xuất phát sinh hoa hồng trong phạm vi đã chọn.</td></tr>@endforelse</tbody></table></div>
   @if($rows->hasPages())<div class="border-t border-slate-100 p-4">{{ $rows->links() }}</div>@endif
  </section>
 </div>
