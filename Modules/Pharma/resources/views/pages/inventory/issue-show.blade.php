@@ -25,6 +25,16 @@ $signatures=collect([
    <a href="{{ route('admin.pharma.inventory.issues.pdf',$issue) }}" class="rounded-xl border border-indigo-200 bg-white px-4 py-2.5 text-sm font-semibold text-indigo-700">↓ Tải PDF</a><a href="{{ route('admin.pharma.inventory.issues.print',$issue) }}" target="_blank" rel="noopener" class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm">▣ In trực tiếp</a>
   </div>
  </div>
+ @if($issue->status === 'draft' && ($approvalReadiness['can_approve'] ?? false))
+ @can('approve_pharma_inventory_issue')
+ <section class="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-5 shadow-sm">
+  <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+   <div><div class="flex items-center gap-2"><span class="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-800">ĐỦ ĐIỀU KIỆN</span><h2 class="font-bold text-slate-950">Phiếu sẵn sàng phê duyệt</h2></div><p class="mt-2 text-sm text-slate-600">Các mặt hàng đủ tồn hoặc đã có thông tin cung ứng bổ sung. Phê duyệt chưa ghi sổ kho.</p></div>
+   <form method="POST" action="{{ route('admin.pharma.inventory.issues.update',$issue) }}">@csrf @method('PUT')<input type="hidden" name="approve_existing" value="1"><button class="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-emerald-700">Phê duyệt phiếu</button></form>
+  </div>
+ </section>
+ @endcan
+ @endif
  @if($issue->status === 'pending_approval')
  @can('approve_pharma_inventory_issue')
  <section class="rounded-2xl border border-amber-200 bg-amber-50/50 p-5 shadow-sm">
