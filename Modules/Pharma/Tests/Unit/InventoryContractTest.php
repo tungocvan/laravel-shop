@@ -179,6 +179,10 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("lockForUpdate()", $controller);
         $this->assertStringContainsString("format('ymd')", $controller);
         $this->assertStringContainsString('Xác nhận ghi sổ', $documents);
+        $this->assertStringContainsString("route('admin.pharma.inventory.receipts.show',\$doc)", $documents);
+        $this->assertStringContainsString("data-document-actions", $documents);
+        $this->assertStringContainsString("aria-label=\"Thao tác khác\">⋯", $documents);
+        $this->assertStringNotContainsString('>Xem</a>', $documents);
         $this->assertStringNotContainsString("return confirm('Ghi sổ", $documents);
         $this->assertStringNotContainsString('Phiếu nhập gần đây', $index);
         $this->assertStringNotContainsString('Phiếu xuất gần đây', $index);
