@@ -1153,7 +1153,8 @@ final class InventoryController extends Controller
             $first->resolved_manager_name=$first->issue?->manager?->name ?: $first->user?->name ?: '—';
             return $first;
         })->values();
-        $page=max(1,(int)$request->input('page',1)); $perPage=50;
+        $page=max(1,(int)$request->input('page',1));
+        $perPage=in_array((int)$request->input('per_page',25),[25,50,100],true)?(int)$request->input('per_page',25):25;
         $rows=new \Illuminate\Pagination\LengthAwarePaginator($grouped->forPage($page,$perPage)->values(),$grouped->count(),$perPage,$page,[
             'path'=>$request->url(),'query'=>$request->query(),
         ]);
