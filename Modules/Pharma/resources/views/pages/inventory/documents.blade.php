@@ -161,7 +161,7 @@
                                 <div class="whitespace-pre-line px-5 py-4 text-sm leading-6 text-slate-700">{{ $doc->shortage_note }}</div>
                             </dialog>
                         @endif
-                        @if((($type === 'issue' && $doc->status === 'approved') || ($type === 'receipt' && $doc->status === 'draft')) && !($type === 'issue' && ($doc->issue_source ?? 'normal') === 'bid') && ($type !== 'issue' || $doc->can_post_stock))
+                        @if((($type === 'issue' && $doc->status === 'approved') || ($type === 'receipt' && $doc->status === 'approved')) && !($type === 'issue' && ($doc->issue_source ?? 'normal') === 'bid') && ($type !== 'issue' || $doc->can_post_stock))
                             <dialog id="post-{{ $type }}-{{ $doc->id }}" class="m-auto w-[calc(100%-2rem)] max-w-lg overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-2xl ring-1 ring-slate-200 backdrop:bg-slate-950/65 backdrop:backdrop-blur-[3px]">
                                 <form method="POST" action="{{ $postRoute }}" class="overflow-hidden rounded-2xl bg-white">
                                     @csrf
