@@ -88,20 +88,15 @@
                         <div class="min-w-0"><p class="text-[11px] font-bold uppercase tracking-wide text-slate-400">Hóa đơn</p><p class="mt-0.5 truncate text-sm font-bold text-slate-700">{{ $receipt->invoice_number ?: 'Chưa có số HĐ' }}@if($receipt->invoice_symbol) · {{ $receipt->invoice_symbol }}@endif</p></div>
                         <span class="shrink-0 text-xl font-black text-slate-300">›</span>
                     </div>
-                    @php
-                        $canUseReceiptPdf=$receipt->status === \Modules\Pharma\Models\InventoryReceipt::POSTED;
-                        $invoicePdfReady=$canUseReceiptPdf && (bool)($receiptDocumentStatuses[$receipt->id]['invoice'] ?? false);
-                        $receiptShare=$canUseReceiptPdf ? ($receiptShares[$receipt->id] ?? null) : null;
-                    @endphp
                     <div class="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
-                        @if(! $canUseReceiptPdf)
+                        @if(! ($receiptPdfActions[$receipt->id]['can_use_pdf'] ?? false))
                             <span class="text-xs font-bold text-slate-400">Ghi sổ để xuất PDF</span>
-                        @elseif($invoicePdfReady)
+                        @elseif($receiptPdfActions[$receipt->id]['invoice_ready'] ?? false)
                             <a href="{{ route('client.pharma.inventory.receipts.pdf',$receipt) }}" data-receipt-pdf-download class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-black text-slate-700 transition active:scale-[0.985] motion-reduce:transform-none">↓ PDF</a>
                             <a href="{{ route('client.pharma.inventory.receipts.print',$receipt) }}" target="_blank" rel="noopener" class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-black text-slate-700 transition active:scale-[0.985] motion-reduce:transform-none">In</a>
-                            @if($receiptShare)
-                                <button type="button" data-copy-receipt-share="{{ $receiptShare['url'] }}" class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-black text-slate-700 transition active:scale-[0.985] motion-reduce:transform-none">Sao chép link</button>
-                                <form method="POST" action="{{ route('client.pharma.inventory.receipts.share.revoke',[$receipt,$receiptShare['id']]) }}">@csrf @method('DELETE')<button class="inline-flex min-h-10 items-center rounded-xl px-3 text-xs font-black text-rose-600">Thu hồi</button></form>
+                            @if($receiptPdfActions[$receipt->id]['share'] ?? null)
+                                <button type="button" data-copy-receipt-share="{{ $receiptPdfActions[$receipt->id]['share']['url'] }}" class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-black text-slate-700 transition active:scale-[0.985] motion-reduce:transform-none">Sao chép link</button>
+                                <form method="POST" action="{{ route('client.pharma.inventory.receipts.share.revoke',[$receipt,$receiptPdfActions[$receipt->id]['share']['id']]) }}">@csrf @method('DELETE')<button class="inline-flex min-h-10 items-center rounded-xl px-3 text-xs font-black text-rose-600">Thu hồi</button></form>
                             @else
                                 <form method="POST" action="{{ route('client.pharma.inventory.receipts.share',$receipt) }}">@csrf<button class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-black text-slate-700 transition active:scale-[0.985] motion-reduce:transform-none">Chia sẻ</button></form>
                             @endif
@@ -136,17 +131,10 @@
                             <td class="px-5 py-4 text-right"><p class="font-black tabular-nums text-slate-950">{{ number_format((float)$receipt->total_quantity,0,',','.') }}</p><p class="mt-0.5 text-xs text-slate-400">{{ number_format($receipt->items_count) }} dòng</p></td>
                             <td class="px-5 py-4"><span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-700">{{ $labels[$receipt->status] ?? $receipt->status }}</span></td>
                             <td class="px-5 py-4 text-right">
-                                @php
-                                    $desktopCanUsePdf=$receipt->status === \Modules\Pharma\Models\InventoryReceipt::POSTED;
-                                    $desktopPdfReady=$desktopCanUsePdf && (bool)($receiptDocumentStatuses[$receipt->id]['invoice'] ?? false);
-                                @endphp
-                                @if(! $desktopCanUsePdf)
+                                @if(! ($receiptPdfActions[$receipt->id]['can_use_pdf'] ?? false))
                                     <span class="text-xs font-bold text-slate-400">—</span>
-                                @elseif($desktopPdfReady)
-                                    @php
-                                        $desktopShare=$receiptShares[$receipt->id] ?? null;
-                                    @endphp
-                                    <div class="flex justify-end gap-1"><a href="{{ route('client.pharma.inventory.receipts.pdf',$receipt) }}" data-receipt-pdf-download class="rounded-lg border border-slate-300 px-2 py-1.5 text-xs font-black">↓ PDF</a><a href="{{ route('client.pharma.inventory.receipts.print',$receipt) }}" target="_blank" rel="noopener" class="rounded-lg border border-slate-300 px-2 py-1.5 text-xs font-black">In</a>@if($desktopShare)<button type="button" data-copy-receipt-share="{{ $desktopShare['url'] }}" class="rounded-lg border border-slate-300 px-2 py-1.5 text-xs font-black">Link</button>@else<form method="POST" action="{{ route('client.pharma.inventory.receipts.share',$receipt) }}">@csrf<button class="rounded-lg border border-slate-300 px-2 py-1.5 text-xs font-black">Chia sẻ</button></form>@endif</div>
+                                @elseif($receiptPdfActions[$receipt->id]['invoice_ready'] ?? false)
+                                    <div class="flex justify-end gap-1"><a href="{{ route('client.pharma.inventory.receipts.pdf',$receipt) }}" data-receipt-pdf-download class="rounded-lg border border-slate-300 px-2 py-1.5 text-xs font-black">↓ PDF</a><a href="{{ route('client.pharma.inventory.receipts.print',$receipt) }}" target="_blank" rel="noopener" class="rounded-lg border border-slate-300 px-2 py-1.5 text-xs font-black">In</a>@if($receiptPdfActions[$receipt->id]['share'] ?? null)<button type="button" data-copy-receipt-share="{{ $receiptPdfActions[$receipt->id]['share']['url'] }}" class="rounded-lg border border-slate-300 px-2 py-1.5 text-xs font-black">Link</button>@else<form method="POST" action="{{ route('client.pharma.inventory.receipts.share',$receipt) }}">@csrf<button class="rounded-lg border border-slate-300 px-2 py-1.5 text-xs font-black">Chia sẻ</button></form>@endif</div>
                                 @else
                                     <form method="POST" action="{{ route('client.pharma.inventory.receipts.pdf.export',$receipt) }}">@csrf<button class="rounded-lg bg-slate-950 px-2.5 py-1.5 text-xs font-black text-white">Xuất PDF</button></form>
                                 @endif
