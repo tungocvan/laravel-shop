@@ -1193,7 +1193,7 @@ final class InventoryController extends Controller
     {
         $this->guardIssueWarehouse($issue,$inventory);
         $issue->load(['manager:id,name','recipientPartner:id,name']);
-        $rows=$commissions->active()->where('issue_id',$issue->id)->with(['medicine','user'])->orderBy('id')->get();
+        $rows=$commissions->adminQuery()->where('issue_id',$issue->id)->with(['medicine','user'])->orderBy('id')->get();
         abort_if($rows->isEmpty(),404);
         $detail=['issue'=>$issue,'rows'=>$rows,'revenue'=>(float)$rows->sum('revenue_amount'),'commission'=>(float)$rows->sum('commission_amount')];
         return view('Pharma::pages.inventory.commission-show',compact('detail'));
