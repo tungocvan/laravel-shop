@@ -9,13 +9,13 @@ final class CommissionQueryService
 {
     public function adminQuery(array $filters=[]): Builder
     {
-        return $this->applyFilters(InventoryIssueCommission::query(),$filters);
+        return $this->applyFilters(InventoryIssueCommission::query()->where('entry_type',InventoryIssueCommission::TYPE_EARNED)->whereIn('status',[InventoryIssueCommission::STATUS_EARNED,InventoryIssueCommission::STATUS_UNRESOLVED]),$filters);
     }
 
     public function userQuery(int $userId,array $filters=[]): Builder
     {
         return $this->applyFilters(
-            InventoryIssueCommission::query()->where('user_id',$userId),
+            InventoryIssueCommission::query()->where('user_id',$userId)->where('entry_type',InventoryIssueCommission::TYPE_EARNED)->whereIn('status',[InventoryIssueCommission::STATUS_EARNED,InventoryIssueCommission::STATUS_UNRESOLVED]),
             $filters
         );
     }
