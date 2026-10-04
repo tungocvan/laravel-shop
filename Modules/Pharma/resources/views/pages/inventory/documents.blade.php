@@ -185,8 +185,14 @@
                                                         <div class="my-1 border-t border-slate-100"></div>
                                                     @endif
                                                 @endcan
-                                                <a href="{{ route('admin.pharma.inventory.issues.pdf',$doc) }}" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Tải PDF</a>
-                                                <a href="{{ route('admin.pharma.inventory.issues.print',$doc) }}" target="_blank" rel="noopener" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">In trực tiếp</a>
+                                                @if($doc->status === 'posted')
+                                                    @if($issueDocumentStatuses[$doc->id] ?? false)
+                                                        <a href="{{ route('admin.pharma.inventory.issues.pdf',$doc) }}" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Tải PDF</a>
+                                                        <a href="{{ route('admin.pharma.inventory.issues.print',$doc) }}" target="_blank" rel="noopener" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">In PDF</a>
+                                                    @else
+                                                        <form method="POST" action="{{ route('admin.pharma.inventory.issues.pdf.export',$doc) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50">Xuất PDF</button></form>
+                                                    @endif
+                                                @endif
                                                 @can('delete_pharma')
                                                     <div class="my-1 border-t border-slate-100"></div>
                                                     @if(in_array($doc->status, ['draft','rejected'], true))<button type="button" onclick="this.closest('details').removeAttribute('open'); document.getElementById('delete-issue-{{ $doc->id }}').showModal()" class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-rose-700 hover:bg-rose-50">Xóa phiếu</button>
