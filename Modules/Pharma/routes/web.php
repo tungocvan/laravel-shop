@@ -103,6 +103,8 @@ Route::prefix('admin/pharma')->name('admin.pharma.')->middleware(['web', 'auth:a
         Route::get('/receipts/{receipt}/edit', [InventoryController::class, 'editReceipt'])->middleware('can:edit_pharma')->name('receipts.edit');
         Route::put('/receipts/{receipt}', [InventoryController::class, 'updateReceipt'])->middleware('can:edit_pharma')->name('receipts.update');
         Route::delete('/receipts/{receipt}', [InventoryController::class, 'destroyReceipt'])->middleware('can:edit_pharma')->name('receipts.destroy');
+        Route::post('/receipts/{receipt}/approve', [InventoryController::class, 'approveReceipt'])->middleware('can:edit_pharma')->name('receipts.approve');
+        Route::post('/receipts/{receipt}/undo-approval', [InventoryController::class, 'undoReceiptApproval'])->middleware('can:edit_pharma')->name('receipts.undo-approval');
         Route::post('/receipts/{receipt}/post', [InventoryController::class, 'postReceipt'])->middleware('can:edit_pharma')->name('receipts.post');
         Route::post('/receipts/{receipt}/revert', [InventoryController::class, 'revertReceipt'])->middleware('can:delete_pharma')->name('receipts.revert');
         Route::get('/commissions', [InventoryController::class, 'commissions'])->name('commissions.index');
