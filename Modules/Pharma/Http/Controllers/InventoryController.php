@@ -1257,7 +1257,7 @@ final class InventoryController extends Controller
             if($type==='date')$sheet->getStyle("{$letter}5:{$letter}{$lastRow}")->getNumberFormat()->setFormatCode('dd/mm/yyyy');
             $sheet->getStyle("{$letter}5:{$letter}{$lastRow}")->getAlignment()->setHorizontal($profile['alignments'][$key]??$definition['align'])->setVertical('center')->setWrapText((bool)($profile['wrap_texts'][$key]??true));
             if($profile['auto_widths'][$key]??true){
-                $maxChars=max(mb_strlen((string)($profile['headers'][$key]??$definition['label'])));
+                $maxChars=mb_strlen((string)($profile['headers'][$key]??$definition['label']));
                 foreach($rows as $exportRow){
                     $sample=match($key){
                         'stt'=>(string)$rows->search($exportRow)+1,
