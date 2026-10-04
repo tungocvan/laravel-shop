@@ -220,6 +220,16 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("route('admin.pharma.inventory.receipts.pdf.invoice',\$doc)", $documents);
         $this->assertStringContainsString("@can('view_pharma_inventory_costs')", $documents);
         $this->assertStringContainsString("route('admin.pharma.inventory.receipts.pdf.cost',\$doc)", $documents);
+        $issueDocumentService=file_get_contents(base_path('Modules/Pharma/Services/InventoryIssueDocumentService.php'));
+        $this->assertStringContainsString("name('issues.pdf.export')",$routes);
+        $this->assertStringContainsString('function exportIssuePdf(',$controller);
+        $this->assertStringContainsString('function downloadIssuePdf(',$controller);
+        $this->assertStringContainsString('function printIssuePdf(',$controller);
+        $this->assertStringContainsString("abort_unless(\$issue->status===InventoryIssue::POSTED,409,'Chỉ phiếu xuất đã ghi sổ mới được xuất PDF.')",$issueDocumentService);
+        $this->assertStringContainsString("Storage::disk('local')->put(\$path,\$binary)",$issueDocumentService);
+        $this->assertStringContainsString("Pdf::loadView('Pharma::pages.inventory.issue-pdf'",$issueDocumentService);
+        $this->assertStringContainsString("route('admin.pharma.inventory.issues.pdf.export',\$doc)",$documents);
+        $this->assertStringContainsString("@if(\$doc->status === 'posted')",$documents);
         $receiptPdf=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/receipt-pdf.blade.php'));
         foreach (['Nhà cung cấp','Hóa đơn','Số lô','Hạn dùng','Giá nhập','VAT','Giá HĐ chưa VAT','Thành tiền giá vốn','Tiền VAT','Tổng thanh toán'] as $receiptPdfLabel) {
             $this->assertStringContainsString($receiptPdfLabel,$receiptPdf);
