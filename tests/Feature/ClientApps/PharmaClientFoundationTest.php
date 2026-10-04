@@ -101,8 +101,9 @@ class PharmaClientFoundationTest extends TestCase
     {
         $view = file_get_contents(base_path('resources/views/errors/404.blade.php'));
 
-        $this->assertStringContainsString("request()->is('apps/*')", $view);
-        $this->assertStringContainsString("route('client.apps.index')", $view);
+        $this->assertStringContainsString("str_starts_with(\$requestPath, 'apps/')", $view);
+        $this->assertStringContainsString("str_starts_with(\$requestPath, 'my-apps/')", $view);
+        $this->assertStringContainsString("url('/my-apps')", $view);
         $this->assertStringContainsString("{{ \$isClientPortal ? 'Trang chủ' : 'Về trang chủ' }}", $view);
     }
 
