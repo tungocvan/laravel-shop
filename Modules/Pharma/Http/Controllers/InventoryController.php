@@ -1212,8 +1212,8 @@ final class InventoryController extends Controller
         $query=$commissions->adminQuery([
             'from'=>$from,'to'=>$to,'source'=>$data['source'] ?? 'all',
             'user_id'=>$data['user_id'] ?? null,'partner_id'=>$data['partner_id'] ?? null,
-            'medicine_id'=>$data['medicine_id'] ?? null,'ids'=>$data['ids'] ?? [],
-        ])->with(['issue','medicine','user','partner'])
+            'medicine_id'=>$data['medicine_id'] ?? null,
+        ])->when(!empty($data['ids']),fn($q)=>$q->whereIn('issue_id',$data['ids']))->with(['issue','medicine','user','partner'])
             ->orderBy('calculated_at')->orderBy('id');
 
         $rows=$query->get()->map(fn(InventoryIssueCommission $row)=>[
