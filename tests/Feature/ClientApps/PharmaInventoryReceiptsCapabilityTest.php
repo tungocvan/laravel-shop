@@ -142,6 +142,30 @@ final class PharmaInventoryReceiptsCapabilityTest extends TestCase
         }
     }
 
+    public function test_receipt_pdf_artifacts_are_private_shareable_and_pwa_safe(): void
+    {
+        $root=base_path();
+        $routes=file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/routes.php');
+        $controller=file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php');
+        $list=file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-receipts.blade.php');
+        $documents=file_get_contents($root.'/Modules/Pharma/Services/InventoryReceiptDocumentService.php');
+
+        foreach (['inventory.receipts.pdf.export','inventory.receipts.pdf','inventory.receipts.print','inventory.receipts.share','inventory.receipts.share.revoke'] as $route) {
+            $this->assertStringContainsString("name('{$route}')",$routes);
+        }
+        $this->assertStringContainsString("name('client.pharma.inventory.receipts.share.download')",$routes);
+        $this->assertStringContainsString('function exportInventoryReceiptPdf(',$controller);
+        $this->assertStringContainsString('function downloadInventoryReceiptShare(',$controller);
+        $this->assertStringContainsString("Storage::disk('local')->put(\$path, \$binary)",$documents);
+        $this->assertStringContainsString("'token_hash'=>hash('sha256',\$token)",$documents);
+        $this->assertStringContainsString('expires_at'=>now()->addDays(30)', $documents);
+        $this->assertStringContainsString('data-receipt-pdf-download',$list);
+        $this->assertStringContainsString("fetch(link.href,{credentials:'same-origin',cache:'no-store'})",$list);
+        $this->assertStringContainsString("navigator.canShare?.({files:[preparedFile]})",$list);
+        $this->assertStringContainsString('Sao chép link',$list);
+        $this->assertStringContainsString('Thu hồi',$list);
+    }
+
     public function test_receipt_admin_and_pwa_share_approval_posting_contract(): void
     {
         $root = base_path();
