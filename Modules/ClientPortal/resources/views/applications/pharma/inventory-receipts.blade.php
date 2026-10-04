@@ -164,31 +164,34 @@
 </div>
 <script>
 document.addEventListener('DOMContentLoaded',()=>{
-    document.querySelectorAll('[data-copy-receipt-share]').forEach(button=>button.addEventListener('click',async()=>{
-        try{await navigator.clipboard.writeText(button.dataset.copyReceiptShare);const old=button.textContent;button.textContent='Đã sao chép';setTimeout(()=>button.textContent=old,1600);}catch(e){window.prompt('Sao chép link chia sẻ:',button.dataset.copyReceiptShare);}
-    }));
+    const prepared=new Map();
     const standalone=window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true;
-    if(!standalone)return;
-    document.querySelectorAll('[data-receipt-pdf-download]').forEach(link=>{
-        let preparedFile=null;
-        link.addEventListener('click',async(event)=>{
-            event.preventDefault();
-            if(preparedFile){
-                if(navigator.canShare?.({files:[preparedFile]})){await navigator.share({files:[preparedFile],title:'Phiếu nhập kho'});}
-                return;
-            }
-            const original=link.textContent;link.textContent='Đang chuẩn bị…';link.setAttribute('aria-disabled','true');
-            try{
-                const response=await fetch(link.href,{credentials:'same-origin',cache:'no-store'});
-                if(!response.ok)throw new Error('download');
-                const blob=await response.blob();
-                const disposition=response.headers.get('content-disposition')||'';
-                const match=disposition.match(/filename="?([^";]+)"?/i);
-                preparedFile=new File([blob],match?.[1]||'phieu-nhap-kho.pdf',{type:'application/pdf'});
-                link.textContent=navigator.canShare?.({files:[preparedFile]})?'Mở / lưu PDF':'PDF đã sẵn sàng';
-            }catch(e){link.textContent='Không thể chuẩn bị PDF';setTimeout(()=>link.textContent=original,1800);}
-            finally{link.removeAttribute('aria-disabled');}
-        });
+    document.addEventListener('click',async(event)=>{
+        const copy=event.target.closest('[data-copy-receipt-share]');
+        if(copy){
+            try{await navigator.clipboard.writeText(copy.dataset.copyReceiptShare);const old=copy.textContent;copy.textContent='Đã sao chép';setTimeout(()=>copy.textContent=old,1600);}catch(e){window.prompt('Sao chép link chia sẻ:',copy.dataset.copyReceiptShare);}
+            return;
+        }
+        const link=event.target.closest('[data-receipt-pdf-download]');
+        if(!link || !standalone)return;
+        event.preventDefault();
+        const cached=prepared.get(link.href);
+        if(cached){
+            if(navigator.canShare?.({files:[cached]}))await navigator.share({files:[cached],title:'Phiếu nhập kho'});
+            return;
+        }
+        const original=link.textContent;link.textContent='Đang chuẩn bị…';link.setAttribute('aria-disabled','true');
+        try{
+            const response=await fetch(link.href,{credentials:'same-origin',cache:'no-store'});
+            if(!response.ok)throw new Error('download');
+            const blob=await response.blob();
+            const disposition=response.headers.get('content-disposition')||'';
+            const match=disposition.match(/filename="?([^";]+)"?/i);
+            const file=new File([blob],match?.[1]||'phieu-nhap-kho.pdf',{type:'application/pdf'});
+            prepared.set(link.href,file);
+            link.textContent=navigator.canShare?.({files:[file]})?'Mở / lưu PDF':'PDF đã sẵn sàng';
+        }catch(e){link.textContent='Không thể chuẩn bị PDF';setTimeout(()=>link.textContent=original,1800);}
+        finally{link.removeAttribute('aria-disabled');}
     });
 });
 </script>
