@@ -107,8 +107,13 @@
                                         <details class="relative" data-document-actions>
                                             <summary class="flex min-h-9 cursor-pointer list-none items-center rounded-lg border border-slate-300 bg-white px-3 text-base font-bold leading-none text-slate-600 hover:bg-slate-50" aria-label="Thao tác khác">⋯</summary>
                                             <div class="absolute right-0 z-30 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-left shadow-xl">
-                                                <a href="{{ route('admin.pharma.inventory.receipts.pdf',$doc) }}" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Tải PDF</a>
-                                                <a href="{{ route('admin.pharma.inventory.receipts.print',$doc) }}" target="_blank" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">In trực tiếp</a>
+                                                <a href="{{ route('admin.pharma.inventory.receipts.pdf.invoice',$doc) }}" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Tải PDF hóa đơn</a>
+                                                <a href="{{ route('admin.pharma.inventory.receipts.print.invoice',$doc) }}" target="_blank" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">In theo hóa đơn</a>
+                                                @can('view_pharma_inventory_costs')
+                                                    <div class="my-1 border-t border-slate-100"></div>
+                                                    <a href="{{ route('admin.pharma.inventory.receipts.pdf.cost',$doc) }}" class="block px-4 py-2.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-50">Tải PDF giá vốn</a>
+                                                    <a href="{{ route('admin.pharma.inventory.receipts.print.cost',$doc) }}" target="_blank" class="block px-4 py-2.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-50">In theo giá vốn</a>
+                                                @endcan
                                                 <div class="my-1 border-t border-slate-100"></div>
                                                 @can('edit_pharma')
                                                     @if($doc->status === 'draft')
