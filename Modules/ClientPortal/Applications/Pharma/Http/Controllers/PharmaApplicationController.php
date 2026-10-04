@@ -1769,6 +1769,61 @@ final class PharmaApplicationController extends Controller
         ]);
     }
 
+    public function exportOrderPdf(int $issue, Request $request, ApplicationRegistry $registry, UserInventoryIssueWorkspace $workspace, InventoryIssueDocumentService $documents): RedirectResponse
+    {
+        [$user,$visible]=$this->visibleOrderForDocument($issue,$request,$registry,$workspace);
+        $documents->generate($visible,(int)$user->id);
+        return back()->with('success',"Đã xuất PDF phiếu {$visible->number}.");
+    }
+
+    public function downloadOrderPdf(int $issue, Request $request, ApplicationRegistry $registry, UserInventoryIssueWorkspace $workspace, InventoryIssueDocumentService $documents): BinaryFileResponse
+    {
+        [, $visible]=$this->visibleOrderForDocument($issue,$request,$registry,$workspace);
+        $document=$documents->current($visible);
+        abort_unless($document,404);
+        return response()->download($documents->path($document),$document->download_name,['Cache-Control'=>'private, no-store']);
+    }
+
+    public function printOrderPdf(int $issue, Request $request, ApplicationRegistry $registry, UserInventoryIssueWorkspace $workspace, InventoryIssueDocumentService $documents): BinaryFileResponse
+    {
+        [, $visible]=$this->visibleOrderForDocument($issue,$request,$registry,$workspace);
+        $document=$documents->current($visible);
+        abort_unless($document,404);
+        return response()->file($documents->path($document),['Content-Type'=>'application/pdf','Cache-Control'=>'private, no-store']);
+    }
+
+    public function shareOrderPdf(int $issue, Request $request, ApplicationRegistry $registry, UserInventoryIssueWorkspace $workspace, InventoryIssueDocumentService $documents): RedirectResponse
+    {
+        [$user,$visible]=$this->visibleOrderForDocument($issue,$request,$registry,$workspace);
+        $share=$documents->createShare($visible,(int)$user->id);
+        return back()->with('order_share_url',$share['url']);
+    }
+
+    public function revokeOrderPdfShare(int $issue, int $share, Request $request, ApplicationRegistry $registry, UserInventoryIssueWorkspace $workspace, InventoryIssueDocumentService $documents): RedirectResponse
+    {
+        [$user]=$this->visibleOrderForDocument($issue,$request,$registry,$workspace);
+        $documents->revokeShare($share,(int)$user->id);
+        return back()->with('success','Đã thu hồi link chia sẻ PDF.');
+    }
+
+    public function downloadOrderPdfShare(string $token, InventoryIssueDocumentService $documents): BinaryFileResponse
+    {
+        $document=$documents->resolveShare($token);
+        return response()->download($documents->path($document),$document->download_name,['Cache-Control'=>'private, no-store']);
+    }
+
+    private function visibleOrderForDocument(int $issue, Request $request, ApplicationRegistry $registry, UserInventoryIssueWorkspace $workspace): array
+    {
+        $user=$request->user('web');
+        abort_if($user===null,401);
+        abort_unless($registry->userCan($user,'client.pharma.orders'),403);
+        $canApprove=$registry->userCan($user,'client.pharma.orders.approve');
+        $visible=$workspace->findVisible((int)$user->id,$issue,$canApprove);
+        if($visible===null && $registry->userCan($user,'client.pharma.orders.create-for-user')) $visible=$workspace->findByCreator((int)$user->id,$issue);
+        abort_if($visible===null,404);
+        return [$user,$visible];
+    }
+
     public function order(
         int $issue,
         Request $request,
