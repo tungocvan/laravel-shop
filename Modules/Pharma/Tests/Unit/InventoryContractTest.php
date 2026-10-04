@@ -349,7 +349,7 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("min-w-[1320px]", $documents);
         $this->assertStringContainsString('Khách hàng / Nơi nhận', $documents);
         $this->assertStringContainsString('Tải PDF', $documents);
-        $this->assertStringContainsString('In trực tiếp', $documents);
+        $this->assertStringContainsString('In PDF', $documents);
         $this->assertStringContainsString('aria-label="Thao tác khác"', $documents);
         $this->assertStringContainsString('min-h-[calc(100vh-7.5rem)]', $documents);
         $this->assertStringContainsString('flex min-h-0 flex-1 flex-col', $documents);
@@ -490,12 +490,14 @@ class InventoryContractTest extends TestCase
 
         $this->assertStringContainsString("name('issues.pdf')", $routes);
         $this->assertStringContainsString("name('issues.print')", $routes);
-        $this->assertStringContainsString('function issuePdf', $controller);
-        $this->assertStringContainsString("Pdf::loadView('Pharma::pages.inventory.issue-pdf'", $controller);
-        $this->assertStringContainsString("setPaper('a4','portrait')", $controller);
-        $this->assertStringContainsString('function issuePrint', $controller);
+        $service=file_get_contents(base_path('Modules/Pharma/Services/InventoryIssueDocumentService.php'));
+        $this->assertStringContainsString('function exportIssuePdf', $controller);
+        $this->assertStringContainsString('function downloadIssuePdf', $controller);
+        $this->assertStringContainsString('function printIssuePdf', $controller);
+        $this->assertStringContainsString("Pdf::loadView('Pharma::pages.inventory.issue-pdf'", $service);
+        $this->assertStringContainsString("setPaper('a4','portrait')", $service);
         $this->assertStringContainsString('↓ Tải PDF', $show);
-        $this->assertStringContainsString('▣ In trực tiếp', $show);
+        $this->assertStringContainsString('▣ In PDF', $show);
         $this->assertStringContainsString('Thông tin chứng từ', $show);
         $this->assertStringContainsString('Chi tiết hàng xuất', $show);
         $this->assertStringContainsString('Tóm tắt phiếu', $show);
@@ -1010,7 +1012,7 @@ class InventoryContractTest extends TestCase
         $this->assertStringNotContainsString('Bảng giá xuất', $bidEdit);
         $this->assertStringContainsString("batch_number'=>null", $controller);
         $this->assertStringContainsString("issue_source ?? 'normal')==='bid'", $controller);
-        $this->assertStringNotContainsString("return redirect()->route('admin.pharma.inventory.issues.show',\$issue)", substr($controller, strpos($controller, 'public function showIssue'), strpos($controller, 'public function issuePdf') - strpos($controller, 'public function showIssue')));
+        $this->assertStringNotContainsString("return redirect()->route('admin.pharma.inventory.issues.show',\$issue)", substr($controller, strpos($controller, 'public function showIssue'), strpos($controller, 'public function exportIssuePdf') - strpos($controller, 'public function showIssue')));
         $issueEdit=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-edit.blade.php'));
         $this->assertStringContainsString("'expiry_date'=>\$item->expiry_date?->format('Y-m-d')", $issueEdit);
         $batchWorkspace=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/bid-sale-batches.blade.php'));
