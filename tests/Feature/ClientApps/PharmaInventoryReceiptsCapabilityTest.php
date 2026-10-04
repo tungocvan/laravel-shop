@@ -71,7 +71,13 @@ final class PharmaInventoryReceiptsCapabilityTest extends TestCase
         $this->assertStringContainsString('data-number-display data-scale="3"', $create);
         $this->assertStringContainsString('data-number-display data-scale="4"', $create);
         $this->assertStringContainsString('Giá vốn TB:', $create);
-        $this->assertStringContainsString('value="5" data-field="vat_rate"', $create);
+        $this->assertStringContainsString('id="toggle-receipt-invoice"', $create);
+        $this->assertStringContainsString('id="receipt-invoice-fields" class="mt-3 hidden"', $create);
+        $this->assertStringContainsString('name="vat_rate"', $create);
+        $this->assertStringContainsString('Một phiếu nhập chỉ áp dụng một mức VAT cho toàn bộ hàng nhập.', $create);
+        $this->assertStringNotContainsString('data-field="vat_rate"', $create);
+        $this->assertStringContainsString("'vat_rate' => ['required', 'numeric', 'min:0', 'max:100']", $controller);
+        $this->assertStringContainsString("'vat_rate' => (float) \$data['vat_rate']", $workspace);
         $this->assertStringContainsString('name="invoice_symbol"', $create);
         $this->assertStringContainsString('Ký hiệu hóa đơn', $create);
         $this->assertStringContainsString('Giá nhập / Giá vốn *', $create);
