@@ -171,6 +171,11 @@ CONTRACT, $list);
         $this->assertStringContainsString('navigator.canShare?.({files:[cached]})', $list);
         $this->assertStringContainsString('navigator.canShare?.({files:[file]})', $list);
         $this->assertStringContainsString('Sao chép link',$list);
+        $this->assertStringContainsString('data-share-flash',$list);
+        $this->assertStringContainsString('data-dismiss-share-flash',$list);
+        $this->assertStringContainsString('data-dismiss-share-after-copy',$list);
+        $this->assertStringContainsString("if(shareFlash&&!shareFlash.contains(event.target))dismissShareFlash()",$list);
+        $this->assertStringContainsString("if(event.key==='Escape')dismissShareFlash()",$list);
         $this->assertStringContainsString('Thu hồi',$list);
         $this->assertStringContainsString(<<<'CONTRACT'
 abort_unless($receipt->status === InventoryReceipt::POSTED, 409, 'Chỉ phiếu nhập đã ghi sổ mới được xuất PDF.')
