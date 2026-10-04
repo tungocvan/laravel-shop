@@ -1,18 +1,31 @@
 @extends('Admin::layouts.master')
 @section('title','Chi tiết phiếu nhập')
 @section('content')
-@php $total=$receipt->items->sum(fn($item)=>(float)$item->quantity*(float)$item->unit_price_ex_vat); @endphp
+@php $total=$receipt->items->sum(fn($item)=>(float)$item->quantity*(float)$item->unit_price_ex_vat); $statusLabels=['draft'=>'Nháp','pending_approval'=>'Chờ duyệt','approved'=>'Đã duyệt','posted'=>'Đã ghi sổ','cancelled'=>'Đã hủy']; @endphp
 <div class="mx-auto max-w-6xl space-y-5">
     <header class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
             <a href="{{ route('admin.pharma.inventory.receipts.index') }}" class="text-sm font-semibold text-indigo-700">← Danh sách phiếu nhập</a>
             <div class="mt-2 flex flex-wrap items-center gap-3">
                 <h1 class="font-mono text-2xl font-bold text-slate-950">{{ $receipt->number }}</h1>
-                <span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $receipt->status === 'posted' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }}">{{ $receipt->status === 'posted' ? 'Đã ghi sổ' : 'Nháp' }}</span>
+                <span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $receipt->status === 'posted' ? 'bg-emerald-50 text-emerald-700' : ($receipt->status === 'approved' ? 'bg-sky-50 text-sky-700' : 'bg-amber-50 text-amber-700') }}">{{ $statusLabels[$receipt->status] ?? $receipt->status }}</span>
             </div>
         </div>
-        @can('edit_pharma')<a href="{{ route('admin.pharma.inventory.receipts.edit',$receipt) }}" class="rounded-xl border border-indigo-200 px-4 py-2.5 text-sm font-semibold text-indigo-700">{{ $receipt->status === 'draft' ? 'Sửa phiếu' : 'Cập nhật thông tin' }}</a>@endcan
+        <div class="flex flex-wrap justify-end gap-2">
+            @can('edit_pharma')
+                @if($receipt->status === 'draft')<a href="{{ route('admin.pharma.inventory.receipts.edit',$receipt) }}" class="rounded-xl border border-indigo-200 px-4 py-2.5 text-sm font-semibold text-indigo-700">Sửa phiếu</a>@endif
+                @if(in_array($receipt->status,['draft','pending_approval'],true))<form method="POST" action="{{ route('admin.pharma.inventory.receipts.approve',$receipt) }}">@csrf<button class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white">Phê duyệt</button></form>@endif
+                @if($receipt->status === 'approved')
+                    <form method="POST" action="{{ route('admin.pharma.inventory.receipts.undo-approval',$receipt) }}">@csrf<button class="rounded-xl border border-amber-300 bg-white px-4 py-2.5 text-sm font-semibold text-amber-700">Hoàn tác phê duyệt</button></form>
+                    <form method="POST" action="{{ route('admin.pharma.inventory.receipts.post',$receipt) }}">@csrf<button class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white">Ghi sổ</button></form>
+                @endif
+            @endcan
+            @can('delete_pharma')
+                @if($receipt->status === 'posted')<form method="POST" action="{{ route('admin.pharma.inventory.receipts.revert',$receipt) }}">@csrf<button class="rounded-xl border border-amber-300 bg-white px-4 py-2.5 text-sm font-semibold text-amber-700">Hoàn tác ghi sổ</button></form>@endif
+            @endcan
+        </div>
     </header>
+    <p class="-mt-2 text-xs text-slate-500">Nháp → Phê duyệt → Ghi sổ. Chỉ Ghi sổ mới cộng tồn; Hoàn tác ghi sổ sẽ trừ lại đúng số lượng đã nhập.</p>
     <section class="grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 md:grid-cols-4">
         <div><div class="text-xs font-semibold uppercase text-slate-500">Ngày nhập</div><div class="mt-1 font-semibold">{{ $receipt->receipt_date->format('d/m/Y') }}</div></div>
         <div><div class="text-xs font-semibold uppercase text-slate-500">Nhà cung cấp</div><div class="mt-1 font-semibold">{{ $receipt->supplier_name }}</div></div>
