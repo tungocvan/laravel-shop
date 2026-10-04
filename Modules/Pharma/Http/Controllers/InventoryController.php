@@ -1222,7 +1222,7 @@ final class InventoryController extends Controller
           ->with(['issue','medicine','user','partner'])->orderBy('calculated_at')->orderBy('issue_id')->orderBy('id')->get();
 
         $selected=array_values(array_filter($profile['column_order'],fn($key)=>in_array($key,$profile['selected_columns'],true)&&isset(CommissionExportProfileService::COLUMNS[$key])));
-        $headers=array_merge(['STT'],array_map(fn($key)=>$profile['headers'][$key]??CommissionExportProfileService::COLUMNS[$key]['label'],$selected));
+        $headers=array_map(fn($key)=>$profile['headers'][$key]??CommissionExportProfileService::COLUMNS[$key]['label'],$selected);
         $spreadsheet=new Spreadsheet();$sheet=$spreadsheet->getActiveSheet();$sheet->setTitle('Hoa hong');
         $lastColumn=Coordinate::stringFromColumnIndex(count($headers));
         $sheet->mergeCells("A1:{$lastColumn}1")->setCellValue('A1','TRUNG TÂM HOA HỒNG · CHI TIẾT PHÁT SINH');
@@ -1234,7 +1234,7 @@ final class InventoryController extends Controller
         foreach($rows as $index=>$row){
             $excelRow=5+$index;
             $values=[
-                'date'=>$row->calculated_at?->format('d/m/Y'),'issue'=>$row->issue?->number,
+                'stt'=>$index+1,'date'=>$row->calculated_at?->format('d/m/Y'),'issue'=>$row->issue?->number,
                 'source'=>$row->source_type===InventoryIssueCommission::SOURCE_BID?'Hàng thầu':'Bảng giá',
                 'customer'=>$row->partner?->name?:$row->issue?->recipient_name,'manager'=>$row->user?->name?:'Chưa phân công',
                 'medicine_code'=>$row->medicine?->medicine_code,'medicine'=>$row->medicine?->name,'quantity'=>(float)$row->quantity,
@@ -1242,11 +1242,21 @@ final class InventoryController extends Controller
                 'revenue'=>(float)$row->revenue_amount,'percentage'=>$row->commission_percentage!==null?(float)$row->commission_percentage:null,
                 'commission'=>(float)$row->commission_amount,'status'=>$row->status===InventoryIssueCommission::STATUS_UNRESOLVED?'Chưa đủ dữ liệu':'Đã tính',
             ];
-            $sheet->fromArray([[ $index+1,...array_map(fn($key)=>$values[$key],$selected) ]],null,"A{$excelRow}");
+            $sheet->fromArray([array_map(fn($key)=>$values[$key],$selected)],null,"A{$excelRow}");
         }
         $lastRow=4+$rows->count();
-        $sheet->getStyle("A5:A{$lastRow}")->getNumberFormat()->setFormatCode('#,##0');
-        foreach($selected as $offset=>$key){$letter=Coordinate::stringFromColumnIndex($offset+2);$definition=CommissionExportProfileService::COLUMNS[$key];$type=$profile['data_types'][$key]??$definition['type'];$decimals=(int)($profile['decimals'][$key]??0);if($type==='number')$sheet->getStyle("{$letter}5:{$letter}{$lastRow}")->getNumberFormat()->setFormatCode('#,##0'.($decimals>0?'.'.str_repeat('0',$decimals):''));if($type==='date')$sheet->getStyle("{$letter}5:{$letter}{$lastRow}")->getNumberFormat()->setFormatCode('dd/mm/yyyy');$sheet->getStyle("{$letter}4:{$letter}{$lastRow}")->getAlignment()->setHorizontal($profile['alignments'][$key]??$definition['align'])->setVertical('center')->setWrapText(true);if(($profile['page_setup']['auto_width']??false))$sheet->getColumnDimension($letter)->setAutoSize(true);else $sheet->getColumnDimension($letter)->setWidth(max(6,((int)($profile['widths'][$key]??$definition['width']))/7));}
+        $sheet->getStyle("A4:{$lastColumn}4")->getAlignment()->setHorizontal('center')->setVertical('center')->setWrapText(true);
+        foreach($selected as $offset=>$key){
+            $letter=Coordinate::stringFromColumnIndex($offset+1);
+            $definition=CommissionExportProfileService::COLUMNS[$key];
+            $type=$profile['data_types'][$key]??$definition['type'];
+            $decimals=(int)($profile['decimals'][$key]??0);
+            if($type==='number')$sheet->getStyle("{$letter}5:{$letter}{$lastRow}")->getNumberFormat()->setFormatCode('#,##0'.($decimals>0?'.'.str_repeat('0',$decimals):''));
+            if($type==='date')$sheet->getStyle("{$letter}5:{$letter}{$lastRow}")->getNumberFormat()->setFormatCode('dd/mm/yyyy');
+            $sheet->getStyle("{$letter}5:{$letter}{$lastRow}")->getAlignment()->setHorizontal($profile['alignments'][$key]??$definition['align'])->setVertical('center')->setWrapText((bool)($profile['wrap_texts'][$key]??true));
+            if($profile['auto_widths'][$key]??true)$sheet->getColumnDimension($letter)->setAutoSize(true);
+            else{$sheet->getColumnDimension($letter)->setAutoSize(false);$sheet->getColumnDimension($letter)->setWidth(max(6,((int)($profile['widths'][$key]??$definition['width']))/7));}
+        }
         if(($profile['page_setup']['auto_height']??true)){foreach(range(1,$lastRow) as $rowIndex)$sheet->getRowDimension($rowIndex)->setRowHeight(-1);}
         $sheet->freezePane('A5')->setAutoFilter("A4:{$lastColumn}{$lastRow}");
         $orientation=($profile['page_setup']['orientation']??'landscape')==='portrait'?PageSetup::ORIENTATION_PORTRAIT:PageSetup::ORIENTATION_LANDSCAPE;
