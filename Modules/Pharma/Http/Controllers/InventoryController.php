@@ -1246,6 +1246,8 @@ final class InventoryController extends Controller
         }
         $lastRow=4+$rows->count();
         $sheet->getStyle("A4:{$lastColumn}4")->getAlignment()->setHorizontal('center')->setVertical('center')->setWrapText(true);
+        $sheet->getStyle("A4:{$lastColumn}4")->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FFF1F5F9');
+        $sheet->getStyle("A4:{$lastColumn}{$lastRow}")->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_HAIR)->getColor()->setARGB('FFD9E2EC');
         foreach($selected as $offset=>$key){
             $letter=Coordinate::stringFromColumnIndex($offset+1);
             $definition=CommissionExportProfileService::COLUMNS[$key];
@@ -1254,8 +1256,32 @@ final class InventoryController extends Controller
             if($type==='number')$sheet->getStyle("{$letter}5:{$letter}{$lastRow}")->getNumberFormat()->setFormatCode('#,##0'.($decimals>0?'.'.str_repeat('0',$decimals):''));
             if($type==='date')$sheet->getStyle("{$letter}5:{$letter}{$lastRow}")->getNumberFormat()->setFormatCode('dd/mm/yyyy');
             $sheet->getStyle("{$letter}5:{$letter}{$lastRow}")->getAlignment()->setHorizontal($profile['alignments'][$key]??$definition['align'])->setVertical('center')->setWrapText((bool)($profile['wrap_texts'][$key]??true));
-            if($profile['auto_widths'][$key]??true)$sheet->getColumnDimension($letter)->setAutoSize(true);
-            else{$sheet->getColumnDimension($letter)->setAutoSize(false);$sheet->getColumnDimension($letter)->setWidth(max(6,((int)($profile['widths'][$key]??$definition['width']))/7));}
+            if($profile['auto_widths'][$key]??true){
+                $maxChars=max(mb_strlen((string)($profile['headers'][$key]??$definition['label'])));
+                foreach($rows as $exportRow){
+                    $sample=match($key){
+                        'stt'=>(string)$rows->search($exportRow)+1,
+                        'date'=>(string)$exportRow->calculated_at?->format('d/m/Y'),
+                        'issue'=>(string)$exportRow->issue?->number,
+                        'source'=>$exportRow->source_type===InventoryIssueCommission::SOURCE_BID?'Hàng thầu':'Bảng giá',
+                        'customer'=>(string)($exportRow->partner?->name?:$exportRow->issue?->recipient_name),
+                        'manager'=>(string)($exportRow->user?->name?:'Chưa phân công'),
+                        'medicine_code'=>(string)$exportRow->medicine?->medicine_code,
+                        'medicine'=>(string)$exportRow->medicine?->name,
+                        'quantity'=>(string)$exportRow->quantity,
+                        'unit_price'=>(string)$exportRow->unit_price,
+                        'receivable'=>(string)$exportRow->receivable_price_snapshot,
+                        'revenue'=>(string)$exportRow->revenue_amount,
+                        'percentage'=>(string)$exportRow->commission_percentage,
+                        'commission'=>(string)$exportRow->commission_amount,
+                        'status'=>$exportRow->status===InventoryIssueCommission::STATUS_UNRESOLVED?'Chưa đủ dữ liệu':'Đã tính',
+                        default=>'',
+                    };
+                    $maxChars=max($maxChars,mb_strlen($sample));
+                }
+                $sheet->getColumnDimension($letter)->setAutoSize(false);
+                $sheet->getColumnDimension($letter)->setWidth(max(7,min(28,$maxChars+2)));
+            }else{$sheet->getColumnDimension($letter)->setAutoSize(false);$sheet->getColumnDimension($letter)->setWidth(max(6,((int)($profile['widths'][$key]??$definition['width']))/7));}
         }
         $footerRow=$lastRow+2;
         $revenueColumn=array_search('revenue',$selected,true);
