@@ -1144,10 +1144,19 @@ final class InventoryController extends Controller
         $receivableTotal=(clone $base)->where('source_type',InventoryIssueCommission::SOURCE_PRICE_LIST)
             ->selectRaw('COALESCE(SUM(quantity * receivable_price_snapshot),0) as amount')->value('amount') ?? 0;
         $unresolved=(clone $base)->where('entry_type',InventoryIssueCommission::TYPE_EARNED)->where('status',InventoryIssueCommission::STATUS_UNRESOLVED)->count();
-        $rows=(clone $base)->with(['issue','medicine','user','partner'])->orderByDesc('calculated_at')->orderByDesc('id')->paginate(50)->withQueryString();
-        $rows->getCollection()->each(function(InventoryIssueCommission $row){
-            $row->resolved_customer_name=$row->partner?->name ?: $row->issue?->recipient_name ?: '—';
-        });
+        $commissionRows=(clone $base)->with(['issue.manager:id,name','issue.recipientPartner:id,name'])->orderByDesc('calculated_at')->orderByDesc('id')->get();
+        $grouped=$commissionRows->groupBy('issue_id')->map(function($entries){
+            $first=$entries->first();
+            $first->revenue_amount=(float)$entries->sum('revenue_amount');
+            $first->commission_amount=(float)$entries->sum('commission_amount');
+            $first->resolved_customer_name=$first->issue?->recipientPartner?->name ?: $first->issue?->recipient_name ?: $first->partner?->name ?: '—';
+            $first->resolved_manager_name=$first->issue?->manager?->name ?: $first->user?->name ?: '—';
+            return $first;
+        })->values();
+        $page=max(1,(int)$request->input('page',1)); $perPage=50;
+        $rows=new \Illuminate\Pagination\LengthAwarePaginator($grouped->forPage($page,$perPage)->values(),$grouped->count(),$perPage,$page,[
+            'path'=>$request->url(),'query'=>$request->query(),
+        ]);
 
         $filterRows=$commissions->adminQuery(['from'=>$from,'to'=>$to,'source'=>$source]);
 
