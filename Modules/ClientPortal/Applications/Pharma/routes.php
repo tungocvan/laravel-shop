@@ -89,6 +89,16 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->whereNumber('receipt')->middleware('client.feature:pharma,inventory')->name('inventory.receipts.post');
         Route::post('/inventory/receipts/{receipt}/revert', [PharmaApplicationController::class, 'revertInventoryReceipt'])
             ->whereNumber('receipt')->middleware('client.feature:pharma,inventory')->name('inventory.receipts.revert');
+        Route::post('/inventory/receipts/{receipt}/pdf', [PharmaApplicationController::class, 'exportInventoryReceiptPdf'])
+            ->whereNumber('receipt')->middleware('client.feature:pharma,inventory')->name('inventory.receipts.pdf.export');
+        Route::get('/inventory/receipts/{receipt}/pdf', [PharmaApplicationController::class, 'downloadInventoryReceiptPdf'])
+            ->whereNumber('receipt')->middleware('client.feature:pharma,inventory')->name('inventory.receipts.pdf');
+        Route::get('/inventory/receipts/{receipt}/print', [PharmaApplicationController::class, 'printInventoryReceiptPdf'])
+            ->whereNumber('receipt')->middleware('client.feature:pharma,inventory')->name('inventory.receipts.print');
+        Route::post('/inventory/receipts/{receipt}/share', [PharmaApplicationController::class, 'shareInventoryReceiptPdf'])
+            ->whereNumber('receipt')->middleware('client.feature:pharma,inventory')->name('inventory.receipts.share');
+        Route::delete('/inventory/receipts/{receipt}/share/{share}', [PharmaApplicationController::class, 'revokeInventoryReceiptPdfShare'])
+            ->whereNumber(['receipt','share'])->middleware('client.feature:pharma,inventory')->name('inventory.receipts.share.revoke');
         Route::get('/inventory/receipts/{receipt}', [PharmaApplicationController::class, 'inventoryReceipt'])
             ->whereNumber('receipt')->middleware('client.feature:pharma,inventory')->name('inventory.receipts.show');
         Route::get('/orders', [PharmaApplicationController::class, 'orders'])
@@ -232,4 +242,7 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
     Route::middleware('web')->get('/share/pharma/price-lists/{token}/pdf', [PharmaApplicationController::class, 'downloadPriceListSharePdf'])
         ->where('token', '[A-Za-z0-9]{64}')
         ->name('client.pharma.price-lists.share.pdf');
+    Route::middleware('web')->get('/share/pharma/inventory/receipts/{token}', [PharmaApplicationController::class, 'downloadInventoryReceiptShare'])
+        ->where('token', '[A-Za-z0-9]{64}')
+        ->name('client.pharma.inventory.receipts.share.download');
 }
