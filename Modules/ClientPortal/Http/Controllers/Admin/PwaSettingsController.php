@@ -63,6 +63,7 @@ class PwaSettingsController extends Controller
     public function updateBottomNavigation(Request $request, ClientPortalSettingsService $settings): RedirectResponse
     {
         $validated = $request->validate([
+            'presentation_style' => ['required', 'in:default,neumorphism'],
             'background_color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'background_opacity' => ['required', 'integer', 'min:0', 'max:100'],
             'icon_color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
