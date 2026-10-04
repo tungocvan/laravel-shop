@@ -121,9 +121,10 @@ class ClientAdaptiveNavigationTest extends TestCase
         $this->assertStringContainsString('#eff6ff', $html);
         $this->assertStringContainsString('#1d4ed8', $html);
         $this->assertStringContainsString('#1e3a8a', $html);
-        $this->assertStringContainsString('box-shadow: 0 -10px 24px', $html);
-        $this->assertStringContainsString('box-shadow: 4px 4px 9px', $html);
-        $this->assertStringContainsString('box-shadow: inset 3px 3px 7px', $html);
+        $this->assertStringContainsString('border-radius: 24px', $html);
+        $this->assertStringContainsString('box-shadow: 8px 8px 18px', $html);
+        $this->assertStringContainsString('box-shadow: 2px 2px 5px', $html);
+        $this->assertStringContainsString('box-shadow: inset 4px 4px 8px', $html);
     }
 
     public function test_navigation_icon_partial_has_generic_fallback(): void
