@@ -102,6 +102,8 @@ final class UserInventoryReceiptWorkspace
             throw ValidationException::withMessages(['supplier_id' => 'Nhà cung cấp không còn hoạt động hoặc không có vai trò supplier.']);
         }
 
+        $data['items'] = collect($data['items'])->map(fn (array $item): array => [...$item, 'vat_rate' => (float) $data['vat_rate']])->all();
+
         $duplicateKeys = collect($data['items'])->map(
             fn (array $item): string => (int) $item['medicine_id'].'|'.mb_strtolower(trim($item['batch_number'])).'|'.$item['expiry_date']
         );
@@ -142,6 +144,7 @@ final class UserInventoryReceiptWorkspace
             if (! $supplier) {
                 throw ValidationException::withMessages(['supplier_id' => 'Nhà cung cấp không còn hoạt động hoặc không có vai trò supplier.']);
             }
+            $data['items'] = collect($data['items'])->map(fn (array $item): array => [...$item, 'vat_rate' => (float) $data['vat_rate']])->all();
             $duplicateKeys = collect($data['items'])->map(fn (array $item): string => (int) $item['medicine_id'].'|'.mb_strtolower(trim($item['batch_number'])).'|'.$item['expiry_date']);
             if ($duplicateKeys->duplicates()->isNotEmpty()) {
                 throw ValidationException::withMessages(['items' => 'Không được trùng Thuốc + Số lô + Hạn dùng trong cùng phiếu nhập.']);
