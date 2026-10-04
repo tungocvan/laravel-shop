@@ -21,6 +21,7 @@ use Modules\Pharma\Models\InventoryIssueCommission;
 use Modules\Pharma\Models\InventoryIssueDeferredSupply;
 use Modules\Pharma\Models\InventoryTransaction;
 use Modules\Pharma\Models\InventoryReceipt;
+use Modules\Pharma\Models\InventoryReceiptDocumentSetting;
 use Modules\Pharma\Models\Medicine;
 use Modules\Pharma\Models\PriceList;
 use Modules\Pharma\Models\PriceListItem;
@@ -392,11 +393,34 @@ final class InventoryController extends Controller
         return redirect()->route('admin.pharma.inventory.receipts.index')->with('success','Đã xóa phiếu nhập nháp.');
     }
 
+    public function receiptDocumentSettings(): View
+    {
+        $settings=InventoryReceiptDocumentSetting::current();
+        return view('Pharma::pages.inventory.receipt-settings',compact('settings'));
+    }
+
+    public function updateReceiptDocumentSettings(Request $request): RedirectResponse
+    {
+        $data=$request->validate([
+            'organization_name'=>'nullable|string|max:255','organization_address'=>'nullable|string|max:500',
+            'tax_code'=>'nullable|string|max:50','phone'=>'nullable|string|max:50',
+            'document_title'=>'required|string|max:120','document_subtitle'=>'nullable|string|max:255',
+            'warehouse_name'=>'required|string|max:120','issuer_label'=>'required|string|max:120',
+            'deliverer_label'=>'required|string|max:120','receiver_label'=>'required|string|max:120',
+            'keeper_label'=>'required|string|max:120','footer_note'=>'nullable|string|max:1000',
+        ]);
+        foreach(['show_unit_price','show_invoice_unit_price','show_vat','show_total_value','show_notes','show_issuer_signature','show_deliverer_signature','show_receiver_signature','show_keeper_signature'] as $field){
+            $data[$field]=$request->boolean($field);
+        }
+        InventoryReceiptDocumentSetting::current()->update($data);
+        return back()->with('success','Đã lưu cấu hình phiếu nhập kho.');
+    }
+
     public function receiptPdf(InventoryReceipt $receipt, InventoryService $inventory): Response
     {
         $this->guardReceiptWarehouse($receipt,$inventory);
         $receipt->load('items.medicine');
-        $settings=InventoryIssueDocumentSetting::current();
+        $settings=InventoryReceiptDocumentSetting::current();
         $pdf=Pdf::loadView('Pharma::pages.inventory.receipt-pdf',compact('receipt','settings'))->setPaper('a4','portrait');
         return $pdf->download("phieu-nhap-kho-{$receipt->number}.pdf");
     }
@@ -405,7 +429,7 @@ final class InventoryController extends Controller
     {
         $this->guardReceiptWarehouse($receipt,$inventory);
         $receipt->load('items.medicine');
-        $settings=InventoryIssueDocumentSetting::current();
+        $settings=InventoryReceiptDocumentSetting::current();
         return view('Pharma::pages.inventory.receipt-print',compact('receipt','settings'));
     }
 
