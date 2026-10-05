@@ -107,39 +107,49 @@ final class UserInventoryWorkspace
             ->get();
 
         // The stock card presents the effective ledger, not the audit trail.
-        // A reversal cancels the original posted movement for the same source/lot;
-        // both technical rows remain in InventoryTransaction for audit purposes.
-        $reversedMovementKeys = $transactions
-            ->filter(fn (InventoryTransaction $transaction): bool => in_array($transaction->type, ['receipt_reversal', 'issue_reversal'], true))
-            ->mapWithKeys(fn (InventoryTransaction $transaction): array => [
-                implode('|', [
-                    $transaction->source_type,
-                    $transaction->source_id,
-                    $transaction->batch_number,
-                    $transaction->expiry_date?->format('Y-m-d'),
-                    $transaction->type === 'receipt_reversal' ? 'receipt' : 'issue',
-                ]) => true,
+        // Pair each reversal with exactly one earlier matching posted movement.
+        // This matters when the same document is posted, reverted and posted again:
+        // an old reversal must not hide the later effective posting.
+        $openMovementIds = [];
+        $cancelledMovementIds = [];
+        foreach ($transactions as $transaction) {
+            $baseType = match ($transaction->type) {
+                'receipt_reversal' => 'receipt',
+                'issue_reversal' => 'issue',
+                default => $transaction->type,
+            };
+            if (! in_array($baseType, ['receipt', 'issue'], true)) {
+                continue;
+            }
+
+            $key = implode('|', [
+                $transaction->source_type,
+                $transaction->source_id,
+                $transaction->batch_number,
+                $transaction->expiry_date?->format('Y-m-d'),
+                $baseType,
             ]);
 
+            if (in_array($transaction->type, ['receipt_reversal', 'issue_reversal'], true)) {
+                $originalId = array_pop($openMovementIds[$key]);
+                if ($originalId !== null) {
+                    $cancelledMovementIds[$originalId] = true;
+                }
+                continue;
+            }
+
+            $openMovementIds[$key] ??= [];
+            $openMovementIds[$key][] = (int) $transaction->id;
+        }
+
         $transactions = $transactions
-            ->filter(function (InventoryTransaction $transaction) use ($reversedMovementKeys): bool {
+            ->filter(function (InventoryTransaction $transaction) use ($cancelledMovementIds): bool {
                 if ($transaction->type === 'opening') {
                     return true;
                 }
 
-                if (! in_array($transaction->type, ['receipt', 'issue'], true)) {
-                    return false;
-                }
-
-                $key = implode('|', [
-                    $transaction->source_type,
-                    $transaction->source_id,
-                    $transaction->batch_number,
-                    $transaction->expiry_date?->format('Y-m-d'),
-                    $transaction->type,
-                ]);
-
-                return ! $reversedMovementKeys->has($key);
+                return in_array($transaction->type, ['receipt', 'issue'], true)
+                    && ! isset($cancelledMovementIds[(int) $transaction->id]);
             })
             ->sortByDesc(fn (InventoryTransaction $transaction): string => sprintf('%s-%020d', $transaction->created_at?->format('YmdHis.u') ?? '', $transaction->id))
             ->values();
