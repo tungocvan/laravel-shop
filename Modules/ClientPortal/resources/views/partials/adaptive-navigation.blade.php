@@ -51,7 +51,7 @@
     </aside>
 
     @unless($hideMobileNavigation)
-    <nav class="fixed inset-x-0 z-40 border-t border-slate-200 px-2 pb-[max(.7rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur sm:hidden" style="bottom: var(--client-visual-viewport-bottom, 0px); background-color: {{ sprintf('%s%02X', $bottomNav['background_color'], (int) round(max(0, min(100, (int) $bottomNav['background_opacity'])) * 2.55)) }}; min-height: {{ (int) $bottomNav['min_height'] }}px; {{ $bottomContainerShadow }}" aria-label="Điều hướng ứng dụng">
+    <nav class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 px-2 pb-[max(.7rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur sm:hidden" style="background-color: {{ sprintf('%s%02X', $bottomNav['background_color'], (int) round(max(0, min(100, (int) $bottomNav['background_opacity'])) * 2.55)) }}; min-height: {{ (int) $bottomNav['min_height'] }}px; {{ $bottomContainerShadow }}" aria-label="Điều hướng ứng dụng">
         <div class="mx-auto flex max-w-md items-end justify-around text-center font-semibold {{ $bottomNeumorphism ? 'gap-1' : 'gap-1' }}" style="font-size: {{ (int) $bottomNav['text_font_size'] }}px; color: {{ $bottomNav['text_color'] }}; {{ $bottomDockStyle }}">
             @foreach($mobilePrimaryNavigation as $item)
                 @php($active = request()->routeIs($item['route'], $item['route'].'.*'))
@@ -88,7 +88,7 @@
     @endunless
 @else
     @unless($hideMobileNavigation)
-    <nav class="fixed inset-x-0 z-40 border-t border-slate-200 px-2 pb-[max(.7rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur sm:hidden" style="bottom: var(--client-visual-viewport-bottom, 0px); background-color: {{ sprintf('%s%02X', $bottomNav['background_color'], (int) round(max(0, min(100, (int) $bottomNav['background_opacity'])) * 2.55)) }}; min-height: {{ (int) $bottomNav['min_height'] }}px; {{ $bottomContainerShadow }}" aria-label="Điều hướng ứng dụng">
+    <nav class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 px-2 pb-[max(.7rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur sm:hidden" style="background-color: {{ sprintf('%s%02X', $bottomNav['background_color'], (int) round(max(0, min(100, (int) $bottomNav['background_opacity'])) * 2.55)) }}; min-height: {{ (int) $bottomNav['min_height'] }}px; {{ $bottomContainerShadow }}" aria-label="Điều hướng ứng dụng">
         <div class="mx-auto max-w-md text-center font-semibold" style="font-size: {{ (int) $bottomNav['text_font_size'] }}px; color: {{ $bottomNav['text_color'] }};">
             <a href="{{ route('client.apps.index') }}" class="inline-flex min-h-11 items-center gap-2 rounded-xl px-4 py-2">
                 @include('ClientPortal::partials.navigation-icon', ['name' => 'squares-2x2', 'class' => 'h-5 w-5'])
@@ -98,26 +98,4 @@
     </nav>
     @endunless
 @endif
-<script>
-(() => {
-    const root = document.documentElement;
-    const viewport = window.visualViewport;
-    if (!viewport) {
-        root.style.setProperty('--client-visual-viewport-bottom', '0px');
-        return;
-    }
-
-    const syncBottomNavigation = () => {
-        const layoutHeight = document.documentElement.clientHeight;
-        const visualBottom = viewport.offsetTop + viewport.height;
-        const hiddenBottom = Math.max(0, layoutHeight - visualBottom);
-        root.style.setProperty('--client-visual-viewport-bottom', hiddenBottom + 'px');
-    };
-
-    syncBottomNavigation();
-    viewport.addEventListener('resize', syncBottomNavigation, { passive: true });
-    viewport.addEventListener('scroll', syncBottomNavigation, { passive: true });
-    window.addEventListener('orientationchange', syncBottomNavigation, { passive: true });
-})();
-</script>
 
