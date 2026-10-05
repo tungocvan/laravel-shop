@@ -258,8 +258,8 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("name('issues.export')", $routes);
         $this->assertStringContainsString('function exportIssues', $controller);
         $this->assertStringContainsString('$canPostStock=false;', $controller);
-        $this->assertStringContainsString("blank($item->batch_number) || !$item->expiry_date", $controller);
-        $this->assertStringContainsString("quantity_on_hand ?? 0) >= (float)$item->quantity", $controller);
+        $this->assertStringContainsString('blank($item->batch_number) || !$item->expiry_date', $controller);
+        $this->assertStringContainsString('quantity_on_hand ?? 0) >= (float)$item->quantity', $controller);
         $this->assertStringContainsString('@if($canPostStock)', $issueShow);
         $this->assertStringContainsString('<x-select-search id="issue-manager-filter"', $documents);
         $this->assertStringContainsString('<x-select-search id="issue-recipient-filter"', $documents);
