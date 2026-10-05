@@ -7,6 +7,7 @@ use Livewire\WithPagination;
 use Modules\Pharma\Livewire\Concerns\AuthorizesPharmaActions;
 use Modules\Pharma\Models\PriceList;
 use Modules\Pharma\Services\PriceListManager;
+use Modules\Pharma\Services\PriceListApprovalWorkflow;
 use Throwable;
 
 class Index extends Component
@@ -130,7 +131,7 @@ class Index extends Component
         $this->errorMessage = null;
     }
 
-    public function executeConfirmed(PriceListManager $manager): void
+    public function executeConfirmed(PriceListManager $manager, PriceListApprovalWorkflow $approval): void
     {
         try {
             if ($this->confirmingAction === 'bulk-delete') {
@@ -145,7 +146,9 @@ class Index extends Component
 
             $list = PriceList::query()->findOrFail($this->confirmingId);
 
-            if ($this->confirmingAction === 'activate') {
+            if ($this->confirmingAction === 'approve') {
+                $approval->approve((int) auth('admin')->id(), (int) $list->id);
+            } elseif ($this->confirmingAction === 'activate') {
                 $manager->activate($list, auth('admin')->id());
             } elseif ($this->confirmingAction === 'deactivate') {
                 $manager->deactivate($list);
