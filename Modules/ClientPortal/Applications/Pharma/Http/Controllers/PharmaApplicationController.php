@@ -1819,11 +1819,18 @@ final class PharmaApplicationController extends Controller
         UserInventoryIssueWorkspace $workspace, UserOrderApprovalService $approval,
     ) {
         $user = $request->user('web'); abort_if($user === null, 401);
-        abort_unless($registry->userCan($user, 'client.pharma.orders.approve'), 403);
+        abort_unless($registry->userCan($user, 'client.pharma.orders'), 403);
 
-        $visible = $workspace->findDeletableForApproval($issue);
+        $canApproveOrders = $registry->userCan($user, 'client.pharma.orders.approve');
+        $visible = $canApproveOrders
+            ? $workspace->findDeletableForApproval($issue)
+            : $workspace->findVisible((int) $user->id, $issue);
         abort_if($visible === null, 404);
-        $approval->deleteNonStockOrder((int) $user->id, $visible);
+        if ($canApproveOrders) {
+            $approval->deleteNonStockOrder((int) $user->id, $visible);
+        } else {
+            $approval->deleteOwnNonStockOrder((int) $user->id, $visible);
+        }
 
         return redirect()->route('client.pharma.orders')
             ->with('success', 'Đã xóa đơn hàng. Thao tác không làm thay đổi tồn kho.');
