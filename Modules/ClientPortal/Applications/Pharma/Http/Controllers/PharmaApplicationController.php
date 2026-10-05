@@ -202,7 +202,8 @@ final class PharmaApplicationController extends Controller
         abort_if($user === null, 401);
         abort_unless($registry->userCan($user, 'client.pharma.price-lists.submit'), 403);
 
-        $workflow->submit((int) $user->id, $priceList);
+        $canApprove = $registry->userCan($user, 'client.pharma.price-lists.approve');
+        $workflow->submit((int) $user->id, $priceList, $canApprove);
 
         return redirect()->route('client.pharma.price-lists.show', $priceList)
             ->with('success', 'Đã gửi bảng giá chờ phê duyệt.');
