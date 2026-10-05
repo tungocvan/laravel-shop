@@ -19,8 +19,8 @@ return [
         'description' => 'Các chức năng hiển thị theo quyền Web của User. Dữ liệu và business rules vẫn thuộc Modules/Pharma; PWA không sử dụng giao diện hoặc quyền Admin Pharma.',
         'supporting' => [
             'visible' => true,
-            'title' => 'Ranh giới Foundation',
-            'body' => 'Đợt này chỉ thiết lập application, authorization và PWA shell. Các capability nghiệp vụ sẽ được nối lần lượt với service/query contract của Modules/Pharma, không sao chép logic từ Admin controller hoặc Blade.',
+            'title' => 'Làm việc theo phạm vi được giao',
+            'body' => 'Chọn chức năng phù hợp với công việc của bạn. Mỗi workspace chỉ hiển thị dữ liệu và hành động theo quyền Web được cấp; nghiệp vụ và dữ liệu chuẩn tiếp tục do Modules/Pharma quản lý.',
         ],
     ],
     'capabilities' => ['search', 'filter', 'background-jobs', 'export'],
