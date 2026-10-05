@@ -8,12 +8,13 @@ use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Illuminate\Support\Facades\Storage;
+use Modules\Pharma\Models\CommissionExportArtifact;
 use Modules\Pharma\Models\InventoryIssueCommission;
 
 final class CommissionExcelExportService
 {
-    public function download(Collection $rows, CarbonInterface $from, CarbonInterface $to, array $profileInput=[]): BinaryFileResponse
+    public function generate(Collection $rows, CarbonInterface $from, CarbonInterface $to, int $userId, array $filters=[], array $profileInput=[]): CommissionExportArtifact
     {
         $profile=CommissionExportProfileService::normalize($profileInput);
         $selected=array_values(array_filter($profile['column_order'],fn($key)=>in_array($key,$profile['selected_columns'],true)&&isset(CommissionExportProfileService::COLUMNS[$key])));
@@ -83,11 +84,23 @@ final class CommissionExcelExportService
         $sheet->getPageSetup()->setHorizontalCentered(true);
         $sheet->getHeaderFooter()->setOddFooter('&LTrung tâm hoa hồng&RTrang &P / &N');
 
-        $path=storage_path('app/private/exports/commissions/pharma-hoa-hong-'.now()->format('Ymd-His').'-'.bin2hex(random_bytes(4)).'.xlsx');
+        $relative='Pharma/commissions/exports/'.$userId.'/pharma-hoa-hong-'.now()->format('Ymd-His').'-'.bin2hex(random_bytes(4)).'.xlsx';
+        $path=Storage::disk('local')->path($relative);
         if(!is_dir(dirname($path)))mkdir(dirname($path),0775,true);
         (new Xlsx($spreadsheet))->save($path);
 
-        return response()->download($path)->deleteFileAfterSend(true);
+        return CommissionExportArtifact::query()->create([
+            'created_by'=>$userId,'disk'=>'local','storage_path'=>$relative,
+            'download_name'=>'pharma-hoa-hong-'.now()->format('Ymd-His').'.xlsx',
+            'filters'=>$filters,'issue_ids'=>$rows->pluck('issue_id')->map(fn($id)=>(int)$id)->unique()->values()->all(),
+            'row_count'=>$rows->count(),'generated_at'=>now(),
+        ]);
+    }
+
+    public function path(CommissionExportArtifact $artifact): string
+    {
+        abort_unless(Storage::disk($artifact->disk)->exists($artifact->storage_path),404);
+        return Storage::disk($artifact->disk)->path($artifact->storage_path);
     }
 
     private function values(InventoryIssueCommission $row, int $index): array
