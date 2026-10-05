@@ -163,7 +163,10 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString("'Trúng thầu'",$view);
         $this->assertStringContainsString("'Bảng giá'",$view);
         $this->assertStringContainsString('>Nguồn</th>',$view);
-        $this->assertStringContainsString("\$issue?->price_list_id ? 'Bảng giá' : 'Trúng thầu'",$view);
+        $this->assertStringContainsString("\$row->issue_price_list_id ? 'Bảng giá' : 'Trúng thầu'",$view);
+        $workspace=file_get_contents(base_path('Modules/Pharma/Services/UserCommissionWorkspace.php'));
+        $this->assertStringContainsString("'issue_price_list_id'=>\\Modules\\Pharma\\Models\\InventoryIssue::query()",$workspace);
+        $this->assertStringContainsString("whereColumn('pharma_inventory_issues.id','pharma_inventory_issue_commissions.issue_id')",$workspace);
         $this->assertStringNotContainsString('COUNT(DISTINCT source_type)',file_get_contents(base_path('Modules/Pharma/Services/UserCommissionWorkspace.php')));
         $this->assertStringContainsString('>Tải</a>',$view);
         $this->assertStringContainsString('>In</a>',$view);
