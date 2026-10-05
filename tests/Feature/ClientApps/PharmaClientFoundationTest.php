@@ -26,7 +26,7 @@ class PharmaClientFoundationTest extends TestCase
         $this->assertSame('client.pharma.overview.view', $application['hub']['permission']);
         $this->assertSame('Pharma PWA', $application['hub']['eyebrow']);
         $this->assertSame('Không gian làm việc Pharma', $application['hub']['title']);
-        $this->assertSame('Ranh giới Foundation', $application['hub']['supporting']['title']);
+        $this->assertSame('Làm việc theo phạm vi được giao', $application['hub']['supporting']['title']);
         $this->assertSame(
             ['products', 'price-lists', 'bid-awards', 'commercial', 'orders', 'inventory', 'commissions'],
             collect($application['features'])->pluck('key')->all(),
