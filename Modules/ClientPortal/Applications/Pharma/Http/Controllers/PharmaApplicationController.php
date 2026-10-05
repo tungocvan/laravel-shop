@@ -15,6 +15,7 @@ use Modules\Pharma\Models\InventoryReceipt;
 use Modules\Pharma\Services\MedicineCatalog;
 use Modules\Pharma\Services\InventoryService;
 use Modules\Pharma\Services\InventoryReceiptDocumentService;
+use Modules\Pharma\Services\InventoryStockCardDocumentService;
 use Modules\Pharma\Services\InventoryIssueDocumentService;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Modules\Pharma\Services\UserPriceListWorkspace;
@@ -1332,6 +1333,24 @@ final class PharmaApplicationController extends Controller
         ]);
     }
 
+    public function downloadInventoryStockCardPdf(int $balance, Request $request, ApplicationRegistry $registry, UserInventoryWorkspace $workspace, InventoryStockCardDocumentService $documents): BinaryFileResponse
+    {
+        $user=$request->user('web'); abort_if($user===null,401);
+        abort_unless($registry->userCan($user,'client.pharma.inventory.view'),403);
+        abort_if($workspace->detail($balance,false)===null,404);
+        $document=$documents->generate($balance);
+        return response()->download($documents->path($document),$document['download_name'],['Cache-Control'=>'private, no-store']);
+    }
+
+    public function printInventoryStockCardPdf(int $balance, Request $request, ApplicationRegistry $registry, UserInventoryWorkspace $workspace, InventoryStockCardDocumentService $documents): BinaryFileResponse
+    {
+        $user=$request->user('web'); abort_if($user===null,401);
+        abort_unless($registry->userCan($user,'client.pharma.inventory.view'),403);
+        abort_if($workspace->detail($balance,false)===null,404);
+        $document=$documents->generate($balance);
+        return response()->file($documents->path($document),['Content-Type'=>'application/pdf','Cache-Control'=>'private, no-store']);
+    }
+
     public function inventoryReceipts(
         Request $request,
         ApplicationRegistry $registry,
@@ -1800,11 +1819,18 @@ final class PharmaApplicationController extends Controller
         UserInventoryIssueWorkspace $workspace, UserOrderApprovalService $approval,
     ) {
         $user = $request->user('web'); abort_if($user === null, 401);
-        abort_unless($registry->userCan($user, 'client.pharma.orders.approve'), 403);
+        abort_unless($registry->userCan($user, 'client.pharma.orders'), 403);
 
-        $visible = $workspace->findDeletableForApproval($issue);
+        $canApproveOrders = $registry->userCan($user, 'client.pharma.orders.approve');
+        $visible = $canApproveOrders
+            ? $workspace->findDeletableForApproval($issue)
+            : $workspace->findVisible((int) $user->id, $issue);
         abort_if($visible === null, 404);
-        $approval->deleteNonStockOrder((int) $user->id, $visible);
+        if ($canApproveOrders) {
+            $approval->deleteNonStockOrder((int) $user->id, $visible);
+        } else {
+            $approval->deleteOwnNonStockOrder((int) $user->id, $visible);
+        }
 
         return redirect()->route('client.pharma.orders')
             ->with('success', 'Đã xóa đơn hàng. Thao tác không làm thay đổi tồn kho.');

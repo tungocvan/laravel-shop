@@ -77,24 +77,82 @@ final class UserInventoryWorkspace
             return null;
         }
 
+        // A balance id is only the entry point. The stock card is medicine-scoped so
+        // every posted movement across the medicine's lots is visible in one ledger.
+        $balances = InventoryBalance::query()
+            ->with('medicine')
+            ->where('warehouse_id', $warehouse->id)
+            ->where('medicine_id', $balance->medicine_id)
+            ->orderBy('expiry_date')
+            ->orderBy('batch_number')
+            ->get();
+
         $averageCost = null;
         $inventoryValue = null;
         if ($canViewCosts) {
             $supplier = $this->activeSupplierCosts()->get($balance->medicine_id)?->average_cost_price;
-            $averageCost = $balance->manual_cost_price !== null
-                ? (float) $balance->manual_cost_price
-                : ($supplier !== null ? (float) $supplier : null);
-            $inventoryValue = $averageCost === null ? null : (float) $balance->quantity_on_hand * $averageCost;
+            $averageCost = $supplier !== null ? (float) $supplier : null;
+            $inventoryValue = $balances->sum(function (InventoryBalance $lot) use ($averageCost): float {
+                $cost = $lot->manual_cost_price !== null ? (float) $lot->manual_cost_price : $averageCost;
+
+                return $cost === null ? 0.0 : (float) $lot->quantity_on_hand * $cost;
+            });
         }
 
         $transactions = InventoryTransaction::query()
             ->where('warehouse_id', $warehouse->id)
             ->where('medicine_id', $balance->medicine_id)
-            ->where('batch_number', $balance->batch_number)
-            ->whereDate('expiry_date', $balance->expiry_date)
-            ->latest('created_at')
-            ->latest('id')
+            ->orderBy('created_at')
+            ->orderBy('id')
             ->get();
+
+        // The stock card presents the effective ledger, not the audit trail.
+        // Pair each reversal with exactly one earlier matching posted movement.
+        // This matters when the same document is posted, reverted and posted again:
+        // an old reversal must not hide the later effective posting.
+        $openMovementIds = [];
+        $cancelledMovementIds = [];
+        foreach ($transactions as $transaction) {
+            $baseType = match ($transaction->type) {
+                'receipt_reversal' => 'receipt',
+                'issue_reversal' => 'issue',
+                default => $transaction->type,
+            };
+            if (! in_array($baseType, ['receipt', 'issue'], true)) {
+                continue;
+            }
+
+            $key = implode('|', [
+                $transaction->source_type,
+                $transaction->source_id,
+                $transaction->batch_number,
+                $transaction->expiry_date?->format('Y-m-d'),
+                $baseType,
+            ]);
+
+            if (in_array($transaction->type, ['receipt_reversal', 'issue_reversal'], true)) {
+                $originalId = array_pop($openMovementIds[$key]);
+                if ($originalId !== null) {
+                    $cancelledMovementIds[$originalId] = true;
+                }
+                continue;
+            }
+
+            $openMovementIds[$key] ??= [];
+            $openMovementIds[$key][] = (int) $transaction->id;
+        }
+
+        $transactions = $transactions
+            ->filter(function (InventoryTransaction $transaction) use ($cancelledMovementIds): bool {
+                if ($transaction->type === 'opening') {
+                    return true;
+                }
+
+                return in_array($transaction->type, ['receipt', 'issue'], true)
+                    && ! isset($cancelledMovementIds[(int) $transaction->id]);
+            })
+            ->sortByDesc(fn (InventoryTransaction $transaction): string => sprintf('%s-%020d', $transaction->created_at?->format('YmdHis.u') ?? '', $transaction->id))
+            ->values();
 
         $receiptIds = $transactions->where('source_type', InventoryReceipt::class)->pluck('source_id')->filter()->map(fn ($id) => (int) $id)->unique();
         $issueIds = $transactions->where('source_type', InventoryIssue::class)->pluck('source_id')->filter()->map(fn ($id) => (int) $id)->unique();
@@ -116,6 +174,8 @@ final class UserInventoryWorkspace
                 'type' => (string) $transaction->type,
                 'quantity_delta' => (float) $transaction->quantity_delta,
                 'balance_after' => (float) $transaction->balance_after,
+                'batch_number' => (string) $transaction->batch_number,
+                'expiry_date' => $transaction->expiry_date,
                 'created_at' => $transaction->created_at,
                 'source' => $source,
             ];
@@ -123,8 +183,12 @@ final class UserInventoryWorkspace
 
         return [
             'balance' => $balance,
+            'balances' => $balances,
+            'total_quantity_on_hand' => (float) $balances->sum('quantity_on_hand'),
             'average_cost_price' => $averageCost,
             'inventory_value' => $inventoryValue,
+            'total_received' => (float) $movements->sum(fn (array $movement): float => max(0, (float) $movement['quantity_delta'])),
+            'total_issued' => (float) abs($movements->sum(fn (array $movement): float => min(0, (float) $movement['quantity_delta']))),
             'movements' => $movements,
         ];
     }

@@ -127,7 +127,7 @@ final class PharmaInventoryCapabilityTest extends TestCase
         $this->assertStringNotContainsString('InventoryTransaction::query()', $controller);
         $this->assertStringContainsString("route('client.pharma.inventory.balances.show'", $index);
         $this->assertStringContainsString('Xem biến động lô', $index);
-        $this->assertStringContainsString('Lịch sử biến động lô', $detail);
+        $this->assertStringContainsString('Thẻ kho sản phẩm', $detail);
         $this->assertStringContainsString('Tồn đầu kỳ', $detail);
         $this->assertStringContainsString('Hoàn tác nhập', $detail);
         $this->assertStringContainsString('Hoàn tác xuất', $detail);
@@ -137,7 +137,7 @@ final class PharmaInventoryCapabilityTest extends TestCase
         $this->assertStringContainsString("@section('hide-application-header', true)", $detail);
         $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $detail);
         $this->assertStringContainsString('← Tồn kho', $detail);
-        $this->assertStringContainsString('← Quay về dashboard', $detail);
+        $this->assertStringContainsString('← Quay về tồn kho', $detail);
         $this->assertStringContainsString('xl:hidden', $detail);
         $this->assertStringContainsString('xl:block', $detail);
         $this->assertStringNotContainsString('method="POST"', $detail);
@@ -218,5 +218,47 @@ final class PharmaInventoryCapabilityTest extends TestCase
         $this->assertStringContainsString('SL ', $receipt);
     }
 
+
+
+    public function test_inventory_detail_is_a_medicine_stock_card_across_lots(): void
+    {
+        $root = base_path();
+        $workspace = file_get_contents($root.'/Modules/Pharma/Services/UserInventoryWorkspace.php');
+        $detail = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-show.blade.php');
+
+        $this->assertStringContainsString("->where('medicine_id', \$balance->medicine_id)", $workspace);
+        $this->assertStringNotContainsString("->where('batch_number', \$balance->batch_number)\n            ->whereDate('expiry_date', \$balance->expiry_date)\n            ->latest('created_at')", $workspace);
+        $this->assertStringContainsString("'balances' => \$balances", $workspace);
+        $this->assertStringContainsString("'total_quantity_on_hand' =>", $workspace);
+        $this->assertStringContainsString("'total_received' =>", $workspace);
+        $this->assertStringContainsString("'total_issued' =>", $workspace);
+        $this->assertStringContainsString('Tổng nhập', $detail);
+        $this->assertStringContainsString('Tổng xuất', $detail);
+        $this->assertStringContainsString('Các nghiệp vụ nhập, xuất và tồn đầu kỳ còn hiệu lực', $detail);
+        $this->assertStringContainsString("number_format(\$total_received, 0, ',', '.')", $detail);
+        $this->assertStringContainsString("number_format(\$total_issued, 0, ',', '.')", $detail);
+        $this->assertStringContainsString("route('client.pharma.inventory.balances.pdf'", $detail);
+        $this->assertStringContainsString('data-pwa-file-handoff', $detail);
+        $this->assertStringContainsString('In thẻ kho', $detail);
+        $this->assertStringContainsString("'batch_number' => (string) \$transaction->batch_number", $workspace);
+        $this->assertStringContainsString("'expiry_date' => \$transaction->expiry_date", $workspace);
+        $this->assertStringContainsString("'receipt_reversal', 'issue_reversal'", $workspace);
+        $this->assertStringContainsString('$openMovementIds[$key][] = (int) $transaction->id;', $workspace);
+        $this->assertStringContainsString('$originalId = array_pop($openMovementIds[$key]);', $workspace);
+        $this->assertStringContainsString('$cancelledMovementIds[$originalId] = true;', $workspace);
+        $this->assertStringContainsString('! isset($cancelledMovementIds[(int) $transaction->id])', $workspace);
+
+        $this->assertStringContainsString('Thẻ kho ·', $detail);
+        $this->assertStringContainsString('Tổng tồn hiện tại', $detail);
+        $this->assertStringContainsString('Tồn theo lô / hạn dùng', $detail);
+        $this->assertStringContainsString('Thẻ kho sản phẩm', $detail);
+        $this->assertStringContainsString('Các nghiệp vụ nhập, xuất và tồn đầu kỳ còn hiệu lực của sản phẩm theo thời gian.', $detail);
+        $this->assertStringContainsString('>Nhập<', $detail);
+        $this->assertStringContainsString('>Xuất<', $detail);
+        $this->assertStringContainsString('Tồn lô sau GD', $detail);
+        $this->assertStringContainsString("route('client.pharma.inventory')", $detail);
+        $this->assertStringContainsString("@section('hide-application-header', true)", $detail);
+        $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $detail);
+    }
 
 }

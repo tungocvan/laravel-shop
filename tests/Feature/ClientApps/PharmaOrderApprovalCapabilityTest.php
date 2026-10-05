@@ -34,6 +34,9 @@ final class PharmaOrderApprovalCapabilityTest extends TestCase
         $this->assertStringContainsString('undoApproval', $service);
         $this->assertStringContainsString('deleteNonStockOrder', $service);
         $this->assertStringContainsString('[InventoryIssue::DRAFT, InventoryIssue::REJECTED]', $service);
+        $this->assertStringContainsString('deleteOwnNonStockOrder', $service);
+        $this->assertStringContainsString("in_array(\$actorUserId, [(int) \$issue->created_by, (int) \$issue->manager_user_id], true)", $service);
+        $this->assertStringContainsString('deleteLockedNonStockOrder', $service);
         $this->assertStringContainsString("\$issue->items()->delete()", $service);
         $this->assertStringContainsString('APPROVED', $service);
         $this->assertStringNotContainsString('postIssue(', $service);
@@ -75,6 +78,10 @@ final class PharmaOrderApprovalCapabilityTest extends TestCase
         $this->assertStringContainsString('function ($item) use ($deferredAllocationIds)', $view);
         $this->assertStringContainsString('Xóa đơn', $view);
         $this->assertStringContainsString('không ảnh hưởng tồn kho', $view);
+        $this->assertStringContainsString('Xóa phiếu xuất', file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-issues.blade.php'));
+        $this->assertStringContainsString("route('client.pharma.orders.delete',\$issue)", file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-issues.blade.php'));
+        $this->assertStringContainsString("InventoryIssue::DRAFT,\\Modules\\Pharma\\Models\\InventoryIssue::REJECTED", file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-issues.blade.php'));
+        $this->assertStringContainsString('deleteOwnNonStockOrder', $controller);
         $this->assertStringContainsString('Thiếu tồn không chặn phê duyệt đơn', $view);
         $this->assertStringContainsString('kiểm tra đủ tồn ở bước xử lý kho/Ghi sổ', $view);
     }
