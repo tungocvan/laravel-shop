@@ -338,7 +338,8 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString("'currentExportShare' =>", $controller);
         $this->assertStringContainsString("'exportShares' => \$exportShares", $controller);
         $this->assertStringContainsString("session('price_list_share') ?? \$currentExportShare", $detail);
-        $this->assertStringContainsString('title="Tải Excel đã xuất"', $view);
+        $this->assertStringContainsString('Tải Excel đã xuất', $view);
+        $this->assertStringNotContainsString('title="Tải Excel đã xuất"', $view);
         $this->assertStringContainsString('data-pwa-file-handoff', $view);
         $this->assertStringContainsString('id="price-list-pwa-file-handoff"', $view);
         $this->assertStringContainsString("matchMedia('(display-mode: standalone)')", $view);
