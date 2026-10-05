@@ -5,7 +5,6 @@
 @section('app-subtitle','Commission Ledger · chỉ đọc')
 @section('app-dashboard-route', route('client.pharma.dashboard'))
 @section('hide-application-header', true)
-@section('hide-application-header', true)
 @section('hide-mobile-navigation', true)
 
 @section('content')
