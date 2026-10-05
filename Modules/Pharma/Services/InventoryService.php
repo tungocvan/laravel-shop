@@ -168,8 +168,13 @@ final class InventoryService
             if ($postedItems->isEmpty()) throw ValidationException::withMessages(['stock'=>'Không có mặt hàng đủ điều kiện xuất kho; toàn bộ mặt hàng đang chờ cung ứng.']);
             foreach ($postedItems as $item) {
                 if(blank($item->batch_number) || !$item->expiry_date) throw ValidationException::withMessages(['stock'=>'Mặt hàng thực xuất chưa chọn lô/HSD, chưa thể ghi sổ.']);
-                $balance=$this->lockedBalance($issue->warehouse_id,$item->medicine_id,$item->batch_number,$item->expiry_date->toDateString());
-                if((float)$balance->quantity_on_hand < (float)$item->quantity) throw ValidationException::withMessages(['stock'=>"Không đủ tồn cho lô {$item->batch_number}. Tồn khả dụng: ".number_format((float)$balance->quantity_on_hand,3,'.','').', cần xuất: '.number_format((float)$item->quantity,3,'.','').'.']);
+            }
+            $lotAllocations=$postedItems->groupBy(fn($item)=>implode('|',[$item->medicine_id,$item->batch_number,$item->expiry_date->toDateString()]));
+            foreach ($lotAllocations as $items) {
+                $first=$items->first();
+                $required=(float)$items->sum('quantity');
+                $balance=$this->lockedBalance($issue->warehouse_id,$first->medicine_id,$first->batch_number,$first->expiry_date->toDateString());
+                if((float)$balance->quantity_on_hand < $required) throw ValidationException::withMessages(['stock'=>"Không đủ tồn cho lô {$first->batch_number}. Tồn khả dụng: ".number_format((float)$balance->quantity_on_hand,3,'.','').', cần xuất: '.number_format($required,3,'.','').'.']);
             }
             foreach ($postedItems as $item) $this->move($issue->warehouse_id,$item->medicine_id,$item->batch_number,$item->expiry_date->toDateString(),-(float)$item->quantity,'issue',$issue,$userId);
             $issue->update(['status'=>InventoryIssue::POSTED,'posted_by'=>$userId,'posted_at'=>now()]);
