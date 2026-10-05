@@ -49,18 +49,34 @@ final class UserOrderApprovalService
         });
     }
 
+    public function deleteOwnNonStockOrder(int $actorUserId, InventoryIssue $issue): void
+    {
+        DB::transaction(function () use ($actorUserId, $issue): void {
+            $issue = $this->lockIssue($issue);
+            if (! in_array($actorUserId, [(int) $issue->created_by, (int) $issue->manager_user_id], true)) {
+                throw ValidationException::withMessages(['order' => 'Bạn chỉ được xóa đơn Nháp hoặc Từ chối do mình tạo hoặc phụ trách.']);
+            }
+            $this->deleteLockedNonStockOrder($issue);
+        });
+    }
+
     public function deleteNonStockOrder(int $actorUserId, InventoryIssue $issue): void
     {
         DB::transaction(function () use ($issue): void {
             $issue = $this->lockIssue($issue);
-            if (! in_array($issue->status, [InventoryIssue::DRAFT, InventoryIssue::REJECTED], true)
-                || $issue->posted_at !== null) {
-                throw ValidationException::withMessages(['order' => 'Chỉ được xóa đơn Nháp hoặc Từ chối chưa ghi sổ kho.']);
-            }
-            $issue->deferredSupplies()->delete();
-            $issue->items()->delete();
-            $issue->delete();
+            $this->deleteLockedNonStockOrder($issue);
         });
+    }
+
+    private function deleteLockedNonStockOrder(InventoryIssue $issue): void
+    {
+        if (! in_array($issue->status, [InventoryIssue::DRAFT, InventoryIssue::REJECTED], true)
+            || $issue->posted_at !== null) {
+            throw ValidationException::withMessages(['order' => 'Chỉ được xóa đơn Nháp hoặc Từ chối chưa ghi sổ kho.']);
+        }
+        $issue->deferredSupplies()->delete();
+        $issue->items()->delete();
+        $issue->delete();
     }
 
     public function reject(int $actorUserId, InventoryIssue $issue, string $reason): InventoryIssue
