@@ -151,11 +151,18 @@ final class PharmaInventoryReceiptsCapabilityTest extends TestCase
         $this->assertStringContainsString("\$canViewCosts = \$registry->userCan(\$user, 'client.pharma.inventory.costs');", $controller);
         $this->assertStringContainsString("'canViewCosts' => \$canViewCosts", $controller);
         $this->assertStringContainsString("\$costTotal=\$canViewCosts ?", $detail);
-        $this->assertStringContainsString('@if($canViewCosts)<span>Giá vốn', $detail);
-        $this->assertStringContainsString('@if($canViewCosts)<th class="px-4 py-3 text-right">Giá nhập / Giá vốn</th>@endif', $detail);
-        $this->assertStringContainsString('@if($canViewCosts)<td class="px-4 py-3 text-right font-bold">{{ $money($item->unit_price_ex_vat) }}</td>@endif', $detail);
-        $this->assertStringContainsString("@if(\$canViewCosts)<div><p class=\"text-[10px] font-bold text-slate-400\">Giá vốn</p>", $detail);
+        $this->assertStringContainsString("@if(\$canViewCosts)\n<span>Giá vốn", $detail);
+        $this->assertStringContainsString("@if(\$canViewCosts)\n<th class=\"px-4 py-3 text-right\">Giá nhập / Giá vốn</th>", $detail);
+        $this->assertStringContainsString("@if(\$canViewCosts)\n<td class=\"px-4 py-3 text-right font-bold\">{{ \$money(\$item->unit_price_ex_vat) }}</td>", $detail);
+        $this->assertStringContainsString("@if(\$canViewCosts)\n<div><p class=\"text-[10px] font-bold text-slate-400\">Giá vốn</p>", $detail);
         $this->assertStringNotContainsString("\$costTotal=\$receipt->items->sum", $detail);
+
+        $compiled = app('blade.compiler')->compileString($detail);
+        $temporary = tempnam(sys_get_temp_dir(), 'receipt-detail-blade-');
+        file_put_contents($temporary, $compiled);
+        exec(PHP_BINARY.' -l '.escapeshellarg($temporary).' 2>&1', $lintOutput, $lintCode);
+        @unlink($temporary);
+        $this->assertSame(0, $lintCode, implode(PHP_EOL, $lintOutput));
     }
 
     public function test_receipt_pdf_artifacts_are_private_shareable_and_pwa_safe(): void
