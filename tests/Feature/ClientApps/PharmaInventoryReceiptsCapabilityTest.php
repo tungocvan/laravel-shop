@@ -142,6 +142,29 @@ final class PharmaInventoryReceiptsCapabilityTest extends TestCase
         }
     }
 
+    public function test_receipt_detail_cost_visibility_requires_inventory_cost_permission(): void
+    {
+        $root = base_path();
+        $controller = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php');
+        $detail = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-receipt-show.blade.php');
+
+        $this->assertStringContainsString("\$canViewCosts = \$registry->userCan(\$user, 'client.pharma.inventory.costs');", $controller);
+        $this->assertStringContainsString("'canViewCosts' => \$canViewCosts", $controller);
+        $this->assertStringContainsString("\$costTotal=\$canViewCosts ?", $detail);
+        $this->assertMatchesRegularExpression('/@if\\(\\$canViewCosts\\)\\s*<span>Giá vốn/', $detail);
+        $this->assertMatchesRegularExpression('/@if\\(\\$canViewCosts\\)\\s*<th class="px-4 py-3 text-right">Giá nhập \/ Giá vốn<\\/th>/', $detail);
+        $this->assertMatchesRegularExpression('/@if\\(\\$canViewCosts\\)\\s*<td class="px-4 py-3 text-right font-bold">\\{\\{ \\$money\\(\\$item->unit_price_ex_vat\\) \\}\\}<\\/td>/', $detail);
+        $this->assertMatchesRegularExpression('/@if\\(\\$canViewCosts\\)\\s*<div><p class="text-\\[10px\\] font-bold text-slate-400">Giá vốn<\\/p>/', $detail);
+        $this->assertStringNotContainsString("\$costTotal=\$receipt->items->sum", $detail);
+
+        $compiled = app('blade.compiler')->compileString($detail);
+        $temporary = tempnam(sys_get_temp_dir(), 'receipt-detail-blade-');
+        file_put_contents($temporary, $compiled);
+        exec(PHP_BINARY.' -l '.escapeshellarg($temporary).' 2>&1', $lintOutput, $lintCode);
+        @unlink($temporary);
+        $this->assertSame(0, $lintCode, implode(PHP_EOL, $lintOutput));
+    }
+
     public function test_receipt_pdf_artifacts_are_private_shareable_and_pwa_safe(): void
     {
         $root=base_path();

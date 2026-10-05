@@ -1479,6 +1479,7 @@ final class PharmaApplicationController extends Controller
         abort_unless($registry->userCan($user, 'client.pharma.inventory.receipts'), 403);
         $visibleReceipt = $workspace->find($receipt); abort_if($visibleReceipt === null, 404);
         $canViewInventory = $registry->userCan($user, 'client.pharma.inventory.view');
+        $canViewCosts = $registry->userCan($user, 'client.pharma.inventory.costs');
         $feature = collect($application['features'] ?? [])->first(fn (array $feature): bool => $feature['key'] === 'inventory');
 
         return view('ClientPortal::applications.pharma.inventory-receipt-show', [
@@ -1488,6 +1489,7 @@ final class PharmaApplicationController extends Controller
             'receipt' => $visibleReceipt,
             'inventoryBalanceLinks' => $canViewInventory ? $inventoryWorkspace->balanceLinksForItems($visibleReceipt->items) : [],
             'canViewInventory' => $canViewInventory,
+            'canViewCosts' => $canViewCosts,
             'canEditReceipt' => $registry->userCan($user, 'client.pharma.inventory.receipts.create'),
             'canSubmitReceipt' => $registry->userCan($user, 'client.pharma.inventory.receipts.submit'),
             'canApproveReceipt' => $registry->userCan($user, 'client.pharma.inventory.receipts.approve'),
