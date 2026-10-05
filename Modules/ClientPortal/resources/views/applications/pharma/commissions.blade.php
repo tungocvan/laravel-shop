@@ -25,7 +25,7 @@
         @foreach($recentExports as $export)
         <div class="rounded-2xl border {{ $activeExport?->id===$export->id ? 'border-emerald-300 bg-emerald-50/50' : 'border-slate-200' }} p-3">
             <div class="flex flex-wrap items-center justify-between gap-2"><div class="min-w-0"><p class="truncate text-sm font-black text-slate-800">{{ $export->download_name }}</p><p class="mt-1 text-xs font-semibold text-slate-500">{{ $export->generated_at?->format('d/m/Y H:i') }} · {{ number_format($export->row_count) }} dòng</p></div>
-            <div class="flex flex-wrap gap-2"><a href="{{ route('client.pharma.commissions.exports.download',$export) }}" class="min-h-10 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-700">Tải</a><a href="{{ route('client.pharma.commissions.exports.print',$export) }}" target="_blank" rel="noopener" class="min-h-10 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-700">In</a><button type="button" data-commission-share-url="{{ route('client.pharma.commissions.exports.download',$export) }}" data-commission-share-name="{{ $export->download_name }}" class="min-h-10 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-black text-emerald-800">Chia sẻ</button></div></div>
+            <div class="flex flex-wrap gap-2"><a href="{{ route('client.pharma.commissions.exports.download',$export) }}" class="min-h-10 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-700">Tải</a><a href="{{ route('client.pharma.commissions.exports.print',$export) }}" target="_blank" rel="noopener" class="min-h-10 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-700">In</a><button type="button" data-commission-share-url="{{ route('client.pharma.commissions.exports.download',$export) }}" data-commission-share-name="{{ $export->download_name }}" class="min-h-10 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-black text-emerald-800">Chia sẻ</button><form method="POST" action="{{ route('client.pharma.commissions.exports.destroy',$export) }}" onsubmit="return confirm('Xóa file Excel này khỏi máy chủ?')">@csrf @method('DELETE')<button type="submit" class="min-h-10 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-black text-rose-700">Xóa</button></form></div></div>
         </div>
         @endforeach
     </div>
@@ -202,9 +202,12 @@
             const blob=await response.blob();
             const file=new File([blob],button.dataset.commissionShareName,{type:blob.type||'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
             const payload={files:[file]};
-            if(typeof navigator.share==='function'&&(!navigator.canShare||navigator.canShare(payload))){await navigator.share(payload);return;}
-            alert('Thiết bị này chưa hỗ trợ chia sẻ file trực tiếp. Hãy dùng nút Tải.');
-        }catch(error){alert('Không thể chuẩn bị file để chia sẻ. Vui lòng thử lại.');}
+            if(typeof navigator.share==='function'&&typeof navigator.canShare==='function'&&navigator.canShare(payload)){await navigator.share(payload);return;}
+            window.location.assign(button.dataset.commissionShareUrl);
+        }catch(error){
+            if(error?.name==='AbortError')return;
+            window.location.assign(button.dataset.commissionShareUrl);
+        }
     }));
     syncSelection();
 })();
