@@ -392,7 +392,7 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringNotContainsString("['Mã bảng giá',\$priceList->code]", $detail);
         $this->assertStringNotContainsString('id="price-list-actions"', $detail);
         $this->assertStringNotContainsString('+ Xuất tài liệu', $detail);
-        $this->assertStringContainsString('break-all text-xs', $detail);
+        $this->assertStringNotContainsString('break-all text-xs', $detail);
         $this->assertStringContainsString('id="price-list-product-search"', $detail);
         $this->assertStringContainsString('Tìm tên thuốc, mã thuốc, quy cách...', $detail);
         $this->assertStringContainsString('data-price-list-product', $detail);
