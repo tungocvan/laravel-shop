@@ -182,6 +182,15 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('$workflow->submit((int) $user->id, $priceList, $canApprove)', $controller);
         $this->assertStringContainsString('public function submit(int $userId, int $priceListId, bool $approverScope = false)', $workflow);
         $this->assertStringContainsString('bool $approverScope = false', $workflow);
+        $adminIndex = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/price-list/index.blade.php'));
+        $adminIndexComponent = file_get_contents(base_path('Modules/Pharma/Livewire/PriceList/Index.php'));
+        $this->assertStringContainsString('Phê duyệt &amp; kích hoạt', $adminIndex);
+        $this->assertStringContainsString("confirm({{ \$list->id }},'approve')", $adminIndex);
+        $this->assertStringContainsString("if (\$this->confirmingAction === 'approve')", $adminIndexComponent);
+        $this->assertStringContainsString('>Thao tác</th>', $index);
+        $this->assertStringContainsString('id="price-list-actions"', $show);
+        $this->assertStringNotContainsString('Tài liệu bảng giá', $show);
+        $this->assertStringContainsString('Tệp đã xuất · {{ count($exportHistory) }}', $show);
         $this->assertStringContainsString("'actual_receivable_price' => ['nullable', 'array']", $controller);
         $this->assertStringContainsString("'invoice_price' => ['nullable', 'array']", $controller);
         $this->assertStringContainsString('public function editableProducts(int $userId, PriceList $priceList', $workflow);
