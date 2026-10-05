@@ -245,7 +245,7 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString("'type' => PriceList::TYPE_GLOBAL", $globalWorkflow);
         $this->assertStringContainsString('return $this->manager->activate($list, $approverUserId)->load([\'items\', \'globalUsers\']);', $globalWorkflow);
         $this->assertStringContainsString('Kích hoạt bảng giá chung', $create);
-        $this->assertStringContainsString('approverGlobalPriceListWorkflow->createAndActivate', $controller);
+        $this->assertStringContainsString('$globalWorkflow->createAndActivate(', $controller);
         $this->assertStringContainsString('Hàng chờ phê duyệt', $approvalQueue);
         $this->assertStringContainsString('public function updateItemPrice(', $approval);
         $this->assertStringContainsString('public function removeItem(', $approval);
