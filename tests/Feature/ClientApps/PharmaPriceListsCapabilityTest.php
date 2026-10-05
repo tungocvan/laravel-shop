@@ -78,6 +78,8 @@ class PharmaPriceListsCapabilityTest extends TestCase
 
         $this->assertStringContainsString("where('manager_user_id', \$userId)", $service);
         $this->assertStringContainsString('public function findManaged(int $userId, int $priceListId)', $service);
+        $this->assertStringContainsString('public function findEditable(int $userId, int $priceListId, bool $approverScope = false)', $service);
+        $this->assertStringContainsString('$workspace->findEditable((int) $user->id, $priceList, $canApprove)', $controller);
         $this->assertStringContainsString('public function findVisible(int $userId, int $priceListId, bool $approverScope = false)', $service);
         $this->assertStringNotContainsString('auth(', $service);
 
