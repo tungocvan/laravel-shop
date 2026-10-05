@@ -157,7 +157,7 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('data-commission-export-toggle',$view);
         $this->assertStringContainsString('data-commission-export-content',$view);
         $this->assertStringContainsString("\$activeExport ? '' : 'hidden'",$view);
-        $this->assertStringContainsString('Nguồn: {{ \$exportSourceLabel }}',$view);
+        $this->assertStringContainsString('Nguồn: {{ $exportSourceLabel }}',$view);
         $this->assertStringContainsString("'Trúng thầu'",$view);
         $this->assertStringContainsString("'Bảng giá'",$view);
         $this->assertStringContainsString('>Tải</a>',$view);
