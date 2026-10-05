@@ -241,13 +241,13 @@ final class PharmaInventoryCapabilityTest extends TestCase
         $this->assertStringContainsString('$openMovementIds[$key][] = (int) $transaction->id;', $workspace);
         $this->assertStringContainsString('$originalId = array_pop($openMovementIds[$key]);', $workspace);
         $this->assertStringContainsString('$cancelledMovementIds[$originalId] = true;', $workspace);
-        $this->assertStringContainsString("! isset($cancelledMovementIds[(int) $transaction->id])", $workspace);
+        $this->assertStringContainsString('! isset($cancelledMovementIds[(int) $transaction->id])', $workspace);
 
         $this->assertStringContainsString('Thẻ kho ·', $detail);
         $this->assertStringContainsString('Tổng tồn hiện tại', $detail);
         $this->assertStringContainsString('Tồn theo lô / hạn dùng', $detail);
         $this->assertStringContainsString('Thẻ kho sản phẩm', $detail);
-        $this->assertStringContainsString('Toàn bộ nhập, xuất, hoàn tác và tồn đầu kỳ của sản phẩm theo thời gian.', $detail);
+        $this->assertStringContainsString('Các nghiệp vụ nhập, xuất và tồn đầu kỳ còn hiệu lực của sản phẩm theo thời gian.', $detail);
         $this->assertStringContainsString('>Nhập<', $detail);
         $this->assertStringContainsString('>Xuất<', $detail);
         $this->assertStringContainsString('Tồn lô sau GD', $detail);
