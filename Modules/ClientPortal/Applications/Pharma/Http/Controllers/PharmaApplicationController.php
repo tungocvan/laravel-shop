@@ -21,6 +21,7 @@ use Modules\Pharma\Services\UserPriceListWorkspace;
 use Modules\Pharma\Services\UserCommercialHospitalWorkspace;
 use Modules\Pharma\Services\UserInventoryWorkspace;
 use Modules\Pharma\Services\UserCommissionWorkspace;
+use Modules\Pharma\Services\CommissionExcelExportService;
 use Modules\Pharma\Models\InventoryIssueCommission;
 use Carbon\Carbon;
 use Modules\Pharma\Services\UserInventoryReceiptWorkspace;
@@ -1107,6 +1108,37 @@ final class PharmaApplicationController extends Controller
                 InventoryIssueCommission::SOURCE_PRICE_LIST=>'Bảng giá',
             ],
         ]);
+    }
+
+    public function exportCommissions(
+        Request $request,
+        ApplicationRegistry $registry,
+        UserCommissionWorkspace $workspace,
+        CommissionExcelExportService $exporter,
+    ): BinaryFileResponse {
+        $validated=$request->validate([
+            'partner_id'=>['nullable','integer','min:1'],
+            'source'=>['nullable','in:all,bid,price_list'],
+            'from'=>['nullable','date'],
+            'to'=>['nullable','date','after_or_equal:from'],
+            'manager_user_id'=>['nullable','integer','min:1'],
+        ]);
+        $user=$request->user('web'); abort_if($user===null,401);
+        abort_unless($registry->userCan($user,'client.pharma.commissions.view'),403);
+        $canViewTeam=$registry->userCan($user,'client.pharma.commissions.view-team');
+        $commissionUsers=$canViewTeam ? $workspace->commissionUsers() : collect();
+        $managerUserId=$canViewTeam && !empty($validated['manager_user_id']) ? (int)$validated['manager_user_id'] : null;
+        abort_if($managerUserId!==null && $commissionUsers->firstWhere('id',$managerUserId)===null,404);
+
+        $from=!empty($validated['from']) ? Carbon::parse($validated['from'])->startOfDay() : now()->startOfMonth();
+        $to=!empty($validated['to']) ? Carbon::parse($validated['to'])->endOfDay() : now()->endOfMonth();
+        $source=$validated['source'] ?? 'all';
+        $partnerId=!empty($validated['partner_id']) ? (int)$validated['partner_id'] : null;
+        $partners=$workspace->commissionPartners((int)$user->id,$source,$from,$to,$canViewTeam,$managerUserId);
+        abort_if($partnerId!==null && $partners->firstWhere('id',$partnerId)===null,404);
+
+        $rows=$workspace->exportRows((int)$user->id,$partnerId,$source,$from,$to,$canViewTeam,$managerUserId);
+        return $exporter->download($rows,$from,$to);
     }
 
     public function commission(
