@@ -153,6 +153,7 @@ final class PharmaApplicationController extends Controller
                 $list,
                 $request->integer('source_price_list_id') ?: null,
             ),
+            'draftProducts' => $list->items,
             'editingPriceList' => $list,
         ]);
     }
