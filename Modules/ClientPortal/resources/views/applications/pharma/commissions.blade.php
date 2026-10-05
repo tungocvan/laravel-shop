@@ -95,7 +95,9 @@
                     <x-pwa-select-search id="commission-medicine" name="medicine_id" :selected="$filters['medicine_id'] ?? ''" placeholder="Tất cả sản phẩm" search-placeholder="Tìm thuốc hoặc mã thuốc..." data-pwa-select-search-submit="change">
                         <button type="button" data-pwa-select-search-option data-value="" data-label="Tất cả sản phẩm" data-search="tất cả sản phẩm" class="flex w-full items-center rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-700 hover:bg-slate-100">Tất cả sản phẩm</button>
                         @foreach($commissionMedicines as $commissionMedicine)
-                            @php($commissionMedicineLabel=$commissionMedicine->name.($commissionMedicine->medicine_code ? ' · '.$commissionMedicine->medicine_code : ''))
+                            @php
+                                $commissionMedicineLabel=$commissionMedicine->name.($commissionMedicine->medicine_code ? ' · '.$commissionMedicine->medicine_code : '');
+                            @endphp
                             <button type="button" data-pwa-select-search-option data-value="{{ $commissionMedicine->id }}" data-label="{{ $commissionMedicineLabel }}" data-search="{{ $commissionMedicineLabel }}" class="flex w-full items-center rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-700 hover:bg-slate-100">{{ $commissionMedicineLabel }}</button>
                         @endforeach
                     </x-pwa-select-search>
