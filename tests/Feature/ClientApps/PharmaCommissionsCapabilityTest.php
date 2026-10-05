@@ -156,8 +156,10 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('File đã xuất',$view);
         $this->assertStringContainsString('data-commission-export-toggle',$view);
         $this->assertStringContainsString('data-commission-export-content',$view);
-        $this->assertStringContainsString("\$activeExport ? '' : 'hidden'",$view);
-        $this->assertStringContainsString('Nguồn: {{ $exportSourceLabel }}',$view);
+        $this->assertStringContainsString('aria-expanded="false"',$view);
+        $this->assertStringContainsString('class="hidden border-t border-slate-100 p-4 pt-3"',$view);
+        $this->assertStringContainsString('>Nguồn</span>',$view);
+        $this->assertStringContainsString('{{ $exportSourceLabel }}',$view);
         $this->assertStringContainsString("'Trúng thầu'",$view);
         $this->assertStringContainsString("'Bảng giá'",$view);
         $this->assertStringContainsString('>Tải</a>',$view);
@@ -169,6 +171,8 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString("Storage::disk(\$artifact->disk)->delete(\$artifact->storage_path)",$controller);
         $this->assertStringContainsString('id="commission-select-all"',$view);
         $this->assertStringContainsString('commission-row-checkbox',$view);
+        $this->assertStringContainsString('<span>Chọn</span>',$view);
+        $this->assertStringNotContainsString('absolute left-3 top-3',$view);
         $this->assertStringContainsString("input.name='ids[]'",$view);
         $this->assertStringContainsString("'ids'=>['nullable','array','max:500']",$controller);
         $this->assertStringContainsString("whereIn('issue_id',\$ids)",$controller);
