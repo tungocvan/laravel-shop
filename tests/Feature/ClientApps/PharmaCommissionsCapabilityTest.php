@@ -154,6 +154,12 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString("navigator.share(payload)",$view);
         $this->assertStringContainsString("window.location.assign(button.dataset.commissionShareUrl)",$view);
         $this->assertStringContainsString('File đã xuất',$view);
+        $this->assertStringContainsString('data-commission-export-toggle',$view);
+        $this->assertStringContainsString('data-commission-export-content',$view);
+        $this->assertStringContainsString("\$activeExport ? '' : 'hidden'",$view);
+        $this->assertStringContainsString('Nguồn: {{ \$exportSourceLabel }}',$view);
+        $this->assertStringContainsString("'Trúng thầu'",$view);
+        $this->assertStringContainsString("'Bảng giá'",$view);
         $this->assertStringContainsString('>Tải</a>',$view);
         $this->assertStringContainsString('>In</a>',$view);
         $this->assertStringContainsString('>Chia sẻ</button>',$view);
