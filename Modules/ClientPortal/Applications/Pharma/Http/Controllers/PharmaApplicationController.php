@@ -187,6 +187,15 @@ final class PharmaApplicationController extends Controller
         abort_if($user === null, 401);
         abort_unless($registry->userCan($user, 'client.pharma.price-lists.create'), 403);
 
+        $list = PriceList::query()->findOrFail($priceList);
+        if ($list->status === PriceList::STATUS_INACTIVE) {
+            abort_unless($registry->userCan($user, 'client.pharma.price-lists.approve'), 403);
+            app(PriceListManager::class)->deleteRemovable($list);
+
+            return redirect()->route('client.pharma.price-lists')
+                ->with('success', 'Đã xóa bảng giá Ngưng và toàn bộ tệp Excel / PDF liên quan.');
+        }
+
         $workflow->deleteDraft((int) $user->id, $priceList);
 
         return redirect()->route('client.pharma.price-lists')
