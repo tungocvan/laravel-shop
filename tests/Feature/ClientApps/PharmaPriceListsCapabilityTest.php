@@ -188,6 +188,13 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString("confirm({{ \$list->id }},'approve')", $adminIndex);
         $this->assertStringContainsString("if (\$this->confirmingAction === 'approve')", $adminIndexComponent);
         $this->assertStringContainsString('>Thao tác</th>', $view);
+        $this->assertStringContainsString('data-price-list-actions', $view);
+        $this->assertStringContainsString('Sửa thông tin', $view);
+        $this->assertStringContainsString('Phê duyệt & kích hoạt', $view);
+        $this->assertStringContainsString('Xuất Excel mới', $view);
+        $this->assertStringContainsString('Tải Excel đã xuất', $view);
+        $this->assertStringContainsString('Chuyển sang PDF', $view);
+        $this->assertStringNotContainsString('>Xem</a><a href="{{ route(\'client.pharma.price-lists.show\',$priceList->id) }}#price-list-actions"', $view);
         $this->assertStringContainsString('id="price-list-actions"', $detail);
         $this->assertStringNotContainsString('Tài liệu bảng giá', $detail);
         $this->assertStringContainsString('Tệp đã xuất · {{ count($exportHistory) }}', $detail);
