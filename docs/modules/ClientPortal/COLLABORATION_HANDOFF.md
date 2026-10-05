@@ -1,3 +1,13 @@
+## Pharma PWA Commission Detail Focused Shell Parity — 2026-10-05
+
+- Branch: `fix/clientportal-pharma-commission-detail-shell`, based on `main@a83dbb6d` after merged PR #265.
+- Scope is presentation-shell parity only. `/apps/pharma/commissions/{issue}` is a focused detail workspace and now hides both the application header and mobile bottom navigation while retaining the local `← Hoa hồng của tôi` return action.
+- No Commission query, calculation, permission, business lifecycle, Admin surface, export behavior, schema, or route behavior changed.
+- Focused contract: `tests/Feature/ClientApps/PharmaCommissionsCapabilityTest.php` now guards both focused-shell directives on the detail view.
+- Operator acceptance: **PASS** — 3 tests / 97 assertions; Desktop + Mobile UI PASS.
+- Known local-only untracked artifacts remain excluded: `.env.backup-before-ngrok-session` and `public/hot.pharma-mobile`.
+- Commission Excel export remains a separate parity candidate requiring canonical export-boundary analysis; it is intentionally outside this corrective batch.
+
 ## Pharma PWA Receipt Detail Polish P6.3 — 2026-10-02
 
 - Branch: `refactor/clientportal-pharma-receipt-detail-compact`, based on merged P6.2 main.

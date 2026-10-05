@@ -92,6 +92,7 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('Chi tiết phiếu xuất',$detailView);
         $this->assertStringContainsString('SL thực xuất',$detailView);
         $this->assertStringContainsString('Chính sách',$detailView);
+        $this->assertStringContainsString("@section('hide-application-header', true)",$detailView);
         $this->assertStringContainsString("@section('hide-mobile-navigation', true)",$detailView);
         $this->assertStringContainsString('Hoa hồng ròng',$view);
         $this->assertStringContainsString('Chưa xác định',$view);
