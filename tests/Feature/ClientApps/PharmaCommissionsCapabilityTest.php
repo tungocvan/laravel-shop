@@ -34,6 +34,12 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertSame('apps/pharma/commissions/exports',$export->uri());
         $this->assertContains('auth:web',$export->gatherMiddleware());
         $this->assertContains('client.feature:pharma,commissions',$export->gatherMiddleware());
+
+        $destroy=Route::getRoutes()->getByName('client.pharma.commissions.exports.destroy');
+        $this->assertNotNull($destroy);
+        $this->assertSame('DELETE',$destroy->methods()[0]);
+        $this->assertSame('apps/pharma/commissions/exports/{artifact}',$destroy->uri());
+        $this->assertContains('auth:web',$destroy->gatherMiddleware());
     }
 
     public function test_user_workspace_starts_from_canonical_user_scope_and_never_admin_scope(): void
@@ -144,11 +150,17 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('motion-reduce:transform-none',$view);
         $this->assertStringContainsString("route('client.pharma.commissions.export'",$view);
         $this->assertStringContainsString('Xuất Excel',$view);
+        $this->assertStringContainsString("navigator.canShare(payload)",$view);
         $this->assertStringContainsString("navigator.share(payload)",$view);
+        $this->assertStringContainsString("window.location.assign(button.dataset.commissionShareUrl)",$view);
         $this->assertStringContainsString('File đã xuất',$view);
         $this->assertStringContainsString('>Tải</a>',$view);
         $this->assertStringContainsString('>In</a>',$view);
         $this->assertStringContainsString('>Chia sẻ</button>',$view);
+        $this->assertStringContainsString('>Xóa</button>',$view);
+        $this->assertStringContainsString("route('client.pharma.commissions.exports.destroy'",$view);
+        $this->assertStringContainsString('public function deleteCommissionExport',$controller);
+        $this->assertStringContainsString("Storage::disk(\$artifact->disk)->delete(\$artifact->storage_path)",$controller);
         $this->assertStringContainsString('id="commission-select-all"',$view);
         $this->assertStringContainsString('commission-row-checkbox',$view);
         $this->assertStringContainsString("input.name='ids[]'",$view);
