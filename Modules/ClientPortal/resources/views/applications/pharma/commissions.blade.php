@@ -128,7 +128,7 @@
                     $issue=$row->issue;
                     $customer=$issue?->recipientPartner?->name ?: $issue?->recipient_name ?: '—';
                     $manager=$issue?->manager?->name ?: '—';
-                    $sourceLabel=$row->issue_price_list_id ? 'Bảng giá' : 'Trúng thầu';
+                    $sourceLabel=$row->commission_source_type==='bid' ? 'Trúng thầu' : ($row->commission_source_type==='price_list' ? 'Bảng giá' : 'Hỗn hợp');
                     $detailUrl=route('client.pharma.commissions.show',['issue'=>$row->issue_id]);
                 @endphp
                 <div data-commission-item class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
