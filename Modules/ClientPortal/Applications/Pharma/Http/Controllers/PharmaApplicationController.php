@@ -541,7 +541,7 @@ final class PharmaApplicationController extends Controller
         $validated = $request->validate(['deactivation_reason' => ['required', 'string', 'max:1000']]);
         $workflow->request((int) $user->id, $priceList, $validated['deactivation_reason']);
 
-        return redirect()->route('client.pharma.price-lists.show', $priceList)
+        return redirect()->route('client.pharma.price-lists')
             ->with('success', 'Đã gửi yêu cầu ngừng kích hoạt để người phê duyệt xử lý.');
     }
 
@@ -556,7 +556,7 @@ final class PharmaApplicationController extends Controller
         abort_unless($registry->userCan($user, 'client.pharma.price-lists.approve'), 403);
         $workflow->approveRequest((int) $user->id, $priceList);
 
-        return redirect()->route('client.pharma.price-lists.show', $priceList)
+        return redirect()->route('client.pharma.price-lists')
             ->with('success', 'Đã chấp nhận yêu cầu và ngừng kích hoạt bảng giá.');
     }
 
@@ -572,7 +572,7 @@ final class PharmaApplicationController extends Controller
         $validated = $request->validate(['deactivation_reason' => ['required', 'string', 'max:1000']]);
         $workflow->deactivateDirectly((int) $user->id, $priceList, $validated['deactivation_reason']);
 
-        return redirect()->route('client.pharma.price-lists.show', $priceList)
+        return redirect()->route('client.pharma.price-lists')
             ->with('success', 'Đã ngừng kích hoạt bảng giá.');
     }
 
