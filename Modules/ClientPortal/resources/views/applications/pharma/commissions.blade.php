@@ -19,15 +19,24 @@
     <div id="commission-selected-inputs"></div>
 </form>
 @if($recentExports->isNotEmpty())
-<section class="mb-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-    <div class="flex items-center justify-between gap-3"><div><h2 class="font-black text-slate-900">File đã xuất</h2><p class="mt-1 text-xs font-semibold text-slate-500">Excel được lưu riêng trên server và chỉ tài khoản của bạn truy cập được.</p></div></div>
-    <div class="mt-3 space-y-2">
-        @foreach($recentExports as $export)
-        <div class="rounded-2xl border {{ $activeExport?->id===$export->id ? 'border-emerald-300 bg-emerald-50/50' : 'border-slate-200' }} p-3">
-            <div class="flex flex-wrap items-center justify-between gap-2"><div class="min-w-0"><p class="truncate text-sm font-black text-slate-800">{{ $export->download_name }}</p><p class="mt-1 text-xs font-semibold text-slate-500">{{ $export->generated_at?->format('d/m/Y H:i') }} · {{ number_format($export->row_count) }} dòng</p></div>
-            <div class="flex flex-wrap gap-2"><a href="{{ route('client.pharma.commissions.exports.download',$export) }}" class="min-h-10 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-700">Tải</a><a href="{{ route('client.pharma.commissions.exports.print',$export) }}" target="_blank" rel="noopener" class="min-h-10 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-700">In</a><button type="button" data-commission-share-url="{{ route('client.pharma.commissions.exports.download',$export) }}" data-commission-share-name="{{ $export->download_name }}" class="min-h-10 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-black text-emerald-800">Chia sẻ</button><form method="POST" action="{{ route('client.pharma.commissions.exports.destroy',$export) }}" onsubmit="return confirm('Xóa file Excel này khỏi máy chủ?')">@csrf @method('DELETE')<button type="submit" class="min-h-10 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-black text-rose-700">Xóa</button></form></div></div>
+<section class="mb-4 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm" data-commission-export-panel>
+    <button type="button" class="flex min-h-14 w-full items-center justify-between gap-3 px-4 py-3 text-left" data-commission-export-toggle aria-expanded="{{ $activeExport ? 'true' : 'false' }}">
+        <span class="min-w-0"><span class="block font-black text-slate-900">File đã xuất <span class="text-slate-400">({{ $recentExports->count() }})</span></span><span class="mt-0.5 block text-xs font-semibold text-slate-500">Excel riêng của tài khoản bạn</span></span>
+        <span class="text-lg font-black text-slate-500 transition-transform {{ $activeExport ? 'rotate-180' : '' }}" data-commission-export-chevron>⌄</span>
+    </button>
+    <div class="{{ $activeExport ? '' : 'hidden' }} border-t border-slate-100 p-4 pt-3" data-commission-export-content>
+        <div class="space-y-2">
+            @foreach($recentExports as $export)
+            @php
+                $exportSource=$export->filters['source'] ?? 'all';
+                $exportSourceLabel=$exportSource==='bid' ? 'Trúng thầu' : ($exportSource==='price_list' ? 'Bảng giá' : 'Tất cả');
+            @endphp
+            <div class="rounded-2xl border {{ $activeExport?->id===$export->id ? 'border-emerald-300 bg-emerald-50/50' : 'border-slate-200' }} p-3">
+                <div class="flex flex-wrap items-center justify-between gap-2"><div class="min-w-0"><p class="truncate text-sm font-black text-slate-800">{{ $export->download_name }}</p><p class="mt-1 flex flex-wrap items-center gap-1.5 text-xs font-semibold text-slate-500"><span>{{ $export->generated_at?->format('d/m/Y H:i') }}</span><span>·</span><span>{{ number_format($export->row_count) }} dòng</span><span>·</span><span class="rounded-full bg-slate-100 px-2 py-0.5 font-black text-slate-700">Nguồn: {{ $exportSourceLabel }}</span></p></div>
+                <div class="flex flex-wrap gap-2"><a href="{{ route('client.pharma.commissions.exports.download',$export) }}" class="min-h-10 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-700">Tải</a><a href="{{ route('client.pharma.commissions.exports.print',$export) }}" target="_blank" rel="noopener" class="min-h-10 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-700">In</a><button type="button" data-commission-share-url="{{ route('client.pharma.commissions.exports.download',$export) }}" data-commission-share-name="{{ $export->download_name }}" class="min-h-10 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-black text-emerald-800">Chia sẻ</button><form method="POST" action="{{ route('client.pharma.commissions.exports.destroy',$export) }}" onsubmit="return confirm('Xóa file Excel này khỏi máy chủ?')">@csrf @method('DELETE')<button type="submit" class="min-h-10 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-black text-rose-700">Xóa</button></form></div></div>
+            </div>
+            @endforeach
         </div>
-        @endforeach
     </div>
 </section>
 @endif
@@ -195,6 +204,15 @@
     clearSelection?.addEventListener('click',()=>setAll(false));
     document.addEventListener('change',event=>{if(event.target?.classList?.contains('commission-row-checkbox'))syncSelection();});
     form?.addEventListener('submit',()=>{if(inputs){inputs.innerHTML='';selectedIds().forEach(id=>{const input=document.createElement('input');input.type='hidden';input.name='ids[]';input.value=id;inputs.appendChild(input);});}});
+    const exportToggle=document.querySelector('[data-commission-export-toggle]');
+    exportToggle?.addEventListener('click',()=>{
+        const content=document.querySelector('[data-commission-export-content]');
+        const chevron=document.querySelector('[data-commission-export-chevron]');
+        const expanded=exportToggle.getAttribute('aria-expanded')==='true';
+        exportToggle.setAttribute('aria-expanded',expanded?'false':'true');
+        content?.classList.toggle('hidden',expanded);
+        chevron?.classList.toggle('rotate-180',!expanded);
+    });
     document.querySelectorAll('[data-commission-share-url]').forEach(button=>button.addEventListener('click',async()=>{
         try{
             const response=await fetch(button.dataset.commissionShareUrl,{credentials:'same-origin',cache:'no-store'});
