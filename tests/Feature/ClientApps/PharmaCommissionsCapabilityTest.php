@@ -30,8 +30,8 @@ final class PharmaCommissionsCapabilityTest extends TestCase
 
         $export=Route::getRoutes()->getByName('client.pharma.commissions.export');
         $this->assertNotNull($export);
-        $this->assertSame('GET',$export->methods()[0]);
-        $this->assertSame('apps/pharma/commissions/export',$export->uri());
+        $this->assertSame('POST',$export->methods()[0]);
+        $this->assertSame('apps/pharma/commissions/exports',$export->uri());
         $this->assertContains('auth:web',$export->gatherMiddleware());
         $this->assertContains('client.feature:pharma,commissions',$export->gatherMiddleware());
     }
@@ -76,7 +76,7 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('$workspace->summary((int)$user->id',$controller);
         $this->assertStringContainsString('CommissionExcelExportService $exporter',$controller);
         $this->assertStringContainsString('$workspace->exportRows((int)$user->id',$controller);
-        $this->assertStringContainsString('return $exporter->download($rows,$from,$to);',$controller);
+        $this->assertStringContainsString('$artifact=$exporter->generate($rows,$from,$to',$controller);
         $this->assertStringContainsString("featurePresentation(\$application['key'],\$feature)",$controller);
 
         $this->assertStringContainsString("'route' => 'client.pharma.commissions'",$manifest);
@@ -144,11 +144,14 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('motion-reduce:transform-none',$view);
         $this->assertStringContainsString("route('client.pharma.commissions.export'",$view);
         $this->assertStringContainsString('Xuất Excel',$view);
-        $this->assertStringContainsString("fetch(exportLink.href,{credentials:'same-origin',cache:'no-store'})",$view);
         $this->assertStringContainsString("navigator.share(payload)",$view);
+        $this->assertStringContainsString('File đã xuất',$view);
+        $this->assertStringContainsString('>Tải</a>',$view);
+        $this->assertStringContainsString('>In</a>',$view);
+        $this->assertStringContainsString('>Chia sẻ</button>',$view);
         $this->assertStringContainsString('id="commission-select-all"',$view);
         $this->assertStringContainsString('commission-row-checkbox',$view);
-        $this->assertStringContainsString("url.searchParams.append('ids[]',id)",$view);
+        $this->assertStringContainsString("input.name='ids[]'",$view);
         $this->assertStringContainsString("'ids'=>['nullable','array','max:500']",$controller);
         $this->assertStringContainsString("whereIn('issue_id',\$ids)",$controller);
         $this->assertStringContainsString('Mở / Chia sẻ file',$view);
