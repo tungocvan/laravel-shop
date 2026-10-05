@@ -142,6 +142,22 @@ final class PharmaInventoryReceiptsCapabilityTest extends TestCase
         }
     }
 
+    public function test_receipt_detail_cost_visibility_requires_inventory_cost_permission(): void
+    {
+        $root = base_path();
+        $controller = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php');
+        $detail = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-receipt-show.blade.php');
+
+        $this->assertStringContainsString("\$canViewCosts = \$registry->userCan(\$user, 'client.pharma.inventory.costs');", $controller);
+        $this->assertStringContainsString("'canViewCosts' => \$canViewCosts", $controller);
+        $this->assertStringContainsString("\$costTotal=\$canViewCosts ?", $detail);
+        $this->assertStringContainsString('@if($canViewCosts)<span>Giá vốn', $detail);
+        $this->assertStringContainsString('@if($canViewCosts)<th class="px-4 py-3 text-right">Giá nhập / Giá vốn</th>@endif', $detail);
+        $this->assertStringContainsString('@if($canViewCosts)<td class="px-4 py-3 text-right font-bold">{{ $money($item->unit_price_ex_vat) }}</td>@endif', $detail);
+        $this->assertStringContainsString("@if(\$canViewCosts)<div><p class=\"text-[10px] font-bold text-slate-400\">Giá vốn</p>", $detail);
+        $this->assertStringNotContainsString("\$costTotal=\$receipt->items->sum", $detail);
+    }
+
     public function test_receipt_pdf_artifacts_are_private_shareable_and_pwa_safe(): void
     {
         $root=base_path();
