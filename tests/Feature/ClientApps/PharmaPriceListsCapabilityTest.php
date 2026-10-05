@@ -274,6 +274,13 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('id="price-list-deactivation-dialog"', $view);
         $this->assertStringContainsString('name="deactivation_reason"', $view);
         $this->assertStringContainsString('Chấp nhận ngừng kích hoạt', $view);
+        $this->assertStringContainsString("route('client.pharma.price-lists.activate',\$priceList->id)", $view);
+        $this->assertStringContainsString("priceList->status==='inactive' && \$canApprove", $view);
+        $this->assertStringContainsString('Kích hoạt trở lại', $view);
+        $this->assertStringContainsString('public function activatePriceList(', $controller);
+        $this->assertStringContainsString('PriceListManager $manager', $controller);
+        $this->assertStringContainsString('abort_unless($list->status === PriceList::STATUS_INACTIVE, 404);', $controller);
+        $this->assertStringContainsString('$manager->activate($list, (int) $user->id);', $controller);
         $this->assertStringNotContainsString("#price-list-actions", $view);
         $this->assertStringContainsString("redirect()->route('client.pharma.price-lists')", $controller);
         $this->assertStringNotContainsString('Yêu cầu ngừng kích hoạt', $detail);
