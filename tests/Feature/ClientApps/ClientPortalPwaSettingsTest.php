@@ -200,8 +200,8 @@ class ClientPortalPwaSettingsTest extends TestCase
         $this->assertStringContainsString('Mở chức năng', $view);
         $this->assertStringContainsString("active:scale-[0.985]", $view);
         $this->assertStringContainsString("motion-reduce:transition-none", $view);
-        $this->assertStringContainsString("{{ $hubPresentation['supporting_title'] }}", $view);
-        $this->assertStringContainsString("{{ $hubPresentation['supporting_body'] }}", $view);
+        $this->assertStringContainsString('{{ $hubPresentation[\'supporting_title\'] }}', $view);
+        $this->assertStringContainsString('{{ $hubPresentation[\'supporting_body\'] }}', $view);
         $this->assertStringNotContainsString('Ranh giới Foundation', $view);
     }
 
