@@ -8,8 +8,13 @@
 @section('hide-mobile-navigation', true)
 
 @section('content')
-<div class="mb-4">
+<div class="mb-4 flex flex-wrap items-center justify-between gap-2">
     <a href="{{ route('client.pharma.dashboard') }}" class="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">← Không gian làm việc Pharma</a>
+    <a id="commission-export-excel" href="{{ route('client.pharma.commissions.export', array_filter(['source'=>$filters['source'],'from'=>$filters['from'],'to'=>$filters['to'],'partner_id'=>$filters['partner_id'],'manager_user_id'=>$filters['manager_user_id']])) }}" class="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-black text-emerald-800 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">Xuất Excel</a>
+</div>
+<div id="commission-export-ready" class="mb-4 hidden rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-900">
+    <span data-commission-export-status>File Excel đã sẵn sàng.</span>
+    <button type="button" data-commission-export-share class="ml-2 rounded-xl bg-emerald-800 px-3 py-2 font-black text-white transition active:scale-[0.985] motion-reduce:transform-none">Mở / Chia sẻ file</button>
 </div>
 
 <div class="min-w-0 space-y-4 overflow-x-hidden">
@@ -153,6 +158,48 @@
 </div>
 
 <script>
+(()=>{
+    const exportLink=document.getElementById('commission-export-excel');
+    const ready=document.getElementById('commission-export-ready');
+    const shareButton=ready?.querySelector('[data-commission-export-share]');
+    const status=ready?.querySelector('[data-commission-export-status]');
+    let preparedFile=null;
+    const standalone=window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true;
+    if(exportLink && standalone){
+        exportLink.addEventListener('click',async(event)=>{
+            event.preventDefault();
+            if(exportLink.getAttribute('aria-busy')==='true') return;
+            exportLink.setAttribute('aria-busy','true');
+            const original=exportLink.textContent;
+            exportLink.textContent='Đang chuẩn bị…';
+            try{
+                const response=await fetch(exportLink.href,{credentials:'same-origin',cache:'no-store'});
+                if(!response.ok) throw new Error('commission-export');
+                const blob=await response.blob();
+                preparedFile=new File([blob],'pharma-hoa-hong.xlsx',{type:blob.type||'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+                ready?.classList.remove('hidden');
+                if(status) status.textContent='File Excel đã sẵn sàng.';
+            }catch(error){
+                ready?.classList.remove('hidden');
+                if(status) status.textContent='Không thể chuẩn bị file. Vui lòng thử lại.';
+                preparedFile=null;
+            }finally{
+                exportLink.textContent=original;
+                exportLink.removeAttribute('aria-busy');
+            }
+        });
+        shareButton?.addEventListener('click',async()=>{
+            if(!preparedFile) return;
+            const payload={files:[preparedFile]};
+            if(typeof navigator.share==='function' && (!navigator.canShare || navigator.canShare(payload))){
+                await navigator.share(payload);
+                return;
+            }
+            if(status) status.textContent='Thiết bị này chưa hỗ trợ chia sẻ file trực tiếp. Hãy mở trang bằng trình duyệt để tải Excel.';
+        });
+    }
+})();
+
 window.syncCommissionDate=(input)=>{
     if(!input.value) return;
     const [year,month,day]=input.value.split('-');
