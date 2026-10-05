@@ -235,8 +235,8 @@ final class PharmaInventoryCapabilityTest extends TestCase
         $this->assertStringContainsString('Tổng nhập', $detail);
         $this->assertStringContainsString('Tổng xuất', $detail);
         $this->assertStringContainsString('Các nghiệp vụ nhập, xuất và tồn đầu kỳ còn hiệu lực', $detail);
-        $this->assertStringContainsString("number_format($total_received, 0, ',', '.')", $detail);
-        $this->assertStringContainsString("number_format($total_issued, 0, ',', '.')", $detail);
+        $this->assertStringContainsString("number_format(\$total_received, 0, ',', '.')", $detail);
+        $this->assertStringContainsString("number_format(\$total_issued, 0, ',', '.')", $detail);
         $this->assertStringContainsString("route('client.pharma.inventory.balances.pdf'", $detail);
         $this->assertStringContainsString('data-pwa-file-handoff', $detail);
         $this->assertStringContainsString('In thẻ kho', $detail);
