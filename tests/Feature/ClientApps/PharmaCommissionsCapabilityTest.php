@@ -163,7 +163,7 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString("'Trúng thầu'",$view);
         $this->assertStringContainsString("'Bảng giá'",$view);
         $this->assertStringContainsString('>Nguồn</th>',$view);
-        $this->assertStringContainsString("\$row->commission_source_type==='bid'",$view);
+        $this->assertSame(2,substr_count($view,"\$sourceLabel=\$row->commission_source_type==='bid'"),'Mobile and desktop rows must each resolve commission source independently.');
         $workspace=file_get_contents(base_path('Modules/Pharma/Services/UserCommissionWorkspace.php'));
         $this->assertStringContainsString("orderByDesc('id')",$workspace);
         $this->assertStringContainsString("->groupBy('issue_id')",$workspace);
