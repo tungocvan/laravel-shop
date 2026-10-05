@@ -73,6 +73,10 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->name('inventory');
         Route::get('/inventory/balances/{balance}', [PharmaApplicationController::class, 'inventoryBalance'])
             ->whereNumber('balance')->middleware('client.feature:pharma,inventory')->name('inventory.balances.show');
+        Route::get('/inventory/balances/{balance}/pdf', [PharmaApplicationController::class, 'downloadInventoryStockCardPdf'])
+            ->whereNumber('balance')->middleware('client.feature:pharma,inventory')->name('inventory.balances.pdf');
+        Route::get('/inventory/balances/{balance}/print', [PharmaApplicationController::class, 'printInventoryStockCardPdf'])
+            ->whereNumber('balance')->middleware('client.feature:pharma,inventory')->name('inventory.balances.print');
         Route::get('/inventory/receipts', [PharmaApplicationController::class, 'inventoryReceipts'])
             ->middleware('client.feature:pharma,inventory')->name('inventory.receipts');
         Route::get('/inventory/receipts/create', [PharmaApplicationController::class, 'createInventoryReceipt'])
