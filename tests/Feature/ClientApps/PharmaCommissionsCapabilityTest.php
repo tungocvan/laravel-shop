@@ -27,6 +27,13 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertSame('GET',$show->methods()[0]);
         $this->assertSame('apps/pharma/commissions/{issue}',$show->uri());
         $this->assertContains('client.feature:pharma,commissions',$show->gatherMiddleware());
+
+        $export=Route::getRoutes()->getByName('client.pharma.commissions.export');
+        $this->assertNotNull($export);
+        $this->assertSame('GET',$export->methods()[0]);
+        $this->assertSame('apps/pharma/commissions/export',$export->uri());
+        $this->assertContains('auth:web',$export->gatherMiddleware());
+        $this->assertContains('client.feature:pharma,commissions',$export->gatherMiddleware());
     }
 
     public function test_user_workspace_starts_from_canonical_user_scope_and_never_admin_scope(): void
@@ -51,6 +58,7 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $reflection=new ReflectionClass(UserCommissionWorkspace::class);
         $this->assertTrue($reflection->hasMethod('browse'));
         $this->assertTrue($reflection->hasMethod('summary'));
+        $this->assertTrue($reflection->hasMethod('exportRows'));
     }
 
     public function test_client_surface_uses_authenticated_user_scope_managed_copy_and_native_load_more(): void
@@ -66,6 +74,9 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString("'client.pharma.commissions.view'",$controller);
         $this->assertStringContainsString('$workspace->browse((int)$user->id',$controller);
         $this->assertStringContainsString('$workspace->summary((int)$user->id',$controller);
+        $this->assertStringContainsString('CommissionExcelExportService $exporter',$controller);
+        $this->assertStringContainsString('$workspace->exportRows((int)$user->id',$controller);
+        $this->assertStringContainsString('return $exporter->download($rows,$from,$to);',$controller);
         $this->assertStringContainsString("featurePresentation(\$application['key'],\$feature)",$controller);
 
         $this->assertStringContainsString("'route' => 'client.pharma.commissions'",$manifest);
@@ -131,6 +142,11 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('data-commission-item',$view);
         $this->assertStringContainsString('active:scale-[0.985]',$view);
         $this->assertStringContainsString('motion-reduce:transform-none',$view);
+        $this->assertStringContainsString("route('client.pharma.commissions.export'",$view);
+        $this->assertStringContainsString('Xuất Excel',$view);
+        $this->assertStringContainsString("fetch(exportLink.href,{credentials:'same-origin',cache:'no-store'})",$view);
+        $this->assertStringContainsString("navigator.share(payload)",$view);
+        $this->assertStringContainsString('Mở / Chia sẻ file',$view);
         $this->assertStringNotContainsString('Admin::',$view);
         $this->assertStringNotContainsString('method="POST"',$view);
         $this->assertStringNotContainsString('wire:',$view);
