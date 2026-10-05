@@ -140,6 +140,7 @@
                         @if(in_array($priceList->status,['draft','rejected'],true) && $canCreate)<a href="{{ route('client.pharma.price-lists.edit',$priceList->id) }}" class="block rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700">Sửa thông tin</a>@endif
                         @if(in_array($priceList->status,['draft','rejected'],true))<form method="POST" action="{{ route('client.pharma.price-lists.submit',$priceList->id) }}">@csrf<button class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-blue-700">Gửi duyệt</button></form>@endif
                         @if($priceList->status==='pending_approval' && $canApprove)<form method="POST" action="{{ route('client.pharma.price-list-approvals.approve',$priceList->id) }}" onsubmit="return confirm('Phê duyệt và kích hoạt bảng giá này?')">@csrf<button class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-emerald-700">Phê duyệt & kích hoạt</button></form>@endif
+                        @if($priceList->status==='pending_deactivation' && $canApprove)<form method="POST" action="{{ route('client.pharma.price-lists.deactivation.approve',$priceList->id) }}" onsubmit="return confirm('Chấp nhận yêu cầu và ngừng kích hoạt bảng giá này?')">@csrf<button class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-rose-700">Chấp nhận ngừng kích hoạt</button></form>@endif
                         @if($priceList->status==='active')
                             <form method="POST" action="{{ route('client.pharma.price-lists.export-share',$priceList->id) }}">@csrf<button class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-slate-700">Xuất Excel mới</button></form>
                             @if($exportShare)
@@ -147,7 +148,7 @@
                                 @if(!empty($exportShare['pdf_url']))<a href="{{ $exportShare['pdf_url'] }}" data-pwa-file-handoff data-file-name="{{ preg_replace('/\.xlsx$/i','.pdf',$exportShare['download_name'] ?? ($priceList->code.'.xlsx')) }}" class="block rounded-xl px-3 py-2.5 text-xs font-bold text-violet-700">Tải PDF</a>
                                 @else<form method="POST" action="{{ route('client.pharma.price-lists.share.pdf.queue',(int)$exportShare['share_id']) }}">@csrf<button class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-violet-700">Chuyển sang PDF</button></form>@endif
                             @endif
-                            <button type="button" data-price-list-deactivation-open data-price-list-id="{{ $priceList->id }}" data-price-list-name="{{ $priceList->name }}" data-price-list-mode="{{ $canApprove ? 'direct' : 'request' }}" class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-rose-700">Ngừng kích hoạt…</button>
+                            <button type="button" data-price-list-deactivation-open data-price-list-id="{{ $priceList->id }}" data-price-list-name="{{ $priceList->name }}" data-price-list-action="{{ $canApprove ? route('client.pharma.price-lists.deactivate',$priceList->id) : route('client.pharma.price-lists.deactivation.request',$priceList->id) }}" data-price-list-mode="{{ $canApprove ? 'direct' : 'request' }}" class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-rose-700">Ngừng kích hoạt…</button>
                         @endif
                     </div>
                 </details>
@@ -178,6 +179,9 @@
                         @if($priceList->status==='pending_approval' && $canApprove)
                             <form method="POST" action="{{ route('client.pharma.price-list-approvals.approve',$priceList->id) }}" onsubmit="return confirm('Phê duyệt và kích hoạt bảng giá này?')">@csrf<button class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-emerald-700 hover:bg-emerald-50">Phê duyệt & kích hoạt</button></form>
                         @endif
+                        @if($priceList->status==='pending_deactivation' && $canApprove)
+                            <form method="POST" action="{{ route('client.pharma.price-lists.deactivation.approve',$priceList->id) }}" onsubmit="return confirm('Chấp nhận yêu cầu và ngừng kích hoạt bảng giá này?')">@csrf<button class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-rose-700 hover:bg-rose-50">Chấp nhận ngừng kích hoạt</button></form>
+                        @endif
                         @if($priceList->status==='active')
                             <form method="POST" action="{{ route('client.pharma.price-lists.export-share',$priceList->id) }}">@csrf<button class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-slate-700 hover:bg-slate-50">Xuất Excel mới</button></form>
                             @if($exportShare)
@@ -188,7 +192,7 @@
                                     <form method="POST" action="{{ route('client.pharma.price-lists.share.pdf.queue',(int)$exportShare['share_id']) }}">@csrf<button class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-violet-700 hover:bg-violet-50">Chuyển sang PDF</button></form>
                                 @endif
                             @endif
-                            <button type="button" data-price-list-deactivation-open data-price-list-id="{{ $priceList->id }}" data-price-list-name="{{ $priceList->name }}" data-price-list-mode="{{ $canApprove ? 'direct' : 'request' }}" class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-rose-700 hover:bg-rose-50">Ngừng kích hoạt…</button>
+                            <button type="button" data-price-list-deactivation-open data-price-list-id="{{ $priceList->id }}" data-price-list-name="{{ $priceList->name }}" data-price-list-action="{{ $canApprove ? route('client.pharma.price-lists.deactivate',$priceList->id) : route('client.pharma.price-lists.deactivation.request',$priceList->id) }}" data-price-list-mode="{{ $canApprove ? 'direct' : 'request' }}" class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-rose-700 hover:bg-rose-50">Ngừng kích hoạt…</button>
                         @endif
                     </div>
                 </details>
@@ -198,14 +202,6 @@
     </section>
     @if($priceLists->hasPages())<div>{{ $priceLists->links() }}</div>@endif
 </div>
-
-@if($canApprove)
-    @foreach($priceLists as $priceList)
-        @if($priceList->status === 'pending_deactivation')
-            <form id="price-list-deactivation-approve-{{ $priceList->id }}" method="POST" action="{{ route('client.pharma.price-lists.deactivation.approve',$priceList->id) }}" class="hidden">@csrf</form>
-        @endif
-    @endforeach
-@endif
 
 <dialog id="price-list-deactivation-dialog" class="mb-0 mt-auto w-full max-w-[520px] rounded-t-[28px] border-0 p-0 shadow-2xl backdrop:bg-slate-950/55 sm:m-auto sm:w-[min(92vw,520px)] sm:rounded-[28px]">
     <form method="POST" data-price-list-deactivation-form class="p-5 sm:p-6">
@@ -267,17 +263,13 @@ document.addEventListener('DOMContentLoaded',()=>{
     const deactivationDialog=document.getElementById('price-list-deactivation-dialog'),deactivationForm=deactivationDialog?.querySelector('[data-price-list-deactivation-form]'),deactivationMessage=deactivationDialog?.querySelector('[data-price-list-deactivation-message]');
     document.querySelectorAll('[data-price-list-deactivation-open]').forEach(button=>button.addEventListener('click',()=>{
         if(!deactivationDialog||!deactivationForm)return;
-        const id=button.dataset.priceListId,name=button.dataset.priceListName||'bảng giá',mode=button.dataset.priceListMode;
-        deactivationForm.action=mode==='direct' ? `{{ url('/apps/pharma/price-lists') }}/${id}/deactivate` : `{{ url('/apps/pharma/price-lists') }}/${id}/deactivation-request`;
+        const name=button.dataset.priceListName||'bảng giá',mode=button.dataset.priceListMode;
+        deactivationForm.action=button.dataset.priceListAction||'';
         if(deactivationMessage)deactivationMessage.textContent=mode==='direct' ? `Bạn đang ngừng kích hoạt trực tiếp “${name}”. Vui lòng nhập lý do.` : `Yêu cầu ngừng kích hoạt “${name}” sẽ được gửi cho người có quyền phê duyệt.`;
         deactivationForm.querySelector('[name="deactivation_reason"]')?.focus();
         deactivationDialog.showModal();
     }));
     deactivationDialog?.querySelector('[data-price-list-deactivation-cancel]')?.addEventListener('click',()=>deactivationDialog.close());
-    document.querySelectorAll('form[id^="price-list-deactivation-approve-"]').forEach(form=>{
-        const id=form.id.replace('price-list-deactivation-approve-','');
-        document.querySelectorAll(`[data-price-list-approve-deactivation="${id}"]`).forEach(button=>button.addEventListener('click',()=>{if(confirm('Chấp nhận yêu cầu và ngừng kích hoạt bảng giá này?'))form.submit();}));
-    });
     document.querySelectorAll('[data-price-list-actions]').forEach(menu=>{
         menu.addEventListener('toggle',()=>{
             if(!menu.open)return;
