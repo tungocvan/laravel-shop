@@ -102,10 +102,47 @@ final class UserInventoryWorkspace
         $transactions = InventoryTransaction::query()
             ->where('warehouse_id', $warehouse->id)
             ->where('medicine_id', $balance->medicine_id)
-            ->whereIn('type', ['opening', 'receipt', 'issue'])
-            ->orderByDesc('created_at')
-            ->orderByDesc('id')
+            ->orderBy('created_at')
+            ->orderBy('id')
             ->get();
+
+        // The stock card presents the effective ledger, not the audit trail.
+        // A reversal cancels the original posted movement for the same source/lot;
+        // both technical rows remain in InventoryTransaction for audit purposes.
+        $reversedMovementKeys = $transactions
+            ->filter(fn (InventoryTransaction $transaction): bool => in_array($transaction->type, ['receipt_reversal', 'issue_reversal'], true))
+            ->mapWithKeys(fn (InventoryTransaction $transaction): array => [
+                implode('|', [
+                    $transaction->source_type,
+                    $transaction->source_id,
+                    $transaction->batch_number,
+                    $transaction->expiry_date?->format('Y-m-d'),
+                    $transaction->type === 'receipt_reversal' ? 'receipt' : 'issue',
+                ]) => true,
+            ]);
+
+        $transactions = $transactions
+            ->filter(function (InventoryTransaction $transaction) use ($reversedMovementKeys): bool {
+                if ($transaction->type === 'opening') {
+                    return true;
+                }
+
+                if (! in_array($transaction->type, ['receipt', 'issue'], true)) {
+                    return false;
+                }
+
+                $key = implode('|', [
+                    $transaction->source_type,
+                    $transaction->source_id,
+                    $transaction->batch_number,
+                    $transaction->expiry_date?->format('Y-m-d'),
+                    $transaction->type,
+                ]);
+
+                return ! $reversedMovementKeys->has($key);
+            })
+            ->sortByDesc(fn (InventoryTransaction $transaction): string => sprintf('%s-%020d', $transaction->created_at?->format('YmdHis.u') ?? '', $transaction->id))
+            ->values();
 
         $receiptIds = $transactions->where('source_type', InventoryReceipt::class)->pluck('source_id')->filter()->map(fn ($id) => (int) $id)->unique();
         $issueIds = $transactions->where('source_type', InventoryIssue::class)->pluck('source_id')->filter()->map(fn ($id) => (int) $id)->unique();
