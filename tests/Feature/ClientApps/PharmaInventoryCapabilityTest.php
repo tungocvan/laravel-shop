@@ -219,4 +219,31 @@ final class PharmaInventoryCapabilityTest extends TestCase
     }
 
 
+
+    public function test_inventory_detail_is_a_medicine_stock_card_across_lots(): void
+    {
+        $root = base_path();
+        $workspace = file_get_contents($root.'/Modules/Pharma/Services/UserInventoryWorkspace.php');
+        $detail = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-show.blade.php');
+
+        $this->assertStringContainsString("->where('medicine_id', $balance->medicine_id)", $workspace);
+        $this->assertStringNotContainsString("->where('batch_number', $balance->batch_number)\n            ->whereDate('expiry_date', $balance->expiry_date)\n            ->latest('created_at')", $workspace);
+        $this->assertStringContainsString("'balances' => $balances", $workspace);
+        $this->assertStringContainsString("'total_quantity_on_hand' =>", $workspace);
+        $this->assertStringContainsString("'batch_number' => (string) $transaction->batch_number", $workspace);
+        $this->assertStringContainsString("'expiry_date' => $transaction->expiry_date", $workspace);
+
+        $this->assertStringContainsString('Thẻ kho ·', $detail);
+        $this->assertStringContainsString('Tổng tồn hiện tại', $detail);
+        $this->assertStringContainsString('Tồn theo lô / hạn dùng', $detail);
+        $this->assertStringContainsString('Thẻ kho sản phẩm', $detail);
+        $this->assertStringContainsString('Toàn bộ nhập, xuất, hoàn tác và tồn đầu kỳ của sản phẩm theo thời gian.', $detail);
+        $this->assertStringContainsString('>Nhập<', $detail);
+        $this->assertStringContainsString('>Xuất<', $detail);
+        $this->assertStringContainsString('Tồn lô sau GD', $detail);
+        $this->assertStringContainsString("route('client.pharma.inventory')", $detail);
+        $this->assertStringContainsString("@section('hide-application-header', true)", $detail);
+        $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $detail);
+    }
+
 }
