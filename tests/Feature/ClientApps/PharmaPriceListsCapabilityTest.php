@@ -229,7 +229,7 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('PriceListApprovalWorkflow $approval', $controller);
         $this->assertStringContainsString('public function approve(int $approverUserId, int $priceListId)', $approval);
         $this->assertStringContainsString('public function reject(int $approverUserId, int $priceListId, string $reason)', $approval);
-        $this->assertStringContainsString("'status' => PriceList::STATUS_ACTIVE", $approval);
+        $this->assertStringContainsString('return $this->manager->activate($list, $approverUserId);', $approval);
         $this->assertStringContainsString("'status' => PriceList::STATUS_REJECTED", $approval);
         $this->assertStringContainsString('approved_by', $approval);
         $this->assertStringContainsString('rejected_by', $approval);
