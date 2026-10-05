@@ -376,7 +376,7 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringNotContainsString('setBreak("A{$markerRow}"', $pdfJob);
         $this->assertStringContainsString("\$exportShares[(int)\$priceList->id]", $view);
         $this->assertStringContainsString('+ Xuất tài liệu', $detail);
-        $this->assertStringContainsString('Tài liệu đã xuất', $detail);
+        $this->assertStringContainsString('Tệp đã xuất', $detail);
         $this->assertStringContainsString('Xuất Excel mới', $detail);
         $this->assertStringContainsString('Mẫu bảng giá', $detail);
         $this->assertStringContainsString('navigator.share', $detail);
