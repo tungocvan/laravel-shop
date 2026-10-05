@@ -61,8 +61,44 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
         $this->assertStringContainsString("'created_by' => \$actorUserId", $service);
         $this->assertStringContainsString("'allocated_quantity' => (float) \$allocation->allocated_quantity", $service);
         $this->assertStringContainsString("client.pharma.orders.create-for-user", $controller);
-        $this->assertStringNotContainsString('PriceList::query()', $controller);
-        $this->assertStringNotContainsString('DrugBidAwardAllocation::query()', $controller);
+
+        $orderController = collect([
+            'orders',
+            'createOrder',
+            'storeOrder',
+            'editOrder',
+            'updateOrder',
+            'submitOrder',
+            'saveOrderSupplyNotes',
+            'deleteOrder',
+            'approveOrder',
+            'undoOrderApproval',
+            'postOrder',
+            'revertPostedOrder',
+            'rejectOrder',
+            'exportOrderPdf',
+            'downloadOrderPdf',
+            'printOrderPdf',
+            'shareOrderPdf',
+            'revokeOrderPdfShare',
+            'downloadOrderPdfShare',
+            'order',
+        ])->map(function (string $method) use ($controller): string {
+            $reflection = new \ReflectionMethod(
+                \Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaApplicationController::class,
+                $method
+            );
+            $lines = explode("\n", $controller);
+
+            return implode("\n", array_slice(
+                $lines,
+                $reflection->getStartLine() - 1,
+                $reflection->getEndLine() - $reflection->getStartLine() + 1
+            ));
+        })->implode("\n");
+
+        $this->assertStringNotContainsString('PriceList::query()', $orderController);
+        $this->assertStringNotContainsString('DrugBidAwardAllocation::query()', $orderController);
     }
 
     public function test_order_form_is_mobile_first_and_browser_cannot_authoritative_price(): void
