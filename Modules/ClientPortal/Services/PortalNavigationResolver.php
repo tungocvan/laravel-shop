@@ -23,6 +23,7 @@ class PortalNavigationResolver
                     'bottom_enabled' => (bool) ($override['bottom_enabled'] ?? true),
                     'bottom_sort_order' => (int) ($override['bottom_sort_order'] ?? ($item['sort_order'] ?? 100)),
                     'bottom_icon' => trim((string) ($override['bottom_icon'] ?? ($item['icon'] ?? 'squares-2x2'))),
+                    'bottom_label' => trim((string) ($override['bottom_label'] ?? ($item['name'] ?? ''))),
                 ]);
             })
             ->values();
