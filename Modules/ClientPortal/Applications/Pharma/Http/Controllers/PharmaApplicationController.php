@@ -1101,6 +1101,7 @@ final class PharmaApplicationController extends Controller
     ): View {
         $validated=$request->validate([
             'partner_id'=>['nullable','integer','min:1'],
+            'medicine_id'=>['nullable','integer','min:1'],
             'source'=>['nullable','in:all,bid,price_list'],
             'from'=>['nullable','date'],
             'to'=>['nullable','date','after_or_equal:from'],
@@ -1125,6 +1126,9 @@ final class PharmaApplicationController extends Controller
         $partnerId=!empty($validated['partner_id']) ? (int)$validated['partner_id'] : null;
         $commissionPartners=$workspace->commissionPartners((int)$user->id,$source,$from,$to,$canViewTeam,$managerUserId);
         abort_if($partnerId!==null && $commissionPartners->firstWhere('id',$partnerId)===null,404);
+        $medicineId=!empty($validated['medicine_id']) ? (int)$validated['medicine_id'] : null;
+        $commissionMedicines=$workspace->commissionMedicines((int)$user->id,$source,$from,$to,$canViewTeam,$managerUserId);
+        abort_if($medicineId!==null && $commissionMedicines->firstWhere('id',$medicineId)===null,404);
 
         $recentExports=CommissionExportArtifact::query()->where('created_by',(int)$user->id)->latest('generated_at')->limit(8)->get();
         $activeExport=!empty($validated['export_artifact']) ? $recentExports->firstWhere('id',(int)$validated['export_artifact']) : null;
@@ -1133,15 +1137,17 @@ final class PharmaApplicationController extends Controller
             'application'=>$application,
             'applicationPresentation'=>$settings->applicationPresentation($application),
             'featurePresentation'=>$settings->featurePresentation($application['key'],$feature),
-            'rows'=>$workspace->browse((int)$user->id,$partnerId,$source,$from,$to,20,(int)($validated['page'] ?? 1),$canViewTeam,$managerUserId)->withQueryString(),
-            'summary'=>$workspace->summary((int)$user->id,$source,$from,$to,$canViewTeam,$managerUserId),
+            'rows'=>$workspace->browse((int)$user->id,$partnerId,$source,$from,$to,20,(int)($validated['page'] ?? 1),$canViewTeam,$managerUserId,$medicineId)->withQueryString(),
+            'summary'=>$workspace->summary((int)$user->id,$source,$from,$to,$canViewTeam,$managerUserId,$medicineId),
             'canViewTeam'=>$canViewTeam,
             'commissionUsers'=>$commissionUsers,
             'commissionPartners'=>$commissionPartners,
+            'commissionMedicines'=>$commissionMedicines,
             'recentExports'=>$recentExports,
             'activeExport'=>$activeExport,
             'filters'=>[
                 'partner_id'=>$partnerId,
+                'medicine_id'=>$medicineId,
                 'source'=>$source,
                 'from'=>$from->toDateString(),
                 'to'=>$to->toDateString(),
@@ -1184,18 +1190,22 @@ final class PharmaApplicationController extends Controller
         $partners=$workspace->commissionPartners((int)$user->id,$source,$from,$to,$canViewTeam,$managerUserId);
         abort_if($partnerId!==null && $partners->firstWhere('id',$partnerId)===null,404);
 
-        $rows=$workspace->exportRows((int)$user->id,$partnerId,$source,$from,$to,$canViewTeam,$managerUserId);
+        $medicineId=!empty($validated['medicine_id']) ? (int)$validated['medicine_id'] : null;
+        $medicines=$workspace->commissionMedicines((int)$user->id,$source,$from,$to,$canViewTeam,$managerUserId);
+        abort_if($medicineId!==null && $medicines->firstWhere('id',$medicineId)===null,404);
+
+        $rows=$workspace->exportRows((int)$user->id,$partnerId,$source,$from,$to,$canViewTeam,$managerUserId,$medicineId);
         if(!empty($validated['ids'])){
             $ids=collect($validated['ids'])->map(fn($id)=>(int)$id)->unique();
             $rows=$rows->whereIn('issue_id',$ids)->values();
         }
         $artifact=$exporter->generate($rows,$from,$to,(int)$user->id,[
             'source'=>$source,'from'=>$from->toDateString(),'to'=>$to->toDateString(),
-            'partner_id'=>$partnerId,'manager_user_id'=>$managerUserId,
+            'partner_id'=>$partnerId,'manager_user_id'=>$managerUserId,'medicine_id'=>$medicineId,
         ]);
         return redirect()->route('client.pharma.commissions',array_filter([
             'source'=>$source==='all'?null:$source,'from'=>$from->toDateString(),'to'=>$to->toDateString(),
-            'partner_id'=>$partnerId,'manager_user_id'=>$managerUserId,'export_artifact'=>$artifact->id,
+            'partner_id'=>$partnerId,'manager_user_id'=>$managerUserId,'medicine_id'=>$medicineId,'export_artifact'=>$artifact->id,
         ]))->with('success','Đã tạo file Excel hoa hồng.');
     }
 
