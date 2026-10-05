@@ -91,6 +91,23 @@ final class UserPriceListWorkspace
             ->find($priceListId);
     }
 
+    public function findEditable(int $userId, int $priceListId, bool $approverScope = false): ?PriceList
+    {
+        $query = $approverScope ? PriceList::query() : $this->managedQuery($userId);
+
+        return $query
+            ->with([
+                'partner',
+                'officialFacility',
+                'purpose',
+                'manager',
+                'items.variant.medicine',
+                'items.package',
+            ])
+            ->withCount('items')
+            ->find($priceListId);
+    }
+
     private function managedQuery(int $userId): Builder
     {
         return PriceList::query()->where('manager_user_id', $userId);
