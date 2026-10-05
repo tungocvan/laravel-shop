@@ -56,6 +56,7 @@ final class UserCommissionWorkspace
             $page,
             ['path'=>request()->url(),'query'=>request()->query()]
         );
+    }
 
     public function exportRows(
         int $userId,
