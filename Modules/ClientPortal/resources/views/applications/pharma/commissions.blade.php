@@ -8,15 +8,29 @@
 @section('hide-mobile-navigation', true)
 
 @section('content')
-<div class="mb-4 flex flex-wrap items-center justify-between gap-2">
-    <a href="{{ route('client.pharma.dashboard') }}" class="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">← Không gian làm việc Pharma</a>
-    <a id="commission-export-excel" href="{{ route('client.pharma.commissions.export', array_filter(['source'=>$filters['source'],'from'=>$filters['from'],'to'=>$filters['to'],'partner_id'=>$filters['partner_id'],'manager_user_id'=>$filters['manager_user_id']])) }}" class="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-black text-emerald-800 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">Xuất Excel</a>
-</div>
-<div id="commission-selection-actions" class="mb-4 flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"><label class="inline-flex min-h-10 items-center gap-2 font-bold text-slate-700"><input id="commission-select-all" type="checkbox" class="h-5 w-5 rounded border-slate-300"> Chọn tất cả</label><span class="text-slate-400">·</span><span class="font-semibold text-slate-600"><b id="commission-selected-count">0</b> phiếu đã chọn</span><button id="commission-clear-selection" type="button" class="ml-auto hidden min-h-10 rounded-xl border border-slate-200 px-3 font-bold text-slate-600">Bỏ chọn</button></div>
-<div id="commission-export-ready" class="mb-4 hidden rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-900">
-    <span data-commission-export-status>File Excel đã sẵn sàng.</span>
-    <button type="button" data-commission-export-share class="ml-2 rounded-xl bg-emerald-800 px-3 py-2 font-black text-white transition active:scale-[0.985] motion-reduce:transform-none">Mở / Chia sẻ file</button>
-</div>
+<form id="commission-export-form" method="POST" action="{{ route('client.pharma.commissions.export') }}" class="mb-4 space-y-3">
+    @csrf
+    @foreach(['source','from','to','partner_id','manager_user_id'] as $key) @if(filled($filters[$key] ?? null))<input type="hidden" name="{{ $key }}" value="{{ $filters[$key] }}">@endif @endforeach
+    <div class="flex flex-wrap items-center justify-between gap-2">
+        <a href="{{ route('client.pharma.dashboard') }}" class="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">← Không gian làm việc Pharma</a>
+        <button id="commission-export-excel" type="submit" class="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-black text-emerald-800 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">Xuất Excel</button>
+    </div>
+    <div id="commission-selection-actions" class="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"><label class="inline-flex min-h-10 items-center gap-2 font-bold text-slate-700"><input id="commission-select-all" type="checkbox" class="h-5 w-5 rounded border-slate-300"> Chọn tất cả</label><span class="text-slate-400">·</span><span class="font-semibold text-slate-600"><b id="commission-selected-count">0</b> phiếu đã chọn</span><button id="commission-clear-selection" type="button" class="ml-auto hidden min-h-10 rounded-xl border border-slate-200 px-3 font-bold text-slate-600">Bỏ chọn</button></div>
+    <div id="commission-selected-inputs"></div>
+</form>
+@if($recentExports->isNotEmpty())
+<section class="mb-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div class="flex items-center justify-between gap-3"><div><h2 class="font-black text-slate-900">File đã xuất</h2><p class="mt-1 text-xs font-semibold text-slate-500">Excel được lưu riêng trên server và chỉ tài khoản của bạn truy cập được.</p></div></div>
+    <div class="mt-3 space-y-2">
+        @foreach($recentExports as $export)
+        <div class="rounded-2xl border {{ $activeExport?->id===$export->id ? 'border-emerald-300 bg-emerald-50/50' : 'border-slate-200' }} p-3">
+            <div class="flex flex-wrap items-center justify-between gap-2"><div class="min-w-0"><p class="truncate text-sm font-black text-slate-800">{{ $export->download_name }}</p><p class="mt-1 text-xs font-semibold text-slate-500">{{ $export->generated_at?->format('d/m/Y H:i') }} · {{ number_format($export->row_count) }} dòng</p></div>
+            <div class="flex flex-wrap gap-2"><a href="{{ route('client.pharma.commissions.exports.download',$export) }}" class="min-h-10 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-700">Tải</a><a href="{{ route('client.pharma.commissions.exports.print',$export) }}" target="_blank" rel="noopener" class="min-h-10 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-700">In</a><button type="button" data-commission-share-url="{{ route('client.pharma.commissions.exports.download',$export) }}" data-commission-share-name="{{ $export->download_name }}" class="min-h-10 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-black text-emerald-800">Chia sẻ</button></div></div>
+        </div>
+        @endforeach
+    </div>
+</section>
+@endif
 
 <div class="min-w-0 space-y-4 overflow-x-hidden">
     <section class="rounded-[2rem] bg-slate-950 px-5 py-6 text-white shadow-sm sm:px-7">
@@ -161,14 +175,12 @@
 
 <script>
 (()=>{
-    const exportLink=document.getElementById('commission-export-excel');
-    const ready=document.getElementById('commission-export-ready');
-    const shareButton=ready?.querySelector('[data-commission-export-share]');
-    const status=ready?.querySelector('[data-commission-export-status]');
+    const form=document.getElementById('commission-export-form');
     const selectAll=document.getElementById('commission-select-all');
     const desktopSelectAll=document.querySelector('[data-commission-select-all-desktop]');
     const selectedCount=document.getElementById('commission-selected-count');
     const clearSelection=document.getElementById('commission-clear-selection');
+    const inputs=document.getElementById('commission-selected-inputs');
     const rowCheckboxes=()=>[...document.querySelectorAll('.commission-row-checkbox')];
     const selectedIds=()=>[...new Set(rowCheckboxes().filter(box=>box.checked).map(box=>box.value))];
     const syncSelection=()=>{
@@ -177,58 +189,24 @@
         if(clearSelection) clearSelection.classList.toggle('hidden',ids.length===0);
         [selectAll,desktopSelectAll].forEach(box=>{if(box){box.checked=all;box.indeterminate=ids.length>0&&!all;}});
     };
-    const setAll=(checked)=>{rowCheckboxes().forEach(box=>box.checked=checked);syncSelection();};
+    const setAll=checked=>{rowCheckboxes().forEach(box=>box.checked=checked);syncSelection();};
     selectAll?.addEventListener('change',()=>setAll(selectAll.checked));
     desktopSelectAll?.addEventListener('change',()=>setAll(desktopSelectAll.checked));
     clearSelection?.addEventListener('click',()=>setAll(false));
     document.addEventListener('change',event=>{if(event.target?.classList?.contains('commission-row-checkbox'))syncSelection();});
+    form?.addEventListener('submit',()=>{if(inputs){inputs.innerHTML='';selectedIds().forEach(id=>{const input=document.createElement('input');input.type='hidden';input.name='ids[]';input.value=id;inputs.appendChild(input);});}});
+    document.querySelectorAll('[data-commission-share-url]').forEach(button=>button.addEventListener('click',async()=>{
+        try{
+            const response=await fetch(button.dataset.commissionShareUrl,{credentials:'same-origin',cache:'no-store'});
+            if(!response.ok)throw new Error('download');
+            const blob=await response.blob();
+            const file=new File([blob],button.dataset.commissionShareName,{type:blob.type||'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+            const payload={files:[file]};
+            if(typeof navigator.share==='function'&&(!navigator.canShare||navigator.canShare(payload))){await navigator.share(payload);return;}
+            alert('Thiết bị này chưa hỗ trợ chia sẻ file trực tiếp. Hãy dùng nút Tải.');
+        }catch(error){alert('Không thể chuẩn bị file để chia sẻ. Vui lòng thử lại.');}
+    }));
     syncSelection();
-    let preparedFile=null;
-    const standalone=window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true;
-    if(exportLink && standalone){
-        exportLink.addEventListener('click',async(event)=>{
-            event.preventDefault();
-            if(exportLink.getAttribute('aria-busy')==='true') return;
-            exportLink.setAttribute('aria-busy','true');
-            const original=exportLink.textContent;
-            exportLink.textContent='Đang chuẩn bị…';
-            try{
-                const url=new URL(exportLink.href,window.location.href);
-                selectedIds().forEach(id=>url.searchParams.append('ids[]',id));
-                const response=await fetch(url.toString(),{credentials:'same-origin',cache:'no-store'});
-                if(!response.ok) throw new Error('commission-export');
-                const blob=await response.blob();
-                preparedFile=new File([blob],'pharma-hoa-hong.xlsx',{type:blob.type||'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-                ready?.classList.remove('hidden');
-                if(status) status.textContent='File Excel đã sẵn sàng.';
-            }catch(error){
-                ready?.classList.remove('hidden');
-                if(status) status.textContent='Không thể chuẩn bị file. Vui lòng thử lại.';
-                preparedFile=null;
-            }finally{
-                exportLink.textContent=original;
-                exportLink.removeAttribute('aria-busy');
-            }
-        });
-        shareButton?.addEventListener('click',async()=>{
-            if(!preparedFile) return;
-            const payload={files:[preparedFile]};
-            if(typeof navigator.share==='function' && (!navigator.canShare || navigator.canShare(payload))){
-                await navigator.share(payload);
-                return;
-            }
-            if(status) status.textContent='Thiết bị này chưa hỗ trợ chia sẻ file trực tiếp. Hãy mở trang bằng trình duyệt để tải Excel.';
-        });
-    } else if(exportLink) {
-        exportLink.addEventListener('click',(event)=>{
-            const ids=selectedIds();
-            if(ids.length===0) return;
-            event.preventDefault();
-            const url=new URL(exportLink.href,window.location.href);
-            ids.forEach(id=>url.searchParams.append('ids[]',id));
-            window.location.assign(url.toString());
-        });
-    }
 })();
 
 window.syncCommissionDate=(input)=>{
