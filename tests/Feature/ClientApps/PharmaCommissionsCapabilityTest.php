@@ -162,6 +162,9 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('{{ $exportSourceLabel }}',$view);
         $this->assertStringContainsString("'Trúng thầu'",$view);
         $this->assertStringContainsString("'Bảng giá'",$view);
+        $this->assertStringContainsString('>Nguồn</th>',$view);
+        $this->assertStringContainsString("row->source_type==='bid'",$view);
+        $this->assertStringContainsString("COUNT(DISTINCT source_type)",file_get_contents(base_path('Modules/Pharma/Services/UserCommissionWorkspace.php')));
         $this->assertStringContainsString('>Tải</a>',$view);
         $this->assertStringContainsString('>In</a>',$view);
         $this->assertStringContainsString('>Chia sẻ</button>',$view);
