@@ -37,6 +37,7 @@ use Modules\Pharma\Services\UserPriceListWorkflow;
 use Modules\Pharma\Services\PriceListApprovalWorkflow;
 use Modules\Pharma\Services\ApproverGlobalPriceListWorkflow;
 use Modules\Pharma\Services\PriceListDeactivationWorkflow;
+use Modules\Pharma\Services\PriceListManager;
 use Modules\Pharma\Services\PriceListShareExportService;
 use Illuminate\Support\Facades\Storage;
 
@@ -574,6 +575,24 @@ final class PharmaApplicationController extends Controller
 
         return redirect()->route('client.pharma.price-lists')
             ->with('success', 'Đã ngừng kích hoạt bảng giá.');
+    }
+
+    public function activatePriceList(
+        int $priceList,
+        Request $request,
+        ApplicationRegistry $registry,
+        PriceListManager $manager,
+    ) {
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.price-lists.approve'), 403);
+
+        $list = PriceList::query()->findOrFail($priceList);
+        abort_unless($list->status === PriceList::STATUS_INACTIVE, 404);
+        $manager->activate($list, (int) $user->id);
+
+        return redirect()->route('client.pharma.price-lists')
+            ->with('success', 'Đã kích hoạt trở lại bảng giá.');
     }
 
     public function priceLists(
