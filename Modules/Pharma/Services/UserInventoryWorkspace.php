@@ -102,6 +102,7 @@ final class UserInventoryWorkspace
         $transactions = InventoryTransaction::query()
             ->where('warehouse_id', $warehouse->id)
             ->where('medicine_id', $balance->medicine_id)
+            ->whereIn('type', ['opening', 'receipt', 'issue'])
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->get();
