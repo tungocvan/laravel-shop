@@ -142,6 +142,7 @@
                         @if($priceList->status==='pending_approval' && $canApprove)<form method="POST" action="{{ route('client.pharma.price-list-approvals.approve',$priceList->id) }}" onsubmit="return confirm('Phê duyệt và kích hoạt bảng giá này?')">@csrf<button class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-emerald-700">Phê duyệt & kích hoạt</button></form>@endif
                         @if($priceList->status==='pending_deactivation' && $canApprove)<form method="POST" action="{{ route('client.pharma.price-lists.deactivation.approve',$priceList->id) }}" onsubmit="return confirm('Chấp nhận yêu cầu và ngừng kích hoạt bảng giá này?')">@csrf<button class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-rose-700">Chấp nhận ngừng kích hoạt</button></form>@endif
                         @if($priceList->status==='inactive' && $canApprove)<form method="POST" action="{{ route('client.pharma.price-lists.activate',$priceList->id) }}" onsubmit="return confirm('Kích hoạt trở lại bảng giá này?')">@csrf<button class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-emerald-700">Kích hoạt trở lại</button></form>@endif
+                        @if($priceList->status==='inactive' && $canApprove)<form method="POST" action="{{ route('client.pharma.price-lists.delete',$priceList->id) }}" onsubmit="return confirm('Xóa vĩnh viễn bảng giá Ngưng này? Toàn bộ file Excel và PDF đã xuất cũng sẽ bị xóa.')">@csrf @method('DELETE')<button class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-red-700">Xóa bảng giá</button></form>@endif
                         @if($priceList->status==='active')
                             <form method="POST" action="{{ route('client.pharma.price-lists.export-share',$priceList->id) }}">@csrf<button class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-slate-700">Xuất Excel mới</button></form>
                             @if($exportShare)
@@ -185,6 +186,9 @@
                         @endif
                         @if($priceList->status==='inactive' && $canApprove)
                             <form method="POST" action="{{ route('client.pharma.price-lists.activate',$priceList->id) }}" onsubmit="return confirm('Kích hoạt trở lại bảng giá này?')">@csrf<button class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-emerald-700 hover:bg-emerald-50">Kích hoạt trở lại</button></form>
+                        @endif
+                        @if($priceList->status==='inactive' && $canApprove)
+                            <form method="POST" action="{{ route('client.pharma.price-lists.delete',$priceList->id) }}" onsubmit="return confirm('Xóa vĩnh viễn bảng giá Ngưng này? Toàn bộ file Excel và PDF đã xuất cũng sẽ bị xóa.')">@csrf @method('DELETE')<button class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-red-700 hover:bg-red-50">Xóa bảng giá</button></form>
                         @endif
                         @if($priceList->status==='active')
                             <form method="POST" action="{{ route('client.pharma.price-lists.export-share',$priceList->id) }}">@csrf<button class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-slate-700 hover:bg-slate-50">Xuất Excel mới</button></form>
