@@ -375,8 +375,8 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('{{ $priceList->items_count }} sản phẩm', $view);
         $this->assertStringContainsString('h-11 w-11', $view);
         $this->assertStringContainsString("matchMedia('(min-width: 1024px)')", $view);
-        $this->assertStringContainsString('PDF ✓', $detail);
-        $this->assertStringContainsString('Đang tạo PDF...', $detail);
+        $this->assertStringNotContainsString('PDF ✓', $detail);
+        $this->assertStringNotContainsString('Đang tạo PDF...', $detail);
         $this->assertStringNotContainsString('PDF đã sẵn sàng@elseif', $detail);
         $this->assertStringContainsString('prepareForLibreOffice', $pdfJob);
         $this->assertStringContainsString('freezeWrappedTableRowHeights', $pdfJob);
