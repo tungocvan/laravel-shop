@@ -127,14 +127,14 @@ final class UserPriceListWorkflow
         });
     }
 
-    public function updateDraft(int $userId, int $priceListId, array $header, array $items): PriceList
+    public function updateDraft(int $userId, int $priceListId, array $header, array $items, bool $approverScope = false): PriceList
     {
         if ($items === []) {
             throw ValidationException::withMessages(['items' => 'Vui lòng chọn ít nhất một sản phẩm từ bảng giá gốc.']);
         }
 
-        return DB::transaction(function () use ($userId, $priceListId, $header, $items): PriceList {
-            $list = $this->editableForUser($userId, $priceListId);
+        return DB::transaction(function () use ($userId, $priceListId, $header, $items, $approverScope): PriceList {
+            $list = $this->editableForUser($userId, $priceListId, $approverScope);
             $requestedSourcePriceListId = (int) ($header['source_price_list_id'] ?? 0);
             $sourceItems = collect();
 
@@ -152,7 +152,7 @@ final class UserPriceListWorkflow
             $validatedHeader = $this->manager->validateHeader(array_merge($header, [
                 'type' => PriceList::TYPE_CUSTOMER,
                 'customer_source' => PriceList::CUSTOMER_SOURCE_PARTNER,
-                'manager_user_id' => $userId,
+                'manager_user_id' => $list->manager_user_id ?: $userId,
             ]), $list);
 
             $list->fill($validatedHeader);
@@ -232,12 +232,16 @@ final class UserPriceListWorkflow
         });
     }
 
-    private function editableForUser(int $userId, int $priceListId): PriceList
+    private function editableForUser(int $userId, int $priceListId, bool $approverScope = false): PriceList
     {
-        $list = PriceList::query()
-            ->where('manager_user_id', $userId)
-            ->whereIn('status', [PriceList::STATUS_DRAFT, PriceList::STATUS_REJECTED])
-            ->find($priceListId);
+        $query = PriceList::query()
+            ->whereIn('status', [PriceList::STATUS_DRAFT, PriceList::STATUS_REJECTED]);
+
+        if (! $approverScope) {
+            $query->where('manager_user_id', $userId);
+        }
+
+        $list = $query->find($priceListId);
 
         if (! $list) {
             throw ValidationException::withMessages(['price_list' => 'Chỉ bảng giá Nháp hoặc đã bị từ chối của bạn mới được sửa.']);
