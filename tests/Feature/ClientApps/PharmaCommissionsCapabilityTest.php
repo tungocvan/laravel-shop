@@ -146,6 +146,11 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('Xuất Excel',$view);
         $this->assertStringContainsString("fetch(exportLink.href,{credentials:'same-origin',cache:'no-store'})",$view);
         $this->assertStringContainsString("navigator.share(payload)",$view);
+        $this->assertStringContainsString('id="commission-select-all"',$view);
+        $this->assertStringContainsString('commission-row-checkbox',$view);
+        $this->assertStringContainsString("url.searchParams.append('ids[]',id)",$view);
+        $this->assertStringContainsString("'ids'=>['nullable','array','max:500']",$controller);
+        $this->assertStringContainsString("whereIn('issue_id',\$ids)",$controller);
         $this->assertStringContainsString('Mở / Chia sẻ file',$view);
         $this->assertStringNotContainsString('Admin::',$view);
         $this->assertStringNotContainsString('method="POST"',$view);
