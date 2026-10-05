@@ -544,3 +544,11 @@ Accepted validation:
 
 Do not reinterpret this checkpoint as an Admin Commission Center rewrite. ClientPortal consumes Pharma-owned scope/business rules and keeps its own PWA controller/view boundary.
 
+
+
+## ClientPortal Pharma Hub checkpoint — 2026-10-05
+
+- ClientPortal is refreshing the Pharma Application Hub from Foundation-era copy to capability discovery.
+- No `Modules/Pharma` service, model, query, formula, workflow or schema changes are part of this branch.
+- Domain ownership remains unchanged: `Modules/Pharma` owns business data/rules; ClientPortal only filters capability visibility through existing web permissions and presents links into existing workspaces.
+- No migration and no domain regression is required solely for this presentation-only change unless subsequent implementation expands scope.

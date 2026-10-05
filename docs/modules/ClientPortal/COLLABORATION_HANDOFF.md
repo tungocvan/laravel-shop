@@ -1095,3 +1095,18 @@ Pre-PR gate:
 - do not run full ClientApps on this feature branch;
 - merge only after the already-recorded explicit UI PASS and final PR review.
 
+
+
+## Pharma PWA Hub / Overview capability-discovery closeout — 2026-10-05
+
+- Branch: `refactor/clientportal-pharma-hub-overview`
+- Base: `main@f47ffd492` after PR #272.
+- Scope is ClientPortal presentation/contract only; no Pharma business rule, persistence, workflow, route or permission changes.
+- Pharma Hub remains the canonical application entry and continues to derive visible features from manifest + current User web permissions before applying ClientPortal presentation settings.
+- Replaced stale Foundation-era supporting defaults with current workspace guidance: `Làm việc theo phạm vi được giao`.
+- Hub UI is capability-first: managed hero, authorized capability count/summary, responsive workspace cards, native touch feedback, explicit workspace CTA and managed supporting guidance.
+- No domain metrics are invented on Overview; the count is only the already-authorized feature collection.
+- `/admin/client-apps` remains the owner of Hub presentation overrides; Blade continues to consume `applicationHubPresentation()` rather than hard-coding managed hero/supporting copy.
+- Bottom Navigation remains a shortcut surface and is not changed into an authorization mechanism.
+- Focused regression: `ClientPortalPwaSettingsTest`; impacted regression: `tests/Feature/ClientApps`.
+- UI acceptance required on rendered Pharma Hub (mobile + desktop) before merge.
