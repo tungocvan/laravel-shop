@@ -179,6 +179,8 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString("if(checkbox?.checked) row.dataset.draftSelected='1'", $create);
         $this->assertStringContainsString('w-32 px-3 py-3 text-right">Giá thu', $create);
         $this->assertStringContainsString('$workflow->updateDraft((int) $user->id, $priceList, $header, $items, $canApprove)', $controller);
+        $this->assertStringContainsString('$workflow->submit((int) $user->id, $priceList, $canApprove)', $controller);
+        $this->assertStringContainsString('public function submit(int $userId, int $priceListId, bool $approverScope = false)', $workflow);
         $this->assertStringContainsString('bool $approverScope = false', $workflow);
         $this->assertStringContainsString("'actual_receivable_price' => ['nullable', 'array']", $controller);
         $this->assertStringContainsString("'invoice_price' => ['nullable', 'array']", $controller);
