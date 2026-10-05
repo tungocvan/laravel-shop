@@ -38,6 +38,24 @@ final class UserCommissionWorkspace
             ->paginate($perPage,['*'],'page',$page);
     }
 
+    public function exportRows(
+        int $userId,
+        ?int $partnerId=null,
+        string $source='all',
+        mixed $from=null,
+        mixed $to=null,
+        bool $canViewTeam=false,
+        ?int $managerUserId=null,
+    ): Collection {
+        return $this->scopedQuery($userId,$canViewTeam,$managerUserId,$source,$from,$to)
+            ->when($partnerId!==null,fn(Builder $query)=>$query->where('partner_id',$partnerId))
+            ->with(['issue','medicine','user','partner'])
+            ->orderBy('calculated_at')
+            ->orderBy('issue_id')
+            ->orderBy('id')
+            ->get();
+    }
+
     public function detail(
         int $issueId,
         int $userId,
