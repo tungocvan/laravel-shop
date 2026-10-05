@@ -187,7 +187,12 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('Phê duyệt &amp; kích hoạt', $adminIndex);
         $this->assertStringContainsString("confirm({{ \$list->id }},'approve')", $adminIndex);
         $this->assertStringContainsString("if (\$this->confirmingAction === 'approve')", $adminIndexComponent);
-        $this->assertStringContainsString('>Thao tác</th>', $view);
+        $this->assertStringContainsString('aria-label="Thao tác cho {{ $list->name }}">•••</button>', $adminIndex);
+        $this->assertStringContainsString('Chi tiết bảng giá', $adminIndex);
+        $this->assertStringContainsString('Sửa thông tin', $adminIndex);
+        $this->assertStringNotContainsString('>Xem</a>', $adminIndex);
+        $this->assertStringNotContainsString('>Thêm <svg', $adminIndex);
+        $this->assertStringContainsString('whitespace-nowrap px-4 py-3 text-right">Thao tác</th>', $view);
         $this->assertStringContainsString('data-price-list-actions', $view);
         $this->assertStringContainsString('aria-label="Mở menu thao tác', $view);
         $this->assertStringContainsString('>•••</summary>', $view);
