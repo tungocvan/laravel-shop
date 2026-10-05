@@ -935,3 +935,41 @@ Accepted behavior includes:
 
 Do not regress these accepted rules without an explicit new business decision.
 
+
+
+## Pharma PWA receipt cost visibility hardening — 2026-10-05
+
+Branch:
+
+```text
+fix/clientportal-pharma-receipt-cost-visibility
+```
+
+Scope:
+
+- harden ClientPortal Pharma receipt detail so inventory cost values require `client.pharma.inventory.costs`;
+- keep invoice/document reference values visible independently of inventory cost permission;
+- no lifecycle, migration, PDF artifact, Admin workflow or canonical Pharma business-rule changes.
+
+Implementation:
+
+- `PharmaApplicationController::inventoryReceipt()` resolves `client.pharma.inventory.costs` and passes `canViewCosts` to the PWA detail view;
+- mobile cost value, desktop cost column and cost summary are guarded by `canViewCosts`;
+- receipt detail Blade now has a compile/lint regression guard after a corrective fix for literal escaped newlines in Blade directives.
+
+Validation recorded:
+
+- focused `PharmaInventoryReceiptsCapabilityTest`: PASS after final Blade correction;
+- manual rendered receipt detail UI: PASS;
+- prior companion `PharmaInventoryCapabilityTest`: PASS before the final Blade-only correction; rerun/module regression remains the pre-PR gate;
+- no full-project regression applicable: module-scoped permission/presentation hardening only.
+
+Known issues:
+
+- none currently identified within this scope.
+
+Next step:
+
+- run the required module/regression gate on the final branch head;
+- verify git working tree clean;
+- create PR only after those gates pass; do not merge without explicit user approval.
