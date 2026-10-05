@@ -147,7 +147,7 @@
                                 @if(!empty($exportShare['pdf_url']))<a href="{{ $exportShare['pdf_url'] }}" data-pwa-file-handoff data-file-name="{{ preg_replace('/\.xlsx$/i','.pdf',$exportShare['download_name'] ?? ($priceList->code.'.xlsx')) }}" class="block rounded-xl px-3 py-2.5 text-xs font-bold text-violet-700">Tải PDF</a>
                                 @else<form method="POST" action="{{ route('client.pharma.price-lists.share.pdf.queue',(int)$exportShare['share_id']) }}">@csrf<button class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-violet-700">Chuyển sang PDF</button></form>@endif
                             @endif
-                            <a href="{{ route('client.pharma.price-lists.show',$priceList->id) }}#price-list-actions" class="block rounded-xl px-3 py-2.5 text-xs font-bold text-rose-700">Ngừng kích hoạt…</a>
+                            <button type="button" data-price-list-deactivation-open data-price-list-id="{{ $priceList->id }}" data-price-list-name="{{ $priceList->name }}" data-price-list-mode="{{ $canApprove ? 'direct' : 'request' }}" class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-rose-700">Ngừng kích hoạt…</button>
                         @endif
                     </div>
                 </details>
@@ -188,7 +188,7 @@
                                     <form method="POST" action="{{ route('client.pharma.price-lists.share.pdf.queue',(int)$exportShare['share_id']) }}">@csrf<button class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-violet-700 hover:bg-violet-50">Chuyển sang PDF</button></form>
                                 @endif
                             @endif
-                            <a href="{{ route('client.pharma.price-lists.show',$priceList->id) }}#price-list-actions" class="block rounded-xl px-3 py-2.5 text-xs font-bold text-rose-700 hover:bg-rose-50">Ngừng kích hoạt…</a>
+                            <button type="button" data-price-list-deactivation-open data-price-list-id="{{ $priceList->id }}" data-price-list-name="{{ $priceList->name }}" data-price-list-mode="{{ $canApprove ? 'direct' : 'request' }}" class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-rose-700 hover:bg-rose-50">Ngừng kích hoạt…</button>
                         @endif
                     </div>
                 </details>
@@ -198,6 +198,24 @@
     </section>
     @if($priceLists->hasPages())<div>{{ $priceLists->links() }}</div>@endif
 </div>
+
+@if($canApprove)
+    @foreach($priceLists as $priceList)
+        @if($priceList->status === 'pending_deactivation')
+            <form id="price-list-deactivation-approve-{{ $priceList->id }}" method="POST" action="{{ route('client.pharma.price-lists.deactivation.approve',$priceList->id) }}" class="hidden">@csrf</form>
+        @endif
+    @endforeach
+@endif
+
+<dialog id="price-list-deactivation-dialog" class="mb-0 mt-auto w-full max-w-[520px] rounded-t-[28px] border-0 p-0 shadow-2xl backdrop:bg-slate-950/55 sm:m-auto sm:w-[min(92vw,520px)] sm:rounded-[28px]">
+    <form method="POST" data-price-list-deactivation-form class="p-5 sm:p-6">
+        @csrf
+        <p class="text-lg font-black text-slate-950">Ngừng kích hoạt bảng giá</p>
+        <p class="mt-2 text-sm leading-6 text-slate-600" data-price-list-deactivation-message>Nhập lý do để tiếp tục.</p>
+        <label class="mt-4 block"><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Lý do</span><textarea name="deactivation_reason" required maxlength="1000" rows="4" class="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm" placeholder="Nhập lý do ngừng kích hoạt..."></textarea></label>
+        <div class="mt-5 flex gap-2"><button type="button" data-price-list-deactivation-cancel class="min-h-11 flex-1 rounded-2xl border border-slate-300 px-4 py-3 text-sm font-black text-slate-700">Đóng</button><button type="submit" class="min-h-11 flex-1 rounded-2xl bg-rose-700 px-4 py-3 text-sm font-black text-white" data-price-list-deactivation-submit>Xác nhận</button></div>
+    </form>
+</dialog>
 
 <dialog id="price-list-pwa-file-handoff" class="mb-0 mt-auto w-full max-w-[560px] rounded-t-[28px] border-0 p-0 shadow-2xl backdrop:bg-slate-950/55 sm:m-auto sm:w-[min(92vw,560px)] sm:rounded-[28px]">
     <div class="p-5 sm:p-6">
@@ -246,6 +264,20 @@ document.addEventListener('DOMContentLoaded',()=>{
         }catch(_){title.textContent='Không thể chuẩn bị tệp';message.textContent='Không tải được tệp trong phiên hiện tại. PWA vẫn giữ nguyên màn hình để bạn có thể thử lại.'}
     };
     document.querySelectorAll('[data-pwa-file-handoff]').forEach(anchor=>anchor.addEventListener('click',event=>preparePwaFile(event,anchor)));
+    const deactivationDialog=document.getElementById('price-list-deactivation-dialog'),deactivationForm=deactivationDialog?.querySelector('[data-price-list-deactivation-form]'),deactivationMessage=deactivationDialog?.querySelector('[data-price-list-deactivation-message]');
+    document.querySelectorAll('[data-price-list-deactivation-open]').forEach(button=>button.addEventListener('click',()=>{
+        if(!deactivationDialog||!deactivationForm)return;
+        const id=button.dataset.priceListId,name=button.dataset.priceListName||'bảng giá',mode=button.dataset.priceListMode;
+        deactivationForm.action=mode==='direct' ? `{{ url('/apps/pharma/price-lists') }}/${id}/deactivate` : `{{ url('/apps/pharma/price-lists') }}/${id}/deactivation-request`;
+        if(deactivationMessage)deactivationMessage.textContent=mode==='direct' ? `Bạn đang ngừng kích hoạt trực tiếp “${name}”. Vui lòng nhập lý do.` : `Yêu cầu ngừng kích hoạt “${name}” sẽ được gửi cho người có quyền phê duyệt.`;
+        deactivationForm.querySelector('[name="deactivation_reason"]')?.focus();
+        deactivationDialog.showModal();
+    }));
+    deactivationDialog?.querySelector('[data-price-list-deactivation-cancel]')?.addEventListener('click',()=>deactivationDialog.close());
+    document.querySelectorAll('form[id^="price-list-deactivation-approve-"]').forEach(form=>{
+        const id=form.id.replace('price-list-deactivation-approve-','');
+        document.querySelectorAll(`[data-price-list-approve-deactivation="${id}"]`).forEach(button=>button.addEventListener('click',()=>{if(confirm('Chấp nhận yêu cầu và ngừng kích hoạt bảng giá này?'))form.submit();}));
+    });
     document.querySelectorAll('[data-price-list-actions]').forEach(menu=>{
         menu.addEventListener('toggle',()=>{
             if(!menu.open)return;
