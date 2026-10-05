@@ -1,3 +1,22 @@
+## Checkpoint — Pharma stock card + issue fulfillment closeout — 2026-10-05
+
+- Branch: `refactor/clientportal-pharma-inventory-stock-card`; compared with `main` before handoff: ahead 36, behind 0.
+- PWA inventory balance detail is now a medicine-level **Thẻ kho** across all tracked lots/expiry dates, with current total stock, lot cards, total inbound/outbound quantities, and a ledger limited to effective stock movements (opening balance and posted receipt/issue movements; reversal noise is not presented as a completed movement).
+- Multi-lot issue fulfillment is supported: one requested medicine quantity may be split across multiple lot/expiry lines while preserving the commercial total. Admin posting readiness is exposed only when every issue line has a selected lot/expiry and sufficient canonical stock.
+- Stock-card issue movements preserve each posted lot allocation, so a 116-unit issue split 16 + 100 is represented as two ledger rows and reconciles to the medicine total.
+- PWA stock-card PDF/print is generated through the Pharma-owned `InventoryStockCardDocumentService`; ClientPortal remains a thin adapter and follows the external-file handoff contract.
+- PWA order/issue list now permits permanent deletion only for non-posted `DRAFT` or `REJECTED` documents. The server rechecks status/ownership under lock; related deferred supplies/items are removed without mutating inventory balances or ledger. Posted/pending/approved documents remain protected.
+- UI acceptance: **PASS**, including stock-card reconciliation, multi-lot issue posting, stock-card totals/PDF presentation, and Draft/Rejected delete actions.
+- Focused impacted regression: **PASS — 15 tests, 300 assertions** across `PharmaInventoryCapabilityTest` + `PharmaOrderApprovalCapabilityTest`.
+- Pharma module regression: **PASS — 217 tests, 2493 assertions**.
+- Full ClientApps/full-project regression: **NOT APPLICABLE — module-scoped regression strategy**; only the demonstrably impacted ClientPortal Pharma capability tests were run.
+- Schema migration: none introduced by this batch.
+- Production boundary: normal deployment/cache lifecycle; no new feature flag or runtime enablement step.
+- Remaining gate: synchronize this handoff locally, verify tracked working tree clean, then create/review PR. Do not merge without explicit approval.
+- Status: **IMPLEMENTATION COMPLETE — TEST PASS + UI PASS — HANDOFF/CLEAN/PR GATE.**
+
+---
+
 ## Checkpoint — Inventory sales + commission operations closeout — 2026-09-27
 
 - Branch: `fix/pharma-price-list-activation-identity-overlap`.
