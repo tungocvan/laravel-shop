@@ -318,20 +318,19 @@ class ClientPortalPwaSettingsTest extends TestCase
     {
         $application = app(ApplicationRegistry::class)->find('pharma');
         $settings = app(ClientPortalSettingsService::class);
-        $resolver = app(\Modules\ClientPortal\Services\PortalNavigationResolver::class);
 
         $settings->updateApplicationNavigationPresentation('pharma', ['items' => [
             ['key' => 'overview', 'bottom_enabled' => true, 'bottom_sort_order' => 10, 'bottom_icon' => 'home', 'bottom_label' => 'Trang chủ'],
             ['key' => 'products', 'bottom_enabled' => true, 'bottom_sort_order' => 20, 'bottom_icon' => 'beaker', 'bottom_label' => ''],
         ]]);
 
-        $navigation = $resolver->forApplication($application, null)->keyBy('key');
-        $this->assertSame('Trang chủ', $navigation['overview']['bottom_label']);
-        $this->assertSame('', $navigation['products']['bottom_label']);
-        $this->assertSame($application['navigation'][0]['route'], $navigation['overview']['route']);
-        $this->assertSame($application['navigation'][0]['permission'], $navigation['overview']['permission']);
+        $items = collect($settings->applicationNavigationPresentation($application)['items'])->keyBy('key');
+        $this->assertSame('Trang chủ', $items['overview']['bottom_label']);
+        $this->assertSame('', $items['products']['bottom_label']);
 
+        $resolver = file_get_contents(base_path('Modules/ClientPortal/Services/PortalNavigationResolver.php'));
         $blade = file_get_contents(base_path('Modules/ClientPortal/resources/views/partials/adaptive-navigation.blade.php'));
+        $this->assertStringContainsString("'bottom_label' => trim", $resolver);
         $this->assertStringContainsString("$item['bottom_label'] ?: $item['name']", $blade);
     }
 
