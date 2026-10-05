@@ -128,13 +128,14 @@
                     $issue=$row->issue;
                     $customer=$issue?->recipientPartner?->name ?: $issue?->recipient_name ?: '—';
                     $manager=$issue?->manager?->name ?: '—';
+                    $sourceLabel=$row->source_type==='bid' ? 'Trúng thầu' : ($row->source_type==='price_list' ? 'Bảng giá' : 'Hỗn hợp');
                     $detailUrl=route('client.pharma.commissions.show',['issue'=>$row->issue_id]);
                 @endphp
                 <div data-commission-item class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
                     <div class="mb-2 flex items-center justify-between gap-3"><label class="inline-flex min-h-9 items-center gap-2 text-xs font-bold text-slate-500"><input type="checkbox" class="commission-row-checkbox h-5 w-5 rounded border-slate-300" value="{{ $row->issue_id }}" aria-label="Chọn phiếu {{ $issue?->number }}"><span>Chọn</span></label><span class="text-xs font-bold uppercase tracking-wide text-slate-400">{{ $issue?->issue_date?->format('d/m/Y') ?: $row->calculated_at?->format('d/m/Y') }}</span></div>
                     <a href="{{ $detailUrl }}" class="block transition active:scale-[0.985] motion-reduce:transform-none">
                     <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0"><h2 class="mt-1 truncate font-black text-slate-950">{{ $customer }}</h2><p class="mt-1 text-sm font-semibold text-slate-500">{{ $manager }}</p></div>
+                        <div class="min-w-0"><h2 class="mt-1 truncate font-black text-slate-950">{{ $customer }}</h2><p class="mt-1 text-sm font-semibold text-slate-500">{{ $manager }}</p><p class="mt-1 text-xs font-bold text-slate-500"><span class="uppercase text-slate-400">Nguồn:</span> {{ $sourceLabel }}</p></div>
                         <span class="shrink-0 text-xl font-black text-slate-300">›</span>
                     </div>
                     <div class="mt-3 grid grid-cols-2 gap-3 border-t border-slate-100 pt-3">
@@ -150,7 +151,7 @@
         <div class="hidden overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm md:block">
             <table class="w-full table-fixed border-collapse text-left">
                 <thead class="bg-slate-50 text-xs font-black uppercase tracking-wide text-slate-500">
-                    <tr><th class="w-[6%] px-2 py-3 text-center"><input data-commission-select-all-desktop type="checkbox" class="h-4 w-4 rounded border-slate-300" aria-label="Chọn tất cả phiếu đang hiển thị"></th><th class="w-[13%] px-4 py-3">Ngày xuất</th><th class="w-[30%] px-4 py-3">Khách hàng</th><th class="w-[20%] px-4 py-3">Người phụ trách</th><th class="w-[18%] px-4 py-3 text-right">Tổng giá trị</th><th class="w-[18%] px-4 py-3 text-right">Tổng hoa hồng</th></tr>
+                    <tr><th class="w-[6%] px-2 py-3 text-center"><input data-commission-select-all-desktop type="checkbox" class="h-4 w-4 rounded border-slate-300" aria-label="Chọn tất cả phiếu đang hiển thị"></th><th class="w-[13%] px-4 py-3">Ngày xuất</th><th class="w-[30%] px-4 py-3">Khách hàng</th><th class="w-[17%] px-4 py-3">Người phụ trách</th><th class="w-[13%] px-4 py-3">Nguồn</th><th class="w-[16%] px-4 py-3 text-right">Tổng giá trị</th><th class="w-[16%] px-4 py-3 text-right">Tổng hoa hồng</th></tr>
                 </thead>
                 <tbody id="commission-list" class="divide-y divide-slate-100">
                     @forelse($rows as $row)
@@ -165,11 +166,12 @@
                             <td class="px-4 py-4"><a href="{{ $detailUrl }}" class="block font-black text-slate-950">{{ $issue?->issue_date?->format('d/m/Y') ?: $row->calculated_at?->format('d/m/Y') }}</a></td>
                             <td class="px-4 py-4"><a href="{{ $detailUrl }}" class="block truncate font-bold text-slate-800">{{ $customer }}</a></td>
                             <td class="px-4 py-4"><a href="{{ $detailUrl }}" class="block truncate font-semibold text-slate-600">{{ $manager }}</a></td>
+                            <td class="px-4 py-4"><a href="{{ $detailUrl }}" class="block font-bold text-slate-700">{{ $sourceLabel }}</a></td>
                             <td class="px-4 py-4 text-right"><a href="{{ $detailUrl }}" class="block font-black tabular-nums text-slate-950">{{ number_format((float)$row->revenue_amount,0,',','.') }} đ</a></td>
                             <td class="px-4 py-4 text-right"><a href="{{ $detailUrl }}" class="block font-black tabular-nums {{ (float)$row->commission_amount<0 ? 'text-rose-700' : 'text-emerald-700' }}">{{ number_format((float)$row->commission_amount,0,',','.') }} đ <span class="text-slate-300">›</span></a></td>
                         </tr>
                     @empty
-                        <tr><td colspan="6" class="px-5 py-10 text-center"><h2 class="font-black text-slate-800">Chưa có phiếu xuất phù hợp</h2><p class="mt-2 text-sm text-slate-500">Thử thay đổi khách hàng, khoảng ngày hoặc nguồn hoa hồng.</p></td></tr>
+                        <tr><td colspan="7" class="px-5 py-10 text-center"><h2 class="font-black text-slate-800">Chưa có phiếu xuất phù hợp</h2><p class="mt-2 text-sm text-slate-500">Thử thay đổi khách hàng, khoảng ngày hoặc nguồn hoa hồng.</p></td></tr>
                     @endforelse
                 </tbody>
             </table>
