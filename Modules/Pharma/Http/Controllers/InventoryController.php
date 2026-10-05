@@ -1333,7 +1333,11 @@ final class InventoryController extends Controller
         ])->when(!empty($data['ids']),fn($q)=>$q->whereIn('issue_id',$data['ids']))
           ->with(['issue','medicine','user','partner'])->orderBy('calculated_at')->orderBy('issue_id')->orderBy('id')->get();
 
-        return $exporter->download($rows,$from,$to,$profile);
+        $artifact=$exporter->generate($rows,$from,$to,(int)auth()->id(),[
+            'source'=>$data['source']??'all','from'=>$from->toDateString(),'to'=>$to->toDateString(),
+            'user_id'=>$data['user_id']??null,'partner_id'=>$data['partner_id']??null,'medicine_id'=>$data['medicine_id']??null,
+        ],$profile);
+        return response()->download($exporter->path($artifact),$artifact->download_name);
     }
 
     private function issueSalePriceCandidates()
