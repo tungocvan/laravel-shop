@@ -113,7 +113,7 @@
         </div>
     </section>
 
-    <div class="grid gap-2.5 lg:hidden">
+    <div class="grid min-w-0 w-full gap-2.5 px-0.5 lg:hidden">
         @forelse($priceLists as $priceList)
             @php
                 $customer = $priceList->partner?->name ?? $priceList->officialFacility?->facility_name ?? $priceList->officialFacility?->name ?? 'Bảng giá chung';
@@ -121,8 +121,8 @@
                 $statusLabel = match($priceList->status) { 'draft' => 'Nháp', 'pending_approval' => 'Chờ duyệt', 'active' => 'Hiệu lực', 'pending_deactivation' => 'Chờ ngừng', 'rejected' => 'Từ chối', 'inactive' => 'Ngưng', 'archived' => 'Lưu trữ', default => $priceList->status };
                 $statusClass = match($priceList->status) { 'active' => 'bg-emerald-50 text-emerald-700 ring-emerald-200', 'draft' => 'bg-amber-50 text-amber-700 ring-amber-200', 'pending_approval' => 'bg-blue-50 text-blue-700 ring-blue-200', 'rejected' => 'bg-rose-50 text-rose-700 ring-rose-200', default => 'bg-slate-100 text-slate-600 ring-slate-200' };
             @endphp
-            <article class="relative rounded-3xl border border-slate-200 bg-white shadow-sm">
-                <a href="{{ route('client.pharma.price-lists.show', $priceList->id) }}" class="block rounded-3xl p-4 pr-16">
+            <article class="relative min-w-0 w-full max-w-full overflow-visible rounded-3xl border border-slate-200 bg-white shadow-sm">
+                <a href="{{ route('client.pharma.price-lists.show', $priceList->id) }}" class="block min-w-0 max-w-full rounded-3xl p-4 pr-[4.25rem]">
                     <div class="flex min-w-0 items-start gap-2">
                         <div class="min-w-0 flex-1"><h2 class="truncate font-black leading-5 text-slate-950">{{ $priceList->name }}</h2>@if($customer)<p class="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{{ $customer }}</p>@endif</div>
                         <span class="shrink-0 rounded-full px-2 py-1 text-[10px] font-black ring-1 {{ $statusClass }}">{{ $statusLabel }}</span>
@@ -133,9 +133,9 @@
                         @if($priceList->effective_from || $priceList->effective_to)<span class="tabular-nums">@if($priceList->effective_from){{ $priceList->effective_from->format('d/m/Y') }}@endif @if($priceList->effective_from && $priceList->effective_to)→@endif @if($priceList->effective_to){{ $priceList->effective_to->format('d/m/Y') }}@endif</span>@endif
                     </div>
                 </a>
-                <details class="absolute bottom-3 right-3 z-20" data-price-list-actions>
+                <details class="absolute bottom-3 right-3 z-20 max-w-[calc(100%-1.5rem)]" data-price-list-actions>
                     <summary aria-label="Mở menu thao tác {{ $priceList->name }}" class="inline-flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-2xl border border-slate-200 bg-white text-sm font-black tracking-widest text-slate-700 shadow-sm">•••</summary>
-                    <div class="absolute bottom-12 right-0 z-[100] w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 text-left shadow-xl">
+                    <div class="absolute bottom-12 right-0 z-[100] w-56 max-w-[calc(100vw-3rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 text-left shadow-xl">
                         <a href="{{ route('client.pharma.price-lists.show',$priceList->id) }}" class="block rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700">Chi tiết bảng giá</a>
                         @if(in_array($priceList->status,['draft','rejected'],true) && $canCreate)<a href="{{ route('client.pharma.price-lists.edit',$priceList->id) }}" class="block rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700">Sửa thông tin</a>@endif
                         @if(in_array($priceList->status,['draft','rejected'],true))<form method="POST" action="{{ route('client.pharma.price-lists.submit',$priceList->id) }}">@csrf<button class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-blue-700">Gửi duyệt</button></form>@endif
