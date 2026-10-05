@@ -128,6 +128,7 @@ class ClientAdaptiveNavigationTest extends TestCase
         $this->assertStringNotContainsString('box-shadow: 2px 2px 5px', $html);
         $this->assertStringContainsString('class="block truncate leading-[1.125em]"', $html);
         $this->assertStringContainsString('title="Tổng quan"', $html);
+        $this->assertStringContainsString('>Tổng quan</span>', $html);
         $this->assertStringContainsString('touch-action: manipulation', $html);
         $this->assertStringContainsString('-webkit-tap-highlight-color: transparent', $html);
         $this->assertStringContainsString('active:scale-[0.97]', $html);
@@ -135,6 +136,34 @@ class ClientAdaptiveNavigationTest extends TestCase
         $this->assertStringContainsString('motion-reduce:transform-none', $html);
         $this->assertStringContainsString('onpointerdown=', $html);
         $this->assertStringContainsString('onpointercancel=', $html);
+    }
+
+
+    public function test_shared_navigation_falls_back_for_blank_mobile_label(): void
+    {
+        $item = collect([[
+            'name' => 'Bảng giá của tôi',
+            'route' => 'client.apps.index',
+            'icon' => 'home',
+            'bottom_icon' => 'home',
+            'bottom_label' => '',
+        ]]);
+
+        $request = Request::create(route('client.apps.index', absolute: false), 'GET');
+        $matchedRoute = Route::getRoutes()->match($request);
+        $request->setRouteResolver(fn () => $matchedRoute);
+        app()->instance('request', $request);
+
+        $html = view('ClientPortal::partials.adaptive-navigation', [
+            'primaryNavigation' => $item,
+            'moreNavigation' => collect(),
+            'mobilePrimaryNavigation' => $item,
+            'mobileMoreNavigation' => collect(),
+            'hideMobileNavigation' => false,
+        ])->render();
+
+        $this->assertStringContainsString('title="Bảng giá của tôi"', $html);
+        $this->assertStringContainsString('>Bảng giá của tôi</span>', $html);
     }
 
     public function test_navigation_icon_partial_has_generic_fallback(): void
