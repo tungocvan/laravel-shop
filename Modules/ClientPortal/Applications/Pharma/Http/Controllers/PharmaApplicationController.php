@@ -1169,6 +1169,7 @@ final class PharmaApplicationController extends Controller
     ): RedirectResponse {
         $validated=$request->validate([
             'partner_id'=>['nullable','integer','min:1'],
+            'medicine_id'=>['nullable','integer','min:1'],
             'source'=>['nullable','in:all,bid,price_list'],
             'from'=>['nullable','date'],
             'to'=>['nullable','date','after_or_equal:from'],
