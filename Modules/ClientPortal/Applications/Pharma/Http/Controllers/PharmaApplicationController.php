@@ -136,8 +136,9 @@ final class PharmaApplicationController extends Controller
         $user = $request->user('web');
         abort_if($user === null, 401);
         abort_unless($registry->userCan($user, 'client.pharma.price-lists.create'), 403);
+        $canApprove = $registry->userCan($user, 'client.pharma.price-lists.approve');
 
-        $list = $workspace->findManaged((int) $user->id, $priceList);
+        $list = $workspace->findEditable((int) $user->id, $priceList, $canApprove);
         abort_if($list === null || ! in_array($list->status, [PriceList::STATUS_DRAFT, PriceList::STATUS_REJECTED], true), 404);
 
         return view('ClientPortal::applications.pharma.price-list-create', [
