@@ -187,10 +187,10 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('Phê duyệt &amp; kích hoạt', $adminIndex);
         $this->assertStringContainsString("confirm({{ \$list->id }},'approve')", $adminIndex);
         $this->assertStringContainsString("if (\$this->confirmingAction === 'approve')", $adminIndexComponent);
-        $this->assertStringContainsString('>Thao tác</th>', $index);
-        $this->assertStringContainsString('id="price-list-actions"', $show);
-        $this->assertStringNotContainsString('Tài liệu bảng giá', $show);
-        $this->assertStringContainsString('Tệp đã xuất · {{ count($exportHistory) }}', $show);
+        $this->assertStringContainsString('>Thao tác</th>', $view);
+        $this->assertStringContainsString('id="price-list-actions"', $detail);
+        $this->assertStringNotContainsString('Tài liệu bảng giá', $detail);
+        $this->assertStringContainsString('Tệp đã xuất · {{ count($exportHistory) }}', $detail);
         $this->assertStringContainsString("'actual_receivable_price' => ['nullable', 'array']", $controller);
         $this->assertStringContainsString("'invoice_price' => ['nullable', 'array']", $controller);
         $this->assertStringContainsString('public function editableProducts(int $userId, PriceList $priceList', $workflow);
