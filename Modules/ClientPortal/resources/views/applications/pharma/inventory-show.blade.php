@@ -47,9 +47,20 @@
         </div>
     </section>
 
+    <section class="grid grid-cols-2 gap-3">
+        <div class="rounded-3xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
+            <p class="text-xs font-bold text-emerald-700">Tổng nhập</p>
+            <p class="mt-2 text-xl font-black text-emerald-950">{{ $quantity($total_received) }} {{ $balance->medicine?->unit }}</p>
+        </div>
+        <div class="rounded-3xl border border-rose-200 bg-rose-50 p-4 shadow-sm">
+            <p class="text-xs font-bold text-rose-700">Tổng xuất</p>
+            <p class="mt-2 text-xl font-black text-rose-950">{{ $quantity($total_issued) }} {{ $balance->medicine?->unit }}</p>
+        </div>
+    </section>
+
     <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
         <div class="flex flex-wrap items-end justify-between gap-2">
-            <div><p class="text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">Stock ledger</p><h2 class="mt-1 text-lg font-black text-slate-950">Thẻ kho sản phẩm</h2><p class="mt-1 text-xs text-slate-500">Toàn bộ nhập, xuất, hoàn tác và tồn đầu kỳ của sản phẩm theo thời gian.</p></div>
+            <div><p class="text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">Stock ledger</p><h2 class="mt-1 text-lg font-black text-slate-950">Thẻ kho sản phẩm</h2><p class="mt-1 text-xs text-slate-500">Các nghiệp vụ nhập, xuất và tồn đầu kỳ còn hiệu lực của sản phẩm theo thời gian.</p></div>
             <p class="text-xs text-slate-500">{{ number_format($movements->count()) }} giao dịch</p>
         </div>
 
