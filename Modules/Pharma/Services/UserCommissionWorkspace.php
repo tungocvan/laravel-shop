@@ -7,6 +7,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Modules\Pharma\Models\InventoryIssueCommission;
+use Modules\Pharma\Models\Medicine;
 
 final class UserCommissionWorkspace
 {
@@ -22,8 +23,13 @@ final class UserCommissionWorkspace
         int $page=1,
         bool $canViewTeam=false,
         ?int $managerUserId=null,
+        ?int $medicineId=null,
     ): LengthAwarePaginator {
         $query=$this->scopedQuery($userId,$canViewTeam,$managerUserId,$source,$from,$to);
+
+        if($medicineId!==null){
+            $query->where('medicine_id',$medicineId);
+        }
 
         if($partnerId!==null){
             $query->where('partner_id',$partnerId);
@@ -66,9 +72,11 @@ final class UserCommissionWorkspace
         mixed $to=null,
         bool $canViewTeam=false,
         ?int $managerUserId=null,
+        ?int $medicineId=null,
     ): Collection {
         return $this->scopedQuery($userId,$canViewTeam,$managerUserId,$source,$from,$to)
             ->when($partnerId!==null,fn(Builder $query)=>$query->where('partner_id',$partnerId))
+            ->when($medicineId!==null,fn(Builder $query)=>$query->where('medicine_id',$medicineId))
             ->with(['issue','medicine','user','partner'])
             ->orderBy('calculated_at')
             ->orderBy('issue_id')
@@ -110,8 +118,10 @@ final class UserCommissionWorkspace
         mixed $to=null,
         bool $canViewTeam=false,
         ?int $managerUserId=null,
+        ?int $medicineId=null,
     ): array {
-        $base=$this->scopedQuery($userId,$canViewTeam,$managerUserId,$source,$from,$to);
+        $base=$this->scopedQuery($userId,$canViewTeam,$managerUserId,$source,$from,$to)
+            ->when($medicineId!==null,fn(Builder $query)=>$query->where('medicine_id',$medicineId));
         $totals=(clone $base)->selectRaw('COALESCE(SUM(revenue_amount),0) revenue, COALESCE(SUM(commission_amount),0) commission')->first();
 
         return [
@@ -139,6 +149,27 @@ final class UserCommissionWorkspace
             ->unique('id')
             ->sortBy('name',SORT_NATURAL|SORT_FLAG_CASE)
             ->values();
+    }
+
+    public function commissionMedicines(
+        int $userId,
+        string $source='all',
+        mixed $from=null,
+        mixed $to=null,
+        bool $canViewTeam=false,
+        ?int $managerUserId=null,
+    ): Collection {
+        $medicineIds=$this->scopedQuery($userId,$canViewTeam,$managerUserId,$source,$from,$to)
+            ->whereNotNull('medicine_id')
+            ->select('medicine_id')
+            ->distinct()
+            ->pluck('medicine_id');
+
+        return Medicine::query()
+            ->whereIn('id',$medicineIds)
+            ->orderBy('name')
+            ->orderBy('id')
+            ->get(['id','medicine_code','name']);
     }
 
     public function commissionUsers(): Collection

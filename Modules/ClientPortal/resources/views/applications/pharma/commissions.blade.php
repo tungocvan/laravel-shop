@@ -10,7 +10,7 @@
 @section('content')
 <form id="commission-export-form" method="POST" action="{{ route('client.pharma.commissions.export') }}" class="mb-4 space-y-3">
     @csrf
-    @foreach(['source','from','to','partner_id','manager_user_id'] as $key) @if(filled($filters[$key] ?? null))<input type="hidden" name="{{ $key }}" value="{{ $filters[$key] }}">@endif @endforeach
+    @foreach(['source','from','to','partner_id','medicine_id','manager_user_id'] as $key) @if(filled($filters[$key] ?? null))<input type="hidden" name="{{ $key }}" value="{{ $filters[$key] }}">@endif @endforeach
     <div class="flex flex-wrap items-center justify-between gap-2">
         <a href="{{ route('client.pharma.dashboard') }}" class="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">← Không gian làm việc Pharma</a>
         <button id="commission-export-excel" type="submit" class="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-black text-emerald-800 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">Xuất Excel</button>
@@ -32,8 +32,14 @@
                 $exportSourceLabel=$exportSource==='bid' ? 'Trúng thầu' : ($exportSource==='price_list' ? 'Bảng giá' : 'Tất cả');
             @endphp
             <div class="rounded-2xl border {{ $activeExport?->id===$export->id ? 'border-emerald-300 bg-emerald-50/50' : 'border-slate-200' }} p-3">
-                <div class="flex flex-wrap items-center justify-between gap-2"><div class="min-w-0"><p class="truncate text-sm font-black text-slate-800">{{ $export->download_name }}</p><div class="mt-1 flex flex-wrap items-end gap-x-4 gap-y-1 text-xs"><p class="font-semibold text-slate-500">{{ $export->generated_at?->format('d/m/Y H:i') }} · {{ number_format($export->row_count) }} dòng</p><div><span class="block text-[10px] font-black uppercase tracking-wide text-slate-400">Nguồn</span><span class="font-black text-slate-700">{{ $exportSourceLabel }}</span></div></div></div>
-                <div class="flex flex-wrap gap-2"><a href="{{ route('client.pharma.commissions.exports.download',$export) }}" class="min-h-10 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-700">Tải</a><a href="{{ route('client.pharma.commissions.exports.print',$export) }}" target="_blank" rel="noopener" class="min-h-10 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-700">In</a><button type="button" data-commission-share-url="{{ route('client.pharma.commissions.exports.download',$export) }}" data-commission-share-name="{{ $export->download_name }}" class="min-h-10 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-black text-emerald-800">Chia sẻ</button><form method="POST" action="{{ route('client.pharma.commissions.exports.destroy',$export) }}" onsubmit="return confirm('Xóa file Excel này khỏi máy chủ?')">@csrf @method('DELETE')<button type="submit" class="min-h-10 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-black text-rose-700">Xóa</button></form></div></div>
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="min-w-0">
+                        <p class="truncate text-sm font-black text-slate-800">{{ $export->download_name }}</p>
+                        <p class="mt-1 text-xs font-semibold text-slate-500">{{ $export->generated_at?->format('d/m/Y H:i') }} · {{ number_format($export->row_count) }} dòng</p>
+                        <p class="mt-1 text-xs font-semibold text-slate-500"><span class="font-black text-slate-600">Nguồn:</span> {{ $exportSourceLabel }}</p>
+                    </div>
+                    <div class="flex shrink-0 flex-wrap gap-2"><a href="{{ route('client.pharma.commissions.exports.download',$export) }}" class="min-h-10 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-700">Tải</a><a href="{{ route('client.pharma.commissions.exports.print',$export) }}" target="_blank" rel="noopener" class="min-h-10 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-700">In</a><button type="button" data-commission-share-url="{{ route('client.pharma.commissions.exports.download',$export) }}" data-commission-share-name="{{ $export->download_name }}" class="min-h-10 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-black text-emerald-800">Chia sẻ</button><form method="POST" action="{{ route('client.pharma.commissions.exports.destroy',$export) }}" onsubmit="return confirm('Xóa file Excel này khỏi máy chủ?')">@csrf @method('DELETE')<button type="submit" class="min-h-10 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-black text-rose-700">Xóa</button></form></div>
+                </div>
             </div>
             @endforeach
         </div>
@@ -58,12 +64,13 @@
             $hasCommissionFilters=$filters['source']!=='all'
                 || !empty($filters['manager_user_id'])
                 || !empty($filters['partner_id'])
+                || !empty($filters['medicine_id'])
                 || $filters['from']!==now()->startOfMonth()->toDateString()
                 || $filters['to']!==now()->toDateString();
         @endphp
         <nav class="flex items-center gap-2 overflow-x-auto pb-1" aria-label="Nguồn hoa hồng">
             @foreach($sources as $value=>$label)
-                <a href="{{ route('client.pharma.commissions', array_filter(['source'=>$value==='all' ? null : $value,'from'=>$filters['from'],'to'=>$filters['to'],'partner_id'=>$filters['partner_id'],'manager_user_id'=>$filters['manager_user_id']])) }}" class="whitespace-nowrap rounded-full border px-4 py-2 text-sm font-black transition active:scale-[0.985] motion-reduce:transform-none {{ $filters['source']===$value ? 'border-slate-950 bg-slate-950 text-white' : 'border-slate-200 bg-white text-slate-600' }}">{{ $label }}</a>
+                <a href="{{ route('client.pharma.commissions', array_filter(['source'=>$value==='all' ? null : $value,'from'=>$filters['from'],'to'=>$filters['to'],'partner_id'=>$filters['partner_id'],'medicine_id'=>$filters['medicine_id'],'manager_user_id'=>$filters['manager_user_id']])) }}" class="whitespace-nowrap rounded-full border px-4 py-2 text-sm font-black transition active:scale-[0.985] motion-reduce:transform-none {{ $filters['source']===$value ? 'border-slate-950 bg-slate-950 text-white' : 'border-slate-200 bg-white text-slate-600' }}">{{ $label }}</a>
             @endforeach
             @if($hasCommissionFilters)
                 <a href="{{ route('client.pharma.commissions') }}" aria-label="Xóa bộ lọc" title="Xóa bộ lọc" class="ml-1 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-lg font-black text-slate-500 transition hover:bg-slate-100 active:scale-[0.96] motion-reduce:transform-none">↺</a>
@@ -73,7 +80,7 @@
         <form id="commission-filter-form" method="GET" action="{{ route('client.pharma.commissions') }}" class="mt-4 min-w-0 space-y-3">
             <input type="hidden" name="source" value="{{ $filters['source'] }}">
 
-            <div class="grid min-w-0 gap-3 {{ $canViewTeam ? 'lg:grid-cols-2' : 'lg:grid-cols-1' }}">
+            <div class="grid min-w-0 gap-3 md:grid-cols-2 {{ $canViewTeam ? 'xl:grid-cols-3' : '' }}">
                 @if($canViewTeam)
                     <label class="min-w-0">
                         <span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Người phụ trách</span>
@@ -88,6 +95,19 @@
                         </x-pwa-select-search>
                     </label>
                 @endif
+
+                <label class="min-w-0">
+                    <span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Sản phẩm</span>
+                    <x-pwa-select-search id="commission-medicine" name="medicine_id" :selected="$filters['medicine_id'] ?? ''" placeholder="Tất cả sản phẩm" search-placeholder="Tìm thuốc hoặc mã thuốc..." data-pwa-select-search-submit="change">
+                        <button type="button" data-pwa-select-search-option data-value="" data-label="Tất cả sản phẩm" data-search="tất cả sản phẩm" class="flex w-full items-center rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-700 hover:bg-slate-100">Tất cả sản phẩm</button>
+                        @foreach($commissionMedicines as $commissionMedicine)
+                            @php
+                                $commissionMedicineLabel=$commissionMedicine->name.($commissionMedicine->medicine_code ? ' · '.$commissionMedicine->medicine_code : '');
+                            @endphp
+                            <button type="button" data-pwa-select-search-option data-value="{{ $commissionMedicine->id }}" data-label="{{ $commissionMedicineLabel }}" data-search="{{ $commissionMedicineLabel }}" class="flex w-full items-center rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-700 hover:bg-slate-100">{{ $commissionMedicineLabel }}</button>
+                        @endforeach
+                    </x-pwa-select-search>
+                </label>
 
                 <label class="min-w-0">
                     <span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Khách hàng</span>
@@ -144,7 +164,7 @@
                     </div>
                 </a></div>
             @empty
-                <div class="rounded-3xl border border-slate-200 bg-white px-5 py-10 text-center"><h2 class="font-black text-slate-800">Chưa có phiếu xuất phù hợp</h2><p class="mt-2 text-sm text-slate-500">Thử thay đổi khách hàng, khoảng ngày hoặc nguồn hoa hồng.</p></div>
+                <div class="rounded-3xl border border-slate-200 bg-white px-5 py-10 text-center"><h2 class="font-black text-slate-800">Chưa có phiếu xuất phù hợp</h2><p class="mt-2 text-sm text-slate-500">Thử thay đổi sản phẩm, khách hàng, khoảng ngày hoặc nguồn hoa hồng.</p></div>
             @endforelse
         </div>
 

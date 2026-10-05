@@ -523,3 +523,24 @@ Official Facility Import + BHXH Source Mirror was merged to `main` via PR #166 o
 ### Docker production hardening — 2026-09-19
 
 Production Docker was aligned with the accepted HSSP runtime: PHP accepts 50 MB files / 64 MB POST bodies, Nginx accepts 100 MB request bodies, and the general Docker queue consumes `pharma` by default. `app` and `queue` already share the `app_storage` volume, so staged dossier files remain visible to the asynchronous uploader. `.env.docker.example` documents the same queue default. A focused Docker contract test guards these settings. Production still requires the existing Google Drive credentials/connection and Pharma runtime enablement.
+
+## ClientPortal Commission parity checkpoint — 2026-10-05
+
+Branch: `refactor/clientportal-pharma-commissions-parity`, base `main@1a1b35e28`.
+
+Canonical Pharma boundary retained:
+
+- `UserCommissionWorkspace` remains the ClientPortal-facing canonical commission workspace and now accepts an optional `medicine_id` in browse, summary and export queries;
+- `commissionMedicines()` derives distinct Medicine choices from the already-scoped commission query, so user/team/date/source/manager boundaries remain authoritative;
+- filtering occurs before issue grouping/aggregation, so when a Product filter is active the issue revenue/commission totals represent only matching commission-ledger entries;
+- no commission calculation formula, posting/reversal lifecycle, Inventory Issue lifecycle or schema changed.
+
+Accepted validation:
+
+- ClientPortal Commission capability: **3 passed (155 assertions)**;
+- Pharma module regression: **217 passed (2493 assertions)**;
+- rendered Commission UI: **PASS**;
+- no migration.
+
+Do not reinterpret this checkpoint as an Admin Commission Center rewrite. ClientPortal consumes Pharma-owned scope/business rules and keeps its own PWA controller/view boundary.
+

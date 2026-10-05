@@ -1062,3 +1062,36 @@ Next step:
 - No route, permission, settings schema, migration, Pharma business logic, Commission workflow or iPhone fixed-bottom behavior changed.
 - Targeted validation: `ClientAdaptiveNavigationTest` + `ClientPortalPwaSettingsTest` = **30 passed (289 assertions)**.
 - Full ClientApps is intentionally deferred until the hotfix is merged to `main`, per feature-branch workflow.
+
+## Pharma PWA Commissions parity & mobile workspace closeout — 2026-10-05
+
+Branch: `refactor/clientportal-pharma-commissions-parity`, based on `main@1a1b35e28` (PR #270).
+
+Scope and accepted behavior:
+
+- closes the remaining Commission list/filter parity gap by adding a scoped searchable Product/Medicine filter to “Hoa hồng của tôi”;
+- Product options are derived only from the authenticated commission scope; an out-of-scope `medicine_id` is rejected rather than broadening access;
+- Product scope is preserved through source/date/customer/manager filtering, summary, list pagination/load-more and Excel export metadata/redirect flow;
+- existing Customer and optional team Manager selectors remain searchable PWA selectors;
+- Commission detail keeps the focused-task shell with application header and mobile bottom navigation hidden;
+- exported-file card metadata is presented as filename, generated timestamp/row count, then `Nguồn: ...`, while Tải/In/Chia sẻ/Xóa behavior remains unchanged;
+- no Admin controller/view reuse, no commission formula/posting changes and no migration.
+
+Validation on the final functional/UI checkpoint before this handoff update:
+
+- `PharmaCommissionsCapabilityTest`: **3 passed (155 assertions)**;
+- `Modules/Pharma/Tests`: **217 passed (2493 assertions)**;
+- Desktop/PWA rendered UI: **PASS**, including the corrected exported-file metadata layout;
+- a Blade parse regression found during manual UI verification was corrected by using an explicit `@php ... @endphp` block for the Product option label.
+
+Known technical debt intentionally not claimed as complete:
+
+- `commissions.blade.php` still contains inline JavaScript for selection/date/export/share interactions. Moving this behavior to the shared/native interaction layer is deferred and must not be reported as completed by future handoffs.
+
+Pre-PR gate:
+
+- pull this handoff commit locally and rerun the focused Commission capability test;
+- the Pharma module regression above was already green before documentation-only closeout; rerun only if required by the final branch policy;
+- do not run full ClientApps on this feature branch;
+- merge only after the already-recorded explicit UI PASS and final PR review.
+
