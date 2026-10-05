@@ -135,8 +135,19 @@ final class UserPriceListWorkflow
 
         return DB::transaction(function () use ($userId, $priceListId, $header, $items): PriceList {
             $list = $this->editableForUser($userId, $priceListId);
-            $source = $this->sourceForUser($userId, (int) ($header['source_price_list_id'] ?? 0));
-            $sourceItems = $source->items()->where('status', 'active')->get()->keyBy('medicine_variant_id');
+            $requestedSourcePriceListId = (int) ($header['source_price_list_id'] ?? 0);
+            $sourceItems = collect();
+
+            try {
+                $source = $this->sourceForUser($userId, $requestedSourcePriceListId);
+                $sourceItems = $source->items()->where('status', 'active')->get()->keyBy('medicine_variant_id');
+            } catch (ValidationException) {
+                if ($requestedSourcePriceListId !== (int) $list->source_price_list_id) {
+                    throw ValidationException::withMessages(['source_price_list_id' => 'Bảng giá gốc không còn được phép sử dụng.']);
+                }
+
+                $sourceItems = $list->items()->get()->keyBy('medicine_variant_id');
+            }
 
             $validatedHeader = $this->manager->validateHeader(array_merge($header, [
                 'type' => PriceList::TYPE_CUSTOMER,
