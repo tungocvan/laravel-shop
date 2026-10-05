@@ -195,6 +195,9 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('whitespace-nowrap px-4 py-3 text-right">Thao tác</th>', $view);
         $this->assertStringContainsString('data-price-list-actions', $view);
         $this->assertStringContainsString('aria-label="Mở menu thao tác', $view);
+        $this->assertStringContainsString('grid min-w-0 w-full gap-2.5 px-0.5 lg:hidden', $view);
+        $this->assertStringContainsString('relative min-w-0 w-full max-w-full overflow-visible rounded-3xl', $view);
+        $this->assertStringContainsString('max-w-[calc(100vw-3rem)]', $view);
         $this->assertStringContainsString('>•••</summary>', $view);
         $this->assertStringContainsString('w-[12%] px-4 py-3">Trạng thái', $view);
         $this->assertStringContainsString('whitespace-nowrap rounded-full px-2 py-1 text-[11px]', $view);
