@@ -137,7 +137,7 @@ final class PharmaInventoryCapabilityTest extends TestCase
         $this->assertStringContainsString("@section('hide-application-header', true)", $detail);
         $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $detail);
         $this->assertStringContainsString('← Tồn kho', $detail);
-        $this->assertStringContainsString('← Quay về dashboard', $detail);
+        $this->assertStringContainsString('← Quay về tồn kho', $detail);
         $this->assertStringContainsString('xl:hidden', $detail);
         $this->assertStringContainsString('xl:block', $detail);
         $this->assertStringNotContainsString('method="POST"', $detail);
@@ -232,6 +232,7 @@ final class PharmaInventoryCapabilityTest extends TestCase
         $this->assertStringContainsString("'total_quantity_on_hand' =>", $workspace);
         $this->assertStringContainsString("'batch_number' => (string) \$transaction->batch_number", $workspace);
         $this->assertStringContainsString("'expiry_date' => \$transaction->expiry_date", $workspace);
+        $this->assertStringContainsString("->whereIn('type', ['opening', 'receipt', 'issue'])", $workspace);
 
         $this->assertStringContainsString('Thẻ kho ·', $detail);
         $this->assertStringContainsString('Tổng tồn hiện tại', $detail);
