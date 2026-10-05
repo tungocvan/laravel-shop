@@ -1067,8 +1067,7 @@ final class PharmaApplicationController extends Controller
             'from'=>['nullable','date'],
             'to'=>['nullable','date','after_or_equal:from'],
             'manager_user_id'=>['nullable','integer','min:1'],
-            'ids'=>['nullable','array','max:500'],
-            'ids.*'=>['integer','distinct'],
+            'export_artifact'=>['nullable','integer','min:1'],
             'page'=>['nullable','integer','min:1'],
         ]);
         $application=$registry->find('pharma'); abort_if($application===null,404);
@@ -1089,6 +1088,9 @@ final class PharmaApplicationController extends Controller
         $commissionPartners=$workspace->commissionPartners((int)$user->id,$source,$from,$to,$canViewTeam,$managerUserId);
         abort_if($partnerId!==null && $commissionPartners->firstWhere('id',$partnerId)===null,404);
 
+        $recentExports=CommissionExportArtifact::query()->where('created_by',(int)$user->id)->latest('generated_at')->limit(8)->get();
+        $activeExport=!empty($validated['export_artifact']) ? $recentExports->firstWhere('id',(int)$validated['export_artifact']) : null;
+
         return view('ClientPortal::applications.pharma.commissions',[
             'application'=>$application,
             'applicationPresentation'=>$settings->applicationPresentation($application),
@@ -1098,6 +1100,8 @@ final class PharmaApplicationController extends Controller
             'canViewTeam'=>$canViewTeam,
             'commissionUsers'=>$commissionUsers,
             'commissionPartners'=>$commissionPartners,
+            'recentExports'=>$recentExports,
+            'activeExport'=>$activeExport,
             'filters'=>[
                 'partner_id'=>$partnerId,
                 'source'=>$source,
@@ -1125,6 +1129,8 @@ final class PharmaApplicationController extends Controller
             'from'=>['nullable','date'],
             'to'=>['nullable','date','after_or_equal:from'],
             'manager_user_id'=>['nullable','integer','min:1'],
+            'ids'=>['nullable','array','max:500'],
+            'ids.*'=>['integer','distinct'],
         ]);
         $user=$request->user('web'); abort_if($user===null,401);
         abort_unless($registry->userCan($user,'client.pharma.commissions.view'),403);
