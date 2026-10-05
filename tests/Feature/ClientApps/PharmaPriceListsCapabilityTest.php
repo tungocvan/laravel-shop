@@ -167,6 +167,13 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('Lưu bảng giá Nháp', $create);
         $this->assertStringContainsString('name="selected[', $create);
         $this->assertStringContainsString('name="company_price[', $create);
+        $this->assertStringContainsString('name="actual_receivable_price[', $create);
+        $this->assertStringContainsString('name="invoice_price[', $create);
+        $this->assertStringContainsString('>Giá thu</th>', $create);
+        $this->assertStringContainsString('>Giá HĐ</th>', $create);
+        $this->assertStringContainsString("'actual_receivable_price' => ['nullable', 'array']", $controller);
+        $this->assertStringContainsString("'invoice_price' => ['nullable', 'array']", $controller);
+        $this->assertStringContainsString('public function editableProducts(int $userId, PriceList $priceList', $workflow);
         $this->assertStringContainsString('Giá Bán (VAT) *', $create);
         $this->assertStringContainsString('Bảng giá khách hàng', $create);
         $this->assertStringContainsString('Bảng giá chung', $create);
