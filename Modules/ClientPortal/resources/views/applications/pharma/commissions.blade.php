@@ -12,6 +12,7 @@
     <a href="{{ route('client.pharma.dashboard') }}" class="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">← Không gian làm việc Pharma</a>
     <a id="commission-export-excel" href="{{ route('client.pharma.commissions.export', array_filter(['source'=>$filters['source'],'from'=>$filters['from'],'to'=>$filters['to'],'partner_id'=>$filters['partner_id'],'manager_user_id'=>$filters['manager_user_id']])) }}" class="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-black text-emerald-800 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">Xuất Excel</a>
 </div>
+<div id="commission-selection-actions" class="mb-4 flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"><label class="inline-flex min-h-10 items-center gap-2 font-bold text-slate-700"><input id="commission-select-all" type="checkbox" class="h-5 w-5 rounded border-slate-300"> Chọn tất cả</label><span class="text-slate-400">·</span><span class="font-semibold text-slate-600"><b id="commission-selected-count">0</b> phiếu đã chọn</span><button id="commission-clear-selection" type="button" class="ml-auto hidden min-h-10 rounded-xl border border-slate-200 px-3 font-bold text-slate-600">Bỏ chọn</button></div>
 <div id="commission-export-ready" class="mb-4 hidden rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-900">
     <span data-commission-export-status>File Excel đã sẵn sàng.</span>
     <button type="button" data-commission-export-share class="ml-2 rounded-xl bg-emerald-800 px-3 py-2 font-black text-white transition active:scale-[0.985] motion-reduce:transform-none">Mở / Chia sẻ file</button>
@@ -106,7 +107,7 @@
                     $manager=$issue?->manager?->name ?: '—';
                     $detailUrl=route('client.pharma.commissions.show',['issue'=>$row->issue_id]);
                 @endphp
-                <a data-commission-item href="{{ $detailUrl }}" class="block rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">
+                <div data-commission-item class="relative"><label class="absolute left-3 top-3 z-10 grid h-9 w-9 place-items-center rounded-xl bg-white/95 shadow-sm"><input type="checkbox" class="commission-row-checkbox h-5 w-5 rounded border-slate-300" value="{{ $row->issue_id }}" aria-label="Chọn phiếu {{ $issue?->number }}"></label><a href="{{ $detailUrl }}" class="block rounded-3xl pl-14 border border-slate-200 bg-white p-4 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">
                     <div class="flex items-start justify-between gap-3">
                         <div class="min-w-0"><p class="text-xs font-bold uppercase tracking-wide text-slate-400">{{ $issue?->issue_date?->format('d/m/Y') ?: $row->calculated_at?->format('d/m/Y') }}</p><h2 class="mt-1 truncate font-black text-slate-950">{{ $customer }}</h2><p class="mt-1 text-sm font-semibold text-slate-500">{{ $manager }}</p></div>
                         <span class="shrink-0 text-xl font-black text-slate-300">›</span>
@@ -115,7 +116,7 @@
                         <div><p class="text-[11px] font-bold uppercase text-slate-400">Tổng giá trị</p><p class="mt-1 font-black tabular-nums text-slate-950">{{ number_format((float)$row->revenue_amount,0,',','.') }} đ</p></div>
                         <div class="text-right"><p class="text-[11px] font-bold uppercase text-slate-400">Tổng hoa hồng</p><p class="mt-1 font-black tabular-nums {{ (float)$row->commission_amount<0 ? 'text-rose-700' : 'text-emerald-700' }}">{{ number_format((float)$row->commission_amount,0,',','.') }} đ</p></div>
                     </div>
-                </a>
+                </a></div>
             @empty
                 <div class="rounded-3xl border border-slate-200 bg-white px-5 py-10 text-center"><h2 class="font-black text-slate-800">Chưa có phiếu xuất phù hợp</h2><p class="mt-2 text-sm text-slate-500">Thử thay đổi khách hàng, khoảng ngày hoặc nguồn hoa hồng.</p></div>
             @endforelse
@@ -124,7 +125,7 @@
         <div class="hidden overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm md:block">
             <table class="w-full table-fixed border-collapse text-left">
                 <thead class="bg-slate-50 text-xs font-black uppercase tracking-wide text-slate-500">
-                    <tr><th class="w-[14%] px-4 py-3">Ngày xuất</th><th class="w-[30%] px-4 py-3">Khách hàng</th><th class="w-[20%] px-4 py-3">Người phụ trách</th><th class="w-[18%] px-4 py-3 text-right">Tổng giá trị</th><th class="w-[18%] px-4 py-3 text-right">Tổng hoa hồng</th></tr>
+                    <tr><th class="w-[6%] px-2 py-3 text-center"><input data-commission-select-all-desktop type="checkbox" class="h-4 w-4 rounded border-slate-300" aria-label="Chọn tất cả phiếu đang hiển thị"></th><th class="w-[13%] px-4 py-3">Ngày xuất</th><th class="w-[30%] px-4 py-3">Khách hàng</th><th class="w-[20%] px-4 py-3">Người phụ trách</th><th class="w-[18%] px-4 py-3 text-right">Tổng giá trị</th><th class="w-[18%] px-4 py-3 text-right">Tổng hoa hồng</th></tr>
                 </thead>
                 <tbody id="commission-list" class="divide-y divide-slate-100">
                     @forelse($rows as $row)
@@ -135,6 +136,7 @@
                             $detailUrl=route('client.pharma.commissions.show',['issue'=>$row->issue_id]);
                         @endphp
                         <tr data-commission-item class="group transition hover:bg-slate-50">
+                            <td class="px-2 py-4 text-center"><input type="checkbox" class="commission-row-checkbox h-4 w-4 rounded border-slate-300" value="{{ $row->issue_id }}" aria-label="Chọn phiếu {{ $issue?->number }}"></td>
                             <td class="px-4 py-4"><a href="{{ $detailUrl }}" class="block font-black text-slate-950">{{ $issue?->issue_date?->format('d/m/Y') ?: $row->calculated_at?->format('d/m/Y') }}</a></td>
                             <td class="px-4 py-4"><a href="{{ $detailUrl }}" class="block truncate font-bold text-slate-800">{{ $customer }}</a></td>
                             <td class="px-4 py-4"><a href="{{ $detailUrl }}" class="block truncate font-semibold text-slate-600">{{ $manager }}</a></td>
@@ -142,7 +144,7 @@
                             <td class="px-4 py-4 text-right"><a href="{{ $detailUrl }}" class="block font-black tabular-nums {{ (float)$row->commission_amount<0 ? 'text-rose-700' : 'text-emerald-700' }}">{{ number_format((float)$row->commission_amount,0,',','.') }} đ <span class="text-slate-300">›</span></a></td>
                         </tr>
                     @empty
-                        <tr><td colspan="5" class="px-5 py-10 text-center"><h2 class="font-black text-slate-800">Chưa có phiếu xuất phù hợp</h2><p class="mt-2 text-sm text-slate-500">Thử thay đổi khách hàng, khoảng ngày hoặc nguồn hoa hồng.</p></td></tr>
+                        <tr><td colspan="6" class="px-5 py-10 text-center"><h2 class="font-black text-slate-800">Chưa có phiếu xuất phù hợp</h2><p class="mt-2 text-sm text-slate-500">Thử thay đổi khách hàng, khoảng ngày hoặc nguồn hoa hồng.</p></td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -163,6 +165,24 @@
     const ready=document.getElementById('commission-export-ready');
     const shareButton=ready?.querySelector('[data-commission-export-share]');
     const status=ready?.querySelector('[data-commission-export-status]');
+    const selectAll=document.getElementById('commission-select-all');
+    const desktopSelectAll=document.querySelector('[data-commission-select-all-desktop]');
+    const selectedCount=document.getElementById('commission-selected-count');
+    const clearSelection=document.getElementById('commission-clear-selection');
+    const rowCheckboxes=()=>[...document.querySelectorAll('.commission-row-checkbox')];
+    const selectedIds=()=>[...new Set(rowCheckboxes().filter(box=>box.checked).map(box=>box.value))];
+    const syncSelection=()=>{
+        const boxes=rowCheckboxes(),ids=selectedIds(),all=boxes.length>0&&boxes.every(box=>box.checked);
+        if(selectedCount) selectedCount.textContent=String(ids.length);
+        if(clearSelection) clearSelection.classList.toggle('hidden',ids.length===0);
+        [selectAll,desktopSelectAll].forEach(box=>{if(box){box.checked=all;box.indeterminate=ids.length>0&&!all;}});
+    };
+    const setAll=(checked)=>{rowCheckboxes().forEach(box=>box.checked=checked);syncSelection();};
+    selectAll?.addEventListener('change',()=>setAll(selectAll.checked));
+    desktopSelectAll?.addEventListener('change',()=>setAll(desktopSelectAll.checked));
+    clearSelection?.addEventListener('click',()=>setAll(false));
+    document.addEventListener('change',event=>{if(event.target?.classList?.contains('commission-row-checkbox'))syncSelection();});
+    syncSelection();
     let preparedFile=null;
     const standalone=window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true;
     if(exportLink && standalone){
@@ -173,7 +193,9 @@
             const original=exportLink.textContent;
             exportLink.textContent='Đang chuẩn bị…';
             try{
-                const response=await fetch(exportLink.href,{credentials:'same-origin',cache:'no-store'});
+                const url=new URL(exportLink.href,window.location.href);
+                selectedIds().forEach(id=>url.searchParams.append('ids[]',id));
+                const response=await fetch(url.toString(),{credentials:'same-origin',cache:'no-store'});
                 if(!response.ok) throw new Error('commission-export');
                 const blob=await response.blob();
                 preparedFile=new File([blob],'pharma-hoa-hong.xlsx',{type:blob.type||'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
@@ -196,6 +218,15 @@
                 return;
             }
             if(status) status.textContent='Thiết bị này chưa hỗ trợ chia sẻ file trực tiếp. Hãy mở trang bằng trình duyệt để tải Excel.';
+        });
+    } else if(exportLink) {
+        exportLink.addEventListener('click',(event)=>{
+            const ids=selectedIds();
+            if(ids.length===0) return;
+            event.preventDefault();
+            const url=new URL(exportLink.href,window.location.href);
+            ids.forEach(id=>url.searchParams.append('ids[]',id));
+            window.location.assign(url.toString());
         });
     }
 })();
