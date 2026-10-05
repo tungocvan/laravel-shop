@@ -31,6 +31,10 @@ final class UserCommissionWorkspace
 
         return $query
             ->selectRaw('issue_id, MAX(calculated_at) calculated_at, COALESCE(SUM(revenue_amount),0) revenue_amount, COALESCE(SUM(commission_amount),0) commission_amount')
+            ->addSelect(['issue_price_list_id'=>\Modules\Pharma\Models\InventoryIssue::query()
+                ->select('price_list_id')
+                ->whereColumn('pharma_inventory_issues.id','pharma_inventory_issue_commissions.issue_id')
+                ->limit(1)])
             ->groupBy('issue_id')
             ->with(['issue.manager','issue.recipientPartner'])
             ->orderByDesc('calculated_at')
