@@ -151,10 +151,10 @@ final class PharmaInventoryReceiptsCapabilityTest extends TestCase
         $this->assertStringContainsString("\$canViewCosts = \$registry->userCan(\$user, 'client.pharma.inventory.costs');", $controller);
         $this->assertStringContainsString("'canViewCosts' => \$canViewCosts", $controller);
         $this->assertStringContainsString("\$costTotal=\$canViewCosts ?", $detail);
-        $this->assertStringContainsString("@if(\$canViewCosts)\n<span>Giá vốn", $detail);
-        $this->assertStringContainsString("@if(\$canViewCosts)\n<th class=\"px-4 py-3 text-right\">Giá nhập / Giá vốn</th>", $detail);
-        $this->assertStringContainsString("@if(\$canViewCosts)\n<td class=\"px-4 py-3 text-right font-bold\">{{ \$money(\$item->unit_price_ex_vat) }}</td>", $detail);
-        $this->assertStringContainsString("@if(\$canViewCosts)\n<div><p class=\"text-[10px] font-bold text-slate-400\">Giá vốn</p>", $detail);
+        $this->assertMatchesRegularExpression('/@if\\(\\$canViewCosts\\)\\s*<span>Giá vốn/', $detail);
+        $this->assertMatchesRegularExpression('/@if\\(\\$canViewCosts\\)\\s*<th class="px-4 py-3 text-right">Giá nhập \/ Giá vốn<\\/th>/', $detail);
+        $this->assertMatchesRegularExpression('/@if\\(\\$canViewCosts\\)\\s*<td class="px-4 py-3 text-right font-bold">\\{\\{ \\$money\\(\\$item->unit_price_ex_vat\\) \\}\\}<\\/td>/', $detail);
+        $this->assertMatchesRegularExpression('/@if\\(\\$canViewCosts\\)\\s*<div><p class="text-\\[10px\\] font-bold text-slate-400">Giá vốn<\\/p>/', $detail);
         $this->assertStringNotContainsString("\$costTotal=\$receipt->items->sum", $detail);
 
         $compiled = app('blade.compiler')->compileString($detail);
