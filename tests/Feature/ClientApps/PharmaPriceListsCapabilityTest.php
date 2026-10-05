@@ -267,6 +267,15 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString("'status' => PriceList::STATUS_PENDING_DEACTIVATION", $deactivation);
         $this->assertStringContainsString("'status' => PriceList::STATUS_INACTIVE", $deactivation);
         $this->assertStringContainsString('Ngừng kích hoạt…', $view);
+        $this->assertStringContainsString("route('client.pharma.price-lists.deactivation.request',\$priceList->id)", $view);
+        $this->assertStringContainsString("route('client.pharma.price-lists.deactivate',\$priceList->id)", $view);
+        $this->assertStringContainsString("route('client.pharma.price-lists.deactivation.approve',\$priceList->id)", $view);
+        $this->assertStringContainsString('data-price-list-deactivation-open', $view);
+        $this->assertStringContainsString('id="price-list-deactivation-dialog"', $view);
+        $this->assertStringContainsString('name="deactivation_reason"', $view);
+        $this->assertStringContainsString('Chấp nhận ngừng kích hoạt', $view);
+        $this->assertStringNotContainsString("#price-list-actions", $view);
+        $this->assertStringContainsString("redirect()->route('client.pharma.price-lists')", $controller);
         $this->assertStringNotContainsString('Yêu cầu ngừng kích hoạt', $detail);
         $this->assertStringNotContainsString('Chấp nhận ngừng kích hoạt', $detail);
         $this->assertStringNotContainsString('Ngừng kích hoạt…', $detail);
