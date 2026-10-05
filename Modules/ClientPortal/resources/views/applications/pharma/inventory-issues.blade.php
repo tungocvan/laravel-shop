@@ -119,6 +119,9 @@
                         @endif
                         @if($canPostOrders)<form method="POST" action="{{ route('client.pharma.orders.revert',$issue) }}" onsubmit="return confirm('Hoàn tác ghi sổ? Hàng sẽ được cộng trả vào tồn kho.')">@csrf<button class="inline-flex min-h-10 items-center rounded-xl border border-amber-300 bg-amber-50 px-3 text-xs font-black text-amber-800 active:scale-[0.985]">Hoàn tác ghi sổ</button></form>@endif
                     @endif
+                    @if(in_array($issue->status,[\Modules\Pharma\Models\InventoryIssue::DRAFT,\Modules\Pharma\Models\InventoryIssue::REJECTED],true))
+                        <form method="POST" action="{{ route('client.pharma.orders.delete',$issue) }}" onsubmit="return confirm('Xóa phiếu xuất này? Thao tác không thể hoàn tác và không làm thay đổi tồn kho.')">@csrf @method('DELETE')<button class="inline-flex min-h-10 items-center rounded-xl border border-rose-200 bg-rose-50 px-3 text-xs font-black text-rose-700 active:scale-[0.985]">Xóa phiếu xuất</button></form>
+                    @endif
                     <a href="{{ route('client.pharma.orders.show',$issue->id) }}" class="ml-auto inline-flex min-h-10 items-center text-xs font-black text-slate-600">Chi tiết ›</a>
                 </div>
             </article>
@@ -149,6 +152,10 @@
                                         @if($canPostOrders && ($issue->issue_source ?? 'normal') !== 'bid')
                                             <form method="POST" action="{{ route('client.pharma.orders.post',$issue) }}" onsubmit="return confirm('Xác nhận ghi sổ phiếu xuất?')">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-emerald-700 hover:bg-emerald-50">Ghi sổ</button></form>
                                         @endif
+                                    @endif
+                                    @if(in_array($issue->status,[\Modules\Pharma\Models\InventoryIssue::DRAFT,\Modules\Pharma\Models\InventoryIssue::REJECTED],true))
+                                        <div class="my-1 border-t border-slate-100"></div>
+                                        <form method="POST" action="{{ route('client.pharma.orders.delete',$issue) }}" onsubmit="return confirm('Xóa phiếu xuất này? Thao tác không thể hoàn tác và không làm thay đổi tồn kho.')">@csrf @method('DELETE')<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-rose-700 hover:bg-rose-50">Xóa phiếu xuất</button></form>
                                     @endif
                                     @if($issue->status === \Modules\Pharma\Models\InventoryIssue::POSTED)
                                         <div class="my-1 border-t border-slate-100"></div>
