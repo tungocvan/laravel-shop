@@ -56,6 +56,9 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
         Route::get('/commissions', [PharmaApplicationController::class, 'commissions'])
             ->middleware('client.feature:pharma,commissions')
             ->name('commissions');
+        Route::get('/commissions/export', [PharmaApplicationController::class, 'exportCommissions'])
+            ->middleware('client.feature:pharma,commissions')
+            ->name('commissions.export');
         Route::get('/commissions/{issue}', [PharmaApplicationController::class, 'commission'])
             ->whereNumber('issue')
             ->middleware('client.feature:pharma,commissions')
