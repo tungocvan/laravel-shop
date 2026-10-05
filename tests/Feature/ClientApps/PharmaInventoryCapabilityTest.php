@@ -127,7 +127,7 @@ final class PharmaInventoryCapabilityTest extends TestCase
         $this->assertStringNotContainsString('InventoryTransaction::query()', $controller);
         $this->assertStringContainsString("route('client.pharma.inventory.balances.show'", $index);
         $this->assertStringContainsString('Xem biến động lô', $index);
-        $this->assertStringContainsString('Lịch sử biến động lô', $detail);
+        $this->assertStringContainsString('Thẻ kho sản phẩm', $detail);
         $this->assertStringContainsString('Tồn đầu kỳ', $detail);
         $this->assertStringContainsString('Hoàn tác nhập', $detail);
         $this->assertStringContainsString('Hoàn tác xuất', $detail);
@@ -226,12 +226,12 @@ final class PharmaInventoryCapabilityTest extends TestCase
         $workspace = file_get_contents($root.'/Modules/Pharma/Services/UserInventoryWorkspace.php');
         $detail = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-show.blade.php');
 
-        $this->assertStringContainsString("->where('medicine_id', $balance->medicine_id)", $workspace);
-        $this->assertStringNotContainsString("->where('batch_number', $balance->batch_number)\n            ->whereDate('expiry_date', $balance->expiry_date)\n            ->latest('created_at')", $workspace);
-        $this->assertStringContainsString("'balances' => $balances", $workspace);
+        $this->assertStringContainsString("->where('medicine_id', \$balance->medicine_id)", $workspace);
+        $this->assertStringNotContainsString("->where('batch_number', \$balance->batch_number)\n            ->whereDate('expiry_date', \$balance->expiry_date)\n            ->latest('created_at')", $workspace);
+        $this->assertStringContainsString("'balances' => \$balances", $workspace);
         $this->assertStringContainsString("'total_quantity_on_hand' =>", $workspace);
-        $this->assertStringContainsString("'batch_number' => (string) $transaction->batch_number", $workspace);
-        $this->assertStringContainsString("'expiry_date' => $transaction->expiry_date", $workspace);
+        $this->assertStringContainsString("'batch_number' => (string) \$transaction->batch_number", $workspace);
+        $this->assertStringContainsString("'expiry_date' => \$transaction->expiry_date", $workspace);
 
         $this->assertStringContainsString('Thẻ kho ·', $detail);
         $this->assertStringContainsString('Tổng tồn hiện tại', $detail);
