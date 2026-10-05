@@ -277,6 +277,8 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString("route('client.pharma.price-lists.activate',\$priceList->id)", $view);
         $this->assertStringContainsString("priceList->status==='inactive' && \$canApprove", $view);
         $this->assertStringContainsString('Kích hoạt trở lại', $view);
+        $this->assertStringContainsString('Xóa vĩnh viễn bảng giá Ngưng này?', $view);
+        $this->assertStringContainsString('Toàn bộ file Excel và PDF đã xuất cũng sẽ bị xóa.', $view);
         $this->assertStringContainsString('public function activatePriceList(', $controller);
         $this->assertStringContainsString('PriceListManager $manager', $controller);
         $this->assertStringContainsString('abort_unless($list->status === PriceList::STATUS_INACTIVE, 404);', $controller);
@@ -384,6 +386,13 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('public function historyForUser(int $priceListId, int $userId)', $shareExport);
         $this->assertStringContainsString('public function regeneratePdf(int $shareId, int $userId)', $shareExport);
         $this->assertStringContainsString('public function deleteExport(int $shareId, int $userId)', $shareExport);
+        $priceListManager = file_get_contents(base_path('Modules/Pharma/Services/PriceListManager.php'));
+        $this->assertStringContainsString('private function deletePriceListWithArtifacts(PriceList $priceList): void', $priceListManager);
+        $this->assertStringContainsString("PriceListExportShare::query()->where('price_list_id', \$priceList->id)->get()", $priceListManager);
+        $this->assertStringContainsString("Storage::disk('local')->delete(\$path)", $priceListManager);
+        $this->assertStringContainsString('app(PriceListManager::class)->deleteRemovable($list);', $controller);
+        $this->assertStringContainsString('Đã xóa bảng giá Ngưng và toàn bộ tệp Excel / PDF liên quan.', $controller);
+        $this->assertStringContainsString('if ($share === null)', $pdfJob);
         $this->assertStringContainsString('regeneratePriceListSharePdf(', $controller);
         $this->assertStringContainsString('deletePriceListExportShare(', $controller);
         $this->assertStringContainsString('emailPriceListExportShare(', $controller);
