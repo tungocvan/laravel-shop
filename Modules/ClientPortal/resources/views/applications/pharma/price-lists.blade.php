@@ -229,6 +229,16 @@ document.addEventListener('DOMContentLoaded',()=>{
         }catch(_){title.textContent='Không thể chuẩn bị tệp';message.textContent='Không tải được tệp trong phiên hiện tại. PWA vẫn giữ nguyên màn hình để bạn có thể thử lại.'}
     };
     document.querySelectorAll('[data-pwa-file-handoff]').forEach(anchor=>anchor.addEventListener('click',event=>preparePwaFile(event,anchor)));
+    document.querySelectorAll('[data-price-list-actions]').forEach(menu=>{
+        menu.addEventListener('toggle',()=>{
+            if(!menu.open)return;
+            document.querySelectorAll('[data-price-list-actions][open]').forEach(other=>{if(other!==menu)other.removeAttribute('open');});
+        });
+    });
+    document.addEventListener('click',event=>{
+        document.querySelectorAll('[data-price-list-actions][open]').forEach(menu=>{if(!menu.contains(event.target))menu.removeAttribute('open');});
+    });
+
     dialog?.querySelector('[data-file-cancel]')?.addEventListener('click',()=>dialog.close());
     dialog?.querySelector('[data-file-share]')?.addEventListener('click',async()=>{
         if(!preparedPwaFile)return;
