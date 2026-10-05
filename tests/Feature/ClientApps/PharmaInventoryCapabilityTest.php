@@ -232,7 +232,8 @@ final class PharmaInventoryCapabilityTest extends TestCase
         $this->assertStringContainsString("'total_quantity_on_hand' =>", $workspace);
         $this->assertStringContainsString("'batch_number' => (string) \$transaction->batch_number", $workspace);
         $this->assertStringContainsString("'expiry_date' => \$transaction->expiry_date", $workspace);
-        $this->assertStringContainsString("->whereIn('type', ['opening', 'receipt', 'issue'])", $workspace);
+        $this->assertStringContainsString("'receipt_reversal', 'issue_reversal'", $workspace);
+        $this->assertStringContainsString('$reversedMovementKeys->has($key)', $workspace);
 
         $this->assertStringContainsString('Thẻ kho ·', $detail);
         $this->assertStringContainsString('Tổng tồn hiện tại', $detail);
