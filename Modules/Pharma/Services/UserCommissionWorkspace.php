@@ -30,7 +30,7 @@ final class UserCommissionWorkspace
         }
 
         return $query
-            ->selectRaw('issue_id, MAX(calculated_at) calculated_at, COALESCE(SUM(revenue_amount),0) revenue_amount, COALESCE(SUM(commission_amount),0) commission_amount')
+            ->selectRaw("issue_id, MAX(calculated_at) calculated_at, COALESCE(SUM(revenue_amount),0) revenue_amount, COALESCE(SUM(commission_amount),0) commission_amount, CASE WHEN COUNT(DISTINCT source_type)=1 THEN MAX(source_type) ELSE 'mixed' END source_type")
             ->groupBy('issue_id')
             ->with(['issue.manager','issue.recipientPartner'])
             ->orderByDesc('calculated_at')
