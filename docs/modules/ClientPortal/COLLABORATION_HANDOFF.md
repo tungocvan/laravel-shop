@@ -1,3 +1,21 @@
+## Checkpoint — Pharma Price List draft/edit + lifecycle/index parity — 2026-10-05
+
+- Branch: `fix/clientportal-price-list-draft-edit-parity`; base/merge-base `main` at `c7c730f728ab1f861383386135af5c51fb3d5a6e`. Pre-handoff compare: ahead 68, behind 0.
+- PWA Draft edit now resumes existing selected SKUs, supports explicit add-product mode, preserves historical source rows, and edits canonical company sale / actual receivable / invoice prices without reusing Admin controllers.
+- PWA Price List index owns operational actions through the responsive `•••` menu: edit, approve/activate, export/download/PDF handoff, deactivation lifecycle, inactive reactivation, detail, and guarded deletion where applicable. Mobile card overflow on iPhone was corrected.
+- Price List detail is intentionally read-only for operational actions; summary shows `Người phụ trách` instead of the price-list code.
+- Admin Price List index action UI was aligned to the same compact `•••` interaction while preserving canonical Admin workflows.
+- Deactivation actions execute from the index. ACTIVE manager request, approver direct deactivation, pending-deactivation approval, and INACTIVE reactivation remain delegated to canonical Pharma services and permission gates.
+- INACTIVE Price Lists can be permanently deleted by an approver. Canonical `PriceListManager::deleteRemovable()` now removes every related Price List export-share record and deletes both private Excel and PDF storage artifacts. Queued PDF jobs safely return when their export-share was deleted, preventing orphan regeneration.
+- Automated acceptance: focused `tests/Feature/ClientApps/PharmaPriceListsCapabilityTest.php` PASS (operator reported before final regression); Pharma module regression PASS — **217 tests / 2484 assertions**.
+- Manual UI acceptance: PASS, including Draft edit, lifecycle/reactivation, responsive Price List index actions, and INACTIVE delete flow.
+- Full ClientApps regression: NOT RUN by branch policy; full-project regression: NOT APPLICABLE — Price List/Pharma scoped changes with targeted ClientPortal contract + Pharma module regression.
+- Schema migration: none. Production enablement/feature flag: none.
+- Known local-only artifacts such as `.env.backup-before-ngrok-session` and `public/hot.pharma-mobile` are not part of this branch and must not be committed.
+- Status: **IMPLEMENTATION COMPLETE — FOCUSED TEST PASS + UI PASS + PHARMA REGRESSION PASS — PR GATE PENDING.**
+
+---
+
 ## Pharma PWA Commission Detail Focused Shell Parity — 2026-10-05
 
 - Branch: `fix/clientportal-pharma-commission-detail-shell`, based on `main@a83dbb6d` after merged PR #265.

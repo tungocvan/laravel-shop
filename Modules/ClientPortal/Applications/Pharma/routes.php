@@ -230,6 +230,10 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->whereNumber('priceList')
             ->middleware('client.feature:pharma,price-lists')
             ->name('price-lists.deactivate');
+        Route::post('/price-lists/{priceList}/activate', [PharmaApplicationController::class, 'activatePriceList'])
+            ->whereNumber('priceList')
+            ->middleware('client.feature:pharma,price-lists')
+            ->name('price-lists.activate');
 
         Route::get('/price-lists/{priceList}', [PharmaApplicationController::class, 'priceList'])
             ->whereNumber('priceList')

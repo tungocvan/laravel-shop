@@ -113,7 +113,7 @@
         </div>
     </section>
 
-    <div class="grid gap-2.5 lg:hidden">
+    <div class="grid min-w-0 w-full gap-2.5 px-0.5 lg:hidden">
         @forelse($priceLists as $priceList)
             @php
                 $customer = $priceList->partner?->name ?? $priceList->officialFacility?->facility_name ?? $priceList->officialFacility?->name ?? 'Bảng giá chung';
@@ -121,8 +121,8 @@
                 $statusLabel = match($priceList->status) { 'draft' => 'Nháp', 'pending_approval' => 'Chờ duyệt', 'active' => 'Hiệu lực', 'pending_deactivation' => 'Chờ ngừng', 'rejected' => 'Từ chối', 'inactive' => 'Ngưng', 'archived' => 'Lưu trữ', default => $priceList->status };
                 $statusClass = match($priceList->status) { 'active' => 'bg-emerald-50 text-emerald-700 ring-emerald-200', 'draft' => 'bg-amber-50 text-amber-700 ring-amber-200', 'pending_approval' => 'bg-blue-50 text-blue-700 ring-blue-200', 'rejected' => 'bg-rose-50 text-rose-700 ring-rose-200', default => 'bg-slate-100 text-slate-600 ring-slate-200' };
             @endphp
-            <article class="relative rounded-3xl border border-slate-200 bg-white shadow-sm">
-                <a href="{{ route('client.pharma.price-lists.show', $priceList->id) }}" class="block rounded-3xl p-4 pr-16">
+            <article class="relative min-w-0 w-full max-w-full overflow-visible rounded-3xl border border-slate-200 bg-white shadow-sm">
+                <a href="{{ route('client.pharma.price-lists.show', $priceList->id) }}" class="block min-w-0 max-w-full rounded-3xl p-4 pr-[4.25rem]">
                     <div class="flex min-w-0 items-start gap-2">
                         <div class="min-w-0 flex-1"><h2 class="truncate font-black leading-5 text-slate-950">{{ $priceList->name }}</h2>@if($customer)<p class="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{{ $customer }}</p>@endif</div>
                         <span class="shrink-0 rounded-full px-2 py-1 text-[10px] font-black ring-1 {{ $statusClass }}">{{ $statusLabel }}</span>
@@ -133,13 +133,33 @@
                         @if($priceList->effective_from || $priceList->effective_to)<span class="tabular-nums">@if($priceList->effective_from){{ $priceList->effective_from->format('d/m/Y') }}@endif @if($priceList->effective_from && $priceList->effective_to)→@endif @if($priceList->effective_to){{ $priceList->effective_to->format('d/m/Y') }}@endif</span>@endif
                     </div>
                 </a>
-                @if($exportShare)<a href="{{ $exportShare['url'] }}" data-pwa-file-handoff data-file-name="{{ $exportShare['download_name'] ?? ($priceList->code.'.xlsx') }}" title="Tải Excel đã xuất" aria-label="Tải Excel {{ $priceList->name }}" class="absolute bottom-3 right-3 z-10 inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 text-base font-black text-emerald-700 shadow-sm" onclick="event.stopPropagation()">↓</a>@else<span class="pointer-events-none absolute bottom-4 right-4 text-xl text-slate-300">›</span>@endif
+                <details class="absolute bottom-3 right-3 z-20 max-w-[calc(100%-1.5rem)]" data-price-list-actions>
+                    <summary aria-label="Mở menu thao tác {{ $priceList->name }}" class="inline-flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-2xl border border-slate-200 bg-white text-sm font-black tracking-widest text-slate-700 shadow-sm">•••</summary>
+                    <div class="absolute bottom-12 right-0 z-[100] w-56 max-w-[calc(100vw-3rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 text-left shadow-xl">
+                        <a href="{{ route('client.pharma.price-lists.show',$priceList->id) }}" class="block rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700">Chi tiết bảng giá</a>
+                        @if(in_array($priceList->status,['draft','rejected'],true) && $canCreate)<a href="{{ route('client.pharma.price-lists.edit',$priceList->id) }}" class="block rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700">Sửa thông tin</a>@endif
+                        @if(in_array($priceList->status,['draft','rejected'],true))<form method="POST" action="{{ route('client.pharma.price-lists.submit',$priceList->id) }}">@csrf<button class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-blue-700">Gửi duyệt</button></form>@endif
+                        @if($priceList->status==='pending_approval' && $canApprove)<form method="POST" action="{{ route('client.pharma.price-list-approvals.approve',$priceList->id) }}" onsubmit="return confirm('Phê duyệt và kích hoạt bảng giá này?')">@csrf<button class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-emerald-700">Phê duyệt & kích hoạt</button></form>@endif
+                        @if($priceList->status==='pending_deactivation' && $canApprove)<form method="POST" action="{{ route('client.pharma.price-lists.deactivation.approve',$priceList->id) }}" onsubmit="return confirm('Chấp nhận yêu cầu và ngừng kích hoạt bảng giá này?')">@csrf<button class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-rose-700">Chấp nhận ngừng kích hoạt</button></form>@endif
+                        @if($priceList->status==='inactive' && $canApprove)<form method="POST" action="{{ route('client.pharma.price-lists.activate',$priceList->id) }}" onsubmit="return confirm('Kích hoạt trở lại bảng giá này?')">@csrf<button class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-emerald-700">Kích hoạt trở lại</button></form>@endif
+                        @if($priceList->status==='inactive' && $canApprove)<form method="POST" action="{{ route('client.pharma.price-lists.delete',$priceList->id) }}" onsubmit="return confirm('Xóa vĩnh viễn bảng giá Ngưng này? Toàn bộ file Excel và PDF đã xuất cũng sẽ bị xóa.')">@csrf @method('DELETE')<button class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-red-700">Xóa bảng giá</button></form>@endif
+                        @if($priceList->status==='active')
+                            <form method="POST" action="{{ route('client.pharma.price-lists.export-share',$priceList->id) }}">@csrf<button class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-slate-700">Xuất Excel mới</button></form>
+                            @if($exportShare)
+                                <a href="{{ $exportShare['url'] }}" data-pwa-file-handoff data-file-name="{{ $exportShare['download_name'] ?? ($priceList->code.'.xlsx') }}" class="block rounded-xl px-3 py-2.5 text-xs font-bold text-emerald-700">Tải Excel đã xuất</a>
+                                @if(!empty($exportShare['pdf_url']))<a href="{{ $exportShare['pdf_url'] }}" data-pwa-file-handoff data-file-name="{{ preg_replace('/\.xlsx$/i','.pdf',$exportShare['download_name'] ?? ($priceList->code.'.xlsx')) }}" class="block rounded-xl px-3 py-2.5 text-xs font-bold text-violet-700">Tải PDF</a>
+                                @else<form method="POST" action="{{ route('client.pharma.price-lists.share.pdf.queue',(int)$exportShare['share_id']) }}">@csrf<button class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-violet-700">Chuyển sang PDF</button></form>@endif
+                            @endif
+                            <button type="button" data-price-list-deactivation-open data-price-list-id="{{ $priceList->id }}" data-price-list-name="{{ $priceList->name }}" data-price-list-action="{{ $canApprove ? route('client.pharma.price-lists.deactivate',$priceList->id) : route('client.pharma.price-lists.deactivation.request',$priceList->id) }}" data-price-list-mode="{{ $canApprove ? 'direct' : 'request' }}" class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-rose-700">Ngừng kích hoạt…</button>
+                        @endif
+                    </div>
+                </details>
             </article>
         @empty <div class="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">Bạn chưa có bảng giá nào trong phạm vi quản lý.</div> @endforelse
     </div>
 
     <section class="hidden overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm lg:block">
-        <table class="w-full table-fixed text-left text-sm"><thead class="bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-500"><tr><th class="px-5 py-3">Bảng giá</th><th class="px-5 py-3">Khách hàng</th>@if($canApprove)<th class="px-5 py-3">Người phụ trách</th>@endif<th class="px-5 py-3">Mục đích</th><th class="w-[7%] px-5 py-3 text-center">SP</th><th class="px-5 py-3">Hiệu lực</th><th class="w-[10%] px-5 py-3">Trạng thái</th></tr></thead>
+        <table class="w-full table-fixed text-left text-sm"><thead class="bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-500"><tr><th class="px-5 py-3">Bảng giá</th><th class="px-5 py-3">Khách hàng</th>@if($canApprove)<th class="px-5 py-3">Người phụ trách</th>@endif<th class="px-5 py-3">Mục đích</th><th class="w-[7%] px-5 py-3 text-center">SP</th><th class="px-5 py-3">Hiệu lực</th><th class="w-[12%] px-4 py-3">Trạng thái</th><th class="w-20 whitespace-nowrap px-4 py-3 text-right">Thao tác</th></tr></thead>
         <tbody class="divide-y divide-slate-100">
         @forelse($priceLists as $priceList)
             @php
@@ -147,12 +167,59 @@
                 $exportShare = $exportShares[(int)$priceList->id] ?? null;
                 $statusLabel = match($priceList->status) { 'draft' => 'Nháp', 'pending_approval' => 'Chờ duyệt', 'active' => 'Đang hiệu lực', 'pending_deactivation' => 'Chờ ngừng', 'rejected' => 'Từ chối', 'inactive' => 'Ngưng', 'archived' => 'Lưu trữ', default => $priceList->status };
             @endphp
-            <tr class="transition hover:bg-slate-50"><td class="px-5 py-4"><a href="{{ route('client.pharma.price-lists.show', $priceList->id) }}" class="font-black text-slate-950 hover:underline">{{ $priceList->name }}</a><div class="mt-1 flex items-center gap-2"><p class="text-xs text-slate-400">{{ $priceList->code }}</p>@if($exportShare)<a href="{{ $exportShare['url'] }}" data-pwa-file-handoff data-file-name="{{ $exportShare['download_name'] ?? ($priceList->code.'.xlsx') }}" title="Tải Excel đã xuất" aria-label="Tải Excel {{ $priceList->name }}" class="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-sm font-black text-emerald-700 hover:bg-emerald-100">↓</a>@endif</div>@if(in_array($priceList->status, ['draft', 'rejected'], true) && $canCreate)<div class="mt-2 flex items-center gap-3 text-xs font-bold"><a href="{{ route('client.pharma.price-lists.edit', $priceList->id) }}" class="text-blue-700 hover:underline">Sửa</a>@if($priceList->status === 'draft')<form method="POST" action="{{ route('client.pharma.price-lists.delete', $priceList->id) }}" onsubmit="return confirm('Xóa bảng giá Nháp này?')">@csrf @method('DELETE')<button class="text-red-600 hover:underline">Xóa</button></form>@endif</div>@endif</td><td class="px-5 py-4 text-slate-700">{{ $customer }}</td>@if($canApprove)<td class="px-5 py-4 text-slate-700">{{ $priceList->manager?->name ?: '—' }}</td>@endif<td class="px-5 py-4 text-slate-600">{{ $priceList->purpose?->name ?: '—' }}</td><td class="px-5 py-4 text-center font-bold">{{ $priceList->items_count }}</td><td class="px-5 py-4 text-slate-600">{{ $priceList->effective_from?->format('d/m/Y') ?: '—' }} → {{ $priceList->effective_to?->format('d/m/Y') ?: '—' }}</td><td class="px-5 py-4"><span class="rounded-full px-2.5 py-1 text-xs font-bold {{ $priceList->status === 'active' ? 'bg-emerald-100 text-emerald-700' : ($priceList->status === 'draft' ? 'bg-amber-100 text-amber-700' : ($priceList->status === 'pending_approval' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600')) }}">{{ $statusLabel }}</span></td></tr>
-        @empty <tr><td colspan="{{ $canApprove ? 7 : 6 }}" class="px-5 py-10 text-center text-slate-500">Bạn chưa có bảng giá nào trong phạm vi quản lý.</td></tr> @endforelse
+            <tr class="transition hover:bg-slate-50"><td class="px-5 py-4"><a href="{{ route('client.pharma.price-lists.show', $priceList->id) }}" class="font-black text-slate-950 hover:underline">{{ $priceList->name }}</a><div class="mt-1 flex items-center gap-2"><p class="text-xs text-slate-400">{{ $priceList->code }}</p></div>@if(in_array($priceList->status, ['draft', 'rejected'], true) && $canCreate)<div class="mt-2 flex items-center gap-3 text-xs font-bold"><a href="{{ route('client.pharma.price-lists.edit', $priceList->id) }}" class="text-blue-700 hover:underline">Sửa</a>@if($priceList->status === 'draft')<form method="POST" action="{{ route('client.pharma.price-lists.delete', $priceList->id) }}" onsubmit="return confirm('Xóa bảng giá Nháp này?')">@csrf @method('DELETE')<button class="text-red-600 hover:underline">Xóa</button></form>@endif</div>@endif</td><td class="px-5 py-4 text-slate-700">{{ $customer }}</td>@if($canApprove)<td class="px-5 py-4 text-slate-700">{{ $priceList->manager?->name ?: '—' }}</td>@endif<td class="px-5 py-4 text-slate-600">{{ $priceList->purpose?->name ?: '—' }}</td><td class="px-5 py-4 text-center font-bold">{{ $priceList->items_count }}</td><td class="px-5 py-4 text-slate-600">{{ $priceList->effective_from?->format('d/m/Y') ?: '—' }} → {{ $priceList->effective_to?->format('d/m/Y') ?: '—' }}</td><td class="px-5 py-4"><span class="whitespace-nowrap rounded-full px-2 py-1 text-[11px] font-bold {{ $priceList->status === 'active' ? 'bg-emerald-100 text-emerald-700' : ($priceList->status === 'draft' ? 'bg-amber-100 text-amber-700' : ($priceList->status === 'pending_approval' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600')) }}">{{ $statusLabel }}</span></td><td class="px-5 py-4 text-right">
+                <details class="relative inline-block text-left" data-price-list-actions>
+                    <summary class="inline-flex min-h-9 cursor-pointer list-none items-center rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50" aria-label="Mở menu thao tác">•••</summary>
+                    <div class="absolute right-0 z-[100] mt-2 w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 text-left shadow-xl">
+                        <a href="{{ route('client.pharma.price-lists.show',$priceList->id) }}" class="block rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50">Chi tiết bảng giá</a>
+                        @if(in_array($priceList->status,['draft','rejected'],true) && $canCreate)
+                            <a href="{{ route('client.pharma.price-lists.edit',$priceList->id) }}" class="block rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50">Sửa thông tin</a>
+                        @endif
+                        @if(in_array($priceList->status,['draft','rejected'],true))
+                            <form method="POST" action="{{ route('client.pharma.price-lists.submit',$priceList->id) }}">@csrf<button class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-blue-700 hover:bg-blue-50">Gửi duyệt</button></form>
+                        @endif
+                        @if($priceList->status==='pending_approval' && $canApprove)
+                            <form method="POST" action="{{ route('client.pharma.price-list-approvals.approve',$priceList->id) }}" onsubmit="return confirm('Phê duyệt và kích hoạt bảng giá này?')">@csrf<button class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-emerald-700 hover:bg-emerald-50">Phê duyệt & kích hoạt</button></form>
+                        @endif
+                        @if($priceList->status==='pending_deactivation' && $canApprove)
+                            <form method="POST" action="{{ route('client.pharma.price-lists.deactivation.approve',$priceList->id) }}" onsubmit="return confirm('Chấp nhận yêu cầu và ngừng kích hoạt bảng giá này?')">@csrf<button class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-rose-700 hover:bg-rose-50">Chấp nhận ngừng kích hoạt</button></form>
+                        @endif
+                        @if($priceList->status==='inactive' && $canApprove)
+                            <form method="POST" action="{{ route('client.pharma.price-lists.activate',$priceList->id) }}" onsubmit="return confirm('Kích hoạt trở lại bảng giá này?')">@csrf<button class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-emerald-700 hover:bg-emerald-50">Kích hoạt trở lại</button></form>
+                        @endif
+                        @if($priceList->status==='inactive' && $canApprove)
+                            <form method="POST" action="{{ route('client.pharma.price-lists.delete',$priceList->id) }}" onsubmit="return confirm('Xóa vĩnh viễn bảng giá Ngưng này? Toàn bộ file Excel và PDF đã xuất cũng sẽ bị xóa.')">@csrf @method('DELETE')<button class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-red-700 hover:bg-red-50">Xóa bảng giá</button></form>
+                        @endif
+                        @if($priceList->status==='active')
+                            <form method="POST" action="{{ route('client.pharma.price-lists.export-share',$priceList->id) }}">@csrf<button class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-slate-700 hover:bg-slate-50">Xuất Excel mới</button></form>
+                            @if($exportShare)
+                                <a href="{{ $exportShare['url'] }}" data-pwa-file-handoff data-file-name="{{ $exportShare['download_name'] ?? ($priceList->code.'.xlsx') }}" class="block rounded-xl px-3 py-2.5 text-xs font-bold text-emerald-700 hover:bg-emerald-50">Tải Excel đã xuất</a>
+                                @if(!empty($exportShare['pdf_url']))
+                                    <a href="{{ $exportShare['pdf_url'] }}" data-pwa-file-handoff data-file-name="{{ preg_replace('/\.xlsx$/i','.pdf',$exportShare['download_name'] ?? ($priceList->code.'.xlsx')) }}" class="block rounded-xl px-3 py-2.5 text-xs font-bold text-violet-700 hover:bg-violet-50">Tải PDF</a>
+                                @else
+                                    <form method="POST" action="{{ route('client.pharma.price-lists.share.pdf.queue',(int)$exportShare['share_id']) }}">@csrf<button class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-violet-700 hover:bg-violet-50">Chuyển sang PDF</button></form>
+                                @endif
+                            @endif
+                            <button type="button" data-price-list-deactivation-open data-price-list-id="{{ $priceList->id }}" data-price-list-name="{{ $priceList->name }}" data-price-list-action="{{ $canApprove ? route('client.pharma.price-lists.deactivate',$priceList->id) : route('client.pharma.price-lists.deactivation.request',$priceList->id) }}" data-price-list-mode="{{ $canApprove ? 'direct' : 'request' }}" class="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold text-rose-700 hover:bg-rose-50">Ngừng kích hoạt…</button>
+                        @endif
+                    </div>
+                </details>
+            </td></tr>
+        @empty <tr><td colspan="{{ $canApprove ? 8 : 7 }}" class="px-5 py-10 text-center text-slate-500">Bạn chưa có bảng giá nào trong phạm vi quản lý.</td></tr> @endforelse
         </tbody></table>
     </section>
     @if($priceLists->hasPages())<div>{{ $priceLists->links() }}</div>@endif
 </div>
+
+<dialog id="price-list-deactivation-dialog" class="mb-0 mt-auto w-full max-w-[520px] rounded-t-[28px] border-0 p-0 shadow-2xl backdrop:bg-slate-950/55 sm:m-auto sm:w-[min(92vw,520px)] sm:rounded-[28px]">
+    <form method="POST" data-price-list-deactivation-form class="p-5 sm:p-6">
+        @csrf
+        <p class="text-lg font-black text-slate-950">Ngừng kích hoạt bảng giá</p>
+        <p class="mt-2 text-sm leading-6 text-slate-600" data-price-list-deactivation-message>Nhập lý do để tiếp tục.</p>
+        <label class="mt-4 block"><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Lý do</span><textarea name="deactivation_reason" required maxlength="1000" rows="4" class="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm" placeholder="Nhập lý do ngừng kích hoạt..."></textarea></label>
+        <div class="mt-5 flex gap-2"><button type="button" data-price-list-deactivation-cancel class="min-h-11 flex-1 rounded-2xl border border-slate-300 px-4 py-3 text-sm font-black text-slate-700">Đóng</button><button type="submit" class="min-h-11 flex-1 rounded-2xl bg-rose-700 px-4 py-3 text-sm font-black text-white" data-price-list-deactivation-submit>Xác nhận</button></div>
+    </form>
+</dialog>
 
 <dialog id="price-list-pwa-file-handoff" class="mb-0 mt-auto w-full max-w-[560px] rounded-t-[28px] border-0 p-0 shadow-2xl backdrop:bg-slate-950/55 sm:m-auto sm:w-[min(92vw,560px)] sm:rounded-[28px]">
     <div class="p-5 sm:p-6">
@@ -201,6 +268,26 @@ document.addEventListener('DOMContentLoaded',()=>{
         }catch(_){title.textContent='Không thể chuẩn bị tệp';message.textContent='Không tải được tệp trong phiên hiện tại. PWA vẫn giữ nguyên màn hình để bạn có thể thử lại.'}
     };
     document.querySelectorAll('[data-pwa-file-handoff]').forEach(anchor=>anchor.addEventListener('click',event=>preparePwaFile(event,anchor)));
+    const deactivationDialog=document.getElementById('price-list-deactivation-dialog'),deactivationForm=deactivationDialog?.querySelector('[data-price-list-deactivation-form]'),deactivationMessage=deactivationDialog?.querySelector('[data-price-list-deactivation-message]');
+    document.querySelectorAll('[data-price-list-deactivation-open]').forEach(button=>button.addEventListener('click',()=>{
+        if(!deactivationDialog||!deactivationForm)return;
+        const name=button.dataset.priceListName||'bảng giá',mode=button.dataset.priceListMode;
+        deactivationForm.action=button.dataset.priceListAction||'';
+        if(deactivationMessage)deactivationMessage.textContent=mode==='direct' ? `Bạn đang ngừng kích hoạt trực tiếp “${name}”. Vui lòng nhập lý do.` : `Yêu cầu ngừng kích hoạt “${name}” sẽ được gửi cho người có quyền phê duyệt.`;
+        deactivationForm.querySelector('[name="deactivation_reason"]')?.focus();
+        deactivationDialog.showModal();
+    }));
+    deactivationDialog?.querySelector('[data-price-list-deactivation-cancel]')?.addEventListener('click',()=>deactivationDialog.close());
+    document.querySelectorAll('[data-price-list-actions]').forEach(menu=>{
+        menu.addEventListener('toggle',()=>{
+            if(!menu.open)return;
+            document.querySelectorAll('[data-price-list-actions][open]').forEach(other=>{if(other!==menu)other.removeAttribute('open');});
+        });
+    });
+    document.addEventListener('click',event=>{
+        document.querySelectorAll('[data-price-list-actions][open]').forEach(menu=>{if(!menu.contains(event.target))menu.removeAttribute('open');});
+    });
+
     dialog?.querySelector('[data-file-cancel]')?.addEventListener('click',()=>dialog.close());
     dialog?.querySelector('[data-file-share]')?.addEventListener('click',async()=>{
         if(!preparedPwaFile)return;

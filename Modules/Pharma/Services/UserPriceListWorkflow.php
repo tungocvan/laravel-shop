@@ -57,6 +57,31 @@ final class UserPriceListWorkflow
             ->get();
     }
 
+    public function editableProducts(int $userId, PriceList $priceList, ?int $requestedSourcePriceListId = null): Collection
+    {
+        $sourcePriceListId = $requestedSourcePriceListId ?: (int) $priceList->source_price_list_id;
+
+        if ($sourcePriceListId > 0) {
+            try {
+                return $this->sourceProducts($userId, $sourcePriceListId);
+            } catch (ValidationException) {
+                // Admin treats the Draft's persisted SKU rows as canonical during edit.
+                // Keep that parity when the historical source is no longer ACTIVE/assigned.
+            }
+        }
+
+        return $priceList->items
+            ->filter(fn ($item) => $item->variant !== null)
+            ->map(function ($item) {
+                $sourceItem = clone $item;
+                $sourceItem->setRelation('variant', $item->variant);
+                $sourceItem->setRelation('package', $item->package);
+
+                return $sourceItem;
+            })
+            ->values();
+    }
+
     public function createDraft(int $userId, array $header, array $items): PriceList
     {
         if ($items === []) {
@@ -102,21 +127,32 @@ final class UserPriceListWorkflow
         });
     }
 
-    public function updateDraft(int $userId, int $priceListId, array $header, array $items): PriceList
+    public function updateDraft(int $userId, int $priceListId, array $header, array $items, bool $approverScope = false): PriceList
     {
         if ($items === []) {
             throw ValidationException::withMessages(['items' => 'Vui lòng chọn ít nhất một sản phẩm từ bảng giá gốc.']);
         }
 
-        return DB::transaction(function () use ($userId, $priceListId, $header, $items): PriceList {
-            $list = $this->editableForUser($userId, $priceListId);
-            $source = $this->sourceForUser($userId, (int) ($header['source_price_list_id'] ?? 0));
-            $sourceItems = $source->items()->where('status', 'active')->get()->keyBy('medicine_variant_id');
+        return DB::transaction(function () use ($userId, $priceListId, $header, $items, $approverScope): PriceList {
+            $list = $this->editableForUser($userId, $priceListId, $approverScope);
+            $requestedSourcePriceListId = (int) ($header['source_price_list_id'] ?? 0);
+            $sourceItems = collect();
+
+            try {
+                $source = $this->sourceForUser($userId, $requestedSourcePriceListId);
+                $sourceItems = $source->items()->where('status', 'active')->get()->keyBy('medicine_variant_id');
+            } catch (ValidationException) {
+                if ($requestedSourcePriceListId !== (int) $list->source_price_list_id) {
+                    throw ValidationException::withMessages(['source_price_list_id' => 'Bảng giá gốc không còn được phép sử dụng.']);
+                }
+
+                $sourceItems = $list->items()->get()->keyBy('medicine_variant_id');
+            }
 
             $validatedHeader = $this->manager->validateHeader(array_merge($header, [
                 'type' => PriceList::TYPE_CUSTOMER,
                 'customer_source' => PriceList::CUSTOMER_SOURCE_PARTNER,
-                'manager_user_id' => $userId,
+                'manager_user_id' => $list->manager_user_id ?: $userId,
             ]), $list);
 
             $list->fill($validatedHeader);
@@ -156,14 +192,18 @@ final class UserPriceListWorkflow
         });
     }
 
-    public function submit(int $userId, int $priceListId): PriceList
+    public function submit(int $userId, int $priceListId, bool $approverScope = false): PriceList
     {
-        return DB::transaction(function () use ($userId, $priceListId): PriceList {
-            $list = PriceList::query()
-                ->where('manager_user_id', $userId)
+        return DB::transaction(function () use ($userId, $priceListId, $approverScope): PriceList {
+            $query = PriceList::query()
                 ->lockForUpdate()
-                ->with('items')
-                ->findOrFail($priceListId);
+                ->with('items');
+
+            if (! $approverScope) {
+                $query->where('manager_user_id', $userId);
+            }
+
+            $list = $query->findOrFail($priceListId);
 
             if (! in_array($list->status, [PriceList::STATUS_DRAFT, PriceList::STATUS_REJECTED], true)) {
                 throw ValidationException::withMessages(['price_list' => 'Chỉ bảng giá Nháp hoặc đã bị từ chối mới được gửi duyệt.']);
@@ -196,12 +236,16 @@ final class UserPriceListWorkflow
         });
     }
 
-    private function editableForUser(int $userId, int $priceListId): PriceList
+    private function editableForUser(int $userId, int $priceListId, bool $approverScope = false): PriceList
     {
-        $list = PriceList::query()
-            ->where('manager_user_id', $userId)
-            ->whereIn('status', [PriceList::STATUS_DRAFT, PriceList::STATUS_REJECTED])
-            ->find($priceListId);
+        $query = PriceList::query()
+            ->whereIn('status', [PriceList::STATUS_DRAFT, PriceList::STATUS_REJECTED]);
+
+        if (! $approverScope) {
+            $query->where('manager_user_id', $userId);
+        }
+
+        $list = $query->find($priceListId);
 
         if (! $list) {
             throw ValidationException::withMessages(['price_list' => 'Chỉ bảng giá Nháp hoặc đã bị từ chối của bạn mới được sửa.']);

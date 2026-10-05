@@ -29,7 +29,10 @@ final class GeneratePriceListSharePdf implements ShouldQueue
 
     public function handle(): void
     {
-        $share = PriceListExportShare::query()->findOrFail($this->shareId);
+        $share = PriceListExportShare::query()->find($this->shareId);
+        if ($share === null) {
+            return;
+        }
         $disk = Storage::disk('local');
 
         if (! $share->storage_path || ! $disk->exists($share->storage_path)) {

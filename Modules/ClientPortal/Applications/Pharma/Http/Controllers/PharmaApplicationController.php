@@ -37,6 +37,7 @@ use Modules\Pharma\Services\UserPriceListWorkflow;
 use Modules\Pharma\Services\PriceListApprovalWorkflow;
 use Modules\Pharma\Services\ApproverGlobalPriceListWorkflow;
 use Modules\Pharma\Services\PriceListDeactivationWorkflow;
+use Modules\Pharma\Services\PriceListManager;
 use Modules\Pharma\Services\PriceListShareExportService;
 use Illuminate\Support\Facades\Storage;
 
@@ -136,8 +137,9 @@ final class PharmaApplicationController extends Controller
         $user = $request->user('web');
         abort_if($user === null, 401);
         abort_unless($registry->userCan($user, 'client.pharma.price-lists.create'), 403);
+        $canApprove = $registry->userCan($user, 'client.pharma.price-lists.approve');
 
-        $list = $workspace->findManaged((int) $user->id, $priceList);
+        $list = $workspace->findEditable((int) $user->id, $priceList, $canApprove);
         abort_if($list === null || ! in_array($list->status, [PriceList::STATUS_DRAFT, PriceList::STATUS_REJECTED], true), 404);
 
         return view('ClientPortal::applications.pharma.price-list-create', [
@@ -147,7 +149,12 @@ final class PharmaApplicationController extends Controller
             'purposes' => $workflow->purposes(),
             'sourcePriceLists' => $workflow->sourcePriceLists((int) $user->id),
             'sourcePriceListId' => $request->integer('source_price_list_id') ?: (int) $list->source_price_list_id,
-            'sourceProducts' => $workflow->sourceProducts((int) $user->id, $request->integer('source_price_list_id') ?: (int) $list->source_price_list_id),
+            'sourceProducts' => $workflow->editableProducts(
+                (int) $user->id,
+                $list,
+                $request->integer('source_price_list_id') ?: null,
+            ),
+            'draftProducts' => $list->items,
             'editingPriceList' => $list,
         ]);
     }
@@ -163,7 +170,8 @@ final class PharmaApplicationController extends Controller
         abort_unless($registry->userCan($user, 'client.pharma.price-lists.create'), 403);
 
         [$header, $items] = $this->validatedPriceListPayload($request);
-        $list = $workflow->updateDraft((int) $user->id, $priceList, $header, $items);
+        $canApprove = $registry->userCan($user, 'client.pharma.price-lists.approve');
+        $list = $workflow->updateDraft((int) $user->id, $priceList, $header, $items, $canApprove);
 
         return redirect()->route('client.pharma.price-lists.show', $list->id)
             ->with('success', 'Đã cập nhật bảng giá Nháp.');
@@ -174,10 +182,20 @@ final class PharmaApplicationController extends Controller
         Request $request,
         ApplicationRegistry $registry,
         UserPriceListWorkflow $workflow,
+        PriceListManager $manager,
     ) {
         $user = $request->user('web');
         abort_if($user === null, 401);
         abort_unless($registry->userCan($user, 'client.pharma.price-lists.create'), 403);
+
+        $list = PriceList::query()->findOrFail($priceList);
+        if ($list->status === PriceList::STATUS_INACTIVE) {
+            abort_unless($registry->userCan($user, 'client.pharma.price-lists.approve'), 403);
+            $manager->deleteRemovable($list);
+
+            return redirect()->route('client.pharma.price-lists')
+                ->with('success', 'Đã xóa bảng giá Ngưng và toàn bộ tệp Excel / PDF liên quan.');
+        }
 
         $workflow->deleteDraft((int) $user->id, $priceList);
 
@@ -195,7 +213,8 @@ final class PharmaApplicationController extends Controller
         abort_if($user === null, 401);
         abort_unless($registry->userCan($user, 'client.pharma.price-lists.submit'), 403);
 
-        $workflow->submit((int) $user->id, $priceList);
+        $canApprove = $registry->userCan($user, 'client.pharma.price-lists.approve');
+        $workflow->submit((int) $user->id, $priceList, $canApprove);
 
         return redirect()->route('client.pharma.price-lists.show', $priceList)
             ->with('success', 'Đã gửi bảng giá chờ phê duyệt.');
@@ -533,7 +552,7 @@ final class PharmaApplicationController extends Controller
         $validated = $request->validate(['deactivation_reason' => ['required', 'string', 'max:1000']]);
         $workflow->request((int) $user->id, $priceList, $validated['deactivation_reason']);
 
-        return redirect()->route('client.pharma.price-lists.show', $priceList)
+        return redirect()->route('client.pharma.price-lists')
             ->with('success', 'Đã gửi yêu cầu ngừng kích hoạt để người phê duyệt xử lý.');
     }
 
@@ -548,7 +567,7 @@ final class PharmaApplicationController extends Controller
         abort_unless($registry->userCan($user, 'client.pharma.price-lists.approve'), 403);
         $workflow->approveRequest((int) $user->id, $priceList);
 
-        return redirect()->route('client.pharma.price-lists.show', $priceList)
+        return redirect()->route('client.pharma.price-lists')
             ->with('success', 'Đã chấp nhận yêu cầu và ngừng kích hoạt bảng giá.');
     }
 
@@ -564,8 +583,26 @@ final class PharmaApplicationController extends Controller
         $validated = $request->validate(['deactivation_reason' => ['required', 'string', 'max:1000']]);
         $workflow->deactivateDirectly((int) $user->id, $priceList, $validated['deactivation_reason']);
 
-        return redirect()->route('client.pharma.price-lists.show', $priceList)
+        return redirect()->route('client.pharma.price-lists')
             ->with('success', 'Đã ngừng kích hoạt bảng giá.');
+    }
+
+    public function activatePriceList(
+        int $priceList,
+        Request $request,
+        ApplicationRegistry $registry,
+        PriceListManager $manager,
+    ) {
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.price-lists.approve'), 403);
+
+        $list = PriceList::query()->findOrFail($priceList);
+        abort_unless($list->status === PriceList::STATUS_INACTIVE, 404);
+        $manager->activate($list, (int) $user->id);
+
+        return redirect()->route('client.pharma.price-lists')
+            ->with('success', 'Đã kích hoạt trở lại bảng giá.');
     }
 
     public function priceLists(
@@ -2115,14 +2152,18 @@ final class PharmaApplicationController extends Controller
             'selected.*' => ['nullable'],
             'company_price' => ['required', 'array'],
             'company_price.*' => ['nullable', 'numeric', 'min:0'],
+            'actual_receivable_price' => ['nullable', 'array'],
+            'actual_receivable_price.*' => ['nullable', 'numeric', 'min:0'],
+            'invoice_price' => ['nullable', 'array'],
+            'invoice_price.*' => ['nullable', 'numeric', 'min:0'],
         ]);
 
         $items = collect(array_keys($validated['selected']))
             ->map(fn ($variantId): array => [
                 'medicine_variant_id' => (int) $variantId,
                 'company_sale_price' => $validated['company_price'][$variantId] ?? null,
-                'actual_receivable_price' => $validated['company_price'][$variantId] ?? null,
-                'invoice_price' => $validated['company_price'][$variantId] ?? null,
+                'actual_receivable_price' => $validated['actual_receivable_price'][$variantId] ?? ($validated['company_price'][$variantId] ?? null),
+                'invoice_price' => $validated['invoice_price'][$variantId] ?? ($validated['company_price'][$variantId] ?? null),
             ])->all();
 
         return [[
