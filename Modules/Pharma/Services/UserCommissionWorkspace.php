@@ -29,38 +29,33 @@ final class UserCommissionWorkspace
             $query->where('partner_id',$partnerId);
         }
 
-        $paginator=$query
-            ->selectRaw('issue_id, MAX(calculated_at) calculated_at, COALESCE(SUM(revenue_amount),0) revenue_amount, COALESCE(SUM(commission_amount),0) commission_amount')
-            ->groupBy('issue_id')
+        $grouped=$query
             ->with(['issue.manager','issue.recipientPartner'])
             ->orderByDesc('calculated_at')
-            ->orderByDesc('issue_id')
-            ->paginate($perPage,['*'],'page',$page);
+            ->orderByDesc('id')
+            ->get()
+            ->groupBy('issue_id')
+            ->map(function(Collection $entries): InventoryIssueCommission {
+                /** @var InventoryIssueCommission $first */
+                $first=$entries->first();
+                $first->revenue_amount=(float)$entries->sum('revenue_amount');
+                $first->commission_amount=(float)$entries->sum('commission_amount');
+                $first->setAttribute('commission_source_type',$first->source_type);
 
-        $issueIds=$paginator->getCollection()->pluck('issue_id')->map(fn($id)=>(int)$id)->all();
-        if($issueIds===[]){
-            return $paginator;
-        }
+                return $first;
+            })
+            ->values();
 
-        $bidIssueIds=$this->scopedQuery($userId,$canViewTeam,$managerUserId,InventoryIssueCommission::SOURCE_BID,$from,$to)
-            ->when($partnerId!==null,fn(Builder $bidQuery)=>$bidQuery->where('partner_id',$partnerId))
-            ->whereIn('issue_id',$issueIds)
-            ->distinct()
-            ->pluck('issue_id')
-            ->map(fn($id)=>(int)$id)
-            ->all();
-        $bidLookup=array_fill_keys($bidIssueIds,true);
+        $page=max(1,$page);
+        $perPage=max(1,$perPage);
 
-        $paginator->setCollection($paginator->getCollection()->map(function(InventoryIssueCommission $row) use ($bidLookup): InventoryIssueCommission {
-            $row->setAttribute('commission_source_type',isset($bidLookup[(int)$row->issue_id])
-                ? InventoryIssueCommission::SOURCE_BID
-                : InventoryIssueCommission::SOURCE_PRICE_LIST);
-
-            return $row;
-        }));
-
-        return $paginator;
-    }
+        return new \Illuminate\Pagination\LengthAwarePaginator(
+            $grouped->forPage($page,$perPage)->values(),
+            $grouped->count(),
+            $perPage,
+            $page,
+            ['path'=>request()->url(),'query'=>request()->query()]
+        );
 
     public function exportRows(
         int $userId,
