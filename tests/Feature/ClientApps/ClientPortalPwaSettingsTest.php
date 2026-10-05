@@ -160,7 +160,7 @@ class ClientPortalPwaSettingsTest extends TestCase
         $defaults = $settings->applicationHubPresentation($application);
         $this->assertSame('Pharma PWA', $defaults['eyebrow']);
         $this->assertSame('Không gian làm việc Pharma', $defaults['title']);
-        $this->assertSame('Ranh giới Foundation', $defaults['supporting_title']);
+        $this->assertSame('Làm việc theo phạm vi được giao', $defaults['supporting_title']);
         $this->assertTrue($defaults['supporting_visible']);
 
         $settings->updateApplicationHubPresentation('pharma', [
@@ -183,6 +183,28 @@ class ClientPortalPwaSettingsTest extends TestCase
         ]);
     }
 
+    public function test_pharma_hub_is_capability_first_and_keeps_managed_copy_out_of_blade(): void
+    {
+        $manifest = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/manifest.php'));
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php'));
+        $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/dashboard.blade.php'));
+
+        $this->assertStringContainsString("'title' => 'Làm việc theo phạm vi được giao'", $manifest);
+        $this->assertStringNotContainsString('Ranh giới Foundation', $manifest);
+        $this->assertStringContainsString('applicationHubPresentation($application)', $controller);
+        $this->assertStringContainsString('presentFeatures(', $controller);
+        $this->assertStringContainsString('$registry->userCan($user, $permission)', $controller);
+        $this->assertStringContainsString('{{ $features->count() }}', $view);
+        $this->assertStringContainsString('Workspace được cấp quyền', $view);
+        $this->assertStringContainsString('Chọn workspace', $view);
+        $this->assertStringContainsString('Mở chức năng', $view);
+        $this->assertStringContainsString("active:scale-[0.985]", $view);
+        $this->assertStringContainsString("motion-reduce:transition-none", $view);
+        $this->assertStringContainsString("{{ $hubPresentation['supporting_title'] }}", $view);
+        $this->assertStringContainsString("{{ $hubPresentation['supporting_body'] }}", $view);
+        $this->assertStringNotContainsString('Ranh giới Foundation', $view);
+    }
+
     public function test_application_hub_keeps_legacy_overview_copy_as_compatibility_fallback(): void
     {
         $registry = app(ApplicationRegistry::class);
@@ -199,7 +221,7 @@ class ClientPortalPwaSettingsTest extends TestCase
         $this->assertSame('Legacy eyebrow', $presentation['eyebrow']);
         $this->assertSame('Legacy title', $presentation['title']);
         $this->assertSame('Legacy description', $presentation['description']);
-        $this->assertSame('Ranh giới Foundation', $presentation['supporting_title']);
+        $this->assertSame('Làm việc theo phạm vi được giao', $presentation['supporting_title']);
     }
 
     public function test_unrelated_legacy_overview_setting_does_not_override_hub_copy(): void
