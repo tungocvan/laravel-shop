@@ -29,13 +29,37 @@ final class UserCommissionWorkspace
             $query->where('partner_id',$partnerId);
         }
 
-        return $query
-            ->selectRaw("issue_id, MAX(calculated_at) calculated_at, COALESCE(SUM(revenue_amount),0) revenue_amount, COALESCE(SUM(commission_amount),0) commission_amount, CASE WHEN MIN(source_type)=MAX(source_type) THEN MAX(source_type) ELSE 'mixed' END commission_source_type")
+        $paginator=$query
+            ->selectRaw('issue_id, MAX(calculated_at) calculated_at, COALESCE(SUM(revenue_amount),0) revenue_amount, COALESCE(SUM(commission_amount),0) commission_amount')
             ->groupBy('issue_id')
             ->with(['issue.manager','issue.recipientPartner'])
             ->orderByDesc('calculated_at')
             ->orderByDesc('issue_id')
             ->paginate($perPage,['*'],'page',$page);
+
+        $issueIds=$paginator->getCollection()->pluck('issue_id')->map(fn($id)=>(int)$id)->all();
+        if($issueIds===[]){
+            return $paginator;
+        }
+
+        $bidIssueIds=$this->scopedQuery($userId,$canViewTeam,$managerUserId,InventoryIssueCommission::SOURCE_BID,$from,$to)
+            ->when($partnerId!==null,fn(Builder $bidQuery)=>$bidQuery->where('partner_id',$partnerId))
+            ->whereIn('issue_id',$issueIds)
+            ->distinct()
+            ->pluck('issue_id')
+            ->map(fn($id)=>(int)$id)
+            ->all();
+        $bidLookup=array_fill_keys($bidIssueIds,true);
+
+        $paginator->setCollection($paginator->getCollection()->map(function(InventoryIssueCommission $row) use ($bidLookup): InventoryIssueCommission {
+            $row->setAttribute('commission_source_type',isset($bidLookup[(int)$row->issue_id])
+                ? InventoryIssueCommission::SOURCE_BID
+                : InventoryIssueCommission::SOURCE_PRICE_LIST);
+
+            return $row;
+        }));
+
+        return $paginator;
     }
 
     public function exportRows(
