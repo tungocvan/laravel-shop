@@ -59,16 +59,9 @@
             $share = session('price_list_share') ?? $currentExportShare;
             $profileNames = collect($exportProfiles)->mapWithKeys(fn ($profile) => [(int) $profile['id'] => $profile['name']]);
         @endphp
-        <section class="min-w-0 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-            <details id="price-list-documents" class="group min-w-0 lg:open">
-                <summary class="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 sm:px-5">
-                    <div class="min-w-0"><p class="text-xs font-black uppercase tracking-[0.14em] text-slate-400">Tài liệu bảng giá</p><p class="mt-1 truncate text-sm font-bold text-slate-700">Tài liệu đã xuất · {{ count($exportHistory) }}@if($share) · {{ !empty($share['pdf_url']) ? 'Excel + PDF' : 'Excel' }}@endif</p></div>
-                    <span class="shrink-0 text-sm font-black text-slate-400 transition group-open:rotate-180">⌄</span>
-                </summary>
-                <div class="min-w-0 border-t border-slate-100 p-4 sm:p-5">
-                    <div class="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                        <div class="min-w-0"><p class="text-sm text-slate-600">Xuất nhiều mẫu độc lập; mỗi bản Excel có thể tạo hoặc tạo lại PDF riêng.</p></div>
-                        <div class="flex min-w-0 flex-wrap gap-2">
+        <section id="price-list-actions" class="min-w-0">
+            <div class="flex min-w-0 flex-wrap items-center gap-2">
+                <p class="mr-auto text-xs font-black uppercase tracking-[0.14em] text-slate-400">Thao tác</p>
                     <button type="button" onclick="document.getElementById('price-list-export-dialog').showModal()" class="min-h-11 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white">+ Xuất tài liệu</button>
                     <dialog id="price-list-export-dialog" class="m-auto w-[calc(100%-24px)] max-w-[520px] rounded-[28px] border-0 p-0 shadow-2xl backdrop:bg-slate-950/55">
                         <form method="POST" action="{{ route('client.pharma.price-lists.export-share',$priceList->id) }}" class="flex max-h-[92dvh] flex-col">@csrf
@@ -85,8 +78,8 @@
                             </div>
                         </form>
                     </dialog>
-                    <details class="group min-w-0 basis-full w-full lg:basis-auto lg:flex-1">
-                        <summary class="cursor-pointer list-none rounded-2xl border border-slate-300 px-5 py-3 text-sm font-black text-slate-700">Tài liệu đã xuất · {{ count($exportHistory) }}</summary>
+                    <details class="group min-w-0">
+                        <summary class="cursor-pointer list-none rounded-2xl border border-slate-300 px-4 py-3 text-sm font-black text-slate-700">Tệp đã xuất · {{ count($exportHistory) }}</summary>
                         <div class="mt-3 min-w-0 space-y-3 lg:min-w-[720px]">
                             @forelse($exportHistory as $export)
                                 @php
@@ -149,9 +142,7 @@ Trân trọng.</textarea></label>
                         </dialog>
                     @endif
                         </div>
-                    </div>
-                </div>
-            </details>
+            </div>
         </section>
         <dialog id="pwa-file-handoff" class="mb-0 mt-auto w-full max-w-[560px] rounded-t-[28px] border-0 p-0 shadow-2xl backdrop:bg-slate-950/55 sm:m-auto sm:w-[min(92vw,560px)] sm:rounded-[28px]">
             <div class="p-5 sm:p-6">
