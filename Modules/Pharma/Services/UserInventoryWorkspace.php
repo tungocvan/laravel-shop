@@ -187,6 +187,8 @@ final class UserInventoryWorkspace
             'total_quantity_on_hand' => (float) $balances->sum('quantity_on_hand'),
             'average_cost_price' => $averageCost,
             'inventory_value' => $inventoryValue,
+            'total_received' => (float) $movements->sum(fn (array $movement): float => max(0, (float) $movement['quantity_delta'])),
+            'total_issued' => (float) abs($movements->sum(fn (array $movement): float => min(0, (float) $movement['quantity_delta']))),
             'movements' => $movements,
         ];
     }
