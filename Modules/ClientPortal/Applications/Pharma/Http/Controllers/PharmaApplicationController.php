@@ -1066,6 +1066,8 @@ final class PharmaApplicationController extends Controller
             'from'=>['nullable','date'],
             'to'=>['nullable','date','after_or_equal:from'],
             'manager_user_id'=>['nullable','integer','min:1'],
+            'ids'=>['nullable','array','max:500'],
+            'ids.*'=>['integer','distinct'],
             'page'=>['nullable','integer','min:1'],
         ]);
         $application=$registry->find('pharma'); abort_if($application===null,404);
@@ -1138,6 +1140,10 @@ final class PharmaApplicationController extends Controller
         abort_if($partnerId!==null && $partners->firstWhere('id',$partnerId)===null,404);
 
         $rows=$workspace->exportRows((int)$user->id,$partnerId,$source,$from,$to,$canViewTeam,$managerUserId);
+        if(!empty($validated['ids'])){
+            $ids=collect($validated['ids'])->map(fn($id)=>(int)$id)->unique();
+            $rows=$rows->whereIn('issue_id',$ids)->values();
+        }
         return $exporter->download($rows,$from,$to);
     }
 
