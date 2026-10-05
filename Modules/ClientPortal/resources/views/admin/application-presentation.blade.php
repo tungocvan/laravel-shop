@@ -60,7 +60,7 @@
         <div class="mt-5 rounded-2xl border border-gray-200">
             @foreach(collect($application['navigation'] ?? [])->values() as $index => $item)
                 @php($navPresentation = collect($navigationPresentation['items'])->firstWhere('key', $item['key']))
-                <div class="grid gap-3 border-b border-gray-100 p-4 last:border-b-0 sm:grid-cols-[1fr_auto_auto_auto] sm:items-center">
+                <div class="grid gap-3 border-b border-gray-100 p-4 last:border-b-0 sm:grid-cols-[1fr_auto_auto_auto_auto] sm:items-center">
                     <div>
                         <div class="font-semibold text-gray-900">{{ $item['name'] }}</div>
                         <div class="mt-1 text-xs text-gray-500"><code>{{ $item['route'] }}</code> · <code>{{ $item['permission'] ?? '—' }}</code></div>
@@ -86,6 +86,7 @@
                             @endforeach
                         </div>
                     </details>
+                    <label class="block text-sm"><span class="font-semibold text-gray-800">Nhãn mobile</span><input name="items[{{ $index }}][bottom_label]" maxlength="30" value="{{ old("items.$index.bottom_label", $navPresentation['bottom_label'] ?? $item['name']) }}" placeholder="{{ $item['name'] }}" class="mt-1 w-32 rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm"></label>
                     <label class="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" name="items[{{ $index }}][bottom_enabled]" value="1" @checked(old("items.$index.bottom_enabled", $navPresentation['bottom_enabled'] ?? true))> Hiển thị mobile</label>
                     <label class="flex items-center gap-2 text-sm"><span class="font-semibold">Thứ tự</span><input type="number" min="0" max="9999" name="items[{{ $index }}][bottom_sort_order]" value="{{ old("items.$index.bottom_sort_order", $navPresentation['bottom_sort_order'] ?? $item['sort_order']) }}" class="w-24 rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm"></label>
                 </div>
