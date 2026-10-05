@@ -793,8 +793,21 @@ final class InventoryController extends Controller
         $bidManagerNames=$this->bidIssueManagerNames($issue);
         $settings=InventoryIssueDocumentSetting::current();
         $approvalReadiness=app(UserOrderStockReadinessService::class)->forIssue($issue);
+        $canPostStock=false;
+        if($issue->status===InventoryIssue::APPROVED && ($issue->issue_source ?? 'normal')!=='bid'){
+            $balanceKeys=InventoryBalance::query()
+                ->where('warehouse_id',$issue->warehouse_id)
+                ->whereIn('medicine_id',$issue->items->pluck('medicine_id'))
+                ->get()
+                ->keyBy(fn($balance)=>$balance->medicine_id.'|'.$balance->batch_number.'|'.$balance->expiry_date->format('Y-m-d'));
+            $canPostStock=$issue->items->isNotEmpty() && $issue->items->every(function($item)use($balanceKeys){
+                if(blank($item->batch_number) || !$item->expiry_date) return false;
+                $key=$item->medicine_id.'|'.$item->batch_number.'|'.$item->expiry_date->format('Y-m-d');
+                return (float)($balanceKeys[$key]?->quantity_on_hand ?? 0) >= (float)$item->quantity;
+            });
+        }
         $issuePdfReady=app(InventoryIssueDocumentService::class)->current($issue)!==null;
-        return view('Pharma::pages.inventory.issue-show',compact('issue','settings','bidManagerNames','approvalReadiness','issuePdfReady'));
+        return view('Pharma::pages.inventory.issue-show',compact('issue','settings','bidManagerNames','approvalReadiness','canPostStock','issuePdfReady'));
     }
 
     public function exportIssuePdf(InventoryIssue $issue, InventoryService $inventory, InventoryIssueDocumentService $documents): RedirectResponse
