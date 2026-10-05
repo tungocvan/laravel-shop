@@ -147,7 +147,11 @@ final class PharmaApplicationController extends Controller
             'purposes' => $workflow->purposes(),
             'sourcePriceLists' => $workflow->sourcePriceLists((int) $user->id),
             'sourcePriceListId' => $request->integer('source_price_list_id') ?: (int) $list->source_price_list_id,
-            'sourceProducts' => $workflow->sourceProducts((int) $user->id, $request->integer('source_price_list_id') ?: (int) $list->source_price_list_id),
+            'sourceProducts' => $workflow->editableProducts(
+                (int) $user->id,
+                $list,
+                $request->integer('source_price_list_id') ?: null,
+            ),
             'editingPriceList' => $list,
         ]);
     }
@@ -2115,14 +2119,18 @@ final class PharmaApplicationController extends Controller
             'selected.*' => ['nullable'],
             'company_price' => ['required', 'array'],
             'company_price.*' => ['nullable', 'numeric', 'min:0'],
+            'actual_receivable_price' => ['nullable', 'array'],
+            'actual_receivable_price.*' => ['nullable', 'numeric', 'min:0'],
+            'invoice_price' => ['nullable', 'array'],
+            'invoice_price.*' => ['nullable', 'numeric', 'min:0'],
         ]);
 
         $items = collect(array_keys($validated['selected']))
             ->map(fn ($variantId): array => [
                 'medicine_variant_id' => (int) $variantId,
                 'company_sale_price' => $validated['company_price'][$variantId] ?? null,
-                'actual_receivable_price' => $validated['company_price'][$variantId] ?? null,
-                'invoice_price' => $validated['company_price'][$variantId] ?? null,
+                'actual_receivable_price' => $validated['actual_receivable_price'][$variantId] ?? ($validated['company_price'][$variantId] ?? null),
+                'invoice_price' => $validated['invoice_price'][$variantId] ?? ($validated['company_price'][$variantId] ?? null),
             ])->all();
 
         return [[
