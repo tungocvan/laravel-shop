@@ -390,7 +390,8 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('private function deletePriceListWithArtifacts(PriceList $priceList): void', $priceListManager);
         $this->assertStringContainsString("PriceListExportShare::query()->where('price_list_id', \$priceList->id)->get()", $priceListManager);
         $this->assertStringContainsString("Storage::disk('local')->delete(\$path)", $priceListManager);
-        $this->assertStringContainsString('app(PriceListManager::class)->deleteRemovable($list);', $controller);
+        $this->assertStringContainsString('PriceListManager $manager', $controller);
+        $this->assertStringContainsString('$manager->deleteRemovable($list);', $controller);
         $this->assertStringContainsString('Đã xóa bảng giá Ngưng và toàn bộ tệp Excel / PDF liên quan.', $controller);
         $this->assertStringContainsString('if ($share === null)', $pdfJob);
         $this->assertStringContainsString('regeneratePriceListSharePdf(', $controller);
