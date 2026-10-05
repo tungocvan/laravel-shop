@@ -297,11 +297,10 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('public function deactivateDirectly(int $approverUserId', $deactivation);
         $this->assertStringContainsString("'status' => PriceList::STATUS_PENDING_DEACTIVATION", $deactivation);
         $this->assertStringContainsString("'status' => PriceList::STATUS_INACTIVE", $deactivation);
-        $this->assertStringContainsString('Yêu cầu ngừng kích hoạt', $view);
-        $this->assertStringContainsString('Chấp nhận ngừng kích hoạt', $view);
-        $this->assertStringContainsString('Ngừng kích hoạt', $view);
+        $this->assertStringContainsString('Ngừng kích hoạt…', $view);
         $this->assertStringNotContainsString('Yêu cầu ngừng kích hoạt', $detail);
         $this->assertStringNotContainsString('Chấp nhận ngừng kích hoạt', $detail);
+        $this->assertStringNotContainsString('Ngừng kích hoạt…', $detail);
         $this->assertStringContainsString('class PriceListShareExportService', $shareExport);
         $this->assertStringContainsString("PriceList::STATUS_ACTIVE", $shareExport);
         $this->assertStringContainsString("'Pharma/price-lists/exports/'", $shareExport);
