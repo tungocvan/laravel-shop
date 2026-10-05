@@ -189,6 +189,11 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString("if (\$this->confirmingAction === 'approve')", $adminIndexComponent);
         $this->assertStringContainsString('>Thao tác</th>', $view);
         $this->assertStringContainsString('data-price-list-actions', $view);
+        $this->assertStringContainsString('aria-label="Mở menu thao tác', $view);
+        $this->assertStringContainsString('>•••</summary>', $view);
+        $this->assertStringContainsString('w-[12%] px-4 py-3">Trạng thái', $view);
+        $this->assertStringContainsString('whitespace-nowrap rounded-full px-2 py-1 text-[11px]', $view);
+        $this->assertStringNotContainsString('title="Tải Excel đã xuất"', $view);
         $this->assertStringContainsString('Sửa thông tin', $view);
         $this->assertStringContainsString('Phê duyệt & kích hoạt', $view);
         $this->assertStringContainsString('Xuất Excel mới', $view);
