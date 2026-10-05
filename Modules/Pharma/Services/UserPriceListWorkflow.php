@@ -57,6 +57,31 @@ final class UserPriceListWorkflow
             ->get();
     }
 
+    public function editableProducts(int $userId, PriceList $priceList, ?int $requestedSourcePriceListId = null): Collection
+    {
+        $sourcePriceListId = $requestedSourcePriceListId ?: (int) $priceList->source_price_list_id;
+
+        if ($sourcePriceListId > 0) {
+            try {
+                return $this->sourceProducts($userId, $sourcePriceListId);
+            } catch (ValidationException) {
+                // Admin treats the Draft's persisted SKU rows as canonical during edit.
+                // Keep that parity when the historical source is no longer ACTIVE/assigned.
+            }
+        }
+
+        return $priceList->items
+            ->filter(fn ($item) => $item->variant !== null)
+            ->map(function ($item) {
+                $sourceItem = clone $item;
+                $sourceItem->setRelation('variant', $item->variant);
+                $sourceItem->setRelation('package', $item->package);
+
+                return $sourceItem;
+            })
+            ->values();
+    }
+
     public function createDraft(int $userId, array $header, array $items): PriceList
     {
         if ($items === []) {
