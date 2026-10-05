@@ -169,7 +169,8 @@ final class PharmaApplicationController extends Controller
         abort_unless($registry->userCan($user, 'client.pharma.price-lists.create'), 403);
 
         [$header, $items] = $this->validatedPriceListPayload($request);
-        $list = $workflow->updateDraft((int) $user->id, $priceList, $header, $items);
+        $canApprove = $registry->userCan($user, 'client.pharma.price-lists.approve');
+        $list = $workflow->updateDraft((int) $user->id, $priceList, $header, $items, $canApprove);
 
         return redirect()->route('client.pharma.price-lists.show', $list->id)
             ->with('success', 'Đã cập nhật bảng giá Nháp.');
