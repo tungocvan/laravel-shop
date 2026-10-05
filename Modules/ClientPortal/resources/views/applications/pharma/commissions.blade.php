@@ -20,11 +20,11 @@
 </form>
 @if($recentExports->isNotEmpty())
 <section class="mb-4 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm" data-commission-export-panel>
-    <button type="button" class="flex min-h-14 w-full items-center justify-between gap-3 px-4 py-3 text-left" data-commission-export-toggle aria-expanded="{{ $activeExport ? 'true' : 'false' }}">
+    <button type="button" class="flex min-h-14 w-full items-center justify-between gap-3 px-4 py-3 text-left" data-commission-export-toggle aria-expanded="false">
         <span class="min-w-0"><span class="block font-black text-slate-900">File đã xuất <span class="text-slate-400">({{ $recentExports->count() }})</span></span><span class="mt-0.5 block text-xs font-semibold text-slate-500">Excel riêng của tài khoản bạn</span></span>
-        <span class="text-lg font-black text-slate-500 transition-transform {{ $activeExport ? 'rotate-180' : '' }}" data-commission-export-chevron>⌄</span>
+        <span class="text-lg font-black text-slate-500 transition-transform" data-commission-export-chevron>⌄</span>
     </button>
-    <div class="{{ $activeExport ? '' : 'hidden' }} border-t border-slate-100 p-4 pt-3" data-commission-export-content>
+    <div class="hidden border-t border-slate-100 p-4 pt-3" data-commission-export-content>
         <div class="space-y-2">
             @foreach($recentExports as $export)
             @php
@@ -32,7 +32,7 @@
                 $exportSourceLabel=$exportSource==='bid' ? 'Trúng thầu' : ($exportSource==='price_list' ? 'Bảng giá' : 'Tất cả');
             @endphp
             <div class="rounded-2xl border {{ $activeExport?->id===$export->id ? 'border-emerald-300 bg-emerald-50/50' : 'border-slate-200' }} p-3">
-                <div class="flex flex-wrap items-center justify-between gap-2"><div class="min-w-0"><p class="truncate text-sm font-black text-slate-800">{{ $export->download_name }}</p><p class="mt-1 flex flex-wrap items-center gap-1.5 text-xs font-semibold text-slate-500"><span>{{ $export->generated_at?->format('d/m/Y H:i') }}</span><span>·</span><span>{{ number_format($export->row_count) }} dòng</span><span>·</span><span class="rounded-full bg-slate-100 px-2 py-0.5 font-black text-slate-700">Nguồn: {{ $exportSourceLabel }}</span></p></div>
+                <div class="flex flex-wrap items-center justify-between gap-2"><div class="min-w-0"><p class="truncate text-sm font-black text-slate-800">{{ $export->download_name }}</p><div class="mt-1 flex flex-wrap items-end gap-x-4 gap-y-1 text-xs"><p class="font-semibold text-slate-500">{{ $export->generated_at?->format('d/m/Y H:i') }} · {{ number_format($export->row_count) }} dòng</p><div><span class="block text-[10px] font-black uppercase tracking-wide text-slate-400">Nguồn</span><span class="font-black text-slate-700">{{ $exportSourceLabel }}</span></div></div></div>
                 <div class="flex flex-wrap gap-2"><a href="{{ route('client.pharma.commissions.exports.download',$export) }}" class="min-h-10 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-700">Tải</a><a href="{{ route('client.pharma.commissions.exports.print',$export) }}" target="_blank" rel="noopener" class="min-h-10 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-700">In</a><button type="button" data-commission-share-url="{{ route('client.pharma.commissions.exports.download',$export) }}" data-commission-share-name="{{ $export->download_name }}" class="min-h-10 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-black text-emerald-800">Chia sẻ</button><form method="POST" action="{{ route('client.pharma.commissions.exports.destroy',$export) }}" onsubmit="return confirm('Xóa file Excel này khỏi máy chủ?')">@csrf @method('DELETE')<button type="submit" class="min-h-10 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-black text-rose-700">Xóa</button></form></div></div>
             </div>
             @endforeach
@@ -130,9 +130,11 @@
                     $manager=$issue?->manager?->name ?: '—';
                     $detailUrl=route('client.pharma.commissions.show',['issue'=>$row->issue_id]);
                 @endphp
-                <div data-commission-item class="relative"><label class="absolute left-3 top-3 z-10 grid h-9 w-9 place-items-center rounded-xl bg-white/95 shadow-sm"><input type="checkbox" class="commission-row-checkbox h-5 w-5 rounded border-slate-300" value="{{ $row->issue_id }}" aria-label="Chọn phiếu {{ $issue?->number }}"></label><a href="{{ $detailUrl }}" class="block rounded-3xl pl-14 border border-slate-200 bg-white p-4 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">
+                <div data-commission-item class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div class="mb-2 flex items-center justify-between gap-3"><label class="inline-flex min-h-9 items-center gap-2 text-xs font-bold text-slate-500"><input type="checkbox" class="commission-row-checkbox h-5 w-5 rounded border-slate-300" value="{{ $row->issue_id }}" aria-label="Chọn phiếu {{ $issue?->number }}"><span>Chọn</span></label><span class="text-xs font-bold uppercase tracking-wide text-slate-400">{{ $issue?->issue_date?->format('d/m/Y') ?: $row->calculated_at?->format('d/m/Y') }}</span></div>
+                    <a href="{{ $detailUrl }}" class="block transition active:scale-[0.985] motion-reduce:transform-none">
                     <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0"><p class="text-xs font-bold uppercase tracking-wide text-slate-400">{{ $issue?->issue_date?->format('d/m/Y') ?: $row->calculated_at?->format('d/m/Y') }}</p><h2 class="mt-1 truncate font-black text-slate-950">{{ $customer }}</h2><p class="mt-1 text-sm font-semibold text-slate-500">{{ $manager }}</p></div>
+                        <div class="min-w-0"><h2 class="mt-1 truncate font-black text-slate-950">{{ $customer }}</h2><p class="mt-1 text-sm font-semibold text-slate-500">{{ $manager }}</p></div>
                         <span class="shrink-0 text-xl font-black text-slate-300">›</span>
                     </div>
                     <div class="mt-3 grid grid-cols-2 gap-3 border-t border-slate-100 pt-3">
