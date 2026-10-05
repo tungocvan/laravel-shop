@@ -29,13 +29,51 @@ final class UserCommissionWorkspace
             $query->where('partner_id',$partnerId);
         }
 
-        return $query
-            ->selectRaw('issue_id, MAX(calculated_at) calculated_at, COALESCE(SUM(revenue_amount),0) revenue_amount, COALESCE(SUM(commission_amount),0) commission_amount')
-            ->groupBy('issue_id')
+        $grouped=$query
             ->with(['issue.manager','issue.recipientPartner'])
             ->orderByDesc('calculated_at')
-            ->orderByDesc('issue_id')
-            ->paginate($perPage,['*'],'page',$page);
+            ->orderByDesc('id')
+            ->get()
+            ->groupBy('issue_id')
+            ->map(function(Collection $entries): InventoryIssueCommission {
+                /** @var InventoryIssueCommission $first */
+                $first=$entries->first();
+                $first->revenue_amount=(float)$entries->sum('revenue_amount');
+                $first->commission_amount=(float)$entries->sum('commission_amount');
+                $first->setAttribute('commission_source_type',$first->source_type);
+
+                return $first;
+            })
+            ->values();
+
+        $page=max(1,$page);
+        $perPage=max(1,$perPage);
+
+        return new \Illuminate\Pagination\LengthAwarePaginator(
+            $grouped->forPage($page,$perPage)->values(),
+            $grouped->count(),
+            $perPage,
+            $page,
+            ['path'=>request()->url(),'query'=>request()->query()]
+        );
+    }
+
+    public function exportRows(
+        int $userId,
+        ?int $partnerId=null,
+        string $source='all',
+        mixed $from=null,
+        mixed $to=null,
+        bool $canViewTeam=false,
+        ?int $managerUserId=null,
+    ): Collection {
+        return $this->scopedQuery($userId,$canViewTeam,$managerUserId,$source,$from,$to)
+            ->when($partnerId!==null,fn(Builder $query)=>$query->where('partner_id',$partnerId))
+            ->with(['issue','medicine','user','partner'])
+            ->orderBy('calculated_at')
+            ->orderBy('issue_id')
+            ->orderBy('id')
+            ->get();
     }
 
     public function detail(

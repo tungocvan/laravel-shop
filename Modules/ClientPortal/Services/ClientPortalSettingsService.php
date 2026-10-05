@@ -228,6 +228,7 @@ class ClientPortalSettingsService
             'bottom_enabled' => true,
             'bottom_sort_order' => (int) ($item['sort_order'] ?? 100),
             'bottom_icon' => $item['icon'] ?? 'squares-2x2',
+            'bottom_label' => $item['name'] ?? '',
         ])->values()->all();
         $settings = $this->group('application.'.$application['key'].'.navigation', ['items' => $defaults]);
         $stored = collect($settings['items'] ?? [])->filter(fn ($item): bool => is_array($item) && isset($item['key']))->keyBy('key');
@@ -239,6 +240,7 @@ class ClientPortalSettingsService
                 'bottom_enabled' => $this->bool($override['bottom_enabled'] ?? $item['bottom_enabled'], true),
                 'bottom_sort_order' => (int) ($override['bottom_sort_order'] ?? $item['bottom_sort_order']),
                 'bottom_icon' => trim((string) ($override['bottom_icon'] ?? $item['bottom_icon'])),
+                'bottom_label' => trim((string) ($override['bottom_label'] ?? $item['bottom_label'])),
             ];
         })->values()->all()];
     }

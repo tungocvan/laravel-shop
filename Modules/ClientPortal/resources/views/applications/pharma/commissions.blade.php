@@ -8,9 +8,38 @@
 @section('hide-mobile-navigation', true)
 
 @section('content')
-<div class="mb-4">
-    <a href="{{ route('client.pharma.dashboard') }}" class="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">← Không gian làm việc Pharma</a>
-</div>
+<form id="commission-export-form" method="POST" action="{{ route('client.pharma.commissions.export') }}" class="mb-4 space-y-3">
+    @csrf
+    @foreach(['source','from','to','partner_id','manager_user_id'] as $key) @if(filled($filters[$key] ?? null))<input type="hidden" name="{{ $key }}" value="{{ $filters[$key] }}">@endif @endforeach
+    <div class="flex flex-wrap items-center justify-between gap-2">
+        <a href="{{ route('client.pharma.dashboard') }}" class="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">← Không gian làm việc Pharma</a>
+        <button id="commission-export-excel" type="submit" class="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-black text-emerald-800 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">Xuất Excel</button>
+    </div>
+    <div id="commission-selection-actions" class="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"><label class="inline-flex min-h-10 items-center gap-2 font-bold text-slate-700"><input id="commission-select-all" type="checkbox" class="h-5 w-5 rounded border-slate-300"> Chọn tất cả</label><span class="text-slate-400">·</span><span class="font-semibold text-slate-600"><b id="commission-selected-count">0</b> phiếu đã chọn</span><button id="commission-clear-selection" type="button" class="ml-auto hidden min-h-10 rounded-xl border border-slate-200 px-3 font-bold text-slate-600">Bỏ chọn</button></div>
+    <div id="commission-selected-inputs"></div>
+</form>
+@if($recentExports->isNotEmpty())
+<section class="mb-4 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm" data-commission-export-panel>
+    <button type="button" class="flex min-h-14 w-full items-center justify-between gap-3 px-4 py-3 text-left" data-commission-export-toggle aria-expanded="false">
+        <span class="min-w-0"><span class="block font-black text-slate-900">File đã xuất <span class="text-slate-400">({{ $recentExports->count() }})</span></span><span class="mt-0.5 block text-xs font-semibold text-slate-500">Excel riêng của tài khoản bạn</span></span>
+        <span class="text-lg font-black text-slate-500 transition-transform" data-commission-export-chevron>⌄</span>
+    </button>
+    <div class="hidden border-t border-slate-100 p-4 pt-3" data-commission-export-content>
+        <div class="space-y-2">
+            @foreach($recentExports as $export)
+            @php
+                $exportSource=$export->filters['source'] ?? 'all';
+                $exportSourceLabel=$exportSource==='bid' ? 'Trúng thầu' : ($exportSource==='price_list' ? 'Bảng giá' : 'Tất cả');
+            @endphp
+            <div class="rounded-2xl border {{ $activeExport?->id===$export->id ? 'border-emerald-300 bg-emerald-50/50' : 'border-slate-200' }} p-3">
+                <div class="flex flex-wrap items-center justify-between gap-2"><div class="min-w-0"><p class="truncate text-sm font-black text-slate-800">{{ $export->download_name }}</p><div class="mt-1 flex flex-wrap items-end gap-x-4 gap-y-1 text-xs"><p class="font-semibold text-slate-500">{{ $export->generated_at?->format('d/m/Y H:i') }} · {{ number_format($export->row_count) }} dòng</p><div><span class="block text-[10px] font-black uppercase tracking-wide text-slate-400">Nguồn</span><span class="font-black text-slate-700">{{ $exportSourceLabel }}</span></div></div></div>
+                <div class="flex flex-wrap gap-2"><a href="{{ route('client.pharma.commissions.exports.download',$export) }}" class="min-h-10 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-700">Tải</a><a href="{{ route('client.pharma.commissions.exports.print',$export) }}" target="_blank" rel="noopener" class="min-h-10 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-700">In</a><button type="button" data-commission-share-url="{{ route('client.pharma.commissions.exports.download',$export) }}" data-commission-share-name="{{ $export->download_name }}" class="min-h-10 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-black text-emerald-800">Chia sẻ</button><form method="POST" action="{{ route('client.pharma.commissions.exports.destroy',$export) }}" onsubmit="return confirm('Xóa file Excel này khỏi máy chủ?')">@csrf @method('DELETE')<button type="submit" class="min-h-10 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-black text-rose-700">Xóa</button></form></div></div>
+            </div>
+            @endforeach
+        </div>
+    </div>
+</section>
+@endif
 
 <div class="min-w-0 space-y-4 overflow-x-hidden">
     <section class="rounded-[2rem] bg-slate-950 px-5 py-6 text-white shadow-sm sm:px-7">
@@ -99,18 +128,21 @@
                     $issue=$row->issue;
                     $customer=$issue?->recipientPartner?->name ?: $issue?->recipient_name ?: '—';
                     $manager=$issue?->manager?->name ?: '—';
+                    $sourceLabel=$row->commission_source_type==='bid' ? 'Trúng thầu' : ($row->commission_source_type==='price_list' ? 'Bảng giá' : 'Hỗn hợp');
                     $detailUrl=route('client.pharma.commissions.show',['issue'=>$row->issue_id]);
                 @endphp
-                <a data-commission-item href="{{ $detailUrl }}" class="block rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">
+                <div data-commission-item class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div class="mb-2 flex items-center justify-between gap-3"><label class="inline-flex min-h-9 items-center gap-2 text-xs font-bold text-slate-500"><input type="checkbox" class="commission-row-checkbox h-5 w-5 rounded border-slate-300" value="{{ $row->issue_id }}" aria-label="Chọn phiếu {{ $issue?->number }}"><span>Chọn</span></label><span class="text-xs font-bold uppercase tracking-wide text-slate-400">{{ $issue?->issue_date?->format('d/m/Y') ?: $row->calculated_at?->format('d/m/Y') }}</span></div>
+                    <a href="{{ $detailUrl }}" class="block transition active:scale-[0.985] motion-reduce:transform-none">
                     <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0"><p class="text-xs font-bold uppercase tracking-wide text-slate-400">{{ $issue?->issue_date?->format('d/m/Y') ?: $row->calculated_at?->format('d/m/Y') }}</p><h2 class="mt-1 truncate font-black text-slate-950">{{ $customer }}</h2><p class="mt-1 text-sm font-semibold text-slate-500">{{ $manager }}</p></div>
+                        <div class="min-w-0"><h2 class="mt-1 truncate font-black text-slate-950">{{ $customer }}</h2><p class="mt-1 text-sm font-semibold text-slate-500">{{ $manager }}</p><p class="mt-1 text-xs font-bold text-slate-500"><span class="uppercase text-slate-400">Nguồn:</span> {{ $sourceLabel }}</p></div>
                         <span class="shrink-0 text-xl font-black text-slate-300">›</span>
                     </div>
                     <div class="mt-3 grid grid-cols-2 gap-3 border-t border-slate-100 pt-3">
                         <div><p class="text-[11px] font-bold uppercase text-slate-400">Tổng giá trị</p><p class="mt-1 font-black tabular-nums text-slate-950">{{ number_format((float)$row->revenue_amount,0,',','.') }} đ</p></div>
                         <div class="text-right"><p class="text-[11px] font-bold uppercase text-slate-400">Tổng hoa hồng</p><p class="mt-1 font-black tabular-nums {{ (float)$row->commission_amount<0 ? 'text-rose-700' : 'text-emerald-700' }}">{{ number_format((float)$row->commission_amount,0,',','.') }} đ</p></div>
                     </div>
-                </a>
+                </a></div>
             @empty
                 <div class="rounded-3xl border border-slate-200 bg-white px-5 py-10 text-center"><h2 class="font-black text-slate-800">Chưa có phiếu xuất phù hợp</h2><p class="mt-2 text-sm text-slate-500">Thử thay đổi khách hàng, khoảng ngày hoặc nguồn hoa hồng.</p></div>
             @endforelse
@@ -119,7 +151,7 @@
         <div class="hidden overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm md:block">
             <table class="w-full table-fixed border-collapse text-left">
                 <thead class="bg-slate-50 text-xs font-black uppercase tracking-wide text-slate-500">
-                    <tr><th class="w-[14%] px-4 py-3">Ngày xuất</th><th class="w-[30%] px-4 py-3">Khách hàng</th><th class="w-[20%] px-4 py-3">Người phụ trách</th><th class="w-[18%] px-4 py-3 text-right">Tổng giá trị</th><th class="w-[18%] px-4 py-3 text-right">Tổng hoa hồng</th></tr>
+                    <tr><th class="w-[6%] px-2 py-3 text-center"><input data-commission-select-all-desktop type="checkbox" class="h-4 w-4 rounded border-slate-300" aria-label="Chọn tất cả phiếu đang hiển thị"></th><th class="w-[13%] px-4 py-3">Ngày xuất</th><th class="w-[30%] px-4 py-3">Khách hàng</th><th class="w-[17%] px-4 py-3">Người phụ trách</th><th class="w-[13%] px-4 py-3">Nguồn</th><th class="w-[16%] px-4 py-3 text-right">Tổng giá trị</th><th class="w-[16%] px-4 py-3 text-right">Tổng hoa hồng</th></tr>
                 </thead>
                 <tbody id="commission-list" class="divide-y divide-slate-100">
                     @forelse($rows as $row)
@@ -127,17 +159,20 @@
                             $issue=$row->issue;
                             $customer=$issue?->recipientPartner?->name ?: $issue?->recipient_name ?: '—';
                             $manager=$issue?->manager?->name ?: '—';
+                            $sourceLabel=$row->commission_source_type==='bid' ? 'Trúng thầu' : ($row->commission_source_type==='price_list' ? 'Bảng giá' : 'Hỗn hợp');
                             $detailUrl=route('client.pharma.commissions.show',['issue'=>$row->issue_id]);
                         @endphp
                         <tr data-commission-item class="group transition hover:bg-slate-50">
+                            <td class="px-2 py-4 text-center"><input type="checkbox" class="commission-row-checkbox h-4 w-4 rounded border-slate-300" value="{{ $row->issue_id }}" aria-label="Chọn phiếu {{ $issue?->number }}"></td>
                             <td class="px-4 py-4"><a href="{{ $detailUrl }}" class="block font-black text-slate-950">{{ $issue?->issue_date?->format('d/m/Y') ?: $row->calculated_at?->format('d/m/Y') }}</a></td>
                             <td class="px-4 py-4"><a href="{{ $detailUrl }}" class="block truncate font-bold text-slate-800">{{ $customer }}</a></td>
                             <td class="px-4 py-4"><a href="{{ $detailUrl }}" class="block truncate font-semibold text-slate-600">{{ $manager }}</a></td>
+                            <td class="px-4 py-4"><a href="{{ $detailUrl }}" class="block font-bold text-slate-700">{{ $sourceLabel }}</a></td>
                             <td class="px-4 py-4 text-right"><a href="{{ $detailUrl }}" class="block font-black tabular-nums text-slate-950">{{ number_format((float)$row->revenue_amount,0,',','.') }} đ</a></td>
                             <td class="px-4 py-4 text-right"><a href="{{ $detailUrl }}" class="block font-black tabular-nums {{ (float)$row->commission_amount<0 ? 'text-rose-700' : 'text-emerald-700' }}">{{ number_format((float)$row->commission_amount,0,',','.') }} đ <span class="text-slate-300">›</span></a></td>
                         </tr>
                     @empty
-                        <tr><td colspan="5" class="px-5 py-10 text-center"><h2 class="font-black text-slate-800">Chưa có phiếu xuất phù hợp</h2><p class="mt-2 text-sm text-slate-500">Thử thay đổi khách hàng, khoảng ngày hoặc nguồn hoa hồng.</p></td></tr>
+                        <tr><td colspan="7" class="px-5 py-10 text-center"><h2 class="font-black text-slate-800">Chưa có phiếu xuất phù hợp</h2><p class="mt-2 text-sm text-slate-500">Thử thay đổi khách hàng, khoảng ngày hoặc nguồn hoa hồng.</p></td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -153,6 +188,53 @@
 </div>
 
 <script>
+(()=>{
+    const form=document.getElementById('commission-export-form');
+    const selectAll=document.getElementById('commission-select-all');
+    const desktopSelectAll=document.querySelector('[data-commission-select-all-desktop]');
+    const selectedCount=document.getElementById('commission-selected-count');
+    const clearSelection=document.getElementById('commission-clear-selection');
+    const inputs=document.getElementById('commission-selected-inputs');
+    const rowCheckboxes=()=>[...document.querySelectorAll('.commission-row-checkbox')];
+    const selectedIds=()=>[...new Set(rowCheckboxes().filter(box=>box.checked).map(box=>box.value))];
+    const syncSelection=()=>{
+        const boxes=rowCheckboxes(),ids=selectedIds(),all=boxes.length>0&&boxes.every(box=>box.checked);
+        if(selectedCount) selectedCount.textContent=String(ids.length);
+        if(clearSelection) clearSelection.classList.toggle('hidden',ids.length===0);
+        [selectAll,desktopSelectAll].forEach(box=>{if(box){box.checked=all;box.indeterminate=ids.length>0&&!all;}});
+    };
+    const setAll=checked=>{rowCheckboxes().forEach(box=>box.checked=checked);syncSelection();};
+    selectAll?.addEventListener('change',()=>setAll(selectAll.checked));
+    desktopSelectAll?.addEventListener('change',()=>setAll(desktopSelectAll.checked));
+    clearSelection?.addEventListener('click',()=>setAll(false));
+    document.addEventListener('change',event=>{if(event.target?.classList?.contains('commission-row-checkbox'))syncSelection();});
+    form?.addEventListener('submit',()=>{if(inputs){inputs.innerHTML='';selectedIds().forEach(id=>{const input=document.createElement('input');input.type='hidden';input.name='ids[]';input.value=id;inputs.appendChild(input);});}});
+    const exportToggle=document.querySelector('[data-commission-export-toggle]');
+    exportToggle?.addEventListener('click',()=>{
+        const content=document.querySelector('[data-commission-export-content]');
+        const chevron=document.querySelector('[data-commission-export-chevron]');
+        const expanded=exportToggle.getAttribute('aria-expanded')==='true';
+        exportToggle.setAttribute('aria-expanded',expanded?'false':'true');
+        content?.classList.toggle('hidden',expanded);
+        chevron?.classList.toggle('rotate-180',!expanded);
+    });
+    document.querySelectorAll('[data-commission-share-url]').forEach(button=>button.addEventListener('click',async()=>{
+        try{
+            const response=await fetch(button.dataset.commissionShareUrl,{credentials:'same-origin',cache:'no-store'});
+            if(!response.ok)throw new Error('download');
+            const blob=await response.blob();
+            const file=new File([blob],button.dataset.commissionShareName,{type:blob.type||'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+            const payload={files:[file]};
+            if(typeof navigator.share==='function'&&typeof navigator.canShare==='function'&&navigator.canShare(payload)){await navigator.share(payload);return;}
+            window.location.assign(button.dataset.commissionShareUrl);
+        }catch(error){
+            if(error?.name==='AbortError')return;
+            window.location.assign(button.dataset.commissionShareUrl);
+        }
+    }));
+    syncSelection();
+})();
+
 window.syncCommissionDate=(input)=>{
     if(!input.value) return;
     const [year,month,day]=input.value.split('-');

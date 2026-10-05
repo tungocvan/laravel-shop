@@ -983,3 +983,34 @@ Next step:
 - run the required module/regression gate on the final branch head;
 - verify git working tree clean;
 - create PR only after those gates pass; do not merge without explicit user approval.
+
+
+## Pharma PWA Commission Excel Export Parity — 2026-10-05
+
+- Branch: `feat/clientportal-pharma-commission-excel-export`, based on `main@d99c415f` after merged PR #266.
+- Scope: close the Commission Excel parity gap without reusing Admin controllers or duplicating commission scope rules in ClientPortal.
+- Canonical export boundary: `CommissionExcelExportService` builds the XLSX; Admin and ClientPortal both consume that Pharma-owned service.
+- PWA selection: each visible commission issue can be selected; “Chọn tất cả” selects the currently rendered issues. With selected IDs, server-side export intersects those IDs with the authenticated user's already-scoped `UserCommissionWorkspace::exportRows()`; without IDs, the current filtered scope is exported.
+- Export artifact model: each export action creates one private workbook for the selected/filtered set and persists metadata in `pharma_commission_export_artifacts`. Files are stored on the private local disk under the creating user.
+- Artifact visibility is intentionally creator-private: the PWA “File đã xuất” query filters by `created_by`; download/print endpoints independently enforce `artifact.created_by === authenticated user id`. The `client.pharma.commissions.view-team` permission expands commission data scope but does not grant access to another user's generated artifacts.
+- PWA artifact actions: `Tải`, `In`, and native `Chia sẻ`. Share uses an authenticated download fetched on explicit user action and the platform Share Sheet; no public/recoverable share token is created in this scope.
+- Admin remains able to export/download through its existing route while now using the same canonical exporter. A dedicated Admin artifact-manager UI is outside this batch.
+- No commission calculation, posting, ledger, schema outside the artifact table, permission definition, or order lifecycle behavior changed.
+- Migration: `2026_10_05_120000_create_pharma_commission_export_artifacts_table.php`.
+- Operator acceptance: focused/contract tests PASS and Desktop + Mobile/PWA UI PASS after artifact workflow validation.
+- Known local-only untracked artifacts remain excluded: `.env.backup-before-ngrok-session` and `public/hot.pharma-mobile`.
+- Pre-PR gate remaining: final Pharma module regression on the branch head; do not run full ClientApps on the feature branch and do not merge without explicit approval.
+
+
+## Pharma PWA Bottom Navigation mobile labels + iPhone inset — 2026-10-05
+
+- Implemented on the active Commission export feature branch after the Commission PWA UI work exposed the mobile-navigation follow-up.
+- iPhone bottom navigation acceptance: PASS. The navigation remains `fixed inset-x-0 bottom-0` and uses stable `pb-3` padding rather than viewport/visualViewport JavaScript or dynamic safe-area positioning that previously caused the bar to jump upward while scrolling.
+- Admin PWA settings now expose a presentation-only `bottom_label` (“Nhãn mobile”) for each navigation item.
+- `ClientPortalSettingsService` owns defaults/overrides, `PwaSettingsController` validates and persists the label, and `PortalNavigationResolver` carries it to the PWA navigation presentation.
+- `adaptive-navigation.blade.php` renders `bottom_label` on mobile and falls back to the canonical manifest item name when the configured label is blank.
+- Route keys, route targets, permission checks, navigation authorization, desktop/sidebar labels and Pharma business logic are unchanged.
+- No migration and no manifest rewrite were introduced; labels remain Admin-managed presentation settings.
+- Operator acceptance: focused tests PASS + Admin/PWA/iPhone UI PASS.
+- Known local-only untracked artifacts remain excluded: `.env.backup-before-ngrok-session` and `public/hot.pharma-mobile`.
+- Do not run full ClientApps on this feature branch. Final branch gate remains targeted tests plus the applicable Pharma module regression before PR.

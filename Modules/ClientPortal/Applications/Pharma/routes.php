@@ -56,6 +56,14 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
         Route::get('/commissions', [PharmaApplicationController::class, 'commissions'])
             ->middleware('client.feature:pharma,commissions')
             ->name('commissions');
+        Route::post('/commissions/exports', [PharmaApplicationController::class, 'exportCommissions'])
+            ->middleware('client.feature:pharma,commissions')->name('commissions.export');
+        Route::get('/commissions/exports/{artifact}/download', [PharmaApplicationController::class, 'downloadCommissionExport'])
+            ->middleware('client.feature:pharma,commissions')->name('commissions.exports.download');
+        Route::get('/commissions/exports/{artifact}/print', [PharmaApplicationController::class, 'printCommissionExport'])
+            ->middleware('client.feature:pharma,commissions')->name('commissions.exports.print');
+        Route::delete('/commissions/exports/{artifact}', [PharmaApplicationController::class, 'deleteCommissionExport'])
+            ->middleware('client.feature:pharma,commissions')->name('commissions.exports.destroy');
         Route::get('/commissions/{issue}', [PharmaApplicationController::class, 'commission'])
             ->whereNumber('issue')
             ->middleware('client.feature:pharma,commissions')

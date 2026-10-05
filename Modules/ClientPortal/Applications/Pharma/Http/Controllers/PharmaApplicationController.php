@@ -21,6 +21,8 @@ use Modules\Pharma\Services\UserPriceListWorkspace;
 use Modules\Pharma\Services\UserCommercialHospitalWorkspace;
 use Modules\Pharma\Services\UserInventoryWorkspace;
 use Modules\Pharma\Services\UserCommissionWorkspace;
+use Modules\Pharma\Services\CommissionExcelExportService;
+use Modules\Pharma\Models\CommissionExportArtifact;
 use Modules\Pharma\Models\InventoryIssueCommission;
 use Carbon\Carbon;
 use Modules\Pharma\Services\UserInventoryReceiptWorkspace;
@@ -1065,6 +1067,7 @@ final class PharmaApplicationController extends Controller
             'from'=>['nullable','date'],
             'to'=>['nullable','date','after_or_equal:from'],
             'manager_user_id'=>['nullable','integer','min:1'],
+            'export_artifact'=>['nullable','integer','min:1'],
             'page'=>['nullable','integer','min:1'],
         ]);
         $application=$registry->find('pharma'); abort_if($application===null,404);
@@ -1085,6 +1088,9 @@ final class PharmaApplicationController extends Controller
         $commissionPartners=$workspace->commissionPartners((int)$user->id,$source,$from,$to,$canViewTeam,$managerUserId);
         abort_if($partnerId!==null && $commissionPartners->firstWhere('id',$partnerId)===null,404);
 
+        $recentExports=CommissionExportArtifact::query()->where('created_by',(int)$user->id)->latest('generated_at')->limit(8)->get();
+        $activeExport=!empty($validated['export_artifact']) ? $recentExports->firstWhere('id',(int)$validated['export_artifact']) : null;
+
         return view('ClientPortal::applications.pharma.commissions',[
             'application'=>$application,
             'applicationPresentation'=>$settings->applicationPresentation($application),
@@ -1094,6 +1100,8 @@ final class PharmaApplicationController extends Controller
             'canViewTeam'=>$canViewTeam,
             'commissionUsers'=>$commissionUsers,
             'commissionPartners'=>$commissionPartners,
+            'recentExports'=>$recentExports,
+            'activeExport'=>$activeExport,
             'filters'=>[
                 'partner_id'=>$partnerId,
                 'source'=>$source,
@@ -1107,6 +1115,76 @@ final class PharmaApplicationController extends Controller
                 InventoryIssueCommission::SOURCE_PRICE_LIST=>'Bảng giá',
             ],
         ]);
+    }
+
+    public function exportCommissions(
+        Request $request,
+        ApplicationRegistry $registry,
+        UserCommissionWorkspace $workspace,
+        CommissionExcelExportService $exporter,
+    ): RedirectResponse {
+        $validated=$request->validate([
+            'partner_id'=>['nullable','integer','min:1'],
+            'source'=>['nullable','in:all,bid,price_list'],
+            'from'=>['nullable','date'],
+            'to'=>['nullable','date','after_or_equal:from'],
+            'manager_user_id'=>['nullable','integer','min:1'],
+            'ids'=>['nullable','array','max:500'],
+            'ids.*'=>['integer','distinct'],
+        ]);
+        $user=$request->user('web'); abort_if($user===null,401);
+        abort_unless($registry->userCan($user,'client.pharma.commissions.view'),403);
+        $canViewTeam=$registry->userCan($user,'client.pharma.commissions.view-team');
+        $commissionUsers=$canViewTeam ? $workspace->commissionUsers() : collect();
+        $managerUserId=$canViewTeam && !empty($validated['manager_user_id']) ? (int)$validated['manager_user_id'] : null;
+        abort_if($managerUserId!==null && $commissionUsers->firstWhere('id',$managerUserId)===null,404);
+
+        $from=!empty($validated['from']) ? Carbon::parse($validated['from'])->startOfDay() : now()->startOfMonth();
+        $to=!empty($validated['to']) ? Carbon::parse($validated['to'])->endOfDay() : now()->endOfMonth();
+        $source=$validated['source'] ?? 'all';
+        $partnerId=!empty($validated['partner_id']) ? (int)$validated['partner_id'] : null;
+        $partners=$workspace->commissionPartners((int)$user->id,$source,$from,$to,$canViewTeam,$managerUserId);
+        abort_if($partnerId!==null && $partners->firstWhere('id',$partnerId)===null,404);
+
+        $rows=$workspace->exportRows((int)$user->id,$partnerId,$source,$from,$to,$canViewTeam,$managerUserId);
+        if(!empty($validated['ids'])){
+            $ids=collect($validated['ids'])->map(fn($id)=>(int)$id)->unique();
+            $rows=$rows->whereIn('issue_id',$ids)->values();
+        }
+        $artifact=$exporter->generate($rows,$from,$to,(int)$user->id,[
+            'source'=>$source,'from'=>$from->toDateString(),'to'=>$to->toDateString(),
+            'partner_id'=>$partnerId,'manager_user_id'=>$managerUserId,
+        ]);
+        return redirect()->route('client.pharma.commissions',array_filter([
+            'source'=>$source==='all'?null:$source,'from'=>$from->toDateString(),'to'=>$to->toDateString(),
+            'partner_id'=>$partnerId,'manager_user_id'=>$managerUserId,'export_artifact'=>$artifact->id,
+        ]))->with('success','Đã tạo file Excel hoa hồng.');
+    }
+
+    public function downloadCommissionExport(Request $request, ApplicationRegistry $registry, CommissionExportArtifact $artifact, CommissionExcelExportService $exporter): BinaryFileResponse
+    {
+        $user=$request->user('web'); abort_if($user===null,401);
+        abort_unless($registry->userCan($user,'client.pharma.commissions.view'),403);
+        abort_unless((int)$artifact->created_by===(int)$user->id,404);
+        return response()->download($exporter->path($artifact),$artifact->download_name);
+    }
+
+    public function printCommissionExport(Request $request, ApplicationRegistry $registry, CommissionExportArtifact $artifact, CommissionExcelExportService $exporter): BinaryFileResponse
+    {
+        $user=$request->user('web'); abort_if($user===null,401);
+        abort_unless($registry->userCan($user,'client.pharma.commissions.view'),403);
+        abort_unless((int)$artifact->created_by===(int)$user->id,404);
+        return response()->file($exporter->path($artifact),['Content-Disposition'=>'inline; filename="'.$artifact->download_name.'"']);
+    }
+
+    public function deleteCommissionExport(Request $request, ApplicationRegistry $registry, CommissionExportArtifact $artifact): RedirectResponse
+    {
+        $user=$request->user('web'); abort_if($user===null,401);
+        abort_unless($registry->userCan($user,'client.pharma.commissions.view'),403);
+        abort_unless((int)$artifact->created_by===(int)$user->id,404);
+        if($artifact->storage_path) Storage::disk($artifact->disk)->delete($artifact->storage_path);
+        $artifact->delete();
+        return back()->with('success','Đã xóa file Excel đã xuất.');
     }
 
     public function commission(

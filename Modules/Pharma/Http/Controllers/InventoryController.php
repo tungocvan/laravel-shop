@@ -37,6 +37,7 @@ use Modules\Pharma\Services\UserOrderStockReadinessService;
 use Modules\Pharma\Services\DrugBidCommissionService;
 use Modules\Pharma\Services\CommissionQueryService;
 use Modules\Pharma\Services\CommissionExportProfileService;
+use Modules\Pharma\Services\CommissionExcelExportService;
 use Modules\Partner\Models\Partner;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -1312,15 +1313,18 @@ final class InventoryController extends Controller
         return view('Pharma::pages.inventory.commission-show',compact('detail'));
     }
 
-    public function exportCommissions(Request $request, CommissionQueryService $commissions): BinaryFileResponse
-    {
+    public function exportCommissions(
+        Request $request,
+        CommissionQueryService $commissions,
+        CommissionExcelExportService $exporter,
+    ): BinaryFileResponse {
         $data=$request->validate([
             'from'=>'nullable|date','to'=>'nullable|date','user_id'=>'nullable|integer',
             'partner_id'=>'nullable|integer','medicine_id'=>'nullable|integer','source'=>'nullable|in:all,bid,price_list',
             'ids'=>'nullable|array|max:500','ids.*'=>'integer|distinct',
             'excel_profile'=>'nullable|string|max:20000',
         ]);
-        $profile=CommissionExportProfileService::normalize(!empty($data['excel_profile'])?(json_decode($data['excel_profile'],true)?:[]):[]);
+        $profile=!empty($data['excel_profile'])?(json_decode($data['excel_profile'],true)?:[]):[];
         $from=!empty($data['from'])?Carbon::parse($data['from'])->startOfDay():now()->startOfMonth();
         $to=!empty($data['to'])?Carbon::parse($data['to'])->endOfDay():now()->endOfMonth();
         $rows=$commissions->adminQuery([
@@ -1329,96 +1333,11 @@ final class InventoryController extends Controller
         ])->when(!empty($data['ids']),fn($q)=>$q->whereIn('issue_id',$data['ids']))
           ->with(['issue','medicine','user','partner'])->orderBy('calculated_at')->orderBy('issue_id')->orderBy('id')->get();
 
-        $selected=array_values(array_filter($profile['column_order'],fn($key)=>in_array($key,$profile['selected_columns'],true)&&isset(CommissionExportProfileService::COLUMNS[$key])));
-        $headers=array_map(fn($key)=>$profile['headers'][$key]??CommissionExportProfileService::COLUMNS[$key]['label'],$selected);
-        $spreadsheet=new Spreadsheet();$sheet=$spreadsheet->getActiveSheet();$sheet->setTitle('Hoa hong');
-        $lastColumn=Coordinate::stringFromColumnIndex(count($headers));
-        $sheet->mergeCells("A1:{$lastColumn}1")->setCellValue('A1','TRUNG TÂM HOA HỒNG · CHI TIẾT PHÁT SINH');
-        $sheet->mergeCells("A2:{$lastColumn}2")->setCellValue('A2','Kỳ dữ liệu: '.$from->format('d/m/Y').' - '.$to->format('d/m/Y'));
-        $sheet->fromArray([$headers],null,'A4');
-        $sheet->getStyle("A1:{$lastColumn}1")->getFont()->setBold(true)->setSize(16);
-        $sheet->getStyle("A4:{$lastColumn}4")->getFont()->setBold(true);
-        $sheet->getStyle("A1:{$lastColumn}".max(4,4+$rows->count()))->getAlignment()->setVertical('center')->setWrapText(true);
-        foreach($rows as $index=>$row){
-            $excelRow=5+$index;
-            $values=[
-                'stt'=>$index+1,'date'=>$row->calculated_at?->format('d/m/Y'),'issue'=>$row->issue?->number,
-                'source'=>$row->source_type===InventoryIssueCommission::SOURCE_BID?'Hàng thầu':'Bảng giá',
-                'customer'=>$row->partner?->name?:$row->issue?->recipient_name,'manager'=>$row->user?->name?:'Chưa phân công',
-                'medicine_code'=>$row->medicine?->medicine_code,'medicine'=>$row->medicine?->name,'quantity'=>(float)$row->quantity,
-                'unit_price'=>(float)$row->unit_price,'receivable'=>$row->receivable_price_snapshot!==null?(float)$row->receivable_price_snapshot:null,
-                'revenue'=>(float)$row->revenue_amount,'percentage'=>$row->commission_percentage!==null?(float)$row->commission_percentage:null,
-                'commission'=>(float)$row->commission_amount,'status'=>$row->status===InventoryIssueCommission::STATUS_UNRESOLVED?'Chưa đủ dữ liệu':'Đã tính',
-            ];
-            $sheet->fromArray([array_map(fn($key)=>$values[$key],$selected)],null,"A{$excelRow}");
-        }
-        $lastRow=4+$rows->count();
-        $sheet->getStyle("A4:{$lastColumn}4")->getAlignment()->setHorizontal('center')->setVertical('center')->setWrapText(true);
-        $sheet->getStyle("A4:{$lastColumn}4")->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FFF1F5F9');
-        $sheet->getStyle("A4:{$lastColumn}{$lastRow}")->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_HAIR)->getColor()->setARGB('FFD9E2EC');
-        foreach($selected as $offset=>$key){
-            $letter=Coordinate::stringFromColumnIndex($offset+1);
-            $definition=CommissionExportProfileService::COLUMNS[$key];
-            $type=$profile['data_types'][$key]??$definition['type'];
-            $decimals=(int)($profile['decimals'][$key]??0);
-            if($type==='number')$sheet->getStyle("{$letter}5:{$letter}{$lastRow}")->getNumberFormat()->setFormatCode('#,##0'.($decimals>0?'.'.str_repeat('0',$decimals):''));
-            if($type==='date')$sheet->getStyle("{$letter}5:{$letter}{$lastRow}")->getNumberFormat()->setFormatCode('dd/mm/yyyy');
-            $sheet->getStyle("{$letter}5:{$letter}{$lastRow}")->getAlignment()->setHorizontal($profile['alignments'][$key]??$definition['align'])->setVertical('center')->setWrapText((bool)($profile['wrap_texts'][$key]??true));
-            if($profile['auto_widths'][$key]??true){
-                $maxChars=mb_strlen((string)($profile['headers'][$key]??$definition['label']));
-                foreach($rows as $exportRow){
-                    $sample=match($key){
-                        'stt'=>(string)$rows->search($exportRow)+1,
-                        'date'=>(string)$exportRow->calculated_at?->format('d/m/Y'),
-                        'issue'=>(string)$exportRow->issue?->number,
-                        'source'=>$exportRow->source_type===InventoryIssueCommission::SOURCE_BID?'Hàng thầu':'Bảng giá',
-                        'customer'=>(string)($exportRow->partner?->name?:$exportRow->issue?->recipient_name),
-                        'manager'=>(string)($exportRow->user?->name?:'Chưa phân công'),
-                        'medicine_code'=>(string)$exportRow->medicine?->medicine_code,
-                        'medicine'=>(string)$exportRow->medicine?->name,
-                        'quantity'=>(string)$exportRow->quantity,
-                        'unit_price'=>(string)$exportRow->unit_price,
-                        'receivable'=>(string)$exportRow->receivable_price_snapshot,
-                        'revenue'=>(string)$exportRow->revenue_amount,
-                        'percentage'=>(string)$exportRow->commission_percentage,
-                        'commission'=>(string)$exportRow->commission_amount,
-                        'status'=>$exportRow->status===InventoryIssueCommission::STATUS_UNRESOLVED?'Chưa đủ dữ liệu':'Đã tính',
-                        default=>'',
-                    };
-                    $maxChars=max($maxChars,mb_strlen($sample));
-                }
-                $sheet->getColumnDimension($letter)->setAutoSize(false);
-                $sheet->getColumnDimension($letter)->setWidth(max(7,min(28,$maxChars+2)));
-            }else{$sheet->getColumnDimension($letter)->setAutoSize(false);$sheet->getColumnDimension($letter)->setWidth(max(6,((int)($profile['widths'][$key]??$definition['width']))/7));}
-        }
-        $footerRow=$lastRow+2;
-        $revenueColumn=array_search('revenue',$selected,true);
-        $commissionColumn=array_search('commission',$selected,true);
-        $footerPairs=[];
-        if($revenueColumn!==false)$footerPairs[]=['label'=>'Tổng giá trị','column'=>Coordinate::stringFromColumnIndex($revenueColumn+1),'value'=>(float)$rows->sum('revenue_amount')];
-        if($commissionColumn!==false)$footerPairs[]=['label'=>'Tổng hoa hồng','column'=>Coordinate::stringFromColumnIndex($commissionColumn+1),'value'=>(float)$rows->sum('commission_amount')];
-        foreach($footerPairs as $pair){
-            $column=$pair['column'];
-            $labelColumn=Coordinate::stringFromColumnIndex(max(1,Coordinate::columnIndexFromString($column)-1));
-            $sheet->setCellValue("{$labelColumn}{$footerRow}",$pair['label']);
-            $sheet->setCellValue("{$column}{$footerRow}",$pair['value']);
-            $sheet->getStyle("{$labelColumn}{$footerRow}:{$column}{$footerRow}")->getFont()->setBold(true);
-            $sheet->getStyle("{$labelColumn}{$footerRow}:{$column}{$footerRow}")->getAlignment()->setVertical('center')->setWrapText(true);
-            $sheet->getStyle("{$labelColumn}{$footerRow}")->getAlignment()->setHorizontal('right');
-            $sheet->getStyle("{$column}{$footerRow}")->getAlignment()->setHorizontal('right');
-            $sheet->getStyle("{$column}{$footerRow}")->getNumberFormat()->setFormatCode('#,##0');
-        }
-        if(($profile['page_setup']['auto_height']??true)){foreach(range(1,$footerRow) as $rowIndex)$sheet->getRowDimension($rowIndex)->setRowHeight(-1);}
-        $sheet->freezePane('A5')->setAutoFilter("A4:{$lastColumn}{$lastRow}");
-        $orientation=($profile['page_setup']['orientation']??'landscape')==='portrait'?PageSetup::ORIENTATION_PORTRAIT:PageSetup::ORIENTATION_LANDSCAPE;
-        $sheet->getPageSetup()->setPaperSize(PageSetup::PAPERSIZE_A4)->setOrientation($orientation)->setFitToWidth(1)->setFitToHeight(0);
-        $sheet->getPageMargins()->setLeft(0.2)->setRight(0.2)->setTop(0.4)->setBottom(0.4);
-        $sheet->getPageSetup()->setHorizontalCentered(true);
-        $sheet->getHeaderFooter()->setOddFooter('&LTrung tâm hoa hồng&RTrang &P / &N');
-        $path=storage_path('app/private/exports/commissions/pharma-hoa-hong-'.now()->format('Ymd-His').'.xlsx');
-        if(!is_dir(dirname($path)))mkdir(dirname($path),0775,true);
-        (new Xlsx($spreadsheet))->save($path);
-        return response()->download($path)->deleteFileAfterSend(true);
+        $artifact=$exporter->generate($rows,$from,$to,(int)auth()->id(),[
+            'source'=>$data['source']??'all','from'=>$from->toDateString(),'to'=>$to->toDateString(),
+            'user_id'=>$data['user_id']??null,'partner_id'=>$data['partner_id']??null,'medicine_id'=>$data['medicine_id']??null,
+        ],$profile);
+        return response()->download($exporter->path($artifact),$artifact->download_name);
     }
 
     private function issueSalePriceCandidates()

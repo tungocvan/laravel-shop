@@ -296,19 +296,42 @@ class ClientPortalPwaSettingsTest extends TestCase
         $this->assertTrue($defaults['overview']['bottom_enabled']);
         $this->assertSame(10, $defaults['overview']['bottom_sort_order']);
         $this->assertSame('home', $defaults['overview']['bottom_icon']);
+        $this->assertSame('Tổng quan', $defaults['overview']['bottom_label']);
 
         $settings->updateApplicationNavigationPresentation('pharma', ['items' => [
-            ['key' => 'overview', 'bottom_enabled' => false, 'bottom_sort_order' => 90, 'bottom_icon' => 'squares-2x2'],
-            ['key' => 'products', 'bottom_enabled' => true, 'bottom_sort_order' => 5, 'bottom_icon' => 'magnifying-glass'],
+            ['key' => 'overview', 'bottom_enabled' => false, 'bottom_sort_order' => 90, 'bottom_icon' => 'squares-2x2', 'bottom_label' => 'Trang chủ'],
+            ['key' => 'products', 'bottom_enabled' => true, 'bottom_sort_order' => 5, 'bottom_icon' => 'magnifying-glass', 'bottom_label' => ''],
         ]], 75);
 
         $items = collect($settings->applicationNavigationPresentation($application)['items'])->keyBy('key');
         $this->assertFalse($items['overview']['bottom_enabled']);
         $this->assertSame(90, $items['overview']['bottom_sort_order']);
         $this->assertSame('squares-2x2', $items['overview']['bottom_icon']);
+        $this->assertSame('Trang chủ', $items['overview']['bottom_label']);
+        $this->assertSame('', $items['products']['bottom_label']);
         $this->assertTrue($items['products']['bottom_enabled']);
         $this->assertSame(5, $items['products']['bottom_sort_order']);
         $this->assertSame('json', ClientPortalSetting::query()->where('group_name', 'application.pharma.navigation')->where('key', 'items')->value('type'));
+    }
+
+    public function test_mobile_navigation_label_is_presentation_only_and_falls_back_to_manifest_name(): void
+    {
+        $application = app(ApplicationRegistry::class)->find('pharma');
+        $settings = app(ClientPortalSettingsService::class);
+
+        $settings->updateApplicationNavigationPresentation('pharma', ['items' => [
+            ['key' => 'overview', 'bottom_enabled' => true, 'bottom_sort_order' => 10, 'bottom_icon' => 'home', 'bottom_label' => 'Trang chủ'],
+            ['key' => 'products', 'bottom_enabled' => true, 'bottom_sort_order' => 20, 'bottom_icon' => 'beaker', 'bottom_label' => ''],
+        ]]);
+
+        $items = collect($settings->applicationNavigationPresentation($application)['items'])->keyBy('key');
+        $this->assertSame('Trang chủ', $items['overview']['bottom_label']);
+        $this->assertSame('', $items['products']['bottom_label']);
+
+        $resolver = file_get_contents(base_path('Modules/ClientPortal/Services/PortalNavigationResolver.php'));
+        $blade = file_get_contents(base_path('Modules/ClientPortal/resources/views/partials/adaptive-navigation.blade.php'));
+        $this->assertStringContainsString("'bottom_label' => trim", $resolver);
+        $this->assertStringContainsString("\$item['bottom_label'] ?: \$item['name']", $blade);
     }
 
     public function test_application_presentation_override_preserves_manifest_contract(): void

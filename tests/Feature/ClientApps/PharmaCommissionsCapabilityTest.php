@@ -27,6 +27,19 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertSame('GET',$show->methods()[0]);
         $this->assertSame('apps/pharma/commissions/{issue}',$show->uri());
         $this->assertContains('client.feature:pharma,commissions',$show->gatherMiddleware());
+
+        $export=Route::getRoutes()->getByName('client.pharma.commissions.export');
+        $this->assertNotNull($export);
+        $this->assertSame('POST',$export->methods()[0]);
+        $this->assertSame('apps/pharma/commissions/exports',$export->uri());
+        $this->assertContains('auth:web',$export->gatherMiddleware());
+        $this->assertContains('client.feature:pharma,commissions',$export->gatherMiddleware());
+
+        $destroy=Route::getRoutes()->getByName('client.pharma.commissions.exports.destroy');
+        $this->assertNotNull($destroy);
+        $this->assertSame('DELETE',$destroy->methods()[0]);
+        $this->assertSame('apps/pharma/commissions/exports/{artifact}',$destroy->uri());
+        $this->assertContains('auth:web',$destroy->gatherMiddleware());
     }
 
     public function test_user_workspace_starts_from_canonical_user_scope_and_never_admin_scope(): void
@@ -51,6 +64,7 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $reflection=new ReflectionClass(UserCommissionWorkspace::class);
         $this->assertTrue($reflection->hasMethod('browse'));
         $this->assertTrue($reflection->hasMethod('summary'));
+        $this->assertTrue($reflection->hasMethod('exportRows'));
     }
 
     public function test_client_surface_uses_authenticated_user_scope_managed_copy_and_native_load_more(): void
@@ -66,6 +80,9 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString("'client.pharma.commissions.view'",$controller);
         $this->assertStringContainsString('$workspace->browse((int)$user->id',$controller);
         $this->assertStringContainsString('$workspace->summary((int)$user->id',$controller);
+        $this->assertStringContainsString('CommissionExcelExportService $exporter',$controller);
+        $this->assertStringContainsString('$workspace->exportRows((int)$user->id',$controller);
+        $this->assertStringContainsString('$artifact=$exporter->generate($rows,$from,$to',$controller);
         $this->assertStringContainsString("featurePresentation(\$application['key'],\$feature)",$controller);
 
         $this->assertStringContainsString("'route' => 'client.pharma.commissions'",$manifest);
@@ -131,8 +148,45 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('data-commission-item',$view);
         $this->assertStringContainsString('active:scale-[0.985]',$view);
         $this->assertStringContainsString('motion-reduce:transform-none',$view);
+        $this->assertStringContainsString("route('client.pharma.commissions.export'",$view);
+        $this->assertStringContainsString('Xuất Excel',$view);
+        $this->assertStringContainsString("navigator.canShare(payload)",$view);
+        $this->assertStringContainsString("navigator.share(payload)",$view);
+        $this->assertStringContainsString("window.location.assign(button.dataset.commissionShareUrl)",$view);
+        $this->assertStringContainsString('File đã xuất',$view);
+        $this->assertStringContainsString('data-commission-export-toggle',$view);
+        $this->assertStringContainsString('data-commission-export-content',$view);
+        $this->assertStringContainsString('aria-expanded="false"',$view);
+        $this->assertStringContainsString('class="hidden border-t border-slate-100 p-4 pt-3"',$view);
+        $this->assertStringContainsString('>Nguồn</span>',$view);
+        $this->assertStringContainsString('{{ $exportSourceLabel }}',$view);
+        $this->assertStringContainsString("'Trúng thầu'",$view);
+        $this->assertStringContainsString("'Bảng giá'",$view);
+        $this->assertStringContainsString('>Nguồn</th>',$view);
+        $this->assertSame(2,substr_count($view,"\$sourceLabel=\$row->commission_source_type==='bid'"),'Mobile and desktop rows must each resolve commission source independently.');
+        $workspace=file_get_contents(base_path('Modules/Pharma/Services/UserCommissionWorkspace.php'));
+        $this->assertStringContainsString("orderByDesc('id')",$workspace);
+        $this->assertStringContainsString("->groupBy('issue_id')",$workspace);
+        $this->assertStringContainsString("\$first=\$entries->first()",$workspace);
+        $this->assertStringContainsString("setAttribute('commission_source_type',\$first->source_type)",$workspace);
+        $this->assertStringNotContainsString('COUNT(DISTINCT source_type)',file_get_contents(base_path('Modules/Pharma/Services/UserCommissionWorkspace.php')));
+        $this->assertStringContainsString('>Tải</a>',$view);
+        $this->assertStringContainsString('>In</a>',$view);
+        $this->assertStringContainsString('>Chia sẻ</button>',$view);
+        $this->assertStringContainsString('>Xóa</button>',$view);
+        $this->assertStringContainsString("route('client.pharma.commissions.exports.destroy'",$view);
+        $this->assertStringContainsString('public function deleteCommissionExport',$controller);
+        $this->assertStringContainsString("Storage::disk(\$artifact->disk)->delete(\$artifact->storage_path)",$controller);
+        $this->assertStringContainsString('id="commission-select-all"',$view);
+        $this->assertStringContainsString('commission-row-checkbox',$view);
+        $this->assertStringContainsString('<span>Chọn</span>',$view);
+        $this->assertStringNotContainsString('absolute left-3 top-3',$view);
+        $this->assertStringContainsString("input.name='ids[]'",$view);
+        $this->assertStringContainsString("'ids'=>['nullable','array','max:500']",$controller);
+        $this->assertStringContainsString("whereIn('issue_id',\$ids)",$controller);
         $this->assertStringNotContainsString('Admin::',$view);
-        $this->assertStringNotContainsString('method="POST"',$view);
+        $this->assertStringContainsString('method="POST"',$view);
+        $this->assertStringContainsString('@csrf',$view);
         $this->assertStringNotContainsString('wire:',$view);
     }
 }
