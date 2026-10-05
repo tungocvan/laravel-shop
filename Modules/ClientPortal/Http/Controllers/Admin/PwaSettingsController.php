@@ -158,6 +158,7 @@ class PwaSettingsController extends Controller
             'items.*.bottom_enabled' => ['required', 'boolean'],
             'items.*.bottom_sort_order' => ['required', 'integer', 'min:0', 'max:9999'],
             'items.*.bottom_icon' => ['required', 'string', 'max:60'],
+            'items.*.bottom_label' => ['nullable', 'string', 'max:30'],
         ]);
         $allowed = collect($manifest['navigation'] ?? [])->pluck('key')->flip();
         $items = collect($validated['items'])->filter(fn (array $item): bool => $allowed->has($item['key']))->map(fn (array $item): array => [
@@ -165,6 +166,7 @@ class PwaSettingsController extends Controller
             'bottom_enabled' => (bool) $item['bottom_enabled'],
             'bottom_sort_order' => (int) $item['bottom_sort_order'],
             'bottom_icon' => trim((string) $item['bottom_icon']),
+            'bottom_label' => trim((string) ($item['bottom_label'] ?? '')),
         ])->values()->all();
         $settings->updateApplicationNavigationPresentation($manifest['key'], ['items' => $items], $request->user('admin')?->getAuthIdentifier());
         return back()->with('success', 'Đã cập nhật Bottom Navigation của ứng dụng '.$manifest['name'].'.');
