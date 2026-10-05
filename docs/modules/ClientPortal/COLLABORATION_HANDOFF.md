@@ -1014,3 +1014,14 @@ Next step:
 - Operator acceptance: focused tests PASS + Admin/PWA/iPhone UI PASS.
 - Known local-only untracked artifacts remain excluded: `.env.backup-before-ngrok-session` and `public/hot.pharma-mobile`.
 - Do not run full ClientApps on this feature branch. Final branch gate remains targeted tests plus the applicable Pharma module regression before PR.
+
+
+## Bottom Navigation legacy label fallback hotfix — 2026-10-05
+
+- Branch: `fix/clientportal-bottom-label-fallback`, created from post-PR-267 `main@78934640`.
+- Trigger: post-merge full ClientApps regression exposed `Undefined array key "bottom_label"` in the shared adaptive navigation when a caller supplied a legacy navigation item without the new presentation key.
+- Fix: normalize the mobile label inside the shared partial with a null-safe lookup and canonical-name fallback; both a missing `bottom_label` and an explicitly blank value render `name`.
+- Coverage applies to mobile primary navigation and the mobile More menu; desktop/sidebar labels remain canonical and unchanged.
+- No route, permission, settings schema, migration, Pharma business logic, Commission workflow or iPhone fixed-bottom behavior changed.
+- Targeted validation: `ClientAdaptiveNavigationTest` + `ClientPortalPwaSettingsTest` = **30 passed (289 assertions)**.
+- Full ClientApps is intentionally deferred until the hotfix is merged to `main`, per feature-branch workflow.
