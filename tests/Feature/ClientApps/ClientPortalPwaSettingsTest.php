@@ -331,7 +331,8 @@ class ClientPortalPwaSettingsTest extends TestCase
         $resolver = file_get_contents(base_path('Modules/ClientPortal/Services/PortalNavigationResolver.php'));
         $blade = file_get_contents(base_path('Modules/ClientPortal/resources/views/partials/adaptive-navigation.blade.php'));
         $this->assertStringContainsString("'bottom_label' => trim", $resolver);
-        $this->assertStringContainsString("\$item['bottom_label'] ?: \$item['name']", $blade);
+        $this->assertStringContainsString("\$item['bottom_label'] ?? ''", $blade);
+        $this->assertStringContainsString("?: \$item['name']", $blade);
     }
 
     public function test_application_presentation_override_preserves_manifest_contract(): void
