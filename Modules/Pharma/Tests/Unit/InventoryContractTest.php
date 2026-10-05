@@ -72,7 +72,7 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('FastExcel', $controller);
         $this->assertStringContainsString('StreamedResponse', $controller);
         $this->assertStringContainsString('BinaryFileResponse', $controller);
-        $this->assertStringContainsString('new Spreadsheet()', $controller);
+        $this->assertStringContainsString('new Spreadsheet()', file_get_contents(base_path('Modules/Pharma/Services/CommissionExcelExportService.php')));
         $index=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/index.blade.php'));
         $opening=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/opening-form.blade.php'));
         $this->assertStringContainsString("route('admin.pharma.dashboard')", $index);
@@ -859,7 +859,7 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('Export Excel đã chọn', $view);
         $this->assertStringContainsString('name="ids[]"', $view);
         $this->assertStringContainsString("resolved_customer_name", $controller);
-        $this->assertStringContainsString("\$row->issue?->recipient_name", $controller);
+        $this->assertStringContainsString("\$row->issue?->recipient_name", file_get_contents(base_path('Modules/Pharma/Services/CommissionExcelExportService.php')));
         $this->assertStringContainsString("'ids'=>'nullable|array|max:500'", $controller);
         $this->assertStringContainsString('<div class="w-full space-y-5 px-2 xl:px-3">', $view);
         $this->assertStringContainsString('min-w-[1040px] table-fixed', $view);
@@ -1047,7 +1047,7 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString('Kiểu dữ liệu',$view);
         $this->assertStringContainsString('Độ rộng',$view);
         $this->assertStringContainsString('excel_profile',$controller);
-        $this->assertStringContainsString('CommissionExportProfileService::normalize',$controller);
+        $this->assertStringContainsString('CommissionExportProfileService::normalize',file_get_contents(base_path('Modules/Pharma/Services/CommissionExcelExportService.php')));
         $this->assertStringContainsString("'commission'=>['label'=>'Hoa hồng'",$profile);
         $this->assertStringContainsString("'quantity'=>['label'=>'SL thực xuất'",$profile);
     }
@@ -1064,9 +1064,10 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("'wrap_texts'=>array_fill_keys",$profile);
         $this->assertStringContainsString('Auto độ rộng',$view);
         $this->assertStringContainsString('Wrap Text',$view);
-        $this->assertStringContainsString("setHorizontal('center')",$controller);
-        $this->assertStringContainsString("profile['auto_widths']",$controller);
-        $this->assertStringContainsString("profile['wrap_texts']",$controller);
+        $exporter=file_get_contents(base_path('Modules/Pharma/Services/CommissionExcelExportService.php'));
+        $this->assertStringContainsString("setHorizontal('center')",$exporter);
+        $this->assertStringContainsString("profile['auto_widths']",$exporter);
+        $this->assertStringContainsString("profile['wrap_texts']",$exporter);
     }
 
 }
