@@ -4,6 +4,7 @@ namespace Modules\Pharma\Services;
 
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Modules\Partner\Models\Partner;
 use Modules\Pharma\Models\MedicinePackage;
@@ -11,6 +12,7 @@ use Modules\Pharma\Models\MedicineVariant;
 use Modules\Pharma\Models\OfficialSourceFacility;
 use Modules\Pharma\Models\PriceList;
 use Modules\Pharma\Models\PriceListItem;
+use Modules\Pharma\Models\PriceListExportShare;
 use Modules\Pharma\Models\PriceListPurpose;
 
 class PriceListManager
@@ -208,10 +210,29 @@ class PriceListManager
             ]);
         }
 
-        DB::transaction(function () use ($priceList): void {
+        $this->deletePriceListWithArtifacts($priceList);
+    }
+
+    private function deletePriceListWithArtifacts(PriceList $priceList): void
+    {
+        $shares = PriceListExportShare::query()->where('price_list_id', $priceList->id)->get();
+        $paths = $shares
+            ->flatMap(fn (PriceListExportShare $share): array => [$share->storage_path, $share->pdf_storage_path])
+            ->filter(fn ($path): bool => is_string($path) && trim($path) !== '')
+            ->unique()
+            ->values();
+
+        DB::transaction(function () use ($priceList, $shares): void {
+            PriceListExportShare::query()->whereKey($shares->modelKeys())->delete();
             $priceList->items()->delete();
             $priceList->delete();
         });
+
+        foreach ($paths as $path) {
+            if (Storage::disk('local')->exists($path)) {
+                Storage::disk('local')->delete($path);
+            }
+        }
     }
 
     public function deleteSelected(array $ids): int
@@ -240,8 +261,7 @@ class PriceListManager
             }
 
             foreach ($priceLists as $priceList) {
-                $priceList->items()->delete();
-                $priceList->delete();
+                $this->deletePriceListWithArtifacts($priceList);
             }
 
             return $priceLists->count();
