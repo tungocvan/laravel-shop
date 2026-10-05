@@ -192,14 +192,18 @@ final class UserPriceListWorkflow
         });
     }
 
-    public function submit(int $userId, int $priceListId): PriceList
+    public function submit(int $userId, int $priceListId, bool $approverScope = false): PriceList
     {
-        return DB::transaction(function () use ($userId, $priceListId): PriceList {
-            $list = PriceList::query()
-                ->where('manager_user_id', $userId)
+        return DB::transaction(function () use ($userId, $priceListId, $approverScope): PriceList {
+            $query = PriceList::query()
                 ->lockForUpdate()
-                ->with('items')
-                ->findOrFail($priceListId);
+                ->with('items');
+
+            if (! $approverScope) {
+                $query->where('manager_user_id', $userId);
+            }
+
+            $list = $query->findOrFail($priceListId);
 
             if (! in_array($list->status, [PriceList::STATUS_DRAFT, PriceList::STATUS_REJECTED], true)) {
                 throw ValidationException::withMessages(['price_list' => 'Chỉ bảng giá Nháp hoặc đã bị từ chối mới được gửi duyệt.']);
