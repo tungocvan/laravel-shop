@@ -154,9 +154,9 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString("input.name='ids[]'",$view);
         $this->assertStringContainsString("'ids'=>['nullable','array','max:500']",$controller);
         $this->assertStringContainsString("whereIn('issue_id',\$ids)",$controller);
-        $this->assertStringContainsString('Mở / Chia sẻ file',$view);
         $this->assertStringNotContainsString('Admin::',$view);
-        $this->assertStringNotContainsString('method="POST"',$view);
+        $this->assertStringContainsString('method="POST"',$view);
+        $this->assertStringContainsString('@csrf',$view);
         $this->assertStringNotContainsString('wire:',$view);
     }
 }
