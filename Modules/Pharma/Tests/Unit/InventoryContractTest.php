@@ -31,7 +31,7 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("public const POSTED='posted'", $issue);
         $this->assertStringNotContainsString('if ($after < 0)', $service);
         $this->assertStringContainsString('Không đủ tồn cho lô', $service);
-        $this->assertStringContainsString("$lotAllocations=\$postedItems->groupBy", $service);
+        $this->assertStringContainsString('$lotAllocations=$postedItems->groupBy', $service);
         $this->assertStringContainsString('$balance->quantity_on_hand < $required', $service);
         $this->assertStringContainsString('Tồn đầu kỳ', $view);
         $this->assertStringContainsString('Sắp hết hạn', $view);
@@ -259,8 +259,8 @@ class InventoryContractTest extends TestCase
         $this->assertStringContainsString("name('issues.export')", $routes);
         $this->assertStringContainsString('function exportIssues', $controller);
         $this->assertStringContainsString('$canPostStock=false;', $controller);
-        $this->assertStringContainsString("->groupBy(fn($item)=>$item->medicine_id.'|'.$item->batch_number", $controller);
-        $this->assertStringContainsString(">= (float)$items->sum('quantity')", $controller);
+        $this->assertStringContainsString("->groupBy(fn(\$item)=>\$item->medicine_id.'|'.\$item->batch_number", $controller);
+        $this->assertStringContainsString(">= (float)\$items->sum('quantity')", $controller);
         $this->assertStringContainsString('@if($canPostStock)', $issueShow);
         $this->assertStringContainsString('Phân bổ nhiều lô (FEFO)', $issueEdit);
         $this->assertStringContainsString('function allocateFefo(tr)', $issueEdit);
