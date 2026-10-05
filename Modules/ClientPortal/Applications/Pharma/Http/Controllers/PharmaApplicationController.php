@@ -22,6 +22,7 @@ use Modules\Pharma\Services\UserCommercialHospitalWorkspace;
 use Modules\Pharma\Services\UserInventoryWorkspace;
 use Modules\Pharma\Services\UserCommissionWorkspace;
 use Modules\Pharma\Services\CommissionExcelExportService;
+use Modules\Pharma\Models\CommissionExportArtifact;
 use Modules\Pharma\Models\InventoryIssueCommission;
 use Carbon\Carbon;
 use Modules\Pharma\Services\UserInventoryReceiptWorkspace;
@@ -1117,7 +1118,7 @@ final class PharmaApplicationController extends Controller
         ApplicationRegistry $registry,
         UserCommissionWorkspace $workspace,
         CommissionExcelExportService $exporter,
-    ): BinaryFileResponse {
+    ): RedirectResponse {
         $validated=$request->validate([
             'partner_id'=>['nullable','integer','min:1'],
             'source'=>['nullable','in:all,bid,price_list'],
@@ -1144,7 +1145,30 @@ final class PharmaApplicationController extends Controller
             $ids=collect($validated['ids'])->map(fn($id)=>(int)$id)->unique();
             $rows=$rows->whereIn('issue_id',$ids)->values();
         }
-        return $exporter->download($rows,$from,$to);
+        $artifact=$exporter->generate($rows,$from,$to,(int)$user->id,[
+            'source'=>$source,'from'=>$from->toDateString(),'to'=>$to->toDateString(),
+            'partner_id'=>$partnerId,'manager_user_id'=>$managerUserId,
+        ]);
+        return redirect()->route('client.pharma.commissions',array_filter([
+            'source'=>$source==='all'?null:$source,'from'=>$from->toDateString(),'to'=>$to->toDateString(),
+            'partner_id'=>$partnerId,'manager_user_id'=>$managerUserId,'export_artifact'=>$artifact->id,
+        ]))->with('success','Đã tạo file Excel hoa hồng.');
+    }
+
+    public function downloadCommissionExport(Request $request, ApplicationRegistry $registry, CommissionExportArtifact $artifact, CommissionExcelExportService $exporter): BinaryFileResponse
+    {
+        $user=$request->user('web'); abort_if($user===null,401);
+        abort_unless($registry->userCan($user,'client.pharma.commissions.view'),403);
+        abort_unless((int)$artifact->created_by===(int)$user->id,404);
+        return response()->download($exporter->path($artifact),$artifact->download_name);
+    }
+
+    public function printCommissionExport(Request $request, ApplicationRegistry $registry, CommissionExportArtifact $artifact, CommissionExcelExportService $exporter): BinaryFileResponse
+    {
+        $user=$request->user('web'); abort_if($user===null,401);
+        abort_unless($registry->userCan($user,'client.pharma.commissions.view'),403);
+        abort_unless((int)$artifact->created_by===(int)$user->id,404);
+        return response()->file($exporter->path($artifact),['Content-Disposition'=>'inline; filename="'.$artifact->download_name.'"']);
     }
 
     public function commission(
