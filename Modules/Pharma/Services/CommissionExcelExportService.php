@@ -97,6 +97,15 @@ final class CommissionExcelExportService
         ]);
     }
 
+    public function delete(CommissionExportArtifact $artifact): void
+    {
+        if ($artifact->storage_path) {
+            Storage::disk($artifact->disk)->delete($artifact->storage_path);
+        }
+
+        $artifact->delete();
+    }
+
     public function path(CommissionExportArtifact $artifact): string
     {
         abort_unless(Storage::disk($artifact->disk)->exists($artifact->storage_path),404);
