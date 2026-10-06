@@ -15,7 +15,6 @@
         <a href="{{ route('client.pharma.dashboard') }}" class="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">← Không gian làm việc Pharma</a>
         <button id="commission-export-excel" type="submit" class="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-black text-emerald-800 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">Xuất Excel</button>
     </div>
-    <div id="commission-selection-actions" class="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"><label class="inline-flex min-h-10 items-center gap-2 font-bold text-slate-700"><input id="commission-select-all" type="checkbox" class="h-5 w-5 rounded border-slate-300"> Chọn tất cả</label><span class="text-slate-400">·</span><span class="font-semibold text-slate-600"><b id="commission-selected-count">0</b> phiếu đã chọn</span><button id="commission-clear-selection" type="button" class="ml-auto hidden min-h-10 rounded-xl border border-slate-200 px-3 font-bold text-slate-600">Bỏ chọn</button></div>
     <div id="commission-selected-inputs"></div>
 </form>
 @if($recentExports->isNotEmpty())
