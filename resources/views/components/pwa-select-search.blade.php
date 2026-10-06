@@ -49,11 +49,14 @@
 @push('application-scripts')
 <script>
 (() => {
-    const bind = () => window.ClientPortalNativeInteractions?.bindSelectSearch?.(document);
-    if (window.ClientPortalNativeInteractions?.bindSelectSearch) {
-        bind();
-        return;
-    }
+    const bind = () => {
+        if (window.ClientPortalNativeInteractions?.bindSelectSearch) {
+            window.ClientPortalNativeInteractions.bindSelectSearch(document);
+            return;
+        }
+        document.dispatchEvent(new CustomEvent('clientportal:bind-select-search', {detail: {root: document}}));
+    };
+    bind();
     document.addEventListener('clientportal:native-interactions-ready', bind, {once: true});
 })();
 </script>
