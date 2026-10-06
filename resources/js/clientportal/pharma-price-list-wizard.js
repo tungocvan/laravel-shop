@@ -170,39 +170,8 @@ const initPharmaPriceListWizard = () => {
     });
     syncGlobalUserScope();
 
-    const customerSearch = document.getElementById('client-price-list-customer-search');
     const customerId = document.getElementById('client-price-list-customer');
-    const customerResults = document.getElementById('client-price-list-customer-results');
-    const customerOptions = [...document.querySelectorAll('[data-customer-option]')];
-    const closeCustomers = () => customerResults?.classList.add('hidden');
-    const renderCustomers = () => {
-        if (!customerResults) return;
-        const q = (customerSearch?.value || '').toLocaleLowerCase('vi').trim();
-        let visible = 0;
-        customerOptions.forEach(option => {
-            const match = !q || (option.dataset.search || '').includes(q);
-            option.classList.toggle('hidden', !match);
-            if (match && visible++ < 25) option.classList.remove('hidden');
-            else if (match) option.classList.add('hidden');
-        });
-        customerResults.classList.toggle('hidden', visible === 0);
-    };
-    customerSearch?.addEventListener('focus', renderCustomers);
-    customerSearch?.addEventListener('input', () => {
-        if (customerId) customerId.value = '';
-        renderCustomers();
-        syncActions();
-    });
-    customerOptions.forEach(option => option.addEventListener('click', () => {
-        if (customerId) customerId.value = option.dataset.value || '';
-        if (customerSearch) customerSearch.value = option.dataset.label || option.textContent.trim();
-        closeCustomers();
-        syncActions();
-    }));
-    document.addEventListener('click', event => {
-        if (customerResults && !event.target.closest('[data-customer-combobox]')) closeCustomers();
-        if (managerBox && !managerBox.contains(event.target)) managerPanel?.classList.add('hidden');
-    });
+    customerId?.addEventListener('change', syncActions);
 
     const productSearch = document.getElementById('source-product-search');
     const productRows = [...document.querySelectorAll('.source-product-row')];
