@@ -151,6 +151,9 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString("if(nextSearch===initialSearch) return", $list);
         $this->assertStringContainsString("},750)", $list);
         $this->assertStringNotContainsString("setTimeout(()=>form.requestSubmit(),350)", $list);
+        $this->assertStringContainsString('data-pwa-debounced-search="750"', $list);
+        $this->assertStringContainsString('data-pwa-load-more', $list);
+        $this->assertStringContainsString('data-pwa-load-more-target="#bid-award-results"', $list);
         $this->assertStringContainsString('Trong phạm vi tôi phụ trách', $list);
         $this->assertStringContainsString('md:grid-cols-2 xl:grid-cols-3', $list);
         $this->assertStringNotContainsString('BV của tôi', $detail);
@@ -229,6 +232,8 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString("if(nextSearch===initialSearch)return", $detail);
         $this->assertStringContainsString("},750)", $detail);
         $this->assertStringNotContainsString("setTimeout(()=>form.requestSubmit(),350)", $detail);
+        $this->assertStringContainsString('data-pwa-debounced-search="750"', $detail);
+        $this->assertStringContainsString('data-pwa-load-more-target="#bid-products"', $detail);
     }
 
     public function test_bid_award_allocation_is_collapsible_and_hospital_first(): void
