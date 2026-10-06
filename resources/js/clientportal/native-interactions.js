@@ -256,20 +256,17 @@ const bindCommissionDates = (root = document) => {
         if (input.dataset.pwaCommissionDateBound) return;
         input.dataset.pwaCommissionDateBound = '1';
 
-        let committedValue = input.value;
-        const commitDate = () => {
-            if (!input.value || input.value === committedValue || !input.form) return;
-            committedValue = input.value;
+        const syncDateDisplay = () => {
+            if (!input.value) return;
             const [year, month, day] = input.value.split('-');
             const display = document.querySelector('[data-commission-date-display="' + input.dataset.commissionDatePicker + '"]');
             if (display) display.textContent = day + '/' + month + '/' + year;
-
-
         };
 
-        input.addEventListener('input', commitDate);
-        input.addEventListener('change', commitDate);
-        input.addEventListener('blur', commitDate);
+        input.addEventListener('input', syncDateDisplay);
+        input.addEventListener('change', syncDateDisplay);
+        input.addEventListener('blur', syncDateDisplay);
+        window.addEventListener('focus', syncDateDisplay);
     });
 };
 
