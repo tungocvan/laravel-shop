@@ -365,10 +365,12 @@ class PharmaPwaUiParityContractTest extends TestCase
         $allocation = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/bid-award-hospital-allocation.blade.php'));
 
         $this->assertStringContainsString('[data-pwa-local-filter]', $foundation);
-        $this->assertStringContainsString('data-pwa-local-filter-items', $foundation);
-        $this->assertStringContainsString('data-pwa-local-filter', $policy);
-        $this->assertStringContainsString('data-pwa-local-filter', $hospitalPolicy);
-        $this->assertStringContainsString('data-pwa-local-filter', $allocation);
+        $this->assertStringContainsString('input.dataset.pwaLocalFilterItems', $foundation);
+        $this->assertStringContainsString('input.dataset.pwaLocalFilterClear', $foundation);
+        $this->assertStringContainsString('input.dataset.pwaLocalFilterEmpty', $foundation);
+        $this->assertStringContainsString('data-pwa-local-filter-items=', $policy);
+        $this->assertStringContainsString('data-pwa-local-filter-items=', $hospitalPolicy);
+        $this->assertStringContainsString('data-pwa-local-filter-items=', $allocation);
         $this->assertStringNotContainsString("document.querySelector('[data-policy-product-search]')", $policy);
         $this->assertStringNotContainsString("document.querySelector('[data-hospital-policy-search]')", $hospitalPolicy);
     }
