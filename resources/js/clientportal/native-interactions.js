@@ -264,10 +264,7 @@ const bindCommissionDates = (root = document) => {
             const display = document.querySelector('[data-commission-date-display="' + input.dataset.commissionDatePicker + '"]');
             if (display) display.textContent = day + '/' + month + '/' + year;
 
-            const url = new URL(input.form.action, window.location.href);
-            new FormData(input.form).forEach((value, key) => url.searchParams.set(key, value));
-            url.searchParams.delete('page');
-            window.location.assign(url.toString());
+
         };
 
         input.addEventListener('input', commitDate);
