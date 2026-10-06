@@ -140,7 +140,9 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringNotContainsString('<x-search-select', $create);
         $this->assertStringNotContainsString('data-customer-combobox', $create);
         $this->assertStringContainsString('<x-pwa-select-search id="client-price-list-customer"', $create);
-        $this->assertStringContainsString('type="hidden" name="partner_id"', $create);
+        $this->assertStringContainsString('name="partner_id"', $create);
+        $pwaSelectSearch = file_get_contents(base_path('resources/views/components/pwa-select-search.blade.php'));
+        $this->assertStringContainsString('<input type="hidden" id="{{ $id }}" name="{{ $name }}"', $pwaSelectSearch);
         $this->assertStringContainsString('data-pwa-select-search-option', $create);
         $this->assertStringContainsString("document.getElementById('client-price-list-customer')", $createWizard);
         $this->assertStringContainsString('const stepTwoReady = () =>', $createWizard);
