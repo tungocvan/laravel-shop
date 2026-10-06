@@ -120,14 +120,8 @@
             </div>
 
             <div class="grid w-full min-w-0 max-w-full grid-cols-1 items-end gap-3 overflow-hidden md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-                <label class="block w-full min-w-0 max-w-full overflow-hidden text-xs font-bold uppercase tracking-wide text-slate-500">
-                    Từ ngày
-                    <input type="date" name="from" value="{{ $filters['from'] }}" aria-label="Từ ngày" class="mt-1.5 block h-10 min-w-0 w-full max-w-full box-border appearance-none rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium normal-case tracking-normal text-slate-950">
-                </label>
-                <label class="block w-full min-w-0 max-w-full overflow-hidden text-xs font-bold uppercase tracking-wide text-slate-500">
-                    Đến ngày
-                    <input type="date" name="to" value="{{ $filters['to'] }}" aria-label="Đến ngày" class="mt-1.5 block h-10 min-w-0 w-full max-w-full box-border appearance-none rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium normal-case tracking-normal text-slate-950">
-                </label>
+                <x-pwa-date name="from" label="Từ ngày" :value="$filters['from']" aria-label="Từ ngày" />
+                <x-pwa-date name="to" label="Đến ngày" :value="$filters['to']" aria-label="Đến ngày" />
                 <button type="submit" data-commission-date-apply class="inline-flex h-10 w-full items-center justify-center rounded-xl bg-slate-950 px-4 text-sm font-bold text-white transition active:scale-[0.985] motion-reduce:transform-none md:w-auto md:shrink-0 md:px-5">
                     Áp dụng
                 </button>
