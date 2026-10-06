@@ -49,11 +49,12 @@
     @php($activeFilterCount = collect($filters)->filter(fn ($value) => $value !== '')->count())
     <form method="GET" class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm" id="bid-award-search-form">
         <div class="relative">
-            <input name="q" value="{{ $search }}" placeholder="Tìm TBMT, chủ đầu tư, quyết định, sản phẩm..." autocomplete="off"
+            <input name="q" value="{{ $search }}" placeholder="Tìm TBMT, chủ đầu tư, quyết định, sản phẩm..." autocomplete="off" data-pwa-debounced-search="750" data-pwa-search-region="#bid-award-region"
                 class="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 pr-12 text-sm outline-none focus:border-slate-400">
             @if($search !== '')
                 <a href="{{ route('client.pharma.bid-awards', array_filter($filters)) }}" class="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full text-slate-500" aria-label="Xóa tìm kiếm">×</a>
             @endif
+</div>
         </div>
         <details class="mt-3 group" @if($activeFilterCount > 0) open @endif>
             <summary class="flex min-h-11 cursor-pointer list-none items-center justify-between rounded-2xl bg-slate-50 px-4 text-sm font-black text-slate-700">
@@ -104,7 +105,7 @@
         @if($search !== '')<span class="shrink-0 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">Đang lọc</span>@endif
     </div>
 
-    <section id="bid-award-results" class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+    <div id="bid-award-region"><section id="bid-award-results" class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         @forelse($results as $result)
             <a data-bid-award-item href="{{ route('client.pharma.bid-awards.show', $result->scope_key) }}"
                 class="group min-w-0 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">
@@ -149,7 +150,6 @@
 </div>
 <script>
 (() => {
-    const form=document.getElementById('bid-award-search-form'), input=form?.querySelector('input[name="q"]');
     form?.querySelectorAll('select').forEach(select=>select.addEventListener('change',()=>form.requestSubmit()));
     form?.querySelectorAll('[data-bid-filter-combobox]').forEach(box=>{
         const search=box.querySelector('[data-bid-filter-search]'), hidden=box.querySelector('input[type="hidden"]'), options=box.querySelector('[data-bid-filter-options]'), clear=box.querySelector('[data-bid-filter-clear]'), empty=box.querySelector('[data-bid-filter-empty]');
@@ -166,28 +166,6 @@
         rows.forEach(row=>row.addEventListener('click',()=>{ hidden.value=row.dataset.value; search.value=row.dataset.value; options?.classList.add('hidden'); clear?.classList.remove('hidden'); form.requestSubmit(); }));
         clear?.addEventListener('click',()=>{ hidden.value=''; search.value=''; options?.classList.add('hidden'); clear.classList.add('hidden'); form.requestSubmit(); });
         document.addEventListener('click',event=>{ if(!box.contains(event.target)) options?.classList.add('hidden'); });
-    });
-    const initialSearch=(input?.value||'').trim();
-    let timer;
-    input?.addEventListener('input',()=>{
-        clearTimeout(timer);
-        timer=setTimeout(()=>{
-            const nextSearch=(input.value||'').trim();
-            if(nextSearch===initialSearch) return;
-            form.requestSubmit();
-        },750);
-    });
-    const more=document.getElementById('bid-award-load-more');
-    more?.addEventListener('click',async(event)=>{
-        event.preventDefault(); more.classList.add('pointer-events-none','opacity-60');
-        try {
-            const response=await fetch(more.href,{headers:{'X-Requested-With':'XMLHttpRequest'},credentials:'same-origin'});
-            const doc=new DOMParser().parseFromString(await response.text(),'text/html');
-            doc.querySelectorAll('[data-bid-award-item]').forEach(item=>document.getElementById('bid-award-results').append(item));
-            const next=doc.getElementById('bid-award-load-more');
-            if(next) more.href=next.href; else more.remove();
-        } catch(error) { window.location.href=more.href; }
-        finally { more?.classList.remove('pointer-events-none','opacity-60'); }
     });
 })();
 </script>
