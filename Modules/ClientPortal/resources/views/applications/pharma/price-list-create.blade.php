@@ -56,7 +56,7 @@
                             @endforeach
                         </select>
                     </div>
-                    <button id="load-source-price-list" type="submit" class="h-12 rounded-2xl bg-slate-950 px-5 text-sm font-black text-white">Khởi tạo từ bảng giá</button>
+                    <x-native-touch id="load-source-price-list" type="submit" class="h-12 rounded-2xl bg-slate-950 px-5 text-sm font-black text-white">Khởi tạo từ bảng giá</x-native-touch>
                     <p id="source-price-list-error" class="hidden text-sm font-bold text-red-600 lg:col-span-2">Vui lòng chọn bảng giá gốc trước khi tiếp tục.</p>
                 </div>
             @endif
@@ -77,7 +77,7 @@
                     </label>
                     <div id="global-user-picker" class="{{ old('apply_all_users', true) ? 'hidden' : '' }} mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
                         <input id="global-user-search" type="search" autocomplete="off" placeholder="Tìm User theo tên / email..." class="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-slate-950">
-                        <div class="mt-3 flex items-center justify-between gap-2"><p class="text-xs font-bold text-slate-500">Chọn một hoặc nhiều User</p><button id="global-user-select-all" type="button" class="min-h-11 rounded-xl px-3 text-xs font-black text-indigo-700">Chọn tất cả</button></div>
+                        <div class="mt-3 flex items-center justify-between gap-2"><p class="text-xs font-bold text-slate-500">Chọn một hoặc nhiều User</p><x-native-touch id="global-user-select-all" type="button" class="min-h-11 rounded-xl px-3 text-xs font-black text-indigo-700">Chọn tất cả</x-native-touch></div>
                         <div id="global-user-results" class="mt-1 max-h-64 space-y-1 overflow-y-auto">
                             @foreach($activeUsers as $assignedUser)
                                 <label data-global-user-option data-search="{{ mb_strtolower($assignedUser->name.' '.($assignedUser->email ?? '')) }}" class="flex min-h-11 items-center gap-3 rounded-xl bg-white px-3 py-2 hover:bg-slate-100">
@@ -114,7 +114,7 @@
         </section>
 
         <section data-wizard-panel="3" class="hidden overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-            <div class="border-b border-slate-100 p-5"><p class="text-xs font-black uppercase tracking-[0.14em] text-slate-400">03 · Sản phẩm & giá</p><div class="mt-1 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between"><div><h2 class="text-lg font-black text-slate-950">{{ $isEditing ? 'Sản phẩm đã chọn' : 'Chọn sản phẩm từ bảng giá gốc' }}</h2><p class="mt-1 text-sm text-slate-500">{{ $isEditing ? 'Mặc định chỉ hiển thị SKU đã lưu trong Draft. Điều chỉnh Giá bán CT, Giá thu và Giá HĐ hoặc bổ sung sản phẩm khi cần.' : 'Giá bán CT, Giá thu và Giá HĐ mặc định lấy từ bảng giá gốc. Bỏ checkbox nếu sản phẩm không áp dụng cho khách hàng này.' }}</p></div>@if($sourcePriceListId)<div class="flex w-full flex-col gap-2 lg:w-auto lg:flex-row lg:items-end">@if($isEditing)<button type="button" id="toggle-add-source-products" class="h-12 rounded-2xl border border-slate-300 bg-white px-4 text-sm font-black text-slate-800 shadow-sm hover:bg-slate-50">+ Bổ sung sản phẩm</button>@endif<div class="{{ $isEditing ? 'hidden' : '' }} w-full lg:w-96" data-source-product-search-wrap><span class="mb-1 block text-xs font-bold text-slate-500">Tìm / chọn sản phẩm</span><div class="relative"><input id="source-product-search" type="search" autocomplete="off" placeholder="Tên thuốc, SKU, hoạt chất, SĐK..." class="h-12 w-full rounded-2xl border border-slate-300 bg-white px-4 text-sm font-semibold outline-none focus:border-slate-950 focus:ring-2 focus:ring-slate-100"></div></div></div>@endif</div></div>
+            <div class="border-b border-slate-100 p-5"><p class="text-xs font-black uppercase tracking-[0.14em] text-slate-400">03 · Sản phẩm & giá</p><div class="mt-1 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between"><div><h2 class="text-lg font-black text-slate-950">{{ $isEditing ? 'Sản phẩm đã chọn' : 'Chọn sản phẩm từ bảng giá gốc' }}</h2><p class="mt-1 text-sm text-slate-500">{{ $isEditing ? 'Mặc định chỉ hiển thị SKU đã lưu trong Draft. Điều chỉnh Giá bán CT, Giá thu và Giá HĐ hoặc bổ sung sản phẩm khi cần.' : 'Giá bán CT, Giá thu và Giá HĐ mặc định lấy từ bảng giá gốc. Bỏ checkbox nếu sản phẩm không áp dụng cho khách hàng này.' }}</p></div>@if($sourcePriceListId)<div class="flex w-full flex-col gap-2 lg:w-auto lg:flex-row lg:items-end">@if($isEditing)<x-native-touch type="button" id="toggle-add-source-products" class="h-12 rounded-2xl border border-slate-300 bg-white px-4 text-sm font-black text-slate-800 shadow-sm hover:bg-slate-50">+ Bổ sung sản phẩm</x-native-touch>@endif<div class="{{ $isEditing ? 'hidden' : '' }} w-full lg:w-96" data-source-product-search-wrap><span class="mb-1 block text-xs font-bold text-slate-500">Tìm / chọn sản phẩm</span><div class="relative"><input id="source-product-search" type="search" autocomplete="off" placeholder="Tên thuốc, SKU, hoạt chất, SĐK..." class="h-12 w-full rounded-2xl border border-slate-300 bg-white px-4 text-sm font-semibold outline-none focus:border-slate-950 focus:ring-2 focus:ring-slate-100"></div></div></div>@endif</div></div>
             @if(!$sourcePriceListId)
                 <div class="p-8 text-center text-sm text-slate-500">Chọn bảng giá tại Bước 01 để tải sản phẩm.</div>
             @else
@@ -139,8 +139,8 @@
     </form>
     <div class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur lg:sticky lg:bottom-4 lg:ml-auto lg:w-fit lg:rounded-2xl lg:border lg:shadow-lg">
         <div class="mx-auto flex max-w-7xl items-center justify-between gap-3">
-            <button id="wizard-back" type="button" class="{{ $sourcePriceListId || $isGlobalMode ? '' : 'hidden' }} h-11 rounded-2xl border border-slate-200 px-5 text-sm font-bold text-slate-600">← Quay lại</button>
-            <div class="ml-auto flex gap-2"><button id="wizard-next" type="button" class="h-11 rounded-2xl bg-slate-950 px-6 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">Tiếp tục →</button><button id="wizard-submit" type="submit" form="price-list-editor" class="hidden h-11 rounded-2xl bg-slate-950 px-6 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">{{ $isEditing ? 'Cập nhật bảng giá' : ($isGlobalMode ? 'Kích hoạt bảng giá chung' : 'Lưu bảng giá') }}</button></div>
+            <x-native-touch id="wizard-back" type="button" class="{{ $sourcePriceListId || $isGlobalMode ? '' : 'hidden' }} h-11 rounded-2xl border border-slate-200 px-5 text-sm font-bold text-slate-600">← Quay lại</x-native-touch>
+            <div class="ml-auto flex gap-2"><x-native-touch id="wizard-next" type="button" class="h-11 rounded-2xl bg-slate-950 px-6 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">Tiếp tục →</x-native-touch><x-native-touch id="wizard-submit" type="submit" form="price-list-editor" class="hidden h-11 rounded-2xl bg-slate-950 px-6 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">{{ $isEditing ? 'Cập nhật bảng giá' : ($isGlobalMode ? 'Kích hoạt bảng giá chung' : 'Lưu bảng giá') }}</x-native-touch></div>
         </div>
     </div>
 </div>
