@@ -8,7 +8,7 @@
 @section('hide-mobile-navigation', true)
 
 @section('content')
-<div class="min-w-0 space-y-4 overflow-x-hidden">
+<div id="product-search-region" class="min-w-0 space-y-4 overflow-x-hidden">
     <section class="rounded-[2rem] bg-slate-950 px-5 py-6 text-white shadow-sm sm:px-7">
         <a href="{{ route('client.pharma.dashboard') }}" aria-label="Quay lại Không gian làm việc Pharma" class="inline-flex min-h-10 items-center rounded-xl px-1 text-sm font-bold text-slate-300 transition hover:text-white active:scale-[0.985] motion-reduce:transform-none">← Quay về dashboard</a>
         <p class="mt-2 text-xs font-bold uppercase tracking-[0.16em] text-slate-300">{{ $featurePresentation['eyebrow'] }}</p>
@@ -23,7 +23,7 @@
         <form id="product-search-form" method="GET" action="{{ route('client.pharma.products') }}" class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_11rem_8rem_auto] lg:items-start">
             <label class="min-w-0 flex-1">
                 <span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Tìm thuốc</span>
-                <input id="product-search-input" type="search" name="q" value="{{ $search }}" autocomplete="off" placeholder="Tên thuốc, mã thuốc, SKU, hoạt chất, GPLH..." class="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200">
+                <input id="product-search-input" type="search" name="q" data-pwa-debounced-search="350" data-pwa-search-region="#product-search-region" value="{{ $search }}" autocomplete="off" placeholder="Tên thuốc, mã thuốc, SKU, hoạt chất, GPLH..." class="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200">
                 <span class="mt-1.5 block text-xs text-slate-400">Kết quả tự cập nhật khi bạn nhập.</span>
             </label>
             <label class="w-full">
@@ -145,17 +145,5 @@
         <div>{{ $products->links() }}</div>
     @endif
 </div>
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    const form = document.getElementById('product-search-form');
-    const input = document.getElementById('product-search-input');
-    if (!form || !input) return;
 
-    let timer;
-    input.addEventListener('input', () => {
-        window.clearTimeout(timer);
-        timer = window.setTimeout(() => form.requestSubmit(), 350);
-    });
-});
-</script>
 @endsection
