@@ -8,7 +8,7 @@
 @section('hide-mobile-navigation', true)
 
 @section('content')
-<form id="commission-export-form" method="POST" action="{{ route('client.pharma.commissions.export') }}" class="mb-4 space-y-3">
+<form id="commission-export-form" data-commission-workspace method="POST" action="{{ route('client.pharma.commissions.export') }}" class="mb-4 space-y-3">
     @csrf
     @foreach(['source','from','to','partner_id','medicine_id','manager_user_id'] as $key) @if(filled($filters[$key] ?? null))<input type="hidden" name="{{ $key }}" value="{{ $filters[$key] }}">@endif @endforeach
     <div class="flex flex-wrap items-center justify-between gap-2">
