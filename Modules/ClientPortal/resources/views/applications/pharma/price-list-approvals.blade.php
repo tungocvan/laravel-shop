@@ -3,6 +3,8 @@
 @section('app-name', $applicationPresentation['name'] ?? $application['name'])
 @section('app-subtitle', 'Hàng chờ phê duyệt')
 @section('app-dashboard-route', route('client.pharma.dashboard'))
+@section('hide-application-header', '1')
+@section('hide-mobile-navigation', '1')
 @section('content')
 <div class="mx-auto max-w-7xl space-y-5">
 @if(session('success'))<div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">{{ session('success') }}</div>@endif
