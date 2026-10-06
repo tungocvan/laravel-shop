@@ -132,6 +132,10 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString("input.addEventListener('change', commitDate);", $nativeInteractions);
         $this->assertStringContainsString("input.addEventListener('blur', commitDate);", $nativeInteractions);
         $this->assertStringContainsString('input.value === committedValue', $nativeInteractions);
+        $this->assertStringContainsString("const url = new URL(input.form.action, window.location.href);", $nativeInteractions);
+        $this->assertStringContainsString("new FormData(input.form).forEach((value, key) => url.searchParams.set(key, value));", $nativeInteractions);
+        $this->assertStringContainsString("url.searchParams.delete('page');", $nativeInteractions);
+        $this->assertStringContainsString("window.location.assign(url.toString());", $nativeInteractions);
         $this->assertStringContainsString('aria-label="Từ ngày"', $view);
         $this->assertStringContainsString('aria-label="Đến ngày"', $view);
         $this->assertStringNotContainsString('md:text-transparent', $view);
