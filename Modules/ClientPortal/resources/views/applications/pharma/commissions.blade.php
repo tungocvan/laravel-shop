@@ -133,6 +133,11 @@
                     </span>
                 </label>
             </div>
+            <div class="flex justify-end">
+                <button type="submit" data-commission-date-apply class="inline-flex min-h-11 items-center justify-center rounded-2xl bg-slate-950 px-5 py-2.5 text-sm font-black text-white transition active:scale-[0.985] motion-reduce:transform-none">
+                    Áp dụng ngày
+                </button>
+            </div>
         </form>
     </section>
 
