@@ -127,10 +127,6 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringNotContainsString('<script>',$view);
         $this->assertStringContainsString('const bindCommissionWorkspace',$nativeInteractions);
         $this->assertStringNotContainsString("typeof input.showPicker === 'function'",$nativeInteractions);
-        $this->assertStringContainsString('let committedValue = input.value;', $nativeInteractions);
-         $this->assertStringContainsString("input.addEventListener('change', commitDate);", $nativeInteractions);
-        $this->assertStringContainsString("input.addEventListener('blur', commitDate);", $nativeInteractions);
-        $this->assertStringContainsString('input.value === committedValue', $nativeInteractions);
         $this->assertStringNotContainsString("window.location.assign(url.toString());", $nativeInteractions);
         $this->assertSame(1, substr_count($view, 'data-commission-date-display="from"'));
         $this->assertSame(1, substr_count($view, 'data-commission-date-display="to"'));
@@ -139,6 +135,10 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('aria-label="Đến ngày"', $view);
         $this->assertStringNotContainsString('md:text-transparent', $view);
         $this->assertStringContainsString('const bindCommissionDates = (root = document)', $nativeInteractions);
+        $this->assertStringContainsString('let displayedValue = input.value;', $nativeInteractions);
+        $this->assertStringContainsString('const watchDateValue = () => {', $nativeInteractions);
+        $this->assertStringContainsString("input.addEventListener('pointerdown', watchDateValue);", $nativeInteractions);
+        $this->assertStringContainsString("input.addEventListener('touchstart', watchDateValue, {passive: true});", $nativeInteractions);
         $this->assertStringContainsString('input.dataset.pwaCommissionDateBound', $nativeInteractions);
         $this->assertStringContainsString('bindCommissionDates(root);', $nativeInteractions);
         $this->assertStringNotContainsString('pointer-events-none absolute h-px w-px opacity-0', $view);
