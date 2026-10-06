@@ -455,4 +455,30 @@ class PharmaPwaUiParityContractTest extends TestCase
         }
     }
 
+
+    public function test_pharma_browse_surfaces_use_progressive_loading_contract(): void
+    {
+        $foundation = file_get_contents(base_path('resources/js/clientportal/native-interactions.js'));
+        $approvals = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/price-list-approvals.blade.php'));
+        $products = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/products.blade.php'));
+        $priceLists = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/price-lists.blade.php'));
+
+        $this->assertStringContainsString('data-pwa-load-more-targets', $foundation);
+        $this->assertStringContainsString("split('|')", $foundation);
+        $this->assertStringContainsString("split('::')", $foundation);
+
+        foreach ([$approvals, $products, $priceLists] as $view) {
+            $this->assertStringContainsString('data-pwa-debounced-search', $view);
+            $this->assertStringContainsString('data-pwa-search-clear-button', $view);
+            $this->assertStringContainsString('data-pwa-load-more', $view);
+            $this->assertStringContainsString('Xem thêm', $view);
+            $this->assertStringNotContainsString('->links()', $view);
+            $this->assertStringNotContainsString('name="per_page"', $view);
+        }
+
+        $this->assertStringNotContainsString("setTimeout(()=>f.requestSubmit()", $approvals);
+        $this->assertStringContainsString('data-pwa-load-more-targets="#product-mobile-results::[data-product-card]|#product-desktop-results::[data-product-row]"', $products);
+        $this->assertStringContainsString('data-pwa-load-more-targets="#price-list-mobile-results::[data-price-list-card]|#price-list-desktop-results::[data-price-list-row]"', $priceLists);
+    }
+
 }
