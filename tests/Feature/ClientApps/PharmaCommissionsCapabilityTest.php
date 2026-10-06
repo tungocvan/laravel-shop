@@ -238,4 +238,23 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('@csrf',$view);
         $this->assertStringNotContainsString('wire:',$view);
     }
+
+    public function test_commission_export_deletion_stays_in_pharma_service_boundary(): void
+    {
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php'));
+        $exporter = file_get_contents(base_path('Modules/Pharma/Services/CommissionExcelExportService.php'));
+
+        $deleteStart = strpos($controller, 'public function deleteCommissionExport(');
+        $deleteEnd = strpos($controller, 'public function commission(', $deleteStart);
+        $deleteAction = substr($controller, $deleteStart, $deleteEnd - $deleteStart);
+
+        $this->assertStringContainsString('CommissionExcelExportService $exporter', $deleteAction);
+        $this->assertStringContainsString('$exporter->delete($artifact)', $deleteAction);
+        $this->assertStringNotContainsString('Storage::disk(', $deleteAction);
+        $this->assertStringNotContainsString('$artifact->delete()', $deleteAction);
+        $this->assertStringContainsString('public function delete(CommissionExportArtifact $artifact): void', $exporter);
+        $this->assertStringContainsString('Storage::disk($artifact->disk)->delete($artifact->storage_path)', $exporter);
+        $this->assertStringContainsString('$artifact->delete()', $exporter);
+    }
+
 }
