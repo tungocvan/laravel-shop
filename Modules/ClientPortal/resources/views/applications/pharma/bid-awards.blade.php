@@ -95,7 +95,7 @@
         @if($search !== '')<span class="shrink-0 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">Đang lọc</span>@endif
     </div>
 
-    <div id="bid-award-region"><div id="bid-award-region"><section id="bid-award-results" class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+    <div id="bid-award-region"><section id="bid-award-results" class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         @forelse($results as $result)
             <a data-bid-award-item href="{{ route('client.pharma.bid-awards.show', $result->scope_key) }}"
                 class="group min-w-0 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">
