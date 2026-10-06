@@ -328,15 +328,6 @@ const bindCommissionWorkspace = (root = document) => {
         });
     });
 
-    document.querySelectorAll('[data-commission-date-trigger]').forEach((trigger) => {
-        trigger.addEventListener('click', () => {
-            const input = document.querySelector('[data-commission-date-picker="' + trigger.dataset.commissionDateTrigger + '"]');
-            if (!input) return;
-            if (typeof input.showPicker === 'function') input.showPicker();
-            else input.click();
-        });
-    });
-
     document.querySelectorAll('[data-commission-date-picker]').forEach((input) => {
         input.addEventListener('change', () => {
             if (!input.value) return;
