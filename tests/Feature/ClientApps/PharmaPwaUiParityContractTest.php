@@ -463,7 +463,7 @@ class PharmaPwaUiParityContractTest extends TestCase
         $products = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/products.blade.php'));
         $priceLists = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/price-lists.blade.php'));
 
-        $this->assertStringContainsString('data-pwa-load-more-targets', $foundation);
+        $this->assertStringContainsString('button.dataset.pwaLoadMoreTargets', $foundation);
         $this->assertStringContainsString("split('|')", $foundation);
         $this->assertStringContainsString("split('::')", $foundation);
 
