@@ -69,6 +69,16 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString("->name('price-list-approvals.items.delete')", $routes);
         $this->assertStringContainsString('client.feature:pharma,price-lists', $routes);
         $this->assertStringNotContainsString('auth:admin', $routes);
+        $approvalBrowseStart = strpos($controller, 'public function priceListApprovals(');
+        $approvalBrowseEnd = strpos($controller, 'public function priceListApproval(', $approvalBrowseStart);
+        $approvalBrowse = substr($controller, $approvalBrowseStart, $approvalBrowseEnd - $approvalBrowseStart);
+        $this->assertStringContainsString("'q' => ['nullable', 'string', 'max:120']", $approvalBrowse);
+        $this->assertStringContainsString("'page' => ['nullable', 'integer', 'min:1']", $approvalBrowse);
+        $this->assertStringContainsString('perPage: 25', $approvalBrowse);
+        $this->assertStringNotContainsString("'per_page' =>", $approvalBrowse);
+        $this->assertStringNotContainsString('filterOptions()', $approvalBrowse);
+        $this->assertStringNotContainsString('investor:', $approvalBrowse);
+        $this->assertStringNotContainsString('medicine:', $approvalBrowse);
 
         $this->assertStringContainsString('UserPriceListWorkspace $workspace', $controller);
         $this->assertStringContainsString('$workspace->browse(', $controller);
