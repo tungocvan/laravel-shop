@@ -124,14 +124,16 @@
                     <span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Từ ngày</span>
                     <span class="relative block">
                         <span class="pointer-events-none absolute inset-y-0 left-3 z-10 flex items-center text-sm font-semibold text-slate-950" data-commission-date-display="from">{{ \Carbon\Carbon::parse($filters['from'])->format('d/m/Y') }}</span>
-                        <input type="date" name="from" value="{{ $filters['from'] }}" data-commission-date-picker="from" aria-label="Từ ngày" class="commission-date-input h-[46px] w-full rounded-2xl border border-slate-300 bg-white px-3 text-sm font-semibold text-transparent outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200">
+                        <span class="pointer-events-none absolute inset-y-0 left-3 z-10 flex items-center text-sm font-semibold text-slate-950" data-commission-date-display="from">{{ \Carbon\Carbon::parse($filters['from'])->format('d/m/Y') }}</span>
+                        <input type="date" name="from" value="{{ $filters['from'] }}" data-commission-date-picker="from" aria-label="Từ ngày" class="commission-date-input commission-date-input h-[46px] w-full rounded-2xl border border-slate-300 bg-white px-3 text-sm font-semibold text-transparent outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200 text-transparent">
                     </span>
                 </label>
                 <label class="min-w-0">
                     <span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Đến ngày</span>
                     <span class="relative block">
                         <span class="pointer-events-none absolute inset-y-0 left-3 z-10 flex items-center text-sm font-semibold text-slate-950" data-commission-date-display="to">{{ \Carbon\Carbon::parse($filters['to'])->format('d/m/Y') }}</span>
-                        <input type="date" name="to" value="{{ $filters['to'] }}" data-commission-date-picker="to" aria-label="Đến ngày" class="commission-date-input h-[46px] w-full rounded-2xl border border-slate-300 bg-white px-3 text-sm font-semibold text-transparent outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200">
+                        <span class="pointer-events-none absolute inset-y-0 left-3 z-10 flex items-center text-sm font-semibold text-slate-950" data-commission-date-display="to">{{ \Carbon\Carbon::parse($filters['to'])->format('d/m/Y') }}</span>
+                        <input type="date" name="to" value="{{ $filters['to'] }}" data-commission-date-picker="to" aria-label="Đến ngày" class="commission-date-input commission-date-input h-[46px] w-full rounded-2xl border border-slate-300 bg-white px-3 text-sm font-semibold text-transparent outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200 text-transparent">
                     </span>
                 </label>
                 <button type="submit" data-commission-date-apply class="col-span-2 inline-flex h-[46px] w-full items-center justify-center rounded-2xl bg-slate-950 px-4 text-sm font-black text-white transition active:scale-[0.985] motion-reduce:transform-none md:col-span-1 md:w-auto md:shrink-0 md:px-5">
