@@ -77,6 +77,7 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $view=file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/commissions.blade.php'));
         $detailView=file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/commission-show.blade.php'));
         $pwaSelectSearch=file_get_contents(base_path('resources/views/components/pwa-select-search.blade.php'));
+        $pwaDate=file_get_contents(base_path('resources/views/components/pwa-date.blade.php'));
         $nativeInteractions=file_get_contents(base_path('resources/js/clientportal/native-interactions.js'));
 
         $this->assertStringContainsString('UserCommissionWorkspace $workspace',$controller);
@@ -163,6 +164,14 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('@if($canViewTeam)',$view);
         $this->assertStringContainsString('<x-pwa-date name="from" label="Từ ngày" :value="$filters[\'from\']"', $view);
         $this->assertStringContainsString('<x-pwa-date name="to" label="Đến ngày" :value="$filters[\'to\']"', $view);
+        $this->assertStringContainsString('type="date"', $pwaDate);
+        $this->assertStringContainsString('min-w-0 w-full max-w-full box-border', $pwaDate);
+        $this->assertStringContainsString('h-10', $pwaDate);
+        $this->assertStringContainsString('px-3 py-2 text-sm font-medium', $pwaDate);
+        $this->assertStringContainsString('@if($min) min="{{ $min }}" @endif', $pwaDate);
+        $this->assertStringContainsString('@if($max) max="{{ $max }}" @endif', $pwaDate);
+        $this->assertStringContainsString('@if($required) required @endif', $pwaDate);
+        $this->assertStringContainsString('@if($disabled) disabled @endif', $pwaDate);
         $this->assertStringContainsString('inline-flex h-10 w-full', $view);
         $this->assertStringNotContainsString('data-commission-date-display=', $view);
         $this->assertStringNotContainsString('data-commission-date-picker=', $view);
