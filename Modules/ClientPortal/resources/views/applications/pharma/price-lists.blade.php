@@ -59,7 +59,7 @@
                     @endif
                     <div class="grid grid-cols-2 gap-2 lg:contents">
                         @foreach([['from_date','Từ ngày',$fromDate],['to_date','Đến ngày',$toDate]] as [$dateName,$dateLabel,$dateIso])
-                            <x-pwa-date :name="$dateName" :label="$dateLabel" :value="$dateIso" :aria-label="$dateLabel" onchange="this.form?.requestSubmit()" />
+                            <x-pwa-date :name="$dateName" :label="$dateLabel" :value="$dateIso" :min="$dateName === 'to_date' ? $fromDate : null" :max="$dateName === 'from_date' ? $toDate : null" :aria-label="$dateLabel" onchange="this.form?.requestSubmit()" />
                         @endforeach
                     </div>
                     <label><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Hiển thị</span><select name="per_page" onchange="this.form.submit()" class="h-[46px] w-full rounded-2xl border border-slate-300 bg-white px-3 text-sm">@foreach([25,50,100] as $size)<option value="{{ $size }}" @selected($perPage === $size)>{{ $size }} / trang</option>@endforeach</select></label>
