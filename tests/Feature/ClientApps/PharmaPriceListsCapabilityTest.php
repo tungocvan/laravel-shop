@@ -89,8 +89,13 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('Chỉ hiển thị các bảng giá bạn là người phụ trách', $priceListFeature['page_description']);
         $this->assertStringContainsString("\$featurePresentation['page_title']", $view);
         $this->assertStringContainsString("\$featurePresentation['page_description']", $view);
-        $this->assertStringContainsString('25,50,100', $view);
-        $this->assertStringContainsString("setTimeout(()=>f.requestSubmit(),350)", $view);
+        $this->assertStringNotContainsString('name="per_page"', $view);
+        $this->assertStringNotContainsString('->links()', $view);
+        $this->assertStringNotContainsString("setTimeout(()=>f.requestSubmit(),350)", $view);
+        $this->assertStringContainsString('data-pwa-debounced-search="350"', $view);
+        $this->assertStringContainsString('data-pwa-search-clear-button', $view);
+        $this->assertStringContainsString('data-pwa-load-more-targets', $view);
+        $this->assertStringContainsString('Xem thêm', $view);
         $this->assertStringContainsString("['from_date','Từ ngày',\$fromDate]", $view);
         $this->assertStringContainsString("['to_date','Đến ngày',\$toDate]", $view);
         $this->assertStringContainsString('<x-pwa-date :name="$dateName" :label="$dateLabel" :value="$dateIso"', $view);
