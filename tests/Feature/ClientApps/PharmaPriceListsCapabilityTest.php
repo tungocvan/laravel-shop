@@ -135,11 +135,10 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString("redirect()->route('client.pharma.price-lists.show', \$priceList)", $controller);
 
         $this->assertStringContainsString('Tạo bảng giá cho khách hàng', $create);
-        // The price-list wizard uses the same searchable business-selector UX contract as
-        // the order authoring flow, but keeps its own lightweight combobox markup so wizard
-        // state and validation stay deterministic across steps.
+        // Single-value business selectors use the canonical PWA searchable-selector contract;
+        // wizard validation still observes the shared hidden value through its change event.
         $this->assertStringNotContainsString('<x-search-select', $create);
-        $this->assertStringContainsString('data-customer-combobox', $create);
+        $this->assertStringNotContainsString('data-customer-combobox', $create);
         $this->assertStringContainsString('<x-pwa-select-search id="client-price-list-customer"', $create);
         $this->assertStringContainsString('type="hidden" name="partner_id"', $create);
         $this->assertStringContainsString('data-pwa-select-search-option', $create);
