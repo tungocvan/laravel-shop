@@ -146,8 +146,11 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString("document.addEventListener('DOMContentLoaded'",$pwaSelectSearch);
         $this->assertStringContainsString('const bindPwaSelectSearch',$nativeInteractions);
         $this->assertStringContainsString('bindCommissionWorkspace(root);',$nativeInteractions);
-        $this->assertStringContainsString("form.dataset.pwaCommissionBound = '1'",$nativeInteractions);
-        $this->assertStringContainsString("box.indeterminate = ids.length > 0 && !all",$nativeInteractions);
+        $this->assertStringContainsString('data-commission-workspace',$view);
+        $this->assertStringNotContainsString('id="commission-selection-actions"',$view);
+        $this->assertStringNotContainsString('id="commission-select-all"',$view);
+        $this->assertStringContainsString("workspace.dataset.pwaCommissionBound = '1'",$nativeInteractions);
+        $this->assertStringContainsString('desktopSelectAll.indeterminate = ids.length > 0 && !desktopSelectAll.checked',$nativeInteractions);
         $this->assertStringContainsString("new Set(rowCheckboxes().filter((box) => box.checked).map((box) => box.value))",$nativeInteractions);
         $this->assertStringContainsString("credentials: 'same-origin'",$nativeInteractions);
         $this->assertStringContainsString("toLocaleLowerCase('vi')",$nativeInteractions);
@@ -195,6 +198,7 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString("Storage::disk(\$artifact->disk)->delete(\$artifact->storage_path)",$controller);
         $this->assertStringContainsString('id="commission-select-all"',$view);
         $this->assertStringContainsString('commission-row-checkbox',$view);
+        $this->assertStringContainsString('data-commission-select-all-desktop',$view);
         $this->assertStringContainsString('<span>Chọn</span>',$view);
         $this->assertStringNotContainsString('absolute left-3 top-3',$view);
         $this->assertStringContainsString("input.name = 'ids[]'",$nativeInteractions);
