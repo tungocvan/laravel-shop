@@ -1180,3 +1180,26 @@ P3 follows the P2 native-interaction closeout and is presentation-only. It does 
 - `PharmaPwaUiParityContractTest` guards the shared component contract and representative Pharma consumers.
 
 UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, Price List wizard navigation/submission, Products search clear and Bid Award product-search clear on mobile/iPhone. Explicit UI PASS remains required before merge.
+
+
+## Pharma PWA searchable selector consistency / P4 closeout — 2026-10-06
+
+- P4 is closed with explicit TEST + UI PASS: 49 targeted tests / 1,753 assertions.
+- `<x-pwa-select-search>` is the canonical single-value searchable entity selector for ClientPortal PWA.
+- `resources/js/clientportal/native-interactions.js` remains the single interaction implementation owner. The component carries only a small readiness/bind bridge so selectors remain functional when the Vite bundle and Blade component become ready in either order.
+- Price List manager/source/customer and Bid Award investor/product filters use the shared selector. Shared selector search includes a visible `×` clear action.
+- Browse/list text search remains search semantics rather than being converted into an entity selector; shared clear behavior is used where applicable.
+- Price List global-user selection remains a checkbox multi-select workspace and uses shared local filtering.
+- Price List source-product filtering remains feature-specific because draft/add-products visibility is workflow state; it must not be collapsed into the generic single-value selector/local-filter primitive.
+- Receipt medicine selection and Order bid investor → hospital → product selection remain feature-owned because their dynamic dependent state carries workflow/domain metadata.
+- Price List date filters constrain the native range with From `max=to_date` and To `min=from_date`, preventing an invalid From > To request from normal picker interaction.
+
+## Pharma PWA focused shell / navigation consistency / P6 checkpoint — 2026-10-06
+
+- Source audit covered every Blade view under `Modules/ClientPortal/resources/views/applications/pharma`.
+- The Pharma Hub `dashboard.blade.php` is the only application-shell owner and intentionally keeps the application header/mobile navigation.
+- Every capability browse/index/detail/task/workflow view uses the focused shell boundary by declaring both `hide-application-header` and `hide-mobile-navigation`, with local navigation back to the relevant Pharma parent/Hub.
+- The only source outlier found by the P6 audit was `price-list-approvals.blade.php`; it now follows the focused shell boundary, matching its approval-detail workspace.
+- P6 does not absorb P7 concerns. The approval queue's legacy pagination/search implementation is intentionally left for the progressive loading/filter UX audit.
+- `PharmaPwaUiParityContractTest` scans the Pharma application view directory and enforces the shell ownership rule so a new capability cannot silently reintroduce the global application shell.
+- P6 requires targeted automated PASS plus real Mobile/Desktop UI smoke before merge.
