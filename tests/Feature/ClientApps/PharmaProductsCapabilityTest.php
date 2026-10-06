@@ -119,6 +119,9 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringNotContainsString('<script>', $view);
         $this->assertStringContainsString('const bindDebouncedSearch', $nativeInteractions);
         $this->assertStringContainsString('replaceSearchRegion(input)', $nativeInteractions);
+        $this->assertStringContainsString('const selectionStart = input.selectionStart;', $nativeInteractions);
+        $this->assertStringContainsString('const selectionEnd = input.selectionEnd;', $nativeInteractions);
+        $this->assertStringContainsString('nextInput.setSelectionRange(', $nativeInteractions);
         $this->assertStringNotContainsString('>Tìm kiếm</button>', $view);
         $this->assertStringContainsString("route('client.pharma.products.show'", $view);
         $this->assertStringNotContainsString('>SKU</th>', $view);
