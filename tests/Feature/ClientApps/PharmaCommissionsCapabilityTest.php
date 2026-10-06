@@ -163,7 +163,7 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('@if($canViewTeam)',$view);
         $this->assertStringContainsString('type="date" name="from"',$view);
         $this->assertStringContainsString('type="date" name="to"',$view);
-        $this->assertStringContainsString('mt-1.5 h-11 w-full rounded-xl border border-slate-300 bg-white px-2 font-normal', $view);
+        $this->assertStringContainsString('mt-1.5 block h-11 min-w-0 w-full max-w-full box-border', $view);
         $this->assertStringNotContainsString('data-commission-date-display=', $view);
         $this->assertStringNotContainsString('data-commission-date-picker=', $view);
         $this->assertStringNotContainsString('const bindCommissionDates', $nativeInteractions);
