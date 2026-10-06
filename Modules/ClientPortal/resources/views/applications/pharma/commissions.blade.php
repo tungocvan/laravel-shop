@@ -122,19 +122,19 @@
             <div class="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2">
                 <div class="min-w-0">
                     <span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Từ ngày</span>
-                    <button type="button" data-commission-date-trigger="from" class="relative flex h-[46px] w-full min-w-0 items-center rounded-2xl border border-slate-300 bg-white px-3 pr-11 text-left text-sm font-semibold text-slate-950 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200">
+                    <div data-commission-date-trigger="from" class="relative flex h-[46px] w-full min-w-0 items-center rounded-2xl border border-slate-300 bg-white px-3 pr-11 text-left text-sm font-semibold text-slate-950 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200">
                         <span data-commission-date-label="from">{{ \Carbon\Carbon::parse($filters['from'])->format('d/m/Y') }}</span>
                         <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">▾</span>
                     </button>
-                    <input type="date" name="from" value="{{ $filters['from'] }}" data-commission-date-picker="from" tabindex="-1" aria-hidden="true" class="pointer-events-none absolute h-px w-px opacity-0">
+                    <input type="date" name="from" value="{{ $filters['from'] }}" data-commission-date-picker="from" aria-label="Từ ngày" class="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0">
                 </div>
                 <div class="min-w-0">
                     <span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Đến ngày</span>
-                    <button type="button" data-commission-date-trigger="to" class="relative flex h-[46px] w-full min-w-0 items-center rounded-2xl border border-slate-300 bg-white px-3 pr-11 text-left text-sm font-semibold text-slate-950 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200">
+                    <div data-commission-date-trigger="to" class="relative flex h-[46px] w-full min-w-0 items-center rounded-2xl border border-slate-300 bg-white px-3 pr-11 text-left text-sm font-semibold text-slate-950 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200">
                         <span data-commission-date-label="to">{{ \Carbon\Carbon::parse($filters['to'])->format('d/m/Y') }}</span>
                         <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">▾</span>
                     </button>
-                    <input type="date" name="to" value="{{ $filters['to'] }}" data-commission-date-picker="to" tabindex="-1" aria-hidden="true" class="pointer-events-none absolute h-px w-px opacity-0">
+                    <input type="date" name="to" value="{{ $filters['to'] }}" data-commission-date-picker="to" aria-label="Đến ngày" class="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0">
                 </div>
             </div>
         </form>
