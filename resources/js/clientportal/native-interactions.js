@@ -251,6 +251,24 @@ const bindPwaSelectSearch = (root = document) => {
 };
 
 
+const bindCommissionDates = (root = document) => {
+    root.querySelectorAll('[data-commission-date-picker]').forEach((input) => {
+        if (input.dataset.pwaCommissionDateBound) return;
+        input.dataset.pwaCommissionDateBound = '1';
+
+        let committedValue = input.value;
+        const commitDate = () => {
+            if (!input.value || input.value === committedValue) return;
+            committedValue = input.value;
+            submitForm(input.form);
+        };
+
+        input.addEventListener('input', commitDate);
+        input.addEventListener('change', commitDate);
+        input.addEventListener('blur', commitDate);
+    });
+};
+
 const bindCommissionWorkspace = (root = document) => {
     const workspace = root.matches?.('[data-commission-workspace]') ? root : root.querySelector?.('[data-commission-workspace]');
     if (!workspace || workspace.dataset.pwaCommissionBound) return;
@@ -328,21 +346,7 @@ const bindCommissionWorkspace = (root = document) => {
         });
     });
 
-    document.querySelectorAll('[data-commission-date-picker]').forEach((input) => {
-        let committedValue = input.value;
-        const commitDate = () => {
-            if (!input.value || input.value === committedValue) return;
-            committedValue = input.value;
-            const [year, month, day] = input.value.split('-');
-            const label = document.querySelector('[data-commission-date-label="' + input.dataset.commissionDatePicker + '"]');
-            if (label) label.textContent = day + '/' + month + '/' + year;
-            submitForm(input.form);
-        };
-
-        input.addEventListener('input', commitDate);
-        input.addEventListener('change', commitDate);
-        input.addEventListener('blur', commitDate);
-    });
+    
 
     syncSelection();
 };
@@ -354,6 +358,7 @@ export const bindNativeInteractions = (root = document) => {
     bindSearchClear(root);
     bindLoadMore(root);
     bindPwaSelectSearch(root);
+    bindCommissionDates(root);
     bindCommissionWorkspace(root);
 };
 
