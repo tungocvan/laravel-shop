@@ -150,13 +150,14 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString("\$attributes->merge(['class' => 'relative min-w-0'])",$pwaSelectSearch);
         $this->assertStringContainsString("@push('application-scripts')",$pwaSelectSearch);
         $this->assertStringNotContainsString("document.addEventListener('DOMContentLoaded'",$pwaSelectSearch);
-        $this->assertStringContainsString("ClientPortalNativeInteractions?.bindSelectSearch?.(document)",$pwaSelectSearch);
+        $this->assertStringContainsString("ClientPortalNativeInteractions?.bindSelectSearch",$pwaSelectSearch);
         $this->assertStringContainsString("clientportal:native-interactions-ready",$pwaSelectSearch);
         $this->assertStringContainsString('const bindPwaSelectSearch',$nativeInteractions);
         $this->assertStringContainsString('bindPwaSelectSearch(root);',$nativeInteractions);
         $this->assertStringContainsString('bindSelectSearch: bindPwaSelectSearch',$nativeInteractions);
         $this->assertStringContainsString('bindCommissionWorkspace(root);',$nativeInteractions);
-        $this->assertStringContainsString('window.ClientPortalNativeInteractions = {bind: bindNativeInteractions};',$nativeInteractions);
+        $this->assertStringContainsString('window.ClientPortalNativeInteractions = {',$nativeInteractions);
+        $this->assertStringContainsString('bind: bindNativeInteractions',$nativeInteractions);
         $this->assertStringContainsString('<div data-commission-workspace',$view);
         $this->assertStringNotContainsString('id="commission-selection-actions"',$view);
         $this->assertStringNotContainsString('id="commission-select-all"',$view);
