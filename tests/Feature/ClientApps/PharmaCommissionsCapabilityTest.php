@@ -123,7 +123,7 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('$hasCommissionFilters',$view);
         $this->assertStringContainsString('md:grid-cols-2',$view);
         $this->assertStringNotContainsString('>Áp dụng</button>',$view);
-        $this->assertStringContainsString('data-commission-date-trigger="from"',$view);
+        $this->assertStringNotContainsString('data-commission-date-trigger=', $view);
         $this->assertStringNotContainsString('<script>',$view);
         $this->assertStringContainsString('const bindCommissionWorkspace',$nativeInteractions);
         $this->assertStringNotContainsString("typeof input.showPicker === 'function'",$nativeInteractions);
@@ -133,7 +133,8 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('input.value === committedValue', $nativeInteractions);
         $this->assertStringContainsString('aria-label="Từ ngày"', $view);
         $this->assertStringContainsString('aria-label="Đến ngày"', $view);
-        $this->assertStringContainsString('absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0', $view);
+        $this->assertStringContainsString('md:text-transparent md:caret-transparent', $view);
+        $this->assertStringContainsString('hidden items-center rounded-2xl px-3 pr-11 text-sm font-semibold text-slate-950 md:flex', $view);
         $this->assertStringNotContainsString('pointer-events-none absolute h-px w-px opacity-0', $view);
         $this->assertStringContainsString('id="commission-partner"',$view);
         $this->assertStringContainsString('search-placeholder="Tìm khách hàng..."',$view);
