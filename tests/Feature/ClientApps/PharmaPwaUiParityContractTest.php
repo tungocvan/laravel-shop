@@ -333,4 +333,27 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertStringContainsString('Danh mục thuốc', $detail);
     }
 
+
+    public function test_pharma_date_inputs_use_shared_pwa_date_component(): void
+    {
+        $component = file_get_contents(base_path('resources/views/components/pwa-date.blade.php'));
+
+        $this->assertStringContainsString('type="date"', $component);
+        $this->assertStringContainsString('min-w-0 w-full max-w-full box-border', $component);
+        $this->assertStringContainsString('h-10', $component);
+        $this->assertStringContainsString('px-3 py-2 text-sm font-medium', $component);
+        $this->assertStringContainsString("'wrapperClass' => ''", $component);
+
+        foreach (glob(base_path('Modules/ClientPortal/resources/views/applications/pharma/*.blade.php')) ?: [] as $path) {
+            $view = file_get_contents($path);
+            $name = basename($path);
+
+            $this->assertStringNotContainsString('type="date"', $view, $name.' must use <x-pwa-date>');
+            $this->assertStringNotContainsString('data-date-native=', $view, $name.' must not restore date overlays');
+            $this->assertStringNotContainsString('data-date-display=', $view, $name.' must not restore date overlays');
+            $this->assertStringNotContainsString('data-filter-date-native=', $view, $name.' must not restore filter date overlays');
+            $this->assertStringNotContainsString('data-filter-date-display=', $view, $name.' must not restore filter date overlays');
+        }
+    }
+
 }
