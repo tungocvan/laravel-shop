@@ -106,6 +106,9 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('data-pwa-search-clear-button', $view);
         $this->assertStringContainsString('data-pwa-load-more-targets', $view);
         $this->assertStringContainsString('Xem thêm', $view);
+        $this->assertStringContainsString('hidden overflow-visible rounded-3xl border border-slate-200 bg-white shadow-sm lg:block', $view);
+        $this->assertStringContainsString('absolute right-0 z-[100] mt-2 w-56', $view);
+        $this->assertStringNotContainsString('hidden overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm lg:block', $view);
         $this->assertStringContainsString("['from_date','Từ ngày',\$fromDate]", $view);
         $this->assertStringContainsString("['to_date','Đến ngày',\$toDate]", $view);
         $this->assertStringContainsString('<x-pwa-date :name="$dateName" :label="$dateLabel" :value="$dateIso"', $view);
