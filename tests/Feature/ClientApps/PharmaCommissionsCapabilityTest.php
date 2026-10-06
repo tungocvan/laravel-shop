@@ -146,6 +146,10 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString("document.addEventListener('DOMContentLoaded'",$pwaSelectSearch);
         $this->assertStringContainsString('const bindPwaSelectSearch',$nativeInteractions);
         $this->assertStringContainsString('bindCommissionWorkspace(root);',$nativeInteractions);
+        $this->assertStringContainsString("form.dataset.pwaCommissionBound = '1'",$nativeInteractions);
+        $this->assertStringContainsString("box.indeterminate = ids.length > 0 && !all",$nativeInteractions);
+        $this->assertStringContainsString("new Set(rowCheckboxes().filter((box) => box.checked).map((box) => box.value))",$nativeInteractions);
+        $this->assertStringContainsString("credentials: 'same-origin'",$nativeInteractions);
         $this->assertStringContainsString("toLocaleLowerCase('vi')",$nativeInteractions);
         $this->assertStringContainsString('@if($canViewTeam)',$view);
         $this->assertStringContainsString('type="date" name="from"',$view);
