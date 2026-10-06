@@ -140,9 +140,9 @@ class PharmaPriceListsCapabilityTest extends TestCase
         // state and validation stay deterministic across steps.
         $this->assertStringNotContainsString('<x-search-select', $create);
         $this->assertStringContainsString('data-customer-combobox', $create);
-        $this->assertStringContainsString('id="client-price-list-customer-search"', $create);
+        $this->assertStringContainsString('<x-pwa-select-search id="client-price-list-customer"', $create);
         $this->assertStringContainsString('type="hidden" name="partner_id"', $create);
-        $this->assertStringContainsString('data-customer-option', $create);
+        $this->assertStringContainsString('data-pwa-select-search-option', $create);
         $this->assertStringContainsString("document.getElementById('client-price-list-customer')", $createWizard);
         $this->assertStringContainsString('const stepTwoReady = () =>', $createWizard);
         $this->assertStringContainsString("back.classList.toggle('hidden', currentStep === 1)", $createWizard);
