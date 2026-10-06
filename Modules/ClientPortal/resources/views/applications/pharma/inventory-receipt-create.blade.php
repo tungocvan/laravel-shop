@@ -36,7 +36,7 @@ $receiptVatRate = old('vat_rate', $editing ? (float) ($receipt->items->first()?-
 <div class="my-4 border-t border-slate-100"></div>
 <div class="flex items-center justify-between gap-3">
 <div><h2 class="font-black text-slate-950">Thông tin hóa đơn</h2><p class="mt-1 text-xs text-slate-500">Dữ liệu chứng từ để đối chiếu, không thay thế Giá nhập / Giá vốn.</p></div>
-<button type="button" id="toggle-receipt-invoice" aria-expanded="false" class="inline-flex min-h-10 shrink-0 items-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-black text-slate-700">Hiện</button>
+<x-native-touch type="button" id="toggle-receipt-invoice" aria-expanded="false" class="inline-flex min-h-10 shrink-0 items-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-black text-slate-700">Hiện</x-native-touch>
 </div>
 <div id="receipt-invoice-fields" class="mt-3 hidden">
 <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -49,11 +49,11 @@ $receiptVatRate = old('vat_rate', $editing ? (float) ($receipt->items->first()?-
 </div>
 </section>
 <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-<div class="flex items-center justify-between gap-3"><div><h2 class="font-black text-slate-950">Hàng nhập</h2><p class="mt-1 text-xs text-slate-500">Thuốc + số lô + hạn dùng không được trùng trong cùng phiếu.</p></div><button type="button" id="add-receipt-item" class="min-h-10 rounded-xl border border-slate-300 px-3 text-sm font-black">+ Thêm dòng</button></div>
+<div class="flex items-center justify-between gap-3"><div><h2 class="font-black text-slate-950">Hàng nhập</h2><p class="mt-1 text-xs text-slate-500">Thuốc + số lô + hạn dùng không được trùng trong cùng phiếu.</p></div><x-native-touch type="button" id="add-receipt-item" class="min-h-10 rounded-xl border border-slate-300 px-3 text-sm font-black">+ Thêm dòng</x-native-touch></div>
 <div id="receipt-items" class="mt-4 space-y-3"></div>
 </section>
 <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm"><label class="text-sm font-bold text-slate-700">Ghi chú<textarea name="notes" rows="3" maxlength="2000" class="mt-1.5 w-full rounded-2xl border border-slate-300 p-3 font-normal">{{ old('notes', $editing ? $receipt->notes : '') }}</textarea></label></section>
-<div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><a href="{{ route('client.pharma.inventory.receipts') }}" class="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-300 bg-white px-5 text-sm font-black">Hủy</a><button class="inline-flex min-h-12 items-center justify-center rounded-2xl bg-slate-950 px-5 text-sm font-black text-white">{{ $editing ? 'Lưu thay đổi' : 'Lưu nháp' }}</button></div>
+<div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><a href="{{ route('client.pharma.inventory.receipts') }}" class="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-300 bg-white px-5 text-sm font-black">Hủy</a><x-native-touch class="inline-flex min-h-12 items-center justify-center rounded-2xl bg-slate-950 px-5 text-sm font-black text-white">{{ $editing ? 'Lưu thay đổi' : 'Lưu nháp' }}</x-native-touch></div>
 </form>
 <template id="receipt-item-template"><article class="receipt-item rounded-2xl border border-slate-200 bg-slate-50 p-3">
 <div class="receipt-item-summary flex items-center justify-between gap-3">
