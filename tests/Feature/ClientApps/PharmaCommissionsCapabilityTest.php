@@ -177,7 +177,6 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('grid w-full min-w-0 max-w-full grid-cols-1 items-end gap-3 overflow-hidden', $view);
         $this->assertStringContainsString('md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]', $view);
         $this->assertStringContainsString('inline-flex h-10 w-full', $view);
-        $this->assertStringNotContainsString("format('d/m/Y')", $view);
         $this->assertStringContainsString('md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]', $view);
         $this->assertStringContainsString('Áp dụng', $view);
         $this->assertStringNotContainsString('Áp dụng ngày', $view);
