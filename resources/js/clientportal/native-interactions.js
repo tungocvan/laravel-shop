@@ -252,47 +252,35 @@ const bindPwaSelectSearch = (root = document) => {
 
 
 const bindCommissionWorkspace = (root = document) => {
-    const form = root.querySelector?.('#commission-export-form') || document.querySelector('#commission-export-form');
-    if (!form || form.dataset.pwaCommissionBound) return;
+    const workspace = document.querySelector('[data-commission-workspace]');
+    if (!workspace || workspace.dataset.pwaCommissionBound) return;
 
-    form.dataset.pwaCommissionBound = '1';
-    const selectAll = document.getElementById('commission-select-all');
+    workspace.dataset.pwaCommissionBound = '1';
+    const form = document.getElementById('commission-export-form');
     const desktopSelectAll = document.querySelector('[data-commission-select-all-desktop]');
-    const selectedCount = document.getElementById('commission-selected-count');
-    const clearSelection = document.getElementById('commission-clear-selection');
     const inputs = document.getElementById('commission-selected-inputs');
     const rowCheckboxes = () => [...document.querySelectorAll('.commission-row-checkbox')];
     const selectedIds = () => [...new Set(rowCheckboxes().filter((box) => box.checked).map((box) => box.value))];
 
     const syncSelection = () => {
+        if (!desktopSelectAll) return;
         const boxes = rowCheckboxes();
         const ids = selectedIds();
-        const all = boxes.length > 0 && boxes.every((box) => box.checked);
-
-        if (selectedCount) selectedCount.textContent = String(ids.length);
-        if (clearSelection) clearSelection.classList.toggle('hidden', ids.length === 0);
-        [selectAll, desktopSelectAll].forEach((box) => {
-            if (!box) return;
-            box.checked = all;
-            box.indeterminate = ids.length > 0 && !all;
-        });
+        desktopSelectAll.checked = boxes.length > 0 && boxes.every((box) => box.checked);
+        desktopSelectAll.indeterminate = ids.length > 0 && !desktopSelectAll.checked;
     };
 
-    const setAll = (checked) => {
+    desktopSelectAll?.addEventListener('change', () => {
         rowCheckboxes().forEach((box) => {
-            box.checked = checked;
+            box.checked = desktopSelectAll.checked;
         });
         syncSelection();
-    };
-
-    selectAll?.addEventListener('change', () => setAll(selectAll.checked));
-    desktopSelectAll?.addEventListener('change', () => setAll(desktopSelectAll.checked));
-    clearSelection?.addEventListener('click', () => setAll(false));
+    });
     document.addEventListener('change', (event) => {
         if (event.target?.classList?.contains('commission-row-checkbox')) syncSelection();
     });
 
-    form.addEventListener('submit', () => {
+    form?.addEventListener('submit', () => {
         if (!inputs) return;
         inputs.innerHTML = '';
         selectedIds().forEach((id) => {
