@@ -26,9 +26,9 @@
     @php
         $defaultFromDate = now()->startOfMonth()->toDateString();
         $defaultToDate = now()->toDateString();
-        $hasAdvancedFilters = ($canApprove && $managerUserId) || $fromDate !== $defaultFromDate || $toDate !== $defaultToDate || $perPage !== 25;
+        $hasAdvancedFilters = ($canApprove && $managerUserId) || $fromDate !== $defaultFromDate || $toDate !== $defaultToDate;
         $hasAnyFilters = $search !== '' || $status !== null || $hasAdvancedFilters;
-        $advancedFilterCount = ($canApprove && $managerUserId ? 1 : 0) + ($fromDate !== $defaultFromDate ? 1 : 0) + ($toDate !== $defaultToDate ? 1 : 0) + ($perPage !== 25 ? 1 : 0);
+        $advancedFilterCount = ($canApprove && $managerUserId ? 1 : 0) + ($fromDate !== $defaultFromDate ? 1 : 0) + ($toDate !== $defaultToDate ? 1 : 0);
         $statuses = [
             null => ['label' => 'Tất cả', 'class' => 'slate'],
             'active' => ['label' => 'Đang hiệu lực', 'class' => 'emerald'],
@@ -44,7 +44,7 @@
         <form id="price-list-search-form" method="GET" action="{{ route('client.pharma.price-lists') }}">
             <label class="block">
                 <span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Tìm bảng giá / khách hàng</span>
-                <div class="relative"><span class="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-400">⌕</span><input id="price-list-search-input" type="search" name="q" value="{{ $search }}" autocomplete="off"  data-pwa-search-clear="#price-list-search-clear" class="h-12 w-full rounded-2xl border border-slate-300 pl-10 pr-11 text-sm" placeholder="Tên, mã bảng giá, khách hàng..."><x-native-touch id="price-list-search-clear" type="button" data-pwa-search-clear-button="#price-list-search-input" class="{{ $search === '' ? 'hidden ' : '' }}absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-500" aria-label="Xóa tìm kiếm">×</x-native-touch></div>
+                <div class="relative"><span class="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-400">⌕</span><input id="price-list-search-input" type="search" name="q" value="{{ $search }}" autocomplete="off" data-pwa-debounced-search="350" data-pwa-search-region="#price-list-results-region" data-pwa-search-clear="#price-list-search-clear" class="h-12 w-full rounded-2xl border border-slate-300 pl-10 pr-11 text-sm" placeholder="Tên, mã bảng giá, khách hàng..."><x-native-touch id="price-list-search-clear" type="button" data-pwa-search-clear-button="#price-list-search-input" class="{{ $search === '' ? 'hidden ' : '' }}absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-500" aria-label="Xóa tìm kiếm">×</x-native-touch></div>
             </label>
             @if($status)<input type="hidden" name="status" value="{{ $status }}">@endif
 
@@ -53,7 +53,7 @@
                     <span>⚙ Bộ lọc nâng cao @if($advancedFilterCount)<span class="ml-1 rounded-full bg-slate-900 px-2 py-0.5 text-[11px] text-white">{{ $advancedFilterCount }}</span>@endif</span>
                     <span class="text-xs font-bold text-slate-400 group-open:rotate-180">⌄</span>
                 </summary>
-                <div class="grid gap-3 border-t border-slate-200 p-4 {{ $canApprove ? 'lg:grid-cols-[14rem_10.5rem_10.5rem_8rem_auto]' : 'lg:grid-cols-[10.5rem_10.5rem_8rem_auto]' }} lg:items-end">
+                <div class="grid gap-3 border-t border-slate-200 p-4 {{ $canApprove ? 'lg:grid-cols-[14rem_10.5rem_10.5rem_auto]' : 'lg:grid-cols-[10.5rem_10.5rem_auto]' }} lg:items-end">
                     @if($canApprove)
                         <label><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">User phụ trách</span><x-pwa-select-search id="price-list-manager-user" name="manager_user_id" :selected="$managerUserId ?? ''" placeholder="Tất cả User" search-placeholder="Tìm User..." data-pwa-select-search-submit="change"><button type="button" data-pwa-select-search-option data-value="" data-label="Tất cả User" data-search="tất cả user" class="flex w-full items-center rounded-xl px-3 py-2.5 text-left text-sm font-semibold hover:bg-slate-100">Tất cả User</button>@foreach($managerUsers as $managerUser)<button type="button" data-pwa-select-search-option data-value="{{ $managerUser->id }}" data-label="{{ $managerUser->name }}" data-search="{{ mb_strtolower($managerUser->name.' '.($managerUser->email ?? '')) }}" class="flex w-full items-center rounded-xl px-3 py-2.5 text-left text-sm font-semibold hover:bg-slate-100">{{ $managerUser->name }}</button>@endforeach</x-pwa-select-search></label>
                     @endif
@@ -62,8 +62,7 @@
                             <x-pwa-date :name="$dateName" :label="$dateLabel" :value="$dateIso" :min="$dateName === 'to_date' ? $fromDate : null" :max="$dateName === 'from_date' ? $toDate : null" :aria-label="$dateLabel" onchange="this.form?.requestSubmit()" />
                         @endforeach
                     </div>
-                    <label><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Hiển thị</span><select name="per_page" onchange="this.form.submit()" class="h-[46px] w-full rounded-2xl border border-slate-300 bg-white px-3 text-sm">@foreach([25,50,100] as $size)<option value="{{ $size }}" @selected($perPage === $size)>{{ $size }} / trang</option>@endforeach</select></label>
-                    @if($hasAnyFilters)<a href="{{ route('client.pharma.price-lists', ['from_date' => $defaultFromDate, 'to_date' => $defaultToDate, 'per_page' => 25]) }}" class="flex min-h-11 items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-600 hover:bg-slate-50">Đặt lại bộ lọc</a>@endif
+                    @if($hasAnyFilters)<a href="{{ route('client.pharma.price-lists', ['from_date' => $defaultFromDate, 'to_date' => $defaultToDate]) }}" class="flex min-h-11 items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-600 hover:bg-slate-50">Đặt lại bộ lọc</a>@endif
                 </div>
             </details>
         </form>
@@ -83,7 +82,7 @@
                     @elseif($normalizedValue === 'pending_approval' && $canApprove)
                         <a href="{{ route('client.pharma.price-list-approvals') }}" title="Yêu cầu cần tôi duyệt" class="min-h-10 rounded-full border border-blue-600 bg-blue-600 px-3.5 py-2 text-xs font-bold text-white">Chờ duyệt <span class="ml-1 opacity-80">{{ $statusCount }}</span></a>
                     @else
-                        <a href="{{ route('client.pharma.price-lists', array_filter(['q' => $search, 'per_page' => $perPage, 'status' => $normalizedValue, 'from_date' => $fromDate, 'to_date' => $toDate, 'manager_user_id' => $managerUserId], fn($v) => $v !== null && $v !== '')) }}" class="min-h-10 rounded-full border px-3.5 py-2 text-xs font-bold {{ $active ? ($meta['class'] === 'emerald' ? 'border-emerald-600 bg-emerald-600 text-white' : ($meta['class'] === 'amber' ? 'border-amber-500 bg-amber-500 text-white' : 'border-slate-800 bg-slate-800 text-white')) : 'border-slate-200 bg-white text-slate-600' }}">@if($active)✓ @endif{{ $meta['label'] }} <span class="ml-1 opacity-70">{{ $statusCount }}</span></a>
+                        <a href="{{ route('client.pharma.price-lists', array_filter(['q' => $search, 'status' => $normalizedValue, 'from_date' => $fromDate, 'to_date' => $toDate, 'manager_user_id' => $managerUserId], fn($v) => $v !== null && $v !== '')) }}" class="min-h-10 rounded-full border px-3.5 py-2 text-xs font-bold {{ $active ? ($meta['class'] === 'emerald' ? 'border-emerald-600 bg-emerald-600 text-white' : ($meta['class'] === 'amber' ? 'border-amber-500 bg-amber-500 text-white' : 'border-slate-800 bg-slate-800 text-white')) : 'border-slate-200 bg-white text-slate-600' }}">@if($active)✓ @endif{{ $meta['label'] }} <span class="ml-1 opacity-70">{{ $statusCount }}</span></a>
                     @endif
                 @endforeach
             </div>
@@ -137,14 +136,14 @@
 
     <section class="hidden overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm lg:block">
         <table class="w-full table-fixed text-left text-sm"><thead class="bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-500"><tr><th class="px-5 py-3">Bảng giá</th><th class="px-5 py-3">Khách hàng</th>@if($canApprove)<th class="px-5 py-3">Người phụ trách</th>@endif<th class="px-5 py-3">Mục đích</th><th class="w-[7%] px-5 py-3 text-center">SP</th><th class="px-5 py-3">Hiệu lực</th><th class="w-[12%] px-4 py-3">Trạng thái</th><th class="w-20 whitespace-nowrap px-4 py-3 text-right">Thao tác</th></tr></thead>
-        <tbody class="divide-y divide-slate-100">
+        <tbody id="price-list-desktop-results" class="divide-y divide-slate-100">
         @forelse($priceLists as $priceList)
             @php
                 $customer = $priceList->partner?->name ?? $priceList->officialFacility?->facility_name ?? $priceList->officialFacility?->name ?? 'Bảng giá chung';
                 $exportShare = $exportShares[(int)$priceList->id] ?? null;
                 $statusLabel = match($priceList->status) { 'draft' => 'Nháp', 'pending_approval' => 'Chờ duyệt', 'active' => 'Đang hiệu lực', 'pending_deactivation' => 'Chờ ngừng', 'rejected' => 'Từ chối', 'inactive' => 'Ngưng', 'archived' => 'Lưu trữ', default => $priceList->status };
             @endphp
-            <tr class="transition hover:bg-slate-50"><td class="px-5 py-4"><a href="{{ route('client.pharma.price-lists.show', $priceList->id) }}" class="font-black text-slate-950 hover:underline">{{ $priceList->name }}</a><div class="mt-1 flex items-center gap-2"><p class="text-xs text-slate-400">{{ $priceList->code }}</p></div>@if(in_array($priceList->status, ['draft', 'rejected'], true) && $canCreate)<div class="mt-2 flex items-center gap-3 text-xs font-bold"><a href="{{ route('client.pharma.price-lists.edit', $priceList->id) }}" class="text-blue-700 hover:underline">Sửa</a>@if($priceList->status === 'draft')<form method="POST" action="{{ route('client.pharma.price-lists.delete', $priceList->id) }}" onsubmit="return confirm('Xóa bảng giá Nháp này?')">@csrf @method('DELETE')<button class="text-red-600 hover:underline">Xóa</button></form>@endif</div>@endif</td><td class="px-5 py-4 text-slate-700">{{ $customer }}</td>@if($canApprove)<td class="px-5 py-4 text-slate-700">{{ $priceList->manager?->name ?: '—' }}</td>@endif<td class="px-5 py-4 text-slate-600">{{ $priceList->purpose?->name ?: '—' }}</td><td class="px-5 py-4 text-center font-bold">{{ $priceList->items_count }}</td><td class="px-5 py-4 text-slate-600">{{ $priceList->effective_from?->format('d/m/Y') ?: '—' }} → {{ $priceList->effective_to?->format('d/m/Y') ?: '—' }}</td><td class="px-5 py-4"><span class="whitespace-nowrap rounded-full px-2 py-1 text-[11px] font-bold {{ $priceList->status === 'active' ? 'bg-emerald-100 text-emerald-700' : ($priceList->status === 'draft' ? 'bg-amber-100 text-amber-700' : ($priceList->status === 'pending_approval' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600')) }}">{{ $statusLabel }}</span></td><td class="px-5 py-4 text-right">
+            <tr data-price-list-row class="transition hover:bg-slate-50"><td class="px-5 py-4"><a href="{{ route('client.pharma.price-lists.show', $priceList->id) }}" class="font-black text-slate-950 hover:underline">{{ $priceList->name }}</a><div class="mt-1 flex items-center gap-2"><p class="text-xs text-slate-400">{{ $priceList->code }}</p></div>@if(in_array($priceList->status, ['draft', 'rejected'], true) && $canCreate)<div class="mt-2 flex items-center gap-3 text-xs font-bold"><a href="{{ route('client.pharma.price-lists.edit', $priceList->id) }}" class="text-blue-700 hover:underline">Sửa</a>@if($priceList->status === 'draft')<form method="POST" action="{{ route('client.pharma.price-lists.delete', $priceList->id) }}" onsubmit="return confirm('Xóa bảng giá Nháp này?')">@csrf @method('DELETE')<button class="text-red-600 hover:underline">Xóa</button></form>@endif</div>@endif</td><td class="px-5 py-4 text-slate-700">{{ $customer }}</td>@if($canApprove)<td class="px-5 py-4 text-slate-700">{{ $priceList->manager?->name ?: '—' }}</td>@endif<td class="px-5 py-4 text-slate-600">{{ $priceList->purpose?->name ?: '—' }}</td><td class="px-5 py-4 text-center font-bold">{{ $priceList->items_count }}</td><td class="px-5 py-4 text-slate-600">{{ $priceList->effective_from?->format('d/m/Y') ?: '—' }} → {{ $priceList->effective_to?->format('d/m/Y') ?: '—' }}</td><td class="px-5 py-4"><span class="whitespace-nowrap rounded-full px-2 py-1 text-[11px] font-bold {{ $priceList->status === 'active' ? 'bg-emerald-100 text-emerald-700' : ($priceList->status === 'draft' ? 'bg-amber-100 text-amber-700' : ($priceList->status === 'pending_approval' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600')) }}">{{ $statusLabel }}</span></td><td class="px-5 py-4 text-right">
                 <details class="relative inline-block text-left" data-price-list-actions>
                     <summary class="inline-flex min-h-9 cursor-pointer list-none items-center rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50" aria-label="Mở menu thao tác">•••</summary>
                     <div class="absolute right-0 z-[100] mt-2 w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 text-left shadow-xl">
@@ -185,7 +184,8 @@
         @empty <tr><td colspan="{{ $canApprove ? 8 : 7 }}" class="px-5 py-10 text-center text-slate-500">Bạn chưa có bảng giá nào trong phạm vi quản lý.</td></tr> @endforelse
         </tbody></table>
     </section>
-    @if($priceLists->hasPages())<div>{{ $priceLists->links() }}</div>@endif
+    @if($priceLists->hasMorePages())<div id="price-list-load-more-wrap" class="pt-1 text-center"><a data-pwa-load-more data-pwa-load-more-targets="#price-list-mobile-results::[data-price-list-card]|#price-list-desktop-results::[data-price-list-row]" data-pwa-load-more-wrap="#price-list-load-more-wrap" href="{{ $priceLists->nextPageUrl() }}" class="inline-flex min-h-11 items-center justify-center rounded-2xl border border-slate-300 bg-white px-6 text-sm font-black text-slate-700">Xem thêm</a></div>@endif
+    </div>
 </div>
 
 <dialog id="price-list-deactivation-dialog" class="mb-0 mt-auto w-full max-w-[520px] rounded-t-[28px] border-0 p-0 shadow-2xl backdrop:bg-slate-950/55 sm:m-auto sm:w-[min(92vw,520px)] sm:rounded-[28px]">
@@ -211,8 +211,8 @@
 
 <script>
 document.addEventListener('DOMContentLoaded',()=>{
-    const f=document.getElementById('price-list-search-form'),i=document.getElementById('price-list-search-input'),d=document.getElementById('price-list-advanced-filters');
-    if(f&&i){if(d&&window.matchMedia('(min-width: 1024px)').matches)d.open=true;let t;i.addEventListener('input',()=>{clearTimeout(t);t=setTimeout(()=>f.requestSubmit(),350);});}
+    const d=document.getElementById('price-list-advanced-filters');
+    if(d&&window.matchMedia('(min-width: 1024px)').matches)d.open=true;
 
     const isInstalledPwa=()=>window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
     const dialog=document.getElementById('price-list-pwa-file-handoff');
