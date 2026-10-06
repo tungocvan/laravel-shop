@@ -1110,3 +1110,13 @@ Pre-PR gate:
 - Bottom Navigation remains a shortcut surface and is not changed into an authorization mechanism.
 - Focused regression: `ClientPortalPwaSettingsTest`; impacted regression: `tests/Feature/ClientApps`.
 - UI acceptance required on rendered Pharma Hub (mobile + desktop) before merge.
+
+
+## Pharma Products native search closeout — 2026-10-06
+
+- Branch: `refactor/clientportal-pharma-products-native-search`, based on `main@4d060ee64`.
+- This is the first P2 native-interaction audit batch after Commission closeout. Products was selected because its only page-local JavaScript was a 350 ms search debounce already covered by the shared ClientPortal native interaction layer.
+- `products.blade.php` now declares `data-pwa-debounced-search="350"` and `data-pwa-search-region="#product-search-region"`; the page-local `<script>` block was removed.
+- Search updates use the existing shared fetch/DOMParser region replacement and preserve current GET filters. Product catalog queries, permissions, routes and Pharma domain code are unchanged.
+- Price Lists, Bid Awards and Inventory still require separate audits; their inline JavaScript is intentionally not claimed complete by this batch.
+- Required gate before UI acceptance: `php artisan test tests/Feature/ClientApps/PharmaProductsCapabilityTest.php`.
