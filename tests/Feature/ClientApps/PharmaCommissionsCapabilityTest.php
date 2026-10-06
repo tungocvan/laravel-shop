@@ -127,6 +127,10 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringNotContainsString('<script>',$view);
         $this->assertStringContainsString('const bindCommissionWorkspace',$nativeInteractions);
         $this->assertStringNotContainsString("typeof input.showPicker === 'function'",$nativeInteractions);
+        $this->assertStringContainsString('let committedValue = input.value;', $nativeInteractions);
+        $this->assertStringContainsString("input.addEventListener('change', commitDate);", $nativeInteractions);
+        $this->assertStringContainsString("input.addEventListener('blur', commitDate);", $nativeInteractions);
+        $this->assertStringContainsString('input.value === committedValue', $nativeInteractions);
         $this->assertStringContainsString('aria-label="Từ ngày"', $view);
         $this->assertStringContainsString('aria-label="Đến ngày"', $view);
         $this->assertStringContainsString('absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0', $view);
