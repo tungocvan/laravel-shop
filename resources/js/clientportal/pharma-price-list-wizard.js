@@ -173,11 +173,7 @@ const initPharmaPriceListWizard = () => {
     const productRows = [...document.querySelectorAll('.source-product-row')];
     const filterProducts = () => {
         const q = (productSearch?.value || '').toLocaleLowerCase('vi').trim();
-        productRows.forEach(row => {
-            const matches = q === '' || (row.dataset.search || '').includes(q);
-            const allowedByDraft = !isEditing || row.dataset.draftSelected === '1' || !document.querySelector('[data-source-product-search-wrap]')?.classList.contains('hidden');
-            row.classList.toggle('hidden', !matches || !allowedByDraft);
-        });
+        productRows.forEach(row => row.classList.toggle('hidden', q !== '' && !(row.dataset.search || '').includes(q)));
         productClear?.classList.toggle('hidden', !productSearch?.value);
     };
     productSearch?.addEventListener('input', filterProducts);
