@@ -251,41 +251,6 @@ const bindPwaSelectSearch = (root = document) => {
 };
 
 
-const bindCommissionDates = (root = document) => {
-    root.querySelectorAll('[data-commission-date-picker]').forEach((input) => {
-        if (input.dataset.pwaCommissionDateBound) return;
-        input.dataset.pwaCommissionDateBound = '1';
-
-        let displayedValue = input.value;
-        let syncTimer = null;
-        const syncDateDisplay = () => {
-            if (!input.value || input.value === displayedValue) return false;
-            displayedValue = input.value;
-            const [year, month, day] = input.value.split('-');
-            const display = document.querySelector('[data-commission-date-display="' + input.dataset.commissionDatePicker + '"]');
-            if (display) display.textContent = day + '/' + month + '/' + year;
-            return true;
-        };
-        const watchDateValue = () => {
-            window.clearInterval(syncTimer);
-            let checks = 0;
-            syncTimer = window.setInterval(() => {
-                checks += 1;
-                if (syncDateDisplay() || checks >= 120) {
-                    window.clearInterval(syncTimer);
-                    syncTimer = null;
-                }
-            }, 100);
-        };
-
-        input.addEventListener('pointerdown', watchDateValue);
-        input.addEventListener('touchstart', watchDateValue, {passive: true});
-        input.addEventListener('input', syncDateDisplay);
-        input.addEventListener('change', syncDateDisplay);
-        input.addEventListener('blur', syncDateDisplay);
-    });
-};
-
 const bindCommissionWorkspace = (root = document) => {
     const workspace = root.matches?.('[data-commission-workspace]') ? root : root.querySelector?.('[data-commission-workspace]');
     if (!workspace || workspace.dataset.pwaCommissionBound) return;
@@ -375,7 +340,6 @@ export const bindNativeInteractions = (root = document) => {
     bindSearchClear(root);
     bindLoadMore(root);
     bindPwaSelectSearch(root);
-    bindCommissionDates(root);
     bindCommissionWorkspace(root);
 };
 
