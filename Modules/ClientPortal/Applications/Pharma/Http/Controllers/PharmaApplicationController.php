@@ -1213,13 +1213,12 @@ final class PharmaApplicationController extends Controller
         return response()->file($exporter->path($artifact),['Content-Disposition'=>'inline; filename="'.$artifact->download_name.'"']);
     }
 
-    public function deleteCommissionExport(Request $request, ApplicationRegistry $registry, CommissionExportArtifact $artifact): RedirectResponse
+    public function deleteCommissionExport(Request $request, ApplicationRegistry $registry, CommissionExportArtifact $artifact, CommissionExcelExportService $exporter): RedirectResponse
     {
         $user=$request->user('web'); abort_if($user===null,401);
         abort_unless($registry->userCan($user,'client.pharma.commissions.view'),403);
         abort_unless((int)$artifact->created_by===(int)$user->id,404);
-        if($artifact->storage_path) Storage::disk($artifact->disk)->delete($artifact->storage_path);
-        $artifact->delete();
+        $exporter->delete($artifact);
         return back()->with('success','Đã xóa file Excel đã xuất.');
     }
 
