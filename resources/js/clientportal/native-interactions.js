@@ -250,6 +250,118 @@ const bindPwaSelectSearch = (root = document) => {
     });
 };
 
+
+const bindCommissionWorkspace = (root = document) => {
+    const form = root.querySelector?.('#commission-export-form') || document.querySelector('#commission-export-form');
+    if (!form || form.dataset.pwaCommissionBound) return;
+
+    form.dataset.pwaCommissionBound = '1';
+    const selectAll = document.getElementById('commission-select-all');
+    const desktopSelectAll = document.querySelector('[data-commission-select-all-desktop]');
+    const selectedCount = document.getElementById('commission-selected-count');
+    const clearSelection = document.getElementById('commission-clear-selection');
+    const inputs = document.getElementById('commission-selected-inputs');
+    const rowCheckboxes = () => [...document.querySelectorAll('.commission-row-checkbox')];
+    const selectedIds = () => [...new Set(rowCheckboxes().filter((box) => box.checked).map((box) => box.value))];
+
+    const syncSelection = () => {
+        const boxes = rowCheckboxes();
+        const ids = selectedIds();
+        const all = boxes.length > 0 && boxes.every((box) => box.checked);
+
+        if (selectedCount) selectedCount.textContent = String(ids.length);
+        if (clearSelection) clearSelection.classList.toggle('hidden', ids.length === 0);
+        [selectAll, desktopSelectAll].forEach((box) => {
+            if (!box) return;
+            box.checked = all;
+            box.indeterminate = ids.length > 0 && !all;
+        });
+    };
+
+    const setAll = (checked) => {
+        rowCheckboxes().forEach((box) => {
+            box.checked = checked;
+        });
+        syncSelection();
+    };
+
+    selectAll?.addEventListener('change', () => setAll(selectAll.checked));
+    desktopSelectAll?.addEventListener('change', () => setAll(desktopSelectAll.checked));
+    clearSelection?.addEventListener('click', () => setAll(false));
+    document.addEventListener('change', (event) => {
+        if (event.target?.classList?.contains('commission-row-checkbox')) syncSelection();
+    });
+
+    form.addEventListener('submit', () => {
+        if (!inputs) return;
+        inputs.innerHTML = '';
+        selectedIds().forEach((id) => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'ids[]';
+            input.value = id;
+            inputs.appendChild(input);
+        });
+    });
+
+    const exportToggle = document.querySelector('[data-commission-export-toggle]');
+    exportToggle?.addEventListener('click', () => {
+        const content = document.querySelector('[data-commission-export-content]');
+        const chevron = document.querySelector('[data-commission-export-chevron]');
+        const expanded = exportToggle.getAttribute('aria-expanded') === 'true';
+        exportToggle.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+        content?.classList.toggle('hidden', expanded);
+        chevron?.classList.toggle('rotate-180', !expanded);
+    });
+
+    document.querySelectorAll('[data-commission-share-url]').forEach((button) => {
+        button.addEventListener('click', async () => {
+            try {
+                const response = await fetch(button.dataset.commissionShareUrl, {credentials: 'same-origin', cache: 'no-store'});
+                if (!response.ok) throw new Error('download');
+
+                const blob = await response.blob();
+                const file = new File([blob], button.dataset.commissionShareName, {
+                    type: blob.type || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                });
+                const payload = {files: [file]};
+                if (typeof navigator.share === 'function'
+                    && typeof navigator.canShare === 'function'
+                    && navigator.canShare(payload)) {
+                    await navigator.share(payload);
+                    return;
+                }
+
+                window.location.assign(button.dataset.commissionShareUrl);
+            } catch (error) {
+                if (error?.name === 'AbortError') return;
+                window.location.assign(button.dataset.commissionShareUrl);
+            }
+        });
+    });
+
+    document.querySelectorAll('[data-commission-date-trigger]').forEach((trigger) => {
+        trigger.addEventListener('click', () => {
+            const input = document.querySelector('[data-commission-date-picker="' + trigger.dataset.commissionDateTrigger + '"]');
+            if (!input) return;
+            if (typeof input.showPicker === 'function') input.showPicker();
+            else input.click();
+        });
+    });
+
+    document.querySelectorAll('[data-commission-date-picker]').forEach((input) => {
+        input.addEventListener('change', () => {
+            if (!input.value) return;
+            const [year, month, day] = input.value.split('-');
+            const label = document.querySelector('[data-commission-date-label="' + input.dataset.commissionDatePicker + '"]');
+            if (label) label.textContent = day + '/' + month + '/' + year;
+            submitForm(input.form);
+        });
+    });
+
+    syncSelection();
+};
+
 export const bindNativeInteractions = (root = document) => {
     bindNavigationFeedback(root);
     bindPendingForms(root);
@@ -257,6 +369,7 @@ export const bindNativeInteractions = (root = document) => {
     bindSearchClear(root);
     bindLoadMore(root);
     bindPwaSelectSearch(root);
+    bindCommissionWorkspace(root);
 };
 
 const boot = () => bindNativeInteractions(document);
