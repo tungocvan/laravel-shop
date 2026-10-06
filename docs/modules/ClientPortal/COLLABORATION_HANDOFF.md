@@ -1110,3 +1110,15 @@ Pre-PR gate:
 - Bottom Navigation remains a shortcut surface and is not changed into an authorization mechanism.
 - Focused regression: `ClientPortalPwaSettingsTest`; impacted regression: `tests/Feature/ClientApps`.
 - UI acceptance required on rendered Pharma Hub (mobile + desktop) before merge.
+
+
+## Pharma PWA Commissions native interaction closeout — 2026-10-06
+
+- Branch: `refactor/clientportal-pharma-commissions-native-interactions`, based on `main@4d060ee64` after merged PR #273.
+- Scope is ClientPortal interaction refactor only. Commission query/filter/calculation/export authorization, artifact ownership, routes, permissions and schema are unchanged.
+- Removed the Commission workspace's page-local `<script>` block. Selection/export-ID synchronization, exported-file disclosure, authenticated native Share Sheet fallback and iPhone-safe date picker behavior now bind through `resources/js/clientportal/native-interactions.js`.
+- Existing Blade `data-commission-*` attributes remain the declarative contract; the Blade owns markup/presentation while the shared ClientPortal interaction bundle owns browser behavior.
+- The shared `submitForm()` helper preserves `requestSubmit()` with form-submit fallback for date filters.
+- Regression contract now requires the Commission Blade to contain no page-local `<script>` and verifies the moved behaviors in the native interaction asset.
+- No UI redesign, migration, Pharma domain code or Vite entry-point change.
+- Required pre-PR gate: focused `PharmaCommissionsCapabilityTest`, then `Modules/Pharma/Tests` because this is a Pharma PWA closeout; real Desktop + Mobile/iPhone UI acceptance remains required before merge.
