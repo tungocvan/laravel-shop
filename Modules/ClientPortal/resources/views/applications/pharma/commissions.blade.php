@@ -119,7 +119,7 @@
                 </label>
             </div>
 
-            <div class="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-end gap-2 sm:gap-3">
+            <div class="grid min-w-0 grid-cols-2 items-end gap-2 sm:gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
                 <label class="min-w-0">
                     <span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Từ ngày</span>
                     <span class="relative block">
@@ -132,7 +132,7 @@
                         <input type="date" name="to" value="{{ $filters['to'] }}" data-commission-date-picker="to" aria-label="Đến ngày" class="h-[46px] w-full rounded-2xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-950 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200">
                     </span>
                 </label>
-                <button type="submit" data-commission-date-apply class="inline-flex h-[46px] shrink-0 items-center justify-center rounded-2xl bg-slate-950 px-3 text-sm font-black text-white transition active:scale-[0.985] motion-reduce:transform-none sm:px-5">
+                <button type="submit" data-commission-date-apply class="col-span-2 inline-flex h-[46px] w-full items-center justify-center rounded-2xl bg-slate-950 px-4 text-sm font-black text-white transition active:scale-[0.985] motion-reduce:transform-none md:col-span-1 md:w-auto md:shrink-0 md:px-5">
                     Áp dụng
                 </button>
             </div>
