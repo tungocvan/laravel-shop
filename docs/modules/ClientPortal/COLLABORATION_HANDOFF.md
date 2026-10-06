@@ -1134,4 +1134,8 @@ Pre-PR gate:
 - Calling screens retain business semantics and workflow: field `name`, current `value`, `min`/`max`, required/disabled state, validation, GET/POST submission, filter application and domain rules.
 - Migrate date inputs capability-by-capability with targeted tests and real iPhone UI verification; do not mass-refactor all Pharma date fields in one branch.
 - Add component-level regression coverage so future screens can use `<x-pwa-date>` without copying Safari/iPhone utility classes.
-- This is a P5 follow-up, not part of the current P1 Commission interaction branch.
+- P5 implementation was pulled forward after the Commission component UI gate passed on iPhone. The canonical component is now `resources/views/components/pwa-date.blade.php`.
+- Commission is the accepted reference consumer. The same component has been migrated across all audited Pharma raw date controls: Inventory Receipts (receipt/invoice/expiry), Order authoring issue date, Price List create/index/detail date fields, Inventory Issue filters, Bid Award allocation effective dates, and Inventory Issue supply expected date.
+- Price List create/index legacy visible-text + invisible-native date overlays were removed. Price List index preserves its caller-owned auto-submit behavior through the component's pass-through `onchange`; Commission keeps explicit `Áp dụng`.
+- `PharmaPwaUiParityContractTest` now scans all Pharma application Blade views and rejects raw `type="date"` and the legacy date-overlay data attributes, making `<x-pwa-date>` the enforced Pharma PWA boundary.
+- Migration remains presentation-only: field names, values, required state, validation, submission and domain rules stay owned by each caller.
