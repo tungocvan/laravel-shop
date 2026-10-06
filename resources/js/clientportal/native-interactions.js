@@ -258,9 +258,13 @@ const bindCommissionDates = (root = document) => {
 
         let committedValue = input.value;
         const commitDate = () => {
-            if (!input.value || input.value === committedValue) return;
+            if (!input.value || input.value === committedValue || !input.form) return;
             committedValue = input.value;
-            submitForm(input.form);
+
+            const url = new URL(input.form.action, window.location.href);
+            new FormData(input.form).forEach((value, key) => url.searchParams.set(key, value));
+            url.searchParams.delete('page');
+            window.location.assign(url.toString());
         };
 
         input.addEventListener('input', commitDate);
