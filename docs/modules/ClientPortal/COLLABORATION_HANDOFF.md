@@ -1222,3 +1222,21 @@ UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, 
 - Inventory remains feature-specific because its loader also owns IntersectionObserver behavior and dual-representation lifecycle; P7 does not reopen that accepted P2 exception.
 - P7 does not alter Pharma domain queries, permissions or lifecycle rules. It changes only ClientPortal browse interaction/presentation.
 - Targeted tests plus real mobile/desktop UI acceptance are required before P7 closeout.
+
+
+## Pharma PWA progressive loading / P7 closeout — 2026-10-06
+
+- P7 is closed with explicit TEST + UI PASS.
+- Targeted automated gate: 22 tests / 999 assertions.
+- Products, Price Lists and Price List Approval Queue were accepted on real UI with shared search/clear/progressive-loading behavior.
+- Multi-target `Xem thêm` is accepted for responsive mobile-card + desktop-row surfaces.
+
+## Pharma PWA architecture / Admin parity / P8 checkpoint — 2026-10-06
+
+- P8 is an audit-first closeout. No new feature is introduced.
+- ClientPortal Pharma remains an orchestration/presentation boundary; canonical domain workflows/services remain under `Modules/Pharma`.
+- P8 found and fixed a real Approval Queue boundary defect: `priceListApprovals()` contained stale Commercial-workspace filter arguments and referenced an uninjected `$workspace`. The action is now isolated to the canonical `PriceListApprovalWorkflow::queue()` contract with `q + page` and an internal 25-row progressive page size.
+- P8 found and fixed direct commission-export deletion in the ClientPortal controller. File/model deletion is now owned by `CommissionExcelExportService::delete()`; ClientPortal performs capability/ownership guards and delegates.
+- Existing presentation-only model reads and route-level guards are not mechanically moved when they do not duplicate domain behavior.
+- P1-P7 accepted interaction, date, selector, shell and progressive-loading exceptions remain authoritative; P8 must not reopen them without a demonstrated regression.
+- P8 targeted tests must guard capability isolation and Pharma service ownership before final UI/merge closeout.
