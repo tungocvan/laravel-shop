@@ -209,6 +209,16 @@ The known regressions to guard against are:
 - hidden/overlay input preventing the picker from opening;
 - desktop/tablet date range unexpectedly stacking because a generated CSS class is unavailable.
 
+## Pharma focused-shell navigation contract
+
+For the current Pharma ClientPortal application:
+
+- the Pharma Hub/dashboard owns the application shell and may render the application header and mobile bottom navigation;
+- capability browse/index/detail/task/workflow screens use the focused shell and declare both `hide-application-header` and `hide-mobile-navigation`;
+- focused screens provide local navigation to the relevant parent capability or Pharma Hub instead of relying on the global shell;
+- do not reintroduce the application shell on an individual capability merely to expose a back action;
+- shell consistency is presentation/navigation only and must not change capability authorization or Pharma domain behavior.
+
 ## Mobile-first list/filter rules
 
 Unless a capability has a documented exception:
