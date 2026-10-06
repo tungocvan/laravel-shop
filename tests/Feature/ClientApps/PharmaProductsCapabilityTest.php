@@ -113,6 +113,10 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString('if ($canViewSupplierPricing)', $view);
         $this->assertStringContainsString("\$filters['supplier-priced'] = ['label' => 'Có giá NCC'", $view);
         $this->assertStringContainsString('data-pwa-debounced-search="350"', $view);
+        $this->assertStringContainsString('data-pwa-search-region="#product-results-region"', $view);
+        $this->assertStringContainsString('data-pwa-search-clear="#product-search-clear"', $view);
+        $this->assertStringContainsString('data-pwa-search-clear-button="#product-search-input"', $view);
+        $this->assertStringContainsString('id="product-results-region"', $view);
         $this->assertStringNotContainsString("window.setTimeout(() => form.requestSubmit(), 350)", $view);
         $this->assertStringNotContainsString('>Tìm kiếm</button>', $view);
         $this->assertStringContainsString("route('client.pharma.products.show'", $view);
