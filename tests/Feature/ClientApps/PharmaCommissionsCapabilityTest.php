@@ -164,7 +164,8 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('type="date" name="from"',$view);
         $this->assertStringContainsString('type="date" name="to"',$view);
         $this->assertStringContainsString('mt-1.5 block h-10 min-w-0 w-full max-w-full box-border', $view);
-        $this->assertStringContainsString('px-2.5 text-sm font-medium normal-case', $view);
+        $this->assertStringContainsString('appearance-none', $view);
+        $this->assertStringContainsString('px-2.5 py-0 text-sm font-medium leading-none normal-case', $view);
         $this->assertStringContainsString('inline-flex h-10 w-full', $view);
         $this->assertStringNotContainsString('data-commission-date-display=', $view);
         $this->assertStringNotContainsString('data-commission-date-picker=', $view);
@@ -172,9 +173,9 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringNotContainsString('data-commission-date-label=', $view);
         $this->assertStringNotContainsString('submitForm(input.form);', $nativeInteractions);
         $this->assertStringContainsString('data-commission-date-apply', $view);
-        $this->assertStringContainsString('grid-cols-1 items-end gap-3', $view);
+        $this->assertStringContainsString('grid w-full min-w-0 max-w-full grid-cols-1 items-end gap-3 overflow-hidden', $view);
         $this->assertStringContainsString('md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]', $view);
-        $this->assertStringContainsString('inline-flex h-11 w-full', $view);
+        $this->assertStringContainsString('inline-flex h-10 w-full', $view);
         $this->assertStringNotContainsString("format('d/m/Y')", $view);
         $this->assertStringContainsString('md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]', $view);
         $this->assertStringContainsString('Áp dụng', $view);
