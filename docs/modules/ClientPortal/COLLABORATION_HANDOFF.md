@@ -1203,3 +1203,22 @@ UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, 
 - P6 does not absorb P7 concerns. The approval queue's legacy pagination/search implementation is intentionally left for the progressive loading/filter UX audit.
 - `PharmaPwaUiParityContractTest` scans the Pharma application view directory and enforces the shell ownership rule so a new capability cannot silently reintroduce the global application shell.
 - P6 requires targeted automated PASS plus real Mobile/Desktop UI smoke before merge.
+
+
+## Pharma PWA focused shell / P6 closeout — 2026-10-06
+
+- P6 is closed with explicit TEST + UI PASS.
+- Pharma Hub/dashboard remains the sole application-shell owner; all audited capability views use the focused shell boundary.
+- Price List Approval Queue was the only P6 source outlier and now hides both application header and mobile navigation while preserving its local back path.
+- The all-view shell ownership contract remains enforced by `PharmaPwaUiParityContractTest`.
+
+## Pharma PWA progressive loading / filter UX / P7 checkpoint — 2026-10-06
+
+- P7 source audit identified three remaining generic browse regressions: Products, Price Lists and Price List Approval Queue.
+- Price List Approval Queue now uses shared debounced search, visible `×` clear and native-like `Xem thêm`; its page-local debounce script and Laravel pagination UI are removed.
+- Products and Price Lists no longer expose `per_page` or Laravel pagination UI. Both retain their existing backend paginator and use `nextPageUrl()` for progressive loading.
+- `resources/js/clientportal/native-interactions.js` now supports an optional multi-target progressive-load contract, encoded as `target::items|target::items`. This is required for responsive browse surfaces that render mobile cards and desktop rows simultaneously.
+- Existing single-target `data-pwa-load-more-target` / `data-pwa-load-more-items` remains backward compatible for Bid Awards, Commercial, Receipts, Issues and other existing consumers.
+- Inventory remains feature-specific because its loader also owns IntersectionObserver behavior and dual-representation lifecycle; P7 does not reopen that accepted P2 exception.
+- P7 does not alter Pharma domain queries, permissions or lifecycle rules. It changes only ClientPortal browse interaction/presentation.
+- Targeted tests plus real mobile/desktop UI acceptance are required before P7 closeout.
