@@ -126,7 +126,11 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('data-commission-date-trigger="from"',$view);
         $this->assertStringNotContainsString('<script>',$view);
         $this->assertStringContainsString('const bindCommissionWorkspace',$nativeInteractions);
-        $this->assertStringContainsString("typeof input.showPicker === 'function'",$nativeInteractions);
+        $this->assertStringNotContainsString("typeof input.showPicker === 'function'",$nativeInteractions);
+        $this->assertStringContainsString('aria-label="Từ ngày"', $view);
+        $this->assertStringContainsString('aria-label="Đến ngày"', $view);
+        $this->assertStringContainsString('absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0', $view);
+        $this->assertStringNotContainsString('pointer-events-none absolute h-px w-px opacity-0', $view);
         $this->assertStringContainsString('id="commission-partner"',$view);
         $this->assertStringContainsString('search-placeholder="Tìm khách hàng..."',$view);
         $this->assertStringContainsString('id="commission-medicine"',$view);
