@@ -146,7 +146,8 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString("document.addEventListener('DOMContentLoaded'",$pwaSelectSearch);
         $this->assertStringContainsString('const bindPwaSelectSearch',$nativeInteractions);
         $this->assertStringContainsString('bindCommissionWorkspace(root);',$nativeInteractions);
-        $this->assertStringContainsString('data-commission-workspace',$view);
+        $this->assertStringContainsString('window.ClientPortalNativeInteractions = {bind: bindNativeInteractions};',$nativeInteractions);
+        $this->assertStringContainsString('<div data-commission-workspace',$view);
         $this->assertStringNotContainsString('id="commission-selection-actions"',$view);
         $this->assertStringNotContainsString('id="commission-select-all"',$view);
         $this->assertStringContainsString("workspace.dataset.pwaCommissionBound = '1'",$nativeInteractions);
