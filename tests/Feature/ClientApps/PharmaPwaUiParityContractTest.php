@@ -356,4 +356,21 @@ class PharmaPwaUiParityContractTest extends TestCase
         }
     }
 
+
+    public function test_pharma_shared_native_interactions_cover_local_filters(): void
+    {
+        $foundation = file_get_contents(base_path('resources/js/clientportal/native-interactions.js'));
+        $policy = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/bid-award-commercial-policy.blade.php'));
+        $hospitalPolicy = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/bid-award-hospital-policy.blade.php'));
+        $allocation = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/bid-award-hospital-allocation.blade.php'));
+
+        $this->assertStringContainsString('[data-pwa-local-filter]', $foundation);
+        $this->assertStringContainsString('data-pwa-local-filter-items', $foundation);
+        $this->assertStringContainsString('data-pwa-local-filter', $policy);
+        $this->assertStringContainsString('data-pwa-local-filter', $hospitalPolicy);
+        $this->assertStringContainsString('data-pwa-local-filter', $allocation);
+        $this->assertStringNotContainsString("document.querySelector('[data-policy-product-search]')", $policy);
+        $this->assertStringNotContainsString("document.querySelector('[data-hospital-policy-search]')", $hospitalPolicy);
+    }
+
 }
