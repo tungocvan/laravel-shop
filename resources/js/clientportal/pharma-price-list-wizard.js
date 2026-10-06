@@ -146,8 +146,7 @@ const initPharmaPriceListWizard = () => {
 
     const applyAllGlobalUsers = document.getElementById('apply-all-global-users');
     const globalUserPicker = document.getElementById('global-user-picker');
-    const globalUserSearch = document.getElementById('global-user-search');
-    const globalUserOptions = [...document.querySelectorAll('[data-global-user-option]')];
+     const globalUserOptions = [...document.querySelectorAll('[data-global-user-option]')];
     const globalUserError = document.getElementById('global-user-scope-error');
     const syncGlobalUserScope = () => {
         if (!applyAllGlobalUsers) return;
@@ -156,11 +155,7 @@ const initPharmaPriceListWizard = () => {
         syncActions();
     };
     applyAllGlobalUsers?.addEventListener('change', syncGlobalUserScope);
-    globalUserSearch?.addEventListener('input', () => {
-        const q = (globalUserSearch.value || '').toLocaleLowerCase('vi').trim();
-        globalUserOptions.forEach(option => option.classList.toggle('hidden', q !== '' && !(option.dataset.search || '').includes(q)));
-    });
-    globalUserOptions.forEach(option => option.querySelector('input')?.addEventListener('change', syncGlobalUserScope));
+     globalUserOptions.forEach(option => option.querySelector('input')?.addEventListener('change', syncGlobalUserScope));
     document.getElementById('global-user-select-all')?.addEventListener('click', () => {
         globalUserOptions.filter(option => !option.classList.contains('hidden')).forEach(option => {
             const checkbox = option.querySelector('input');
@@ -173,13 +168,7 @@ const initPharmaPriceListWizard = () => {
     const customerId = document.getElementById('client-price-list-customer');
     customerId?.addEventListener('change', syncActions);
 
-    const productSearch = document.getElementById('source-product-search');
     const productRows = [...document.querySelectorAll('.source-product-row')];
-    const filterProducts = () => {
-        const q = (productSearch?.value || '').toLocaleLowerCase('vi').trim();
-        productRows.forEach(row => row.classList.toggle('hidden', q !== '' && !(row.dataset.search || '').includes(q)));
-    };
-    productSearch?.addEventListener('input', filterProducts);
 
     const selectAll = document.getElementById('select-all-source-products');
     selectAll?.addEventListener('change', () => {
