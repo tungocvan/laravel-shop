@@ -178,6 +178,42 @@ const bindLoadMore = (root = document) => {
 };
 
 
+const bindLocalFilters = (root = document) => {
+    root.querySelectorAll('[data-pwa-local-filter]').forEach((input) => {
+        if (input.dataset.pwaLocalFilterBound) return;
+
+        const itemSelector = input.dataset.pwaLocalFilterItems;
+        const clearSelector = input.dataset.pwaLocalFilterClear;
+        const emptySelector = input.dataset.pwaLocalFilterEmpty;
+        if (!itemSelector) return;
+
+        input.dataset.pwaLocalFilterBound = '1';
+        const clear = clearSelector ? document.querySelector(clearSelector) : null;
+        const empty = emptySelector ? document.querySelector(emptySelector) : null;
+
+        const apply = () => {
+            const query = (input.value || '').trim().toLocaleLowerCase('vi');
+            let visible = 0;
+            document.querySelectorAll(itemSelector).forEach((item) => {
+                const haystack = (item.dataset.search || item.dataset.name || item.textContent || '').toLocaleLowerCase('vi');
+                const matches = !query || haystack.includes(query);
+                item.classList.toggle('hidden', !matches);
+                if (matches) visible += 1;
+            });
+            clear?.classList.toggle('hidden', input.value === '');
+            empty?.classList.toggle('hidden', visible !== 0);
+        };
+
+        input.addEventListener('input', apply);
+        clear?.addEventListener('click', () => {
+            input.value = '';
+            apply();
+            input.focus({preventScroll: true});
+        });
+        apply();
+    });
+};
+
 const bindPwaSelectSearch = (root = document) => {
     root.querySelectorAll('[data-pwa-select-search]').forEach((select) => {
         if (select.dataset.pwaSelectSearchBound) return;
@@ -339,6 +375,7 @@ export const bindNativeInteractions = (root = document) => {
     bindDebouncedSearch(root);
     bindSearchClear(root);
     bindLoadMore(root);
+    bindLocalFilters(root);
     bindPwaSelectSearch(root);
     bindCommissionWorkspace(root);
 };
