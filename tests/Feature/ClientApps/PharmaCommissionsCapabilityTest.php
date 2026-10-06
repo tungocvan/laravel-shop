@@ -176,7 +176,9 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('type="date" name="to"',$view);
         $this->assertStringNotContainsString('data-commission-date-label=', $view);
         $this->assertStringContainsString('data-commission-date-picker="from"',$view);
-        $this->assertStringContainsString('submitForm(input.form);',$nativeInteractions);
+        $this->assertStringNotContainsString('submitForm(input.form);', $nativeInteractions);
+        $this->assertStringContainsString('data-commission-date-apply', $view);
+        $this->assertStringContainsString('Áp dụng ngày', $view);
         $this->assertStringContainsString("format('d/m/Y')",$view);
         $this->assertStringContainsString('rounded-2xl border border-slate-200 bg-white',$pwaSelectSearch);
         $this->assertStringNotContainsString('id="commission-search-input"',$view);
