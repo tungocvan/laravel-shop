@@ -1165,3 +1165,18 @@ Scope: audit and consolidate P2.1–P2.6 without changing Pharma domain/business
 ### P2 follow-up boundary
 
 P2 is considered closed when the targeted capability tests and rendered UI smoke pass. P3 may focus on native-touch consistency; it must not reopen feature-specific workflow extraction unless a concrete interaction defect or duplicated generic primitive is demonstrated.
+
+
+## Pharma PWA native-touch consistency / P3 checkpoint — 2026-10-06
+
+P3 follows the P2 native-interaction closeout and is presentation-only. It does not change Pharma domain rules, workflow state, permissions, routes or submission semantics.
+
+- Canonical pressed/touch feedback is `<x-native-touch>`, backed by `Modules/ClientPortal/resources/views/components/native-touch.blade.php`.
+- The component owns `touch-manipulation`, suppressed WebKit tap highlight, short transform transition, `active:scale-[0.985]`, reduced-motion protection and disabled-state behavior.
+- P3 applies the component to representative high-value primary/secondary actions in Order authoring, Receipt create/edit, Price List wizard and shared search-clear actions used by Products and Bid Award detail.
+- Do not mechanically wrap inputs, selects, checkboxes, pagination controls or every lifecycle POST button. Native-touch is for intentional pressable actions; form controls retain their native interaction semantics.
+- Existing feature-specific JS continues to target the same `id`/`data-*` hooks because `<x-native-touch>` forwards attributes to its rendered `button`/`a`.
+- Existing accepted `active:scale` actions do not need churn solely to replace equivalent styling. New/refactored pressable PWA actions should prefer `<x-native-touch>` instead of introducing another bespoke pressed-state class set.
+- `PharmaPwaUiParityContractTest` guards the shared component contract and representative Pharma consumers.
+
+UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, Price List wizard navigation/submission, Products search clear and Bid Award product-search clear on mobile/iPhone. Explicit UI PASS remains required before merge.
