@@ -136,11 +136,22 @@ const bindLoadMore = (root = document) => {
     root.querySelectorAll('[data-pwa-load-more]').forEach((button) => {
         if (button.dataset.pwaLoadMoreBound) return;
 
-        const listSelector = button.dataset.pwaLoadMoreTarget;
-        const itemSelector = button.dataset.pwaLoadMoreItems;
+        const targetSpecs = button.dataset.pwaLoadMoreTargets
+            ? button.dataset.pwaLoadMoreTargets.split('|').map((spec) => {
+                const [target, items] = spec.split('::');
+                return {target, items};
+            }).filter(({target, items}) => target && items)
+            : [{
+                target: button.dataset.pwaLoadMoreTarget,
+                items: button.dataset.pwaLoadMoreItems,
+            }];
         const wrapSelector = button.dataset.pwaLoadMoreWrap;
-        const list = listSelector ? document.querySelector(listSelector) : null;
-        if (!list || !itemSelector || !wrapSelector) return;
+        const targets = targetSpecs.map(({target, items}) => ({
+            list: target ? document.querySelector(target) : null,
+            target,
+            items,
+        }));
+        if (!wrapSelector || targets.some(({list, items}) => !list || !items)) return;
 
         button.dataset.pwaLoadMoreBound = '1';
         button.addEventListener('click', async (event) => {
@@ -157,16 +168,19 @@ const bindLoadMore = (root = document) => {
                 if (!response.ok) throw new Error('pwa-load-more');
 
                 const doc = new DOMParser().parseFromString(await response.text(), 'text/html');
-                doc.querySelectorAll(itemSelector).forEach((item) => list.appendChild(item));
+                targets.forEach(({list, items}) => {
+                    doc.querySelectorAll(items).forEach((item) => list.appendChild(item));
+                    bindNativeInteractions(list);
+                });
 
                 document.querySelector(wrapSelector)?.remove();
                 const nextWrap = doc.querySelector(wrapSelector);
                 if (nextWrap) {
-                    const insertionAnchor = list.closest('table') || list;
+                    const insertionList = targets[0].list;
+                    const insertionAnchor = insertionList.closest('table') || insertionList;
                     insertionAnchor.insertAdjacentElement('afterend', nextWrap);
                 }
 
-                bindNativeInteractions(list);
                 bindNativeInteractions(document);
             } catch (error) {
                 window.location.assign(button.href);
