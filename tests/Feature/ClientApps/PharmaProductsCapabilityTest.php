@@ -85,8 +85,10 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString("abort_if(\$filter === 'supplier-priced' && ! \$canViewSupplierPricing, 403)", $controller);
         $this->assertStringContainsString('$catalog->overview($variant, $canViewSupplierPricing)', $controller);
         $this->assertStringContainsString('Danh mục thuốc · chỉ đọc', $view);
-        $this->assertStringContainsString('@foreach([25, 50, 100] as $size)', $view);
-        $this->assertStringContainsString('{{ $size }} / trang', $view);
+        $this->assertStringNotContainsString('name="per_page"', $view);
+        $this->assertStringNotContainsString('->links()', $view);
+        $this->assertStringContainsString('data-pwa-load-more-targets', $view);
+        $this->assertStringContainsString('Xem thêm', $view);
         $this->assertStringContainsString('Xóa bộ lọc', $view);
         $this->assertStringContainsString('number_format($products->total()', $view);
         $this->assertStringContainsString('Đã trúng thầu', $view);
