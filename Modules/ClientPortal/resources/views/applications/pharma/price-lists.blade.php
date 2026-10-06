@@ -135,7 +135,7 @@
         @empty <div class="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">Bạn chưa có bảng giá nào trong phạm vi quản lý.</div> @endforelse
     </div>
 
-    <section class="hidden overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm lg:block">
+    <section class="hidden overflow-visible rounded-3xl border border-slate-200 bg-white shadow-sm lg:block">
         <table class="w-full table-fixed text-left text-sm"><thead class="bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-500"><tr><th class="px-5 py-3">Bảng giá</th><th class="px-5 py-3">Khách hàng</th>@if($canApprove)<th class="px-5 py-3">Người phụ trách</th>@endif<th class="px-5 py-3">Mục đích</th><th class="w-[7%] px-5 py-3 text-center">SP</th><th class="px-5 py-3">Hiệu lực</th><th class="w-[12%] px-4 py-3">Trạng thái</th><th class="w-20 whitespace-nowrap px-4 py-3 text-right">Thao tác</th></tr></thead>
         <tbody id="price-list-desktop-results" class="divide-y divide-slate-100">
         @forelse($priceLists as $priceList)
