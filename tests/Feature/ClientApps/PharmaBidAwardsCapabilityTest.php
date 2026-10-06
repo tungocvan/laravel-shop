@@ -153,8 +153,11 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString('data-pwa-load-more', $list);
         $this->assertStringContainsString('data-pwa-load-more-target="#bid-award-results"', $list);
         $this->assertStringContainsString('[data-pwa-debounced-search]', $nativeInteractions);
-        $this->assertStringContainsString('const initialValue = input.value;', $nativeInteractions);
-        $this->assertStringContainsString('if (input.value === initialValue) return;', $nativeInteractions);
+        $this->assertStringContainsString("const delay = Number.parseInt(input.dataset.pwaDebouncedSearch || '600', 10);", $nativeInteractions);
+        $this->assertStringContainsString('window.clearTimeout(debounceTimers.get(input));', $nativeInteractions);
+        $this->assertStringContainsString('window.setTimeout(() => replaceSearchRegion(input)', $nativeInteractions);
+        $this->assertStringContainsString('const controller = new AbortController();', $nativeInteractions);
+        $this->assertStringContainsString("url.searchParams.delete('page');", $nativeInteractions);
         $this->assertStringContainsString('[data-pwa-load-more]', $nativeInteractions);
         $this->assertStringContainsString('Trong phạm vi tôi phụ trách', $list);
         $this->assertStringContainsString('md:grid-cols-2 xl:grid-cols-3', $list);
