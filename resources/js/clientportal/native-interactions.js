@@ -386,6 +386,9 @@ window.ClientPortalNativeInteractions = {
     bind: bindNativeInteractions,
     bindSelectSearch: bindPwaSelectSearch,
 };
+document.addEventListener('clientportal:bind-select-search', (event) => {
+    bindPwaSelectSearch(event.detail?.root || document);
+});
 document.dispatchEvent(new CustomEvent('clientportal:native-interactions-ready'));
 
 const boot = () => bindNativeInteractions(document);
