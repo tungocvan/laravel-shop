@@ -1139,3 +1139,29 @@ Pre-PR gate:
 - Price List create/index legacy visible-text + invisible-native date overlays were removed. Price List index preserves its caller-owned auto-submit behavior through the component's pass-through `onchange`; Commission keeps explicit `Áp dụng`.
 - `PharmaPwaUiParityContractTest` now scans all Pharma application Blade views and rejects raw `type="date"` and the legacy date-overlay data attributes, making `<x-pwa-date>` the enforced Pharma PWA boundary.
 - Migration remains presentation-only: field names, values, required state, validation, submission and domain rules stay owned by each caller.
+
+
+## Pharma PWA native interaction audit / P2 closeout — 2026-10-06
+
+Scope: audit and consolidate P2.1–P2.6 without changing Pharma domain/business behavior or redesigning accepted UI.
+
+### Shared/native boundary
+
+- `resources/js/clientportal/native-interactions.js` remains the canonical generic interaction layer for navigation/pending feedback, debounced browse search, search clear, progressive `Xem thêm`, searchable selects, Commission interaction binding and local in-page collection filtering.
+- P2 adds `data-pwa-local-filter` with item/clear/empty selectors so simple card/list filtering no longer needs page-local scripts.
+- Bid Award browse/detail now use the shared debounced-search/load-more contract. Products uses the shared debounced-search contract.
+- Bid commercial policy, hospital policy and hospital allocation product search use the shared local-filter contract.
+- Inventory progressive loading remains feature-specific because one request appends two responsive representations (mobile cards + desktop table rows) and also owns IntersectionObserver behavior; forcing it through the current single-target primitive would regress behavior.
+- Bid allocation's incomplete-only toggle/review synchronization, manager assignment selection, Order wizard, Receipt dynamic-line editor and Price List wizard are feature workflows rather than generic native interactions. Do not move their business/workflow state into `native-interactions.js`.
+- Authenticated PDF/Excel handoff remains artifact-specific where preparation/dialog/fallback lifecycle differs, but every implementation must follow `docs/PWA_EXTERNAL_FILE_HANDOFF.md`: preserve the installed-PWA workspace, same-origin authenticated fetch, no public bypass URL, and native file share only from a valid user gesture.
+- Modal/disclosure logic should only be promoted to a shared primitive when semantics and accessibility behavior are demonstrably identical across multiple active consumers; P2 does not introduce a speculative generic modal framework.
+
+### Date-input rule
+
+- New ClientPortal/Pharma date fields must prefer `<x-pwa-date>`.
+- Raw `input[type=date]` is an explicit exception only when a different semantic/control is required and the exception is covered by a deliberate test.
+- `PharmaPwaUiParityContractTest` enforces the current Pharma application boundary against raw date inputs and legacy date overlays.
+
+### P2 follow-up boundary
+
+P2 is considered closed when the targeted capability tests and rendered UI smoke pass. P3 may focus on native-touch consistency; it must not reopen feature-specific workflow extraction unless a concrete interaction defect or duplicated generic primitive is demonstrated.
