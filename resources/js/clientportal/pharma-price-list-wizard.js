@@ -168,7 +168,24 @@ const initPharmaPriceListWizard = () => {
     const customerId = document.getElementById('client-price-list-customer');
     customerId?.addEventListener('change', syncActions);
 
+    const productSearch = document.getElementById('source-product-search');
+    const productClear = document.getElementById('source-product-search-clear');
     const productRows = [...document.querySelectorAll('.source-product-row')];
+    const filterProducts = () => {
+        const q = (productSearch?.value || '').toLocaleLowerCase('vi').trim();
+        productRows.forEach(row => {
+            const matches = q === '' || (row.dataset.search || '').includes(q);
+            const allowedByDraft = !isEditing || row.dataset.draftSelected === '1' || !document.querySelector('[data-source-product-search-wrap]')?.classList.contains('hidden');
+            row.classList.toggle('hidden', !matches || !allowedByDraft);
+        });
+        productClear?.classList.toggle('hidden', !productSearch?.value);
+    };
+    productSearch?.addEventListener('input', filterProducts);
+    productClear?.addEventListener('click', () => {
+        productSearch.value = '';
+        filterProducts();
+        productSearch.focus({preventScroll: true});
+    });
 
     const selectAll = document.getElementById('select-all-source-products');
     selectAll?.addEventListener('change', () => {
