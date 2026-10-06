@@ -8,9 +8,10 @@
     'disabled' => false,
     'help' => null,
     'error' => null,
+    'wrapperClass' => '',
 ])
 
-<label class="block w-full min-w-0 max-w-full overflow-hidden text-xs font-bold uppercase tracking-wide text-slate-500">
+<label class="block w-full min-w-0 max-w-full overflow-hidden text-xs font-bold uppercase tracking-wide text-slate-500 {{ $wrapperClass }}">
     @if($label)
         <span>{{ $label }}</span>
     @endif
