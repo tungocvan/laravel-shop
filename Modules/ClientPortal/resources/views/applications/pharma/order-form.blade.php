@@ -87,7 +87,7 @@
    <input type="hidden" name="manager_user_id" value="{{ $managerUserId }}"><div class="rounded-2xl bg-slate-50 p-3"><p class="text-xs font-bold text-slate-500">Người phụ trách</p><p class="mt-1 font-black">{{ $orderManagers->first()?->name }}</p></div>
   @endif
   </div>
-  <label class="mt-4 block"><span class="mb-2 block text-sm font-black">Ngày lập đơn</span><input type="date" name="issue_date" value="{{ old('issue_date',$issueDate) }}" class="h-12 w-full rounded-2xl border border-slate-300 px-4"></label>
+  <div class="mt-4"><x-pwa-date name="issue_date" label="Ngày lập đơn" :value="old('issue_date',$issueDate)" /></div>
  </section>
 
  <section id="price-list-context" class="rounded-b-3xl border border-t-0 border-slate-200 bg-white p-5 pt-1 shadow-sm">
@@ -120,7 +120,7 @@
    <div id="product-add-panel" class="mt-3 hidden grid-cols-[minmax(0,1fr)_110px] gap-2">
     <div class="min-w-0 rounded-xl bg-white px-3 py-2"><p id="product-selected-name" class="truncate text-sm font-black"></p><p id="product-selected-meta" class="mt-0.5 truncate text-xs text-slate-500"></p></div>
     <input id="product-add-qty" inputmode="decimal" class="h-12 w-full rounded-xl border border-slate-300 px-3 text-center" placeholder="Số lượng">
-    <button id="product-add" type="button" class="col-span-2 h-11 rounded-xl bg-slate-950 text-sm font-black text-white">+ Thêm vào đơn</button>
+    <x-native-touch id="product-add" type="button" class="col-span-2 h-11 rounded-xl bg-slate-950 text-sm font-black text-white">+ Thêm vào đơn</x-native-touch>
    </div>
   </div>
   <div id="selected-products" class="mt-4 space-y-3">
@@ -174,10 +174,10 @@
 
 <div data-order-actions class="relative z-20 mx-auto mt-4 max-w-3xl rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
  <div class="mx-auto flex max-w-3xl items-center gap-2 sm:gap-3">
-  <button type="button" id="order-step-back" class="hidden h-9 shrink-0 items-center justify-center rounded-xl border border-slate-300 px-3 text-xs font-black">← Quay lại</button>
+  <x-native-touch type="button" id="order-step-back" class="hidden h-9 shrink-0 items-center justify-center rounded-xl border border-slate-300 px-3 text-xs font-black">← Quay lại</x-native-touch>
   <div class="min-w-0 flex-1"><div class="flex items-center gap-2"><span class="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-600">Nháp</span><p id="order-summary" class="min-w-0 truncate text-xs font-black sm:text-sm">0 sản phẩm · 0 SL · 0 đ</p></div></div>
-  <button type="button" id="order-step-next" class="h-9 shrink-0 rounded-xl bg-indigo-600 px-4 text-xs font-black text-white shadow-sm active:scale-[.985]">Tiếp tục →</button>
-  <button type="submit" id="order-submit" style="display:none" class="h-9 shrink-0 items-center justify-center rounded-xl bg-slate-950 px-3 text-[11px] font-black text-white shadow-sm active:scale-[.985] sm:px-4 sm:text-xs">Lưu nháp</button>
+  <x-native-touch type="button" id="order-step-next" class="h-9 shrink-0 rounded-xl bg-indigo-600 px-4 text-xs font-black text-white shadow-sm active:scale-[.985]">Tiếp tục →</x-native-touch>
+  <x-native-touch type="submit" id="order-submit" style="display:none" class="h-9 shrink-0 items-center justify-center rounded-xl bg-slate-950 px-3 text-[11px] font-black text-white shadow-sm active:scale-[.985] sm:px-4 sm:text-xs">Lưu nháp</x-native-touch>
  </div>
 </div>
 </form></div>

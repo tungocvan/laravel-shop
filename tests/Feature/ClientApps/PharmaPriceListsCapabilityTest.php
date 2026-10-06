@@ -69,6 +69,16 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString("->name('price-list-approvals.items.delete')", $routes);
         $this->assertStringContainsString('client.feature:pharma,price-lists', $routes);
         $this->assertStringNotContainsString('auth:admin', $routes);
+        $approvalBrowseStart = strpos($controller, 'public function priceListApprovals(');
+        $approvalBrowseEnd = strpos($controller, 'public function priceListApproval(', $approvalBrowseStart);
+        $approvalBrowse = substr($controller, $approvalBrowseStart, $approvalBrowseEnd - $approvalBrowseStart);
+        $this->assertStringContainsString("'q' => ['nullable', 'string', 'max:120']", $approvalBrowse);
+        $this->assertStringContainsString("'page' => ['nullable', 'integer', 'min:1']", $approvalBrowse);
+        $this->assertStringContainsString('perPage: 25', $approvalBrowse);
+        $this->assertStringNotContainsString("'per_page' =>", $approvalBrowse);
+        $this->assertStringNotContainsString('filterOptions()', $approvalBrowse);
+        $this->assertStringNotContainsString('investor:', $approvalBrowse);
+        $this->assertStringNotContainsString('medicine:', $approvalBrowse);
 
         $this->assertStringContainsString('UserPriceListWorkspace $workspace', $controller);
         $this->assertStringContainsString('$workspace->browse(', $controller);
@@ -89,15 +99,22 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('Chỉ hiển thị các bảng giá bạn là người phụ trách', $priceListFeature['page_description']);
         $this->assertStringContainsString("\$featurePresentation['page_title']", $view);
         $this->assertStringContainsString("\$featurePresentation['page_description']", $view);
-        $this->assertStringContainsString('25,50,100', $view);
-        $this->assertStringContainsString("setTimeout(()=>f.requestSubmit(),350)", $view);
+        $this->assertStringNotContainsString('name="per_page"', $view);
+        $this->assertStringNotContainsString('->links()', $view);
+        $this->assertStringNotContainsString("setTimeout(()=>f.requestSubmit(),350)", $view);
+        $this->assertStringContainsString('data-pwa-debounced-search="350"', $view);
+        $this->assertStringContainsString('data-pwa-search-clear-button', $view);
+        $this->assertStringContainsString('data-pwa-load-more-targets', $view);
+        $this->assertStringContainsString('Xem thêm', $view);
+        $this->assertStringContainsString('hidden overflow-visible rounded-3xl border border-slate-200 bg-white shadow-sm lg:block', $view);
+        $this->assertStringContainsString('absolute right-0 z-[100] mt-2 w-56', $view);
+        $this->assertStringNotContainsString('hidden overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm lg:block', $view);
         $this->assertStringContainsString("['from_date','Từ ngày',\$fromDate]", $view);
         $this->assertStringContainsString("['to_date','Đến ngày',\$toDate]", $view);
-        $this->assertStringContainsString('data-filter-date-display="{{ $dateName }}"', $view);
-        $this->assertStringContainsString('type="date" data-filter-date-native="{{ $dateName }}" name="{{ $dateName }}"', $view);
-        $this->assertStringContainsString("format('d/m/Y')", $view);
-        $this->assertStringContainsString("document.querySelectorAll('[data-filter-date-native]')", $view);
-        $this->assertStringContainsString('input.form?.requestSubmit()', $view);
+        $this->assertStringContainsString('<x-pwa-date :name="$dateName" :label="$dateLabel" :value="$dateIso"', $view);
+        $this->assertStringContainsString('onchange="this.form?.requestSubmit()"', $view);
+        $this->assertStringNotContainsString('data-filter-date-display=', $view);
+        $this->assertStringNotContainsString('data-filter-date-native=', $view);
         $this->assertStringContainsString('Đặt lại', $view);
         $this->assertStringContainsString("'from_date' => \$fromDate", $view);
         $this->assertStringContainsString("'to_date' => \$toDate", $view);
@@ -136,14 +153,15 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString("redirect()->route('client.pharma.price-lists.show', \$priceList)", $controller);
 
         $this->assertStringContainsString('Tạo bảng giá cho khách hàng', $create);
-        // The price-list wizard uses the same searchable business-selector UX contract as
-        // the order authoring flow, but keeps its own lightweight combobox markup so wizard
-        // state and validation stay deterministic across steps.
+        // Single-value business selectors use the canonical PWA searchable-selector contract;
+        // wizard validation still observes the shared hidden value through its change event.
         $this->assertStringNotContainsString('<x-search-select', $create);
-        $this->assertStringContainsString('data-customer-combobox', $create);
-        $this->assertStringContainsString('id="client-price-list-customer-search"', $create);
-        $this->assertStringContainsString('type="hidden" name="partner_id"', $create);
-        $this->assertStringContainsString('data-customer-option', $create);
+        $this->assertStringNotContainsString('data-customer-combobox', $create);
+        $this->assertStringContainsString('<x-pwa-select-search id="client-price-list-customer"', $create);
+        $this->assertStringContainsString('name="partner_id"', $create);
+        $pwaSelectSearch = file_get_contents(base_path('resources/views/components/pwa-select-search.blade.php'));
+        $this->assertStringContainsString('<input type="hidden" id="{{ $id }}" name="{{ $name }}"', $pwaSelectSearch);
+        $this->assertStringContainsString('data-pwa-select-search-option', $create);
         $this->assertStringContainsString("document.getElementById('client-price-list-customer')", $createWizard);
         $this->assertStringContainsString('const stepTwoReady = () =>', $createWizard);
         $this->assertStringContainsString("back.classList.toggle('hidden', currentStep === 1)", $createWizard);
@@ -162,9 +180,10 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('source_price_list_id', $create);
         $this->assertStringContainsString('name="source_price_list_id" value="{{ old(\'source_price_list_id\', $sourcePriceListId) }}"', $create);
         $this->assertStringContainsString("route('client.pharma.price-lists.create', ['type'=>'global'])", $create);
-        $this->assertStringContainsString('data-date-display="{{ $dateName }}"', $create);
-        $this->assertStringContainsString('type="date" data-date-native="{{ $dateName }}" name="{{ $dateName }}"', $create);
-        $this->assertStringContainsString("format('d/m/Y')", $create);
+        $this->assertStringContainsString('<x-pwa-date :name="$dateName" :label="$dateLabel.\' *\'" :value="$dateIso" required', $create);
+        $this->assertStringNotContainsString('data-date-display=', $create);
+        $this->assertStringNotContainsString('data-date-native=', $create);
+        $this->assertStringNotContainsString("document.querySelectorAll('[data-date-native]')", $createWizard);
         $this->assertStringNotContainsString('sticky bottom-4', $create);
         $this->assertStringContainsString('Lưu bảng giá Nháp', $create);
         $this->assertStringContainsString('name="selected[', $create);

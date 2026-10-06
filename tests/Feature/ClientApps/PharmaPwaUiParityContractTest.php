@@ -70,8 +70,8 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertStringContainsString("<input type=\"hidden\" name=\"source_price_list_id\" value=\"{{ old('source_price_list_id', \$sourcePriceListId) }}\">", $view);
         $this->assertStringContainsString("? !source?.value", $wizard);
         $this->assertStringNotContainsString("source?.value || document.querySelector('[data-global-price-list-mode]')", $wizard);
-        $this->assertStringContainsString('id="client-price-list-customer-search"', $view);
-        $this->assertStringContainsString('data-customer-option', $view);
+        $this->assertStringContainsString('<x-pwa-select-search id="client-price-list-customer"', $view);
+        $this->assertStringContainsString('data-pwa-select-search-option', $view);
         $this->assertStringContainsString('id="source-product-search" type="search"', $view);
         $this->assertStringContainsString('const stepTwoReady = () =>', $wizard);
         $this->assertStringContainsString("back.classList.toggle('hidden', currentStep === 1)", $wizard);
@@ -95,24 +95,24 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertStringContainsString('Bảng giá khách hàng', $view);
         $this->assertStringContainsString("route('client.pharma.price-lists.create', ['type'=>'global'])", $view);
         $this->assertStringContainsString('Kích hoạt trực tiếp', $view);
-        $this->assertStringContainsString('data-date-display="{{ $dateName }}"', $view);
-        $this->assertStringContainsString('type="date" data-date-native="{{ $dateName }}" name="{{ $dateName }}"', $view);
-        $this->assertStringContainsString("format('d/m/Y')", $view);
+        $this->assertStringContainsString('<x-pwa-date :name="$dateName" :label="$dateLabel.\' *\'" :value="$dateIso" required', $view);
+        $this->assertStringNotContainsString('data-date-display=', $view);
+        $this->assertStringNotContainsString('data-date-native=', $view);
         $this->assertStringNotContainsString('data-price-list-manager-combobox', $view);
         $this->assertStringContainsString('id="price-list-bootstrap" method="GET"', $view);
-        $this->assertStringContainsString('<select id="source-price-list" name="source_price_list_id"', $view);
+        $this->assertStringContainsString('<x-pwa-select-search id="source-price-list" name="source_price_list_id"', $view);
         $this->assertStringNotContainsString('<x-search-select', $view);
-        $this->assertStringContainsString('id="client-price-list-customer-search"', $view);
-        $this->assertStringContainsString('data-customer-option', $view);
+        $this->assertStringContainsString('<x-pwa-select-search id="client-price-list-customer"', $view);
+        $this->assertStringContainsString('data-pwa-select-search-option', $view);
         $this->assertStringContainsString('id="source-product-search" type="search"', $view);
 
         $this->assertStringContainsString('id="load-source-price-list"', $view);
         $wizard = file_get_contents(base_path('resources/js/clientportal/pharma-price-list-wizard.js'));
         $this->assertStringContainsString("document.getElementById('source-price-list')", $wizard);
-        $this->assertStringContainsString('const isoDate = raw =>', $wizard);
-        $this->assertStringContainsString("document.querySelectorAll('[data-date-display]')", $wizard);
-        $this->assertStringContainsString("document.querySelectorAll('[data-date-native]')", $wizard);
-        $this->assertStringContainsString('const syncDateDisplay = native =>', $wizard);
+        $this->assertStringNotContainsString('const isoDate = raw =>', $wizard);
+        $this->assertStringNotContainsString("document.querySelectorAll('[data-date-display]')", $wizard);
+        $this->assertStringNotContainsString("document.querySelectorAll('[data-date-native]')", $wizard);
+        $this->assertStringNotContainsString('const syncDateDisplay = native =>', $wizard);
         $this->assertStringContainsString('name="source_price_list_id" value="{{ old(\'source_price_list_id\', $sourcePriceListId) }}"', $view);
     }
 
@@ -331,6 +331,154 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertStringContainsString("\$featurePresentation['page_description']", $view);
         $this->assertStringContainsString("route('client.pharma.products')", $detail);
         $this->assertStringContainsString('Danh mục thuốc', $detail);
+    }
+
+
+    public function test_pharma_date_inputs_use_shared_pwa_date_component(): void
+    {
+        $component = file_get_contents(base_path('resources/views/components/pwa-date.blade.php'));
+
+        $this->assertStringContainsString('type="date"', $component);
+        $this->assertStringContainsString('min-w-0 w-full max-w-full box-border', $component);
+        $this->assertStringContainsString('h-10', $component);
+        $this->assertStringContainsString('px-3 py-2 text-sm font-medium', $component);
+        $this->assertStringContainsString("'wrapperClass' => ''", $component);
+
+        foreach (glob(base_path('Modules/ClientPortal/resources/views/applications/pharma/*.blade.php')) ?: [] as $path) {
+            $view = file_get_contents($path);
+            $name = basename($path);
+
+            $this->assertStringNotContainsString('type="date"', $view, $name.' must use <x-pwa-date>');
+            $this->assertStringNotContainsString('data-date-native=', $view, $name.' must not restore date overlays');
+            $this->assertStringNotContainsString('data-date-display=', $view, $name.' must not restore date overlays');
+            $this->assertStringNotContainsString('data-filter-date-native=', $view, $name.' must not restore filter date overlays');
+            $this->assertStringNotContainsString('data-filter-date-display=', $view, $name.' must not restore filter date overlays');
+        }
+    }
+
+
+    public function test_pharma_shared_native_interactions_cover_local_filters(): void
+    {
+        $foundation = file_get_contents(base_path('resources/js/clientportal/native-interactions.js'));
+        $policy = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/bid-award-commercial-policy.blade.php'));
+        $hospitalPolicy = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/bid-award-hospital-policy.blade.php'));
+        $allocation = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/bid-award-hospital-allocation.blade.php'));
+
+        $this->assertStringContainsString('[data-pwa-local-filter]', $foundation);
+        $this->assertStringContainsString('input.dataset.pwaLocalFilterItems', $foundation);
+        $this->assertStringContainsString('input.dataset.pwaLocalFilterClear', $foundation);
+        $this->assertStringContainsString('input.dataset.pwaLocalFilterEmpty', $foundation);
+        $this->assertStringContainsString('data-pwa-local-filter-items=', $policy);
+        $this->assertStringContainsString('data-pwa-local-filter-items=', $hospitalPolicy);
+        $this->assertStringContainsString('data-pwa-local-filter-items=', $allocation);
+        $this->assertStringNotContainsString("document.querySelector('[data-policy-product-search]')", $policy);
+        $this->assertStringNotContainsString("document.querySelector('[data-hospital-policy-search]')", $hospitalPolicy);
+    }
+
+
+    public function test_pharma_primary_actions_use_shared_native_touch_boundary(): void
+    {
+        $component = file_get_contents(base_path('Modules/ClientPortal/resources/views/components/native-touch.blade.php'));
+        $order = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/order-form.blade.php'));
+        $receipt = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/inventory-receipt-create.blade.php'));
+        $priceList = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/price-list-create.blade.php'));
+        $products = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/products.blade.php'));
+        $bidDetail = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/bid-award-show.blade.php'));
+
+        $this->assertStringContainsString('touch-manipulation', $component);
+        $this->assertStringContainsString('active:scale-[0.985]', $component);
+        $this->assertStringContainsString('motion-reduce:transform-none', $component);
+        $this->assertStringContainsString('[-webkit-tap-highlight-color:transparent]', $component);
+
+        foreach ([
+            [$order, 'id="order-step-next"'],
+            [$order, 'id="order-submit"'],
+            [$receipt, 'id="add-receipt-item"'],
+            [$priceList, 'id="wizard-next"'],
+            [$priceList, 'id="wizard-submit"'],
+            [$products, 'id="product-search-clear"'],
+            [$bidDetail, 'id="bid-product-search-clear"'],
+        ] as [$view, $marker]) {
+            $position = strpos($view, $marker);
+            $this->assertNotFalse($position);
+            $opening = substr($view, strrpos(substr($view, 0, $position), '<'), $position - strrpos(substr($view, 0, $position), '<') + strlen($marker) + 1);
+            $this->assertStringContainsString('<x-native-touch', $opening);
+        }
+    }
+
+
+    public function test_pharma_searchable_selectors_have_one_shared_interaction_owner(): void
+    {
+        $component = file_get_contents(base_path('resources/views/components/pwa-select-search.blade.php'));
+        $foundation = file_get_contents(base_path('resources/js/clientportal/native-interactions.js'));
+        $priceLists = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/price-lists.blade.php'));
+        $priceListCreate = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/price-list-create.blade.php'));
+        $bidAwards = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/bid-awards.blade.php'));
+
+        $this->assertStringContainsString('data-pwa-select-search', $component);
+        $this->assertStringContainsString('data-pwa-select-search-clear', $component);
+        $this->assertStringContainsString("ClientPortalNativeInteractions?.bindSelectSearch", $component);
+        $this->assertStringContainsString("ClientPortalNativeInteractions.bindSelectSearch(document)", $component);
+        $this->assertStringContainsString("clientportal:native-interactions-ready", $component);
+        $this->assertStringContainsString('const bindPwaSelectSearch = (root = document)', $foundation);
+        $this->assertStringContainsString('bindSelectSearch: bindPwaSelectSearch', $foundation);
+        $this->assertStringContainsString("value.dispatchEvent(new Event('change', {bubbles: true}))", $foundation);
+
+        $this->assertStringContainsString('<x-pwa-select-search id="price-list-manager-user"', $priceLists);
+        $this->assertStringContainsString('<x-pwa-select-search id="source-price-list"', $priceListCreate);
+        $this->assertStringContainsString('<x-pwa-select-search id="client-price-list-customer"', $priceListCreate);
+        $this->assertStringContainsString('<x-pwa-select-search id="bid-filter-', $bidAwards);
+        $this->assertStringContainsString('data-pwa-search-clear-button="#price-list-search-input"', $priceLists);
+        $this->assertStringContainsString('data-pwa-search-clear-button="#bid-award-search-input"', $bidAwards);
+    }
+
+
+    public function test_pharma_application_views_keep_one_shell_owner(): void
+    {
+        $directory = base_path('Modules/ClientPortal/resources/views/applications/pharma');
+        $views = collect(glob($directory.'/*.blade.php'));
+
+        $this->assertNotEmpty($views);
+
+        foreach ($views as $view) {
+            $name = basename($view);
+            $source = file_get_contents($view);
+
+            if ($name === 'dashboard.blade.php') {
+                $this->assertStringNotContainsString("@section('hide-application-header'", $source, $name);
+                $this->assertStringNotContainsString("@section('hide-mobile-navigation'", $source, $name);
+                continue;
+            }
+
+            $this->assertStringContainsString("@section('hide-application-header'", $source, $name);
+            $this->assertStringContainsString("@section('hide-mobile-navigation'", $source, $name);
+        }
+    }
+
+
+    public function test_pharma_browse_surfaces_use_progressive_loading_contract(): void
+    {
+        $foundation = file_get_contents(base_path('resources/js/clientportal/native-interactions.js'));
+        $approvals = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/price-list-approvals.blade.php'));
+        $products = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/products.blade.php'));
+        $priceLists = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/price-lists.blade.php'));
+
+        $this->assertStringContainsString('button.dataset.pwaLoadMoreTargets', $foundation);
+        $this->assertStringContainsString("split('|')", $foundation);
+        $this->assertStringContainsString("split('::')", $foundation);
+
+        foreach ([$approvals, $products, $priceLists] as $view) {
+            $this->assertStringContainsString('data-pwa-debounced-search', $view);
+            $this->assertStringContainsString('data-pwa-search-clear-button', $view);
+            $this->assertStringContainsString('data-pwa-load-more', $view);
+            $this->assertStringContainsString('Xem thêm', $view);
+            $this->assertStringNotContainsString('->links()', $view);
+            $this->assertStringNotContainsString('name="per_page"', $view);
+        }
+
+        $this->assertStringNotContainsString("setTimeout(()=>f.requestSubmit()", $approvals);
+        $this->assertStringContainsString('data-pwa-load-more-targets="#product-mobile-results::[data-product-card]|#product-desktop-results::[data-product-row]"', $products);
+        $this->assertStringContainsString('data-pwa-load-more-targets="#price-list-mobile-results::[data-price-list-card]|#price-list-desktop-results::[data-price-list-row]"', $priceLists);
     }
 
 }

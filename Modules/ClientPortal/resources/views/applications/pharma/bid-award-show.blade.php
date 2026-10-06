@@ -43,13 +43,13 @@
 
     <form method="GET" class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm" id="bid-product-search-form">
         <div class="relative">
-            <input name="q" value="{{ $search }}" placeholder="Tìm tên thuốc, hoạt chất, số đăng ký..." autocomplete="off"
+            <input id="bid-product-search-input" name="q" value="{{ $search }}" placeholder="Tìm tên thuốc, hoạt chất, số đăng ký..." autocomplete="off" data-pwa-debounced-search="750" data-pwa-search-region="#bid-product-region" data-pwa-search-clear="#bid-product-search-clear"
                 class="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 pr-12 text-sm outline-none focus:border-slate-400">
-            @if($search !== '')<a href="{{ route('client.pharma.bid-awards.show', $result->scope_key) }}" class="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full text-slate-500" aria-label="Xóa tìm kiếm">×</a>@endif
+            <x-native-touch id="bid-product-search-clear" type="button" data-pwa-search-clear-button="#bid-product-search-input" class="{{ $search === '' ? 'hidden ' : '' }}absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-500" aria-label="Xóa tìm kiếm">×</x-native-touch>
         </div>
     </form>
 
-    <section id="bid-products" class="space-y-3">
+    <div id="bid-product-region"><section id="bid-products" class="space-y-3">
         @forelse($products as $product)
             <article data-bid-product class="min-w-0 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div class="flex items-start justify-between gap-3">
@@ -67,15 +67,7 @@
             <div class="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">Không tìm thấy sản phẩm phù hợp.</div>
         @endforelse
     </section>
-    @if($products->hasMorePages())<div class="text-center"><a id="bid-product-load-more" href="{{ $products->nextPageUrl() }}" class="inline-flex min-h-11 items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 shadow-sm">Xem thêm sản phẩm</a></div>@endif
+    @if($products->hasMorePages())<div id="bid-product-load-more-wrap" class="text-center"><a id="bid-product-load-more" data-pwa-load-more data-pwa-load-more-target="#bid-products" data-pwa-load-more-items="[data-bid-product]" data-pwa-load-more-wrap="#bid-product-load-more-wrap" href="{{ $products->nextPageUrl() }}" class="inline-flex min-h-11 items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 shadow-sm">Xem thêm sản phẩm</a></div>@endif</div>
 </div>
-<script>
-(() => {
- const form=document.getElementById('bid-product-search-form'), input=form?.querySelector('input[name="q"]');
- const initialSearch=(input?.value||'').trim(); let timer;
- input?.addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(()=>{const nextSearch=(input.value||'').trim();if(nextSearch===initialSearch)return;form.requestSubmit();},750);});
- const more=document.getElementById('bid-product-load-more');
- more?.addEventListener('click',async(e)=>{e.preventDefault();more.classList.add('pointer-events-none','opacity-60');try{const r=await fetch(more.href,{headers:{'X-Requested-With':'XMLHttpRequest'},credentials:'same-origin'});const d=new DOMParser().parseFromString(await r.text(),'text/html');d.querySelectorAll('[data-bid-product]').forEach(x=>document.getElementById('bid-products').append(x));const n=d.getElementById('bid-product-load-more');if(n)more.href=n.href;else more.remove();}catch(error){window.location.href=more.href;}finally{more?.classList.remove('pointer-events-none','opacity-60');}});
-})();
-</script>
+
 @endsection

@@ -15,7 +15,6 @@
         <a href="{{ route('client.pharma.dashboard') }}" class="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">← Không gian làm việc Pharma</a>
         <button id="commission-export-excel" type="submit" class="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-black text-emerald-800 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">Xuất Excel</button>
     </div>
-    <div id="commission-selection-actions" class="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"><label class="inline-flex min-h-10 items-center gap-2 font-bold text-slate-700"><input id="commission-select-all" type="checkbox" class="h-5 w-5 rounded border-slate-300"> Chọn tất cả</label><span class="text-slate-400">·</span><span class="font-semibold text-slate-600"><b id="commission-selected-count">0</b> phiếu đã chọn</span><button id="commission-clear-selection" type="button" class="ml-auto hidden min-h-10 rounded-xl border border-slate-200 px-3 font-bold text-slate-600">Bỏ chọn</button></div>
     <div id="commission-selected-inputs"></div>
 </form>
 @if($recentExports->isNotEmpty())
@@ -47,7 +46,7 @@
 </section>
 @endif
 
-<div class="min-w-0 space-y-4 overflow-x-hidden">
+<div data-commission-workspace class="min-w-0 space-y-4 overflow-x-hidden">
     <section class="rounded-[2rem] bg-slate-950 px-5 py-6 text-white shadow-sm sm:px-7">
         <p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-300">{{ $featurePresentation['eyebrow'] }}</p>
         <h1 class="mt-2 text-2xl font-black tracking-tight sm:text-3xl">{{ $featurePresentation['page_title'] }}</h1>
@@ -120,23 +119,12 @@
                 </label>
             </div>
 
-            <div class="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2">
-                <div class="min-w-0">
-                    <span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Từ ngày</span>
-                    <button type="button" data-commission-date-trigger="from" class="relative flex h-[46px] w-full min-w-0 items-center rounded-2xl border border-slate-300 bg-white px-3 pr-11 text-left text-sm font-semibold text-slate-950 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200">
-                        <span data-commission-date-label="from">{{ \Carbon\Carbon::parse($filters['from'])->format('d/m/Y') }}</span>
-                        <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">▾</span>
-                    </button>
-                    <input type="date" name="from" value="{{ $filters['from'] }}" data-commission-date-picker="from" tabindex="-1" aria-hidden="true" class="pointer-events-none absolute h-px w-px opacity-0">
-                </div>
-                <div class="min-w-0">
-                    <span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Đến ngày</span>
-                    <button type="button" data-commission-date-trigger="to" class="relative flex h-[46px] w-full min-w-0 items-center rounded-2xl border border-slate-300 bg-white px-3 pr-11 text-left text-sm font-semibold text-slate-950 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200">
-                        <span data-commission-date-label="to">{{ \Carbon\Carbon::parse($filters['to'])->format('d/m/Y') }}</span>
-                        <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">▾</span>
-                    </button>
-                    <input type="date" name="to" value="{{ $filters['to'] }}" data-commission-date-picker="to" tabindex="-1" aria-hidden="true" class="pointer-events-none absolute h-px w-px opacity-0">
-                </div>
+            <div class="grid w-full min-w-0 max-w-full grid-cols-1 items-end gap-3 overflow-hidden md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+                <x-pwa-date name="from" label="Từ ngày" :value="$filters['from']" aria-label="Từ ngày" />
+                <x-pwa-date name="to" label="Đến ngày" :value="$filters['to']" aria-label="Đến ngày" />
+                <button type="submit" data-commission-date-apply class="inline-flex h-10 w-full items-center justify-center rounded-xl bg-slate-950 px-4 text-sm font-bold text-white transition active:scale-[0.985] motion-reduce:transform-none md:w-auto md:shrink-0 md:px-5">
+                    Áp dụng
+                </button>
             </div>
         </form>
     </section>
@@ -207,73 +195,5 @@
     </div>
 </div>
 
-<script>
-(()=>{
-    const form=document.getElementById('commission-export-form');
-    const selectAll=document.getElementById('commission-select-all');
-    const desktopSelectAll=document.querySelector('[data-commission-select-all-desktop]');
-    const selectedCount=document.getElementById('commission-selected-count');
-    const clearSelection=document.getElementById('commission-clear-selection');
-    const inputs=document.getElementById('commission-selected-inputs');
-    const rowCheckboxes=()=>[...document.querySelectorAll('.commission-row-checkbox')];
-    const selectedIds=()=>[...new Set(rowCheckboxes().filter(box=>box.checked).map(box=>box.value))];
-    const syncSelection=()=>{
-        const boxes=rowCheckboxes(),ids=selectedIds(),all=boxes.length>0&&boxes.every(box=>box.checked);
-        if(selectedCount) selectedCount.textContent=String(ids.length);
-        if(clearSelection) clearSelection.classList.toggle('hidden',ids.length===0);
-        [selectAll,desktopSelectAll].forEach(box=>{if(box){box.checked=all;box.indeterminate=ids.length>0&&!all;}});
-    };
-    const setAll=checked=>{rowCheckboxes().forEach(box=>box.checked=checked);syncSelection();};
-    selectAll?.addEventListener('change',()=>setAll(selectAll.checked));
-    desktopSelectAll?.addEventListener('change',()=>setAll(desktopSelectAll.checked));
-    clearSelection?.addEventListener('click',()=>setAll(false));
-    document.addEventListener('change',event=>{if(event.target?.classList?.contains('commission-row-checkbox'))syncSelection();});
-    form?.addEventListener('submit',()=>{if(inputs){inputs.innerHTML='';selectedIds().forEach(id=>{const input=document.createElement('input');input.type='hidden';input.name='ids[]';input.value=id;inputs.appendChild(input);});}});
-    const exportToggle=document.querySelector('[data-commission-export-toggle]');
-    exportToggle?.addEventListener('click',()=>{
-        const content=document.querySelector('[data-commission-export-content]');
-        const chevron=document.querySelector('[data-commission-export-chevron]');
-        const expanded=exportToggle.getAttribute('aria-expanded')==='true';
-        exportToggle.setAttribute('aria-expanded',expanded?'false':'true');
-        content?.classList.toggle('hidden',expanded);
-        chevron?.classList.toggle('rotate-180',!expanded);
-    });
-    document.querySelectorAll('[data-commission-share-url]').forEach(button=>button.addEventListener('click',async()=>{
-        try{
-            const response=await fetch(button.dataset.commissionShareUrl,{credentials:'same-origin',cache:'no-store'});
-            if(!response.ok)throw new Error('download');
-            const blob=await response.blob();
-            const file=new File([blob],button.dataset.commissionShareName,{type:blob.type||'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-            const payload={files:[file]};
-            if(typeof navigator.share==='function'&&typeof navigator.canShare==='function'&&navigator.canShare(payload)){await navigator.share(payload);return;}
-            window.location.assign(button.dataset.commissionShareUrl);
-        }catch(error){
-            if(error?.name==='AbortError')return;
-            window.location.assign(button.dataset.commissionShareUrl);
-        }
-    }));
-    syncSelection();
-})();
 
-window.syncCommissionDate=(input)=>{
-    if(!input.value) return;
-    const [year,month,day]=input.value.split('-');
-    const label=document.querySelector('[data-commission-date-label="'+input.dataset.commissionDatePicker+'"]');
-    if(label) label.textContent=day+'/'+month+'/'+year;
-    input.form.requestSubmit();
-};
-
-document.querySelectorAll('[data-commission-date-trigger]').forEach((trigger)=>{
-    trigger.addEventListener('click',()=>{
-        const input=document.querySelector('[data-commission-date-picker="'+trigger.dataset.commissionDateTrigger+'"]');
-        if(!input) return;
-        if(typeof input.showPicker==='function') input.showPicker();
-        else input.click();
-    });
-});
-
-document.querySelectorAll('[data-commission-date-picker]').forEach((input)=>{
-    input.addEventListener('change',()=>window.syncCommissionDate(input));
-});
-</script>
 @endsection

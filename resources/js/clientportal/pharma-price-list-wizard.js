@@ -23,28 +23,11 @@ const initPharmaPriceListWizard = () => {
         return ['name','partner_id','purpose_id','effective_from','effective_to'].every(name => value(name) !== '');
     };
     const selectedCount = () => document.querySelectorAll('[data-source-product-checkbox]:checked').length;
-    const dateDisplays = [...document.querySelectorAll('[data-date-display]')];
-    const dateNatives = [...document.querySelectorAll('[data-date-native]')];
     const displayDate = raw => /^\d{4}-\d{2}-\d{2}$/.test(raw || '') ? raw.split('-').reverse().join('/') : String(raw || '');
-    const isoDate = raw => {
-        const match = String(raw || '').match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-        return match ? `${match[3]}-${match[2]}-${match[1]}` : String(raw || '');
-    };
     const formatDate = raw => {
         const displayed = displayDate(raw);
         return /^\d{2}\/\d{2}\/\d{4}$/.test(displayed) ? displayed : '—';
     };
-    const syncDateDisplay = native => {
-        const display = document.querySelector(`[data-date-display="${native.dataset.dateNative}"]`);
-        if (display) display.value = displayDate(native.value);
-    };
-    dateNatives.forEach(native => {
-        syncDateDisplay(native);
-        native.addEventListener('change', () => {
-            syncDateDisplay(native);
-            syncActions();
-        });
-    });
 
     const syncReview = () => {
         document.querySelector('[data-review-name]')?.replaceChildren(document.createTextNode(value('name') || '—'));
@@ -163,8 +146,7 @@ const initPharmaPriceListWizard = () => {
 
     const applyAllGlobalUsers = document.getElementById('apply-all-global-users');
     const globalUserPicker = document.getElementById('global-user-picker');
-    const globalUserSearch = document.getElementById('global-user-search');
-    const globalUserOptions = [...document.querySelectorAll('[data-global-user-option]')];
+     const globalUserOptions = [...document.querySelectorAll('[data-global-user-option]')];
     const globalUserError = document.getElementById('global-user-scope-error');
     const syncGlobalUserScope = () => {
         if (!applyAllGlobalUsers) return;
@@ -173,11 +155,7 @@ const initPharmaPriceListWizard = () => {
         syncActions();
     };
     applyAllGlobalUsers?.addEventListener('change', syncGlobalUserScope);
-    globalUserSearch?.addEventListener('input', () => {
-        const q = (globalUserSearch.value || '').toLocaleLowerCase('vi').trim();
-        globalUserOptions.forEach(option => option.classList.toggle('hidden', q !== '' && !(option.dataset.search || '').includes(q)));
-    });
-    globalUserOptions.forEach(option => option.querySelector('input')?.addEventListener('change', syncGlobalUserScope));
+     globalUserOptions.forEach(option => option.querySelector('input')?.addEventListener('change', syncGlobalUserScope));
     document.getElementById('global-user-select-all')?.addEventListener('click', () => {
         globalUserOptions.filter(option => !option.classList.contains('hidden')).forEach(option => {
             const checkbox = option.querySelector('input');
@@ -187,47 +165,23 @@ const initPharmaPriceListWizard = () => {
     });
     syncGlobalUserScope();
 
-    const customerSearch = document.getElementById('client-price-list-customer-search');
     const customerId = document.getElementById('client-price-list-customer');
-    const customerResults = document.getElementById('client-price-list-customer-results');
-    const customerOptions = [...document.querySelectorAll('[data-customer-option]')];
-    const closeCustomers = () => customerResults?.classList.add('hidden');
-    const renderCustomers = () => {
-        if (!customerResults) return;
-        const q = (customerSearch?.value || '').toLocaleLowerCase('vi').trim();
-        let visible = 0;
-        customerOptions.forEach(option => {
-            const match = !q || (option.dataset.search || '').includes(q);
-            option.classList.toggle('hidden', !match);
-            if (match && visible++ < 25) option.classList.remove('hidden');
-            else if (match) option.classList.add('hidden');
-        });
-        customerResults.classList.toggle('hidden', visible === 0);
-    };
-    customerSearch?.addEventListener('focus', renderCustomers);
-    customerSearch?.addEventListener('input', () => {
-        if (customerId) customerId.value = '';
-        renderCustomers();
-        syncActions();
-    });
-    customerOptions.forEach(option => option.addEventListener('click', () => {
-        if (customerId) customerId.value = option.dataset.value || '';
-        if (customerSearch) customerSearch.value = option.dataset.label || option.textContent.trim();
-        closeCustomers();
-        syncActions();
-    }));
-    document.addEventListener('click', event => {
-        if (customerResults && !event.target.closest('[data-customer-combobox]')) closeCustomers();
-        if (managerBox && !managerBox.contains(event.target)) managerPanel?.classList.add('hidden');
-    });
+    customerId?.addEventListener('change', syncActions);
 
     const productSearch = document.getElementById('source-product-search');
+    const productClear = document.getElementById('source-product-search-clear');
     const productRows = [...document.querySelectorAll('.source-product-row')];
     const filterProducts = () => {
         const q = (productSearch?.value || '').toLocaleLowerCase('vi').trim();
         productRows.forEach(row => row.classList.toggle('hidden', q !== '' && !(row.dataset.search || '').includes(q)));
+        productClear?.classList.toggle('hidden', !productSearch?.value);
     };
     productSearch?.addEventListener('input', filterProducts);
+    productClear?.addEventListener('click', () => {
+        productSearch.value = '';
+        filterProducts();
+        productSearch.focus({preventScroll: true});
+    });
 
     const selectAll = document.getElementById('select-all-source-products');
     selectAll?.addEventListener('change', () => {

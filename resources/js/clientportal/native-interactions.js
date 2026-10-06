@@ -105,6 +105,8 @@ const bindSearchClear = (root = document) => {
         if (!input) return;
 
         button.dataset.pwaSearchClearBound = '1';
+        syncSearchClear(input);
+        input.addEventListener('input', () => syncSearchClear(input));
         button.addEventListener('click', () => {
             window.clearTimeout(debounceTimers.get(input));
             input.value = '';
@@ -134,11 +136,22 @@ const bindLoadMore = (root = document) => {
     root.querySelectorAll('[data-pwa-load-more]').forEach((button) => {
         if (button.dataset.pwaLoadMoreBound) return;
 
-        const listSelector = button.dataset.pwaLoadMoreTarget;
-        const itemSelector = button.dataset.pwaLoadMoreItems;
+        const targetSpecs = button.dataset.pwaLoadMoreTargets
+            ? button.dataset.pwaLoadMoreTargets.split('|').map((spec) => {
+                const [target, items] = spec.split('::');
+                return {target, items};
+            }).filter(({target, items}) => target && items)
+            : [{
+                target: button.dataset.pwaLoadMoreTarget,
+                items: button.dataset.pwaLoadMoreItems,
+            }];
         const wrapSelector = button.dataset.pwaLoadMoreWrap;
-        const list = listSelector ? document.querySelector(listSelector) : null;
-        if (!list || !itemSelector || !wrapSelector) return;
+        const targets = targetSpecs.map(({target, items}) => ({
+            list: target ? document.querySelector(target) : null,
+            target,
+            items,
+        }));
+        if (!wrapSelector || targets.some(({list, items}) => !list || !items)) return;
 
         button.dataset.pwaLoadMoreBound = '1';
         button.addEventListener('click', async (event) => {
@@ -155,16 +168,19 @@ const bindLoadMore = (root = document) => {
                 if (!response.ok) throw new Error('pwa-load-more');
 
                 const doc = new DOMParser().parseFromString(await response.text(), 'text/html');
-                doc.querySelectorAll(itemSelector).forEach((item) => list.appendChild(item));
+                targets.forEach(({list, items}) => {
+                    doc.querySelectorAll(items).forEach((item) => list.appendChild(item));
+                    bindNativeInteractions(list);
+                });
 
                 document.querySelector(wrapSelector)?.remove();
                 const nextWrap = doc.querySelector(wrapSelector);
                 if (nextWrap) {
-                    const insertionAnchor = list.closest('table') || list;
+                    const insertionList = targets[0].list;
+                    const insertionAnchor = insertionList.closest('table') || insertionList;
                     insertionAnchor.insertAdjacentElement('afterend', nextWrap);
                 }
 
-                bindNativeInteractions(list);
                 bindNativeInteractions(document);
             } catch (error) {
                 window.location.assign(button.href);
@@ -177,6 +193,42 @@ const bindLoadMore = (root = document) => {
     });
 };
 
+
+const bindLocalFilters = (root = document) => {
+    root.querySelectorAll('[data-pwa-local-filter]').forEach((input) => {
+        if (input.dataset.pwaLocalFilterBound) return;
+
+        const itemSelector = input.dataset.pwaLocalFilterItems;
+        const clearSelector = input.dataset.pwaLocalFilterClear;
+        const emptySelector = input.dataset.pwaLocalFilterEmpty;
+        if (!itemSelector) return;
+
+        input.dataset.pwaLocalFilterBound = '1';
+        const clear = clearSelector ? document.querySelector(clearSelector) : null;
+        const empty = emptySelector ? document.querySelector(emptySelector) : null;
+
+        const apply = () => {
+            const query = (input.value || '').trim().toLocaleLowerCase('vi');
+            let visible = 0;
+            document.querySelectorAll(itemSelector).forEach((item) => {
+                const haystack = (item.dataset.search || item.dataset.name || item.textContent || '').toLocaleLowerCase('vi');
+                const matches = !query || haystack.includes(query);
+                item.classList.toggle('hidden', !matches);
+                if (matches) visible += 1;
+            });
+            clear?.classList.toggle('hidden', input.value === '');
+            empty?.classList.toggle('hidden', visible !== 0);
+        };
+
+        input.addEventListener('input', apply);
+        clear?.addEventListener('click', () => {
+            input.value = '';
+            apply();
+            input.focus({preventScroll: true});
+        });
+        apply();
+    });
+};
 
 const bindPwaSelectSearch = (root = document) => {
     root.querySelectorAll('[data-pwa-select-search]').forEach((select) => {
@@ -250,14 +302,108 @@ const bindPwaSelectSearch = (root = document) => {
     });
 };
 
+
+const bindCommissionWorkspace = (root = document) => {
+    const workspace = root.matches?.('[data-commission-workspace]') ? root : root.querySelector?.('[data-commission-workspace]');
+    if (!workspace || workspace.dataset.pwaCommissionBound) return;
+
+    workspace.dataset.pwaCommissionBound = '1';
+    const form = document.getElementById('commission-export-form');
+    const desktopSelectAll = document.querySelector('[data-commission-select-all-desktop]');
+    const inputs = document.getElementById('commission-selected-inputs');
+    const rowCheckboxes = () => [...document.querySelectorAll('.commission-row-checkbox')];
+    const selectedIds = () => [...new Set(rowCheckboxes().filter((box) => box.checked).map((box) => box.value))];
+
+    const syncSelection = () => {
+        if (!desktopSelectAll) return;
+        const boxes = rowCheckboxes();
+        const ids = selectedIds();
+        desktopSelectAll.checked = boxes.length > 0 && boxes.every((box) => box.checked);
+        desktopSelectAll.indeterminate = ids.length > 0 && !desktopSelectAll.checked;
+    };
+
+    desktopSelectAll?.addEventListener('change', () => {
+        rowCheckboxes().forEach((box) => {
+            box.checked = desktopSelectAll.checked;
+        });
+        syncSelection();
+    });
+    document.addEventListener('change', (event) => {
+        if (event.target?.classList?.contains('commission-row-checkbox')) syncSelection();
+    });
+
+    form?.addEventListener('submit', () => {
+        if (!inputs) return;
+        inputs.innerHTML = '';
+        selectedIds().forEach((id) => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'ids[]';
+            input.value = id;
+            inputs.appendChild(input);
+        });
+    });
+
+    const exportToggle = document.querySelector('[data-commission-export-toggle]');
+    exportToggle?.addEventListener('click', () => {
+        const content = document.querySelector('[data-commission-export-content]');
+        const chevron = document.querySelector('[data-commission-export-chevron]');
+        const expanded = exportToggle.getAttribute('aria-expanded') === 'true';
+        exportToggle.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+        content?.classList.toggle('hidden', expanded);
+        chevron?.classList.toggle('rotate-180', !expanded);
+    });
+
+    document.querySelectorAll('[data-commission-share-url]').forEach((button) => {
+        button.addEventListener('click', async () => {
+            try {
+                const response = await fetch(button.dataset.commissionShareUrl, {credentials: 'same-origin', cache: 'no-store'});
+                if (!response.ok) throw new Error('download');
+
+                const blob = await response.blob();
+                const file = new File([blob], button.dataset.commissionShareName, {
+                    type: blob.type || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                });
+                const payload = {files: [file]};
+                if (typeof navigator.share === 'function'
+                    && typeof navigator.canShare === 'function'
+                    && navigator.canShare(payload)) {
+                    await navigator.share(payload);
+                    return;
+                }
+
+                window.location.assign(button.dataset.commissionShareUrl);
+            } catch (error) {
+                if (error?.name === 'AbortError') return;
+                window.location.assign(button.dataset.commissionShareUrl);
+            }
+        });
+    });
+
+    
+
+    syncSelection();
+};
+
 export const bindNativeInteractions = (root = document) => {
     bindNavigationFeedback(root);
     bindPendingForms(root);
     bindDebouncedSearch(root);
     bindSearchClear(root);
     bindLoadMore(root);
+    bindLocalFilters(root);
     bindPwaSelectSearch(root);
+    bindCommissionWorkspace(root);
 };
+
+window.ClientPortalNativeInteractions = {
+    bind: bindNativeInteractions,
+    bindSelectSearch: bindPwaSelectSearch,
+};
+document.addEventListener('clientportal:bind-select-search', (event) => {
+    bindPwaSelectSearch(event.detail?.root || document);
+});
+document.dispatchEvent(new CustomEvent('clientportal:native-interactions-ready'));
 
 const boot = () => bindNativeInteractions(document);
 

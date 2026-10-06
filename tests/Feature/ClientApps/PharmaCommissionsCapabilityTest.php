@@ -77,6 +77,7 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $view=file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/commissions.blade.php'));
         $detailView=file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/commission-show.blade.php'));
         $pwaSelectSearch=file_get_contents(base_path('resources/views/components/pwa-select-search.blade.php'));
+        $pwaDate=file_get_contents(base_path('resources/views/components/pwa-date.blade.php'));
         $nativeInteractions=file_get_contents(base_path('resources/js/clientportal/native-interactions.js'));
 
         $this->assertStringContainsString('UserCommissionWorkspace $workspace',$controller);
@@ -123,8 +124,15 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('$hasCommissionFilters',$view);
         $this->assertStringContainsString('md:grid-cols-2',$view);
         $this->assertStringNotContainsString('>Áp dụng</button>',$view);
-        $this->assertStringContainsString('data-commission-date-trigger="from"',$view);
-        $this->assertStringContainsString("typeof input.showPicker==='function'",$view);
+        $this->assertStringNotContainsString('data-commission-date-trigger=', $view);
+        $this->assertStringNotContainsString('<script>',$view);
+        $this->assertStringContainsString('const bindCommissionWorkspace',$nativeInteractions);
+        $this->assertStringNotContainsString("typeof input.showPicker === 'function'",$nativeInteractions);
+        $this->assertStringNotContainsString("window.location.assign(url.toString());", $nativeInteractions);
+        $this->assertStringContainsString('aria-label="Từ ngày"', $view);
+        $this->assertStringContainsString('aria-label="Đến ngày"', $view);
+        $this->assertStringNotContainsString('md:text-transparent', $view);
+        $this->assertStringNotContainsString('pointer-events-none absolute h-px w-px opacity-0', $view);
         $this->assertStringContainsString('id="commission-partner"',$view);
         $this->assertStringContainsString('search-placeholder="Tìm khách hàng..."',$view);
         $this->assertStringContainsString('id="commission-medicine"',$view);
@@ -141,16 +149,47 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('data-pwa-select-search-panel',$pwaSelectSearch);
         $this->assertStringContainsString("\$attributes->merge(['class' => 'relative min-w-0'])",$pwaSelectSearch);
         $this->assertStringContainsString("@push('application-scripts')",$pwaSelectSearch);
-        $this->assertStringContainsString("document.addEventListener('DOMContentLoaded'",$pwaSelectSearch);
+        $this->assertStringNotContainsString("document.addEventListener('DOMContentLoaded'",$pwaSelectSearch);
+        $this->assertStringContainsString("ClientPortalNativeInteractions?.bindSelectSearch",$pwaSelectSearch);
+        $this->assertStringContainsString("clientportal:native-interactions-ready",$pwaSelectSearch);
         $this->assertStringContainsString('const bindPwaSelectSearch',$nativeInteractions);
+        $this->assertStringContainsString('bindPwaSelectSearch(root);',$nativeInteractions);
+        $this->assertStringContainsString('bindSelectSearch: bindPwaSelectSearch',$nativeInteractions);
+        $this->assertStringContainsString('bindCommissionWorkspace(root);',$nativeInteractions);
+        $this->assertStringContainsString('window.ClientPortalNativeInteractions = {',$nativeInteractions);
+        $this->assertStringContainsString('bind: bindNativeInteractions',$nativeInteractions);
+        $this->assertStringContainsString('<div data-commission-workspace',$view);
+        $this->assertStringNotContainsString('id="commission-selection-actions"',$view);
+        $this->assertStringNotContainsString('id="commission-select-all"',$view);
+        $this->assertStringContainsString("workspace.dataset.pwaCommissionBound = '1'",$nativeInteractions);
+        $this->assertStringContainsString('desktopSelectAll.indeterminate = ids.length > 0 && !desktopSelectAll.checked',$nativeInteractions);
+        $this->assertStringContainsString("new Set(rowCheckboxes().filter((box) => box.checked).map((box) => box.value))",$nativeInteractions);
+        $this->assertStringContainsString("credentials: 'same-origin'",$nativeInteractions);
         $this->assertStringContainsString("toLocaleLowerCase('vi')",$nativeInteractions);
         $this->assertStringContainsString('@if($canViewTeam)',$view);
-        $this->assertStringContainsString('type="date" name="from"',$view);
-        $this->assertStringContainsString('type="date" name="to"',$view);
-        $this->assertStringContainsString('data-commission-date-label="from"',$view);
-        $this->assertStringContainsString('data-commission-date-picker="from"',$view);
-        $this->assertStringContainsString('input.form.requestSubmit();',$view);
-        $this->assertStringContainsString("format('d/m/Y')",$view);
+        $this->assertStringContainsString('<x-pwa-date name="from" label="Từ ngày" :value="$filters[\'from\']"', $view);
+        $this->assertStringContainsString('<x-pwa-date name="to" label="Đến ngày" :value="$filters[\'to\']"', $view);
+        $this->assertStringContainsString('type="date"', $pwaDate);
+        $this->assertStringContainsString('min-w-0 w-full max-w-full box-border', $pwaDate);
+        $this->assertStringContainsString('h-10', $pwaDate);
+        $this->assertStringContainsString('px-3 py-2 text-sm font-medium', $pwaDate);
+        $this->assertStringContainsString('@if($min) min="{{ $min }}" @endif', $pwaDate);
+        $this->assertStringContainsString('@if($max) max="{{ $max }}" @endif', $pwaDate);
+        $this->assertStringContainsString('@if($required) required @endif', $pwaDate);
+        $this->assertStringContainsString('@if($disabled) disabled @endif', $pwaDate);
+        $this->assertStringContainsString('inline-flex h-10 w-full', $view);
+        $this->assertStringNotContainsString('data-commission-date-display=', $view);
+        $this->assertStringNotContainsString('data-commission-date-picker=', $view);
+        $this->assertStringNotContainsString('const bindCommissionDates', $nativeInteractions);
+        $this->assertStringNotContainsString('data-commission-date-label=', $view);
+        $this->assertStringNotContainsString('submitForm(input.form);', $nativeInteractions);
+        $this->assertStringContainsString('data-commission-date-apply', $view);
+        $this->assertStringContainsString('grid w-full min-w-0 max-w-full grid-cols-1 items-end gap-3 overflow-hidden', $view);
+        $this->assertStringContainsString('md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]', $view);
+        $this->assertStringContainsString('inline-flex h-10 w-full', $view);
+        $this->assertStringContainsString('md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]', $view);
+        $this->assertStringContainsString('Áp dụng', $view);
+        $this->assertStringNotContainsString('Áp dụng ngày', $view);
         $this->assertStringContainsString('rounded-2xl border border-slate-200 bg-white',$pwaSelectSearch);
         $this->assertStringNotContainsString('id="commission-search-input"',$view);
         $this->assertStringNotContainsString('data-pwa-debounced-search="800"',$view);
@@ -159,9 +198,9 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('motion-reduce:transform-none',$view);
         $this->assertStringContainsString("route('client.pharma.commissions.export'",$view);
         $this->assertStringContainsString('Xuất Excel',$view);
-        $this->assertStringContainsString("navigator.canShare(payload)",$view);
-        $this->assertStringContainsString("navigator.share(payload)",$view);
-        $this->assertStringContainsString("window.location.assign(button.dataset.commissionShareUrl)",$view);
+        $this->assertStringContainsString('navigator.canShare(payload)',$nativeInteractions);
+        $this->assertStringContainsString('navigator.share(payload)',$nativeInteractions);
+        $this->assertStringContainsString('window.location.assign(button.dataset.commissionShareUrl)',$nativeInteractions);
         $this->assertStringContainsString('File đã xuất',$view);
         $this->assertStringContainsString('data-commission-export-toggle',$view);
         $this->assertStringContainsString('data-commission-export-content',$view);
@@ -185,12 +224,15 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('>Xóa</button>',$view);
         $this->assertStringContainsString("route('client.pharma.commissions.exports.destroy'",$view);
         $this->assertStringContainsString('public function deleteCommissionExport',$controller);
-        $this->assertStringContainsString("Storage::disk(\$artifact->disk)->delete(\$artifact->storage_path)",$controller);
-        $this->assertStringContainsString('id="commission-select-all"',$view);
+        $this->assertStringContainsString('CommissionExcelExportService $exporter',$controller);
+        $this->assertStringContainsString('$exporter->delete($artifact)',$controller);
+        $this->assertStringNotContainsString("Storage::disk(\$artifact->disk)->delete(\$artifact->storage_path)",$controller);
+        $this->assertStringNotContainsString('id="commission-select-all"',$view);
         $this->assertStringContainsString('commission-row-checkbox',$view);
+        $this->assertStringContainsString('data-commission-select-all-desktop',$view);
         $this->assertStringContainsString('<span>Chọn</span>',$view);
         $this->assertStringNotContainsString('absolute left-3 top-3',$view);
-        $this->assertStringContainsString("input.name='ids[]'",$view);
+        $this->assertStringContainsString("input.name = 'ids[]'",$nativeInteractions);
         $this->assertStringContainsString("'ids'=>['nullable','array','max:500']",$controller);
         $this->assertStringContainsString("whereIn('issue_id',\$ids)",$controller);
         $this->assertStringNotContainsString('Admin::',$view);
@@ -198,4 +240,23 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('@csrf',$view);
         $this->assertStringNotContainsString('wire:',$view);
     }
+
+    public function test_commission_export_deletion_stays_in_pharma_service_boundary(): void
+    {
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php'));
+        $exporter = file_get_contents(base_path('Modules/Pharma/Services/CommissionExcelExportService.php'));
+
+        $deleteStart = strpos($controller, 'public function deleteCommissionExport(');
+        $deleteEnd = strpos($controller, 'public function commission(', $deleteStart);
+        $deleteAction = substr($controller, $deleteStart, $deleteEnd - $deleteStart);
+
+        $this->assertStringContainsString('CommissionExcelExportService $exporter', $deleteAction);
+        $this->assertStringContainsString('$exporter->delete($artifact)', $deleteAction);
+        $this->assertStringNotContainsString('Storage::disk(', $deleteAction);
+        $this->assertStringNotContainsString('$artifact->delete()', $deleteAction);
+        $this->assertStringContainsString('public function delete(CommissionExportArtifact $artifact): void', $exporter);
+        $this->assertStringContainsString('Storage::disk($artifact->disk)->delete($artifact->storage_path)', $exporter);
+        $this->assertStringContainsString('$artifact->delete()', $exporter);
+    }
+
 }

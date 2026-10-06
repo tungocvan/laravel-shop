@@ -96,6 +96,7 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php'));
         $list = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/bid-awards.blade.php'));
         $detail = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/bid-award-show.blade.php'));
+        $nativeInteractions = file_get_contents(base_path('resources/js/clientportal/native-interactions.js'));
 
         $this->assertStringContainsString("'route' => 'client.pharma.bid-awards'", $manifest);
         $this->assertStringContainsString("'eyebrow' => 'Bid Awards'", $manifest);
@@ -121,7 +122,7 @@ class PharmaBidAwardsCapabilityTest extends TestCase
 
         $this->assertStringContainsString('active:scale-[0.985]', $list);
         $this->assertStringContainsString('Xem thêm kết quả', $list);
-        $this->assertStringContainsString('DOMParser', $list);
+        $this->assertStringContainsString('DOMParser', $nativeInteractions);
         $this->assertStringContainsString('Danh sách kết quả trúng thầu', $list);
         $this->assertStringContainsString('kết quả trúng thầu · phần được giao sẽ được đánh dấu riêng', $list);
         $this->assertStringContainsString('Bộ lọc nâng cao', $list);
@@ -129,9 +130,10 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString('Sản phẩm', $list);
         $this->assertStringContainsString('Giá trị', $list);
         $this->assertStringContainsString('Thiết lập kinh doanh', $list);
-        $this->assertStringContainsString('data-bid-filter-combobox', $list);
-        $this->assertStringContainsString('data-bid-filter-search', $list);
-        $this->assertStringContainsString('data-bid-filter-option', $list);
+        $this->assertStringContainsString('<x-pwa-select-search id="bid-filter-', $list);
+        $this->assertSame(1, substr_count($list, 'id="bid-award-region"'));
+        $this->assertStringContainsString('data-pwa-select-search-option', $list);
+        $this->assertStringNotContainsString('data-bid-filter-combobox', $list);
         $this->assertStringContainsString("['investor','Chủ đầu tư','Tìm chủ đầu tư...'", $list);
         $this->assertStringContainsString("['medicine','Sản phẩm','Tìm sản phẩm...'", $list);
         $this->assertStringNotContainsString('name="investor" data-searchable-filter', $list);
@@ -147,10 +149,17 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString('md:grid-cols-2 xl:grid-cols-3', $list);
         $this->assertStringContainsString('\\Carbon\\Carbon::parse', $list);
         $this->assertStringNotContainsString('CarbonCarbon::parse', $list);
-        $this->assertStringContainsString("const initialSearch=(input?.value||'').trim()", $list);
-        $this->assertStringContainsString("if(nextSearch===initialSearch) return", $list);
-        $this->assertStringContainsString("},750)", $list);
         $this->assertStringNotContainsString("setTimeout(()=>form.requestSubmit(),350)", $list);
+        $this->assertStringContainsString('data-pwa-debounced-search="750"', $list);
+        $this->assertStringContainsString('data-pwa-load-more', $list);
+        $this->assertStringContainsString('data-pwa-load-more-target="#bid-award-results"', $list);
+        $this->assertStringContainsString('[data-pwa-debounced-search]', $nativeInteractions);
+        $this->assertStringContainsString("const delay = Number.parseInt(input.dataset.pwaDebouncedSearch || '600', 10);", $nativeInteractions);
+        $this->assertStringContainsString('window.clearTimeout(debounceTimers.get(input));', $nativeInteractions);
+        $this->assertStringContainsString('window.setTimeout(() => replaceSearchRegion(input)', $nativeInteractions);
+        $this->assertStringContainsString('const controller = new AbortController();', $nativeInteractions);
+        $this->assertStringContainsString("url.searchParams.delete('page');", $nativeInteractions);
+        $this->assertStringContainsString('[data-pwa-load-more]', $nativeInteractions);
         $this->assertStringContainsString('Trong phạm vi tôi phụ trách', $list);
         $this->assertStringContainsString('md:grid-cols-2 xl:grid-cols-3', $list);
         $this->assertStringNotContainsString('BV của tôi', $detail);
@@ -225,10 +234,11 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString('Lưu chính sách & tiếp tục', $policy);
         $this->assertStringContainsString('Cần hoàn tất phân bổ số lượng trước.', $detail);
         $this->assertStringContainsString('active:scale-[.985]', $detail);
-        $this->assertStringContainsString("const initialSearch=(input?.value||'').trim()", $detail);
-        $this->assertStringContainsString("if(nextSearch===initialSearch)return", $detail);
-        $this->assertStringContainsString("},750)", $detail);
         $this->assertStringNotContainsString("setTimeout(()=>form.requestSubmit(),350)", $detail);
+        $this->assertStringContainsString('data-pwa-debounced-search="750"', $detail);
+        $this->assertStringContainsString('data-pwa-load-more-target="#bid-products"', $detail);
+        $this->assertStringContainsString('data-pwa-search-clear="#bid-product-search-clear"', $detail);
+        $this->assertStringContainsString('data-pwa-search-clear-button="#bid-product-search-input"', $detail);
     }
 
     public function test_bid_award_allocation_is_collapsible_and_hospital_first(): void

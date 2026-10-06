@@ -2,6 +2,14 @@
 
 Updated: 2026-10-03
 
+
+
+### Shared PWA date control
+
+For ClientPortal application date fields, prefer the shared `<x-pwa-date>` component instead of introducing raw native date markup or a page-local visible-text/native-date overlay. The component is the default iPhone/iOS-safe presentation boundary while the caller continues to own field name, value, required state, validation, submission and business semantics.
+
+A raw `input[type=date]` is an exception, not the default. Use it only when the shared component cannot represent a deliberately different semantic/control, and cover that exception with an explicit contract test. Do not reintroduce JavaScript date-display synchronization merely to force `dd/mm/yyyy` on iOS.
+
 ## Purpose
 
 This is the project-wide contract for **every ClientPortal PWA application**, not only Pharma.
@@ -200,6 +208,16 @@ The known regressions to guard against are:
 - picker opening once and then failing on later clicks;
 - hidden/overlay input preventing the picker from opening;
 - desktop/tablet date range unexpectedly stacking because a generated CSS class is unavailable.
+
+## Pharma focused-shell navigation contract
+
+For the current Pharma ClientPortal application:
+
+- the Pharma Hub/dashboard owns the application shell and may render the application header and mobile bottom navigation;
+- capability browse/index/detail/task/workflow screens use the focused shell and declare both `hide-application-header` and `hide-mobile-navigation`;
+- focused screens provide local navigation to the relevant parent capability or Pharma Hub instead of relying on the global shell;
+- do not reintroduce the application shell on an individual capability merely to expose a back action;
+- shell consistency is presentation/navigation only and must not change capability authorization or Pharma domain behavior.
 
 ## Mobile-first list/filter rules
 

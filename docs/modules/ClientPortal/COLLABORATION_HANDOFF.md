@@ -1110,3 +1110,146 @@ Pre-PR gate:
 - Bottom Navigation remains a shortcut surface and is not changed into an authorization mechanism.
 - Focused regression: `ClientPortalPwaSettingsTest`; impacted regression: `tests/Feature/ClientApps`.
 - UI acceptance required on rendered Pharma Hub (mobile + desktop) before merge.
+
+
+## Pharma PWA Commissions native interaction closeout — 2026-10-06
+
+- Branch: `refactor/clientportal-pharma-commissions-native-interactions`, based on `main@4d060ee64` after merged PR #273.
+- Scope is ClientPortal interaction refactor only. Commission query/filter/calculation/export authorization, artifact ownership, routes, permissions and schema are unchanged.
+- Removed the Commission workspace's page-local `<script>` block. Selection/export-ID synchronization, exported-file disclosure, authenticated native Share Sheet fallback and iPhone-safe date picker behavior now bind through `resources/js/clientportal/native-interactions.js`.
+- Existing Blade `data-commission-*` attributes remain the declarative contract; the Blade owns markup/presentation while the shared ClientPortal interaction bundle owns browser behavior.
+- Commission date filtering now deliberately uses plain native `<input type="date">` controls, matching the proven Inventory Receipt expiry-date pattern. iPhone-specific overlay labels, `showPicker()`, hidden date controls and polling/watch workarounds were removed. The native iOS locale presentation is accepted; the filter runs only when the user presses `Áp dụng`.
+- The accepted iPhone date-control density is constrained with `min-w-0 w-full max-w-full box-border`, compact `h-10`, `px-3 py-2`, and mobile one-control-per-row layout; Desktop may place From / To / Apply on one row.
+- Regression contract requires the Commission Blade to contain no page-local `<script>` and verifies the moved behaviors in the native interaction asset.
+- No migration, Pharma domain code or Vite entry-point change.
+- UI acceptance: Commission date input/filter interaction and final iPhone sizing/alignment are PASS.
+- Required pre-PR gate on this feature branch: focused `PharmaCommissionsCapabilityTest`. Do not run full ClientApps or `Modules/Pharma/Tests` unless the merge gate explicitly requires them.
+
+### Follow-up roadmap — P5 Shared PWA Date Input
+
+- Audit all ClientPortal Pharma surfaces for native date/date-like controls before implementation; inventory receipt `Hạn dùng` and the accepted Commission From/To controls are canonical references.
+- Design a reusable ClientPortal Blade component, target API `<x-pwa-date>`, for future and migrated PWA date fields.
+- The component owns only reusable presentation/accessibility/browser compatibility: label, native `type="date"`, compact mobile sizing, `min-w-0/max-w-full/box-border` containment, iOS-safe vertical/horizontal padding, disabled/error/help presentation and pass-through HTML attributes.
+- The component must preserve the browser/native iOS date picker and locale display. Do not fake `dd/mm/yyyy` with overlays, hidden duplicate controls, `showPicker()` shims or polling.
+- Calling screens retain business semantics and workflow: field `name`, current `value`, `min`/`max`, required/disabled state, validation, GET/POST submission, filter application and domain rules.
+- Migrate date inputs capability-by-capability with targeted tests and real iPhone UI verification; do not mass-refactor all Pharma date fields in one branch.
+- Add component-level regression coverage so future screens can use `<x-pwa-date>` without copying Safari/iPhone utility classes.
+- P5 implementation was pulled forward after the Commission component UI gate passed on iPhone. The canonical component is now `resources/views/components/pwa-date.blade.php`.
+- Commission is the accepted reference consumer. The same component has been migrated across all audited Pharma raw date controls: Inventory Receipts (receipt/invoice/expiry), Order authoring issue date, Price List create/index/detail date fields, Inventory Issue filters, Bid Award allocation effective dates, and Inventory Issue supply expected date.
+- Price List create/index legacy visible-text + invisible-native date overlays were removed. Price List index preserves its caller-owned auto-submit behavior through the component's pass-through `onchange`; Commission keeps explicit `Áp dụng`.
+- `PharmaPwaUiParityContractTest` now scans all Pharma application Blade views and rejects raw `type="date"` and the legacy date-overlay data attributes, making `<x-pwa-date>` the enforced Pharma PWA boundary.
+- Migration remains presentation-only: field names, values, required state, validation, submission and domain rules stay owned by each caller.
+
+
+## Pharma PWA native interaction audit / P2 closeout — 2026-10-06
+
+Scope: audit and consolidate P2.1–P2.6 without changing Pharma domain/business behavior or redesigning accepted UI.
+
+### Shared/native boundary
+
+- `resources/js/clientportal/native-interactions.js` remains the canonical generic interaction layer for navigation/pending feedback, debounced browse search, search clear, progressive `Xem thêm`, searchable selects, Commission interaction binding and local in-page collection filtering.
+- P2 adds `data-pwa-local-filter` with item/clear/empty selectors so simple card/list filtering no longer needs page-local scripts.
+- Bid Award browse/detail now use the shared debounced-search/load-more contract. Products uses the shared debounced-search contract.
+- Bid commercial policy, hospital policy and hospital allocation product search use the shared local-filter contract.
+- Inventory progressive loading remains feature-specific because one request appends two responsive representations (mobile cards + desktop table rows) and also owns IntersectionObserver behavior; forcing it through the current single-target primitive would regress behavior.
+- Bid allocation's incomplete-only toggle/review synchronization, manager assignment selection, Order wizard, Receipt dynamic-line editor and Price List wizard are feature workflows rather than generic native interactions. Do not move their business/workflow state into `native-interactions.js`.
+- Authenticated PDF/Excel handoff remains artifact-specific where preparation/dialog/fallback lifecycle differs, but every implementation must follow `docs/PWA_EXTERNAL_FILE_HANDOFF.md`: preserve the installed-PWA workspace, same-origin authenticated fetch, no public bypass URL, and native file share only from a valid user gesture.
+- Modal/disclosure logic should only be promoted to a shared primitive when semantics and accessibility behavior are demonstrably identical across multiple active consumers; P2 does not introduce a speculative generic modal framework.
+
+### Date-input rule
+
+- New ClientPortal/Pharma date fields must prefer `<x-pwa-date>`.
+- Raw `input[type=date]` is an explicit exception only when a different semantic/control is required and the exception is covered by a deliberate test.
+- `PharmaPwaUiParityContractTest` enforces the current Pharma application boundary against raw date inputs and legacy date overlays.
+
+### P2 follow-up boundary
+
+P2 is considered closed when the targeted capability tests and rendered UI smoke pass. P3 may focus on native-touch consistency; it must not reopen feature-specific workflow extraction unless a concrete interaction defect or duplicated generic primitive is demonstrated.
+
+
+## Pharma PWA native-touch consistency / P3 checkpoint — 2026-10-06
+
+P3 follows the P2 native-interaction closeout and is presentation-only. It does not change Pharma domain rules, workflow state, permissions, routes or submission semantics.
+
+- Canonical pressed/touch feedback is `<x-native-touch>`, backed by `Modules/ClientPortal/resources/views/components/native-touch.blade.php`.
+- The component owns `touch-manipulation`, suppressed WebKit tap highlight, short transform transition, `active:scale-[0.985]`, reduced-motion protection and disabled-state behavior.
+- P3 applies the component to representative high-value primary/secondary actions in Order authoring, Receipt create/edit, Price List wizard and shared search-clear actions used by Products and Bid Award detail.
+- Do not mechanically wrap inputs, selects, checkboxes, pagination controls or every lifecycle POST button. Native-touch is for intentional pressable actions; form controls retain their native interaction semantics.
+- Existing feature-specific JS continues to target the same `id`/`data-*` hooks because `<x-native-touch>` forwards attributes to its rendered `button`/`a`.
+- Existing accepted `active:scale` actions do not need churn solely to replace equivalent styling. New/refactored pressable PWA actions should prefer `<x-native-touch>` instead of introducing another bespoke pressed-state class set.
+- `PharmaPwaUiParityContractTest` guards the shared component contract and representative Pharma consumers.
+
+UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, Price List wizard navigation/submission, Products search clear and Bid Award product-search clear on mobile/iPhone. Explicit UI PASS remains required before merge.
+
+
+## Pharma PWA searchable selector consistency / P4 closeout — 2026-10-06
+
+- P4 is closed with explicit TEST + UI PASS: 49 targeted tests / 1,753 assertions.
+- `<x-pwa-select-search>` is the canonical single-value searchable entity selector for ClientPortal PWA.
+- `resources/js/clientportal/native-interactions.js` remains the single interaction implementation owner. The component carries only a small readiness/bind bridge so selectors remain functional when the Vite bundle and Blade component become ready in either order.
+- Price List manager/source/customer and Bid Award investor/product filters use the shared selector. Shared selector search includes a visible `×` clear action.
+- Browse/list text search remains search semantics rather than being converted into an entity selector; shared clear behavior is used where applicable.
+- Price List global-user selection remains a checkbox multi-select workspace and uses shared local filtering.
+- Price List source-product filtering remains feature-specific because draft/add-products visibility is workflow state; it must not be collapsed into the generic single-value selector/local-filter primitive.
+- Receipt medicine selection and Order bid investor → hospital → product selection remain feature-owned because their dynamic dependent state carries workflow/domain metadata.
+- Price List date filters constrain the native range with From `max=to_date` and To `min=from_date`, preventing an invalid From > To request from normal picker interaction.
+
+## Pharma PWA focused shell / navigation consistency / P6 checkpoint — 2026-10-06
+
+- Source audit covered every Blade view under `Modules/ClientPortal/resources/views/applications/pharma`.
+- The Pharma Hub `dashboard.blade.php` is the only application-shell owner and intentionally keeps the application header/mobile navigation.
+- Every capability browse/index/detail/task/workflow view uses the focused shell boundary by declaring both `hide-application-header` and `hide-mobile-navigation`, with local navigation back to the relevant Pharma parent/Hub.
+- The only source outlier found by the P6 audit was `price-list-approvals.blade.php`; it now follows the focused shell boundary, matching its approval-detail workspace.
+- P6 does not absorb P7 concerns. The approval queue's legacy pagination/search implementation is intentionally left for the progressive loading/filter UX audit.
+- `PharmaPwaUiParityContractTest` scans the Pharma application view directory and enforces the shell ownership rule so a new capability cannot silently reintroduce the global application shell.
+- P6 requires targeted automated PASS plus real Mobile/Desktop UI smoke before merge.
+
+
+## Pharma PWA focused shell / P6 closeout — 2026-10-06
+
+- P6 is closed with explicit TEST + UI PASS.
+- Pharma Hub/dashboard remains the sole application-shell owner; all audited capability views use the focused shell boundary.
+- Price List Approval Queue was the only P6 source outlier and now hides both application header and mobile navigation while preserving its local back path.
+- The all-view shell ownership contract remains enforced by `PharmaPwaUiParityContractTest`.
+
+## Pharma PWA progressive loading / filter UX / P7 checkpoint — 2026-10-06
+
+- P7 source audit identified three remaining generic browse regressions: Products, Price Lists and Price List Approval Queue.
+- Price List Approval Queue now uses shared debounced search, visible `×` clear and native-like `Xem thêm`; its page-local debounce script and Laravel pagination UI are removed.
+- Products and Price Lists no longer expose `per_page` or Laravel pagination UI. Both retain their existing backend paginator and use `nextPageUrl()` for progressive loading.
+- `resources/js/clientportal/native-interactions.js` now supports an optional multi-target progressive-load contract, encoded as `target::items|target::items`. This is required for responsive browse surfaces that render mobile cards and desktop rows simultaneously.
+- Existing single-target `data-pwa-load-more-target` / `data-pwa-load-more-items` remains backward compatible for Bid Awards, Commercial, Receipts, Issues and other existing consumers.
+- Inventory remains feature-specific because its loader also owns IntersectionObserver behavior and dual-representation lifecycle; P7 does not reopen that accepted P2 exception.
+- P7 does not alter Pharma domain queries, permissions or lifecycle rules. It changes only ClientPortal browse interaction/presentation.
+- Targeted tests plus real mobile/desktop UI acceptance are required before P7 closeout.
+
+
+## Pharma PWA progressive loading / P7 closeout — 2026-10-06
+
+- P7 is closed with explicit TEST + UI PASS.
+- Targeted automated gate: 22 tests / 999 assertions.
+- Products, Price Lists and Price List Approval Queue were accepted on real UI with shared search/clear/progressive-loading behavior.
+- Multi-target `Xem thêm` is accepted for responsive mobile-card + desktop-row surfaces.
+
+## Pharma PWA architecture / Admin parity / P8 checkpoint — 2026-10-06
+
+- P8 is an audit-first closeout. No new feature is introduced.
+- ClientPortal Pharma remains an orchestration/presentation boundary; canonical domain workflows/services remain under `Modules/Pharma`.
+- P8 found and fixed a real Approval Queue boundary defect: `priceListApprovals()` contained stale Commercial-workspace filter arguments and referenced an uninjected `$workspace`. The action is now isolated to the canonical `PriceListApprovalWorkflow::queue()` contract with `q + page` and an internal 25-row progressive page size.
+- P8 found and fixed direct commission-export deletion in the ClientPortal controller. File/model deletion is now owned by `CommissionExcelExportService::delete()`; ClientPortal performs capability/ownership guards and delegates.
+- Existing presentation-only model reads and route-level guards are not mechanically moved when they do not duplicate domain behavior.
+- P1-P7 accepted interaction, date, selector, shell and progressive-loading exceptions remain authoritative; P8 must not reopen them without a demonstrated regression.
+- P8 targeted tests must guard capability isolation and Pharma service ownership before final UI/merge closeout.
+
+
+## Pharma PWA architecture / Admin parity / P8 closeout — 2026-10-06
+
+- P8 is closed with explicit TEST + UI PASS.
+- P8 targeted architecture gate passed: 23 tests / 1,103 assertions.
+- Final Price Lists overflow regression gate passed: 19 tests / 903 assertions.
+- Price List Approval Queue runtime/UI smoke passed after isolating the action to `PriceListApprovalWorkflow::queue()`.
+- Commission Excel artifact deletion runtime/UI smoke passed with lifecycle ownership delegated to `CommissionExcelExportService::delete()`.
+- Desktop Price Lists action dropdown was found clipped by an `overflow-hidden` ancestor during final UI acceptance. The desktop table surface now keeps `overflow-visible` while the action menu retains `z-[100]`; regression coverage protects this boundary.
+- Pharma PWA roadmap P1-P8 is complete with automated and rendered UI acceptance.
+- Merge gate: run focused regression first, then ClientPortal/Pharma module regression because this branch changes shared ClientPortal interaction/components and multiple Pharma PWA capabilities. Full-project regression is NOT APPLICABLE under the repository workflow because no global bootstrap/auth/schema/module-framework boundary changed.
+- Before merge, verify local git status while preserving known local-only ngrok artifacts; do not add/delete `.env.backup-before-ngrok-session` or `public/hot.pharma-mobile`.
