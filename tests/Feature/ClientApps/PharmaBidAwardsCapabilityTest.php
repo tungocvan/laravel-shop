@@ -236,6 +236,8 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringNotContainsString("setTimeout(()=>form.requestSubmit(),350)", $detail);
         $this->assertStringContainsString('data-pwa-debounced-search="750"', $detail);
         $this->assertStringContainsString('data-pwa-load-more-target="#bid-products"', $detail);
+        $this->assertStringContainsString('data-pwa-search-clear="#bid-product-search-clear"', $detail);
+        $this->assertStringContainsString('data-pwa-search-clear-button="#bid-product-search-input"', $detail);
     }
 
     public function test_bid_award_allocation_is_collapsible_and_hospital_first(): void
