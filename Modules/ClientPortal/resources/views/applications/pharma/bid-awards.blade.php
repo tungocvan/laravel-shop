@@ -49,12 +49,9 @@
     @php($activeFilterCount = collect($filters)->filter(fn ($value) => $value !== '')->count())
     <form method="GET" class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm" id="bid-award-search-form">
         <div class="relative">
-            <input name="q" value="{{ $search }}" placeholder="Tìm TBMT, chủ đầu tư, quyết định, sản phẩm..." autocomplete="off" data-pwa-debounced-search="750" data-pwa-search-region="#bid-award-region"
+            <input id="bid-award-search-input" name="q" value="{{ $search }}" placeholder="Tìm TBMT, chủ đầu tư, quyết định, sản phẩm..." autocomplete="off" data-pwa-debounced-search="750" data-pwa-search-region="#bid-award-region" data-pwa-search-clear="#bid-award-search-clear"
                 class="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 pr-12 text-sm outline-none focus:border-slate-400">
-            @if($search !== '')
-                <a href="{{ route('client.pharma.bid-awards', array_filter($filters)) }}" class="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full text-slate-500" aria-label="Xóa tìm kiếm">×</a>
-            @endif
-</div>
+            <x-native-touch id="bid-award-search-clear" type="button" data-pwa-search-clear-button="#bid-award-search-input" class="{{ $search === '' ? 'hidden ' : '' }}absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-500" aria-label="Xóa tìm kiếm">×</x-native-touch>
         </div>
         <details class="mt-3 group" @if($activeFilterCount > 0) open @endif>
             <summary class="flex min-h-11 cursor-pointer list-none items-center justify-between rounded-2xl bg-slate-50 px-4 text-sm font-black text-slate-700">
@@ -63,21 +60,14 @@
             </summary>
             <div class="mt-3 grid gap-3 md:grid-cols-2">
                 @foreach([['investor','Chủ đầu tư','Tìm chủ đầu tư...',$filterOptions['investors']],['medicine','Sản phẩm','Tìm sản phẩm...',$filterOptions['medicines']]] as [$filterName,$filterLabel,$filterPlaceholder,$filterItems])
-                    <div class="relative" data-bid-filter-combobox>
-                        <label for="bid-filter-{{ $filterName }}-search" class="block text-xs font-bold text-slate-600">{{ $filterLabel }}</label>
-                        <input type="hidden" name="{{ $filterName }}" value="{{ $filters[$filterName] }}">
-                        <div class="relative mt-1.5">
-                            <input id="bid-filter-{{ $filterName }}-search" type="search" value="{{ $filters[$filterName] }}" placeholder="{{ $filterPlaceholder }}" autocomplete="off" data-bid-filter-search
-                                class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 pr-10 text-sm outline-none focus:border-slate-400">
-                            <button type="button" data-bid-filter-clear aria-label="Xóa {{ mb_strtolower($filterLabel) }}" class="{{ $filters[$filterName] === '' ? 'hidden ' : '' }}absolute right-1.5 top-1.5 flex h-8 w-8 items-center justify-center rounded-full text-slate-400">×</button>
-                        </div>
-                        <div data-bid-filter-options class="absolute z-30 mt-1 hidden max-h-64 w-full overflow-y-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl">
+                    <label class="block text-xs font-bold text-slate-600">{{ $filterLabel }}
+                        <x-pwa-select-search id="bid-filter-{{ $filterName }}" name="{{ $filterName }}" :selected="$filters[$filterName]" :placeholder="'Tất cả '.$filterLabel" :search-placeholder="$filterPlaceholder" class="mt-1.5" data-pwa-select-search-submit="change">
+                            <button type="button" data-pwa-select-search-option data-value="" data-label="Tất cả {{ $filterLabel }}" data-search="tất cả {{ mb_strtolower($filterLabel) }}" class="flex w-full items-center rounded-xl px-3 py-2.5 text-left text-sm hover:bg-slate-100">Tất cả {{ $filterLabel }}</button>
                             @foreach($filterItems as $option)
-                                <button type="button" data-bid-filter-option data-value="{{ $option }}" class="block min-h-10 w-full rounded-xl px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">{{ $option }}</button>
+                                <button type="button" data-pwa-select-search-option data-value="{{ $option }}" data-label="{{ $option }}" data-search="{{ mb_strtolower($option) }}" class="flex w-full items-center rounded-xl px-3 py-2.5 text-left text-sm hover:bg-slate-100">{{ $option }}</button>
                             @endforeach
-                            <p data-bid-filter-empty class="hidden px-3 py-3 text-sm text-slate-500">Không tìm thấy kết quả.</p>
-                        </div>
-                    </div>
+                        </x-pwa-select-search>
+                    </label>
                 @endforeach
                 <label class="block text-xs font-bold text-slate-600">Giá trị
                     <select name="value_sort" class="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm">
@@ -153,22 +143,6 @@
 (() => {
     const form=document.getElementById('bid-award-search-form');
     form?.querySelectorAll('select').forEach(select=>select.addEventListener('change',()=>form.requestSubmit()));
-    form?.querySelectorAll('[data-bid-filter-combobox]').forEach(box=>{
-        const search=box.querySelector('[data-bid-filter-search]'), hidden=box.querySelector('input[type="hidden"]'), options=box.querySelector('[data-bid-filter-options]'), clear=box.querySelector('[data-bid-filter-clear]'), empty=box.querySelector('[data-bid-filter-empty]');
-        const rows=[...box.querySelectorAll('[data-bid-filter-option]')];
-        const filter=()=>{
-            const term=(search.value||'').trim().toLocaleLowerCase('vi');
-            let visible=0;
-            rows.forEach(row=>{ const show=!term||row.dataset.value.toLocaleLowerCase('vi').includes(term); row.classList.toggle('hidden',!show); if(show) visible++; });
-            empty?.classList.toggle('hidden',visible!==0);
-            options?.classList.remove('hidden');
-        };
-        search?.addEventListener('focus',filter);
-        search?.addEventListener('input',()=>{ hidden.value=''; clear?.classList.toggle('hidden',search.value===''); filter(); });
-        rows.forEach(row=>row.addEventListener('click',()=>{ hidden.value=row.dataset.value; search.value=row.dataset.value; options?.classList.add('hidden'); clear?.classList.remove('hidden'); form.requestSubmit(); }));
-        clear?.addEventListener('click',()=>{ hidden.value=''; search.value=''; options?.classList.add('hidden'); clear.classList.add('hidden'); form.requestSubmit(); });
-        document.addEventListener('click',event=>{ if(!box.contains(event.target)) options?.classList.add('hidden'); });
-    });
 })();
 </script>
 @endsection
