@@ -105,6 +105,8 @@ const bindSearchClear = (root = document) => {
         if (!input) return;
 
         button.dataset.pwaSearchClearBound = '1';
+        syncSearchClear(input);
+        input.addEventListener('input', () => syncSearchClear(input));
         button.addEventListener('click', () => {
             window.clearTimeout(debounceTimers.get(input));
             input.value = '';
