@@ -2,6 +2,14 @@
 
 Updated: 2026-10-03
 
+
+
+### Shared PWA date control
+
+For ClientPortal application date fields, prefer the shared `<x-pwa-date>` component instead of introducing raw native date markup or a page-local visible-text/native-date overlay. The component is the default iPhone/iOS-safe presentation boundary while the caller continues to own field name, value, required state, validation, submission and business semantics.
+
+A raw `input[type=date]` is an exception, not the default. Use it only when the shared component cannot represent a deliberately different semantic/control, and cover that exception with an explicit contract test. Do not reintroduce JavaScript date-display synchronization merely to force `dd/mm/yyyy` on iOS.
+
 ## Purpose
 
 This is the project-wide contract for **every ClientPortal PWA application**, not only Pharma.
