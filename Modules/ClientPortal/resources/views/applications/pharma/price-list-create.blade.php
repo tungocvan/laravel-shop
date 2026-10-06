@@ -48,14 +48,13 @@
                 <div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800">Hiện chưa có bảng giá chung ACTIVE được cấp cho bạn. Vui lòng liên hệ người quản trị Pharma.</div>
             @else
                 <div class="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
-                    <div class="rounded-2xl border-2 border-slate-200 bg-white p-1 shadow-sm focus-within:border-slate-950">
-                        <select id="source-price-list" name="source_price_list_id" class="h-11 w-full rounded-xl border-0 bg-white px-3 text-sm font-bold text-slate-800 outline-none">
-                            <option value="">Chọn bảng giá gốc</option>
-                            @foreach($sourcePriceLists as $source)
-                                <option value="{{ $source->id }}" @selected((string)old('source_price_list_id',$sourcePriceListId) === (string)$source->id)>{{ $source->code }} — {{ $source->name }} · {{ $source->items_count }} SP</option>
-                            @endforeach
-                        </select>
-                    </div>
+                    <x-pwa-select-search id="source-price-list" name="source_price_list_id" :selected="old('source_price_list_id',$sourcePriceListId)" placeholder="Chọn bảng giá gốc" search-placeholder="Tìm mã / tên bảng giá...">
+                        <button type="button" data-pwa-select-search-option data-value="" data-label="Chọn bảng giá gốc" data-search="chọn bảng giá gốc" class="flex w-full items-center rounded-xl px-3 py-2.5 text-left text-sm font-semibold hover:bg-slate-100">Chọn bảng giá gốc</button>
+                        @foreach($sourcePriceLists as $source)
+                            @php $sourceLabel=$source->code.' — '.$source->name.' · '.$source->items_count.' SP'; @endphp
+                            <button type="button" data-pwa-select-search-option data-value="{{ $source->id }}" data-label="{{ $sourceLabel }}" data-search="{{ mb_strtolower($sourceLabel) }}" class="flex w-full items-center rounded-xl px-3 py-2.5 text-left text-sm font-semibold hover:bg-slate-100">{{ $sourceLabel }}</button>
+                        @endforeach
+                    </x-pwa-select-search>
                     <x-native-touch id="load-source-price-list" type="submit" class="h-12 rounded-2xl bg-slate-950 px-5 text-sm font-black text-white">Khởi tạo từ bảng giá</x-native-touch>
                     <p id="source-price-list-error" class="hidden text-sm font-bold text-red-600 lg:col-span-2">Vui lòng chọn bảng giá gốc trước khi tiếp tục.</p>
                 </div>
@@ -91,14 +90,11 @@
                 </div>@else<div>
 <span class="mb-1.5 block text-xs font-bold text-slate-500">Khách hàng *</span>
 @php $selectedCustomer = $customers->firstWhere('id', (int) $field('partner_id')); @endphp
-<div data-customer-combobox class="relative">
-<input id="client-price-list-customer-search" type="search" autocomplete="off" value="{{ $selectedCustomer?->name ?? '' }}" placeholder="Tìm tên khách hàng / MST..." class="h-12 w-full rounded-2xl border border-slate-300 bg-white px-4 pr-10 text-sm font-semibold outline-none focus:border-slate-950 focus:ring-2 focus:ring-slate-100">
-<input id="client-price-list-customer" type="hidden" name="partner_id" value="{{ $field('partner_id') }}">
-<div id="client-price-list-customer-results" class="absolute left-0 right-0 top-[calc(100%+6px)] z-[80] hidden max-h-72 overflow-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl">
+<x-pwa-select-search id="client-price-list-customer" name="partner_id" :selected="$field('partner_id')" placeholder="Chọn khách hàng" search-placeholder="Tìm tên khách hàng / MST...">
 @foreach($customers as $customer)
-<button type="button" data-customer-option data-value="{{ $customer->id }}" data-label="{{ $customer->name }}" data-search="{{ mb_strtolower($customer->name.' '.($customer->tax_code ?? '')) }}" class="block w-full rounded-xl px-3 py-3 text-left text-sm hover:bg-slate-100"><strong class="block font-bold text-slate-900">{{ $customer->name }}</strong>@if($customer->tax_code)<small class="mt-0.5 block text-xs text-slate-500">MST {{ $customer->tax_code }}</small>@endif</button>
+<button type="button" data-pwa-select-search-option data-value="{{ $customer->id }}" data-label="{{ $customer->name }}" data-search="{{ mb_strtolower($customer->name.' '.($customer->tax_code ?? '')) }}" class="block w-full rounded-xl px-3 py-3 text-left text-sm hover:bg-slate-100"><strong class="block font-bold text-slate-900">{{ $customer->name }}</strong>@if($customer->tax_code)<small class="mt-0.5 block text-xs text-slate-500">MST {{ $customer->tax_code }}</small>@endif</button>
 @endforeach
-</div></div></div>@endif
+</x-pwa-select-search></div>@endif</div>@endif
                 @if(!$isGlobalMode)<label><span class="mb-1.5 block text-xs font-bold text-slate-500">Mục đích *</span><select name="purpose_id" required class="h-12 w-full rounded-2xl border border-slate-300 px-4"><option value="">Chọn mục đích</option>@foreach($purposes as $purpose)<option value="{{ $purpose->id }}" @selected((string)$field('purpose_id') === (string)$purpose->id)>{{ $purpose->name }}</option>@endforeach</select></label>@endif
                 <div class="grid grid-cols-2 gap-3">
                     @foreach([['effective_from','Hiệu lực từ',now()->toDateString()],['effective_to','Đến',now()->addMonth()->toDateString()]] as [$dateName,$dateLabel,$dateDefault])
