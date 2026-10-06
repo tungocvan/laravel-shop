@@ -105,15 +105,8 @@
                         @php
                             $dateValue = $field($dateName, $dateDefault);
                             $dateIso = $dateValue instanceof \Carbon\CarbonInterface ? $dateValue->format('Y-m-d') : (preg_match('/^\\d{2}\/\\d{2}\/\\d{4}$/', (string)$dateValue) ? \Carbon\Carbon::createFromFormat('d/m/Y', $dateValue)->format('Y-m-d') : $dateValue);
-                            $dateText = preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', (string)$dateIso) ? \Carbon\Carbon::parse($dateIso)->format('d/m/Y') : '';
                         @endphp
-                        <label><span class="mb-1.5 block text-xs font-bold text-slate-500">{{ $dateLabel }} *</span>
-                            <span class="relative block">
-                                <input type="text" data-date-display="{{ $dateName }}" value="{{ $dateText }}" readonly tabindex="-1" aria-hidden="true" class="pointer-events-none h-12 w-full rounded-2xl border border-slate-300 bg-white px-3 pr-10 text-slate-900">
-                                <input type="date" data-date-native="{{ $dateName }}" name="{{ $dateName }}" value="{{ $dateIso }}" required aria-label="{{ $dateLabel }}" class="absolute inset-0 h-12 w-full cursor-pointer opacity-0">
-                                <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-500" aria-hidden="true">▾</span>
-                            </span>
-                        </label>
+                        <x-pwa-date :name="$dateName" :label="$dateLabel.' *'" :value="$dateIso" required :aria-label="$dateLabel" />
                     @endforeach
                 </div>
             </div>
