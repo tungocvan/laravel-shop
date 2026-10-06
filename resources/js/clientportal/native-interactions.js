@@ -329,13 +329,18 @@ const bindCommissionWorkspace = (root = document) => {
     });
 
     document.querySelectorAll('[data-commission-date-picker]').forEach((input) => {
-        input.addEventListener('change', () => {
-            if (!input.value) return;
+        let committedValue = input.value;
+        const commitDate = () => {
+            if (!input.value || input.value === committedValue) return;
+            committedValue = input.value;
             const [year, month, day] = input.value.split('-');
             const label = document.querySelector('[data-commission-date-label="' + input.dataset.commissionDatePicker + '"]');
             if (label) label.textContent = day + '/' + month + '/' + year;
             submitForm(input.form);
-        });
+        };
+
+        input.addEventListener('change', commitDate);
+        input.addEventListener('blur', commitDate);
     });
 
     syncSelection();
