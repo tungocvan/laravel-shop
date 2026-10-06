@@ -339,6 +339,7 @@ const bindCommissionWorkspace = (root = document) => {
             submitForm(input.form);
         };
 
+        input.addEventListener('input', commitDate);
         input.addEventListener('change', commitDate);
         input.addEventListener('blur', commitDate);
     });
