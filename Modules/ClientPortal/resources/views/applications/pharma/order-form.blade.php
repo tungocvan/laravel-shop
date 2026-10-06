@@ -87,7 +87,7 @@
    <input type="hidden" name="manager_user_id" value="{{ $managerUserId }}"><div class="rounded-2xl bg-slate-50 p-3"><p class="text-xs font-bold text-slate-500">Người phụ trách</p><p class="mt-1 font-black">{{ $orderManagers->first()?->name }}</p></div>
   @endif
   </div>
-  <label class="mt-4 block"><span class="mb-2 block text-sm font-black">Ngày lập đơn</span><input type="date" name="issue_date" value="{{ old('issue_date',$issueDate) }}" class="h-12 w-full rounded-2xl border border-slate-300 px-4"></label>
+  <div class="mt-4"><x-pwa-date name="issue_date" label="Ngày lập đơn" :value="old('issue_date',$issueDate)" /></div>
  </section>
 
  <section id="price-list-context" class="rounded-b-3xl border border-t-0 border-slate-200 bg-white p-5 pt-1 shadow-sm">
