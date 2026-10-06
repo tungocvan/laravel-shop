@@ -552,3 +552,10 @@ Do not reinterpret this checkpoint as an Admin Commission Center rewrite. Client
 - No `Modules/Pharma` service, model, query, formula, workflow or schema changes are part of this branch.
 - Domain ownership remains unchanged: `Modules/Pharma` owns business data/rules; ClientPortal only filters capability visibility through existing web permissions and presents links into existing workspaces.
 - No migration and no domain regression is required solely for this presentation-only change unless subsequent implementation expands scope.
+
+
+## ClientPortal Products native search boundary — 2026-10-06
+
+- Branch `refactor/clientportal-pharma-products-native-search` changes only ClientPortal Product search interaction.
+- No `Modules/Pharma` production code, MedicineCatalog query semantics, supplier-pricing permission, route or schema changes are part of this batch.
+- Products now consumes the existing shared ClientPortal debounce/region-replacement interaction instead of page-local JavaScript.
