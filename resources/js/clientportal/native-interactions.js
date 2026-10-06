@@ -252,7 +252,7 @@ const bindPwaSelectSearch = (root = document) => {
 
 
 const bindCommissionWorkspace = (root = document) => {
-    const workspace = document.querySelector('[data-commission-workspace]');
+    const workspace = root.matches?.('[data-commission-workspace]') ? root : root.querySelector?.('[data-commission-workspace]');
     if (!workspace || workspace.dataset.pwaCommissionBound) return;
 
     workspace.dataset.pwaCommissionBound = '1';
@@ -359,6 +359,8 @@ export const bindNativeInteractions = (root = document) => {
     bindPwaSelectSearch(root);
     bindCommissionWorkspace(root);
 };
+
+window.ClientPortalNativeInteractions = {bind: bindNativeInteractions};
 
 const boot = () => bindNativeInteractions(document);
 
