@@ -417,7 +417,8 @@ class PharmaPwaUiParityContractTest extends TestCase
 
         $this->assertStringContainsString('data-pwa-select-search', $component);
         $this->assertStringContainsString('data-pwa-select-search-clear', $component);
-        $this->assertStringContainsString("ClientPortalNativeInteractions?.bindSelectSearch?.(document)", $component);
+        $this->assertStringContainsString("ClientPortalNativeInteractions?.bindSelectSearch", $component);
+        $this->assertStringContainsString("ClientPortalNativeInteractions.bindSelectSearch(document)", $component);
         $this->assertStringContainsString("clientportal:native-interactions-ready", $component);
         $this->assertStringContainsString('const bindPwaSelectSearch = (root = document)', $foundation);
         $this->assertStringContainsString('bindSelectSearch: bindPwaSelectSearch', $foundation);
