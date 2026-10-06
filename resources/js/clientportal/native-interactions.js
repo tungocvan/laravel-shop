@@ -256,17 +256,33 @@ const bindCommissionDates = (root = document) => {
         if (input.dataset.pwaCommissionDateBound) return;
         input.dataset.pwaCommissionDateBound = '1';
 
+        let displayedValue = input.value;
+        let syncTimer = null;
         const syncDateDisplay = () => {
-            if (!input.value) return;
+            if (!input.value || input.value === displayedValue) return false;
+            displayedValue = input.value;
             const [year, month, day] = input.value.split('-');
             const display = document.querySelector('[data-commission-date-display="' + input.dataset.commissionDatePicker + '"]');
             if (display) display.textContent = day + '/' + month + '/' + year;
+            return true;
+        };
+        const watchDateValue = () => {
+            window.clearInterval(syncTimer);
+            let checks = 0;
+            syncTimer = window.setInterval(() => {
+                checks += 1;
+                if (syncDateDisplay() || checks >= 120) {
+                    window.clearInterval(syncTimer);
+                    syncTimer = null;
+                }
+            }, 100);
         };
 
+        input.addEventListener('pointerdown', watchDateValue);
+        input.addEventListener('touchstart', watchDateValue, {passive: true});
         input.addEventListener('input', syncDateDisplay);
         input.addEventListener('change', syncDateDisplay);
         input.addEventListener('blur', syncDateDisplay);
-        window.addEventListener('focus', syncDateDisplay);
     });
 };
 
