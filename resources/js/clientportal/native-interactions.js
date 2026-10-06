@@ -74,6 +74,8 @@ const replaceSearchRegion = async (input) => {
     new FormData(form).forEach((value, key) => url.searchParams.set(key, value));
     url.searchParams.delete('page');
 
+    const selectionStart = input.selectionStart;
+    const selectionEnd = input.selectionEnd;
     input.setAttribute('aria-busy', 'true');
 
     try {
@@ -90,7 +92,13 @@ const replaceSearchRegion = async (input) => {
         region.replaceWith(nextRegion);
         window.history.replaceState({}, '', url.toString());
         bindNativeInteractions(document);
-        nextRegion.querySelector('[data-pwa-debounced-search]')?.focus({preventScroll: true});
+        const nextInput = nextRegion.querySelector(`[data-pwa-debounced-search][name="${CSS.escape(input.name)}"]`)
+            || nextRegion.querySelector('[data-pwa-debounced-search]');
+        nextInput?.focus({preventScroll: true});
+        if (nextInput && selectionStart !== null && selectionEnd !== null) {
+            const length = nextInput.value.length;
+            nextInput.setSelectionRange(Math.min(selectionStart, length), Math.min(selectionEnd, length));
+        }
     } catch (error) {
         if (error.name !== 'AbortError') submitForm(form);
     } finally {
