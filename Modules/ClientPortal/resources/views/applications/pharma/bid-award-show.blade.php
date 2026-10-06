@@ -43,9 +43,9 @@
 
     <form method="GET" class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm" id="bid-product-search-form">
         <div class="relative">
-            <input name="q" value="{{ $search }}" placeholder="Tìm tên thuốc, hoạt chất, số đăng ký..." autocomplete="off" data-pwa-debounced-search="750" data-pwa-search-region="#bid-product-region"
+            <input name="q" value="{{ $search }}" placeholder="Tìm tên thuốc, hoạt chất, số đăng ký..." autocomplete="off" data-pwa-debounced-search="750" data-pwa-search-region="#bid-product-region" data-pwa-search-clear="#bid-product-search-clear"
                 class="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 pr-12 text-sm outline-none focus:border-slate-400">
-            @if($search !== '')<a href="{{ route('client.pharma.bid-awards.show', $result->scope_key) }}" class="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full text-slate-500" aria-label="Xóa tìm kiếm">×</a>@endif
+            <button id="bid-product-search-clear" type="button" data-pwa-search-clear-button="[name='q']" class="{{ $search === '' ? 'hidden ' : '' }}absolute right-2 top-2 h-8 w-8 items-center justify-center rounded-full text-slate-500" aria-label="Xóa tìm kiếm">×</button>
         </div>
     </form>
 
