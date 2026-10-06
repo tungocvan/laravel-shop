@@ -104,7 +104,7 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString('$product->circularGroup', $view);
         $this->assertStringContainsString('$product->declaredPrice', $view);
         $this->assertStringContainsString('h-[46px]', $view);
-        $this->assertStringContainsString('lg:grid-cols-[minmax(0,1fr)_11rem_8rem_auto]', $view);
+        $this->assertStringContainsString('lg:grid-cols-[minmax(0,1fr)_11rem_auto]', $view);
         $this->assertStringContainsString('whitespace-nowrap', $view);
         $this->assertStringContainsString('bg-blue-50', $view);
         $this->assertStringContainsString('bg-emerald-50', $view);
