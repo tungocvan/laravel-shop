@@ -1240,3 +1240,16 @@ UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, 
 - Existing presentation-only model reads and route-level guards are not mechanically moved when they do not duplicate domain behavior.
 - P1-P7 accepted interaction, date, selector, shell and progressive-loading exceptions remain authoritative; P8 must not reopen them without a demonstrated regression.
 - P8 targeted tests must guard capability isolation and Pharma service ownership before final UI/merge closeout.
+
+
+## Pharma PWA architecture / Admin parity / P8 closeout — 2026-10-06
+
+- P8 is closed with explicit TEST + UI PASS.
+- P8 targeted architecture gate passed: 23 tests / 1,103 assertions.
+- Final Price Lists overflow regression gate passed: 19 tests / 903 assertions.
+- Price List Approval Queue runtime/UI smoke passed after isolating the action to `PriceListApprovalWorkflow::queue()`.
+- Commission Excel artifact deletion runtime/UI smoke passed with lifecycle ownership delegated to `CommissionExcelExportService::delete()`.
+- Desktop Price Lists action dropdown was found clipped by an `overflow-hidden` ancestor during final UI acceptance. The desktop table surface now keeps `overflow-visible` while the action menu retains `z-[100]`; regression coverage protects this boundary.
+- Pharma PWA roadmap P1-P8 is complete with automated and rendered UI acceptance.
+- Merge gate: run focused regression first, then ClientPortal/Pharma module regression because this branch changes shared ClientPortal interaction/components and multiple Pharma PWA capabilities. Full-project regression is NOT APPLICABLE under the repository workflow because no global bootstrap/auth/schema/module-framework boundary changed.
+- Before merge, verify local git status while preserving known local-only ngrok artifacts; do not add/delete `.env.backup-before-ngrok-session` or `public/hot.pharma-mobile`.
