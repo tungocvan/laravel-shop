@@ -382,7 +382,11 @@ export const bindNativeInteractions = (root = document) => {
     bindCommissionWorkspace(root);
 };
 
-window.ClientPortalNativeInteractions = {bind: bindNativeInteractions};
+window.ClientPortalNativeInteractions = {
+    bind: bindNativeInteractions,
+    bindSelectSearch: bindPwaSelectSearch,
+};
+document.dispatchEvent(new CustomEvent('clientportal:native-interactions-ready'));
 
 const boot = () => bindNativeInteractions(document);
 
