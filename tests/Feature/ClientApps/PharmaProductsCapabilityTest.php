@@ -72,6 +72,7 @@ class PharmaProductsCapabilityTest extends TestCase
         $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php'));
         $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/products.blade.php'));
         $detail = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/product-show.blade.php'));
+        $nativeInteractions = file_get_contents(base_path('resources/js/clientportal/native-interactions.js'));
 
         $this->assertStringContainsString("'route' => 'client.pharma.products'", $manifest);
         $this->assertStringContainsString("'permission' => 'client.pharma.products.supplier-pricing'", $manifest);
@@ -112,7 +113,12 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString('$canViewSupplierPricing && $product->hasSupplierPricing', $view);
         $this->assertStringContainsString('if ($canViewSupplierPricing)', $view);
         $this->assertStringContainsString("\$filters['supplier-priced'] = ['label' => 'Có giá NCC'", $view);
-        $this->assertStringContainsString("window.setTimeout(() => form.requestSubmit(), 350)", $view);
+        $this->assertStringContainsString('id="product-search-region"', $view);
+        $this->assertStringContainsString('data-pwa-debounced-search="350"', $view);
+        $this->assertStringContainsString('data-pwa-search-region="#product-search-region"', $view);
+        $this->assertStringNotContainsString('<script>', $view);
+        $this->assertStringContainsString('const bindDebouncedSearch', $nativeInteractions);
+        $this->assertStringContainsString('replaceSearchRegion(input)', $nativeInteractions);
         $this->assertStringNotContainsString('>Tìm kiếm</button>', $view);
         $this->assertStringContainsString("route('client.pharma.products.show'", $view);
         $this->assertStringNotContainsString('>SKU</th>', $view);
