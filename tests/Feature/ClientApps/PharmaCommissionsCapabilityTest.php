@@ -197,7 +197,7 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString("route('client.pharma.commissions.exports.destroy'",$view);
         $this->assertStringContainsString('public function deleteCommissionExport',$controller);
         $this->assertStringContainsString("Storage::disk(\$artifact->disk)->delete(\$artifact->storage_path)",$controller);
-        $this->assertStringContainsString('id="commission-select-all"',$view);
+        $this->assertStringNotContainsString('id="commission-select-all"',$view);
         $this->assertStringContainsString('commission-row-checkbox',$view);
         $this->assertStringContainsString('data-commission-select-all-desktop',$view);
         $this->assertStringContainsString('<span>Chọn</span>',$view);
