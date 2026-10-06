@@ -59,13 +59,7 @@
                     @endif
                     <div class="grid grid-cols-2 gap-2 lg:contents">
                         @foreach([['from_date','Từ ngày',$fromDate],['to_date','Đến ngày',$toDate]] as [$dateName,$dateLabel,$dateIso])
-                            <label><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">{{ $dateLabel }}</span>
-                                <span class="relative block">
-                                    <input type="text" data-filter-date-display="{{ $dateName }}" value="{{ $dateIso ? \Carbon\Carbon::parse($dateIso)->format('d/m/Y') : '' }}" readonly tabindex="-1" aria-hidden="true" class="pointer-events-none h-[46px] w-full rounded-2xl border border-slate-300 bg-white px-2 pr-9 text-sm text-slate-900 sm:px-3">
-                                    <input type="date" data-filter-date-native="{{ $dateName }}" name="{{ $dateName }}" value="{{ $dateIso }}" aria-label="{{ $dateLabel }}" class="absolute inset-0 h-[46px] w-full cursor-pointer opacity-0">
-                                    <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-500" aria-hidden="true">▾</span>
-                                </span>
-                            </label>
+                            <x-pwa-date :name="$dateName" :label="$dateLabel" :value="$dateIso" :aria-label="$dateLabel" onchange="this.form?.requestSubmit()" />
                         @endforeach
                     </div>
                     <label><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Hiển thị</span><select name="per_page" onchange="this.form.submit()" class="h-[46px] w-full rounded-2xl border border-slate-300 bg-white px-3 text-sm">@foreach([25,50,100] as $size)<option value="{{ $size }}" @selected($perPage === $size)>{{ $size }} / trang</option>@endforeach</select></label>
@@ -73,23 +67,6 @@
                 </div>
             </details>
         </form>
-
-        <script>
-            (() => {
-                const displayDate = raw => /^\d{4}-\d{2}-\d{2}$/.test(raw || '') ? raw.split('-').reverse().join('/') : String(raw || '');
-                document.querySelectorAll('[data-filter-date-native]').forEach(input => {
-                    const sync = () => {
-                        const display = document.querySelector(`[data-filter-date-display="${input.dataset.filterDateNative}"]`);
-                        if (display) display.value = displayDate(input.value);
-                    };
-                    sync();
-                    input.addEventListener('change', () => {
-                        sync();
-                        input.form?.requestSubmit();
-                    });
-                });
-            })();
-        </script>
 
         <div class="-mx-4 mt-4 overflow-x-auto px-4 pb-1 sm:-mx-5 sm:px-5" data-status-rail>
             <div class="flex w-max flex-nowrap gap-2 whitespace-nowrap">
