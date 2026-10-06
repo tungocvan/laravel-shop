@@ -105,7 +105,7 @@
         @if($search !== '')<span class="shrink-0 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">Đang lọc</span>@endif
     </div>
 
-    <div id="bid-award-region"><section id="bid-award-results" class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+    <div id="bid-award-region"><div id="bid-award-region"><section id="bid-award-results" class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         @forelse($results as $result)
             <a data-bid-award-item href="{{ route('client.pharma.bid-awards.show', $result->scope_key) }}"
                 class="group min-w-0 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">
@@ -143,13 +143,15 @@
     </section>
 
     @if($results->hasMorePages())
-        <div class="text-center">
-            <a id="bid-award-load-more" href="{{ $results->nextPageUrl() }}" class="inline-flex min-h-11 items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 shadow-sm">Xem thêm kết quả</a>
+        <div id="bid-award-load-more-wrap" class="text-center">
+            <a id="bid-award-load-more" data-pwa-load-more data-pwa-load-more-target="#bid-award-results" data-pwa-load-more-items="[data-bid-award-item]" data-pwa-load-more-wrap="#bid-award-load-more-wrap" href="{{ $results->nextPageUrl() }}" class="inline-flex min-h-11 items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 shadow-sm">Xem thêm kết quả</a>
         </div>
     @endif
 </div>
+</div>
 <script>
 (() => {
+    const form=document.getElementById('bid-award-search-form');
     form?.querySelectorAll('select').forEach(select=>select.addEventListener('change',()=>form.requestSubmit()));
     form?.querySelectorAll('[data-bid-filter-combobox]').forEach(box=>{
         const search=box.querySelector('[data-bid-filter-search]'), hidden=box.querySelector('input[type="hidden"]'), options=box.querySelector('[data-bid-filter-options]'), clear=box.querySelector('[data-bid-filter-clear]'), empty=box.querySelector('[data-bid-filter-empty]');
