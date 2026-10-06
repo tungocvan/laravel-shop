@@ -44,3 +44,18 @@
     </div>
 </div>
 
+
+@once
+@push('application-scripts')
+<script>
+(() => {
+    const bind = () => window.ClientPortalNativeInteractions?.bindSelectSearch?.(document);
+    if (window.ClientPortalNativeInteractions?.bindSelectSearch) {
+        bind();
+        return;
+    }
+    document.addEventListener('clientportal:native-interactions-ready', bind, {once: true});
+})();
+</script>
+@endpush
+@endonce
