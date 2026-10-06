@@ -70,8 +70,8 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertStringContainsString("<input type=\"hidden\" name=\"source_price_list_id\" value=\"{{ old('source_price_list_id', \$sourcePriceListId) }}\">", $view);
         $this->assertStringContainsString("? !source?.value", $wizard);
         $this->assertStringNotContainsString("source?.value || document.querySelector('[data-global-price-list-mode]')", $wizard);
-        $this->assertStringContainsString('id="client-price-list-customer-search"', $view);
-        $this->assertStringContainsString('data-customer-option', $view);
+        $this->assertStringContainsString('<x-pwa-select-search id="client-price-list-customer"', $view);
+        $this->assertStringContainsString('data-pwa-select-search-option', $view);
         $this->assertStringContainsString('id="source-product-search" type="search"', $view);
         $this->assertStringContainsString('const stepTwoReady = () =>', $wizard);
         $this->assertStringContainsString("back.classList.toggle('hidden', currentStep === 1)", $wizard);
@@ -100,10 +100,10 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertStringNotContainsString('data-date-native=', $view);
         $this->assertStringNotContainsString('data-price-list-manager-combobox', $view);
         $this->assertStringContainsString('id="price-list-bootstrap" method="GET"', $view);
-        $this->assertStringContainsString('<select id="source-price-list" name="source_price_list_id"', $view);
+        $this->assertStringContainsString('<x-pwa-select-search id="source-price-list" name="source_price_list_id"', $view);
         $this->assertStringNotContainsString('<x-search-select', $view);
-        $this->assertStringContainsString('id="client-price-list-customer-search"', $view);
-        $this->assertStringContainsString('data-customer-option', $view);
+        $this->assertStringContainsString('<x-pwa-select-search id="client-price-list-customer"', $view);
+        $this->assertStringContainsString('data-pwa-select-search-option', $view);
         $this->assertStringContainsString('id="source-product-search" type="search"', $view);
 
         $this->assertStringContainsString('id="load-source-price-list"', $view);
