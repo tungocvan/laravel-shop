@@ -134,8 +134,10 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('input.value === committedValue', $nativeInteractions);
         $this->assertStringContainsString('aria-label="Từ ngày"', $view);
         $this->assertStringContainsString('aria-label="Đến ngày"', $view);
-        $this->assertStringContainsString('md:text-transparent md:caret-transparent', $view);
-        $this->assertStringContainsString('hidden items-center rounded-2xl px-3 pr-11 text-sm font-semibold text-slate-950 md:flex', $view);
+        $this->assertStringNotContainsString('md:text-transparent', $view);
+        $this->assertStringContainsString('const bindCommissionDates = (root = document)', $nativeInteractions);
+        $this->assertStringContainsString('input.dataset.pwaCommissionDateBound', $nativeInteractions);
+        $this->assertStringContainsString('bindCommissionDates(root);', $nativeInteractions);
         $this->assertStringNotContainsString('pointer-events-none absolute h-px w-px opacity-0', $view);
         $this->assertStringContainsString('id="commission-partner"',$view);
         $this->assertStringContainsString('search-placeholder="Tìm khách hàng..."',$view);
@@ -168,7 +170,7 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('@if($canViewTeam)',$view);
         $this->assertStringContainsString('type="date" name="from"',$view);
         $this->assertStringContainsString('type="date" name="to"',$view);
-        $this->assertStringContainsString('data-commission-date-label="from"',$view);
+        $this->assertStringNotContainsString('data-commission-date-label=', $view);
         $this->assertStringContainsString('data-commission-date-picker="from"',$view);
         $this->assertStringContainsString('submitForm(input.form);',$nativeInteractions);
         $this->assertStringContainsString("format('d/m/Y')",$view);
