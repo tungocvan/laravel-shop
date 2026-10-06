@@ -432,4 +432,27 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertStringContainsString('data-pwa-search-clear-button="#bid-award-search-input"', $bidAwards);
     }
 
+
+    public function test_pharma_application_views_keep_one_shell_owner(): void
+    {
+        $directory = base_path('Modules/ClientPortal/resources/views/applications/pharma');
+        $views = collect(glob($directory.'/*.blade.php'));
+
+        $this->assertNotEmpty($views);
+
+        foreach ($views as $view) {
+            $name = basename($view);
+            $source = file_get_contents($view);
+
+            if ($name === 'dashboard.blade.php') {
+                $this->assertStringNotContainsString("@section('hide-application-header'", $source, $name);
+                $this->assertStringNotContainsString("@section('hide-mobile-navigation'", $source, $name);
+                continue;
+            }
+
+            $this->assertStringContainsString("@section('hide-application-header'", $source, $name);
+            $this->assertStringContainsString("@section('hide-mobile-navigation'", $source, $name);
+        }
+    }
+
 }
