@@ -119,7 +119,7 @@
                 </label>
             </div>
 
-            <div class="grid min-w-0 grid-cols-2 items-end gap-2 sm:gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+            <div class="grid min-w-0 grid-cols-1 items-end gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
                 <label class="min-w-0 text-xs font-bold uppercase tracking-wide text-slate-500">
                     Từ ngày
                     <input type="date" name="from" value="{{ $filters['from'] }}" aria-label="Từ ngày" class="mt-1.5 h-11 w-full rounded-xl border border-slate-300 bg-white px-2 font-normal normal-case tracking-normal text-slate-950">
@@ -128,7 +128,7 @@
                     Đến ngày
                     <input type="date" name="to" value="{{ $filters['to'] }}" aria-label="Đến ngày" class="mt-1.5 h-11 w-full rounded-xl border border-slate-300 bg-white px-2 font-normal normal-case tracking-normal text-slate-950">
                 </label>
-                <button type="submit" data-commission-date-apply class="col-span-2 inline-flex h-11 w-full items-center justify-center rounded-xl bg-slate-950 px-4 text-sm font-black text-white transition active:scale-[0.985] motion-reduce:transform-none md:col-span-1 md:w-auto md:shrink-0 md:px-5">
+                <button type="submit" data-commission-date-apply class="inline-flex h-11 w-full items-center justify-center rounded-xl bg-slate-950 px-4 text-sm font-black text-white transition active:scale-[0.985] motion-reduce:transform-none md:w-auto md:shrink-0 md:px-5">
                     Áp dụng
                 </button>
             </div>
