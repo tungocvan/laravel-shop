@@ -552,3 +552,11 @@ Do not reinterpret this checkpoint as an Admin Commission Center rewrite. Client
 - No `Modules/Pharma` service, model, query, formula, workflow or schema changes are part of this branch.
 - Domain ownership remains unchanged: `Modules/Pharma` owns business data/rules; ClientPortal only filters capability visibility through existing web permissions and presents links into existing workspaces.
 - No migration and no domain regression is required solely for this presentation-only change unless subsequent implementation expands scope.
+
+
+## ClientPortal Commission native interaction boundary — 2026-10-06
+
+- Branch `refactor/clientportal-pharma-commissions-native-interactions` is presentation/interaction-only.
+- Commission browser behavior moved from inline Blade JavaScript to the existing ClientPortal native interaction asset.
+- No `Modules/Pharma` production code, commission formula, ledger scope, export semantics, lifecycle, permission, route or schema changes are part of this batch.
+- Existing Pharma service/domain contracts remain canonical and must not be altered to complete this UI technical-debt closeout.
