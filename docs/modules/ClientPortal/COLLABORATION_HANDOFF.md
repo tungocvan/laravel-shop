@@ -1118,7 +1118,20 @@ Pre-PR gate:
 - Scope is ClientPortal interaction refactor only. Commission query/filter/calculation/export authorization, artifact ownership, routes, permissions and schema are unchanged.
 - Removed the Commission workspace's page-local `<script>` block. Selection/export-ID synchronization, exported-file disclosure, authenticated native Share Sheet fallback and iPhone-safe date picker behavior now bind through `resources/js/clientportal/native-interactions.js`.
 - Existing Blade `data-commission-*` attributes remain the declarative contract; the Blade owns markup/presentation while the shared ClientPortal interaction bundle owns browser behavior.
-- The shared `submitForm()` helper preserves `requestSubmit()` with form-submit fallback for date filters.
-- Regression contract now requires the Commission Blade to contain no page-local `<script>` and verifies the moved behaviors in the native interaction asset.
-- No UI redesign, migration, Pharma domain code or Vite entry-point change.
-- Required pre-PR gate: focused `PharmaCommissionsCapabilityTest`, then `Modules/Pharma/Tests` because this is a Pharma PWA closeout; real Desktop + Mobile/iPhone UI acceptance remains required before merge.
+- Commission date filtering now deliberately uses plain native `<input type="date">` controls, matching the proven Inventory Receipt expiry-date pattern. iPhone-specific overlay labels, `showPicker()`, hidden date controls and polling/watch workarounds were removed. The native iOS locale presentation is accepted; the filter runs only when the user presses `Áp dụng`.
+- The accepted iPhone date-control density is constrained with `min-w-0 w-full max-w-full box-border`, compact `h-10`, `px-3 py-2`, and mobile one-control-per-row layout; Desktop may place From / To / Apply on one row.
+- Regression contract requires the Commission Blade to contain no page-local `<script>` and verifies the moved behaviors in the native interaction asset.
+- No migration, Pharma domain code or Vite entry-point change.
+- UI acceptance: Commission date input/filter interaction and final iPhone sizing/alignment are PASS.
+- Required pre-PR gate on this feature branch: focused `PharmaCommissionsCapabilityTest`. Do not run full ClientApps or `Modules/Pharma/Tests` unless the merge gate explicitly requires them.
+
+### Follow-up roadmap — P5 Shared PWA Date Input
+
+- Audit all ClientPortal Pharma surfaces for native date/date-like controls before implementation; inventory receipt `Hạn dùng` and the accepted Commission From/To controls are canonical references.
+- Design a reusable ClientPortal Blade component, target API `<x-pwa-date>`, for future and migrated PWA date fields.
+- The component owns only reusable presentation/accessibility/browser compatibility: label, native `type="date"`, compact mobile sizing, `min-w-0/max-w-full/box-border` containment, iOS-safe vertical/horizontal padding, disabled/error/help presentation and pass-through HTML attributes.
+- The component must preserve the browser/native iOS date picker and locale display. Do not fake `dd/mm/yyyy` with overlays, hidden duplicate controls, `showPicker()` shims or polling.
+- Calling screens retain business semantics and workflow: field `name`, current `value`, `min`/`max`, required/disabled state, validation, GET/POST submission, filter application and domain rules.
+- Migrate date inputs capability-by-capability with targeted tests and real iPhone UI verification; do not mass-refactor all Pharma date fields in one branch.
+- Add component-level regression coverage so future screens can use `<x-pwa-date>` without copying Safari/iPhone utility classes.
+- This is a P5 follow-up, not part of the current P1 Commission interaction branch.
