@@ -375,4 +375,35 @@ class PharmaPwaUiParityContractTest extends TestCase
         $this->assertStringNotContainsString("document.querySelector('[data-hospital-policy-search]')", $hospitalPolicy);
     }
 
+
+    public function test_pharma_primary_actions_use_shared_native_touch_boundary(): void
+    {
+        $component = file_get_contents(base_path('Modules/ClientPortal/resources/views/components/native-touch.blade.php'));
+        $order = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/order-form.blade.php'));
+        $receipt = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/inventory-receipt-create.blade.php'));
+        $priceList = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/price-list-create.blade.php'));
+        $products = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/products.blade.php'));
+        $bidDetail = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/bid-award-show.blade.php'));
+
+        $this->assertStringContainsString('touch-manipulation', $component);
+        $this->assertStringContainsString('active:scale-[0.985]', $component);
+        $this->assertStringContainsString('motion-reduce:transform-none', $component);
+        $this->assertStringContainsString('[-webkit-tap-highlight-color:transparent]', $component);
+
+        foreach ([
+            [$order, 'id="order-step-next"'],
+            [$order, 'id="order-submit"'],
+            [$receipt, 'id="add-receipt-item"'],
+            [$priceList, 'id="wizard-next"'],
+            [$priceList, 'id="wizard-submit"'],
+            [$products, 'id="product-search-clear"'],
+            [$bidDetail, 'id="bid-product-search-clear"'],
+        ] as [$view, $marker]) {
+            $position = strpos($view, $marker);
+            $this->assertNotFalse($position);
+            $opening = substr($view, strrpos(substr($view, 0, $position), '<'), $position - strrpos(substr($view, 0, $position), '<') + strlen($marker) + 1);
+            $this->assertStringContainsString('<x-native-touch', $opening);
+        }
+    }
+
 }
