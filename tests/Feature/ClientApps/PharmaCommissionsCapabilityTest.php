@@ -124,7 +124,9 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('md:grid-cols-2',$view);
         $this->assertStringNotContainsString('>Áp dụng</button>',$view);
         $this->assertStringContainsString('data-commission-date-trigger="from"',$view);
-        $this->assertStringContainsString("typeof input.showPicker==='function'",$view);
+        $this->assertStringNotContainsString('<script>',$view);
+        $this->assertStringContainsString('const bindCommissionWorkspace',$nativeInteractions);
+        $this->assertStringContainsString("typeof input.showPicker === 'function'",$nativeInteractions);
         $this->assertStringContainsString('id="commission-partner"',$view);
         $this->assertStringContainsString('search-placeholder="Tìm khách hàng..."',$view);
         $this->assertStringContainsString('id="commission-medicine"',$view);
@@ -143,13 +145,14 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString("@push('application-scripts')",$pwaSelectSearch);
         $this->assertStringContainsString("document.addEventListener('DOMContentLoaded'",$pwaSelectSearch);
         $this->assertStringContainsString('const bindPwaSelectSearch',$nativeInteractions);
+        $this->assertStringContainsString('bindCommissionWorkspace(root);',$nativeInteractions);
         $this->assertStringContainsString("toLocaleLowerCase('vi')",$nativeInteractions);
         $this->assertStringContainsString('@if($canViewTeam)',$view);
         $this->assertStringContainsString('type="date" name="from"',$view);
         $this->assertStringContainsString('type="date" name="to"',$view);
         $this->assertStringContainsString('data-commission-date-label="from"',$view);
         $this->assertStringContainsString('data-commission-date-picker="from"',$view);
-        $this->assertStringContainsString('input.form.requestSubmit();',$view);
+        $this->assertStringContainsString('submitForm(input.form);',$nativeInteractions);
         $this->assertStringContainsString("format('d/m/Y')",$view);
         $this->assertStringContainsString('rounded-2xl border border-slate-200 bg-white',$pwaSelectSearch);
         $this->assertStringNotContainsString('id="commission-search-input"',$view);
@@ -159,9 +162,9 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('motion-reduce:transform-none',$view);
         $this->assertStringContainsString("route('client.pharma.commissions.export'",$view);
         $this->assertStringContainsString('Xuất Excel',$view);
-        $this->assertStringContainsString("navigator.canShare(payload)",$view);
-        $this->assertStringContainsString("navigator.share(payload)",$view);
-        $this->assertStringContainsString("window.location.assign(button.dataset.commissionShareUrl)",$view);
+        $this->assertStringContainsString('navigator.canShare(payload)',$nativeInteractions);
+        $this->assertStringContainsString('navigator.share(payload)',$nativeInteractions);
+        $this->assertStringContainsString('window.location.assign(button.dataset.commissionShareUrl)',$nativeInteractions);
         $this->assertStringContainsString('File đã xuất',$view);
         $this->assertStringContainsString('data-commission-export-toggle',$view);
         $this->assertStringContainsString('data-commission-export-content',$view);
@@ -190,7 +193,7 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString('commission-row-checkbox',$view);
         $this->assertStringContainsString('<span>Chọn</span>',$view);
         $this->assertStringNotContainsString('absolute left-3 top-3',$view);
-        $this->assertStringContainsString("input.name='ids[]'",$view);
+        $this->assertStringContainsString("input.name = 'ids[]'",$nativeInteractions);
         $this->assertStringContainsString("'ids'=>['nullable','array','max:500']",$controller);
         $this->assertStringContainsString("whereIn('issue_id',\$ids)",$controller);
         $this->assertStringNotContainsString('Admin::',$view);
