@@ -44,7 +44,7 @@
         <form id="price-list-search-form" method="GET" action="{{ route('client.pharma.price-lists') }}">
             <label class="block">
                 <span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Tìm bảng giá / khách hàng</span>
-                <div class="relative"><span class="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-400">⌕</span><input id="price-list-search-input" type="search" name="q" value="{{ $search }}" autocomplete="off" class="h-12 w-full rounded-2xl border border-slate-300 pl-10 pr-4 text-sm" placeholder="Tên, mã bảng giá, khách hàng..."></div>
+                <div class="relative"><span class="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-400">⌕</span><input id="price-list-search-input" type="search" name="q" value="{{ $search }}" autocomplete="off" data-pwa-debounced-search="600" data-pwa-search-clear="#price-list-search-clear" class="h-12 w-full rounded-2xl border border-slate-300 pl-10 pr-11 text-sm" placeholder="Tên, mã bảng giá, khách hàng..."><x-native-touch id="price-list-search-clear" type="button" data-pwa-search-clear-button="#price-list-search-input" class="{{ $search === '' ? 'hidden ' : '' }}absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-500" aria-label="Xóa tìm kiếm">×</x-native-touch></div>
             </label>
             @if($status)<input type="hidden" name="status" value="{{ $status }}">@endif
 
@@ -55,7 +55,7 @@
                 </summary>
                 <div class="grid gap-3 border-t border-slate-200 p-4 {{ $canApprove ? 'lg:grid-cols-[14rem_10.5rem_10.5rem_8rem_auto]' : 'lg:grid-cols-[10.5rem_10.5rem_8rem_auto]' }} lg:items-end">
                     @if($canApprove)
-                        <label><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">User phụ trách</span><select name="manager_user_id" onchange="this.form.submit()" class="h-[46px] w-full rounded-2xl border border-slate-300 bg-white px-3 text-sm"><option value="">Tất cả User</option>@foreach($managerUsers as $managerUser)<option value="{{ $managerUser->id }}" @selected((int)$managerUserId === (int)$managerUser->id)>{{ $managerUser->name }}</option>@endforeach</select></label>
+                        <label><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">User phụ trách</span><x-pwa-select-search id="price-list-manager-user" name="manager_user_id" :selected="$managerUserId ?? ''" placeholder="Tất cả User" search-placeholder="Tìm User..." data-pwa-select-search-submit="change"><button type="button" data-pwa-select-search-option data-value="" data-label="Tất cả User" data-search="tất cả user" class="flex w-full items-center rounded-xl px-3 py-2.5 text-left text-sm font-semibold hover:bg-slate-100">Tất cả User</button>@foreach($managerUsers as $managerUser)<button type="button" data-pwa-select-search-option data-value="{{ $managerUser->id }}" data-label="{{ $managerUser->name }}" data-search="{{ mb_strtolower($managerUser->name.' '.($managerUser->email ?? '')) }}" class="flex w-full items-center rounded-xl px-3 py-2.5 text-left text-sm font-semibold hover:bg-slate-100">{{ $managerUser->name }}</button>@endforeach</x-pwa-select-search></label>
                     @endif
                     <div class="grid grid-cols-2 gap-2 lg:contents">
                         @foreach([['from_date','Từ ngày',$fromDate],['to_date','Đến ngày',$toDate]] as [$dateName,$dateLabel,$dateIso])
