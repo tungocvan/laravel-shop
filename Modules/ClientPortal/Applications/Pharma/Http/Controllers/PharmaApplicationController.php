@@ -236,7 +236,6 @@ final class PharmaApplicationController extends Controller
 
         $validated = $request->validate([
             'q' => ['nullable', 'string', 'max:120'],
-            'per_page' => ['nullable', 'integer', 'in:25,50,100'],
             'page' => ['nullable', 'integer', 'min:1'],
         ]);
 
@@ -245,22 +244,10 @@ final class PharmaApplicationController extends Controller
             'applicationPresentation' => $settings->applicationPresentation($application),
             'priceLists' => $approval->queue(
                 search: $validated['q'] ?? null,
-                perPage: (int) ($validated['per_page'] ?? 25),
+                perPage: 25,
                 page: (int) ($validated['page'] ?? 1),
-                investor: $validated['investor'] ?? null,
-                medicine: $validated['medicine'] ?? null,
-                valueSort: $validated['value_sort'] ?? null,
-                businessSetup: $validated['business_setup'] ?? null,
             )->withQueryString(),
             'search' => trim((string) ($validated['q'] ?? '')),
-            'filters' => [
-                'investor' => trim((string) ($validated['investor'] ?? '')),
-                'medicine' => trim((string) ($validated['medicine'] ?? '')),
-                'value_sort' => (string) ($validated['value_sort'] ?? ''),
-                'business_setup' => (string) ($validated['business_setup'] ?? ''),
-            ],
-            'filterOptions' => $workspace->filterOptions(),
-            'perPage' => (int) ($validated['per_page'] ?? 25),
         ]);
     }
 
