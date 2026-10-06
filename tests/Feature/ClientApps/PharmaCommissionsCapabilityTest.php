@@ -161,12 +161,8 @@ final class PharmaCommissionsCapabilityTest extends TestCase
         $this->assertStringContainsString("credentials: 'same-origin'",$nativeInteractions);
         $this->assertStringContainsString("toLocaleLowerCase('vi')",$nativeInteractions);
         $this->assertStringContainsString('@if($canViewTeam)',$view);
-        $this->assertStringContainsString('type="date" name="from"',$view);
-        $this->assertStringContainsString('type="date" name="to"',$view);
-        $this->assertStringContainsString('mt-1.5 block h-10 min-w-0 w-full max-w-full box-border', $view);
-        $this->assertStringContainsString('appearance-none', $view);
-        $this->assertStringContainsString('px-3 py-2 text-sm font-medium normal-case', $view);
-        $this->assertStringNotContainsString('font-medium leading-none normal-case', $view);
+        $this->assertStringContainsString('<x-pwa-date name="from" label="Từ ngày" :value="$filters[\'from\']"', $view);
+        $this->assertStringContainsString('<x-pwa-date name="to" label="Đến ngày" :value="$filters[\'to\']"', $view);
         $this->assertStringContainsString('inline-flex h-10 w-full', $view);
         $this->assertStringNotContainsString('data-commission-date-display=', $view);
         $this->assertStringNotContainsString('data-commission-date-picker=', $view);
