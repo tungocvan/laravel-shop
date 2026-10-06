@@ -23,7 +23,7 @@
         <form id="product-search-form" method="GET" action="{{ route('client.pharma.products') }}" class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_11rem_8rem_auto] lg:items-start">
             <label class="min-w-0 flex-1">
                 <span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Tìm thuốc</span>
-                <input id="product-search-input" type="search" name="q" data-pwa-debounced-search="350" value="{{ $search }}" autocomplete="off" placeholder="Tên thuốc, mã thuốc, SKU, hoạt chất, GPLH..." class="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200">
+                <div class="relative"><input id="product-search-input" type="search" name="q" data-pwa-debounced-search="350" data-pwa-search-region="#product-results-region" data-pwa-search-clear="#product-search-clear" value="{{ $search }}" autocomplete="off" placeholder="Tên thuốc, mã thuốc, SKU, hoạt chất, GPLH..." class="w-full rounded-2xl border border-slate-300 px-4 py-3 pr-12 text-sm text-slate-950 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"><button id="product-search-clear" type="button" data-pwa-search-clear-button="#product-search-input" class="{{ $search === '' ? 'hidden ' : '' }}absolute right-2 top-2 h-8 w-8 items-center justify-center rounded-full text-slate-500" aria-label="Xóa tìm kiếm">×</button></div>
                 <span class="mt-1.5 block text-xs text-slate-400">Kết quả tự cập nhật khi bạn nhập.</span>
             </label>
             <label class="w-full">
@@ -71,6 +71,7 @@
         </div>
     </section>
 
+    <div id="product-results-region" class="space-y-4">
     <section class="space-y-3 xl:hidden">
         @forelse($products as $product)
             <article class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -144,5 +145,6 @@
     @if($products->hasPages())
         <div>{{ $products->links() }}</div>
     @endif
+    </div>
 </div>
 @endsection
