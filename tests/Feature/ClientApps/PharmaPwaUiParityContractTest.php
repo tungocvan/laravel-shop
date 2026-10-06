@@ -406,4 +406,27 @@ class PharmaPwaUiParityContractTest extends TestCase
         }
     }
 
+
+    public function test_pharma_searchable_selectors_have_one_shared_interaction_owner(): void
+    {
+        $component = file_get_contents(base_path('resources/views/components/pwa-select-search.blade.php'));
+        $foundation = file_get_contents(base_path('resources/js/clientportal/native-interactions.js'));
+        $priceLists = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/price-lists.blade.php'));
+        $priceListCreate = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/price-list-create.blade.php'));
+        $bidAwards = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/bid-awards.blade.php'));
+
+        $this->assertStringContainsString('data-pwa-select-search', $component);
+        $this->assertStringContainsString('data-pwa-select-search-clear', $component);
+        $this->assertStringNotContainsString('<script>', $component);
+        $this->assertStringContainsString('const bindPwaSelectSearch = (root = document)', $foundation);
+        $this->assertStringContainsString("value.dispatchEvent(new Event('change', {bubbles: true}))", $foundation);
+
+        $this->assertStringContainsString('<x-pwa-select-search id="price-list-manager-user"', $priceLists);
+        $this->assertStringContainsString('<x-pwa-select-search id="source-price-list"', $priceListCreate);
+        $this->assertStringContainsString('<x-pwa-select-search id="client-price-list-customer"', $priceListCreate);
+        $this->assertStringContainsString('<x-pwa-select-search id="bid-filter-', $bidAwards);
+        $this->assertStringContainsString('data-pwa-search-clear-button="#price-list-search-input"', $priceLists);
+        $this->assertStringContainsString('data-pwa-search-clear-button="#bid-award-search-input"', $bidAwards);
+    }
+
 }
