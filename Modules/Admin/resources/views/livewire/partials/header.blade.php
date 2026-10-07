@@ -12,6 +12,10 @@
         data-admin-header-grid
         class="grid min-w-0 flex-1 items-center"
         style="grid-template-columns: minmax(0, 1fr) auto; column-gap: {{ $adminShellPresentation['header_action_gap'] }}; padding-inline: {{ $adminShellPresentation['header_padding_x'] }};"
+        :style="(!{{ (bool) data_get($adminSidebarConfig ?? [], 'enabled', true) ? 'true' : 'false' }} && isDesktop && !sidebarOpen)
+            ? 'padding-left: calc({{ $adminShellPresentation['header_padding_x'] }} + 3rem)'
+            : ''"
+        data-admin-header-reveal-aware
     >
         <div
             data-admin-header-left
