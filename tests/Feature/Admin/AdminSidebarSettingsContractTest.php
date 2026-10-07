@@ -91,6 +91,10 @@ class AdminSidebarSettingsContractTest extends TestCase
         $this->assertStringContainsString('margin-left: var(--admin-sidebar-width);', $shell);
         $this->assertStringContainsString('width: calc(100% - var(--admin-sidebar-width));', $shell);
         $this->assertStringContainsString('transition-[margin-left,width]', $shell);
+        $this->assertStringContainsString("isDesktop\n                ? 'translate-x-0'\n                : (sidebarOpen ? 'translate-x-0' : '-translate-x-full')", $shell);
+        $this->assertStringNotContainsString("' lg:translate-x-0'", $shell);
+        $this->assertStringContainsString("? (sidebarOpen ? '{{ \$adminShellPresentation['sidebar_expanded_width'] }}' : '{{ \$adminShellPresentation['sidebar_collapsed_width'] }}')", $shell);
+
         $this->assertStringNotContainsString('data-admin-shell-grid', $shell);
         $this->assertStringNotContainsString('grid-template-columns: var(--admin-sidebar-track-width)', $shell);
         $this->assertStringNotContainsString('gridTemplateColumns:', $shell);
