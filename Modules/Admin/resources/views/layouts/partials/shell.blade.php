@@ -36,18 +36,29 @@
     data-admin-shell
     class="relative min-h-0 h-full overflow-hidden antialiased"
     style="height: 100dvh; {{ $adminShellPresentation['shell_style'] }}; background-color: var(--admin-page-background); color: var(--admin-text-primary); font-family: var(--admin-font-family); font-size: var(--admin-font-size-body);"
-    :style="{
-        '--admin-sidebar-width': isDesktop
-            && {{ $sidebarEnabled ? 'true' : 'false' }}
-            && (!sidebarFullscreen || !{{ $fullscreenToggleEnabled ? 'true' : 'false' }})
-                ? (sidebarOpen ? '{{ $adminShellPresentation['sidebar_expanded_width'] }}' : '{{ $adminShellPresentation['sidebar_collapsed_width'] }}')
-                : '0px'
-    }"
     data-admin-container="{{ $adminShellPresentation['container'] }}"
     data-admin-density="{{ $adminShellPresentation['density'] }}"
     data-admin-reduced-motion="{{ $adminShellPresentation['reduced_motion'] ? 'true' : 'false' }}"
     x-init="if (!{{ $sidebarEnabled ? 'true' : 'false' }}) { sidebarOpen = false; sidebarFullscreen = false; }"
-    x-effect="if ({{ $sidebarEnabled ? 'true' : 'false' }} && isDesktop && !{{ $collapseToggleEnabled ? 'true' : 'false' }} && !sidebarOpen) { sidebarOpen = true; persistSidebarPreference(); } if (!{{ $fullscreenToggleEnabled ? 'true' : 'false' }} && sidebarFullscreen) { sidebarFullscreen = false; persistSidebarFullscreenPreference(); }"
+    x-effect="
+        if ({{ $sidebarEnabled ? 'true' : 'false' }} && isDesktop && !{{ $collapseToggleEnabled ? 'true' : 'false' }} && !sidebarOpen) {
+            sidebarOpen = true;
+            persistSidebarPreference();
+        }
+
+        if (!{{ $fullscreenToggleEnabled ? 'true' : 'false' }} && sidebarFullscreen) {
+            sidebarFullscreen = false;
+            persistSidebarFullscreenPreference();
+        }
+
+        const sidebarWidth = isDesktop
+            && {{ $sidebarEnabled ? 'true' : 'false' }}
+            && (!sidebarFullscreen || !{{ $fullscreenToggleEnabled ? 'true' : 'false' }})
+                ? (sidebarOpen ? '{{ $adminShellPresentation['sidebar_expanded_width'] }}' : '{{ $adminShellPresentation['sidebar_collapsed_width'] }}')
+                : '0px';
+
+        $el.style.setProperty('--admin-sidebar-width', sidebarWidth);
+    "
 >
     @if (!$sidebarEnabled)
         <button
