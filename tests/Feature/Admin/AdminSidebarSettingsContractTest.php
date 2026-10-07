@@ -85,6 +85,10 @@ class AdminSidebarSettingsContractTest extends TestCase
         $this->assertStringContainsString("'config.sidebar.footer.enabled' => 'boolean'", $component);
         $this->assertStringContainsString("'config.sidebar.search.enabled' => 'boolean'", $component);
         $this->assertStringContainsString("'config.sidebar.presentation.background' => 'required|in:theme,system,white,dark'", $component);
+        $this->assertStringContainsString("'config.sidebar.presentation.custom_background' => ['nullable', 'required_if:config.sidebar.presentation.background,custom'", $component);
+        $this->assertStringContainsString("'config.sidebar.presentation.custom_accent' => ['nullable', 'required_if:config.sidebar.presentation.background,custom'", $component);
+        $this->assertStringContainsString("'config.sidebar.enabled' => 'boolean'", $component);
+        $this->assertStringContainsString('wire:model.live="config.sidebar.enabled"', $view);
 
         foreach (['Kích thước Sidebar', 'Nút điều khiển Sidebar', 'Header Sidebar', 'Tìm chức năng Sidebar', 'Footer Sidebar', 'Sidebar background', 'Sidebar preview', 'Lưu Sidebar'] as $label) {
             $this->assertStringContainsString($label, $view);
