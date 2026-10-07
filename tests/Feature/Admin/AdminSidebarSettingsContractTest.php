@@ -85,8 +85,8 @@ class AdminSidebarSettingsContractTest extends TestCase
         $this->assertStringContainsString("'config.sidebar.footer.enabled' => 'boolean'", $component);
         $this->assertStringContainsString("'config.sidebar.search.enabled' => 'boolean'", $component);
         $this->assertStringContainsString("'config.sidebar.presentation.background' => 'required|in:theme,light,dark,custom'", $component);
-        $this->assertStringContainsString("'config.sidebar.presentation.custom_background' => ['nullable', 'required_if:config.sidebar.presentation.background,custom'", $component);
-        $this->assertStringContainsString("'config.sidebar.presentation.custom_accent' => ['nullable', 'required_if:config.sidebar.presentation.background,custom'", $component);
+        $this->assertStringContainsString("'config.sidebar.presentation.custom_background' => ['exclude_unless:config.sidebar.presentation.background,custom', 'required'", $component);
+        $this->assertStringContainsString("'config.sidebar.presentation.custom_accent' => ['exclude_unless:config.sidebar.presentation.background,custom', 'required'", $component);
         $this->assertStringContainsString("'config.sidebar.enabled' => 'boolean'", $component);
         $this->assertStringContainsString("'config.sidebar.enabled'=>['Bật Sidebar'", $view);
         $this->assertStringContainsString('wire:model.live="{{ $model }}"', $view);
@@ -104,5 +104,8 @@ class AdminSidebarSettingsContractTest extends TestCase
         $this->assertStringContainsString('wire:model.live="config.sidebar.footer.enabled"', $view);
         $this->assertStringContainsString('wire:model.live="config.sidebar.search.enabled"', $view);
         $this->assertStringContainsString('wire:model="config.sidebar.presentation.background"', $view);
+        $this->assertStringContainsString('Không thể lưu Sidebar', $view);
+        $this->assertStringContainsString('$errors->all()', $view);
+        $this->assertStringContainsString('role="dialog"', $view);
     }
 }
