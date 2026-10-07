@@ -63,27 +63,6 @@
         );
     "
 >
-    @if (!$sidebarEnabled)
-        <button
-            type="button"
-            x-cloak
-            x-show="isDesktop && (!sidebarOpen || sidebarFullscreen)"
-            @click="sidebarFullscreen = false; sidebarOpen = true"
-            class="fixed left-3 top-3 z-[70] hidden h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white/95 text-slate-600 shadow-md shadow-slate-950/10 backdrop-blur transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 lg:inline-flex"
-            style="left: calc({{ $adminShellPresentation['header_padding_x'] }} + 0.125rem);"
-            data-admin-header-reveal-slot
-            aria-controls="admin-sidebar"
-            :aria-expanded="(sidebarOpen && !sidebarFullscreen).toString()"
-            aria-label="Mở Sidebar"
-            title="Mở Sidebar"
-            data-admin-sidebar-disabled-reveal
-        >
-            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 5h16v14H4zM9 5v14M11 9l3 3-3 3" />
-            </svg>
-        </button>
-    @endif
-
     @if ($sidebarEnabled && $fullscreenToggleEnabled)
         <button
             type="button"
