@@ -11,6 +11,7 @@ Route::middleware(['web', 'auth:admin'])->prefix('admin/invoices')->name('admin.
     Route::get('/dashboard', InvoicesDashboardController::class)->middleware('permission:invoices-list')->name('dashboard');
     Route::post('/partners/sync', InvoicePartnerSyncController::class)->middleware('permission:invoices-create')->name('partners.sync');
     Route::get('/create-token', [InvoicesController::class, 'createToken'])->middleware('permission:invoices-configure')->name('create-token');
+    Route::get('/gdt-excel-test', [InvoicesController::class, 'gdtExcelTest'])->middleware('permission:invoices-configure')->name('gdt-excel-test');
     Route::get('/hoadon', [InvoicesController::class, 'hoadon'])->middleware('permission:invoices-create')->name('hoadon');
     Route::get('/hoadon-list', [InvoicesController::class, 'hoadonList'])->middleware('permission:invoices-list')->name('hoadon-list');
     Route::get('/source-data', [InvoicesController::class, 'sourceData'])->middleware('permission:invoices-create')->name('source-data');
