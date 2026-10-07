@@ -113,7 +113,9 @@
             :style="sidebarOpen
                 ? 'width: {{ $adminShellPresentation['sidebar_expanded_width'] }}'
                 : 'width: {{ $adminShellPresentation['sidebar_collapsed_width'] }}'"
-            :class="sidebarOpen ? 'translate-x-0' : ('-translate-x-full' + ({{ $sidebarEnabled ? 'true' : 'false' }} ? ' lg:translate-x-0' : ''))"
+            :class="isDesktop
+                ? 'translate-x-0'
+                : (sidebarOpen ? 'translate-x-0' : '-translate-x-full')"
         >
             <livewire:admin.partials.sidebar />
         </div>
