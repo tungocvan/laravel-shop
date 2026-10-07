@@ -84,7 +84,15 @@ class AdminSidebarSettingsContractTest extends TestCase
         $this->assertStringContainsString("gridTemplateColumns: sidebarOpen ? '{{ \$adminShellPresentation['sidebar_expanded_width'] }} minmax(0, 1fr)' : '{{ \$adminShellPresentation['sidebar_collapsed_width'] }} minmax(0, 1fr)'", $shell);
         $this->assertStringContainsString("gridTemplateColumns: '0 minmax(0, 1fr)'", $shell);
         $this->assertStringContainsString('lg:relative lg:inset-auto lg:col-start-1 lg:row-start-1', $shell);
-        $this->assertStringContainsString('class="col-start-2 row-start-1 grid min-h-0 min-w-0 overflow-hidden"', $shell);
+        $this->assertStringContainsString('data-admin-shell-grid', $shell);
+        $this->assertStringContainsString('data-admin-shell-sidebar', $shell);
+        $this->assertStringContainsString('data-admin-shell-workspace', $shell);
+        $this->assertStringContainsString('[data-admin-shell-grid] [data-admin-shell-workspace]', $shell);
+        $this->assertStringContainsString('grid-column: 2;', $shell);
+        $this->assertStringContainsString('@media (min-width: 1024px)', $shell);
+        $this->assertStringContainsString('[data-admin-shell-grid] [data-admin-shell-sidebar]', $shell);
+        $this->assertStringContainsString('position: relative;', $shell);
+        $this->assertStringContainsString('class="grid min-h-0 min-w-0 overflow-hidden"', $shell);
         $this->assertStringNotContainsString("transition-[left]", $shell);
         $this->assertStringNotContainsString("? 'left: {{ \$adminShellPresentation['sidebar_expanded_width'] }}'", $shell);
 
