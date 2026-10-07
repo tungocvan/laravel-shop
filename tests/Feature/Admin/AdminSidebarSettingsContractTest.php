@@ -69,7 +69,7 @@ class AdminSidebarSettingsContractTest extends TestCase
         $this->assertStringContainsString('{{ $sidebarSurfaceClass }}', $view);
     }
 
-    public function test_disabled_sidebar_keeps_a_desktop_reveal_control_and_overlay_runtime(): void
+    public function test_disabled_sidebar_keeps_a_desktop_reveal_control_and_canonical_grid_runtime(): void
     {
         $shell = file_get_contents(base_path('Modules/Admin/resources/views/layouts/partials/shell.blade.php'));
 
@@ -79,20 +79,21 @@ class AdminSidebarSettingsContractTest extends TestCase
         $this->assertStringContainsString("if (!{{ \$sidebarEnabled ? 'true' : 'false' }}) { sidebarOpen = false; sidebarFullscreen = false; }", $shell);
         $this->assertStringContainsString(": (sidebarOpen && !sidebarFullscreen)", $shell);
         $this->assertStringContainsString("? ' lg:translate-x-0' : ''", $shell);
-        $this->assertStringContainsString('class="relative min-h-0 h-full overflow-hidden antialiased"', $shell);
-        $this->assertStringContainsString('class="absolute inset-y-0 right-0 min-h-0 min-w-0 overflow-hidden transition-[left]', $shell);
-        $this->assertStringContainsString('display: grid; grid-template-rows: auto minmax(0, 1fr) auto;', $shell);
-        $this->assertStringNotContainsString('class="relative flex min-h-0 h-full overflow-hidden antialiased"', $shell);
-        $this->assertStringContainsString("? 'left: {{ \$adminShellPresentation['sidebar_expanded_width'] }}'", $shell);
-        $this->assertStringContainsString(": 'left: {{ \$adminShellPresentation['sidebar_collapsed_width'] }}'", $shell);
-        $this->assertStringContainsString(": 'left: 0'", $shell);
+
+        $this->assertStringContainsString('transition-[grid-template-columns]', $shell);
+        $this->assertStringContainsString("gridTemplateColumns: sidebarOpen ? '{{ \$adminShellPresentation['sidebar_expanded_width'] }} minmax(0, 1fr)' : '{{ \$adminShellPresentation['sidebar_collapsed_width'] }} minmax(0, 1fr)'", $shell);
+        $this->assertStringContainsString("gridTemplateColumns: '0 minmax(0, 1fr)'", $shell);
+        $this->assertStringContainsString('lg:relative lg:inset-auto lg:col-start-1 lg:row-start-1', $shell);
+        $this->assertStringContainsString('class="col-start-2 row-start-1 grid min-h-0 min-w-0 overflow-hidden"', $shell);
+        $this->assertStringNotContainsString("transition-[left]", $shell);
+        $this->assertStringNotContainsString("? 'left: {{ \$adminShellPresentation['sidebar_expanded_width'] }}'", $shell);
 
         $header = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/header.blade.php'));
-        $this->assertStringContainsString("\$headerSidebarEnabled = (bool) data_get(app(\\Modules\\Admin\\Support\\AdminLayoutManager::class)->config(), 'sidebar.enabled', true);", $header);
-        $this->assertStringContainsString("{{ \$headerSidebarEnabled ? 'true' : 'false' }}", $header);
-        $this->assertStringContainsString("\$headerSidebarExpandedWidth = \$adminShellPresentation['sidebar_expanded_width']", $header);
-        $this->assertStringContainsString("\$headerSidebarCollapsedWidth = \$adminShellPresentation['sidebar_collapsed_width']", $header);
-        $this->assertStringContainsString("paddingLeft: sidebarOpen ? '{{ \$headerSidebarExpandedWidth }}' : '{{ \$headerSidebarCollapsedWidth }}'", $header);
+        $this->assertStringNotContainsString('headerSidebarEnabled', $header);
+        $this->assertStringNotContainsString('headerSidebarExpandedWidth', $header);
+        $this->assertStringNotContainsString('headerSidebarCollapsedWidth', $header);
+        $this->assertStringNotContainsString('paddingLeft: sidebarOpen', $header);
+        $this->assertStringContainsString('style="padding-inline: {{ $adminShellPresentation[\'header_padding_x\'] }};"', $header);
     }
 
     public function test_sidebar_settings_use_dedicated_professional_editor_and_live_preview(): void
