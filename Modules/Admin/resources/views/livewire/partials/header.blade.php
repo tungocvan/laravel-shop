@@ -1,9 +1,6 @@
 @php
     $adminShellPresentation = app(\Modules\Admin\Services\AdminShellPresentationService::class)->context();
     $headerBlur = $adminShellPresentation['header_backdrop_blur'] ?? true;
-    $headerSidebarEnabled = (bool) data_get(app(\Modules\Admin\Support\AdminLayoutManager::class)->config(), 'sidebar.enabled', true);
-    $headerSidebarExpandedWidth = $adminShellPresentation['sidebar_expanded_width'] ?? '16rem';
-    $headerSidebarCollapsedWidth = $adminShellPresentation['sidebar_collapsed_width'] ?? '5rem';
 @endphp
 
 <header
@@ -12,15 +9,8 @@
     style="height: {{ $adminShellPresentation['header_height'] }}; {{ $adminShellPresentation['header_style'] }}; background-color: color-mix(in srgb, var(--admin-header-background) var(--admin-header-background-opacity), transparent); color: var(--admin-text-primary); box-shadow: var(--admin-header-shadow);"
 >
     <div
-        class="flex min-w-0 flex-1 items-center justify-between gap-3 transition-[padding] duration-300 motion-reduce:transition-none"
+        class="flex min-w-0 flex-1 items-center justify-between gap-3"
         style="padding-inline: {{ $adminShellPresentation['header_padding_x'] }};"
-        :style="isDesktop
-            ? ({{ $headerSidebarEnabled ? 'true' : 'false' }}
-                ? (sidebarFullscreen
-                    ? { paddingLeft: '4rem' }
-                    : { paddingLeft: sidebarOpen ? '{{ $headerSidebarExpandedWidth }}' : '{{ $headerSidebarCollapsedWidth }}' })
-                : { paddingLeft: '4rem' })
-            : {}"
     >
         <div class="flex min-w-0 flex-1 items-center" style="gap: {{ $adminShellPresentation['header_action_gap'] }};">
             @foreach (($headerContext['left'] ?? []) as $component)
