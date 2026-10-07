@@ -81,8 +81,12 @@ class AdminSidebarSettingsContractTest extends TestCase
         $this->assertStringContainsString("? ' lg:translate-x-0' : ''", $shell);
 
         $this->assertStringContainsString('transition-[grid-template-columns]', $shell);
-        $this->assertStringContainsString("gridTemplateColumns: sidebarOpen ? '{{ \$adminShellPresentation['sidebar_expanded_width'] }} minmax(0, 1fr)' : '{{ \$adminShellPresentation['sidebar_collapsed_width'] }} minmax(0, 1fr)'", $shell);
-        $this->assertStringContainsString("gridTemplateColumns: '0 minmax(0, 1fr)'", $shell);
+        $this->assertStringContainsString('--admin-sidebar-track-width: 0px;', $shell);
+        $this->assertStringContainsString('grid-template-columns: var(--admin-sidebar-track-width) minmax(0, 1fr);', $shell);
+        $this->assertStringContainsString("'--admin-sidebar-track-width': isDesktop", $shell);
+        $this->assertStringContainsString("? (sidebarOpen ? '{{ \$adminShellPresentation['sidebar_expanded_width'] }}' : '{{ \$adminShellPresentation['sidebar_collapsed_width'] }}')", $shell);
+        $this->assertStringContainsString(": '0px'", $shell);
+        $this->assertStringNotContainsString('gridTemplateColumns:', $shell);
         $this->assertStringContainsString('lg:relative lg:inset-auto lg:col-start-1 lg:row-start-1', $shell);
         $this->assertStringContainsString('data-admin-shell-grid', $shell);
         $this->assertStringContainsString('data-admin-shell-sidebar', $shell);
