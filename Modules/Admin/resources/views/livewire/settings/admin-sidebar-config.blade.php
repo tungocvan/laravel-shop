@@ -26,7 +26,7 @@
 
     <form wire:submit="save" class="space-y-6" x-data="{
         sidebarBackground: @js($background), customBackground: @js($customBackground), customAccent: @js($customAccent),
-        choose(mode) { this.sidebarBackground = mode; $wire.config.sidebar.presentation.background = mode; },
+        choose(mode) { this.sidebarBackground = mode; $wire.set('config.sidebar.presentation.background', mode); },
         validHex(value, fallback) { return /^#[0-9a-fA-F]{6}$/.test(value || '') ? value : fallback; },
         isDark(hex) { hex = this.validHex(hex, '#ffffff').slice(1); const r=parseInt(hex.slice(0,2),16),g=parseInt(hex.slice(2,4),16),b=parseInt(hex.slice(4,6),16); return ((0.2126*r+0.7152*g+0.0722*b)/255)<.56; },
         bg() { return this.sidebarBackground==='dark'?'#020617':this.sidebarBackground==='custom'?this.validHex(this.customBackground,'#0f172a'):this.sidebarBackground==='light'?'#ffffff':'#eef2ff'; },
@@ -50,7 +50,6 @@
                             </button>
                         @endforeach
                     </div>
-                    <input type="hidden" wire:model="config.sidebar.presentation.background">
                     <div x-cloak x-show="sidebarBackground === 'custom'" x-transition.opacity class="mt-5 rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4">
                         <div class="mb-4"><h3 class="text-sm font-semibold text-slate-900">Custom palette</h3><p class="mt-1 text-xs leading-5 text-slate-500">Chỉ cần hai màu. Hệ thống tự tính màu chữ/icon để luôn đọc được.</p></div>
                         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
