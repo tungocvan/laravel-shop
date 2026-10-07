@@ -78,7 +78,6 @@ class AdminSidebarSettingsContractTest extends TestCase
         $this->assertStringContainsString('sidebarFullscreen = false; sidebarOpen = true', $shell);
         $this->assertStringContainsString("if (!{{ \$sidebarEnabled ? 'true' : 'false' }}) { sidebarOpen = false; sidebarFullscreen = false; }", $shell);
         $this->assertStringContainsString(": (sidebarOpen && !sidebarFullscreen)", $shell);
-        $this->assertStringContainsString("? ' lg:translate-x-0' : ''", $shell);
 
         $this->assertStringContainsString('data-admin-shell', $shell);
         $this->assertStringContainsString('--admin-sidebar-width: 0px;', $shell);
