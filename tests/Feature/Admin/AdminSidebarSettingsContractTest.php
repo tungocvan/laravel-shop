@@ -75,6 +75,8 @@ class AdminSidebarSettingsContractTest extends TestCase
 
         $this->assertStringContainsString('data-admin-sidebar-disabled-reveal', $shell);
         $this->assertStringContainsString('aria-label="Mở Sidebar"', $shell);
+        $this->assertStringContainsString('data-admin-header-reveal-slot', $shell);
+        $this->assertStringContainsString("style=\"left: calc({{ \$adminShellPresentation['header_padding_x'] }} + 0.125rem);\"", $shell);
         $this->assertStringContainsString('sidebarFullscreen = false; sidebarOpen = true', $shell);
         $this->assertStringContainsString("if (!{{ \$sidebarEnabled ? 'true' : 'false' }}) { sidebarOpen = false; sidebarFullscreen = false; }", $shell);
         $this->assertStringContainsString(": (sidebarOpen && !sidebarFullscreen)", $shell);
@@ -103,6 +105,11 @@ class AdminSidebarSettingsContractTest extends TestCase
         $this->assertStringContainsString('desktopBreakpoint: 1024', $head);
         $this->assertStringContainsString('isDesktopViewport()', $head);
         $this->assertStringContainsString('document.documentElement.clientWidth || window.innerWidth || 0', $head);
+
+        $header = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/header.blade.php'));
+        $this->assertStringContainsString('data-admin-header-reveal-aware', $header);
+        $this->assertStringContainsString("padding-left: calc({{ \$adminShellPresentation['header_padding_x'] }} + 3rem)", $header);
+        $this->assertStringContainsString("&& isDesktop && !sidebarOpen", $header);
         $this->assertStringContainsString('viewportWidth >= this.desktopBreakpoint', $head);
         $this->assertStringContainsString('const wasDesktop = this.isDesktop;', $head);
         $this->assertStringContainsString('const nextIsDesktop = this.isDesktopViewport();', $head);
