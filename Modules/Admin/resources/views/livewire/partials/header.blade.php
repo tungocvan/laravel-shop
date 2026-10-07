@@ -9,16 +9,21 @@
     style="height: {{ $adminShellPresentation['header_height'] }}; {{ $adminShellPresentation['header_style'] }}; background-color: color-mix(in srgb, var(--admin-header-background) var(--admin-header-background-opacity), transparent); color: var(--admin-text-primary); box-shadow: var(--admin-header-shadow);"
 >
     <div
-        class="flex min-w-0 flex-1 items-center justify-between gap-3"
-        style="padding-inline: {{ $adminShellPresentation['header_padding_x'] }};"
+        data-admin-header-grid
+        class="grid min-w-0 flex-1 items-center"
+        style="grid-template-columns: minmax(0, 1fr) auto; column-gap: {{ $adminShellPresentation['header_action_gap'] }}; padding-inline: {{ $adminShellPresentation['header_padding_x'] }};"
     >
-        <div class="flex min-w-0 flex-1 items-center" style="gap: {{ $adminShellPresentation['header_action_gap'] }};">
+        <div
+            data-admin-header-left
+            class="grid min-w-0 items-center"
+            style="grid-template-columns: repeat(2, max-content) minmax(0, 1fr); column-gap: {{ $adminShellPresentation['header_action_gap'] }};"
+        >
             @foreach (($headerContext['left'] ?? []) as $component)
                 @include($component['view'], $component['data'] ?? [])
             @endforeach
         </div>
 
-        <div class="flex shrink-0 items-center" style="gap: {{ $adminShellPresentation['header_action_gap'] }};">
+        <div data-admin-header-right class="flex min-w-0 shrink-0 items-center" style="gap: {{ $adminShellPresentation['header_action_gap'] }};">
             @foreach (($headerContext['right'] ?? []) as $component)
                 @include($component['view'], $component['data'] ?? [])
             @endforeach
