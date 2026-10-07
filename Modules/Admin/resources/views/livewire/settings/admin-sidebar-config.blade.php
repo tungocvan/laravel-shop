@@ -92,7 +92,25 @@
                 </div></div>
             </aside>
         </div>
-        @if ($errors->any())<div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">Có cấu hình Sidebar chưa hợp lệ. Kiểm tra màu HEX và các trường bắt buộc.</div>@endif
+        @if ($errors->any())
+            <div x-data="{ open: true }" x-show="open" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/50 p-4" role="dialog" aria-modal="true" aria-labelledby="sidebar-validation-title">
+                <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl" @click.outside="open = false">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <h2 id="sidebar-validation-title" class="text-base font-semibold text-slate-900">Không thể lưu Sidebar</h2>
+                            <p class="mt-1 text-sm text-slate-500">Vui lòng kiểm tra các cấu hình chưa hợp lệ bên dưới.</p>
+                        </div>
+                        <button type="button" @click="open = false" class="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600" aria-label="Đóng thông báo lỗi">×</button>
+                    </div>
+                    <ul class="mt-4 space-y-2 text-sm text-rose-700">
+                        @foreach ($errors->all() as $error)
+                            <li class="rounded-lg border border-rose-100 bg-rose-50 px-3 py-2">{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                    <div class="mt-5 flex justify-end"><button type="button" @click="open = false" class="inline-flex h-10 items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-slate-800">Đã hiểu</button></div>
+                </div>
+            </div>
+        @endif
         <div class="sticky bottom-4 z-20 flex justify-end"><button type="submit" wire:loading.attr="disabled" class="inline-flex h-11 items-center justify-center rounded-xl bg-indigo-600 px-6 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-60"><span wire:loading.remove wire:target="save">Lưu Sidebar</span><span wire:loading wire:target="save">Đang lưu...</span></button></div>
     </form>
 </div>
