@@ -68,7 +68,7 @@
         <button
             type="button"
             x-cloak
-            x-show="isDesktop && sidebarFullscreen"
+            x-show.important="isDesktop && sidebarFullscreen"
             @click="toggleSidebarFullscreen($event.currentTarget)"
             class="fixed left-3 top-3 z-[70] hidden h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white/95 text-slate-600 shadow-md shadow-slate-950/10 backdrop-blur transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 lg:inline-flex"
             aria-controls="admin-sidebar"
@@ -104,7 +104,7 @@
             aria-label="Admin navigation"
             :aria-modal="(!isDesktop && sidebarOpen).toString()"
             @keydown.tab="trapFocus($event, $refs.sidebarPanel)"
-            class="fixed inset-y-0 left-0 z-50 shadow-xl shadow-slate-950/5 transition-[transform,width,opacity] duration-300 ease-out motion-reduce:transition-none lg:h-full lg:min-h-0 lg:shadow-none"
+            class="fixed inset-y-0 left-0 z-50 min-h-0 overflow-hidden shadow-xl shadow-slate-950/5 transition-[transform,width,opacity] duration-300 ease-out motion-reduce:transition-none lg:h-full lg:min-h-0 lg:shadow-none"
             style="background-color: var(--admin-surface-raised);"
             :style="sidebarOpen
                 ? 'width: {{ $adminShellPresentation['sidebar_expanded_width'] }}'
