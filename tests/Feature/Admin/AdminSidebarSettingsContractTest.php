@@ -80,21 +80,17 @@ class AdminSidebarSettingsContractTest extends TestCase
         $this->assertStringContainsString(": (sidebarOpen && !sidebarFullscreen)", $shell);
 
         $this->assertStringContainsString('data-admin-shell', $shell);
-        $this->assertStringContainsString('--admin-sidebar-width: 0px;', $shell);
-        $this->assertStringContainsString("const sidebarWidth = isDesktop", $shell);
-        $this->assertStringContainsString("? (sidebarOpen ? '{{ \$adminShellPresentation['sidebar_expanded_width'] }}' : '{{ \$adminShellPresentation['sidebar_collapsed_width'] }}')", $shell);
-        $this->assertStringContainsString("\$el.style.setProperty('--admin-sidebar-width', sidebarWidth);", $shell);
-        $this->assertStringNotContainsString("':style=\"{", $shell);
-        $this->assertStringContainsString(": '0px'", $shell);
         $this->assertStringContainsString('[data-admin-shell] [data-admin-shell-sidebar]', $shell);
         $this->assertStringContainsString('position: fixed;', $shell);
         $this->assertStringContainsString('[data-admin-shell] [data-admin-shell-workspace]', $shell);
-        $this->assertStringContainsString('margin-left: var(--admin-sidebar-width);', $shell);
-        $this->assertStringContainsString('width: calc(100% - var(--admin-sidebar-width));', $shell);
         $this->assertStringContainsString('transition-[margin-left,width]', $shell);
+        $this->assertStringContainsString(":style=\"isDesktop", $shell);
+        $this->assertStringContainsString("'margin-left: {{ \$adminShellPresentation['sidebar_expanded_width'] }}; width: calc(100% - {{ \$adminShellPresentation['sidebar_expanded_width'] }});'", $shell);
+        $this->assertStringContainsString("'margin-left: {{ \$adminShellPresentation['sidebar_collapsed_width'] }}; width: calc(100% - {{ \$adminShellPresentation['sidebar_collapsed_width'] }});'", $shell);
+        $this->assertStringContainsString(": 'margin-left: 0px; width: 100%;'", $shell);
+        $this->assertStringNotContainsString('--admin-sidebar-width', $shell);
         $this->assertStringContainsString("isDesktop\n                ? 'translate-x-0'\n                : (sidebarOpen ? 'translate-x-0' : '-translate-x-full')", $shell);
         $this->assertStringNotContainsString("' lg:translate-x-0'", $shell);
-        $this->assertStringContainsString("? (sidebarOpen ? '{{ \$adminShellPresentation['sidebar_expanded_width'] }}' : '{{ \$adminShellPresentation['sidebar_collapsed_width'] }}')", $shell);
 
         $this->assertStringNotContainsString('data-admin-shell-grid', $shell);
         $this->assertStringNotContainsString('grid-template-columns: var(--admin-sidebar-track-width)', $shell);
