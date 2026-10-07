@@ -80,21 +80,24 @@ class AdminSidebarSettingsContractTest extends TestCase
         $this->assertStringContainsString(": (sidebarOpen && !sidebarFullscreen)", $shell);
 
         $this->assertStringContainsString('data-admin-shell', $shell);
-        $this->assertStringContainsString('[data-admin-shell] [data-admin-shell-sidebar]', $shell);
-        $this->assertStringContainsString('position: fixed;', $shell);
-        $this->assertStringContainsString('[data-admin-shell] [data-admin-shell-workspace]', $shell);
-        $this->assertStringContainsString('transition-[margin-left,width]', $shell);
-        $this->assertStringContainsString(":style=\"isDesktop", $shell);
-        $this->assertStringContainsString("'margin-left: {{ \$adminShellPresentation['sidebar_expanded_width'] }}; width: calc(100% - {{ \$adminShellPresentation['sidebar_expanded_width'] }});'", $shell);
-        $this->assertStringContainsString("'margin-left: {{ \$adminShellPresentation['sidebar_collapsed_width'] }}; width: calc(100% - {{ \$adminShellPresentation['sidebar_collapsed_width'] }});'", $shell);
-        $this->assertStringContainsString(": 'margin-left: 0px; width: 100%;'", $shell);
-        $this->assertStringNotContainsString('--admin-sidebar-width', $shell);
+        $this->assertStringContainsString('[data-admin-shell] {', $shell);
+        $this->assertStringContainsString('display: grid;', $shell);
+        $this->assertStringContainsString('grid-template-columns: var(--admin-sidebar-track, 0px) minmax(0, 1fr);', $shell);
+        $this->assertStringContainsString('[data-admin-shell-sidebar] {', $shell);
+        $this->assertStringContainsString('position: relative !important;', $shell);
+        $this->assertStringContainsString('grid-column: 1;', $shell);
+        $this->assertStringContainsString('[data-admin-shell-workspace] {', $shell);
+        $this->assertStringContainsString('grid-column: 2;', $shell);
+        $this->assertStringContainsString('width: auto !important;', $shell);
+        $this->assertStringContainsString('margin-left: 0 !important;', $shell);
+        $this->assertStringContainsString('--admin-sidebar-track: 0px;', $shell);
+        $this->assertStringContainsString("\$el.style.setProperty(", $shell);
+        $this->assertStringContainsString("'--admin-sidebar-track'", $shell);
+        $this->assertStringContainsString("? (sidebarOpen ? '{{ \$adminShellPresentation['sidebar_expanded_width'] }}' : '{{ \$adminShellPresentation['sidebar_collapsed_width'] }}')", $shell);
+        $this->assertStringContainsString(": '0px'", $shell);
+        $this->assertStringNotContainsString('transition-[margin-left,width]', $shell);
+        $this->assertStringNotContainsString("'margin-left: {{ \$adminShellPresentation['sidebar_expanded_width'] }}", $shell);
         $this->assertStringContainsString("isDesktop\n                ? 'translate-x-0'\n                : (sidebarOpen ? 'translate-x-0' : '-translate-x-full')", $shell);
-        $this->assertStringNotContainsString("' lg:translate-x-0'", $shell);
-
-        $this->assertStringNotContainsString('data-admin-shell-grid', $shell);
-        $this->assertStringNotContainsString('grid-template-columns: var(--admin-sidebar-track-width)', $shell);
-        $this->assertStringNotContainsString('gridTemplateColumns:', $shell);
 
         $head = file_get_contents(base_path('Modules/Admin/resources/views/layouts/partials/head.blade.php'));
         $this->assertStringContainsString('desktopBreakpoint: 1024', $head);
