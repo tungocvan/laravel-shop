@@ -82,8 +82,10 @@ class AdminSidebarSettingsContractTest extends TestCase
 
         $this->assertStringContainsString('data-admin-shell', $shell);
         $this->assertStringContainsString('--admin-sidebar-width: 0px;', $shell);
-        $this->assertStringContainsString("'--admin-sidebar-width': isDesktop", $shell);
+        $this->assertStringContainsString("const sidebarWidth = isDesktop", $shell);
         $this->assertStringContainsString("? (sidebarOpen ? '{{ \$adminShellPresentation['sidebar_expanded_width'] }}' : '{{ \$adminShellPresentation['sidebar_collapsed_width'] }}')", $shell);
+        $this->assertStringContainsString("\$el.style.setProperty('--admin-sidebar-width', sidebarWidth);", $shell);
+        $this->assertStringNotContainsString("':style=\"{", $shell);
         $this->assertStringContainsString(": '0px'", $shell);
         $this->assertStringContainsString('[data-admin-shell] [data-admin-shell-sidebar]', $shell);
         $this->assertStringContainsString('position: fixed;', $shell);
