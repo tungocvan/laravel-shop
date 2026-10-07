@@ -90,7 +90,9 @@ class AdminSidebarSettingsContractTest extends TestCase
         $header = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/header.blade.php'));
         $this->assertStringContainsString("\$headerSidebarEnabled = (bool) data_get(app(\\Modules\\Admin\\Support\\AdminLayoutManager::class)->config(), 'sidebar.enabled', true);", $header);
         $this->assertStringContainsString("{{ \$headerSidebarEnabled ? 'true' : 'false' }}", $header);
-        $this->assertStringContainsString("sidebarFullscreen ? { paddingLeft: '4rem' } : {}", $header);
+        $this->assertStringContainsString("\$headerSidebarExpandedWidth = \$adminShellPresentation['sidebar_expanded_width']", $header);
+        $this->assertStringContainsString("\$headerSidebarCollapsedWidth = \$adminShellPresentation['sidebar_collapsed_width']", $header);
+        $this->assertStringContainsString("paddingLeft: sidebarOpen ? '{{ \$headerSidebarExpandedWidth }}' : '{{ \$headerSidebarCollapsedWidth }}'", $header);
     }
 
     public function test_sidebar_settings_use_dedicated_professional_editor_and_live_preview(): void
