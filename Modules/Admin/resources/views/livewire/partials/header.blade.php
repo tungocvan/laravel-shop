@@ -1,7 +1,6 @@
 @php
     $adminShellPresentation = app(\Modules\Admin\Services\AdminShellPresentationService::class)->context();
     $headerBlur = $adminShellPresentation['header_backdrop_blur'] ?? true;
-    $sidebarEnabled = (bool) data_get($adminSidebarConfig ?? [], 'enabled', true);
 @endphp
 
 <header
