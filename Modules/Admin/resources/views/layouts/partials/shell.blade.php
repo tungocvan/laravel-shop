@@ -56,8 +56,8 @@
         $el.style.setProperty(
             '--admin-sidebar-track',
             isDesktop
-                && {{ $sidebarEnabled ? 'true' : 'false' }}
                 && (!sidebarFullscreen || !{{ $fullscreenToggleEnabled ? 'true' : 'false' }})
+                && ({{ $sidebarEnabled ? 'true' : 'false' }} || sidebarOpen)
                     ? (sidebarOpen ? '{{ $adminShellPresentation['sidebar_expanded_width'] }}' : '{{ $adminShellPresentation['sidebar_collapsed_width'] }}')
                     : '0px'
         );
