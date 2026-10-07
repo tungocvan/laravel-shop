@@ -20,6 +20,9 @@ class AdminLayoutConfig extends Component
         abort_unless(in_array($section, $this->sections(), true), 404);
         $this->section = $section;
         $this->config = $manager->config();
+        if ($section === 'sidebar') {
+            data_set($this->config, 'sidebar.presentation.background', $this->sidebarBackgroundMode(data_get($this->config, 'sidebar.presentation.background')));
+        }
         $this->themes = $themeManager->all();
 
         if ($section === 'header' && count((array) data_get($this->config, 'header.user_menu_config.items', [])) === 0) {
@@ -121,6 +124,15 @@ class AdminLayoutConfig extends Component
     {
         $icon = is_string($icon) ? strtolower($icon) : '';
         return match (true) { str_contains($icon, 'user') => 'user', str_contains($icon, 'gear'), str_contains($icon, 'cog') => 'gear', str_contains($icon, 'lock') => 'lock', str_contains($icon, 'key') => 'key', str_contains($icon, 'shield') => 'shield', default => 'link' };
+    }
+
+    private function sidebarBackgroundMode(mixed $value): string
+    {
+        return match ((string) $value) {
+            'system', 'white' => 'light',
+            'theme', 'light', 'dark', 'custom' => (string) $value,
+            default => 'theme',
+        };
     }
 
     private function rules(): array
