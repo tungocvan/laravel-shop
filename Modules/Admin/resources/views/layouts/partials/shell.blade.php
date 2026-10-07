@@ -6,7 +6,27 @@
     $adminShellPresentation = app(\Modules\Admin\Services\AdminShellPresentationService::class)->context();
 @endphp
 
+<style>
+    [data-admin-shell-grid] [data-admin-shell-workspace] {
+        grid-column: 2;
+        grid-row: 1;
+    }
+
+    @media (min-width: 1024px) {
+        [data-admin-shell-grid] [data-admin-shell-sidebar] {
+            position: relative;
+            inset: auto;
+            grid-column: 1;
+            grid-row: 1;
+            height: 100%;
+            min-height: 0;
+            box-shadow: none;
+        }
+    }
+</style>
+
 <div
+    data-admin-shell-grid
     class="grid min-h-0 h-full overflow-hidden antialiased transition-[grid-template-columns] duration-300 ease-out motion-reduce:transition-none"
     style="height: 100dvh; {{ $adminShellPresentation['shell_style'] }}; background-color: var(--admin-page-background); color: var(--admin-text-primary); font-family: var(--admin-font-family); font-size: var(--admin-font-size-body);"
     :style="isDesktop
@@ -73,6 +93,7 @@
 
         <div
             id="admin-sidebar"
+            data-admin-shell-sidebar
             x-ref="sidebarPanel"
             x-show="{{ $sidebarEnabled ? 'true' : 'false' }} ? (!isDesktop || !sidebarFullscreen || !{{ $fullscreenToggleEnabled ? 'true' : 'false' }}) : (sidebarOpen && !sidebarFullscreen)"
             x-transition.opacity.duration.150ms
@@ -91,7 +112,8 @@
         </div>
 
     <div
-        class="col-start-2 row-start-1 grid min-h-0 min-w-0 overflow-hidden"
+        data-admin-shell-workspace
+        class="grid min-h-0 min-w-0 overflow-hidden"
         style="grid-template-rows: auto minmax(0, 1fr) auto;"
         :data-admin-sidebar-fullscreen="(isDesktop && sidebarFullscreen && {{ $fullscreenToggleEnabled ? 'true' : 'false' }}) ? 'true' : 'false'"
     >
