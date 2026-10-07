@@ -80,25 +80,20 @@ class AdminSidebarSettingsContractTest extends TestCase
         $this->assertStringContainsString(": (sidebarOpen && !sidebarFullscreen)", $shell);
         $this->assertStringContainsString("? ' lg:translate-x-0' : ''", $shell);
 
-        $this->assertStringContainsString('transition-[grid-template-columns]', $shell);
-        $this->assertStringContainsString('--admin-sidebar-track-width: 0px;', $shell);
-        $this->assertStringContainsString('grid-template-columns: var(--admin-sidebar-track-width) minmax(0, 1fr);', $shell);
-        $this->assertStringContainsString("'--admin-sidebar-track-width': isDesktop", $shell);
+        $this->assertStringContainsString('data-admin-shell', $shell);
+        $this->assertStringContainsString('--admin-sidebar-width: 0px;', $shell);
+        $this->assertStringContainsString("'--admin-sidebar-width': isDesktop", $shell);
         $this->assertStringContainsString("? (sidebarOpen ? '{{ \$adminShellPresentation['sidebar_expanded_width'] }}' : '{{ \$adminShellPresentation['sidebar_collapsed_width'] }}')", $shell);
         $this->assertStringContainsString(": '0px'", $shell);
+        $this->assertStringContainsString('[data-admin-shell] [data-admin-shell-sidebar]', $shell);
+        $this->assertStringContainsString('position: fixed;', $shell);
+        $this->assertStringContainsString('[data-admin-shell] [data-admin-shell-workspace]', $shell);
+        $this->assertStringContainsString('margin-left: var(--admin-sidebar-width);', $shell);
+        $this->assertStringContainsString('width: calc(100% - var(--admin-sidebar-width));', $shell);
+        $this->assertStringContainsString('transition-[margin-left,width]', $shell);
+        $this->assertStringNotContainsString('data-admin-shell-grid', $shell);
+        $this->assertStringNotContainsString('grid-template-columns: var(--admin-sidebar-track-width)', $shell);
         $this->assertStringNotContainsString('gridTemplateColumns:', $shell);
-        $this->assertStringContainsString('lg:relative lg:inset-auto lg:col-start-1 lg:row-start-1', $shell);
-        $this->assertStringContainsString('data-admin-shell-grid', $shell);
-        $this->assertStringContainsString('data-admin-shell-sidebar', $shell);
-        $this->assertStringContainsString('data-admin-shell-workspace', $shell);
-        $this->assertStringContainsString('[data-admin-shell-grid] [data-admin-shell-workspace]', $shell);
-        $this->assertStringContainsString('grid-column: 2;', $shell);
-        $this->assertStringContainsString('@media (min-width: 1024px)', $shell);
-        $this->assertStringContainsString('[data-admin-shell-grid] [data-admin-shell-sidebar]', $shell);
-        $this->assertStringContainsString('position: relative;', $shell);
-        $this->assertStringContainsString('class="grid min-h-0 min-w-0 overflow-hidden"', $shell);
-        $this->assertStringNotContainsString("transition-[left]", $shell);
-        $this->assertStringNotContainsString("? 'left: {{ \$adminShellPresentation['sidebar_expanded_width'] }}'", $shell);
 
         $header = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/header.blade.php'));
         $this->assertStringNotContainsString('headerSidebarEnabled', $header);
