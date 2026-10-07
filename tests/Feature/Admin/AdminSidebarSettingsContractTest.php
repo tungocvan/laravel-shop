@@ -79,6 +79,9 @@ class AdminSidebarSettingsContractTest extends TestCase
         $this->assertStringContainsString("if (!{{ \$sidebarEnabled ? 'true' : 'false' }}) { sidebarOpen = false; sidebarFullscreen = false; }", $shell);
         $this->assertStringContainsString(": (sidebarOpen && !sidebarFullscreen)", $shell);
         $this->assertStringContainsString("? ' lg:translate-x-0' : ''", $shell);
+        $this->assertStringContainsString("width: calc(100% - {{ \$adminShellPresentation['sidebar_expanded_width'] }})", $shell);
+        $this->assertStringContainsString("width: calc(100% - {{ \$adminShellPresentation['sidebar_collapsed_width'] }})", $shell);
+        $this->assertStringContainsString("'margin-left: 0; width: 100%'", $shell);
 
         $header = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/header.blade.php'));
         $this->assertStringContainsString("\$headerSidebarEnabled = (bool) data_get(app(\\Modules\\Admin\\Support\\AdminLayoutManager::class)->config(), 'sidebar.enabled', true);", $header);
