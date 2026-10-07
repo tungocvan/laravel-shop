@@ -12,8 +12,28 @@
     data-admin-container="{{ $adminShellPresentation['container'] }}"
     data-admin-density="{{ $adminShellPresentation['density'] }}"
     data-admin-reduced-motion="{{ $adminShellPresentation['reduced_motion'] ? 'true' : 'false' }}"
-    x-effect="if (isDesktop && !{{ $collapseToggleEnabled ? 'true' : 'false' }} && !sidebarOpen) { sidebarOpen = true; persistSidebarPreference(); } if (!{{ $fullscreenToggleEnabled ? 'true' : 'false' }} && sidebarFullscreen) { sidebarFullscreen = false; persistSidebarFullscreenPreference(); }"
+    x-init="if (!{{ $sidebarEnabled ? 'true' : 'false' }}) { sidebarOpen = false; sidebarFullscreen = false; }"
+    x-effect="if ({{ $sidebarEnabled ? 'true' : 'false' }} && isDesktop && !{{ $collapseToggleEnabled ? 'true' : 'false' }} && !sidebarOpen) { sidebarOpen = true; persistSidebarPreference(); } if (!{{ $fullscreenToggleEnabled ? 'true' : 'false' }} && sidebarFullscreen) { sidebarFullscreen = false; persistSidebarFullscreenPreference(); }"
 >
+    @if (!$sidebarEnabled)
+        <button
+            type="button"
+            x-cloak
+            x-show="isDesktop && (!sidebarOpen || sidebarFullscreen)"
+            @click="sidebarFullscreen = false; sidebarOpen = true"
+            class="fixed left-3 top-3 z-[70] hidden h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white/95 text-slate-600 shadow-md shadow-slate-950/10 backdrop-blur transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 lg:inline-flex"
+            aria-controls="admin-sidebar"
+            :aria-expanded="(sidebarOpen && !sidebarFullscreen).toString()"
+            aria-label="Mở Sidebar"
+            title="Mở Sidebar"
+            data-admin-sidebar-disabled-reveal
+        >
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 5h16v14H4zM9 5v14M11 9l3 3-3 3" />
+            </svg>
+        </button>
+    @endif
+
     @if ($sidebarEnabled && $fullscreenToggleEnabled)
         <button
             type="button"
@@ -42,11 +62,12 @@
             aria-hidden="true"
             @click="closeSidebar()"
         ></div>
+    @endif
 
         <div
             id="admin-sidebar"
             x-ref="sidebarPanel"
-            x-show="!isDesktop || !sidebarFullscreen || !{{ $fullscreenToggleEnabled ? 'true' : 'false' }}"
+            x-show="{{ $sidebarEnabled ? 'true' : 'false' }} ? (!isDesktop || !sidebarFullscreen || !{{ $fullscreenToggleEnabled ? 'true' : 'false' }}) : (sidebarOpen && !sidebarFullscreen)"
             x-transition.opacity.duration.150ms
             :role="isDesktop ? 'complementary' : 'dialog'"
             aria-label="Admin navigation"
@@ -57,11 +78,10 @@
             :style="sidebarOpen
                 ? 'width: {{ $adminShellPresentation['sidebar_expanded_width'] }}'
                 : 'width: {{ $adminShellPresentation['sidebar_collapsed_width'] }}'"
-            :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
+            :class="sidebarOpen ? 'translate-x-0' : ('-translate-x-full' + ({{ $sidebarEnabled ? 'true' : 'false' }} ? ' lg:translate-x-0' : ''))"
         >
             <livewire:admin.partials.sidebar />
         </div>
-    @endif
 
     <div
         class="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden transition-[margin] duration-300 ease-out motion-reduce:transition-none"
