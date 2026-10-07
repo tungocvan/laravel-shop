@@ -95,6 +95,16 @@ class AdminSidebarSettingsContractTest extends TestCase
         $this->assertStringNotContainsString('grid-template-columns: var(--admin-sidebar-track-width)', $shell);
         $this->assertStringNotContainsString('gridTemplateColumns:', $shell);
 
+        $head = file_get_contents(base_path('Modules/Admin/resources/views/layouts/partials/head.blade.php'));
+        $this->assertStringContainsString('desktopBreakpoint: 1024', $head);
+        $this->assertStringContainsString('isDesktopViewport()', $head);
+        $this->assertStringContainsString('document.documentElement.clientWidth || window.innerWidth || 0', $head);
+        $this->assertStringContainsString('viewportWidth >= this.desktopBreakpoint', $head);
+        $this->assertStringContainsString('const wasDesktop = this.isDesktop;', $head);
+        $this->assertStringContainsString('const nextIsDesktop = this.isDesktopViewport();', $head);
+        $this->assertStringContainsString('if (!wasDesktop)', $head);
+        $this->assertStringNotContainsString("window.matchMedia('(min-width: 1024px)').matches", $head);
+
         $header = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/header.blade.php'));
         $this->assertStringNotContainsString('headerSidebarEnabled', $header);
         $this->assertStringNotContainsString('headerSidebarExpandedWidth', $header);
