@@ -7,6 +7,7 @@ use GuzzleHttp\Cookie\CookieJar;
 use GuzzleHttp\Cookie\SetCookie;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Rap2hpoutre\FastExcel\FastExcel;
@@ -59,7 +60,32 @@ final class GdtExcelSandboxService
         }
 
         Cache::put($this->tokenKey($userId), ['token' => $token, 'tax_code' => $taxCode], now()->addMinutes(30));
+        $this->rememberAccount($userId, $taxCode, $password);
         Cache::forget($this->cookieKey($userId));
+    }
+
+    public function savedAccounts(int $userId): array
+    {
+        $accounts = $this->readVault($userId);
+        $taxCodes = array_keys($accounts);
+        sort($taxCodes, SORT_NATURAL);
+
+        return $taxCodes;
+    }
+
+    public function savedPassword(int $userId, string $taxCode): string
+    {
+        $accounts = $this->readVault($userId);
+        $encrypted = $accounts[$taxCode]['password'] ?? null;
+        if (! is_string($encrypted) || $encrypted === '') {
+            throw new RuntimeException('Không tìm thấy thông tin đăng nhập đã lưu cho MST này.');
+        }
+
+        try {
+            return Crypt::decryptString($encrypted);
+        } catch (\Throwable $exception) {
+            throw new RuntimeException('Không thể giải mã thông tin đăng nhập đã lưu.', previous: $exception);
+        }
     }
 
     public function connectedTaxCode(int $userId): ?string
@@ -120,7 +146,7 @@ final class GdtExcelSandboxService
         return ['count' => count($rows), 'filename' => $filename];
     }
 
-    public function files(int $userId): array
+    public function files(int $userId, ?string $taxCode = null): array
     {
         $base = storage_path('app/gdt-test/'.$userId);
         if (! is_dir($base)) {
@@ -128,7 +154,8 @@ final class GdtExcelSandboxService
         }
 
         $files = [];
-        foreach (glob($base.'/*/*.xlsx') ?: [] as $path) {
+        $pattern = $taxCode ? $base.'/'.$this->safeTaxCode($taxCode).'/*.xlsx' : $base.'/*/*.xlsx';
+        foreach (glob($pattern) ?: [] as $path) {
             $files[] = [
                 'filename' => basename($path),
                 'tax_code' => basename(dirname($path)),
@@ -140,6 +167,44 @@ final class GdtExcelSandboxService
         usort($files, fn (array $a, array $b) => $b['mtime'] <=> $a['mtime']);
 
         return array_slice($files, 0, 30);
+    }
+
+    public function availableTaxCodes(int $userId): array
+    {
+        $base = storage_path('app/gdt-test/'.$userId);
+        $taxCodes = $this->savedAccounts($userId);
+        foreach (glob($base.'/*', GLOB_ONLYDIR) ?: [] as $directory) {
+            $taxCodes[] = basename($directory);
+        }
+        $taxCodes = array_values(array_unique(array_filter($taxCodes)));
+        sort($taxCodes, SORT_NATURAL);
+
+        return $taxCodes;
+    }
+
+    public function existingExport(int $userId, string $taxCode, string $fromDate, string $toDate, string $type): ?array
+    {
+        $taxCode = $this->safeTaxCode($taxCode);
+        $direction = $type === 'purchase' ? 'purchase' : 'sold';
+        $from = Carbon::parse($fromDate)->format('Y-m-d');
+        $to = Carbon::parse($toDate)->format('Y-m-d');
+        $prefix = sprintf('%s_%s_%s_%s_', $direction, $taxCode, $from, $to);
+        $matches = glob($this->folder($userId, $taxCode).DIRECTORY_SEPARATOR.$prefix.'*.xlsx') ?: [];
+        if ($matches === []) {
+            return null;
+        }
+        usort($matches, fn (string $a, string $b) => (filemtime($b) ?: 0) <=> (filemtime($a) ?: 0));
+        $path = $matches[0];
+
+        return ['tax_code' => $taxCode, 'filename' => basename($path), 'modified_at' => date('d/m/Y H:i', filemtime($path) ?: time())];
+    }
+
+    public function deleteFile(int $userId, string $taxCode, string $filename): void
+    {
+        $path = $this->filePath($userId, $taxCode, $filename);
+        if (! @unlink($path)) {
+            throw new RuntimeException('Không thể xóa file Excel trên server.');
+        }
     }
 
     public function filePath(int $userId, string $taxCode, string $filename): string
@@ -232,6 +297,45 @@ final class GdtExcelSandboxService
         }
 
         return $jar;
+    }
+
+    private function rememberAccount(int $userId, string $taxCode, string $password): void
+    {
+        $taxCode = $this->safeTaxCode($taxCode);
+        $accounts = $this->readVault($userId);
+        $accounts[$taxCode] = [
+            'password' => Crypt::encryptString($password),
+            'updated_at' => now()->toIso8601String(),
+        ];
+        $path = $this->vaultPath($userId);
+        $folder = dirname($path);
+        if (! is_dir($folder) && ! mkdir($folder, 0700, true) && ! is_dir($folder)) {
+            throw new RuntimeException('Không thể tạo thư mục lưu tài khoản GDT.');
+        }
+        if (file_put_contents($path, json_encode($accounts, JSON_UNESCAPED_SLASHES), LOCK_EX) === false) {
+            throw new RuntimeException('Không thể lưu thông tin đăng nhập GDT.');
+        }
+        @chmod($path, 0600);
+    }
+
+    private function readVault(int $userId): array
+    {
+        $path = $this->vaultPath($userId);
+        if (! is_file($path)) {
+            return [];
+        }
+        $decoded = json_decode((string) file_get_contents($path), true);
+
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    private function vaultPath(int $userId): string { return storage_path('app/gdt-test/'.$userId.'/accounts.json'); }
+    private function safeTaxCode(string $taxCode): string
+    {
+        $safe = preg_replace('/[^0-9A-Za-z_-]/', '', $taxCode) ?: '';
+        abort_unless($safe !== '' && $safe === $taxCode, 422);
+
+        return $safe;
     }
 
     private function tokenKey(int $userId): string { return 'invoices:gdt-test:'.$userId.':token'; }
