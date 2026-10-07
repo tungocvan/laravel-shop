@@ -22,6 +22,10 @@ class GdtExcelSandboxContractTest extends TestCase
         $this->assertStringContainsString("storage_path('app/gdt-test/'", $service);
         $this->assertStringContainsString("new FastExcel", $service);
         $this->assertStringContainsString("/query/invoices/", $service);
+        $this->assertStringContainsString('$cursor = $from->copy();', $service);
+        $this->assertStringContainsString('$monthEnd = $cursor->copy()->endOfMonth();', $service);
+        $this->assertStringContainsString('$this->fetchMonth(', $service);
+        $this->assertStringContainsString("'state' =>", str_replace("if ($state) $query['state'] = $state;", "if ($state) 'state' => $state;", $service));
         $this->assertStringNotContainsString('InvoiceImportService', $component);
         $this->assertStringNotContainsString('Invoices::query()', $service);
         $this->assertStringContainsString('Dữ liệu test không import vào danh sách hóa đơn nghiệp vụ', file_get_contents(base_path('Modules/Invoices/resources/views/pages/invoices/gdt-excel-test.blade.php')));
