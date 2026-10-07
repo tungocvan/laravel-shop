@@ -48,6 +48,11 @@ class InvoicesController extends Controller
         return view('Invoices::pages.invoices.authenticate');
     }
 
+    public function gdtExcelTest(): View
+    {
+        return view('Invoices::pages.invoices.gdt-excel-test');
+    }
+
     public function downloadInvoice(Invoices $invoice, InvoiceFileService $service): BinaryFileResponse
     {
         try {
