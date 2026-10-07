@@ -45,6 +45,7 @@
                 sidebarFullscreen: false,
                 searchOpen: false,
                 isDesktop: false,
+                desktopBreakpoint: 1024,
                 lastFocus: null,
                 config: config || {},
 
@@ -76,14 +77,29 @@
                     document.body.scrollTop = 0;
                 },
 
+                isDesktopViewport() {
+                    const viewportWidth = document.documentElement.clientWidth || window.innerWidth || 0;
+
+                    return viewportWidth >= this.desktopBreakpoint;
+                },
+
                 syncViewport() {
-                    this.isDesktop = window.matchMedia('(min-width: 1024px)').matches;
-                    this.sidebarOpen = this.isDesktop
-                        ? this.readSidebarPreference()
-                        : false;
-                    this.sidebarFullscreen = this.isDesktop
-                        ? this.readSidebarFullscreenPreference()
-                        : false;
+                    const wasDesktop = this.isDesktop;
+                    const nextIsDesktop = this.isDesktopViewport();
+
+                    this.isDesktop = nextIsDesktop;
+
+                    if (nextIsDesktop) {
+                        if (!wasDesktop) {
+                            this.sidebarOpen = this.readSidebarPreference();
+                            this.sidebarFullscreen = this.readSidebarFullscreenPreference();
+                        }
+
+                        return;
+                    }
+
+                    this.sidebarOpen = false;
+                    this.sidebarFullscreen = false;
                 },
 
                 readSidebarPreference() {
