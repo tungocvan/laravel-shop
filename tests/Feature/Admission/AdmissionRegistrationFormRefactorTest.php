@@ -43,6 +43,7 @@ class AdmissionRegistrationFormRefactorTest extends TestCase
             'quan_he_giam_ho' => 'Cô',
             'ngay_lam_don' => '2026-08-01',
             'noi_sinh_chi_tiet' => 'Bệnh viện A',
+            'so_so_tiem_chung' => 'SSTC-2026-001',
             'ck_goc_hoc_tap' => false,
             'ck_sach_vo' => false,
             'ck_hop_ph' => false,
@@ -57,6 +58,7 @@ class AdmissionRegistrationFormRefactorTest extends TestCase
         $this->assertSame('Cô', $form['QuanHeGiamHo']);
         $this->assertSame('2026-08-01', $form['NgayLamDon']);
         $this->assertSame('Bệnh viện A', $form['NoiSinhChiTiet']);
+        $this->assertSame('SSTC-2026-001', $form['SoSoTiemChung']);
         $this->assertFalse($form['CK_GocHocTap']);
         $this->assertFalse($form['CK_SachVo']);
         $this->assertFalse($form['CK_HopPH']);
@@ -72,6 +74,35 @@ class AdmissionRegistrationFormRefactorTest extends TestCase
         $this->assertStringContainsString('max(1, min($this->totalSteps', $source);
         $this->assertStringContainsString("'form.MaDinhDanh' => ['required', 'digits:12']", $source);
         $this->assertStringContainsString('Rule::in($this->registrationClasses)', $source);
+    }
+
+    public function test_vaccination_book_number_is_wired_through_form_model_and_migration(): void
+    {
+        $formSource = file_get_contents(base_path('Modules/Admission/Livewire/Public/RegistrationForm.php'));
+        $serviceSource = file_get_contents(base_path('Modules/Admission/Services/AdmissionService.php'));
+        $stepFive = file_get_contents(base_path('Modules/Admission/resources/views/livewire/admission/partials/step-5-confirm.blade.php'));
+        $migration = file_get_contents(base_path('Modules/Admission/database/migrations/2026_10_07_160000_add_vaccination_book_number_to_admission_applications_table.php'));
+
+        $this->assertContains('so_so_tiem_chung', (new AdmissionApplication)->getFillable());
+        $this->assertStringContainsString("'SoSoTiemChung' => ''", $formSource);
+        $this->assertStringContainsString("'form.SoSoTiemChung' => ['nullable', 'string', 'max:255']", $formSource);
+        $this->assertStringContainsString("'so_so_tiem_chung' => trim((string) (\$formData['SoSoTiemChung'] ?? '')) ?: null", $serviceSource);
+        $this->assertStringContainsString('wire:model="form.SoSoTiemChung"', $stepFive);
+        $this->assertLessThan(
+            strpos($stepFive, 'Sắp xếp vào lớp'),
+            strpos($stepFive, 'Số sổ tiêm chủng')
+        );
+        $this->assertStringContainsString("string('so_so_tiem_chung')->nullable()->after('nguoi_lam_don')", $migration);
+    }
+
+    public function test_receipt_qr_uses_canonical_search_without_credentials(): void
+    {
+        $source = file_get_contents(base_path('Modules/Admission/Services/AdmissionService.php'));
+        $method = substr($source, strpos($source, 'public function generateBienNhan'));
+
+        $this->assertStringContainsString("\$url = route('admission.search');", $method);
+        $this->assertStringNotContainsString("'password' =>", $method);
+        $this->assertStringNotContainsString("'ma_dinh_danh' =>", $method);
     }
 
     public function test_registration_blade_has_loading_error_and_correct_edit_capability_contracts(): void
