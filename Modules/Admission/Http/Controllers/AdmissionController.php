@@ -130,6 +130,20 @@ class AdmissionController extends Controller
         return view('Admission::pages.public.search');
     }
 
+    public function receiptSearch(AdmissionApplication $application)
+    {
+        abort_unless($application->status === 'approved', 404);
+
+        return view('Admission::pages.public.search', [
+            'receiptPrefill' => [
+                'ma_dinh_danh' => (string) $application->ma_dinh_danh,
+                'password' => $application->ngay_sinh
+                    ? \Carbon\Carbon::parse($application->ngay_sinh)->format('dmY')
+                    : '',
+            ],
+        ]);
+    }
+
     public function legacySearch()
     {
         return redirect()
