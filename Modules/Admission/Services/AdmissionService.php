@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Endroid\QrCode\Builder\Builder;
 use Endroid\QrCode\Writer\PngWriter;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Modules\Admission\Models\AdmissionApplication;
 use PhpOffice\PhpWord\TemplateProcessor;
@@ -333,9 +334,12 @@ class AdmissionService
         // ======================
         // QR URL
         // ======================
-        // Keep credentials out of the QR code. The public search page remains
-        // the canonical entry point and asks the family to enter them explicitly.
-        $url = route('admission.search');
+        // Keep the student's identifier and birth-date password out of the QR URL.
+        // A signed receipt URL resolves the approved application server-side and
+        // pre-fills the canonical search form for the family.
+        $url = URL::signedRoute('admission.search.receipt', [
+            'application' => $app->id,
+        ]);
 
         // ======================
         // GENERATE QR IMAGE
