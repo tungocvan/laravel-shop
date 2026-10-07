@@ -139,6 +139,7 @@ class AdmissionRegistrationService
                 ? $this->normalizeDateForForm($application->ngay_lam_don)
                 : '',
             'NguoiLamDon' => $application->nguoi_lam_don ?? '',
+            'SoSoTiemChung' => $application->so_so_tiem_chung ?? '',
         ];
     }
 
