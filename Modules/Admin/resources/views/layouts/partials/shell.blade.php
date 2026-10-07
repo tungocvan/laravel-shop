@@ -7,10 +7,6 @@
 @endphp
 
 <style>
-    [data-admin-shell] {
-        --admin-sidebar-width: 0px;
-    }
-
     [data-admin-shell] [data-admin-shell-workspace] {
         width: 100%;
         min-width: 0;
@@ -25,10 +21,6 @@
             min-height: 0;
         }
 
-        [data-admin-shell] [data-admin-shell-workspace] {
-            margin-left: var(--admin-sidebar-width);
-            width: calc(100% - var(--admin-sidebar-width));
-        }
     }
 </style>
 
@@ -51,13 +43,6 @@
             persistSidebarFullscreenPreference();
         }
 
-        const sidebarWidth = isDesktop
-            && {{ $sidebarEnabled ? 'true' : 'false' }}
-            && (!sidebarFullscreen || !{{ $fullscreenToggleEnabled ? 'true' : 'false' }})
-                ? (sidebarOpen ? '{{ $adminShellPresentation['sidebar_expanded_width'] }}' : '{{ $adminShellPresentation['sidebar_collapsed_width'] }}')
-                : '0px';
-
-        $el.style.setProperty('--admin-sidebar-width', sidebarWidth);
     "
 >
     @if (!$sidebarEnabled)
@@ -135,6 +120,13 @@
         data-admin-shell-workspace
         class="grid min-h-0 min-w-0 overflow-hidden transition-[margin-left,width] duration-300 ease-out motion-reduce:transition-none"
         style="grid-template-rows: auto minmax(0, 1fr) auto;"
+        :style="isDesktop
+            && {{ $sidebarEnabled ? 'true' : 'false' }}
+            && (!sidebarFullscreen || !{{ $fullscreenToggleEnabled ? 'true' : 'false' }})
+                ? (sidebarOpen
+                    ? 'margin-left: {{ $adminShellPresentation['sidebar_expanded_width'] }}; width: calc(100% - {{ $adminShellPresentation['sidebar_expanded_width'] }});'
+                    : 'margin-left: {{ $adminShellPresentation['sidebar_collapsed_width'] }}; width: calc(100% - {{ $adminShellPresentation['sidebar_collapsed_width'] }});')
+                : 'margin-left: 0px; width: 100%;'"
         :data-admin-sidebar-fullscreen="(isDesktop && sidebarFullscreen && {{ $fullscreenToggleEnabled ? 'true' : 'false' }}) ? 'true' : 'false'"
     >
         <livewire:admin.partials.header />
