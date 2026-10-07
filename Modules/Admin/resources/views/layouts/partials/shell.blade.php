@@ -31,6 +31,14 @@
             width: auto !important;
             margin-left: 0 !important;
         }
+
+        [data-admin-shell][data-admin-sidebar-open="false"] [data-admin-sidebar-disabled-reveal] {
+            display: inline-flex !important;
+        }
+
+        [data-admin-shell][data-admin-sidebar-open="true"] [data-admin-sidebar-disabled-reveal] {
+            display: none !important;
+        }
     }
 </style>
 
@@ -41,6 +49,7 @@
     data-admin-container="{{ $adminShellPresentation['container'] }}"
     data-admin-density="{{ $adminShellPresentation['density'] }}"
     data-admin-reduced-motion="{{ $adminShellPresentation['reduced_motion'] ? 'true' : 'false' }}"
+    :data-admin-sidebar-open="sidebarOpen ? 'true' : 'false'"
     x-init="if (!{{ $sidebarEnabled ? 'true' : 'false' }}) { sidebarOpen = false; sidebarFullscreen = false; }"
     x-effect="
         if ({{ $sidebarEnabled ? 'true' : 'false' }} && isDesktop && !{{ $collapseToggleEnabled ? 'true' : 'false' }} && !sidebarOpen) {
