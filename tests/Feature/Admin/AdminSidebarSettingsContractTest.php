@@ -68,6 +68,11 @@ class AdminSidebarSettingsContractTest extends TestCase
         $this->assertStringContainsString('{{ $footerSubtitle }}', $view);
         $this->assertStringContainsString('data-admin-sidebar-collapse-toggle', $view);
         $this->assertStringContainsString('data-admin-sidebar-fullscreen-enter', $view);
+        $this->assertStringContainsString('x-show="!sidebarFullscreen"', $view);
+        $this->assertStringContainsString('data-admin-sidebar-frame', $view);
+        $this->assertStringContainsString('class="flex h-full min-h-0 w-full flex-col overflow-hidden', $view);
+        $this->assertStringContainsString('data-admin-sidebar-scroll-region', $view);
+        $this->assertStringContainsString('overflow-x-hidden overflow-y-auto overscroll-contain', $view);
         $this->assertStringContainsString("@click=\"{{ \$sidebarEnabled ? 'toggleSidebar(\$event.currentTarget)' : 'sidebarFullscreen = false; sidebarOpen = false' }}\"", $view);
         $this->assertStringContainsString('{{ $sidebarSurfaceClass }}', $view);
     }
