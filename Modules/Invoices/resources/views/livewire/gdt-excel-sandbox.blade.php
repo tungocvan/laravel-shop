@@ -6,21 +6,7 @@
         <div class="border-b border-gray-100 px-5 py-4">
             <h2 class="font-semibold text-gray-900">1. Kết nối GDT</h2>
             <p class="mt-1 text-sm text-gray-500">Tài khoản test đã kết nối thành công được lưu riêng theo admin; mật khẩu được mã hóa bằng khóa ứng dụng và không hiển thị lại trên UI.</p>
-            @if($existingExport)
-        <div class="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/40 p-4" role="dialog" aria-modal="true" aria-labelledby="gdt-existing-export-title">
-            <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
-                <h3 id="gdt-existing-export-title" class="text-lg font-bold text-gray-900">Khoảng thời gian này đã được đồng bộ</h3>
-                <p class="mt-2 text-sm leading-6 text-gray-600">Hệ thống đã có file Excel cho đúng MST, loại hóa đơn và khoảng ngày bạn chọn. Để tránh tạo file trùng, hãy dùng file hiện có hoặc xóa file trước khi đồng bộ mới.</p>
-                <div class="mt-4 rounded-xl bg-gray-50 p-3 text-sm"><p class="font-semibold text-gray-800">{{ $existingExport['filename'] }}</p><p class="mt-1 text-gray-500">Tạo lúc {{ $existingExport['modified_at'] }}</p></div>
-                <div class="mt-5 flex flex-wrap justify-end gap-2">
-                    <button type="button" wire:click="closeExistingExportModal" class="h-10 rounded-xl border border-gray-300 px-4 text-sm font-semibold text-gray-700">Đóng</button>
-                    <button type="button" wire:click="download(@js($existingExport['tax_code']), @js($existingExport['filename']))" class="h-10 rounded-xl border border-indigo-200 px-4 text-sm font-semibold text-indigo-700">Download file hiện có</button>
-                    <button type="button" wire:click="deleteFile(@js($existingExport['tax_code']), @js($existingExport['filename']))" wire:confirm="Xóa file hiện có để có thể đồng bộ lại?" class="h-10 rounded-xl bg-red-600 px-4 text-sm font-semibold text-white">Xóa file</button>
-                </div>
-            </div>
         </div>
-    @endif
-</div>
         @if ($connectedTaxCode)
             <div class="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
                 <div><p class="text-sm text-gray-500">Đang kết nối MST</p><p class="font-semibold text-emerald-700">{{ $connectedTaxCode }}</p></div>
@@ -74,4 +60,19 @@
             <tbody class="divide-y divide-gray-100">@forelse($files as $file)<tr><td class="px-5 py-3 font-medium">{{ $file['tax_code'] }}</td><td class="px-5 py-3">{{ $file['filename'] }}</td><td class="px-5 py-3 text-gray-500">{{ $file['modified_at'] }}</td><td class="px-5 py-3"><div class="flex justify-end gap-3"><button type="button" wire:click="download(@js($file['tax_code']), @js($file['filename']))" class="font-semibold text-indigo-600 hover:text-indigo-800">Download</button><button type="button" wire:click="deleteFile(@js($file['tax_code']), @js($file['filename']))" wire:confirm="Xóa file Excel này khỏi server?" class="font-semibold text-red-600 hover:text-red-800">Xóa</button></div></td></tr>@empty<tr><td colspan="4" class="px-5 py-10 text-center text-gray-500">Chưa có file test.</td></tr>@endforelse</tbody></table>
         </div>
     </section>
+
+    @if($existingExport)
+        <div class="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/40 p-4" role="dialog" aria-modal="true" aria-labelledby="gdt-existing-export-title">
+            <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
+                <h3 id="gdt-existing-export-title" class="text-lg font-bold text-gray-900">Khoảng thời gian này đã được đồng bộ</h3>
+                <p class="mt-2 text-sm leading-6 text-gray-600">Hệ thống đã có file Excel cho đúng MST, loại hóa đơn và khoảng ngày bạn chọn. Để tránh tạo file trùng, hãy dùng file hiện có hoặc xóa file trước khi đồng bộ mới.</p>
+                <div class="mt-4 rounded-xl bg-gray-50 p-3 text-sm"><p class="font-semibold text-gray-800">{{ $existingExport['filename'] }}</p><p class="mt-1 text-gray-500">Tạo lúc {{ $existingExport['modified_at'] }}</p></div>
+                <div class="mt-5 flex flex-wrap justify-end gap-2">
+                    <button type="button" wire:click="closeExistingExportModal" class="h-10 rounded-xl border border-gray-300 px-4 text-sm font-semibold text-gray-700">Đóng</button>
+                    <button type="button" wire:click="download(@js($existingExport['tax_code']), @js($existingExport['filename']))" class="h-10 rounded-xl border border-indigo-200 px-4 text-sm font-semibold text-indigo-700">Download file hiện có</button>
+                    <button type="button" wire:click="deleteFile(@js($existingExport['tax_code']), @js($existingExport['filename']))" wire:confirm="Xóa file hiện có để có thể đồng bộ lại?" class="h-10 rounded-xl bg-red-600 px-4 text-sm font-semibold text-white">Xóa file</button>
+                </div>
+            </div>
+        </div>
+    @endif
 </div>
