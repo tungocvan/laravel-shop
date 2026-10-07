@@ -57,6 +57,8 @@ class AdminSidebarSettingsContractTest extends TestCase
             $this->assertStringContainsString($contract, $component);
         }
 
+        $this->assertStringContainsString('public bool $sidebarEnabled = true;', $component);
+        $this->assertStringContainsString("data_get(\$layoutConfig, 'sidebar.enabled', true)", $component);
         $this->assertStringContainsString('$searchEnabled && $this->destinationCount >= $searchThreshold', $component);
         $this->assertStringContainsString('@if ($showSidebarHeader)', $view);
         $this->assertStringContainsString('@if ($showSidebarFooter)', $view);
