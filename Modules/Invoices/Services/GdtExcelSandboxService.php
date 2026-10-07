@@ -84,7 +84,25 @@ final class GdtExcelSandboxService
 
         $from = Carbon::parse($fromDate);
         $to = Carbon::parse($toDate);
-        $rows = $this->fetchAll((string) $session['token'], $from, $to, $type);
+        $rows = [];
+        $cursor = $from->copy();
+
+        // Keep the sandbox query contract identical to the proven /admin/invoices/hoadon
+        // synchronizer: GDT is queried month-by-month, then each month is paginated by state.
+        // A single multi-month query can be rejected by GDT with HTTP 400.
+        while ($cursor->lte($to)) {
+            $chunkStart = $cursor->copy();
+            $monthEnd = $cursor->copy()->endOfMonth();
+            $chunkEnd = $monthEnd->lt($to) ? $monthEnd : $to->copy();
+
+            $rows = array_merge(
+                $rows,
+                $this->fetchMonth((string) $session['token'], $chunkStart, $chunkEnd, $type),
+            );
+
+            $cursor = $chunkEnd->copy()->addDay();
+        }
+
         if ($rows === []) {
             return ['count' => 0, 'filename' => null];
         }
@@ -133,7 +151,7 @@ final class GdtExcelSandboxService
         return $path;
     }
 
-    private function fetchAll(string $token, Carbon $from, Carbon $to, string $type): array
+    private function fetchMonth(string $token, Carbon $from, Carbon $to, string $type): array
     {
         $search = "tdlap=ge={$from->format('d/m/Y')}T00:00:00;tdlap=le={$to->format('d/m/Y')}T23:59:59";
         $state = null;
@@ -160,8 +178,8 @@ final class GdtExcelSandboxService
             $state = $next && $next !== $state ? $next : null;
         } while ($state && $items && count($rows) < $total);
 
-        if ($total !== null && count($rows) < $total) {
-            throw new RuntimeException('GDT trả thiếu dữ liệu; không tạo file Excel thiếu.');
+        if ($total !== null && count($rows) !== $total) {
+            throw new RuntimeException("GDT trả thiếu dữ liệu trong tháng {$from->format('m/Y')}: nhận ".count($rows)."/{$total} hóa đơn; không tạo file Excel thiếu.");
         }
 
         return $rows;
