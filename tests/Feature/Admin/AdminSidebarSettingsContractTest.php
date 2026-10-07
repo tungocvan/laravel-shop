@@ -35,7 +35,7 @@ class AdminSidebarSettingsContractTest extends TestCase
         $this->assertStringContainsString("'collapse_enabled' =>", $manager);
         $this->assertStringContainsString("'fullscreen_enabled' =>", $manager);
         $this->assertStringContainsString("'title' => \$this->nullableString(data_get(\$sidebar, 'header.title'))", $manager);
-        $this->assertStringContainsString("$legacy = ['system' => 'light', 'white' => 'light']", $manager);
+        $this->assertStringContainsString("\$legacy = ['system' => 'light', 'white' => 'light']", $manager);
         $this->assertStringContainsString("['theme', 'light', 'dark', 'custom']", $manager);
     }
 
@@ -103,6 +103,6 @@ class AdminSidebarSettingsContractTest extends TestCase
         $this->assertStringContainsString('wire:model.live="config.sidebar.header.enabled"', $view);
         $this->assertStringContainsString('wire:model.live="config.sidebar.footer.enabled"', $view);
         $this->assertStringContainsString('wire:model.live="config.sidebar.search.enabled"', $view);
-        $this->assertStringContainsString('wire:model.live="config.sidebar.presentation.background"', $view);
+        $this->assertStringContainsString('wire:model="config.sidebar.presentation.background"', $view);
     }
 }
