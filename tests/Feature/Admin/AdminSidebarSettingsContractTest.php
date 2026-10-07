@@ -66,6 +66,7 @@ class AdminSidebarSettingsContractTest extends TestCase
         $this->assertStringContainsString('{{ $footerSubtitle }}', $view);
         $this->assertStringContainsString('data-admin-sidebar-collapse-toggle', $view);
         $this->assertStringContainsString('data-admin-sidebar-fullscreen-enter', $view);
+        $this->assertStringContainsString("@click=\"{{ \$sidebarEnabled ? 'toggleSidebar(\$event.currentTarget)' : 'sidebarFullscreen = false; sidebarOpen = false' }}\"", $view);
         $this->assertStringContainsString('{{ $sidebarSurfaceClass }}', $view);
     }
 
