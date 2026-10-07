@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Endroid\QrCode\Builder\Builder;
 use Endroid\QrCode\Writer\PngWriter;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Modules\Admission\Models\AdmissionApplication;
 use PhpOffice\PhpWord\TemplateProcessor;
@@ -154,6 +155,7 @@ class AdmissionService
             'ck_gan_gui' => filter_var($formData['CK_GanGui'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 1 : 0,
             'ngay_lam_don' => ! empty($formData['NgayLamDon']) ? Carbon::parse($formData['NgayLamDon'])->format('Y-m-d') : date('Y-m-d'),
             'nguoi_lam_don' => $formData['NguoiLamDon'] === '' ? $formData['HoTenMe'] : $formData['NguoiLamDon'],
+            'so_so_tiem_chung' => trim((string) ($formData['SoSoTiemChung'] ?? '')) ?: null,
             'lop' => $formData['Lop'] ?? '',
             'gvcn' => $formData['Gvcn'] ?? '',
             'bao_mau' => $formData['BaoMau'] ?? '',
@@ -332,12 +334,12 @@ class AdmissionService
         // ======================
         // QR URL
         // ======================
-        $url = route('admission.search', array_filter([
-            'ma_dinh_danh' => $app->ma_dinh_danh ?? null,
-            'password' => $app->ngay_sinh
-                ? Carbon::parse($app->ngay_sinh)->format('dmY')
-                : null,
-        ]));
+        // Keep the student's identifier and birth-date password out of the QR URL.
+        // A signed receipt URL resolves the approved application server-side and
+        // pre-fills the canonical search form for the family.
+        $url = URL::signedRoute('admission.search.receipt', [
+            'application' => $app->id,
+        ]);
 
         // ======================
         // GENERATE QR IMAGE

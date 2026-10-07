@@ -23,6 +23,14 @@
         @enderror
     </div>
 
+    <div>
+        <label class="text-sm font-medium">Số sổ tiêm chủng</label>
+        <input wire:model="form.SoSoTiemChung" class="w-full rounded-xl border border-gray-300 px-4 py-3">
+        @error('form.SoSoTiemChung')
+            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+        @enderror
+    </div>
+
     @if ($isEdit)
         @can('edit_admission')
             <div class="space-y-4 border-t pt-6">

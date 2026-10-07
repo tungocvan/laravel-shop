@@ -88,6 +88,7 @@ class AdmissionApplication extends Model
         'ck_gan_gui',
         'ngay_lam_don',
         'nguoi_lam_don',
+        'so_so_tiem_chung',
         // Bước 6: sắp xếp lớp
         'lop',
         'gvcn',
@@ -115,11 +116,16 @@ class AdmissionApplication extends Model
          */
         static::updating(function ($model) {
             $originalStatus = $model->getOriginal('status');
+            $dirtyFields = array_keys($model->getDirty());
+            $statusPreservingFields = ['so_so_tiem_chung'];
+            $onlyStatusPreservingFieldsChanged = $dirtyFields !== []
+                && empty(array_diff($dirtyFields, $statusPreservingFields));
 
             if (
                 in_array($originalStatus, ['approved', 'rejected']) &&
                 $model->isDirty() &&
-                ! $model->isDirty('status')
+                ! $model->isDirty('status') &&
+                ! $onlyStatusPreservingFieldsChanged
             ) {
                 $model->status = 'pending';
 

@@ -18,7 +18,10 @@
                     </div>
                 @endif
 
-                <livewire:admission.search />
+                <livewire:admission.search
+                    :ma-dinh-danh="$receiptPrefill['ma_dinh_danh'] ?? ''"
+                    :password="$receiptPrefill['password'] ?? ''"
+                />
             </div>
         </div>
     </div>

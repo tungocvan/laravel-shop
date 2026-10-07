@@ -8,6 +8,9 @@ Route::middleware(['web'])
     ->name('admission.')
     ->group(function () {
         Route::get('/search', [AdmissionController::class, 'search'])->name('search');
+        Route::get('/search/receipt/{application}', [AdmissionController::class, 'receiptSearch'])
+            ->middleware('signed')
+            ->name('search.receipt');
         Route::get('/search/{ma_dinh_danh}/{password}', [AdmissionController::class, 'legacySearch'])
             ->name('search.legacy');
     });

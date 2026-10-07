@@ -114,6 +114,7 @@ class RegistrationForm extends Component
         'SchoolCampusAddress' => '',
         'NgayLamDon' => '',
         'NguoiLamDon' => '',
+        'SoSoTiemChung' => '',
     ];
 
     public function mount($id = null): void
@@ -223,6 +224,7 @@ class RegistrationForm extends Component
             'form.SchoolCampusAddress' => ['nullable', 'required_with:form.SchoolCampusName', 'string', 'max:500'],
             'form.NgayLamDon' => ['nullable', 'date'],
             'form.NguoiLamDon' => ['nullable', 'string', 'max:255'],
+            'form.SoSoTiemChung' => ['nullable', 'string', 'max:255'],
         ];
     }
 
@@ -424,6 +426,7 @@ class RegistrationForm extends Component
             'form.SchoolCampusAddress' => 'Địa chỉ cơ sở trường',
             'form.NgayLamDon' => 'Ngày làm đơn',
             'form.NguoiLamDon' => 'Người làm đơn',
+            'form.SoSoTiemChung' => 'Số sổ tiêm chủng',
             'form.DienThoaiCha' => 'Điện thoại cha',
             'form.DienThoaiMe' => 'Điện thoại mẹ',
             'form.DienThoaiNguoiGiamHo' => 'Điện thoại người giám hộ',
@@ -476,7 +479,7 @@ class RegistrationForm extends Component
             2 => ['TTSN', 'TTD', 'TTKP', 'TTPX', 'TTTTP', 'HTSN', 'HTD', 'HTKP', 'HTPX', 'HTTTP'],
             3 => ['OChungVoi', 'QuanHeNguoiNuoiDuong', 'ConThu', 'TSAnhChiEm', 'HoanThanhLopLa', 'TruongMamNon', 'KhaNangHocSinh', 'SucKhoeCanLuuY', 'SucKhoeKhac'],
             4 => ['HoTenCha', 'NamSinhCha', 'TdvhCha', 'TdcmCha', 'NgheNghiepCha', 'ChucVuCha', 'DienThoaiCha', 'CCCDCha', 'HoTenMe', 'NamSinhMe', 'TdvhMe', 'TdcmMe', 'NgheNghiepMe', 'ChucVuMe', 'DienThoaiMe', 'CCCDMe', 'HoTenNguoiGiamHo', 'QuanHeGiamHo', 'DienThoaiGiamHo', 'CCCDGiamHo'],
-            5 => ['LoaiLopDangKy', 'CK_GocHocTap', 'CK_SachVo', 'CK_HopPH', 'CK_ThamGiaHD', 'CK_GanGui', 'Lop', 'Gvcn', 'BaoMau', 'SchoolCampusName', 'SchoolCampusAddress', 'NgayLamDon', 'NguoiLamDon'],
+            5 => ['LoaiLopDangKy', 'CK_GocHocTap', 'CK_SachVo', 'CK_HopPH', 'CK_ThamGiaHD', 'CK_GanGui', 'Lop', 'Gvcn', 'BaoMau', 'SchoolCampusName', 'SchoolCampusAddress', 'NgayLamDon', 'NguoiLamDon', 'SoSoTiemChung'],
             default => [],
         };
 
