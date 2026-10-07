@@ -82,6 +82,8 @@ class AdminSidebarSettingsContractTest extends TestCase
         $this->assertStringContainsString("width: calc(100% - {{ \$adminShellPresentation['sidebar_expanded_width'] }})", $shell);
         $this->assertStringContainsString("width: calc(100% - {{ \$adminShellPresentation['sidebar_collapsed_width'] }})", $shell);
         $this->assertStringContainsString("'margin-left: 0; width: 100%'", $shell);
+        $this->assertStringContainsString('flex-none flex-col overflow-hidden transition-[margin,width]', $shell);
+        $this->assertStringNotContainsString('flex-1 flex-col overflow-hidden transition-[margin,width]', $shell);
 
         $header = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/header.blade.php'));
         $this->assertStringContainsString("\$headerSidebarEnabled = (bool) data_get(app(\\Modules\\Admin\\Support\\AdminLayoutManager::class)->config(), 'sidebar.enabled', true);", $header);
