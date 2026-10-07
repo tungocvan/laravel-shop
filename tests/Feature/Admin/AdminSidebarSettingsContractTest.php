@@ -103,7 +103,8 @@ class AdminSidebarSettingsContractTest extends TestCase
         $this->assertStringContainsString('wire:model.live="config.sidebar.header.enabled"', $view);
         $this->assertStringContainsString('wire:model.live="config.sidebar.footer.enabled"', $view);
         $this->assertStringContainsString('wire:model.live="config.sidebar.search.enabled"', $view);
-        $this->assertStringContainsString('wire:model="config.sidebar.presentation.background"', $view);
+        $this->assertStringContainsString("\$wire.set('config.sidebar.presentation.background', mode)", $view);
+        $this->assertStringNotContainsString('wire:model="config.sidebar.presentation.background"', $view);
         $this->assertStringContainsString('Không thể lưu Sidebar', $view);
         $this->assertStringContainsString('$errors->all()', $view);
         $this->assertStringContainsString('role="dialog"', $view);
