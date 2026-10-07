@@ -23,6 +23,7 @@ class Sidebar extends Component
     public int $menuCount = 0;
     public int $destinationCount = 0;
     public bool $showNavigationSearch = false;
+    public bool $sidebarEnabled = true;
     public bool $desktopCollapsible = true;
     public bool $showCollapseControl = true;
     public bool $showFullscreenControl = true;
@@ -91,6 +92,7 @@ class Sidebar extends Component
     private function applyPresentation(ThemeManager $themeManager, array $layoutConfig): void
     {
         $this->theme = $themeManager->get((string) data_get($layoutConfig, 'theme.default', 'corporate-blue'));
+        $this->sidebarEnabled = (bool) data_get($layoutConfig, 'sidebar.enabled', true);
         $this->desktopCollapsible = (bool) data_get($layoutConfig, 'sidebar.desktop_collapsible', true);
         $this->showCollapseControl = (bool) data_get($layoutConfig, 'sidebar.controls.collapse_enabled', true);
         $this->showFullscreenControl = (bool) data_get($layoutConfig, 'sidebar.controls.fullscreen_enabled', true);
