@@ -154,6 +154,7 @@ class AdmissionService
             'ck_gan_gui' => filter_var($formData['CK_GanGui'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 1 : 0,
             'ngay_lam_don' => ! empty($formData['NgayLamDon']) ? Carbon::parse($formData['NgayLamDon'])->format('Y-m-d') : date('Y-m-d'),
             'nguoi_lam_don' => $formData['NguoiLamDon'] === '' ? $formData['HoTenMe'] : $formData['NguoiLamDon'],
+            'so_so_tiem_chung' => trim((string) ($formData['SoSoTiemChung'] ?? '')) ?: null,
             'lop' => $formData['Lop'] ?? '',
             'gvcn' => $formData['Gvcn'] ?? '',
             'bao_mau' => $formData['BaoMau'] ?? '',
@@ -332,12 +333,9 @@ class AdmissionService
         // ======================
         // QR URL
         // ======================
-        $url = route('admission.search', array_filter([
-            'ma_dinh_danh' => $app->ma_dinh_danh ?? null,
-            'password' => $app->ngay_sinh
-                ? Carbon::parse($app->ngay_sinh)->format('dmY')
-                : null,
-        ]));
+        // Keep credentials out of the QR code. The public search page remains
+        // the canonical entry point and asks the family to enter them explicitly.
+        $url = route('admission.search');
 
         // ======================
         // GENERATE QR IMAGE
