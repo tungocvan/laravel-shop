@@ -101,7 +101,17 @@ class AdminSidebarSettingsContractTest extends TestCase
         $this->assertStringNotContainsString('headerSidebarExpandedWidth', $header);
         $this->assertStringNotContainsString('headerSidebarCollapsedWidth', $header);
         $this->assertStringNotContainsString('paddingLeft: sidebarOpen', $header);
-        $this->assertStringContainsString('style="padding-inline: {{ $adminShellPresentation[\'header_padding_x\'] }};"', $header);
+        $this->assertStringContainsString('data-admin-header-grid', $header);
+        $this->assertStringContainsString('grid-template-columns: minmax(0, 1fr) auto;', $header);
+        $this->assertStringContainsString('data-admin-header-left', $header);
+        $this->assertStringContainsString('grid-template-columns: repeat(2, max-content) minmax(0, 1fr);', $header);
+        $this->assertStringContainsString('data-admin-header-right', $header);
+        $this->assertStringContainsString("padding-inline: {{ \$adminShellPresentation['header_padding_x'] }};", $header);
+
+        $search = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/header/components/search.blade.php'));
+        $this->assertStringContainsString('data-admin-header-search-column', $search);
+        $this->assertStringContainsString('class="hidden min-w-0 w-full lg:block"', $search);
+        $this->assertStringNotContainsString('hidden min-w-0 flex-1 lg:block', $search);
     }
 
     public function test_sidebar_settings_use_dedicated_professional_editor_and_live_preview(): void
