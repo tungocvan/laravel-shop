@@ -6,19 +6,69 @@
     $adminShellPresentation = app(\Modules\Admin\Services\AdminShellPresentationService::class)->context();
 @endphp
 
+<style>
+    [data-admin-shell-workspace] {
+        min-width: 0;
+    }
+
+    @media (min-width: 1024px) {
+        [data-admin-shell] {
+            display: grid;
+            grid-template-columns: var(--admin-sidebar-track, 0px) minmax(0, 1fr);
+            transition: grid-template-columns 300ms ease-out;
+        }
+
+        [data-admin-shell-sidebar] {
+            position: relative !important;
+            inset: auto !important;
+            width: 100% !important;
+            min-width: 0;
+            grid-column: 1;
+        }
+
+        [data-admin-shell-workspace] {
+            grid-column: 2;
+            width: auto !important;
+            margin-left: 0 !important;
+        }
+
+    }
+</style>
+
 <div
-    class="flex min-h-0 h-full overflow-hidden antialiased"
-    style="height: 100dvh; {{ $adminShellPresentation['shell_style'] }}; background-color: var(--admin-page-background); color: var(--admin-text-primary); font-family: var(--admin-font-family); font-size: var(--admin-font-size-body);"
+    data-admin-shell
+    class="relative min-h-0 h-full overflow-hidden antialiased"
+    style="height: 100dvh; --admin-sidebar-track: 0px; {{ $adminShellPresentation['shell_style'] }}; background-color: var(--admin-page-background); color: var(--admin-text-primary); font-family: var(--admin-font-family); font-size: var(--admin-font-size-body);"
     data-admin-container="{{ $adminShellPresentation['container'] }}"
     data-admin-density="{{ $adminShellPresentation['density'] }}"
     data-admin-reduced-motion="{{ $adminShellPresentation['reduced_motion'] ? 'true' : 'false' }}"
-    x-effect="if (isDesktop && !{{ $collapseToggleEnabled ? 'true' : 'false' }} && !sidebarOpen) { sidebarOpen = true; persistSidebarPreference(); } if (!{{ $fullscreenToggleEnabled ? 'true' : 'false' }} && sidebarFullscreen) { sidebarFullscreen = false; persistSidebarFullscreenPreference(); }"
+    x-init="if (!{{ $sidebarEnabled ? 'true' : 'false' }}) { sidebarOpen = false; sidebarFullscreen = false; }"
+    x-effect="
+        if ({{ $sidebarEnabled ? 'true' : 'false' }} && isDesktop && !{{ $collapseToggleEnabled ? 'true' : 'false' }} && !sidebarOpen) {
+            sidebarOpen = true;
+            persistSidebarPreference();
+        }
+
+        if (!{{ $fullscreenToggleEnabled ? 'true' : 'false' }} && sidebarFullscreen) {
+            sidebarFullscreen = false;
+            persistSidebarFullscreenPreference();
+        }
+
+        $el.style.setProperty(
+            '--admin-sidebar-track',
+            isDesktop
+                && (!sidebarFullscreen || !{{ $fullscreenToggleEnabled ? 'true' : 'false' }})
+                && ({{ $sidebarEnabled ? 'true' : 'false' }} || sidebarOpen)
+                    ? (sidebarOpen ? '{{ $adminShellPresentation['sidebar_expanded_width'] }}' : '{{ $adminShellPresentation['sidebar_collapsed_width'] }}')
+                    : '0px'
+        );
+    "
 >
     @if ($sidebarEnabled && $fullscreenToggleEnabled)
         <button
             type="button"
             x-cloak
-            x-show="isDesktop && sidebarFullscreen"
+            x-show.important="isDesktop && sidebarFullscreen"
             @click="toggleSidebarFullscreen($event.currentTarget)"
             class="fixed left-3 top-3 z-[70] hidden h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white/95 text-slate-600 shadow-md shadow-slate-950/10 backdrop-blur transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 lg:inline-flex"
             aria-controls="admin-sidebar"
@@ -42,34 +92,34 @@
             aria-hidden="true"
             @click="closeSidebar()"
         ></div>
+    @endif
 
         <div
             id="admin-sidebar"
+            data-admin-shell-sidebar
             x-ref="sidebarPanel"
-            x-show="!isDesktop || !sidebarFullscreen || !{{ $fullscreenToggleEnabled ? 'true' : 'false' }}"
+            x-show="{{ $sidebarEnabled ? 'true' : 'false' }} ? (!isDesktop || !sidebarFullscreen || !{{ $fullscreenToggleEnabled ? 'true' : 'false' }}) : (sidebarOpen && !sidebarFullscreen)"
             x-transition.opacity.duration.150ms
             :role="isDesktop ? 'complementary' : 'dialog'"
             aria-label="Admin navigation"
             :aria-modal="(!isDesktop && sidebarOpen).toString()"
             @keydown.tab="trapFocus($event, $refs.sidebarPanel)"
-            class="fixed inset-y-0 left-0 z-50 shadow-xl shadow-slate-950/5 transition-[transform,width,opacity] duration-300 ease-out motion-reduce:transition-none lg:shadow-none"
+            class="fixed inset-y-0 left-0 z-50 min-h-0 overflow-hidden shadow-xl shadow-slate-950/5 transition-[transform,width,opacity] duration-300 ease-out motion-reduce:transition-none lg:h-full lg:min-h-0 lg:shadow-none"
             style="background-color: var(--admin-surface-raised);"
             :style="sidebarOpen
                 ? 'width: {{ $adminShellPresentation['sidebar_expanded_width'] }}'
                 : 'width: {{ $adminShellPresentation['sidebar_collapsed_width'] }}'"
-            :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
+            :class="isDesktop
+                ? 'translate-x-0'
+                : (sidebarOpen ? 'translate-x-0' : '-translate-x-full')"
         >
             <livewire:admin.partials.sidebar />
         </div>
-    @endif
 
     <div
-        class="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden transition-[margin] duration-300 ease-out motion-reduce:transition-none"
-        :style="({{ $sidebarEnabled ? 'true' : 'false' }} && isDesktop && (!sidebarFullscreen || !{{ $fullscreenToggleEnabled ? 'true' : 'false' }}))
-            ? (sidebarOpen
-                ? 'margin-left: {{ $adminShellPresentation['sidebar_expanded_width'] }}'
-                : 'margin-left: {{ $adminShellPresentation['sidebar_collapsed_width'] }}')
-            : 'margin-left: 0'"
+        data-admin-shell-workspace
+        class="grid min-h-0 min-w-0 overflow-hidden"
+        style="grid-template-rows: auto minmax(0, 1fr) auto;"
         :data-admin-sidebar-fullscreen="(isDesktop && sidebarFullscreen && {{ $fullscreenToggleEnabled ? 'true' : 'false' }}) ? 'true' : 'false'"
     >
         <livewire:admin.partials.header />

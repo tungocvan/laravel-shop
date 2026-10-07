@@ -11,7 +11,7 @@
     </svg>
 </button>
 
-<div class="hidden min-w-0 flex-1 lg:block">
+<div class="hidden min-w-0 w-full lg:block" data-admin-header-search-column>
     <div class="w-full max-w-lg">
         @livewire('admin.partials.header-search')
     </div>

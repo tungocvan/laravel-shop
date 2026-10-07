@@ -20,6 +20,9 @@ class AdminLayoutConfig extends Component
         abort_unless(in_array($section, $this->sections(), true), 404);
         $this->section = $section;
         $this->config = $manager->config();
+        if ($section === 'sidebar') {
+            data_set($this->config, 'sidebar.presentation.background', $this->sidebarBackgroundMode(data_get($this->config, 'sidebar.presentation.background')));
+        }
         $this->themes = $themeManager->all();
 
         if ($section === 'header' && count((array) data_get($this->config, 'header.user_menu_config.items', [])) === 0) {
@@ -123,6 +126,15 @@ class AdminLayoutConfig extends Component
         return match (true) { str_contains($icon, 'user') => 'user', str_contains($icon, 'gear'), str_contains($icon, 'cog') => 'gear', str_contains($icon, 'lock') => 'lock', str_contains($icon, 'key') => 'key', str_contains($icon, 'shield') => 'shield', default => 'link' };
     }
 
+    private function sidebarBackgroundMode(mixed $value): string
+    {
+        return match ((string) $value) {
+            'system', 'white' => 'light',
+            'theme', 'light', 'dark', 'custom' => (string) $value,
+            default => 'theme',
+        };
+    }
+
     private function rules(): array
     {
         $spacing = 'required|in:0,1,2,3,4,5,6,8,10,12';
@@ -149,7 +161,7 @@ class AdminLayoutConfig extends Component
                 'config.sidebar.controls.collapse_enabled' => 'boolean', 'config.sidebar.controls.fullscreen_enabled' => 'boolean',
                 'config.sidebar.header.enabled' => 'boolean', 'config.sidebar.header.show_mark' => 'boolean', 'config.sidebar.header.show_title' => 'boolean', 'config.sidebar.header.title' => 'nullable|string|max:80', 'config.sidebar.header.show_subtitle' => 'boolean', 'config.sidebar.header.subtitle' => 'required|string|max:80',
                 'config.sidebar.footer.enabled' => 'boolean', 'config.sidebar.footer.show_avatar' => 'boolean', 'config.sidebar.footer.show_name' => 'boolean', 'config.sidebar.footer.show_subtitle' => 'boolean', 'config.sidebar.footer.subtitle' => 'required|string|max:80',
-                'config.sidebar.search.enabled' => 'boolean', 'config.sidebar.presentation.background' => 'required|in:theme,light,dark,custom', 'config.sidebar.presentation.custom_background' => $hex, 'config.sidebar.presentation.custom_accent' => $hex,
+                'config.sidebar.search.enabled' => 'boolean', 'config.sidebar.presentation.background' => 'required|in:theme,light,dark,custom', 'config.sidebar.presentation.custom_background' => ['exclude_unless:config.sidebar.presentation.background,custom', 'required', 'regex:/^#[0-9A-Fa-f]{6}$/'], 'config.sidebar.presentation.custom_accent' => ['exclude_unless:config.sidebar.presentation.background,custom', 'required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             ],
             'footer' => [
                 'config.layout.show_footer' => 'boolean', 'config.footer.show_app_name' => 'boolean', 'config.footer.copyright.enabled' => 'boolean', 'config.footer.copyright.owner' => 'nullable|string|max:120', 'config.footer.copyright.url' => 'nullable|string|max:255', 'config.footer.copyright.start_year' => 'nullable|integer|min:1900|max:'.date('Y'),

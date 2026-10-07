@@ -35,7 +35,8 @@ class AdminSidebarSettingsContractTest extends TestCase
         $this->assertStringContainsString("'collapse_enabled' =>", $manager);
         $this->assertStringContainsString("'fullscreen_enabled' =>", $manager);
         $this->assertStringContainsString("'title' => \$this->nullableString(data_get(\$sidebar, 'header.title'))", $manager);
-        $this->assertStringContainsString("['theme', 'system', 'white', 'dark']", $manager);
+        $this->assertStringContainsString("\$legacy = ['system' => 'light', 'white' => 'light']", $manager);
+        $this->assertStringContainsString("['theme', 'light', 'dark', 'custom']", $manager);
     }
 
     public function test_sidebar_runtime_consumes_managed_regions_title_controls_and_search_policy(): void
@@ -50,13 +51,14 @@ class AdminSidebarSettingsContractTest extends TestCase
             'sidebar.header.title',
             'sidebar.footer.enabled',
             'sidebar.search.enabled',
-            'sidebar.presentation.background',
             'sidebar.controls.collapse_enabled',
             'sidebar.controls.fullscreen_enabled',
         ] as $contract) {
             $this->assertStringContainsString($contract, $component);
         }
 
+        $this->assertStringContainsString('public bool $sidebarEnabled = true;', $component);
+        $this->assertStringContainsString("data_get(\$layoutConfig, 'sidebar.enabled', true)", $component);
         $this->assertStringContainsString('$searchEnabled && $this->destinationCount >= $searchThreshold', $component);
         $this->assertStringContainsString('@if ($showSidebarHeader)', $view);
         $this->assertStringContainsString('@if ($showSidebarFooter)', $view);
@@ -66,7 +68,82 @@ class AdminSidebarSettingsContractTest extends TestCase
         $this->assertStringContainsString('{{ $footerSubtitle }}', $view);
         $this->assertStringContainsString('data-admin-sidebar-collapse-toggle', $view);
         $this->assertStringContainsString('data-admin-sidebar-fullscreen-enter', $view);
+        $this->assertStringContainsString('x-show="!sidebarFullscreen"', $view);
+        $this->assertStringContainsString('data-admin-sidebar-frame', $view);
+        $this->assertStringContainsString('class="flex h-full min-h-0 w-full flex-col overflow-hidden', $view);
+        $this->assertStringContainsString('data-admin-sidebar-scroll-region', $view);
+        $this->assertStringContainsString('overflow-x-hidden overflow-y-auto overscroll-contain', $view);
+        $this->assertStringContainsString("@click=\"{{ \$sidebarEnabled ? 'toggleSidebar(\$event.currentTarget)' : 'sidebarFullscreen = false; sidebarOpen = false' }}\"", $view);
         $this->assertStringContainsString('{{ $sidebarSurfaceClass }}', $view);
+    }
+
+    public function test_disabled_sidebar_keeps_a_desktop_reveal_control_and_canonical_grid_runtime(): void
+    {
+        $shell = file_get_contents(base_path('Modules/Admin/resources/views/layouts/partials/shell.blade.php'));
+        $header = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/header.blade.php'));
+        $headerComponent = file_get_contents(base_path('Modules/Admin/Livewire/Partials/Header.php'));
+
+        $this->assertStringContainsString('data-admin-sidebar-disabled-reveal', $header);
+        $this->assertStringContainsString('aria-label="Mở Sidebar"', $header);
+        $this->assertStringContainsString('sidebarFullscreen = false; sidebarOpen = true', $header);
+        $this->assertStringContainsString('x-show.important="isDesktop && !sidebarOpen"', $header);
+        $this->assertStringNotContainsString('data-admin-sidebar-open', $shell);
+        $this->assertStringContainsString('public bool $sidebarEnabled = true;', $headerComponent);
+        $this->assertStringContainsString("data_get(\$layoutManager->config(), 'sidebar.enabled', true)", $headerComponent);
+        $this->assertStringContainsString("if (!{{ \$sidebarEnabled ? 'true' : 'false' }}) { sidebarOpen = false; sidebarFullscreen = false; }", $shell);
+        $this->assertStringContainsString(": (sidebarOpen && !sidebarFullscreen)", $shell);
+
+        $this->assertStringContainsString('data-admin-shell', $shell);
+        $this->assertStringContainsString('[data-admin-shell] {', $shell);
+        $this->assertStringContainsString('display: grid;', $shell);
+        $this->assertStringContainsString('grid-template-columns: var(--admin-sidebar-track, 0px) minmax(0, 1fr);', $shell);
+        $this->assertStringContainsString('[data-admin-shell-sidebar] {', $shell);
+        $this->assertStringContainsString('position: relative !important;', $shell);
+        $this->assertStringContainsString('grid-column: 1;', $shell);
+        $this->assertStringContainsString('[data-admin-shell-workspace] {', $shell);
+        $this->assertStringContainsString('grid-column: 2;', $shell);
+        $this->assertStringContainsString('width: auto !important;', $shell);
+        $this->assertStringContainsString('margin-left: 0 !important;', $shell);
+        $this->assertStringContainsString('--admin-sidebar-track: 0px;', $shell);
+        $this->assertStringContainsString("\$el.style.setProperty(", $shell);
+        $this->assertStringContainsString("'--admin-sidebar-track'", $shell);
+        $this->assertStringContainsString("? (sidebarOpen ? '{{ \$adminShellPresentation['sidebar_expanded_width'] }}' : '{{ \$adminShellPresentation['sidebar_collapsed_width'] }}')", $shell);
+        $this->assertStringContainsString(": '0px'", $shell);
+        $this->assertStringNotContainsString('transition-[margin-left,width]', $shell);
+        $this->assertStringNotContainsString("'margin-left: {{ \$adminShellPresentation['sidebar_expanded_width'] }}", $shell);
+        $this->assertStringContainsString("isDesktop\n                ? 'translate-x-0'\n                : (sidebarOpen ? 'translate-x-0' : '-translate-x-full')", $shell);
+
+        $head = file_get_contents(base_path('Modules/Admin/resources/views/layouts/partials/head.blade.php'));
+        $this->assertStringContainsString('desktopBreakpoint: 1024', $head);
+        $this->assertStringContainsString('isDesktopViewport()', $head);
+        $this->assertStringContainsString('document.documentElement.clientWidth || window.innerWidth || 0', $head);
+
+        $header = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/header.blade.php'));
+        $this->assertStringContainsString('data-admin-header-reveal-aware', $header);
+        $this->assertStringContainsString("grid-template-columns: {{ \$sidebarEnabled ? 'repeat(2, max-content) minmax(0, 1fr)' : 'repeat(3, max-content) minmax(0, 1fr)' }}", $header);
+        $this->assertStringNotContainsString('calc({{ \$adminShellPresentation[\'header_padding_x\'] }} + 3rem)', $header);
+        $this->assertStringContainsString('viewportWidth >= this.desktopBreakpoint', $head);
+        $this->assertStringContainsString('const wasDesktop = this.isDesktop;', $head);
+        $this->assertStringContainsString('const nextIsDesktop = this.isDesktopViewport();', $head);
+        $this->assertStringContainsString('if (!wasDesktop)', $head);
+        $this->assertStringNotContainsString("window.matchMedia('(min-width: 1024px)').matches", $head);
+
+        $header = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/header.blade.php'));
+        $this->assertStringNotContainsString('headerSidebarEnabled', $header);
+        $this->assertStringNotContainsString('headerSidebarExpandedWidth', $header);
+        $this->assertStringNotContainsString('headerSidebarCollapsedWidth', $header);
+        $this->assertStringNotContainsString('paddingLeft: sidebarOpen', $header);
+        $this->assertStringContainsString('data-admin-header-grid', $header);
+        $this->assertStringContainsString('grid-template-columns: minmax(0, 1fr) auto;', $header);
+        $this->assertStringContainsString('data-admin-header-left', $header);
+        $this->assertStringContainsString("grid-template-columns: {{ \$sidebarEnabled ? 'repeat(2, max-content) minmax(0, 1fr)' : 'repeat(3, max-content) minmax(0, 1fr)' }}", $header);
+        $this->assertStringContainsString('data-admin-header-right', $header);
+        $this->assertStringContainsString("padding-inline: {{ \$adminShellPresentation['header_padding_x'] }};", $header);
+
+        $search = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/header/components/search.blade.php'));
+        $this->assertStringContainsString('data-admin-header-search-column', $search);
+        $this->assertStringContainsString('class="hidden min-w-0 w-full lg:block"', $search);
+        $this->assertStringNotContainsString('hidden min-w-0 flex-1 lg:block', $search);
     }
 
     public function test_sidebar_settings_use_dedicated_professional_editor_and_live_preview(): void
@@ -75,6 +152,9 @@ class AdminSidebarSettingsContractTest extends TestCase
         $view = file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/admin-sidebar-config.blade.php'));
 
         $this->assertStringContainsString("if (\$this->section === 'sidebar')", $component);
+        $this->assertStringContainsString("data_set(\$this->config, 'sidebar.presentation.background'", $component);
+        $this->assertStringContainsString("private function sidebarBackgroundMode(mixed \$value): string", $component);
+        $this->assertStringContainsString("'system', 'white' => 'light'", $component);
         $this->assertStringContainsString('admin-sidebar-config', $component);
         $this->assertStringContainsString("'config.sidebar.expanded_width' => \$sidebarWidth", $component);
         $this->assertStringContainsString("'config.sidebar.collapsed_width' => \$sidebarWidth", $component);
@@ -84,9 +164,14 @@ class AdminSidebarSettingsContractTest extends TestCase
         $this->assertStringContainsString("'config.sidebar.header.enabled' => 'boolean'", $component);
         $this->assertStringContainsString("'config.sidebar.footer.enabled' => 'boolean'", $component);
         $this->assertStringContainsString("'config.sidebar.search.enabled' => 'boolean'", $component);
-        $this->assertStringContainsString("'config.sidebar.presentation.background' => 'required|in:theme,system,white,dark'", $component);
+        $this->assertStringContainsString("'config.sidebar.presentation.background' => 'required|in:theme,light,dark,custom'", $component);
+        $this->assertStringContainsString("'config.sidebar.presentation.custom_background' => ['exclude_unless:config.sidebar.presentation.background,custom', 'required'", $component);
+        $this->assertStringContainsString("'config.sidebar.presentation.custom_accent' => ['exclude_unless:config.sidebar.presentation.background,custom', 'required'", $component);
+        $this->assertStringContainsString("'config.sidebar.enabled' => 'boolean'", $component);
+        $this->assertStringContainsString("'config.sidebar.enabled'=>['Bật Sidebar'", $view);
+        $this->assertStringContainsString('wire:model.live="{{ $model }}"', $view);
 
-        foreach (['Kích thước Sidebar', 'Nút điều khiển Sidebar', 'Header Sidebar', 'Tìm chức năng Sidebar', 'Footer Sidebar', 'Sidebar background', 'Sidebar preview', 'Lưu Sidebar'] as $label) {
+        foreach (['Giao diện Sidebar', 'Kích thước & hành vi', 'Nút thu gọn / mở rộng', 'Header Sidebar', 'Tìm chức năng', 'Footer Sidebar', 'Sidebar background', 'Sidebar preview', 'Lưu Sidebar'] as $label) {
             $this->assertStringContainsString($label, $view);
         }
 
@@ -98,6 +183,10 @@ class AdminSidebarSettingsContractTest extends TestCase
         $this->assertStringContainsString('wire:model.live="config.sidebar.header.enabled"', $view);
         $this->assertStringContainsString('wire:model.live="config.sidebar.footer.enabled"', $view);
         $this->assertStringContainsString('wire:model.live="config.sidebar.search.enabled"', $view);
-        $this->assertStringContainsString('wire:model.live="config.sidebar.presentation.background"', $view);
+        $this->assertStringContainsString("\$wire.set('config.sidebar.presentation.background', mode)", $view);
+        $this->assertStringNotContainsString('wire:model="config.sidebar.presentation.background"', $view);
+        $this->assertStringContainsString('Không thể lưu Sidebar', $view);
+        $this->assertStringContainsString('$errors->all()', $view);
+        $this->assertStringContainsString('role="dialog"', $view);
     }
 }
