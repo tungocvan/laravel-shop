@@ -2,6 +2,8 @@
     $adminShellPresentation = app(\Modules\Admin\Services\AdminShellPresentationService::class)->context();
     $headerBlur = $adminShellPresentation['header_backdrop_blur'] ?? true;
     $headerSidebarEnabled = (bool) data_get(app(\Modules\Admin\Support\AdminLayoutManager::class)->config(), 'sidebar.enabled', true);
+    $headerSidebarExpandedWidth = $adminShellPresentation['sidebar_expanded_width'] ?? '16rem';
+    $headerSidebarCollapsedWidth = $adminShellPresentation['sidebar_collapsed_width'] ?? '5rem';
 @endphp
 
 <header
@@ -14,7 +16,9 @@
         style="padding-inline: {{ $adminShellPresentation['header_padding_x'] }};"
         :style="isDesktop
             ? ({{ $headerSidebarEnabled ? 'true' : 'false' }}
-                ? (sidebarFullscreen ? { paddingLeft: '4rem' } : {})
+                ? (sidebarFullscreen
+                    ? { paddingLeft: '4rem' }
+                    : { paddingLeft: sidebarOpen ? '{{ $headerSidebarExpandedWidth }}' : '{{ $headerSidebarCollapsedWidth }}' })
                 : { paddingLeft: '4rem' })
             : {}"
     >
