@@ -69,6 +69,18 @@ class AdminSidebarSettingsContractTest extends TestCase
         $this->assertStringContainsString('{{ $sidebarSurfaceClass }}', $view);
     }
 
+    public function test_disabled_sidebar_keeps_a_desktop_reveal_control_and_overlay_runtime(): void
+    {
+        $shell = file_get_contents(base_path('Modules/Admin/resources/views/layouts/partials/shell.blade.php'));
+
+        $this->assertStringContainsString('data-admin-sidebar-disabled-reveal', $shell);
+        $this->assertStringContainsString('aria-label="Mở Sidebar"', $shell);
+        $this->assertStringContainsString('sidebarFullscreen = false; sidebarOpen = true', $shell);
+        $this->assertStringContainsString("if (!{{ \$sidebarEnabled ? 'true' : 'false' }}) { sidebarOpen = false; sidebarFullscreen = false; }", $shell);
+        $this->assertStringContainsString(": (sidebarOpen && !sidebarFullscreen)", $shell);
+        $this->assertStringContainsString("? ' lg:translate-x-0' : ''", $shell);
+    }
+
     public function test_sidebar_settings_use_dedicated_professional_editor_and_live_preview(): void
     {
         $component = file_get_contents(base_path('Modules/Admin/Livewire/Settings/AdminLayoutConfig.php'));
