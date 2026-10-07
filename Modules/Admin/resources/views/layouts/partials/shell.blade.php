@@ -7,6 +7,11 @@
 @endphp
 
 <style>
+    [data-admin-shell-grid] {
+        --admin-sidebar-track-width: 0px;
+        grid-template-columns: var(--admin-sidebar-track-width) minmax(0, 1fr);
+    }
+
     [data-admin-shell-grid] [data-admin-shell-workspace] {
         grid-column: 2;
         grid-row: 1;
@@ -29,13 +34,13 @@
     data-admin-shell-grid
     class="grid min-h-0 h-full overflow-hidden antialiased transition-[grid-template-columns] duration-300 ease-out motion-reduce:transition-none"
     style="height: 100dvh; {{ $adminShellPresentation['shell_style'] }}; background-color: var(--admin-page-background); color: var(--admin-text-primary); font-family: var(--admin-font-family); font-size: var(--admin-font-size-body);"
-    :style="isDesktop
-        ? (
-            {{ $sidebarEnabled ? 'true' : 'false' }} && (!sidebarFullscreen || !{{ $fullscreenToggleEnabled ? 'true' : 'false' }})
-                ? { gridTemplateColumns: sidebarOpen ? '{{ $adminShellPresentation['sidebar_expanded_width'] }} minmax(0, 1fr)' : '{{ $adminShellPresentation['sidebar_collapsed_width'] }} minmax(0, 1fr)' }
-                : { gridTemplateColumns: '0 minmax(0, 1fr)' }
-        )
-        : { gridTemplateColumns: '0 minmax(0, 1fr)' }"
+    :style="{
+        '--admin-sidebar-track-width': isDesktop
+            && {{ $sidebarEnabled ? 'true' : 'false' }}
+            && (!sidebarFullscreen || !{{ $fullscreenToggleEnabled ? 'true' : 'false' }})
+                ? (sidebarOpen ? '{{ $adminShellPresentation['sidebar_expanded_width'] }}' : '{{ $adminShellPresentation['sidebar_collapsed_width'] }}')
+                : '0px'
+    }"
     data-admin-container="{{ $adminShellPresentation['container'] }}"
     data-admin-density="{{ $adminShellPresentation['density'] }}"
     data-admin-reduced-motion="{{ $adminShellPresentation['reduced_motion'] ? 'true' : 'false' }}"
