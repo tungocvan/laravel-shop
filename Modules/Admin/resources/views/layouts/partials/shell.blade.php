@@ -7,35 +7,37 @@
 @endphp
 
 <style>
-    [data-admin-shell-grid] {
-        --admin-sidebar-track-width: 0px;
-        grid-template-columns: var(--admin-sidebar-track-width) minmax(0, 1fr);
+    [data-admin-shell] {
+        --admin-sidebar-width: 0px;
     }
 
-    [data-admin-shell-grid] [data-admin-shell-workspace] {
-        grid-column: 2;
-        grid-row: 1;
+    [data-admin-shell] [data-admin-shell-workspace] {
+        width: 100%;
+        min-width: 0;
     }
 
     @media (min-width: 1024px) {
-        [data-admin-shell-grid] [data-admin-shell-sidebar] {
-            position: relative;
-            inset: auto;
-            grid-column: 1;
-            grid-row: 1;
-            height: 100%;
+        [data-admin-shell] [data-admin-shell-sidebar] {
+            position: fixed;
+            inset-block: 0;
+            left: 0;
+            height: 100dvh;
             min-height: 0;
-            box-shadow: none;
+        }
+
+        [data-admin-shell] [data-admin-shell-workspace] {
+            margin-left: var(--admin-sidebar-width);
+            width: calc(100% - var(--admin-sidebar-width));
         }
     }
 </style>
 
 <div
-    data-admin-shell-grid
-    class="grid min-h-0 h-full overflow-hidden antialiased transition-[grid-template-columns] duration-300 ease-out motion-reduce:transition-none"
+    data-admin-shell
+    class="relative min-h-0 h-full overflow-hidden antialiased"
     style="height: 100dvh; {{ $adminShellPresentation['shell_style'] }}; background-color: var(--admin-page-background); color: var(--admin-text-primary); font-family: var(--admin-font-family); font-size: var(--admin-font-size-body);"
     :style="{
-        '--admin-sidebar-track-width': isDesktop
+        '--admin-sidebar-width': isDesktop
             && {{ $sidebarEnabled ? 'true' : 'false' }}
             && (!sidebarFullscreen || !{{ $fullscreenToggleEnabled ? 'true' : 'false' }})
                 ? (sidebarOpen ? '{{ $adminShellPresentation['sidebar_expanded_width'] }}' : '{{ $adminShellPresentation['sidebar_collapsed_width'] }}')
@@ -106,7 +108,7 @@
             aria-label="Admin navigation"
             :aria-modal="(!isDesktop && sidebarOpen).toString()"
             @keydown.tab="trapFocus($event, $refs.sidebarPanel)"
-            class="fixed inset-y-0 left-0 z-50 shadow-xl shadow-slate-950/5 transition-[transform,width,opacity] duration-300 ease-out motion-reduce:transition-none lg:relative lg:inset-auto lg:col-start-1 lg:row-start-1 lg:h-full lg:min-h-0 lg:shadow-none"
+            class="fixed inset-y-0 left-0 z-50 shadow-xl shadow-slate-950/5 transition-[transform,width,opacity] duration-300 ease-out motion-reduce:transition-none lg:h-full lg:min-h-0 lg:shadow-none"
             style="background-color: var(--admin-surface-raised);"
             :style="sidebarOpen
                 ? 'width: {{ $adminShellPresentation['sidebar_expanded_width'] }}'
@@ -118,7 +120,7 @@
 
     <div
         data-admin-shell-workspace
-        class="grid min-h-0 min-w-0 overflow-hidden"
+        class="grid min-h-0 min-w-0 overflow-hidden transition-[margin-left,width] duration-300 ease-out motion-reduce:transition-none"
         style="grid-template-rows: auto minmax(0, 1fr) auto;"
         :data-admin-sidebar-fullscreen="(isDesktop && sidebarFullscreen && {{ $fullscreenToggleEnabled ? 'true' : 'false' }}) ? 'true' : 'false'"
     >
