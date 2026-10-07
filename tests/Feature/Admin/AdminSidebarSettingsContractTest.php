@@ -72,12 +72,14 @@ class AdminSidebarSettingsContractTest extends TestCase
     public function test_disabled_sidebar_keeps_a_desktop_reveal_control_and_canonical_grid_runtime(): void
     {
         $shell = file_get_contents(base_path('Modules/Admin/resources/views/layouts/partials/shell.blade.php'));
+        $header = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/header.blade.php'));
+        $headerComponent = file_get_contents(base_path('Modules/Admin/Livewire/Partials/Header.php'));
 
         $this->assertStringContainsString('data-admin-sidebar-disabled-reveal', $header);
         $this->assertStringContainsString('aria-label="Mở Sidebar"', $header);
-        $this->assertStringContainsString('data-admin-header-reveal-slot', $shell);
-        $this->assertStringContainsString("style=\"left: calc({{ \$adminShellPresentation['header_padding_x'] }} + 0.125rem);\"", $shell);
-        $this->assertStringContainsString('sidebarFullscreen = false; sidebarOpen = true', $shell);
+        $this->assertStringContainsString('sidebarFullscreen = false; sidebarOpen = true', $header);
+        $this->assertStringContainsString('public bool $sidebarEnabled = true;', $headerComponent);
+        $this->assertStringContainsString("data_get(\$layoutManager->config(), 'sidebar.enabled', true)", $headerComponent);
         $this->assertStringContainsString("if (!{{ \$sidebarEnabled ? 'true' : 'false' }}) { sidebarOpen = false; sidebarFullscreen = false; }", $shell);
         $this->assertStringContainsString(": (sidebarOpen && !sidebarFullscreen)", $shell);
 
@@ -108,7 +110,6 @@ class AdminSidebarSettingsContractTest extends TestCase
 
         $header = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/header.blade.php'));
         $this->assertStringContainsString('data-admin-header-reveal-aware', $header);
-        $this->assertStringContainsString("\$sidebarEnabled = (bool) data_get(\$adminSidebarConfig ?? [], 'enabled', true);", $header);
         $this->assertStringContainsString("grid-template-columns: {{ \$sidebarEnabled ? 'repeat(2, max-content) minmax(0, 1fr)' : 'repeat(3, max-content) minmax(0, 1fr)' }}", $header);
         $this->assertStringContainsString('padding-inline: {{ \$adminShellPresentation[\'header_padding_x\'] }}', $header);
         $this->assertStringNotContainsString('calc({{ \$adminShellPresentation[\'header_padding_x\'] }} + 3rem)', $header);
@@ -126,7 +127,7 @@ class AdminSidebarSettingsContractTest extends TestCase
         $this->assertStringContainsString('data-admin-header-grid', $header);
         $this->assertStringContainsString('grid-template-columns: minmax(0, 1fr) auto;', $header);
         $this->assertStringContainsString('data-admin-header-left', $header);
-        $this->assertStringContainsString('grid-template-columns: repeat(2, max-content) minmax(0, 1fr);', $header);
+        $this->assertStringContainsString("grid-template-columns: {{ \$sidebarEnabled ? 'repeat(2, max-content) minmax(0, 1fr)' : 'repeat(3, max-content) minmax(0, 1fr)' }}", $header);
         $this->assertStringContainsString('data-admin-header-right', $header);
         $this->assertStringContainsString("padding-inline: {{ \$adminShellPresentation['header_padding_x'] }};", $header);
 
