@@ -75,6 +75,9 @@ class AdminSidebarSettingsContractTest extends TestCase
         $view = file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/admin-sidebar-config.blade.php'));
 
         $this->assertStringContainsString("if (\$this->section === 'sidebar')", $component);
+        $this->assertStringContainsString("data_set(\$this->config, 'sidebar.presentation.background'", $component);
+        $this->assertStringContainsString("private function sidebarBackgroundMode(mixed \$value): string", $component);
+        $this->assertStringContainsString("'system', 'white' => 'light'", $component);
         $this->assertStringContainsString('admin-sidebar-config', $component);
         $this->assertStringContainsString("'config.sidebar.expanded_width' => \$sidebarWidth", $component);
         $this->assertStringContainsString("'config.sidebar.collapsed_width' => \$sidebarWidth", $component);
