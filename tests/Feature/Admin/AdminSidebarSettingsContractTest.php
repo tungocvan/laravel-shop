@@ -78,10 +78,8 @@ class AdminSidebarSettingsContractTest extends TestCase
         $this->assertStringContainsString('data-admin-sidebar-disabled-reveal', $header);
         $this->assertStringContainsString('aria-label="Mở Sidebar"', $header);
         $this->assertStringContainsString('sidebarFullscreen = false; sidebarOpen = true', $header);
-        $this->assertStringNotContainsString('x-show="isDesktop && !sidebarOpen"', $header);
-        $this->assertStringContainsString(':data-admin-sidebar-open="sidebarOpen ? \'true\' : \'false\'"', $shell);
-        $this->assertStringContainsString('[data-admin-shell][data-admin-sidebar-open="false"] [data-admin-sidebar-disabled-reveal]', $shell);
-        $this->assertStringContainsString('[data-admin-shell][data-admin-sidebar-open="true"] [data-admin-sidebar-disabled-reveal]', $shell);
+        $this->assertStringContainsString('x-show.important="isDesktop && !sidebarOpen"', $header);
+        $this->assertStringNotContainsString('data-admin-sidebar-open', $shell);
         $this->assertStringContainsString('public bool $sidebarEnabled = true;', $headerComponent);
         $this->assertStringContainsString("data_get(\$layoutManager->config(), 'sidebar.enabled', true)", $headerComponent);
         $this->assertStringContainsString("if (!{{ \$sidebarEnabled ? 'true' : 'false' }}) { sidebarOpen = false; sidebarFullscreen = false; }", $shell);
