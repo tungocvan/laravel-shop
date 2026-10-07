@@ -4,14 +4,18 @@ namespace Modules\Admin\Livewire\Partials;
 
 use Livewire\Component;
 use Modules\Admin\Services\AdminHeaderService;
+use Modules\Admin\Support\AdminLayoutManager;
 
 class Header extends Component
 {
     public array $headerContext = [];
 
-    public function mount(AdminHeaderService $headerService): void
+    public bool $sidebarEnabled = true;
+
+    public function mount(AdminHeaderService $headerService, AdminLayoutManager $layoutManager): void
     {
         $this->headerContext = $headerService->context();
+        $this->sidebarEnabled = (bool) data_get($layoutManager->config(), 'sidebar.enabled', true);
     }
 
     public function render()
