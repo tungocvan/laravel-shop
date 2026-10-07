@@ -7,7 +7,7 @@
 @endphp
 
 <div
-    class="relative flex min-h-0 h-full overflow-hidden antialiased"
+    class="relative min-h-0 h-full overflow-hidden antialiased"
     style="height: 100dvh; {{ $adminShellPresentation['shell_style'] }}; background-color: var(--admin-page-background); color: var(--admin-text-primary); font-family: var(--admin-font-family); font-size: var(--admin-font-size-body);"
     data-admin-container="{{ $adminShellPresentation['container'] }}"
     data-admin-density="{{ $adminShellPresentation['density'] }}"
@@ -84,12 +84,13 @@
         </div>
 
     <div
-        class="absolute inset-y-0 right-0 flex min-h-0 min-w-0 flex-col overflow-hidden transition-[left] duration-300 ease-out motion-reduce:transition-none"
+        class="absolute inset-y-0 right-0 min-h-0 min-w-0 overflow-hidden transition-[left] duration-300 ease-out motion-reduce:transition-none"
         :style="({{ $sidebarEnabled ? 'true' : 'false' }} && isDesktop && (!sidebarFullscreen || !{{ $fullscreenToggleEnabled ? 'true' : 'false' }}))
             ? (sidebarOpen
                 ? 'left: {{ $adminShellPresentation['sidebar_expanded_width'] }}'
                 : 'left: {{ $adminShellPresentation['sidebar_collapsed_width'] }}')
             : 'left: 0'"
+        style="display: grid; grid-template-rows: auto minmax(0, 1fr) auto;"
         :data-admin-sidebar-fullscreen="(isDesktop && sidebarFullscreen && {{ $fullscreenToggleEnabled ? 'true' : 'false' }}) ? 'true' : 'false'"
     >
         <livewire:admin.partials.header />
