@@ -1,6 +1,7 @@
 @php
     $adminShellPresentation = app(\Modules\Admin\Services\AdminShellPresentationService::class)->context();
     $headerBlur = $adminShellPresentation['header_backdrop_blur'] ?? true;
+    $headerSidebarEnabled = (bool) data_get(app(\Modules\Admin\Support\AdminLayoutManager::class)->config(), 'sidebar.enabled', true);
 @endphp
 
 <header
@@ -11,7 +12,11 @@
     <div
         class="flex min-w-0 flex-1 items-center justify-between gap-3 transition-[padding] duration-300 motion-reduce:transition-none"
         style="padding-inline: {{ $adminShellPresentation['header_padding_x'] }};"
-        :style="isDesktop && (sidebarFullscreen || !{{ (bool) data_get(app(\Modules\Admin\Support\AdminLayoutManager::class)->config(), 'sidebar.enabled', true) ? 'true' : 'false' }}) ? { paddingLeft: '4rem' } : {}"
+        :style="isDesktop
+            ? ({{ $headerSidebarEnabled ? 'true' : 'false' }}
+                ? (sidebarFullscreen ? { paddingLeft: '4rem' } : {})
+                : { paddingLeft: '4rem' })
+            : {}"
     >
         <div class="flex min-w-0 flex-1 items-center" style="gap: {{ $adminShellPresentation['header_action_gap'] }};">
             @foreach (($headerContext['left'] ?? []) as $component)
