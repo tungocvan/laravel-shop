@@ -95,14 +95,30 @@ class AdmissionRegistrationFormRefactorTest extends TestCase
         $this->assertStringContainsString("string('so_so_tiem_chung')->nullable()->after('nguoi_lam_don')", $migration);
     }
 
-    public function test_receipt_qr_uses_canonical_search_without_credentials(): void
+    public function test_receipt_qr_uses_signed_prefill_without_credentials_in_url(): void
     {
-        $source = file_get_contents(base_path('Modules/Admission/Services/AdmissionService.php'));
-        $method = substr($source, strpos($source, 'public function generateBienNhan'));
+        $service = file_get_contents(base_path('Modules/Admission/Services/AdmissionService.php'));
+        $routes = file_get_contents(base_path('Modules/Admission/routes/web.php'));
+        $controller = file_get_contents(base_path('Modules/Admission/Http/Controllers/AdmissionController.php'));
+        $search = file_get_contents(base_path('Modules/Admission/Livewire/Search.php'));
+        $page = file_get_contents(base_path('Modules/Admission/resources/views/pages/public/search.blade.php'));
 
-        $this->assertStringContainsString("\$url = route('admission.search');", $method);
+        $method = substr($service, strpos($service, 'public function generateBienNhan'));
+
+        $this->assertStringContainsString("URL::signedRoute('admission.search.receipt'", $method);
+        $this->assertStringContainsString("'application' => \$app->id", $method);
         $this->assertStringNotContainsString("'password' =>", $method);
         $this->assertStringNotContainsString("'ma_dinh_danh' =>", $method);
+
+        $this->assertStringContainsString("->middleware('signed')", $routes);
+        $this->assertStringContainsString("->name('search.receipt')", $routes);
+        $this->assertStringContainsString("public function receiptSearch(AdmissionApplication \$application)", $controller);
+        $this->assertStringContainsString("abort_unless(\$application->status === 'approved', 404)", $controller);
+        $this->assertStringContainsString("'ma_dinh_danh' => (string) \$application->ma_dinh_danh", $controller);
+        $this->assertStringContainsString("format('dmY')", $controller);
+        $this->assertStringContainsString("public function mount(string \$maDinhDanh = '', string \$password = '')", $search);
+        $this->assertStringContainsString(':ma-dinh-danh="\$receiptPrefill[\'ma_dinh_danh\'] ?? \'\'"', $page);
+        $this->assertStringContainsString(':password="\$receiptPrefill[\'password\'] ?? \'\'"', $page);
     }
 
     public function test_registration_blade_has_loading_error_and_correct_edit_capability_contracts(): void
