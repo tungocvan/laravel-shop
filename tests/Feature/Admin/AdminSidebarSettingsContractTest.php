@@ -73,8 +73,8 @@ class AdminSidebarSettingsContractTest extends TestCase
     {
         $shell = file_get_contents(base_path('Modules/Admin/resources/views/layouts/partials/shell.blade.php'));
 
-        $this->assertStringContainsString('data-admin-sidebar-disabled-reveal', $shell);
-        $this->assertStringContainsString('aria-label="Mở Sidebar"', $shell);
+        $this->assertStringContainsString('data-admin-sidebar-disabled-reveal', $header);
+        $this->assertStringContainsString('aria-label="Mở Sidebar"', $header);
         $this->assertStringContainsString('data-admin-header-reveal-slot', $shell);
         $this->assertStringContainsString("style=\"left: calc({{ \$adminShellPresentation['header_padding_x'] }} + 0.125rem);\"", $shell);
         $this->assertStringContainsString('sidebarFullscreen = false; sidebarOpen = true', $shell);
@@ -109,8 +109,9 @@ class AdminSidebarSettingsContractTest extends TestCase
         $header = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/header.blade.php'));
         $this->assertStringContainsString('data-admin-header-reveal-aware', $header);
         $this->assertStringContainsString("\$sidebarEnabled = (bool) data_get(\$adminSidebarConfig ?? [], 'enabled', true);", $header);
-        $this->assertStringContainsString("padding-left: {{ \$sidebarEnabled ? \$adminShellPresentation['header_padding_x'] : 'calc(' . \$adminShellPresentation['header_padding_x'] . ' + 3rem)' }}", $header);
-        $this->assertStringNotContainsString('&& isDesktop && !sidebarOpen', $header);
+        $this->assertStringContainsString("grid-template-columns: {{ \$sidebarEnabled ? 'repeat(2, max-content) minmax(0, 1fr)' : 'repeat(3, max-content) minmax(0, 1fr)' }}", $header);
+        $this->assertStringContainsString('padding-inline: {{ \$adminShellPresentation[\'header_padding_x\'] }}', $header);
+        $this->assertStringNotContainsString('calc({{ \$adminShellPresentation[\'header_padding_x\'] }} + 3rem)', $header);
         $this->assertStringContainsString('viewportWidth >= this.desktopBreakpoint', $head);
         $this->assertStringContainsString('const wasDesktop = this.isDesktop;', $head);
         $this->assertStringContainsString('const nextIsDesktop = this.isDesktopViewport();', $head);
