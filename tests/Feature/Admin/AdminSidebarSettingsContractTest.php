@@ -79,11 +79,11 @@ class AdminSidebarSettingsContractTest extends TestCase
         $this->assertStringContainsString("if (!{{ \$sidebarEnabled ? 'true' : 'false' }}) { sidebarOpen = false; sidebarFullscreen = false; }", $shell);
         $this->assertStringContainsString(": (sidebarOpen && !sidebarFullscreen)", $shell);
         $this->assertStringContainsString("? ' lg:translate-x-0' : ''", $shell);
-        $this->assertStringContainsString("width: calc(100% - {{ \$adminShellPresentation['sidebar_expanded_width'] }})", $shell);
-        $this->assertStringContainsString("width: calc(100% - {{ \$adminShellPresentation['sidebar_collapsed_width'] }})", $shell);
-        $this->assertStringContainsString("'margin-left: 0; width: 100%'", $shell);
-        $this->assertStringContainsString('flex-none flex-col overflow-hidden transition-[margin,width]', $shell);
-        $this->assertStringNotContainsString('flex-1 flex-col overflow-hidden transition-[margin,width]', $shell);
+        $this->assertStringContainsString('class="relative flex min-h-0 h-full overflow-hidden antialiased"', $shell);
+        $this->assertStringContainsString('class="absolute inset-y-0 right-0 flex min-h-0 min-w-0 flex-col overflow-hidden transition-[left]', $shell);
+        $this->assertStringContainsString("? 'left: {{ \$adminShellPresentation['sidebar_expanded_width'] }}'", $shell);
+        $this->assertStringContainsString(": 'left: {{ \$adminShellPresentation['sidebar_collapsed_width'] }}'", $shell);
+        $this->assertStringContainsString(": 'left: 0'", $shell);
 
         $header = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/header.blade.php'));
         $this->assertStringContainsString("\$headerSidebarEnabled = (bool) data_get(app(\\Modules\\Admin\\Support\\AdminLayoutManager::class)->config(), 'sidebar.enabled', true);", $header);
