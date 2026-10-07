@@ -92,7 +92,16 @@ class AdmissionRegistrationFormRefactorTest extends TestCase
             strpos($stepFive, 'Sắp xếp vào lớp'),
             strpos($stepFive, 'Số sổ tiêm chủng')
         );
-        $this->assertStringContainsString("string('so_so_tiem_chung')->nullable()->after('nguoi_lam_don')", $migration);
+        $this->assertStringContainsString("text('so_so_tiem_chung')->nullable()->after('nguoi_lam_don')", $migration);
+    }
+
+    public function test_vaccination_only_edit_preserves_review_status_contract(): void
+    {
+        $modelSource = file_get_contents(base_path('Modules/Admission/Models/AdmissionApplication.php'));
+
+        $this->assertStringContainsString("$statusPreservingFields = ['so_so_tiem_chung']", $modelSource);
+        $this->assertStringContainsString('$onlyStatusPreservingFieldsChanged', $modelSource);
+        $this->assertStringContainsString('! $onlyStatusPreservingFieldsChanged', $modelSource);
     }
 
     public function test_receipt_qr_uses_signed_prefill_without_credentials_in_url(): void
