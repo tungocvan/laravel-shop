@@ -79,8 +79,10 @@ class AdminSidebarSettingsContractTest extends TestCase
         $this->assertStringContainsString("if (!{{ \$sidebarEnabled ? 'true' : 'false' }}) { sidebarOpen = false; sidebarFullscreen = false; }", $shell);
         $this->assertStringContainsString(": (sidebarOpen && !sidebarFullscreen)", $shell);
         $this->assertStringContainsString("? ' lg:translate-x-0' : ''", $shell);
-        $this->assertStringContainsString('class="relative flex min-h-0 h-full overflow-hidden antialiased"', $shell);
-        $this->assertStringContainsString('class="absolute inset-y-0 right-0 flex min-h-0 min-w-0 flex-col overflow-hidden transition-[left]', $shell);
+        $this->assertStringContainsString('class="relative min-h-0 h-full overflow-hidden antialiased"', $shell);
+        $this->assertStringContainsString('class="absolute inset-y-0 right-0 min-h-0 min-w-0 overflow-hidden transition-[left]', $shell);
+        $this->assertStringContainsString('display: grid; grid-template-rows: auto minmax(0, 1fr) auto;', $shell);
+        $this->assertStringNotContainsString('class="relative flex min-h-0 h-full overflow-hidden antialiased"', $shell);
         $this->assertStringContainsString("? 'left: {{ \$adminShellPresentation['sidebar_expanded_width'] }}'", $shell);
         $this->assertStringContainsString(": 'left: {{ \$adminShellPresentation['sidebar_collapsed_width'] }}'", $shell);
         $this->assertStringContainsString(": 'left: 0'", $shell);
