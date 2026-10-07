@@ -35,7 +35,8 @@ class AdminSidebarSettingsContractTest extends TestCase
         $this->assertStringContainsString("'collapse_enabled' =>", $manager);
         $this->assertStringContainsString("'fullscreen_enabled' =>", $manager);
         $this->assertStringContainsString("'title' => \$this->nullableString(data_get(\$sidebar, 'header.title'))", $manager);
-        $this->assertStringContainsString("['theme', 'system', 'white', 'dark']", $manager);
+        $this->assertStringContainsString("$legacy = ['system' => 'light', 'white' => 'light']", $manager);
+        $this->assertStringContainsString("['theme', 'light', 'dark', 'custom']", $manager);
     }
 
     public function test_sidebar_runtime_consumes_managed_regions_title_controls_and_search_policy(): void
@@ -50,7 +51,6 @@ class AdminSidebarSettingsContractTest extends TestCase
             'sidebar.header.title',
             'sidebar.footer.enabled',
             'sidebar.search.enabled',
-            'sidebar.presentation.background',
             'sidebar.controls.collapse_enabled',
             'sidebar.controls.fullscreen_enabled',
         ] as $contract) {
@@ -91,7 +91,7 @@ class AdminSidebarSettingsContractTest extends TestCase
         $this->assertStringContainsString("'config.sidebar.enabled'=>['Bật Sidebar'", $view);
         $this->assertStringContainsString('wire:model.live="{{ $model }}"', $view);
 
-        foreach (['Kích thước Sidebar', 'Nút điều khiển Sidebar', 'Header Sidebar', 'Tìm chức năng Sidebar', 'Footer Sidebar', 'Sidebar background', 'Sidebar preview', 'Lưu Sidebar'] as $label) {
+        foreach (['Giao diện Sidebar', 'Kích thước & hành vi', 'Nút thu gọn / mở rộng', 'Header Sidebar', 'Tìm chức năng', 'Footer Sidebar', 'Sidebar background', 'Sidebar preview', 'Lưu Sidebar'] as $label) {
             $this->assertStringContainsString($label, $view);
         }
 
