@@ -108,8 +108,9 @@ class AdminSidebarSettingsContractTest extends TestCase
 
         $header = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/header.blade.php'));
         $this->assertStringContainsString('data-admin-header-reveal-aware', $header);
-        $this->assertStringContainsString("padding-left: calc({{ \$adminShellPresentation['header_padding_x'] }} + 3rem)", $header);
-        $this->assertStringContainsString("&& isDesktop && !sidebarOpen", $header);
+        $this->assertStringContainsString("\$sidebarEnabled = (bool) data_get(\$adminSidebarConfig ?? [], 'enabled', true);", $header);
+        $this->assertStringContainsString("padding-left: {{ \$sidebarEnabled ? \$adminShellPresentation['header_padding_x'] : 'calc(' . \$adminShellPresentation['header_padding_x'] . ' + 3rem)' }}", $header);
+        $this->assertStringNotContainsString('&& isDesktop && !sidebarOpen', $header);
         $this->assertStringContainsString('viewportWidth >= this.desktopBreakpoint', $head);
         $this->assertStringContainsString('const wasDesktop = this.isDesktop;', $head);
         $this->assertStringContainsString('const nextIsDesktop = this.isDesktopViewport();', $head);
