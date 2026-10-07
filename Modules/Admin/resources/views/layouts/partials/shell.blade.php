@@ -84,12 +84,12 @@
         </div>
 
     <div
-        class="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden transition-[margin] duration-300 ease-out motion-reduce:transition-none"
+        class="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden transition-[margin,width] duration-300 ease-out motion-reduce:transition-none"
         :style="({{ $sidebarEnabled ? 'true' : 'false' }} && isDesktop && (!sidebarFullscreen || !{{ $fullscreenToggleEnabled ? 'true' : 'false' }}))
             ? (sidebarOpen
-                ? 'margin-left: {{ $adminShellPresentation['sidebar_expanded_width'] }}'
-                : 'margin-left: {{ $adminShellPresentation['sidebar_collapsed_width'] }}')
-            : 'margin-left: 0'"
+                ? 'margin-left: {{ $adminShellPresentation['sidebar_expanded_width'] }}; width: calc(100% - {{ $adminShellPresentation['sidebar_expanded_width'] }})'
+                : 'margin-left: {{ $adminShellPresentation['sidebar_collapsed_width'] }}; width: calc(100% - {{ $adminShellPresentation['sidebar_collapsed_width'] }})')
+            : 'margin-left: 0; width: 100%'"
         :data-admin-sidebar-fullscreen="(isDesktop && sidebarFullscreen && {{ $fullscreenToggleEnabled ? 'true' : 'false' }}) ? 'true' : 'false'"
     >
         <livewire:admin.partials.header />
