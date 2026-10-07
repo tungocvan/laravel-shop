@@ -33,5 +33,16 @@ class GdtExcelSandboxContractTest extends TestCase
         $this->assertStringContainsString('Đổi công ty / đăng nhập lại', $view);
         $this->assertStringContainsString('Đồng bộ Excel', $view);
         $this->assertStringContainsString('File test đã lưu trên server', $view);
+        $this->assertStringContainsString('Crypt::encryptString($password)', $service);
+        $this->assertStringContainsString('Crypt::decryptString($encrypted)', $service);
+        $this->assertStringContainsString("storage_path('app/gdt-test/'.\$userId.'/accounts.json')", $service);
+        $this->assertStringContainsString('existingExport(', $service);
+        $this->assertStringContainsString('deleteFile(', $service);
+        $this->assertStringContainsString('chooseSavedAccount', $component);
+        $this->assertStringContainsString('connectSaved', $component);
+        $this->assertStringContainsString('fileTaxCodeFilter', $component);
+        $this->assertStringContainsString('Khoảng thời gian này đã được đồng bộ', $view);
+        $this->assertStringContainsString('Lọc mã số thuế', $view);
+        $this->assertStringContainsString('wire:confirm="Xóa file Excel này khỏi server?"', $view);
     }
 }
