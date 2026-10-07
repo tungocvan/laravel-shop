@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::table('admission_applications', function (Blueprint $table): void {
             if (! Schema::hasColumn('admission_applications', 'so_so_tiem_chung')) {
-                $table->string('so_so_tiem_chung')->nullable()->after('nguoi_lam_don');
+                $table->text('so_so_tiem_chung')->nullable()->after('nguoi_lam_don');
             }
         });
     }
