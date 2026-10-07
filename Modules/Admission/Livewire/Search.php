@@ -19,6 +19,12 @@ class Search extends Component
 
     public ?string $message = null;
 
+    public function mount(string $maDinhDanh = '', string $password = ''): void
+    {
+        $this->MaDinhDanh = $maDinhDanh;
+        $this->password = $password;
+    }
+
     public function login(): void
     {
         $this->reset('message', 'showModal', 'app');
