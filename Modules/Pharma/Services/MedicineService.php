@@ -28,6 +28,7 @@ class MedicineService
         ?int $supplierId = null,
         ?string $deletable = null,
         ?string $registration = null,
+        ?string $productType = null,
     ): LengthAwarePaginator {
         return Medicine::query()
             ->with([
@@ -62,6 +63,7 @@ class MedicineService
                 ->orWhereHas('aliases', fn ($alias) => $alias
                     ->where('alias_value', 'like', "%{$value}%")
                     ->orWhere('normalized_value', 'like', "%{$value}%"))))
+            ->when($productType && array_key_exists($productType, Medicine::productTypeOptions()), fn ($query) => $query->where('product_type', $productType))
             ->when($circularGroup, fn ($query, $value) => $query->where('circular_group', $value))
             ->when($specialControl, fn ($query, $value) => $query->where('is_special_control', $value === 'yes'))
             ->when($profileStatus, fn ($query, $value) => $query->where('profile_status', $value))
