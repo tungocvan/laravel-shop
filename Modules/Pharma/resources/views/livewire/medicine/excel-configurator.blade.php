@@ -69,6 +69,7 @@
                 <div class="mx-auto max-w-[1320px]" x-data="{
                     search: '',
                     editing: null,
+                    dragging: null,
                     draft: {
                         columns: @js($selectedOrder->all()),
                         headers: @js($headers),
@@ -133,8 +134,8 @@
                             <div class="border-b bg-indigo-50 p-3"><h4 class="text-sm font-bold">2. Cột sẽ xuất Excel <span class="text-indigo-600" x-text="'(' + draft.columns.length + ')'"></span></h4><p class="mt-1 text-xs text-slate-500">Nhấn bánh răng để thiết lập; nhập vị trí để chuyển nhanh.</p></div>
                             <div class="medicine-designer-scroll space-y-1 overflow-y-auto p-3">
                                 <template x-for="(key, index) in draft.columns" :key="key">
-                                    <div class="flex items-center gap-2 rounded-lg border p-2" :class="editing === key ? 'border-indigo-400 bg-indigo-50' : 'border-slate-200'">
-                                        <span class="grid h-7 w-7 shrink-0 place-items-center rounded bg-indigo-600 text-[11px] font-bold text-white" x-text="letter(index)"></span>
+                                    <div class="flex items-center gap-2 rounded-lg border p-2" :class="editing === key ? 'border-indigo-400 bg-indigo-50' : 'border-slate-200'" draggable="true" x-on:dragstart="dragging = key; $event.dataTransfer.effectAllowed = 'move'" x-on:dragover.prevent x-on:drop.prevent="if (dragging && dragging !== key) move(dragging, index + 1); dragging = null" x-on:dragend="dragging = null">
+                                        <span class="cursor-grab text-slate-400" title="Kéo để đổi vị trí">⠿</span><span class="grid h-7 w-7 shrink-0 place-items-center rounded bg-indigo-600 text-[11px] font-bold text-white" x-text="letter(index)"></span>
                                         <button type="button" x-on:click="editing = key" class="min-w-0 flex-1 truncate text-left text-xs font-semibold" x-text="draft.headers[key] || labels[key]"></button>
                                         <input type="number" min="1" :max="draft.columns.length" :value="index + 1" x-on:change="move(key, $event.target.value)" class="h-8 w-12 rounded border text-center text-xs" title="Chuyển đến vị trí" aria-label="Vị trí cột">
                                         <button type="button" x-on:click="move(key, index)" class="rounded border px-1 text-xs" aria-label="Lên">↑</button>
