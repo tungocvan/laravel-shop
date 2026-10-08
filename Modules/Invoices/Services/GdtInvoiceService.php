@@ -162,6 +162,53 @@ class GdtInvoiceService
         return $file;
     }
 
+    /**
+     * Preview-only historical cash-register export. Never persists invoice or RAW data.
+     */
+    public function exportCashRegisterPreview(string $startDate, string $endDate, bool $vatIn = true, ?callable $cb = null): ?string
+    {
+        $token = Cache::get(config('invoices.gdt.cache_key'));
+        if (! $token) {
+            throw new \RuntimeException('Chưa có phiên đăng nhập GDT.');
+        }
+
+        $start = Carbon::parse($startDate)->startOfDay();
+        $end = Carbon::parse($endDate)->startOfDay();
+        if ($start->gt($end)) {
+            throw new \InvalidArgumentException('Ngày kết thúc phải sau hoặc bằng ngày bắt đầu.');
+        }
+
+        $show = fn (string $message) => $cb ? $cb($message) : null;
+        $all = [];
+        $cursor = $start->copy();
+        while ($cursor->lte($end)) {
+            $chunkEnd = $cursor->copy()->endOfMonth()->min($end);
+            $rows = $this->fetchInvoicesByMonth($token, $cursor, $chunkEnd, $show, $vatIn, true);
+            $show('[POS] '. $cursor->format('m/Y').': '.count($rows).' hóa đơn máy tính tiền.');
+            $all = array_merge($all, $rows);
+            $cursor = $chunkEnd->copy()->addDay();
+        }
+
+        $all = array_values(collect($all)->unique(function (array $row): string {
+            $raw = $row['_gdt_raw_payload'] ?? [];
+            return implode('|', [
+                (string) ($raw['nbmst'] ?? ''), (string) ($raw['khmshdon'] ?? ''),
+                (string) ($raw['khhdon'] ?? ''), (string) ($raw['shdon'] ?? ''),
+                (string) ($raw['tdlap'] ?? ''), (string) ($raw['nmmst'] ?? ''),
+            ]);
+        })->all());
+
+        if ($all === []) {
+            $show('[POS] Không có hóa đơn máy tính tiền trong khoảng đã chọn.');
+            return null;
+        }
+
+        $filename = 'pos_'.$start->format('Y-m-d').'_'.$end->format('Y-m-d').'_'.now()->format('Ymd_His').'.xlsx';
+        $file = $this->exportExcel($all, $vatIn, $filename);
+        $show('[POS] Đã xuất '.count($all).' hóa đơn. Chưa ghi database; chỉ Import khi người dùng chọn.');
+        return $file;
+    }
+
     private function fetchInvoicesByMonth($token, $from, $to, callable $show, $vatIn, bool $cashRegister = false): array
     {
         $action = $vatIn ? 'purchase' : 'sold';
