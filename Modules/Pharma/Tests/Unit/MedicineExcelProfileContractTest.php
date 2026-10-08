@@ -53,6 +53,11 @@ class MedicineExcelProfileContractTest extends TestCase
         $this->assertStringContainsString('wire:model="settings.paper_size"', $view);
         $this->assertStringContainsString('wire:model="settings.orientation"', $view);
         $this->assertStringContainsString('Column Inspector', $view);
+        $this->assertStringContainsString('medicine-designer-workspace', $view);
+        $this->assertStringContainsString('grid-template-columns: 190px minmax(0,1fr)', $view);
+        $this->assertStringContainsString('medicine-designer-columns', $view);
+        $this->assertStringContainsString('setColumnWidth(', $view);
+        $this->assertStringContainsString('Xem trước header Excel', $view);
         $this->assertStringContainsString('Kho dữ liệu', $view);
         $this->assertStringContainsString('Cột sẽ xuất Excel', $view);
         $this->assertStringContainsString("['brand','1','Thương hiệu']", $view);
