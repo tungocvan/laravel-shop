@@ -88,7 +88,8 @@ class AdminWebsitePresentationOwnershipContractTest extends TestCase
         $this->assertStringContainsString("'guard' => 'admin'", $authController);
         $this->assertStringContainsString('Modules\\Auth\\Services\\GoogleIdentityService', $googleController);
         $this->assertStringContainsString('Modules\\System\\Services\\AdminLoginRedirectService', $googleController);
-        $this->assertFileExists(base_path('Modules/Auth/Services/AuthService.php'));
+        $this->assertFileExists(base_path('Modules/Auth/Services/GoogleIdentityService.php'));
+        $this->assertFileExists(base_path('Modules/System/Services/AdminLoginRedirectService.php'));
         $this->assertStringContainsString("@livewire('auth.auth.login-form'", $authLogin);
         $this->assertStringContainsString("->prefix('admin')", $chatRoutes);
         $this->assertStringContainsString('ChatController::class', $chatRoutes);
