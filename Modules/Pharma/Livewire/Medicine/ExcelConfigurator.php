@@ -1,0 +1,138 @@
+<?php
+
+namespace Modules\Pharma\Livewire\Medicine;
+
+use Illuminate\Contracts\View\View;
+use Livewire\Component;
+use Modules\Pharma\Services\MedicineExcelProfileService;
+
+class ExcelConfigurator extends Component
+{
+    public bool $open = false;
+    public ?int $profileId = null;
+    public string $profileName = 'Mặc định';
+    public bool $isDefault = true;
+    public array $profiles = [];
+    public array $columns = [];
+    public array $selected = [];
+    public array $headers = [];
+    public array $widths = [];
+    public array $alignments = [];
+    public array $settings = [];
+
+    public function mount(MedicineExcelProfileService $service): void
+    {
+        $this->refreshProfiles($service);
+        $this->loadProfile($service);
+    }
+
+    public function openConfig(MedicineExcelProfileService $service): void
+    {
+        $this->refreshProfiles($service);
+        $this->loadProfile($service);
+        $this->open = true;
+    }
+
+    public function closeConfig(): void
+    {
+        $this->open = false;
+    }
+
+    public function updatedProfileId(): void
+    {
+        $this->loadProfile(app(MedicineExcelProfileService::class));
+    }
+
+    public function newProfile(MedicineExcelProfileService $service): void
+    {
+        $this->apply($service->defaults());
+        $this->profileName = 'Cấu hình mới';
+        $this->isDefault = false;
+    }
+
+    public function selectAll(): void
+    {
+        $this->selected = array_fill_keys(array_keys(MedicineExcelProfileService::COLUMNS), true);
+    }
+
+    public function clearAll(): void
+    {
+        $this->selected = [];
+    }
+
+    public function move(string $key, int $offset): void
+    {
+        if (! isset(MedicineExcelProfileService::COLUMNS[$key])) {
+            return;
+        }
+        $index = array_search($key, $this->columns, true);
+        if ($index === false) {
+            return;
+        }
+        $target = max(0, min(count($this->columns) - 1, $index + $offset));
+        array_splice($this->columns, $index, 1);
+        array_splice($this->columns, $target, 0, [$key]);
+    }
+
+    public function save(MedicineExcelProfileService $service): void
+    {
+        $this->validate([
+            'profileName' => 'required|string|max:120',
+            'settings.title' => 'required|string|max:200',
+            'settings.company_name' => 'nullable|string|max:200',
+            'settings.paper_size' => 'required|in:A4,A3,LETTER',
+            'settings.orientation' => 'required|in:landscape,portrait',
+        ]);
+        $columns = array_values(array_filter($this->columns, fn ($key) => $this->selected[$key] ?? false));
+        $saved = $service->save((int) auth('admin')->id(), [
+            'name' => $this->profileName, 'is_default' => $this->isDefault,
+            'columns' => $columns, 'headers' => $this->headers,
+            'widths' => $this->widths, 'alignments' => $this->alignments,
+            'settings' => $this->settings,
+        ], $this->profileId);
+        $this->apply($saved);
+        $this->refreshProfiles($service);
+        session()->flash('success', 'Đã lưu cấu hình Excel danh mục thuốc.');
+        $this->dispatch('medicine-excel-profile-saved', profileId: $this->profileId);
+    }
+
+    public function deleteProfile(MedicineExcelProfileService $service): void
+    {
+        if ($this->profileId === null) {
+            return;
+        }
+        $service->delete((int) auth('admin')->id(), $this->profileId);
+        $this->refreshProfiles($service);
+        $this->loadProfile($service);
+    }
+
+    private function refreshProfiles(MedicineExcelProfileService $service): void
+    {
+        $this->profiles = $service->listForUser((int) auth('admin')->id());
+    }
+
+    private function loadProfile(MedicineExcelProfileService $service): void
+    {
+        $this->apply($service->forUser((int) auth('admin')->id(), $this->profileId));
+    }
+
+    private function apply(array $profile): void
+    {
+        $this->profileId = $profile['id'];
+        $this->profileName = $profile['name'];
+        $this->isDefault = (bool) $profile['is_default'];
+        $this->columns = array_values(array_unique(array_merge($profile['columns'], array_keys(MedicineExcelProfileService::COLUMNS))));
+        $this->selected = array_fill_keys($profile['columns'], true);
+        $this->headers = $profile['headers'];
+        $this->widths = $profile['widths'];
+        $this->alignments = $profile['alignments'];
+        $this->settings = $profile['settings'];
+    }
+
+    public function render(): View
+    {
+        return view('Pharma::livewire.medicine.excel-configurator', [
+            'definitions' => MedicineExcelProfileService::COLUMNS,
+        ]);
+    }
+}
