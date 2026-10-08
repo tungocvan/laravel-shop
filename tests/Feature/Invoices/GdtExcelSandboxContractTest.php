@@ -39,6 +39,7 @@ class GdtExcelSandboxContractTest extends TestCase
         $this->assertStringContainsString('existingExport(', $service);
         $this->assertStringContainsString("\$this->fetchMonth((string) \$session['token'], \$chunkStart, \$chunkEnd, \$type, '8')", $service);
         $this->assertStringContainsString("\$query['search'] .= ';ttxly=='", $service);
+        $this->assertStringContainsString("'/sco-query/invoices/'", $service);
         $this->assertStringContainsString('collect($rows)->unique(', $service);
         $this->assertStringContainsString('deleteFile(', $service);
         $this->assertStringContainsString('chooseSavedAccount', $component);
