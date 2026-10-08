@@ -92,6 +92,13 @@ class ExcelConfigurator extends Component
         $this->selected = [];
     }
 
+    public function setColumnWidth(string $key, int $pixels): void
+    {
+        if (isset(MedicineExcelProfileService::COLUMNS[$key])) {
+            $this->widths[$key] = max(40, min(400, $pixels));
+        }
+    }
+
     public function move(string $key, int $offset): void
     {
         if (! isset(MedicineExcelProfileService::COLUMNS[$key])) {
