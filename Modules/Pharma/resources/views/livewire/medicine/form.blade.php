@@ -46,6 +46,15 @@
                 <div class="md:col-span-2"><label class="text-sm font-medium text-gray-600 block">Tên biệt dược / Tên thuốc / Tên sản phẩm <span class="text-rose-500">*</span></label><input type="text" wire:model="name" class="w-full rounded-xl border border-gray-300 px-4 py-3 mt-1">@error('name')<span class="text-xs text-rose-600 mt-1 block">{{ $message }}</span>@enderror</div>
                 <div><label class="text-sm font-medium text-gray-600 block">Giấy phép lưu hành</label><input type="text" wire:model="registration_number" class="w-full rounded-xl border border-gray-300 px-4 py-3 mt-1">@error('registration_number')<span class="text-xs text-rose-600 mt-1 block">{{ $message }}</span>@enderror</div>
             </div>
+            <div>
+                <label for="medicine-product-type" class="block text-sm font-medium text-gray-600">Loại sản phẩm <span class="text-rose-500">*</span></label>
+                <select id="medicine-product-type" wire:model="product_type" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                    @foreach(\Modules\Pharma\Models\Medicine::productTypeOptions() as $value => $label)
+                        <option value="{{ $value }}">{{ $label }}</option>
+                    @endforeach
+                </select>
+                @error('product_type')<span class="mt-1 block text-xs text-rose-600">{{ $message }}</span>@enderror
+            </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div><label class="text-sm font-medium text-gray-600 block">Tên hoạt chất</label><input type="text" wire:model="active_ingredients" class="w-full rounded-xl border border-gray-300 px-4 py-3 mt-1"></div>
                 <div><label class="text-sm font-medium text-gray-600 block">Nồng độ / Hàm lượng</label><input type="text" wire:model="concentration" class="w-full rounded-xl border border-gray-300 px-4 py-3 mt-1"></div>
