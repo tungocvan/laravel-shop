@@ -57,7 +57,7 @@ class MedicineExcelRelatedDataService
         $values['supplier_name'] = $this->display($supplier?->supplier_name);
 
         $profile = $medicine->currentProfile()->first();
-        $values['hssp_status'] = $profile ? 'Đã có HSSP' : '';
+        $values['hssp_status'] = $profile ? 'Đã có HSSP' : 'Chưa có HSSP';
 
         // One representative award only. Full one-to-many export will be designed separately.
         $award = $medicine->drugBidAwards()->where('is_active', true)
