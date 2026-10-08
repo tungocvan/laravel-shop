@@ -335,6 +335,10 @@ class GdtInvoiceService
                     $invoice = Invoices::query()->create($attributes);
                     $stats['created']++;
                 } else {
+                    // A transiently missing GDT lookup code must not erase a previously stored identity.
+                    if (blank($attributes['lookup_code']) && filled($invoice->lookup_code)) {
+                        $attributes['lookup_code'] = $invoice->lookup_code;
+                    }
                     $invoice->fill($attributes);
                     if (! $invoice->isDirty()) {
                         $stats['unchanged']++;
@@ -441,18 +445,27 @@ class GdtInvoiceService
             return null;
         }
 
+        // GDT may rotate its lookup code or correct amounts between overlapping syncs.
+        // Match only an unambiguous legal invoice identity, never a partial key.
+        if (blank($attributes['symbol']) || blank($attributes['tax_code'])) {
+            return null;
+        }
+
         $businessMatches = Invoices::query()
             ->where('invoice_type', $attributes['invoice_type'])
             ->where('invoice_number', $attributes['invoice_number'])
             ->where('symbol', $attributes['symbol'])
             ->where('issued_date', $attributes['issued_date'])
             ->where('tax_code', $attributes['tax_code'])
-            ->where('total_amount', $attributes['total_amount'])
-            ->where('vat_amount', $attributes['vat_amount'])
             ->limit(2)
             ->get();
 
-        return $businessMatches->count() === 1 ? $businessMatches->first() : null;
+        // Ambiguity is fail-closed: do not silently overwrite an arbitrary invoice.
+        if ($businessMatches->count() > 1) {
+            throw new RuntimeException('Nhiều hóa đơn trùng định danh pháp lý; cần kiểm tra thủ công trước khi đồng bộ.');
+        }
+
+        return $businessMatches->first();
     }
 
     private function extractTransactionId(array $raw): ?string
