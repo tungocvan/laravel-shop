@@ -116,6 +116,7 @@ class GdtInvoiceService
             $all = array_merge($all, $regular, $pos);
             $start = $chunkEnd->copy()->addDay();
         }
+        $show('[GDT] Tổng cộng API trả về: '.count($all).' hóa đơn');
         // The two GDT endpoints can overlap; deduplicate before database writes and export.
         $all = array_values(collect($all)->unique(function (array $row): string {
             $raw = $row['_gdt_raw_payload'] ?? [];
