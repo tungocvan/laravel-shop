@@ -123,4 +123,18 @@ class MedicineExcelProfileContractTest extends TestCase
         $this->assertStringContainsString('$this->save($service);', $component);
     }
 
+    #[Test]
+    public function local_first_designer_survives_profile_actions_without_dom_morph_corruption(): void
+    {
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/medicine/excel-configurator.blade.php'));
+        $component = file_get_contents(base_path('Modules/Pharma/Livewire/Medicine/ExcelConfigurator.php'));
+
+        $this->assertStringContainsString('wire:ignore wire:key="medicine-excel-v4-{{ $designerRevision }}"', $view);
+        $this->assertStringContainsString("this.draft.headers[key] = this.labels[key]", $view);
+        $this->assertStringContainsString('public int $designerRevision = 0;', $component);
+        $this->assertStringContainsString('$this->designerRevision++;', $component);
+        $this->assertStringContainsString("$service->delete((int) auth('admin')->id(), $this->profileId);\n        $this->profileId = null;", $component);
+        $this->assertStringContainsString('x-on:click="add(@js($key))"', $view);
+    }
+
 }
