@@ -29,7 +29,7 @@ class AdminSidebarFullscreenToggleContractTest extends TestCase
         $this->assertStringContainsString('grid-template-columns: var(--admin-sidebar-track, 0px) minmax(0, 1fr)', $shell);
         $this->assertStringContainsString('data-admin-sidebar-fullscreen', $shell);
         $this->assertStringContainsString('data-admin-sidebar-fullscreen-toggle', $shell);
-        $this->assertStringContainsString('x-show="isDesktop && sidebarFullscreen"', $shell);
+        $this->assertStringContainsString('x-show.important="isDesktop && sidebarFullscreen"', $shell);
         $this->assertStringContainsString('Mở lại Sidebar', $shell);
         $this->assertStringContainsString('sidebarFullscreen = false', $shell);
     }
