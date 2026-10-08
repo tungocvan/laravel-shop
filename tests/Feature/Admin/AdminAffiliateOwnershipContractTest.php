@@ -41,8 +41,8 @@ class AdminAffiliateOwnershipContractTest extends TestCase
     {
         $expectations = [
             'Modules/Admin/Services/AdminAffiliateService.php' => 'Modules\\Order\\Services\\AdminAffiliateService',
-            'Modules/Admin/Services/AffiliateRankService.php' => 'Modules\\Website\\Services\\AffiliateRankService',
-            'Modules/Admin/Models/AffiliateScheme.php' => 'Modules\\Website\\Models\\AffiliateScheme',
+            'Modules/Admin/Services/AffiliateRankService.php' => 'Modules\\Order\\Services\\AffiliateRankService',
+            'Modules/Admin/Models/AffiliateScheme.php' => 'Modules\\Order\\Models\\AffiliateScheme',
         ];
 
         foreach ($expectations as $path => $canonicalClass) {
