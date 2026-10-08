@@ -23,13 +23,13 @@ class GdtPosPreviewOnlyContractTest extends TestCase
     }
 
     #[Test]
-    public function hoadon_ui_exposes_manual_pos_import_workflow(): void
+    public function hoadon_ui_uses_canonical_pos_sync_and_retains_legacy_import_tool(): void
     {
         $component = file_get_contents(base_path('Modules/Invoices/Livewire/SearchHoadon.php'));
         $view = file_get_contents(base_path('Modules/Invoices/resources/views/livewire/search-hoadon.blade.php'));
         $this->assertStringContainsString("public string \$invoiceSource = 'all'", $component);
-        $this->assertStringContainsString("if (\$this->invoiceSource === 'pos')", $component);
-        $this->assertStringContainsString('exportCashRegisterPreview(', $component);
+        $this->assertStringContainsString("'in:all,regular,pos'", $component);
+        $this->assertStringNotContainsString('exportCashRegisterPreview(', $component);
         $this->assertStringContainsString('wire:model.live="invoiceSource"', $view);
         $this->assertStringContainsString('Chỉ hóa đơn máy tính tiền', $view);
         $this->assertStringContainsString('importSelectedFile', $view);
