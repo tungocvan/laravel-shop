@@ -66,7 +66,7 @@
                     <section class="rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4"><h4 class="text-sm font-bold">Tách biệt dữ liệu</h4><p class="mt-2 text-sm text-slate-600">Đây là mẫu báo cáo riêng. File Export danh mục thuốc chuẩn để import trở lại vẫn giữ nguyên định dạng và chức năng.</p></section>
                 </div>
                 @elseif($activeSection === 'columns')
-                <div class="mx-auto max-w-[1320px]" x-data="{
+                <div class="mx-auto max-w-[1320px]" wire:ignore wire:key="medicine-excel-v4-{{ $designerRevision }}" x-data="{
                     search: '',
                     editing: null,
                     dragging: null,
@@ -83,7 +83,7 @@
                         return result;
                     },
                     available(key) { return this.draft.columns.includes(key); },
-                    add(key) { if (!this.available(key)) this.draft.columns.push(key); this.editing = key; },
+                    add(key) { if (!this.labels[key]) return; if (!this.available(key)) this.draft.columns.push(key); if (!this.draft.headers[key]) this.draft.headers[key] = this.labels[key]; if (!this.draft.widths[key]) this.draft.widths[key] = 130; if (!this.draft.alignments[key]) this.draft.alignments[key] = 'left'; this.editing = key; },
                     remove(key) { this.draft.columns = this.draft.columns.filter(item => item !== key); if (this.editing === key) this.editing = null; },
                     move(key, position) {
                         const old = this.draft.columns.indexOf(key);
@@ -93,7 +93,7 @@
                         this.draft.columns.splice(target, 0, key);
                     },
                     selectAll() { this.draft.columns = Object.keys(this.labels); },
-                    reset() { this.draft.columns = Object.keys(this.labels).filter(key => this.available(key)); },
+                    reset() { const chosen = new Set(this.draft.columns); this.draft.columns = Object.keys(this.labels).filter(key => chosen.has(key)); },
                     payload() { return JSON.parse(JSON.stringify(this.draft)); }
                 }" x-on:medicine-designer-save.window="$wire.saveDraft(payload())">
                     <div class="flex flex-wrap items-center justify-between gap-3">
