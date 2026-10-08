@@ -48,7 +48,9 @@ class MedicineExcelProfileService
 
     public function defaults(): array
     {
-        $columns = array_keys(self::BASE_COLUMNS);
+        $columns = array_values(array_diff(array_keys(self::BASE_COLUMNS), [
+            'circular_order_number', 'visa_validity_date', 'gmp_certification_date', 'is_special_control',
+        ]));
         return [
             'id' => null, 'name' => 'Mặc định', 'is_default' => true,
             'columns' => $columns,
