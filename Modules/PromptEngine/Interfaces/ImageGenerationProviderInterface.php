@@ -1,1 +1,0 @@
-<?php declare(strict_types=1); namespace Modules\PromptEngine\Interfaces; interface ImageGenerationProviderInterface { public function name(): string; public function generate(string $prompt, string $aspectRatio): array; }
