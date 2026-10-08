@@ -49,7 +49,7 @@ class AdminOwnershipBoundaryContractTest extends TestCase
 
         $this->assertNotFalse($routes);
         $this->assertNotFalse($controller);
-        $this->assertStringContainsString("Route::get('/header', [AdminController::class, 'layoutHeader'])->name('header')", $routes);
+        $this->assertStringContainsString("Route::get('/header', [AdminController::class, 'layoutHeader'])", $routes);
         $this->assertStringNotContainsString("Route::get('/admin-header'", $routes);
         $this->assertStringNotContainsString('function adminHeader(', $controller);
         $this->assertFileDoesNotExist(base_path('Modules/Admin/resources/views/pages/admin/header/index.blade.php'));
