@@ -18,6 +18,11 @@ class MedicineExcelProfileContractTest extends TestCase
         $this->assertSame('Loại sản phẩm', MedicineExcelProfileService::COLUMNS['product_type']);
         $this->assertContains('medicine_code', $defaults['columns']);
         $this->assertContains('sku', $defaults['columns']);
+        $this->assertSame('Hạn dùng sản phẩm', MedicineExcelProfileService::COLUMNS['shelf_life']);
+        $this->assertSame('Times New Roman', $defaults['settings']['font_family']);
+        $this->assertSame(12, $defaults['settings']['header_font_size']);
+        $this->assertSame(11, $defaults['settings']['body_font_size']);
+        $this->assertTrue($defaults['settings']['body_border']);
         $this->assertSame('A4', $defaults['settings']['paper_size']);
         $this->assertSame('landscape', $defaults['settings']['orientation']);
         $this->assertSame('pharma_medicine_excel_profiles', (new \Modules\Pharma\Models\MedicineExcelProfile())->getTable());
@@ -53,6 +58,9 @@ class MedicineExcelProfileContractTest extends TestCase
         $this->assertStringContainsString('wire:model="settings.paper_size"', $view);
         $this->assertStringContainsString('wire:model="settings.orientation"', $view);
         $this->assertStringContainsString('Column Inspector', $view);
+        $this->assertStringContainsString('Đã lưu cấu hình Excel', $view);
+        $this->assertStringContainsString('settings.font_family', $view);
+        $this->assertStringContainsString('settings.header_fill', $view);
         $this->assertStringContainsString('medicine-designer-workspace', $view);
         $this->assertStringContainsString('grid-template-columns: 190px minmax(0,1fr)', $view);
         $this->assertStringContainsString('medicine-designer-columns', $view);
