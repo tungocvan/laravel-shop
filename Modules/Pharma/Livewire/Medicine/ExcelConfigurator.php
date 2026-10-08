@@ -11,6 +11,7 @@ class ExcelConfigurator extends Component
     public bool $open = false;
     public string $activeSection = 'brand';
     public string $activeColumnKey = 'name';
+    public string $columnGroup = 'all';
     public ?int $profileId = null;
     public string $profileName = 'Mặc định';
     public bool $isDefault = true;
@@ -71,6 +72,7 @@ class ExcelConfigurator extends Component
     {
         if (isset(MedicineExcelProfileService::COLUMNS[$key])) {
             $this->selected[$key] = true;
+            $this->columns = array_values(array_unique(array_merge(array_values(array_filter($this->columns, fn ($item) => $this->selected[$item] ?? false)), [$key], array_values(array_filter($this->columns, fn ($item) => ! ($this->selected[$item] ?? false)))));
             $this->activeColumnKey = $key;
         }
     }
@@ -80,6 +82,39 @@ class ExcelConfigurator extends Component
         if (isset(MedicineExcelProfileService::COLUMNS[$key])) {
             $this->selected[$key] = false;
         }
+    }
+
+    public function resetColumnOrder(): void
+    {
+        $known = array_keys(MedicineExcelProfileService::COLUMNS);
+        $this->columns = $known;
+    }
+
+    public function duplicateProfile(): void
+    {
+        $this->profileId = null;
+        $this->profileName = mb_substr($this->profileName.' - Bản sao', 0, 120);
+        $this->isDefault = false;
+    }
+
+    public function reorderSelected(string $key, int $offset): void
+    {
+        if (! isset(MedicineExcelProfileService::COLUMNS[$key]) || ! ($this->selected[$key] ?? false)) {
+            return;
+        }
+        $selected = array_values(array_filter($this->columns, fn ($item) => $this->selected[$item] ?? false));
+        $index = array_search($key, $selected, true);
+        if ($index === false) {
+            return;
+        }
+        $target = max(0, min(count($selected) - 1, $index + $offset));
+        if ($target === $index) {
+            return;
+        }
+        array_splice($selected, $index, 1);
+        array_splice($selected, $target, 0, [$key]);
+        $unselected = array_values(array_filter($this->columns, fn ($item) => ! ($this->selected[$item] ?? false)));
+        $this->columns = array_merge($selected, $unselected);
     }
 
     public function selectAll(): void
