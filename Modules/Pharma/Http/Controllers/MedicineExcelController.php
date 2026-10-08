@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Modules\Pharma\Models\Medicine;
 use Modules\Pharma\Services\MedicineExcelProfileService;
+use Modules\Pharma\Services\MedicineExcelRelatedDataService;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -16,7 +17,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class MedicineExcelController extends Controller
 {
-    public function export(Request $request, MedicineExcelProfileService $profiles): BinaryFileResponse
+    public function export(Request $request, MedicineExcelProfileService $profiles, MedicineExcelRelatedDataService $related): BinaryFileResponse
     {
         $validated = $request->validate([
             'profile_id' => ['nullable', 'integer'],
@@ -58,6 +59,8 @@ class MedicineExcelController extends Controller
         $sheet->getStyle("A{$headerRow}:{$last}{$headerRow}")->getAlignment()->setWrapText(true);
         $sheet->setAutoFilter("A{$headerRow}:{$last}{$headerRow}");
         $sheet->freezePane('A'.($headerRow + 1));
+        $relatedKeys = array_keys($related->emptyValues());
+        $needsRelated = count(array_intersect($columns, $relatedKeys)) > 0;
         $index = 0;
         foreach ($query->orderBy('id')->lazy(200) as $medicine) {
             $index++;
@@ -82,13 +85,16 @@ class MedicineExcelController extends Controller
                 'manufacturing_country' => $medicine->manufacturing_country,
                 'profile_status' => $medicine->profile_status,
             ];
+            if ($needsRelated) {
+                $values = array_merge($values, $related->preview($medicine));
+            }
             $dataRow = $headerRow + $index;
             foreach ($columns as $col => $key) {
                 $cell = Coordinate::stringFromColumnIndex($col + 1).$dataRow;
                 $value = $values[$key] ?? null;
-                if (in_array($key, ['stt', 'declared_price'], true) && is_numeric($value)) {
+                if (in_array($key, ['stt', 'declared_price', 'cost_price', 'winning_price', 'allocated_quantity'], true) && is_numeric($value)) {
                     $sheet->setCellValue($cell, (float) $value);
-                    if ($key === 'declared_price') {
+                    if (in_array($key, ['declared_price', 'cost_price', 'winning_price', 'allocated_quantity'], true)) {
                         $sheet->getStyle($cell)->getNumberFormat()->setFormatCode('#,##0');
                     }
                 } else {
