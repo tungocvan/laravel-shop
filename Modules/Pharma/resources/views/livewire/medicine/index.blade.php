@@ -21,9 +21,25 @@
             <div class="flex flex-wrap gap-2">
                 <a href="{{ route('admin.pharma.hssp.index') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">Quản lý HSSP</a>
                 <a href="{{ route('admin.pharma.supplier-trackings.index') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">Danh sách theo dõi</a>
+                @livewire('pharma.medicine.excel-configurator')
                 <button type="button" wire:click="toggleImportExport" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-indigo-200 bg-indigo-50 px-4 text-sm font-semibold text-indigo-700 hover:bg-indigo-100">{{ $showImportExport ? 'Đóng Import / Export' : 'Import / Export' }}</button>
                 @if($canCreate)<a href="{{ route('admin.pharma.medicines.create') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700">Thêm thuốc</a>@endif
             </div>
+        </div>
+        <div class="mt-4 flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+            <label class="min-w-[190px] flex-1 text-xs font-semibold text-slate-600 sm:flex-none">Mẫu xuất Excel
+                <select wire:model.live="excelProfileId" class="mt-1 block min-h-10 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm">
+                    <option value="">Cấu hình mặc định</option>
+                    @foreach($excelProfiles as $profile)
+                        <option value="{{ $profile['id'] }}">{{ $profile['name'] }}{{ $profile['is_default'] ? ' · Mặc định' : '' }}</option>
+                    @endforeach
+                </select>
+            </label>
+            <a href="{{ route('admin.pharma.medicines.export-configured', ['profile_id' => $excelProfileId ?: null]) }}" class="inline-flex min-h-10 items-center rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700">Xuất Excel theo cấu hình</a>
+            @if($selectedIds !== [])
+                <a href="{{ route('admin.pharma.medicines.export-configured', ['profile_id' => $excelProfileId ?: null, 'ids' => implode(',', $selectedIds)]) }}" class="inline-flex min-h-10 items-center rounded-xl border border-emerald-300 bg-white px-4 text-sm font-semibold text-emerald-700">Xuất {{ count($selectedIds) }} thuốc đã chọn</a>
+            @endif
+            <span class="text-xs text-slate-500">Báo cáo riêng · Import / Export chuẩn không thay đổi</span>
         </div>
         @if($showImportExport)
             <div class="mt-4 flex flex-wrap items-center gap-3 rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4">
