@@ -27,6 +27,7 @@ class SearchHoadon extends Component
     public $end_date;
     public $vatIn = false;
     public $useQueue = true;
+    public string $invoiceSource = 'all';
     public array $logs = [];
     public ?string $syncId = null;
     public string $syncState = 'idle';
@@ -71,6 +72,7 @@ class SearchHoadon extends Component
             'end_date' => ['required', 'date', 'after_or_equal:start_date'],
             'vatIn' => ['boolean'],
             'useQueue' => ['boolean'],
+            'invoiceSource' => ['required', 'in:all,pos'],
         ]);
 
         if (! $this->apiService->hasToken()) {
@@ -84,6 +86,33 @@ class SearchHoadon extends Component
         $this->syncMessage = null;
         $this->syncFile = null;
         $this->log('Bắt đầu xử lý…');
+
+        if ($this->invoiceSource === 'pos') {
+            // Export-only mode: no queue, canonical persistence or RAW acquisition.
+            $this->syncId = null;
+            $this->syncState = 'processing';
+            try {
+                $file = $this->invoiceService->exportCashRegisterPreview(
+                    $this->start_date, $this->end_date, (bool) $this->vatIn,
+                    fn (string $message) => $this->log($message),
+                );
+                $this->syncState = 'completed';
+                $this->syncFile = $file ? basename($file) : null;
+                $this->syncMessage = $file
+                    ? 'Đã xuất Excel máy tính tiền. Chưa ghi database; hãy kiểm tra file và chọn Import nếu đồng ý.'
+                    : 'Không có hóa đơn máy tính tiền trong khoảng đã chọn.';
+                $this->refreshAvailableFiles();
+                if ($file) {
+                    $direction = (bool) $this->vatIn ? 'vat_in' : 'vat_out';
+                    $this->selectedFiles = [$direction.'|'.basename($file)];
+                }
+            } catch (\Throwable $exception) {
+                $this->syncState = 'failed';
+                $this->syncMessage = $exception->getMessage();
+                $this->log('❌ '.$exception->getMessage());
+            }
+            return;
+        }
 
         if ($this->useQueue) {
             $this->syncId = (string) Str::uuid();
