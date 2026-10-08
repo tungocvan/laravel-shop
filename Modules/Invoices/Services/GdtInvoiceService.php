@@ -16,6 +16,13 @@ use Throwable;
 
 class GdtInvoiceService
 {
+    private array $lastDetailStats = ['reused' => 0, 'fetched' => 0, 'failed' => 0];
+
+    public function lastDetailStats(): array
+    {
+        return $this->lastDetailStats;
+    }
+
     public function search(string $fromDate, string $toDate, string $type): array
     {
         $token = Cache::get(config('invoices.gdt.cache_key'));
@@ -96,6 +103,7 @@ class GdtInvoiceService
         if (! in_array($source, ['all', 'regular', 'pos'], true)) {
             throw new \InvalidArgumentException('Nguồn hóa đơn GDT không hợp lệ.');
         }
+        $this->lastDetailStats = ['reused' => 0, 'fetched' => 0, 'failed' => 0];
         $show('[GDT] Bắt đầu đồng bộ nguồn canonical: '.$source);
         $vatIn = (bool) $vatIn;
         $show($vatIn ? '[GDT] Hóa đơn đầu vào' : '[GDT] Hóa đơn đầu ra');
@@ -158,6 +166,7 @@ class GdtInvoiceService
         $stats = $this->persistInvoices($all, $vatIn);
         $show(sprintf('[DB] Đồng bộ header hoàn tất: tạo mới %d · cập nhật %d · không đổi %d · RAW header %d.', $stats['created'], $stats['updated'], $stats['unchanged'], count($stats['invoice_ids'])));
         $detailStats = $this->acquireMissingDetails($stats['invoice_ids'], $show);
+        $this->lastDetailStats = $detailStats;
         $show(sprintf('[RAW] Detail: đã có %d · tải mới %d · lỗi %d.', $detailStats['reused'], $detailStats['fetched'], $detailStats['failed']));
         $file = $this->exportExcel($all, $vatIn, $filename);
         $show('[GDT] File Excel tạo ra: '.$file);
