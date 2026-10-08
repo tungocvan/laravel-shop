@@ -11,6 +11,7 @@ class MstLookupCommandTest extends TestCase
     public function test_it_looks_up_company_by_name_and_prints_expected_fields(): void
     {
         Http::fake([
+            'https://masothue.com/Ajax/Token' => Http::response(['token' => 'test-search-token'], 200),
             'https://masothue.com/Search/*' => Http::response($this->searchHtml(), 200),
             'https://masothue.com/1700285659-benh-vien-da-khoa-kien-giang' => Http::response($this->detailHtml(), 200),
         ]);
@@ -22,12 +23,14 @@ class MstLookupCommandTest extends TestCase
             ->expectsOutputToContain('TRƯƠNG CÔNG THÀNH')
             ->assertSuccessful();
 
-        Http::assertSentCount(2);
+        Http::assertSentCount(3);
+        Http::assertSent(fn ($request) => $request->url() === 'https://masothue.com/Ajax/Token' && $request->method() === 'POST');
     }
 
     public function test_it_can_output_json(): void
     {
         Http::fake([
+            'https://masothue.com/Ajax/Token' => Http::response(['token' => 'test-search-token'], 200),
             'https://masothue.com/Search/*' => Http::response($this->searchHtml(), 200),
             'https://masothue.com/1700285659-benh-vien-da-khoa-kien-giang' => Http::response($this->detailHtml(), 200),
         ]);
@@ -42,13 +45,14 @@ class MstLookupCommandTest extends TestCase
         $payload = json_decode(Artisan::output(), true, 512, JSON_THROW_ON_ERROR);
 
         $this->assertSame('1700285659', $payload['tax_code']);
-        $this->assertSame('exact', $payload['match_type']);
+        $this->assertSame('exact_name', $payload['match_type']);
         $this->assertSame('BỆNH VIỆN ĐA KHOA KIÊN GIANG', $payload['name']);
     }
 
     public function test_it_fails_when_search_has_no_results(): void
     {
         Http::fake([
+            'https://masothue.com/Ajax/Token' => Http::response(['token' => 'test-search-token'], 200),
             'https://masothue.com/Search/*' => Http::response('<html><body><h1>Không có kết quả</h1></body></html>', 200),
         ]);
 
