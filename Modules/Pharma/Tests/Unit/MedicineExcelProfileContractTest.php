@@ -147,6 +147,7 @@ class MedicineExcelProfileContractTest extends TestCase
         $this->assertStringContainsString('setHorizontal(Alignment::HORIZONTAL_CENTER)', $source);
         $this->assertStringContainsString('setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true)', $source);
         $this->assertStringContainsString('// Column-specific alignment applies to data rows only; headers stay centered.', $source);
+        $this->assertStringContainsString('$letter.($headerRow + 1)', $source);
     }
 
 }
