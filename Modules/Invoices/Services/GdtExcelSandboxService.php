@@ -235,7 +235,8 @@ final class GdtExcelSandboxService
             $query = ['sort' => 'tdlap:desc', 'size' => 50, 'search' => $search];
             if ($processingStatus !== null) $query['search'] .= ';ttxly=='.$processingStatus;
             if ($state) $query['state'] = $state;
-            $response = $this->queryClient($token)->get($this->url('/query/invoices/'.$type), $query);
+            $endpoint = $processingStatus === '8' ? '/sco-query/invoices/' : '/query/invoices/';
+            $response = $this->queryClient($token)->get($this->url($endpoint.$type), $query);
             if (in_array($response->status(), [401, 403], true)) {
                 throw new RuntimeException($response->status() === 401 ? 'Phiên GDT đã hết hạn.' : 'GDT từ chối truy vấn hóa đơn (HTTP 403).');
             }
