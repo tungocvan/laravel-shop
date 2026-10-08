@@ -44,7 +44,7 @@ class ProcessGdtInvoicesJob implements ShouldQueue
                 'direction' => $this->vatIn ? 'vat_in' : 'vat_out',
                 'source' => $this->source,
                 'missing_detail' => $missing,
-                'finished_at => now()->toIso8601String(),
+                'finished_at' => now()->toIso8601String(),
             ]);
             return;
         }
