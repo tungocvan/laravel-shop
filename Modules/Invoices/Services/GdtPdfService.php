@@ -139,7 +139,7 @@ class GdtPdfService
                             'End-Point' => '/',
                             'request-id' => (string) Str::uuid(),
                         ])
-                        ->get(rtrim((string) config('invoices.gdt.base_url'), '/').'/query/invoices/detail', [
+                        ->get(rtrim((string) config('invoices.gdt.base_url'), '/').$this->detailEndpoint($invoice), [
                             'nbmst' => $nbmst,
                             'khhdon' => $khhdon,
                             'shdon' => $shdon,
@@ -208,6 +208,33 @@ class GdtPdfService
             $this->markAcquisitionError($source, $exception->getMessage());
             throw $exception;
         }
+    }
+
+    /**
+     * Cash-register invoices use the SCO detail API, not the regular query API.
+     * Prefer canonical header metadata; imported legacy Excel rows can be
+     * recognized by the GDT machine-register symbol (e.g. C26MHS).
+     */
+    private function detailEndpoint(Invoices $invoice): string
+    {
+        $source = InvoiceSourceRecord::query()
+            ->where('invoice_id', $invoice->id)
+            ->where('provider', 'gdt')
+            ->first();
+        $header = $source?->header_payload;
+        if (is_array($header) && array_key_exists('hthdon', $header)) {
+            return (int) $header['hthdon'] === 5
+                ? '/sco-query/invoices/detail'
+                : '/query/invoices/detail';
+        }
+        if (is_array($header) && array_key_exists('ttxly', $header) && (int) $header['ttxly'] === 8) {
+            return '/sco-query/invoices/detail';
+        }
+
+        [, $series] = $this->parseSymbol((string) $invoice->symbol);
+        return preg_match('/^[CK][0-9]{2}M[A-Z0-9]+$/i', $series)
+            ? '/sco-query/invoices/detail'
+            : '/query/invoices/detail';
     }
 
     private function logRejectedDetail($response, Invoices $invoice, int $attempt): void
