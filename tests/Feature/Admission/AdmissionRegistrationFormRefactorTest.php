@@ -99,7 +99,7 @@ class AdmissionRegistrationFormRefactorTest extends TestCase
     {
         $modelSource = file_get_contents(base_path('Modules/Admission/Models/AdmissionApplication.php'));
 
-        $this->assertStringContainsString("$statusPreservingFields = ['so_so_tiem_chung']", $modelSource);
+        $this->assertStringContainsString("\$statusPreservingFields = ['so_so_tiem_chung']", $modelSource);
         $this->assertStringContainsString('$onlyStatusPreservingFieldsChanged', $modelSource);
         $this->assertStringContainsString('! $onlyStatusPreservingFieldsChanged', $modelSource);
     }
@@ -126,8 +126,8 @@ class AdmissionRegistrationFormRefactorTest extends TestCase
         $this->assertStringContainsString("'ma_dinh_danh' => (string) \$application->ma_dinh_danh", $controller);
         $this->assertStringContainsString("format('dmY')", $controller);
         $this->assertStringContainsString("public function mount(string \$maDinhDanh = '', string \$password = '')", $search);
-        $this->assertStringContainsString(':ma-dinh-danh="\$receiptPrefill[\'ma_dinh_danh\'] ?? \'\'"', $page);
-        $this->assertStringContainsString(':password="\$receiptPrefill[\'password\'] ?? \'\'"', $page);
+        $this->assertStringContainsString(':ma-dinh-danh="$receiptPrefill[\'ma_dinh_danh\'] ?? \'\'"', $page);
+        $this->assertStringContainsString(':password="$receiptPrefill[\'password\'] ?? \'\'"', $page);
     }
 
     public function test_registration_blade_has_loading_error_and_correct_edit_capability_contracts(): void
