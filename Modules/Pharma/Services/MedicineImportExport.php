@@ -48,6 +48,7 @@ class MedicineImportExport extends BaseImportExportService
         'profile_link' => ['nullable', 'url'],
         'is_special_control' => ['required', 'boolean'],
         'notes' => ['nullable', 'string'],
+        'product_type' => ['nullable', 'in:tan_duoc,dong_duoc,thuc_pham_chuc_nang'],
     ];
 
     protected function modelClass(): string
@@ -78,6 +79,7 @@ class MedicineImportExport extends BaseImportExportService
             'S' => 'profile_link',
             'T' => 'is_special_control',
             'U' => 'notes',
+            'V' => 'product_type',
         ];
     }
 
@@ -104,6 +106,7 @@ class MedicineImportExport extends BaseImportExportService
             'profile_link' => $this->cleanString($row['profile_link'] ?? null),
             'is_special_control' => $this->cleanBoolean($row['is_special_control'] ?? null),
             'notes' => $this->cleanString($row['notes'] ?? null),
+            'product_type' => $this->normalizeProductType($row['product_type'] ?? null),
         ];
 
         $existing = $this->existingRecord($data);
@@ -164,6 +167,7 @@ class MedicineImportExport extends BaseImportExportService
             'Link Hồ sơ sản phẩm' => $model->profile_link,
             'Hoạt chất kiểm soát đặc biệt' => $model->is_special_control ? 'Có' : 'Không',
             'Ghi chú' => $model->notes,
+            'Loại sản phẩm' => Medicine::productTypeOptions()[$model->product_type] ?? 'Tân dược',
         ];
     }
 
@@ -177,6 +181,22 @@ class MedicineImportExport extends BaseImportExportService
             'registered_company' => 'Alpex Pharma SA, Thụy Sĩ', 'manufacturing_company' => 'Alpex Pharma SA',
             'manufacturing_country' => 'Thụy Sĩ', 'declared_price' => 8500, 'is_special_control' => false,
         ]));
+    }
+
+    private function normalizeProductType(mixed $value): ?string
+    {
+        $value = $this->cleanString($value);
+        if ($value === null) {
+            return null;
+        }
+
+        foreach (Medicine::productTypeOptions() as $key => $label) {
+            if (mb_strtolower($value, 'UTF-8') === $key || mb_strtolower($value, 'UTF-8') === mb_strtolower($label, 'UTF-8')) {
+                return $key;
+            }
+        }
+
+        return '__invalid_product_type__';
     }
 
     private function selectedIds(array $filters): array
