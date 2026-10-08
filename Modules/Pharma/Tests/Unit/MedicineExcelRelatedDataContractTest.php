@@ -34,6 +34,6 @@ class MedicineExcelRelatedDataContractTest extends TestCase
         $this->assertStringContainsString("addColumn('{{ \$key }}')", $view);
         $this->assertStringNotContainsString('previewMedicineCode', $component);
         $this->assertStringContainsString('array_merge($values, $related->preview($medicine))', $controller);
-        $this->assertStringContainsString("($value ?? '')", $controller);
+        $this->assertStringContainsString('($value ?? \'\')', $controller);
     }
 }
