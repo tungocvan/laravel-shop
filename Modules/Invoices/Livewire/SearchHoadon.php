@@ -129,8 +129,11 @@ class SearchHoadon extends Component
                 throw new RuntimeException('Đồng bộ kết thúc nhưng không tạo được file Excel trên server.');
             }
 
-            $this->syncState = 'completed';
-            $this->syncMessage = 'Đồng bộ hoàn tất và file Excel đã được tạo.';
+            $failedDetails = (int) ($this->invoiceService->lastDetailStats()['failed'] ?? 0);
+            $this->syncState = $failedDetails > 0 ? 'partial' : 'completed';
+            $this->syncMessage = $failedDetails > 0
+                ? 'Đã lưu hóa đơn và RAW header nhưng còn '.$failedDetails.' RAW detail lỗi; chạy lại để phục hồi.'
+                : 'Đồng bộ canonical hoàn tất, không cần Import Excel.';
             $this->syncFile = basename($file);
             $this->log('Hoàn tất xử lý!');
             $this->refreshAvailableFiles();
