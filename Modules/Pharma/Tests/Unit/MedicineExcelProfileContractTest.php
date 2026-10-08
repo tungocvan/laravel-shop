@@ -84,4 +84,25 @@ class MedicineExcelProfileContractTest extends TestCase
         $this->assertStringNotContainsString("? \$data['alignments'][\$key] : 'left';", $source);
     }
 
+    #[\PHPUnit\Framework\Attributes\Test]
+    public function regulatory_fields_are_optional_and_exported_from_medicine(): void
+    {
+        $defaults = (new MedicineExcelProfileService())->defaults();
+        $fields = [
+            'circular_order_number' => 'STT thông tư',
+            'visa_validity_date' => 'Hiệu lực Visa',
+            'gmp_certification_date' => 'GMP cơ sở sản xuất',
+            'is_special_control' => 'Thuốc kiểm soát đặc biệt (KSĐB)',
+        ];
+        $controller = file_get_contents(base_path('Modules/Pharma/Http/Controllers/MedicineExcelController.php'));
+        foreach ($fields as $key => $label) {
+            $this->assertSame($label, MedicineExcelProfileService::COLUMNS[$key]);
+            $this->assertNotContains($key, $defaults['columns']);
+            $this->assertStringContainsString("'".$key."' =>", $controller);
+        }
+        $this->assertStringContainsString("visa_validity_date?->format('d/m/Y')", $controller);
+        $this->assertStringContainsString("gmp_certification_date?->format('d/m/Y')", $controller);
+        $this->assertStringContainsString("getRawOriginal('is_special_control') === null", $controller);
+    }
+
 }
