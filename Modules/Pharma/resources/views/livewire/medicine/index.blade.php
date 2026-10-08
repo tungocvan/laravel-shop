@@ -38,24 +38,50 @@
     @if(session()->has('error'))<div role="alert" class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{{ session('error') }}</div>@endif
 
     <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5" aria-labelledby="medicine-filters-heading">
-        <div class="mb-4">
-            <h2 id="medicine-filters-heading" class="text-base font-semibold text-slate-900">Tìm kiếm & Data Quality</h2>
-            <p class="mt-1 text-sm text-slate-500">Tìm theo mã thuốc, SKU, tên biệt dược/tên thuốc/tên sản phẩm, GPLH, hoạt chất, hàm lượng, quy cách, nhà sản xuất hoặc alias.</p>
-        </div>
-        <div class="grid gap-3 xl:grid-cols-12 xl:items-end">
-            <div class="xl:col-span-3"><label class="block text-sm font-medium text-slate-700">Tìm kiếm</label><input type="search" wire:model.live.debounce.300ms="search" placeholder="MED-..., SKU, tên thuốc, GPLH..." class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm"></div>
-            <div class="xl:col-span-3"><label class="block text-sm font-medium text-slate-700">Nhà cung cấp</label><div class="mt-1"><x-select-search id="medicine-supplier-filter" wire:model="filterSupplier" :options="$supplierFilterOptions" options-wire="supplierFilterOptions" search-event="medicine-supplier-filter-search" placeholder="Tất cả nhà cung cấp"><option value="">Tất cả nhà cung cấp</option>@foreach($supplierFilterOptions as $option)<option value="{{ $option['id'] }}">{{ $option['label'] }}</option>@endforeach</x-select-search></div></div>
-            <div class="xl:col-span-2"><label class="block text-sm font-medium text-slate-700">Loại sản phẩm</label><select wire:model.live="filterProductType" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="">Tất cả loại sản phẩm</option>@foreach($productTypeOptions as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select></div>
-            <div class="xl:col-span-2"><label class="block text-sm font-medium text-slate-700">HSSP</label><select wire:model.live="filterHssp" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="">Tất cả</option><option value="with">Có HSSP</option><option value="without">Chưa có HSSP</option></select></div>
-            <div class="xl:col-span-2"><label class="block text-sm font-medium text-slate-700">Chất lượng master</label><select wire:model.live="filterProfileStatus" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm">@foreach($profileStatusOptions as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select></div>
-            <div class="xl:col-span-2"><label class="block text-sm font-medium text-slate-700">GPLH</label><select wire:model.live="filterRegistration" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="">Tất cả GPLH</option><option value="with">Có GPLH</option><option value="without">Chưa có GPLH</option></select></div>
-            <div class="xl:col-span-2"><label class="block text-sm font-medium text-slate-700">Khả năng xóa</label><select wire:model.live="filterDeletable" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="">Tất cả</option><option value="yes">Có thể xóa</option><option value="no">Đang có ràng buộc</option></select></div>
-            <div class="xl:col-span-1"><label class="block text-sm font-medium text-slate-700">Nhóm</label><select wire:model.live="filterCircularGroup" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="">Tất cả</option>@foreach($circularGroups as $group)<option value="{{ $group }}">{{ $group }}</option>@endforeach</select></div>
-            <div class="xl:col-span-1"><label class="block text-sm font-medium text-slate-700">KSĐB</label><select wire:model.live="filterSpecialControl" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="">Tất cả</option><option value="yes">Có</option><option value="no">Không</option></select></div>
-            <div class="xl:col-span-1"><label class="block text-sm font-medium text-slate-700">Mỗi trang</label><select wire:model.live="perPage" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm">@foreach($perPageOptions as $option)<option value="{{ $option }}">{{ $option }}</option>@endforeach</select></div>
+        <div class="flex flex-col gap-3 border-b border-slate-100 pb-4 sm:flex-row sm:items-start sm:justify-between">
+            <div class="min-w-0">
+                <h2 id="medicine-filters-heading" class="text-base font-semibold text-slate-900">Tìm kiếm &amp; Data Quality</h2>
+                <p class="mt-1 text-sm text-slate-500">Tra cứu danh mục thuốc và rà soát chất lượng dữ liệu theo từng nhóm tiêu chí.</p>
+            </div>
             @if($this->hasActiveSelectFilters())
-                <div class="xl:col-span-2"><button type="button" wire:click="resetFilters" class="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-slate-400 hover:bg-slate-50">Xóa bộ lọc</button></div>
+                <button type="button" wire:click="resetFilters" class="inline-flex min-h-10 shrink-0 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:border-slate-400 hover:bg-slate-50">Xóa bộ lọc</button>
             @endif
+        </div>
+        <div class="space-y-5 pt-4">
+            <div>
+                <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Tra cứu &amp; phân loại</h3>
+                <div class="grid grid-cols-1 items-end gap-3 md:grid-cols-2 xl:grid-cols-12">
+                    <div class="min-w-0 md:col-span-2 xl:col-span-5">
+                        <label class="block text-sm font-medium text-slate-700">Tìm kiếm</label>
+                        <input type="search" wire:model.live.debounce.300ms="search" placeholder="Mã thuốc, SKU, tên thuốc, GPLH, hoạt chất..." class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm">
+                    </div>
+                    <div class="min-w-0 xl:col-span-3">
+                        <label class="block text-sm font-medium text-slate-700">Loại sản phẩm</label>
+                        <select wire:model.live="filterProductType" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="">Tất cả loại sản phẩm</option>@foreach($productTypeOptions as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select>
+                    </div>
+                    <div class="min-w-0 md:col-span-2 xl:col-span-4">
+                        <label class="block text-sm font-medium text-slate-700">Nhà cung cấp</label>
+                        <div class="mt-1"><x-select-search id="medicine-supplier-filter" wire:model="filterSupplier" :options="$supplierFilterOptions" options-wire="supplierFilterOptions" search-event="medicine-supplier-filter-search" placeholder="Tất cả nhà cung cấp"><option value="">Tất cả nhà cung cấp</option>@foreach($supplierFilterOptions as $option)<option value="{{ $option['id'] }}">{{ $option['label'] }}</option>@endforeach</x-select-search></div>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-slate-100 pt-4">
+                <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Kiểm soát chất lượng dữ liệu</h3>
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+<div class="min-w-0"><label class="block text-sm font-medium text-slate-700">HSSP</label><select wire:model.live="filterHssp" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="">Tất cả</option><option value="with">Có HSSP</option><option value="without">Chưa có HSSP</option></select></div>
+<div class="min-w-0"><label class="block text-sm font-medium text-slate-700">Chất lượng master</label><select wire:model.live="filterProfileStatus" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm">@foreach($profileStatusOptions as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select></div>
+<div class="min-w-0"><label class="block text-sm font-medium text-slate-700">GPLH</label><select wire:model.live="filterRegistration" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="">Tất cả GPLH</option><option value="with">Có GPLH</option><option value="without">Chưa có GPLH</option></select></div>
+<div class="min-w-0"><label class="block text-sm font-medium text-slate-700">Khả năng xóa</label><select wire:model.live="filterDeletable" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="">Tất cả</option><option value="yes">Có thể xóa</option><option value="no">Đang có ràng buộc</option></select></div>
+                </div>
+            </div>
+            <div class="border-t border-slate-100 pt-4">
+                <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Bộ lọc bổ sung &amp; hiển thị</h3>
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+<div class="min-w-0"><label class="block text-sm font-medium text-slate-700">Nhóm</label><select wire:model.live="filterCircularGroup" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="">Tất cả</option>@foreach($circularGroups as $group)<option value="{{ $group }}">{{ $group }}</option>@endforeach</select></div>
+<div class="min-w-0"><label class="block text-sm font-medium text-slate-700">KSĐB</label><select wire:model.live="filterSpecialControl" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="">Tất cả</option><option value="yes">Có</option><option value="no">Không</option></select></div>
+<div class="min-w-0"><label class="block text-sm font-medium text-slate-700">Mỗi trang</label><select wire:model.live="perPage" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm">@foreach($perPageOptions as $option)<option value="{{ $option }}">{{ $option }}</option>@endforeach</select></div>
+                </div>
+            </div>
         </div>
     </section>
 
