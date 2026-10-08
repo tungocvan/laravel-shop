@@ -16,8 +16,8 @@ class InvoicesPartnerReportTest extends TestCase
         (require base_path('Modules/Invoices/database/migrations/2025_11_21_045614_invoices.php'))->up();
 
         try {
-            Invoices::query()->create($this->row('1', 'sold', '1000.00', '100.00'));
-            Invoices::query()->create($this->row('2', 'purchase', '400.00', '40.00'));
+            Invoices::query()->create(array_replace($this->row('1', 'sold', '1000.00', '100.00'), ['amount_before_vat' => '1000.00']));
+            Invoices::query()->create(array_replace($this->row('2', 'purchase', '400.00', '40.00'), ['amount_before_vat' => '400.00']));
 
             $service = app(InvoicePartnerReportService::class);
             $filters = ['issued_date_from'=>'2026-08-01','issued_date_to'=>'2026-08-31'];
