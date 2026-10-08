@@ -98,4 +98,20 @@ class MedicineProductTypeContractTest extends TestCase
         $this->assertStringContainsString('w-[166px] truncate font-medium', $view);
         $this->assertStringContainsString('title="{{ $medicine->active_ingredients', $view);
     }
+    #[Test]
+    public function medicine_filters_are_grouped_without_losing_livewire_bindings(): void
+    {
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/medicine/index.blade.php'));
+
+        foreach (['Tra cứu &amp; phân loại', 'Kiểm soát chất lượng dữ liệu', 'Bộ lọc bổ sung &amp; hiển thị'] as $heading) {
+            $this->assertStringContainsString($heading, $view);
+        }
+
+        foreach (['search', 'filterProductType', 'filterSupplier', 'filterHssp', 'filterProfileStatus', 'filterRegistration', 'filterDeletable', 'filterCircularGroup', 'filterSpecialControl', 'perPage'] as $binding) {
+            $this->assertStringContainsString('"'.$binding.'"', $view);
+        }
+
+        $this->assertStringContainsString('wire:click="resetFilters"', $view);
+        $this->assertStringContainsString('md:grid-cols-2 xl:grid-cols-12', $view);
+    }
 }
