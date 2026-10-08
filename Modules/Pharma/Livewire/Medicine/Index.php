@@ -25,6 +25,8 @@ class Index extends Component
 
     public string $filterCircularGroup = '';
 
+    public string $filterProductType = '';
+
     public string $filterSpecialControl = '';
 
     public string $filterProfileStatus = '';
@@ -64,6 +66,15 @@ class Index extends Component
 
     public function updatedSearch(): void
     {
+        $this->resetWorkspacePage();
+    }
+
+    public function updatedFilterProductType(): void
+    {
+        if ($this->filterProductType !== '' && ! array_key_exists($this->filterProductType, Medicine::productTypeOptions())) {
+            $this->filterProductType = '';
+        }
+
         $this->resetWorkspacePage();
     }
 
@@ -146,7 +157,8 @@ class Index extends Component
 
     public function hasActiveSelectFilters(): bool
     {
-        return $this->filterCircularGroup !== ''
+        return $this->filterProductType !== ''
+            || $this->filterCircularGroup !== ''
             || $this->filterSpecialControl !== ''
             || $this->filterProfileStatus !== ''
             || $this->filterHssp !== ''
@@ -158,7 +170,7 @@ class Index extends Component
 
     public function resetFilters(): void
     {
-        $this->reset(['filterCircularGroup', 'filterSpecialControl', 'filterProfileStatus', 'filterHssp', 'filterSupplier', 'filterDeletable', 'filterRegistration']);
+        $this->reset(['filterProductType', 'filterCircularGroup', 'filterSpecialControl', 'filterProfileStatus', 'filterHssp', 'filterSupplier', 'filterDeletable', 'filterRegistration']);
         $this->perPage = 10;
         $this->page = 1;
         $this->refreshSupplierFilterOptions(app(MedicineService::class));
@@ -283,6 +295,7 @@ class Index extends Component
 
         return view('Pharma::livewire.medicine.index', [
             'medicines' => $medicines,
+            'productTypeOptions' => Medicine::productTypeOptions(),
             'circularGroups' => $medicineService->getUniqueCircularGroups(),
             'perPageOptions' => self::PER_PAGE_OPTIONS,
             'profileStatusOptions' => $this->profileStatusOptions(),
@@ -303,6 +316,7 @@ class Index extends Component
             $this->filterSupplier !== '' ? (int) $this->filterSupplier : null,
             $this->filterDeletable ?: null,
             $this->filterRegistration ?: null,
+            $this->filterProductType ?: null,
         );
     }
 
