@@ -15,7 +15,7 @@ class AdminThemeEditorUxContractTest extends TestCase
         }
 
         $this->assertStringContainsString("hash === 'sidebar-menu' ? 'menu'", $view);
-        $this->assertStringContainsString("section === '{{ $sectionKey }}'", $view);
+        $this->assertStringContainsString('section === \'{{ $sectionKey }}\'', $view);
         $this->assertStringContainsString("@include('Admin::livewire.settings.partials.sidebar-menu-designer')", $view);
         $designer = file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/partials/sidebar-menu-designer.blade.php'));
         $this->assertStringContainsString('id="sidebar-menu"', $designer);
