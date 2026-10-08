@@ -72,7 +72,7 @@ class SearchHoadon extends Component
             'end_date' => ['required', 'date', 'after_or_equal:start_date'],
             'vatIn' => ['boolean'],
             'useQueue' => ['boolean'],
-            'invoiceSource' => ['required', 'in:all,pos'],
+            'invoiceSource' => ['required', 'in:all,regular,pos'],
         ]);
 
         if (! $this->apiService->hasToken()) {
@@ -87,33 +87,6 @@ class SearchHoadon extends Component
         $this->syncFile = null;
         $this->log('Bắt đầu xử lý…');
 
-        if ($this->invoiceSource === 'pos') {
-            // Export-only mode: no queue, canonical persistence or RAW acquisition.
-            $this->syncId = null;
-            $this->syncState = 'processing';
-            try {
-                $file = $this->invoiceService->exportCashRegisterPreview(
-                    $this->start_date, $this->end_date, (bool) $this->vatIn,
-                    fn (string $message) => $this->log($message),
-                );
-                $this->syncState = 'completed';
-                $this->syncFile = $file ? basename($file) : null;
-                $this->syncMessage = $file
-                    ? 'Đã xuất Excel máy tính tiền. Chưa ghi database; hãy kiểm tra file và chọn Import nếu đồng ý.'
-                    : 'Không có hóa đơn máy tính tiền trong khoảng đã chọn.';
-                $this->refreshAvailableFiles();
-                if ($file) {
-                    $direction = (bool) $this->vatIn ? 'vat_in' : 'vat_out';
-                    $this->selectedFiles = [$direction.'|'.basename($file)];
-                }
-            } catch (\Throwable $exception) {
-                $this->syncState = 'failed';
-                $this->syncMessage = $exception->getMessage();
-                $this->log('❌ '.$exception->getMessage());
-            }
-            return;
-        }
-
         if ($this->useQueue) {
             $this->syncId = (string) Str::uuid();
             $this->syncState = 'queued';
@@ -125,7 +98,7 @@ class SearchHoadon extends Component
                 'file' => null,
                 'direction' => (bool) $this->vatIn ? 'vat_in' : 'vat_out',
             ], now()->addHours(24));
-            ProcessGdtInvoicesJob::dispatch($this->start_date, $this->end_date, (bool) $this->vatIn, $this->syncId);
+            ProcessGdtInvoicesJob::dispatch($this->start_date, $this->end_date, (bool) $this->vatIn, $this->syncId, $this->invoiceSource);
             $this->pollStatus();
 
             return;
@@ -139,6 +112,7 @@ class SearchHoadon extends Component
                 $this->end_date,
                 fn ($msg) => $this->log($msg),
                 (bool) $this->vatIn,
+                $this->invoiceSource,
             );
 
             if ($file === null) {
