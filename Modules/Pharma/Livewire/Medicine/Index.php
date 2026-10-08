@@ -10,6 +10,7 @@ use LogicException;
 use Modules\Pharma\Livewire\Concerns\AuthorizesPharmaActions;
 use Modules\Pharma\Models\Medicine;
 use Modules\Pharma\Services\MedicineService;
+use Modules\Pharma\Services\MedicineExcelProfileService;
 
 class Index extends Component
 {
@@ -39,6 +40,8 @@ class Index extends Component
 
     public bool $showImportExport = false;
 
+    public string $excelProfileId = '';
+
     public string $filterDeletable = '';
 
     public string $filterRegistration = '';
@@ -62,6 +65,12 @@ class Index extends Component
         $this->authorizePharmaView();
         $this->perPage = $this->normalizePerPage($this->perPage);
         $this->refreshSupplierFilterOptions(app(MedicineService::class));
+    }
+
+    #[On('medicine-excel-profile-saved')]
+    public function refreshExcelProfiles(): void
+    {
+        $this->excelProfileId = '';
     }
 
     public function updatedSearch(): void
@@ -294,6 +303,7 @@ class Index extends Component
         }
 
         return view('Pharma::livewire.medicine.index', [
+            'excelProfiles' => app(MedicineExcelProfileService::class)->listForUser((int) auth('admin')->id()),
             'medicines' => $medicines,
             'productTypeOptions' => Medicine::productTypeOptions(),
             'circularGroups' => $medicineService->getUniqueCircularGroups(),
