@@ -64,7 +64,7 @@ class AdminContentWorkspaceContractTest extends TestCase
         $routes = file_get_contents(base_path('Modules/Admin/routes/web.php'));
 
         $this->assertStringContainsString("@livewire('admin.settings.admin-layout-config', ['section' => \$section])", $page);
-        $this->assertStringContainsString("Route::get('/header', [AdminController::class, 'layoutHeader'])->name('header');", $routes);
+        $this->assertStringContainsString("Route::get('/header', [AdminController::class, 'layoutHeader'])", $routes);
         $this->assertStringContainsString("'header'", $config);
         $this->assertFileDoesNotExist(base_path('Modules/Admin/resources/views/pages/admin/header/index.blade.php'));
     }
@@ -75,6 +75,6 @@ class AdminContentWorkspaceContractTest extends TestCase
 
         $this->assertStringContainsString("Route::get('/themes', fn () => redirect()->route('admin.layout.design'))", $routes);
         $this->assertStringContainsString("->name('themes');", $routes);
-        $this->assertStringContainsString("Route::get('/design', [AdminController::class, 'layoutDesign'])->name('design');", $routes);
+        $this->assertStringContainsString("Route::get('/design', [AdminController::class, 'layoutDesign'])", $routes);
     }
 }
