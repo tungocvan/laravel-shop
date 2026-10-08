@@ -98,7 +98,7 @@ class MedicineExcelController extends Controller
         }
         foreach ($columns as $col => $key) {
             $letter = Coordinate::stringFromColumnIndex($col + 1);
-            $sheet->getColumnDimension($letter)->setWidth((float) ($profile['widths'][$key] ?? 18));
+            $sheet->getColumnDimension($letter)->setWidth(max(6, min(60, (float) ($profile['widths'][$key] ?? 130) / 7)));
             $sheet->getStyle($letter.$headerRow.':'.$letter.($headerRow + $index))
                 ->getAlignment()->setHorizontal($profile['alignments'][$key] ?? 'left')
                 ->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
