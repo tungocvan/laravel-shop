@@ -3,6 +3,7 @@
 namespace Modules\Pharma\Tests\Unit;
 
 use Modules\Pharma\Models\Medicine;
+use Modules\Pharma\Services\MedicineCatalogImportMapper;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -35,4 +36,38 @@ class MedicineProductTypeContractTest extends TestCase
         $this->assertStringContainsString('Loại sản phẩm', $catalog);
         $this->assertStringContainsString("->default('tan_duoc')", $migration);
     }
+    #[Test]
+    public function import_mapper_accepts_export_labels_and_preserves_absent_type(): void
+    {
+        $mapper = new MedicineCatalogImportMapper();
+
+        foreach (Medicine::productTypeOptions() as $code => $label) {
+            $mapped = $mapper->map([
+                'Tên thuốc' => 'Thuốc mẫu',
+                'Loại sản phẩm' => $label,
+                'GPLH' => 'VN-123',
+                'Quy cách' => 'Hộp 10 viên',
+            ]);
+            $this->assertSame($code, $mapped['product_type']);
+            $this->assertSame('VN-123', $mapped['registration_number']);
+            $this->assertSame('Hộp 10 viên', $mapped['packaging_specification']);
+        }
+
+        $this->assertNull($mapper->map(['Tên thuốc' => 'Thuốc cũ'])['product_type']);
+        $this->assertSame('__invalid_product_type__', $mapper->map(['Loại sản phẩm' => 'Sai loại'])['product_type']);
+    }
+
+    #[Test]
+    public function staged_import_commits_type_only_when_provided(): void
+    {
+        $committer = file_get_contents(base_path('Modules/Pharma/Services/MedicineCatalogImportCommitter.php'));
+        $stager = file_get_contents(base_path('Modules/Pharma/Services/MedicineCatalogImportStager.php'));
+        $export = file_get_contents(base_path('Modules/Pharma/Http/Controllers/PharmaController.php'));
+
+        $this->assertStringContainsString("'product_type' => \$data['product_type'] ?? Medicine::PRODUCT_TYPE_MODERN", $committer);
+        $this->assertStringContainsString("'product_type' => \$data['product_type'] ?? null", $committer);
+        $this->assertStringContainsString("'invalid_product_type'", $stager);
+        $this->assertStringContainsString("'Loại sản phẩm' => Medicine::productTypeOptions()", $export);
+    }
+
 }
