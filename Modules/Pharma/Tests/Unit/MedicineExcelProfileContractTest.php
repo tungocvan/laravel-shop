@@ -74,4 +74,14 @@ class MedicineExcelProfileContractTest extends TestCase
         $this->assertStringContainsString("['brand','1','Thương hiệu']", $view);
         $this->assertStringContainsString("['page','3','Trang in']", $view);
     }
+    #[\PHPUnit\Framework\Attributes\Test]
+    public function saving_older_profiles_defaults_alignment_for_new_columns(): void
+    {
+        $source = file_get_contents(base_path('Modules/Pharma/Services/MedicineExcelProfileService.php'));
+
+        $this->assertStringContainsString("\$alignment = \$data['alignments'][\$key] ?? 'left';", $source);
+        $this->assertStringContainsString("? \$alignment : 'left';", $source);
+        $this->assertStringNotContainsString("? \$data['alignments'][\$key] : 'left';", $source);
+    }
+
 }
