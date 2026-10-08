@@ -37,6 +37,10 @@ class GdtExcelSandboxContractTest extends TestCase
         $this->assertStringContainsString('Crypt::decryptString($encrypted)', $service);
         $this->assertStringContainsString("storage_path('app/gdt-test/'.\$userId.'/accounts.json')", $service);
         $this->assertStringContainsString('existingExport(', $service);
+        $this->assertStringContainsString("\$this->fetchMonth((string) \$session['token'], \$chunkStart, \$chunkEnd, \$type, '8')", $service);
+        $this->assertStringContainsString("\$query['search'] .= ';ttxly=='", $service);
+        $this->assertStringContainsString("'/sco-query/invoices/'", $service);
+        $this->assertStringContainsString('collect($rows)->unique(', $service);
         $this->assertStringContainsString('deleteFile(', $service);
         $this->assertStringContainsString('chooseSavedAccount', $component);
         $this->assertStringContainsString('connectSaved', $component);

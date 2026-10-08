@@ -16,8 +16,12 @@ class GdtDuplicateIdentityRecoveryContractTest extends TestCase
         $this->assertStringContainsString('->where(\'header_hash\', $headerHash)', $service);
         $this->assertStringContainsString('extractTransactionId($raw)', $service);
         $this->assertStringContainsString("'TransactionID'", $service);
-        $this->assertStringContainsString('->where(\'total_amount\', $attributes[\'total_amount\'])', $service);
-        $this->assertStringContainsString('->where(\'vat_amount\', $attributes[\'vat_amount\'])', $service);
+        // Legal identity remains stable when GDT corrects amount or VAT.
+        $this->assertStringContainsString("->where('invoice_number', \$attributes['invoice_number'])", $service);
+        $this->assertStringContainsString("->where('symbol', \$attributes['symbol'])", $service);
+        $this->assertStringContainsString("->where('issued_date', \$attributes['issued_date'])", $service);
+        $this->assertStringContainsString("->where('tax_code', \$attributes['tax_code'])", $service);
+        $this->assertStringContainsString('if ($businessMatches->count() > 1)', $service);
     }
 
     #[Test]

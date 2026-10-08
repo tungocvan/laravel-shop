@@ -23,11 +23,31 @@ class ProcessGdtInvoicesJob implements ShouldQueue
     public array $backoff = [60, 180];
     public int $timeout = 900;
 
-    public function __construct(public string $start, public string $end, public bool $vatIn = false, public ?string $syncId = null) {}
+    public function __construct(public string $start, public string $end, public bool $vatIn = false, public ?string $syncId = null, public string $source = 'all') {}
 
     public function handle(GdtInvoiceService $service, GoogleDriveInvoiceExportService $drive, InvoiceSourceCoverageService $coverage): void
     {
         $this->updateStatus('processing', 'Worker bắt đầu xử lý.');
+        if (! in_array($this->source, ['all', 'regular', 'pos'], true)) {
+            throw new \InvalidArgumentException('Nguồn hóa đơn GDT không hợp lệ.');
+        }
+        if ($this->source !== 'all') {
+            // Source-scoped jobs must not use the all-sources Excel/coverage shortcut.
+            $file = $service->processRange($this->start, $this->end, fn (string $message) => $this->appendLog($message), $this->vatIn, $this->source);
+            if ($file !== null && (! is_file($file) || ! is_readable($file))) {
+                throw new RuntimeException('Đồng bộ kết thúc nhưng không tạo được file Excel trên server.');
+            }
+            $detailStats = $service->lastDetailStats();
+            $missing = (int) ($detailStats['failed'] ?? 0);
+            $this->updateStatus($missing > 0 ? 'partial' : 'completed', $file === null ? 'Không có hóa đơn thuộc nguồn đã chọn.' : ($missing > 0 ? 'Đã lưu hóa đơn và RAW header nhưng còn '.$missing.' RAW detail lỗi. Có thể chạy lại để phục hồi.' : 'Đồng bộ canonical nguồn '.$this->source.' hoàn tất; không cần Import Excel.'), [
+                'file' => $file ? basename($file) : null,
+                'direction' => $this->vatIn ? 'vat_in' : 'vat_out',
+                'source' => $this->source,
+                'missing_detail' => $missing,
+                'finished_at' => now()->toIso8601String(),
+            ]);
+            return;
+        }
         Log::info('[GDT JOB] Bắt đầu xử lý hóa đơn.', ['sync_id'=>$this->syncId,'start'=>$this->start,'end'=>$this->end,'type'=>$this->vatIn?'purchase':'sold','attempt'=>$this->attempts()]);
         $expectedFile=$service->expectedExportPath($this->start,$this->end,$this->vatIn);$fileName=basename($expectedFile);$sourceCoverage=$coverage->coverage($this->start,$this->end,$this->vatIn);$canonicalReady=(bool)$sourceCoverage['complete'];$this->appendCoverage('RAW canonical hiện có',$sourceCoverage);
 

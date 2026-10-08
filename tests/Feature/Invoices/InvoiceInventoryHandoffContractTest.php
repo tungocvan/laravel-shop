@@ -26,6 +26,8 @@ class InvoiceInventoryHandoffContractTest extends TestCase
 
         $this->assertStringContainsString("invoice_type !== 'purchase'", $handoff);
         $this->assertStringContainsString('InventoryInvoiceIntegrationService::class', $handoff);
-        $this->assertStringContainsString('->ingest($this->factory->build($invoice))', $handoff);
+        $this->assertStringContainsString('$contract = $this->factory->build($invoice)', $handoff);
+        $this->assertStringContainsString('->assertEligible($contract)', $handoff);
+        $this->assertStringContainsString('->ingest($contract)', $handoff);
     }
 }

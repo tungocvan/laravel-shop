@@ -27,6 +27,7 @@ class SearchHoadon extends Component
     public $end_date;
     public $vatIn = false;
     public $useQueue = true;
+    public string $invoiceSource = 'all';
     public array $logs = [];
     public ?string $syncId = null;
     public string $syncState = 'idle';
@@ -71,6 +72,7 @@ class SearchHoadon extends Component
             'end_date' => ['required', 'date', 'after_or_equal:start_date'],
             'vatIn' => ['boolean'],
             'useQueue' => ['boolean'],
+            'invoiceSource' => ['required', 'in:all,regular,pos'],
         ]);
 
         if (! $this->apiService->hasToken()) {
@@ -96,7 +98,7 @@ class SearchHoadon extends Component
                 'file' => null,
                 'direction' => (bool) $this->vatIn ? 'vat_in' : 'vat_out',
             ], now()->addHours(24));
-            ProcessGdtInvoicesJob::dispatch($this->start_date, $this->end_date, (bool) $this->vatIn, $this->syncId);
+            ProcessGdtInvoicesJob::dispatch($this->start_date, $this->end_date, (bool) $this->vatIn, $this->syncId, $this->invoiceSource);
             $this->pollStatus();
 
             return;
@@ -110,6 +112,7 @@ class SearchHoadon extends Component
                 $this->end_date,
                 fn ($msg) => $this->log($msg),
                 (bool) $this->vatIn,
+                $this->invoiceSource,
             );
 
             if ($file === null) {
@@ -126,8 +129,11 @@ class SearchHoadon extends Component
                 throw new RuntimeException('Đồng bộ kết thúc nhưng không tạo được file Excel trên server.');
             }
 
-            $this->syncState = 'completed';
-            $this->syncMessage = 'Đồng bộ hoàn tất và file Excel đã được tạo.';
+            $failedDetails = (int) ($this->invoiceService->lastDetailStats()['failed'] ?? 0);
+            $this->syncState = $failedDetails > 0 ? 'partial' : 'completed';
+            $this->syncMessage = $failedDetails > 0
+                ? 'Đã lưu hóa đơn và RAW header nhưng còn '.$failedDetails.' RAW detail lỗi; chạy lại để phục hồi.'
+                : 'Đồng bộ canonical hoàn tất, không cần Import Excel.';
             $this->syncFile = basename($file);
             $this->log('Hoàn tất xử lý!');
             $this->refreshAvailableFiles();

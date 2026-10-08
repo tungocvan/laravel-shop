@@ -16,11 +16,12 @@
         <div class="grid gap-4 p-5 md:grid-cols-3 sm:p-6">
             <div><label class="text-sm font-medium text-gray-700">Từ ngày</label><input type="date" wire:model.live="start_date" class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm">@error('start_date')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror</div>
             <div><label class="text-sm font-medium text-gray-700">Đến ngày</label><input type="date" wire:model.live="end_date" class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm">@error('end_date')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror</div>
+            <div class="md:col-span-3"><label for="invoice-source" class="text-sm font-medium text-gray-700">Nguồn hóa đơn</label><select id="invoice-source" wire:model.live="invoiceSource" class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm"><option value="all">Tất cả hóa đơn — đồng bộ canonical vào database</option><option value="regular">Chỉ hóa đơn thông thường — đồng bộ canonical</option><option value="pos">Chỉ hóa đơn máy tính tiền — đồng bộ canonical</option></select>@error('invoiceSource')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror</div>
             <div><label class="text-sm font-medium text-gray-700">Loại hóa đơn</label><select wire:model.live="vatIn" class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm"><option value="0">Bán ra</option><option value="1">Mua vào</option></select></div>
         </div>
         <div class="flex flex-col gap-3 border-t border-gray-100 bg-gray-50/60 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <label class="flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" wire:model.live="useQueue" class="rounded border-gray-300"> Xử lý qua queue</label>
-            <button wire:click="run" wire:loading.attr="disabled" class="h-11 rounded-xl bg-emerald-600 px-6 text-sm font-semibold text-white disabled:opacity-50"><span wire:loading.remove wire:target="run">Chạy đồng bộ</span><span wire:loading wire:target="run">Đang xử lý…</span></button>
+            <button wire:click="run" wire:loading.attr="disabled" class="h-11 rounded-xl bg-emerald-600 px-6 text-sm font-semibold text-white disabled:opacity-50"><span wire:loading.remove wire:target="run">Chạy đồng bộ canonical</span><span wire:loading wire:target="run">Đang xử lý…</span></button>
         </div>
     </section>
 
@@ -64,7 +65,7 @@
             <div class="sticky bottom-3 z-10 mt-4 overflow-hidden rounded-2xl border border-indigo-100 bg-white/95 shadow-lg backdrop-blur sm:static sm:shadow-none">
                 <div class="border-b border-gray-100 px-4 py-3 sm:px-5">
                     <p class="text-sm font-semibold text-gray-900">Thao tác với file đã chọn</p>
-                    <p class="mt-1 text-xs leading-5 text-gray-500">Import chỉ dành cho file upload/Drive/legacy. File tạo trực tiếp từ GDT đã được ghi vào danh sách hóa đơn và RAW canonical nên không cần import lại.</p>
+                    <p class="mt-1 text-xs leading-5 text-gray-500">File tạo từ đồng bộ GDT canonical (bao gồm hóa đơn máy tính tiền) đã ghi database và KHÔNG cần Import lại. Chỉ dùng Import cho file bên ngoài hoặc dữ liệu legacy.</p>
                 </div>
                 <div class="grid gap-2 bg-gray-50/70 p-3 sm:grid-cols-3 sm:p-4">
                     <button wire:click="importSelectedFile" wire:confirm="Chỉ tiếp tục nếu đây là file upload thủ công, Google Drive hoặc dữ liệu legacy. File tạo trực tiếp từ GDT đã được ghi vào danh sách hóa đơn và không cần import lần nữa. Bạn có muốn tiếp tục?" wire:loading.attr="disabled" @disabled(count($selectedFiles)!==1) class="inline-flex min-h-11 items-center justify-center rounded-xl bg-indigo-600 px-4 text-center text-sm font-semibold text-white disabled:opacity-40"><span wire:loading.remove wire:target="importSelectedFile">Import vào danh sách hóa đơn</span><span wire:loading wire:target="importSelectedFile">Đang import…</span></button>

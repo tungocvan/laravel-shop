@@ -16,6 +16,13 @@ use Throwable;
 
 class GdtInvoiceService
 {
+    private array $lastDetailStats = ['reused' => 0, 'fetched' => 0, 'failed' => 0];
+
+    public function lastDetailStats(): array
+    {
+        return $this->lastDetailStats;
+    }
+
     public function search(string $fromDate, string $toDate, string $type): array
     {
         $token = Cache::get(config('invoices.gdt.cache_key'));
@@ -90,10 +97,14 @@ class GdtInvoiceService
         return $stats;
     }
 
-    public function processRange($startDate, $endDate, ?callable $cb = null, bool $vatIn = false): ?string
+    public function processRange($startDate, $endDate, ?callable $cb = null, bool $vatIn = false, string $source = 'all'): ?string
     {
         $show = fn ($message) => $cb ? $cb($message) : null;
-        $show('[GDT] Bắt đầu đồng bộ nguồn canonical...');
+        if (! in_array($source, ['all', 'regular', 'pos'], true)) {
+            throw new \InvalidArgumentException('Nguồn hóa đơn GDT không hợp lệ.');
+        }
+        $this->lastDetailStats = ['reused' => 0, 'fetched' => 0, 'failed' => 0];
+        $show('[GDT] Bắt đầu đồng bộ nguồn canonical: '.$source);
         $vatIn = (bool) $vatIn;
         $show($vatIn ? '[GDT] Hóa đơn đầu vào' : '[GDT] Hóa đơn đầu ra');
         $token = Cache::get(config('invoices.gdt.cache_key'));
@@ -102,7 +113,7 @@ class GdtInvoiceService
         }
         $start = Carbon::parse($startDate);
         $end = Carbon::parse($endDate);
-        $filename = $start->format('Y-m-d').'_'.$end->format('Y-m-d').'.xlsx';
+        $filename = ($source === 'all' ? '' : $source.'_').$start->format('Y-m-d').'_'.$end->format('Y-m-d').'.xlsx';
         $show("[GDT] Khoảng thời gian: {$start->format('d/m/Y')} → {$end->format('d/m/Y')}");
         $all = [];
         while ($start->lte($end)) {
@@ -110,12 +121,28 @@ class GdtInvoiceService
             $monthEnd = $start->copy()->endOfMonth();
             $chunkEnd = $monthEnd->lt($end) ? $monthEnd : $end->copy();
             $show("[GDT] Gọi API tháng: {$chunkStart->format('d/m/Y')} → {$chunkEnd->format('d/m/Y')}");
-            $invoices = $this->fetchInvoicesByMonth($token, $chunkStart, $chunkEnd, $show, $vatIn);
-            $show('[GDT] Thu được '.count($invoices).' hóa đơn tháng này');
-            $all = array_merge($all, $invoices);
+            $regular = $source !== 'pos' ? $this->fetchInvoicesByMonth($token, $chunkStart, $chunkEnd, $show, $vatIn) : [];
+            $pos = $source !== 'regular' ? $this->fetchInvoicesByMonth($token, $chunkStart, $chunkEnd, $show, $vatIn, true) : [];
+            $show('[GDT] Tháng này: thông thường '.count($regular).' · máy tính tiền '.count($pos));
+            $all = array_merge($all, $regular, $pos);
             $start = $chunkEnd->copy()->addDay();
         }
         $show('[GDT] Tổng cộng API trả về: '.count($all).' hóa đơn');
+        // The two GDT endpoints can overlap; deduplicate before database writes and export.
+        $all = array_values(collect($all)->unique(function (array $row): string {
+            $raw = $row['_gdt_raw_payload'] ?? [];
+            $id = trim((string) ($raw['id'] ?? ''));
+            if ($id !== '') {
+                return 'gdt:'.$id;
+            }
+
+            return 'invoice:'.implode('|', [
+                (string) ($row['Ký hiệu'] ?? ''), (string) ($row['Số hóa đơn'] ?? ''),
+                (string) ($row['Ngày lập'] ?? ''), (string) ($raw['nbmst'] ?? ''),
+                (string) ($raw['nmmst'] ?? ''),
+            ]);
+        })->all());
+        $show('[GDT] Tổng cộng sau loại trùng: '.count($all).' hóa đơn');
         if ($all === []) {
             $show('[GDT] Không có hóa đơn trong khoảng thời gian đã chọn. Không tạo file Excel.');
 
@@ -139,6 +166,7 @@ class GdtInvoiceService
         $stats = $this->persistInvoices($all, $vatIn);
         $show(sprintf('[DB] Đồng bộ header hoàn tất: tạo mới %d · cập nhật %d · không đổi %d · RAW header %d.', $stats['created'], $stats['updated'], $stats['unchanged'], count($stats['invoice_ids'])));
         $detailStats = $this->acquireMissingDetails($stats['invoice_ids'], $show);
+        $this->lastDetailStats = $detailStats;
         $show(sprintf('[RAW] Detail: đã có %d · tải mới %d · lỗi %d.', $detailStats['reused'], $detailStats['fetched'], $detailStats['failed']));
         $file = $this->exportExcel($all, $vatIn, $filename);
         $show('[GDT] File Excel tạo ra: '.$file);
@@ -146,23 +174,74 @@ class GdtInvoiceService
         return $file;
     }
 
-    private function fetchInvoicesByMonth($token, $from, $to, callable $show, $vatIn): array
+    /**
+     * Preview-only historical cash-register export. Never persists invoice or RAW data.
+     */
+    public function exportCashRegisterPreview(string $startDate, string $endDate, bool $vatIn = true, ?callable $cb = null): ?string
+    {
+        $token = Cache::get(config('invoices.gdt.cache_key'));
+        if (! $token) {
+            throw new \RuntimeException('Chưa có phiên đăng nhập GDT.');
+        }
+
+        $start = Carbon::parse($startDate)->startOfDay();
+        $end = Carbon::parse($endDate)->startOfDay();
+        if ($start->gt($end)) {
+            throw new \InvalidArgumentException('Ngày kết thúc phải sau hoặc bằng ngày bắt đầu.');
+        }
+
+        $show = fn (string $message) => $cb ? $cb($message) : null;
+        $all = [];
+        $cursor = $start->copy();
+        while ($cursor->lte($end)) {
+            $chunkEnd = $cursor->copy()->endOfMonth()->min($end);
+            $rows = $this->fetchInvoicesByMonth($token, $cursor, $chunkEnd, $show, $vatIn, true);
+            $show('[POS] '. $cursor->format('m/Y').': '.count($rows).' hóa đơn máy tính tiền.');
+            $all = array_merge($all, $rows);
+            $cursor = $chunkEnd->copy()->addDay();
+        }
+
+        $all = array_values(collect($all)->unique(function (array $row): string {
+            $raw = $row['_gdt_raw_payload'] ?? [];
+            return implode('|', [
+                (string) ($raw['nbmst'] ?? ''), (string) ($raw['khmshdon'] ?? ''),
+                (string) ($raw['khhdon'] ?? ''), (string) ($raw['shdon'] ?? ''),
+                (string) ($raw['tdlap'] ?? ''), (string) ($raw['nmmst'] ?? ''),
+            ]);
+        })->all());
+
+        if ($all === []) {
+            $show('[POS] Không có hóa đơn máy tính tiền trong khoảng đã chọn.');
+            return null;
+        }
+
+        $filename = 'pos_'.$start->format('Y-m-d').'_'.$end->format('Y-m-d').'_'.now()->format('Ymd_His').'.xlsx';
+        $file = $this->exportExcel($all, $vatIn, $filename);
+        $show('[POS] Đã xuất '.count($all).' hóa đơn. Chưa ghi database; chỉ Import khi người dùng chọn.');
+        return $file;
+    }
+
+    private function fetchInvoicesByMonth($token, $from, $to, callable $show, $vatIn, bool $cashRegister = false): array
     {
         $action = $vatIn ? 'purchase' : 'sold';
         $search = "tdlap=ge={$from->format('d/m/Y')}T00:00:00;tdlap=le={$to->format('d/m/Y')}T23:59:59";
         $pageSize = 50;
+        if ($cashRegister) {
+            $search .= ';ttxly==8';
+        }
+        $endpoint = $cashRegister ? '/sco-query/invoices/' : '/query/invoices/';
         $result = [];
         $processed = 0;
         $page = 1;
         $state = null;
         $total = null;
         do {
-            $show("📄 Gọi Page {$page}...");
+            $show('[GDT] '.($cashRegister ? 'Máy tính tiền' : 'Thông thường')." · page {$page}...");
             try {
                 $query = ['sort' => 'tdlap:desc', 'size' => $pageSize, 'search' => $search];
                 if ($state) {
                     $query['state'] = $state;
-                }$res = $this->client($token)->get($this->url("/query/invoices/{$action}"), $query);
+                }$res = $this->client($token)->get($this->url($endpoint.$action), $query);
             } catch (ConnectionException $exception) {
                 Log::warning('Không thể kết nối API GDT để lấy danh sách hóa đơn.', ['action' => $action, 'page' => $page, 'processed' => $processed, 'total' => $total, 'error' => $exception->getMessage()]);
                 throw new \RuntimeException("Mất kết nối GDT ở page {$page}; đã nhận {$processed}".($total !== null ? "/{$total}" : '').' hóa đơn. Không tạo file thiếu.', previous: $exception);
@@ -256,6 +335,10 @@ class GdtInvoiceService
                     $invoice = Invoices::query()->create($attributes);
                     $stats['created']++;
                 } else {
+                    // A transiently missing GDT lookup code must not erase a previously stored identity.
+                    if (blank($attributes['lookup_code']) && filled($invoice->lookup_code)) {
+                        $attributes['lookup_code'] = $invoice->lookup_code;
+                    }
                     $invoice->fill($attributes);
                     if (! $invoice->isDirty()) {
                         $stats['unchanged']++;
@@ -362,18 +445,27 @@ class GdtInvoiceService
             return null;
         }
 
+        // GDT may rotate its lookup code or correct amounts between overlapping syncs.
+        // Match only an unambiguous legal invoice identity, never a partial key.
+        if (blank($attributes['symbol']) || blank($attributes['tax_code'])) {
+            return null;
+        }
+
         $businessMatches = Invoices::query()
             ->where('invoice_type', $attributes['invoice_type'])
             ->where('invoice_number', $attributes['invoice_number'])
             ->where('symbol', $attributes['symbol'])
             ->where('issued_date', $attributes['issued_date'])
             ->where('tax_code', $attributes['tax_code'])
-            ->where('total_amount', $attributes['total_amount'])
-            ->where('vat_amount', $attributes['vat_amount'])
             ->limit(2)
             ->get();
 
-        return $businessMatches->count() === 1 ? $businessMatches->first() : null;
+        // Ambiguity is fail-closed: do not silently overwrite an arbitrary invoice.
+        if ($businessMatches->count() > 1) {
+            throw new RuntimeException('Nhiều hóa đơn trùng định danh pháp lý; cần kiểm tra thủ công trước khi đồng bộ.');
+        }
+
+        return $businessMatches->first();
     }
 
     private function extractTransactionId(array $raw): ?string
