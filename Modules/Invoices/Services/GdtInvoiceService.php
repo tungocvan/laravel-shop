@@ -110,12 +110,27 @@ class GdtInvoiceService
             $monthEnd = $start->copy()->endOfMonth();
             $chunkEnd = $monthEnd->lt($end) ? $monthEnd : $end->copy();
             $show("[GDT] Gọi API tháng: {$chunkStart->format('d/m/Y')} → {$chunkEnd->format('d/m/Y')}");
-            $invoices = $this->fetchInvoicesByMonth($token, $chunkStart, $chunkEnd, $show, $vatIn);
-            $show('[GDT] Thu được '.count($invoices).' hóa đơn tháng này');
-            $all = array_merge($all, $invoices);
+            $regular = $this->fetchInvoicesByMonth($token, $chunkStart, $chunkEnd, $show, $vatIn);
+            $pos = $this->fetchInvoicesByMonth($token, $chunkStart, $chunkEnd, $show, $vatIn, true);
+            $show('[GDT] Tháng này: thông thường '.count($regular).' · máy tính tiền '.count($pos));
+            $all = array_merge($all, $regular, $pos);
             $start = $chunkEnd->copy()->addDay();
         }
-        $show('[GDT] Tổng cộng API trả về: '.count($all).' hóa đơn');
+        // The two GDT endpoints can overlap; deduplicate before database writes and export.
+        $all = array_values(collect($all)->unique(function (array $row): string {
+            $raw = $row['_gdt_raw_payload'] ?? [];
+            $id = trim((string) ($raw['id'] ?? ''));
+            if ($id !== '') {
+                return 'gdt:'.$id;
+            }
+
+            return 'invoice:'.implode('|', [
+                (string) ($row['Ký hiệu'] ?? ''), (string) ($row['Số hóa đơn'] ?? ''),
+                (string) ($row['Ngày lập'] ?? ''), (string) ($raw['nbmst'] ?? ''),
+                (string) ($raw['nmmst'] ?? ''),
+            ]);
+        })->all());
+        $show('[GDT] Tổng cộng sau loại trùng: '.count($all).' hóa đơn');
         if ($all === []) {
             $show('[GDT] Không có hóa đơn trong khoảng thời gian đã chọn. Không tạo file Excel.');
 
@@ -146,23 +161,27 @@ class GdtInvoiceService
         return $file;
     }
 
-    private function fetchInvoicesByMonth($token, $from, $to, callable $show, $vatIn): array
+    private function fetchInvoicesByMonth($token, $from, $to, callable $show, $vatIn, bool $cashRegister = false): array
     {
         $action = $vatIn ? 'purchase' : 'sold';
         $search = "tdlap=ge={$from->format('d/m/Y')}T00:00:00;tdlap=le={$to->format('d/m/Y')}T23:59:59";
         $pageSize = 50;
+        if ($cashRegister) {
+            $search .= ';ttxly==8';
+        }
+        $endpoint = $cashRegister ? '/sco-query/invoices/' : '/query/invoices/';
         $result = [];
         $processed = 0;
         $page = 1;
         $state = null;
         $total = null;
         do {
-            $show("📄 Gọi Page {$page}...");
+            $show('[GDT] '.($cashRegister ? 'Máy tính tiền' : 'Thông thường')." · page {$page}...");
             try {
                 $query = ['sort' => 'tdlap:desc', 'size' => $pageSize, 'search' => $search];
                 if ($state) {
                     $query['state'] = $state;
-                }$res = $this->client($token)->get($this->url("/query/invoices/{$action}"), $query);
+                }$res = $this->client($token)->get($this->url($endpoint.$action), $query);
             } catch (ConnectionException $exception) {
                 Log::warning('Không thể kết nối API GDT để lấy danh sách hóa đơn.', ['action' => $action, 'page' => $page, 'processed' => $processed, 'total' => $total, 'error' => $exception->getMessage()]);
                 throw new \RuntimeException("Mất kết nối GDT ở page {$page}; đã nhận {$processed}".($total !== null ? "/{$total}" : '').' hóa đơn. Không tạo file thiếu.', previous: $exception);
