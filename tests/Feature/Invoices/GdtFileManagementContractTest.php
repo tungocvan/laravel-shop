@@ -37,8 +37,8 @@ class GdtFileManagementContractTest extends TestCase
         $this->assertStringContainsString('resolveSingleSelectedFile()', $component);
         $this->assertStringContainsString('@disabled(count($selectedFiles)!==1)', $view);
         $this->assertStringContainsString('Import vào danh sách hóa đơn', $view);
-        $this->assertStringContainsString('File tạo trực tiếp từ GDT đã được ghi vào danh sách hóa đơn và RAW canonical', $view);
-        $this->assertStringContainsString('file upload thủ công, Google Drive hoặc dữ liệu legacy', $view);
+        $this->assertStringContainsString('File tạo từ đồng bộ GDT canonical (bao gồm hóa đơn máy tính tiền) đã ghi database và KHÔNG cần Import lại', $view);
+        $this->assertStringContainsString('file bên ngoài hoặc dữ liệu legacy', $view);
     }
 
     #[Test]
