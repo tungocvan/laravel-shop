@@ -36,10 +36,26 @@ class Medicine extends Model
 
     public const CATALOG_NEEDS_REVIEW = 'needs_review';
 
+    public const PRODUCT_TYPE_MODERN = 'tan_duoc';
+    public const PRODUCT_TYPE_TRADITIONAL = 'dong_duoc';
+    public const PRODUCT_TYPE_SUPPLEMENT = 'thuc_pham_chuc_nang';
+
+    public static function productTypeOptions(): array
+    {
+        return [
+            self::PRODUCT_TYPE_MODERN => 'Tân dược',
+            self::PRODUCT_TYPE_TRADITIONAL => 'Đông dược',
+            self::PRODUCT_TYPE_SUPPLEMENT => 'Thực phẩm chức năng',
+        ];
+    }
+
+    protected $attributes = ['product_type' => self::PRODUCT_TYPE_MODERN];
+
     protected $table = 'pharma_medicines';
 
     protected $fillable = [
         'medicine_code',
+        'product_type',
         'canonical_identity_key',
         'identity_status',
         'profile_status',

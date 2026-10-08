@@ -68,6 +68,7 @@ class MedicineCatalogImportCommitter
         if (! $medicine) {
             $medicine = Medicine::query()->create([
                 'medicine_code' => $this->nextMedicineCode(),
+                'product_type' => $data['product_type'] ?? Medicine::PRODUCT_TYPE_MODERN,
                 'canonical_identity_key' => $row->medicine_identity_key,
                 'identity_status' => Medicine::IDENTITY_VERIFIED_REGISTRATION,
                 'profile_status' => Medicine::PROFILE_COMPLETE,
@@ -95,6 +96,7 @@ class MedicineCatalogImportCommitter
             $createdMedicine = true;
         } else {
             $medicine->fill(array_filter([
+                'product_type' => $data['product_type'] ?? null,
                 'circular_order_number' => $data['circular_order_number'] ?? null,
                 'circular_group' => $data['circular_group'] ?? null,
                 'therapeutic_group' => $data['therapeutic_group'] ?? null,

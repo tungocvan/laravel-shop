@@ -91,6 +91,10 @@ class MedicineCatalogImportStager
         string $variantIdentity,
         array $seen,
     ): array {
+        if (($normalized['product_type'] ?? null) === '__invalid_product_type__') {
+            return [MedicineImportRow::CLASS_NEEDS_REVIEW, 'invalid_product_type', null, null];
+        }
+
         if (($normalized['name'] ?? null) === null || ($normalized['concentration'] ?? null) === null) {
             return [MedicineImportRow::CLASS_NEEDS_REVIEW, 'missing_required_identity_fields', null, null];
         }

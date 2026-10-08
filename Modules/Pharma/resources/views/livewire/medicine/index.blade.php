@@ -21,9 +21,25 @@
             <div class="flex flex-wrap gap-2">
                 <a href="{{ route('admin.pharma.hssp.index') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">Quản lý HSSP</a>
                 <a href="{{ route('admin.pharma.supplier-trackings.index') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">Danh sách theo dõi</a>
+                @livewire('pharma.medicine.excel-configurator')
                 <button type="button" wire:click="toggleImportExport" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-indigo-200 bg-indigo-50 px-4 text-sm font-semibold text-indigo-700 hover:bg-indigo-100">{{ $showImportExport ? 'Đóng Import / Export' : 'Import / Export' }}</button>
                 @if($canCreate)<a href="{{ route('admin.pharma.medicines.create') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700">Thêm thuốc</a>@endif
             </div>
+        </div>
+        <div class="mt-4 flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+            <label class="min-w-[190px] flex-1 text-xs font-semibold text-slate-600 sm:flex-none">Mẫu xuất Excel
+                <select wire:model.live="excelProfileId" class="mt-1 block min-h-10 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm">
+                    <option value="">Cấu hình mặc định</option>
+                    @foreach($excelProfiles as $profile)
+                        <option value="{{ $profile['id'] }}">{{ $profile['name'] }}{{ $profile['is_default'] ? ' · Mặc định' : '' }}</option>
+                    @endforeach
+                </select>
+            </label>
+            <a href="{{ route('admin.pharma.medicines.export-configured', ['profile_id' => $excelProfileId ?: null]) }}" class="inline-flex min-h-10 items-center rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700">Xuất Excel theo cấu hình</a>
+            @if($selectedIds !== [])
+                <a href="{{ route('admin.pharma.medicines.export-configured', ['profile_id' => $excelProfileId ?: null, 'ids' => implode(',', $selectedIds)]) }}" class="inline-flex min-h-10 items-center rounded-xl border border-emerald-300 bg-white px-4 text-sm font-semibold text-emerald-700">Xuất {{ count($selectedIds) }} thuốc đã chọn</a>
+            @endif
+            <span class="text-xs text-slate-500">Báo cáo riêng · Import / Export chuẩn không thay đổi</span>
         </div>
         @if($showImportExport)
             <div class="mt-4 flex flex-wrap items-center gap-3 rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4">
@@ -37,24 +53,54 @@
     @if(session()->has('success'))<div role="status" class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('success') }}</div>@endif
     @if(session()->has('error'))<div role="alert" class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{{ session('error') }}</div>@endif
 
-    <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5" aria-labelledby="medicine-filters-heading">
-        <div class="mb-4">
-            <h2 id="medicine-filters-heading" class="text-base font-semibold text-slate-900">Tìm kiếm & Data Quality</h2>
-            <p class="mt-1 text-sm text-slate-500">Tìm theo mã thuốc, SKU, tên biệt dược/tên thuốc/tên sản phẩm, GPLH, hoạt chất, hàm lượng, quy cách, nhà sản xuất hoặc alias.</p>
+    <section x-data="{ filtersOpen: false }" class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5" aria-labelledby="medicine-filters-heading">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="min-w-0">
+                <h2 id="medicine-filters-heading" class="text-base font-semibold text-slate-900">Tìm kiếm &amp; Data Quality</h2>
+                <p class="mt-1 text-sm text-slate-500">Tra cứu danh mục thuốc và rà soát chất lượng dữ liệu theo từng nhóm tiêu chí.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                @if($this->hasActiveSelectFilters())
+                    <button type="button" wire:click="resetFilters" class="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:border-slate-400 hover:bg-slate-50">Xóa bộ lọc</button>
+                @endif
+                <button type="button" x-on:click="filtersOpen = !filtersOpen" x-bind:aria-expanded="filtersOpen.toString()" aria-controls="medicine-filters-content" aria-expanded="false" class="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 text-sm font-semibold text-indigo-700 hover:bg-indigo-100"><span x-text="filtersOpen ? 'Ẩn bộ lọc' : 'Hiện bộ lọc'">Hiện bộ lọc</span><span aria-hidden="true" x-text="filtersOpen ? '▴' : '▾'">▾</span></button>
+            </div>
         </div>
-        <div class="grid gap-3 xl:grid-cols-12 xl:items-end">
-            <div class="xl:col-span-3"><label class="block text-sm font-medium text-slate-700">Tìm kiếm</label><input type="search" wire:model.live.debounce.300ms="search" placeholder="MED-..., SKU, tên thuốc, GPLH..." class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm"></div>
-            <div class="xl:col-span-3"><label class="block text-sm font-medium text-slate-700">Nhà cung cấp</label><div class="mt-1"><x-select-search id="medicine-supplier-filter" wire:model="filterSupplier" :options="$supplierFilterOptions" options-wire="supplierFilterOptions" search-event="medicine-supplier-filter-search" placeholder="Tất cả nhà cung cấp"><option value="">Tất cả nhà cung cấp</option>@foreach($supplierFilterOptions as $option)<option value="{{ $option['id'] }}">{{ $option['label'] }}</option>@endforeach</x-select-search></div></div>
-            <div class="xl:col-span-2"><label class="block text-sm font-medium text-slate-700">HSSP</label><select wire:model.live="filterHssp" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="">Tất cả</option><option value="with">Có HSSP</option><option value="without">Chưa có HSSP</option></select></div>
-            <div class="xl:col-span-2"><label class="block text-sm font-medium text-slate-700">Chất lượng master</label><select wire:model.live="filterProfileStatus" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm">@foreach($profileStatusOptions as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select></div>
-            <div class="xl:col-span-2"><label class="block text-sm font-medium text-slate-700">GPLH</label><select wire:model.live="filterRegistration" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="">Tất cả GPLH</option><option value="with">Có GPLH</option><option value="without">Chưa có GPLH</option></select></div>
-            <div class="xl:col-span-2"><label class="block text-sm font-medium text-slate-700">Khả năng xóa</label><select wire:model.live="filterDeletable" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="">Tất cả</option><option value="yes">Có thể xóa</option><option value="no">Đang có ràng buộc</option></select></div>
-            <div class="xl:col-span-1"><label class="block text-sm font-medium text-slate-700">Nhóm</label><select wire:model.live="filterCircularGroup" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="">Tất cả</option>@foreach($circularGroups as $group)<option value="{{ $group }}">{{ $group }}</option>@endforeach</select></div>
-            <div class="xl:col-span-1"><label class="block text-sm font-medium text-slate-700">KSĐB</label><select wire:model.live="filterSpecialControl" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="">Tất cả</option><option value="yes">Có</option><option value="no">Không</option></select></div>
-            <div class="xl:col-span-1"><label class="block text-sm font-medium text-slate-700">Mỗi trang</label><select wire:model.live="perPage" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm">@foreach($perPageOptions as $option)<option value="{{ $option }}">{{ $option }}</option>@endforeach</select></div>
-            @if($this->hasActiveSelectFilters())
-                <div class="xl:col-span-2"><button type="button" wire:click="resetFilters" class="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-slate-400 hover:bg-slate-50">Xóa bộ lọc</button></div>
-            @endif
+        <div id="medicine-filters-content" x-show="filtersOpen" x-cloak class="mt-4 space-y-5 border-t border-slate-100 pt-4">
+            <div>
+                <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Tra cứu &amp; phân loại</h3>
+                <div class="grid grid-cols-1 items-end gap-3 md:grid-cols-2 xl:grid-cols-12">
+                    <div class="min-w-0 md:col-span-2 xl:col-span-5">
+                        <label class="block text-sm font-medium text-slate-700">Tìm kiếm</label>
+                        <input type="search" wire:model.live.debounce.300ms="search" placeholder="Mã thuốc, SKU, tên thuốc, GPLH, hoạt chất..." class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm">
+                    </div>
+                    <div class="min-w-0 xl:col-span-3">
+                        <label class="block text-sm font-medium text-slate-700">Loại sản phẩm</label>
+                        <select wire:model.live="filterProductType" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="">Tất cả loại sản phẩm</option>@foreach($productTypeOptions as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select>
+                    </div>
+                    <div class="min-w-0 md:col-span-2 xl:col-span-4">
+                        <label class="block text-sm font-medium text-slate-700">Nhà cung cấp</label>
+                        <div class="mt-1"><x-select-search id="medicine-supplier-filter" wire:model="filterSupplier" :options="$supplierFilterOptions" options-wire="supplierFilterOptions" search-event="medicine-supplier-filter-search" placeholder="Tất cả nhà cung cấp"><option value="">Tất cả nhà cung cấp</option>@foreach($supplierFilterOptions as $option)<option value="{{ $option['id'] }}">{{ $option['label'] }}</option>@endforeach</x-select-search></div>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-slate-100 pt-4">
+                <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Kiểm soát chất lượng dữ liệu</h3>
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+<div class="min-w-0"><label class="block text-sm font-medium text-slate-700">HSSP</label><select wire:model.live="filterHssp" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="">Tất cả</option><option value="with">Có HSSP</option><option value="without">Chưa có HSSP</option></select></div>
+<div class="min-w-0"><label class="block text-sm font-medium text-slate-700">Chất lượng master</label><select wire:model.live="filterProfileStatus" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm">@foreach($profileStatusOptions as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select></div>
+<div class="min-w-0"><label class="block text-sm font-medium text-slate-700">GPLH</label><select wire:model.live="filterRegistration" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="">Tất cả GPLH</option><option value="with">Có GPLH</option><option value="without">Chưa có GPLH</option></select></div>
+<div class="min-w-0"><label class="block text-sm font-medium text-slate-700">Khả năng xóa</label><select wire:model.live="filterDeletable" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="">Tất cả</option><option value="yes">Có thể xóa</option><option value="no">Đang có ràng buộc</option></select></div>
+                </div>
+            </div>
+            <div class="border-t border-slate-100 pt-4">
+                <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Bộ lọc bổ sung &amp; hiển thị</h3>
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+<div class="min-w-0"><label class="block text-sm font-medium text-slate-700">Nhóm</label><select wire:model.live="filterCircularGroup" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="">Tất cả</option>@foreach($circularGroups as $group)<option value="{{ $group }}">{{ $group }}</option>@endforeach</select></div>
+<div class="min-w-0"><label class="block text-sm font-medium text-slate-700">KSĐB</label><select wire:model.live="filterSpecialControl" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="">Tất cả</option><option value="yes">Có</option><option value="no">Không</option></select></div>
+<div class="min-w-0"><label class="block text-sm font-medium text-slate-700">Mỗi trang</label><select wire:model.live="perPage" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm">@foreach($perPageOptions as $option)<option value="{{ $option }}">{{ $option }}</option>@endforeach</select></div>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -71,25 +117,25 @@
     <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div class="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 lg:flex-row lg:items-center lg:justify-between"><div><h2 class="font-semibold text-slate-950">Medicine Master Catalog</h2><div class="mt-2 flex flex-wrap gap-2"><span class="rounded-lg bg-indigo-50 px-3 py-1.5 text-sm font-bold text-indigo-700">{{ number_format($medicines->total()) }} thuốc</span><span class="rounded-lg bg-amber-50 px-3 py-1.5 text-sm font-semibold text-amber-700">{{ number_format($catalogStats['special_control']) }} thuốc KSĐB</span><span class="rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-600">Trang {{ $currentPage }}/{{ max(1, $lastPage) }}</span></div></div><div wire:loading class="text-sm font-medium text-indigo-600">Đang tải dữ liệu...</div></div>
         <div class="hidden overflow-x-auto lg:block">
-            <table class="min-w-[1180px] w-full divide-y divide-slate-200 text-left text-sm">
-                <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600"><tr>@if($canSelect)<th class="w-12 px-4 py-3 text-center"><input type="checkbox" wire:model.live="selectPage" class="rounded border-slate-300 text-indigo-600"></th>@endif<th class="px-4 py-3">Thuốc</th><th class="px-4 py-3">Mã thuốc</th><th class="px-4 py-3">GPLH</th><th class="px-4 py-3">Nhóm thuốc</th><th class="px-4 py-3">Hoạt chất / Hàm lượng</th><th class="px-3 py-3">Quy cách</th><th class="px-4 py-3 text-right">Giá kê khai</th><th class="min-w-64 px-4 py-3">Nhà cung cấp</th><th class="px-4 py-3">HSSP</th><th class="px-4 py-3">Nguồn</th><th class="sticky right-0 z-20 border-l border-slate-200 bg-slate-50 px-4 py-3 text-right shadow-[-8px_0_16px_-16px_rgba(15,23,42,0.45)]">Thao tác</th></tr></thead>
+            <table class="min-w-[1600px] w-full divide-y divide-slate-200 text-left text-sm">
+                <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600"><tr>@if($canSelect)<th class="w-12 px-4 py-3 text-center"><input type="checkbox" wire:model.live="selectPage" class="rounded border-slate-300 text-indigo-600"></th>@endif<th class="px-4 py-3">Thuốc</th><th class="px-4 py-3">Loại sản phẩm</th><th class="px-4 py-3">Mã thuốc</th><th class="w-[100px] min-w-[100px] max-w-[100px] px-2 py-3">GPLH</th><th class="px-4 py-3">Nhóm thuốc</th><th class="w-[200px] min-w-[200px] max-w-[200px] px-3 py-3">Hoạt chất / Hàm lượng</th><th class="w-[190px] min-w-[190px] max-w-[190px] px-3 py-3">Quy cách</th><th class="w-[80px] min-w-[80px] max-w-[80px] px-2 py-3 text-right">Giá kê khai</th><th class="min-w-64 px-4 py-3">Nhà cung cấp</th><th class="px-4 py-3">HSSP</th><th class="px-4 py-3">Nguồn</th><th class="sticky right-0 z-20 border-l border-slate-200 bg-slate-50 px-4 py-3 text-right shadow-[-8px_0_16px_-16px_rgba(15,23,42,0.45)]">Thao tác</th></tr></thead>
                 <tbody class="divide-y divide-slate-100 text-slate-700">
                 @forelse($medicines as $medicine)
                     <tr class="align-top hover:bg-slate-50 {{ in_array((string)$medicine->id, $selectedIds, true) ? 'bg-indigo-50/60' : '' }}">
                         @if($canSelect)<td class="px-4 py-4 text-center"><input type="checkbox" wire:model.live="selectedIds" value="{{ $medicine->id }}" class="rounded border-slate-300 text-indigo-600"></td>@endif
                         <td class="min-w-64 px-4 py-4"><div class="font-semibold text-slate-950">{{ $medicine->name }}</div><div class="mt-1 text-xs text-slate-500">{{ $medicine->dosage_form ?: 'Chưa có dạng bào chế' }} · {{ $medicine->route_of_administration ?: 'Chưa có đường dùng' }}</div></td>
-                        <td class="min-w-40 px-4 py-4"><div class="font-mono text-xs font-semibold text-indigo-700">{{ $medicine->medicine_code ?: 'Chưa cấp mã' }}</div></td>
-                        <td class="min-w-48 px-4 py-4"><div class="font-mono text-xs font-semibold text-slate-800">{{ $medicine->registration_number_primary ?: $medicine->registration_number ?: 'Chưa có GPLH' }}</div></td>
+                        <td class="min-w-32 px-4 py-4">{{ \Modules\Pharma\Models\Medicine::productTypeOptions()[$medicine->product_type] ?? 'Tân dược' }}</td><td class="min-w-40 px-4 py-4"><div class="font-mono text-xs font-semibold text-indigo-700">{{ $medicine->medicine_code ?: 'Chưa cấp mã' }}</div></td>
+                        <td class="w-[100px] min-w-[100px] max-w-[100px] px-2 py-4"><div class="truncate font-mono text-xs font-semibold text-slate-800" title="{{ $medicine->registration_number_primary ?: $medicine->registration_number ?: 'Chưa có GPLH' }}">{{ $medicine->registration_number_primary ?: $medicine->registration_number ?: 'Chưa có GPLH' }}</div></td>
                         <td class="min-w-28 px-4 py-4"><span class="inline-flex rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{{ $medicine->circular_group ?: '—' }}</span></td>
-                        <td class="w-48 max-w-56 px-4 py-4"><div class="font-medium">{{ $medicine->active_ingredients ?: '—' }}</div><div class="mt-1 text-xs text-slate-500">{{ $medicine->concentration ?: '—' }}</div></td>
+                        <td class="w-[200px] min-w-[200px] max-w-[200px] px-3 py-4"><div class="w-[176px] truncate font-medium" title="{{ $medicine->active_ingredients ?: '—' }}">{{ $medicine->active_ingredients ?: '—' }}</div><div class="mt-1 w-[176px] truncate text-xs text-slate-500" title="{{ $medicine->concentration ?: '—' }}">{{ $medicine->concentration ?: '—' }}</div></td>
                         @php($catalogVariant = $medicine->variants->first())
-                        <td class="min-w-56 max-w-72 px-3 py-4 text-sm leading-5">
-                            <div class="font-medium text-slate-800">{{ $medicine->packaging_specification ?: '—' }}</div>
-                            @if($catalogVariant)<div class="mt-1 break-all font-mono text-[11px] text-slate-500">SKU: {{ $catalogVariant->sku }}</div>@endif
+                        <td class="w-[190px] min-w-[190px] max-w-[190px] px-3 py-4 text-sm leading-5">
+                            <div class="w-[166px] truncate font-medium text-slate-800" title="{{ $medicine->packaging_specification ?: '—' }}">{{ $medicine->packaging_specification ?: '—' }}</div>
+                            @if($catalogVariant)<div class="mt-1 w-[166px] truncate font-mono text-[11px] text-slate-500" title="SKU: {{ $catalogVariant->sku }}">SKU: {{ $catalogVariant->sku }}</div>@endif
                         </td>
-                        <td class="min-w-32 px-4 py-4 text-right">
+                        <td class="w-[80px] min-w-[80px] max-w-[80px] px-2 py-4 text-right">
                             @php($catalogPrice = $catalogVariant?->declared_price ?? $medicine->declared_price)
-                            @if($catalogPrice !== null)<span class="whitespace-nowrap font-semibold text-emerald-700">{{ number_format((float)$catalogPrice, 0, ',', '.') }} đ</span>@else<span class="text-slate-400">—</span>@endif
+                            @if($catalogPrice !== null)<span class="whitespace-nowrap text-xs font-semibold text-emerald-700">{{ number_format((float)$catalogPrice, 0, ',', '.') }} đ</span>@else<span class="text-slate-400">—</span>@endif
                         </td>
                         <td class="min-w-64 px-4 py-4">@php($medicineSuppliers = $medicine->supplierTrackings->pluck('partner.name')->filter()->unique()->values()) @if($medicineSuppliers->isEmpty())<span class="text-xs text-slate-400">Chưa thiết lập</span>@else<div class="space-y-1">@foreach($medicineSuppliers->take(2) as $supplierName)<div class="text-xs font-semibold text-slate-700">{{ $supplierName }}</div>@endforeach @if($medicineSuppliers->count() > 2)<div class="text-xs text-slate-500">+{{ $medicineSuppliers->count() - 2 }} NCC khác</div>@endif</div>@endif</td>
                         <td class="min-w-44 px-4 py-4">@if($medicine->currentProfile)<span class="inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">Có HSSP · v{{ $medicine->currentProfile->profile_version }}</span><div class="mt-2 text-xs text-slate-500">{{ $medicine->currentProfile->profile_status }}</div>@else<span class="inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-200">Chưa có HSSP</span>@endif</td>
@@ -111,7 +157,7 @@
                         <div class="min-w-0 flex-1"><div class="font-semibold text-slate-950">{{ $medicine->name }}</div><div class="mt-1 text-xs text-slate-500">{{ $medicine->dosage_form ?: 'Chưa có dạng bào chế' }} · {{ $medicine->route_of_administration ?: 'Chưa có đường dùng' }}</div></div>
                     </div>
                     <dl class="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
-                        <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Mã thuốc</dt><dd class="mt-1 font-mono text-xs font-semibold text-indigo-700">{{ $medicine->medicine_code ?: 'Chưa cấp mã' }}</dd></div>
+                        <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Loại sản phẩm</dt><dd>{{ \Modules\Pharma\Models\Medicine::productTypeOptions()[$medicine->product_type] ?? 'Tân dược' }}</dd></div><div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Mã thuốc</dt><dd class="mt-1 font-mono text-xs font-semibold text-indigo-700">{{ $medicine->medicine_code ?: 'Chưa cấp mã' }}</dd></div>
                         <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">GPLH</dt><dd class="mt-1 break-words font-mono text-xs font-semibold text-slate-800">{{ $medicine->registration_number_primary ?: $medicine->registration_number ?: 'Chưa có GPLH' }}</dd></div>
                         <div><dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Nhóm thuốc</dt><dd class="mt-1 font-semibold text-slate-700">{{ $medicine->circular_group ?: '—' }}</dd></div>
                         <div class="col-span-2"><dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Hoạt chất / Hàm lượng</dt><dd class="mt-1 font-medium text-slate-800">{{ $medicine->active_ingredients ?: '—' }}</dd><dd class="mt-0.5 text-xs text-slate-500">{{ $medicine->concentration ?: '—' }}</dd></div>

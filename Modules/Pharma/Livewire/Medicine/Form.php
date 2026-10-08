@@ -8,6 +8,8 @@ use LogicException;
 use Modules\Pharma\Livewire\Concerns\AuthorizesPharmaActions;
 use Modules\Pharma\Services\HsspMedicineValidityService;
 use Modules\Pharma\Services\MedicineService;
+use Modules\Pharma\Models\Medicine;
+use Illuminate\Validation\Rule;
 
 class Form extends Component
 {
@@ -32,6 +34,8 @@ class Form extends Component
     public $concentration;
 
     public $name;
+
+    public string $product_type = Medicine::PRODUCT_TYPE_MODERN;
 
     public $dosage_form;
 
@@ -65,6 +69,7 @@ class Form extends Component
     {
         return [
             'name' => 'required|string|max:255',
+            'product_type' => ['required', Rule::in(array_keys(Medicine::productTypeOptions()))],
             'active_ingredients' => 'nullable|string|max:255',
             'concentration' => 'nullable|string|max:255',
             'dosage_form' => 'nullable|string|max:255',

@@ -2,6 +2,8 @@
 
 namespace Modules\Pharma\Services;
 
+use Modules\Pharma\Models\Medicine;
+
 class MedicineCatalogImportMapper
 {
     public function __construct(private ?MedicineCatalogNormalizer $normalizer = null)
@@ -13,13 +15,14 @@ class MedicineCatalogImportMapper
     {
         $value = fn (array $keys) => $this->firstValue($row, $keys);
 
-        $registrationRaw = $value(['Giấy phép lưu hành sản phẩm', 'registration_number', 'registration_number_raw']);
+        $registrationRaw = $value(['Giấy phép lưu hành sản phẩm', 'GPLH', 'registration_number', 'registration_number_raw']);
         $name = $value(['Tên biệt dược', 'Tên thuốc', 'Tên sản phẩm', 'name', 'brand_name']);
         $specialControlRaw = $value(['Thuốc KSĐB', 'Thuốc kiểm soát đặc biệt', 'KSĐB', 'is_special_control']);
 
         return [
+            'product_type' => $this->productType($value(['Loại sản phẩm', 'product_type'])),
             'circular_order_number' => $this->clean($value(['STT TT20/2022', 'Số thứ tự theo thông tư', 'circular_order_number'])),
-            'circular_group' => $this->clean($value(['Nhóm thuốc', 'Phân nhóm theo thông tư', 'circular_group'])),
+            'circular_group' => $this->clean($value(['Nhóm thuốc', 'Nhóm thuốc theo thông tư', 'Phân nhóm theo thông tư', 'circular_group'])),
             'therapeutic_group' => $this->clean($value(['Nhóm thuốc điều trị', 'Nhóm điều trị', 'therapeutic_group'])),
             'is_special_control' => $this->booleanMarker($specialControlRaw),
             'active_ingredients' => $this->clean($value(['Tên hoạt chất', 'Hoạt chất', 'active_ingredients'])),
@@ -28,7 +31,7 @@ class MedicineCatalogImportMapper
             'dosage_form' => $this->clean($value(['Dạng bào chế', 'dosage_form'])),
             'route_of_administration' => $this->clean($value(['Đường dùng', 'route_of_administration'])),
             'unit' => $this->clean($value(['Đơn vị tính', 'unit', 'base_unit'])),
-            'packaging_specification' => $this->clean($value(['Quy cách đóng gói', 'packaging_specification', 'packaging_text'])),
+            'packaging_specification' => $this->clean($value(['Quy cách đóng gói', 'Quy cách', 'packaging_specification', 'packaging_text'])),
             'registration_number_raw' => $this->clean($registrationRaw),
             'registration_number_primary' => $this->normalizer->registrationPrimary($this->clean($registrationRaw)),
             'registration_number' => $this->normalizer->registrationPrimary($this->clean($registrationRaw)),
@@ -37,6 +40,23 @@ class MedicineCatalogImportMapper
             'manufacturing_country' => $this->clean($value(['Nước sản xuất', 'Nước SX', 'manufacturing_country'])),
             'declared_price' => $this->number($value(['Giá KK/KL', 'Giá KK/ KKL', 'Giá kê khai', 'declared_price'])),
         ];
+    }
+
+    private function productType(mixed $value): ?string
+    {
+        $value = $this->clean($value);
+        if ($value === null) {
+            return null;
+        }
+
+        $normalized = mb_strtolower($value, 'UTF-8');
+        foreach (Medicine::productTypeOptions() as $key => $label) {
+            if ($normalized === $key || $normalized === mb_strtolower($label, 'UTF-8')) {
+                return $key;
+            }
+        }
+
+        return '__invalid_product_type__';
     }
 
     public function payloadHash(array $normalized): string

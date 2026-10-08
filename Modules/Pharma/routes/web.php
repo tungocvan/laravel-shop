@@ -6,6 +6,7 @@ use Modules\Pharma\Http\Controllers\DrugBidAwardController;
 use Modules\Pharma\Http\Controllers\HsspController;
 use Modules\Pharma\Http\Controllers\InventoryController;
 use Modules\Pharma\Http\Controllers\MedicineCatalogImportController;
+use Modules\Pharma\Http\Controllers\MedicineExcelController;
 use Modules\Pharma\Http\Controllers\OfficialFacilityImportController;
 use Modules\Pharma\Http\Controllers\OfficialFacilityImportTemplateController;
 use Modules\Pharma\Http\Controllers\OfficialSourceSyncController;
@@ -48,6 +49,7 @@ Route::prefix('admin/pharma')->name('admin.pharma.')->middleware(['web', 'auth:a
     Route::prefix('medicines')->name('medicines.')->group(function () {
         Route::get('/', [PharmaController::class, 'index'])->middleware('can:view_pharma')->name('index');
         Route::get('/export', [PharmaController::class, 'export'])->middleware('can:view_pharma')->name('export');
+        Route::get('/export-configured', [MedicineExcelController::class, 'export'])->middleware('can:view_pharma')->name('export-configured');
         Route::get('/create', [PharmaController::class, 'create'])->middleware('can:create_pharma')->name('create');
         Route::get('/{id}/edit', [PharmaController::class, 'edit'])->whereNumber('id')->middleware('can:edit_pharma')->name('edit');
         Route::get('/import/template', [MedicineCatalogImportController::class, 'template'])->middleware('can:view_pharma')->name('import.template');
