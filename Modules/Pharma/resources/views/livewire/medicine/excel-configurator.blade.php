@@ -129,12 +129,33 @@
                             <label class="text-xs font-semibold">Khổ giấy<select wire:model="settings.paper_size" class="{{ $input }}"><option>A4</option><option>A3</option><option>LETTER</option></select></label>
                             <label class="text-xs font-semibold">Hướng<select wire:model="settings.orientation" class="{{ $input }}"><option value="landscape">Ngang</option><option value="portrait">Dọc</option></select></label>
                         </div></section>
+                        <section class="rounded-2xl border p-4">
+                            <h4 class="text-sm font-bold">Kiểu chữ &amp; bảng dữ liệu Excel</h4>
+                            <div class="mt-3 grid grid-cols-2 gap-3">
+                                <label class="text-xs font-semibold col-span-2">Font chữ<select wire:model="settings.font_family" class="{{ $input }}"><option>Times New Roman</option><option>Arial</option><option>Calibri</option></select></label>
+                                <label class="text-xs font-semibold">Cỡ chữ header<input type="number" min="8" max="20" wire:model="settings.header_font_size" class="{{ $input }}"></label>
+                                <label class="text-xs font-semibold">Cỡ chữ dữ liệu<input type="number" min="8" max="20" wire:model="settings.body_font_size" class="{{ $input }}"></label>
+                                <label class="text-xs font-semibold col-span-2">Màu nền header<select wire:model="settings.header_fill" class="{{ $input }}"><option value="EFF4FA">Xanh nhạt</option><option value="F1F5F9">Xám nhạt</option><option value="EDE9FE">Tím nhạt</option><option value="FFFFFF">Trắng</option></select></label>
+                                <label class="col-span-2 inline-flex items-center gap-2 text-xs font-semibold"><input type="checkbox" wire:model="settings.body_border"> Viền mảnh giữa các ô dữ liệu</label>
+                            </div>
+                            <p class="mt-2 text-xs text-slate-500">Mặc định: Times New Roman · Header 12pt có nền nhạt, wrap text · Dữ liệu 11pt có viền mảnh.</p>
+                        </section>
                         <section class="rounded-2xl border p-4"><h4 class="text-sm font-bold">Xem trước</h4><div class="mt-3 rounded-lg border bg-slate-50 p-4 text-center"><p class="text-xs font-bold">{{ $settings['company_name'] ?? '' }}</p><p class="mt-2 text-sm font-extrabold">{{ $settings['title'] ?? '' }}</p><div class="mt-3 grid grid-cols-3 border bg-white text-[10px] font-bold"><span class="border-r p-2">Mã thuốc</span><span class="border-r p-2">Tên thuốc</span><span class="p-2">Loại sản phẩm</span></div></div></section>
                     </div>
                 </div>
                 @endif
             </main>
         </div>
+        @if($saveConfirmationOpen)
+        <div class="absolute inset-0 z-[110] flex items-center justify-center bg-slate-950/50 p-4" role="alertdialog" aria-modal="true" aria-labelledby="medicine-excel-saved-title">
+            <div class="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-2xl">
+                <div class="mx-auto grid h-12 w-12 place-items-center rounded-full bg-emerald-100 text-xl font-bold text-emerald-700">✓</div>
+                <h3 id="medicine-excel-saved-title" class="mt-3 text-lg font-extrabold text-slate-900">Đã lưu cấu hình Excel</h3>
+                <p class="mt-2 text-sm text-slate-600">Cấu hình <strong>{{ $profileName }}</strong> đã được lưu thành công.</p>
+                <button type="button" wire:click="dismissSaveConfirmation" class="mt-5 h-10 w-full rounded-xl bg-indigo-600 px-4 text-sm font-bold text-white">Đóng</button>
+            </div>
+        </div>
+        @endif
         <footer class="flex shrink-0 items-center justify-between gap-3 border-t bg-white px-5 py-3 lg:px-7">
             <p class="min-w-0 truncate text-xs text-slate-500"><b>{{ $profileName }}</b> · {{ $selectedOrder->count() }} cột được chọn</p>
             <div class="flex shrink-0 gap-2"><button type="button" wire:click="closeConfig" class="h-10 rounded-xl border px-4 text-sm font-bold">Hủy</button><button type="button" wire:click="save" class="h-10 rounded-xl bg-indigo-600 px-5 text-sm font-bold text-white">Lưu cấu hình</button></div>
