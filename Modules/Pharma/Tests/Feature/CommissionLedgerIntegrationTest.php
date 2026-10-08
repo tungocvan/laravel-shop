@@ -88,7 +88,9 @@ final class CommissionLedgerIntegrationTest extends TestCase
             $table->string('dosage_form'); $table->string('route_of_administration'); $table->string('unit');
             $table->string('packaging_specification'); $table->string('registration_number'); $table->string('shelf_life');
             $table->string('registered_company'); $table->string('manufacturing_company'); $table->string('manufacturing_country');
-            $table->string('medicine_code')->nullable(); $table->timestamps();
+            $table->string('medicine_code')->nullable();
+            $table->string('product_type', 32)->default(Medicine::PRODUCT_TYPE_MODERN);
+            $table->timestamps();
         });
         Schema::create('pharma_inventory_warehouses',function(Blueprint $table): void {
             $table->id(); $table->string('code')->unique(); $table->string('name'); $table->boolean('is_active')->default(true); $table->timestamps();
