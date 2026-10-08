@@ -189,6 +189,24 @@ class ExcelConfigurator extends Component
         array_splice($this->columns, $target, 0, [$key]);
     }
 
+    public function saveDraft(array $draft, MedicineExcelProfileService $service): void
+    {
+        $allowed = array_keys(MedicineExcelProfileService::COLUMNS);
+        $ordered = array_values(array_unique(array_filter($draft['columns'] ?? [],
+            fn ($key) => is_string($key) && in_array($key, $allowed, true))));
+        $this->columns = array_values(array_unique(array_merge($ordered, $allowed)));
+        $this->selected = array_fill_keys($ordered, true);
+
+        foreach (['headers', 'widths', 'alignments'] as $field) {
+            $values = $draft[$field] ?? [];
+            if (! is_array($values)) {
+                continue;
+            }
+            $this->{$field} = array_intersect_key($values, MedicineExcelProfileService::COLUMNS);
+        }
+        $this->save($service);
+    }
+
     public function save(MedicineExcelProfileService $service): void
     {
         $this->validate([
