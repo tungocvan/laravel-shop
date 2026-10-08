@@ -150,7 +150,9 @@ final class GdtExcelSandbox extends Component
                 return;
             }
             $result = $this->service->export($this->userId(), $validated['fromDate'], $validated['toDate'], $validated['invoiceType']);
-            $this->message = $result['count'] > 0 ? "Đã đồng bộ {$result['count']} hóa đơn và tạo file Excel." : 'Không có hóa đơn trong khoảng ngày đã chọn.';
+            $diagnostics = $result['diagnostics'] ?? [];
+            $summary = ' [GDT: truy vấn chung '.($diagnostics['regular'] ?? '?').', lọc máy tính tiền '.($diagnostics['pos'] ?? '?').', sau loại trùng '.($diagnostics['unique'] ?? '?').']';
+            $this->message = ($result['count'] > 0 ? "Đã đồng bộ {$result['count']} hóa đơn và tạo file Excel." : 'Không có hóa đơn trong khoảng ngày đã chọn.').$summary;
             $this->error = null;
             $this->refreshFiles();
         } catch (Throwable $e) {
