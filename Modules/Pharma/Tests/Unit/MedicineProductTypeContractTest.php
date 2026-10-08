@@ -85,4 +85,17 @@ class MedicineProductTypeContractTest extends TestCase
         $this->assertStringContainsString('wire:model.live="filterProductType"', $view);
         $this->assertStringContainsString('Tất cả loại sản phẩm', $view);
     }
+    #[Test]
+    public function desktop_catalog_columns_use_compact_widths_and_ellipsis(): void
+    {
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/medicine/index.blade.php'));
+
+        foreach (['w-[200px]', 'w-[190px]', 'w-[100px]', 'w-[80px]'] as $width) {
+            $this->assertStringContainsString($width, $view);
+        }
+
+        $this->assertStringContainsString('w-[176px] truncate font-medium', $view);
+        $this->assertStringContainsString('w-[166px] truncate font-medium', $view);
+        $this->assertStringContainsString('title="{{ $medicine->active_ingredients', $view);
+    }
 }
