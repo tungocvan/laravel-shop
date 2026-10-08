@@ -11,6 +11,8 @@ use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -39,7 +41,8 @@ class MedicineExcelController extends Controller
         $sheet->setTitle('Danh muc thuoc');
         $last = Coordinate::stringFromColumnIndex(count($columns));
         $row = 1;
-        $settings = $profile['settings'];
+        $settings = array_replace($profiles->defaults()['settings'], $profile['settings'] ?? []);
+        $sheet->getParent()->getDefaultStyle()->getFont()->setName($settings['font_family']);
         if ($settings['header_enabled'] ?? true) {
             foreach (['company_name', 'title'] as $key) {
                 $sheet->mergeCells("A{$row}:{$last}{$row}");
@@ -55,7 +58,10 @@ class MedicineExcelController extends Controller
             $cell = Coordinate::stringFromColumnIndex($index + 1).$headerRow;
             $sheet->setCellValue($cell, $profile['headers'][$key] ?? MedicineExcelProfileService::COLUMNS[$key]);
         }
-        $sheet->getStyle("A{$headerRow}:{$last}{$headerRow}")->getFont()->setBold(true);
+        $headerStyle = $sheet->getStyle("A{$headerRow}:{$last}{$headerRow}");
+        $headerStyle->getFont()->setBold(true)->setName($settings['font_family'])->setSize((int) $settings['header_font_size']);
+        $headerStyle->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($settings['header_fill']);
+        $headerStyle->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('DCE4ED');
         $sheet->getStyle("A{$headerRow}:{$last}{$headerRow}")->getAlignment()->setWrapText(true);
         $sheet->setAutoFilter("A{$headerRow}:{$last}{$headerRow}");
         $sheet->freezePane('A'.($headerRow + 1));
@@ -84,6 +90,7 @@ class MedicineExcelController extends Controller
                 'manufacturing_company' => $medicine->manufacturing_company,
                 'manufacturing_country' => $medicine->manufacturing_country,
                 'profile_status' => $medicine->profile_status,
+                'shelf_life' => $medicine->shelf_life,
             ];
             if ($needsRelated) {
                 $values = array_merge($values, $related->preview($medicine));
@@ -100,6 +107,13 @@ class MedicineExcelController extends Controller
                 } else {
                     $sheet->setCellValueExplicit($cell, (string) ($value ?? ''), DataType::TYPE_STRING);
                 }
+            }
+        }
+        if ($index > 0) {
+            $bodyStyle = $sheet->getStyle('A'.($headerRow + 1).':'.$last.($headerRow + $index));
+            $bodyStyle->getFont()->setName($settings['font_family'])->setSize((int) $settings['body_font_size']);
+            if ($settings['body_border']) {
+                $bodyStyle->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_HAIR)->getColor()->setRGB('DCE4ED');
             }
         }
         foreach ($columns as $col => $key) {
