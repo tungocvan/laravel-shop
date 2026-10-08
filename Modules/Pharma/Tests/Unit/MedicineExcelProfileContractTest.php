@@ -138,4 +138,15 @@ class MedicineExcelProfileContractTest extends TestCase
         $this->assertStringContainsString('x-on:click="add(@js($key))"', $view);
     }
 
+    #[Test]
+    public function configured_excel_centers_column_headers_and_repeats_them_when_printing(): void
+    {
+        $source = file_get_contents(base_path('Modules/Pharma/Http/Controllers/MedicineExcelController.php'));
+
+        $this->assertStringContainsString('setRowsToRepeatAtTopByStartAndEnd($headerRow, $headerRow)', $source);
+        $this->assertStringContainsString('setHorizontal(Alignment::HORIZONTAL_CENTER)', $source);
+        $this->assertStringContainsString('setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true)', $source);
+        $this->assertStringContainsString('// Column-specific alignment applies to data rows only; headers stay centered.', $source);
+    }
+
 }
