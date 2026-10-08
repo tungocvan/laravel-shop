@@ -105,8 +105,9 @@ class MedicineExcelProfileService
         foreach (self::COLUMNS as $key => $label) {
             $headers[$key] = mb_substr(trim((string) ($data['headers'][$key] ?? $label)) ?: $label, 0, 120);
             $widths[$key] = max(40, min(400, (int) ($data['widths'][$key] ?? 130)));
-            $alignments[$key] = in_array($data['alignments'][$key] ?? 'left', ['left', 'center', 'right'], true)
-                ? $data['alignments'][$key] : 'left';
+            $alignment = $data['alignments'][$key] ?? 'left';
+            $alignments[$key] = in_array($alignment, ['left', 'center', 'right'], true)
+                ? $alignment : 'left';
         }
         $settings = array_replace($defaults['settings'], (array) ($data['settings'] ?? []));
         $settings['paper_size'] = in_array($settings['paper_size'], ['A4', 'A3', 'LETTER'], true) ? $settings['paper_size'] : 'A4';
