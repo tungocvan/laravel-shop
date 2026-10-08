@@ -114,4 +114,15 @@ class MedicineProductTypeContractTest extends TestCase
         $this->assertStringContainsString('wire:click="resetFilters"', $view);
         $this->assertStringContainsString('md:grid-cols-2 xl:grid-cols-12', $view);
     }
+    #[Test]
+    public function data_quality_filter_panel_is_collapsed_by_default(): void
+    {
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/medicine/index.blade.php'));
+
+        $this->assertStringContainsString('x-data="{ filtersOpen: false }"', $view);
+        $this->assertStringContainsString('x-on:click="filtersOpen = !filtersOpen"', $view);
+        $this->assertStringContainsString('x-bind:aria-expanded="filtersOpen.toString()"', $view);
+        $this->assertStringContainsString('x-show="filtersOpen" x-cloak', $view);
+        $this->assertStringContainsString('wire:click="resetFilters"', $view);
+    }
 }
