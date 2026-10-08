@@ -70,4 +70,19 @@ class MedicineProductTypeContractTest extends TestCase
         $this->assertStringContainsString("'Loại sản phẩm' => Medicine::productTypeOptions()", $export);
     }
 
+    #[Test]
+    public function admin_catalog_filter_supports_all_product_types_and_reset(): void
+    {
+        $component = file_get_contents(base_path('Modules/Pharma/Livewire/Medicine/Index.php'));
+        $service = file_get_contents(base_path('Modules/Pharma/Services/MedicineService.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/medicine/index.blade.php'));
+
+        $this->assertStringContainsString("public string \$filterProductType = ''", $component);
+        $this->assertStringContainsString('updatedFilterProductType', $component);
+        $this->assertStringContainsString("'filterProductType', 'filterCircularGroup'", $component);
+        $this->assertStringContainsString("'productTypeOptions' => Medicine::productTypeOptions()", $component);
+        $this->assertStringContainsString("where('product_type', \$productType)", $service);
+        $this->assertStringContainsString('wire:model.live="filterProductType"', $view);
+        $this->assertStringContainsString('Tất cả loại sản phẩm', $view);
+    }
 }
