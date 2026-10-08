@@ -128,6 +128,36 @@ class ExcelConfigurator extends Component
         $this->columns = array_merge($selected, $unselected);
     }
 
+    public function moveSelectedToPosition(string $key, int $position): void
+    {
+        if (! isset(MedicineExcelProfileService::COLUMNS[$key]) || ! ($this->selected[$key] ?? false)) {
+            return;
+        }
+
+        $selected = array_values(array_filter(
+            $this->columns,
+            fn ($item) => (bool) ($this->selected[$item] ?? false)
+        ));
+        $index = array_search($key, $selected, true);
+        if ($index === false) {
+            return;
+        }
+
+        $target = max(0, min(count($selected) - 1, $position - 1));
+        if ($target === $index) {
+            return;
+        }
+
+        array_splice($selected, $index, 1);
+        array_splice($selected, $target, 0, [$key]);
+
+        $unselected = array_values(array_filter(
+            $this->columns,
+            fn ($item) => ! ($this->selected[$item] ?? false)
+        ));
+        $this->columns = array_merge($selected, $unselected);
+    }
+
     public function selectAll(): void
     {
         $this->selected = array_fill_keys(array_keys(MedicineExcelProfileService::COLUMNS), true);
