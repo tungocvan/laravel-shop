@@ -5,6 +5,8 @@ namespace Modules\Pharma\Livewire\Medicine;
 use Illuminate\Contracts\View\View;
 use Livewire\Component;
 use Modules\Pharma\Services\MedicineExcelProfileService;
+use Modules\Pharma\Services\MedicineExcelRelatedDataService;
+use Modules\Pharma\Models\Medicine;
 
 class ExcelConfigurator extends Component
 {
@@ -12,6 +14,9 @@ class ExcelConfigurator extends Component
     public string $activeSection = 'brand';
     public string $activeColumnKey = 'name';
     public string $columnGroup = 'all';
+    public string $previewMedicineCode = '';
+    public string $previewMedicineName = '';
+    public array $relatedValues = [];
     public ?int $profileId = null;
     public string $profileName = 'Mặc định';
     public bool $isDefault = true;
@@ -25,6 +30,7 @@ class ExcelConfigurator extends Component
 
     public function mount(MedicineExcelProfileService $service): void
     {
+        $this->relatedValues = app(MedicineExcelRelatedDataService::class)->emptyValues();
         $this->refreshProfiles($service);
         $this->loadProfile($service);
     }
@@ -35,6 +41,24 @@ class ExcelConfigurator extends Component
         $this->loadProfile($service);
         $this->activeSection = 'brand';
         $this->open = true;
+    }
+
+    public function previewRelatedData(MedicineExcelRelatedDataService $related): void
+    {
+        $this->relatedValues = $related->emptyValues();
+        $this->previewMedicineName = '';
+        $code = trim($this->previewMedicineCode);
+        if ($code === '') {
+            return;
+        }
+        $medicine = ctype_digit($code)
+            ? Medicine::query()->find((int) $code)
+            : Medicine::query()->where('medicine_code', $code)->first();
+        if (! $medicine) {
+            return;
+        }
+        $this->previewMedicineName = (string) $medicine->name;
+        $this->relatedValues = $related->preview($medicine);
     }
 
     public function closeConfig(): void
