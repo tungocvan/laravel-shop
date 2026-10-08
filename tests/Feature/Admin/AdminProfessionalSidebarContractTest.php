@@ -26,7 +26,8 @@ class AdminProfessionalSidebarContractTest extends TestCase
         $this->assertStringContainsString('x-show="matches(@js(', $view);
         $this->assertStringContainsString('filterEnabled: @js($showNavigationSearch)', $group);
         $this->assertStringContainsString("matches(@js(\$child['name']))", $group);
-        $this->assertStringContainsString('[scrollbar-gutter:stable]', $view);
+        $this->assertStringContainsString('admin-sidebar-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto', $view);
+        $this->assertStringContainsString('scrollbar-width: thin', $view);
     }
 
     public function test_sidebar_has_managed_workspace_and_profile_hierarchy(): void
