@@ -72,7 +72,15 @@ class ExcelConfigurator extends Component
     {
         if (isset(MedicineExcelProfileService::COLUMNS[$key])) {
             $this->selected[$key] = true;
-            $this->columns = array_values(array_unique(array_merge(array_values(array_filter($this->columns, fn ($item) => $this->selected[$item] ?? false)), [$key], array_values(array_filter($this->columns, fn ($item) => ! ($this->selected[$item] ?? false)))));
+            $selected = array_values(array_filter(
+                $this->columns,
+                fn ($item) => (bool) ($this->selected[$item] ?? false)
+            ));
+            $unselected = array_values(array_filter(
+                $this->columns,
+                fn ($item) => ! ($this->selected[$item] ?? false)
+            ));
+            $this->columns = array_values(array_unique(array_merge($selected, $unselected)));
             $this->activeColumnKey = $key;
         }
     }
