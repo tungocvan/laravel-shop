@@ -63,6 +63,7 @@ class PharmaController extends Controller
                     'Mã thuốc' => $medicine->medicine_code,
                     'SKU' => $variant?->sku,
                     'Tên thuốc' => $medicine->name,
+                    'Loại sản phẩm' => Medicine::productTypeOptions()[$medicine->product_type] ?? 'Tân dược',
                     'GPLH' => $medicine->registration_number_primary ?: $medicine->registration_number,
                     'Nhóm thuốc theo thông tư' => $medicine->circular_group,
                     'Hoạt chất' => $medicine->active_ingredients,
