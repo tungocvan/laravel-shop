@@ -111,6 +111,7 @@ final class GdtExcelSandboxService
         $from = Carbon::parse($fromDate);
         $to = Carbon::parse($toDate);
         $rows = [];
+        $counts = ['regular' => 0, 'pos' => 0];
         $cursor = $from->copy();
 
         // Keep the sandbox query contract identical to the proven /admin/invoices/hoadon
@@ -121,11 +122,11 @@ final class GdtExcelSandboxService
             $monthEnd = $cursor->copy()->endOfMonth();
             $chunkEnd = $monthEnd->lt($to) ? $monthEnd : $to->copy();
 
-            $rows = array_merge(
-                $rows,
-                $this->fetchMonth((string) $session['token'], $chunkStart, $chunkEnd, $type),
-                $this->fetchMonth((string) $session['token'], $chunkStart, $chunkEnd, $type, '8'),
-            );
+            $regular = $this->fetchMonth((string) $session['token'], $chunkStart, $chunkEnd, $type);
+            $pos = $this->fetchMonth((string) $session['token'], $chunkStart, $chunkEnd, $type, '8');
+            $counts['regular'] += count($regular);
+            $counts['pos'] += count($pos);
+            $rows = array_merge($rows, $regular, $pos);
 
             $cursor = $chunkEnd->copy()->addDay();
         }
@@ -137,7 +138,7 @@ final class GdtExcelSandboxService
         ]))->all());
 
         if ($rows === []) {
-            return ['count' => 0, 'filename' => null];
+            return ['count' => 0, 'filename' => null, 'diagnostics' => $counts + ['unique' => 0]];
         }
 
         $taxCode = preg_replace('/[^0-9A-Za-z_-]/', '', (string) $session['tax_code']) ?: 'unknown';
@@ -150,7 +151,7 @@ final class GdtExcelSandboxService
         $filename = sprintf('%s_%s_%s_%s_%s.xlsx', $direction, $taxCode, $from->format('Y-m-d'), $to->format('Y-m-d'), now()->format('Ymd_His'));
         (new FastExcel($rows))->export($folder.DIRECTORY_SEPARATOR.$filename);
 
-        return ['count' => count($rows), 'filename' => $filename];
+        return ['count' => count($rows), 'filename' => $filename, 'diagnostics' => $counts + ['unique' => count($rows)]];
     }
 
     public function files(int $userId, ?string $taxCode = null): array
