@@ -60,7 +60,7 @@ class AdminThemeEditorContractTest extends TestCase
         $component = file_get_contents(base_path('Modules/Admin/Livewire/Settings/AdminThemeEditor.php'));
         $view = file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/admin-theme-editor.blade.php'));
         foreach (['selectTheme(', 'saveTheme(', 'saveAsTheme(', 'restoreDefaultTheme(', 'duplicateTheme(', 'deleteTheme('] as $contract) $this->assertStringContainsString($contract, $component);
-        foreach (['Theme Editor', 'Semantic colors', 'Sidebar Theme', 'Header presentation', 'Content & Footer', 'Lưu thành Theme mới', 'Khôi phục Theme mặc định', 'Admin preview'] as $label) $this->assertStringContainsString($label, $view);
+        foreach (['Theme Editor', 'Semantic colors', 'Sidebar Theme', 'Header presentation', 'Content & Footer', 'Lưu thành Theme mới', 'Khôi phục Theme mặc định', 'Sidebar Menu Designer'] as $label) $this->assertStringContainsString($label, $view);
         $this->assertStringContainsString("'accent'=>'Accent'", str_replace(' ', '', $view));
         $this->assertStringContainsString('wire:model.live="config.design.colors.{{ $key }}"', $view);
         foreach (['config.design.colors.header_background','config.design.colors.footer_background','config.design.colors.page_background','config.design.colors.content_background','config.design.colors.sidebar_header_background','config.design.colors.sidebar_navigation_background','config.design.colors.sidebar_footer_background'] as $model) $this->assertStringContainsString($model, $view);
@@ -92,8 +92,7 @@ class AdminThemeEditorContractTest extends TestCase
         $this->assertStringContainsString('--admin-content-theme-background', $shell);
         $this->assertStringContainsString('var(--admin-footer-theme-background)', $footer);
         $this->assertStringContainsString('contrastVariables', $footer);
-        foreach (['--admin-sidebar-header-theme-background','--admin-sidebar-navigation-theme-background','--admin-sidebar-footer-theme-background'] as $variable) $this->assertStringContainsString($variable, $sidebar);
-        $this->assertStringContainsString('regionStyle(', $sidebar);
+        $this->assertStringContainsString('\$this->sidebarStyle = \$presentation[\'style\']', $sidebar);
     }
 
     public function test_design_service_supports_light_dark_blue_and_warm_theme_tokens(): void
