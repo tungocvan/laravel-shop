@@ -105,4 +105,18 @@ class MedicineExcelProfileContractTest extends TestCase
         $this->assertStringContainsString("getRawOriginal('is_special_control') === null", $controller);
     }
 
+    #[\PHPUnit\Framework\Attributes\Test]
+    public function inspector_selection_is_local_and_column_position_can_jump(): void
+    {
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/medicine/excel-configurator.blade.php'));
+        $component = file_get_contents(base_path('Modules/Pharma/Livewire/Medicine/ExcelConfigurator.php'));
+
+        $this->assertStringContainsString("activeKey: @js(\$activeColumnKey)", $view);
+        $this->assertStringContainsString('x-on:click="activeKey = @js($key)"', $view);
+        $this->assertStringContainsString('x-show="activeKey === @js($inspectorKey)"', $view);
+        $this->assertStringContainsString('moveSelectedToPosition(@js($key)', $view);
+        $this->assertStringContainsString('function moveSelectedToPosition(string $key, int $position)', $component);
+        $this->assertStringContainsString('max(0, min(count($selected) - 1, $position - 1))', $component);
+    }
+
 }
