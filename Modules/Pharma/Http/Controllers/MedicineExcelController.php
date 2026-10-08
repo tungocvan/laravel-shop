@@ -62,7 +62,8 @@ class MedicineExcelController extends Controller
         $headerStyle->getFont()->setBold(true)->setName($settings['font_family'])->setSize((int) $settings['header_font_size']);
         $headerStyle->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($settings['header_fill']);
         $headerStyle->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('DCE4ED');
-        $sheet->getStyle("A{$headerRow}:{$last}{$headerRow}")->getAlignment()->setWrapText(true);
+        $headerStyle->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)
+            ->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
         $sheet->setAutoFilter("A{$headerRow}:{$last}{$headerRow}");
         $sheet->freezePane('A'.($headerRow + 1));
         $relatedKeys = array_keys($related->emptyValues());
@@ -127,7 +128,11 @@ class MedicineExcelController extends Controller
                 ->getAlignment()->setHorizontal($profile['alignments'][$key] ?? 'left')
                 ->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
         }
+        // Column-specific alignment applies to data rows only; headers stay centered.
+        $headerStyle->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)
+            ->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
         $page = $sheet->getPageSetup();
+        $page->setRowsToRepeatAtTopByStartAndEnd($headerRow, $headerRow);
         $page->setPaperSize(match ($settings['paper_size'] ?? 'A4') {
             'A3' => PageSetup::PAPERSIZE_A3,
             'LETTER' => PageSetup::PAPERSIZE_LETTER,
