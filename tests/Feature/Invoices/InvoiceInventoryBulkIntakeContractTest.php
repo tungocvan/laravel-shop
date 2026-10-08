@@ -95,7 +95,7 @@ class InvoiceInventoryBulkIntakeContractTest extends TestCase
         $this->assertStringContainsString('annotationAttributes($classification, $note, $applySupplierWide, $expenseCategoryId, $expenseNote)', $component);
         $this->assertStringContainsString('applySameTaxCode', $component);
         $this->assertStringContainsString('Hóa đơn mới cùng MST sẽ kế thừa quy tắc này.', $component);
-        $this->assertStringContainsString('Áp dụng cùng phân loại cho tất cả hóa đơn cùng MST', $view);
+        $this->assertStringContainsString('Áp dụng cho toàn bộ nhà cung cấp', $view);
         $this->assertStringNotContainsString('GdtApiService', $component);
         $this->assertStringNotContainsString('GdtInvoiceService', $component);
         $this->assertStringNotContainsString('GdtPdfService', $component);
