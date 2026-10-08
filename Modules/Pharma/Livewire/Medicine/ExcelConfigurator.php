@@ -10,6 +10,7 @@ use Modules\Pharma\Services\MedicineExcelRelatedDataService;
 class ExcelConfigurator extends Component
 {
     public bool $open = false;
+    public bool $saveConfirmationOpen = false;
     public string $activeSection = 'brand';
     public string $activeColumnKey = 'name';
     public string $columnGroup = 'all';
@@ -41,6 +42,7 @@ class ExcelConfigurator extends Component
     public function closeConfig(): void
     {
         $this->open = false;
+        $this->saveConfirmationOpen = false;
     }
 
     public function updatedProfileId(): void
@@ -165,6 +167,11 @@ class ExcelConfigurator extends Component
             'settings.company_name' => 'nullable|string|max:200',
             'settings.paper_size' => 'required|in:A4,A3,LETTER',
             'settings.orientation' => 'required|in:landscape,portrait',
+            'settings.font_family' => 'nullable|in:Times New Roman,Arial,Calibri',
+            'settings.header_font_size' => 'nullable|integer|between:8,20',
+            'settings.body_font_size' => 'nullable|integer|between:8,20',
+            'settings.header_fill' => 'nullable|in:EFF4FA,F1F5F9,FFFFFF,EDE9FE',
+            'settings.body_border' => 'nullable|boolean',
         ]);
         $columns = array_values(array_filter($this->columns, fn ($key) => $this->selected[$key] ?? false));
         $saved = $service->save((int) auth('admin')->id(), [
@@ -175,8 +182,13 @@ class ExcelConfigurator extends Component
         ], $this->profileId);
         $this->apply($saved);
         $this->refreshProfiles($service);
-        session()->flash('success', 'Đã lưu cấu hình Excel danh mục thuốc.');
+        $this->saveConfirmationOpen = true;
         $this->dispatch('medicine-excel-profile-saved', profileId: $this->profileId);
+    }
+
+    public function dismissSaveConfirmation(): void
+    {
+        $this->saveConfirmationOpen = false;
     }
 
     public function deleteProfile(MedicineExcelProfileService $service): void
@@ -210,7 +222,7 @@ class ExcelConfigurator extends Component
         $this->headers = $profile['headers'];
         $this->widths = $profile['widths'];
         $this->alignments = $profile['alignments'];
-        $this->settings = $profile['settings'];
+        $this->settings = array_replace(app(MedicineExcelProfileService::class)->defaults()['settings'], $profile['settings'] ?? []);
     }
 
     public function render(): View
