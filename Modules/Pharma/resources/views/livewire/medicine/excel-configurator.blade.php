@@ -32,8 +32,8 @@
                 <button type="button" wire:click="deleteProfile" wire:confirm="Xóa cấu hình này?" @disabled(!$profileId) class="h-10 rounded-xl border border-rose-200 bg-white px-3 text-xs font-bold text-rose-600 disabled:opacity-40">Xóa</button>
             </div>
         </div>
-        <div class="min-h-0 flex-1 overflow-hidden lg:grid lg:grid-cols-[230px_minmax(0,1fr)]">
-            <nav class="shrink-0 border-b border-slate-200 bg-slate-50/70 p-3 lg:border-b-0 lg:border-r lg:p-4">
+        <div class="medicine-designer-workspace min-h-0 flex-1 overflow-hidden">
+            <nav class="medicine-designer-sidebar shrink-0 border-b border-slate-200 bg-slate-50/70 p-3 lg:border-b-0 lg:border-r lg:p-4">
                 <div class="flex gap-2 lg:flex-col">
                     @foreach([['brand','1','Thương hiệu'],['columns','2','Cột dữ liệu'],['page','3','Trang in']] as [$section,$number,$title])
                     <button type="button" wire:click="setSection('{{ $section }}')" class="flex flex-1 items-center gap-2 rounded-xl border px-3 py-3 text-left text-xs font-bold lg:flex-none {{ $activeSection === $section ? 'border-indigo-200 bg-white shadow-sm' : 'border-transparent hover:bg-white' }}">
@@ -70,10 +70,10 @@
                         <div class="flex gap-2"><button type="button" wire:click="selectAll" class="rounded-xl border px-3 py-2 text-xs font-bold">Chọn tất cả</button><button type="button" wire:click="clearAll" class="rounded-xl border border-rose-200 px-3 py-2 text-xs font-bold text-rose-600">Bỏ chọn</button></div>
                     </div>
                     @error('columns')<p class="mt-2 text-xs text-rose-600">{{ $message }}</p>@enderror
-                    <div class="mt-4 grid gap-4 xl:grid-cols-[minmax(230px,.85fr)_minmax(290px,1.15fr)_300px]">
-                        <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                    <div class="medicine-designer-columns mt-4">
+                        <section class="medicine-designer-pane overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                             <div class="border-b bg-slate-50 p-4"><h4 class="text-sm font-extrabold">1. Kho dữ liệu</h4><input type="search" x-model="search" placeholder="Tìm tên cột..." class="{{ $input }}"></div>
-                            <div class="max-h-[52vh] space-y-1 overflow-y-auto p-3">
+                            <div class="medicine-designer-scroll space-y-1 overflow-y-auto p-3">
                                 @foreach($definitions as $key => $label)
                                 <div wire:key="medicine-excel-bank-{{ $key }}" x-show="!search || @js(mb_strtolower($label.' '.$key)).includes(search.toLowerCase())" class="flex items-center gap-2 rounded-xl border px-3 py-2">
                                     <button type="button" wire:click="editColumn('{{ $key }}')" class="min-w-0 flex-1 text-left"><span class="block truncate text-xs font-bold">{{ $headers[$key] ?? $label }}</span><span class="text-[10px] text-slate-400">{{ $key }}</span></button>
@@ -82,9 +82,9 @@
                                 @endforeach
                             </div>
                         </section>
-                        <section class="overflow-hidden rounded-2xl border border-indigo-100 bg-white shadow-sm">
-                            <div class="border-b bg-indigo-50 p-4"><h4 class="text-sm font-extrabold">2. Cột sẽ xuất Excel</h4><p class="mt-1 text-xs text-slate-500">A/B/C là thứ tự thực tế trong file.</p></div>
-                            <div class="max-h-[47vh] space-y-2 overflow-y-auto p-3">
+                        <section class="medicine-designer-pane overflow-hidden rounded-2xl border border-indigo-100 bg-white shadow-sm">
+                            <div class="border-b bg-indigo-50 p-4"><h4 class="text-sm font-extrabold">2. Cột sẽ xuất Excel</h4><p class="mt-1 text-xs text-slate-500">A/B/C là thứ tự thực tế trong file. Dùng ↑ ↓ để đổi vị trí.</p></div>
+                            <div class="medicine-designer-scroll space-y-2 overflow-y-auto p-3">
                                 @forelse($selectedOrder as $i => $key)
                                 <div wire:key="medicine-excel-order-{{ $key }}" class="grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-2 rounded-xl border p-2 {{ $activeColumnKey === $key ? 'border-indigo-300 bg-indigo-50' : '' }}">
                                     <span class="grid h-8 place-items-center rounded-lg bg-indigo-600 text-xs font-bold text-white">{{ $excelLetter($i + 1) }}</span>
@@ -93,15 +93,15 @@
                                 </div>
                                 @empty<p class="p-6 text-center text-xs text-slate-400">Chưa chọn cột.</p>@endforelse
                             </div>
-                            <div class="border-t bg-slate-50 p-3"><p class="text-[10px] font-bold uppercase text-slate-500">Xem trước header Excel</p><div class="mt-2 flex max-w-full overflow-x-auto rounded-lg border bg-white">@foreach($selectedOrder as $i => $key)<div class="w-36 shrink-0 border-r p-2 text-xs"><b>{{ $excelLetter($i + 1) }}</b><p class="mt-1 truncate">{{ $headers[$key] ?? $definitions[$key] }}</p></div>@endforeach</div></div>
+                            <div class="border-t bg-slate-50 p-3"><p class="text-[10px] font-bold uppercase text-slate-500">Xem trước header Excel</p><div class="mt-2 flex max-w-full overflow-x-auto rounded-lg border bg-white">@foreach($selectedOrder as $i => $key)<div class="shrink-0 border-r p-2 text-xs" style="width: {{ max(40, min(400, (int) ($widths[$key] ?? 130))) }}px"><b>{{ $excelLetter($i + 1) }}</b><p class="mt-1 truncate">{{ $headers[$key] ?? $definitions[$key] }}</p></div>@endforeach</div></div>
                         </section>
-                        <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                        <section class="medicine-designer-pane rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                             <h4 class="text-sm font-extrabold">3. Column Inspector</h4><p class="mt-1 text-xs text-slate-500">Chọn một cột để chỉnh thuộc tính.</p>
                             @if(isset($definitions[$activeColumnKey]))
-                            <div class="mt-4 space-y-4">
+                            <div wire:key="medicine-inspector-{{ $activeColumnKey }}" class="mt-4 space-y-4">
                                 <p class="rounded-xl bg-indigo-50 p-3 text-xs font-bold text-indigo-700">{{ $definitions[$activeColumnKey] }}</p>
                                 <label class="block text-xs font-semibold">Tên tiêu đề<input wire:model="headers.{{ $activeColumnKey }}" class="{{ $input }}"></label>
-                                <label class="block text-xs font-semibold">Độ rộng cột (Excel)<input type="number" min="8" max="80" wire:model="widths.{{ $activeColumnKey }}" class="{{ $input }}"></label>
+                                <label class="block text-xs font-semibold">Độ rộng cột (px)<input type="number" min="40" max="400" step="1" wire:model="widths.{{ $activeColumnKey }}" class="{{ $input }}"></label><div class="grid grid-cols-5 gap-1">@foreach(['XS'=>60,'S'=>90,'M'=>130,'L'=>190,'XL'=>280] as $size => $pixels)<button type="button" wire:click="setColumnWidth('{{ $activeColumnKey }}', {{ $pixels }})" class="rounded-lg border px-1 py-1.5 text-[10px] font-bold">{{ $size }}</button>@endforeach</div>
                                 <label class="block text-xs font-semibold">Căn lề<select wire:model="alignments.{{ $activeColumnKey }}" class="{{ $input }}"><option value="left">Trái</option><option value="center">Giữa</option><option value="right">Phải</option></select></label>
                                 <label class="flex items-center gap-2 text-xs font-semibold"><input type="checkbox" wire:model="selected.{{ $activeColumnKey }}"> Xuất cột này</label>
                             </div>
@@ -130,4 +130,20 @@
     </div>
 </div>
 @endif
+<style>
+@media (min-width: 1024px) {
+  .medicine-designer-workspace { display:grid !important; grid-template-columns: 190px minmax(0,1fr) !important; }
+  .medicine-designer-sidebar { min-width:0; overflow-y:auto; }
+}
+.medicine-designer-columns { display:grid; grid-template-columns:minmax(0,1fr); gap:14px; align-items:start; }
+.medicine-designer-pane { min-width:0; }
+.medicine-designer-scroll { max-height:43vh; }
+@media (min-width: 1200px) {
+  .medicine-designer-columns { grid-template-columns:minmax(200px,.9fr) minmax(280px,1.15fr) minmax(235px,.9fr) !important; }
+}
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .medicine-designer-columns { grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+  .medicine-designer-columns > :last-child { grid-column:1/-1; }
+}
+</style>
 </div>
