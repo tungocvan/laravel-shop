@@ -28,6 +28,7 @@
                     <input wire:model="profileName" class="{{ $input }}">
                 </label>
                 <label class="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold"><input type="checkbox" wire:model="isDefault"> Đặt mặc định</label>
+                <button type="button" wire:click="duplicateProfile" class="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700">Nhân đôi</button>
                 <button type="button" wire:click="newProfile" class="h-10 rounded-xl border border-indigo-200 bg-white px-3 text-xs font-bold text-indigo-700">+ Tạo mới</button>
                 <button type="button" wire:click="deleteProfile" wire:confirm="Xóa cấu hình này?" @disabled(!$profileId) class="h-10 rounded-xl border border-rose-200 bg-white px-3 text-xs font-bold text-rose-600 disabled:opacity-40">Xóa</button>
             </div>
@@ -67,7 +68,7 @@
                 @elseif($activeSection === 'columns')
                 <div class="mx-auto max-w-[1320px]" x-data="{ search: '' }">
                     <div class="flex flex-wrap items-end justify-between gap-3"><div><h3 class="text-xl font-extrabold">Thiết kế cột Excel</h3><p class="mt-1 text-sm text-slate-500">Kho dữ liệu → thứ tự A/B/C → Column Inspector.</p></div>
-                        <div class="flex gap-2"><button type="button" wire:click="selectAll" class="rounded-xl border px-3 py-2 text-xs font-bold">Chọn tất cả</button><button type="button" wire:click="clearAll" class="rounded-xl border border-rose-200 px-3 py-2 text-xs font-bold text-rose-600">Bỏ chọn</button></div>
+                        <div class="flex gap-2"><button type="button" wire:click="selectAll" class="rounded-xl border px-3 py-2 text-xs font-bold">Chọn tất cả</button><button type="button" wire:click="resetColumnOrder" class="rounded-xl border px-3 py-2 text-xs font-bold">Khôi phục thứ tự</button><button type="button" wire:click="clearAll" class="rounded-xl border border-rose-200 px-3 py-2 text-xs font-bold text-rose-600">Bỏ chọn</button></div>
                     </div>
                     @error('columns')<p class="mt-2 text-xs text-rose-600">{{ $message }}</p>@enderror
                     <div class="medicine-designer-columns mt-4">
@@ -89,7 +90,7 @@
                                 <div wire:key="medicine-excel-order-{{ $key }}" class="grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-2 rounded-xl border p-2 {{ $activeColumnKey === $key ? 'border-indigo-300 bg-indigo-50' : '' }}">
                                     <span class="grid h-8 place-items-center rounded-lg bg-indigo-600 text-xs font-bold text-white">{{ $excelLetter($i + 1) }}</span>
                                     <button type="button" wire:click="editColumn('{{ $key }}')" class="truncate text-left text-xs font-bold">{{ $headers[$key] ?? $definitions[$key] }}</button>
-                                    <div class="flex gap-1"><button type="button" wire:click="move('{{ $key }}', -1)" class="h-7 w-7 rounded border" aria-label="Lên">↑</button><button type="button" wire:click="move('{{ $key }}', 1)" class="h-7 w-7 rounded border" aria-label="Xuống">↓</button><button type="button" wire:click="removeColumn('{{ $key }}')" class="h-7 w-7 rounded border text-rose-600" aria-label="Bỏ cột">×</button></div>
+                                    <div class="flex gap-1"><button type="button" wire:click="reorderSelected('{{ $key }}', -1)" @disabled($i === 0) class="h-7 w-7 rounded border" aria-label="Lên">↑</button><button type="button" wire:click="reorderSelected('{{ $key }}', 1)" @disabled($i === $selectedOrder->count() - 1) class="h-7 w-7 rounded border" aria-label="Xuống">↓</button><button type="button" wire:click="removeColumn('{{ $key }}')" class="h-7 w-7 rounded border text-rose-600" aria-label="Bỏ cột">×</button></div>
                                 </div>
                                 @empty<p class="p-6 text-center text-xs text-slate-400">Chưa chọn cột.</p>@endforelse
                             </div>
