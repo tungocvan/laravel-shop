@@ -47,7 +47,7 @@ class InvoiceInventoryBulkIntakeContractTest extends TestCase
 
         $this->assertStringContainsString('public function storedDetail(Invoices $invoice): ?array', $service);
         $this->assertStringContainsString('public function fetchDetail(Invoices $invoice, bool $force = false): array', $service);
-        $this->assertStringContainsString('public function fetchAndStoreDetail(Invoices $invoice): array', $service);
+        $this->assertStringContainsString('public function fetchAndStoreDetail(Invoices $invoice, ?callable $onRateLimitRetry = null): array', $service);
         $this->assertStringContainsString('Chưa có RAW GDT detail trên server.', $service);
         $this->assertStringContainsString("'detail_status' => 'READY'", $service);
         $this->assertStringContainsString("'detail_status' => 'ERROR'", $service);
@@ -66,7 +66,7 @@ class InvoiceInventoryBulkIntakeContractTest extends TestCase
         $this->assertStringContainsString('$service->fetchAndStoreDetail($invoice)', $service);
         $this->assertStringContainsString('InvoiceSourceCoverageService $coverage', $job);
         $this->assertStringContainsString('File Excel đã tồn tại nhưng RAW canonical chưa đầy đủ', $job);
-        $this->assertStringContainsString('&& $canonicalReady', $job);
+        $this->assertStringContainsString('&&$canonicalReady', $job);
     }
 
     #[Test]
@@ -92,7 +92,7 @@ class InvoiceInventoryBulkIntakeContractTest extends TestCase
         $this->assertStringContainsString("'/source-data'", $routes);
         $this->assertStringContainsString("name('source-data')", $routes);
         $this->assertStringContainsString('saveAnnotation', $component);
-        $this->assertStringContainsString("'classification_scope' => \$applySupplierWide ? 'SUPPLIER' : 'INVOICE'", $component);
+        $this->assertStringContainsString('annotationAttributes($classification, $note, $applySupplierWide, $expenseCategoryId, $expenseNote)', $component);
         $this->assertStringContainsString('applySameTaxCode', $component);
         $this->assertStringContainsString('Hóa đơn mới cùng MST sẽ kế thừa quy tắc này.', $component);
         $this->assertStringContainsString('Áp dụng cùng phân loại cho tất cả hóa đơn cùng MST', $view);
