@@ -46,7 +46,7 @@ class MedicineExcelProfileContractTest extends TestCase
         $component = file_get_contents(base_path('Modules/Pharma/Livewire/Medicine/ExcelConfigurator.php'));
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/medicine/excel-configurator.blade.php'));
 
-        foreach (['openConfig', 'newProfile', 'move', 'selectAll', 'clearAll', 'save', 'deleteProfile'] as $method) {
+        foreach (['openConfig', 'newProfile', 'move', 'reorderSelected', 'duplicateProfile', 'resetColumnOrder', 'selectAll', 'clearAll', 'save', 'deleteProfile'] as $method) {
             $this->assertStringContainsString('function '.$method.'(', $component);
         }
         $this->assertStringContainsString('wire:click="save"', $view);
@@ -58,6 +58,9 @@ class MedicineExcelProfileContractTest extends TestCase
         $this->assertStringContainsString('medicine-designer-columns', $view);
         $this->assertStringContainsString('setColumnWidth(', $view);
         $this->assertStringContainsString('Xem trước header Excel', $view);
+        $this->assertStringContainsString('wire:click="duplicateProfile"', $view);
+        $this->assertStringContainsString('wire:click="resetColumnOrder"', $view);
+        $this->assertStringContainsString('wire:click="reorderSelected(', $view);
         $this->assertStringContainsString('Kho dữ liệu', $view);
         $this->assertStringContainsString('Cột sẽ xuất Excel', $view);
         $this->assertStringContainsString("['brand','1','Thương hiệu']", $view);
