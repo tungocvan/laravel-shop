@@ -66,61 +66,96 @@
                     <section class="rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4"><h4 class="text-sm font-bold">Tách biệt dữ liệu</h4><p class="mt-2 text-sm text-slate-600">Đây là mẫu báo cáo riêng. File Export danh mục thuốc chuẩn để import trở lại vẫn giữ nguyên định dạng và chức năng.</p></section>
                 </div>
                 @elseif($activeSection === 'columns')
-                <div class="mx-auto max-w-[1320px]" x-data="{ search: '', activeKey: @js($activeColumnKey), labels: @js($definitions), headersLocal: $wire.entangle('headers'), widthsLocal: $wire.entangle('widths'), alignmentsLocal: $wire.entangle('alignments'), selectedLocal: $wire.entangle('selected') }">
-                    <div class="flex flex-wrap items-end justify-between gap-3"><div><h3 class="text-xl font-extrabold">Thiết kế cột Excel</h3><p class="mt-1 text-sm text-slate-500">Kho dữ liệu → thứ tự A/B/C → Column Inspector.</p></div>
-                        <div class="flex gap-2"><button type="button" wire:click="selectAll" class="rounded-xl border px-3 py-2 text-xs font-bold">Chọn tất cả</button><button type="button" wire:click="resetColumnOrder" class="rounded-xl border px-3 py-2 text-xs font-bold">Khôi phục thứ tự</button><button type="button" wire:click="clearAll" class="rounded-xl border border-rose-200 px-3 py-2 text-xs font-bold text-rose-600">Bỏ chọn</button></div>
+                <div class="mx-auto max-w-[1320px]" x-data="{
+                    search: '',
+                    editing: null,
+                    draft: {
+                        columns: @js($selectedOrder->all()),
+                        headers: @js($headers),
+                        widths: @js($widths),
+                        alignments: @js($alignments)
+                    },
+                    labels: @js($definitions),
+                    letter(index) {
+                        let value = index + 1, result = '';
+                        while (value > 0) { value--; result = String.fromCharCode(65 + value % 26) + result; value = Math.floor(value / 26); }
+                        return result;
+                    },
+                    available(key) { return this.draft.columns.includes(key); },
+                    add(key) { if (!this.available(key)) this.draft.columns.push(key); this.editing = key; },
+                    remove(key) { this.draft.columns = this.draft.columns.filter(item => item !== key); if (this.editing === key) this.editing = null; },
+                    move(key, position) {
+                        const old = this.draft.columns.indexOf(key);
+                        if (old < 0) return;
+                        const target = Math.max(0, Math.min(this.draft.columns.length - 1, Number(position) - 1));
+                        this.draft.columns.splice(old, 1);
+                        this.draft.columns.splice(target, 0, key);
+                    },
+                    selectAll() { this.draft.columns = Object.keys(this.labels); },
+                    reset() { this.draft.columns = Object.keys(this.labels).filter(key => this.available(key)); },
+                    payload() { return JSON.parse(JSON.stringify(this.draft)); }
+                }" x-on:medicine-designer-save.window="$wire.saveDraft(payload())">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div><h3 class="text-xl font-extrabold">Thiết kế cột Excel · V4</h3><p class="mt-1 text-xs text-slate-500">Chỉnh sửa tức thì trên trình duyệt. Chỉ gửi dữ liệu khi lưu.</p></div>
+                        <div class="flex gap-2">
+                            <button type="button" x-on:click="selectAll()" class="rounded-xl border px-3 py-2 text-xs font-bold">Chọn tất cả</button>
+                            <button type="button" x-on:click="reset()" class="rounded-xl border px-3 py-2 text-xs font-bold">Thứ tự chuẩn</button>
+                            <button type="button" x-on:click="draft.columns = []; editing = null" class="rounded-xl border border-rose-200 px-3 py-2 text-xs font-bold text-rose-600">Bỏ chọn</button>
+                        </div>
                     </div>
                     @error('columns')<p class="mt-2 text-xs text-rose-600">{{ $message }}</p>@enderror
                     <div class="medicine-designer-columns mt-4">
-                        <section class="medicine-designer-pane overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                            <div class="border-b bg-slate-50 p-4"><h4 class="text-sm font-extrabold">1. Kho dữ liệu</h4><input type="search" x-model="search" placeholder="Tìm tên cột..." class="{{ $input }}"></div>
+                        <section class="medicine-designer-pane overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                            <div class="border-b bg-slate-50 p-3"><h4 class="text-sm font-bold">1. Kho dữ liệu</h4><input type="search" x-model.debounce.100ms="search" placeholder="Tìm tên cột..." class="{{ $input }}"></div>
                             <div class="medicine-designer-scroll space-y-1 overflow-y-auto p-3">
                                 @foreach(\Modules\Pharma\Services\MedicineExcelProfileService::BASE_COLUMNS as $key => $label)
-                                <div wire:key="medicine-excel-bank-{{ $key }}" x-show="!search || @js(mb_strtolower($label.' '.$key)).includes(search.toLowerCase())" class="flex items-center gap-2 rounded-xl border px-3 py-2">
-                                    <button type="button" x-on:click="activeKey = @js($key)" class="min-w-0 flex-1 text-left"><span class="block truncate text-xs font-bold">{{ $headers[$key] ?? $label }}</span><span class="text-[10px] text-slate-400">{{ $key }}</span></button>
-                                    @if($selected[$key] ?? false)<span class="text-xs font-bold text-emerald-600">✓</span>@else<button type="button" wire:click="addColumn('{{ $key }}')" class="rounded-lg bg-indigo-50 px-2 py-1 text-xs font-bold text-indigo-700">+ Thêm</button>@endif
+                                <div x-show="!search || @js(mb_strtolower($label.' '.$key)).includes(search.toLowerCase())" class="flex items-center gap-2 rounded-lg border border-slate-100 px-2 py-2" wire:key="v4-bank-{{ $key }}">
+                                    <span class="min-w-0 flex-1 truncate text-xs font-semibold">{{ $label }}</span>
+                                    <span x-show="available(@js($key))" class="text-xs text-emerald-600">✓</span>
+                                    <button type="button" x-show="!available(@js($key))" x-on:click="add(@js($key))" class="rounded-lg bg-indigo-50 px-2 py-1 text-xs font-bold text-indigo-700">+ Thêm</button>
                                 </div>
                                 @endforeach
                                 @foreach($relatedGroups as $groupKey => $group)
-                                <div class="mt-3 border-t pt-3" wire:key="related-group-{{ $groupKey }}">
-                                    <p class="px-2 pb-2 text-xs font-bold text-indigo-600">{{ $group['label'] }}</p>
+                                <div class="mt-3 border-t pt-3" wire:key="v4-group-{{ $groupKey }}">
+                                    <h5 class="mb-2 text-xs font-bold text-indigo-700">{{ $group['label'] }}</h5>
                                     @foreach($group['fields'] as $key => $label)
-                                    <div wire:key="related-field-{{ $key }}" x-show="!search || @js(mb_strtolower($label.' '.$key)).includes(search.toLowerCase())" class="flex items-center gap-2 rounded-xl border px-3 py-2">
-                                        <button type="button" x-on:click="activeKey = @js($key)" class="min-w-0 flex-1 text-left text-xs font-bold">{{ $headers[$key] ?? $label }}</button>
-                                        @if($selected[$key] ?? false)<span class="text-xs font-bold text-emerald-600">✓</span>@else<button type="button" wire:click="addColumn('{{ $key }}')" class="rounded-lg bg-indigo-50 px-2 py-1 text-xs font-bold text-indigo-700">+ Thêm</button>@endif
+                                    <div x-show="!search || @js(mb_strtolower($label.' '.$key)).includes(search.toLowerCase())" class="flex items-center gap-2 rounded-lg border border-slate-100 px-2 py-2" wire:key="v4-related-{{ $key }}">
+                                        <span class="min-w-0 flex-1 truncate text-xs">{{ $label }}</span>
+                                        <span x-show="available(@js($key))" class="text-xs text-emerald-600">✓</span>
+                                        <button type="button" x-show="!available(@js($key))" x-on:click="add(@js($key))" class="rounded-lg bg-indigo-50 px-2 py-1 text-xs font-bold text-indigo-700">+ Thêm</button>
                                     </div>
                                     @endforeach
                                 </div>
                                 @endforeach
                             </div>
                         </section>
-                        <section class="medicine-designer-pane overflow-hidden rounded-2xl border border-indigo-100 bg-white shadow-sm">
-                            <div class="border-b bg-indigo-50 p-4"><h4 class="text-sm font-extrabold">2. Cột sẽ xuất Excel</h4><p class="mt-1 text-xs text-slate-500">A/B/C là thứ tự thực tế trong file. Dùng ↑ ↓ để đổi vị trí.</p></div>
-                            <div class="medicine-designer-scroll space-y-2 overflow-y-auto p-3">
-                                @forelse($selectedOrder as $i => $key)
-                                <div wire:key="medicine-excel-order-{{ $key }}" class="grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-2 rounded-xl border p-2 " :class="activeKey === @js($key) ? 'border-indigo-300 bg-indigo-50' : ''">
-                                    <span class="grid h-8 place-items-center rounded-lg bg-indigo-600 text-xs font-bold text-white">{{ $excelLetter($i + 1) }}</span>
-                                    <button type="button" x-on:click="activeKey = @js($key)" class="truncate text-left text-xs font-bold">{{ $headers[$key] ?? $definitions[$key] }}</button>
-                                    <div class="flex items-center gap-1"><label class="sr-only" for="medicine-position-{{ $key }}">Vị trí {{ $definitions[$key] ?? $key }}</label><input id="medicine-position-{{ $key }}" type="number" min="1" max="{{ $selectedOrder->count() }}" value="{{ $i + 1 }}" x-on:change="if ($event.target.value !== '') { $wire.moveSelectedToPosition(@js($key), Number($event.target.value)) }" title="Chuyển đến vị trí" class="h-7 w-12 rounded border px-1 text-center text-xs" aria-label="Vị trí cột {{ $definitions[$key] ?? $key }}"><button type="button" wire:click="reorderSelected('{{ $key }}', -1)" @disabled($i === 0) class="h-7 w-7 rounded border" aria-label="Lên">↑</button><button type="button" wire:click="reorderSelected('{{ $key }}', 1)" @disabled($i === $selectedOrder->count() - 1) class="h-7 w-7 rounded border" aria-label="Xuống">↓</button><button type="button" wire:click="removeColumn('{{ $key }}')" class="h-7 w-7 rounded border text-rose-600" aria-label="Bỏ cột">×</button></div>
-                                </div>
-                                @empty<p class="p-6 text-center text-xs text-slate-400">Chưa chọn cột.</p>@endforelse
+                        <section class="medicine-designer-pane overflow-hidden rounded-2xl border border-indigo-100 bg-white">
+                            <div class="border-b bg-indigo-50 p-3"><h4 class="text-sm font-bold">2. Cột sẽ xuất Excel <span class="text-indigo-600" x-text="'(' + draft.columns.length + ')'"></span></h4><p class="mt-1 text-xs text-slate-500">Nhấn bánh răng để thiết lập; nhập vị trí để chuyển nhanh.</p></div>
+                            <div class="medicine-designer-scroll space-y-1 overflow-y-auto p-3">
+                                <template x-for="(key, index) in draft.columns" :key="key">
+                                    <div class="flex items-center gap-2 rounded-lg border p-2" :class="editing === key ? 'border-indigo-400 bg-indigo-50' : 'border-slate-200'">
+                                        <span class="grid h-7 w-7 shrink-0 place-items-center rounded bg-indigo-600 text-[11px] font-bold text-white" x-text="letter(index)"></span>
+                                        <button type="button" x-on:click="editing = key" class="min-w-0 flex-1 truncate text-left text-xs font-semibold" x-text="draft.headers[key] || labels[key]"></button>
+                                        <input type="number" min="1" :max="draft.columns.length" :value="index + 1" x-on:change="move(key, $event.target.value)" class="h-8 w-12 rounded border text-center text-xs" title="Chuyển đến vị trí" aria-label="Vị trí cột">
+                                        <button type="button" x-on:click="move(key, index)" class="rounded border px-1 text-xs" aria-label="Lên">↑</button>
+                                        <button type="button" x-on:click="move(key, index + 2)" class="rounded border px-1 text-xs" aria-label="Xuống">↓</button>
+                                        <button type="button" x-on:click="editing = key" class="rounded border px-1 text-xs" aria-label="Thiết lập cột">⚙</button>
+                                        <button type="button" x-on:click="remove(key)" class="rounded border px-1 text-xs text-rose-600" aria-label="Bỏ cột">×</button>
+                                    </div>
+                                </template>
+                                <p x-show="draft.columns.length === 0" class="p-5 text-center text-xs text-slate-500">Chưa chọn cột nào.</p>
                             </div>
-                            <div class="border-t bg-slate-50 p-3"><p class="text-[10px] font-bold uppercase text-slate-500">Xem trước header Excel</p><div class="mt-2 flex max-w-full overflow-x-auto rounded-lg border bg-white">@foreach($selectedOrder as $i => $key)<div class="shrink-0 border-r p-2 text-xs" style="width: {{ max(40, min(400, (int) ($widths[$key] ?? 130))) }}px"><b>{{ $excelLetter($i + 1) }}</b><p class="mt-1 truncate">{{ $headers[$key] ?? $definitions[$key] }}</p></div>@endforeach</div></div>
                         </section>
-                        <section class="medicine-designer-pane rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                            <h4 class="text-sm font-extrabold">3. Column Inspector</h4><p class="mt-1 text-xs text-slate-500">Chọn một cột để chỉnh thuộc tính.</p>
-                            <p class="mt-2 text-[11px] text-slate-500">Chọn cột để chỉnh ngay, không cần tải lại. Thay đổi sẽ lưu khi nhấn Lưu cấu hình.</p>
-                            <div class="mt-4 space-y-4" wire:key="medicine-inspector-single">
-                                <p class="rounded-xl bg-indigo-50 p-3 text-xs font-bold text-indigo-700" x-text="labels[activeKey] || activeKey"></p>
-                                <label class="block text-xs font-semibold">Tên tiêu đề<input type="text" x-model="headersLocal[activeKey]" class="{{ $input }}"></label>
-                                <label class="block text-xs font-semibold">Độ rộng cột (px)<input type="number" min="40" max="400" step="1" x-model.number="widthsLocal[activeKey]" class="{{ $input }}"></label>
-                                <div class="grid grid-cols-5 gap-1">
-                                    @foreach(['XS'=>60,'S'=>90,'M'=>130,'L'=>190,'XL'=>280] as $size => $pixels)
-                                    <button type="button" x-on:click="widthsLocal[activeKey] = {{ $pixels }}" class="rounded-lg border px-1 py-1.5 text-[10px] font-bold">{{ $size }}</button>
-                                    @endforeach
-                                </div>
-                                <label class="block text-xs font-semibold">Căn lề<select x-model="alignmentsLocal[activeKey]" class="{{ $input }}"><option value="left">Trái</option><option value="center">Giữa</option><option value="right">Phải</option></select></label>
-                                <label class="flex items-center gap-2 text-xs font-semibold"><input type="checkbox" x-model="selectedLocal[activeKey]"> Xuất cột này</label>
+                        <section class="medicine-designer-pane rounded-2xl border border-slate-200 bg-white p-4">
+                            <h4 class="text-sm font-bold">3. Thiết lập cột</h4>
+                            <p x-show="!editing" class="mt-4 text-xs text-slate-500">Chọn ⚙ tại cột cần chỉnh. Không tải lại giao diện.</p>
+                            <div x-show="editing" x-cloak class="mt-4 space-y-4">
+                                <p class="rounded-lg bg-indigo-50 p-3 text-xs font-bold text-indigo-700" x-text="labels[editing] || editing"></p>
+                                <label class="block text-xs font-semibold">Tên tiêu đề<input type="text" x-model="draft.headers[editing]" class="{{ $input }}"></label>
+                                <label class="block text-xs font-semibold">Độ rộng (px)<input type="number" min="40" max="400" x-model.number="draft.widths[editing]" class="{{ $input }}"></label>
+                                <div class="grid grid-cols-5 gap-1">@foreach(['XS'=>60,'S'=>90,'M'=>130,'L'=>190,'XL'=>280] as $size => $pixels)<button type="button" x-on:click="draft.widths[editing] = {{ $pixels }}" class="rounded-lg border py-2 text-[10px] font-bold">{{ $size }}</button>@endforeach</div>
+                                <label class="block text-xs font-semibold">Căn lề<select x-model="draft.alignments[editing]" class="{{ $input }}"><option value="left">Trái</option><option value="center">Giữa</option><option value="right">Phải</option></select></label>
+                                <button type="button" x-on:click="editing = null" class="rounded-lg border px-3 py-2 text-xs font-bold">Đóng thiết lập</button>
                             </div>
                         </section>
                     </div>
@@ -162,7 +197,7 @@
         @endif
         <footer class="flex shrink-0 items-center justify-between gap-3 border-t bg-white px-5 py-3 lg:px-7">
             <p class="min-w-0 truncate text-xs text-slate-500"><b>{{ $profileName }}</b> · {{ $selectedOrder->count() }} cột được chọn</p>
-            <div class="flex shrink-0 gap-2"><button type="button" wire:click="closeConfig" class="h-10 rounded-xl border px-4 text-sm font-bold">Hủy</button><button type="button" wire:click="save" class="h-10 rounded-xl bg-indigo-600 px-5 text-sm font-bold text-white">Lưu cấu hình</button></div>
+            <div class="flex shrink-0 gap-2"><button type="button" wire:click="closeConfig" class="h-10 rounded-xl border px-4 text-sm font-bold">Hủy</button><button type="button" @if($activeSection === 'columns') x-on:click="$dispatch('medicine-designer-save')" @else wire:click="save" @endif class="h-10 rounded-xl bg-indigo-600 px-5 text-sm font-bold text-white">Lưu cấu hình</button></div>
         </footer>
     </div>
 </div>
