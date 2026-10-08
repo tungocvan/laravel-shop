@@ -21,7 +21,7 @@ class AdmissionRouteConfigurationTest extends TestCase
         $admissionDashboard = Route::getRoutes()->getByName('admin.admission.dashboard');
 
         $this->assertNotNull($adminDashboard);
-        $this->assertSame('admin', $adminDashboard->uri());
+        $this->assertSame('admin/dashboard', $adminDashboard->uri());
 
         $this->assertNotNull($admissionDashboard);
         $this->assertSame('admin/admission/dashboard', $admissionDashboard->uri());
