@@ -15,12 +15,12 @@ class ModuleSnapshotRecoveryDiagnosisContractTest extends TestCase
         $view = file_get_contents(base_path('Modules/System/resources/views/livewire/database/table-list.blade.php'));
 
         $this->assertIsString($view);
-        $this->assertStringContainsString('SCHEMA KHÔNG TƯƠNG THÍCH', $view);
-        $this->assertStringContainsString('schema hiện tại khác schema lúc snapshot được tạo', $view);
-        $this->assertStringContainsString('package ZIP, manifest, đúng Module/format, ownership bảng và checksum SQL đều hợp lệ', $view);
-        $this->assertStringContainsString('php artisan migrate:status', $view);
-        $this->assertStringContainsString('không nên ép bỏ qua validation', $view);
-        $this->assertStringContainsString('snapshot cũ chưa thể chỉ ra chính xác cột/index nào khác', $view);
+        $this->assertStringContainsString('Không thể Restore Module: Preflight phát hiện khác biệt schema không an toàn.', $view);
+        $this->assertStringContainsString('Kiểm tra chi tiết compatibility report và migration trước khi phục hồi.', $view);
+        $this->assertStringContainsString('Snapshot Module là package độc lập gồm manifest, checksum và SQL', $view);
+        $this->assertStringContainsString('Snapshot v2 sẽ dùng schema production hiện tại', $view);
+        $this->assertStringContainsString('Không nên ép bỏ qua validation', $view);
+        $this->assertStringContainsString('Preflight phát hiện khác biệt schema không an toàn', $view);
     }
 
     #[Test]
@@ -29,7 +29,7 @@ class ModuleSnapshotRecoveryDiagnosisContractTest extends TestCase
         $view = file_get_contents(base_path('Modules/System/resources/views/livewire/database/table-list.blade.php'));
 
         $this->assertIsString($view);
-        $this->assertStringContainsString("\$snapshot['compatibility'] === 'COMPATIBLE'", $view);
+        $this->assertStringContainsString("in_array(\$snapshot['compatibility'], ['COMPATIBLE', 'WARNING'], true)", $view);
         $this->assertStringContainsString('openModuleRestoreModal', $view);
         $this->assertStringContainsString('Tải từ Drive về Local không tự làm snapshot không tương thích', $view);
     }

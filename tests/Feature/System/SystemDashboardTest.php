@@ -106,7 +106,7 @@ class SystemDashboardTest extends TestCase
             ->get(route('admin.system.dashboard'))
             ->assertOk()
             ->assertSee('Dashboard hệ thống')
-            ->assertSee('System workspace')
+            ->assertSee('System Control Center')
             ->assertDontSee('href="'.route('admin.system.settings.env').'"', false)
             ->assertDontSee('href="'.route('admin.system.modules').'"', false)
             ->assertDontSee('href="'.route('admin.system.database.index').'"', false);

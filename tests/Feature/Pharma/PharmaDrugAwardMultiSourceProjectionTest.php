@@ -27,6 +27,7 @@ class PharmaDrugAwardMultiSourceProjectionTest extends TestCase
         Schema::dropIfExists('pharma_medicines');
 
         (require base_path('Modules/Pharma/database/migrations/2026_05_21_145242_create_medicines_table.php'))->up();
+        (require base_path('Modules/Pharma/database/migrations/2026_10_08_120000_add_product_type_to_pharma_medicines_table.php'))->up();
         (require base_path('Modules/Pharma/database/migrations/2026_05_22_135028_create_drug_bid_awards_table.php'))->up();
         (require base_path('Modules/Pharma/database/migrations/2026_08_30_010000_add_source_identity_to_drug_bid_awards_table.php'))->up();
         (require base_path('Modules/Pharma/database/migrations/2026_09_05_010000_add_intelligence_fields_to_medicines_table.php'))->up();

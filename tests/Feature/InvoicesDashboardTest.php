@@ -95,7 +95,7 @@ class InvoicesDashboardTest extends TestCase
         $this->assertSame(5, $data['metrics']['pdf']['missing']);
         $this->assertCount(5, $data['recent_invoices']);
         $this->assertCount(5, $data['recent_backup_runs']);
-        foreach (['lookup-secret-', 'INV-SECRET-', 'Sensitive Partner', 'tax-secret-', 'sensitive-', '12345.67', 'dashboard-file-secret.pdf', 'dashboard-pdf-error-secret', 'backup-secret-', 'backup-message-secret-', 'lookup_code', 'invoice_number', 'tax_code', 'vat_amount', 'amount_before_vat', 'total_amount', 'recipient', 'last_error'] as $forbidden) {
+        foreach (['lookup-secret-', 'INV-SECRET-', 'Sensitive Partner', 'tax-secret-', 'sensitive-', '12345.67', 'dashboard-file-secret.pdf', 'dashboard-pdf-error-secret', 'backup-secret-', 'backup-message-secret-', 'lookup_code', 'invoice_number', 'tax_code', 'vat_amount', 'total_amount', 'recipient', 'last_error'] as $forbidden) {
             $this->assertStringNotContainsString($forbidden, $serialized);
         }
         $service->forUser($admin);

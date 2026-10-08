@@ -1,1 +1,0 @@
-<?php declare(strict_types=1); namespace Modules\PromptEngine\Interfaces; interface PlatformPromptProviderInterface { public function platform(): string; public function build(array $context): array; }

@@ -19,7 +19,7 @@ class InvoicesGdtEmptyExportTest extends TestCase
 
         Cache::put('test-gdt-empty-token', 'server-only-token', 600);
         Http::fake([
-            'https://hoadondientu.gdt.gov.vn/api/query/invoices/*' => Http::response([
+            'https://hoadondientu.gdt.gov.vn/api/*' => Http::response([
                 'datas' => [],
                 'total' => 0,
             ]),

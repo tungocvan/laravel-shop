@@ -1,1 +1,0 @@
-<?php declare(strict_types=1); namespace Modules\PromptEngine\Interfaces; use Modules\PromptEngine\DTOs\{CharacterAnalysisData,CharacterInputData,DesignPlanData}; interface DesignPlannerInterface { public function plan(CharacterAnalysisData $analysis, CharacterInputData $input): DesignPlanData; }

@@ -28,8 +28,7 @@ class InvoicesGdtQueueTokenGuardTest extends TestCase
         $view = file_get_contents(base_path('Modules/Invoices/resources/views/pages/invoices/sync.blade.php'));
 
         $this->assertIsString($view);
-        $this->assertStringContainsString('GDT chưa sẵn sàng hoặc token đã hết hạn', $view);
-        $this->assertStringContainsString("route('admin.invoices.create-token')", $view);
-        $this->assertStringContainsString('Hệ thống sẽ không đưa tác vụ vào queue khi chưa có token hợp lệ.', $view);
+        $this->assertStringContainsString('livewire:invoices.quick-gdt-connect', $view);
+        $this->assertStringContainsString("@livewire('invoices.search-hoadon')", $view);
     }
 }

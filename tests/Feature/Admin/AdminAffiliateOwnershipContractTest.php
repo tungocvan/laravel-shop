@@ -40,9 +40,9 @@ class AdminAffiliateOwnershipContractTest extends TestCase
     public function test_remaining_admin_affiliate_compatibility_debt_is_deferred_to_website_refactor(): void
     {
         $expectations = [
-            'Modules/Admin/Services/AdminAffiliateService.php' => 'Modules\\Website\\Services\\AdminAffiliateService',
-            'Modules/Admin/Services/AffiliateRankService.php' => 'Modules\\Website\\Services\\AffiliateRankService',
-            'Modules/Admin/Models/AffiliateScheme.php' => 'Modules\\Website\\Models\\AffiliateScheme',
+            'Modules/Admin/Services/AdminAffiliateService.php' => 'Modules\\Order\\Services\\AdminAffiliateService',
+            'Modules/Admin/Services/AffiliateRankService.php' => 'Modules\\Order\\Services\\AffiliateRankService',
+            'Modules/Admin/Models/AffiliateScheme.php' => 'Modules\\Order\\Models\\AffiliateScheme',
         ];
 
         foreach ($expectations as $path => $canonicalClass) {
@@ -57,7 +57,7 @@ class AdminAffiliateOwnershipContractTest extends TestCase
     public function test_commission_list_uses_bounded_admin_pagination_and_level_filter(): void
     {
         $component = file_get_contents(base_path('Modules/Website/Livewire/Admin/Affiliate/CommissionList.php'));
-        $service = file_get_contents(base_path('Modules/Website/Services/AdminAffiliateService.php'));
+        $service = file_get_contents(base_path('Modules/Order/Services/AdminAffiliateService.php'));
         $view = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/affiliate/commission-list.blade.php'));
         $pagination = file_get_contents(base_path('Modules/Website/resources/views/vendor/pagination/admin-affiliate.blade.php'));
 

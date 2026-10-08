@@ -79,7 +79,7 @@ class AdmissionRegistrationCampusUxContractTest extends TestCase
     {
         $view = file_get_contents(base_path('Modules/Admission/resources/views/livewire/search.blade.php'));
 
-        $this->assertStringContainsString('Cơ sở / Phân hiệu:', $view);
+        $this->assertStringContainsString('➤ Cơ sở:', $view);
         $this->assertStringContainsString("school_campus_name", $view);
         $this->assertStringContainsString("school_campus_address", $view);
     }

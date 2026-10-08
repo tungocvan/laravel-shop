@@ -89,7 +89,7 @@ class AdmissionImportTrackingTest extends TestCase
 
         $this->assertStringContainsString("session('import_summary')", $blade);
         $this->assertStringContainsString('Lịch sử Import', $blade);
-        $this->assertStringContainsString('Xem {{ $summary[\'failed\'] }} lỗi Import', $blade);
+        $this->assertStringContainsString('Xem {{ $summary[\'failed\'] }} lỗi', $blade);
         $this->assertStringContainsString("route('admin.admission.imports.errors'", $blade);
         $this->assertStringContainsString('name="restore_status"', $blade);
         $this->assertStringContainsString('Khôi phục trạng thái từ file export', $blade);

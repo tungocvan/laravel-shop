@@ -26,7 +26,8 @@ class AdminProfessionalSidebarContractTest extends TestCase
         $this->assertStringContainsString('x-show="matches(@js(', $view);
         $this->assertStringContainsString('filterEnabled: @js($showNavigationSearch)', $group);
         $this->assertStringContainsString("matches(@js(\$child['name']))", $group);
-        $this->assertStringContainsString('[scrollbar-gutter:stable]', $view);
+        $this->assertStringContainsString('admin-sidebar-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto', $view);
+        $this->assertStringContainsString('scrollbar-width: thin', $view);
     }
 
     public function test_sidebar_has_managed_workspace_and_profile_hierarchy(): void
@@ -53,14 +54,14 @@ class AdminProfessionalSidebarContractTest extends TestCase
 
         $this->assertStringContainsString('theme.default', $component);
         $this->assertStringContainsString('public function get(?string $themeName = null)', $themeManager);
-        $this->assertStringContainsString("\$theme['active_bg']", $item);
-        $this->assertStringContainsString("\$theme['hover']", $item);
+        $this->assertStringContainsString('var(--admin-sidebar-menu-active-background)', $item);
+        $this->assertStringContainsString('var(--admin-sidebar-menu-hover-background)', $item);
         $this->assertStringContainsString('--admin-sidebar-active-title-color', $item);
         $this->assertStringContainsString('--admin-sidebar-active-icon-color', $item);
-        $this->assertStringContainsString("\$theme['child_active_bg']", $group);
-        $this->assertStringContainsString("\$theme['child_hover']", $group);
+        $this->assertStringContainsString('var(--admin-sidebar-submenu-active-background)', $group);
+        $this->assertStringContainsString('var(--admin-sidebar-submenu-hover-background)', $group);
         $this->assertStringContainsString('--admin-sidebar-active-title-color', $group);
-        $this->assertStringContainsString("\$theme['border']", $group);
+        $this->assertStringContainsString('var(--admin-border-subtle,currentColor)', $group);
         $this->assertStringContainsString("href=\"{{ \$item['href'] }}\"", $item);
         $this->assertStringContainsString('aria-current="page"', $item);
         $this->assertStringContainsString("\$item['group_id']", $group);

@@ -15,8 +15,10 @@ class AdminThemeEditorUxContractTest extends TestCase
         }
 
         $this->assertStringContainsString("hash === 'sidebar-menu' ? 'menu'", $view);
-        $this->assertStringContainsString("section === 'menu'", $view);
-        $this->assertStringContainsString('id="sidebar-menu"', $view);
+        $this->assertStringContainsString('section === \'{{ $sectionKey }}\'', $view);
+        $this->assertStringContainsString("@include('Admin::livewire.settings.partials.sidebar-menu-designer')", $view);
+        $designer = file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/partials/sidebar-menu-designer.blade.php'));
+        $this->assertStringContainsString('id="sidebar-menu"', $designer);
         $this->assertStringContainsString("openSection('menu', 'sidebar-menu')", $view);
     }
 
@@ -24,20 +26,22 @@ class AdminThemeEditorUxContractTest extends TestCase
     {
         $view = file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/admin-theme-editor.blade.php'));
 
+        $designer = file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/partials/sidebar-menu-designer.blade.php'));
         $this->assertStringContainsString('advancedMenu: false', $view);
-        $this->assertStringContainsString('Thiết lập nâng cao', $view);
-        $this->assertStringContainsString('x-show="advancedMenu"', $view);
-        $this->assertStringContainsString('config.design.sidebar_menu.item.padding_x', $view);
-        $this->assertStringContainsString('config.design.sidebar_menu.active.menu_border_width', $view);
-        $this->assertStringContainsString('config.design.sidebar_menu.active.submenu_border_width', $view);
+        $this->assertStringContainsString('Thiết lập nâng cao', $designer);
+        $this->assertStringContainsString('x-show="advancedMenu"', $designer);
+        $this->assertStringContainsString('config.design.sidebar_menu.item.padding_x', $designer);
+        $this->assertStringContainsString('config.design.sidebar_menu.active.menu_border_width', $designer);
+        $this->assertStringContainsString('config.design.sidebar_menu.active.submenu_border_width', $designer);
     }
 
     public function test_theme_editor_keeps_preview_and_save_actions_sticky(): void
     {
         $view = file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/admin-theme-editor.blade.php'));
 
-        $this->assertStringContainsString('xl:sticky xl:top-16', $view);
-        $this->assertStringContainsString('Admin preview', $view);
+        $designer = file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/partials/sidebar-menu-designer.blade.php'));
+        $this->assertStringContainsString('xl:sticky xl:top-20', $designer);
+        $this->assertStringContainsString('Live Menu Preview', $designer);
         $this->assertStringContainsString('sticky bottom-4', $view);
         $this->assertStringContainsString('Lưu & áp dụng Theme', $view);
     }

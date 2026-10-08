@@ -30,7 +30,7 @@ class StoragePermissionsContractTest extends TestCase
         $entrypoint = file_get_contents(base_path('docker/entrypoint.sh'));
 
         foreach ([$dockerfile, $entrypoint] as $source) {
-            $this->assertStringContainsString('find storage/app -type d -exec chmod 2770', $source);
+            $this->assertMatchesRegularExpression('/find storage\\/app(?: -mindepth 1)? -type d -exec chmod 2770/', $source);
             $this->assertStringContainsString('find storage/app -type f -exec chmod 0660', $source);
         }
 

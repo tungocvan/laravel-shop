@@ -13,7 +13,7 @@ class SystemQueueRunnerContractTest extends TestCase
         $this->assertIsString($script);
         $this->assertStringContainsString('App\\Modules\\ModuleRegistry::class', $script);
         $this->assertStringContainsString('$module["enabled"] ?? false', $script);
-        $this->assertStringContainsString('$config["queues"] ?? []', $script);
+        $this->assertStringContainsString('$module["queues"] ?? []', $script);
         $this->assertStringContainsString('$queues = ["default"]', $script);
         $this->assertStringContainsString('GENERAL_QUEUES', $script);
         $this->assertStringContainsString('--queue="$GENERAL_QUEUES"', $script);

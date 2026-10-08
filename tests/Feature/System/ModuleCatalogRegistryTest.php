@@ -96,7 +96,9 @@ class ModuleCatalogRegistryTest extends TestCase
             'depends',
             'path',
             'source',
+            'queues',
         ], array_keys(config('modules.registry.Demo')));
+        $this->assertSame([], config('modules.registry.Demo.queues'));
         $this->assertArrayNotHasKey('manifest', config('modules.registry.Demo'));
         $this->assertSame(['Admin', 'Demo'], $registry->current()->pluck('name')->all());
     }

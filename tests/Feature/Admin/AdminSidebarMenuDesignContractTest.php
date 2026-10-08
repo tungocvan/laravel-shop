@@ -17,16 +17,16 @@ class AdminSidebarMenuDesignContractTest extends TestCase
     {
         $service=file_get_contents(base_path('Modules/Admin/Services/AdminDesignService.php'));$component=file_get_contents(base_path('Modules/Admin/Livewire/Settings/AdminThemeEditor.php'));
         foreach(["'arial'=>'Arial, Helvetica, sans-serif'","'verdana'=>'Verdana, Geneva, sans-serif'","'trebuchet'=>'\"Trebuchet MS\", Arial, sans-serif'","'georgia'=>'Georgia, \"Times New Roman\", serif'","'times'=>'\"Times New Roman\", Times, serif'",'fontFamilyOptions()','menuFontFamilyOptions()','fontFamilyKeys()','menuFontFamilyKeys()'] as $contract)$this->assertStringContainsString($contract,$service);
-        $this->assertStringContainsString("\$fonts=implode(',',AdminDesignService::fontFamilyKeys())",$component);
-        $this->assertStringContainsString("\$menuFonts=implode(',',AdminDesignService::menuFontFamilyKeys())",$component);
+        $this->assertStringContainsString("\$fonts = implode(',', AdminDesignService::fontFamilyKeys())",$component);
+        $this->assertStringContainsString("\$menuFonts = implode(',', AdminDesignService::menuFontFamilyKeys())",$component);
         $this->assertStringContainsString("'config.design.typography.font_family'=>'required|in:'.\$fonts",$component);
         $this->assertStringContainsString("'config.design.sidebar_menu.item.font_family'=>'required|in:'.\$menuFonts",$component);
     }
 
     public function test_theme_editor_manages_menu_item_submenu_spacing_and_active_state(): void
     {
-        $view=file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/admin-theme-editor.blade.php'));$component=file_get_contents(base_path('Modules/Admin/Livewire/Settings/AdminThemeEditor.php'));
-        $this->assertStringContainsString('Sidebar Menu Typography & States',$view);$this->assertStringContainsString('id="sidebar-menu"',$view);
+        $view=file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/partials/sidebar-menu-designer.blade.php'));$component=file_get_contents(base_path('Modules/Admin/Livewire/Settings/AdminThemeEditor.php'));
+        $this->assertStringContainsString('Sidebar Menu Designer',$view);$this->assertStringContainsString('id="sidebar-menu"',$view);
         foreach(['config.design.sidebar_menu.item.font_family','config.design.sidebar_menu.item.title_color','config.design.sidebar_menu.item.icon_color','config.design.sidebar_menu.item.padding_x','config.design.sidebar_menu.item.padding_y','config.design.sidebar_menu.item.content_gap','config.design.sidebar_menu.item.item_gap','config.design.sidebar_menu.submenu.font_size','config.design.sidebar_menu.submenu.indent','config.design.sidebar_menu.submenu.padding_x','config.design.sidebar_menu.submenu.padding_y','config.design.sidebar_menu.submenu.offset','config.design.sidebar_menu.submenu.item_gap','config.design.sidebar_menu.group.gap','config.design.sidebar_menu.active.title_color'] as $model)$this->assertStringContainsString($model,$view);
         $this->assertStringContainsString("'config.design.sidebar_menu.item.font_family'=>'required|in:'.\$menuFonts",$component);$this->assertStringContainsString("'config.design.sidebar_menu.item.padding_x'=>'required|in:8,10,12,14,16'",$component);$this->assertStringContainsString("'config.design.sidebar_menu.group.gap'=>'required|in:2,4,6,8,12'",$component);
     }
@@ -36,11 +36,11 @@ class AdminSidebarMenuDesignContractTest extends TestCase
         $group=file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/sidebar/navigation/group.blade.php'));
         $service=file_get_contents(base_path('Modules/Admin/Services/SidebarService.php'));
 
-        $this->assertStringContainsString("open ? @js(\$theme['active_bg']) : @js(\$theme['hover'])",$group);
+        $this->assertStringContainsString("'var(--admin-sidebar-menu-active-background)'",$group);$this->assertStringContainsString("'var(--admin-sidebar-menu-hover-background)'",$group);
         $this->assertStringContainsString(":style=\"open ? { color: 'var(--admin-sidebar-active-title-color)'",$group);
         $this->assertStringContainsString(": { color: 'var(--admin-sidebar-menu-title-color)'",$group);
         $this->assertStringContainsString("color: open ? 'var(--admin-sidebar-active-icon-color)' : 'var(--admin-sidebar-menu-icon-color)'",$group);
-        $this->assertStringContainsString("\$theme['child_active_bg'].' '.\$theme['child_active_text']",$group);
+        $this->assertStringContainsString('var(--admin-sidebar-submenu-active-background)',$group);
         $this->assertStringContainsString("collect(\$children)->contains(",$service);
         $this->assertStringContainsString("(bool) (\$child['active'] ?? false)",$service);
     }
@@ -74,8 +74,8 @@ class AdminSidebarMenuDesignContractTest extends TestCase
         $profiles=file_get_contents(base_path('Modules/Admin/Services/AdminThemeProfileService.php'));$config=file_get_contents(base_path('Modules/Admin/config/admin.php'));$view=file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/admin-theme-editor.blade.php'));
         foreach(["'item_height'=>'44'","'padding_x'=>'12'","'padding_y'=>'8'","'content_gap'=>'12'","'item_gap'=>'4'","'indent'=>'28'","'offset'=>'12'","'group'=>['gap'=>'4']"] as $default)$this->assertStringContainsString($default,$profiles);
         foreach(["'item_height' => '44'","'padding_x' => '12'","'padding_y' => '8'","'content_gap' => '12'","'item_gap' => '4'","'indent' => '28'","'offset' => '12'","'group' => ['gap' => '4']"] as $default)$this->assertStringContainsString($default,$config);
-        $this->assertStringContainsString('Default optimized',$view);
+        $this->assertStringContainsString('wire:click="restoreDefaultTheme"',$view);
         $this->assertStringContainsString('Khôi phục Theme mặc định Professional Indigo?',$view);
-        $this->assertStringContainsString('14px / 500 / 44px',$view);
+        $this->assertStringContainsString('mặc định tối ưu',$view);
     }
 }
