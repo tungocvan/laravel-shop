@@ -12,7 +12,7 @@ class AdminResponsivePresentationContractTest extends TestCase
         $shell = file_get_contents(base_path('Modules/Admin/resources/views/layouts/partials/shell.blade.php'));
         $search = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/header/components/search.blade.php'));
         $stacks = file_get_contents(base_path('Modules/Admin/resources/views/layouts/partials/stacks.blade.php'));
-        $this->assertStringContainsString("matchMedia('(min-width: 1024px)')", $head);
+        $this->assertStringContainsString('desktopBreakpoint: 1024', $head); $this->assertStringContainsString('viewportWidth >= this.desktopBreakpoint', $head);
         $this->assertStringContainsString('lg:hidden', $shell); $this->assertStringContainsString('lg:hidden', $search); $this->assertStringContainsString('lg:block', $search); $this->assertStringContainsString('x-show="searchOpen && !isDesktop"', $stacks); $this->assertStringContainsString('lg:hidden', $stacks); $this->assertStringNotContainsString('sm:hidden', $search); $this->assertStringNotContainsString('sm:block', $search); $this->assertStringNotContainsString('sm:hidden', $stacks);
     }
 
