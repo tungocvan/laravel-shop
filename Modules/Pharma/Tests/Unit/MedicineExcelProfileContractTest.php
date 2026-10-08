@@ -52,5 +52,10 @@ class MedicineExcelProfileContractTest extends TestCase
         $this->assertStringContainsString('wire:click="save"', $view);
         $this->assertStringContainsString('wire:model="settings.paper_size"', $view);
         $this->assertStringContainsString('wire:model="settings.orientation"', $view);
+        $this->assertStringContainsString('Column Inspector', $view);
+        $this->assertStringContainsString('Kho dữ liệu', $view);
+        $this->assertStringContainsString('Cột sẽ xuất Excel', $view);
+        $this->assertStringContainsString("['brand','1','Thương hiệu']", $view);
+        $this->assertStringContainsString("['page','3','Trang in']", $view);
     }
 }
