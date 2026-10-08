@@ -124,9 +124,11 @@ class MedicineExcelController extends Controller
         foreach ($columns as $col => $key) {
             $letter = Coordinate::stringFromColumnIndex($col + 1);
             $sheet->getColumnDimension($letter)->setWidth(max(6, min(60, (float) ($profile['widths'][$key] ?? 130) / 7)));
-            $sheet->getStyle($letter.$headerRow.':'.$letter.($headerRow + $index))
-                ->getAlignment()->setHorizontal($profile['alignments'][$key] ?? 'left')
-                ->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
+            if ($index > 0) {
+                $sheet->getStyle($letter.($headerRow + 1).':'.$letter.($headerRow + $index))
+                    ->getAlignment()->setHorizontal($profile['alignments'][$key] ?? 'left')
+                    ->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
+            }
         }
         // Column-specific alignment applies to data rows only; headers stay centered.
         $headerStyle->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)
