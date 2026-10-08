@@ -71,7 +71,7 @@ class AdminThemeEditorContractTest extends TestCase
         $this->assertStringContainsString('updatedConfigDesignColorsSidebarHeaderBackground', $component);
         $this->assertStringContainsString('updatedConfigDesignColorsSidebarNavigationBackground', $component);
         $this->assertStringContainsString('updatedConfigDesignColorsSidebarFooterBackground', $component);
-        $this->assertStringContainsString("data_set(\$this->config, 'sidebar.presentation.background', 'system')", $component);
+        $this->assertStringContainsString("data_set(\$this->config, 'sidebar.presentation.background', match (\$mode)", $component);
         $this->assertStringContainsString('Nhân bản', $view);
         $this->assertStringContainsString('Xóa', $view);
         $this->assertStringContainsString('wire:submit="saveTheme"', $view);
