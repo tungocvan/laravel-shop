@@ -7,7 +7,7 @@ use Modules\Pharma\Models\MedicineExcelProfile;
 
 class MedicineExcelProfileService
 {
-    public const COLUMNS = [
+    public const BASE_COLUMNS = [
         'stt' => 'STT',
         'medicine_code' => 'Mã thuốc',
         'name' => 'Tên thuốc',
@@ -28,15 +28,28 @@ class MedicineExcelProfileService
         'profile_status' => 'Chất lượng master',
     ];
 
+    public const COLUMNS = self::BASE_COLUMNS + [
+        'cost_price' => 'Giá vốn',
+        'supplier_name' => 'Tên nhà cung cấp',
+        'hssp_status' => 'Trạng thái HSSP',
+        'winning_company_name' => 'Công ty trúng thầu',
+        'investor_name' => 'Nơi trúng thầu',
+        'decision_number' => 'Số quyết định',
+        'decision_date' => 'Ngày quyết định',
+        'contract_period_text' => 'Thời gian trúng thầu',
+        'winning_price' => 'Giá trúng thầu',
+        'allocated_quantity' => 'Số lượng phân bổ',
+    ];
+
     public function defaults(): array
     {
-        $columns = array_keys(self::COLUMNS);
+        $columns = array_keys(self::BASE_COLUMNS);
         return [
             'id' => null, 'name' => 'Mặc định', 'is_default' => true,
             'columns' => $columns,
             'headers' => self::COLUMNS,
-            'widths' => array_fill_keys($columns, 130),
-            'alignments' => array_fill_keys($columns, 'left'),
+            'widths' => array_fill_keys(array_keys(self::COLUMNS), 130),
+            'alignments' => array_fill_keys(array_keys(self::COLUMNS), 'left'),
             'settings' => [
                 'title' => 'DANH MỤC THUỐC CHUẨN',
                 'company_name' => 'CÔNG TY TNHH INAFO VIỆT NAM',
