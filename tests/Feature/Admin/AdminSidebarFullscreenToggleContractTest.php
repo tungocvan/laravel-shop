@@ -26,7 +26,7 @@ class AdminSidebarFullscreenToggleContractTest extends TestCase
         $this->assertStringContainsString('$fullscreenToggleEnabled', $shell);
         $this->assertStringContainsString('controls.fullscreen_enabled', $shell);
         $this->assertStringContainsString('!isDesktop || !sidebarFullscreen || !', $shell);
-        $this->assertStringContainsString("'margin-left: 0'", $shell);
+        $this->assertStringContainsString('grid-template-columns: var(--admin-sidebar-track, 0px) minmax(0, 1fr)', $shell);
         $this->assertStringContainsString('data-admin-sidebar-fullscreen', $shell);
         $this->assertStringContainsString('data-admin-sidebar-fullscreen-toggle', $shell);
         $this->assertStringContainsString('x-show="isDesktop && sidebarFullscreen"', $shell);
@@ -56,9 +56,9 @@ class AdminSidebarFullscreenToggleContractTest extends TestCase
         $header = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/header.blade.php'));
         $shell = file_get_contents(base_path('Modules/Admin/resources/views/layouts/partials/shell.blade.php'));
 
-        $this->assertStringContainsString("sidebarFullscreen ? { paddingLeft: '4rem' } : {}", $header);
+        $this->assertStringContainsString('data-admin-header-grid', $header);
         $this->assertStringContainsString("@include('Admin::layouts.partials.content')", $shell);
         $this->assertStringContainsString("@include('Admin::layouts.partials.footer')", $shell);
-        $this->assertStringContainsString("'margin-left: 0'", $shell);
+        $this->assertStringContainsString('grid-template-columns: var(--admin-sidebar-track, 0px) minmax(0, 1fr)', $shell);
     }
 }
