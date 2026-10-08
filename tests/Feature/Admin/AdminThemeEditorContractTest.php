@@ -67,7 +67,7 @@ class AdminThemeEditorContractTest extends TestCase
         $this->assertStringContainsString('surfaceColorOptions', $component);
         $this->assertStringContainsString('config.theme.default', $view);
         $this->assertStringContainsString('config.sidebar.presentation.background', $view);
-        $this->assertStringContainsString('Theme colors — 3 vùng', $view);
+        $this->assertStringContainsString('Sidebar Theme', $view);
         $this->assertStringContainsString('updatedConfigDesignColorsSidebarHeaderBackground', $component);
         $this->assertStringContainsString('updatedConfigDesignColorsSidebarNavigationBackground', $component);
         $this->assertStringContainsString('updatedConfigDesignColorsSidebarFooterBackground', $component);
@@ -92,7 +92,7 @@ class AdminThemeEditorContractTest extends TestCase
         $this->assertStringContainsString('--admin-content-theme-background', $shell);
         $this->assertStringContainsString('var(--admin-footer-theme-background)', $footer);
         $this->assertStringContainsString('contrastVariables', $footer);
-        $this->assertStringContainsString('\$this->sidebarStyle = \$presentation[\'style\']', $sidebar);
+        $this->assertStringContainsString('$this->sidebarStyle = $presentation[\'style\']', $sidebar);
     }
 
     public function test_design_service_supports_light_dark_blue_and_warm_theme_tokens(): void
