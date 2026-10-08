@@ -257,10 +257,10 @@ class InvoicesModuleTest extends TestCase
     {
         $this->withInvoicesTable(function () {
             DB::table('invoices')->insert([
-                $this->invoiceRow('dash-sold-2026-a', 'sold', '10', '100.00', '10.00', '2026-08-15', 'Customer A'),
-                $this->invoiceRow('dash-sold-2026-b', 'sold', '10', '200.00', '20.00', '2026-07-15', 'Customer A'),
-                $this->invoiceRow('dash-purchase-2026', 'purchase', '8', '300.00', '24.00', '2026-06-15', 'Vendor A'),
-                $this->invoiceRow('dash-sold-2025', 'sold', '5', '400.00', '20.00', '2025-06-15', 'Customer B'),
+                array_replace($this->invoiceRow('dash-sold-2026-a', 'sold', '10', '100.00', '10.00', '2026-08-15', 'Customer A'), ['amount_before_vat' => '100.00']),
+                array_replace($this->invoiceRow('dash-sold-2026-b', 'sold', '10', '200.00', '20.00', '2026-07-15', 'Customer A'), ['amount_before_vat' => '200.00']),
+                array_replace($this->invoiceRow('dash-purchase-2026', 'purchase', '8', '300.00', '24.00', '2026-06-15', 'Vendor A'), ['amount_before_vat' => '300.00']),
+                array_replace($this->invoiceRow('dash-sold-2025', 'sold', '5', '400.00', '20.00', '2025-06-15', 'Customer B'), ['amount_before_vat' => '400.00']),
             ]);
 
             DB::flushQueryLog();
