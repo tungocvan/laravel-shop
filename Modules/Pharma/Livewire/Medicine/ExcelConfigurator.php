@@ -9,6 +9,8 @@ use Modules\Pharma\Services\MedicineExcelProfileService;
 class ExcelConfigurator extends Component
 {
     public bool $open = false;
+    public string $activeSection = 'brand';
+    public string $activeColumnKey = 'name';
     public ?int $profileId = null;
     public string $profileName = 'Mặc định';
     public bool $isDefault = true;
@@ -30,6 +32,7 @@ class ExcelConfigurator extends Component
     {
         $this->refreshProfiles($service);
         $this->loadProfile($service);
+        $this->activeSection = 'brand';
         $this->open = true;
     }
 
@@ -48,6 +51,35 @@ class ExcelConfigurator extends Component
         $this->apply($service->defaults());
         $this->profileName = 'Cấu hình mới';
         $this->isDefault = false;
+    }
+
+    public function setSection(string $section): void
+    {
+        if (in_array($section, ['brand', 'columns', 'page'], true)) {
+            $this->activeSection = $section;
+        }
+    }
+
+    public function editColumn(string $key): void
+    {
+        if (isset(MedicineExcelProfileService::COLUMNS[$key])) {
+            $this->activeColumnKey = $key;
+        }
+    }
+
+    public function addColumn(string $key): void
+    {
+        if (isset(MedicineExcelProfileService::COLUMNS[$key])) {
+            $this->selected[$key] = true;
+            $this->activeColumnKey = $key;
+        }
+    }
+
+    public function removeColumn(string $key): void
+    {
+        if (isset(MedicineExcelProfileService::COLUMNS[$key])) {
+            $this->selected[$key] = false;
+        }
     }
 
     public function selectAll(): void
@@ -122,6 +154,7 @@ class ExcelConfigurator extends Component
         $this->profileName = $profile['name'];
         $this->isDefault = (bool) $profile['is_default'];
         $this->columns = array_values(array_unique(array_merge($profile['columns'], array_keys(MedicineExcelProfileService::COLUMNS))));
+        $this->activeColumnKey = $profile['columns'][0] ?? 'name';
         $this->selected = array_fill_keys($profile['columns'], true);
         $this->headers = $profile['headers'];
         $this->widths = $profile['widths'];
