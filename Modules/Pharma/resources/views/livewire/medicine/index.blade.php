@@ -37,17 +37,20 @@
     @if(session()->has('success'))<div role="status" class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('success') }}</div>@endif
     @if(session()->has('error'))<div role="alert" class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{{ session('error') }}</div>@endif
 
-    <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5" aria-labelledby="medicine-filters-heading">
-        <div class="flex flex-col gap-3 border-b border-slate-100 pb-4 sm:flex-row sm:items-start sm:justify-between">
+    <section x-data="{ filtersOpen: false }" class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5" aria-labelledby="medicine-filters-heading">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div class="min-w-0">
                 <h2 id="medicine-filters-heading" class="text-base font-semibold text-slate-900">Tìm kiếm &amp; Data Quality</h2>
                 <p class="mt-1 text-sm text-slate-500">Tra cứu danh mục thuốc và rà soát chất lượng dữ liệu theo từng nhóm tiêu chí.</p>
             </div>
-            @if($this->hasActiveSelectFilters())
-                <button type="button" wire:click="resetFilters" class="inline-flex min-h-10 shrink-0 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:border-slate-400 hover:bg-slate-50">Xóa bộ lọc</button>
-            @endif
+            <div class="flex flex-wrap items-center gap-2">
+                @if($this->hasActiveSelectFilters())
+                    <button type="button" wire:click="resetFilters" class="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:border-slate-400 hover:bg-slate-50">Xóa bộ lọc</button>
+                @endif
+                <button type="button" x-on:click="filtersOpen = !filtersOpen" x-bind:aria-expanded="filtersOpen.toString()" aria-controls="medicine-filters-content" aria-expanded="false" class="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 text-sm font-semibold text-indigo-700 hover:bg-indigo-100"><span x-text="filtersOpen ? 'Ẩn bộ lọc' : 'Hiện bộ lọc'">Hiện bộ lọc</span><span aria-hidden="true" x-text="filtersOpen ? '▴' : '▾'">▾</span></button>
+            </div>
         </div>
-        <div class="space-y-5 pt-4">
+        <div id="medicine-filters-content" x-show="filtersOpen" x-cloak class="mt-4 space-y-5 border-t border-slate-100 pt-4">
             <div>
                 <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Tra cứu &amp; phân loại</h3>
                 <div class="grid grid-cols-1 items-end gap-3 md:grid-cols-2 xl:grid-cols-12">
