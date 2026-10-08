@@ -10,6 +10,7 @@ use Modules\Pharma\Services\MedicineExcelRelatedDataService;
 class ExcelConfigurator extends Component
 {
     public bool $open = false;
+    public int $designerRevision = 0;
     public bool $saveConfirmationOpen = false;
     public string $activeSection = 'brand';
     public string $activeColumnKey = 'name';
@@ -106,6 +107,7 @@ class ExcelConfigurator extends Component
         $this->profileId = null;
         $this->profileName = mb_substr($this->profileName.' - Bản sao', 0, 120);
         $this->isDefault = false;
+        $this->designerRevision++;
     }
 
     public function reorderSelected(string $key, int $offset): void
@@ -192,7 +194,7 @@ class ExcelConfigurator extends Component
     public function saveDraft(array $draft, MedicineExcelProfileService $service): void
     {
         $allowed = array_keys(MedicineExcelProfileService::COLUMNS);
-        $ordered = array_values(array_unique(array_filter($draft['columns'] ?? [],
+        $ordered = array_values(array_unique(array_filter(is_array($draft['columns'] ?? null) ? $draft['columns'] : [],
             fn ($key) => is_string($key) && in_array($key, $allowed, true))));
         $this->columns = array_values(array_unique(array_merge($ordered, $allowed)));
         $this->selected = array_fill_keys($ordered, true);
@@ -245,6 +247,7 @@ class ExcelConfigurator extends Component
             return;
         }
         $service->delete((int) auth('admin')->id(), $this->profileId);
+        $this->profileId = null;
         $this->refreshProfiles($service);
         $this->loadProfile($service);
     }
@@ -271,6 +274,7 @@ class ExcelConfigurator extends Component
         $this->widths = $profile['widths'];
         $this->alignments = $profile['alignments'];
         $this->settings = array_replace(app(MedicineExcelProfileService::class)->defaults()['settings'], $profile['settings'] ?? []);
+        $this->designerRevision++;
     }
 
     public function render(): View
