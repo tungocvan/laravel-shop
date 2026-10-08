@@ -26,6 +26,7 @@ class MedicineExcelProfileService
         'manufacturing_company' => 'Cơ sở sản xuất',
         'manufacturing_country' => 'Nước sản xuất',
         'profile_status' => 'Chất lượng master',
+        'shelf_life' => 'Hạn dùng sản phẩm',
     ];
 
     public const COLUMNS = self::BASE_COLUMNS + [
@@ -55,6 +56,11 @@ class MedicineExcelProfileService
                 'company_name' => 'CÔNG TY TNHH INAFO VIỆT NAM',
                 'paper_size' => 'A4', 'orientation' => 'landscape',
                 'header_enabled' => true,
+                'font_family' => 'Times New Roman',
+                'header_font_size' => 12,
+                'body_font_size' => 11,
+                'header_fill' => 'EFF4FA',
+                'body_border' => true,
             ],
         ];
     }
@@ -108,6 +114,11 @@ class MedicineExcelProfileService
         $settings['title'] = mb_substr(trim((string) $settings['title']), 0, 200);
         $settings['company_name'] = mb_substr(trim((string) $settings['company_name']), 0, 200);
         $settings['header_enabled'] = (bool) $settings['header_enabled'];
+        $settings['font_family'] = in_array($settings['font_family'], ['Times New Roman', 'Arial', 'Calibri'], true) ? $settings['font_family'] : 'Times New Roman';
+        $settings['header_font_size'] = max(8, min(20, (int) $settings['header_font_size']));
+        $settings['body_font_size'] = max(8, min(20, (int) $settings['body_font_size']));
+        $settings['header_fill'] = in_array($settings['header_fill'], ['EFF4FA', 'F1F5F9', 'FFFFFF', 'EDE9FE'], true) ? $settings['header_fill'] : 'EFF4FA';
+        $settings['body_border'] = (bool) $settings['body_border'];
         $profile->forceFill([
             'user_id' => $userId, 'name' => $name, 'is_default' => $makeDefault || (bool) $profile->is_default,
             'columns' => $columns, 'headers' => $headers, 'widths' => $widths,
