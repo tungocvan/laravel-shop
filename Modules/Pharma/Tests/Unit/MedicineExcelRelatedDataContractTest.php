@@ -31,7 +31,7 @@ class MedicineExcelRelatedDataContractTest extends TestCase
         $controller = file_get_contents(base_path('Modules/Pharma/Http/Controllers/MedicineExcelController.php'));
 
         $this->assertStringContainsString('relatedGroups as $groupKey', $view);
-        $this->assertStringContainsString("addColumn('{{ \$key }}')", $view);
+        $this->assertStringContainsString('x-on:click="add(@js($key))"', $view);
         $this->assertStringNotContainsString('previewMedicineCode', $component);
         $this->assertStringContainsString('array_merge($values, $related->preview($medicine))', $controller);
         $this->assertStringContainsString('($value ?? \'\')', $controller);
