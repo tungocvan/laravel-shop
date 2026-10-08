@@ -59,7 +59,7 @@ class MedicineExcelController extends Controller
         $sheet->setAutoFilter("A{$headerRow}:{$last}{$headerRow}");
         $sheet->freezePane('A'.($headerRow + 1));
         $index = 0;
-        foreach ($query->orderBy('id')->cursor() as $medicine) {
+        foreach ($query->orderBy('id')->lazy(200) as $medicine) {
             $index++;
             $variant = $medicine->variants->firstWhere('is_default', true) ?? $medicine->variants->first();
             $values = [
