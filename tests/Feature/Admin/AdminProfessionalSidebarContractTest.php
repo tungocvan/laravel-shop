@@ -54,14 +54,14 @@ class AdminProfessionalSidebarContractTest extends TestCase
 
         $this->assertStringContainsString('theme.default', $component);
         $this->assertStringContainsString('public function get(?string $themeName = null)', $themeManager);
-        $this->assertStringContainsString("\$theme['active_bg']", $item);
-        $this->assertStringContainsString("\$theme['hover']", $item);
+        $this->assertStringContainsString('var(--admin-sidebar-menu-active-background)', $item);
+        $this->assertStringContainsString('var(--admin-sidebar-menu-hover-background)', $item);
         $this->assertStringContainsString('--admin-sidebar-active-title-color', $item);
         $this->assertStringContainsString('--admin-sidebar-active-icon-color', $item);
-        $this->assertStringContainsString("\$theme['child_active_bg']", $group);
-        $this->assertStringContainsString("\$theme['child_hover']", $group);
+        $this->assertStringContainsString('var(--admin-sidebar-submenu-active-background)', $group);
+        $this->assertStringContainsString('var(--admin-sidebar-submenu-hover-background)', $group);
         $this->assertStringContainsString('--admin-sidebar-active-title-color', $group);
-        $this->assertStringContainsString("\$theme['border']", $group);
+        $this->assertStringContainsString('var(--admin-border-subtle,currentColor)', $group);
         $this->assertStringContainsString("href=\"{{ \$item['href'] }}\"", $item);
         $this->assertStringContainsString('aria-current="page"', $item);
         $this->assertStringContainsString("\$item['group_id']", $group);
