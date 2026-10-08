@@ -55,20 +55,21 @@ class MedicineExcelProfileContractTest extends TestCase
             $this->assertStringContainsString('function '.$method.'(', $component);
         }
         $this->assertStringContainsString('wire:click="save"', $view);
+        $this->assertStringContainsString('x-on:medicine-designer-save.window="$wire.saveDraft(payload())"', $view);
         $this->assertStringContainsString('wire:model="settings.paper_size"', $view);
         $this->assertStringContainsString('wire:model="settings.orientation"', $view);
-        $this->assertStringContainsString('Column Inspector', $view);
+        $this->assertStringContainsString('3. Thiết lập cột', $view);
         $this->assertStringContainsString('Đã lưu cấu hình Excel', $view);
         $this->assertStringContainsString('settings.font_family', $view);
         $this->assertStringContainsString('settings.header_fill', $view);
         $this->assertStringContainsString('medicine-designer-workspace', $view);
         $this->assertStringContainsString('grid-template-columns: 190px minmax(0,1fr)', $view);
         $this->assertStringContainsString('medicine-designer-columns', $view);
-        $this->assertStringContainsString('setColumnWidth(', $view);
-        $this->assertStringContainsString('Xem trước header Excel', $view);
+        $this->assertStringContainsString('draft.widths[editing]', $view);
+        $this->assertStringContainsString('Chỉnh sửa tức thì trên trình duyệt', $view);
         $this->assertStringContainsString('wire:click="duplicateProfile"', $view);
-        $this->assertStringContainsString('wire:click="resetColumnOrder"', $view);
-        $this->assertStringContainsString('wire:click="reorderSelected(', $view);
+        $this->assertStringContainsString('x-on:click="reset()"', $view);
+        $this->assertStringContainsString('x-on:drop.prevent=', $view);
         $this->assertStringContainsString('Kho dữ liệu', $view);
         $this->assertStringContainsString('Cột sẽ xuất Excel', $view);
         $this->assertStringContainsString("['brand','1','Thương hiệu']", $view);
@@ -111,15 +112,15 @@ class MedicineExcelProfileContractTest extends TestCase
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/medicine/excel-configurator.blade.php'));
         $component = file_get_contents(base_path('Modules/Pharma/Livewire/Medicine/ExcelConfigurator.php'));
 
-        $this->assertStringContainsString("activeKey: @js(\$activeColumnKey)", $view);
-        $this->assertStringContainsString('x-on:click="activeKey = @js($key)"', $view);
-        $this->assertStringContainsString('wire:key="medicine-inspector-single"', $view);
-        $this->assertStringContainsString("headersLocal: \$wire.entangle('headers')", $view);
-        $this->assertStringContainsString('x-model="headersLocal[activeKey]"', $view);
-        $this->assertStringNotContainsString('medicine-inspector-{{ $inspectorKey }}', $view);
-        $this->assertStringContainsString('moveSelectedToPosition(@js($key)', $view);
-        $this->assertStringContainsString('function moveSelectedToPosition(string $key, int $position)', $component);
-        $this->assertStringContainsString('max(0, min(count($selected) - 1, $position - 1))', $component);
+        $this->assertStringContainsString('draft: {', $view);
+        $this->assertStringContainsString('columns: @js($selectedOrder->all())', $view);
+        $this->assertStringContainsString('x-on:click="editing = key"', $view);
+        $this->assertStringContainsString('x-model="draft.headers[editing]"', $view);
+        $this->assertStringContainsString('x-on:drop.prevent=', $view);
+        $this->assertStringContainsString('x-on:change="move(key, $event.target.value)"', $view);
+        $this->assertStringNotContainsString("\$wire.entangle(", $view);
+        $this->assertStringContainsString('function saveDraft(array $draft, MedicineExcelProfileService $service)', $component);
+        $this->assertStringContainsString('$this->save($service);', $component);
     }
 
 }
