@@ -35,7 +35,7 @@ class MedicineExcelProfileService
             'id' => null, 'name' => 'Mặc định', 'is_default' => true,
             'columns' => $columns,
             'headers' => self::COLUMNS,
-            'widths' => array_fill_keys($columns, 18),
+            'widths' => array_fill_keys($columns, 130),
             'alignments' => array_fill_keys($columns, 'left'),
             'settings' => [
                 'title' => 'DANH MỤC THUỐC CHUẨN',
@@ -85,7 +85,7 @@ class MedicineExcelProfileService
         $headers = []; $widths = []; $alignments = [];
         foreach (self::COLUMNS as $key => $label) {
             $headers[$key] = mb_substr(trim((string) ($data['headers'][$key] ?? $label)) ?: $label, 0, 120);
-            $widths[$key] = max(8, min(80, (int) ($data['widths'][$key] ?? 18)));
+            $widths[$key] = max(40, min(400, (int) ($data['widths'][$key] ?? 130)));
             $alignments[$key] = in_array($data['alignments'][$key] ?? 'left', ['left', 'center', 'right'], true)
                 ? $data['alignments'][$key] : 'left';
         }
