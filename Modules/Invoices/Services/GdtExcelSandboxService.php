@@ -124,10 +124,17 @@ final class GdtExcelSandboxService
             $rows = array_merge(
                 $rows,
                 $this->fetchMonth((string) $session['token'], $chunkStart, $chunkEnd, $type),
+                $this->fetchMonth((string) $session['token'], $chunkStart, $chunkEnd, $type, '8'),
             );
 
             $cursor = $chunkEnd->copy()->addDay();
         }
+
+        // Both GDT result sets may contain the same invoice. Preserve the first canonical row.
+        $rows = array_values(collect($rows)->unique(fn (array $row) => implode('|', [
+            $row['MST người bán'], $row['Ký hiệu mẫu số'], $row['Ký hiệu hóa đơn'],
+            $row['Số hóa đơn'], $row['Ngày lập'], $row['MST người mua'],
+        ]))->all());
 
         if ($rows === []) {
             return ['count' => 0, 'filename' => null];
@@ -216,7 +223,7 @@ final class GdtExcelSandboxService
         return $path;
     }
 
-    private function fetchMonth(string $token, Carbon $from, Carbon $to, string $type): array
+    private function fetchMonth(string $token, Carbon $from, Carbon $to, string $type, ?string $processingStatus = null): array
     {
         $search = "tdlap=ge={$from->format('d/m/Y')}T00:00:00;tdlap=le={$to->format('d/m/Y')}T23:59:59";
         $state = null;
@@ -225,6 +232,7 @@ final class GdtExcelSandboxService
 
         do {
             $query = ['sort' => 'tdlap:desc', 'size' => 50, 'search' => $search];
+            if ($processingStatus !== null) $query['search'] .= ';ttxly=='.$processingStatus;
             if ($state) $query['state'] = $state;
             $response = $this->queryClient($token)->get($this->url('/query/invoices/'.$type), $query);
             if (in_array($response->status(), [401, 403], true)) {
