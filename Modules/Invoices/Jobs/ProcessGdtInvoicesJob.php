@@ -37,11 +37,14 @@ class ProcessGdtInvoicesJob implements ShouldQueue
             if ($file !== null && (! is_file($file) || ! is_readable($file))) {
                 throw new RuntimeException('Đồng bộ kết thúc nhưng không tạo được file Excel trên server.');
             }
-            $this->updateStatus('completed', $file === null ? 'Không có hóa đơn thuộc nguồn đã chọn.' : 'Đã đồng bộ canonical nguồn '. $this->source .'. Kiểm tra nhật ký nếu RAW detail còn lỗi.', [
+            $detailStats = $service->lastDetailStats();
+            $missing = (int) ($detailStats['failed'] ?? 0);
+            $this->updateStatus($missing > 0 ? 'partial' : 'completed', $file === null ? 'Không có hóa đơn thuộc nguồn đã chọn.' : ($missing > 0 ? 'Đã lưu hóa đơn và RAW header nhưng còn '.$missing.' RAW detail lỗi. Có thể chạy lại để phục hồi.' : 'Đồng bộ canonical nguồn '.$this->source.' hoàn tất; không cần Import Excel.'), [
                 'file' => $file ? basename($file) : null,
                 'direction' => $this->vatIn ? 'vat_in' : 'vat_out',
                 'source' => $this->source,
-                'finished_at' => now()->toIso8601String(),
+                'missing_detail' => $missing,
+                'finished_at => now()->toIso8601String(),
             ]);
             return;
         }
