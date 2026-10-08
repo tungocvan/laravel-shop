@@ -113,7 +113,10 @@ class MedicineExcelProfileContractTest extends TestCase
 
         $this->assertStringContainsString("activeKey: @js(\$activeColumnKey)", $view);
         $this->assertStringContainsString('x-on:click="activeKey = @js($key)"', $view);
-        $this->assertStringContainsString('x-show="activeKey === @js($inspectorKey)"', $view);
+        $this->assertStringContainsString('wire:key="medicine-inspector-single"', $view);
+        $this->assertStringContainsString("headersLocal: \$wire.entangle('headers')", $view);
+        $this->assertStringContainsString('x-model="headersLocal[activeKey]"', $view);
+        $this->assertStringNotContainsString('medicine-inspector-{{ $inspectorKey }}', $view);
         $this->assertStringContainsString('moveSelectedToPosition(@js($key)', $view);
         $this->assertStringContainsString('function moveSelectedToPosition(string $key, int $position)', $component);
         $this->assertStringContainsString('max(0, min(count($selected) - 1, $position - 1))', $component);
