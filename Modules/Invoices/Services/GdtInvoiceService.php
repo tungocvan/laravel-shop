@@ -90,10 +90,13 @@ class GdtInvoiceService
         return $stats;
     }
 
-    public function processRange($startDate, $endDate, ?callable $cb = null, bool $vatIn = false): ?string
+    public function processRange($startDate, $endDate, ?callable $cb = null, bool $vatIn = false, string $source = 'all'): ?string
     {
         $show = fn ($message) => $cb ? $cb($message) : null;
-        $show('[GDT] Bắt đầu đồng bộ nguồn canonical...');
+        if (! in_array($source, ['all', 'regular', 'pos'], true)) {
+            throw new \InvalidArgumentException('Nguồn hóa đơn GDT không hợp lệ.');
+        }
+        $show('[GDT] Bắt đầu đồng bộ nguồn canonical: '.$source);
         $vatIn = (bool) $vatIn;
         $show($vatIn ? '[GDT] Hóa đơn đầu vào' : '[GDT] Hóa đơn đầu ra');
         $token = Cache::get(config('invoices.gdt.cache_key'));
@@ -102,7 +105,7 @@ class GdtInvoiceService
         }
         $start = Carbon::parse($startDate);
         $end = Carbon::parse($endDate);
-        $filename = $start->format('Y-m-d').'_'.$end->format('Y-m-d').'.xlsx';
+        $filename = ($source === 'all' ? '' : $source.'_').$start->format('Y-m-d').'_'.$end->format('Y-m-d').'.xlsx';
         $show("[GDT] Khoảng thời gian: {$start->format('d/m/Y')} → {$end->format('d/m/Y')}");
         $all = [];
         while ($start->lte($end)) {
@@ -110,8 +113,8 @@ class GdtInvoiceService
             $monthEnd = $start->copy()->endOfMonth();
             $chunkEnd = $monthEnd->lt($end) ? $monthEnd : $end->copy();
             $show("[GDT] Gọi API tháng: {$chunkStart->format('d/m/Y')} → {$chunkEnd->format('d/m/Y')}");
-            $regular = $this->fetchInvoicesByMonth($token, $chunkStart, $chunkEnd, $show, $vatIn);
-            $pos = $this->fetchInvoicesByMonth($token, $chunkStart, $chunkEnd, $show, $vatIn, true);
+            $regular = $source !== 'pos' ? $this->fetchInvoicesByMonth($token, $chunkStart, $chunkEnd, $show, $vatIn) : [];
+            $pos = $source !== 'regular' ? $this->fetchInvoicesByMonth($token, $chunkStart, $chunkEnd, $show, $vatIn, true) : [];
             $show('[GDT] Tháng này: thông thường '.count($regular).' · máy tính tiền '.count($pos));
             $all = array_merge($all, $regular, $pos);
             $start = $chunkEnd->copy()->addDay();
