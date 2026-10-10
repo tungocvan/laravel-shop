@@ -3,6 +3,8 @@
 namespace Modules\Admission\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Modules\Admission\Jobs\GenerateAdmissionPdfJob;
 
 class AdmissionApplication extends Model
@@ -134,12 +136,34 @@ class AdmissionApplication extends Model
                     'from' => $originalStatus,
                 ]);
             }
+
+            // Documents generated for an approved record become stale after returning to pending.
+            if ($originalStatus === 'approved' && $model->status === 'pending') {
+                $model->word_path = null;
+            }
         });
 
         /**
          * DISPATCH JOB khi approved.
          */
         static::updated(function ($model) {
+            if ($model->wasChanged('status') && $model->status === 'pending'
+                && $model->getOriginal('status') === 'approved') {
+                $oldWordPath = $model->getOriginal('word_path');
+                if ($oldWordPath && $model->word_path === null) {
+                    DB::afterCommit(function () use ($oldWordPath) {
+                        try {
+                            Storage::disk('local')->delete($oldWordPath);
+                        } catch (\\Throwable $e) {
+                            \\Log::error('ADMISSION WORD CLEANUP FAILED', [
+                                'path' => $oldWordPath,
+                                'error' => $e->getMessage(),
+                            ]);
+                        }
+                    });
+                }
+            }
+
             if ($model->wasChanged('status') && $model->status === 'approved') {
                 if (! empty($model->pdf_path)) {
                     \Log::info('SKIP DISPATCH: PDF đã tồn tại', [
