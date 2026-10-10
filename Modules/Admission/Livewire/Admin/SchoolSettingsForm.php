@@ -97,6 +97,13 @@ class SchoolSettingsForm extends Component
         session()->flash('success', 'Đã cập nhật thông tin nhà trường.');
     }
 
+    public function updateExistingApplicationCodes(\\Modules\\Admission\\Services\\AdmissionCodePrefixService $codes): void
+    {
+        $this->authorize('manage_admission_settings');
+        $count = $codes->replaceExistingPrefix($this->application_code_prefix);
+        session()->flash('success', 'Đã cập nhật tiền tố mã hồ sơ cho '.$count.' hồ sơ.');
+    }
+
     public function removeImage(string $type): void
     {
         $this->authorize('manage_admission_settings');
