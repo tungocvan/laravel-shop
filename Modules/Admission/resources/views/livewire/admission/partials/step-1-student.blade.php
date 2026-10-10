@@ -90,22 +90,12 @@
         <div class="grid md:grid-cols-2 gap-6">
             <div>
                 <label class="text-sm font-medium text-gray-600">Nơi sinh (Tỉnh/TP)</label>
-                <x-select-search id="noi_sinh" wire:model="form.NoiSinhTt" placeholder="Chọn nơi sinh...">
-                    <option value="">-- Chọn --</option>
-                    @foreach ($provinces as $province)
-                        <option value="{{ $province['province_name'] }}">{{ $province['province_name'] }}</option>
-                    @endforeach
-                </x-select-search>
+                @include('Admission::livewire.admission.partials.location-select', ['field' => 'NoiSinhTt', 'items' => $provinces, 'labelKey' => 'province_name', 'placeholder' => 'Tỉnh / Thành phố'])
             </div>
 
             <div>
                 <label class="text-sm font-medium text-gray-600">Nơi sinh (Phường/Xã)</label>
-                <x-select-search id="noi_sinh_px" options-wire="noi_sinh_wards" wire:model.live="form.NoiSinhPx" placeholder="Phường / Xã">
-                    <option value="">-- Chọn --</option>
-                    @foreach ($noi_sinh_wards ?? [] as $ward)
-                        <option value="{{ $ward['ward_name'] }}">{{ $ward['ward_name'] }}</option>
-                    @endforeach
-                </x-select-search>
+                @include('Admission::livewire.admission.partials.location-select', ['field' => 'NoiSinhPx', 'items' => $noi_sinh_wards, 'labelKey' => 'ward_name', 'placeholder' => 'Phường / Xã'])
             </div>
 
             <div class="md:col-span-2">
@@ -117,42 +107,22 @@
 
             <div>
                 <label class="text-sm font-medium text-gray-600">Nơi đăng ký khai sinh (Tỉnh/TP)</label>
-                <x-select-search id="noi_dkks" wire:model="form.NoiDangKyKhaiSinhTt" placeholder="Chọn...">
-                    <option value="">-- Chọn --</option>
-                    @foreach ($provinces as $province)
-                        <option value="{{ $province['province_name'] }}">{{ $province['province_name'] }}</option>
-                    @endforeach
-                </x-select-search>
+                @include('Admission::livewire.admission.partials.location-select', ['field' => 'NoiDangKyKhaiSinhTt', 'items' => $provinces, 'labelKey' => 'province_name', 'placeholder' => 'Tỉnh / Thành phố'])
             </div>
 
             <div>
                 <label class="text-sm font-medium text-gray-600">Phường/Xã</label>
-                <x-select-search id="noi_dang_ky_khai_sinh_px" options-wire="noi_dang_ky_khai_sinh_wards" wire:model.live="form.NoiDangKyKhaiSinhPx" placeholder="Phường / Xã">
-                    <option value="">-- Chọn --</option>
-                    @foreach ($noi_dang_ky_khai_sinh_wards ?? [] as $ward)
-                        <option value="{{ $ward['ward_name'] }}">{{ $ward['ward_name'] }}</option>
-                    @endforeach
-                </x-select-search>
+                @include('Admission::livewire.admission.partials.location-select', ['field' => 'NoiDangKyKhaiSinhPx', 'items' => $noi_dang_ky_khai_sinh_wards, 'labelKey' => 'ward_name', 'placeholder' => 'Phường / Xã'])
             </div>
 
             <div>
                 <label class="text-sm font-medium text-gray-600">Quê quán (Tỉnh/TP)</label>
-                <x-select-search id="que_quan" wire:model="form.QueQuanTt" placeholder="Chọn quê quán...">
-                    <option value="">-- Chọn --</option>
-                    @foreach ($provinces as $province)
-                        <option value="{{ $province['province_name'] }}">{{ $province['province_name'] }}</option>
-                    @endforeach
-                </x-select-search>
+                @include('Admission::livewire.admission.partials.location-select', ['field' => 'QueQuanTt', 'items' => $provinces, 'labelKey' => 'province_name', 'placeholder' => 'Tỉnh / Thành phố'])
             </div>
 
             <div>
                 <label class="text-sm font-medium text-gray-600">Phường/Xã</label>
-                <x-select-search id="que_quan_px" options-wire="que_quan_wards" wire:model.live="form.QueQuanPx" placeholder="Phường / Xã">
-                    <option value="">-- Chọn --</option>
-                    @foreach ($que_quan_wards ?? [] as $ward)
-                        <option value="{{ $ward['ward_name'] }}">{{ $ward['ward_name'] }}</option>
-                    @endforeach
-                </x-select-search>
+                @include('Admission::livewire.admission.partials.location-select', ['field' => 'QueQuanPx', 'items' => $que_quan_wards, 'labelKey' => 'ward_name', 'placeholder' => 'Phường / Xã'])
             </div>
         </div>
 
