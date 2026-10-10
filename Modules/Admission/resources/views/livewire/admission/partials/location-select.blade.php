@@ -5,7 +5,7 @@
     $names = $items->pluck($labelKey)->map(fn ($name) => (string) $name)->all();
     $choices = $items->pluck($labelKey)->map(fn ($name) => (string) $name)->values()->all();
     if ($value !== '' && !in_array($value, $names, true)) {
-        $choices[] = $value;
+        $choices[] = $value; // Keep legacy value (chưa có trong danh mục) selectable.
     }
 @endphp
 <div
