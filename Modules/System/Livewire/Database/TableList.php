@@ -43,6 +43,10 @@ class TableList extends Component
 
     public $importFile = null;
 
+    public $moduleSnapshotUpload = null;
+
+    public bool $isUploadingModuleSnapshot = false;
+
     public bool $isImporting = false;
 
     public ?string $selectedExportFile = null;
@@ -213,6 +217,33 @@ class TableList extends Component
         } catch (\Throwable $e) {
             $this->reportOperationError('Module snapshot Drive download failed.', $e, ['module' => $module]);
             $this->notify('error', 'Không thể tải Module Snapshot từ Google Drive về local.');
+        }
+    }
+
+    public function importLocalModuleSnapshot(ModuleSnapshotService $snapshots): void
+    {
+        $this->authorizePermission('database.backup');
+        if ($this->isUploadingModuleSnapshot) {
+            return;
+        }
+
+        $this->validate(['moduleSnapshotUpload' => ['required', 'file', 'mimes:zip', 'max:102400']]);
+        $this->isUploadingModuleSnapshot = true;
+        try {
+            $module = $this->moduleFilter;
+            if ($module === '' || $module === 'Unknown') {
+                throw new \RuntimeException('Vui lòng chọn Module hợp lệ.');
+            }
+            $file = $this->moduleSnapshotUpload;
+            $created = $snapshots->importDownloadedPackage($file->getRealPath(), $module, $file->getClientOriginalName());
+            $this->moduleSnapshotUpload = null;
+            $this->refreshModuleSnapshots();
+            $this->notify('success', "Đã tải lên Local Snapshot {$created['name']}. Chưa Restore dữ liệu.");
+        } catch (\Throwable $e) {
+            $this->reportOperationError('Local module snapshot upload failed.', $e, ['module' => $this->moduleFilter]);
+            $this->notify('error', 'Upload thất bại. Kiểm tra package ZIP, checksum và Module.');
+        } finally {
+            $this->isUploadingModuleSnapshot = false;
         }
     }
 
