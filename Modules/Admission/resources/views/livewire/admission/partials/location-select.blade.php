@@ -1,4 +1,4 @@
-{{-- Admission-only native searchable select: Livewire owns the value, no wire:ignore/TomSelect. --}}
+{{-- Admission-only native searchable select; Livewire owns the selected value. --}}
 @php
     $items = collect($items ?? []);
     $value = (string) ($form[$field] ?? '');
