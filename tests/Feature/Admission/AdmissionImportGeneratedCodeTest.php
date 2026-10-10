@@ -13,7 +13,7 @@ class AdmissionImportGeneratedCodeTest extends TestCase
 
         $this->assertStringContainsString("if (empty(\$data['mhs'])) {", $source);
         $this->assertStringContainsString("unset(\$data['mhs']);", $source);
-        $this->assertStringContainsString("sprintf('NVH%s%04d', now()->year, \$nextId++)", $source);
+        $this->assertStringContainsString("get('application_code_prefix').'%s%04d', now()->year, \$nextId++)", $source);
         $this->assertStringContainsString("where('mhs', \$generatedCode)->exists()", $source);
         $this->assertStringContainsString("\$data['mhs'] = \$generatedCode;", $source);
         $this->assertTrue(class_exists(ApplicationsImport::class));
