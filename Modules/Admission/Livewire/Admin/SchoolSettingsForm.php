@@ -97,7 +97,7 @@ class SchoolSettingsForm extends Component
         session()->flash('success', 'Đã cập nhật thông tin nhà trường.');
     }
 
-    public function updateExistingApplicationCodes(\\Modules\\Admission\\Services\\AdmissionCodePrefixService $codes): void
+    public function updateExistingApplicationCodes(\Modules\Admission\Services\AdmissionCodePrefixService $codes): void
     {
         $this->authorize('manage_admission_settings');
         $count = $codes->replaceExistingPrefix($this->application_code_prefix);
