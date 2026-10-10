@@ -1,6 +1,15 @@
 {{-- Admission-only searchable combobox; Livewire owns the selected value. --}}
 @php
     $items = collect($items ?? []);
+    $provinceFields = [
+        'NoiSinhPx' => 'NoiSinhTt',
+        'NoiDangKyKhaiSinhPx' => 'NoiDangKyKhaiSinhTt',
+        'QueQuanPx' => 'QueQuanTt',
+        'TTPX' => 'TTTTP',
+        'HTPX' => 'HTTTP',
+    ];
+    $parentProvince = isset($provinceFields[$field]) ? (string) ($form[$provinceFields[$field]] ?? '') : '';
+    $selectKey = 'admission-location-'.$field.'-'.md5($parentProvince);
     $value = (string) ($form[$field] ?? '');
     $names = $items->pluck($labelKey)->map(fn ($name) => (string) $name)->all();
     $choices = $items->pluck($labelKey)->map(fn ($name) => (string) $name)->values()->all();
@@ -9,6 +18,7 @@
     }
 @endphp
 <div
+    wire:key="{{ $selectKey }}"
     x-data="{
         open: false,
         search: '',
