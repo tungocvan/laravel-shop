@@ -167,7 +167,11 @@ class AdmissionApplicationAdminService
     public function downloadExport(array $filters): BinaryFileResponse
     {
         return Excel::download(
-            new ApplicationsExport($this->query($filters)),
+            new ApplicationsExport(
+                trim((string) ($filters['search'] ?? '')),
+                (string) ($filters['status'] ?? ''),
+                (string) ($filters['class'] ?? '')
+            ),
             'admission-applications-'.now()->format('Ymd-His').'.xlsx'
         );
     }
