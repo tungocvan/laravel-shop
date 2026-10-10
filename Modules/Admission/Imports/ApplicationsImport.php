@@ -130,7 +130,7 @@ class ApplicationsImport implements SkipsEmptyRows, ToCollection, WithHeadingRow
                 // Never attempt to insert NULL into the unique, required mhs column.
                 $nextId = (int) (AdmissionApplication::query()->lockForUpdate()->max('id') ?? 0) + 1;
                 do {
-                    $generatedCode = sprintf('NVH%s%04d', now()->year, $nextId++);
+                    $generatedCode = sprintf(app(\Modules\Admission\Services\SchoolSettingService::class)->get('application_code_prefix').'%s%04d', now()->year, $nextId++);
                 } while (AdmissionApplication::query()->where('mhs', $generatedCode)->exists());
 
                 $data['mhs'] = $generatedCode;
