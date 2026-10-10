@@ -154,8 +154,8 @@ class AdmissionApplication extends Model
                     DB::afterCommit(function () use ($oldWordPath) {
                         try {
                             Storage::disk('local')->delete($oldWordPath);
-                        } catch (\\Throwable $e) {
-                            \\Log::error('ADMISSION WORD CLEANUP FAILED', [
+                        } catch (\Throwable $e) {
+                            \Log::error('ADMISSION WORD CLEANUP FAILED', [
                                 'path' => $oldWordPath,
                                 'error' => $e->getMessage(),
                             ]);
