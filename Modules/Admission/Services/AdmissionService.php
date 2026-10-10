@@ -41,7 +41,7 @@ class AdmissionService
             $nextId = (AdmissionApplication::lockForUpdate()->max('id') ?? 0) + 1;
 
             $data['mhs'] = sprintf(
-                'NVH%s%04d',
+                app(SchoolSettingService::class)->get('application_code_prefix').'%s%04d',
                 now()->year,
                 $nextId
             );
