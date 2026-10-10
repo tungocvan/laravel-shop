@@ -113,11 +113,27 @@ class ApplicationsImport implements SkipsEmptyRows, ToCollection, WithHeadingRow
 
         DB::transaction(function () use ($record, $data): void {
             if ($record) {
+                // A blank Excel code means "keep the existing code", not "erase it".
+                if (empty($data['mhs'])) {
+                    unset($data['mhs']);
+                }
+
                 // Direct query avoids approval/file hooks while intentionally applying the imported lifecycle state.
                 AdmissionApplication::query()->whereKey($record->id)->update($data);
                 $this->updatedRows++;
 
                 return;
+            }
+
+            if (empty($data['mhs'])) {
+                // Match the code format used by normal Admission registration.
+                // Never attempt to insert NULL into the unique, required mhs column.
+                $nextId = (int) (AdmissionApplication::query()->lockForUpdate()->max('id') ?? 0) + 1;
+                do {
+                    $generatedCode = sprintf('NVH%s%04d', now()->year, $nextId++);
+                } while (AdmissionApplication::query()->where('mhs', $generatedCode)->exists());
+
+                $data['mhs'] = $generatedCode;
             }
 
             AdmissionApplication::query()->create($data);
