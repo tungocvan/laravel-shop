@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\System;
 
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 
 class ModuleLocalSnapshotTransferContractTest extends TestCase
 {
