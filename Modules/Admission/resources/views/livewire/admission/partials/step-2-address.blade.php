@@ -21,32 +21,10 @@
                 class="w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition">
 
             {{-- Tỉnh --}}
-            <x-select-search id="ttttp"
-                wire:model.live="form.TTTTP"
-                placeholder="Tỉnh / Thành phố">
-                <option value="">-- Chọn --</option>
-                @foreach ($provinces as $p)
-                    <option value="{{ $p['province_name'] }}">
-                        {{ $p['province_name'] }}
-                    </option>
-                @endforeach
-            </x-select-search>
+            @include('Admission::livewire.admission.partials.location-select', ['field' => 'TTTTP', 'items' => $provinces, 'labelKey' => 'province_name', 'placeholder' => 'Tỉnh / Thành phố'])
 
             {{-- Phường --}}
-            <x-select-search id="ttpx"
-                options-wire="tt_wards"
-                wire:model.live="form.TTPX"
-                placeholder="Phường / Xã">
-                <option value="">-- Chọn --</option>
-
-                @if (!empty($tt_wards))
-                    @foreach ($tt_wards as $w)
-                        <option value="{{ $w['ward_name'] }}">
-                            {{ $w['ward_name'] }}
-                        </option>
-                    @endforeach
-                @endif
-            </x-select-search>
+            @include('Admission::livewire.admission.partials.location-select', ['field' => 'TTPX', 'items' => $tt_wards, 'labelKey' => 'ward_name', 'placeholder' => 'Phường / Xã'])
 
         </div>
     </div>
@@ -95,32 +73,10 @@
                 class="w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition">
 
             {{-- Tỉnh --}}
-            <x-select-search id="http"
-                wire:model.live="form.HTTTP"
-                placeholder="Tỉnh / Thành phố">
-                <option value="">-- Chọn --</option>
-                @foreach ($provinces as $p)
-                    <option value="{{ $p['province_name'] }}">
-                        {{ $p['province_name'] }}
-                    </option>
-                @endforeach
-            </x-select-search>
+            @include('Admission::livewire.admission.partials.location-select', ['field' => 'HTTTP', 'items' => $provinces, 'labelKey' => 'province_name', 'placeholder' => 'Tỉnh / Thành phố'])
 
             {{-- Phường --}}
-            <x-select-search id="htpx"
-                options-wire="ht_wards"
-                wire:model.live="form.HTPX"
-                placeholder="Phường / Xã">
-                <option value="">-- Chọn --</option>
-
-                @if (!empty($ht_wards))
-                    @foreach ($ht_wards as $w)
-                        <option value="{{ $w['ward_name'] }}">
-                            {{ $w['ward_name'] }}
-                        </option>
-                    @endforeach
-                @endif
-            </x-select-search>
+            @include('Admission::livewire.admission.partials.location-select', ['field' => 'HTPX', 'items' => $ht_wards, 'labelKey' => 'ward_name', 'placeholder' => 'Phường / Xã'])
 
         </div>
     </div>

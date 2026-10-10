@@ -115,26 +115,29 @@ class AdmissionApplicationAdminService
 
     public function deleteAllAndResetIncrement(): int
     {
-        return DB::transaction(function () {
-            $applications = AdmissionApplication::query()->get();
+        // Keep model delete events and their side effects inside the transaction.
+        // MySQL ALTER TABLE causes an implicit commit, so it must run afterwards.
+        $deleted = DB::transaction(function () {
             $deleted = 0;
 
-            foreach ($applications as $application) {
+            foreach (AdmissionApplication::query()->get() as $application) {
                 if ($application->delete()) {
                     $deleted++;
                 }
             }
 
-            $driver = DB::connection()->getDriverName();
-
-            if ($driver === 'mysql' || $driver === 'mariadb') {
-                DB::statement('ALTER TABLE `admission_applications` AUTO_INCREMENT = 1');
-            } elseif ($driver === 'sqlite') {
-                DB::table('sqlite_sequence')->where('name', 'admission_applications')->delete();
-            }
-
             return $deleted;
         });
+
+        $driver = DB::connection()->getDriverName();
+
+        if ($driver === 'mysql' || $driver === 'mariadb') {
+            DB::statement('ALTER TABLE `admission_applications` AUTO_INCREMENT = 1');
+        } elseif ($driver === 'sqlite') {
+            DB::table('sqlite_sequence')->where('name', 'admission_applications')->delete();
+        }
+
+        return $deleted;
     }
 
     public function queueDocumentsForIds(array $ids, bool $docx = true, bool $pdf = false): ?Batch
@@ -164,7 +167,11 @@ class AdmissionApplicationAdminService
     public function downloadExport(array $filters): BinaryFileResponse
     {
         return Excel::download(
-            new ApplicationsExport($this->query($filters)),
+            new ApplicationsExport(
+                trim((string) ($filters['search'] ?? '')),
+                (string) ($filters['status'] ?? ''),
+                (string) ($filters['class'] ?? '')
+            ),
             'admission-applications-'.now()->format('Ymd-His').'.xlsx'
         );
     }

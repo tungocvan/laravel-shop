@@ -266,6 +266,17 @@ class RegistrationForm extends Component
         if (isset($map[$field])) {
             $province = $this->form[str_replace('form.', '', $field)] ?? '';
             $this->{$map[$field]} = $service->wardsForProvince($province);
+
+            // A ward from the previous province must never be submitted under
+            // a newly selected province. Initial edit hydration is unaffected.
+            $wardFields = [
+                'form.TTTTP' => 'TTPX',
+                'form.HTTTP' => 'HTPX',
+                'form.NoiSinhTt' => 'NoiSinhPx',
+                'form.NoiDangKyKhaiSinhTt' => 'NoiDangKyKhaiSinhPx',
+                'form.QueQuanTt' => 'QueQuanPx',
+            ];
+            $this->form[$wardFields[$field]] = '';
         }
     }
 

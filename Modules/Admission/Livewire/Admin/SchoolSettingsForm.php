@@ -14,6 +14,8 @@ class SchoolSettingsForm extends Component
 
     public string $principal = '';
 
+    public string $application_code_prefix = 'NVH';
+
     public string $school_year = '';
 
     public string $school_name = '';
@@ -45,6 +47,8 @@ class SchoolSettingsForm extends Component
     {
         $this->authorize('manage_admission_settings');
 
+        $this->application_code_prefix = strtoupper(trim($this->application_code_prefix));
+
         $this->registration_classes = collect($this->registration_classes)
             ->map(static fn (mixed $class): string => trim((string) $class))
             ->values()
@@ -52,6 +56,7 @@ class SchoolSettingsForm extends Component
 
         $validated = $this->validate([
             'principal' => ['required', 'string', 'max:255'],
+            'application_code_prefix' => ['required', 'string', 'size:3', 'regex:/^[A-Z]{3}$/'],
             'school_year' => ['required', 'string', 'max:20', 'regex:/^\d{4}\s*-\s*\d{4}$/'],
             'school_name' => ['required', 'string', 'max:255'],
             'school_managing_agency' => ['required', 'string', 'max:255'],
@@ -65,6 +70,8 @@ class SchoolSettingsForm extends Component
             'new_favicon' => ['nullable', 'file', 'mimes:png,ico', 'max:1024'],
         ], [
             'school_year.regex' => 'Năm học phải có định dạng 2026-2027.',
+            'application_code_prefix.regex' => 'Tiền tố mã hồ sơ phải gồm đúng 3 chữ cái A-Z.',
+            'application_code_prefix.size' => 'Tiền tố mã hồ sơ phải gồm đúng 3 ký tự.',
             'registration_classes.required' => 'Phải có ít nhất một lớp đăng ký.',
             'registration_classes.min' => 'Phải có ít nhất một lớp đăng ký.',
             'registration_classes.*.required' => 'Tên lớp đăng ký không được để trống.',
@@ -88,6 +95,13 @@ class SchoolSettingsForm extends Component
         $settings->save($validated);
         $this->saveImages();
         session()->flash('success', 'Đã cập nhật thông tin nhà trường.');
+    }
+
+    public function updateExistingApplicationCodes(\Modules\Admission\Services\AdmissionCodePrefixService $codes): void
+    {
+        $this->authorize('manage_admission_settings');
+        $count = $codes->replaceExistingPrefix($this->application_code_prefix);
+        session()->flash('success', 'Đã cập nhật tiền tố mã hồ sơ cho '.$count.' hồ sơ.');
     }
 
     public function removeImage(string $type): void

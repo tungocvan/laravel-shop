@@ -35,6 +35,25 @@
             @endforeach
 
             <div class="border-t border-gray-200 pt-5">
+                <label for="application_code_prefix" class="mb-1 block text-sm font-medium text-gray-700">Tiền tố mã hồ sơ học sinh</label>
+                <input id="application_code_prefix" type="text" maxlength="3" wire:model="application_code_prefix" placeholder="NVH"
+                    class="block w-full max-w-xs rounded-md border border-gray-300 px-3 py-2 uppercase focus:border-blue-500 focus:outline-none focus:ring-blue-500">
+                @error('application_code_prefix')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                <div class="mt-3">
+                    <button type="button"
+                        wire:click="updateExistingApplicationCodes"
+                        wire:confirm="Bạn chắc chắn muốn thay đổi tiền tố mã hồ sơ của TOÀN BỘ học sinh trong database? Hành động này ảnh hưởng các mã đã cấp."
+                        wire:loading.attr="disabled"
+                        wire:target="updateExistingApplicationCodes"
+                        class="rounded-md border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900 hover:bg-amber-100 disabled:opacity-60">
+                        Cập nhật tiền tố cho toàn bộ hồ sơ
+                    </button>
+                    <p class="mt-1 text-xs text-gray-500">Chỉ thay 3 ký tự đầu, giữ nguyên năm và số thứ tự. Hãy sao lưu dữ liệu trước khi thực hiện.</p>
+                </div>
+                <p class="mt-2 text-xs text-gray-500">Gồm 3 chữ cái. Ví dụ: MHS20260001. Chỉ áp dụng cho hồ sơ mới; mã đã cấp không thay đổi.</p>
+            </div>
+
+            <div class="border-t border-gray-200 pt-5">
                 <div class="mb-4">
                     <h2 class="text-base font-semibold text-gray-900">Hình ảnh Website</h2>
                     <p class="mt-1 text-sm text-gray-500">Đồng bộ với phần Hình ảnh trong System Settings.</p>

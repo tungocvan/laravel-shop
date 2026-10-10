@@ -12,6 +12,7 @@ class SchoolSettingService
 
     public const DEFAULTS = [
         'principal' => 'Hoàng Thụy Bích Thủy',
+        'application_code_prefix' => 'NVH',
         'school_year' => '2026-2027',
         'school_name' => 'TRƯỜNG TIỂU HỌC NGUYỄN VĂN HƯỞNG',
         'school_managing_agency' => 'ỦY BAN NHÂN DÂN PHƯỜNG PHÚ THUẬN',
