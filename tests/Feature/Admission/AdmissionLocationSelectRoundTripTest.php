@@ -45,7 +45,9 @@ class AdmissionLocationSelectRoundTripTest extends TestCase
         $stepTwo = file_get_contents(base_path('Modules/Admission/resources/views/livewire/admission/partials/step-2-address.blade.php'));
         $component = file_get_contents(base_path('Modules/Admission/Livewire/Public/RegistrationForm.php'));
 
-        $this->assertStringContainsString('wire:model.live="form.{{ $field }}"', $partial);
+        $this->assertStringContainsString('this.$wire.set(this.model, value)', $partial);
+        $this->assertStringContainsString('x-on:focus="open = true"', $partial);
+        $this->assertStringContainsString('x-show="open"', $partial);
         $this->assertStringContainsString('chưa có trong danh mục', $partial);
         $this->assertStringNotContainsString('wire:ignore', $partial);
         $this->assertSame(6, substr_count($stepOne, "partials.location-select"));
