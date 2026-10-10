@@ -216,6 +216,25 @@ class TableList extends Component
         }
     }
 
+    public function downloadLocalModuleSnapshot(string $reference, ModuleSnapshotService $snapshots)
+    {
+        $this->authorizePermission('database.download');
+        $snapshot = $snapshots->resolveLocalReference($reference, $this->moduleFilter);
+        if ($snapshot === null) {
+            $this->notify('error', 'Không tìm thấy Local Snapshot thuộc Module đã chọn.');
+
+            return null;
+        }
+
+        $snapshots->validatePackage($snapshot['absolute_path'], $this->moduleFilter, enforceSchema: false);
+
+        return response()->download($snapshot['absolute_path'], $snapshot['name'], [
+            'Content-Type' => 'application/zip',
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
     public function deleteLocalModuleSnapshot(string $reference, ModuleSnapshotDeletionService $deletion): void
     {
         $this->authorizePermission('database.destroy');
