@@ -184,7 +184,10 @@ class Index extends Component
     {
         $this->authorizeAdmin('export_admission');
 
-        return app(AdmissionApplicationAdminService::class)->downloadExport($this->filters());
+        return app(AdmissionApplicationAdminService::class)->downloadExport(
+            $this->selected === [] ? $this->filters() : [],
+            $this->selected
+        );
     }
 
     public function render()
