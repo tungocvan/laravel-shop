@@ -97,7 +97,7 @@
                         <button type="button" wire:click="export" wire:loading.attr="disabled" wire:target="export" class="inline-flex h-10 items-center rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50">
                             <span wire:loading.remove wire:target="export">Export Excel</span><span wire:loading wire:target="export">Đang xuất...</span>
                         </button>
-                        <span class="text-xs text-gray-500">Xuất dữ liệu theo bộ lọc hiện tại</span>
+                        <span class="text-xs text-gray-500">{{ count($selected) > 0 ? 'Chỉ xuất '.count($selected).' hồ sơ đã chọn' : 'Xuất dữ liệu theo bộ lọc hiện tại' }}</span>
                     </div>
                 @endcan
 
