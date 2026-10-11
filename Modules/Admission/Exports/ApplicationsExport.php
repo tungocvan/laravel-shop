@@ -27,6 +27,7 @@ class ApplicationsExport implements FromQuery, WithHeadings, WithMapping
         protected $search = null,
         protected $status = null,
         protected $class = null,
+        protected array $ids = [],
     ) {
         $this->columns = $this->getTableColumns();
     }
@@ -34,6 +35,7 @@ class ApplicationsExport implements FromQuery, WithHeadings, WithMapping
     public function query(): Builder
     {
         return AdmissionApplication::query()
+            ->when($this->ids !== [], fn (Builder $query) => $query->whereIn('id', $this->ids))
             ->when($this->search, function (Builder $query) {
                 $query->where(function (Builder $nested) {
                     $nested->where('ho_va_ten_hoc_sinh', 'like', '%'.$this->search.'%')

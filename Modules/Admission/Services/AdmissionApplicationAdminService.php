@@ -164,13 +164,16 @@ class AdmissionApplicationAdminService
         return $this->queueDocumentQuery($this->query($filters), $docx, $pdf);
     }
 
-    public function downloadExport(array $filters): BinaryFileResponse
+    public function downloadExport(array $filters, array $selectedIds = []): BinaryFileResponse
     {
+        $selectedIds = collect($selectedIds)->map(fn ($id) => (int) $id)->filter(fn ($id) => $id > 0)->unique()->values()->all();
+
         return Excel::download(
             new ApplicationsExport(
                 trim((string) ($filters['search'] ?? '')),
                 (string) ($filters['status'] ?? ''),
-                (string) ($filters['class'] ?? '')
+                (string) ($filters['class'] ?? ''),
+                $selectedIds !== [] ? $selectedIds : []
             ),
             'admission-applications-'.now()->format('Ymd-His').'.xlsx'
         );
