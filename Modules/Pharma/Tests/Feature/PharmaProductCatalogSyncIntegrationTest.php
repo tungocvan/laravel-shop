@@ -75,4 +75,33 @@ class PharmaProductCatalogSyncIntegrationTest extends TestCase
         $this->assertSame(0, app(PharmaProductCatalogSyncService::class)->syncMedicine($medicine));
         $this->assertSame(0, PharmaProductLink::query()->count());
     }
+    public function test_existing_package_becomes_stale_when_nonorderable(): void
+    {
+        $medicine = Medicine::query()->create(['name' => 'Thuốc kiểm tra stale']);
+        $variant = MedicineVariant::query()->create([
+            'medicine_id' => $medicine->id,
+            'sku' => 'STALE-SKU-'.$medicine->id,
+            'variant_identity_key' => hash('sha256', 'stale-variant-'.$medicine->id),
+            'status' => 'active',
+        ]);
+        $package = MedicinePackage::query()->create([
+            'medicine_variant_id' => $variant->id,
+            'package_code' => 'STALE-PKG-'.$variant->id,
+            'packaging_text' => 'Hộp 20 viên',
+            'package_identity_key' => hash('sha256', 'stale-package-'.$variant->id),
+            'is_orderable' => true,
+        ]);
+
+        $sync = app(PharmaProductCatalogSyncService::class);
+        $link = $sync->syncVariant($variant, $package);
+        $link->product->forceFill(['is_active' => true, 'regular_price' => 90000])->save();
+
+        $package->update(['is_orderable' => false]);
+        $this->assertSame(0, $sync->syncMedicine($medicine));
+        $this->assertSame('stale', $link->fresh()->sync_status);
+        $this->assertFalse($link->product->fresh()->is_active);
+        $this->assertSame('90000.00', $link->product->fresh()->regular_price);
+        $this->assertSame(1, PharmaProductLink::query()->count());
+    }
+
 }
