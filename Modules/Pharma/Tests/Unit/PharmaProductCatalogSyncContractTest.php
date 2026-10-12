@@ -183,4 +183,17 @@ class PharmaProductCatalogSyncContractTest extends TestCase
         $this->assertStringNotContainsString("val.toString().replace(/\\D/g, '')", $component);
     }
 
+    public function test_manual_pharma_sync_projects_declared_price_and_exposes_action(): void
+    {
+        $sync = file_get_contents(base_path('Modules/Pharma/Services/PharmaProductCatalogSyncService.php'));
+        $table = file_get_contents(base_path('Modules/Product/Livewire/Products/ProductTable.php'));
+        $view = file_get_contents(base_path('Modules/Product/resources/views/livewire/products/product-table.blade.php'));
+
+        $this->assertStringContainsString('$variant->declared_price ?? $medicine->declared_price', $sync);
+        $this->assertStringContainsString("'regular_price' => $declaredPrice", $sync);
+        $this->assertStringContainsString("if (\$declaredPrice !== null)", $sync);
+        $this->assertStringContainsString('function syncFromPharma(', $table);
+        $this->assertStringContainsString('Đồng bộ từ Pharma', $view);
+    }
+
 }
