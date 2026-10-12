@@ -10,12 +10,15 @@ use Modules\Pharma\Services\HsspMedicineValidityService;
 use Modules\Pharma\Services\MedicineService;
 use Modules\Pharma\Models\Medicine;
 use Illuminate\Validation\Rule;
+use Modules\Category\Models\Category;
 
 class Form extends Component
 {
     use AuthorizesPharmaActions;
 
     public ?int $medicineId = null;
+
+    public array $category_ids = [];
 
     public bool $isEditMode = false;
 
@@ -69,6 +72,8 @@ class Form extends Component
     {
         return [
             'name' => 'required|string|max:255',
+            'category_ids' => 'array',
+            'category_ids.*' => ['integer', 'distinct', Rule::exists('categories', 'id')->where('type', 'medicine')],
             'product_type' => ['required', Rule::in(array_keys(Medicine::productTypeOptions()))],
             'active_ingredients' => 'nullable|string|max:255',
             'concentration' => 'nullable|string|max:255',
@@ -101,6 +106,7 @@ class Form extends Component
             $this->isEditMode = true;
             $medicine = $medicineService->findOrFail($id);
             $this->fill($medicine->toArray());
+            $this->category_ids = $medicine->categories()->pluck('categories.id')->map(fn ($id) => (int) $id)->all();
 
             $validity = $hsspValidity->forMedicine($id);
             $this->visa_validity_date = $validity['visa_validity_date'] ?? $this->visa_validity_date;
@@ -168,6 +174,9 @@ class Form extends Component
 
     public function render()
     {
-        return view('Pharma::livewire.medicine.form');
+        $categories = Category::query()->where('type', 'medicine')
+            ->orderBy('sort_order')->orderBy('name')->get(['id', 'name', 'parent_id']);
+
+        return view('Pharma::livewire.medicine.form', compact('categories'));
     }
 }
