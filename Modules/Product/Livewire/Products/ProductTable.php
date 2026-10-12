@@ -39,6 +39,7 @@ class ProductTable extends Component
     public ?string $pharmaImportNotice = null;
 
     public $showSyncPanel = false;
+    public ?string $pharmaSyncNotice = null;
     public ?string $bulkDeleteNotice = null;
     public $showCategoryModal = false;
     public $bulkCategoryIds = [];
@@ -202,6 +203,34 @@ class ProductTable extends Component
         $ids = $this->selected !== [] ? $this->selected : null;
 
         return Excel::download(new ProductsExport($ids, $this->filters()), 'products_'.date('Y-m-d').'.xlsx');
+    }
+
+    public function syncFromPharma(\\Modules\\Pharma\\Services\\PharmaProductCatalogSyncService $sync): void
+    {
+        $this->authorizeAdmin('edit_product');
+        abort_unless($this->products->pharmaSyncAvailable(), 404);
+
+        $processed = 0;
+        $synced = 0;
+        $failed = 0;
+        // Bounded batch: repeat the action for larger catalogs after reviewing results.
+        $medicines = \\Modules\\Pharma\\Models\\Medicine::query()
+            ->whereHas('variants')
+            ->orderBy('id')
+            ->limit(100)
+            ->get();
+
+        foreach ($medicines as $medicine) {
+            $processed++;
+            try {
+                $synced += $sync->syncMedicine($medicine);
+            } catch (\\Throwable $exception) {
+                $failed++;
+                report($exception);
+            }
+        }
+
+        $this->pharmaSyncNotice = "Đã kiểm tra {$processed} thuốc; đồng bộ {$synced} sản phẩm; lỗi {$failed}. Giới hạn 100 thuốc mỗi lượt.";
     }
 
     public function exportPharma()
