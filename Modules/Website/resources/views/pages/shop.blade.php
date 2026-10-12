@@ -1,8 +1,11 @@
 @extends('Website::layouts.frontend')
 
-@section('title', 'Cửa hàng - Tất cả sản phẩm')
+@section('title', 'Sản phẩm')
 
 @section('content')
-    {{-- Nhúng Livewire Component xử lý logic lọc/hiển thị --}}
-    @livewire('website.products.product-list')
+    @if(app(\Modules\Website\Services\WebsiteTemplateService::class)->isPharma())
+        @livewire('website.products.pharma-catalog')
+    @else
+        @livewire('website.products.product-list')
+    @endif
 @endsection
