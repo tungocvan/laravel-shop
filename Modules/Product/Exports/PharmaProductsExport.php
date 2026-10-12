@@ -6,6 +6,7 @@ use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Modules\Product\Models\Product;
+use Modules\Pharma\Models\Medicine;
 
 class PharmaProductsExport implements FromCollection, WithHeadings, WithMapping
 {
@@ -19,7 +20,7 @@ class PharmaProductsExport implements FromCollection, WithHeadings, WithMapping
 
         return Product::query()
             ->whereHas('pharmaLink')
-            ->with(['pharmaLink', 'categories:id,name'])
+            ->with(['pharmaLink.medicine.supplierTrackings', 'categories:id,name'])
             ->orderBy('id')
             ->limit(5000)
             ->get();
@@ -32,6 +33,7 @@ class PharmaProductsExport implements FromCollection, WithHeadings, WithMapping
             'Slug (chỉ đọc)', 'Giá gốc', 'Giá sale', 'Mô tả ngắn',
             'Chi tiết', 'Ảnh đại diện', 'Album ảnh (JSON)', 'Tags (JSON)',
             'Danh mục (IDs)', 'Trạng thái', 'Hoa hồng affiliate (%)',
+            'Hoạt chất (Pharma - chỉ đọc)', 'Nhà cung cấp (Pharma - chỉ đọc)', 'Loại sản phẩm (Pharma - chỉ đọc)',
         ];
     }
 
@@ -52,6 +54,9 @@ class PharmaProductsExport implements FromCollection, WithHeadings, WithMapping
             $product->categories->pluck('id')->implode(','),
             $product->is_active ? 1 : 0,
             $product->affiliate_commission_rate,
+            $product->pharmaLink?->medicine?->active_ingredients,
+            $product->pharmaLink?->medicine?->supplierTrackings->pluck('supplier_name')->filter()->unique()->implode('; '),
+            Medicine::productTypeOptions()[$product->pharmaLink?->medicine?->product_type] ?? $product->pharmaLink?->medicine?->product_type,
         ];
     }
 }
