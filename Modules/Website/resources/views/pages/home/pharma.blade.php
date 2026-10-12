@@ -43,8 +43,8 @@
                         </div>
                         <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
                             @foreach($categories as $category)
-                                <a href="{{ route('product.list', ['category' => $category->slug]) }}" class="flex min-h-28 items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm transition hover:border-emerald-300 hover:shadow-md">
-                                    <span class="text-base font-bold text-slate-800">{{ $category->name }}</span><span class="text-emerald-700" aria-hidden="true">↗</span>
+                                <a href="{{ route('product.list', ['category' => $category->slug]) }}" class="group flex min-h-32 items-center gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-5 shadow-sm transition duration-200 hover:-translate-y-1 hover:border-emerald-300 hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">
+                                    <span aria-hidden="true" class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100 transition group-hover:bg-emerald-100"><svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><path d="M12 7v10M7 12h10"/></svg></span><span class="min-w-0 flex-1 text-base font-bold leading-6 text-slate-800">{{ $category->name }}</span><span class="text-emerald-700 transition group-hover:translate-x-1" aria-hidden="true">↗</span>
                                 </a>
                             @endforeach
                         </div>
@@ -60,13 +60,13 @@
                         </div>
                         <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
                             @foreach($products as $product)
-                                <article class="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:border-emerald-200 hover:shadow-lg">
-                                    <a href="{{ route('product.detail', $product->slug) }}" class="flex h-full flex-col">
-                                        <div class="flex aspect-[5/3] items-center justify-center bg-gradient-to-br from-slate-50 to-emerald-50 p-4">
+                                <article class="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-200 hover:-translate-y-1 hover:border-emerald-200 hover:shadow-lg">
+                                    <a href="{{ route('product.detail', $product->slug) }}" class="flex h-full flex-col focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-emerald-700">
+                                        <div class="flex aspect-[5/3] items-center justify-center border-b border-emerald-50 bg-gradient-to-br from-slate-50 to-emerald-50 p-4">
                                             @if($product->image)
                                                 <img src="{{ $product->image_url }}" alt="{{ $product->title }}" loading="lazy" class="h-full w-full object-contain">
                                             @else
-                                                <div class="text-center text-emerald-300"><span aria-hidden="true" class="text-5xl font-light">+</span><p class="mt-2 text-xs text-slate-400">Chưa có ảnh sản phẩm</p></div>
+                                                <div class="flex flex-col items-center text-center"><span aria-hidden="true" class="flex h-16 w-16 items-center justify-center rounded-2xl border border-emerald-100 bg-white/70 text-emerald-400 shadow-sm"><svg class="h-9 w-9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><path d="M12 7v10M7 12h10"/></svg></span><p class="mt-3 text-xs font-medium text-slate-500">Chưa có ảnh sản phẩm</p></div>
                                             @endif
                                         </div>
                                         <div class="flex flex-1 flex-col p-5">
