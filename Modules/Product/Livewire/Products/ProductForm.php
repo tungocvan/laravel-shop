@@ -3,6 +3,7 @@
 namespace Modules\Product\Livewire\Products;
 
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Modules\Category\Models\Category;
@@ -72,7 +73,7 @@ class ProductForm extends Component
     public function getCategoriesProperty()
     {
         return Category::query()
-            ->where('type', 'product')
+            ->where('type', $this->isPharmaLinked ? 'medicine' : 'product')
             ->whereNull('parent_id')
             ->with('childrenRecursive')
             ->orderBy('sort_order')
@@ -132,7 +133,7 @@ class ProductForm extends Component
             'description' => 'nullable|string',
             'is_active' => 'boolean',
             'category_ids' => 'array',
-            'category_ids.*' => 'integer',
+            'category_ids.*' => ['integer', 'distinct', Rule::exists('categories', 'id')->where('type', $this->isPharmaLinked ? 'medicine' : 'product')],
             'newImage' => 'nullable|image|max:5120',
             'newGallery.*' => 'image|max:5120',
             'affiliate_commission_rate' => 'nullable|numeric|min:0|max:100',
@@ -195,7 +196,7 @@ class ProductForm extends Component
         }
 
         $parentById = Category::query()
-            ->where('type', 'product')
+            ->where('type', $this->isPharmaLinked ? 'medicine' : 'product')
             ->pluck('parent_id', 'id');
         $expanded = [];
 
