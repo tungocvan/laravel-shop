@@ -17,6 +17,8 @@ class PharmaCatalog extends Component
     #[Url(history: true)]
     public string $category = '';
 
+    public string $categorySearch = '';
+
     public function updatedSearch(): void
     {
         $this->resetPage();
@@ -27,10 +29,16 @@ class PharmaCatalog extends Component
         $this->resetPage();
     }
 
+    public function updatedCategorySearch(): void
+    {
+        // Category filtering is client-side over the already-loaded category list.
+    }
+
     public function clearFilters(): void
     {
         $this->search = '';
         $this->category = '';
+        $this->categorySearch = '';
         $this->resetPage();
     }
 
