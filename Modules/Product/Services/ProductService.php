@@ -368,6 +368,11 @@ class ProductService
     private function saveProduct(?int $id, array $data): Product
     {
         $linked = $id !== null && $this->pharmaSyncAvailable() && PharmaProductLink::query()->where('product_id', $id)->exists();
+        if ($linked) {
+            $canonical = Product::query()->findOrFail($id);
+            $data['title'] = $canonical->title;
+            $data['slug'] = $canonical->slug;
+        }
         $normalized = $this->normalizeProductData($data, $id);
         if ($linked) {
             unset($normalized['title'], $normalized['slug']);
