@@ -9,24 +9,24 @@
     <form wire:submit="save" class="space-y-4">
         <div class="grid gap-4 md:grid-cols-2">
             <label class="block text-sm font-semibold text-gray-700">Nhãn Hero
-                <input type="text" wire:model="hero.eyebrow" maxlength="80" class="mt-1 block w-full rounded-lg border-gray-300">
+                <input type="text" wire:model="hero.eyebrow" maxlength="80" class="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 hover:border-slate-400 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/15">
                 @error('hero.eyebrow') <span class="text-xs text-red-600">{{ $message }}</span> @enderror
             </label>
             <label class="block text-sm font-semibold text-gray-700">Nút hành động
-                <input type="text" wire:model="hero.button" maxlength="60" class="mt-1 block w-full rounded-lg border-gray-300">
+                <input type="text" wire:model="hero.button" maxlength="60" class="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 hover:border-slate-400 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/15">
                 @error('hero.button') <span class="text-xs text-red-600">{{ $message }}</span> @enderror
             </label>
         </div>
         <label class="block text-sm font-semibold text-gray-700">Tiêu đề
-            <input type="text" wire:model="hero.title" maxlength="180" class="mt-1 block w-full rounded-lg border-gray-300">
+            <input type="text" wire:model="hero.title" maxlength="180" class="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 hover:border-slate-400 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/15">
             @error('hero.title') <span class="text-xs text-red-600">{{ $message }}</span> @enderror
         </label>
         <label class="block text-sm font-semibold text-gray-700">Mô tả
-            <textarea wire:model="hero.description" rows="3" maxlength="500" class="mt-1 block w-full rounded-lg border-gray-300"></textarea>
+            <textarea wire:model="hero.description" rows="3" maxlength="500" class="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 hover:border-slate-400 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/15"></textarea>
             @error('hero.description') <span class="text-xs text-red-600">{{ $message }}</span> @enderror
         </label>
         <label class="block text-sm font-semibold text-gray-700">Ảnh Hero (tùy chọn, tối đa 3MB)
-            <input type="file" wire:model="heroImage" accept="image/jpeg,image/png,image/webp" class="mt-2 block w-full text-sm">
+            <input type="file" wire:model="heroImage" accept="image/jpeg,image/png,image/webp" class="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 shadow-sm file:mr-4 file:rounded-md file:border-0 file:bg-emerald-50 file:px-3 file:py-2 file:font-semibold file:text-emerald-800 hover:border-slate-400 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/15">
             @error('heroImage') <span class="text-xs text-red-600">{{ $message }}</span> @enderror
         </label>
         @if($heroImage)
