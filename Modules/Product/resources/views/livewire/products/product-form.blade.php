@@ -182,7 +182,9 @@
             <div class="bg-white rounded-xl shadow-sm ring-1 ring-gray-900/5 p-6">
                 <h3 class="text-base font-semibold leading-6 text-gray-900 mb-4 border-b pb-2">Phân loại</h3>
 
-                <x-category-select label="Danh mục sản phẩm" :categories="$this->categories" wire:model="category_ids" />
+                <x-category-select :label="$isPharmaLinked ? 'Danh mục thuốc' : 'Danh mục sản phẩm'" :categories="$this->categories" wire:model="category_ids" />
+                @error('category_ids')<p class="mt-2 text-sm text-red-600">{{ $message }}</p>@enderror
+                @error('category_ids.*')<p class="mt-2 text-sm text-red-600">{{ $message }}</p>@enderror
 
                 <div>
                     <label class="block text-sm font-medium leading-6 text-gray-900 mb-2">Tags / Từ khóa</label>
