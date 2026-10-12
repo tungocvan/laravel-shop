@@ -205,7 +205,7 @@ class ProductTable extends Component
         return Excel::download(new ProductsExport($ids, $this->filters()), 'products_'.date('Y-m-d').'.xlsx');
     }
 
-    public function syncFromPharma(\\Modules\\Pharma\\Services\\PharmaProductCatalogSyncService $sync): void
+    public function syncFromPharma(\Modules\\Pharma\\Services\\PharmaProductCatalogSyncService $sync): void
     {
         $this->authorizeAdmin('edit_product');
         abort_unless($this->products->pharmaSyncAvailable(), 404);
@@ -214,7 +214,7 @@ class ProductTable extends Component
         $synced = 0;
         $failed = 0;
         // Bounded batch: repeat the action for larger catalogs after reviewing results.
-        $medicines = \\Modules\\Pharma\\Models\\Medicine::query()
+        $medicines = \Modules\\Pharma\\Models\\Medicine::query()
             ->whereHas('variants')
             ->orderBy('id')
             ->limit(100)
@@ -224,7 +224,7 @@ class ProductTable extends Component
             $processed++;
             try {
                 $synced += $sync->syncMedicine($medicine);
-            } catch (\\Throwable $exception) {
+            } catch (\Throwable $exception) {
                 $failed++;
                 report($exception);
             }
