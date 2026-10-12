@@ -174,4 +174,13 @@ class PharmaProductCatalogSyncContractTest extends TestCase
         $this->assertStringContainsString('wire:model="pharmaImportFile"', $view);
     }
 
+    public function test_admin_currency_input_does_not_multiply_decimal_cast_values(): void
+    {
+        $component = file_get_contents(base_path('Modules/Admin/resources/views/components/currency-input.blade.php'));
+
+        $this->assertStringContainsString('const amount = Number(val);', $component);
+        $this->assertStringContainsString('Math.round(amount).toString()', $component);
+        $this->assertStringNotContainsString("val.toString().replace(/\\D/g, '')", $component);
+    }
+
 }
