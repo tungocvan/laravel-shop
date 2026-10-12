@@ -82,6 +82,7 @@ class PharmaProductCatalogSyncIntegrationTest extends TestCase
             'medicine_id' => $medicine->id,
             'sku' => 'STALE-SKU-'.$medicine->id,
             'variant_identity_key' => hash('sha256', 'stale-variant-'.$medicine->id),
+            'sku_basis_hash' => hash('sha256', 'stale-basis-'.$medicine->id),
             'status' => 'active',
         ]);
         $package = MedicinePackage::query()->create([
