@@ -211,7 +211,6 @@ class ProductService
     {
         return DB::transaction(function () use ($id) {
             $product = Product::query()->lockForUpdate()->findOrFail($id);
-            $this->assertNotPharmaLinked([$id], 'toggle status');
             $product->update(['is_active' => ! $product->is_active]);
 
             return $product->refresh();
@@ -230,7 +229,6 @@ class ProductService
             if ($products->count() !== count($ids)) {
                 throw ValidationException::withMessages(['selected' => 'Danh sách sản phẩm không hợp lệ.']);
             }
-            $this->assertNotPharmaLinked($ids, 'bulk status');
 
             return Product::query()->whereIn('id', $ids)->update(['is_active' => $active]);
         });
