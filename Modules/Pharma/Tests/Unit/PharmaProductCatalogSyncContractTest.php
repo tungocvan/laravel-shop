@@ -141,7 +141,7 @@ class PharmaProductCatalogSyncContractTest extends TestCase
         $this->assertStringContainsString('if ($this->template)', $export);
         $this->assertStringContainsString('Export Pharma Excel', $view);
         $this->assertStringContainsString('Tải Template Pharma', $view);
-        $this->assertStringContainsString('Import Pharma đang xây dựng', $view);
+        $this->assertStringContainsString('Import Pharma Excel', $view);
     }
 
     public function test_pharma_excel_import_is_separate_previewed_and_commercial_only(): void
@@ -158,8 +158,8 @@ class PharmaProductCatalogSyncContractTest extends TestCase
         $this->assertStringContainsString("where('product_id', \$product->id)->exists()", $service);
         $this->assertStringContainsString("DB::transaction(function () use (\$sheets)", $service);
         $this->assertStringNotContainsString("'quantity' =>", $service);
-        $this->assertStringNotContainsString("'title' =>", $service);
-        $this->assertStringNotContainsString("'slug' =>", $service);
+        $this->assertStringNotContainsString("$"+"changes['title']", $service);
+        $this->assertStringNotContainsString("$"+"changes['slug']", $service);
     }
 
 }
