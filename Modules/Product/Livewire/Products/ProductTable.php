@@ -31,6 +31,7 @@ class ProductTable extends Component
     public $showImportModal = false;
 
     public $showSyncPanel = false;
+    public ?string $bulkDeleteNotice = null;
     public $showCategoryModal = false;
     public $bulkCategoryIds = [];
 
@@ -149,7 +150,8 @@ class ProductTable extends Component
     public function deleteSelected(): void
     {
         $this->authorizeAdmin('delete_product');
-        $this->products->deleteMany($this->selected);
+        $result = $this->products->deleteMany($this->selected);
+        $this->bulkDeleteNotice = "Đã xóa {$result['deleted']} sản phẩm thủ công; giữ lại {$result['protected']} sản phẩm liên kết Pharma.";
         $this->resetSelection();
     }
 
