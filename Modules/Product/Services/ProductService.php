@@ -386,7 +386,7 @@ class ProductService
         if ($linked) {
             unset($normalized['title'], $normalized['slug']);
         }
-        $categoryIds = $this->normalizeCategoryIds($data['category_ids'] ?? []);
+        $categoryIds = $this->normalizeCategoryIds($data['category_ids'] ?? [], $linked ? 'medicine' : 'product');
         $newImagePath = $this->storeImage($data['newImage'] ?? null, 'products');
         $newGalleryPaths = $this->storeGallery($data['newGallery'] ?? []);
         $oldImagePath = null;
@@ -536,12 +536,12 @@ class ProductService
                         ->orWhere('slug', 'like', "%{$search}%");
                 });
             })
-            ->when($categoryId !== null && $categoryId !== '', function (Builder $query) use ($categoryId) {
+            ->when($categoryId !== null && $categoryId !== '', function (Builder $query) use ($categoryId, $categoryType) {
                 $query->whereHas('categories', fn (Builder $categoryQuery) => $categoryQuery->whereKey((int) $categoryId)->where('categories.type', $categoryType));
             });
     }
 
-    private function normalizeCategoryIds(array $ids): array
+    private function normalizeCategoryIds(array $ids, string $type = 'product'): array
     {
         $ids = $this->normalizeIds($ids);
 
@@ -550,7 +550,7 @@ class ProductService
         }
 
         $existing = Category::query()
-            ->where('type', 'product')
+            ->where('type', $type)
             ->whereIn('id', $ids)
             ->pluck('id')
             ->map(fn ($id) => (int) $id)
