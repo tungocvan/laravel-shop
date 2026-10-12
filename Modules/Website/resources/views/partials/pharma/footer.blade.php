@@ -1,14 +1,21 @@
-<footer class="border-t border-slate-800 bg-slate-950 text-slate-200">
-    <div class="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 md:grid-cols-2 lg:px-8">
-        <div>
-            <h2 class="text-xl font-bold text-white">{{ app(\Modules\System\Services\SettingsService::class)->get('site_name', 'Pharma') }}</h2>
-            <p class="mt-3 max-w-md text-sm leading-6 text-slate-300">Thông tin sản phẩm dược phẩm và danh mục sản phẩm.</p>
+@php($pharmaSettings = app(\Modules\System\Services\SettingsService::class))
+<footer class="border-t border-emerald-900 bg-slate-950 text-slate-200">
+    <div class="mx-auto grid max-w-[1440px] gap-9 px-4 py-14 sm:grid-cols-2 sm:px-6 lg:grid-cols-4 lg:px-8">
+        <div class="lg:col-span-2">
+            <a href="{{ route('home') }}" class="inline-flex items-center gap-2 text-xl font-extrabold text-white"><span aria-hidden="true" class="text-emerald-400">✚</span>{{ $pharmaSettings->get('site_name', 'Pharma') }}</a>
+            <p class="mt-4 max-w-sm text-sm leading-7 text-slate-400">Tra cứu thông tin sản phẩm dược phẩm và danh mục đã được cập nhật.</p>
+            <p class="mt-4 max-w-sm text-xs leading-6 text-slate-500">Thông tin trên Website mang tính tham khảo, không thay thế tư vấn của nhân viên y tế.</p>
         </div>
-        <div class="md:text-right">
-            <h3 class="font-semibold text-white">Điều hướng</h3>
-            <a href="{{ route('home') }}" class="mt-3 block text-sm hover:text-teal-300">Trang chủ</a>
-            <a href="{{ route('product.list') }}" class="mt-2 block text-sm hover:text-teal-300">Sản phẩm</a>
+        <nav aria-label="Liên kết Website">
+            <h2 class="mb-4 text-sm font-bold uppercase tracking-wider text-white">Liên kết</h2>
+            <a href="{{ route('home') }}" class="block py-2 text-sm hover:text-emerald-300">Trang chủ</a>
+            <a href="{{ route('product.list') }}" class="block py-2 text-sm hover:text-emerald-300">Sản phẩm dược phẩm</a>
+        </nav>
+        <div>
+            <h2 class="mb-4 text-sm font-bold uppercase tracking-wider text-white">Thông tin</h2>
+            <p class="text-sm leading-7 text-slate-400">Khám phá danh mục sản phẩm và thông tin chi tiết được công bố trên Website.</p>
+            <a href="{{ route('product.list') }}" class="mt-4 inline-flex text-sm font-semibold text-emerald-300 hover:underline">Xem danh mục →</a>
         </div>
     </div>
-    <div class="border-t border-slate-800 px-4 py-5 text-center text-xs text-slate-400">© {{ date('Y') }} {{ app(\Modules\System\Services\SettingsService::class)->get('site_name', 'Pharma') }}.</div>
+    <div class="border-t border-slate-800 px-4 py-5 text-center text-xs text-slate-500">© {{ date('Y') }} {{ $pharmaSettings->get('site_name', 'Pharma') }}. All rights reserved.</div>
 </footer>
