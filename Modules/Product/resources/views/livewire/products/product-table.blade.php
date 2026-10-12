@@ -152,6 +152,17 @@
                                             {{ $item->title }}
                                         </div>
                                         <div class="text-xs text-gray-500 font-mono mt-0.5">ID: {{ $item->id }}</div>
+                                        <div class="mt-1 flex flex-wrap items-center gap-1 text-xs">
+                                            @if($item->pharmaLink)
+                                                <span class="rounded bg-indigo-50 px-2 py-0.5 font-semibold text-indigo-700">Nguồn: Pharma</span>
+                                                <span class="rounded px-2 py-0.5 font-medium {{ $item->pharmaLink->sync_status === 'synced' ? 'bg-green-50 text-green-700' : ($item->pharmaLink->sync_status === 'error' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700') }}" title="{{ $item->pharmaLink->last_error ?? '' }}">
+                                                    {{ $item->pharmaLink->sync_status }}
+                                                </span>
+                                                <span class="text-gray-500">Medicine #{{ $item->pharmaLink->medicine_id }}</span>
+                                            @else
+                                                <span class="rounded bg-gray-100 px-2 py-0.5 text-gray-600">Nguồn: Thủ công</span>
+                                            @endif
+                                        </div>
                                     </div>
                                 </div>
                             </td>
