@@ -51,7 +51,7 @@ class PharmaProductCatalogSyncService
             ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
 
             $link = PharmaProductLink::query()->where('source_key', $sourceKey)->lockForUpdate()->first();
-            if ($link && ($medicine->catalog_status !== Medicine::CATALOG_ACTIVE || $variant->status !== 'active' || ($package && ! $package->is_orderable))) {
+            if ($link && ((filled($medicine->catalog_status) && $medicine->catalog_status !== Medicine::CATALOG_ACTIVE) || $variant->status !== 'active' || ($package && ! $package->is_orderable))) {
                 $link->forceFill(['sync_status' => 'stale', 'last_error' => 'Pharma source is no longer eligible.'])->save();
                 $link->product()->update(['is_active' => false]);
                 return $link;
