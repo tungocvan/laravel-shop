@@ -104,10 +104,11 @@ class PharmaProductCatalogSyncService
     public function syncMedicine(Medicine $medicine): int
     {
         $count = 0;
-        $medicine->load('variants.packages');
+        $medicine->refresh()->load('variants.packages');
+        $eligibleKeys = [];
 
         foreach ($medicine->variants as $variant) {
-            if ($variant->status !== 'active') {
+            if ($variant->status !== 'active' || ($medicine->catalog_status !== Medicine::CATALOG_ACTIVE && filled($medicine->catalog_status))) {
                 continue;
             }
 
@@ -116,16 +117,33 @@ class PharmaProductCatalogSyncService
                 if ($variant->packages->isNotEmpty()) {
                     continue;
                 }
+                $eligibleKeys[] = 'variant:'.$variant->id;
                 $this->syncVariant($variant);
                 $count++;
                 continue;
             }
 
             foreach ($packages as $package) {
+                $eligibleKeys[] = 'package:'.$package->id;
                 $this->syncVariant($variant, $package);
                 $count++;
             }
         }
+
+        DB::transaction(function () use ($medicine, $eligibleKeys): void {
+            $stale = PharmaProductLink::query()
+                ->where('medicine_id', $medicine->id)
+                ->when($eligibleKeys !== [], fn ($query) => $query->whereNotIn('source_key', $eligibleKeys))
+                ->lockForUpdate()->get();
+
+            foreach ($stale as $link) {
+                $link->forceFill([
+                    'sync_status' => 'stale',
+                    'last_error' => 'Pharma source is no longer eligible.',
+                ])->save();
+                $link->product()->update(['is_active' => false]);
+            }
+        });
 
         return $count;
     }
