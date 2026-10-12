@@ -20,7 +20,7 @@ class PharmaProductsExport implements FromCollection, WithHeadings, WithMapping
 
         return Product::query()
             ->whereHas('pharmaLink')
-            ->with(['pharmaLink.medicine.supplierTrackings', 'categories:id,name'])
+            ->with(['pharmaLink.medicine.supplierTrackings', 'categories:id,name,slug,type'])
             ->orderBy('id')
             ->limit(5000)
             ->get();
@@ -32,7 +32,7 @@ class PharmaProductsExport implements FromCollection, WithHeadings, WithMapping
             'Product ID (chỉ đọc)', 'Medicine ID (chỉ đọc)', 'Tên sản phẩm (chỉ đọc)',
             'Slug (chỉ đọc)', 'Giá gốc', 'Giá sale', 'Mô tả ngắn',
             'Chi tiết', 'Ảnh đại diện', 'Album ảnh (JSON)', 'Tags (JSON)',
-            'Danh mục (IDs)', 'Trạng thái', 'Hoa hồng affiliate (%)',
+            'Danh mục (Slugs)', 'Trạng thái', 'Hoa hồng affiliate (%)',
             'Hoạt chất (Pharma - chỉ đọc)', 'Nhà cung cấp (Pharma - chỉ đọc)', 'Loại sản phẩm (Pharma - chỉ đọc)',
         ];
     }
@@ -51,7 +51,7 @@ class PharmaProductsExport implements FromCollection, WithHeadings, WithMapping
             $product->image,
             json_encode($product->gallery, JSON_UNESCAPED_UNICODE),
             json_encode($product->tags, JSON_UNESCAPED_UNICODE),
-            $product->categories->pluck('id')->implode(','),
+            $product->categories->where('type', 'medicine')->pluck('slug')->implode(','),
             $product->is_active ? 1 : 0,
             $product->affiliate_commission_rate,
             $product->pharmaLink?->medicine?->active_ingredients,
