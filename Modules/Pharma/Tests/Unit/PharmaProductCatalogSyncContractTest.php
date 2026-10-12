@@ -162,4 +162,16 @@ class PharmaProductCatalogSyncContractTest extends TestCase
         $this->assertStringNotContainsString('$changes[\'slug\']', $service);
     }
 
+    public function test_pharma_excel_accepts_null_gallery_and_tags_and_styles_file_picker(): void
+    {
+        $service = file_get_contents(base_path('Modules/Product/Services/PharmaProductExcelImportService.php'));
+        $view = file_get_contents(base_path('Modules/Product/resources/views/livewire/products/product-table.blade.php'));
+
+        $this->assertStringContainsString("\$normalized === 'null'", $service);
+        $this->assertStringContainsString("json_decode((string) \$normalized, true)", $service);
+        $this->assertStringContainsString("array_is_list(\$decoded)", $service);
+        $this->assertStringContainsString('border border-gray-300', $view);
+        $this->assertStringContainsString('wire:model="pharmaImportFile"', $view);
+    }
+
 }
