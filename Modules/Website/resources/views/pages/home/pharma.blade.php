@@ -1,6 +1,13 @@
 @php
     $pharmaHome = app(\Modules\Website\Services\PharmaHomepageService::class);
     $sections = $pharmaHome->sections();
+    $heroContent = array_merge([
+        'eyebrow' => 'Thông tin dược phẩm',
+        'title' => 'Khám phá danh mục sản phẩm dược phẩm',
+        'description' => 'Tìm kiếm và tham khảo thông tin sản phẩm theo danh mục chuyên môn, với dữ liệu được cập nhật từ hệ thống.',
+        'button' => 'Tra cứu sản phẩm',
+        'image' => '',
+    ], (array) app(\Modules\System\Services\SettingsService::class)->get('website.pharma.hero', []));
 @endphp
 <div class="w-full min-w-0 bg-slate-50 text-slate-900">
     @foreach($sections as $section)
@@ -12,16 +19,19 @@
                     <div class="relative mx-auto grid w-full max-w-[1440px] items-center gap-10 px-5 py-16 sm:px-8 md:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] md:py-24 lg:gap-16 lg:px-12 lg:py-28">
                         <div class="min-w-0">
                             <p class="inline-flex items-center gap-2 rounded-full border border-emerald-300/30 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.15em] text-emerald-100">
-                                <span aria-hidden="true" class="h-2 w-2 rounded-full bg-emerald-300"></span> Thông tin dược phẩm
+                                <span aria-hidden="true" class="h-2 w-2 rounded-full bg-emerald-300"></span> {{ $heroContent['eyebrow'] }}
                             </p>
-                            <h1 class="mt-7 max-w-3xl text-4xl font-extrabold leading-[1.15] tracking-tight text-white sm:text-5xl lg:text-6xl">Khám phá danh mục <span class="text-emerald-200">sản phẩm dược phẩm</span></h1>
-                            <p class="mt-6 max-w-xl text-base leading-8 text-emerald-50/90 sm:text-lg">Tìm kiếm và tham khảo thông tin sản phẩm theo danh mục chuyên môn, với dữ liệu được cập nhật từ hệ thống.</p>
+                            <h1 class="mt-7 max-w-3xl text-4xl font-extrabold leading-[1.15] tracking-tight text-white sm:text-5xl lg:text-6xl">{{ $heroContent['title'] }}</h1>
+                            <p class="mt-6 max-w-xl text-base leading-8 text-emerald-50/90 sm:text-lg">{{ $heroContent['description'] }}</p>
                             <div class="mt-9 flex flex-wrap items-center gap-4">
-                                <a href="{{ route('product.list') }}" class="inline-flex min-h-12 items-center justify-center gap-3 rounded-xl bg-white px-6 py-3 text-sm font-bold text-emerald-950 shadow-lg transition hover:bg-emerald-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">Tra cứu sản phẩm <span aria-hidden="true">→</span></a>
+                                <a href="{{ route('product.list') }}" class="inline-flex min-h-12 items-center justify-center gap-3 rounded-xl bg-white px-6 py-3 text-sm font-bold text-emerald-950 shadow-lg transition hover:bg-emerald-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">{{ $heroContent['button'] }} <span aria-hidden="true">→</span></a>
                                 <span class="text-sm font-medium text-emerald-100">Danh mục · Thông tin · Tra cứu</span>
                             </div>
                         </div>
                         <div aria-hidden="true" class="relative mx-auto hidden aspect-square w-full max-w-[440px] items-center justify-center md:flex">
+                            @if(!empty($heroContent['image']))
+                                <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($heroContent['image']) }}" alt="" class="relative z-10 h-full w-full rounded-[3rem] object-contain">
+                            @else
                             <div class="absolute inset-[7%] rounded-[3rem] border border-white/15 bg-white/10 shadow-2xl backdrop-blur-sm"></div>
                             <div class="absolute inset-[20%] rotate-12 rounded-[2.5rem] border border-emerald-200/20"></div>
                             <svg class="relative h-48 w-48 text-emerald-100 lg:h-56 lg:w-56" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -30,6 +40,7 @@
                                 <circle cx="151" cy="43" r="7" fill="currentColor" opacity=".5"/>
                                 <circle cx="48" cy="157" r="5" fill="currentColor" opacity=".5"/>
                             </svg>
+                            @endif
                         </div>
                     </div>
                 </div>
