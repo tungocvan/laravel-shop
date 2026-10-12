@@ -13,6 +13,7 @@ use Illuminate\Validation\ValidationException;
 use Modules\Category\Models\Category;
 use Modules\Product\Models\Product;
 use Modules\Product\Models\Review;
+use Modules\Pharma\Models\PharmaProductLink;
 use Throwable;
 
 class ProductService
@@ -189,6 +190,8 @@ class ProductService
                 ->lockForUpdate()
                 ->findOrFail($id);
 
+            $this->assertNotPharmaLinked([$id], 'duplicate');
+
             $duplicate = $product->replicate();
             $duplicate->title = $product->title.' (Copy)';
             $duplicate->slug = $this->uniqueSlug(Str::slug($duplicate->title));
@@ -207,6 +210,7 @@ class ProductService
     {
         return DB::transaction(function () use ($id) {
             $product = Product::query()->lockForUpdate()->findOrFail($id);
+            $this->assertNotPharmaLinked([$id], 'toggle status');
             $product->update(['is_active' => ! $product->is_active]);
 
             return $product->refresh();
@@ -215,6 +219,7 @@ class ProductService
 
     public function delete(int $id): void
     {
+        $this->assertNotPharmaLinked([$id], 'delete');
         Product::query()->whereKey($id)->delete();
     }
 
@@ -226,6 +231,7 @@ class ProductService
             return;
         }
 
+        $this->assertNotPharmaLinked($ids, 'bulk delete');
         Product::query()->whereIn('id', $ids)->delete();
     }
 
@@ -337,6 +343,7 @@ class ProductService
 
                 if ($id !== null) {
                     $product = Product::query()->lockForUpdate()->findOrFail($id);
+                    $this->assertNotPharmaLinked([$id], 'edit');
                     $oldImagePath = $product->image;
                     $product->update($normalized);
                 } else {
@@ -358,6 +365,17 @@ class ProductService
         }
 
         return $product;
+    }
+
+    /** Pharma-owned catalog records are read-only in generic Product CRUD until
+     * a separate commercial editing policy is explicitly approved. */
+    private function assertNotPharmaLinked(array $ids, string $operation): void
+    {
+        if (PharmaProductLink::query()->whereIn('product_id', $ids)->exists()) {
+            throw ValidationException::withMessages([
+                'product' => 'Sản phẩm đồng bộ từ Pharma không được thao tác: '.$operation.'.',
+            ]);
+        }
     }
 
     private function normalizeProductData(array $data, ?int $id = null): array
