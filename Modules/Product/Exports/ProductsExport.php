@@ -10,15 +10,17 @@ use Modules\Product\Services\ProductService;
 class ProductsExport implements FromCollection, WithHeadings, WithMapping
 {
     protected ?array $ids;
+    protected array $filters;
 
-    public function __construct(?array $ids = null)
+    public function __construct(?array $ids = null, array $filters = [])
     {
         $this->ids = $ids;
+        $this->filters = $filters;
     }
 
     public function collection()
     {
-        return app(ProductService::class)->exportRows($this->ids);
+        return app(ProductService::class)->exportRows($this->ids, 5000, $this->filters);
     }
 
     public function headings(): array
