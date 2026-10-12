@@ -37,7 +37,7 @@
                 <h2 class="font-semibold text-gray-900">Import Pharma — Xem trước & xác nhận</h2>
                 <button type="button" wire:click="$set('showPharmaImportModal', false)" class="text-sm text-gray-600">Đóng</button>
             </div>
-            <p class="mt-2 text-sm text-gray-600">Dùng file Export Pharma; giữ nguyên 4 cột nhận diện. Chỉ cập nhật dữ liệu thương mại, tối đa 5.000 dòng.</p>
+            <p class="mt-2 text-sm text-gray-600">Dùng file Export Pharma; giữ nguyên 4 cột nhận diện. Danh mục (Slugs) ngăn cách bằng dấu phẩy; slug mới sẽ được tạo thành danh mục thuốc cấp gốc sau khi xác nhận. Hãy kiểm tra kỹ chính tả và tên danh mục mới. File cũ dùng IDs vẫn được hỗ trợ. Tối đa 5.000 dòng.</p>
             <input type="file" wire:model="pharmaImportFile" accept=".xlsx,.xls,.csv" class="mt-3 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 file:mr-3 file:rounded-md file:border-0 file:bg-indigo-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-indigo-700">
             @error('pharmaImportFile') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
             <div class="mt-3 flex flex-wrap gap-2">
@@ -47,13 +47,14 @@
             @if(count($pharmaImportPreview))
                 <div class="mt-3 max-h-64 overflow-auto rounded-lg border border-gray-200">
                     <table class="w-full text-left text-xs">
-                        <thead><tr class="bg-gray-50"><th class="p-2">Dòng</th><th class="p-2">Product ID</th><th class="p-2">Tên</th><th class="p-2">Kết quả</th></tr></thead>
+                        <thead><tr class="bg-gray-50"><th class="p-2">Dòng</th><th class="p-2">Product ID</th><th class="p-2">Tên</th><th class="p-2">Danh mục mới sẽ tạo</th><th class="p-2">Kết quả</th></tr></thead>
                         <tbody>
                             @foreach($pharmaImportPreview as $previewRow)
                                 <tr class="border-t border-gray-100">
                                     <td class="p-2">{{ $previewRow['line'] }}</td>
                                     <td class="p-2">{{ $previewRow['id'] }}</td>
                                     <td class="p-2">{{ $previewRow['title'] }}</td>
+                                    <td class="p-2 text-amber-700">{{ implode(', ', $previewRow['new_slugs'] ?? []) ?: '—' }}</td>
                                     <td class="p-2">{{ implode('; ', $previewRow['errors']) ?: 'Hợp lệ' }}</td>
                                 </tr>
                             @endforeach
