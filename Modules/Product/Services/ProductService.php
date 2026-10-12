@@ -14,7 +14,6 @@ use Modules\Category\Models\Category;
 use Modules\Product\Models\Product;
 use Modules\Product\Models\Review;
 use Modules\Pharma\Models\PharmaProductLink;
-use Nwidart\Modules\Facades\Module;
 use Throwable;
 
 class ProductService
@@ -239,7 +238,17 @@ class ProductService
 
     public function pharmaSyncAvailable(): bool
     {
-        return Module::isEnabled('Pharma')
+        $stateFile = config('modules.state.file', storage_path('app/system/module-state.json'));
+        if (! is_string($stateFile) || ! is_file($stateFile)) {
+            return false;
+        }
+
+        $states = json_decode((string) file_get_contents($stateFile), true);
+        if (! is_array($states) || ! ($states['Pharma'] ?? false)) {
+            return false;
+        }
+
+        return class_exists(PharmaProductLink::class)
             && \Illuminate\Support\Facades\Schema::hasTable('pharma_product_links');
     }
 
