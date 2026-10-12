@@ -137,4 +137,27 @@ class PharmaProductCatalogSyncIntegrationTest extends TestCase
         config()->set('pharma.product_sync_enabled', false);
     }
 
+    public function test_backfill_command_is_registered_and_dry_run_does_not_write(): void
+    {
+        $medicine = Medicine::query()->create(['name' => 'Thuốc thử backfill']);
+        MedicineVariant::query()->create([
+            'medicine_id' => $medicine->id,
+            'sku' => 'BACKFILL-'.$medicine->id,
+            'variant_identity_key' => hash('sha256', 'backfill-'.$medicine->id),
+            'sku_basis_hash' => hash('sha256', 'backfill-basis-'.$medicine->id),
+            'status' => 'active',
+        ]);
+
+        $this->artisan('pharma:products-backfill', ['--medicine-id' => $medicine->id])
+            ->assertSuccessful();
+        $this->assertSame(0, PharmaProductLink::query()->count());
+
+        $this->artisan('pharma:products-backfill', [
+            '--medicine-id' => $medicine->id,
+            '--apply' => true,
+        ])->assertSuccessful();
+        $this->assertSame(1, PharmaProductLink::query()->count());
+        $this->assertFalse(PharmaProductLink::query()->firstOrFail()->product->is_active);
+    }
+
 }
