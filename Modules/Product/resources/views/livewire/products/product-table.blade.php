@@ -66,8 +66,8 @@
                     </div>
 
                     <div class="flex flex-wrap items-center gap-2">
-                        <button type="button" wire:click="setSelectedStatus(true)" wire:confirm="Bật các sản phẩm đã chọn? Sản phẩm liên kết Pharma sẽ bị từ chối." class="rounded-lg border border-green-200 bg-white px-3 py-2 text-sm font-medium text-green-700">Bật hàng loạt</button>
-                        <button type="button" wire:click="setSelectedStatus(false)" wire:confirm="Tắt các sản phẩm đã chọn? Sản phẩm liên kết Pharma sẽ bị từ chối." class="rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm font-medium text-amber-700">Tắt hàng loạt</button>
+                        <button type="button" wire:click="setSelectedStatus(true)" wire:confirm="Bật các sản phẩm đã chọn, bao gồm sản phẩm nguồn Pharma?" class="rounded-lg border border-green-200 bg-white px-3 py-2 text-sm font-medium text-green-700">Bật hàng loạt</button>
+                        <button type="button" wire:click="setSelectedStatus(false)" wire:confirm="Tắt các sản phẩm đã chọn, bao gồm sản phẩm nguồn Pharma?" class="rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm font-medium text-amber-700">Tắt hàng loạt</button>
                         <button wire:click="openCategoryModal" class="flex items-center px-3 py-2 bg-white border border-indigo-200 text-indigo-700 rounded-lg text-sm font-medium shadow-sm hover:bg-indigo-50 transition">
                             <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
                             Gán danh mục
@@ -128,6 +128,10 @@
                                 @endforeach
                             </select>
                         </div>
+
+                        @if($search !== '' || $category_id !== '' || $status !== 'active' || $source !== 'all')
+                            <button type="button" wire:click="clearFilters" class="shrink-0 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 h-10">Xóa bộ lọc</button>
+                        @endif
 
                         <div class="relative min-w-[100px]">
                             <select wire:model.live="perPage" class="block w-full pl-3 pr-8 py-2 text-sm text-gray-600 bg-gray-50 border-0 rounded-lg hover:bg-gray-100 focus:ring-2 focus:ring-indigo-500 transition cursor-pointer h-10 font-medium">
