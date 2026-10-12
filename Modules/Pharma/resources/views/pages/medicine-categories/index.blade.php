@@ -1,4 +1,4 @@
-@extends('admin.layouts.app')
+@extends('Admin::layouts.master')
 
 @section('title', 'Danh mục thuốc Pharma')
 
