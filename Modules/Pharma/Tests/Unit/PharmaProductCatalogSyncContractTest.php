@@ -25,7 +25,6 @@ class PharmaProductCatalogSyncContractTest extends TestCase
         $this->assertStringContainsString("unset(\$normalized['title'], \$normalized['slug'])", $service);
         $this->assertStringContainsString("PharmaProductLink::query()->where('product_id', \$id)->exists()", $service);
         $this->assertStringContainsString("assertNotPharmaLinked([\$id], 'duplicate')", $service);
-        $this->assertStringContainsString("assertNotPharmaLinked([\$id], 'toggle status')", $service);
         $this->assertStringContainsString("assertNotPharmaLinked([\$id], 'delete')", $service);
         $this->assertStringContainsString("assertNotPharmaLinked(\$ids, 'bulk delete')", $service);
     }
@@ -52,7 +51,6 @@ class PharmaProductCatalogSyncContractTest extends TestCase
         $this->assertStringNotContainsString('Nwidart\\Modules\\Facades\\Module', $service);
         $this->assertStringContainsString("Schema::hasTable('pharma_product_links')", $service);
         $this->assertStringContainsString("DB::transaction(function () use (\$ids, \$active)", $service);
-        $this->assertStringContainsString("assertNotPharmaLinked(\$ids, 'bulk status')", $service);
         $this->assertStringContainsString("authorizeAdmin('edit_product')", $table);
         $this->assertStringContainsString('Quản lý đồng bộ Pharma', $view);
         $this->assertStringContainsString('Bật hàng loạt', $view);
@@ -102,6 +100,19 @@ class PharmaProductCatalogSyncContractTest extends TestCase
         $this->assertStringContainsString('exportRows($this->ids, 5000, $this->filters)', $export);
         $this->assertStringContainsString('wire:model.live="status"', $view);
         $this->assertStringContainsString('wire:model.live="source"', $view);
+    }
+
+    public function test_pharma_product_status_is_commercial_and_filters_can_be_reset(): void
+    {
+        $service = file_get_contents(base_path('Modules/Product/Services/ProductService.php'));
+        $table = file_get_contents(base_path('Modules/Product/Livewire/Products/ProductTable.php'));
+        $view = file_get_contents(base_path('Modules/Product/resources/views/livewire/products/product-table.blade.php'));
+
+        $this->assertStringNotContainsString("assertNotPharmaLinked([\$id], 'toggle status')", $service);
+        $this->assertStringNotContainsString("assertNotPharmaLinked(\$ids, 'bulk status')", $service);
+        $this->assertStringContainsString("public function clearFilters(): void", $table);
+        $this->assertStringContainsString("wire:click=\"clearFilters\"", $view);
+        $this->assertStringContainsString("Xóa bộ lọc", $view);
     }
 
 }
