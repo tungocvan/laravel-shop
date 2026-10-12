@@ -196,4 +196,17 @@ class PharmaProductCatalogSyncContractTest extends TestCase
         $this->assertStringContainsString('Đồng bộ từ Pharma', $view);
     }
 
+    public function test_pharma_export_contains_three_source_owned_reference_columns(): void
+    {
+        $export = file_get_contents(base_path('Modules/Product/Exports/PharmaProductsExport.php'));
+        $import = file_get_contents(base_path('Modules/Product/Services/PharmaProductExcelImportService.php'));
+
+        $this->assertStringContainsString('Hoạt chất (Pharma - chỉ đọc)', $export);
+        $this->assertStringContainsString('Nhà cung cấp (Pharma - chỉ đọc)', $export);
+        $this->assertStringContainsString('Loại sản phẩm (Pharma - chỉ đọc)', $export);
+        $this->assertStringContainsString("supplierTrackings->pluck('supplier_name')", $export);
+        $this->assertStringContainsString('Medicine::productTypeOptions()', $export);
+        $this->assertStringContainsString('(new PharmaProductsExport(true))->headings()', $import);
+    }
+
 }
