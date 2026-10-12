@@ -144,4 +144,22 @@ class PharmaProductCatalogSyncContractTest extends TestCase
         $this->assertStringContainsString('Import Pharma đang xây dựng', $view);
     }
 
+    public function test_pharma_excel_import_is_separate_previewed_and_commercial_only(): void
+    {
+        $table = file_get_contents(base_path('Modules/Product/Livewire/Products/ProductTable.php'));
+        $view = file_get_contents(base_path('Modules/Product/resources/views/livewire/products/product-table.blade.php'));
+        $service = file_get_contents(base_path('Modules/Product/Services/PharmaProductExcelImportService.php'));
+
+        $this->assertStringContainsString('previewPharmaImport', $table);
+        $this->assertStringContainsString('applyPharmaImport', $table);
+        $this->assertStringContainsString('pharmaImportValidated', $table);
+        $this->assertStringContainsString('Import Pharma Excel', $view);
+        $this->assertStringContainsString('Xác nhận Import', $view);
+        $this->assertStringContainsString("where('product_id', \$product->id)->exists()", $service);
+        $this->assertStringContainsString("DB::transaction(function () use (\$sheets)", $service);
+        $this->assertStringNotContainsString("'quantity' =>", $service);
+        $this->assertStringNotContainsString("'title' =>", $service);
+        $this->assertStringNotContainsString("'slug' =>", $service);
+    }
+
 }
