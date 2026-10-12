@@ -14,7 +14,7 @@ use Modules\Product\Models\Product;
 class PharmaProductCatalogSyncService
 {
     /**
-     * Explicitly invoked projection only. Never changes Product commercial fields.
+     * Pharma owns product identity and declared regular price; other commercial fields stay in Product.
      * Caller is responsible for scheduling after the Pharma write transaction commits.
      */
     public function syncVariant(MedicineVariant $variant, ?MedicinePackage $package = null): PharmaProductLink
@@ -38,6 +38,7 @@ class PharmaProductCatalogSyncService
 
             $sourceKey = $package ? 'package:'.$package->getKey() : 'variant:'.$variant->getKey();
             $title = trim($medicine->name.' - '.($package?->packaging_text ?: $variant->presentation_text ?: $variant->sku));
+            $declaredPrice = $variant->declared_price ?? $medicine->declared_price;
             $fingerprint = hash('sha256', json_encode([
                 'medicine' => $medicine->getKey(),
                 'variant' => $variant->getKey(),
@@ -48,6 +49,7 @@ class PharmaProductCatalogSyncService
                 'product_type' => $medicine->product_type,
                 'registration_number' => $medicine->registration_number,
                 'variant_status' => $variant->status,
+                'declared_price' => $declaredPrice,
             ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
 
             $link = PharmaProductLink::query()->where('source_key', $sourceKey)->lockForUpdate()->first();
@@ -75,7 +77,7 @@ class PharmaProductCatalogSyncService
                 $product = Product::query()->create([
                     'title' => $title,
                     'slug' => $slug,
-                    'regular_price' => null,
+                    'regular_price' => $declaredPrice,
                     'sale_price' => null,
                     'quantity' => 0,
                     'is_active' => false,
@@ -84,7 +86,11 @@ class PharmaProductCatalogSyncService
                 $link = new PharmaProductLink(['product_id' => $product->getKey(), 'source_key' => $sourceKey]);
             } else {
                 $product = Product::query()->findOrFail($link->product_id);
-                $product->forceFill(['title' => $title])->save();
+                $changes = ['title' => $title];
+                if ($declaredPrice !== null) {
+                    $changes['regular_price'] = $declaredPrice;
+                }
+                $product->forceFill($changes)->save();
             }
 
             $link->fill([
