@@ -31,6 +31,6 @@ class WebsitePharmaBrandingCardContractTest extends TestCase
         $this->assertStringContainsString('focus-visible:outline', $home);
         $this->assertStringContainsString('@if($product->image)', $home);
         $this->assertStringContainsString('Chưa có ảnh sản phẩm', $home);
-        $this->assertStringContainsString("route('product.detail', $product->slug)", $home);
+        $this->assertStringContainsString('route(\'product.detail\', $product->slug)', $home);
     }
 }
