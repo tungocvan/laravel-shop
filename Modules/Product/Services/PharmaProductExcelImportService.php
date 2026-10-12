@@ -63,7 +63,10 @@ class PharmaProductExcelImportService
             }
             foreach ([9 => 'gallery', 10 => 'tags'] as $column => $field) {
                 $value = $row[$column] ?? null;
-                $decoded = ($value === null || $value === '') ? [] : json_decode((string) $value, true);
+                $normalized = is_string($value) ? trim($value) : $value;
+                $decoded = ($normalized === null || $normalized === '' || $normalized === 'null')
+                    ? []
+                    : json_decode((string) $normalized, true);
                 if (!is_array($decoded) || !array_is_list($decoded)) {
                     $errors[] = "Cột ".($column + 1)." phải là JSON array.";
                 } else {
