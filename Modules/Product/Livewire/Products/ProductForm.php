@@ -30,6 +30,7 @@ class ProductForm extends Component
     public $gallery = [];
     public $newGallery = [];
 
+    public $isPharmaLinked = false;
     public $tags = [];
     public $tagInput = '';
 
@@ -52,6 +53,7 @@ class ProductForm extends Component
 
         $product = $this->products->findForEdit((int) $id);
         $this->productId = $product->id;
+        $this->isPharmaLinked = $this->products->pharmaSyncAvailable() && $product->pharmaLink()->exists();
         $this->title = $product->title;
         $this->slug = $product->slug;
         $this->regular_price = $product->regular_price;
@@ -142,6 +144,11 @@ class ProductForm extends Component
     public function save()
     {
         $this->authorizeAdmin($this->productId ? 'edit_product' : 'create_product');
+        if ($this->productId && $this->isPharmaLinked) {
+            $canonical = $this->products->findForEdit((int) $this->productId);
+            $this->title = $canonical->title;
+            $this->slug = $canonical->slug;
+        }
         $this->validate();
 
         $payload = [
@@ -171,7 +178,9 @@ class ProductForm extends Component
 
     public function updatedTitle($value): void
     {
-        $this->slug = Str::slug((string) $value);
+        if (! $this->isPharmaLinked) {
+            $this->slug = Str::slug((string) $value);
+        }
     }
 
     public function render()
