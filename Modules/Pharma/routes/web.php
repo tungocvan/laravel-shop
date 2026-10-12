@@ -7,7 +7,6 @@ use Modules\Pharma\Http\Controllers\HsspController;
 use Modules\Pharma\Http\Controllers\InventoryController;
 use Modules\Pharma\Http\Controllers\MedicineCatalogImportController;
 use Modules\Pharma\Http\Controllers\MedicineExcelController;
-use Modules\Pharma\Http\Controllers\MedicineCategoryController;
 use Modules\Pharma\Http\Controllers\OfficialFacilityImportController;
 use Modules\Pharma\Http\Controllers\OfficialFacilityImportTemplateController;
 use Modules\Pharma\Http\Controllers\OfficialSourceSyncController;
@@ -46,13 +45,6 @@ Route::prefix('admin/pharma')->name('admin.pharma.')->middleware(['web', 'auth:a
     Route::put('/official-facilities/import/rows/{row}/resolve', [OfficialFacilityImportController::class, 'resolve'])
         ->middleware('can:resolve_pharma_official_facility_conflicts')
         ->name('official-facilities.resolve');
-
-    Route::prefix('medicine-categories')->name('medicine-categories.')->group(function () {
-        Route::get('/', [MedicineCategoryController::class, 'index'])->middleware('can:view_pharma')->name('index');
-        Route::post('/', [MedicineCategoryController::class, 'store'])->middleware('can:create_pharma')->name('store');
-        Route::put('/{category}', [MedicineCategoryController::class, 'update'])->middleware('can:edit_pharma')->name('update');
-        Route::delete('/{category}', [MedicineCategoryController::class, 'destroy'])->middleware('can:delete_pharma')->name('destroy');
-    });
 
     Route::prefix('medicines')->name('medicines.')->group(function () {
         Route::get('/', [PharmaController::class, 'index'])->middleware('can:view_pharma')->name('index');
