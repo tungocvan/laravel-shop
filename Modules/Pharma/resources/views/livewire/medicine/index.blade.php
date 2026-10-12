@@ -44,6 +44,7 @@
         @if($showImportExport)
             <div class="mt-4 flex flex-wrap items-center gap-3 rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4">
                 @if($canEdit)<a href="{{ route('admin.pharma.medicines.import.index') }}" class="inline-flex min-h-10 items-center rounded-xl border border-indigo-200 bg-white px-4 text-sm font-semibold text-indigo-700">Import danh mục thuốc chuẩn</a>@endif
+                <a href="{{ route('admin.pharma.medicines.categories-csv.index') }}" class="inline-flex min-h-10 items-center rounded-xl border border-indigo-200 bg-white px-4 text-sm font-semibold text-indigo-700">Gán danh mục thuốc bằng CSV</a>
                 <a href="{{ route('admin.pharma.medicines.export') }}" class="inline-flex min-h-10 items-center rounded-xl border border-emerald-200 bg-white px-4 text-sm font-semibold text-emerald-700">Export danh mục thuốc chuẩn</a>
                 <span class="text-xs text-slate-500">Import/Export dữ liệu Medicine Master; Mã thuốc và SKU được giữ trong file export.</span>
             </div>
