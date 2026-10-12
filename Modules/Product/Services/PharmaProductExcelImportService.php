@@ -3,6 +3,8 @@
 namespace Modules\Product\Services;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Modules\Category\Models\Category;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 use Modules\Pharma\Models\PharmaProductLink;
@@ -17,7 +19,10 @@ class PharmaProductExcelImportService
     {
         $rows = $sheets[0] ?? [];
         $headings = (new PharmaProductsExport(true))->headings();
-        if (($rows[0] ?? null) !== $headings) {
+        $legacyHeadings = $headings;
+        $legacyHeadings[11] = 'Danh mục (IDs)';
+        $legacyIds = ($rows[0] ?? null) === $legacyHeadings;
+        if (($rows[0] ?? null) !== $headings && ! $legacyIds) {
             throw ValidationException::withMessages(['pharmaImportFile' => 'Sai cấu trúc Excel Pharma. Hãy dùng file Export Pharma hoặc Template Pharma mới nhất.']);
         }
         if (count($rows) - 1 > self::MAX_ROWS) {
@@ -79,14 +84,27 @@ class PharmaProductExcelImportService
             } else {
                 $changes['is_active'] = $status === '1';
             }
-            $categoryIds = trim((string) ($row[11] ?? ''));
-            $ids = $categoryIds === '' ? [] : array_map('trim', explode(',', $categoryIds));
-            if (count(array_filter($ids, fn ($v) => !ctype_digit($v) || (int) $v < 1)) > 0) {
-                $errors[] = 'Danh mục phải là danh sách ID nguyên dương, cách nhau bởi dấu phẩy.';
-            } elseif ($ids !== [] && DB::table('categories')->whereIn('id', $ids)->count() !== count(array_unique($ids))) {
-                $errors[] = 'Danh mục không tồn tại hoặc trùng ID.';
+            $rawCategories = trim((string) ($row[11] ?? ''));
+            $tokens = $rawCategories === '' ? [] : array_map('trim', explode(',', $rawCategories));
+            if (in_array('', $tokens, true) || count($tokens) !== count(array_unique($tokens))) {
+                $errors[] = 'Danh mục trống hoặc trùng trong cùng một dòng.';
             }
-            $results[] = ['line' => $line, 'id' => $id ?: null, 'title' => $product?->title, 'errors' => $errors, 'changes' => $changes, 'category_ids' => array_map('intval', $ids)];
+            $newSlugs = [];
+            if ($legacyIds) {
+                if (count(array_filter($tokens, fn ($v) => !ctype_digit($v) || (int) $v < 1)) > 0
+                    || Category::query()->where('type', 'medicine')->whereIn('id', $tokens)->count() !== count($tokens)) {
+                    $errors[] = 'ID danh mục cũ phải tồn tại và thuộc type=medicine.';
+                }
+            } else {
+                foreach ($tokens as $slug) {
+                    if (!preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/D', $slug) || strlen($slug) > 190) {
+                        $errors[] = "Slug danh mục {$slug} không hợp lệ (chỉ chữ thường, số và dấu gạch ngang).";
+                    } elseif (!Category::query()->where('type', 'medicine')->where('slug', $slug)->exists()) {
+                        $newSlugs[] = $slug;
+                    }
+                }
+            }
+            $results[] = ['line' => $line, 'id' => $id ?: null, 'title' => $product?->title, 'errors' => $errors, 'changes' => $changes, 'category_tokens' => $tokens, 'legacy_ids' => $legacyIds, 'new_slugs' => $newSlugs];
         }
 
         return $results;
@@ -109,7 +127,27 @@ class PharmaProductExcelImportService
                     throw ValidationException::withMessages(['pharmaImportFile' => 'Liên kết Pharma đã thay đổi. Vui lòng xem trước lại.']);
                 }
                 $product->fill($row['changes'])->save();
-                $product->categories()->sync($row['category_ids']);
+                $categoryIds = [];
+                foreach ($row['category_tokens'] as $token) {
+                    if ($row['legacy_ids']) {
+                        $category = Category::query()->where('type', 'medicine')->findOrFail((int) $token);
+                    } else {
+                        $category = Category::query()->where('type', 'medicine')->where('slug', $token)->first();
+                        if (! $category) {
+                            $category = Category::query()->create([
+                                'type' => 'medicine',
+                                'type_title' => 'Danh mục Thuốc',
+                                'slug' => $token,
+                                'name' => Str::headline(str_replace('-', ' ', $token)),
+                                'parent_id' => null,
+                                'is_active' => true,
+                                'sort_order' => 0,
+                            ]);
+                        }
+                    }
+                    $categoryIds[] = $category->id;
+                }
+                $product->categories()->sync($categoryIds);
             }
 
             return count($results);
