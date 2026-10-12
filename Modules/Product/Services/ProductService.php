@@ -161,10 +161,10 @@ class ProductService
             ->get();
     }
 
-    public function flatProductCategoryOptions(): Collection
+    public function flatProductCategoryOptions(string $source = 'all'): Collection
     {
         $categories = Category::query()
-            ->where('type', 'product')
+            ->where('type', $source === 'pharma' ? 'medicine' : 'product')
             ->select(['id', 'name', 'parent_id', 'sort_order'])
             ->orderBy('sort_order')
             ->orderBy('name')
@@ -497,9 +497,12 @@ class ProductService
 
     private function filteredAdminQuery(array $filters): Builder
     {
+        $source = (string) ($filters['source'] ?? 'all');
+        $categoryType = $source === 'pharma' ? 'medicine' : 'product';
         $query = $this->baseAdminQuery(
             trim((string) ($filters['search'] ?? '')),
-            $filters['category_id'] ?? null
+            $filters['category_id'] ?? null,
+            $categoryType
         );
         $status = (string) ($filters['status'] ?? 'active');
         if ($status === 'active') {
@@ -522,7 +525,7 @@ class ProductService
         return $query;
     }
 
-    private function baseAdminQuery(string $search, mixed $categoryId): Builder
+    private function baseAdminQuery(string $search, mixed $categoryId, string $categoryType): Builder
     {
         return Product::query()
             ->with('categories:id,name')
@@ -534,7 +537,7 @@ class ProductService
                 });
             })
             ->when($categoryId !== null && $categoryId !== '', function (Builder $query) use ($categoryId) {
-                $query->whereHas('categories', fn (Builder $categoryQuery) => $categoryQuery->whereKey((int) $categoryId));
+                $query->whereHas('categories', fn (Builder $categoryQuery) => $categoryQuery->whereKey((int) $categoryId)->where('categories.type', $categoryType));
             });
     }
 
