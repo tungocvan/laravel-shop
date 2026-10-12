@@ -66,7 +66,41 @@
                             </article>
                         @endforeach
                     </div>
-                    <div class="mt-8">{{ $products->links() }}</div>
+                    @if($products->hasPages())
+                        @php
+                            $currentPage = $products->currentPage();
+                            $lastPage = $products->lastPage();
+                            $startPage = max(1, min($currentPage - 2, $lastPage - 4));
+                            $endPage = min($lastPage, $startPage + 4);
+                        @endphp
+                        <nav aria-label="Phân trang sản phẩm dược phẩm" class="mt-9 rounded-2xl border border-slate-200 bg-white px-4 py-5 shadow-sm sm:px-6">
+                            <div class="flex flex-col items-center justify-between gap-4 lg:flex-row">
+                                <p class="text-center text-sm text-slate-600 lg:text-left">
+                                    Hiển thị <strong class="text-slate-900">{{ $products->firstItem() }}–{{ $products->lastItem() }}</strong>
+                                    trong <strong class="text-slate-900">{{ $products->total() }}</strong> sản phẩm
+                                </p>
+                                <div class="flex max-w-full items-center gap-1.5" role="group" aria-label="Chọn trang">
+                                    <button type="button" wire:click="previousPage" wire:loading.attr="disabled" @disabled($products->onFirstPage()) aria-label="Trang trước" class="inline-flex min-h-11 items-center justify-center gap-1 rounded-xl border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-40">
+                                        <span aria-hidden="true">‹</span><span class="hidden sm:inline">Trước</span>
+                                    </button>
+                                    @if($startPage > 1)
+                                        <button type="button" wire:click="gotoPage(1)" aria-label="Trang 1" class="hidden min-h-11 min-w-11 items-center justify-center rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-emerald-50 sm:inline-flex">1</button>
+                                        @if($startPage > 2)<span aria-hidden="true" class="hidden px-1 text-slate-400 sm:inline">…</span>@endif
+                                    @endif
+                                    @for($page = $startPage; $page <= $endPage; $page++)
+                                        <button type="button" wire:key="pharma-page-{{ $page }}" wire:click="gotoPage({{ $page }})" @if($page === $currentPage) aria-current="page" @endif aria-label="Trang {{ $page }}" class="{{ $page > 3 && $page !== $currentPage ? 'hidden sm:inline-flex' : 'inline-flex' }} min-h-11 min-w-11 items-center justify-center rounded-xl border text-sm font-bold transition {{ $page === $currentPage ? 'border-emerald-700 bg-emerald-700 text-white shadow-sm' : 'border-slate-200 bg-white text-slate-700 hover:border-emerald-300 hover:bg-emerald-50' }}">{{ $page }}</button>
+                                    @endfor
+                                    @if($endPage < $lastPage)
+                                        @if($endPage < $lastPage - 1)<span aria-hidden="true" class="hidden px-1 text-slate-400 sm:inline">…</span>@endif
+                                        <button type="button" wire:click="gotoPage({{ $lastPage }})" aria-label="Trang {{ $lastPage }}" class="hidden min-h-11 min-w-11 items-center justify-center rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-emerald-50 sm:inline-flex">{{ $lastPage }}</button>
+                                    @endif
+                                    <button type="button" wire:click="nextPage" wire:loading.attr="disabled" @disabled(!$products->hasMorePages()) aria-label="Trang tiếp theo" class="inline-flex min-h-11 items-center justify-center gap-1 rounded-xl border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-40">
+                                        <span class="hidden sm:inline">Tiếp</span><span aria-hidden="true">›</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </nav>
+                    @endif
                 @endif
             </main>
         </div>
