@@ -45,15 +45,28 @@
                 <button type="button" wire:click="applyPharmaImport" wire:confirm="Xác nhận cập nhật các Product Pharma hợp lệ?" @disabled(!$pharmaImportValidated) class="rounded-lg bg-green-600 px-3 py-2 text-sm text-white disabled:opacity-40">Xác nhận Import</button>
             </div>
             @if(count($pharmaImportPreview))
+                @php
+                    $previewRows = collect($pharmaImportPreview);
+                    $validCount = $previewRows->filter(fn ($row) => ($row['errors'] ?? []) === [])->count();
+                    $invalidCount = $previewRows->count() - $validCount;
+                    $newSlugs = $previewRows->flatMap(fn ($row) => $row['new_slugs'] ?? [])->unique()->values();
+                @endphp
+                <div class="mt-3 flex flex-wrap gap-2 text-xs" role="status">
+                    <span class="rounded-lg bg-slate-100 px-3 py-2 text-slate-800">Tổng: <strong>{{ $previewRows->count() }}</strong> sản phẩm</span>
+                    <span class="rounded-lg bg-green-50 px-3 py-2 text-green-800">Hợp lệ: <strong>{{ $validCount }}</strong></span>
+                    <span class="rounded-lg bg-red-50 px-3 py-2 text-red-800">Có lỗi: <strong>{{ $invalidCount }}</strong></span>
+                    <span class="rounded-lg bg-amber-50 px-3 py-2 text-amber-800">Slug mới sẽ tạo: <strong>{{ $newSlugs->count() }}</strong></span>
+                </div>
                 <div class="mt-3 max-h-64 overflow-auto rounded-lg border border-gray-200">
                     <table class="w-full text-left text-xs">
-                        <thead><tr class="bg-gray-50"><th class="p-2">Dòng</th><th class="p-2">Product ID</th><th class="p-2">Tên</th><th class="p-2">Danh mục mới sẽ tạo</th><th class="p-2">Kết quả</th></tr></thead>
+                        <thead><tr class="bg-gray-50"><th class="p-2">Dòng</th><th class="p-2">Product ID</th><th class="p-2">Tên</th><th class="p-2">Danh mục sẽ gán (Slugs)</th><th class="p-2">Danh mục mới sẽ tạo</th><th class="p-2">Kết quả</th></tr></thead>
                         <tbody>
                             @foreach($pharmaImportPreview as $previewRow)
                                 <tr class="border-t border-gray-100">
                                     <td class="p-2">{{ $previewRow['line'] }}</td>
                                     <td class="p-2">{{ $previewRow['id'] }}</td>
                                     <td class="p-2">{{ $previewRow['title'] }}</td>
+                                    <td class="p-2 max-w-xs break-words text-slate-700">{{ implode(', ', $previewRow['category_slugs'] ?? []) ?: 'Không gán danh mục' }}</td>
                                     <td class="p-2 text-amber-700">{{ implode(', ', $previewRow['new_slugs'] ?? []) ?: '—' }}</td>
                                     <td class="p-2">{{ implode('; ', $previewRow['errors']) ?: 'Hợp lệ' }}</td>
                                 </tr>
