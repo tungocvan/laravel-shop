@@ -9,12 +9,12 @@
         <div class="flex flex-wrap gap-2">
             <button wire:click="export" wire:loading.attr="disabled" class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition">
                 <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                Export Excel (đã chọn / theo bộ lọc)
+                Export Excel (Product thông thường / theo bộ lọc)
             </button>
 
             <button wire:click="$set('showImportModal', true)" class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition">
                 <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
-                Import
+                Import thông thường
             </button>
 
             <a href="{{ route('admin.products.create') }}" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 transition">
@@ -41,6 +41,13 @@
                 <button type="button" wire:click="$toggle('showSyncPanel')" class="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700" aria-expanded="{{ $showSyncPanel ? 'true' : 'false' }}">{{ $showSyncPanel ? 'Thu gọn' : 'Xem thống kê' }}</button>
             @endif
         </div>
+        @if($pharmaSyncAvailable)
+            <div class="mt-3 flex flex-wrap items-center gap-2 border-t border-gray-100 pt-3">
+                <button type="button" wire:click="exportPharma" wire:loading.attr="disabled" class="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700">Export Pharma Excel</button>
+                <button type="button" wire:click="downloadPharmaTemplate" wire:loading.attr="disabled" class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700">Tải Template Pharma</button>
+                <span class="text-xs text-amber-700">Import Pharma đang xây dựng: chưa dùng file này với Import thông thường.</span>
+            </div>
+        @endif
         @if($pharmaSyncAvailable && $showSyncPanel)
             <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 @foreach(['total' => 'Liên kết Pharma', 'synced' => 'Đã đồng bộ', 'stale' => 'Ngừng đồng bộ', 'error' => 'Lỗi'] as $key => $label)
