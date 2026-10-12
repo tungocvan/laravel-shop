@@ -17,6 +17,8 @@ class ProductTable extends Component
 
     public $search = '';
     public $category_id = '';
+    public $status = 'active';
+    public $source = 'all';
     public $perPage = 10;
 
     public $sortColumn = 'created_at';
@@ -51,6 +53,18 @@ class ProductTable extends Component
     }
 
     public function updatedCategoryId(): void
+    {
+        $this->resetPage();
+        $this->resetSelection();
+    }
+
+    public function updatedStatus(): void
+    {
+        $this->resetPage();
+        $this->resetSelection();
+    }
+
+    public function updatedSource(): void
     {
         $this->resetPage();
         $this->resetSelection();
@@ -167,7 +181,7 @@ class ProductTable extends Component
 
         $ids = $this->selected !== [] ? $this->selected : null;
 
-        return Excel::download(new ProductsExport($ids), 'products_'.date('Y-m-d').'.xlsx');
+        return Excel::download(new ProductsExport($ids, $this->filters()), 'products_'.date('Y-m-d').'.xlsx');
     }
 
     public function import(): void
@@ -202,6 +216,8 @@ class ProductTable extends Component
         return [
             'search' => $this->search,
             'category_id' => $this->category_id,
+            'status' => $this->status,
+            'source' => $this->source,
             'perPage' => $this->perPage,
             'sortColumn' => $this->sortColumn,
             'sortDirection' => $this->sortDirection,
