@@ -128,4 +128,20 @@ class PharmaProductCatalogSyncContractTest extends TestCase
         $this->assertStringContainsString('role="status"', $view);
     }
 
+    public function test_pharma_excel_has_separate_guarded_export_and_template(): void
+    {
+        $table = file_get_contents(base_path('Modules/Product/Livewire/Products/ProductTable.php'));
+        $view = file_get_contents(base_path('Modules/Product/resources/views/livewire/products/product-table.blade.php'));
+        $export = file_get_contents(base_path('Modules/Product/Exports/PharmaProductsExport.php'));
+
+        $this->assertStringContainsString('public function exportPharma()', $table);
+        $this->assertStringContainsString('public function downloadPharmaTemplate()', $table);
+        $this->assertStringContainsString('abort_unless($this->products->pharmaSyncAvailable(), 404)', $table);
+        $this->assertStringContainsString("whereHas('pharmaLink')", $export);
+        $this->assertStringContainsString('if ($this->template)', $export);
+        $this->assertStringContainsString('Export Pharma Excel', $view);
+        $this->assertStringContainsString('Tải Template Pharma', $view);
+        $this->assertStringContainsString('Import Pharma đang xây dựng', $view);
+    }
+
 }
