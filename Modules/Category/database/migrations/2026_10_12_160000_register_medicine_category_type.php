@@ -26,7 +26,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        if (Schema::hasTable('category_types')
+        if (Schema::hasTable('category_types') && Schema::hasTable('categories')
             && ! DB::table('categories')->where('type', 'medicine')->exists()) {
             DB::table('category_types')->where('type', 'medicine')->delete();
         }
