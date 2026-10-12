@@ -24,6 +24,43 @@
         </div>
     </div>
 
+
+    @if($pharmaImportNotice)
+        <div role="status" class="mb-4 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800">{{ $pharmaImportNotice }}</div>
+    @endif
+    @if($showPharmaImportModal)
+        <section class="mb-5 rounded-xl border border-indigo-200 bg-white p-4 shadow-sm" aria-label="Import Excel Pharma">
+            <div class="flex items-center justify-between gap-3">
+                <h2 class="font-semibold text-gray-900">Import Pharma — Xem trước & xác nhận</h2>
+                <button type="button" wire:click="$set('showPharmaImportModal', false)" class="text-sm text-gray-600">Đóng</button>
+            </div>
+            <p class="mt-2 text-sm text-gray-600">Dùng file Export Pharma; giữ nguyên 4 cột nhận diện. Chỉ cập nhật dữ liệu thương mại, tối đa 5.000 dòng.</p>
+            <input type="file" wire:model="pharmaImportFile" accept=".xlsx,.xls,.csv" class="mt-3 block w-full text-sm">
+            @error('pharmaImportFile') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
+            <div class="mt-3 flex flex-wrap gap-2">
+                <button type="button" wire:click="previewPharmaImport" wire:loading.attr="disabled" class="rounded-lg bg-indigo-600 px-3 py-2 text-sm text-white">Kiểm tra / Xem trước</button>
+                <button type="button" wire:click="applyPharmaImport" wire:confirm="Xác nhận cập nhật các Product Pharma hợp lệ?" @disabled(!$pharmaImportValidated) class="rounded-lg bg-green-600 px-3 py-2 text-sm text-white disabled:opacity-40">Xác nhận Import</button>
+            </div>
+            @if(count($pharmaImportPreview))
+                <div class="mt-3 max-h-64 overflow-auto rounded-lg border border-gray-200">
+                    <table class="w-full text-left text-xs">
+                        <thead><tr class="bg-gray-50"><th class="p-2">Dòng</th><th class="p-2">Product ID</th><th class="p-2">Tên</th><th class="p-2">Kết quả</th></tr></thead>
+                        <tbody>
+                            @foreach($pharmaImportPreview as $previewRow)
+                                <tr class="border-t border-gray-100">
+                                    <td class="p-2">{{ $previewRow['line'] }}</td>
+                                    <td class="p-2">{{ $previewRow['id'] }}</td>
+                                    <td class="p-2">{{ $previewRow['title'] }}</td>
+                                    <td class="p-2">{{ implode('; ', $previewRow['errors']) ?: 'Hợp lệ' }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </section>
+    @endif
+
     @if($bulkDeleteNotice)
         <div role="status" class="mb-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
             {{ $bulkDeleteNotice }}
@@ -45,7 +82,7 @@
             <div class="mt-3 flex flex-wrap items-center gap-2 border-t border-gray-100 pt-3">
                 <button type="button" wire:click="exportPharma" wire:loading.attr="disabled" class="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700">Export Pharma Excel</button>
                 <button type="button" wire:click="downloadPharmaTemplate" wire:loading.attr="disabled" class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700">Tải Template Pharma</button>
-                <span class="text-xs text-amber-700">Import Pharma đang xây dựng: chưa dùng file này với Import thông thường.</span>
+                <button type="button" wire:click="$set('showPharmaImportModal', true)" class="rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm font-medium text-indigo-700">Import Pharma Excel</button>
             </div>
         @endif
         @if($pharmaSyncAvailable && $showSyncPanel)
