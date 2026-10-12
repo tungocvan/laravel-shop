@@ -29,6 +29,12 @@
         </div>
     </div>
 
+    @if($isPharmaLinked)
+        <div class="mb-5 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-800">
+            <strong>Nguồn: Pharma.</strong> Tên sản phẩm và đường dẫn do Pharma quản lý, chỉ đọc tại đây. Bạn có thể chỉnh sửa giá bán, nội dung, hình ảnh, danh mục và hoa hồng. Tồn kho không thay đổi khi lưu.
+        </div>
+    @endif
+
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
         <div class="lg:col-span-2 space-y-8">
@@ -49,7 +55,7 @@
                                     </path>
                                 </svg>
                             </div>
-                            <input type="text" wire:model.live="title"
+                            <input type="text" wire:model.live="title" @readonly($isPharmaLinked)
                                 class="block w-full rounded-md border-0 py-2.5 pl-10 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                                 placeholder="Nhập tên sản phẩm...">
                         </div>
@@ -69,7 +75,7 @@
                                     </path>
                                 </svg>
                             </div>
-                            <input type="text" wire:model="slug"
+                            <input type="text" wire:model="slug" @readonly($isPharmaLinked)
                                 class="block w-full rounded-md border-0 py-2.5 pl-10 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 bg-gray-50">
                         </div>
                         @error('slug')
