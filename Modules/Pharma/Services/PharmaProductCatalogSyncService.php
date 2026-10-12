@@ -32,9 +32,6 @@ class PharmaProductCatalogSyncService
                 if ((int) $package->medicine_variant_id !== (int) $variant->getKey()) {
                     throw new InvalidArgumentException('Package does not belong to the variant.');
                 }
-                if (! $package->is_orderable) {
-                    throw new InvalidArgumentException('Package is not orderable.');
-                }
             } elseif ($variant->packages()->exists()) {
                 throw new InvalidArgumentException('Packages exist; sync an orderable package instead.');
             }
@@ -54,13 +51,17 @@ class PharmaProductCatalogSyncService
             ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
 
             $link = PharmaProductLink::query()->where('source_key', $sourceKey)->lockForUpdate()->first();
-            if ($link && $link->source_fingerprint === $fingerprint && $link->sync_status === 'synced') {
-                return $link;
-            }
-
             if ($link && ($medicine->catalog_status !== Medicine::CATALOG_ACTIVE || $variant->status !== 'active' || ($package && ! $package->is_orderable))) {
                 $link->forceFill(['sync_status' => 'stale', 'last_error' => 'Pharma source is no longer eligible.'])->save();
                 $link->product()->update(['is_active' => false]);
+                return $link;
+            }
+
+            if (! $link && $package && ! $package->is_orderable) {
+                throw new InvalidArgumentException('Package is not orderable.');
+            }
+
+            if ($link && $link->source_fingerprint === $fingerprint && $link->sync_status === 'synced') {
                 return $link;
             }
 
