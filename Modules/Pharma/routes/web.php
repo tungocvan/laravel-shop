@@ -7,7 +7,6 @@ use Modules\Pharma\Http\Controllers\HsspController;
 use Modules\Pharma\Http\Controllers\InventoryController;
 use Modules\Pharma\Http\Controllers\MedicineCatalogImportController;
 use Modules\Pharma\Http\Controllers\MedicineExcelController;
-use Modules\Pharma\Http\Controllers\MedicineCategoryCsvController;
 use Modules\Pharma\Http\Controllers\OfficialFacilityImportController;
 use Modules\Pharma\Http\Controllers\OfficialFacilityImportTemplateController;
 use Modules\Pharma\Http\Controllers\OfficialSourceSyncController;
@@ -53,10 +52,6 @@ Route::prefix('admin/pharma')->name('admin.pharma.')->middleware(['web', 'auth:a
         Route::get('/export-configured', [MedicineExcelController::class, 'export'])->middleware('can:view_pharma')->name('export-configured');
         Route::get('/create', [PharmaController::class, 'create'])->middleware('can:create_pharma')->name('create');
         Route::get('/{id}/edit', [PharmaController::class, 'edit'])->whereNumber('id')->middleware('can:edit_pharma')->name('edit');
-        Route::get('/categories-csv', [MedicineCategoryCsvController::class, 'index'])->middleware('can:view_pharma')->name('categories-csv.index');
-        Route::get('/categories-csv/export', [MedicineCategoryCsvController::class, 'export'])->middleware('can:view_pharma')->name('categories-csv.export');
-        Route::post('/categories-csv/preview', [MedicineCategoryCsvController::class, 'preview'])->middleware('can:edit_pharma')->name('categories-csv.preview');
-        Route::post('/categories-csv/commit', [MedicineCategoryCsvController::class, 'commit'])->middleware('can:edit_pharma')->name('categories-csv.commit');
         Route::get('/import/template', [MedicineCatalogImportController::class, 'template'])->middleware('can:view_pharma')->name('import.template');
         Route::get('/import', [MedicineCatalogImportController::class, 'index'])->middleware('can:view_pharma')->name('import.index');
         Route::post('/import', [MedicineCatalogImportController::class, 'store'])->middleware('can:edit_pharma')->name('import.store');
