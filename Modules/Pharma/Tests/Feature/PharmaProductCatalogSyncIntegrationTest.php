@@ -4,6 +4,8 @@ namespace Modules\Pharma\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\DB;
+use RuntimeException;
 use Modules\Pharma\Jobs\SyncMedicineProducts;
 use Modules\Pharma\Models\Medicine;
 use Modules\Pharma\Models\MedicinePackage;
@@ -158,6 +160,76 @@ class PharmaProductCatalogSyncIntegrationTest extends TestCase
         ])->assertSuccessful();
         $this->assertSame(1, PharmaProductLink::query()->count());
         $this->assertFalse(PharmaProductLink::query()->firstOrFail()->product->is_active);
+    }
+
+    public function test_sync_job_retry_is_idempotent_and_preserves_commercial_values(): void
+    {
+        config()->set('pharma.product_sync_enabled', false);
+        $medicine = Medicine::query()->create(['name' => 'Thuốc retry']);
+        $variant = MedicineVariant::query()->create([
+            'medicine_id' => $medicine->id,
+            'sku' => 'RETRY-'.$medicine->id,
+            'variant_identity_key' => hash('sha256', 'retry-'.$medicine->id),
+            'sku_basis_hash' => hash('sha256', 'retry-basis-'.$medicine->id),
+            'status' => 'active',
+        ]);
+        $job = new SyncMedicineProducts((int) $medicine->id);
+        $sync = app(PharmaProductCatalogSyncService::class);
+        $job->handle($sync);
+        $link = PharmaProductLink::query()->firstOrFail();
+        $link->product->forceFill(['regular_price' => 42000, 'quantity' => 7])->save();
+
+        $job->handle($sync);
+        $this->assertSame(1, PharmaProductLink::query()->count());
+        $this->assertSame(1, Product::query()->whereKey($link->product_id)->count());
+        $this->assertSame('42000.00', $link->product->fresh()->regular_price);
+        $this->assertSame(7, $link->product->fresh()->quantity);
+    }
+
+    public function test_exhausted_job_marks_existing_link_error_without_changing_commercial_values(): void
+    {
+        config()->set('pharma.product_sync_enabled', false);
+        $medicine = Medicine::query()->create(['name' => 'Thuốc lỗi queue']);
+        $variant = MedicineVariant::query()->create([
+            'medicine_id' => $medicine->id,
+            'sku' => 'ERROR-'.$medicine->id,
+            'variant_identity_key' => hash('sha256', 'error-'.$medicine->id),
+            'sku_basis_hash' => hash('sha256', 'error-basis-'.$medicine->id),
+            'status' => 'active',
+        ]);
+        $link = app(PharmaProductCatalogSyncService::class)->syncVariant($variant);
+        $link->product->forceFill(['regular_price' => 99000, 'quantity' => 3])->save();
+
+        (new SyncMedicineProducts((int) $medicine->id))->failed(new RuntimeException('Simulated terminal failure'));
+        $this->assertSame('error', $link->fresh()->sync_status);
+        $this->assertStringContainsString('Simulated terminal failure', $link->fresh()->last_error);
+        $this->assertSame('99000.00', $link->product->fresh()->regular_price);
+        $this->assertSame(3, $link->product->fresh()->quantity);
+    }
+
+    public function test_database_rollback_does_not_persist_catalog_projection(): void
+    {
+        config()->set('pharma.product_sync_enabled', false);
+        $medicine = Medicine::query()->create(['name' => 'Thuốc rollback']);
+        $variant = MedicineVariant::query()->create([
+            'medicine_id' => $medicine->id,
+            'sku' => 'ROLLBACK-'.$medicine->id,
+            'variant_identity_key' => hash('sha256', 'rollback-'.$medicine->id),
+            'sku_basis_hash' => hash('sha256', 'rollback-basis-'.$medicine->id),
+            'status' => 'active',
+        ]);
+
+        try {
+            DB::transaction(function () use ($variant): void {
+                app(PharmaProductCatalogSyncService::class)->syncVariant($variant);
+                throw new RuntimeException('Force rollback');
+            });
+        } catch (RuntimeException $e) {
+            $this->assertSame('Force rollback', $e->getMessage());
+        }
+
+        $this->assertSame(0, PharmaProductLink::query()->count());
+        $this->assertSame(0, Product::query()->count());
     }
 
 }
