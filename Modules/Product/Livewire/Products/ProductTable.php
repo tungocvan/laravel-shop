@@ -53,7 +53,7 @@ class ProductTable extends Component
 
     public function getCategoriesProperty()
     {
-        return $this->products->flatProductCategoryOptions();
+        return $this->products->flatProductCategoryOptions((string) $this->source);
     }
 
     public function updatedSearch(): void
@@ -76,6 +76,7 @@ class ProductTable extends Component
 
     public function updatedSource(): void
     {
+        $this->category_id = '';
         $this->resetPage();
         $this->resetSelection();
     }
