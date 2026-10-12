@@ -72,4 +72,17 @@ class PharmaProductCatalogSyncContractTest extends TestCase
         $this->assertStringContainsString('sync_status', $view);
     }
 
+    public function test_pharma_commercial_edit_keeps_identity_readonly(): void
+    {
+        $service = file_get_contents(base_path('Modules/Product/Services/ProductService.php'));
+        $form = file_get_contents(base_path('Modules/Product/Livewire/Products/ProductForm.php'));
+        $view = file_get_contents(base_path('Modules/Product/resources/views/livewire/products/product-form.blade.php'));
+
+        $this->assertStringContainsString("unset(\$normalized['title'], \$normalized['slug'])", $service);
+        $this->assertStringContainsString("PharmaProductLink::query()->where('product_id', \$id)->exists()", $service);
+        $this->assertStringContainsString('isPharmaLinked', $form);
+        $this->assertStringContainsString('@readonly($isPharmaLinked)', $view);
+        $this->assertStringContainsString('Nguồn: Pharma.', $view);
+    }
+
 }
