@@ -24,6 +24,28 @@
         </div>
     </div>
 
+    <section class="mb-5 rounded-xl border border-gray-200 bg-white p-4 shadow-sm" aria-label="Quản lý đồng bộ Pharma">
+        <div class="flex items-center justify-between gap-3">
+            <div>
+                <h2 class="text-base font-semibold text-gray-900">Quản lý đồng bộ Pharma</h2>
+                <p class="text-xs text-gray-500">{{ $pharmaSyncAvailable ? 'Theo dõi trạng thái liên kết sản phẩm từ Pharma.' : 'Module Pharma chưa bật hoặc chưa sẵn sàng; quản lý sản phẩm thủ công vẫn hoạt động.' }}</p>
+            </div>
+            @if($pharmaSyncAvailable)
+                <button type="button" wire:click="$toggle('showSyncPanel')" class="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700" aria-expanded="{{ $showSyncPanel ? 'true' : 'false' }}">{{ $showSyncPanel ? 'Thu gọn' : 'Xem thống kê' }}</button>
+            @endif
+        </div>
+        @if($pharmaSyncAvailable && $showSyncPanel)
+            <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                @foreach(['total' => 'Liên kết Pharma', 'synced' => 'Đã đồng bộ', 'stale' => 'Ngừng đồng bộ', 'error' => 'Lỗi'] as $key => $label)
+                    <div class="rounded-lg border border-gray-100 bg-gray-50 p-3">
+                        <div class="text-xs text-gray-500">{{ $label }}</div>
+                        <div class="mt-1 text-xl font-semibold text-gray-900">{{ number_format($pharmaSyncStats[$key]) }}</div>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+    </section>
+
     <div class="mb-6">
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden transition-all duration-300 relative">
 
@@ -43,7 +65,9 @@
                         </span>
                     </div>
 
-                    <div class="flex items-center gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button type="button" wire:click="setSelectedStatus(true)" wire:confirm="Bật các sản phẩm đã chọn? Sản phẩm liên kết Pharma sẽ bị từ chối." class="rounded-lg border border-green-200 bg-white px-3 py-2 text-sm font-medium text-green-700">Bật hàng loạt</button>
+                        <button type="button" wire:click="setSelectedStatus(false)" wire:confirm="Tắt các sản phẩm đã chọn? Sản phẩm liên kết Pharma sẽ bị từ chối." class="rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm font-medium text-amber-700">Tắt hàng loạt</button>
                         <button wire:click="openCategoryModal" class="flex items-center px-3 py-2 bg-white border border-indigo-200 text-indigo-700 rounded-lg text-sm font-medium shadow-sm hover:bg-indigo-50 transition">
                             <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
                             Gán danh mục
@@ -153,7 +177,7 @@
                                         </div>
                                         <div class="text-xs text-gray-500 font-mono mt-0.5">ID: {{ $item->id }}</div>
                                         <div class="mt-1 flex flex-wrap items-center gap-1 text-xs">
-                                            @if($item->pharmaLink)
+                                            @if($pharmaSyncAvailable && $item->pharmaLink)
                                                 <span class="rounded bg-indigo-50 px-2 py-0.5 font-semibold text-indigo-700">Nguồn: Pharma</span>
                                                 <span class="rounded px-2 py-0.5 font-medium {{ $item->pharmaLink->sync_status === 'synced' ? 'bg-green-50 text-green-700' : ($item->pharmaLink->sync_status === 'error' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700') }}" title="{{ $item->pharmaLink->last_error ?? '' }}">
                                                     {{ $item->pharmaLink->sync_status }}
