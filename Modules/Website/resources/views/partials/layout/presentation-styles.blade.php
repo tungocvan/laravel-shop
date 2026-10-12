@@ -25,6 +25,17 @@
         background-color: {{ $mainBackground === 'transparent' ? 'transparent' : 'var(--website-'.$mainBackground.')' }};
     }
 
+    @if(app(\Modules\Website\Services\WebsiteTemplateService::class)->isPharma())
+    /* Pharma sections own their content width; the shared Website container must not constrain them. */
+    .website-main-shell {
+        max-width: none;
+        padding-top: 0;
+        padding-right: 0;
+        padding-bottom: 0;
+        padding-left: 0;
+    }
+    @endif
+
     @media (max-width: 767px) {
         .website-main-shell {
             padding-top: var(--website-main-mobile-padding-top);
@@ -32,5 +43,8 @@
             padding-left: var(--website-main-mobile-padding-x);
             padding-right: var(--website-main-mobile-padding-x);
         }
+        @if(app(\Modules\Website\Services\WebsiteTemplateService::class)->isPharma())
+        .website-main-shell { padding: 0; }
+        @endif
     }
 </style>
