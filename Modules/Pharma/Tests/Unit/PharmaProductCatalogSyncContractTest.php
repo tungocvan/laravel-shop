@@ -47,7 +47,7 @@ class PharmaProductCatalogSyncContractTest extends TestCase
         $table = file_get_contents(base_path('Modules/Product/Livewire/Products/ProductTable.php'));
         $view = file_get_contents(base_path('Modules/Product/resources/views/livewire/products/product-table.blade.php'));
 
-        $this->assertStringContainsString("config('modules.state.file'", $service);
+        $this->assertStringContainsString("config('modules.registry.Pharma.enabled', false) === true", $service);
         $this->assertStringNotContainsString('Nwidart\\Modules\\Facades\\Module', $service);
         $this->assertStringContainsString("Schema::hasTable('pharma_product_links')", $service);
         $this->assertStringContainsString("DB::transaction(function () use (\$ids, \$active)", $service);
