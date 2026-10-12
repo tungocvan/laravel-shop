@@ -19,6 +19,17 @@ class PharmaProductCatalogSyncContractTest extends TestCase
     }
 
     #[Test]
+    public function product_crud_guards_pharma_linked_records(): void
+    {
+        $service = file_get_contents(base_path('Modules/Product/Services/ProductService.php'));
+        $this->assertStringContainsString("assertNotPharmaLinked([$id], 'edit')", $service);
+        $this->assertStringContainsString("assertNotPharmaLinked([$id], 'duplicate')", $service);
+        $this->assertStringContainsString("assertNotPharmaLinked([$id], 'toggle status')", $service);
+        $this->assertStringContainsString("assertNotPharmaLinked([$id], 'delete')", $service);
+        $this->assertStringContainsString("assertNotPharmaLinked($ids, 'bulk delete')", $service);
+    }
+
+    #[Test]
     public function projection_keeps_product_commercial_values_out_of_pharma(): void
     {
         $service = file_get_contents(base_path('Modules/Pharma/Services/PharmaProductCatalogSyncService.php'));
@@ -27,6 +38,7 @@ class PharmaProductCatalogSyncContractTest extends TestCase
         $this->assertStringContainsString("'is_active' => false", $service);
         $this->assertStringContainsString("where('source_key', \$sourceKey)->lockForUpdate()", $service);
         $this->assertStringContainsString("['title' => \$title]", $service);
+        $this->assertStringContainsString('lockForUpdate()->findOrFail', $service);
         $this->assertStringNotContainsString('declared_price', $service);
     }
 }
