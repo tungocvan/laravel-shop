@@ -20,4 +20,22 @@ class MedicineCategoryFoundationTest extends TestCase
         $this->assertStringContainsString("protected \$table = 'pharma_medicine_categories'", $model);
         $this->assertStringContainsString('function medicines()', $model);
     }
+    #[Test]
+    public function admin_crud_routes_and_guards_are_isolated(): void
+    {
+        $routes = file_get_contents(base_path('Modules/Pharma/routes/web.php'));
+        $controller = file_get_contents(base_path('Modules/Pharma/Http/Controllers/MedicineCategoryController.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/pages/medicine-categories/index.blade.php'));
+
+        $this->assertStringContainsString("prefix('medicine-categories')", $routes);
+        $this->assertStringContainsString("middleware('can:view_pharma')", $routes);
+        $this->assertStringContainsString("middleware('can:create_pharma')", $routes);
+        $this->assertStringContainsString("middleware('can:edit_pharma')", $routes);
+        $this->assertStringContainsString("middleware('can:delete_pharma')", $routes);
+        $this->assertStringContainsString('function isDescendant(', $controller);
+        $this->assertStringContainsString("children()->exists()", $controller);
+        $this->assertStringContainsString("medicines()->exists()", $controller);
+        $this->assertStringContainsString("@extends('Admin::layouts.master')", $view);
+    }
+
 }
