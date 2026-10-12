@@ -10,6 +10,8 @@ use Modules\Product\Exports\ProductsExport;
 use Modules\Product\Exports\PharmaProductsExport;
 use Modules\Product\Imports\ProductsImport;
 use Modules\Product\Services\ProductService;
+use Modules\Product\Services\PharmaProductExcelImportService;
+use Illuminate\Validation\ValidationException;
 
 class ProductTable extends Component
 {
@@ -30,6 +32,11 @@ class ProductTable extends Component
 
     public $importFile;
     public $showImportModal = false;
+    public $pharmaImportFile;
+    public array $pharmaImportPreview = [];
+    public bool $showPharmaImportModal = false;
+    public bool $pharmaImportValidated = false;
+    public ?string $pharmaImportNotice = null;
 
     public $showSyncPanel = false;
     public ?string $bulkDeleteNotice = null;
@@ -211,6 +218,35 @@ class ProductTable extends Component
         abort_unless($this->products->pharmaSyncAvailable(), 404);
 
         return Excel::download(new PharmaProductsExport(true), 'pharma_products_template.xlsx');
+    }
+
+    public function previewPharmaImport(PharmaProductExcelImportService $service): void
+    {
+        $this->authorizeAdmin('edit_product');
+        abort_unless($this->products->pharmaSyncAvailable(), 404);
+        $this->validate(['pharmaImportFile' => 'required|file|mimes:xlsx,xls,csv|max:10240']);
+        $this->pharmaImportPreview = $service->preview(Excel::toArray(new \Modules\Product\Imports\PharmaProductsSheetImport, $this->pharmaImportFile));
+        $this->pharmaImportValidated = count($this->pharmaImportPreview) > 0
+            && !collect($this->pharmaImportPreview)->contains(fn ($row) => $row['errors'] !== []);
+    }
+
+    public function updatedPharmaImportFile(): void
+    {
+        $this->pharmaImportValidated = false;
+        $this->pharmaImportPreview = [];
+        $this->pharmaImportNotice = null;
+    }
+
+    public function applyPharmaImport(PharmaProductExcelImportService $service): void
+    {
+        $this->authorizeAdmin('edit_product');
+        abort_unless($this->products->pharmaSyncAvailable(), 404);
+        if (!$this->pharmaImportValidated || !$this->pharmaImportFile) {
+            throw ValidationException::withMessages(['pharmaImportFile' => 'Hãy xem trước file hợp lệ trước khi import.']);
+        }
+        $count = $service->apply(Excel::toArray(new \Modules\Product\Imports\PharmaProductsSheetImport, $this->pharmaImportFile));
+        $this->pharmaImportNotice = "Đã cập nhật {$count} sản phẩm nguồn Pharma.";
+        $this->reset(['pharmaImportFile', 'pharmaImportPreview', 'pharmaImportValidated', 'showPharmaImportModal']);
     }
 
     public function import(): void
