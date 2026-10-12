@@ -7,6 +7,7 @@ use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 use Maatwebsite\Excel\Facades\Excel;
 use Modules\Product\Exports\ProductsExport;
+use Modules\Product\Exports\PharmaProductsExport;
 use Modules\Product\Imports\ProductsImport;
 use Modules\Product\Services\ProductService;
 
@@ -194,6 +195,22 @@ class ProductTable extends Component
         $ids = $this->selected !== [] ? $this->selected : null;
 
         return Excel::download(new ProductsExport($ids, $this->filters()), 'products_'.date('Y-m-d').'.xlsx');
+    }
+
+    public function exportPharma()
+    {
+        $this->authorizeAdmin('view_product');
+        abort_unless($this->products->pharmaSyncAvailable(), 404);
+
+        return Excel::download(new PharmaProductsExport, 'pharma_products_'.date('Y-m-d').'.xlsx');
+    }
+
+    public function downloadPharmaTemplate()
+    {
+        $this->authorizeAdmin('view_product');
+        abort_unless($this->products->pharmaSyncAvailable(), 404);
+
+        return Excel::download(new PharmaProductsExport(true), 'pharma_products_template.xlsx');
     }
 
     public function import(): void
