@@ -16,7 +16,9 @@ class MedicineSharedCategoryContractTest extends TestCase
         $this->assertSame('pharma_medicine_category_links', $relation->getTable());
         $this->assertSame('medicine_id', $relation->getForeignPivotKeyName());
         $this->assertSame('category_id', $relation->getRelatedPivotKeyName());
-        $this->assertStringContainsString('categories.type', implode(' ', array_keys($relation->getQuery()->getQuery()->wheres[0] ?? [])) . ' ' . json_encode($relation->getQuery()->getQuery()->wheres));
+        $wheres = $relation->getQuery()->getQuery()->wheres;
+        $this->assertContains('categories.type', array_column($wheres, 'column'));
+        $this->assertContains('medicine', array_column($wheres, 'value'));
     }
 
     public function test_legacy_medicine_categories_relationship_is_preserved(): void
