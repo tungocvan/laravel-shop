@@ -127,7 +127,7 @@ class ProductService
         $sortDirection = ($filters['sortDirection'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
         $perPage = $this->normalizePerPage($filters['perPage'] ?? 10);
 
-        return $this->baseAdminQuery($search, $categoryId)
+        return $this->filteredAdminQuery($filters)
             ->when($this->pharmaSyncAvailable(), fn (Builder $query) => $query->with('pharmaLink:id,product_id,medicine_id,sync_status,last_error,last_synced_at'))
             ->orderBy($sortColumn, $sortDirection)
             ->orderBy('id')
@@ -350,11 +350,11 @@ class ProductService
         return in_array($perPage, self::PER_PAGE_OPTIONS, true) ? $perPage : 10;
     }
 
-    public function exportRows(?array $ids = null, int $limit = 5000): EloquentCollection
+    public function exportRows(?array $ids = null, int $limit = 5000, array $filters = []): EloquentCollection
     {
-        $query = Product::query()
-            ->with('categories:id,name')
-            ->orderBy('id');
+        $query = $ids !== null && $ids !== []
+            ? Product::query()->with('categories:id,name')->orderBy('id')
+            : $this->filteredAdminQuery($filters)->orderBy('id');
 
         if ($ids !== null && $ids !== []) {
             $query->whereIn('id', $this->normalizeIds($ids));
@@ -484,6 +484,33 @@ class ProductService
         }
 
         return $normalized;
+    }
+
+    private function filteredAdminQuery(array $filters): Builder
+    {
+        $query = $this->baseAdminQuery(
+            trim((string) ($filters['search'] ?? '')),
+            $filters['category_id'] ?? null
+        );
+        $status = (string) ($filters['status'] ?? 'active');
+        if ($status === 'active') {
+            $query->where('is_active', true);
+        } elseif ($status === 'inactive') {
+            $query->where('is_active', false);
+        }
+
+        $source = (string) ($filters['source'] ?? 'all');
+        if ($this->pharmaSyncAvailable()) {
+            if ($source === 'pharma') {
+                $query->whereHas('pharmaLink');
+            } elseif ($source === 'manual') {
+                $query->whereDoesntHave('pharmaLink');
+            }
+        } elseif ($source === 'pharma') {
+            $query->whereRaw('1 = 0');
+        }
+
+        return $query;
     }
 
     private function baseAdminQuery(string $search, mixed $categoryId): Builder
