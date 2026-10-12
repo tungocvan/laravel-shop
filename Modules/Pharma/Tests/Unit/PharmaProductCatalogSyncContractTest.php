@@ -86,4 +86,22 @@ class PharmaProductCatalogSyncContractTest extends TestCase
         $this->assertStringContainsString('Nguồn: Pharma.', $view);
     }
 
+    public function test_admin_filters_and_excel_export_share_the_same_query(): void
+    {
+        $service = file_get_contents(base_path('Modules/Product/Services/ProductService.php'));
+        $table = file_get_contents(base_path('Modules/Product/Livewire/Products/ProductTable.php'));
+        $export = file_get_contents(base_path('Modules/Product/Exports/ProductsExport.php'));
+        $view = file_get_contents(base_path('Modules/Product/resources/views/livewire/products/product-table.blade.php'));
+
+        $this->assertStringContainsString("public \$status = 'active'", $table);
+        $this->assertStringContainsString("public \$source = 'all'", $table);
+        $this->assertStringContainsString('filteredAdminQuery($filters)', $service);
+        $this->assertStringContainsString("whereHas('pharmaLink')", $service);
+        $this->assertStringContainsString("whereDoesntHave('pharmaLink')", $service);
+        $this->assertStringContainsString('new ProductsExport($ids, $this->filters())', $table);
+        $this->assertStringContainsString('exportRows($this->ids, 5000, $this->filters)', $export);
+        $this->assertStringContainsString('wire:model.live="status"', $view);
+        $this->assertStringContainsString('wire:model.live="source"', $view);
+    }
+
 }
