@@ -41,4 +41,17 @@ class PharmaProductCatalogSyncContractTest extends TestCase
         $this->assertStringContainsString('lockForUpdate()->findOrFail', $service);
         $this->assertStringNotContainsString('declared_price', $service);
     }
+    public function test_product_admin_listing_displays_pharma_origin_without_n_plus_one(): void
+    {
+        $model = file_get_contents(base_path('Modules/Product/Models/Product.php'));
+        $service = file_get_contents(base_path('Modules/Product/Services/ProductService.php'));
+        $view = file_get_contents(base_path('Modules/Product/resources/views/livewire/products/product-table.blade.php'));
+
+        $this->assertStringContainsString('function pharmaLink(): HasOne', $model);
+        $this->assertStringContainsString("->with('pharmaLink:id,product_id,medicine_id,sync_status,last_error,last_synced_at')", $service);
+        $this->assertStringContainsString('Nguồn: Pharma', $view);
+        $this->assertStringContainsString('Nguồn: Thủ công', $view);
+        $this->assertStringContainsString('sync_status', $view);
+    }
+
 }
