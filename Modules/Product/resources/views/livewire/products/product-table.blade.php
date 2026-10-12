@@ -25,6 +25,9 @@
     </div>
 
 
+    @if($pharmaSyncNotice)
+        <div role="status" class="mb-4 rounded-lg border border-indigo-200 bg-indigo-50 p-3 text-sm text-indigo-800">{{ $pharmaSyncNotice }}</div>
+    @endif
     @if($pharmaImportNotice)
         <div role="status" class="mb-4 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800">{{ $pharmaImportNotice }}</div>
     @endif
@@ -80,6 +83,7 @@
         </div>
         @if($pharmaSyncAvailable)
             <div class="mt-3 flex flex-wrap items-center gap-2 border-t border-gray-100 pt-3">
+                <button type="button" wire:click="syncFromPharma" wire:confirm="Đồng bộ tối đa 100 thuốc từ Pharma, cập nhật Giá kê khai vào Giá bán thường?" wire:loading.attr="disabled" wire:target="syncFromPharma" class="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm font-medium text-green-800">Đồng bộ từ Pharma</button>
                 <button type="button" wire:click="exportPharma" wire:loading.attr="disabled" class="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700">Export Pharma Excel</button>
                 <button type="button" wire:click="downloadPharmaTemplate" wire:loading.attr="disabled" class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700">Tải Template Pharma</button>
                 <button type="button" wire:click="$set('showPharmaImportModal', true)" class="rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm font-medium text-indigo-700">Import Pharma Excel</button>
