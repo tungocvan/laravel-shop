@@ -4,6 +4,7 @@ namespace Modules\Pharma\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Medicine extends Model
@@ -118,6 +119,11 @@ class Medicine extends Model
     public static function codeForId(int $id): string
     {
         return sprintf('MED-%06d', $id);
+    }
+
+    public function medicineCategories(): BelongsToMany
+    {
+        return $this->belongsToMany(MedicineCategory::class, 'pharma_medicine_category_medicine', 'medicine_id', 'category_id')->withTimestamps();
     }
 
     public function sources(): HasMany
