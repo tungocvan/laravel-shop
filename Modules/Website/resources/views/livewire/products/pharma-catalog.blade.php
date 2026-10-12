@@ -17,7 +17,7 @@
         <nav aria-label="Breadcrumb" class="mb-6 text-xs text-slate-500"><a href="{{ route('home') }}" class="hover:text-emerald-700">Trang chủ</a><span class="mx-2">›</span><span class="font-semibold text-slate-700">Sản phẩm</span></nav>
         <div class="grid gap-7 lg:grid-cols-[270px_minmax(0,1fr)]">
             <aside class="flex min-w-0 flex-col gap-5">
-                <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div class="order-2 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:order-1">
                     <h2 class="mb-4 text-base font-bold">Danh mục thuốc</h2>
                     <div class="max-h-72 space-y-1 overflow-y-auto overscroll-contain pr-1 lg:max-h-[480px]" role="group" aria-label="Chọn danh mục thuốc">
                         <button type="button" wire:click="$set('category', '')" class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm {{ $category === '' ? 'bg-emerald-50 font-bold text-emerald-800' : 'text-slate-600 hover:bg-slate-50' }}"><span>Tất cả danh mục</span><span>{{ $products->total() }}</span></button>
@@ -26,7 +26,7 @@
                         @endforeach
                     </div>
                 </div>
-                <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div class="order-1 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:order-2">
                     <h2 class="mb-4 text-base font-bold">Bộ lọc</h2>
                     <label for="pharma-catalog-search" class="block text-xs font-semibold text-slate-600">Tên sản phẩm</label>
                     <input id="pharma-catalog-search" type="search" wire:model.live.debounce.350ms="search" placeholder="Tìm tên sản phẩm..." class="mt-2 w-full rounded-xl border border-slate-300 px-3 py-3 text-sm focus:border-emerald-600 focus:ring-emerald-600">
