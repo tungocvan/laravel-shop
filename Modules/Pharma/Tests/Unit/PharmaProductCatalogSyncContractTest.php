@@ -34,12 +34,12 @@ class PharmaProductCatalogSyncContractTest extends TestCase
     {
         $service = file_get_contents(base_path('Modules/Pharma/Services/PharmaProductCatalogSyncService.php'));
 
-        $this->assertStringContainsString("'regular_price' => null", $service);
+        $this->assertStringContainsString("'regular_price' => \$declaredPrice", $service);
         $this->assertStringContainsString("'is_active' => false", $service);
         $this->assertStringContainsString("where('source_key', \$sourceKey)->lockForUpdate()", $service);
         $this->assertStringContainsString("['title' => \$title]", $service);
         $this->assertStringContainsString('lockForUpdate()->findOrFail', $service);
-        $this->assertStringNotContainsString('declared_price', $service);
+        $this->assertStringContainsString('declared_price', $service);
     }
     public function test_bulk_status_and_sync_panel_have_guards(): void
     {
@@ -190,7 +190,7 @@ class PharmaProductCatalogSyncContractTest extends TestCase
         $view = file_get_contents(base_path('Modules/Product/resources/views/livewire/products/product-table.blade.php'));
 
         $this->assertStringContainsString('$variant->declared_price ?? $medicine->declared_price', $sync);
-        $this->assertStringContainsString("'regular_price' => $declaredPrice", $sync);
+        $this->assertStringContainsString("'regular_price' => \$declaredPrice", $sync);
         $this->assertStringContainsString("if (\$declaredPrice !== null)", $sync);
         $this->assertStringContainsString('function syncFromPharma(', $table);
         $this->assertStringContainsString('Đồng bộ từ Pharma', $view);
