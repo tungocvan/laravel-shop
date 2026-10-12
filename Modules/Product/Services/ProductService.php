@@ -14,6 +14,7 @@ use Modules\Category\Models\Category;
 use Modules\Product\Models\Product;
 use Modules\Product\Models\Review;
 use Modules\Pharma\Models\PharmaProductLink;
+use Nwidart\Modules\Facades\Module;
 use Throwable;
 
 class ProductService
@@ -128,7 +129,7 @@ class ProductService
         $perPage = $this->normalizePerPage($filters['perPage'] ?? 10);
 
         return $this->baseAdminQuery($search, $categoryId)
-            ->with('pharmaLink:id,product_id,medicine_id,sync_status,last_error,last_synced_at')
+            ->when($this->pharmaSyncAvailable(), fn (Builder $query) => $query->with('pharmaLink:id,product_id,medicine_id,sync_status,last_error,last_synced_at'))
             ->orderBy($sortColumn, $sortDirection)
             ->orderBy('id')
             ->paginate($perPage);
@@ -216,6 +217,44 @@ class ProductService
 
             return $product->refresh();
         });
+    }
+
+    public function setManyActive(array $ids, bool $active): int
+    {
+        $ids = $this->normalizeIds($ids);
+        if ($ids === []) {
+            return 0;
+        }
+
+        return DB::transaction(function () use ($ids, $active): int {
+            $products = Product::query()->whereIn('id', $ids)->lockForUpdate()->get();
+            if ($products->count() !== count($ids)) {
+                throw ValidationException::withMessages(['selected' => 'Danh sách sản phẩm không hợp lệ.']);
+            }
+            $this->assertNotPharmaLinked($ids, 'bulk status');
+
+            return Product::query()->whereIn('id', $ids)->update(['is_active' => $active]);
+        });
+    }
+
+    public function pharmaSyncAvailable(): bool
+    {
+        return Module::isEnabled('Pharma')
+            && \Illuminate\Support\Facades\Schema::hasTable('pharma_product_links');
+    }
+
+    public function pharmaSyncStats(): array
+    {
+        if (! $this->pharmaSyncAvailable()) {
+            return ['total' => 0, 'synced' => 0, 'stale' => 0, 'error' => 0];
+        }
+
+        return [
+            'total' => PharmaProductLink::query()->count(),
+            'synced' => PharmaProductLink::query()->where('sync_status', 'synced')->count(),
+            'stale' => PharmaProductLink::query()->where('sync_status', 'stale')->count(),
+            'error' => PharmaProductLink::query()->where('sync_status', 'error')->count(),
+        ];
     }
 
     public function delete(int $id): void
@@ -372,7 +411,7 @@ class ProductService
      * a separate commercial editing policy is explicitly approved. */
     private function assertNotPharmaLinked(array $ids, string $operation): void
     {
-        if (PharmaProductLink::query()->whereIn('product_id', $ids)->exists()) {
+        if ($this->pharmaSyncAvailable() && PharmaProductLink::query()->whereIn('product_id', $ids)->exists()) {
             throw ValidationException::withMessages([
                 'product' => 'Sản phẩm đồng bộ từ Pharma không được thao tác: '.$operation.'.',
             ]);
