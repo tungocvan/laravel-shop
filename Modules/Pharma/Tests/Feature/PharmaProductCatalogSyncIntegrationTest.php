@@ -3,6 +3,8 @@
 namespace Modules\Pharma\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Bus;
+use Modules\Pharma\Jobs\SyncMedicineProducts;
 use Modules\Pharma\Models\Medicine;
 use Modules\Pharma\Models\MedicinePackage;
 use Modules\Pharma\Models\MedicineVariant;
@@ -103,6 +105,36 @@ class PharmaProductCatalogSyncIntegrationTest extends TestCase
         $this->assertFalse($link->product->fresh()->is_active);
         $this->assertSame('90000.00', $link->product->fresh()->regular_price);
         $this->assertSame(1, PharmaProductLink::query()->count());
+    }
+
+    public function test_variant_and_package_writes_dispatch_only_when_opted_in(): void
+    {
+        Bus::fake();
+        config()->set('pharma.product_sync_enabled', false);
+        $medicine = Medicine::query()->create(['name' => 'Thuốc kiểm thử queue']);
+        $variant = MedicineVariant::query()->create([
+            'medicine_id' => $medicine->id,
+            'sku' => 'QUEUE-SKU-'.$medicine->id,
+            'variant_identity_key' => hash('sha256', 'queue-variant-'.$medicine->id),
+            'sku_basis_hash' => hash('sha256', 'queue-basis-'.$medicine->id),
+            'status' => 'active',
+        ]);
+        Bus::assertNotDispatched(SyncMedicineProducts::class);
+
+        config()->set('pharma.product_sync_enabled', true);
+        $variant->update(['presentation_text' => 'Vỉ 10 viên']);
+        Bus::assertDispatched(SyncMedicineProducts::class, fn ($job) => $job->medicineId === $medicine->id);
+
+        $package = MedicinePackage::query()->create([
+            'medicine_variant_id' => $variant->id,
+            'package_code' => 'QUEUE-PKG-'.$variant->id,
+            'package_identity_key' => hash('sha256', 'queue-package-'.$variant->id),
+            'packaging_text' => 'Hộp 10 viên',
+            'is_orderable' => true,
+        ]);
+        $this->assertNotNull($package->id);
+        Bus::assertDispatchedTimes(SyncMedicineProducts::class, 2);
+        config()->set('pharma.product_sync_enabled', false);
     }
 
 }
