@@ -26,7 +26,7 @@ class PharmaProductCatalogSyncContractTest extends TestCase
         $this->assertStringContainsString("PharmaProductLink::query()->where('product_id', \$id)->exists()", $service);
         $this->assertStringContainsString("assertNotPharmaLinked([\$id], 'duplicate')", $service);
         $this->assertStringContainsString("assertNotPharmaLinked([\$id], 'delete')", $service);
-        $this->assertStringContainsString("assertNotPharmaLinked(\$ids, 'bulk delete')", $service);
+        $this->assertStringContainsString("array_diff(\$existingIds, \$protectedIds)", $service);
     }
 
     #[Test]
@@ -113,6 +113,19 @@ class PharmaProductCatalogSyncContractTest extends TestCase
         $this->assertStringContainsString("public function clearFilters(): void", $table);
         $this->assertStringContainsString("wire:click=\"clearFilters\"", $view);
         $this->assertStringContainsString("Xóa bộ lọc", $view);
+    }
+
+    public function test_mixed_bulk_delete_preserves_pharma_links_and_reports_counts(): void
+    {
+        $service = file_get_contents(base_path('Modules/Product/Services/ProductService.php'));
+        $table = file_get_contents(base_path('Modules/Product/Livewire/Products/ProductTable.php'));
+        $view = file_get_contents(base_path('Modules/Product/resources/views/livewire/products/product-table.blade.php'));
+
+        $this->assertStringContainsString("Schema::hasTable('pharma_product_links')", $service);
+        $this->assertStringContainsString("array_diff(\$existingIds, \$protectedIds)", $service);
+        $this->assertStringContainsString("'protected' => count(\$protectedIds)", $service);
+        $this->assertStringContainsString('bulkDeleteNotice', $table);
+        $this->assertStringContainsString('role="status"', $view);
     }
 
 }
