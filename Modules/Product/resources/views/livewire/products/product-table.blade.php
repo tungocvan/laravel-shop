@@ -9,12 +9,12 @@
         <div class="flex flex-wrap gap-2">
             <button wire:click="export" wire:loading.attr="disabled" class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition">
                 <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                Export
+                Export Excel (Product thông thường / theo bộ lọc)
             </button>
 
             <button wire:click="$set('showImportModal', true)" class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition">
                 <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
-                Import
+                Import thông thường
             </button>
 
             <a href="{{ route('admin.products.create') }}" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 transition">
@@ -23,6 +23,97 @@
             </a>        
         </div>
     </div>
+
+
+    @if($pharmaSyncNotice)
+        <div role="status" class="mb-4 rounded-lg border border-indigo-200 bg-indigo-50 p-3 text-sm text-indigo-800">{{ $pharmaSyncNotice }}</div>
+    @endif
+    @if($pharmaImportNotice)
+        <div role="status" class="mb-4 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800">{{ $pharmaImportNotice }}</div>
+    @endif
+    @if($showPharmaImportModal)
+        <section class="mb-5 rounded-xl border border-indigo-200 bg-white p-4 shadow-sm" aria-label="Import Excel Pharma">
+            <div class="flex items-center justify-between gap-3">
+                <h2 class="font-semibold text-gray-900">Import Pharma — Xem trước & xác nhận</h2>
+                <button type="button" wire:click="$set('showPharmaImportModal', false)" class="text-sm text-gray-600">Đóng</button>
+            </div>
+            <p class="mt-2 text-sm text-gray-600">Dùng file Export Pharma; giữ nguyên 4 cột nhận diện. Danh mục (Slugs) ngăn cách bằng dấu phẩy; slug mới sẽ được tạo thành danh mục thuốc cấp gốc sau khi xác nhận. Hãy kiểm tra kỹ chính tả và tên danh mục mới. File cũ dùng IDs vẫn được hỗ trợ. Tối đa 5.000 dòng.</p>
+            <input type="file" wire:model="pharmaImportFile" accept=".xlsx,.xls,.csv" class="mt-3 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 file:mr-3 file:rounded-md file:border-0 file:bg-indigo-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-indigo-700">
+            @error('pharmaImportFile') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
+            <div class="mt-3 flex flex-wrap gap-2">
+                <button type="button" wire:click="previewPharmaImport" wire:loading.attr="disabled" class="rounded-lg bg-indigo-600 px-3 py-2 text-sm text-white">Kiểm tra / Xem trước</button>
+                <button type="button" wire:click="applyPharmaImport" wire:confirm="Xác nhận cập nhật các Product Pharma hợp lệ?" @disabled(!$pharmaImportValidated) class="rounded-lg bg-green-600 px-3 py-2 text-sm text-white disabled:opacity-40">Xác nhận Import</button>
+            </div>
+            @if(count($pharmaImportPreview))
+                @php
+                    $previewRows = collect($pharmaImportPreview);
+                    $validCount = $previewRows->filter(fn ($row) => ($row['errors'] ?? []) === [])->count();
+                    $invalidCount = $previewRows->count() - $validCount;
+                    $newSlugs = $previewRows->flatMap(fn ($row) => $row['new_slugs'] ?? [])->unique()->values();
+                @endphp
+                <div class="mt-3 flex flex-wrap gap-2 text-xs" role="status">
+                    <span class="rounded-lg bg-slate-100 px-3 py-2 text-slate-800">Tổng: <strong>{{ $previewRows->count() }}</strong> sản phẩm</span>
+                    <span class="rounded-lg bg-green-50 px-3 py-2 text-green-800">Hợp lệ: <strong>{{ $validCount }}</strong></span>
+                    <span class="rounded-lg bg-red-50 px-3 py-2 text-red-800">Có lỗi: <strong>{{ $invalidCount }}</strong></span>
+                    <span class="rounded-lg bg-amber-50 px-3 py-2 text-amber-800">Slug mới sẽ tạo: <strong>{{ $newSlugs->count() }}</strong></span>
+                </div>
+                <div class="mt-3 max-h-64 overflow-auto rounded-lg border border-gray-200">
+                    <table class="w-full text-left text-xs">
+                        <thead><tr class="bg-gray-50"><th class="p-2">Dòng</th><th class="p-2">Product ID</th><th class="p-2">Tên</th><th class="p-2">Danh mục sẽ gán (Slugs)</th><th class="p-2">Danh mục mới sẽ tạo</th><th class="p-2">Kết quả</th></tr></thead>
+                        <tbody>
+                            @foreach($pharmaImportPreview as $previewRow)
+                                <tr class="border-t border-gray-100">
+                                    <td class="p-2">{{ $previewRow['line'] }}</td>
+                                    <td class="p-2">{{ $previewRow['id'] }}</td>
+                                    <td class="p-2">{{ $previewRow['title'] }}</td>
+                                    <td class="p-2 max-w-xs break-words text-slate-700">{{ implode(', ', $previewRow['category_slugs'] ?? []) ?: 'Không gán danh mục' }}</td>
+                                    <td class="p-2 text-amber-700">{{ implode(', ', $previewRow['new_slugs'] ?? []) ?: '—' }}</td>
+                                    <td class="p-2">{{ implode('; ', $previewRow['errors']) ?: 'Hợp lệ' }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </section>
+    @endif
+
+    @if($bulkDeleteNotice)
+        <div role="status" class="mb-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+            {{ $bulkDeleteNotice }}
+            <button type="button" wire:click="$set('bulkDeleteNotice', null)" class="ml-3 underline">Đóng</button>
+        </div>
+    @endif
+
+    <section class="mb-5 rounded-xl border border-gray-200 bg-white p-4 shadow-sm" aria-label="Quản lý đồng bộ Pharma">
+        <div class="flex items-center justify-between gap-3">
+            <div>
+                <h2 class="text-base font-semibold text-gray-900">Quản lý đồng bộ Pharma</h2>
+                <p class="text-xs text-gray-500">{{ $pharmaSyncAvailable ? 'Theo dõi trạng thái liên kết sản phẩm từ Pharma.' : 'Module Pharma chưa bật hoặc chưa sẵn sàng; quản lý sản phẩm thủ công vẫn hoạt động.' }}</p>
+            </div>
+            @if($pharmaSyncAvailable)
+                <button type="button" wire:click="$toggle('showSyncPanel')" class="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700" aria-expanded="{{ $showSyncPanel ? 'true' : 'false' }}">{{ $showSyncPanel ? 'Thu gọn' : 'Xem thống kê' }}</button>
+            @endif
+        </div>
+        @if($pharmaSyncAvailable)
+            <div class="mt-3 flex flex-wrap items-center gap-2 border-t border-gray-100 pt-3">
+                <button type="button" wire:click="syncFromPharma" wire:confirm="Đồng bộ tối đa 100 thuốc từ Pharma, cập nhật Giá kê khai vào Giá bán thường?" wire:loading.attr="disabled" wire:target="syncFromPharma" class="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm font-medium text-green-800">Đồng bộ từ Pharma</button>
+                <button type="button" wire:click="exportPharma" wire:loading.attr="disabled" class="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700">Export Pharma Excel</button>
+                <button type="button" wire:click="downloadPharmaTemplate" wire:loading.attr="disabled" class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700">Tải Template Pharma</button>
+                <button type="button" wire:click="$set('showPharmaImportModal', true)" class="rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm font-medium text-indigo-700">Import Pharma Excel</button>
+            </div>
+        @endif
+        @if($pharmaSyncAvailable && $showSyncPanel)
+            <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                @foreach(['total' => 'Liên kết Pharma', 'synced' => 'Đã đồng bộ', 'stale' => 'Ngừng đồng bộ', 'error' => 'Lỗi'] as $key => $label)
+                    <div class="rounded-lg border border-gray-100 bg-gray-50 p-3">
+                        <div class="text-xs text-gray-500">{{ $label }}</div>
+                        <div class="mt-1 text-xl font-semibold text-gray-900">{{ number_format($pharmaSyncStats[$key]) }}</div>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+    </section>
 
     <div class="mb-6">
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden transition-all duration-300 relative">
@@ -43,13 +134,15 @@
                         </span>
                     </div>
 
-                    <div class="flex items-center gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button type="button" wire:click="setSelectedStatus(true)" wire:confirm="Bật các sản phẩm đã chọn, bao gồm sản phẩm nguồn Pharma?" class="rounded-lg border border-green-200 bg-white px-3 py-2 text-sm font-medium text-green-700">Bật hàng loạt</button>
+                        <button type="button" wire:click="setSelectedStatus(false)" wire:confirm="Tắt các sản phẩm đã chọn, bao gồm sản phẩm nguồn Pharma?" class="rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm font-medium text-amber-700">Tắt hàng loạt</button>
                         <button wire:click="openCategoryModal" class="flex items-center px-3 py-2 bg-white border border-indigo-200 text-indigo-700 rounded-lg text-sm font-medium shadow-sm hover:bg-indigo-50 transition">
                             <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
                             Gán danh mục
                         </button>
 
-                        <button wire:click="deleteSelected" wire:confirm="Xóa vĩnh viễn {{ count($selected) }} sản phẩm đã chọn?" class="flex items-center px-3 py-2 bg-white border border-red-200 text-red-600 rounded-lg text-sm font-medium shadow-sm hover:bg-red-50 transition">
+                        <button wire:click="deleteSelected" wire:confirm="Xóa các sản phẩm thủ công đã chọn? Sản phẩm liên kết Pharma sẽ được giữ lại." class="flex items-center px-3 py-2 bg-white border border-red-200 text-red-600 rounded-lg text-sm font-medium shadow-sm hover:bg-red-50 transition">
                             <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                             Xóa
                         </button>
@@ -78,6 +171,22 @@
                     <div class="hidden md:block w-px bg-gray-200 my-1"></div>
 
                     <div class="flex gap-2 overflow-x-auto pb-1 md:pb-0">
+                        <div class="relative min-w-[145px]">
+                            <select wire:model.live="status" aria-label="Lọc trạng thái sản phẩm" class="block w-full px-3 py-2 text-sm text-gray-700 bg-gray-50 border-0 rounded-lg h-10">
+                                <option value="active">Đang bật</option>
+                                <option value="inactive">Đang tắt</option>
+                                <option value="all">Tất cả trạng thái</option>
+                            </select>
+                        </div>
+                        <div class="relative min-w-[150px]">
+                            <select wire:model.live="source" aria-label="Lọc nguồn sản phẩm" class="block w-full px-3 py-2 text-sm text-gray-700 bg-gray-50 border-0 rounded-lg h-10">
+                                <option value="all">Tất cả nguồn</option>
+                                @if($pharmaSyncAvailable)
+                                    <option value="pharma">Nguồn Pharma</option>
+                                @endif
+                                <option value="manual">Nguồn Thủ công</option>
+                            </select>
+                        </div>
                         <div class="relative min-w-[160px]">
                             <select wire:model.live="category_id" class="block w-full pl-3 pr-8 py-2 text-sm text-gray-600 bg-gray-50 border-0 rounded-lg hover:bg-gray-100 focus:ring-2 focus:ring-indigo-500 transition cursor-pointer h-10 font-medium">
                                 <option value="">📂 Tất cả danh mục</option>
@@ -88,6 +197,10 @@
                                 @endforeach
                             </select>
                         </div>
+
+                        @if($search !== '' || $category_id !== '' || $status !== 'active' || $source !== 'all')
+                            <button type="button" wire:click="clearFilters" class="shrink-0 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 h-10">Xóa bộ lọc</button>
+                        @endif
 
                         <div class="relative min-w-[100px]">
                             <select wire:model.live="perPage" class="block w-full pl-3 pr-8 py-2 text-sm text-gray-600 bg-gray-50 border-0 rounded-lg hover:bg-gray-100 focus:ring-2 focus:ring-indigo-500 transition cursor-pointer h-10 font-medium">
@@ -152,6 +265,17 @@
                                             {{ $item->title }}
                                         </div>
                                         <div class="text-xs text-gray-500 font-mono mt-0.5">ID: {{ $item->id }}</div>
+                                        <div class="mt-1 flex flex-wrap items-center gap-1 text-xs">
+                                            @if($pharmaSyncAvailable && $item->pharmaLink)
+                                                <span class="rounded bg-indigo-50 px-2 py-0.5 font-semibold text-indigo-700">Nguồn: Pharma</span>
+                                                <span class="rounded px-2 py-0.5 font-medium {{ $item->pharmaLink->sync_status === 'synced' ? 'bg-green-50 text-green-700' : ($item->pharmaLink->sync_status === 'error' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700') }}" title="{{ $item->pharmaLink->last_error ?? '' }}">
+                                                    {{ $item->pharmaLink->sync_status }}
+                                                </span>
+                                                <span class="text-gray-500">Medicine #{{ $item->pharmaLink->medicine_id }}</span>
+                                            @else
+                                                <span class="rounded bg-gray-100 px-2 py-0.5 text-gray-600">Nguồn: Thủ công</span>
+                                            @endif
+                                        </div>
                                     </div>
                                 </div>
                             </td>

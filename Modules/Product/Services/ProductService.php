@@ -13,6 +13,7 @@ use Illuminate\Validation\ValidationException;
 use Modules\Category\Models\Category;
 use Modules\Product\Models\Product;
 use Modules\Product\Models\Review;
+use Modules\Pharma\Models\PharmaProductLink;
 use Throwable;
 
 class ProductService
@@ -126,7 +127,8 @@ class ProductService
         $sortDirection = ($filters['sortDirection'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
         $perPage = $this->normalizePerPage($filters['perPage'] ?? 10);
 
-        return $this->baseAdminQuery($search, $categoryId)
+        return $this->filteredAdminQuery($filters)
+            ->when($this->pharmaSyncAvailable(), fn (Builder $query) => $query->with('pharmaLink:id,product_id,medicine_id,sync_status,last_error,last_synced_at'))
             ->orderBy($sortColumn, $sortDirection)
             ->orderBy('id')
             ->paginate($perPage);
@@ -159,10 +161,10 @@ class ProductService
             ->get();
     }
 
-    public function flatProductCategoryOptions(): Collection
+    public function flatProductCategoryOptions(string $source = 'all'): Collection
     {
         $categories = Category::query()
-            ->where('type', 'product')
+            ->where('type', $source === 'pharma' ? 'medicine' : 'product')
             ->select(['id', 'name', 'parent_id', 'sort_order'])
             ->orderBy('sort_order')
             ->orderBy('name')
@@ -189,6 +191,8 @@ class ProductService
                 ->lockForUpdate()
                 ->findOrFail($id);
 
+            $this->assertNotPharmaLinked([$id], 'duplicate');
+
             $duplicate = $product->replicate();
             $duplicate->title = $product->title.' (Copy)';
             $duplicate->slug = $this->uniqueSlug(Str::slug($duplicate->title));
@@ -213,20 +217,71 @@ class ProductService
         });
     }
 
+    public function setManyActive(array $ids, bool $active): int
+    {
+        $ids = $this->normalizeIds($ids);
+        if ($ids === []) {
+            return 0;
+        }
+
+        return DB::transaction(function () use ($ids, $active): int {
+            $products = Product::query()->whereIn('id', $ids)->lockForUpdate()->get();
+            if ($products->count() !== count($ids)) {
+                throw ValidationException::withMessages(['selected' => 'Danh sách sản phẩm không hợp lệ.']);
+            }
+
+            return Product::query()->whereIn('id', $ids)->update(['is_active' => $active]);
+        });
+    }
+
+    public function pharmaSyncAvailable(): bool
+    {
+        return config('modules.registry.Pharma.enabled', false) === true
+            && class_exists(PharmaProductLink::class)
+            && \Illuminate\Support\Facades\Schema::hasTable('pharma_product_links');
+    }
+
+    public function pharmaSyncStats(): array
+    {
+        if (! $this->pharmaSyncAvailable()) {
+            return ['total' => 0, 'synced' => 0, 'stale' => 0, 'error' => 0];
+        }
+
+        return [
+            'total' => PharmaProductLink::query()->count(),
+            'synced' => PharmaProductLink::query()->where('sync_status', 'synced')->count(),
+            'stale' => PharmaProductLink::query()->where('sync_status', 'stale')->count(),
+            'error' => PharmaProductLink::query()->where('sync_status', 'error')->count(),
+        ];
+    }
+
     public function delete(int $id): void
     {
+        $this->assertNotPharmaLinked([$id], 'delete');
         Product::query()->whereKey($id)->delete();
     }
 
-    public function deleteMany(array $ids): void
+    public function deleteMany(array $ids): array
     {
         $ids = $this->normalizeIds($ids);
 
         if ($ids === []) {
-            return;
+            return ['deleted' => 0, 'protected' => 0];
         }
 
-        Product::query()->whereIn('id', $ids)->delete();
+        return DB::transaction(function () use ($ids): array {
+            $existingIds = Product::query()->whereIn('id', $ids)->lockForUpdate()->pluck('id')->all();
+            $protectedIds = \Illuminate\Support\Facades\Schema::hasTable('pharma_product_links')
+                ? PharmaProductLink::query()->whereIn('product_id', $existingIds)->pluck('product_id')->all()
+                : [];
+            $deletableIds = array_values(array_diff($existingIds, $protectedIds));
+
+            $deleted = $deletableIds === []
+                ? 0
+                : Product::query()->whereIn('id', $deletableIds)->delete();
+
+            return ['deleted' => $deleted, 'protected' => count($protectedIds)];
+        });
     }
 
     public function addCategoriesToProducts(array $productIds, array $categoryIds): void
@@ -304,11 +359,11 @@ class ProductService
         return in_array($perPage, self::PER_PAGE_OPTIONS, true) ? $perPage : 10;
     }
 
-    public function exportRows(?array $ids = null, int $limit = 5000): EloquentCollection
+    public function exportRows(?array $ids = null, int $limit = 5000, array $filters = []): EloquentCollection
     {
-        $query = Product::query()
-            ->with('categories:id,name')
-            ->orderBy('id');
+        $query = $ids !== null && $ids !== []
+            ? Product::query()->with('categories:id,name')->orderBy('id')
+            : $this->filteredAdminQuery($filters)->orderBy('id');
 
         if ($ids !== null && $ids !== []) {
             $query->whereIn('id', $this->normalizeIds($ids));
@@ -321,8 +376,17 @@ class ProductService
 
     private function saveProduct(?int $id, array $data): Product
     {
+        $linked = $id !== null && $this->pharmaSyncAvailable() && PharmaProductLink::query()->where('product_id', $id)->exists();
+        if ($linked) {
+            $canonical = Product::query()->findOrFail($id);
+            $data['title'] = $canonical->title;
+            $data['slug'] = $canonical->slug;
+        }
         $normalized = $this->normalizeProductData($data, $id);
-        $categoryIds = $this->normalizeCategoryIds($data['category_ids'] ?? []);
+        if ($linked) {
+            unset($normalized['title'], $normalized['slug']);
+        }
+        $categoryIds = $this->normalizeCategoryIds($data['category_ids'] ?? [], $linked ? 'medicine' : 'product');
         $newImagePath = $this->storeImage($data['newImage'] ?? null, 'products');
         $newGalleryPaths = $this->storeGallery($data['newGallery'] ?? []);
         $oldImagePath = null;
@@ -337,6 +401,9 @@ class ProductService
 
                 if ($id !== null) {
                     $product = Product::query()->lockForUpdate()->findOrFail($id);
+                    if ($this->pharmaSyncAvailable() && PharmaProductLink::query()->where('product_id', $id)->exists()) {
+                        unset($normalized['title'], $normalized['slug']);
+                    }
                     $oldImagePath = $product->image;
                     $product->update($normalized);
                 } else {
@@ -358,6 +425,17 @@ class ProductService
         }
 
         return $product;
+    }
+
+    /** Pharma-owned catalog records are read-only in generic Product CRUD until
+     * a separate commercial editing policy is explicitly approved. */
+    private function assertNotPharmaLinked(array $ids, string $operation): void
+    {
+        if ($this->pharmaSyncAvailable() && PharmaProductLink::query()->whereIn('product_id', $ids)->exists()) {
+            throw ValidationException::withMessages([
+                'product' => 'Sản phẩm đồng bộ từ Pharma không được thao tác: '.$operation.'.',
+            ]);
+        }
     }
 
     private function normalizeProductData(array $data, ?int $id = null): array
@@ -417,7 +495,37 @@ class ProductService
         return $normalized;
     }
 
-    private function baseAdminQuery(string $search, mixed $categoryId): Builder
+    private function filteredAdminQuery(array $filters): Builder
+    {
+        $source = (string) ($filters['source'] ?? 'all');
+        $categoryType = $source === 'pharma' ? 'medicine' : 'product';
+        $query = $this->baseAdminQuery(
+            trim((string) ($filters['search'] ?? '')),
+            $filters['category_id'] ?? null,
+            $categoryType
+        );
+        $status = (string) ($filters['status'] ?? 'active');
+        if ($status === 'active') {
+            $query->where('is_active', true);
+        } elseif ($status === 'inactive') {
+            $query->where('is_active', false);
+        }
+
+        $source = (string) ($filters['source'] ?? 'all');
+        if ($this->pharmaSyncAvailable()) {
+            if ($source === 'pharma') {
+                $query->whereHas('pharmaLink');
+            } elseif ($source === 'manual') {
+                $query->whereDoesntHave('pharmaLink');
+            }
+        } elseif ($source === 'pharma') {
+            $query->whereRaw('1 = 0');
+        }
+
+        return $query;
+    }
+
+    private function baseAdminQuery(string $search, mixed $categoryId, string $categoryType): Builder
     {
         return Product::query()
             ->with('categories:id,name')
@@ -428,12 +536,12 @@ class ProductService
                         ->orWhere('slug', 'like', "%{$search}%");
                 });
             })
-            ->when($categoryId !== null && $categoryId !== '', function (Builder $query) use ($categoryId) {
-                $query->whereHas('categories', fn (Builder $categoryQuery) => $categoryQuery->whereKey((int) $categoryId));
+            ->when($categoryId !== null && $categoryId !== '', function (Builder $query) use ($categoryId, $categoryType) {
+                $query->whereHas('categories', fn (Builder $categoryQuery) => $categoryQuery->whereKey((int) $categoryId)->where('categories.type', $categoryType));
             });
     }
 
-    private function normalizeCategoryIds(array $ids): array
+    private function normalizeCategoryIds(array $ids, string $type = 'product'): array
     {
         $ids = $this->normalizeIds($ids);
 
@@ -442,7 +550,7 @@ class ProductService
         }
 
         $existing = Category::query()
-            ->where('type', 'product')
+            ->where('type', $type)
             ->whereIn('id', $ids)
             ->pluck('id')
             ->map(fn ($id) => (int) $id)

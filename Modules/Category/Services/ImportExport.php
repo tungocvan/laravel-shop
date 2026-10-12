@@ -4,6 +4,9 @@ namespace Modules\Category\Services;
 
 use Closure;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use Rap2hpoutre\FastExcel\FastExcel;
 use Illuminate\Support\Collection;
 use Modules\Category\Models\Category;
 use Modules\Shared\Services\ImportExport\BaseImportExportService;
@@ -69,20 +72,115 @@ class ImportExport extends BaseImportExportService
     public function import(string $filePath, array $options = []): array
     {
         $this->authorizeAdmin('create_category');
+        $this->resetReport();
 
-        if (($options['mode'] ?? $this->mode) === 'replace') {
-            $this->resetReport();
-            $this->addError(
-                $this->defaultSheetName,
-                null,
-                'mode',
-                'Replace mode is not approved for Category import.'
-            );
+        $mode = $options['mode'] ?? $this->mode;
+        $dryRun = (bool) ($options['dry_run'] ?? false);
+        if (! in_array($mode, ['create_only', 'update_or_create', 'skip_duplicate'], true)) {
+            $this->addError($this->defaultSheetName, null, 'mode', 'Chế độ import không được hỗ trợ.');
 
             return $this->report(false);
         }
 
-        return parent::import($filePath, $options);
+        try {
+            $this->validateImportFile($filePath);
+            $reader = new FastExcel;
+            if (strtolower(pathinfo($filePath, PATHINFO_EXTENSION)) === 'csv') {
+                $reader->configureCsv($this->csvDelimiter());
+            }
+            $pending = [];
+            foreach ($reader->import($filePath) as $index => $rawRow) {
+                $this->totalRows++;
+                $rowNumber = $index + 2;
+                $row = $this->normalizeRowHeaders((array) $rawRow);
+                if (! $this->hasRequiredHeaders($row)) {
+                    $this->addError($this->defaultSheetName, $rowNumber, null, 'File thiếu cột bắt buộc.');
+                    continue;
+                }
+                $pending[] = ['number' => $rowNumber, 'data' => $this->normalizeRow($row)];
+            }
+
+            if ($this->errors !== []) {
+                return $this->report(false);
+            }
+
+            DB::beginTransaction();
+            try {
+                // Parent rows may appear after their children. Persist in dependency
+                // order, in one transaction. Dry-run follows the same real validation.
+                while ($pending !== []) {
+                    $next = [];
+                    $progress = false;
+                    foreach ($pending as $item) {
+                        $data = $item['data'];
+                        $parentSlug = $data['parent_slug'] ?? null;
+                        if ($parentSlug !== null && ! Category::query()
+                            ->where('type', $data['type'])
+                            ->where('slug', $parentSlug)->exists()) {
+                            $next[] = $item;
+                            continue;
+                        }
+
+                        $validator = Validator::make($data, $this->rules);
+                        if ($validator->fails()) {
+                            foreach ($validator->errors()->messages() as $column => $messages) {
+                                foreach ($messages as $message) {
+                                    $this->addError($this->defaultSheetName, $item['number'], $column, $message, $data[$column] ?? null);
+                                }
+                            }
+                            continue;
+                        }
+
+                        try {
+                            $prepared = $this->beforePersist($data, $data, $item['number'], $this->defaultSheetName);
+                            $skipped = $this->skippedRows;
+                            $this->persistRow($prepared, $mode);
+                            if ($skipped === $this->skippedRows) {
+                                $this->successRows++;
+                            }
+                            $progress = true;
+                        } catch (\Throwable $exception) {
+                            \Illuminate\Support\Facades\Log::warning('Category import row failed', [
+                                'row' => $item['number'], 'message' => $exception->getMessage(),
+                            ]);
+                            $this->addError($this->defaultSheetName, $item['number'], null, 'Không thể xử lý dòng dữ liệu này.');
+                        }
+                    }
+
+                    if (! $progress) {
+                        foreach ($next as $item) {
+                            $this->addError(
+                                $this->defaultSheetName, $item['number'], 'parent_slug',
+                                'Không tìm thấy danh mục cha cùng loại hoặc cây danh mục có chu kỳ.',
+                                $item['data']['parent_slug']
+                            );
+                        }
+                        break;
+                    }
+                    $pending = $next;
+                }
+
+                if ($dryRun || $this->errors !== []) {
+                    DB::rollBack();
+                    if ($this->errors !== []) {
+                        $this->successRows = 0;
+                        $this->skippedRows = 0;
+                    }
+                } else {
+                    DB::commit();
+                }
+            } catch (\Throwable $exception) {
+                DB::rollBack();
+                throw $exception;
+            }
+
+            return $this->report($this->errors === []);
+        } catch (\Throwable $exception) {
+            \Illuminate\Support\Facades\Log::error('Category import failed', ['message' => $exception->getMessage()]);
+            $this->addError($this->defaultSheetName, null, null, 'Lỗi hệ thống khi import. Vui lòng kiểm tra log.');
+
+            return $this->report(false);
+        }
     }
 
     public function export(array $filters = []): string

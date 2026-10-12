@@ -24,7 +24,9 @@
         displayValue: '',
         format(val) {
             if (val === null || val === undefined || val === '') return '';
-            return val.toString().replace(/\D/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+            const amount = Number(val);
+            if (!Number.isFinite(amount)) return '';
+            return Math.round(amount).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
         },
         handleInput(e) {
             const raw = e.target.value.replace(/\./g, '');

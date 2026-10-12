@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Modules\Pharma\Models\PharmaProductLink;
 use Illuminate\Support\Facades\Storage;
 use Modules\Category\Models\Category;
 
@@ -52,6 +54,11 @@ class Product extends Model
     | Relationships
     |--------------------------------------------------------------------------
     */
+    public function pharmaLink(): HasOne
+    {
+        return $this->hasOne(PharmaProductLink::class, 'product_id');
+    }
+
     public function categories(): BelongsToMany
     {
         return $this->belongsToMany(Category::class, 'category_product', 'product_id', 'category_id');

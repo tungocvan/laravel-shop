@@ -3,6 +3,7 @@
 namespace Modules\Pharma\Services;
 
 use Illuminate\Support\Facades\DB;
+use Modules\Pharma\Jobs\SyncMedicineProducts;
 use Modules\Pharma\Models\Medicine;
 use Modules\Pharma\Models\MedicineImportBatch;
 use Modules\Pharma\Models\MedicineImportRow;
@@ -22,6 +23,7 @@ class MedicineCatalogImportCommitter
         return DB::transaction(function () use ($batch): array {
             $created = 0;
             $updated = 0;
+            $medicineIds = [];
 
             $rows = $batch->rows()
                 ->where('selected', true)
@@ -31,8 +33,18 @@ class MedicineCatalogImportCommitter
 
             foreach ($rows as $row) {
                 $result = $this->commitRow($row);
+                if (config('pharma.product_sync_enabled', false)) {
+                    $medicineId = MedicineVariant::query()->where('variant_identity_key', $row->variant_identity_key)->value('medicine_id');
+                    if ($medicineId) {
+                        $medicineIds[(int) $medicineId] = true;
+                    }
+                }
                 $created += $result === 'created' ? 1 : 0;
                 $updated += $result === 'updated' ? 1 : 0;
+            }
+
+            foreach (array_keys($medicineIds) as $medicineId) {
+                SyncMedicineProducts::dispatch($medicineId)->afterCommit();
             }
 
             $batch->forceFill([

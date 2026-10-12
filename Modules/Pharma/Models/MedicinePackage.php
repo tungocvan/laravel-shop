@@ -3,6 +3,7 @@
 namespace Modules\Pharma\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Modules\Pharma\Jobs\SyncMedicineProducts;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class MedicinePackage extends Model
@@ -36,6 +37,18 @@ class MedicinePackage extends Model
         'is_orderable' => 'boolean',
         'is_inventory_unit' => 'boolean',
     ];
+
+    protected static function booted(): void
+    {
+        static::saved(function (self $package): void {
+            if (config('pharma.product_sync_enabled', false)) {
+                $medicineId = $package->variant()->value('medicine_id');
+                if ($medicineId) {
+                    SyncMedicineProducts::dispatch((int) $medicineId)->afterCommit();
+                }
+            }
+        });
+    }
 
     public function variant(): BelongsTo
     {

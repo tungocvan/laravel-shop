@@ -344,6 +344,7 @@ class CategoryService
             $data['slug'] !== null
             && Category::query()
                 ->where('slug', $data['slug'])
+                ->where('type', $data['type'])
                 ->when($categoryId, fn ($query) => $query->where('id', '!=', $categoryId))
                 ->exists()
         ) {

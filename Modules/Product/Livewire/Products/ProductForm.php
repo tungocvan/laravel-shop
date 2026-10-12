@@ -3,6 +3,7 @@
 namespace Modules\Product\Livewire\Products;
 
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Modules\Category\Models\Category;
@@ -30,6 +31,7 @@ class ProductForm extends Component
     public $gallery = [];
     public $newGallery = [];
 
+    public $isPharmaLinked = false;
     public $tags = [];
     public $tagInput = '';
 
@@ -52,6 +54,7 @@ class ProductForm extends Component
 
         $product = $this->products->findForEdit((int) $id);
         $this->productId = $product->id;
+        $this->isPharmaLinked = $this->products->pharmaSyncAvailable() && $product->pharmaLink()->exists();
         $this->title = $product->title;
         $this->slug = $product->slug;
         $this->regular_price = $product->regular_price;
@@ -70,7 +73,7 @@ class ProductForm extends Component
     public function getCategoriesProperty()
     {
         return Category::query()
-            ->where('type', 'product')
+            ->where('type', $this->isPharmaLinked ? 'medicine' : 'product')
             ->whereNull('parent_id')
             ->with('childrenRecursive')
             ->orderBy('sort_order')
@@ -130,7 +133,7 @@ class ProductForm extends Component
             'description' => 'nullable|string',
             'is_active' => 'boolean',
             'category_ids' => 'array',
-            'category_ids.*' => 'integer',
+            'category_ids.*' => ['integer', 'distinct', Rule::exists('categories', 'id')->where('type', $this->isPharmaLinked ? 'medicine' : 'product')],
             'newImage' => 'nullable|image|max:5120',
             'newGallery.*' => 'image|max:5120',
             'affiliate_commission_rate' => 'nullable|numeric|min:0|max:100',
@@ -142,6 +145,11 @@ class ProductForm extends Component
     public function save()
     {
         $this->authorizeAdmin($this->productId ? 'edit_product' : 'create_product');
+        if ($this->productId && $this->isPharmaLinked) {
+            $canonical = $this->products->findForEdit((int) $this->productId);
+            $this->title = $canonical->title;
+            $this->slug = $canonical->slug;
+        }
         $this->validate();
 
         $payload = [
@@ -171,7 +179,9 @@ class ProductForm extends Component
 
     public function updatedTitle($value): void
     {
-        $this->slug = Str::slug((string) $value);
+        if (! $this->isPharmaLinked) {
+            $this->slug = Str::slug((string) $value);
+        }
     }
 
     public function render()
@@ -186,7 +196,7 @@ class ProductForm extends Component
         }
 
         $parentById = Category::query()
-            ->where('type', 'product')
+            ->where('type', $this->isPharmaLinked ? 'medicine' : 'product')
             ->pluck('parent_id', 'id');
         $expanded = [];
 

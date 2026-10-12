@@ -3,6 +3,7 @@
 namespace Modules\Pharma\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Modules\Pharma\Jobs\SyncMedicineProducts;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -32,6 +33,15 @@ class MedicineVariant extends Model
         'content_value' => 'decimal:4',
         'is_default' => 'boolean',
     ];
+
+    protected static function booted(): void
+    {
+        static::saved(function (self $variant): void {
+            if (config('pharma.product_sync_enabled', false)) {
+                SyncMedicineProducts::dispatch((int) $variant->medicine_id)->afterCommit();
+            }
+        });
+    }
 
     public function medicine(): BelongsTo
     {

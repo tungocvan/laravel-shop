@@ -68,6 +68,21 @@
             <div><label class="text-sm font-medium text-gray-600 block">Quy cách đóng gói</label><input type="text" wire:model="packaging_specification" class="w-full rounded-xl border border-gray-300 px-4 py-3 mt-1"></div>
         </section>
 
+        <section class="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 sm:p-6 space-y-3" aria-label="Phân loại thuốc">
+            <h3 class="text-lg font-semibold text-gray-800">Danh mục thuốc</h3>
+            <p class="text-sm text-gray-500">Có thể chọn nhiều danh mục. Chỉ sử dụng danh mục thuộc loại Thuốc.</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-72 overflow-y-auto rounded-xl border border-gray-200 p-3">
+                @foreach($categories as $category)
+                    <label wire:key="medicine-category-{{ $category->id }}" class="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 hover:bg-indigo-50 cursor-pointer">
+                        <input type="checkbox" wire:model="category_ids" value="{{ $category->id }}" class="h-5 w-5 shrink-0 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                        <span class="text-sm text-gray-800">{{ $category->parent_id ? '↳ ' : '' }}{{ $category->name }}</span>
+                    </label>
+                @endforeach
+            </div>
+            @error('category_ids')<p class="text-xs text-rose-600">{{ $message }}</p>@enderror
+            @error('category_ids.*')<p class="text-xs text-rose-600">{{ $message }}</p>@enderror
+        </section>
+
         <section class="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 sm:p-6 space-y-4">
             <h3 class="text-lg font-semibold text-gray-800 border-b border-gray-100 pb-3">2. Nhà sản xuất & thông tin quản lý</h3>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">

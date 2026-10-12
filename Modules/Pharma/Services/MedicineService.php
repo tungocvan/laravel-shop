@@ -5,9 +5,12 @@ namespace Modules\Pharma\Services;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Modules\Pharma\Jobs\SyncMedicineProducts;
 use Modules\Partner\Models\Partner;
 use LogicException;
 use Modules\Pharma\Models\Medicine;
+use Modules\Category\Models\Category;
+use Illuminate\Validation\ValidationException;
 
 class MedicineService
 {
@@ -141,8 +144,13 @@ class MedicineService
     public function store(array $data): Medicine
     {
         return DB::transaction(function () use ($data): Medicine {
+            $categoryIds = $this->validatedMedicineCategoryIds($data);
+            unset($data['category_ids']);
             $data = $this->normalizeQualityState($data);
             $medicine = Medicine::query()->create($data);
+            if ($categoryIds !== null) {
+                $medicine->categories()->sync($categoryIds);
+            }
 
             if (! $medicine->medicine_code) {
                 $medicine->forceFill([
@@ -150,6 +158,7 @@ class MedicineService
                 ])->save();
             }
 
+            $this->queueProductSync($medicine);
             return $medicine->refresh();
         });
     }
@@ -158,9 +167,14 @@ class MedicineService
     {
         return DB::transaction(function () use ($id, $data) {
             $medicine = $this->findOrFail($id);
+            $categoryIds = $this->validatedMedicineCategoryIds($data);
+            unset($data['category_ids']);
             $data = $this->normalizeQualityState($data, $medicine);
             $this->guardCanonicalIdentityCollision($medicine, $data['canonical_identity_key'] ?? null);
             $medicine->update($data);
+            if ($categoryIds !== null) {
+                $medicine->categories()->sync($categoryIds);
+            }
 
             return $medicine->refresh();
         });
@@ -256,6 +270,31 @@ class MedicineService
         ]);
 
         return storage_path('app/public/'.$path);
+    }
+
+    /** Null means the caller did not submit category data; preserve existing links. */
+    private function validatedMedicineCategoryIds(array $data): ?array
+    {
+        if (! array_key_exists('category_ids', $data)) {
+            return null;
+        }
+
+        $ids = collect($data['category_ids'] ?? [])->map(fn ($id) => (int) $id)->unique()->values()->all();
+        $valid = Category::query()->where('type', 'medicine')->whereIn('id', $ids)->pluck('id')->map(fn ($id) => (int) $id)->all();
+        sort($ids);
+        sort($valid);
+        if ($ids !== $valid || in_array(0, $ids, true)) {
+            throw ValidationException::withMessages(['category_ids' => 'Danh mục thuốc không hợp lệ.']);
+        }
+
+        return $ids;
+    }
+
+    private function queueProductSync(Medicine $medicine): void
+    {
+        if (config('pharma.product_sync_enabled', false)) {
+            SyncMedicineProducts::dispatch((int) $medicine->id)->afterCommit();
+        }
     }
 
     private function normalizeQualityState(array $data, ?Medicine $existing = null): array
