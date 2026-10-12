@@ -1,0 +1,78 @@
+<?php
+
+namespace Modules\Pharma\Tests\Feature;
+
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Modules\Pharma\Models\Medicine;
+use Modules\Pharma\Models\MedicinePackage;
+use Modules\Pharma\Models\MedicineVariant;
+use Modules\Pharma\Models\PharmaProductLink;
+use Modules\Pharma\Services\PharmaProductCatalogSyncService;
+use Modules\Product\Models\Product;
+use Tests\TestCase;
+
+class PharmaProductCatalogSyncIntegrationTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_package_projection_is_idempotent_and_preserves_commercial_fields(): void
+    {
+        $medicine = Medicine::query()->create(['name' => 'Thuốc kiểm thử đồng bộ', 'registration_number' => 'TEST-SYNC-1']);
+        $variant = MedicineVariant::query()->create([
+            'medicine_id' => $medicine->id,
+            'sku' => 'SYNC-SKU-'. $medicine->id,
+            'variant_identity_key' => hash('sha256', 'sync-variant-'.$medicine->id),
+            'sku_basis_hash' => hash('sha256', 'sync-basis-'.$medicine->id),
+            'status' => 'active',
+        ]);
+        $package = MedicinePackage::query()->create([
+            'medicine_variant_id' => $variant->id,
+            'package_code' => 'SYNC-PKG-'.$variant->id,
+            'packaging_text' => 'Hộp 10 viên',
+            'package_identity_key' => hash('sha256', 'sync-package-'.$variant->id),
+            'is_orderable' => true,
+        ]);
+
+        $service = app(PharmaProductCatalogSyncService::class);
+        $first = $service->syncVariant($variant, $package);
+        $this->assertSame(1, PharmaProductLink::query()->count());
+        $this->assertSame(1, Product::query()->whereKey($first->product_id)->count());
+        $this->assertFalse($first->product->is_active);
+        $this->assertNull($first->product->regular_price);
+        $this->assertSame(0, $first->product->quantity);
+
+        $first->product->forceFill(['regular_price' => 125000, 'quantity' => 12])->save();
+        $second = $service->syncVariant($variant, $package);
+        $this->assertSame($first->id, $second->id);
+        $this->assertSame(1, PharmaProductLink::query()->count());
+        $this->assertSame('125000.00', $second->product->fresh()->regular_price);
+        $this->assertSame(12, $second->product->fresh()->quantity);
+
+        $medicine->update(['name' => 'Thuốc đã đổi tên']);
+        $third = $service->syncVariant($variant, $package);
+        $this->assertSame($first->product_id, $third->product_id);
+        $this->assertStringContainsString('Thuốc đã đổi tên', $third->product->fresh()->title);
+        $this->assertSame('125000.00', $third->product->fresh()->regular_price);
+    }
+
+    public function test_variant_with_nonorderable_package_does_not_create_product(): void
+    {
+        $medicine = Medicine::query()->create(['name' => 'Thuốc không bán']);
+        $variant = MedicineVariant::query()->create([
+            'medicine_id' => $medicine->id,
+            'sku' => 'SYNC-NONORDER-'.$medicine->id,
+            'variant_identity_key' => hash('sha256', 'sync-nonorder-'.$medicine->id),
+            'sku_basis_hash' => hash('sha256', 'sync-nonorder-basis-'.$medicine->id),
+        ]);
+        MedicinePackage::query()->create([
+            'medicine_variant_id' => $variant->id,
+            'package_code' => 'SYNC-NONORDER-PKG-'.$variant->id,
+            'packaging_text' => 'Không đặt hàng',
+            'package_identity_key' => hash('sha256', 'sync-nonorder-package-'.$variant->id),
+            'is_orderable' => false,
+        ]);
+
+        $this->assertSame(0, app(PharmaProductCatalogSyncService::class)->syncMedicine($medicine));
+        $this->assertSame(0, PharmaProductLink::query()->count());
+    }
+}
