@@ -22,7 +22,8 @@ class PharmaProductCatalogSyncContractTest extends TestCase
     public function product_crud_guards_pharma_linked_records(): void
     {
         $service = file_get_contents(base_path('Modules/Product/Services/ProductService.php'));
-        $this->assertStringContainsString("assertNotPharmaLinked([\$id], 'edit')", $service);
+        $this->assertStringContainsString("unset(\$normalized['title'], \$normalized['slug'])", $service);
+        $this->assertStringContainsString("PharmaProductLink::query()->where('product_id', \$id)->exists()", $service);
         $this->assertStringContainsString("assertNotPharmaLinked([\$id], 'duplicate')", $service);
         $this->assertStringContainsString("assertNotPharmaLinked([\$id], 'toggle status')", $service);
         $this->assertStringContainsString("assertNotPharmaLinked([\$id], 'delete')", $service);
