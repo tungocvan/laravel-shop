@@ -20,7 +20,7 @@ class PharmaProductCatalogSyncService
     public function syncVariant(MedicineVariant $variant, ?MedicinePackage $package = null): PharmaProductLink
     {
         return DB::transaction(function () use ($variant, $package): PharmaProductLink {
-            $variant = MedicineVariant::query()->with('medicine')->findOrFail($variant->getKey());
+            $variant = MedicineVariant::query()->with('medicine')->lockForUpdate()->findOrFail($variant->getKey());
             $medicine = $variant->medicine;
 
             if (! $medicine || ! filled($variant->sku)) {
@@ -35,8 +35,8 @@ class PharmaProductCatalogSyncService
                 if (! $package->is_orderable) {
                     throw new InvalidArgumentException('Package is not orderable.');
                 }
-            } elseif ($variant->packages()->where('is_orderable', true)->exists()) {
-                throw new InvalidArgumentException('Orderable packages exist; sync each package instead.');
+            } elseif ($variant->packages()->exists()) {
+                throw new InvalidArgumentException('Packages exist; sync an orderable package instead.');
             }
 
             $sourceKey = $package ? 'package:'.$package->getKey() : 'variant:'.$variant->getKey();
@@ -48,6 +48,8 @@ class PharmaProductCatalogSyncService
                 'title' => $title,
                 'sku' => $variant->sku,
                 'catalog_status' => $medicine->catalog_status,
+                'product_type' => $medicine->product_type,
+                'registration_number' => $medicine->registration_number,
                 'variant_status' => $variant->status,
             ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
 
