@@ -158,8 +158,8 @@ class PharmaProductCatalogSyncContractTest extends TestCase
         $this->assertStringContainsString("where('product_id', \$product->id)->exists()", $service);
         $this->assertStringContainsString("DB::transaction(function () use (\$sheets)", $service);
         $this->assertStringNotContainsString("'quantity' =>", $service);
-        $this->assertStringNotContainsString('\$changes[\'title\']', $service);
-        $this->assertStringNotContainsString('\$changes[\'slug\']', $service);
+        $this->assertStringNotContainsString('$changes[\'title\']', $service);
+        $this->assertStringNotContainsString('$changes[\'slug\']', $service);
     }
 
 }
