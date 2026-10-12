@@ -2,34 +2,48 @@
     $pharmaHome = app(\Modules\Website\Services\PharmaHomepageService::class);
     $sections = $pharmaHome->sections();
 @endphp
-<div class="bg-slate-50 text-slate-900">
+<div class="w-full min-w-0 bg-slate-50 text-slate-900">
     @foreach($sections as $section)
         <section class="{{ $section['visibility'] }}" aria-label="{{ match($section['key']) { 'hero' => 'Giới thiệu', 'categories' => 'Danh mục dược phẩm', 'featured' => 'Sản phẩm nổi bật', default => 'Sản phẩm mới' } }}">
             @if($section['key'] === 'hero')
-                <div class="bg-gradient-to-r from-emerald-950 via-emerald-900 to-teal-800">
-                    <div class="mx-auto grid max-w-[1440px] items-center gap-8 px-4 py-16 sm:px-6 md:grid-cols-[1.4fr_1fr] md:py-24 lg:px-8">
-                        <div>
-                            <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-200">Thông tin dược phẩm</p>
-                            <h1 class="mt-4 max-w-3xl text-4xl font-extrabold leading-tight tracking-tight text-white md:text-5xl">Khám phá danh mục sản phẩm dược phẩm</h1>
-                            <p class="mt-5 max-w-xl text-base leading-8 text-emerald-50">Tìm kiếm và tham khảo thông tin sản phẩm theo danh mục chuyên môn.</p>
-                            <a href="{{ route('product.list') }}" class="mt-8 inline-flex min-h-12 items-center justify-center rounded-xl bg-white px-6 py-3 text-sm font-bold text-emerald-900 transition hover:bg-emerald-50">Tra cứu sản phẩm <span class="ml-2" aria-hidden="true">→</span></a>
+                <div class="relative isolate overflow-hidden bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-800">
+                    <div aria-hidden="true" class="pointer-events-none absolute -right-20 -top-40 h-96 w-96 rounded-full border border-white/10 bg-white/5 blur-3xl"></div>
+                    <div aria-hidden="true" class="pointer-events-none absolute -bottom-40 left-1/3 h-96 w-96 rounded-full bg-teal-400/10 blur-3xl"></div>
+                    <div class="relative mx-auto grid w-full max-w-[1440px] items-center gap-10 px-5 py-16 sm:px-8 md:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] md:py-24 lg:gap-16 lg:px-12 lg:py-28">
+                        <div class="min-w-0">
+                            <p class="inline-flex items-center gap-2 rounded-full border border-emerald-300/30 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.15em] text-emerald-100">
+                                <span aria-hidden="true" class="h-2 w-2 rounded-full bg-emerald-300"></span> Thông tin dược phẩm
+                            </p>
+                            <h1 class="mt-7 max-w-3xl text-4xl font-extrabold leading-[1.15] tracking-tight text-white sm:text-5xl lg:text-6xl">Khám phá danh mục <span class="text-emerald-200">sản phẩm dược phẩm</span></h1>
+                            <p class="mt-6 max-w-xl text-base leading-8 text-emerald-50/90 sm:text-lg">Tìm kiếm và tham khảo thông tin sản phẩm theo danh mục chuyên môn, với dữ liệu được cập nhật từ hệ thống.</p>
+                            <div class="mt-9 flex flex-wrap items-center gap-4">
+                                <a href="{{ route('product.list') }}" class="inline-flex min-h-12 items-center justify-center gap-3 rounded-xl bg-white px-6 py-3 text-sm font-bold text-emerald-950 shadow-lg transition hover:bg-emerald-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">Tra cứu sản phẩm <span aria-hidden="true">→</span></a>
+                                <span class="text-sm font-medium text-emerald-100">Danh mục · Thông tin · Tra cứu</span>
+                            </div>
                         </div>
-                        <div aria-hidden="true" class="hidden justify-center md:flex">
-                            <div class="flex h-64 w-64 items-center justify-center rounded-[3rem] border border-white/20 bg-white/10 text-[9rem] font-light text-emerald-200 shadow-2xl">+</div>
+                        <div aria-hidden="true" class="relative mx-auto hidden aspect-square w-full max-w-[440px] items-center justify-center md:flex">
+                            <div class="absolute inset-[7%] rounded-[3rem] border border-white/15 bg-white/10 shadow-2xl backdrop-blur-sm"></div>
+                            <div class="absolute inset-[20%] rotate-12 rounded-[2.5rem] border border-emerald-200/20"></div>
+                            <svg class="relative h-48 w-48 text-emerald-100 lg:h-56 lg:w-56" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="38" y="18" width="124" height="164" rx="28" stroke="currentColor" stroke-width="5" opacity=".8"/>
+                                <path d="M100 57V143M57 100H143" stroke="currentColor" stroke-width="15" stroke-linecap="round"/>
+                                <circle cx="151" cy="43" r="7" fill="currentColor" opacity=".5"/>
+                                <circle cx="48" cy="157" r="5" fill="currentColor" opacity=".5"/>
+                            </svg>
                         </div>
                     </div>
                 </div>
             @elseif($section['key'] === 'categories')
                 @php($categories = $pharmaHome->categories())
                 @if($categories->isNotEmpty())
-                    <div class="mx-auto max-w-[1440px] px-4 py-14 sm:px-6 lg:px-8">
+                    <div class="mx-auto w-full max-w-[1440px] px-5 py-16 sm:px-8 lg:px-12 lg:py-20">
                         <div class="mb-7 flex flex-wrap items-end justify-between gap-3">
-                            <div><p class="text-xs font-bold uppercase tracking-widest text-emerald-700">Danh mục</p><h2 class="mt-2 text-2xl font-extrabold md:text-3xl">Khám phá theo nhóm dược phẩm</h2></div>
+                            <div><p class="text-xs font-bold uppercase tracking-widest text-emerald-700">Danh mục</p><h2 class="mt-3 text-3xl font-extrabold tracking-tight md:text-4xl">Khám phá theo nhóm dược phẩm</h2></div>
                             <a href="{{ route('product.list') }}" class="text-sm font-bold text-emerald-700 hover:underline">Tất cả sản phẩm →</a>
                         </div>
-                        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
                             @foreach($categories as $category)
-                                <a href="{{ route('product.list', ['category' => $category->slug]) }}" class="flex min-h-24 items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm transition hover:border-emerald-300 hover:shadow-md">
+                                <a href="{{ route('product.list', ['category' => $category->slug]) }}" class="flex min-h-28 items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm transition hover:border-emerald-300 hover:shadow-md">
                                     <span class="text-base font-bold text-slate-800">{{ $category->name }}</span><span class="text-emerald-700" aria-hidden="true">↗</span>
                                 </a>
                             @endforeach
@@ -39,12 +53,12 @@
             @elseif(in_array($section['key'], ['featured', 'new_arrivals'], true))
                 @php($products = $pharmaHome->products($section['key']))
                 @if($products->isNotEmpty())
-                    <div class="mx-auto max-w-[1440px] px-4 py-14 sm:px-6 lg:px-8">
+                    <div class="mx-auto w-full max-w-[1440px] px-5 py-16 sm:px-8 lg:px-12 lg:py-20">
                         <div class="mb-7 flex flex-wrap items-end justify-between gap-3">
-                            <div><p class="text-xs font-bold uppercase tracking-widest text-emerald-700">Danh mục sản phẩm</p><h2 class="mt-2 text-2xl font-extrabold md:text-3xl">{{ $section['key'] === 'featured' ? 'Sản phẩm nổi bật' : 'Sản phẩm mới cập nhật' }}</h2></div>
+                            <div><p class="text-xs font-bold uppercase tracking-widest text-emerald-700">Danh mục sản phẩm</p><h2 class="mt-3 text-3xl font-extrabold tracking-tight md:text-4xl">{{ $section['key'] === 'featured' ? 'Sản phẩm nổi bật' : 'Sản phẩm mới cập nhật' }}</h2></div>
                             <a href="{{ route('product.list') }}" class="text-sm font-bold text-emerald-700 hover:underline">Xem tất cả →</a>
                         </div>
-                        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
                             @foreach($products as $product)
                                 <article class="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:border-emerald-200 hover:shadow-lg">
                                     <a href="{{ route('product.detail', $product->slug) }}" class="flex h-full flex-col">
