@@ -9,6 +9,8 @@
         <a href="{{ route('home') }}" target="_blank" class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">Xem frontend ↗</a>
     </div>
 
+    @livewire('website.admin.home.pharma-hero-settings')
+
     @error('builder')<div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ $message }}</div>@enderror
 
     @php($sectionTabs = ['categories', 'featured', 'auto_query', 'promo_banner', 'newsletter', 'trust_badges'])
