@@ -1,5 +1,5 @@
 <div class="min-h-screen bg-slate-50 text-slate-900">
-    <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <div class="mx-auto max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8">
         <nav aria-label="Breadcrumb" class="mb-6 text-xs text-slate-500"><a href="{{ route('home') }}" class="hover:text-emerald-700">Trang chủ</a><span class="mx-2">›</span><a href="{{ route('product.list') }}" class="hover:text-emerald-700">Sản phẩm</a><span class="mx-2">›</span><span class="font-semibold text-slate-700">{{ $product->title }}</span></nav>
         <div class="grid gap-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] md:p-8">
             <div class="flex aspect-square items-center justify-center overflow-hidden rounded-xl border border-slate-100 bg-gradient-to-br from-slate-50 to-emerald-50/50 p-6">
@@ -26,7 +26,7 @@
                 <a href="{{ route('product.list') }}" class="mt-7 inline-flex items-center rounded-xl border border-emerald-600 px-5 py-3 text-sm font-bold text-emerald-700 transition hover:bg-emerald-50">← Trở về danh mục sản phẩm</a>
             </div>
         </div>
-        <div class="mt-8 grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(260px,1fr)]">
+        <div class="mt-8 grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
             <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
                 <h2 class="border-b border-emerald-200 pb-4 text-xl font-extrabold">Thông tin chi tiết</h2>
                 <dl class="mt-5 divide-y divide-slate-100 text-sm">
