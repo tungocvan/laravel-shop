@@ -58,6 +58,16 @@ class PharmaProductCatalogSyncService
                 return $link;
             }
 
+            if ($link && ($medicine->catalog_status !== Medicine::CATALOG_ACTIVE || $variant->status !== 'active' || ($package && ! $package->is_orderable))) {
+                $link->forceFill(['sync_status' => 'stale', 'last_error' => 'Pharma source is no longer eligible.'])->save();
+                $link->product()->update(['is_active' => false]);
+                return $link;
+            }
+
+            if (! $link && $medicine->catalog_status !== Medicine::CATALOG_ACTIVE && filled($medicine->catalog_status)) {
+                throw new InvalidArgumentException('Medicine is not active in Pharma catalog.');
+            }
+
             if (! $link) {
                 $slug = Str::slug($title);
                 $slug = substr($slug ?: 'pharma', 0, 160).'-pharma-'.$variant->getKey().($package ? '-'.$package->getKey() : '');
