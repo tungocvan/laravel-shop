@@ -5,6 +5,7 @@ namespace Modules\Pharma\Services;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Modules\Pharma\Jobs\SyncMedicineProducts;
 use Modules\Partner\Models\Partner;
 use LogicException;
 use Modules\Pharma\Models\Medicine;
@@ -150,6 +151,7 @@ class MedicineService
                 ])->save();
             }
 
+            $this->queueProductSync($medicine);
             return $medicine->refresh();
         });
     }
@@ -256,6 +258,13 @@ class MedicineService
         ]);
 
         return storage_path('app/public/'.$path);
+    }
+
+    private function queueProductSync(Medicine $medicine): void
+    {
+        if (config('pharma.product_sync_enabled', false)) {
+            SyncMedicineProducts::dispatch((int) $medicine->id)->afterCommit();
+        }
     }
 
     private function normalizeQualityState(array $data, ?Medicine $existing = null): array
