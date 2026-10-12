@@ -121,6 +121,17 @@ class Medicine extends Model
         return sprintf('MED-%06d', $id);
     }
 
+    /**
+     * Shared Category taxonomy for Pharma medicines (type=medicine).
+     * The legacy medicineCategories() relationship remains available for existing data.
+     */
+    public function categories(): BelongsToMany
+    {
+        return $this->belongsToMany(\Modules\Category\Models\Category::class, 'pharma_medicine_category_links', 'medicine_id', 'category_id')
+            ->where('categories.type', 'medicine')
+            ->withTimestamps();
+    }
+
     public function medicineCategories(): BelongsToMany
     {
         return $this->belongsToMany(MedicineCategory::class, 'pharma_medicine_category_medicine', 'medicine_id', 'category_id')->withTimestamps();
