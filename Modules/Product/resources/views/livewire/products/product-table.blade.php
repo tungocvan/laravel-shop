@@ -35,7 +35,7 @@
                 <button type="button" wire:click="$set('showPharmaImportModal', false)" class="text-sm text-gray-600">Đóng</button>
             </div>
             <p class="mt-2 text-sm text-gray-600">Dùng file Export Pharma; giữ nguyên 4 cột nhận diện. Chỉ cập nhật dữ liệu thương mại, tối đa 5.000 dòng.</p>
-            <input type="file" wire:model="pharmaImportFile" accept=".xlsx,.xls,.csv" class="mt-3 block w-full text-sm">
+            <input type="file" wire:model="pharmaImportFile" accept=".xlsx,.xls,.csv" class="mt-3 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 file:mr-3 file:rounded-md file:border-0 file:bg-indigo-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-indigo-700">
             @error('pharmaImportFile') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
             <div class="mt-3 flex flex-wrap gap-2">
                 <button type="button" wire:click="previewPharmaImport" wire:loading.attr="disabled" class="rounded-lg bg-indigo-600 px-3 py-2 text-sm text-white">Kiểm tra / Xem trước</button>
