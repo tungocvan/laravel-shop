@@ -82,6 +82,16 @@ class ProductTable extends Component
         $this->selected = $value ? $this->products->currentPageIds($this->filters()) : [];
     }
 
+    public function clearFilters(): void
+    {
+        $this->search = '';
+        $this->category_id = '';
+        $this->status = 'active';
+        $this->source = 'all';
+        $this->resetPage();
+        $this->resetSelection();
+    }
+
     public function clearSearch(): void
     {
         $this->search = '';
