@@ -1,4 +1,8 @@
-<x-admin-layout>
+@extends('Admin::layouts.master')
+
+@section('title', 'Import danh mục thuốc theo CSV')
+
+@section('content')
     <div class="mx-auto max-w-5xl space-y-5 p-4 sm:p-6">
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -42,4 +46,4 @@
             </section>
         @endif
     </div>
-</x-admin-layout>
+@endsection
