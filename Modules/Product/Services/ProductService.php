@@ -261,16 +261,27 @@ class ProductService
         Product::query()->whereKey($id)->delete();
     }
 
-    public function deleteMany(array $ids): void
+    public function deleteMany(array $ids): array
     {
         $ids = $this->normalizeIds($ids);
 
         if ($ids === []) {
-            return;
+            return ['deleted' => 0, 'protected' => 0];
         }
 
-        $this->assertNotPharmaLinked($ids, 'bulk delete');
-        Product::query()->whereIn('id', $ids)->delete();
+        return DB::transaction(function () use ($ids): array {
+            $existingIds = Product::query()->whereIn('id', $ids)->lockForUpdate()->pluck('id')->all();
+            $protectedIds = \Illuminate\Support\Facades\Schema::hasTable('pharma_product_links')
+                ? PharmaProductLink::query()->whereIn('product_id', $existingIds)->pluck('product_id')->all()
+                : [];
+            $deletableIds = array_values(array_diff($existingIds, $protectedIds));
+
+            $deleted = $deletableIds === []
+                ? 0
+                : Product::query()->whereIn('id', $deletableIds)->delete();
+
+            return ['deleted' => $deleted, 'protected' => count($protectedIds)];
+        });
     }
 
     public function addCategoriesToProducts(array $productIds, array $categoryIds): void
