@@ -28,6 +28,7 @@ class ProductTable extends Component
     public $importFile;
     public $showImportModal = false;
 
+    public $showSyncPanel = false;
     public $showCategoryModal = false;
     public $bulkCategoryIds = [];
 
@@ -114,6 +115,13 @@ class ProductTable extends Component
         $this->resetSelection();
     }
 
+    public function setSelectedStatus(bool $active): void
+    {
+        $this->authorizeAdmin('edit_product');
+        $this->products->setManyActive($this->selected, $active);
+        $this->resetSelection();
+    }
+
     public function deleteSelected(): void
     {
         $this->authorizeAdmin('delete_product');
@@ -184,6 +192,8 @@ class ProductTable extends Component
     {
         return view('product::livewire.products.product-table', [
             'products' => $this->products->paginateForAdmin($this->filters()),
+            'pharmaSyncAvailable' => $this->products->pharmaSyncAvailable(),
+            'pharmaSyncStats' => $this->products->pharmaSyncStats(),
         ]);
     }
 
