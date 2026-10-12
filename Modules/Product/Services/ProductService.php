@@ -367,7 +367,11 @@ class ProductService
 
     private function saveProduct(?int $id, array $data): Product
     {
+        $linked = $id !== null && $this->pharmaSyncAvailable() && PharmaProductLink::query()->where('product_id', $id)->exists();
         $normalized = $this->normalizeProductData($data, $id);
+        if ($linked) {
+            unset($normalized['title'], $normalized['slug']);
+        }
         $categoryIds = $this->normalizeCategoryIds($data['category_ids'] ?? []);
         $newImagePath = $this->storeImage($data['newImage'] ?? null, 'products');
         $newGalleryPaths = $this->storeGallery($data['newGallery'] ?? []);
@@ -383,7 +387,9 @@ class ProductService
 
                 if ($id !== null) {
                     $product = Product::query()->lockForUpdate()->findOrFail($id);
-                    $this->assertNotPharmaLinked([$id], 'edit');
+                    if ($this->pharmaSyncAvailable() && PharmaProductLink::query()->where('product_id', $id)->exists()) {
+                        unset($normalized['title'], $normalized['slug']);
+                    }
                     $oldImagePath = $product->image;
                     $product->update($normalized);
                 } else {
