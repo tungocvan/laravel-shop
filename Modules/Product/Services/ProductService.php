@@ -128,6 +128,7 @@ class ProductService
         $perPage = $this->normalizePerPage($filters['perPage'] ?? 10);
 
         return $this->baseAdminQuery($search, $categoryId)
+            ->with('pharmaLink:id,product_id,medicine_id,sync_status,last_error,last_synced_at')
             ->orderBy($sortColumn, $sortDirection)
             ->orderBy('id')
             ->paginate($perPage);
