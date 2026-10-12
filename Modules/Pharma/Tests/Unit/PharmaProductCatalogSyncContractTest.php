@@ -41,6 +41,22 @@ class PharmaProductCatalogSyncContractTest extends TestCase
         $this->assertStringContainsString('lockForUpdate()->findOrFail', $service);
         $this->assertStringNotContainsString('declared_price', $service);
     }
+    public function test_bulk_status_and_sync_panel_have_guards(): void
+    {
+        $service = file_get_contents(base_path('Modules/Product/Services/ProductService.php'));
+        $table = file_get_contents(base_path('Modules/Product/Livewire/Products/ProductTable.php'));
+        $view = file_get_contents(base_path('Modules/Product/resources/views/livewire/products/product-table.blade.php'));
+
+        $this->assertStringContainsString("Module::isEnabled('Pharma')", $service);
+        $this->assertStringContainsString("Schema::hasTable('pharma_product_links')", $service);
+        $this->assertStringContainsString("DB::transaction(function () use (\$ids, \$active)", $service);
+        $this->assertStringContainsString("assertNotPharmaLinked(\$ids, 'bulk status')", $service);
+        $this->assertStringContainsString("authorizeAdmin('edit_product')", $table);
+        $this->assertStringContainsString('Quản lý đồng bộ Pharma', $view);
+        $this->assertStringContainsString('Bật hàng loạt', $view);
+        $this->assertStringContainsString('Tắt hàng loạt', $view);
+    }
+
     public function test_product_admin_listing_displays_pharma_origin_without_n_plus_one(): void
     {
         $model = file_get_contents(base_path('Modules/Product/Models/Product.php'));
@@ -49,6 +65,7 @@ class PharmaProductCatalogSyncContractTest extends TestCase
 
         $this->assertStringContainsString('function pharmaLink(): HasOne', $model);
         $this->assertStringContainsString("->with('pharmaLink:id,product_id,medicine_id,sync_status,last_error,last_synced_at')", $service);
+        $this->assertStringContainsString('pharmaSyncAvailable()', $service);
         $this->assertStringContainsString('Nguồn: Pharma', $view);
         $this->assertStringContainsString('Nguồn: Thủ công', $view);
         $this->assertStringContainsString('sync_status', $view);
