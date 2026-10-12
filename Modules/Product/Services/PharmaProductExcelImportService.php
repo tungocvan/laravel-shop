@@ -104,7 +104,10 @@ class PharmaProductExcelImportService
                     }
                 }
             }
-            $results[] = ['line' => $line, 'id' => $id ?: null, 'title' => $product?->title, 'errors' => $errors, 'changes' => $changes, 'category_tokens' => $tokens, 'legacy_ids' => $legacyIds, 'new_slugs' => $newSlugs];
+            $results[] = ['line' => $line, 'id' => $id ?: null, 'title' => $product?->title, 'errors' => $errors, 'changes' => $changes, 'category_tokens' => $tokens, 'category_slugs' => $legacyIds
+                ? Category::query()->where('type', 'medicine')->whereIn('id', $tokens)->pluck('slug')->all()
+                : $tokens,
+                'legacy_ids' => $legacyIds, 'new_slugs' => $newSlugs];
         }
 
         return $results;
