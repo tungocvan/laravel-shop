@@ -272,17 +272,26 @@ class HomeSettings extends Component
         $this->editingPharmaProductSection = $newKey;
     }
 
-    public function removePharmaProductSection(string $key): void
+    public function removePharmaProductSection(string $key, SettingsService $settings): void
     {
         $this->authorizeAdminPermission('website.home.manage');
         if ($key === 'new_arrivals' || ! isset($this->pharmaProductSections[$key])) {
             return;
         }
+
         unset($this->pharmaProductSections[$key], $this->pharmaLayout[$key]);
         $this->pharmaSectionOrder = array_values(array_diff($this->pharmaSectionOrder, [$key]));
         if ($this->editingPharmaProductSection === $key) {
             $this->editingPharmaProductSection = null;
         }
+
+        $settings->updateMany([
+            'website.pharma_homepage.product_sections' => $this->pharmaProductSections,
+            'website.pharma_homepage.layout' => $this->pharmaLayout,
+            'website.pharma_homepage.order' => $this->pharmaSectionOrder,
+        ], 'homepage');
+
+        $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã xóa section sản phẩm khỏi trang chủ Pharma.']);
     }
 
     public function savePharmaProductSections(SettingsService $settings): void
