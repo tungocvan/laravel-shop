@@ -9,6 +9,18 @@
         <a href="{{ route('home') }}" target="_blank" class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">Xem frontend ↗</a>
     </div>
 
+    <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <label for="homepage-editing-template" class="mb-2 block text-sm font-semibold text-gray-800">Template đang quản trị</label>
+        <select id="homepage-editing-template" wire:change="selectEditingTemplate($event.target.value)" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100 sm:max-w-sm">
+            <option value="default" @selected($editingTemplate === 'default')>Default — Website bán hàng</option>
+            <option value="pharma" @selected($editingTemplate === 'pharma')>Pharma — Website dược phẩm</option>
+        </select>
+        <p class="mt-2 text-xs text-gray-500">Chọn workspace quản trị, không thay đổi template công khai. Dữ liệu bố cục được lưu riêng cho từng template.</p>
+    </div>
+
+    @if($editingTemplate === 'pharma')
+        @include('Website::livewire.admin.home.partials.pharma-layout-builder')
+    @else
     @error('builder')<div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ $message }}</div>@enderror
 
     @php($sectionTabs = ['categories', 'featured', 'auto_query', 'promo_banner', 'newsletter', 'trust_badges'])
@@ -36,8 +48,10 @@
         @include('Website::livewire.admin.home.partials.layout-builder')
     @endif
 
+    @endif
+
     <div class="sticky bottom-4 z-20 flex items-center justify-end gap-3 rounded-xl border border-gray-200 bg-white/95 p-3 shadow-lg backdrop-blur">
-        <span class="hidden text-xs text-gray-500 sm:inline">Builder, Presentation và Section Editor chỉ publish sau khi lưu.</span>
+        <span class="hidden text-xs text-gray-500 sm:inline">{{ $editingTemplate === 'pharma' ? 'Lưu bố cục Pharma riêng biệt, không ghi đè Default.' : 'Builder, Presentation và Section Editor chỉ publish sau khi lưu.' }}</span>
         <button type="button" wire:click="save" wire:loading.attr="disabled" wire:target="save,newPromoImage" class="rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-indigo-700 disabled:opacity-50">
             <span wire:loading.remove wire:target="save">Lưu thay đổi</span><span wire:loading wire:target="save">Đang lưu...</span>
         </button>
