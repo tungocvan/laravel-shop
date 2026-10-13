@@ -22,8 +22,8 @@ class WebsitePharmaHeaderBuilderContractTest extends TestCase
     public function header_builder_preserves_default_settings_and_separates_pharma(): void
     {
         $builder = file_get_contents(base_path('Modules/Website/Livewire/Admin/Header/HeaderSettingsHub.php'));
-        $this->assertStringContainsString("'website.pharma_header.'.$suffix", $builder);
-        $this->assertStringContainsString("'header.'.$suffix", $builder);
+        $this->assertStringContainsString("'website.pharma_header.'.\$suffix", $builder);
+        $this->assertStringContainsString("'header.'.\$suffix", $builder);
         $this->assertStringContainsString("get('website.public_template', 'default')", $builder);
         $this->assertStringContainsString('updatedEditingTemplate', $builder);
         $this->assertStringContainsString("settingKey('layout')", $builder);
