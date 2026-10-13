@@ -91,6 +91,7 @@ class HomeSettings extends Component
             'limit' => 8,
             'columns' => 4,
             'card_style' => 'clinical',
+            'selected_ids' => [],
         ], (array) $settings->get('website.pharma_homepage.categories', []));
         $this->pharmaProductSections = (array) $settings->get('website.pharma_homepage.product_sections', []);
         $this->pharmaProductSections = array_replace(['new_arrivals' => $this->defaultPharmaProductSection()], $this->pharmaProductSections);
@@ -220,6 +221,22 @@ class HomeSettings extends Component
         $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã lưu Themes Pharma riêng biệt.']);
     }
 
+    public function movePharmaCategory(string $id, string $direction): void
+    {
+        $this->authorizeAdminPermission('website.home.manage');
+        $ids = array_values(array_map('intval', (array) ($this->pharmaCategoryDisplay['selected_ids'] ?? [])));
+        $index = array_search((int) $id, $ids, true);
+        if ($index === false || ! in_array($direction, ['up', 'down'], true)) {
+            return;
+        }
+        $target = $index + ($direction === 'up' ? -1 : 1);
+        if ($target < 0 || $target >= count($ids)) {
+            return;
+        }
+        [$ids[$index], $ids[$target]] = [$ids[$target], $ids[$index]];
+        $this->pharmaCategoryDisplay['selected_ids'] = $ids;
+    }
+
     public function savePharmaCategories(SettingsService $settings): void
     {
         $this->authorizeAdminPermission('website.home.manage');
@@ -230,7 +247,11 @@ class HomeSettings extends Component
             'pharmaCategoryDisplay.limit' => 'required|integer|min:4|max:24',
             'pharmaCategoryDisplay.columns' => 'required|integer|in:2,3,4',
             'pharmaCategoryDisplay.card_style' => 'required|in:clinical,compact',
+            'pharmaCategoryDisplay.selected_ids' => 'array',
+            'pharmaCategoryDisplay.selected_ids.*' => 'integer',
         ]);
+        $allowedIds = Category::query()->ofType('medicine')->active()->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $validated['pharmaCategoryDisplay']['selected_ids'] = array_values(array_unique(array_intersect(array_map('intval', $validated['pharmaCategoryDisplay']['selected_ids'] ?? []), $allowedIds)));
         $settings->updateMany([
             'website.pharma_homepage.categories' => $validated['pharmaCategoryDisplay'],
         ], 'homepage');
