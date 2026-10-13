@@ -74,6 +74,14 @@ foreach($pharmaProductSections as $key => $config) {
                         @foreach([4,8,12,16,20,24] as $count)<option value="{{ $count }}">{{ $count }}</option>@endforeach
                     </select>
                 </label>
+                <label class="text-sm font-medium">Kiểu hiển thị
+                    <select wire:model="pharmaProductSections.{{ $sectionKey }}.display_mode" class="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2">
+                        <option value="load_more">Xem thêm (mặc định)</option>
+                        <option value="fixed">Hiển thị cố định</option>
+                        <option value="pagination">Phân trang</option>
+                    </select>
+                </label>
+                <p class="self-center text-xs text-gray-600">Số sản phẩm là số hiển thị ban đầu hoặc mỗi lần tải. Các section nhân đôi có cấu hình riêng.</p>
                 <div class="md:col-span-2">
                     <p class="text-sm font-semibold">Danh mục dược phẩm</p>
                     <label class="mt-2 flex items-center gap-2 text-sm text-gray-700">
