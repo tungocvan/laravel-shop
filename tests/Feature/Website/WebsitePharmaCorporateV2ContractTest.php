@@ -1,0 +1,45 @@
+<?php
+
+namespace Tests\Feature\Website;
+
+use PHPUnit\Framework\Attributes\Test;
+use Tests\TestCase;
+
+class WebsitePharmaCorporateV2ContractTest extends TestCase
+{
+    #[Test]
+    public function published_pharma_has_independent_header_and_footer(): void
+    {
+        $layout = file_get_contents(base_path('Modules/Website/resources/views/layouts/frontend.blade.php'));
+        $this->assertStringContainsString("website.public_template", $layout);
+        $this->assertStringContainsString("Website::partials.pharma.header", $layout);
+        $this->assertStringContainsString("Website::partials.pharma.footer", $layout);
+        $this->assertStringContainsString("Website::partials.header", $layout);
+        $this->assertStringContainsString("Website::partials.footer", $layout);
+        $this->assertStringContainsString("request()->routeIs('product.*')", $layout);
+    }
+
+    #[Test]
+    public function pharma_navigation_does_not_include_retail_checkout_controls(): void
+    {
+        $header = file_get_contents(base_path('Modules/Website/resources/views/partials/pharma/header.blade.php'));
+        $footer = file_get_contents(base_path('Modules/Website/resources/views/partials/pharma/footer.blade.php'));
+        $this->assertStringContainsString("route('product.list')", $header);
+        $this->assertStringContainsString('aria-label="Điều hướng Pharma"', $header);
+        $this->assertStringContainsString('aria-label="Điều hướng Pharma trên di động"', $header);
+        $this->assertStringContainsString('Thông tin trên website mang tính tham khảo', $footer);
+        $this->assertStringNotContainsString("route('cart", $header);
+        $this->assertStringNotContainsString("route('checkout", $header);
+    }
+
+    #[Test]
+    public function pharma_home_uses_saved_content_and_accessible_cards(): void
+    {
+        $home = file_get_contents(base_path('Modules/Website/resources/views/pages/home/pharma.blade.php'));
+        $this->assertStringContainsString('website.pharma_hero', $home);
+        $this->assertStringContainsString('website.pharma_homepage.layout', $home);
+        $this->assertStringContainsString('focus-visible:outline', $home);
+        $this->assertStringContainsString("whereHas('pharmaLink')", $home);
+        $this->assertStringContainsString('Chưa có ảnh sản phẩm', $home);
+    }
+}
