@@ -20,6 +20,10 @@ class HomeSettings extends Component
     use AuthorizesAdminPermissions, ManagesHomepageLayoutThemes, WithFileUploads;
 
     public $activeTab = 'layout';
+    public string $editingTemplate = 'default';
+    public array $pharmaLayout = [];
+    public array $pharmaSectionOrder = [];
+
     public array $layout = [];
     public array $sectionOrder = [];
     public array $sectionTypes = [];
@@ -61,6 +65,13 @@ class HomeSettings extends Component
         HomepageSectionRegistry $registry,
         HomepagePresentationService $presentationService
     ): void {
+        $this->pharmaLayout = (array) $settings->get('website.pharma_homepage.layout', [
+            'hero' => 'all', 'categories' => 'all', 'new_arrivals' => 'all',
+        ]);
+        $this->pharmaSectionOrder = (array) $settings->get('website.pharma_homepage.order', [
+            'hero', 'categories', 'new_arrivals',
+        ]);
+
         $this->layout = collect($registry->all())
             ->mapWithKeys(fn (array $definition, string $key): array => ['show_'.$key => 'all'])
             ->all();
@@ -123,6 +134,53 @@ class HomeSettings extends Component
             'homepageSections' => $registry->all(),
             'sectionCards' => $registry->adminCards($this->sectionOrder, $this->sectionTypes),
         ]);
+    }
+
+    public function selectEditingTemplate(string $template): void
+    {
+        if (! in_array($template, ['default', 'pharma'], true)) {
+            return;
+        }
+
+        $this->editingTemplate = $template;
+        $this->activeTab = 'layout';
+    }
+
+    public function savePharmaLayout(SettingsService $settings): void
+    {
+        $this->authorizeAdminPermission('website.home.manage');
+        $allowed = ['hero', 'categories', 'new_arrivals'];
+        $visibility = [];
+        foreach ($allowed as $key) {
+            $value = $this->pharmaLayout[$key] ?? 'all';
+            $visibility[$key] = in_array($value, ['all', 'desktop', 'mobile', 'none'], true) ? $value : 'all';
+        }
+        $order = collect($this->pharmaSectionOrder)
+            ->filter(fn ($key) => in_array($key, $allowed, true))
+            ->unique()->values()->all();
+        $order = array_values(array_merge($order, array_diff($allowed, $order)));
+        $settings->updateMany([
+            'website.pharma_homepage.layout' => $visibility,
+            'website.pharma_homepage.order' => $order,
+        ], 'homepage');
+        $this->pharmaLayout = $visibility;
+        $this->pharmaSectionOrder = $order;
+        $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã lưu bố cục Pharma độc lập với Default.']);
+    }
+
+    public function movePharmaSection(string $key, string $direction): void
+    {
+        $this->authorizeAdminPermission('website.home.manage');
+        $index = array_search($key, $this->pharmaSectionOrder, true);
+        if ($index === false || ! in_array($direction, ['up', 'down'], true)) {
+            return;
+        }
+        $target = $index + ($direction === 'up' ? -1 : 1);
+        if ($target < 0 || $target >= count($this->pharmaSectionOrder)) {
+            return;
+        }
+        [$this->pharmaSectionOrder[$index], $this->pharmaSectionOrder[$target]] =
+            [$this->pharmaSectionOrder[$target], $this->pharmaSectionOrder[$index]];
     }
 
     public function setTab(string $tab): void
@@ -252,6 +310,10 @@ class HomeSettings extends Component
 
     public function save(HomepageContentWriteService $writer, HomepagePresentationService $presentationService)
     {
+        if ($this->editingTemplate === 'pharma') {
+            $this->savePharmaLayout(app(SettingsService::class));
+            return;
+        }
         $this->authorizeAdminPermission('website.home.manage');
 
         $this->validate([
