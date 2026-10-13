@@ -141,6 +141,36 @@
             </section>
         @endif
 
+        @if($editingTemplate === 'pharma')
+            <section class="space-y-4 rounded-xl border border-teal-200 bg-teal-50/30 p-5">
+                <div>
+                    <h4 class="text-base font-bold text-gray-900">Topbar Pharma · Nội dung & liên hệ</h4>
+                    <p class="mt-1 text-xs text-gray-600">Nội dung độc lập với Topbar Default. Màu sắc và chiều cao được điều chỉnh trong Thiết lập giao diện Header phía dưới.</p>
+                </div>
+                <label class="flex items-center gap-2 text-sm font-medium"><input type="checkbox" wire:model="topbarSettings.enabled" class="rounded border-gray-300"> Hiển thị Topbar Pharma</label>
+                <div class="grid gap-4 md:grid-cols-2">
+                    <label class="text-sm font-medium">Nội dung bên trái
+                        <input type="text" wire:model="topbarSettings.left_text" maxlength="180" class="mt-1 block w-full rounded-lg border-gray-300 text-sm">
+                    </label>
+                    <label class="text-sm font-medium">Nội dung bên phải
+                        <input type="text" wire:model="topbarSettings.right_text" maxlength="180" class="mt-1 block w-full rounded-lg border-gray-300 text-sm">
+                    </label>
+                    <label class="text-sm font-medium">Hotline Pharma
+                        <input type="text" wire:model="topbarSettings.hotline" maxlength="50" class="mt-1 block w-full rounded-lg border-gray-300 text-sm" placeholder="Số điện thoại liên hệ">
+                    </label>
+                    <label class="text-sm font-medium">Email Pharma
+                        <input type="email" wire:model="topbarSettings.email" maxlength="100" class="mt-1 block w-full rounded-lg border-gray-300 text-sm" placeholder="contact@example.com">
+                    </label>
+                </div>
+                <div class="flex flex-wrap items-center gap-5">
+                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model="topbarSettings.show_hotline" class="rounded border-gray-300"> Hiện hotline</label>
+                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model="topbarSettings.show_email" class="rounded border-gray-300"> Hiện email</label>
+                    <button type="button" wire:click="saveTopbarSettings" class="ml-auto rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white">Lưu Topbar Pharma</button>
+                </div>
+                @error('topbarSettings.email')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
+            </section>
+        @endif
+
         @include('Website::livewire.admin.header.partials.builder-preview')
 
         <div class="border-t border-gray-100 pt-6">
