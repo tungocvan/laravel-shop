@@ -27,14 +27,27 @@ class ProductController extends Controller
         $circularGroup = (string) $request->query('circular_group', '');
 
         $categories = Category::query()->ofType('medicine')->active()->sorted()->get();
+        // Use the canonical Product -> PharmaProductLink -> Medicine identity.
+        // Medicine categories are not guaranteed to be populated even when the
+        // published product has a category_product medicine classification.
+        $publishedMedicineIds = Product::query()->active()
+            ->whereHas('pharmaLink')
+            ->whereHas('categories', fn ($cat) => $cat->where('type', 'medicine'))
+            ->select('wp_products.id');
+
+        $linkedMedicineIds = \Modules\Pharma\Models\PharmaProductLink::query()
+            ->whereIn('product_id', $publishedMedicineIds)
+            ->select('medicine_id');
+
         $suppliers = SupplierTracking::query()
+            ->whereIn('medicine_id', $linkedMedicineIds)
             ->whereNotNull('supplier_name')->where('supplier_name', '!=', '')
-            ->whereHas('medicine', fn ($medicine) => $medicine->whereHas('categories', fn ($cat) => $cat->where('type', 'medicine')))
             ->distinct()->orderBy('supplier_name')->pluck('supplier_name');
 
         $productTypes = Medicine::productTypeOptions();
-        $circularGroups = Medicine::query()->whereNotNull('circular_group')->where('circular_group', '!=', '')
-            ->whereHas('categories', fn ($cat) => $cat->where('type', 'medicine'))
+        $circularGroups = Medicine::query()
+            ->whereIn('id', $linkedMedicineIds)
+            ->whereNotNull('circular_group')->where('circular_group', '!=', '')
             ->distinct()->orderBy('circular_group')->pluck('circular_group');
 
         $query = Product::query()->active()->whereHas('pharmaLink')
