@@ -19,7 +19,7 @@
     $savedOrder = $settings->get('website.pharma_homepage.order', $allowed);
     $order = is_array($savedOrder) ? array_values(array_unique(array_intersect($savedOrder, $allowed))) : $allowed;
     $order = array_merge($order, array_diff($allowed, $order));
-    if (! in_array('blog', $savedOrder, true) && in_array('new_arrivals', $order, true)) {
+    if (! in_array('blog', is_array($savedOrder) ? $savedOrder : [], true) && in_array('new_arrivals', $order, true)) {
         $order = array_values(array_diff($order, ['blog']));
         $position = array_search('new_arrivals', $order, true);
         array_splice($order, $position + 1, 0, ['blog']);
