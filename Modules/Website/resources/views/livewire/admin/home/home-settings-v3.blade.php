@@ -19,7 +19,18 @@
     </div>
 
     @if($editingTemplate === 'pharma')
-        @include('Website::livewire.admin.home.partials.pharma-layout-builder')
+        <div class="overflow-x-auto rounded-xl border border-gray-200 bg-white p-2 shadow-sm">
+            <nav class="flex gap-2" aria-label="Pharma workspaces">
+                @foreach(['layout' => 'Bố cục Pharma', 'themes' => 'Themes Pharma'] as $key => $label)
+                    <button type="button" wire:click="$set('activeTab', '{{ $key }}')" class="rounded-lg px-4 py-2 text-sm font-semibold {{ $activeTab === $key ? 'bg-emerald-700 text-white' : 'text-gray-600 hover:bg-gray-100' }}">{{ $label }}</button>
+                @endforeach
+            </nav>
+        </div>
+        @if($activeTab === 'themes')
+            @include('Website::livewire.admin.home.partials.pharma-themes')
+        @else
+            @include('Website::livewire.admin.home.partials.pharma-layout-builder')
+        @endif
     @else
     @error('builder')<div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ $message }}</div>@enderror
 
@@ -51,7 +62,7 @@
     @endif
 
     <div class="sticky bottom-4 z-20 flex items-center justify-end gap-3 rounded-xl border border-gray-200 bg-white/95 p-3 shadow-lg backdrop-blur">
-        <span class="hidden text-xs text-gray-500 sm:inline">{{ $editingTemplate === 'pharma' ? 'Lưu bố cục Pharma riêng biệt, không ghi đè Default.' : 'Builder, Presentation và Section Editor chỉ publish sau khi lưu.' }}</span>
+        <span class="hidden text-xs text-gray-500 sm:inline">{{ $editingTemplate === 'pharma' ? 'Lưu cấu hình Pharma riêng biệt, không ghi đè Default.' : 'Builder, Presentation và Section Editor chỉ publish sau khi lưu.' }}</span>
         <button type="button" wire:click="save" wire:loading.attr="disabled" wire:target="save,newPromoImage" class="rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-indigo-700 disabled:opacity-50">
             <span wire:loading.remove wire:target="save">Lưu thay đổi</span><span wire:loading wire:target="save">Đang lưu...</span>
         </button>
