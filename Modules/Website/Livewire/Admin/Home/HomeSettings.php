@@ -7,6 +7,7 @@ use Livewire\Component;
 use Livewire\WithFileUploads;
 use Modules\Category\Models\Category;
 use Modules\Product\Models\Product;
+use Modules\Post\Models\Post;
 use Modules\System\Services\SettingsService;
 use Modules\Website\Livewire\Admin\Home\Concerns\ManagesHomepageLayoutThemes;
 use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
@@ -26,6 +27,8 @@ class HomeSettings extends Component
     public array $pharmaSectionOrder = [];
     public array $pharmaCategoryDisplay = [];
     public array $pharmaProductSections = [];
+    public array $pharmaBlogSections = [];
+    public ?string $editingPharmaBlogSection = null;
     public ?string $editingPharmaProductSection = null;
     public bool $editingPharmaCategories = false;
     public bool $pharmaOnlyCategoriesWithProducts = true;
@@ -94,12 +97,19 @@ class HomeSettings extends Component
             'card_style' => 'clinical',
             'selected_ids' => [],
         ], (array) $settings->get('website.pharma_homepage.categories', []));
+        $this->pharmaBlogSections = (array) $settings->get('website.pharma_homepage.blog_sections', []);
+        $this->pharmaBlogSections = array_replace(['blog' => $this->defaultPharmaBlogSection()], $this->pharmaBlogSections);
         $this->pharmaProductSections = (array) $settings->get('website.pharma_homepage.product_sections', []);
         $this->pharmaProductSections = array_replace(['new_arrivals' => $this->defaultPharmaProductSection()], $this->pharmaProductSections);
         $this->pharmaProductFilters = array_replace(array_fill_keys(['category', 'supplier', 'product_type', 'circular_group'], true), (array) $settings->get('website.pharma_catalog.filters', []));
         $this->pharmaSectionOrder = (array) $settings->get('website.pharma_homepage.order', [
             'hero', 'categories', 'new_arrivals',
         ]);
+
+        if (! in_array('blog', $this->pharmaSectionOrder, true)) {
+            $position = array_search('new_arrivals', $this->pharmaSectionOrder, true);
+            array_splice($this->pharmaSectionOrder, $position === false ? count($this->pharmaSectionOrder) : $position + 1, 0, ['blog']);
+        }
 
         $this->layout = collect($registry->all())
             ->mapWithKeys(fn (array $definition, string $key): array => ['show_'.$key => 'all'])
@@ -138,6 +148,9 @@ class HomeSettings extends Component
             ->withCount(['products as storefront_products_count' => fn ($query) => $query->active()->whereHas('pharmaLink')])
             ->get(['id', 'name']);
 
+        $pharmaBlogCategories = Category::query()->ofType('post')->active()->sorted()
+            ->withCount(['posts as published_posts_count' => fn ($q) => $q->where('status', 'published')->where('published_at', '<=', now())])
+            ->get(['id', 'name']);
         $searchProducts = [];
         if ($this->showProductPicker) {
             $query = Product::query()->select('id', 'title', 'image', 'regular_price');
@@ -162,6 +175,7 @@ class HomeSettings extends Component
         return view('Website::livewire.admin.home.home-settings-v3', [
             'allCategories' => $allCategories,
             'pharmaMedicineCategories' => $pharmaMedicineCategories,
+            'pharmaBlogCategories' => $pharmaBlogCategories,
             'searchProducts' => $searchProducts,
             'selectedProducts' => $selectedProducts,
             'homepageSections' => $registry->all(),
@@ -276,6 +290,62 @@ class HomeSettings extends Component
     }
 
 
+    private function defaultPharmaBlogSection(): array
+    {
+        return ['eyebrow' => 'Góc kiến thức', 'title' => 'Tin tức & Kiến thức dược', 'description' => '', 'category_ids' => [], 'sort' => 'newest', 'period' => 'all', 'limit' => 4, 'display_mode' => 'load_more', 'card_style' => 'grid'];
+    }
+
+    public function duplicatePharmaBlogSection(string $key): void
+    {
+        $this->authorizeAdminPermission('website.home.manage');
+        if (! isset($this->pharmaBlogSections[$key]) || count($this->pharmaBlogSections) >= 20) return;
+        $copy = 'blog_'.str_replace('-', '', (string) \Illuminate\Support\Str::uuid());
+        $this->pharmaBlogSections[$copy] = $this->pharmaBlogSections[$key];
+        $this->pharmaBlogSections[$copy]['title'] = ($this->pharmaBlogSections[$key]['title'] ?? 'Tin tức').' (bản sao)';
+        $index = array_search($key, $this->pharmaSectionOrder, true);
+        array_splice($this->pharmaSectionOrder, $index === false ? count($this->pharmaSectionOrder) : $index + 1, 0, [$copy]);
+        $this->pharmaLayout[$copy] = $this->pharmaLayout[$key] ?? 'all';
+        $this->editingPharmaBlogSection = $copy;
+    }
+
+    public function removePharmaBlogSection(string $key, SettingsService $settings): void
+    {
+        $this->authorizeAdminPermission('website.home.manage');
+        if ($key === 'blog' || ! isset($this->pharmaBlogSections[$key])) return;
+        unset($this->pharmaBlogSections[$key], $this->pharmaLayout[$key]);
+        $this->pharmaSectionOrder = array_values(array_diff($this->pharmaSectionOrder, [$key]));
+        $this->editingPharmaBlogSection = null;
+        $settings->updateMany(['website.pharma_homepage.blog_sections' => $this->pharmaBlogSections, 'website.pharma_homepage.layout' => $this->pharmaLayout, 'website.pharma_homepage.order' => $this->pharmaSectionOrder], 'homepage');
+    }
+
+    public function savePharmaBlogSections(SettingsService $settings): void
+    {
+        $this->authorizeAdminPermission('website.home.manage');
+        $allowedIds = Category::query()->ofType('post')->active()->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $clean = [];
+        foreach ($this->pharmaBlogSections as $key => $section) {
+            if ($key !== 'blog' && ! preg_match('/^blog_[a-f0-9]{32}$/', (string) $key)) continue;
+            $title = trim((string) ($section['title'] ?? ''));
+            if ($title === '' || mb_strlen($title) > 120) { $this->addError('pharmaBlogSections', 'Tiêu đề phải từ 1 đến 120 ký tự.'); return; }
+            $clean[$key] = [
+                'eyebrow' => mb_substr(trim((string) ($section['eyebrow'] ?? '')), 0, 60),
+                'title' => $title,
+                'description' => mb_substr(trim((string) ($section['description'] ?? '')), 0, 300),
+                'category_ids' => array_values(array_unique(array_intersect(array_map('intval', (array) ($section['category_ids'] ?? [])), $allowedIds))),
+                'sort' => in_array($section['sort'] ?? '', ['newest', 'oldest', 'name_asc', 'name_desc'], true) ? $section['sort'] : 'newest',
+                'period' => in_array((string) ($section['period'] ?? 'all'), ['all', '7', '30', '90'], true) ? (string) $section['period'] : 'all',
+                'limit' => in_array((int) ($section['limit'] ?? 4), [4, 8, 12, 16], true) ? (int) $section['limit'] : 4,
+                'display_mode' => in_array($section['display_mode'] ?? '', ['load_more', 'fixed'], true) ? $section['display_mode'] : 'load_more',
+                'card_style' => in_array($section['card_style'] ?? '', ['grid', 'list'], true) ? $section['card_style'] : 'grid',
+            ];
+        }
+        $this->pharmaBlogSections = $clean;
+        $this->savePharmaLayout($settings);
+        $settings->updateMany(['website.pharma_homepage.blog_sections' => $clean], 'homepage');
+        $this->editingPharmaBlogSection = null;
+        $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã lưu section Blog Pharma.']);
+    }
+
     private function defaultPharmaProductSection(): array
     {
         return ['eyebrow' => 'Danh mục sản phẩm', 'title' => 'Sản phẩm mới cập nhật', 'category_ids' => [], 'sort' => 'newest', 'period' => 'all', 'limit' => 8, 'display_mode' => 'load_more'];
@@ -353,7 +423,7 @@ class HomeSettings extends Component
     public function savePharmaLayout(SettingsService $settings): void
     {
         $this->authorizeAdminPermission('website.home.manage');
-        $allowed = array_merge(['hero', 'categories', 'new_arrivals'], array_keys($this->pharmaProductSections));
+        $allowed = array_merge(['hero', 'categories', 'new_arrivals'], array_keys($this->pharmaProductSections), ['blog'], array_keys($this->pharmaBlogSections));
         $visibility = [];
         foreach ($allowed as $key) {
             $value = $this->pharmaLayout[$key] ?? 'all';
