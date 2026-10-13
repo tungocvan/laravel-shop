@@ -8,6 +8,23 @@ use Tests\TestCase;
 class WebsitePharmaHomepageBuilderIsolationContractTest extends TestCase
 {
     #[Test]
+    public function pharma_theme_uses_its_own_settings_and_admin_tab(): void
+    {
+        $component = file_get_contents(base_path('Modules/Website/Livewire/Admin/Home/HomeSettings.php'));
+        $view = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/home/home-settings-v3.blade.php'));
+        $themes = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/home/partials/pharma-themes.blade.php'));
+
+        $this->assertStringContainsString("'website.pharma_homepage.theme'", $component);
+        $this->assertStringContainsString('savePharmaTheme', $component);
+        $this->assertStringContainsString('choosePharmaTheme', $component);
+        $this->assertStringContainsString("'themes'", $view);
+        $this->assertStringContainsString('partials.pharma-themes', $view);
+        $this->assertStringContainsString('Medical Ocean', $themes);
+        $this->assertStringContainsString('Modern Navy', $themes);
+        $this->assertStringContainsString('wire:model="pharmaPrimaryColor"', $themes);
+    }
+
+    #[Test]
     public function pharma_builder_has_separate_workspace_and_persistence_keys(): void
     {
         $component = file_get_contents(base_path('Modules/Website/Livewire/Admin/Home/HomeSettings.php'));
