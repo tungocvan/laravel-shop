@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Modules\Category\Models\Category;
 use Modules\Product\Models\Product;
 use Modules\Pharma\Models\SupplierTracking;
+use Modules\Pharma\Models\Medicine;
 use Modules\System\Services\SettingsService;
 
 class ProductController extends Controller
@@ -22,13 +23,19 @@ class ProductController extends Controller
         $category = (string) $request->query('category', '');
         $supplier = trim((string) $request->query('supplier', ''));
         $sort = (string) $request->query('sort', 'latest');
-        $range = $authenticated ? (string) $request->query('price_range', '') : '';
+        $productType = (string) $request->query('product_type', '');
+        $circularGroup = (string) $request->query('circular_group', '');
 
         $categories = Category::query()->ofType('medicine')->active()->sorted()->get();
         $suppliers = SupplierTracking::query()
             ->whereNotNull('supplier_name')->where('supplier_name', '!=', '')
             ->whereHas('medicine', fn ($medicine) => $medicine->whereHas('categories', fn ($cat) => $cat->where('type', 'medicine')))
             ->distinct()->orderBy('supplier_name')->pluck('supplier_name');
+
+        $productTypes = Medicine::productTypeOptions();
+        $circularGroups = Medicine::query()->whereNotNull('circular_group')->where('circular_group', '!=', '')
+            ->whereHas('categories', fn ($cat) => $cat->where('type', 'medicine'))
+            ->distinct()->orderBy('circular_group')->pluck('circular_group');
 
         $query = Product::query()->active()->whereHas('pharmaLink')
             ->whereHas('categories', fn ($cat) => $cat->where('type', 'medicine'))
@@ -43,9 +50,11 @@ class ProductController extends Controller
         if ($supplier !== '') {
             $query->whereHas('pharmaLink.medicine.supplierTrackings', fn ($tracking) => $tracking->where('supplier_name', $supplier));
         }
-        if ($authenticated && in_array($range, ['0-100000', '100000-300000', '300000-500000', '500000-99999999'], true)) {
-            [$min, $max] = array_map('intval', explode('-', $range));
-            $query->whereRaw('COALESCE(NULLIF(sale_price, 0), regular_price) BETWEEN ? AND ?', [$min, $max]);
+        if ($productType !== '' && array_key_exists($productType, $productTypes)) {
+            $query->whereHas('pharmaLink.medicine', fn ($medicine) => $medicine->where('product_type', $productType));
+        }
+        if ($circularGroup !== '') {
+            $query->whereHas('pharmaLink.medicine', fn ($medicine) => $medicine->where('circular_group', $circularGroup));
         }
         if ($authenticated && $sort === 'price_asc') {
             $query->orderByRaw('COALESCE(NULLIF(sale_price, 0), regular_price) ASC');
@@ -68,7 +77,10 @@ class ProductController extends Controller
             'category' => $category,
             'supplier' => $supplier,
             'sort' => $sort,
-            'range' => $range,
+            'productType' => $productType,
+            'productTypes' => $productTypes,
+            'circularGroup' => $circularGroup,
+            'circularGroups' => $circularGroups,
         ]);
     }
 
