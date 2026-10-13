@@ -29,7 +29,9 @@ class WebsitePharmaCorporateV2ContractTest extends TestCase
         $this->assertStringContainsString("route('product.list')", $header);
         $this->assertStringContainsString('aria-label="Điều hướng Pharma"', $header);
         $this->assertStringContainsString('aria-label="Điều hướng Pharma trên di động"', $header);
-        $this->assertStringContainsString('Thông tin trên website mang tính tham khảo', $footer);
+        $this->assertStringContainsString('Website::partials.footer-shared', $footer);
+        $builder = file_get_contents(base_path('Modules/Website/Livewire/Admin/Footer/FooterSettingsHub.php'));
+        $this->assertStringContainsString('Thông tin trên website mang tính tham khảo', $builder);
         $this->assertStringNotContainsString("route('cart", $header);
         $this->assertStringNotContainsString("route('checkout", $header);
     }
