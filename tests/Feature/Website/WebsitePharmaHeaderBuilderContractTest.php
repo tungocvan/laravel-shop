@@ -50,7 +50,7 @@ class WebsitePharmaHeaderBuilderContractTest extends TestCase
         $this->assertStringContainsString('availableLocations', $manager);
 
         $hub = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/header/header-settings-hub.blade.php'));
-        $this->assertStringContainsString("'editingTemplate' => \\$editingTemplate", $hub);
+        $this->assertStringContainsString("'editingTemplate' => " . '$editingTemplate', $hub);
 
         $header = file_get_contents(base_path('Modules/Website/resources/views/partials/pharma/header.blade.php'));
         $this->assertStringContainsString("getMenuTreeByLocation('pharma_primary')", $header);
