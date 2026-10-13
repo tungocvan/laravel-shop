@@ -7,9 +7,10 @@
 @endsection
 
 @section('content')
-    <div class="max-w-7xl mx-auto py-6" x-data="{ activeTab: 'info' }">
+    @php($isPharmaPublished = app(\Modules\System\Services\SettingsService::class)->get('website.public_template', 'default') === 'pharma')
+    <div class="max-w-7xl mx-auto py-6" x-data="{ activeTab: '{{ $isPharmaPublished ? 'builder' : 'info' }}' }">
         <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold text-gray-900">Homepage Footer Manager</h1>
+            <div><h1 class="text-2xl font-bold text-gray-900">Quản trị Footer Website</h1><p class="mt-1 text-sm text-gray-500">Template đang xuất bản: {{ $isPharmaPublished ? 'Pharma' : 'Default' }}. Chọn template cần quản trị trong tab Bố cục Footer.</p></div>
         </div>
 
         <div class="border-b border-gray-200 mb-6 overflow-x-auto">
@@ -17,17 +18,17 @@
                 <button @click="activeTab = 'info'"
                     :class="activeTab === 'info' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
                     class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors">
-                    Thông tin & Brand
+                    Thông tin & Brand (Default)
                 </button>
                 <button @click="activeTab = 'columns'"
                     :class="activeTab === 'columns' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
                     class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors">
-                    Cột Menu Links
+                    Cột Menu Links (Default)
                 </button>
                 <button @click="activeTab = 'social'"
                     :class="activeTab === 'social' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
                     class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors">
-                    Mạng xã hội
+                    Mạng xã hội (Default)
                 </button>
                 <button @click="activeTab = 'builder'"
                     :class="activeTab === 'builder' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
