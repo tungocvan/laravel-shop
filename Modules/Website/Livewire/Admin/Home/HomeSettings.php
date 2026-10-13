@@ -263,7 +263,7 @@ class HomeSettings extends Component
         if (! isset($this->pharmaProductSections[$key]) || count($this->pharmaProductSections) >= 20) {
             return;
         }
-        $newKey = 'products_'.str_replace('-', '', (string) \\Illuminate\\Support\\Str::uuid());
+        $newKey = 'products_'.str_replace('-', '', (string) \Illuminate\Support\Str::uuid());
         $this->pharmaProductSections[$newKey] = $this->pharmaProductSections[$key];
         $this->pharmaProductSections[$newKey]['title'] = ($this->pharmaProductSections[$key]['title'] ?? 'Sản phẩm').' (bản sao)';
         $index = array_search($key, $this->pharmaSectionOrder, true);
