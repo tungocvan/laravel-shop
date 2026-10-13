@@ -20,6 +20,7 @@ class HeaderSettingsHub extends Component
     public array $presentation = [];
     public array $layoutThemes = [];
     public array $accountSettings = [];
+    public array $topbarSettings = [];
     public string $selectedTheme = '';
     public string $themeName = '';
 
@@ -72,6 +73,7 @@ class HeaderSettingsHub extends Component
         $this->selectedTheme = '';
         $this->themeName = '';
         $this->accountSettings = $this->normalizeAccountSettings($settingsService->get('website.pharma_header.account'));
+        $this->topbarSettings = $this->normalizeTopbarSettings($settingsService->get('website.pharma_header.topbar'));
         $this->resetErrorBag();
     }
 
@@ -98,6 +100,37 @@ class HeaderSettingsHub extends Component
         $this->accountSettings = $this->normalizeAccountSettings($this->accountSettings);
         $settingsService->set('website.pharma_header.account', $this->accountSettings, 'header', 'json');
         $this->dispatch('show-toast', [['type' => 'success', 'message' => 'Đã lưu Account Dropdown Pharma.']]);
+    }
+
+    private function normalizeTopbarSettings(mixed $saved): array
+    {
+        $values = is_array($saved) ? $saved : [];
+        return [
+            'enabled' => (bool) ($values['enabled'] ?? true),
+            'left_text' => mb_substr((string) ($values['left_text'] ?? 'THÔNG TIN DƯỢC PHẨM · TRA CỨU VÀ THAM KHẢO'), 0, 180),
+            'right_text' => mb_substr((string) ($values['right_text'] ?? 'Thông tin không thay thế tư vấn chuyên môn y tế'), 0, 180),
+            'show_hotline' => (bool) ($values['show_hotline'] ?? false),
+            'show_email' => (bool) ($values['show_email'] ?? false),
+            'hotline' => mb_substr((string) ($values['hotline'] ?? ''), 0, 50),
+            'email' => mb_substr((string) ($values['email'] ?? ''), 0, 100),
+        ];
+    }
+
+    public function saveTopbarSettings(SettingsService $settingsService): void
+    {
+        $this->authorizeAdminPermission('website.settings.manage');
+        if ($this->editingTemplate !== 'pharma') {
+            return;
+        }
+        $this->validate([
+            'topbarSettings.left_text' => ['nullable', 'string', 'max:180'],
+            'topbarSettings.right_text' => ['nullable', 'string', 'max:180'],
+            'topbarSettings.hotline' => ['nullable', 'string', 'max:50'],
+            'topbarSettings.email' => ['nullable', 'email', 'max:100'],
+        ]);
+        $this->topbarSettings = $this->normalizeTopbarSettings($this->topbarSettings);
+        $settingsService->set('website.pharma_header.topbar', $this->topbarSettings, 'header', 'json');
+        $this->dispatch('show-toast', [['type' => 'success', 'message' => 'Đã lưu Topbar Pharma.']]);
     }
 
     public function toggleComponent(string $slot, int $index): void
