@@ -80,8 +80,8 @@ class WebsiteServiceProvider extends ServiceProvider
             ]);
         });
 
-        View::composer(['Website::partials.footer'], function ($view) {
-            $footerService=app(FooterService::class); $settings=app(SettingsService::class); $savedPresentation=$settings->get('footer.presentation'); $savedLayout=$settings->get('footer.layout'); $footerBrandLogo=$settings->get('footer.brand_logo'); $siteName=$settings->get('site_name','FlexBiz');
+        View::composer(['Website::partials.footer', 'Website::partials.pharma.footer'], function ($view) {
+            $footerService=app(FooterService::class); $settings=app(SettingsService::class); $isPharmaFooter=$view->getName() === 'Website::partials.pharma.footer'; $footerPrefix=$isPharmaFooter ? 'website.pharma_footer.' : 'footer.'; $savedPresentation=$settings->get($footerPrefix.'presentation'); $savedLayout=$settings->get($footerPrefix.'layout'); $footerBrandLogo=$settings->get('footer.brand_logo'); $siteName=$settings->get('site_name','FlexBiz');
             $savedFeatures=$settings->get('website.features');
             $allowedPositions=['bottom-left','bottom-right','right-middle'];
             $chatPosition=is_array($savedFeatures)?($savedFeatures['chat_position']??'bottom-right'):'bottom-right';
