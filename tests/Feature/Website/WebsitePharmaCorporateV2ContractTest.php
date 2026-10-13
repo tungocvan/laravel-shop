@@ -43,7 +43,11 @@ class WebsitePharmaCorporateV2ContractTest extends TestCase
         $this->assertStringContainsString('website.pharma_hero', $home);
         $this->assertStringContainsString('website.pharma_homepage.layout', $home);
         $this->assertStringContainsString('focus-visible:outline', $home);
-        $this->assertStringContainsString("whereHas('pharmaLink')", $home);
-        $this->assertStringContainsString('Chưa có ảnh sản phẩm', $home);
+        $loader = file_get_contents(base_path('Modules/Website/Livewire/Home/PharmaProductSection.php'));
+        $cards = file_get_contents(base_path('Modules/Website/resources/views/livewire/home/pharma-product-section.blade.php'));
+        $this->assertStringContainsString('PharmaProductSection::class', $home);
+        $this->assertStringContainsString("whereHas('pharmaLink')", $loader);
+        $this->assertStringContainsString('Chưa có ảnh sản phẩm', $cards);
+        $this->assertStringContainsString('focus-visible:outline', $cards);
     }
 }
