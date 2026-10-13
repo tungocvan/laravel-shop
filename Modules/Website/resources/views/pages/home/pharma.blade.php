@@ -26,7 +26,15 @@
     $categoryLimit = in_array((int) ($categoryDisplay['limit'] ?? 8), [4, 8, 12, 16, 20, 24], true) ? (int) ($categoryDisplay['limit'] ?? 8) : 8;
     $categoryColumns = in_array((int) ($categoryDisplay['columns'] ?? 4), [2, 3, 4], true) ? (int) ($categoryDisplay['columns'] ?? 4) : 4;
     $categoryCardStyle = in_array($categoryDisplay['card_style'] ?? '', ['clinical', 'compact'], true) ? $categoryDisplay['card_style'] : 'clinical';
-    $categories = \Modules\Category\Models\Category::query()->ofType('medicine')->active()->sorted()->limit($categoryLimit)->get();
+    $selectedCategoryIds = array_values(array_unique(array_filter(array_map('intval', (array) ($categoryDisplay['selected_ids'] ?? [])))));
+    $categoryQuery = \Modules\Category\Models\Category::query()->ofType('medicine')->active();
+    if ($selectedCategoryIds) {
+        $categories = $categoryQuery->whereIn('id', $selectedCategoryIds)->get()
+            ->sortBy(fn ($category) => array_search((int) $category->id, $selectedCategoryIds, true))
+            ->take($categoryLimit)->values();
+    } else {
+        $categories = $categoryQuery->sorted()->limit($categoryLimit)->get();
+    }
 
     $hero = $settings->get('website.pharma_hero', []);
     $hero = is_array($hero) ? $hero : [];
