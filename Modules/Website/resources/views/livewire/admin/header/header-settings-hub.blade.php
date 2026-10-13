@@ -145,21 +145,21 @@
             <section class="space-y-4 rounded-xl border border-teal-200 bg-teal-50/30 p-5">
                 <div>
                     <h4 class="text-base font-bold text-gray-900">Topbar Pharma · Nội dung & liên hệ</h4>
-                    <p class="mt-1 text-xs text-gray-600">Nội dung độc lập với Topbar Default. Màu sắc và chiều cao được điều chỉnh trong Thiết lập giao diện Header phía dưới.</p>
+                    <p class="mt-1 text-xs text-gray-600">Nội dung độc lập với Topbar Default. Màu Topbar BG / Topbar Text của Pharma áp dụng độc lập, kể cả khi bật Kế thừa màu Global Website Theme. Chiều cao chỉnh trong Advanced phía dưới.</p>
                 </div>
                 <label class="flex items-center gap-2 text-sm font-medium"><input type="checkbox" wire:model="topbarSettings.enabled" class="rounded border-gray-300"> Hiển thị Topbar Pharma</label>
                 <div class="grid gap-4 md:grid-cols-2">
                     <label class="text-sm font-medium">Nội dung bên trái
-                        <input type="text" wire:model="topbarSettings.left_text" maxlength="180" class="mt-1 block w-full rounded-lg border-gray-300 text-sm">
+                        <input type="text" wire:model="topbarSettings.left_text" maxlength="180" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100">
                     </label>
                     <label class="text-sm font-medium">Nội dung bên phải
-                        <input type="text" wire:model="topbarSettings.right_text" maxlength="180" class="mt-1 block w-full rounded-lg border-gray-300 text-sm">
+                        <input type="text" wire:model="topbarSettings.right_text" maxlength="180" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100">
                     </label>
                     <label class="text-sm font-medium">Hotline Pharma
-                        <input type="text" wire:model="topbarSettings.hotline" maxlength="50" class="mt-1 block w-full rounded-lg border-gray-300 text-sm" placeholder="Số điện thoại liên hệ">
+                        <input type="text" wire:model="topbarSettings.hotline" maxlength="50" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100" placeholder="Số điện thoại liên hệ">
                     </label>
                     <label class="text-sm font-medium">Email Pharma
-                        <input type="email" wire:model="topbarSettings.email" maxlength="100" class="mt-1 block w-full rounded-lg border-gray-300 text-sm" placeholder="contact@example.com">
+                        <input type="email" wire:model="topbarSettings.email" maxlength="100" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100" placeholder="contact@example.com">
                     </label>
                 </div>
                 <div class="flex flex-wrap items-center gap-5">
