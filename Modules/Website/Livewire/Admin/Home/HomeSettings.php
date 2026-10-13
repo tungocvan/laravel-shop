@@ -28,6 +28,7 @@ class HomeSettings extends Component
     public array $pharmaProductSections = [];
     public ?string $editingPharmaProductSection = null;
     public bool $editingPharmaCategories = false;
+    public bool $pharmaOnlyCategoriesWithProducts = true;
     public bool $editingPharmaProductFilters = false;
     public array $pharmaProductFilters = [];
     public string $pharmaTheme = 'clinical';
@@ -133,7 +134,9 @@ class HomeSettings extends Component
     public function render(HomepageSectionRegistry $registry)
     {
         $allCategories = Category::query()->select('id', 'name')->orderBy('name')->get();
-        $pharmaMedicineCategories = Category::query()->ofType('medicine')->active()->sorted()->get(['id', 'name']);
+        $pharmaMedicineCategories = Category::query()->ofType('medicine')->active()->sorted()
+            ->withCount(['products as storefront_products_count' => fn ($query) => $query->active()->whereHas('pharmaLink')])
+            ->get(['id', 'name']);
 
         $searchProducts = [];
         if ($this->showProductPicker) {
