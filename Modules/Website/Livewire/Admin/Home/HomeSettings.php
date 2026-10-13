@@ -145,6 +145,19 @@ class HomeSettings extends Component
         ]);
     }
 
+
+    public function publishTemplate(string $template, SettingsService $settings): void
+    {
+        $this->authorizeAdminPermission('website.home.manage');
+        if (! in_array($template, ['default', 'pharma'], true)) {
+            return;
+        }
+
+        $settings->updateMany(['website.public_template' => $template], 'homepage');
+        $this->publishedTemplate = $template;
+        $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã xuất bản template '.ucfirst($template).'.']);
+    }
+
     public function selectEditingTemplate(string $template): void
     {
         if (! in_array($template, ['default', 'pharma'], true)) {
