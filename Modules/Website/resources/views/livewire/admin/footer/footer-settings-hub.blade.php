@@ -83,7 +83,7 @@
                             @if(count($allowedSlots) > 1)
                                 <div class="mt-3 flex items-center gap-2">
                                     <span class="text-xs font-medium text-gray-500">Chuyển vùng:</span>
-                                    <select wire:change="moveComponent('{{ $slot }}', {{ $index }}, $event.target.value)" class="min-w-0 flex-1 rounded-md border-gray-300 text-sm">
+                                    <select wire:change="moveComponent('{{ $slot }}', {{ $index }}, $event.target.value)" class="min-w-0 flex-1 rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
                                         <option value="{{ $slot }}">Chọn vùng...</option>
                                         @foreach($allowedSlots as $targetSlot)
                                             @if($targetSlot !== $slot)
@@ -122,9 +122,9 @@
         </div>
 
         <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <label class="text-sm text-gray-700"><span class="mb-1 block font-medium">Container</span><select wire:model.live="presentation.container" class="w-full rounded-lg border-gray-300"><option value="compact">Compact</option><option value="standard">Standard</option><option value="wide">Wide</option><option value="full">Full</option></select></label>
-            <label class="text-sm text-gray-700"><span class="mb-1 block font-medium">Khoảng cách dọc</span><select wire:model.live="presentation.spacing" class="w-full rounded-lg border-gray-300"><option value="compact">Compact</option><option value="normal">Normal</option><option value="comfortable">Comfortable</option></select></label>
-            <label class="text-sm text-gray-700"><span class="mb-1 block font-medium">Khoảng cách cột</span><select wire:model.live="presentation.column_gap" class="w-full rounded-lg border-gray-300"><option value="compact">Compact</option><option value="normal">Normal</option><option value="comfortable">Comfortable</option></select></label>
+            <label class="text-sm text-gray-700"><span class="mb-1 block font-medium">Container</span><select wire:model.live="presentation.container" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100"><option value="compact">Compact</option><option value="standard">Standard</option><option value="wide">Wide</option><option value="full">Full</option></select></label>
+            <label class="text-sm text-gray-700"><span class="mb-1 block font-medium">Khoảng cách dọc</span><select wire:model.live="presentation.spacing" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100"><option value="compact">Compact</option><option value="normal">Normal</option><option value="comfortable">Comfortable</option></select></label>
+            <label class="text-sm text-gray-700"><span class="mb-1 block font-medium">Khoảng cách cột</span><select wire:model.live="presentation.column_gap" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100"><option value="compact">Compact</option><option value="normal">Normal</option><option value="comfortable">Comfortable</option></select></label>
         </div>
 
         <div class="mt-5 flex flex-wrap gap-5 text-sm text-gray-700">
@@ -136,10 +136,23 @@
         @if(($presentation['mode'] ?? 'basic') === 'advanced')
             <div class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 @foreach(['container_width' => 'Container width','padding_top' => 'Padding top','padding_bottom' => 'Padding bottom','column_gap' => 'Column gap','section_gap' => 'Section gap','logo_max_height' => 'Logo max height','social_icon_size' => 'Social icon size'] as $field => $label)
-                    <label class="text-sm text-gray-700"><span class="mb-1 block font-medium">{{ $label }}</span><input type="number" wire:model.live.debounce.250ms="presentation.custom.{{ $field }}" class="w-full rounded-lg border-gray-300"></label>
+                    <label class="text-sm text-gray-700"><span class="mb-1 block font-medium">{{ $label }}</span><input type="number" wire:model.live.debounce.250ms="presentation.custom.{{ $field }}" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100"></label>
                 @endforeach
             </div>
         @endif
+
+        <div class="mt-5 rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <div class="text-sm font-semibold text-slate-900">Màu nền Footer</div>
+                    <p class="mt-1 text-xs text-slate-500">Bỏ chọn “Kế thừa màu Global Theme” để dùng màu nền tùy chỉnh. Lưu bố cục để áp dụng lên Website.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <input type="color" aria-label="Chọn màu nền Footer" wire:model.live="presentation.colors.background" @disabled($presentation['inherit_colors'] ?? true) class="h-10 w-14 rounded-lg border border-slate-300 bg-white p-1 disabled:cursor-not-allowed disabled:opacity-50">
+                    <input type="text" aria-label="Mã màu nền Footer" wire:model.live.debounce.300ms="presentation.colors.background" @disabled($presentation['inherit_colors'] ?? true) maxlength="7" placeholder="#111827" class="w-28 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:opacity-50">
+                </div>
+            </div>
+        </div>
 
         @if(!($presentation['inherit_colors'] ?? true))
             <div class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
