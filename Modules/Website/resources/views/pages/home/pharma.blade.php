@@ -116,7 +116,7 @@
                 </section>
             @elseif(isset($productSections[$section]))
                 <section class="{{ $responsiveClass }} mx-auto max-w-7xl px-5 pb-20 pt-6 sm:px-8">
-                    @livewire(\\Modules\\Website\\Livewire\\Home\\PharmaProductSection::class, ['sectionKey' => $section], key('pharma-home-products-'.$section))
+                    @livewire(\Modules\Website\Livewire\Home\PharmaProductSection::class, ['sectionKey' => $section], key('pharma-home-products-'.$section))
                 </section>
             @endif
         @endif
