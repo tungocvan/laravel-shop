@@ -72,8 +72,36 @@ class ProductController extends Controller
         ]);
     }
 
-    public function show($slug)
+    public function show($slug, SettingsService $settings)
     {
-        return view('Website::products.show', compact('slug'));
+        if ($settings->get('website.public_template', 'default') !== 'pharma') {
+            return view('Website::products.show', compact('slug'));
+        }
+
+        $authenticated = auth()->check();
+        $query = Product::query()->active()
+            ->where('slug', $slug)
+            ->whereHas('pharmaLink')
+            ->whereHas('categories', fn ($cat) => $cat->where('type', 'medicine'))
+            ->with(['categories' => fn ($cat) => $cat->where('type', 'medicine'),
+                'pharmaLink.medicine']);
+        if (! $authenticated) {
+            $query->select(['id', 'title', 'slug', 'image', 'short_description', 'description', 'created_at']);
+        }
+        $product = $query->firstOrFail();
+
+        $relatedQuery = Product::query()->active()->whereKeyNot($product->id)
+            ->whereHas('pharmaLink')
+            ->whereHas('categories', fn ($cat) => $cat->where('type', 'medicine')
+                ->whereIn('categories.id', $product->categories->pluck('id')))
+            ->with(['categories' => fn ($cat) => $cat->where('type', 'medicine')]);
+        if (! $authenticated) {
+            $relatedQuery->select(['id', 'title', 'slug', 'image', 'created_at']);
+        }
+        return view('Website::products.show-pharma', [
+            'product' => $product,
+            'related' => $relatedQuery->limit(4)->get(),
+            'authenticated' => $authenticated,
+        ]);
     }
 }
