@@ -74,6 +74,7 @@ class HomeSettings extends Component
         HomepagePresentationService $presentationService
     ): void {
         $this->publishedTemplate = $settings->get('website.public_template', 'default') === 'pharma' ? 'pharma' : 'default';
+        $this->editingTemplate = $this->publishedTemplate;
         $theme = (array) $settings->get('website.pharma_homepage.theme', []);
         $this->pharmaTheme = in_array($theme['preset'] ?? '', ['clinical', 'ocean', 'modern'], true) ? $theme['preset'] : 'clinical';
         $this->pharmaPrimaryColor = $theme['primary'] ?? '#047857';
