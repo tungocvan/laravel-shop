@@ -26,7 +26,7 @@
     if ($mobileMenu->isEmpty()) $mobileMenu = $desktopMenu;
     $fallbackMenu = [['title' => 'Trang chủ', 'url' => route('home')], ['title' => 'Danh mục dược phẩm', 'url' => route('product.list')]];
 @endphp
-<div style="--pharma-header-accent: {{ $accent }}; --pharma-header-bg: {{ $background }}; --pharma-header-text: {{ $foreground }};">
+<div style="display: contents; --pharma-header-accent: {{ $accent }}; --pharma-header-bg: {{ $background }}; --pharma-header-text: {{ $foreground }};">
     @if(($topbarConfig['enabled'] ?? true))
         @foreach($headerLayout['desktop.topbar'] ?? [] as $component)
             @if($component['type'] === 'topbar')
