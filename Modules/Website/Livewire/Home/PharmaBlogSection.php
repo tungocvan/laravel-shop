@@ -41,8 +41,9 @@ class PharmaBlogSection extends Component
     {
         $config = $this->config();
         $ids = array_values(array_unique(array_filter(array_map('intval', (array) $config['category_ids']))));
-        $query = Post::query()->where('status', 'published')->whereNotNull('published_at')->where('published_at', '<=', now())
-            ->with(['categories' => fn ($q) => $q->where('type', 'post')]);
+        $query = Post::query()->where('status', 'published')->where(function ($q) { $q->whereNull('published_at')->orWhere('published_at', '<=', now()); })
+            ->with(['categories' => fn ($q) => $q->where('type', 'post')])
+            ->whereDoesntHave('categories', fn ($q) => $q->where('slug', 'pages'));
         if ($ids) {
             $query->whereHas('categories', fn ($q) => $q->where('type', 'post')->whereIn('categories.id', $ids));
         }
