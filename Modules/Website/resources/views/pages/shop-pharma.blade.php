@@ -11,19 +11,21 @@
     </header>
     <div class="mx-auto grid max-w-7xl gap-7 px-4 py-8 sm:px-6 lg:grid-cols-[260px_minmax(0,1fr)]">
         <aside>
-            <form action="{{ route('product.list') }}" method="GET" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <form id="pharma-filters" action="{{ route('product.list') }}" method="GET" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div class="flex items-center justify-between gap-2"><h2 class="text-lg font-bold">Bộ lọc tra cứu</h2><a href="{{ route('product.list') }}" class="text-xs font-semibold text-teal-700 hover:underline">Xóa bộ lọc</a></div>
-                <label for="pharma-search" class="mt-5 block text-sm font-semibold">Tên sản phẩm</label>
-                <input id="pharma-search" name="search" value="{{ $search }}" placeholder="Nhập tên thuốc..." class="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:border-teal-600 focus:ring-teal-600">
+                @if($search !== '')
+                    <input type="hidden" name="search" value="{{ $search }}">
+                    <p class="mt-4 rounded-lg bg-teal-50 px-3 py-2 text-xs text-teal-800">Từ khóa từ thanh tìm kiếm: <strong>{{ $search }}</strong></p>
+                @endif
                 <label for="pharma-category" class="mt-5 block text-sm font-semibold">Nhóm dược phẩm</label>
-                <select id="pharma-category" name="category" class="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm">
+                <select id="pharma-category" name="category" onchange="this.form.requestSubmit()" class="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm">
                     <option value="">Tất cả danh mục</option>
                     @foreach($categories as $item)
                         <option value="{{ $item->slug }}" @selected($category === $item->slug)>{{ $item->name }}</option>
                     @endforeach
                 </select>
                 <label for="pharma-supplier" class="mt-5 block text-sm font-semibold">Nhà cung cấp</label>
-                <select id="pharma-supplier" name="supplier" class="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm">
+                <select id="pharma-supplier" name="supplier" onchange="this.form.requestSubmit()" class="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm">
                     <option value="">Tất cả nhà cung cấp</option>
                     @foreach($suppliers as $name)
                         <option value="{{ $name }}" @selected($supplier === $name)>{{ $name }}</option>
@@ -31,14 +33,14 @@
                 </select>
                 @if($authenticated)
                     <label for="pharma-price" class="mt-5 block text-sm font-semibold">Khoảng giá</label>
-                    <select id="pharma-price" name="price_range" class="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm">
+                    <select id="pharma-price" name="price_range" onchange="this.form.requestSubmit()" class="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm">
                         <option value="">Tất cả mức giá</option>
                         @foreach(['0-100000' => 'Dưới 100.000đ', '100000-300000' => '100.000 – 300.000đ', '300000-500000' => '300.000 – 500.000đ', '500000-99999999' => 'Trên 500.000đ'] as $value => $label)
                             <option value="{{ $value }}" @selected($range === $value)>{{ $label }}</option>
                         @endforeach
                     </select>
                 @endif
-                <button type="submit" class="mt-6 w-full rounded-xl bg-teal-700 px-4 py-3 text-sm font-bold text-white transition hover:bg-teal-800">Áp dụng bộ lọc</button>
+
             </form>
         </aside>
         <main class="min-w-0">
