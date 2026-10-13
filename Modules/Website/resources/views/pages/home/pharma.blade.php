@@ -9,7 +9,10 @@
     $accent = $theme['accent'] ?? '#10b981';
     $primary = preg_match('/^#[0-9a-fA-F]{6}$/', $primary) ? $primary : '#047857';
     $accent = preg_match('/^#[0-9a-fA-F]{6}$/', $accent) ? $accent : '#10b981';
-    $allowed = ['hero', 'categories', 'new_arrivals'];
+    $productSections = $settings->get('website.pharma_homepage.product_sections', []);
+    $productSections = is_array($productSections) ? $productSections : [];
+    $productSections = array_replace(['new_arrivals' => ['eyebrow' => 'Danh mục sản phẩm', 'title' => 'Sản phẩm mới cập nhật', 'category_ids' => [], 'sort' => 'newest', 'period' => 'all', 'limit' => 8]], $productSections);
+    $allowed = array_merge(['hero', 'categories', 'new_arrivals'], array_keys($productSections));
     $savedOrder = $settings->get('website.pharma_homepage.order', $allowed);
     $order = is_array($savedOrder) ? array_values(array_unique(array_intersect($savedOrder, $allowed))) : $allowed;
     $order = array_merge($order, array_diff($allowed, $order));
@@ -24,7 +27,7 @@
     $categoryColumns = in_array((int) ($categoryDisplay['columns'] ?? 4), [2, 3, 4], true) ? (int) ($categoryDisplay['columns'] ?? 4) : 4;
     $categoryCardStyle = in_array($categoryDisplay['card_style'] ?? '', ['clinical', 'compact'], true) ? $categoryDisplay['card_style'] : 'clinical';
     $categories = \Modules\Category\Models\Category::query()->ofType('medicine')->active()->sorted()->limit($categoryLimit)->get();
-    $products = \Modules\Product\Models\Product::query()->active()->whereHas('pharmaLink')->with('categories')->latest('id')->limit(8)->get();
+
     $hero = $settings->get('website.pharma_hero', []);
     $hero = is_array($hero) ? $hero : [];
     $heroBadge = trim((string) ($hero['badge'] ?? 'Thông tin dược phẩm')) ?: 'Thông tin dược phẩm';
@@ -103,10 +106,28 @@
                         @endforelse
                     </div>
                 </section>
-            @elseif($section === 'new_arrivals')
+            @elseif(isset($productSections[$section]))
+                @php
+                    $config = $productSections[$section];
+                    $ids = array_filter(array_map('intval', (array) ($config['category_ids'] ?? [])));
+                    $query = \Modules\Product\Models\Product::query()->active()->whereHas('pharmaLink')->with(['categories' => fn ($q) => $q->where('type', 'medicine')]);
+                    if ($ids) {
+                        $query->whereHas('categories', fn ($q) => $q->where('type', 'medicine')->whereIn('categories.id', $ids));
+                    }
+                    $period = (string) ($config['period'] ?? 'all');
+                    if (in_array($period, ['7', '30', '90'], true)) {
+                        $query->where('updated_at', '>=', now()->subDays((int) $period));
+                    }
+                    $sort = $config['sort'] ?? 'newest';
+                    if ($sort === 'name_asc') { $query->orderBy('title'); }
+                    elseif ($sort === 'name_desc') { $query->orderByDesc('title'); }
+                    elseif ($sort === 'created') { $query->latest('created_at'); }
+                    else { $query->latest('updated_at'); }
+                    $products = $query->limit(in_array((int) ($config['limit'] ?? 8), [4,8,12,16,20,24], true) ? (int) $config['limit'] : 8)->get();
+                @endphp
                 <section class="{{ $responsiveClass }} mx-auto max-w-7xl px-5 pb-20 pt-6 sm:px-8">
-                    <p class="text-sm font-bold uppercase tracking-widest" style="color: {{ $primary }}">Danh mục sản phẩm</p>
-                    <h2 class="mt-2 text-3xl font-bold">Sản phẩm mới cập nhật</h2>
+                    <p class="text-sm font-bold uppercase tracking-widest" style="color: {{ $primary }}">{{ $config['eyebrow'] ?? 'Danh mục sản phẩm' }}</p>
+                    <h2 class="mt-2 text-3xl font-bold">{{ $config['title'] ?? 'Sản phẩm mới cập nhật' }}</h2>
                     <div class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
                         @forelse($products as $product)
                             <a href="{{ route('product.detail', $product->slug) }}" class="pharma-card overflow-hidden rounded-2xl border border-slate-200 bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2">
