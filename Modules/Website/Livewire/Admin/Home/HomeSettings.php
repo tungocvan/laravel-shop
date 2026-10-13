@@ -26,6 +26,8 @@ class HomeSettings extends Component
     public array $pharmaSectionOrder = [];
     public array $pharmaCategoryDisplay = [];
     public bool $editingPharmaCategories = false;
+    public bool $editingPharmaProductFilters = false;
+    public array $pharmaProductFilters = [];
     public string $pharmaTheme = 'clinical';
     public string $pharmaPrimaryColor = '#047857';
     public string $pharmaAccentColor = '#10b981';
@@ -87,6 +89,7 @@ class HomeSettings extends Component
             'columns' => 4,
             'card_style' => 'clinical',
         ], (array) $settings->get('website.pharma_homepage.categories', []));
+        $this->pharmaProductFilters = array_replace(array_fill_keys(['category', 'supplier', 'product_type', 'circular_group'], true), (array) $settings->get('website.pharma_catalog.filters', []));
         $this->pharmaSectionOrder = (array) $settings->get('website.pharma_homepage.order', [
             'hero', 'categories', 'new_arrivals',
         ]);
@@ -226,6 +229,19 @@ class HomeSettings extends Component
         ], 'homepage');
         $this->editingPharmaCategories = false;
         $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã lưu thiết lập danh mục Pharma.']);
+    }
+
+    public function savePharmaProductFilters(SettingsService $settings): void
+    {
+        $this->authorizeAdminPermission('website.home.manage');
+        $filters = [];
+        foreach (['category', 'supplier', 'product_type', 'circular_group'] as $key) {
+            $filters[$key] = (bool) ($this->pharmaProductFilters[$key] ?? false);
+        }
+        $settings->updateMany(['website.pharma_catalog.filters' => $filters], 'homepage');
+        $this->pharmaProductFilters = $filters;
+        $this->editingPharmaProductFilters = false;
+        $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã lưu bộ lọc trang sản phẩm Pharma.']);
     }
 
     public function savePharmaLayout(SettingsService $settings): void
