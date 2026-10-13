@@ -126,6 +126,36 @@ foreach($pharmaProductSections as $key => $config) {
                     </select>
                 </label>
             </div>
+            <div class="mt-4 rounded-xl border border-gray-200 bg-white p-3">
+                <div class="text-sm font-semibold text-gray-800">Chọn danh mục hiển thị</div>
+                <p class="mt-1 text-xs text-gray-500">Chỉ danh mục dược phẩm đang hoạt động. Không chọn = tự động hiển thị theo thứ tự mặc định.</p>
+                <div class="mt-3 grid max-h-52 gap-2 overflow-y-auto md:grid-cols-2">
+                    @foreach($pharmaMedicineCategories as $category)
+                        <label wire:key="pharma-category-choice-{{ $category->id }}" class="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm">
+                            <input type="checkbox" value="{{ $category->id }}" wire:model.live="pharmaCategoryDisplay.selected_ids" class="rounded border-gray-300">
+                            <span>{{ $category->name }}</span>
+                        </label>
+                    @endforeach
+                </div>
+                @if(!empty($pharmaCategoryDisplay['selected_ids']))
+                    <div class="mt-3 space-y-1">
+                        <div class="text-xs font-semibold text-gray-600">Thứ tự danh mục đã chọn</div>
+                        @foreach($pharmaCategoryDisplay['selected_ids'] as $position => $categoryId)
+                            @php($chosenCategory = $pharmaMedicineCategories->firstWhere('id', (int) $categoryId))
+                            @if($chosenCategory)
+                                <div wire:key="pharma-category-order-{{ $categoryId }}" class="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-1.5 text-sm">
+                                    <span>{{ $position + 1 }}. {{ $chosenCategory->name }}</span>
+                                    <div class="flex gap-1">
+                                        <button type="button" wire:click="movePharmaCategory('{{ $categoryId }}', 'up')" class="rounded border border-gray-300 px-2 py-1" aria-label="Đưa danh mục lên">↑</button>
+                                        <button type="button" wire:click="movePharmaCategory('{{ $categoryId }}', 'down')" class="rounded border border-gray-300 px-2 py-1" aria-label="Đưa danh mục xuống">↓</button>
+                                    </div>
+                                </div>
+                            @endif
+                        @endforeach
+                    </div>
+                @endif
+                @error('pharmaCategoryDisplay.selected_ids') <span class="text-xs text-red-600">{{ $message }}</span> @enderror
+            </div>
             <div class="mt-4 flex justify-end gap-2">
                 <button type="button" wire:click="$set('editingPharmaCategories', false)" class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm">Đóng</button>
                 <button type="button" wire:click="savePharmaCategories" wire:loading.attr="disabled" class="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">Lưu thiết lập danh mục</button>
