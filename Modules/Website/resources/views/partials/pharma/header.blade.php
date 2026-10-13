@@ -14,6 +14,11 @@
     $topbarForeground = ($presentation['inherit_colors'] ?? true) ? '#e2e8f0' : $colors['topbar_foreground'];
     $shadow = match($presentation['shadow'] ?? 'soft') { 'none' => 'none', 'medium' => '0 8px 24px rgba(15,23,42,.15)', default => '0 1px 3px rgba(15,23,42,.08)' };
     $headerWidth = $presentation['container_width'] ?? null;
+    $menuService = app(\Modules\Website\Services\HeaderMenuService::class);
+    $desktopMenu = $menuService->getMenuTreeByLocation('pharma_primary');
+    $mobileMenu = $menuService->getMenuTreeByLocation('pharma_mobile');
+    if ($mobileMenu->isEmpty()) $mobileMenu = $desktopMenu;
+    $fallbackMenu = [['title' => 'Trang chủ', 'url' => route('home')], ['title' => 'Danh mục dược phẩm', 'url' => route('product.list')]];
 @endphp
 <div style="--pharma-header-accent: {{ $accent }}; --pharma-header-bg: {{ $background }}; --pharma-header-text: {{ $foreground }};">
     @foreach($headerLayout['desktop.topbar'] ?? [] as $component)
@@ -37,8 +42,11 @@
                         </a>
                     @elseif($component['type'] === 'actions')
                         <nav aria-label="Điều hướng Pharma" class="hidden items-center gap-6 text-sm font-semibold md:flex">
-                            <a href="{{ route('home') }}" class="hover:underline">Trang chủ</a>
-                            <a href="{{ route('product.list') }}" class="hover:underline">Danh mục dược phẩm</a>
+                            @foreach($desktopMenu->isNotEmpty() ? $desktopMenu : $fallbackMenu as $item)
+                                @php($itemUrl = is_array($item) ? $item['url'] : $item->url)
+                                @php($itemTitle = is_array($item) ? $item['title'] : $item->title)
+                                <a href="{{ $itemUrl ?: '#' }}" class="hover:underline">{{ $itemTitle }}</a>
+                            @endforeach
                         </nav>
                         <div class="hidden items-center gap-3 text-sm lg:flex">
                             @guest
@@ -65,8 +73,11 @@
             @if($component['type'] === 'mobile-menu')
                 <nav id="pharma-mobile-menu" x-show="menuOpen" x-cloak aria-label="Điều hướng Pharma trên di động" class="border-t border-slate-200 px-5 py-4 md:hidden">
                     <div class="flex flex-col gap-4 text-sm font-semibold">
-                        <a href="{{ route('home') }}">Trang chủ</a>
-                        <a href="{{ route('product.list') }}">Danh mục dược phẩm</a>
+                        @foreach($mobileMenu->isNotEmpty() ? $mobileMenu : $fallbackMenu as $item)
+                            @php($itemUrl = is_array($item) ? $item['url'] : $item->url)
+                            @php($itemTitle = is_array($item) ? $item['title'] : $item->title)
+                            <a href="{{ $itemUrl ?: '#' }}">{{ $itemTitle }}</a>
+                        @endforeach
                         @guest
                             <a href="{{ route('login') }}">Đăng nhập</a>
                             <a href="{{ route('register') }}">Đăng ký</a>
