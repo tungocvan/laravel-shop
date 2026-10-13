@@ -23,6 +23,9 @@ class HomeSettings extends Component
     public string $editingTemplate = 'default';
     public array $pharmaLayout = [];
     public array $pharmaSectionOrder = [];
+    public string $pharmaTheme = 'clinical';
+    public string $pharmaPrimaryColor = '#047857';
+    public string $pharmaAccentColor = '#10b981';
 
     public array $layout = [];
     public array $sectionOrder = [];
@@ -65,6 +68,10 @@ class HomeSettings extends Component
         HomepageSectionRegistry $registry,
         HomepagePresentationService $presentationService
     ): void {
+        $theme = (array) $settings->get('website.pharma_homepage.theme', []);
+        $this->pharmaTheme = in_array($theme['preset'] ?? '', ['clinical', 'ocean', 'modern'], true) ? $theme['preset'] : 'clinical';
+        $this->pharmaPrimaryColor = $theme['primary'] ?? '#047857';
+        $this->pharmaAccentColor = $theme['accent'] ?? '#10b981';
         $this->pharmaLayout = (array) $settings->get('website.pharma_homepage.layout', [
             'hero' => 'all', 'categories' => 'all', 'new_arrivals' => 'all',
         ]);
@@ -144,6 +151,38 @@ class HomeSettings extends Component
 
         $this->editingTemplate = $template;
         $this->activeTab = 'layout';
+    }
+
+    public function choosePharmaTheme(string $preset): void
+    {
+        $presets = [
+            'clinical' => ['#047857', '#10b981'],
+            'ocean' => ['#075985', '#06b6d4'],
+            'modern' => ['#1e3a8a', '#6366f1'],
+        ];
+        if (! isset($presets[$preset])) {
+            return;
+        }
+        $this->pharmaTheme = $preset;
+        [$this->pharmaPrimaryColor, $this->pharmaAccentColor] = $presets[$preset];
+    }
+
+    public function savePharmaTheme(SettingsService $settings): void
+    {
+        $this->authorizeAdminPermission('website.home.manage');
+        $this->validate([
+            'pharmaTheme' => 'required|in:clinical,ocean,modern',
+            'pharmaPrimaryColor' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'pharmaAccentColor' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
+        ]);
+        $settings->updateMany([
+            'website.pharma_homepage.theme' => [
+                'preset' => $this->pharmaTheme,
+                'primary' => $this->pharmaPrimaryColor,
+                'accent' => $this->pharmaAccentColor,
+            ],
+        ], 'homepage');
+        $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã lưu Themes Pharma riêng biệt.']);
     }
 
     public function savePharmaLayout(SettingsService $settings): void
@@ -311,6 +350,10 @@ class HomeSettings extends Component
     public function save(HomepageContentWriteService $writer, HomepagePresentationService $presentationService)
     {
         if ($this->editingTemplate === 'pharma') {
+            if ($this->activeTab === 'themes') {
+                $this->savePharmaTheme(app(SettingsService::class));
+                return;
+            }
             $this->savePharmaLayout(app(SettingsService::class));
             return;
         }
