@@ -63,7 +63,7 @@ class FooterPresentationService
                     : $this->color($colors['heading'] ?? '#ffffff', '#ffffff'),
                 'muted' => $inheritColors
                     ? '#9ca3af'
-                    : $this->color($colors['muted'] ?? ($colors['foreground'] ?? '#9ca3af'), '#9ca3af'),
+                    : $this->color(($colors['muted'] ?? '#6b7280') === '#6b7280' ? ($colors['foreground'] ?? '#9ca3af') : $colors['muted'], '#9ca3af'),
                 'accent' => $inheritColors
                     ? ($globalColors['primary'] ?? '#2563eb')
                     : $this->color($colors['accent'] ?? '#2563eb', '#2563eb'),
