@@ -3,6 +3,8 @@
 return [
     'menu_locations' => [
         'primary' => 'Desktop Main Menu',
+        'pharma_primary' => 'Pharma · Menu chính',
+        'pharma_mobile' => 'Pharma · Menu di động',
         'mobile' => 'Mobile Slide-over',
         'account' => 'Menu tài khoản sau đăng nhập',
         'admin' => 'Admin Menu Dropdown',
