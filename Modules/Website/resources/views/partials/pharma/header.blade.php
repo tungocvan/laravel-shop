@@ -14,6 +14,8 @@
     $topbarForeground = ($presentation['inherit_colors'] ?? true) ? '#e2e8f0' : $colors['topbar_foreground'];
     $shadow = match($presentation['shadow'] ?? 'soft') { 'none' => 'none', 'medium' => '0 8px 24px rgba(15,23,42,.15)', default => '0 1px 3px rgba(15,23,42,.08)' };
     $headerWidth = $presentation['container_width'] ?? null;
+    $searchWidth = (int) ($presentation['custom']['search_max_width'] ?? 560);
+    $brandHeight = (int) ($presentation['custom']['logo_max_height'] ?? 48);
     $menuService = app(\Modules\Website\Services\HeaderMenuService::class);
     $desktopMenu = $menuService->getMenuTreeByLocation('pharma_primary');
     $mobileMenu = $menuService->getMenuTreeByLocation('pharma_mobile');
@@ -32,23 +34,24 @@
         @endif
     @endforeach
     <header class="{{ ($presentation['sticky'] ?? true) ? 'sticky top-0' : 'relative' }} z-40 border-b border-slate-200" style="background:var(--pharma-header-bg);color:var(--pharma-header-text);box-shadow:{{ $shadow }}" x-data="{ menuOpen: false }">
-        <div class="mx-auto flex flex-wrap items-center justify-between gap-5 px-5 sm:px-8" style="max-width:{{ $headerWidth ? $headerWidth.'px' : '1280px' }};min-height:{{ (int)($presentation['heights']['desktop'] ?? 80) }}px">
+        <div class="mx-auto flex items-center gap-4 px-4 py-3 sm:px-6 lg:gap-6 lg:px-8" style="max-width:{{ $headerWidth ? $headerWidth.'px' : '1280px' }};min-height:{{ (int)($presentation['heights']['desktop'] ?? 80) }}px">
             @foreach(['desktop.main.left','desktop.main.center','desktop.main.right'] as $slot)
+                <div class="{{ $slot === 'desktop.main.left' ? 'flex min-w-0 shrink-0 items-center' : ($slot === 'desktop.main.center' ? 'hidden min-w-0 flex-1 items-center justify-center gap-5 lg:flex' : 'ml-auto hidden min-w-0 items-center justify-end gap-4 lg:flex') }}">
                 @foreach($headerLayout[$slot] ?? [] as $component)
                     @if($component['type'] === 'brand')
                         <a href="{{ route('home') }}" class="flex min-w-0 items-center gap-3" aria-label="Về trang chủ">
-                            <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-2xl font-bold text-white" style="background:var(--pharma-header-accent)" aria-hidden="true">+</span>
+                            <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-2xl font-bold text-white shadow-sm" style="background:var(--pharma-header-accent);max-height:{{ $brandHeight }}px" aria-hidden="true">+</span>
                             <span class="min-w-0"><span class="block truncate text-base font-extrabold sm:text-lg">{{ $companyName }}</span><span class="block text-xs font-medium" style="color:var(--pharma-header-accent)">Danh mục và thông tin dược phẩm</span></span>
                         </a>
                     @elseif($component['type'] === 'actions')
-                        <nav aria-label="Điều hướng Pharma" class="hidden items-center gap-6 text-sm font-semibold md:flex">
+                        <nav aria-label="Điều hướng Pharma" class="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm font-semibold">
                             @foreach($desktopMenu->isNotEmpty() ? $desktopMenu : $fallbackMenu as $item)
                                 @php($itemUrl = is_array($item) ? $item['url'] : $item->url)
                                 @php($itemTitle = is_array($item) ? $item['title'] : $item->title)
                                 <a href="{{ $itemUrl ?: '#' }}" class="hover:underline">{{ $itemTitle }}</a>
                             @endforeach
                         </nav>
-                        <div class="hidden items-center gap-3 text-sm lg:flex">
+                        <div class="flex shrink-0 items-center gap-3 text-sm">
                             @guest
                                 <a href="{{ route('login') }}" class="font-semibold hover:underline">Đăng nhập</a>
                                 <a href="{{ route('register') }}" class="rounded-xl border px-3 py-2 font-bold" style="border-color:var(--pharma-header-accent);color:var(--pharma-header-accent)">Đăng ký</a>
@@ -57,21 +60,22 @@
                             @endguest
                         </div>
                     @elseif($component['type'] === 'search')
-                        <form action="{{ route('product.list') }}" method="GET" role="search" class="hidden items-center gap-2 lg:flex">
+                        <form action="{{ route('product.list') }}" method="GET" role="search" class="flex min-w-0 items-center gap-2" style="max-width:{{ $searchWidth }}px">
                             <label class="sr-only" for="pharma-header-search-{{ str_replace('.', '-', $slot) }}">Tìm sản phẩm dược phẩm</label>
-                            <input id="pharma-header-search-{{ str_replace('.', '-', $slot) }}" name="search" type="search" value="{{ request('search') }}" placeholder="Tên thuốc, hoạt chất..." class="w-48 rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm focus:outline-none xl:w-56">
+                            <input id="pharma-header-search-{{ str_replace('.', '-', $slot) }}" name="search" type="search" value="{{ request('search') }}" placeholder="Tên thuốc, hoạt chất..." class="w-32 min-w-0 rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm focus:outline-none xl:w-48 2xl:w-56">
                             <button type="submit" class="rounded-xl px-4 py-2 text-sm font-bold text-white" style="background:var(--pharma-header-accent)">Tra cứu →</button>
                         </form>
                     @endif
                 @endforeach
+                </div>
             @endforeach
             @if(!empty($headerLayout['mobile.drawer']))
-                <button type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold md:hidden" @click="menuOpen = !menuOpen" :aria-expanded="menuOpen.toString()" aria-controls="pharma-mobile-menu">Menu</button>
+                <button type="button" class="ml-auto rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold lg:hidden" @click="menuOpen = !menuOpen" :aria-expanded="menuOpen.toString()" aria-controls="pharma-mobile-menu">Menu</button>
             @endif
         </div>
         @foreach($headerLayout['mobile.drawer'] ?? [] as $component)
             @if($component['type'] === 'mobile-menu')
-                <nav id="pharma-mobile-menu" x-show="menuOpen" x-cloak aria-label="Điều hướng Pharma trên di động" class="border-t border-slate-200 px-5 py-4 md:hidden">
+                <nav id="pharma-mobile-menu" x-show="menuOpen" x-cloak aria-label="Điều hướng Pharma trên di động" class="border-t border-slate-200 px-5 py-4 lg:hidden">
                     <div class="flex flex-col gap-4 text-sm font-semibold">
                         @foreach($mobileMenu->isNotEmpty() ? $mobileMenu : $fallbackMenu as $item)
                             @php($itemUrl = is_array($item) ? $item['url'] : $item->url)
