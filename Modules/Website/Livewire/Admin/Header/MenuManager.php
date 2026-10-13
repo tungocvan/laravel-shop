@@ -15,6 +15,7 @@ class MenuManager extends Component
     use AuthorizesAdminPermissions;
 
     public string $location = 'primary';
+    public string $editingTemplate = 'default';
     public array $menuLocations = [];
     public array $headerActions = [];
     public bool $isModalOpen = false;
@@ -29,17 +30,29 @@ class MenuManager extends Component
     protected $listeners = ['refreshMenu' => '$refresh'];
     protected $rules = ['title' => 'required|string|max:100', 'url' => 'nullable|string|max:255', 'parent_id' => 'nullable|exists:header_menu_items,id', 'sort_order' => 'integer', 'is_active' => 'boolean'];
 
-    public function mount(HeaderMenuService $service, SettingsService $settings): void
+    public function mount(HeaderMenuService $service, SettingsService $settings, string $editingTemplate = 'default'): void
     {
-        $this->menuLocations = $service->getAvailableLocations();
+        $this->editingTemplate = $editingTemplate === 'pharma' ? 'pharma' : 'default';
+        $this->menuLocations = $this->availableLocations($service);
+        $this->location = $this->editingTemplate === 'pharma' ? 'pharma_primary' : 'primary';
         if (! array_key_exists($this->location, $this->menuLocations)) $this->location = (string) array_key_first($this->menuLocations);
         $saved = $settings->get('header.actions');
         $this->headerActions = $this->normalizeActions(is_array($saved) ? $saved : []);
     }
 
+    private function availableLocations(HeaderMenuService $service): array
+    {
+        $locations = $service->getAvailableLocations();
+        return array_filter($locations, fn ($key) => $this->editingTemplate === 'pharma' ? str_starts_with($key, 'pharma_') : ! str_starts_with($key, 'pharma_'), ARRAY_FILTER_USE_KEY);
+    }
+
     public function render(HeaderMenuService $service)
     {
         $this->authorizeAdminPermission('website.menu.manage');
+        $this->menuLocations = $this->availableLocations($service);
+        if (! array_key_exists($this->location, $this->menuLocations)) {
+            $this->location = (string) array_key_first($this->menuLocations);
+        }
         $currentMenu = $service->getMenuForAdmin($this->location);
         $menuTree = $currentMenu ? $service->getMenuTreeForAdmin($this->location) : new Collection;
         $flatItems = $currentMenu ? HeaderMenuItem::where('header_menu_id', $currentMenu->id)->whereNull('parent_id')->orderBy('sort_order')->get() : new Collection;
