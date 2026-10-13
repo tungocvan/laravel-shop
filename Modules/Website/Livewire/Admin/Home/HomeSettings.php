@@ -25,6 +25,8 @@ class HomeSettings extends Component
     public array $pharmaLayout = [];
     public array $pharmaSectionOrder = [];
     public array $pharmaCategoryDisplay = [];
+    public array $pharmaProductSections = [];
+    public ?string $editingPharmaProductSection = null;
     public bool $editingPharmaCategories = false;
     public bool $editingPharmaProductFilters = false;
     public array $pharmaProductFilters = [];
@@ -90,6 +92,8 @@ class HomeSettings extends Component
             'columns' => 4,
             'card_style' => 'clinical',
         ], (array) $settings->get('website.pharma_homepage.categories', []));
+        $this->pharmaProductSections = (array) $settings->get('website.pharma_homepage.product_sections', []);
+        $this->pharmaProductSections = array_replace(['new_arrivals' => $this->defaultPharmaProductSection()], $this->pharmaProductSections);
         $this->pharmaProductFilters = array_replace(array_fill_keys(['category', 'supplier', 'product_type', 'circular_group'], true), (array) $settings->get('website.pharma_catalog.filters', []));
         $this->pharmaSectionOrder = (array) $settings->get('website.pharma_homepage.order', [
             'hero', 'categories', 'new_arrivals',
@@ -128,6 +132,7 @@ class HomeSettings extends Component
     public function render(HomepageSectionRegistry $registry)
     {
         $allCategories = Category::query()->select('id', 'name')->orderBy('name')->get();
+        $pharmaMedicineCategories = Category::query()->ofType('medicine')->active()->sorted()->get(['id', 'name']);
 
         $searchProducts = [];
         if ($this->showProductPicker) {
@@ -152,6 +157,7 @@ class HomeSettings extends Component
 
         return view('Website::livewire.admin.home.home-settings-v3', [
             'allCategories' => $allCategories,
+            'pharmaMedicineCategories' => $pharmaMedicineCategories,
             'searchProducts' => $searchProducts,
             'selectedProducts' => $selectedProducts,
             'homepageSections' => $registry->all(),
@@ -245,10 +251,75 @@ class HomeSettings extends Component
         $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã lưu bộ lọc trang sản phẩm Pharma.']);
     }
 
+
+    private function defaultPharmaProductSection(): array
+    {
+        return ['eyebrow' => 'Danh mục sản phẩm', 'title' => 'Sản phẩm mới cập nhật', 'category_ids' => [], 'sort' => 'newest', 'period' => 'all', 'limit' => 8];
+    }
+
+    public function duplicatePharmaProductSection(string $key): void
+    {
+        $this->authorizeAdminPermission('website.home.manage');
+        if (! isset($this->pharmaProductSections[$key]) || count($this->pharmaProductSections) >= 20) {
+            return;
+        }
+        $newKey = 'products_'.str_replace('-', '', (string) \\Illuminate\\Support\\Str::uuid());
+        $this->pharmaProductSections[$newKey] = $this->pharmaProductSections[$key];
+        $this->pharmaProductSections[$newKey]['title'] = ($this->pharmaProductSections[$key]['title'] ?? 'Sản phẩm').' (bản sao)';
+        $index = array_search($key, $this->pharmaSectionOrder, true);
+        array_splice($this->pharmaSectionOrder, $index === false ? count($this->pharmaSectionOrder) : $index + 1, 0, [$newKey]);
+        $this->pharmaLayout[$newKey] = $this->pharmaLayout[$key] ?? 'all';
+        $this->editingPharmaProductSection = $newKey;
+    }
+
+    public function removePharmaProductSection(string $key): void
+    {
+        $this->authorizeAdminPermission('website.home.manage');
+        if ($key === 'new_arrivals' || ! isset($this->pharmaProductSections[$key])) {
+            return;
+        }
+        unset($this->pharmaProductSections[$key], $this->pharmaLayout[$key]);
+        $this->pharmaSectionOrder = array_values(array_diff($this->pharmaSectionOrder, [$key]));
+        if ($this->editingPharmaProductSection === $key) {
+            $this->editingPharmaProductSection = null;
+        }
+    }
+
+    public function savePharmaProductSections(SettingsService $settings): void
+    {
+        $this->authorizeAdminPermission('website.home.manage');
+        $allowedCategories = Category::query()->ofType('medicine')->active()->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $clean = [];
+        foreach ($this->pharmaProductSections as $key => $section) {
+            if ($key !== 'new_arrivals' && ! preg_match('/^products_[a-f0-9]{32}$/', (string) $key)) {
+                continue;
+            }
+            $title = trim((string) ($section['title'] ?? ''));
+            if ($title === '' || mb_strlen($title) > 120) {
+                $this->addError('pharmaProductSections', 'Tiêu đề section phải từ 1 đến 120 ký tự.');
+                return;
+            }
+            $ids = array_values(array_unique(array_intersect(array_map('intval', (array) ($section['category_ids'] ?? [])), $allowedCategories)));
+            $clean[$key] = [
+                'eyebrow' => mb_substr(trim((string) ($section['eyebrow'] ?? '')), 0, 60),
+                'title' => $title,
+                'category_ids' => $ids,
+                'sort' => in_array($section['sort'] ?? '', ['newest', 'created', 'name_asc', 'name_desc'], true) ? $section['sort'] : 'newest',
+                'period' => in_array((string) ($section['period'] ?? 'all'), ['all', '7', '30', '90'], true) ? (string) $section['period'] : 'all',
+                'limit' => in_array((int) ($section['limit'] ?? 8), [4, 8, 12, 16, 20, 24], true) ? (int) $section['limit'] : 8,
+            ];
+        }
+        $this->pharmaProductSections = $clean;
+        $this->savePharmaLayout($settings);
+        $settings->updateMany(['website.pharma_homepage.product_sections' => $clean], 'homepage');
+        $this->editingPharmaProductSection = null;
+        $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã lưu các section sản phẩm Pharma.']);
+    }
+
     public function savePharmaLayout(SettingsService $settings): void
     {
         $this->authorizeAdminPermission('website.home.manage');
-        $allowed = ['hero', 'categories', 'new_arrivals'];
+        $allowed = array_merge(['hero', 'categories', 'new_arrivals'], array_keys($this->pharmaProductSections));
         $visibility = [];
         foreach ($allowed as $key) {
             $value = $this->pharmaLayout[$key] ?? 'all';
