@@ -14,6 +14,8 @@ class HeaderSettingsHub extends Component
     use AuthorizesAdminPermissions;
 
     public $activeTab = 'general';
+    public string $editingTemplate = 'default';
+    public string $publishedTemplate = 'default';
     public array $builderSlots = [];
     public array $presentation = [];
     public array $layoutThemes = [];
@@ -34,15 +36,41 @@ class HeaderSettingsHub extends Component
 
     public function mount(SettingsService $settingsService, HeaderPresentationService $presentationService): void
     {
-        $savedLayout = $settingsService->get('header.layout');
-        $rawLayout = is_array($savedLayout) ? $savedLayout : (array) config('website.header.layout', []);
-        $this->loadBuilderLayout($rawLayout);
+        $this->publishedTemplate = $settingsService->get('website.public_template', 'default') === 'pharma' ? 'pharma' : 'default';
+        $this->editingTemplate = $this->publishedTemplate;
+        $this->loadTemplateSettings($settingsService, $presentationService);
+    }
 
-        $savedPresentation = $settingsService->get('header.presentation');
+    public function updatedEditingTemplate(SettingsService $settingsService, HeaderPresentationService $presentationService): void
+    {
+        $this->authorizeAdminPermission('website.settings.manage');
+        $this->editingTemplate = $this->editingTemplate === 'pharma' ? 'pharma' : 'default';
+        $this->loadTemplateSettings($settingsService, $presentationService);
+    }
+
+    private function settingKey(string $suffix): string
+    {
+        return $this->editingTemplate === 'pharma' ? 'website.pharma_header.'.$suffix : 'header.'.$suffix;
+    }
+
+    private function defaultLayout(): array
+    {
+        return $this->editingTemplate === 'pharma'
+            ? (array) config('website.header.pharma_layout', [])
+            : (array) config('website.header.layout', []);
+    }
+
+    private function loadTemplateSettings(SettingsService $settingsService, HeaderPresentationService $presentationService): void
+    {
+        $savedLayout = $settingsService->get($this->settingKey('layout'));
+        $this->loadBuilderLayout(is_array($savedLayout) ? $savedLayout : $this->defaultLayout());
+        $savedPresentation = $settingsService->get($this->settingKey('presentation'));
         $this->presentation = $presentationService->resolve(is_array($savedPresentation) ? $savedPresentation : null);
-
-        $savedThemes = $settingsService->get('header.layout_themes', []);
+        $savedThemes = $settingsService->get($this->settingKey('layout_themes'), []);
         $this->layoutThemes = is_array($savedThemes) ? $savedThemes : [];
+        $this->selectedTheme = '';
+        $this->themeName = '';
+        $this->resetErrorBag();
     }
 
     public function toggleComponent(string $slot, int $index): void
@@ -129,8 +157,8 @@ class HeaderSettingsHub extends Component
         $presentation = $presentationService->resolve($this->presentation);
 
         $settingsService->updateMany([
-            'header.layout' => $layout,
-            'header.presentation' => $presentation,
+            $this->settingKey('layout') => $layout,
+            $this->settingKey('presentation') => $presentation,
         ], 'header');
 
         $this->presentation = $presentation;
@@ -143,7 +171,7 @@ class HeaderSettingsHub extends Component
     public function resetBuilder(HeaderPresentationService $presentationService): void
     {
         $this->authorizeAdminPermission('website.settings.manage');
-        $this->loadBuilderLayout((array) config('website.header.layout', []));
+        $this->loadBuilderLayout($this->defaultLayout());
         $this->presentation = $presentationService->resolve((array) config('website.header.presentation', []));
         $this->selectedTheme = '';
         $this->resetErrorBag(['builder', 'theme']);
@@ -326,7 +354,7 @@ class HeaderSettingsHub extends Component
 
     private function persistThemes(SettingsService $settingsService): void
     {
-        $settingsService->set('header.layout_themes', $this->layoutThemes, 'header', 'json');
+        $settingsService->set($this->settingKey('layout_themes'), $this->layoutThemes, 'header', 'json');
         $this->resetErrorBag('theme');
     }
 
