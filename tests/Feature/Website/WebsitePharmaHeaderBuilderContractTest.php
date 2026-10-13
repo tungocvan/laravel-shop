@@ -83,4 +83,28 @@ class WebsitePharmaHeaderBuilderContractTest extends TestCase
         $this->assertStringContainsString('wire:click="saveAccountSettings"', $view);
     }
 
+    #[Test]
+    public function pharma_topbar_settings_drive_frontend_and_preview_without_changing_default(): void
+    {
+        $builder = file_get_contents(base_path('Modules/Website/Livewire/Admin/Header/HeaderSettingsHub.php'));
+        $this->assertStringContainsString('website.pharma_header.topbar', $builder);
+        $this->assertStringContainsString('saveTopbarSettings', $builder);
+        $this->assertStringContainsString("editingTemplate !== 'pharma'", $builder);
+
+        $header = file_get_contents(base_path('Modules/Website/resources/views/partials/pharma/header.blade.php'));
+        $this->assertStringContainsString('website.pharma_header.topbar', $header);
+        $this->assertStringContainsString("topbarConfig['enabled']", $header);
+        $this->assertStringContainsString("topbarConfig['left_text']", $header);
+        $this->assertStringContainsString("topbarConfig['right_text']", $header);
+        $this->assertStringContainsString('topbarHeight', $header);
+
+        $admin = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/header/header-settings-hub.blade.php'));
+        $this->assertStringContainsString('wire:click="saveTopbarSettings"', $admin);
+        $this->assertStringContainsString('wire:model="topbarSettings.left_text"', $admin);
+
+        $preview = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/header/partials/builder-preview.blade.php'));
+        $this->assertStringContainsString("topbarSettings['left_text']", $preview);
+        $this->assertStringContainsString("editingTemplate === 'pharma'", $preview);
+    }
+
 }
