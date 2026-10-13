@@ -340,7 +340,7 @@ class HomeSettings extends Component
                 'sort' => in_array($section['sort'] ?? '', ['newest', 'created', 'name_asc', 'name_desc'], true) ? $section['sort'] : 'newest',
                 'period' => in_array((string) ($section['period'] ?? 'all'), ['all', '7', '30', '90'], true) ? (string) $section['period'] : 'all',
                 'limit' => in_array((int) ($section['limit'] ?? 8), [4, 8, 12, 16, 20, 24], true) ? (int) $section['limit'] : 8,
-                'display_mode' => in_array($section['display_mode'] ?? 'load_more', ['load_more', 'fixed', 'pagination'], true) ? $section['display_mode'] : 'load_more',
+                'display_mode' => in_array($section['display_mode'] ?? 'load_more', ['load_more', 'fixed', 'pagination'], true) ? ($section['display_mode'] ?? 'load_more') : 'load_more',
             ];
         }
         $this->pharmaProductSections = $clean;
