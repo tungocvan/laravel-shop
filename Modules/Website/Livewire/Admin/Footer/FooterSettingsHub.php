@@ -42,14 +42,14 @@ class FooterSettingsHub extends Component
         $this->publishedTemplate = $settingsService->get('website.public_template', 'default') === 'pharma' ? 'pharma' : 'default';
         $this->editingTemplate = $this->publishedTemplate;
         $this->loadPharmaContent($settingsService);
-        $savedLayout = $settingsService->get('footer.layout');
+        $savedLayout = $settingsService->get($this->settingKey('layout'));
         $rawLayout = is_array($savedLayout) ? $savedLayout : (array) config('website.footer.layout', []);
         $this->loadBuilderLayout($rawLayout);
 
-        $savedPresentation = $settingsService->get('footer.presentation');
+        $savedPresentation = $settingsService->get($this->settingKey('presentation'));
         $this->presentation = $presentationService->resolve(is_array($savedPresentation) ? $savedPresentation : null);
 
-        $savedThemes = $settingsService->get('footer.layout_themes', []);
+        $savedThemes = $settingsService->get($this->settingKey('layout_themes'), []);
         $this->layoutThemes = is_array($savedThemes) ? $savedThemes : [];
     }
 
@@ -79,6 +79,21 @@ class FooterSettingsHub extends Component
     {
         $this->authorizeAdminPermission('website.footer.manage');
         $this->editingTemplate = $this->editingTemplate === 'pharma' ? 'pharma' : 'default';
+        $settings = app(SettingsService::class);
+        $presentationService = app(FooterPresentationService::class);
+        $layout = $settings->get($this->settingKey('layout'));
+        $this->loadBuilderLayout(is_array($layout) ? $layout : (array) config('website.footer.layout', []));
+        $savedPresentation = $settings->get($this->settingKey('presentation'));
+        $this->presentation = $presentationService->resolve(is_array($savedPresentation) ? $savedPresentation : null);
+        $themes = $settings->get($this->settingKey('layout_themes'), []);
+        $this->layoutThemes = is_array($themes) ? $themes : [];
+        $this->selectedTheme = '';
+        $this->themeName = '';
+    }
+
+    private function settingKey(string $suffix): string
+    {
+        return $this->editingTemplate === 'pharma' ? 'website.pharma_footer.'.$suffix : 'footer.'.$suffix;
     }
 
     public function addPharmaLink(): void
@@ -223,8 +238,8 @@ class FooterSettingsHub extends Component
         $presentation = $presentationService->resolve($this->presentation);
 
         $settingsService->updateMany([
-            'footer.layout' => $layout,
-            'footer.presentation' => $presentation,
+            $this->settingKey('layout') => $layout,
+            $this->settingKey('presentation') => $presentation,
         ], 'footer');
 
         $this->presentation = $presentation;
@@ -448,7 +463,7 @@ class FooterSettingsHub extends Component
 
     private function persistThemes(SettingsService $settingsService): void
     {
-        $settingsService->set('footer.layout_themes', $this->layoutThemes, 'footer', 'json');
+        $settingsService->set($this->settingKey('layout_themes'), $this->layoutThemes, 'footer', 'json');
         $this->resetErrorBag('theme');
     }
 
