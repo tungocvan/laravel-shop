@@ -4,6 +4,9 @@ $pharmaSections = [
     'categories' => ['Danh mục dược phẩm', 'Nhóm danh mục thuốc được công bố.'],
     'new_arrivals' => ['Sản phẩm mới cập nhật', 'Danh sách sản phẩm Pharma mới nhất.'],
 ];
+foreach($pharmaBlogSections as $key => $config) {
+    $pharmaSections[$key] = [$config['title'] ?? 'Tin tức / Blog', 'Bài viết công khai theo chuyên mục và bộ lọc.'];
+}
 foreach($pharmaProductSections as $key => $config) {
     $pharmaSections[$key] = [$config['title'] ?? 'Section sản phẩm', 'Danh sách sản phẩm Pharma theo cấu hình riêng.'];
 }
@@ -27,6 +30,13 @@ foreach($pharmaProductSections as $key => $config) {
                             <button type="button" wire:click="duplicatePharmaProductSection('{{ $sectionKey }}')" class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm">Nhân đôi</button>
                             @if($sectionKey !== 'new_arrivals')
                                 <button type="button" wire:click="removePharmaProductSection('{{ $sectionKey }}')" wire:confirm="Xóa section này?" class="rounded-lg border border-red-300 px-3 py-2 text-sm text-red-700">Xóa</button>
+                            @endif
+                        @endif
+                        @if(isset($pharmaBlogSections[$sectionKey]))
+                            <button type="button" wire:click="$set('editingPharmaBlogSection', '{{ $sectionKey }}')" class="rounded-lg border border-emerald-300 bg-white px-3 py-2 text-sm">Thiết lập</button>
+                            <button type="button" wire:click="duplicatePharmaBlogSection('{{ $sectionKey }}')" class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm">Nhân đôi</button>
+                            @if($sectionKey !== 'blog')
+                                <button type="button" wire:click="removePharmaBlogSection('{{ $sectionKey }}')" wire:confirm="Xóa section Blog này?" class="rounded-lg border border-red-300 px-3 py-2 text-sm text-red-700">Xóa</button>
                             @endif
                         @endif
                         @if($sectionKey === 'categories')
@@ -106,6 +116,26 @@ foreach($pharmaProductSections as $key => $config) {
                 <button type="button" wire:click="$set('editingPharmaProductSection', null)" class="rounded-lg border border-gray-300 px-4 py-2">Đóng</button>
                 <button type="button" wire:click="savePharmaProductSections" class="rounded-lg bg-emerald-700 px-4 py-2 font-semibold text-white">Lưu Section sản phẩm</button>
             </div>
+        </div>
+    @endif
+    @if($editingPharmaBlogSection && isset($pharmaBlogSections[$editingPharmaBlogSection]))
+        @php($blogKey = $editingPharmaBlogSection)
+        <div class="mt-5 rounded-xl border border-emerald-200 bg-emerald-50/40 p-5" wire:key="blog-section-editor-{{ $blogKey }}">
+            <h3 class="font-bold text-gray-900">Thiết lập Tin tức / Blog</h3>
+            <p class="mt-1 text-sm text-gray-600">Chọn nhiều chuyên mục bài viết. Không chọn = tất cả bài viết đã xuất bản.</p>
+            <div class="mt-4 grid gap-4 md:grid-cols-2">
+                <label class="text-sm font-medium">Nhãn nhỏ<input type="text" maxlength="60" wire:model="pharmaBlogSections.{{ $blogKey }}.eyebrow" class="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2"></label>
+                <label class="text-sm font-medium">Tiêu đề<input type="text" maxlength="120" wire:model="pharmaBlogSections.{{ $blogKey }}.title" class="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2"></label>
+                <label class="text-sm font-medium md:col-span-2">Mô tả<textarea rows="2" maxlength="300" wire:model="pharmaBlogSections.{{ $blogKey }}.description" class="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2"></textarea></label>
+                <label class="text-sm font-medium">Sắp xếp<select wire:model="pharmaBlogSections.{{ $blogKey }}.sort" class="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2"><option value="newest">Mới nhất</option><option value="oldest">Cũ nhất</option><option value="name_asc">Tên A–Z</option><option value="name_desc">Tên Z–A</option></select></label>
+                <label class="text-sm font-medium">Thời gian đăng<select wire:model="pharmaBlogSections.{{ $blogKey }}.period" class="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2"><option value="all">Tất cả</option><option value="7">7 ngày</option><option value="30">30 ngày</option><option value="90">90 ngày</option></select></label>
+                <label class="text-sm font-medium">Số bài viết<select wire:model="pharmaBlogSections.{{ $blogKey }}.limit" class="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2">@foreach([4,8,12,16] as $count)<option value="{{ $count }}">{{ $count }}</option>@endforeach</select></label>
+                <label class="text-sm font-medium">Kiểu card<select wire:model="pharmaBlogSections.{{ $blogKey }}.card_style" class="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2"><option value="grid">Card lưới</option><option value="list">Danh sách</option></select></label>
+                <label class="text-sm font-medium">Hiển thị<select wire:model="pharmaBlogSections.{{ $blogKey }}.display_mode" class="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2"><option value="load_more">Xem thêm</option><option value="fixed">Cố định</option></select></label>
+                <div class="md:col-span-2"><p class="text-sm font-semibold">Chuyên mục bài viết</p><div class="mt-2 grid max-h-52 gap-2 overflow-y-auto rounded-lg border border-gray-200 bg-white p-3 md:grid-cols-2">@foreach($pharmaBlogCategories as $category)<label class="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm"><input type="checkbox" value="{{ $category->id }}" wire:model="pharmaBlogSections.{{ $blogKey }}.category_ids" class="rounded border-gray-300"><span class="flex-1">{{ $category->name }}</span><span class="rounded-full border border-gray-200 px-2 py-0.5 text-xs">{{ $category->published_posts_count }} bài</span></label>@endforeach</div></div>
+            </div>
+            @error('pharmaBlogSections') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
+            <div class="mt-4 flex justify-end gap-2"><button type="button" wire:click="$set('editingPharmaBlogSection', null)" class="rounded-lg border border-gray-300 bg-white px-4 py-2">Đóng</button><button type="button" wire:click="savePharmaBlogSections" class="rounded-lg bg-emerald-700 px-4 py-2 font-semibold text-white">Lưu Section Blog</button></div>
         </div>
     @endif
     @if($editingPharmaCategories)
