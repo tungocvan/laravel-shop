@@ -32,9 +32,12 @@ class WebsitePharmaPublicTemplateContractTest extends TestCase
         $this->assertStringContainsString("website.pharma_homepage.order", $renderer);
         $this->assertStringContainsString("website.pharma_homepage.layout", $renderer);
         $this->assertStringContainsString("website.pharma_homepage.theme", $renderer);
-        $this->assertStringContainsString("whereHas('pharmaLink')", $renderer);
+        $loader = file_get_contents(base_path('Modules/Website/Livewire/Home/PharmaProductSection.php'));
+        $cards = file_get_contents(base_path('Modules/Website/resources/views/livewire/home/pharma-product-section.blade.php'));
+        $this->assertStringContainsString('PharmaProductSection::class', $renderer);
+        $this->assertStringContainsString("whereHas('pharmaLink')", $loader);
         $this->assertStringContainsString("route('product.list')", $renderer);
-        $this->assertStringContainsString("route('product.detail', \$product->slug)", $renderer);
+        $this->assertStringContainsString("route('product.detail', \$product->slug)", $cards);
         $this->assertStringNotContainsString('Flash Sale', $renderer);
     }
 }
