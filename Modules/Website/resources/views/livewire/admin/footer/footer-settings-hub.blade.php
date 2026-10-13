@@ -1,4 +1,44 @@
 <div class="space-y-6" x-data="{ builderDevice: 'desktop', previewDevice: 'desktop', drag: null }">
+    <section class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <label for="footer-editing-template" class="mb-2 block text-sm font-semibold text-gray-900">Template đang quản trị</label>
+        <select id="footer-editing-template" wire:model.live="editingTemplate" class="w-full max-w-md rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm">
+            <option value="default">Default — Website bán lẻ</option>
+            <option value="pharma">Pharma — Website dược phẩm</option>
+        </select>
+        <p class="mt-2 text-xs text-slate-500">Đang xuất bản: <strong>{{ $publishedTemplate === 'pharma' ? 'Pharma' : 'Default' }}</strong>. Chọn workspace chỉ thay đổi phần đang quản trị, không thay đổi template đang xuất bản.</p>
+    </section>
+    @if($editingTemplate === 'pharma')
+        <section class="space-y-5 rounded-xl border border-emerald-200 bg-white p-5 shadow-sm">
+            <div><h2 class="text-lg font-bold text-gray-900">Thiết lập Footer Pharma</h2><p class="mt-1 text-sm text-gray-500">Nội dung độc lập với Footer Default, hiển thị trên toàn bộ trang Website Pharma.</p></div>
+            <div class="grid gap-4 md:grid-cols-2">
+                <label class="block text-sm font-medium">Mô tả thương hiệu<textarea wire:model="pharmaContent.description" rows="3" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"></textarea></label>
+                <label class="block text-sm font-medium">Lưu ý y khoa<textarea wire:model="pharmaContent.notice" rows="3" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"></textarea></label>
+                <label class="block text-sm font-medium">Tiêu đề nhóm liên kết<input wire:model="pharmaContent.links_title" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"></label>
+                <label class="block text-sm font-medium">Tiêu đề lưu ý y khoa<input wire:model="pharmaContent.notice_title" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"></label>
+            </div>
+            <div class="space-y-3">
+                <div class="flex items-center justify-between"><h3 class="font-semibold">Liên kết Footer</h3><button type="button" wire:click="addPharmaLink" class="rounded-lg border border-emerald-300 px-3 py-1.5 text-sm font-semibold text-emerald-700">+ Thêm liên kết</button></div>
+                @foreach($pharmaContent['links'] ?? [] as $index => $link)
+                    <div wire:key="pharma-footer-link-{{ $index }}" class="flex flex-wrap items-center gap-2">
+                        <input aria-label="Tên liên kết" wire:model="pharmaContent.links.{{ $index }}.label" placeholder="Tên liên kết" class="min-w-40 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        <input aria-label="Đường dẫn liên kết" wire:model="pharmaContent.links.{{ $index }}.url" placeholder="/product" class="min-w-40 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        <button type="button" wire:click="removePharmaLink({{ $index }})" class="rounded-lg border border-red-200 px-3 py-2 text-sm text-red-600">Xóa</button>
+                    </div>
+                @endforeach
+            </div>
+            <div class="grid gap-4 md:grid-cols-2">
+                <label class="block text-sm font-medium">Bản quyền<input wire:model="pharmaContent.copyright" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"></label>
+                <div class="flex flex-wrap gap-5">
+                    @foreach(['background' => 'Màu nền', 'foreground' => 'Màu chữ', 'heading' => 'Màu tiêu đề'] as $key => $label)
+                        <label class="text-sm font-medium">{{ $label }}<input type="color" wire:model="pharmaContent.{{ $key }}" class="mt-1 block h-10 w-20 rounded border border-slate-300"></label>
+                    @endforeach
+                </div>
+            </div>
+            @if($errors->any())<div class="text-sm text-red-600">{{ $errors->first() }}</div>@endif
+            <div class="flex justify-end"><button type="button" wire:click="savePharmaContent" class="rounded-lg bg-emerald-700 px-5 py-2.5 text-sm font-semibold text-white">Lưu Footer Pharma</button></div>
+        </section>
+    @else
+
     <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
             <h2 class="text-xl font-bold text-gray-900">Bố cục Footer</h2>
@@ -140,4 +180,5 @@
             </div>
         @endif
     </section>
+    @endif
 </div>
