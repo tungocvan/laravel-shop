@@ -37,4 +37,24 @@ class WebsitePharmaHeaderBuilderContractTest extends TestCase
         $this->assertSame('brand', data_get(config('website.header.pharma_layout'), 'desktop.main.left.0.type'));
         $this->assertSame('actions', data_get(config('website.header.pharma_layout'), 'desktop.main.center.0.type'));
     }
+    #[Test]
+    public function pharma_navigation_is_managed_separately_from_default_menu(): void
+    {
+        $locations = (array) config('website.header.menu_locations', []);
+        $this->assertArrayHasKey('primary', $locations);
+        $this->assertArrayHasKey('pharma_primary', $locations);
+        $this->assertArrayHasKey('pharma_mobile', $locations);
+
+        $manager = file_get_contents(base_path('Modules/Website/Livewire/Admin/Header/MenuManager.php'));
+        $this->assertStringContainsString('pharma_primary', $manager);
+        $this->assertStringContainsString('availableLocations', $manager);
+
+        $hub = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/header/header-settings-hub.blade.php'));
+        $this->assertStringContainsString("'editingTemplate' => \\$editingTemplate", $hub);
+
+        $header = file_get_contents(base_path('Modules/Website/resources/views/partials/pharma/header.blade.php'));
+        $this->assertStringContainsString("getMenuTreeByLocation('pharma_primary')", $header);
+        $this->assertStringContainsString("getMenuTreeByLocation('pharma_mobile')", $header);
+    }
+
 }
