@@ -27,7 +27,8 @@
     $categoryColumns = in_array((int) ($categoryDisplay['columns'] ?? 4), [2, 3, 4], true) ? (int) ($categoryDisplay['columns'] ?? 4) : 4;
     $categoryCardStyle = in_array($categoryDisplay['card_style'] ?? '', ['clinical', 'compact'], true) ? $categoryDisplay['card_style'] : 'clinical';
     $selectedCategoryIds = array_values(array_unique(array_filter(array_map('intval', (array) ($categoryDisplay['selected_ids'] ?? [])))));
-    $categoryQuery = \Modules\Category\Models\Category::query()->ofType('medicine')->active();
+    $categoryQuery = \Modules\Category\Models\Category::query()->ofType('medicine')->active()
+        ->withCount(['products as storefront_products_count' => fn ($query) => $query->active()->whereHas('pharmaLink')]);
     if ($selectedCategoryIds) {
         $categories = $categoryQuery->whereIn('id', $selectedCategoryIds)->get()
             ->sortBy(fn ($category) => array_search((int) $category->id, $selectedCategoryIds, true))
@@ -107,6 +108,7 @@
                                     </span>
                                 @endif
                                 <span class="min-w-0 flex-1 text-sm font-semibold leading-6 text-slate-900">{{ $category->name }}</span>
+                                <span class="shrink-0 rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800" aria-label="{{ $category->storefront_products_count }} sản phẩm">{{ $category->storefront_products_count }} SP</span>
                                 <svg class="h-5 w-5 shrink-0 text-emerald-700 transition-transform group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
                             </a>
                         @empty
