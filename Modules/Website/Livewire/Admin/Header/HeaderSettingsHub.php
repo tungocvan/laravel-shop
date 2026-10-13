@@ -19,6 +19,7 @@ class HeaderSettingsHub extends Component
     public array $builderSlots = [];
     public array $presentation = [];
     public array $layoutThemes = [];
+    public array $accountSettings = [];
     public string $selectedTheme = '';
     public string $themeName = '';
 
@@ -70,7 +71,33 @@ class HeaderSettingsHub extends Component
         $this->layoutThemes = is_array($savedThemes) ? $savedThemes : [];
         $this->selectedTheme = '';
         $this->themeName = '';
+        $this->accountSettings = $this->normalizeAccountSettings($settingsService->get('website.pharma_header.account'));
         $this->resetErrorBag();
+    }
+
+    private function normalizeAccountSettings(mixed $saved): array
+    {
+        $defaults = ['style' => 'avatar_name', 'show_name' => true, 'show_orders' => true, 'show_admin' => true, 'show_profile' => true, 'show_password' => true];
+        $values = is_array($saved) ? $saved : [];
+        return [
+            'style' => in_array($values['style'] ?? null, ['avatar_name', 'avatar', 'button'], true) ? $values['style'] : $defaults['style'],
+            'show_name' => (bool) ($values['show_name'] ?? true),
+            'show_orders' => (bool) ($values['show_orders'] ?? true),
+            'show_admin' => (bool) ($values['show_admin'] ?? true),
+            'show_profile' => (bool) ($values['show_profile'] ?? true),
+            'show_password' => (bool) ($values['show_password'] ?? true),
+        ];
+    }
+
+    public function saveAccountSettings(SettingsService $settingsService): void
+    {
+        $this->authorizeAdminPermission('website.settings.manage');
+        if ($this->editingTemplate !== 'pharma') {
+            return;
+        }
+        $this->accountSettings = $this->normalizeAccountSettings($this->accountSettings);
+        $settingsService->set('website.pharma_header.account', $this->accountSettings, 'header', 'json');
+        $this->dispatch('show-toast', [['type' => 'success', 'message' => 'Đã lưu Account Dropdown Pharma.']]);
     }
 
     public function toggleComponent(string $slot, int $index): void
