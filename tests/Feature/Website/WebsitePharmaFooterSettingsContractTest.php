@@ -13,8 +13,8 @@ class WebsitePharmaFooterSettingsContractTest extends TestCase
         $hub = file_get_contents(base_path('Modules/Website/Livewire/Admin/Footer/FooterSettingsHub.php'));
         $this->assertStringContainsString("get('website.public_template', 'default')", $hub);
         $this->assertStringContainsString('updatedEditingTemplate', $hub);
-        $this->assertStringContainsString("'website.pharma_footer.'.$suffix", $hub);
-        $this->assertStringContainsString("'footer.'.$suffix", $hub);
+        $this->assertStringContainsString("'website.pharma_footer.'.\$suffix", $hub);
+        $this->assertStringContainsString("'footer.'.\$suffix", $hub);
         $this->assertStringContainsString("settingKey('layout')", $hub);
         $this->assertStringContainsString("settingKey('layout_themes')", $hub);
         $this->assertStringContainsString('saveTheme', $hub);
@@ -28,7 +28,7 @@ class WebsitePharmaFooterSettingsContractTest extends TestCase
 
         $composer = file_get_contents(base_path('Modules/Website/Providers/WebsiteServiceProvider.php'));
         $this->assertStringContainsString("'Website::partials.pharma.footer'", $composer);
-        $this->assertStringContainsString("$footerPrefix.'layout'", $composer);
+        $this->assertStringContainsString("\$footerPrefix.'layout'", $composer);
 
         foreach (['footer.blade.php', 'pharma/footer.blade.php'] as $path) {
             $frontend = file_get_contents(base_path('Modules/Website/resources/views/partials/'.$path));
