@@ -16,7 +16,9 @@ class WebsitePharmaCorporateV2ContractTest extends TestCase
         $this->assertStringContainsString("Website::partials.pharma.footer", $layout);
         $this->assertStringContainsString("Website::partials.header", $layout);
         $this->assertStringContainsString("Website::partials.footer", $layout);
-        $this->assertStringContainsString("request()->routeIs('product.*')", $layout);
+        $this->assertStringContainsString("get('website.public_template', 'default') === 'pharma'", $layout);
+        $this->assertStringNotContainsString("request()->routeIs('product.*')", $layout);
+        $this->assertStringNotContainsString("request()->routeIs('home') || request()->routeIs('product.*')", $layout);
     }
 
     #[Test]
