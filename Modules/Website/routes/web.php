@@ -10,6 +10,7 @@ use Modules\Website\Http\Controllers\Admin\CustomerController;
 use Modules\Website\Http\Controllers\Admin\FlashSaleController;
 use Modules\Website\Http\Controllers\Admin\FooterController;
 use Modules\Website\Http\Controllers\Admin\HeaderController;
+use Modules\Website\Http\Controllers\Admin\ProductSettingsController;
 use Modules\Website\Http\Controllers\Admin\HomeSettingsController;
 use Modules\Website\Http\Controllers\Admin\WebsiteDashboardController;
 use Modules\Website\Http\Controllers\Admin\WebsiteSettingsController;
@@ -72,6 +73,8 @@ Route::middleware(['web', 'auth:admin'])->prefix('admin')->name('admin.')->group
     Route::get('/website/settings', [WebsiteSettingsController::class, 'index'])->middleware('permission:website.settings.manage,admin')->name('website.settings');
     Route::get('/affiliate', [AffiliateController::class, 'index'])->middleware('permission:affiliate.view,admin')->name('affiliate.index');
     Route::get('/homepage-settings', [HomeSettingsController::class, 'index'])->middleware('permission:website.home.manage,admin')->name('home.settings');
+    Route::get('/product-settings', [ProductSettingsController::class, 'index'])->middleware('permission:website.settings.manage,admin')->name('product.settings');
+    Route::post('/product-settings', [ProductSettingsController::class, 'update'])->middleware('permission:website.settings.manage,admin')->name('product.settings.update');
     Route::get('/header-settings', [HeaderController::class, 'index'])->middleware('permission:website.menu.manage,admin')->name('header.settings');
     Route::get('/footer-settings', [FooterController::class, 'index'])->middleware('permission:website.footer.manage,admin')->name('footer.settings');
     Route::get('/banners', [BannerController::class, 'index'])->middleware('permission:website.banner.manage,admin')->name('banners');
