@@ -3,7 +3,7 @@ $pharmaSections = [
     'hero' => ['Hero Pharma', 'Nội dung giới thiệu đầu trang và ảnh Hero.'],
     'categories' => ['Danh mục dược phẩm', 'Nhóm danh mục thuốc được công bố.'],
     'new_arrivals' => ['Sản phẩm mới cập nhật', 'Danh sách sản phẩm Pharma mới nhất.'],
-]);
+];
 foreach($pharmaProductSections as $key => $config) {
     $pharmaSections[$key] = [$config['title'] ?? 'Section sản phẩm', 'Danh sách sản phẩm Pharma theo cấu hình riêng.'];
 }
