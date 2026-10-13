@@ -6,7 +6,7 @@
     $background = $inheritColors ? '#111827' : ($colors['background'] ?? '#111827');
     $foreground = $inheritColors ? '#9ca3af' : ($colors['foreground'] ?? '#9ca3af');
     $heading = $inheritColors ? '#ffffff' : ($colors['heading'] ?? '#ffffff');
-    $muted = $inheritColors ? '#6b7280' : ($colors['muted'] ?? '#6b7280');
+    $muted = $inheritColors ? '#9ca3af' : ((($colors['muted'] ?? '#6b7280') === '#6b7280') ? ($colors['foreground'] ?? '#9ca3af') : $colors['muted']);
     $accent = $inheritColors ? ($globalColors['primary'] ?? '#2563eb') : ($colors['accent'] ?? '#2563eb');
     $border = $inheritColors ? '#1f2937' : ($colors['border'] ?? '#1f2937');
 
