@@ -12,10 +12,18 @@
     $productSections = $settings->get('website.pharma_homepage.product_sections', []);
     $productSections = is_array($productSections) ? $productSections : [];
     $productSections = array_replace(['new_arrivals' => ['eyebrow' => 'Danh mục sản phẩm', 'title' => 'Sản phẩm mới cập nhật', 'category_ids' => [], 'sort' => 'newest', 'period' => 'all', 'limit' => 8]], $productSections);
-    $allowed = array_merge(['hero', 'categories', 'new_arrivals'], array_keys($productSections));
+    $blogSections = $settings->get('website.pharma_homepage.blog_sections', []);
+    $blogSections = is_array($blogSections) ? $blogSections : [];
+    $blogSections = array_replace(['blog' => ['title' => 'Tin tức & Kiến thức dược']], $blogSections);
+    $allowed = array_merge(['hero', 'categories', 'new_arrivals'], array_keys($productSections), array_keys($blogSections));
     $savedOrder = $settings->get('website.pharma_homepage.order', $allowed);
     $order = is_array($savedOrder) ? array_values(array_unique(array_intersect($savedOrder, $allowed))) : $allowed;
     $order = array_merge($order, array_diff($allowed, $order));
+    if (! in_array('blog', $savedOrder, true) && in_array('new_arrivals', $order, true)) {
+        $order = array_values(array_diff($order, ['blog']));
+        $position = array_search('new_arrivals', $order, true);
+        array_splice($order, $position + 1, 0, ['blog']);
+    }
     $layout = $settings->get('website.pharma_homepage.layout', []);
     $layout = is_array($layout) ? $layout : [];
     $categoryDisplay = $settings->get('website.pharma_homepage.categories', []);
@@ -115,6 +123,10 @@
                             <p class="text-slate-600">Chưa có danh mục được công bố.</p>
                         @endforelse
                     </div>
+                </section>
+            @elseif(isset($blogSections[$section]))
+                <section class="{{ $responsiveClass }} mx-auto max-w-7xl px-5 pb-20 pt-6 sm:px-8">
+                    @livewire(\Modules\Website\Livewire\Home\PharmaBlogSection::class, ['sectionKey' => $section], key('pharma-home-blog-'.$section))
                 </section>
             @elseif(isset($productSections[$section]))
                 <section class="{{ $responsiveClass }} mx-auto max-w-7xl px-5 pb-20 pt-6 sm:px-8">
