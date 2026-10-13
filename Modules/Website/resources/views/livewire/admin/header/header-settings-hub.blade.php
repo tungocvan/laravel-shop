@@ -112,6 +112,35 @@
             @endforeach
         </div>
 
+        @if($editingTemplate === 'pharma')
+            <section class="rounded-xl border border-emerald-200 bg-emerald-50/40 p-5 space-y-4" aria-label="Thiết lập Account Dropdown Pharma">
+                <div>
+                    <h4 class="text-base font-bold text-gray-900">Account Dropdown · Góc phải Header</h4>
+                    <p class="mt-1 text-xs text-gray-600">Component độc lập với Menu điều hướng. Tổng quan tài khoản và Đăng xuất là mục bắt buộc; các mục khác chỉ hiện khi route khả dụng và người dùng có quyền.</p>
+                </div>
+                <div class="grid gap-4 md:grid-cols-2">
+                    <label class="block text-sm font-medium text-gray-700">Kiểu hiển thị
+                        <select wire:model="accountSettings.style" class="mt-1 w-full rounded-lg border-gray-300 bg-white text-sm">
+                            <option value="avatar_name">Avatar + tên + mũi tên</option>
+                            <option value="avatar">Chỉ avatar + mũi tên</option>
+                            <option value="button">Nút Tài khoản</option>
+                        </select>
+                    </label>
+                    <div class="space-y-2 text-sm">
+                        <label class="flex items-center gap-2"><input type="checkbox" wire:model="accountSettings.show_name" class="rounded border-gray-300"> Hiển thị tên người dùng</label>
+                        <label class="flex items-center gap-2"><input type="checkbox" wire:model="accountSettings.show_profile" class="rounded border-gray-300"> Thông tin cá nhân (nếu có route)</label>
+                        <label class="flex items-center gap-2"><input type="checkbox" wire:model="accountSettings.show_password" class="rounded border-gray-300"> Đổi mật khẩu (nếu có route)</label>
+                        <label class="flex items-center gap-2"><input type="checkbox" wire:model="accountSettings.show_orders" class="rounded border-gray-300"> Đơn hàng của tôi (nếu có route)</label>
+                        <label class="flex items-center gap-2"><input type="checkbox" wire:model="accountSettings.show_admin" class="rounded border-gray-300"> Quản trị (nếu có quyền)</label>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between gap-3 border-t border-emerald-100 pt-3">
+                    <span class="text-xs text-gray-600">Desktop và Mobile: góc phải · Đăng xuất dùng POST + CSRF.</span>
+                    <button type="button" wire:click="saveAccountSettings" class="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Lưu Account Dropdown</button>
+                </div>
+            </section>
+        @endif
+
         @include('Website::livewire.admin.header.partials.builder-preview')
 
         <div class="border-t border-gray-100 pt-6">
