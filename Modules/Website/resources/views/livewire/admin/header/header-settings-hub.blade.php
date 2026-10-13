@@ -24,7 +24,7 @@
     </div>
 
     <div x-show="tab === 'menu'" x-cloak>
-        @livewire('website.admin.header.menu-manager', key('header-menu-manager'))
+        @livewire('website.admin.header.menu-manager', ['editingTemplate' => $editingTemplate], key('header-menu-manager-'.$editingTemplate))
     </div>
 
     <div x-show="tab === 'builder'" x-cloak class="space-y-8 rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
