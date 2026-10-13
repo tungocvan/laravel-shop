@@ -17,6 +17,7 @@
                     <input type="hidden" name="search" value="{{ $search }}">
                     <p class="mt-4 rounded-lg bg-teal-50 px-3 py-2 text-xs text-teal-800">Từ khóa từ thanh tìm kiếm: <strong>{{ $search }}</strong></p>
                 @endif
+                @if(!empty($filterVisibility['category']))
                 <label for="pharma-category" class="mt-5 block text-sm font-semibold">Nhóm dược phẩm</label>
                 <select id="pharma-category" name="category" onchange="this.form.requestSubmit()" class="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm">
                     <option value="">Tất cả danh mục</option>
@@ -24,13 +25,17 @@
                         <option value="{{ $item->slug }}" @selected($category === $item->slug)>{{ $item->name }}</option>
                     @endforeach
                 </select>
-                <label for="pharma-supplier" class="mt-5 block text-sm font-semibold">Nhà cung cấp</label>
-                <select id="pharma-supplier" name="supplier" onchange="this.form.requestSubmit()" class="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm">
-                    <option value="">Tất cả nhà cung cấp</option>
-                    @foreach($suppliers as $name)
-                        <option value="{{ $name }}" @selected($supplier === $name)>{{ $name }}</option>
-                    @endforeach
-                </select>
+                @endif
+                @if(!empty($filterVisibility['supplier']))
+                    <label for="pharma-supplier" class="mt-5 block text-sm font-semibold">Nhà cung cấp</label>
+                    <x-select-search id="pharma-supplier" name="supplier" placeholder="Tìm nhà cung cấp..." onchange="this.form.requestSubmit()">
+                        <option value="">Tất cả nhà cung cấp</option>
+                        @foreach($suppliers as $name)
+                            <option value="{{ $name }}" @selected($supplier === $name)>{{ $name }}</option>
+                        @endforeach
+                    </x-select-search>
+                @endif
+                @if(!empty($filterVisibility['product_type']))
                 <label for="pharma-product-type" class="mt-5 block text-sm font-semibold">Loại sản phẩm</label>
                 <select id="pharma-product-type" name="product_type" onchange="this.form.requestSubmit()" class="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm">
                     <option value="">Tất cả loại sản phẩm</option>
@@ -38,6 +43,8 @@
                         <option value="{{ $value }}" @selected($productType === $value)>{{ $label }}</option>
                     @endforeach
                 </select>
+                @endif
+                @if(!empty($filterVisibility['circular_group']))
                 <label for="pharma-circular-group" class="mt-5 block text-sm font-semibold">Nhóm thuốc theo thông tư</label>
                 <select id="pharma-circular-group" name="circular_group" onchange="this.form.requestSubmit()" class="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm">
                     <option value="">Tất cả nhóm thuốc</option>
@@ -45,6 +52,7 @@
                         <option value="{{ $group }}" @selected($circularGroup === $group)>{{ $group }}</option>
                     @endforeach
                 </select>
+                @endif
 
             </form>
         </aside>
@@ -52,8 +60,8 @@
             <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
                 <p class="text-sm text-slate-600">Tìm thấy <strong class="text-slate-900">{{ $products->total() }}</strong> sản phẩm</p>
                 <form method="GET" action="{{ route('product.list') }}" class="flex items-center gap-2">
-                    <input type="hidden" name="search" value="{{ $search }}"><input type="hidden" name="category" value="{{ $category }}"><input type="hidden" name="supplier" value="{{ $supplier }}">
-                    <input type="hidden" name="product_type" value="{{ $productType }}"><input type="hidden" name="circular_group" value="{{ $circularGroup }}">
+                    <input type="hidden" name="search" value="{{ $search }}"><input type="hidden" name="category" value="{{ !empty($filterVisibility['category']) ? $category : '' }}"><input type="hidden" name="supplier" value="{{ !empty($filterVisibility['supplier']) ? $supplier : '' }}">
+                    <input type="hidden" name="product_type" value="{{ !empty($filterVisibility['product_type']) ? $productType : '' }}"><input type="hidden" name="circular_group" value="{{ !empty($filterVisibility['circular_group']) ? $circularGroup : '' }}">
                     <label for="pharma-sort" class="sr-only">Sắp xếp</label>
                     <select id="pharma-sort" name="sort" onchange="this.form.submit()" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm">
                         <option value="latest" @selected($sort === 'latest')>Mới cập nhật</option>
