@@ -31,15 +31,20 @@
                         <option value="{{ $name }}" @selected($supplier === $name)>{{ $name }}</option>
                     @endforeach
                 </select>
-                @if($authenticated)
-                    <label for="pharma-price" class="mt-5 block text-sm font-semibold">Khoảng giá</label>
-                    <select id="pharma-price" name="price_range" onchange="this.form.requestSubmit()" class="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm">
-                        <option value="">Tất cả mức giá</option>
-                        @foreach(['0-100000' => 'Dưới 100.000đ', '100000-300000' => '100.000 – 300.000đ', '300000-500000' => '300.000 – 500.000đ', '500000-99999999' => 'Trên 500.000đ'] as $value => $label)
-                            <option value="{{ $value }}" @selected($range === $value)>{{ $label }}</option>
-                        @endforeach
-                    </select>
-                @endif
+                <label for="pharma-product-type" class="mt-5 block text-sm font-semibold">Loại sản phẩm</label>
+                <select id="pharma-product-type" name="product_type" onchange="this.form.requestSubmit()" class="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm">
+                    <option value="">Tất cả loại sản phẩm</option>
+                    @foreach($productTypes as $value => $label)
+                        <option value="{{ $value }}" @selected($productType === $value)>{{ $label }}</option>
+                    @endforeach
+                </select>
+                <label for="pharma-circular-group" class="mt-5 block text-sm font-semibold">Nhóm thuốc theo thông tư</label>
+                <select id="pharma-circular-group" name="circular_group" onchange="this.form.requestSubmit()" class="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm">
+                    <option value="">Tất cả nhóm thuốc</option>
+                    @foreach($circularGroups as $group)
+                        <option value="{{ $group }}" @selected($circularGroup === $group)>{{ $group }}</option>
+                    @endforeach
+                </select>
 
             </form>
         </aside>
@@ -48,7 +53,7 @@
                 <p class="text-sm text-slate-600">Tìm thấy <strong class="text-slate-900">{{ $products->total() }}</strong> sản phẩm</p>
                 <form method="GET" action="{{ route('product.list') }}" class="flex items-center gap-2">
                     <input type="hidden" name="search" value="{{ $search }}"><input type="hidden" name="category" value="{{ $category }}"><input type="hidden" name="supplier" value="{{ $supplier }}">
-                    @if($authenticated)<input type="hidden" name="price_range" value="{{ $range }}">@endif
+                    <input type="hidden" name="product_type" value="{{ $productType }}"><input type="hidden" name="circular_group" value="{{ $circularGroup }}">
                     <label for="pharma-sort" class="sr-only">Sắp xếp</label>
                     <select id="pharma-sort" name="sort" onchange="this.form.submit()" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm">
                         <option value="latest" @selected($sort === 'latest')>Mới cập nhật</option>
