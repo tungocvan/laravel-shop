@@ -24,6 +24,8 @@ class HomeSettings extends Component
     public string $publishedTemplate = 'default';
     public array $pharmaLayout = [];
     public array $pharmaSectionOrder = [];
+    public array $pharmaCategoryDisplay = [];
+    public bool $editingPharmaCategories = false;
     public string $pharmaTheme = 'clinical';
     public string $pharmaPrimaryColor = '#047857';
     public string $pharmaAccentColor = '#10b981';
@@ -77,6 +79,14 @@ class HomeSettings extends Component
         $this->pharmaLayout = (array) $settings->get('website.pharma_homepage.layout', [
             'hero' => 'all', 'categories' => 'all', 'new_arrivals' => 'all',
         ]);
+        $this->pharmaCategoryDisplay = array_merge([
+            'eyebrow' => 'Danh mục',
+            'title' => 'Khám phá theo nhóm dược phẩm',
+            'description' => '',
+            'limit' => 8,
+            'columns' => 4,
+            'card_style' => 'clinical',
+        ], (array) $settings->get('website.pharma_homepage.categories', []));
         $this->pharmaSectionOrder = (array) $settings->get('website.pharma_homepage.order', [
             'hero', 'categories', 'new_arrivals',
         ]);
@@ -198,6 +208,24 @@ class HomeSettings extends Component
             ],
         ], 'homepage');
         $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã lưu Themes Pharma riêng biệt.']);
+    }
+
+    public function savePharmaCategories(SettingsService $settings): void
+    {
+        $this->authorizeAdminPermission('website.home.manage');
+        $validated = $this->validate([
+            'pharmaCategoryDisplay.eyebrow' => 'required|string|max:60',
+            'pharmaCategoryDisplay.title' => 'required|string|max:120',
+            'pharmaCategoryDisplay.description' => 'nullable|string|max:300',
+            'pharmaCategoryDisplay.limit' => 'required|integer|min:4|max:24',
+            'pharmaCategoryDisplay.columns' => 'required|integer|in:2,3,4',
+            'pharmaCategoryDisplay.card_style' => 'required|in:clinical,compact',
+        ]);
+        $settings->updateMany([
+            'website.pharma_homepage.categories' => $validated['pharmaCategoryDisplay'],
+        ], 'homepage');
+        $this->editingPharmaCategories = false;
+        $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã lưu thiết lập danh mục Pharma.']);
     }
 
     public function savePharmaLayout(SettingsService $settings): void
