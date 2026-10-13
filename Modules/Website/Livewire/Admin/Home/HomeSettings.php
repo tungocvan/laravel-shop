@@ -21,6 +21,7 @@ class HomeSettings extends Component
 
     public $activeTab = 'layout';
     public string $editingTemplate = 'default';
+    public string $publishedTemplate = 'default';
     public array $pharmaLayout = [];
     public array $pharmaSectionOrder = [];
     public string $pharmaTheme = 'clinical';
@@ -68,6 +69,7 @@ class HomeSettings extends Component
         HomepageSectionRegistry $registry,
         HomepagePresentationService $presentationService
     ): void {
+        $this->publishedTemplate = $settings->get('website.public_template', 'default') === 'pharma' ? 'pharma' : 'default';
         $theme = (array) $settings->get('website.pharma_homepage.theme', []);
         $this->pharmaTheme = in_array($theme['preset'] ?? '', ['clinical', 'ocean', 'modern'], true) ? $theme['preset'] : 'clinical';
         $this->pharmaPrimaryColor = $theme['primary'] ?? '#047857';
