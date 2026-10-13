@@ -52,6 +52,23 @@ return [
         ],
     ],
 
+    'pharma_layout' => [
+        'desktop' => [
+            'topbar' => [['type' => 'topbar', 'enabled' => true]],
+            'main' => [
+                'left' => [['type' => 'brand', 'enabled' => true]],
+                'center' => [['type' => 'actions', 'enabled' => true]],
+                'right' => [
+                    ['type' => 'search', 'enabled' => true],
+                ],
+            ],
+        ],
+        'mobile' => [
+            'search' => [['type' => 'search', 'enabled' => true]],
+            'drawer' => [['type' => 'mobile-menu', 'enabled' => true]],
+        ],
+    ],
+
     'presentation' => [
         'mode' => 'basic', 'container' => 'standard', 'size' => 'normal', 'sticky' => true, 'shadow' => 'soft', 'inherit_colors' => true,
         'background' => '#ffffff', 'foreground' => '#111827', 'accent' => '#2563eb', 'border' => '#e5e7eb', 'topbar_background' => '#111827', 'topbar_foreground' => '#ffffff',
