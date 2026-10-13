@@ -17,6 +17,9 @@
     $searchWidth = (int) ($presentation['custom']['search_max_width'] ?? 560);
     $brandHeight = (int) ($presentation['custom']['logo_max_height'] ?? 48);
     $accountConfig = $settings->get('website.pharma_header.account', []);
+    $topbarConfig = $settings->get('website.pharma_header.topbar', []);
+    $topbarConfig = is_array($topbarConfig) ? $topbarConfig : [];
+    $topbarHeight = (int) ($presentation['custom']['topbar_height'] ?? 32);
     $menuService = app(\Modules\Website\Services\HeaderMenuService::class);
     $desktopMenu = $menuService->getMenuTreeByLocation('pharma_primary');
     $mobileMenu = $menuService->getMenuTreeByLocation('pharma_mobile');
@@ -24,16 +27,30 @@
     $fallbackMenu = [['title' => 'Trang chủ', 'url' => route('home')], ['title' => 'Danh mục dược phẩm', 'url' => route('product.list')]];
 @endphp
 <div style="--pharma-header-accent: {{ $accent }}; --pharma-header-bg: {{ $background }}; --pharma-header-text: {{ $foreground }};">
-    @foreach($headerLayout['desktop.topbar'] ?? [] as $component)
-        @if($component['type'] === 'topbar')
-            <div class="border-b border-teal-900" style="background: {{ $topbarBackground }}; color: {{ $topbarForeground }};">
-                <div class="mx-auto flex flex-wrap items-center justify-between gap-2 px-5 py-2 text-xs sm:px-8" @if($headerWidth) style="max-width: {{ $headerWidth }}px" @else style="max-width:1280px" @endif>
-                    <span>THÔNG TIN DƯỢC PHẨM · TRA CỨU VÀ THAM KHẢO</span>
-                    <span class="hidden sm:inline">Thông tin không thay thế tư vấn chuyên môn y tế</span>
+    @if(($topbarConfig['enabled'] ?? true))
+        @foreach($headerLayout['desktop.topbar'] ?? [] as $component)
+            @if($component['type'] === 'topbar')
+                <div class="border-b border-slate-800/20" style="background: {{ $topbarBackground }}; color: {{ $topbarForeground }};">
+                    <div class="mx-auto flex flex-wrap items-center justify-between gap-x-5 gap-y-1 px-5 py-1.5 text-xs sm:px-8" style="max-width: {{ $headerWidth ? $headerWidth.'px' : '1280px' }}; min-height: {{ $topbarHeight }}px">
+                        <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+                            @if(trim((string) ($topbarConfig['left_text'] ?? 'THÔNG TIN DƯỢC PHẨM · TRA CỨU VÀ THAM KHẢO')) !== '')
+                                <span>{{ $topbarConfig['left_text'] ?? 'THÔNG TIN DƯỢC PHẨM · TRA CỨU VÀ THAM KHẢO' }}</span>
+                            @endif
+                            @if(($topbarConfig['show_hotline'] ?? false) && filled($topbarConfig['hotline'] ?? null))
+                                <a href="tel:{{ preg_replace('/[^+0-9]/', '', (string) $topbarConfig['hotline']) }}" class="font-semibold hover:underline">{{ $topbarConfig['hotline'] }}</a>
+                            @endif
+                            @if(($topbarConfig['show_email'] ?? false) && filter_var($topbarConfig['email'] ?? null, FILTER_VALIDATE_EMAIL))
+                                <a href="mailto:{{ $topbarConfig['email'] }}" class="hover:underline">{{ $topbarConfig['email'] }}</a>
+                            @endif
+                        </div>
+                        @if(trim((string) ($topbarConfig['right_text'] ?? 'Thông tin không thay thế tư vấn chuyên môn y tế')) !== '')
+                            <span class="hidden sm:inline">{{ $topbarConfig['right_text'] ?? 'Thông tin không thay thế tư vấn chuyên môn y tế' }}</span>
+                        @endif
+                    </div>
                 </div>
-            </div>
-        @endif
-    @endforeach
+            @endif
+        @endforeach
+    @endif
     <header class="{{ ($presentation['sticky'] ?? true) ? 'sticky top-0' : 'relative' }} z-40 border-b border-slate-200" style="background:var(--pharma-header-bg);color:var(--pharma-header-text);box-shadow:{{ $shadow }}" x-data="{ menuOpen: false }">
         <div class="mx-auto flex items-center gap-4 px-4 py-3 sm:px-6 lg:gap-6 lg:px-8" style="max-width:{{ $headerWidth ? $headerWidth.'px' : '1280px' }};min-height:{{ (int)($presentation['heights']['desktop'] ?? 80) }}px">
             @foreach(['desktop.main.left','desktop.main.center','desktop.main.right'] as $slot)
