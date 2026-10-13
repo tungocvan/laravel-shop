@@ -13,6 +13,9 @@ class FooterSettingsHub extends Component
 {
     use AuthorizesAdminPermissions;
 
+    public string $editingTemplate = 'default';
+    public string $publishedTemplate = 'default';
+    public array $pharmaContent = [];
     public array $builderSlots = [];
     public array $presentation = [];
     public array $layoutThemes = [];
@@ -36,15 +39,105 @@ class FooterSettingsHub extends Component
 
     public function mount(SettingsService $settingsService, FooterPresentationService $presentationService): void
     {
-        $savedLayout = $settingsService->get('footer.layout');
+        $this->publishedTemplate = $settingsService->get('website.public_template', 'default') === 'pharma' ? 'pharma' : 'default';
+        $this->editingTemplate = $this->publishedTemplate;
+        $this->loadPharmaContent($settingsService);
+        $savedLayout = $settingsService->get($this->settingKey('layout'));
         $rawLayout = is_array($savedLayout) ? $savedLayout : (array) config('website.footer.layout', []);
         $this->loadBuilderLayout($rawLayout);
 
-        $savedPresentation = $settingsService->get('footer.presentation');
+        $savedPresentation = $settingsService->get($this->settingKey('presentation'));
         $this->presentation = $presentationService->resolve(is_array($savedPresentation) ? $savedPresentation : null);
 
-        $savedThemes = $settingsService->get('footer.layout_themes', []);
+        $savedThemes = $settingsService->get($this->settingKey('layout_themes'), []);
         $this->layoutThemes = is_array($savedThemes) ? $savedThemes : [];
+    }
+
+    private function loadPharmaContent(SettingsService $settingsService): void
+    {
+        $saved = $settingsService->get('website.pharma_footer.content', []);
+        $saved = is_array($saved) ? $saved : [];
+        $defaults = [
+            'description' => 'Cung cấp thông tin sản phẩm và danh mục dược phẩm được công bố để hỗ trợ tra cứu, tìm hiểu và tham khảo.',
+            'links_title' => 'Khám phá',
+            'links' => [
+                ['label' => 'Trang chủ', 'url' => '/'],
+                ['label' => 'Danh mục dược phẩm', 'url' => '/product'],
+            ],
+            'notice_title' => 'Lưu ý y khoa',
+            'notice' => 'Thông tin trên website mang tính tham khảo, không thay thế chẩn đoán, chỉ định hoặc tư vấn của nhân viên y tế. Sử dụng thuốc theo hướng dẫn của người có chuyên môn.',
+            'copyright' => 'Bảo lưu quyền.',
+            'background' => '#020617',
+            'foreground' => '#cbd5e1',
+            'heading' => '#ffffff',
+        ];
+        $this->pharmaContent = array_replace($defaults, $saved);
+        $this->pharmaContent['links'] = is_array($saved['links'] ?? null) ? array_values($saved['links']) : $defaults['links'];
+    }
+
+    public function updatedEditingTemplate(): void
+    {
+        $this->authorizeAdminPermission('website.footer.manage');
+        $this->editingTemplate = $this->editingTemplate === 'pharma' ? 'pharma' : 'default';
+        $settings = app(SettingsService::class);
+        $presentationService = app(FooterPresentationService::class);
+        $layout = $settings->get($this->settingKey('layout'));
+        $this->loadBuilderLayout(is_array($layout) ? $layout : (array) config('website.footer.layout', []));
+        $savedPresentation = $settings->get($this->settingKey('presentation'));
+        $this->presentation = $presentationService->resolve(is_array($savedPresentation) ? $savedPresentation : null);
+        $themes = $settings->get($this->settingKey('layout_themes'), []);
+        $this->layoutThemes = is_array($themes) ? $themes : [];
+        $this->selectedTheme = '';
+        $this->themeName = '';
+    }
+
+    private function settingKey(string $suffix): string
+    {
+        return $this->editingTemplate === 'pharma' ? 'website.pharma_footer.'.$suffix : 'footer.'.$suffix;
+    }
+
+    public function addPharmaLink(): void
+    {
+        $this->authorizeAdminPermission('website.footer.manage');
+        if (count($this->pharmaContent['links'] ?? []) < 12) {
+            $this->pharmaContent['links'][] = ['label' => '', 'url' => ''];
+        }
+    }
+
+    public function removePharmaLink(int $index): void
+    {
+        $this->authorizeAdminPermission('website.footer.manage');
+        unset($this->pharmaContent['links'][$index]);
+        $this->pharmaContent['links'] = array_values($this->pharmaContent['links']);
+    }
+
+    public function savePharmaContent(SettingsService $settingsService): void
+    {
+        $this->authorizeAdminPermission('website.footer.manage');
+        if ($this->editingTemplate !== 'pharma') {
+            return;
+        }
+        $this->validate([
+            'pharmaContent.description' => ['nullable', 'string', 'max:1000'],
+            'pharmaContent.links_title' => ['required', 'string', 'max:100'],
+            'pharmaContent.links' => ['array', 'max:12'],
+            'pharmaContent.links.*.label' => ['nullable', 'string', 'max:100'],
+            'pharmaContent.links.*.url' => ['nullable', 'string', 'max:500'],
+            'pharmaContent.notice_title' => ['required', 'string', 'max:100'],
+            'pharmaContent.notice' => ['required', 'string', 'max:1500'],
+            'pharmaContent.copyright' => ['nullable', 'string', 'max:255'],
+            'pharmaContent.background' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'pharmaContent.foreground' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'pharmaContent.heading' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
+        ]);
+        $content = $this->pharmaContent;
+        $content['links'] = collect($content['links'])->filter(fn ($link) => filled($link['label'] ?? null) && filled($link['url'] ?? null))->map(fn ($link) => [
+            'label' => trim((string) $link['label']),
+            'url' => trim((string) $link['url']),
+        ])->values()->all();
+        $settingsService->set('website.pharma_footer.content', $content, 'footer', 'json');
+        $this->pharmaContent = $content;
+        $this->dispatch('show-toast', [['type' => 'success', 'message' => 'Đã lưu Footer Pharma.']]);
     }
 
     public function toggleComponent(string $slot, int $index): void
@@ -145,8 +238,8 @@ class FooterSettingsHub extends Component
         $presentation = $presentationService->resolve($this->presentation);
 
         $settingsService->updateMany([
-            'footer.layout' => $layout,
-            'footer.presentation' => $presentation,
+            $this->settingKey('layout') => $layout,
+            $this->settingKey('presentation') => $presentation,
         ], 'footer');
 
         $this->presentation = $presentation;
@@ -370,7 +463,7 @@ class FooterSettingsHub extends Component
 
     private function persistThemes(SettingsService $settingsService): void
     {
-        $settingsService->set('footer.layout_themes', $this->layoutThemes, 'footer', 'json');
+        $settingsService->set($this->settingKey('layout_themes'), $this->layoutThemes, 'footer', 'json');
         $this->resetErrorBag('theme');
     }
 

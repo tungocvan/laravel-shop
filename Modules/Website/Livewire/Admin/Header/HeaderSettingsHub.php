@@ -14,9 +14,13 @@ class HeaderSettingsHub extends Component
     use AuthorizesAdminPermissions;
 
     public $activeTab = 'general';
+    public string $editingTemplate = 'default';
+    public string $publishedTemplate = 'default';
     public array $builderSlots = [];
     public array $presentation = [];
     public array $layoutThemes = [];
+    public array $accountSettings = [];
+    public array $topbarSettings = [];
     public string $selectedTheme = '';
     public string $themeName = '';
 
@@ -34,15 +38,99 @@ class HeaderSettingsHub extends Component
 
     public function mount(SettingsService $settingsService, HeaderPresentationService $presentationService): void
     {
-        $savedLayout = $settingsService->get('header.layout');
-        $rawLayout = is_array($savedLayout) ? $savedLayout : (array) config('website.header.layout', []);
-        $this->loadBuilderLayout($rawLayout);
+        $this->publishedTemplate = $settingsService->get('website.public_template', 'default') === 'pharma' ? 'pharma' : 'default';
+        $this->editingTemplate = $this->publishedTemplate;
+        $this->loadTemplateSettings($settingsService, $presentationService);
+    }
 
-        $savedPresentation = $settingsService->get('header.presentation');
+    public function updatedEditingTemplate(SettingsService $settingsService, HeaderPresentationService $presentationService): void
+    {
+        $this->authorizeAdminPermission('website.settings.manage');
+        $this->editingTemplate = $this->editingTemplate === 'pharma' ? 'pharma' : 'default';
+        $this->loadTemplateSettings($settingsService, $presentationService);
+    }
+
+    private function settingKey(string $suffix): string
+    {
+        return $this->editingTemplate === 'pharma' ? 'website.pharma_header.'.$suffix : 'header.'.$suffix;
+    }
+
+    private function defaultLayout(): array
+    {
+        return $this->editingTemplate === 'pharma'
+            ? (array) config('website.header.pharma_layout', [])
+            : (array) config('website.header.layout', []);
+    }
+
+    private function loadTemplateSettings(SettingsService $settingsService, HeaderPresentationService $presentationService): void
+    {
+        $savedLayout = $settingsService->get($this->settingKey('layout'));
+        $this->loadBuilderLayout(is_array($savedLayout) ? $savedLayout : $this->defaultLayout());
+        $savedPresentation = $settingsService->get($this->settingKey('presentation'));
         $this->presentation = $presentationService->resolve(is_array($savedPresentation) ? $savedPresentation : null);
-
-        $savedThemes = $settingsService->get('header.layout_themes', []);
+        $savedThemes = $settingsService->get($this->settingKey('layout_themes'), []);
         $this->layoutThemes = is_array($savedThemes) ? $savedThemes : [];
+        $this->selectedTheme = '';
+        $this->themeName = '';
+        $this->accountSettings = $this->normalizeAccountSettings($settingsService->get('website.pharma_header.account'));
+        $this->topbarSettings = $this->normalizeTopbarSettings($settingsService->get('website.pharma_header.topbar'));
+        $this->resetErrorBag();
+    }
+
+    private function normalizeAccountSettings(mixed $saved): array
+    {
+        $defaults = ['style' => 'avatar_name', 'show_name' => true, 'show_orders' => true, 'show_admin' => true, 'show_profile' => true, 'show_password' => true];
+        $values = is_array($saved) ? $saved : [];
+        return [
+            'style' => in_array($values['style'] ?? null, ['avatar_name', 'avatar', 'button'], true) ? $values['style'] : $defaults['style'],
+            'show_name' => (bool) ($values['show_name'] ?? true),
+            'show_orders' => (bool) ($values['show_orders'] ?? true),
+            'show_admin' => (bool) ($values['show_admin'] ?? true),
+            'show_profile' => (bool) ($values['show_profile'] ?? true),
+            'show_password' => (bool) ($values['show_password'] ?? true),
+        ];
+    }
+
+    public function saveAccountSettings(SettingsService $settingsService): void
+    {
+        $this->authorizeAdminPermission('website.settings.manage');
+        if ($this->editingTemplate !== 'pharma') {
+            return;
+        }
+        $this->accountSettings = $this->normalizeAccountSettings($this->accountSettings);
+        $settingsService->set('website.pharma_header.account', $this->accountSettings, 'header', 'json');
+        $this->dispatch('show-toast', [['type' => 'success', 'message' => 'Đã lưu Account Dropdown Pharma.']]);
+    }
+
+    private function normalizeTopbarSettings(mixed $saved): array
+    {
+        $values = is_array($saved) ? $saved : [];
+        return [
+            'enabled' => (bool) ($values['enabled'] ?? true),
+            'left_text' => mb_substr((string) ($values['left_text'] ?? 'THÔNG TIN DƯỢC PHẨM · TRA CỨU VÀ THAM KHẢO'), 0, 180),
+            'right_text' => mb_substr((string) ($values['right_text'] ?? 'Thông tin không thay thế tư vấn chuyên môn y tế'), 0, 180),
+            'show_hotline' => (bool) ($values['show_hotline'] ?? false),
+            'show_email' => (bool) ($values['show_email'] ?? false),
+            'hotline' => mb_substr((string) ($values['hotline'] ?? ''), 0, 50),
+            'email' => mb_substr((string) ($values['email'] ?? ''), 0, 100),
+        ];
+    }
+
+    public function saveTopbarSettings(SettingsService $settingsService): void
+    {
+        $this->authorizeAdminPermission('website.settings.manage');
+        if ($this->editingTemplate !== 'pharma') {
+            return;
+        }
+        $this->validate([
+            'topbarSettings.left_text' => ['nullable', 'string', 'max:180'],
+            'topbarSettings.right_text' => ['nullable', 'string', 'max:180'],
+            'topbarSettings.hotline' => ['nullable', 'string', 'max:50'],
+            'topbarSettings.email' => ['nullable', 'email', 'max:100'],
+        ]);
+        $this->topbarSettings = $this->normalizeTopbarSettings($this->topbarSettings);
+        $settingsService->set('website.pharma_header.topbar', $this->topbarSettings, 'header', 'json');
+        $this->dispatch('show-toast', [['type' => 'success', 'message' => 'Đã lưu Topbar Pharma.']]);
     }
 
     public function toggleComponent(string $slot, int $index): void
@@ -129,8 +217,8 @@ class HeaderSettingsHub extends Component
         $presentation = $presentationService->resolve($this->presentation);
 
         $settingsService->updateMany([
-            'header.layout' => $layout,
-            'header.presentation' => $presentation,
+            $this->settingKey('layout') => $layout,
+            $this->settingKey('presentation') => $presentation,
         ], 'header');
 
         $this->presentation = $presentation;
@@ -143,7 +231,7 @@ class HeaderSettingsHub extends Component
     public function resetBuilder(HeaderPresentationService $presentationService): void
     {
         $this->authorizeAdminPermission('website.settings.manage');
-        $this->loadBuilderLayout((array) config('website.header.layout', []));
+        $this->loadBuilderLayout($this->defaultLayout());
         $this->presentation = $presentationService->resolve((array) config('website.header.presentation', []));
         $this->selectedTheme = '';
         $this->resetErrorBag(['builder', 'theme']);
@@ -326,7 +414,7 @@ class HeaderSettingsHub extends Component
 
     private function persistThemes(SettingsService $settingsService): void
     {
-        $settingsService->set('header.layout_themes', $this->layoutThemes, 'header', 'json');
+        $settingsService->set($this->settingKey('layout_themes'), $this->layoutThemes, 'header', 'json');
         $this->resetErrorBag('theme');
     }
 

@@ -16,6 +16,10 @@ class WebsiteController extends Controller
 
     public function home()
     {
+        if (app(SettingsService::class)->get('website.public_template', 'default') === 'pharma') {
+            return view('Website::pages.home.pharma');
+        }
+
         return view('Website::pages.home.index');
     }
 

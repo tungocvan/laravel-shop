@@ -9,6 +9,38 @@
         <a href="{{ route('home') }}" target="_blank" class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">Xem frontend ↗</a>
     </div>
 
+    <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <label for="homepage-editing-template" class="mb-2 block text-sm font-semibold text-gray-800">Template đang quản trị</label>
+        <select id="homepage-editing-template" wire:change="selectEditingTemplate($event.target.value)" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100 sm:max-w-sm">
+            <option value="default" @selected($editingTemplate === 'default')>Default — Website bán hàng</option>
+            <option value="pharma" @selected($editingTemplate === 'pharma')>Pharma — Website dược phẩm</option>
+        </select>
+        <p class="mt-2 text-xs text-gray-500">Chọn workspace quản trị, không thay đổi template công khai. Dữ liệu bố cục được lưu riêng cho từng template.</p>
+        <div class="mt-4 flex flex-wrap items-center gap-3 border-t border-gray-200 pt-4">
+            <span class="text-sm font-medium text-gray-700">Đang xuất bản: <strong>{{ $publishedTemplate === 'pharma' ? 'Pharma' : 'Default' }}</strong></span>
+            @if($publishedTemplate !== $editingTemplate)
+                <button type="button" wire:click="publishTemplate('{{ $editingTemplate }}')" wire:confirm="Xuất bản template {{ $editingTemplate }} trên Website công khai?" class="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Xuất bản {{ $editingTemplate === 'pharma' ? 'Pharma' : 'Default' }}</button>
+            @else
+                <span class="text-xs font-medium text-emerald-700">Template này đang hoạt động trên Website</span>
+            @endif
+        </div>
+
+    </div>
+
+    @if($editingTemplate === 'pharma')
+        <div class="overflow-x-auto rounded-xl border border-gray-200 bg-white p-2 shadow-sm">
+            <nav class="flex gap-2" aria-label="Pharma workspaces">
+                @foreach(['layout' => 'Bố cục Pharma', 'themes' => 'Themes Pharma'] as $key => $label)
+                    <button type="button" wire:click="$set('activeTab', '{{ $key }}')" class="rounded-lg px-4 py-2 text-sm font-semibold {{ $activeTab === $key ? 'bg-emerald-700 text-white' : 'text-gray-600 hover:bg-gray-100' }}">{{ $label }}</button>
+                @endforeach
+            </nav>
+        </div>
+        @if($activeTab === 'themes')
+            @include('Website::livewire.admin.home.partials.pharma-themes')
+        @else
+            @include('Website::livewire.admin.home.partials.pharma-layout-builder')
+        @endif
+    @else
     @error('builder')<div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ $message }}</div>@enderror
 
     @php($sectionTabs = ['categories', 'featured', 'auto_query', 'promo_banner', 'newsletter', 'trust_badges'])
@@ -36,8 +68,10 @@
         @include('Website::livewire.admin.home.partials.layout-builder')
     @endif
 
+    @endif
+
     <div class="sticky bottom-4 z-20 flex items-center justify-end gap-3 rounded-xl border border-gray-200 bg-white/95 p-3 shadow-lg backdrop-blur">
-        <span class="hidden text-xs text-gray-500 sm:inline">Builder, Presentation và Section Editor chỉ publish sau khi lưu.</span>
+        <span class="hidden text-xs text-gray-500 sm:inline">{{ $editingTemplate === 'pharma' ? 'Lưu cấu hình Pharma riêng biệt, không ghi đè Default.' : 'Builder, Presentation và Section Editor chỉ publish sau khi lưu.' }}</span>
         <button type="button" wire:click="save" wire:loading.attr="disabled" wire:target="save,newPromoImage" class="rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-indigo-700 disabled:opacity-50">
             <span wire:loading.remove wire:target="save">Lưu thay đổi</span><span wire:loading wire:target="save">Đang lưu...</span>
         </button>

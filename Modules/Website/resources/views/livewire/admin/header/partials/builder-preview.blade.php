@@ -48,6 +48,18 @@
             'w-[390px]': previewDevice === 'mobile'
         }">
             <div class="overflow-hidden rounded-lg shadow-sm" style="background: {{ $surface }}; color: {{ $foreground }}; border: 1px solid {{ $border }};">
+                @if($editingTemplate === 'pharma')
+                    @if(($topbarSettings['enabled'] ?? true) && count($slotItems['desktop.topbar'] ?? []) > 0)
+                        <div x-show="previewDevice !== 'mobile'" class="flex flex-wrap items-center justify-between gap-2 px-4 text-xs" style="min-height: {{ $topbarHeight }}px; background: {{ $previewPresentation['colors']['topbar_background'] ?? $topbarBackground }}; color: {{ $previewPresentation['colors']['topbar_foreground'] ?? $topbarForeground }};">
+                            <div class="flex flex-wrap items-center gap-3">
+                                <span>{{ $topbarSettings['left_text'] ?? 'THÔNG TIN DƯỢC PHẨM · TRA CỨU VÀ THAM KHẢO' }}</span>
+                                @if($topbarSettings['show_hotline'] ?? false)<span>{{ $topbarSettings['hotline'] ?? '' }}</span>@endif
+                                @if($topbarSettings['show_email'] ?? false)<span>{{ $topbarSettings['email'] ?? '' }}</span>@endif
+                            </div>
+                            <span>{{ $topbarSettings['right_text'] ?? 'Thông tin không thay thế tư vấn chuyên môn y tế' }}</span>
+                        </div>
+                    @endif
+                @else
                 <div x-show="previewDevice !== 'mobile'" class="flex items-center justify-between px-4 text-xs" style="height: {{ $topbarHeight }}px; background: {{ $topbarBackground }}; color: {{ $topbarForeground }};">
                     <div class="flex items-center gap-2">
                         @foreach($slotItems['desktop.topbar'] ?? [] as $item)
@@ -56,6 +68,7 @@
                     </div>
                     <span class="opacity-70">Topbar</span>
                 </div>
+                @endif
 
                 <div x-show="previewDevice === 'desktop'" class="grid grid-cols-3 items-center gap-3 px-4" style="height: {{ $desktopHeight }}px;">
                     @foreach(['desktop.main.left', 'desktop.main.center', 'desktop.main.right'] as $slotKey)

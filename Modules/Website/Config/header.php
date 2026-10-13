@@ -3,6 +3,8 @@
 return [
     'menu_locations' => [
         'primary' => 'Desktop Main Menu',
+        'pharma_primary' => 'Pharma · Menu chính',
+        'pharma_mobile' => 'Pharma · Menu di động',
         'mobile' => 'Mobile Slide-over',
         'account' => 'Menu tài khoản sau đăng nhập',
         'admin' => 'Admin Menu Dropdown',
@@ -48,6 +50,23 @@ return [
         ],
         'mobile' => [
             'search' => [['type' => 'search', 'enabled' => true, 'config' => ['mode' => 'mobile']]],
+            'drawer' => [['type' => 'mobile-menu', 'enabled' => true]],
+        ],
+    ],
+
+    'pharma_layout' => [
+        'desktop' => [
+            'topbar' => [['type' => 'topbar', 'enabled' => true]],
+            'main' => [
+                'left' => [['type' => 'brand', 'enabled' => true]],
+                'center' => [['type' => 'actions', 'enabled' => true]],
+                'right' => [
+                    ['type' => 'search', 'enabled' => true],
+                ],
+            ],
+        ],
+        'mobile' => [
+            'search' => [['type' => 'search', 'enabled' => true]],
             'drawer' => [['type' => 'mobile-menu', 'enabled' => true]],
         ],
     ],

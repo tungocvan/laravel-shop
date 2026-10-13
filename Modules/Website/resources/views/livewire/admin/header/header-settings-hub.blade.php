@@ -5,6 +5,14 @@
         <p class="text-sm text-gray-500">Quản lý nội dung, menu và bố cục Header theo schema an toàn.</p>
     </div>
 
+    <div class="mb-5 rounded-xl border border-gray-200 bg-white p-4">
+        <label for="header-editing-template" class="block text-sm font-semibold text-gray-800">Template đang quản trị</label>
+        <select id="header-editing-template" wire:model.live="editingTemplate" class="mt-2 w-full max-w-sm rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm">
+            <option value="default">Default — Website bán hàng</option>
+            <option value="pharma">Pharma — Website dược phẩm</option>
+        </select>
+        <p class="mt-2 text-xs text-gray-500">Đang xuất bản: {{ $publishedTemplate === 'pharma' ? 'Pharma' : 'Default' }}. Chuyển workspace chỉ thay đổi cấu hình đang chỉnh sửa, không xuất bản template khác.</p>
+    </div>
     <div class="flex flex-wrap border-b border-gray-200 mb-6">
         <button @click="tab = 'general'" :class="tab === 'general' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'" class="py-2 px-6 border-b-2 font-medium text-sm transition-colors">Thông tin chung</button>
         <button @click="tab = 'menu'" :class="tab === 'menu' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'" class="py-2 px-6 border-b-2 font-medium text-sm transition-colors">Cấu trúc Menu</button>
@@ -16,7 +24,7 @@
     </div>
 
     <div x-show="tab === 'menu'" x-cloak>
-        @livewire('website.admin.header.menu-manager', key('header-menu-manager'))
+        @livewire('website.admin.header.menu-manager', ['editingTemplate' => $editingTemplate], key('header-menu-manager-'.$editingTemplate))
     </div>
 
     <div x-show="tab === 'builder'" x-cloak class="space-y-8 rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
@@ -103,6 +111,65 @@
                 </section>
             @endforeach
         </div>
+
+        @if($editingTemplate === 'pharma')
+            <section class="rounded-xl border border-emerald-200 bg-emerald-50/40 p-5 space-y-4" aria-label="Thiết lập Account Dropdown Pharma">
+                <div>
+                    <h4 class="text-base font-bold text-gray-900">Account Dropdown · Góc phải Header</h4>
+                    <p class="mt-1 text-xs text-gray-600">Component độc lập với Menu điều hướng. Tổng quan tài khoản và Đăng xuất là mục bắt buộc; các mục khác chỉ hiện khi route khả dụng và người dùng có quyền.</p>
+                </div>
+                <div class="grid gap-4 md:grid-cols-2">
+                    <label class="block text-sm font-medium text-gray-700">Kiểu hiển thị
+                        <select wire:model="accountSettings.style" class="mt-1 w-full rounded-lg border-gray-300 bg-white text-sm">
+                            <option value="avatar_name">Avatar + tên + mũi tên</option>
+                            <option value="avatar">Chỉ avatar + mũi tên</option>
+                            <option value="button">Nút Tài khoản</option>
+                        </select>
+                    </label>
+                    <div class="space-y-2 text-sm">
+                        <label class="flex items-center gap-2"><input type="checkbox" wire:model="accountSettings.show_name" class="rounded border-gray-300"> Hiển thị tên người dùng</label>
+                        <label class="flex items-center gap-2"><input type="checkbox" wire:model="accountSettings.show_profile" class="rounded border-gray-300"> Thông tin cá nhân (nếu có route)</label>
+                        <label class="flex items-center gap-2"><input type="checkbox" wire:model="accountSettings.show_password" class="rounded border-gray-300"> Đổi mật khẩu (nếu có route)</label>
+                        <label class="flex items-center gap-2"><input type="checkbox" wire:model="accountSettings.show_orders" class="rounded border-gray-300"> Đơn hàng của tôi (nếu có route)</label>
+                        <label class="flex items-center gap-2"><input type="checkbox" wire:model="accountSettings.show_admin" class="rounded border-gray-300"> Quản trị (nếu có quyền)</label>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between gap-3 border-t border-emerald-100 pt-3">
+                    <span class="text-xs text-gray-600">Desktop và Mobile: góc phải · Đăng xuất dùng POST + CSRF.</span>
+                    <button type="button" wire:click="saveAccountSettings" class="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Lưu Account Dropdown</button>
+                </div>
+            </section>
+        @endif
+
+        @if($editingTemplate === 'pharma')
+            <section class="space-y-4 rounded-xl border border-teal-200 bg-teal-50/30 p-5">
+                <div>
+                    <h4 class="text-base font-bold text-gray-900">Topbar Pharma · Nội dung & liên hệ</h4>
+                    <p class="mt-1 text-xs text-gray-600">Nội dung độc lập với Topbar Default. Màu Topbar BG / Topbar Text của Pharma áp dụng độc lập, kể cả khi bật Kế thừa màu Global Website Theme. Chiều cao chỉnh trong Advanced phía dưới.</p>
+                </div>
+                <label class="flex items-center gap-2 text-sm font-medium"><input type="checkbox" wire:model="topbarSettings.enabled" class="rounded border-gray-300"> Hiển thị Topbar Pharma</label>
+                <div class="grid gap-4 md:grid-cols-2">
+                    <label class="text-sm font-medium">Nội dung bên trái
+                        <input type="text" wire:model="topbarSettings.left_text" maxlength="180" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100">
+                    </label>
+                    <label class="text-sm font-medium">Nội dung bên phải
+                        <input type="text" wire:model="topbarSettings.right_text" maxlength="180" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100">
+                    </label>
+                    <label class="text-sm font-medium">Hotline Pharma
+                        <input type="text" wire:model="topbarSettings.hotline" maxlength="50" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100" placeholder="Số điện thoại liên hệ">
+                    </label>
+                    <label class="text-sm font-medium">Email Pharma
+                        <input type="email" wire:model="topbarSettings.email" maxlength="100" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100" placeholder="contact@example.com">
+                    </label>
+                </div>
+                <div class="flex flex-wrap items-center gap-5">
+                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model="topbarSettings.show_hotline" class="rounded border-gray-300"> Hiện hotline</label>
+                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model="topbarSettings.show_email" class="rounded border-gray-300"> Hiện email</label>
+                    <button type="button" wire:click="saveTopbarSettings" class="ml-auto rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white">Lưu Topbar Pharma</button>
+                </div>
+                @error('topbarSettings.email')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
+            </section>
+        @endif
 
         @include('Website::livewire.admin.header.partials.builder-preview')
 
