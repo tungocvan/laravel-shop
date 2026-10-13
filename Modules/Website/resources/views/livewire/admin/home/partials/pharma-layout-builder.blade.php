@@ -76,5 +76,30 @@
             </div>
         </div>
     @endif
+    <article class="mt-5 rounded-xl border border-emerald-200 bg-emerald-50/30 p-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <h3 class="font-semibold text-gray-900">Trang danh mục sản phẩm — /product</h3>
+                <p class="mt-1 text-sm text-gray-500">Thiết lập bộ lọc tra cứu trên trang danh mục Pharma; không ảnh hưởng template Default.</p>
+            </div>
+            <button type="button" wire:click="$toggle('editingPharmaProductFilters')" class="rounded-lg border border-emerald-300 bg-white px-3 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-50">Thiết lập</button>
+        </div>
+        @if($editingPharmaProductFilters)
+            <div class="mt-4 space-y-3 border-t border-emerald-100 pt-4" wire:key="pharma-product-filters">
+                <p class="text-sm font-semibold text-gray-700">Ẩn / hiện bộ lọc tra cứu</p>
+                @foreach(['category' => 'Nhóm dược phẩm', 'supplier' => 'Nhà cung cấp', 'product_type' => 'Loại sản phẩm', 'circular_group' => 'Nhóm thuốc theo thông tư'] as $key => $label)
+                    <label class="flex cursor-pointer items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800">
+                        <span>{{ $label }}</span>
+                        <input type="checkbox" wire:model="pharmaProductFilters.{{ $key }}" class="h-5 w-5 rounded border-gray-300 text-emerald-700">
+                    </label>
+                @endforeach
+                <div class="flex flex-wrap items-center justify-end gap-2">
+                    <a href="{{ route('product.list') }}" target="_blank" class="mr-auto text-sm font-semibold text-emerald-700">Xem trang sản phẩm ↗</a>
+                    <button type="button" wire:click="$set('editingPharmaProductFilters', false)" class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm">Đóng</button>
+                    <button type="button" wire:click="savePharmaProductFilters" wire:loading.attr="disabled" class="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">Lưu bộ lọc</button>
+                </div>
+            </div>
+        @endif
+    </article>
     <p class="mt-4 text-xs text-gray-500">Cấu hình Pharma được lưu riêng. Thay đổi hiển thị sau khi lưu và tải lại Website.</p>
 </section>
