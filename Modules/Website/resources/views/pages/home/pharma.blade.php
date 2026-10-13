@@ -40,7 +40,7 @@
                         <p class="mb-4 text-sm font-bold uppercase tracking-widest">Thông tin dược phẩm</p>
                         <h1 class="max-w-3xl text-4xl font-extrabold leading-tight md:text-6xl">Khám phá danh mục sản phẩm dược phẩm</h1>
                         <p class="mt-6 max-w-2xl text-base leading-8 text-white/90">Tra cứu sản phẩm và nhóm dược phẩm từ danh mục được công bố, cập nhật theo hệ thống.</p>
-                        <a href="{{ route('product.index') }}" class="mt-8 inline-flex rounded-xl bg-white px-6 py-3 font-bold" style="color: {{ $primary }}">Tra cứu sản phẩm →</a>
+                        <a href="{{ route('product.list') }}" class="mt-8 inline-flex rounded-xl bg-white px-6 py-3 font-bold" style="color: {{ $primary }}">Tra cứu sản phẩm →</a>
                     </div>
                 </section>
             @elseif($section === 'categories')
@@ -49,7 +49,7 @@
                     <h2 class="mt-2 text-3xl font-bold">Khám phá theo nhóm dược phẩm</h2>
                     <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         @forelse($categories as $category)
-                            <a href="{{ route('product.index', ['category' => $category->slug]) }}" class="pharma-card flex min-h-28 items-center justify-between rounded-2xl border border-slate-200 bg-white p-6 font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2">
+                            <a href="{{ route('product.list', ['category' => $category->slug]) }}" class="pharma-card flex min-h-28 items-center justify-between rounded-2xl border border-slate-200 bg-white p-6 font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2">
                                 <span>{{ $category->name }}</span><span aria-hidden="true" style="color: {{ $primary }}">↗</span>
                             </a>
                         @empty
