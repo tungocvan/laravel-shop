@@ -16,6 +16,7 @@
     $headerWidth = $presentation['container_width'] ?? null;
     $searchWidth = (int) ($presentation['custom']['search_max_width'] ?? 560);
     $brandHeight = (int) ($presentation['custom']['logo_max_height'] ?? 48);
+    $accountConfig = $settings->get('website.pharma_header.account', []);
     $menuService = app(\Modules\Website\Services\HeaderMenuService::class);
     $desktopMenu = $menuService->getMenuTreeByLocation('pharma_primary');
     $mobileMenu = $menuService->getMenuTreeByLocation('pharma_mobile');
@@ -51,14 +52,6 @@
                                 <a href="{{ $itemUrl ?: '#' }}" class="hover:underline">{{ $itemTitle }}</a>
                             @endforeach
                         </nav>
-                        <div class="flex shrink-0 items-center gap-3 text-sm">
-                            @guest
-                                <a href="{{ route('login') }}" class="font-semibold hover:underline">Đăng nhập</a>
-                                <a href="{{ route('register') }}" class="rounded-xl border px-3 py-2 font-bold" style="border-color:var(--pharma-header-accent);color:var(--pharma-header-accent)">Đăng ký</a>
-                            @else
-                                <a href="{{ route('account.dashboard') }}" class="font-semibold" style="color:var(--pharma-header-accent)">Tài khoản</a>
-                            @endguest
-                        </div>
                     @elseif($component['type'] === 'search')
                         <form action="{{ route('product.list') }}" method="GET" role="search" class="flex min-w-0 items-center gap-2" style="max-width:{{ $searchWidth }}px">
                             <label class="sr-only" for="pharma-header-search-{{ str_replace('.', '-', $slot) }}">Tìm sản phẩm dược phẩm</label>
@@ -69,6 +62,9 @@
                 @endforeach
                 </div>
             @endforeach
+            <div class="ml-auto flex shrink-0 items-center justify-end lg:ml-0">
+                @include('Website::partials.pharma.account-dropdown', ['accountConfig' => $accountConfig])
+            </div>
             @if(!empty($headerLayout['mobile.drawer']))
                 <button type="button" class="ml-auto rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold lg:hidden" @click="menuOpen = !menuOpen" :aria-expanded="menuOpen.toString()" aria-controls="pharma-mobile-menu">Menu</button>
             @endif
@@ -82,12 +78,6 @@
                             @php($itemTitle = is_array($item) ? $item['title'] : $item->title)
                             <a href="{{ $itemUrl ?: '#' }}">{{ $itemTitle }}</a>
                         @endforeach
-                        @guest
-                            <a href="{{ route('login') }}">Đăng nhập</a>
-                            <a href="{{ route('register') }}">Đăng ký</a>
-                        @else
-                            <a href="{{ route('account.dashboard') }}">Tài khoản của tôi</a>
-                        @endguest
                         @if(!empty($headerLayout['mobile.search']))
                             <form action="{{ route('product.list') }}" method="GET" role="search" class="flex gap-2">
                                 <input name="search" type="search" aria-label="Tìm sản phẩm" placeholder="Tìm sản phẩm..." class="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2">
