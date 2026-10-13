@@ -15,7 +15,15 @@
     $order = array_merge($order, array_diff($allowed, $order));
     $layout = $settings->get('website.pharma_homepage.layout', []);
     $layout = is_array($layout) ? $layout : [];
-    $categories = \Modules\Category\Models\Category::query()->ofType('medicine')->active()->sorted()->limit(8)->get();
+    $categoryDisplay = $settings->get('website.pharma_homepage.categories', []);
+    $categoryDisplay = is_array($categoryDisplay) ? $categoryDisplay : [];
+    $categoryEyebrow = trim((string) ($categoryDisplay['eyebrow'] ?? 'Danh mục')) ?: 'Danh mục';
+    $categoryTitle = trim((string) ($categoryDisplay['title'] ?? 'Khám phá theo nhóm dược phẩm')) ?: 'Khám phá theo nhóm dược phẩm';
+    $categoryDescription = trim((string) ($categoryDisplay['description'] ?? ''));
+    $categoryLimit = in_array((int) ($categoryDisplay['limit'] ?? 8), [4, 8, 12, 16, 20, 24], true) ? (int) ($categoryDisplay['limit'] ?? 8) : 8;
+    $categoryColumns = in_array((int) ($categoryDisplay['columns'] ?? 4), [2, 3, 4], true) ? (int) ($categoryDisplay['columns'] ?? 4) : 4;
+    $categoryCardStyle = in_array($categoryDisplay['card_style'] ?? '', ['clinical', 'compact'], true) ? $categoryDisplay['card_style'] : 'clinical';
+    $categories = \Modules\Category\Models\Category::query()->ofType('medicine')->active()->sorted()->limit($categoryLimit)->get();
     $products = \Modules\Product\Models\Product::query()->active()->whereHas('pharmaLink')->with('categories')->latest('id')->limit(8)->get();
     $hero = $settings->get('website.pharma_hero', []);
     $hero = is_array($hero) ? $hero : [];
@@ -69,13 +77,26 @@
                     </div>
                 </section>
             @elseif($section === 'categories')
-                <section class="{{ $responsiveClass }} mx-auto max-w-7xl px-5 py-16 sm:px-8">
-                    <p class="text-sm font-bold uppercase tracking-widest" style="color: {{ $primary }}">Danh mục</p>
-                    <h2 class="mt-2 text-3xl font-bold">Khám phá theo nhóm dược phẩm</h2>
-                    <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <section class="{{ $responsiveClass }} mx-auto max-w-7xl px-5 py-16 sm:px-8" aria-labelledby="pharma-categories-title">
+                    <div class="max-w-3xl">
+                        <p class="text-sm font-bold uppercase tracking-widest" style="color: {{ $primary }}">{{ $categoryEyebrow }}</p>
+                        <h2 id="pharma-categories-title" class="mt-2 text-3xl font-bold tracking-tight">{{ $categoryTitle }}</h2>
+                        @if($categoryDescription !== '')
+                            <p class="mt-3 text-base leading-7 text-slate-600">{{ $categoryDescription }}</p>
+                        @endif
+                    </div>
+                    <div class="mt-8 grid gap-4 sm:grid-cols-2 {{ $categoryColumns === 2 ? 'lg:grid-cols-2' : ($categoryColumns === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-4') }}">
                         @forelse($categories as $category)
-                            <a href="{{ route('product.list', ['category' => $category->slug]) }}" class="pharma-card flex min-h-32 items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-6 font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2">
-                                <span class="flex items-center gap-4"><span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-xl font-bold text-teal-700" aria-hidden="true">+</span><span>{{ $category->name }}</span></span><span aria-hidden="true" style="color: {{ $primary }}">↗</span>
+                            <a href="{{ route('product.list', ['category' => $category->slug]) }}" class="pharma-card group flex items-center gap-4 rounded-2xl border border-slate-200 bg-white {{ $categoryCardStyle === 'compact' ? 'min-h-24 p-5' : 'min-h-32 p-6' }} shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" style="outline-color: {{ $primary }}">
+                                @if($categoryCardStyle === 'clinical')
+                                    <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700" aria-hidden="true">
+                                        <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                                            <rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/>
+                                        </svg>
+                                    </span>
+                                @endif
+                                <span class="min-w-0 flex-1 text-sm font-semibold leading-6 text-slate-900">{{ $category->name }}</span>
+                                <svg class="h-5 w-5 shrink-0 text-emerald-700 transition-transform group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
                             </a>
                         @empty
                             <p class="text-slate-600">Chưa có danh mục được công bố.</p>
