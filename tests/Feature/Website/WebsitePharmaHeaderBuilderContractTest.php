@@ -57,4 +57,30 @@ class WebsitePharmaHeaderBuilderContractTest extends TestCase
         $this->assertStringContainsString("getMenuTreeByLocation('pharma_mobile')", $header);
     }
 
+    #[Test]
+    public function pharma_account_dropdown_is_independent_and_secure(): void
+    {
+        $header = file_get_contents(base_path('Modules/Website/resources/views/partials/pharma/header.blade.php'));
+        $this->assertStringContainsString('Website::partials.pharma.account-dropdown', $header);
+        $this->assertStringContainsString('website.pharma_header.account', $header);
+
+        $account = file_get_contents(base_path('Modules/Website/resources/views/partials/pharma/account-dropdown.blade.php'));
+        $this->assertStringContainsString('aria-expanded', $account);
+        $this->assertStringContainsString('@click.outside', $account);
+        $this->assertStringContainsString('@keydown.escape.window', $account);
+        $this->assertStringContainsString('method="POST"', $account);
+        $this->assertStringContainsString('@csrf', $account);
+        $this->assertStringContainsString("Route::has('logout')", $account);
+        $this->assertStringNotContainsString('wishlist', $account);
+        $this->assertStringNotContainsString('checkout', $account);
+
+        $builder = file_get_contents(base_path('Modules/Website/Livewire/Admin/Header/HeaderSettingsHub.php'));
+        $this->assertStringContainsString('saveAccountSettings', $builder);
+        $this->assertStringContainsString('website.pharma_header.account', $builder);
+        $this->assertStringContainsString("editingTemplate !== 'pharma'", $builder);
+
+        $view = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/header/header-settings-hub.blade.php'));
+        $this->assertStringContainsString('wire:click="saveAccountSettings"', $view);
+    }
+
 }
