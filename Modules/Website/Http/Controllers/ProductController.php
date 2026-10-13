@@ -18,6 +18,7 @@ class ProductController extends Controller
             return view('Website::pages.shop');
         }
 
+        $filterVisibility = array_replace(['category' => true, 'supplier' => true, 'product_type' => true, 'circular_group' => true], (array) $settings->get('website.pharma_catalog.filters', []));
         $authenticated = auth()->check();
         $search = trim((string) $request->query('search', ''));
         $category = (string) $request->query('category', '');
@@ -57,16 +58,16 @@ class ProductController extends Controller
             $query->where(fn ($q) => $q->where('title', 'like', '%'.$search.'%')
                 ->orWhere('short_description', 'like', '%'.$search.'%'));
         }
-        if ($category !== '') {
+        if (! empty($filterVisibility['category']) && $category !== '') {
             $query->whereHas('categories', fn ($cat) => $cat->where('type', 'medicine')->where('slug', $category));
         }
-        if ($supplier !== '') {
+        if (! empty($filterVisibility['supplier']) && $supplier !== '') {
             $query->whereHas('pharmaLink.medicine.supplierTrackings', fn ($tracking) => $tracking->where('supplier_name', $supplier));
         }
         if ($productType !== '' && array_key_exists($productType, $productTypes)) {
             $query->whereHas('pharmaLink.medicine', fn ($medicine) => $medicine->where('product_type', $productType));
         }
-        if ($circularGroup !== '') {
+        if (! empty($filterVisibility['circular_group']) && $circularGroup !== '') {
             $query->whereHas('pharmaLink.medicine', fn ($medicine) => $medicine->where('circular_group', $circularGroup));
         }
         if ($authenticated && $sort === 'price_asc') {
@@ -83,6 +84,7 @@ class ProductController extends Controller
         }
         return view('Website::pages.shop-pharma', [
             'products' => $query->paginate(12)->withQueryString(),
+            'filterVisibility' => $filterVisibility,
             'categories' => $categories,
             'suppliers' => $suppliers,
             'authenticated' => $authenticated,
