@@ -76,9 +76,19 @@ foreach($pharmaProductSections as $key => $config) {
                 </label>
                 <div class="md:col-span-2">
                     <p class="text-sm font-semibold">Danh mục dược phẩm</p>
+                    <label class="mt-2 flex items-center gap-2 text-sm text-gray-700">
+                        <input type="checkbox" wire:model.live="pharmaOnlyCategoriesWithProducts" class="rounded border-gray-300">
+                        Chỉ danh mục có sản phẩm
+                    </label>
                     <div class="mt-2 grid max-h-52 gap-2 overflow-y-auto rounded-lg border border-gray-200 bg-white p-3 md:grid-cols-2">
                         @foreach($pharmaMedicineCategories as $category)
-                            <label class="flex items-center gap-2 text-sm"><input type="checkbox" value="{{ $category->id }}" wire:model="pharmaProductSections.{{ $sectionKey }}.category_ids" class="rounded border-gray-300"> {{ $category->name }}</label>
+                            @if(!$pharmaOnlyCategoriesWithProducts || $category->storefront_products_count > 0 || in_array((int) $category->id, array_map('intval', (array) ($pharmaProductSections[$sectionKey]['category_ids'] ?? [])), true))
+                                <label wire:key="pharma-product-category-{{ $sectionKey }}-{{ $category->id }}" class="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm">
+                                    <input type="checkbox" value="{{ $category->id }}" wire:model="pharmaProductSections.{{ $sectionKey }}.category_ids" class="rounded border-gray-300">
+                                    <span class="flex-1">{{ $category->name }}</span>
+                                    <span class="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs {{ $category->storefront_products_count ? 'text-emerald-700' : 'text-gray-400' }}">{{ $category->storefront_products_count }} SP</span>
+                                </label>
+                            @endif
                         @endforeach
                     </div>
                 </div>
