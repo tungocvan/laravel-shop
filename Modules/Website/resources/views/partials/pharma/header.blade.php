@@ -10,8 +10,8 @@
     $accent = ($presentation['inherit_colors'] ?? true) ? '#047857' : $colors['accent'];
     $background = ($presentation['inherit_colors'] ?? true) ? '#ffffff' : $colors['background'];
     $foreground = ($presentation['inherit_colors'] ?? true) ? '#0f172a' : $colors['foreground'];
-    $topbarBackground = ($presentation['inherit_colors'] ?? true) ? '#020617' : $colors['topbar_background'];
-    $topbarForeground = ($presentation['inherit_colors'] ?? true) ? '#e2e8f0' : $colors['topbar_foreground'];
+    $topbarBackground = $colors['topbar_background'];
+    $topbarForeground = $colors['topbar_foreground'];
     $shadow = match($presentation['shadow'] ?? 'soft') { 'none' => 'none', 'medium' => '0 8px 24px rgba(15,23,42,.15)', default => '0 1px 3px rgba(15,23,42,.08)' };
     $headerWidth = $presentation['container_width'] ?? null;
     $searchWidth = (int) ($presentation['custom']['search_max_width'] ?? 560);
@@ -31,16 +31,16 @@
         @foreach($headerLayout['desktop.topbar'] ?? [] as $component)
             @if($component['type'] === 'topbar')
                 <div class="border-b border-slate-800/20" style="background: {{ $topbarBackground }}; color: {{ $topbarForeground }};">
-                    <div class="mx-auto flex flex-wrap items-center justify-between gap-x-5 gap-y-1 px-5 py-1.5 text-xs sm:px-8" style="max-width: {{ $headerWidth ? $headerWidth.'px' : '1280px' }}; min-height: {{ $topbarHeight }}px">
-                        <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+                    <div class="mx-auto flex flex-wrap items-center justify-between gap-x-6 gap-y-2 px-5 py-2 text-xs sm:px-8" style="max-width: {{ $headerWidth ? $headerWidth.'px' : '1280px' }}; min-height: {{ $topbarHeight }}px">
+                        <div class="flex flex-wrap items-center gap-x-5 gap-y-1.5">
                             @if(trim((string) ($topbarConfig['left_text'] ?? 'THÔNG TIN DƯỢC PHẨM · TRA CỨU VÀ THAM KHẢO')) !== '')
                                 <span>{{ $topbarConfig['left_text'] ?? 'THÔNG TIN DƯỢC PHẨM · TRA CỨU VÀ THAM KHẢO' }}</span>
                             @endif
                             @if(($topbarConfig['show_hotline'] ?? false) && filled($topbarConfig['hotline'] ?? null))
-                                <a href="tel:{{ preg_replace('/[^+0-9]/', '', (string) $topbarConfig['hotline']) }}" class="font-semibold hover:underline">{{ $topbarConfig['hotline'] }}</a>
+                                <a href="tel:{{ preg_replace('/[^+0-9]/', '', (string) $topbarConfig['hotline']) }}" class="inline-flex items-center border-l border-current/20 pl-4 font-semibold hover:underline">{{ $topbarConfig['hotline'] }}</a>
                             @endif
                             @if(($topbarConfig['show_email'] ?? false) && filter_var($topbarConfig['email'] ?? null, FILTER_VALIDATE_EMAIL))
-                                <a href="mailto:{{ $topbarConfig['email'] }}" class="hover:underline">{{ $topbarConfig['email'] }}</a>
+                                <a href="mailto:{{ $topbarConfig['email'] }}" class="inline-flex items-center border-l border-current/20 pl-4 hover:underline">{{ $topbarConfig['email'] }}</a>
                             @endif
                         </div>
                         @if(trim((string) ($topbarConfig['right_text'] ?? 'Thông tin không thay thế tư vấn chuyên môn y tế')) !== '')
