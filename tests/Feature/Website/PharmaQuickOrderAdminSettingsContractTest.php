@@ -29,7 +29,21 @@ class PharmaQuickOrderAdminSettingsContractTest extends TestCase
         $view = file_get_contents(base_path('Modules/Website/resources/views/pages/admin/pharma-quick-order/index.blade.php'));
         $controller = file_get_contents(base_path('Modules/Website/Http/Controllers/Admin/PharmaQuickOrderSettingsController.php'));
         $this->assertStringContainsString('name="notification_email"', $view);
-        $this->assertStringContainsString("'notification_email' => ['nullable', 'email:rfc', 'max:254']", $controller);
+        $this->assertStringContainsString("'notification_email' => ['nullable', 'string', 'max:2550']", $controller);
+        $this->assertStringContainsString('parseNotificationEmails(', $controller);
+    }
+
+    public function test_notification_emails_accept_both_separators_and_deduplicate(): void
+    {
+        $settings = app(PharmaQuickOrderSettingsService::class);
+        $this->assertSame(
+            ['first@example.com', 'second@example.com'],
+            $settings->parseNotificationEmails(' first@example.com ; second@example.com,first@example.com ')
+        );
+        $this->assertSame(
+            'first@example.com; second@example.com',
+            $settings->normalize(['notification_email' => 'first@example.com, second@example.com'])['notification_email']
+        );
     }
 
     public function test_admin_routes_enforce_admin_guard_and_settings_permission(): void
