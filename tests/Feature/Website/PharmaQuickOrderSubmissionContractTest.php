@@ -29,8 +29,12 @@ class PharmaQuickOrderSubmissionContractTest extends TestCase
     {
         $controller = file_get_contents(base_path('Modules/Website/Http/Controllers/PharmaQuickOrderController.php'));
         $this->assertStringContainsString('$record->wasRecentlyCreated', $controller);
-        $this->assertStringContainsString('Mail::raw(', $controller);
-        $this->assertStringContainsString("Log::warning('Pharma quick order notification failed'", $controller);
+        $this->assertStringContainsString('SendPharmaQuickOrderNotification::dispatch(', $controller);
+        $this->assertStringContainsString('->afterCommit()', $controller);
+        $job = file_get_contents(base_path('Modules/Website/Jobs/SendPharmaQuickOrderNotification.php'));
+        $this->assertStringContainsString('implements ShouldQueue', $job);
+        $this->assertStringContainsString('Mail::raw(', $job);
+        $this->assertStringContainsString('public int $tries = 3', $job);
     }
 
     public function test_buyer_form_can_submit_and_review_starts_collapsed(): void
