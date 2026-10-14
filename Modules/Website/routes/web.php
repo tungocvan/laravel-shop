@@ -68,6 +68,7 @@ Route::middleware('web')->group(function () {
         Route::get('/profile', 'profile')->name('profile');
         Route::get('/affiliate', 'affiliate')->name('affiliate');
         Route::get('/orders', 'orders')->name('orders');
+        Route::get('/pharma-requests/{id}', 'pharmaRequestDetail')->whereNumber('id')->name('pharma-requests.show');
         Route::get('/orders/{code}', 'orderDetail')->name('orders.detail');
         Route::get('/wishlist', 'wishlist')->name('wishlist');
     });
