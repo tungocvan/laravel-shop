@@ -11,7 +11,7 @@ use Modules\Website\Models\PharmaQuickOrderRequest;
  */
 final class PharmaQuickOrderIssueReadinessService
 {
-    public function inspect(PharmaQuickOrderRequest $request): array
+    public function inspect(PharmaQuickOrderRequest $request, bool $allowPendingReview = false): array
     {
         $items = $request->requested_items ?? [];
         $ids = collect($items)->pluck('product_id')->map(fn ($id) => (int) $id)->filter(fn ($id) => $id > 0)->unique();
@@ -19,7 +19,7 @@ final class PharmaQuickOrderIssueReadinessService
         $problems = [];
         $resolved = [];
 
-        if ($request->status !== 'accepted') {
+        if ($request->status !== 'accepted' && ! ($allowPendingReview && $request->status === PharmaQuickOrderRequest::PENDING_REVIEW)) {
             $problems[] = 'Yêu cầu chưa được chấp nhận.';
         }
         if (! count($items)) {
