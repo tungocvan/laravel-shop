@@ -18,7 +18,7 @@ final class PharmaQuickOrderController extends Controller
         abort_unless($configuration['enabled'], 404);
 
         $user = $request->user();
-        abort_unless($user && $user->is_active && $user->hasPermissionTo('website.pharma.quick_order.view', 'web'), 403);
+        abort_unless($user && $user->is_active && $user->checkPermissionTo('website.pharma.quick_order.view', 'web'), 403);
 
         // Customer/partner ownership is not yet established for Website users.
         // Do not expose price-list items, pricing or order actions until this is resolved.
