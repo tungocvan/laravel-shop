@@ -78,7 +78,7 @@
                         <label class="flex items-start gap-2 rounded-lg bg-slate-50 p-3 text-xs leading-5 text-slate-700"><input type="checkbox" name="eligibility_confirmed" value="1" class="mt-1 rounded border-slate-300"><span>Tôi đã kiểm tra thông tin người mua và xác nhận đủ điều kiện tiếp nhận yêu cầu mua dược phẩm.</span></label>
                         <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
                             <button type="submit" name="decision" value="accepted" onclick="return confirm('Xác nhận chấp nhận yêu cầu sau khi kiểm tra điều kiện mua thuốc?')" class="rounded-lg bg-emerald-700 px-3 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800">Chấp nhận & tạo phiếu xuất nháp</button>
-                            <button type="submit" name="decision" value="rejected" onclick="return confirm('Xác nhận từ chối yêu cầu này?')" class="rounded-lg border border-rose-200 bg-white px-3 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-50">Từ chối</button>
+                            <button type="submit" name="decision" value="rejected" formaction="{{ route('admin.website.pharma-quick-order.requests.review', $quickOrderRequest) }}" onclick="return confirm('Xác nhận từ chối yêu cầu này?')" class="rounded-lg border border-rose-200 bg-white px-3 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-50">Từ chối</button>
                         </div>
                     </form>
                 @else
