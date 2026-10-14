@@ -51,3 +51,10 @@ No test PASS or UI PASS is claimed for this checkpoint.
 - This is a browse-only checkpoint: no cart, order submission, or inventory issue is created.
 - Next checkpoints: buyer tax/recipient/shipping profile and request persistence, Admin verification and acceptance/rejection, canonical Pharma inventory issue creation with idempotent linkage and stock posting only via existing workflow.
 - Regulatory buyer eligibility and controlled-product restrictions must be validated before accepting any request.
+
+
+## P4.2-A UI checkpoint
+
+- Quick-order search is debounced 300ms with abortable same-origin JSON GET requests, and server-side authentication/feature/price-list scope is reused for JSON responses.
+- Product rows have quantity decrement, numeric input, increment, a page-local selected quantity summary, and native 'Xem thêm' load-more pagination.
+- No prices, buyer form, submission, order persistence, inventory issue creation or stock changes are enabled in this checkpoint. Next: validated persisted cart and buyer-review workflow.
