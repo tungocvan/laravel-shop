@@ -1,4 +1,4 @@
-@extends('Website::layouts.master')
+@extends('Website::layouts.frontend')
 
 @section('title', 'Đặt hàng nhanh Pharma')
 
