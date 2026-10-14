@@ -9,6 +9,19 @@
         <a class="text-sm text-emerald-700 underline" href="{{ route('admin.website.pharma-quick-order.index') }}">Thiết lập đặt hàng nhanh</a>
     </div>
     <p class="mt-2 text-sm text-gray-600">Chấp nhận yêu cầu chỉ là xác nhận xét duyệt người mua; chưa tạo phiếu xuất kho, chưa ghi sổ và chưa trừ tồn.</p>
+    <div class="mt-5 grid grid-cols-3 gap-3">
+        @foreach(['pending_review' => 'Chờ xét duyệt', 'accepted' => 'Đã chấp nhận', 'rejected' => 'Đã từ chối'] as $key => $label)
+            <a href="{{ route('admin.website.pharma-quick-order.requests.index', ['status' => $key]) }}" class="rounded-xl border bg-white p-4">
+                <div class="text-2xl font-bold text-slate-900">{{ $counts[$key] ?? 0 }}</div>
+                <div class="mt-1 text-xs text-slate-500">{{ $label }}</div>
+            </a>
+        @endforeach
+    </div>
+    <form method="GET" action="{{ route('admin.website.pharma-quick-order.requests.index') }}" class="mt-4 flex flex-wrap gap-2">
+        <input type="hidden" name="status" value="{{ $status }}">
+        <input type="search" name="search" value="{{ $search }}" placeholder="Mã yêu cầu, khách hàng, SĐT, MST..." class="min-w-0 flex-1 rounded-lg border px-3 py-2 text-sm">
+        <button class="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">Tìm kiếm</button>
+    </form>
     <div class="mt-5 flex flex-wrap gap-2">
         @foreach(['pending_review' => 'Chờ xét duyệt', 'accepted' => 'Đã chấp nhận', 'rejected' => 'Đã từ chối', 'all' => 'Tất cả'] as $key => $label)
             <a href="{{ route('admin.website.pharma-quick-order.requests.index', ['status' => $key]) }}"
