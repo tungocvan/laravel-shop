@@ -25,6 +25,14 @@ class PharmaQuickOrderSubmissionContractTest extends TestCase
         $this->assertStringNotContainsString('createDraft(', $controller);
     }
 
+    public function test_notification_is_sent_only_on_first_creation_and_mail_errors_do_not_undo_request(): void
+    {
+        $controller = file_get_contents(base_path('Modules/Website/Http/Controllers/PharmaQuickOrderController.php'));
+        $this->assertStringContainsString('$record->wasRecentlyCreated', $controller);
+        $this->assertStringContainsString('Mail::raw(', $controller);
+        $this->assertStringContainsString("Log::warning('Pharma quick order notification failed'", $controller);
+    }
+
     public function test_buyer_form_can_submit_and_review_starts_collapsed(): void
     {
         $view = file_get_contents(base_path('Modules/Website/resources/views/pages/pharma-quick-order.blade.php'));
@@ -33,5 +41,8 @@ class PharmaQuickOrderSubmissionContractTest extends TestCase
         $this->assertStringContainsString("'X-CSRF-TOKEN': csrfToken", $view);
         $this->assertStringContainsString("reviewToggle.setAttribute('aria-expanded', 'false')", $view);
         $this->assertStringContainsString('quick-order-back', $view);
+        $this->assertStringContainsString('quick-order-success-modal', $view);
+        $this->assertStringContainsString('quick-order-success-return', $view);
+        $this->assertStringContainsString('window.location.assign(endpoint)', $view);
     }
 }
