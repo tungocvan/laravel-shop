@@ -17,11 +17,12 @@ final class PharmaQuickOrderSettingsService
         return $this->normalize(is_array($saved) ? $saved : []);
     }
 
-    public function save(bool $enabled, array $priceListIds): void
+    public function save(bool $enabled, array $priceListIds, ?string $notificationEmail = null): void
     {
         $this->settings->set(self::KEY, $this->normalize([
             'enabled' => $enabled,
             'price_list_ids' => $priceListIds,
+            'notification_email' => $notificationEmail,
         ]), 'website', 'json');
     }
 
@@ -29,6 +30,7 @@ final class PharmaQuickOrderSettingsService
     {
         return [
             'enabled' => ($value['enabled'] ?? false) === true,
+            'notification_email' => trim((string) ($value['notification_email'] ?? '')),
             'price_list_ids' => array_values(array_unique(array_filter(
                 array_map('intval', is_array($value['price_list_ids'] ?? null) ? $value['price_list_ids'] : []),
                 static fn (int $id): bool => $id > 0
