@@ -96,6 +96,30 @@
                     <a href="{{ url('/admin/pharma/inventory/issues/'.$quickOrderRequest->inventory_issue_id) }}" class="mt-2 inline-block underline">Mở phiếu xuất</a>
                 </div>
             @endif
+
+            @if(!$quickOrderRequest->inventory_issue_id)
+                <section class="mt-4 space-y-3 rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
+                    <h2 class="text-sm font-bold text-slate-900">Quản lý yêu cầu</h2>
+                    <p class="text-xs text-slate-500">Thao tác có lưu lịch sử. Yêu cầu đã liên kết phiếu xuất phải được xử lý tại phân hệ Kho.</p>
+                    @if(in_array($quickOrderRequest->status, ['accepted', 'rejected'], true))
+                        <form method="POST" action="{{ route('admin.website.pharma-quick-order.requests.revert', $quickOrderRequest) }}" class="space-y-2">
+                            @csrf
+                            <label for="revert-reason" class="block text-xs font-semibold text-slate-700">Lý do hoàn tác</label>
+                            <textarea id="revert-reason" name="reason" required minlength="3" maxlength="2000" rows="2" class="w-full rounded-lg border border-slate-200 p-2 text-sm"></textarea>
+                            <button onclick="return confirm('Đưa yêu cầu về Chờ xét duyệt?')" class="rounded-lg border border-amber-200 px-3 py-2 text-sm font-semibold text-amber-800">Hoàn tác trạng thái</button>
+                        </form>
+                    @endif
+                    @if(in_array($quickOrderRequest->status, ['pending_review', 'rejected'], true))
+                        <form method="POST" action="{{ route('admin.website.pharma-quick-order.requests.destroy', $quickOrderRequest) }}" class="space-y-2">
+                            @csrf
+                            @method('DELETE')
+                            <label for="delete-reason" class="block text-xs font-semibold text-slate-700">Lý do xóa mềm</label>
+                            <textarea id="delete-reason" name="reason" required minlength="3" maxlength="2000" rows="2" class="w-full rounded-lg border border-slate-200 p-2 text-sm"></textarea>
+                            <button onclick="return confirm('Xóa mềm yêu cầu này? Lịch sử vẫn được giữ lại.')" class="rounded-lg border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-700">Xóa yêu cầu</button>
+                        </form>
+                    @endif
+                </section>
+            @endif
         </aside>
     </div>
 </div>
