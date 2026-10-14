@@ -8,7 +8,7 @@
             <h1 class="mt-2 text-xl font-bold tracking-tight text-slate-900">Yêu cầu #{{ str_pad($pharmaRequest->id, 4, '0', STR_PAD_LEFT) }}</h1>
             <p class="mt-1 text-xs text-slate-500">Ngày gửi: {{ $pharmaRequest->submitted_at?->format('d/m/Y H:i') }}</p>
         </div>
-        <span class="inline-flex rounded-full px-3 py-1.5 text-xs font-semibold {{ $pharmaRequest->status === 'accepted' ? 'bg-emerald-50 text-emerald-700' : ($pharmaRequest->status === 'rejected' ? 'bg-rose-50 text-rose-700' : 'bg-amber-50 text-amber-800') }}">{{ ['pending_review' => 'Chờ xét duyệt', 'accepted' => 'Đã chấp nhận', 'rejected' => 'Đã từ chối'][$pharmaRequest->status] ?? $pharmaRequest->status }}</span>
+        <span class="inline-flex rounded-full px-3 py-1.5 text-xs font-semibold {{ $pharmaRequest->customer_order_status === 'completed' ? 'bg-emerald-50 text-emerald-700' : ($pharmaRequest->customer_order_status === 'rejected' ? 'bg-rose-50 text-rose-700' : 'bg-amber-50 text-amber-800') }}">{{ ['pending_review' => 'Chờ xét duyệt', 'processing' => 'Đang xử lý', 'completed' => 'Hoàn tất · Đã ghi sổ', 'rejected' => 'Đã từ chối'][$pharmaRequest->customer_order_status] }}</span>
     </header>
 
     <section class="rounded-xl border border-slate-100 bg-white p-4 shadow-sm sm:p-5">
@@ -16,8 +16,13 @@
         <div class="mt-4 grid grid-cols-3 gap-2 text-center text-xs sm:gap-3">
             <div><div class="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-emerald-700 font-bold text-white">✓</div><p class="mt-2 font-semibold text-slate-800">Đã gửi yêu cầu</p></div>
             <div><div class="mx-auto flex h-8 w-8 items-center justify-center rounded-full {{ $pharmaRequest->status === 'pending_review' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-700 text-white' }} font-bold">{{ $pharmaRequest->status === 'pending_review' ? '2' : '✓' }}</div><p class="mt-2 font-semibold text-slate-800">{{ $pharmaRequest->status === 'pending_review' ? 'Đang xét duyệt' : 'Đã xét duyệt' }}</p></div>
-            <div><div class="mx-auto flex h-8 w-8 items-center justify-center rounded-full {{ $pharmaRequest->status === 'accepted' ? 'bg-emerald-100 text-emerald-700' : ($pharmaRequest->status === 'rejected' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-400') }} font-bold">{{ $pharmaRequest->status === 'accepted' ? '✓' : ($pharmaRequest->status === 'rejected' ? '!' : '3') }}</div><p class="mt-2 font-semibold text-slate-800">{{ $pharmaRequest->status === 'accepted' ? 'Đã tiếp nhận' : ($pharmaRequest->status === 'rejected' ? 'Không được chấp nhận' : 'Chờ kết quả') }}</p></div>
+            <div><div class="mx-auto flex h-8 w-8 items-center justify-center rounded-full {{ $pharmaRequest->status === 'accepted' ? 'bg-emerald-100 text-emerald-700' : ($pharmaRequest->status === 'rejected' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-400') }} font-bold">{{ $pharmaRequest->status === 'accepted' ? '✓' : ($pharmaRequest->status === 'rejected' ? '!' : '3') }}</div><p class="mt-2 font-semibold text-slate-800">{{ $pharmaRequest->customer_order_status === 'completed' ? 'Đã ghi sổ' : ($pharmaRequest->customer_order_status === 'processing' ? 'Đang xử lý' : ($pharmaRequest->status === 'rejected' ? 'Không được chấp nhận' : 'Chờ kết quả')) }}</p></div>
         </div>
+        @if($pharmaRequest->customer_order_status === 'completed')
+            <p class="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">Đã ghi sổ xuất kho thành công{{ $pharmaRequest->inventoryIssue?->posted_at ? ' lúc '.$pharmaRequest->inventoryIssue->posted_at->format('d/m/Y H:i') : '' }}. Trạng thái này không xác nhận đã giao hàng.</p>
+        @elseif($pharmaRequest->customer_order_status === 'processing')
+            <p class="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">Yêu cầu đã được tiếp nhận và đang xử lý xuất kho. Chưa ghi sổ hoàn tất.</p>
+        @endif
         <p class="mt-4 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600">Việc chấp nhận yêu cầu chỉ xác nhận đủ điều kiện tiếp nhận, không đồng nghĩa đã xuất kho hoặc giao hàng.</p>
     </section>
 
