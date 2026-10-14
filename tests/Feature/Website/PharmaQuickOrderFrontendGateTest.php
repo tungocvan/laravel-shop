@@ -39,6 +39,12 @@ class PharmaQuickOrderFrontendGateTest extends TestCase
         $this->assertStringContainsString('data-quick-order-total', $view);
         $this->assertStringContainsString('data-quick-order-unpriced', $view);
         $this->assertStringContainsString('knownProducts.set(product.id, product)', $view);
+        $this->assertStringContainsString('window.sessionStorage.setItem(draftStorageKey', $view);
+        $this->assertStringContainsString('data-quick-order-continue', $view);
+        $this->assertStringContainsString('quick-order-buyer-panel', $view);
+        $this->assertStringContainsString('quick-order-tax-code', $view);
+        $this->assertStringContainsString('quick-order-address', $view);
+        $this->assertStringContainsString('Gửi yêu cầu (sắp triển khai)', $view);
         $this->assertStringContainsString('quick-order-more', $view);
         $this->assertStringContainsString('@json($quickOrderInitialProducts)', $view);
         $this->assertStringContainsString('@json($quickOrderInitialNextPage)', $view);
