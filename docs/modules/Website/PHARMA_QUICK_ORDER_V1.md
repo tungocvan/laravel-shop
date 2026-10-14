@@ -65,3 +65,11 @@ No test PASS or UI PASS is claimed for this checkpoint.
 - Quick-order UI label changed from `Giá bán CT` to `Đơn giá (Có VAT)` at user request. The value still comes from `company_sale_price`; **VAT-inclusiveness must be verified against canonical Pharma price calculations before accepting orders**.
 - The browser-only cart summary displays a temporary quantity-weighted subtotal of known unit prices. When any selected line has no unique price, the UI marks the subtotal incomplete; it is not an order total.
 - No request submission or inventory issue creation is enabled.
+
+
+## P4.3 buyer draft checkpoint
+
+- Selected product IDs/quantities and buyer contact/shipping fields are kept only in browser sessionStorage scoped by authenticated user ID. This is a convenience draft, not a trusted server cart. No price is stored in the draft.
+- Buyer panel supports company/individual, company name, tax code, recipient, phone, address, and notes. The continue action only opens the form; submit remains disabled.
+- No personal details or orders are sent to the server yet. Server-side request validation, buyer eligibility, anti-duplication, verified price/VAT computation, review queue, and inventory issue creation remain P5 tasks.
+- VAT audit note: PriceListItem casts company_sale_price to decimal:2 but does not itself specify VAT semantics. The label requested by UI is not proof of tax-inclusiveness; verify the canonical calculation before enabling checkout.
