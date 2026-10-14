@@ -33,8 +33,8 @@ final class PharmaQuickOrderReviewContractTest extends TestCase
         $detail = file_get_contents(base_path('Modules/Website/resources/views/pages/admin/pharma-quick-order/request-detail.blade.php'));
         $settings = file_get_contents(base_path('Modules/Website/resources/views/pages/admin/pharma-quick-order/index.blade.php'));
         $this->assertStringContainsString('Chờ xét duyệt', $list);
-        $this->assertStringContainsString("{{ $line['title'] }}", $detail);
-        $this->assertStringContainsString("{{ $line['quantity'] }}", $detail);
+        $this->assertStringContainsString('{{ $line[\'title\'] }}', $detail);
+        $this->assertStringContainsString('{{ $line[\'quantity\'] }}', $detail);
         $this->assertStringContainsString('Danh sách thuốc yêu cầu', $detail);
         $this->assertStringContainsString('lg:sticky', $detail);
         $this->assertStringContainsString('tax_code', $detail);
