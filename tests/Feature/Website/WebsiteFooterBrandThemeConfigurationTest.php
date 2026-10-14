@@ -34,7 +34,7 @@ class WebsiteFooterBrandThemeConfigurationTest extends TestCase
         $component = file_get_contents(base_path('Modules/Website/Livewire/Admin/Footer/FooterSettingsHub.php'));
         $themeView = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/footer/partials/theme-manager.blade.php'));
 
-        $this->assertStringContainsString("'footer.layout_themes'", $component);
+        $this->assertStringContainsString("$this->settingKey('layout_themes')", $component);
         $this->assertStringContainsString('THEME_VERSION = 1', $component);
         $this->assertStringContainsString('MAX_THEMES = 20', $component);
         $this->assertStringContainsString('saveTheme(', $component);
@@ -73,7 +73,7 @@ class WebsiteFooterBrandThemeConfigurationTest extends TestCase
         $this->assertStringNotContainsString('footer.layout', $applyMethod);
         $this->assertStringNotContainsString('updateMany', $applyMethod);
 
-        $this->assertStringContainsString("'footer.layout' => \$layout", $component);
-        $this->assertStringContainsString("'footer.presentation' => \$presentation", $component);
+        $this->assertStringContainsString("$this->settingKey('layout') => \$layout", $component);
+        $this->assertStringContainsString("$this->settingKey('presentation') => \$presentation", $component);
     }
 }
