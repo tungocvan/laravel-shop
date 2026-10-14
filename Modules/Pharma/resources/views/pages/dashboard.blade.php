@@ -31,6 +31,22 @@
   </div>
  </header>
 
+ @if(auth('admin')->user()?->hasPermissionTo('website.settings.manage', 'admin'))
+ <section class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
+  <div class="flex flex-wrap items-center justify-between gap-4">
+   <div>
+    <p class="text-xs font-bold uppercase tracking-wide text-emerald-700">Website / Pharma</p>
+    <h2 class="mt-1 text-lg font-bold text-slate-950">Duyệt đơn hàng nhanh</h2>
+    <p class="mt-1 text-sm text-slate-500">Xử lý yêu cầu mua thuốc và lập phiếu xuất nháp sau khi xác minh.</p>
+   </div>
+   <div class="flex items-center gap-3">
+    <span class="rounded-full bg-amber-50 px-3 py-1.5 text-sm font-bold text-amber-800">{{ \Modules\Website\Models\PharmaQuickOrderRequest::query()->where('status', 'pending_review')->count() }} chờ duyệt</span>
+    <a href="{{ route('admin.website.pharma-quick-order.requests.index') }}" class="rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800">Xét duyệt →</a>
+   </div>
+  </div>
+ </section>
+ @endif
+
  <section>
   <div class="mb-3 flex items-end justify-between gap-4"><div><h2 class="text-lg font-bold text-slate-950">Tổng quan vận hành</h2><p class="mt-1 text-sm text-slate-500">Số liệu hiện tại và doanh thu/hoa hồng của tháng {{ now()->format('m/Y') }}.</p></div></div>
   <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
