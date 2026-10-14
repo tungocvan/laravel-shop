@@ -25,7 +25,6 @@
         <div class="rounded-xl border border-gray-200 bg-white p-4">
             <h2 class="font-semibold">Nguồn bảng giá được phép sử dụng</h2>
             <p class="mt-1 text-sm text-gray-500">Bảng giá hết hiệu lực theo ngày sẽ tự bị loại tại thời điểm đặt hàng. Nếu chưa chọn bảng giá, hệ thống không trả về sản phẩm để đặt hàng.</p>
-            <input type="hidden" name="price_list_ids" value="" disabled>
             <div class="mt-4 max-h-[460px] space-y-2 overflow-y-auto">
                 @forelse($priceLists as $priceList)
                     @php($active = $priceList->status === \Modules\Pharma\Models\PriceList::STATUS_ACTIVE)
