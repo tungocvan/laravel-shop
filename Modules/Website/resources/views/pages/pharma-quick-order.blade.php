@@ -30,15 +30,54 @@
                 <p class="mt-2 text-sm font-semibold text-emerald-700">Tạm tính: <span data-quick-order-total>0 đ</span></p>
                 <p class="mt-1 text-xs text-amber-700" data-quick-order-unpriced hidden>Có sản phẩm chưa xác định đơn giá.</p>
                 <p class="mt-3 text-xs text-slate-500">Chưa gửi yêu cầu. Đơn hàng cần được Admin xét duyệt trước khi xuất kho.</p>
-                <button type="button" disabled class="mt-4 w-full cursor-not-allowed rounded-lg bg-slate-200 px-4 py-3 text-sm font-semibold text-slate-500">Tiếp tục (sắp triển khai)</button>
+                <button type="button" data-quick-order-continue disabled class="mt-4 w-full rounded-lg bg-emerald-700 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">Tiếp tục</button>
             </aside>
         </div>
+        <section id="quick-order-buyer-panel" hidden class="mt-6 rounded-xl border border-slate-200 bg-white p-4 sm:p-6" aria-labelledby="quick-order-buyer-title">
+            <h2 id="quick-order-buyer-title" class="text-lg font-semibold">Thông tin người mua và nhận hàng</h2>
+            <p class="mt-1 text-sm text-slate-600">Đây là bản nháp để chuẩn bị yêu cầu. Chưa gửi đến Admin.</p>
+            <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                <div>
+                    <label for="quick-order-buyer-type" class="mb-1 block text-sm font-medium">Đối tượng mua</label>
+                    <select id="quick-order-buyer-type" class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm">
+                        <option value="company">Doanh nghiệp / cơ sở y tế / nhà thuốc</option>
+                        <option value="individual">Cá nhân</option>
+                    </select>
+                </div>
+                <div data-company-field>
+                    <label for="quick-order-company" class="mb-1 block text-sm font-medium">Tên doanh nghiệp / cơ sở</label>
+                    <input id="quick-order-company" maxlength="255" autocomplete="organization" class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm">
+                </div>
+                <div data-company-field>
+                    <label for="quick-order-tax-code" class="mb-1 block text-sm font-medium">Mã số thuế</label>
+                    <input id="quick-order-tax-code" maxlength="20" inputmode="numeric" class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm">
+                </div>
+                <div>
+                    <label for="quick-order-recipient" class="mb-1 block text-sm font-medium">Người nhận hàng</label>
+                    <input id="quick-order-recipient" maxlength="150" autocomplete="name" class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm">
+                </div>
+                <div>
+                    <label for="quick-order-phone" class="mb-1 block text-sm font-medium">Số điện thoại</label>
+                    <input id="quick-order-phone" maxlength="20" autocomplete="tel" inputmode="tel" class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm">
+                </div>
+                <div class="sm:col-span-2">
+                    <label for="quick-order-address" class="mb-1 block text-sm font-medium">Địa chỉ nhận hàng</label>
+                    <textarea id="quick-order-address" rows="2" maxlength="500" autocomplete="street-address" class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"></textarea>
+                </div>
+                <div class="sm:col-span-2">
+                    <label for="quick-order-notes" class="mb-1 block text-sm font-medium">Ghi chú</label>
+                    <textarea id="quick-order-notes" rows="2" maxlength="1000" class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"></textarea>
+                </div>
+            </div>
+            <p class="mt-4 text-xs text-amber-700">Thông tin được lưu tạm trong phiên đăng nhập trên trình duyệt này. Chưa xác minh tư cách mua thuốc; không phải đơn đặt hàng.</p>
+            <button type="button" disabled class="mt-4 cursor-not-allowed rounded-lg bg-slate-200 px-5 py-3 text-sm font-semibold text-slate-500">Gửi yêu cầu (sắp triển khai)</button>
+        </section>
     </div>
 </main>
 <div class="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white px-4 py-3 shadow-lg lg:hidden" style="padding-bottom:calc(12px + env(safe-area-inset-bottom, 0px))">
     <div class="mx-auto flex max-w-6xl items-center justify-between gap-3">
         <div><p class="text-sm font-semibold">Giỏ hàng tạm</p><p class="text-xs text-slate-500"><span data-quick-order-lines>0</span> sản phẩm · <span data-quick-order-quantity>0</span> đơn vị</p><p class="text-xs font-semibold text-emerald-700">Tạm tính: <span data-quick-order-total>0 đ</span></p><p class="text-xs text-amber-700" data-quick-order-unpriced hidden>Có sản phẩm chưa xác định đơn giá.</p></div>
-        <button type="button" disabled class="cursor-not-allowed rounded-lg bg-slate-200 px-4 py-3 text-xs font-semibold text-slate-500">Tiếp tục (sắp triển khai)</button>
+        <button type="button" data-quick-order-continue disabled class="rounded-lg bg-emerald-700 px-4 py-3 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">Tiếp tục</button>
     </div>
 </div>
 @endsection
@@ -59,7 +98,48 @@
     const status = document.getElementById('quick-order-status');
     const more = document.getElementById('quick-order-more');
     if (!search || !results) return;
+    const draftStorageKey = 'website.pharma.quick_order.draft.v1.' + @json((string) auth()->id());
     const quantities = new Map();
+    const buyerFields = ['buyer-type', 'company', 'tax-code', 'recipient', 'phone', 'address', 'notes'];
+    const buyerPanel = document.getElementById('quick-order-buyer-panel');
+    const buyerType = document.getElementById('quick-order-buyer-type');
+    const saveDraft = () => {
+        try {
+            const buyer = {};
+            buyerFields.forEach(field => { buyer[field] = document.getElementById('quick-order-' + field)?.value || ''; });
+            window.sessionStorage.setItem(draftStorageKey, JSON.stringify({
+                quantities: [...quantities].map(([id, qty]) => [id, qty]),
+                buyer
+            }));
+        } catch (_) { /* Browser storage may be disabled. */ }
+    };
+    try {
+        const draft = JSON.parse(window.sessionStorage.getItem(draftStorageKey) || '{}');
+        if (Array.isArray(draft.quantities)) {
+            draft.quantities.slice(0, 200).forEach(entry => {
+                if (!Array.isArray(entry) || entry.length !== 2) return;
+                const id = Number(entry[0]), qty = Number(entry[1]);
+                if (Number.isSafeInteger(id) && id > 0 && Number.isSafeInteger(qty) && qty > 0 && qty <= 9999) quantities.set(id, qty);
+            });
+        }
+        if (draft.buyer && typeof draft.buyer === 'object') {
+            buyerFields.forEach(field => {
+                const input = document.getElementById('quick-order-' + field);
+                if (input && typeof draft.buyer[field] === 'string') input.value = draft.buyer[field].slice(0, input.maxLength > 0 ? input.maxLength : 1000);
+            });
+        }
+    } catch (_) { /* Invalid stored drafts are ignored. */ }
+    const toggleCompanyFields = () => {
+        document.querySelectorAll('[data-company-field]').forEach(el => el.hidden = buyerType.value !== 'company');
+    };
+    buyerType.addEventListener('change', toggleCompanyFields);
+    buyerFields.forEach(field => document.getElementById('quick-order-' + field)?.addEventListener('input', saveDraft));
+    toggleCompanyFields();
+    document.querySelectorAll('[data-quick-order-continue]').forEach(button => button.addEventListener('click', () => {
+        if (!quantities.size) return;
+        buyerPanel.hidden = false;
+        buyerPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }));
     const knownProducts = new Map(initial.map(product => [product.id, product]));
     let products = initial;
     let nextPage = initialNext;
@@ -81,6 +161,7 @@
         });
         document.querySelectorAll('[data-quick-order-total]').forEach(el => el.textContent = total.toLocaleString('vi-VN') + ' đ' + (unknown ? ' +' : ''));
         document.querySelectorAll('[data-quick-order-unpriced]').forEach(el => el.hidden = !unknown);
+        document.querySelectorAll('[data-quick-order-continue]').forEach(el => el.disabled = entries.length === 0);
     };
     const setQuantity = (id, value) => {
         const parsed = Number(value);
@@ -88,6 +169,7 @@
         if (amount) quantities.set(id, amount);
         else quantities.delete(id);
         updateSummary();
+        saveDraft();
         render();
     };
     const render = () => {
