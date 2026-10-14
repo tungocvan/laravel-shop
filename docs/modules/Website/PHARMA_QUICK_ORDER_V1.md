@@ -58,3 +58,10 @@ No test PASS or UI PASS is claimed for this checkpoint.
 - Quick-order search is debounced 300ms with abortable same-origin JSON GET requests, and server-side authentication/feature/price-list scope is reused for JSON responses.
 - Product rows have quantity decrement, numeric input, increment, a page-local selected quantity summary, and native 'Xem thêm' load-more pagination.
 - No prices, buyer form, submission, order persistence, inventory issue creation or stock changes are enabled in this checkpoint. Next: validated persisted cart and buyer-review workflow.
+
+
+## P4.2-A follow-up: displayed price and draft total
+
+- Quick-order UI label changed from `Giá bán CT` to `Đơn giá (Có VAT)` at user request. The value still comes from `company_sale_price`; **VAT-inclusiveness must be verified against canonical Pharma price calculations before accepting orders**.
+- The browser-only cart summary displays a temporary quantity-weighted subtotal of known unit prices. When any selected line has no unique price, the UI marks the subtotal incomplete; it is not an order total.
+- No request submission or inventory issue creation is enabled.
