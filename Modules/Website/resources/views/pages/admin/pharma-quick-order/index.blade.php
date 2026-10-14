@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="max-w-5xl mx-auto px-4 py-6">
-    <h1 class="text-2xl font-semibold text-gray-900">Đặt hàng nhanh Pharma</h1>
+    <div class="flex flex-wrap items-center justify-between gap-3"><h1 class="text-2xl font-semibold text-gray-900">Đặt hàng nhanh Pharma</h1><a href="{{ route('admin.website.pharma-quick-order.requests.index') }}" class="rounded-lg border border-emerald-300 px-3 py-2 text-sm font-semibold text-emerald-700">Xem yêu cầu đặt hàng</a></div>
     <p class="mt-2 text-sm text-gray-600">Chỉ bảng giá đang hoạt động và được chọn tại đây mới có thể trở thành nguồn đặt hàng. Quyền người dùng và phạm vi khách hàng vẫn phải được kiểm tra ở phía máy chủ.</p>
 
     @if(session('success'))
