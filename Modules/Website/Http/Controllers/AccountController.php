@@ -21,6 +21,7 @@ class AccountController extends Controller
     public function orders(Request $request)
     {
         $pharmaRequests = PharmaQuickOrderRequest::query()
+            ->with('inventoryIssue:id,status')
             ->where('user_id', $request->user()->id)
             ->orderByDesc('id')
             ->paginate(10, ['*'], 'pharma_page');
@@ -31,6 +32,7 @@ class AccountController extends Controller
     public function pharmaRequestDetail(Request $request, int $id, PharmaQuickOrderDisplayService $display)
     {
         $pharmaRequest = PharmaQuickOrderRequest::query()
+            ->with('inventoryIssue:id,status,posted_at')
             ->where('user_id', $request->user()->id)
             ->findOrFail($id);
 
