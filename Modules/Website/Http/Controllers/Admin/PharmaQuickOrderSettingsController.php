@@ -25,11 +25,11 @@ class PharmaQuickOrderSettingsController extends Controller
     {
         $validated = $request->validate([
             'enabled' => ['required', 'boolean'],
-            'price_list_ids' => ['present', 'array', 'max:200'],
+            'price_list_ids' => ['sometimes', 'array', 'max:200'],
             'price_list_ids.*' => ['required', 'integer', 'distinct', 'min:1'],
         ]);
 
-        $ids = array_map('intval', $validated['price_list_ids']);
+        $ids = array_map('intval', ($validated['price_list_ids'] ?? []));
         $eligibleCount = PriceList::query()->whereIn('id', $ids)
             ->where('status', PriceList::STATUS_ACTIVE)->count();
 
