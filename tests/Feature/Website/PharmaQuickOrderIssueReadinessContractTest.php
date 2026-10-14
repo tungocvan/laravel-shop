@@ -15,7 +15,7 @@ final class PharmaQuickOrderIssueReadinessContractTest extends TestCase
 
         $this->assertStringContainsString("status !== 'accepted'", $source);
         $this->assertStringContainsString("quantity <= 0", $source);
-        $this->assertStringContainsString("! $link->medicine_id", $source);
+        $this->assertStringContainsString('! $link->medicine_id', $source);
         $this->assertStringContainsString("'ready_for_authoring'", $source);
         $this->assertStringNotContainsString('InventoryIssue::create', $source);
         $this->assertStringNotContainsString('InventoryIssueItem::create', $source);
