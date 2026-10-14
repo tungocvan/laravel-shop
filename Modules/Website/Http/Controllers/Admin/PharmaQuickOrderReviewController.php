@@ -11,6 +11,8 @@ use Modules\Website\Models\PharmaQuickOrderRequest;
 use Modules\Website\Services\PharmaQuickOrderDisplayService;
 use Modules\Website\Services\PharmaQuickOrderIssueReadinessService;
 use Modules\Pharma\Services\UserOrderAuthoringService;
+use Modules\Pharma\Models\PriceList;
+use Modules\Pharma\Models\PriceListItem;
 
 final class PharmaQuickOrderReviewController extends Controller
 {
@@ -52,6 +54,8 @@ final class PharmaQuickOrderReviewController extends Controller
             'issueReadiness' => $readiness->inspect($quickOrderRequest),
             'handoffManagers' => $authoring->orderManagers(),
             'handoffCustomers' => $authoring->customers(),
+            'handoffPriceLists' => PriceList::query()->activeAt(now()->toDateString())->orderBy('name')->get(['id', 'name', 'type', 'partner_id']),
+            'handoffPriceItems' => PriceListItem::query()->where('status', 'active')->whereIn('medicine_id', collect($readiness->inspect($quickOrderRequest)['lines'])->pluck('medicine_id'))->whereHas('priceList', fn ($q) => $q->activeAt(now()->toDateString()))->get(['id', 'price_list_id', 'medicine_id', 'medicine_variant_id', 'medicine_package_id', 'company_sale_price']),
         ]);
     }
 
