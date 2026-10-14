@@ -23,6 +23,15 @@ final class PharmaQuickOrderCustomerCompletionTest extends TestCase
         $request->setRelation('inventoryIssue', new InventoryIssue(['status' => InventoryIssue::DRAFT]));
         $this->assertSame('processing', $request->customer_order_status);
 
+        $request->setRelation('inventoryIssue', new InventoryIssue(['status' => InventoryIssue::REJECTED]));
+        $this->assertSame('issue_rejected', $request->customer_order_status);
+
+        $request->setRelation('inventoryIssue', new InventoryIssue(['status' => InventoryIssue::CANCELLED]));
+        $this->assertSame('issue_cancelled', $request->customer_order_status);
+
+        $request->setRelation('inventoryIssue', new InventoryIssue(['status' => InventoryIssue::DRAFT]));
+        $this->assertSame('processing', $request->customer_order_status);
+
         $request->setRelation('inventoryIssue', null);
         $this->assertSame('processing', $request->customer_order_status);
         $request->status = 'rejected';
@@ -38,7 +47,9 @@ final class PharmaQuickOrderCustomerCompletionTest extends TestCase
         $this->assertStringContainsString("->with('inventoryIssue:id,status,posted_at')", $controller);
         $this->assertStringContainsString('customer_order_status', $index);
         $this->assertStringContainsString('Hoàn tất · Đã ghi sổ', $index);
+        $this->assertStringContainsString('Phiếu xuất bị từ chối', $index);
         $this->assertStringContainsString('customer_order_status', $detail);
         $this->assertStringContainsString('Đã ghi sổ xuất kho thành công', $detail);
+        $this->assertStringContainsString('Phiếu xuất kho đã bị từ chối.', $detail);
     }
 }
