@@ -71,6 +71,45 @@
                     <div class="mt-4 rounded-lg bg-slate-50 p-3 text-sm text-slate-600">Yêu cầu đã được xét duyệt. Không thể thực hiện lại thao tác.</div>
                 @endif
             </section>
+
+            @if($quickOrderRequest->status === 'accepted')
+                <section class="mt-4 rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
+                    <h2 class="text-base font-bold text-slate-900">Chuyển sang phiếu xuất nháp</h2>
+                    @if($quickOrderRequest->inventory_issue_id)
+                        <p class="mt-2 text-sm text-emerald-700">Đã tạo phiếu xuất nháp #{{ $quickOrderRequest->inventory_issue_id }}. Không tạo lại khi gửi yêu cầu nhiều lần.</p>
+                        <a href="{{ url('/admin/pharma/inventory/issues/'.$quickOrderRequest->inventory_issue_id) }}" class="mt-3 inline-flex rounded-lg bg-emerald-700 px-3 py-2 text-sm font-semibold text-white">Mở phiếu xuất</a>
+                    @elseif(!$issueReadiness['ready_for_authoring'])
+                        <p class="mt-2 text-sm text-rose-700">Chưa đủ điều kiện chuyển phiếu:</p>
+                        <ul class="mt-2 list-disc space-y-1 pl-5 text-xs text-rose-700">@foreach($issueReadiness['problems'] as $problem)<li>{{ $problem }}</li>@endforeach</ul>
+                    @else
+                        <p class="mt-2 text-xs leading-5 text-slate-500">Chọn khách hàng Pharma, người phụ trách và bảng giá đang hiệu lực. Mỗi thuốc phải khớp đúng quy cách. Phiếu tạo ra chỉ ở trạng thái Nháp.</p>
+                        <form method="POST" action="{{ route('admin.website.pharma-quick-order.requests.inventory-draft', $quickOrderRequest) }}" class="mt-4 space-y-3">
+                            @csrf
+                            <label class="block text-xs font-semibold text-slate-700">Khách hàng Pharma
+                                <select name="recipient_partner_id" required class="mt-1 w-full rounded-lg border border-slate-200 p-2 text-sm"><option value="">Chọn khách hàng</option>@foreach($handoffCustomers as $customer)<option value="{{ $customer->id }}" @selected(old('recipient_partner_id') == $customer->id)>{{ $customer->name }} ({{ $customer->tax_code }})</option>@endforeach</select>
+                            </label>
+                            <label class="block text-xs font-semibold text-slate-700">Người phụ trách
+                                <select name="manager_user_id" required class="mt-1 w-full rounded-lg border border-slate-200 p-2 text-sm"><option value="">Chọn người phụ trách</option>@foreach($handoffManagers as $manager)<option value="{{ $manager->id }}" @selected(old('manager_user_id') == $manager->id)>{{ $manager->name }}</option>@endforeach</select>
+                            </label>
+                            <label class="block text-xs font-semibold text-slate-700">Bảng giá
+                                <select name="price_list_id" required class="mt-1 w-full rounded-lg border border-slate-200 p-2 text-sm"><option value="">Chọn bảng giá</option>@foreach($handoffPriceLists as $list)<option value="{{ $list->id }}" @selected(old('price_list_id') == $list->id)>#{{ $list->id }} — {{ $list->name }}</option>@endforeach</select>
+                            </label>
+                            @foreach($issueReadiness['lines'] as $index => $line)
+                                <label class="block text-xs font-semibold text-slate-700">Thuốc Pharma #{{ $line['medicine_id'] }} · Số lượng {{ $line['quantity'] }}
+                                    <select name="items[{{ $index }}]" required class="mt-1 w-full rounded-lg border border-slate-200 p-2 text-sm"><option value="">Chọn dòng bảng giá đúng quy cách</option>
+                                        @foreach($handoffPriceItems as $priceItem)
+                                            @if((int)$priceItem->medicine_id === (int)$line['medicine_id'] && (int)$priceItem->medicine_variant_id === (int)$line['medicine_variant_id'] && (int)$priceItem->medicine_package_id === (int)$line['medicine_package_id'])
+                                                <option value="{{ $priceItem->id }}" @selected(old('items.'.$index) == $priceItem->id)>Bảng giá #{{ $priceItem->price_list_id }} · Dòng #{{ $priceItem->id }} · {{ number_format((float)$priceItem->company_sale_price, 0, ',', '.') }} đ</option>
+                                            @endif
+                                        @endforeach
+                                    </select>
+                                </label>
+                            @endforeach
+                            <button type="submit" onclick="return confirm('Tạo phiếu xuất NHÁP? Chưa duyệt và chưa trừ tồn kho.')" class="w-full rounded-lg bg-emerald-700 px-3 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800">Tạo phiếu xuất nháp</button>
+                        </form>
+                    @endif
+                </section>
+            @endif
         </aside>
     </div>
 </div>
