@@ -28,7 +28,9 @@ final class PharmaQuickOrderIssueHandoffService
         return DB::transaction(function () use ($requestId, $adminId, $managerUserId, $partnerId, $note): InventoryIssue {
             $request = PharmaQuickOrderRequest::query()->lockForUpdate()->findOrFail($requestId);
             if ($request->inventory_issue_id) {
-                return InventoryIssue::query()->findOrFail($request->inventory_issue_id);
+                throw ValidationException::withMessages([
+                    'handoff' => 'Yêu cầu đã liên kết phiếu xuất. Không thể duyệt hoặc lập thêm phiếu. Vui lòng kiểm tra phiếu hiện có.',
+                ]);
             }
             if ($request->status !== PharmaQuickOrderRequest::PENDING_REVIEW) {
                 throw ValidationException::withMessages(['handoff' => 'Chỉ có thể duyệt và lập phiếu cho yêu cầu đang chờ xét duyệt.']);
@@ -115,7 +117,9 @@ final class PharmaQuickOrderIssueHandoffService
             $request = PharmaQuickOrderRequest::query()->lockForUpdate()->findOrFail($requestId);
 
             if ($request->inventory_issue_id) {
-                return InventoryIssue::query()->findOrFail($request->inventory_issue_id);
+                throw ValidationException::withMessages([
+                    'handoff' => 'Yêu cầu đã liên kết phiếu xuất. Không thể duyệt hoặc lập thêm phiếu. Vui lòng kiểm tra phiếu hiện có.',
+                ]);
             }
             if ($request->status !== 'accepted') {
                 throw ValidationException::withMessages(['handoff' => 'Chỉ được lập phiếu từ yêu cầu đã chấp nhận.']);
