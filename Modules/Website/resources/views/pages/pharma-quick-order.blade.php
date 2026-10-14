@@ -43,12 +43,7 @@
 
 @push('scripts')
 @php
-    $quickOrderInitialProducts = $items->getCollection()->map(fn ($product) => [
-        'id' => $product->id,
-        'title' => $product->title,
-        'slug' => $product->slug,
-        'image' => $product->image,
-    ])->values()->all();
+    $quickOrderInitialProducts = $quickOrderProducts->values()->all();
     $quickOrderInitialNextPage = $items->hasMorePages() ? $items->currentPage() + 1 : null;
 @endphp
 <script>
@@ -99,7 +94,9 @@
             name.href = @json(route('product.list')) .replace(/\/$/, '') + '/' + encodeURIComponent(product.slug);
             const note = document.createElement('p');
             note.className = 'mt-1 text-xs text-slate-500';
-            note.textContent = 'Giá xác nhận khi xét duyệt';
+            note.textContent = product.company_sale_price !== null
+                ? 'Giá bán CT: ' + Number(product.company_sale_price).toLocaleString('vi-VN') + ' đ'
+                : 'Giá bán CT: Liên hệ xác nhận';
             details.append(name, note);
             const controls = document.createElement('div');
             controls.className = 'ml-auto flex shrink-0 items-center gap-1';
