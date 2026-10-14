@@ -24,8 +24,12 @@ final class PharmaQuickOrderReviewContractTest extends TestCase
         $this->assertStringContainsString("'decision' => ['required', 'in:rejected']", $controller);
         $this->assertStringNotContainsString("'in:accepted,rejected'", $controller);
         $this->assertStringContainsString("DB::table('website_pharma_quick_order_reviews')->insert(", $controller);
-        $this->assertStringNotContainsString('InventoryIssue::', $controller);
-        $this->assertStringNotContainsString('createDraft(', $controller);
+        // The show() action may read the linked InventoryIssue for display.
+        // Only the rejection review() action must remain free of inventory mutations.
+        $reviewAction = explode('public function review(', $controller, 2)[1] ?? '';
+        $this->assertNotSame('', $reviewAction);
+        $this->assertStringNotContainsString('InventoryIssue::', $reviewAction);
+        $this->assertStringNotContainsString('createDraft(', $reviewAction);
     }
 
     public function test_review_views_show_buyer_products_audit_and_admin_navigation(): void
