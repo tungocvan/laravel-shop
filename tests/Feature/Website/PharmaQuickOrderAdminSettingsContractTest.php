@@ -41,4 +41,12 @@ class PharmaQuickOrderAdminSettingsContractTest extends TestCase
         $this->assertStringContainsString("->withErrors(", $controller);
         $this->assertStringNotContainsString('createDraft(', $controller);
     }
+    public function test_pharma_homepage_workspace_links_to_admin_settings_only_for_authorized_admin(): void
+    {
+        $view = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/home/partials/pharma-layout-builder.blade.php'));
+        $this->assertStringContainsString("hasPermissionTo('website.settings.manage', 'admin')", $view);
+        $this->assertStringContainsString("route('admin.website.pharma-quick-order.index')", $view);
+        $this->assertStringContainsString('Đặt hàng nhanh Pharma — nguồn bảng giá', $view);
+    }
+
 }
