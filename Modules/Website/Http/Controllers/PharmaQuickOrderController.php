@@ -53,19 +53,41 @@ final class PharmaQuickOrderController extends Controller
             })
             ->whereHas('categories', fn ($category) => $category->where('type', 'medicine'))
             ->when($search !== '', fn ($query) => $query->where('title', 'like', '%'.$search.'%'))
+            ->with('pharmaLink')
             ->select(['id', 'title', 'slug', 'image', 'short_description'])
             ->orderBy('title')
             ->paginate(12)
             ->withQueryString();
 
+
+        // Price must match the exact Pharma variant and package linked to the Website product.
+        $links = $items->getCollection()->pluck('pharmaLink')->filter();
+        $prices = PriceListItem::query()
+            ->whereIn('price_list_id', $globalListIds)
+            ->whereIn('medicine_variant_id', $links->pluck('medicine_variant_id')->filter()->unique())
+            ->where(fn ($q) => $q->whereNull('effective_from')->orWhereDate('effective_from', '<=', now()->toDateString()))
+            ->where(fn ($q) => $q->whereNull('effective_to')->orWhereDate('effective_to', '>=', now()->toDateString()))
+            ->get(['medicine_variant_id', 'medicine_package_id', 'company_sale_price']);
+
+        $productPayload = $items->getCollection()->map(function ($product) use ($prices): array {
+            $link = $product->pharmaLink;
+            $matches = $prices->filter(fn ($item) => $link
+                && (int) $item->medicine_variant_id === (int) $link->medicine_variant_id
+                && (int) ($item->medicine_package_id ?? 0) === (int) ($link->medicine_package_id ?? 0)
+            )->pluck('company_sale_price')->filter(fn ($value) => $value !== null)->unique()->values();
+
+            return [
+                'id' => $product->id,
+                'title' => $product->title,
+                'slug' => $product->slug,
+                'image' => $product->image,
+                'company_sale_price' => $matches->count() === 1 ? (float) $matches->first() : null,
+            ];
+        });
+
         if ($request->expectsJson()) {
             return response()->json([
-                'products' => $items->getCollection()->map(fn ($product) => [
-                    'id' => $product->id,
-                    'title' => $product->title,
-                    'slug' => $product->slug,
-                    'image' => $product->image,
-                ])->values(),
+                'products' => $productPayload->values(),
                 'next_page' => $items->hasMorePages() ? $items->currentPage() + 1 : null,
             ]);
         }
@@ -73,6 +95,7 @@ final class PharmaQuickOrderController extends Controller
         return view('Website::pages.pharma-quick-order', [
             'items' => $items,
             'search' => $search,
+            'quickOrderProducts' => $productPayload,
         ]);
     }
 }
