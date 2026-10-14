@@ -55,7 +55,7 @@ class WebsiteHeaderPhase9FConfigurationTest extends TestCase
         $view = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/header/header-settings-hub.blade.php'));
         $themeView = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/header/partials/theme-manager.blade.php'));
 
-        $this->assertStringContainsString("'header.layout_themes'", $component);
+        $this->assertStringContainsString("$this->settingKey('layout_themes')", $component);
         $this->assertStringContainsString('THEME_VERSION = 1', $component);
         $this->assertStringContainsString('MAX_THEMES = 20', $component);
         $this->assertStringContainsString('saveTheme(', $component);
