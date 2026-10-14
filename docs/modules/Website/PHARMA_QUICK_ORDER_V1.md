@@ -90,3 +90,10 @@ No test PASS or UI PASS is claimed for this checkpoint.
 - Admin Website Quick Order settings include optional single notification email (`notification_email`, RFC format, max 254 characters), stored in the existing settings payload. Empty means no email.
 - A plain-text email with request ID, buyer type and item count is sent only when a new request record is created; idempotent replays do not send again. Mail failures are logged and do not change the persisted pending request. SMTP/mail configuration must be verified in the target environment.
 - This is notification only, not an Admin review queue, buyer approval, price validation, or inventory issue creation. Those remain future checkpoints.
+
+
+## Multi-recipient queued email checkpoint
+
+- Admin notification recipients accept up to 10 valid email addresses separated by semicolons or commas; whitespace and duplicate addresses are normalized, invalid addresses are rejected on save.
+- New requests dispatch `SendPharmaQuickOrderNotification` with `afterCommit()`, only for first creation (idempotent replays do not enqueue). Job implements `ShouldQueue` with three attempts and fetches request by ID. No buyer PII is embedded in the job payload.
+- Queue worker must be running and `QUEUE_CONNECTION` must not be `sync` to gain asynchronous behavior. Check `php artisan queue:failed` for delivery failures. Email is notification only, not approval or inventory posting.
