@@ -27,6 +27,8 @@
             <aside class="hidden self-start rounded-xl border border-slate-200 bg-white p-4 shadow-sm lg:sticky lg:top-5 lg:block" aria-label="Giỏ hàng tạm">
                 <h2 class="font-semibold">Giỏ hàng tạm</h2>
                 <p class="mt-2 text-sm text-slate-600"><span data-quick-order-lines>0</span> sản phẩm · <span data-quick-order-quantity>0</span> đơn vị</p>
+                <p class="mt-2 text-sm font-semibold text-emerald-700">Tạm tính: <span data-quick-order-total>0 đ</span></p>
+                <p class="mt-1 text-xs text-amber-700" data-quick-order-unpriced hidden>Có sản phẩm chưa xác định đơn giá.</p>
                 <p class="mt-3 text-xs text-slate-500">Chưa gửi yêu cầu. Đơn hàng cần được Admin xét duyệt trước khi xuất kho.</p>
                 <button type="button" disabled class="mt-4 w-full cursor-not-allowed rounded-lg bg-slate-200 px-4 py-3 text-sm font-semibold text-slate-500">Tiếp tục (sắp triển khai)</button>
             </aside>
@@ -35,7 +37,7 @@
 </main>
 <div class="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white px-4 py-3 shadow-lg lg:hidden" style="padding-bottom:calc(12px + env(safe-area-inset-bottom, 0px))">
     <div class="mx-auto flex max-w-6xl items-center justify-between gap-3">
-        <div><p class="text-sm font-semibold">Giỏ hàng tạm</p><p class="text-xs text-slate-500"><span data-quick-order-lines>0</span> sản phẩm · <span data-quick-order-quantity>0</span> đơn vị</p></div>
+        <div><p class="text-sm font-semibold">Giỏ hàng tạm</p><p class="text-xs text-slate-500"><span data-quick-order-lines>0</span> sản phẩm · <span data-quick-order-quantity>0</span> đơn vị</p><p class="text-xs font-semibold text-emerald-700">Tạm tính: <span data-quick-order-total>0 đ</span></p><p class="text-xs text-amber-700" data-quick-order-unpriced hidden>Có sản phẩm chưa xác định đơn giá.</p></div>
         <button type="button" disabled class="cursor-not-allowed rounded-lg bg-slate-200 px-4 py-3 text-xs font-semibold text-slate-500">Tiếp tục (sắp triển khai)</button>
     </div>
 </div>
@@ -58,6 +60,7 @@
     const more = document.getElementById('quick-order-more');
     if (!search || !results) return;
     const quantities = new Map();
+    const knownProducts = new Map(initial.map(product => [product.id, product]));
     let products = initial;
     let nextPage = initialNext;
     let controller = null;
@@ -69,6 +72,15 @@
         const entries = [...quantities.values()].filter(n => n > 0);
         document.querySelectorAll('[data-quick-order-lines]').forEach(el => el.textContent = String(entries.length));
         document.querySelectorAll('[data-quick-order-quantity]').forEach(el => el.textContent = String(entries.reduce((a,b) => a+b, 0)));
+        let total = 0;
+        let unknown = false;
+        quantities.forEach((quantity, id) => {
+            const price = knownProducts.get(id)?.company_sale_price;
+            if (price === null || price === undefined || !Number.isFinite(Number(price))) unknown = true;
+            else total += quantity * Number(price);
+        });
+        document.querySelectorAll('[data-quick-order-total]').forEach(el => el.textContent = total.toLocaleString('vi-VN') + ' đ' + (unknown ? ' +' : ''));
+        document.querySelectorAll('[data-quick-order-unpriced]').forEach(el => el.hidden = !unknown);
     };
     const setQuantity = (id, value) => {
         const parsed = Number(value);
@@ -95,8 +107,8 @@
             const note = document.createElement('p');
             note.className = 'mt-1 text-xs text-slate-500';
             note.textContent = product.company_sale_price !== null
-                ? 'Giá bán CT: ' + Number(product.company_sale_price).toLocaleString('vi-VN') + ' đ'
-                : 'Giá bán CT: Liên hệ xác nhận';
+                ? 'Đơn giá (Có VAT): ' + Number(product.company_sale_price).toLocaleString('vi-VN') + ' đ'
+                : 'Đơn giá (Có VAT): Liên hệ xác nhận';
             details.append(name, note);
             const controls = document.createElement('div');
             controls.className = 'ml-auto flex shrink-0 items-center gap-1';
@@ -144,6 +156,8 @@
             const payload = await response.json();
             if (current !== serial) return;
             products = append ? products.concat(payload.products) : payload.products;
+            payload.products.forEach(product => knownProducts.set(product.id, product));
+            updateSummary();
             nextPage = payload.next_page;
             status.textContent = products.length + ' sản phẩm đã hiển thị';
         } catch (error) {
