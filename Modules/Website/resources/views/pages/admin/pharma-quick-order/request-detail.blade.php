@@ -65,13 +65,17 @@
                             <p class="text-xs font-semibold text-slate-700">Thông tin lập phiếu xuất nháp</p>
                             <div>
                                 <label class="mb-1 block text-xs font-semibold text-slate-700">Khách hàng Pharma</label>
-                                <input name="recipient_partner_id" list="quick-order-customers" required inputmode="numeric" placeholder="Nhập mã ID khách hàng hoặc chọn gợi ý" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" value="{{ old('recipient_partner_id') }}">
-                                <datalist id="quick-order-customers">@foreach($handoffCustomers as $customer)<option value="{{ $customer->id }}">{{ $customer->name }} · {{ $customer->tax_code }}</option>@endforeach</datalist>
+                                <x-select-search id="quick-order-customer-select" name="recipient_partner_id" placeholder="Tìm khách hàng Pharma..." required>
+                                    <option value="">Chọn khách hàng</option>
+                                    @foreach($handoffCustomers as $customer)<option value="{{ $customer->id }}" @selected(old('recipient_partner_id') == $customer->id)>{{ $customer->name }} · {{ $customer->tax_code }}</option>@endforeach
+                                </x-select-search>
                             </div>
                             <div>
                                 <label class="mb-1 block text-xs font-semibold text-slate-700">Người phụ trách</label>
-                                <input name="manager_user_id" list="quick-order-managers" required inputmode="numeric" placeholder="Nhập mã ID người phụ trách hoặc chọn gợi ý" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" value="{{ old('manager_user_id') }}">
-                                <datalist id="quick-order-managers">@foreach($handoffManagers as $manager)<option value="{{ $manager->id }}">{{ $manager->name }}</option>@endforeach</datalist>
+                                <x-select-search id="quick-order-manager-select" name="manager_user_id" placeholder="Tìm người phụ trách..." required>
+                                    <option value="">Chọn người phụ trách</option>
+                                    @foreach($handoffManagers as $manager)<option value="{{ $manager->id }}" @selected(old('manager_user_id') == $manager->id)>{{ $manager->name }}</option>@endforeach
+                                </x-select-search>
                             </div>
                             <p class="text-xs text-slate-500">Bảng giá và đơn giá được đối chiếu tự động theo cấu hình đặt hàng nhanh. Nếu có nhiều bảng giá trùng khớp, hệ thống sẽ yêu cầu xử lý cấu hình.</p>
                         </div>
