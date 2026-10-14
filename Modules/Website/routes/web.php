@@ -19,6 +19,7 @@ use Modules\Website\Http\Controllers\CartController;
 use Modules\Website\Http\Controllers\CheckoutController;
 use Modules\Website\Http\Controllers\PostController;
 use Modules\Website\Http\Controllers\ProductController;
+use Modules\Website\Http\Controllers\PharmaQuickOrderController;
 use Modules\Website\Http\Controllers\SitemapController;
 use Modules\Website\Http\Controllers\WebsiteController;
 
@@ -57,6 +58,8 @@ Route::middleware('web')->group(function () {
         Route::get('/momo-callback', 'momoCallback')->name('momo.callback');
         Route::post('/momo-ipn', 'momoIpn')->withoutMiddleware([ValidateCsrfToken::class])->name('momo.ipn');
     });
+
+    Route::middleware('auth')->get('/quick-order', [PharmaQuickOrderController::class, 'index'])->name('website.pharma.quick-order');
 
     Route::middleware('auth')->prefix('account')->name('account.')->controller(AccountController::class)->group(function () {
         Route::get('/', 'index')->name('dashboard');
