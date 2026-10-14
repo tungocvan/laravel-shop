@@ -9,6 +9,8 @@ class WebsiteFooterDecompositionConfigurationTest extends TestCase
     public function test_footer_partial_is_an_orchestration_shell(): void
     {
         $footer = file_get_contents(base_path('Modules/Website/resources/views/partials/footer.blade.php'));
+        $this->assertStringContainsString("Website::partials.footer-shared", $footer);
+        $footer = file_get_contents(base_path('Modules/Website/resources/views/partials/footer-shared.blade.php'));
 
         $this->assertStringContainsString('components.footer.slot', $footer);
         $this->assertStringContainsString("@livewire('website.chat.chat-widget',", $footer);

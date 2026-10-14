@@ -4,6 +4,9 @@ namespace Modules\Website\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Modules\Order\Services\OrderQueryService;
+use Illuminate\Http\Request;
+use Modules\Website\Models\PharmaQuickOrderRequest;
+use Modules\Website\Services\PharmaQuickOrderDisplayService;
 
 class AccountController extends Controller
 {
@@ -15,9 +18,28 @@ class AccountController extends Controller
         return view('Website::account.dashboard', compact('totalOrders'));
     }
 
-    public function orders()
+    public function orders(Request $request)
     {
-        return view('Website::account.orders.index');
+        $pharmaRequests = PharmaQuickOrderRequest::query()
+            ->with('inventoryIssue:id,status')
+            ->where('user_id', $request->user()->id)
+            ->orderByDesc('id')
+            ->paginate(10, ['*'], 'pharma_page');
+
+        return view('Website::account.orders.index', compact('pharmaRequests'));
+    }
+
+    public function pharmaRequestDetail(Request $request, int $id, PharmaQuickOrderDisplayService $display)
+    {
+        $pharmaRequest = PharmaQuickOrderRequest::query()
+            ->with('inventoryIssue:id,status,posted_at')
+            ->where('user_id', $request->user()->id)
+            ->findOrFail($id);
+
+        return view('Website::account.orders.pharma-request', [
+            'pharmaRequest' => $pharmaRequest,
+            'lines' => $display->lines($pharmaRequest),
+        ]);
     }
 
     public function orderDetail($code)

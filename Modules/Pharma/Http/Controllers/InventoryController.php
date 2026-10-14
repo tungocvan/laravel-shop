@@ -617,10 +617,14 @@ final class InventoryController extends Controller
         $issueRecipients=InventoryIssue::query()->where('warehouse_id',$warehouse->id)->whereNotNull('recipient_name')
             ->where('recipient_name','<>','')->distinct()->orderBy('recipient_name')->pluck('recipient_name');
         $issueDocumentStatuses=app(InventoryIssueDocumentService::class)->statuses($documents->getCollection());
+        $quickOrderIssueIds=\Modules\Website\Models\PharmaQuickOrderRequest::query()
+            ->whereIn('inventory_issue_id', $documents->getCollection()->pluck('id'))
+            ->pluck('inventory_issue_id')->map(fn ($id) => (int) $id)->all();
         return view('Pharma::pages.inventory.documents',[
             'type'=>'issue','title'=>'Phiếu xuất kho','documents'=>$documents,
             'issueManagers'=>$issueManagers,'issueRecipients'=>$issueRecipients,
             'dateFrom'=>$dateFrom,'dateTo'=>$dateTo,'issueDocumentStatuses'=>$issueDocumentStatuses,
+            'quickOrderIssueIds'=>$quickOrderIssueIds,
         ]);
     }
     public function issueDocumentSettings(): View

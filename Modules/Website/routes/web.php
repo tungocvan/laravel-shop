@@ -11,6 +11,9 @@ use Modules\Website\Http\Controllers\Admin\FlashSaleController;
 use Modules\Website\Http\Controllers\Admin\FooterController;
 use Modules\Website\Http\Controllers\Admin\HeaderController;
 use Modules\Website\Http\Controllers\Admin\HomeSettingsController;
+use Modules\Website\Http\Controllers\Admin\PharmaQuickOrderSettingsController;
+use Modules\Website\Http\Controllers\Admin\PharmaQuickOrderReviewController;
+use Modules\Website\Http\Controllers\Admin\PharmaQuickOrderIssueHandoffController;
 use Modules\Website\Http\Controllers\Admin\WebsiteDashboardController;
 use Modules\Website\Http\Controllers\Admin\WebsiteSettingsController;
 use Modules\Website\Http\Controllers\AuthController;
@@ -18,6 +21,7 @@ use Modules\Website\Http\Controllers\CartController;
 use Modules\Website\Http\Controllers\CheckoutController;
 use Modules\Website\Http\Controllers\PostController;
 use Modules\Website\Http\Controllers\ProductController;
+use Modules\Website\Http\Controllers\PharmaQuickOrderController;
 use Modules\Website\Http\Controllers\SitemapController;
 use Modules\Website\Http\Controllers\WebsiteController;
 
@@ -57,11 +61,15 @@ Route::middleware('web')->group(function () {
         Route::post('/momo-ipn', 'momoIpn')->withoutMiddleware([ValidateCsrfToken::class])->name('momo.ipn');
     });
 
+    Route::middleware('auth')->get('/quick-order', [PharmaQuickOrderController::class, 'index'])->name('website.pharma.quick-order');
+    Route::middleware('auth')->post('/quick-order/requests', [PharmaQuickOrderController::class, 'store'])->name('website.pharma.quick-order.requests.store');
+
     Route::middleware('auth')->prefix('account')->name('account.')->controller(AccountController::class)->group(function () {
         Route::get('/', 'index')->name('dashboard');
         Route::get('/profile', 'profile')->name('profile');
         Route::get('/affiliate', 'affiliate')->name('affiliate');
         Route::get('/orders', 'orders')->name('orders');
+        Route::get('/pharma-requests/{id}', 'pharmaRequestDetail')->whereNumber('id')->name('pharma-requests.show');
         Route::get('/orders/{code}', 'orderDetail')->name('orders.detail');
         Route::get('/wishlist', 'wishlist')->name('wishlist');
     });
@@ -70,6 +78,16 @@ Route::middleware('web')->group(function () {
 Route::middleware(['web', 'auth:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/website', [WebsiteDashboardController::class, 'index'])->middleware('permission:website.view,admin')->name('website.dashboard');
     Route::get('/website/settings', [WebsiteSettingsController::class, 'index'])->middleware('permission:website.settings.manage,admin')->name('website.settings');
+    Route::get('/website/pharma-quick-order', [PharmaQuickOrderSettingsController::class, 'index'])->middleware('permission:website.settings.manage,admin')->name('website.pharma-quick-order.index');
+    Route::put('/website/pharma-quick-order', [PharmaQuickOrderSettingsController::class, 'update'])->middleware('permission:website.settings.manage,admin')->name('website.pharma-quick-order.update');
+    Route::get('/website/pharma-quick-order/requests', [PharmaQuickOrderReviewController::class, 'index'])->middleware('permission:website.settings.manage,admin')->name('website.pharma-quick-order.requests.index');
+    Route::get('/website/pharma-quick-order/requests/{quickOrderRequest}', [PharmaQuickOrderReviewController::class, 'show'])->middleware('permission:website.settings.manage,admin')->name('website.pharma-quick-order.requests.show');
+    Route::post('/website/pharma-quick-order/requests/{quickOrderRequest}/accept-and-draft', [PharmaQuickOrderIssueHandoffController::class, 'accept'])->middleware('permission:website.settings.manage,admin')->name('website.pharma-quick-order.requests.accept-and-draft');
+    Route::post('/website/pharma-quick-order/requests/{quickOrderRequest}/inventory-draft', [PharmaQuickOrderIssueHandoffController::class, 'store'])->middleware('permission:website.settings.manage,admin')->name('website.pharma-quick-order.requests.inventory-draft');
+    Route::post('/website/pharma-quick-order/requests/{quickOrderRequest}/review', [PharmaQuickOrderReviewController::class, 'review'])->middleware('permission:website.settings.manage,admin')->name('website.pharma-quick-order.requests.review');
+    Route::post('/website/pharma-quick-order/requests/{quickOrderRequest}/unlink', [\Modules\Website\Http\Controllers\Admin\PharmaQuickOrderLifecycleController::class, 'unlink'])->middleware('permission:website.settings.manage,admin')->name('website.pharma-quick-order.requests.unlink');
+    Route::post('/website/pharma-quick-order/requests/{quickOrderRequest}/revert', [\Modules\Website\Http\Controllers\Admin\PharmaQuickOrderLifecycleController::class, 'revert'])->middleware('permission:website.settings.manage,admin')->name('website.pharma-quick-order.requests.revert');
+    Route::delete('/website/pharma-quick-order/requests/{quickOrderRequest}', [\Modules\Website\Http\Controllers\Admin\PharmaQuickOrderLifecycleController::class, 'destroy'])->middleware('permission:website.settings.manage,admin')->name('website.pharma-quick-order.requests.destroy');
     Route::get('/affiliate', [AffiliateController::class, 'index'])->middleware('permission:affiliate.view,admin')->name('affiliate.index');
     Route::get('/homepage-settings', [HomeSettingsController::class, 'index'])->middleware('permission:website.home.manage,admin')->name('home.settings');
     Route::get('/header-settings', [HeaderController::class, 'index'])->middleware('permission:website.menu.manage,admin')->name('header.settings');

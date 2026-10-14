@@ -53,8 +53,10 @@ class WebsiteFooterPresentationConfigurationTest extends TestCase
     {
         $provider = file_get_contents(base_path('Modules/Website/Providers/WebsiteServiceProvider.php'));
         $footer = file_get_contents(base_path('Modules/Website/resources/views/partials/footer.blade.php'));
+        $this->assertStringContainsString("Website::partials.footer-shared", $footer);
+        $footer = file_get_contents(base_path('Modules/Website/resources/views/partials/footer-shared.blade.php'));
 
-        $this->assertStringContainsString("get('footer.presentation')", $provider);
+        $this->assertStringContainsString("\$footerPrefix.'presentation'", $provider);
         $this->assertStringContainsString('FooterPresentationService::class', $provider);
         $this->assertStringContainsString('--footer-background', $footer);
         $this->assertStringContainsString('--footer-padding-top', $footer);

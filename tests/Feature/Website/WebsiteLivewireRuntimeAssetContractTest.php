@@ -24,6 +24,8 @@ class WebsiteLivewireRuntimeAssetContractTest extends TestCase
     public function test_website_footer_chat_widget_is_livewire_backed(): void
     {
         $footer = file_get_contents(base_path('Modules/Website/resources/views/partials/footer.blade.php'));
+        $this->assertStringContainsString("Website::partials.footer-shared", $footer);
+        $footer = file_get_contents(base_path('Modules/Website/resources/views/partials/footer-shared.blade.php'));
         $widget = file_get_contents(base_path('Modules/Website/resources/views/livewire/chat/chat-widget.blade.php'));
 
         $this->assertNotFalse($footer);

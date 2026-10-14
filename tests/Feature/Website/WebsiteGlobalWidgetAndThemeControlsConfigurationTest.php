@@ -40,6 +40,8 @@ class WebsiteGlobalWidgetAndThemeControlsConfigurationTest extends TestCase
         $adminView = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/settings/website-settings.blade.php'));
         $provider = file_get_contents(base_path('Modules/Website/Providers/WebsiteServiceProvider.php'));
         $footer = file_get_contents(base_path('Modules/Website/resources/views/partials/footer.blade.php'));
+        $this->assertStringContainsString("Website::partials.footer-shared", $footer);
+        $footer = file_get_contents(base_path('Modules/Website/resources/views/partials/footer-shared.blade.php'));
         $backToTop = file_get_contents(base_path('Modules/Website/resources/views/components/footer/back-to-top.blade.php'));
         $chatComponent = file_get_contents(base_path('Modules/Website/Livewire/Chat/ChatWidget.php'));
         $chatView = file_get_contents(base_path('Modules/Website/resources/views/livewire/chat/chat-widget.blade.php'));

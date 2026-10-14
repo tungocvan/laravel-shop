@@ -242,5 +242,16 @@ foreach($pharmaProductSections as $key => $config) {
             </div>
         @endif
     </article>
+    @if(auth('admin')->user()?->hasPermissionTo('website.settings.manage', 'admin'))
+        <article class="mt-5 rounded-xl border border-emerald-200 bg-emerald-50/30 p-4">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h3 class="font-semibold text-gray-900">Đặt hàng nhanh Pharma — nguồn bảng giá</h3>
+                    <p class="mt-1 text-sm text-gray-500">Bật/tắt đặt hàng nhanh và chọn bảng giá từ Pharma. Cấu hình được lưu riêng, không ảnh hưởng template Default.</p>
+                </div>
+                <a href="{{ route('admin.website.pharma-quick-order.index') }}" class="inline-flex items-center justify-center rounded-lg border border-emerald-300 bg-white px-3 py-2 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50 active:scale-[0.985]">Thiết lập</a>
+            </div>
+        </article>
+    @endif
     <p class="mt-4 text-xs text-gray-500">Cấu hình Pharma được lưu riêng. Thay đổi hiển thị sau khi lưu và tải lại Website.</p>
 </section>

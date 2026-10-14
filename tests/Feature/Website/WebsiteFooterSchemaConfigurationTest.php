@@ -53,6 +53,8 @@ class WebsiteFooterSchemaConfigurationTest extends TestCase
     public function test_footer_partial_uses_slot_renderer_instead_of_direct_component_views(): void
     {
         $footer = file_get_contents(base_path('Modules/Website/resources/views/partials/footer.blade.php'));
+        $this->assertStringContainsString("Website::partials.footer-shared", $footer);
+        $footer = file_get_contents(base_path('Modules/Website/resources/views/partials/footer-shared.blade.php'));
         $slot = file_get_contents(base_path('Modules/Website/resources/views/components/footer/slot.blade.php'));
 
         $this->assertStringContainsString("Website::components.footer.slot", $footer);

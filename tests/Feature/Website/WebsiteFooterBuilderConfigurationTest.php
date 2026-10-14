@@ -39,8 +39,8 @@ class WebsiteFooterBuilderConfigurationTest extends TestCase
     {
         $component = file_get_contents(base_path('Modules/Website/Livewire/Admin/Footer/FooterSettingsHub.php'));
 
-        $this->assertStringContainsString("'footer.layout' => \$layout", $component);
-        $this->assertStringContainsString("'footer.presentation' => \$presentation", $component);
+        $this->assertStringContainsString("\$this->settingKey('layout') => \$layout", $component);
+        $this->assertStringContainsString("\$this->settingKey('presentation') => \$presentation", $component);
         $this->assertStringContainsString("'type' => \$item['type']", $component);
         $this->assertStringContainsString("'enabled' => (bool)", $component);
         $this->assertStringContainsString("'config' =>", $component);

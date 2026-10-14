@@ -52,8 +52,8 @@ class WebsiteHeaderBuilderConfigurationTest extends TestCase
         $component = file_get_contents(base_path('Modules/Website/Livewire/Admin/Header/HeaderSettingsHub.php'));
 
         $this->assertStringContainsString("authorizeAdminPermission('website.settings.manage')", $component);
-        $this->assertStringContainsString("'header.layout' => \$layout", $component);
-        $this->assertStringContainsString("'header.presentation' => \$presentation", $component);
+        $this->assertStringContainsString("\$this->settingKey('layout') => \$layout", $component);
+        $this->assertStringContainsString("\$this->settingKey('presentation') => \$presentation", $component);
         $this->assertStringNotContainsString("'view' =>", $this->extractSaveBuilderSection($component));
         $this->assertStringContainsString('HeaderComponentRegistry $registry', $component);
     }
