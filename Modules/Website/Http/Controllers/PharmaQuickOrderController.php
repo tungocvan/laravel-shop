@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Modules\Pharma\Models\PriceList;
 use Modules\Website\Models\PharmaQuickOrderRequest;
@@ -176,6 +178,29 @@ final class PharmaQuickOrderController extends Controller
         });
 
         abort_unless((int) $record->user_id === (int) $user->id, 409);
+
+        $notificationEmail = $configuration['notification_email'] ?? '';
+        if ($record->wasRecentlyCreated && $notificationEmail !== '' && filter_var($notificationEmail, FILTER_VALIDATE_EMAIL)) {
+            try {
+                Mail::raw(
+                    "Yêu cầu đặt hàng nhanh Pharma #{$record->id} vừa được gửi.\n"
+                    ."Trạng thái: Chờ xét duyệt.\n"
+                    ."Loại người mua: {$record->buyer_type}\n"
+                    ."Số mặt hàng: ".count($record->requested_items ?? [])."\n"
+                    ."Vui lòng đăng nhập hệ thống để kiểm tra và xác minh điều kiện mua thuốc.\n"
+                    ."Chưa có phiếu xuất kho được tạo.",
+                    static function ($message) use ($notificationEmail, $record): void {
+                        $message->to($notificationEmail)->subject("Yêu cầu đặt hàng Pharma #{$record->id} - Chờ xét duyệt");
+                    }
+                );
+            } catch (\Throwable $exception) {
+                Log::warning('Pharma quick order notification failed', [
+                    'request_id' => $record->id,
+                    'exception' => $exception->getMessage(),
+                ]);
+            }
+        }
+
         return response()->json(['id' => $record->id, 'status' => $record->status], 201);
     }
 
