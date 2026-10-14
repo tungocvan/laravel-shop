@@ -20,7 +20,9 @@ final class PharmaQuickOrderIssueHandoffContractTest extends TestCase
         $this->assertStringContainsString('createDraft(', $service);
         $this->assertStringNotContainsString('->submit(', $service);
         $this->assertStringNotContainsString('->post(', $service);
-        $this->assertStringContainsString('Chuyển sang phiếu xuất nháp', $view);
-        $this->assertStringContainsString("issueReadiness['ready_for_authoring']", $view);
+        $this->assertStringContainsString('Chấp nhận & tạo phiếu xuất nháp', $view);
+        $this->assertStringContainsString('requests.accept-and-draft', $view);
+        $this->assertStringContainsString('name="recipient_partner_id"', $view);
+        $this->assertStringContainsString('name="manager_user_id"', $view);
     }
 }
