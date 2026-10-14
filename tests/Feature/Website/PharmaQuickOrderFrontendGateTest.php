@@ -33,9 +33,12 @@ class PharmaQuickOrderFrontendGateTest extends TestCase
         $view = file_get_contents(base_path('Modules/Website/resources/views/pages/pharma-quick-order.blade.php'));
         $this->assertStringContainsString('quick-order-search', $view);
         $this->assertStringContainsString('quick-order-results', $view);
-        $this->assertStringContainsString('Giá bán CT:', $view);
+        $this->assertStringContainsString('Đơn giá (Có VAT):', $view);
         $this->assertStringContainsString('setTimeout(() => fetchPage(1), 300)', $view);
         $this->assertStringContainsString('data-quick-order-quantity', $view);
+        $this->assertStringContainsString('data-quick-order-total', $view);
+        $this->assertStringContainsString('data-quick-order-unpriced', $view);
+        $this->assertStringContainsString('knownProducts.set(product.id, product)', $view);
         $this->assertStringContainsString('quick-order-more', $view);
         $this->assertStringContainsString('@json($quickOrderInitialProducts)', $view);
         $this->assertStringContainsString('@json($quickOrderInitialNextPage)', $view);
