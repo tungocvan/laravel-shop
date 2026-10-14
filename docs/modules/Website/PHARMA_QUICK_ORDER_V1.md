@@ -120,3 +120,14 @@ No test PASS or UI PASS is claimed for this checkpoint.
 - Admin list adds status counters and search by request ID, buyer name, phone and tax code. Search currently submits a GET form; debounce and advanced date filters are deferred.
 - Website `/account/orders` now has a Pharma requests tab and the existing standard order Livewire tab. `/account/pharma-requests/{id}` shows product names, quantities, current status and rejection reason if applicable. Both list and detail enforce authenticated `user_id` scope; no admin-only review history is exposed.
 - This is a read/UI checkpoint, not a change to approval, pricing, stock or issue posting. Review acceptance remains an explicit manual decision; P5.3 requires verified price/VAT, purchaser eligibility and canonical inventory issue workflow.
+
+
+## Pre-merge security audit checkpoint (2026-10-14)
+
+- Audited Website submission, account status projection, Admin review/lifecycle, atomic accept-and-draft, legacy draft handoff, and queued notification.
+- Fixed legacy `PharmaQuickOrderIssueHandoffService::createDraft()` to reject requests that are not accepted and price lists outside the currently enabled Admin allowlist. The canonical Pharma authoring service still rechecks active list/item dates and customer scope.
+- Atomic accept-and-draft remains pending-only and transaction-locked; inventory posting is not performed by Website.
+- Account completion is derived from linked InventoryIssue::POSTED; rejection/cancellation and reversal are projected from the canonical issue status.
+- Mail notifications are queued after commit and only for first-time submissions.
+- Remaining merge gates: run targeted and impacted Website/Pharma tests in the real Laravel environment, confirm rendered UI and permission smoke, inspect schema/migrations and database-backed concurrency/idempotency tests. This source audit alone is **not** proof of full runtime/security acceptance.
+- Do not merge before user confirms Test + UI PASS and explicitly approves merge.
