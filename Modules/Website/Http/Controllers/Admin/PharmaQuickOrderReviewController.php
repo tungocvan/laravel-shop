@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use Modules\Website\Models\PharmaQuickOrderRequest;
+use Modules\Website\Services\PharmaQuickOrderDisplayService;
 
 final class PharmaQuickOrderReviewController extends Controller
 {
@@ -16,22 +17,37 @@ final class PharmaQuickOrderReviewController extends Controller
         $status = (string) $request->query('status', 'pending_review');
         abort_unless(in_array($status, ['pending_review', 'accepted', 'rejected', 'all'], true), 422);
 
+        $search = mb_substr(trim((string) $request->query('search', '')), 0, 120);
         $requests = PharmaQuickOrderRequest::query()
             ->when($status !== 'all', fn ($query) => $query->where('status', $status))
+            ->when($search !== '', function ($query) use ($search): void {
+                $query->where(function ($q) use ($search): void {
+                    $q->where('company_name', 'like', '%'.$search.'%')
+                        ->orWhere('recipient_name', 'like', '%'.$search.'%')
+                        ->orWhere('phone', 'like', '%'.$search.'%')
+                        ->orWhere('tax_code', 'like', '%'.$search.'%');
+                    if (ctype_digit($search)) $q->orWhere('id', (int) $search);
+                });
+            })
             ->orderByDesc('id')
             ->paginate(20)
             ->withQueryString();
 
-        return view('Website::pages.admin.pharma-quick-order.requests', compact('requests', 'status'));
+        $counts = PharmaQuickOrderRequest::query()->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status');
+        return view('Website::pages.admin.pharma-quick-order.requests', compact('requests', 'status', 'counts', 'search'));
     }
 
-    public function show(PharmaQuickOrderRequest $quickOrderRequest): View
+    public function show(PharmaQuickOrderRequest $quickOrderRequest, PharmaQuickOrderDisplayService $display): View
     {
         $reviews = DB::table('website_pharma_quick_order_reviews')
             ->where('quick_order_request_id', $quickOrderRequest->id)
             ->orderBy('id')->get();
 
-        return view('Website::pages.admin.pharma-quick-order.request-detail', compact('quickOrderRequest', 'reviews'));
+        return view('Website::pages.admin.pharma-quick-order.request-detail', [
+            'quickOrderRequest' => $quickOrderRequest,
+            'reviews' => $reviews,
+            'lines' => $display->lines($quickOrderRequest),
+        ]);
     }
 
     public function review(Request $request, PharmaQuickOrderRequest $quickOrderRequest): RedirectResponse
