@@ -33,6 +33,9 @@ class PharmaQuickOrderFrontendGateTest extends TestCase
         $this->assertStringContainsString('setTimeout(() => fetchPage(1), 300)', $view);
         $this->assertStringContainsString('data-quick-order-quantity', $view);
         $this->assertStringContainsString('quick-order-more', $view);
+        $this->assertStringContainsString('@json($quickOrderInitialProducts)', $view);
+        $this->assertStringContainsString('@json($quickOrderInitialNextPage)', $view);
+        $this->assertStringNotContainsString('@json($items->getCollection()->map(', $view);
         $this->assertStringNotContainsString('type="submit" name="order"', $view);
     }
 }
