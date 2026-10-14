@@ -28,8 +28,13 @@ class PharmaQuickOrderAdminSettingsContractTest extends TestCase
     {
         $view = file_get_contents(base_path('Modules/Website/resources/views/pages/admin/pharma-quick-order/index.blade.php'));
         $controller = file_get_contents(base_path('Modules/Website/Http/Controllers/Admin/PharmaQuickOrderSettingsController.php'));
-        $this->assertStringContainsString('name="notification_email"', $view);
+        $this->assertStringContainsString('name="notification_emails[]"', $view);
+        $this->assertStringContainsString('quick-order-add-email', $view);
+        $this->assertStringContainsString('data-remove-email', $view);
+        $this->assertStringContainsString('parseNotificationEmails(', $view);
         $this->assertStringContainsString("'notification_email' => ['nullable', 'string', 'max:2550']", $controller);
+        $this->assertStringContainsString("'notification_emails' => ['sometimes', 'array', 'max:10']", $controller);
+        $this->assertStringContainsString("'notification_emails.*' => ['nullable', 'email:rfc', 'max:254']", $controller);
         $this->assertStringContainsString('parseNotificationEmails(', $controller);
     }
 
