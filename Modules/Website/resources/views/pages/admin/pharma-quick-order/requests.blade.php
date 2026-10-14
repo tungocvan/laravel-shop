@@ -6,6 +6,7 @@
         <div><p class="text-xs font-semibold uppercase tracking-wider text-emerald-700">Pharma / Đặt hàng nhanh</p><h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900">Yêu cầu đặt hàng</h1><p class="mt-1 text-sm text-slate-500">Tiếp nhận, kiểm tra điều kiện mua dược phẩm và xét duyệt yêu cầu.</p></div>
         <a href="{{ route('admin.website.pharma-quick-order.index') }}" class="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Thiết lập đặt hàng nhanh ↗</a>
     </header>
+    @if(session('success'))<div role="status" class="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('success') }}</div>@endif
     <nav class="grid grid-cols-3 gap-2 sm:gap-3" aria-label="Thống kê trạng thái">
         @foreach(['pending_review' => ['Chờ xét duyệt','amber'], 'accepted' => ['Đã chấp nhận','emerald'], 'rejected' => ['Đã từ chối','rose']] as $key => $meta)
             <a href="{{ route('admin.website.pharma-quick-order.requests.index', ['status' => $key]) }}" class="rounded-xl border border-slate-100 bg-white px-3 py-4 shadow-sm transition hover:border-emerald-200 sm:px-5 {{ $status === $key ? 'ring-1 ring-emerald-500' : '' }}">
@@ -38,7 +39,7 @@
                             <td class="px-5 py-4 whitespace-nowrap text-slate-600">{{ $item->submitted_at?->format('d/m/Y H:i') }}</td>
                             <td class="px-5 py-4 text-center font-semibold tabular-nums text-slate-700">{{ count($item->requested_items ?? []) }}</td>
                             <td class="px-5 py-4"><span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold {{ $item->status === 'accepted' ? 'bg-emerald-50 text-emerald-700' : ($item->status === 'rejected' ? 'bg-rose-50 text-rose-700' : 'bg-amber-50 text-amber-800') }}">{{ ['pending_review' => 'Chờ xét duyệt', 'accepted' => 'Đã chấp nhận', 'rejected' => 'Đã từ chối'][$item->status] ?? $item->status }}</span></td>
-                            <td class="px-5 py-4 text-right"><a href="{{ route('admin.website.pharma-quick-order.requests.show', $item) }}" class="font-semibold text-emerald-700 hover:underline">Xem →</a></td>
+                            <td class="px-5 py-4 text-right"><a href="{{ route('admin.website.pharma-quick-order.requests.show', $item) }}" class="font-semibold text-emerald-700 hover:underline">Xem / Thao tác →</a></td>
                         </tr>
                     @empty
                         <tr><td colspan="6" class="px-5 py-12 text-center text-slate-500">Không có yêu cầu phù hợp với bộ lọc.</td></tr>
