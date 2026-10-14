@@ -5,26 +5,61 @@ namespace Modules\Website\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Modules\Pharma\Models\PriceListItem;
+use Modules\Product\Models\Product;
 use Modules\System\Services\SettingsService;
+use Modules\Website\Services\PharmaQuickOrderPriceListService;
 use Modules\Website\Services\PharmaQuickOrderSettingsService;
 
 final class PharmaQuickOrderController extends Controller
 {
-    public function index(Request $request, SettingsService $websiteSettings, PharmaQuickOrderSettingsService $quickOrderSettings): View
-    {
+    public function index(
+        Request $request,
+        SettingsService $websiteSettings,
+        PharmaQuickOrderSettingsService $quickOrderSettings,
+        PharmaQuickOrderPriceListService $priceLists
+    ): View {
         abort_unless($websiteSettings->get('website.public_template', 'default') === 'pharma', 404);
 
         $configuration = $quickOrderSettings->get();
         abort_unless($configuration['enabled'], 404);
 
         $user = $request->user();
-        abort_unless($user && $user->is_active && $user->checkPermissionTo('website.pharma.quick_order.view', 'web'), 403);
+        abort_unless($user && $user->is_active, 403);
 
-        // Customer/partner ownership is not yet established for Website users.
-        // Do not expose price-list items, pricing or order actions until this is resolved.
+        // New Website customers may browse eligible globally scoped medicines.
+        // Customer-specific price lists require a verified partner relationship.
+        // Do not disclose negotiated prices or accept orders at this checkpoint.
+        $globalListIds = $priceLists->eligibleForCustomer(
+            0,
+            (int) $user->id,
+            $configuration['price_list_ids'],
+            now()->toDateString()
+        )->where('type', \Modules\Pharma\Models\PriceList::TYPE_GLOBAL)->pluck('id');
+
+        $search = trim((string) $request->query('search', ''));
+        $items = Product::query()->active()
+            ->whereHas('pharmaLink', function ($link) use ($globalListIds): void {
+                $link->whereIn('medicine_id', PriceListItem::query()
+                    ->whereIn('price_list_id', $globalListIds)
+                    ->where(function ($item): void {
+                        $item->whereNull('effective_from')->orWhereDate('effective_from', '<=', now()->toDateString());
+                    })
+                    ->where(function ($item): void {
+                        $item->whereNull('effective_to')->orWhereDate('effective_to', '>=', now()->toDateString());
+                    })
+                    ->select('medicine_id'));
+            })
+            ->whereHas('categories', fn ($category) => $category->where('type', 'medicine'))
+            ->when($search !== '', fn ($query) => $query->where('title', 'like', '%'.$search.'%'))
+            ->select(['id', 'title', 'slug', 'image', 'short_description'])
+            ->orderBy('title')
+            ->paginate(12)
+            ->withQueryString();
+
         return view('Website::pages.pharma-quick-order', [
-            'items' => collect(),
-            'customerLinked' => false,
+            'items' => $items,
+            'search' => $search,
         ]);
     }
 }
