@@ -27,3 +27,11 @@ This is an internal building block only: **no public route, price endpoint, cart
 7. Add database feature tests for tenant isolation, authorization, validity, price selection, cart and order lifecycle before exposing the route.
 
 No test PASS or UI PASS is claimed for this checkpoint.
+
+
+## P3 Admin Settings checkpoint (2026-10-14)
+
+- Admin GET/PUT `/admin/website/pharma-quick-order`, guarded by `auth:admin` and `permission:website.settings.manage,admin`.
+- Settings key `website.pharma_quick_order` stores `enabled` (default false) and `price_list_ids` (default empty); empty selection fails closed.
+- Save accepts only existing price lists in `active` status; effective dates and per-user/per-partner eligibility MUST be rechecked when serving products and submitting orders.
+- No public quick-order endpoint or order creation exists at this checkpoint. UI/test acceptance is pending.
