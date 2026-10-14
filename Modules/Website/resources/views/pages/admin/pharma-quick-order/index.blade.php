@@ -45,14 +45,8 @@
         <div class="rounded-xl border border-gray-200 bg-white p-4">
             <h2 class="font-semibold text-gray-900">Danh sách email nhận yêu cầu đặt hàng mới</h2>
             <p class="mt-1 text-sm text-gray-500">Tối đa 10 người nhận. Mỗi email một dòng; thông báo được gửi qua queue. Để trống nếu không cần thông báo.</p>
-            @php
-                $emailRows = old('notification_emails');
-                if (!is_array($emailRows)) {
-                    $emailRows = app(\Modules\Website\Services\PharmaQuickOrderSettingsService::class)
-                        ->parseNotificationEmails(old('notification_email', $configuration['notification_email'] ?? ''));
-                }
-                $emailRows = array_slice($emailRows ?: [''], 0, 10);
-            @endphp
+            @php($emailRows = old('notification_emails', app(\Modules\Website\Services\PharmaQuickOrderSettingsService::class)->parseNotificationEmails($configuration['notification_email'] ?? '')))
+            @php($emailRows = array_slice(is_array($emailRows) && count($emailRows) ? $emailRows : [''], 0, 10))
             <div id="quick-order-email-list" class="mt-3 space-y-2">
                 @foreach($emailRows as $email)
                     <div data-email-row class="flex items-center gap-2">
