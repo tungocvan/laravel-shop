@@ -62,9 +62,8 @@ final class PharmaQuickOrderReviewController extends Controller
     public function review(Request $request, PharmaQuickOrderRequest $quickOrderRequest): RedirectResponse
     {
         $data = $request->validate([
-            'decision' => ['required', 'in:accepted,rejected'],
+            'decision' => ['required', 'in:rejected'],
             'note' => ['required', 'string', 'max:2000'],
-            'eligibility_confirmed' => ['required_if:decision,accepted', 'nullable', 'accepted'],
         ]);
 
         $changed = DB::transaction(function () use ($quickOrderRequest, $data, $request): bool {
