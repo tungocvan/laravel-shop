@@ -73,3 +73,12 @@ No test PASS or UI PASS is claimed for this checkpoint.
 - Buyer panel supports company/individual, company name, tax code, recipient, phone, address, and notes. The continue action only opens the form; submit remains disabled.
 - No personal details or orders are sent to the server yet. Server-side request validation, buyer eligibility, anti-duplication, verified price/VAT computation, review queue, and inventory issue creation remain P5 tasks.
 - VAT audit note: PriceListItem casts company_sale_price to decimal:2 but does not itself specify VAT semantics. The label requested by UI is not proof of tax-inclusiveness; verify the canonical calculation before enabling checkout.
+
+
+## P5.1 — Pending-review submission checkpoint
+
+- Authenticated active Website accounts can POST `/quick-order/requests` with CSRF, UUID idempotency key, 1–200 product IDs/positive integer quantities, and optional buyer contact/delivery details.
+- Server checks Pharma template, Admin enablement, actor-scoped allowed active global lists, medicine category and active storefront products before persisting. Submission stores only product IDs and quantities; **browser prices are never trusted or stored**.
+- Record is created as `pending_review` in `website_pharma_quick_order_requests`. No Partner is automatically assigned; no Pharma inventory issue, approval, posting, or stock movement occurs.
+- UI displays confirmation and leaves buyer review collapsed by default on each transition. Submission requires a browser supporting crypto.randomUUID; unsupported browsers must not submit without an idempotency key.
+- Next checkpoint P5.2: admin review queue, buyer eligibility checks, verified price/VAT calculation and rejection/acceptance audit. P5.3: idempotent issue creation via canonical Pharma service. This checkpoint does not expose Admin approval controls.
