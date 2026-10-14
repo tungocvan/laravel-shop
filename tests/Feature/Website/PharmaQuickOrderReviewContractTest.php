@@ -21,7 +21,8 @@ final class PharmaQuickOrderReviewContractTest extends TestCase
         $controller = file_get_contents(base_path('Modules/Website/Http/Controllers/Admin/PharmaQuickOrderReviewController.php'));
         $this->assertStringContainsString('lockForUpdate()', $controller);
         $this->assertStringContainsString('PharmaQuickOrderRequest::PENDING_REVIEW', $controller);
-        $this->assertStringContainsString("'eligibility_confirmed' => ['required_if:decision,accepted', 'nullable', 'accepted']", $controller);
+        $this->assertStringContainsString("'decision' => ['required', 'in:rejected']", $controller);
+        $this->assertStringNotContainsString("'in:accepted,rejected'", $controller);
         $this->assertStringContainsString("DB::table('website_pharma_quick_order_reviews')->insert(", $controller);
         $this->assertStringNotContainsString('InventoryIssue::', $controller);
         $this->assertStringNotContainsString('createDraft(', $controller);
