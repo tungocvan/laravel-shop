@@ -13,7 +13,7 @@ final class PharmaQuickOrderAccountAndReviewUiContractTest extends TestCase
         $controller = file_get_contents(base_path('Modules/Website/Http/Controllers/AccountController.php'));
         $view = file_get_contents(base_path('Modules/Website/resources/views/account/orders/index.blade.php'));
         $routes = file_get_contents(base_path('Modules/Website/routes/web.php'));
-        $this->assertStringContainsString("->where('user_id', $request->user()->id)", $controller);
+        $this->assertStringContainsString('->where(\'user_id\', $request->user()->id)', $controller);
         $this->assertStringContainsString('->findOrFail($id)', $controller);
         $this->assertStringContainsString("Route::get('/pharma-requests/{id}'", $routes);
         $this->assertStringContainsString("request('tab', 'pharma')", $view);
@@ -24,11 +24,11 @@ final class PharmaQuickOrderAccountAndReviewUiContractTest extends TestCase
     {
         $service = file_get_contents(base_path('Modules/Website/Services/PharmaQuickOrderDisplayService.php'));
         $detail = file_get_contents(base_path('Modules/Website/resources/views/pages/admin/pharma-quick-order/request-detail.blade.php'));
-        $this->assertStringContainsString("Product::query()->whereIn('id', $ids)", $service);
-        $this->assertStringContainsString("'title' => $product?->title", $service);
+        $this->assertStringContainsString('Product::query()->whereIn(\'id\', $ids)', $service);
+        $this->assertStringContainsString('\'title\' => $product?->title', $service);
         $this->assertStringContainsString("Cần kiểm tra", $detail);
-        $this->assertStringContainsString("{{ $line['title'] }}", $detail);
-        $this->assertStringContainsString("{{ $line['quantity'] }}", $detail);
+        $this->assertStringContainsString('{{ $line[\'title\'] }}', $detail);
+        $this->assertStringContainsString('{{ $line[\'quantity\'] }}', $detail);
     }
 
     public function test_admin_queue_has_counts_and_search(): void
