@@ -7,6 +7,7 @@ use Illuminate\Validation\ValidationException;
 use Modules\Partner\Models\Partner;
 use Modules\Pharma\Models\InventoryIssue;
 use Modules\Pharma\Models\PriceListItem;
+use Modules\Website\Services\PharmaQuickOrderSettingsService;
 use Modules\Pharma\Services\UserOrderAuthoringService;
 use Modules\Website\Models\PharmaQuickOrderRequest;
 
@@ -15,7 +16,95 @@ final class PharmaQuickOrderIssueHandoffService
     public function __construct(
         private readonly PharmaQuickOrderIssueReadinessService $readiness,
         private readonly UserOrderAuthoringService $authoring,
+        private readonly PharmaQuickOrderSettingsService $settings,
     ) {}
+
+    /**
+     * One transaction: verify pending request, resolve a unique configured price list
+     * and its exact product variants, create draft, then accept and audit.
+     */
+    public function acceptAndCreateDraft(int $requestId, int $adminId, int $managerUserId, int $partnerId, string $note): InventoryIssue
+    {
+        return DB::transaction(function () use ($requestId, $adminId, $managerUserId, $partnerId, $note): InventoryIssue {
+            $request = PharmaQuickOrderRequest::query()->lockForUpdate()->findOrFail($requestId);
+            if ($request->inventory_issue_id) {
+                return InventoryIssue::query()->findOrFail($request->inventory_issue_id);
+            }
+            if ($request->status !== PharmaQuickOrderRequest::PENDING_REVIEW) {
+                throw ValidationException::withMessages(['handoff' => 'Chỉ có thể duyệt và lập phiếu cho yêu cầu đang chờ xét duyệt.']);
+            }
+
+            $inspection = $this->readiness->inspect($request, true);
+            if (! $inspection['ready_for_authoring']) {
+                throw ValidationException::withMessages(['handoff' => implode(' ', $inspection['problems'])]);
+            }
+
+            $settings = $this->settings->get();
+            if (! $settings['enabled'] || empty($settings['price_list_ids'])) {
+                throw ValidationException::withMessages(['handoff' => 'Chưa bật đặt hàng nhanh hoặc chưa cấu hình bảng giá.']);
+            }
+            $date = now()->toDateString();
+            $candidates = $this->authoring->priceLists($managerUserId, $date)
+                ->filter(fn ($list) => in_array((int) $list->id, $settings['price_list_ids'], true))
+                ->filter(fn ($list) => ! $list->partner_id || (int) $list->partner_id === $partnerId);
+
+            $matches = collect();
+            foreach ($candidates as $list) {
+                $quantities = [];
+                foreach ($inspection['lines'] as $line) {
+                    $eligible = $list->items->filter(fn ($item) =>
+                        (int) $item->medicine_id === (int) $line['medicine_id']
+                        && (int) $item->medicine_variant_id === (int) $line['medicine_variant_id']
+                        && (int) $item->medicine_package_id === (int) $line['medicine_package_id']
+                    );
+                    if ($eligible->count() !== 1) {
+                        $quantities = [];
+                        break;
+                    }
+                    $itemId = (int) $eligible->first()->id;
+                    if (isset($quantities[$itemId])) {
+                        $quantities[$itemId] += (int) $line['quantity'];
+                    } else {
+                        $quantities[$itemId] = (int) $line['quantity'];
+                    }
+                }
+                if ($quantities && count($quantities) > 0) {
+                    $matches->push(['list' => $list, 'quantities' => $quantities]);
+                }
+            }
+            if ($matches->count() !== 1) {
+                throw ValidationException::withMessages(['handoff' => $matches->isEmpty()
+                    ? 'Không có bảng giá đã cấu hình khớp đầy đủ thuốc và quy cách.'
+                    : 'Có nhiều bảng giá cùng khớp. Vui lòng điều chỉnh cấu hình để chỉ còn một nguồn giá hợp lệ.']);
+            }
+            $match = $matches->first();
+            $issue = $this->authoring->createDraft($managerUserId, $managerUserId, [
+                'source' => 'price_list',
+                'issue_date' => $date,
+                'price_list_id' => (int) $match['list']->id,
+                'recipient_partner_id' => $partnerId,
+                'quantities' => $match['quantities'],
+                'notes' => 'Yêu cầu Website #'.$request->id.' — '.$note,
+            ]);
+            $request->forceFill([
+                'status' => 'accepted',
+                'reviewed_by' => $adminId,
+                'reviewed_at' => now(),
+                'review_note' => $note,
+                'inventory_issue_id' => $issue->id,
+            ])->save();
+            DB::table('website_pharma_quick_order_reviews')->insert([
+                'quick_order_request_id' => $request->id,
+                'admin_id' => $adminId,
+                'from_status' => PharmaQuickOrderRequest::PENDING_REVIEW,
+                'to_status' => 'accepted',
+                'note' => $note,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            return $issue;
+        });
+    }
 
     public function createDraft(int $requestId, int $managerUserId, int $partnerId, int $priceListId, array $selectedItems): InventoryIssue
     {
