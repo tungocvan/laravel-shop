@@ -13,6 +13,7 @@ use Modules\Website\Http\Controllers\Admin\HeaderController;
 use Modules\Website\Http\Controllers\Admin\HomeSettingsController;
 use Modules\Website\Http\Controllers\Admin\PharmaQuickOrderSettingsController;
 use Modules\Website\Http\Controllers\Admin\PharmaQuickOrderReviewController;
+use Modules\Website\Http\Controllers\Admin\PharmaQuickOrderIssueHandoffController;
 use Modules\Website\Http\Controllers\Admin\WebsiteDashboardController;
 use Modules\Website\Http\Controllers\Admin\WebsiteSettingsController;
 use Modules\Website\Http\Controllers\AuthController;
@@ -81,6 +82,7 @@ Route::middleware(['web', 'auth:admin'])->prefix('admin')->name('admin.')->group
     Route::put('/website/pharma-quick-order', [PharmaQuickOrderSettingsController::class, 'update'])->middleware('permission:website.settings.manage,admin')->name('website.pharma-quick-order.update');
     Route::get('/website/pharma-quick-order/requests', [PharmaQuickOrderReviewController::class, 'index'])->middleware('permission:website.settings.manage,admin')->name('website.pharma-quick-order.requests.index');
     Route::get('/website/pharma-quick-order/requests/{quickOrderRequest}', [PharmaQuickOrderReviewController::class, 'show'])->middleware('permission:website.settings.manage,admin')->name('website.pharma-quick-order.requests.show');
+    Route::post('/website/pharma-quick-order/requests/{quickOrderRequest}/inventory-draft', [PharmaQuickOrderIssueHandoffController::class, 'store'])->middleware('permission:website.settings.manage,admin')->name('website.pharma-quick-order.requests.inventory-draft');
     Route::post('/website/pharma-quick-order/requests/{quickOrderRequest}/review', [PharmaQuickOrderReviewController::class, 'review'])->middleware('permission:website.settings.manage,admin')->name('website.pharma-quick-order.requests.review');
     Route::get('/affiliate', [AffiliateController::class, 'index'])->middleware('permission:affiliate.view,admin')->name('affiliate.index');
     Route::get('/homepage-settings', [HomeSettingsController::class, 'index'])->middleware('permission:website.home.manage,admin')->name('home.settings');
