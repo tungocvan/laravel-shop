@@ -6,20 +6,30 @@ use Tests\TestCase;
 
 class PharmaQuickOrderFrontendGateTest extends TestCase
 {
-    public function test_quick_order_route_is_web_authenticated_and_not_a_public_price_api(): void
+    public function test_quick_order_route_requires_web_authentication(): void
     {
         $routes = file_get_contents(base_path('Modules/Website/routes/web.php'));
         $this->assertStringContainsString("middleware('auth')->get('/quick-order'", $routes);
         $this->assertStringContainsString("PharmaQuickOrderController", $routes);
     }
 
-    public function test_frontend_gate_requires_pharma_template_feature_and_explicit_permission(): void
+    public function test_active_website_accounts_can_browse_but_no_private_customer_prices_are_exposed(): void
     {
         $controller = file_get_contents(base_path('Modules/Website/Http/Controllers/PharmaQuickOrderController.php'));
-        $this->assertStringContainsString("website.public_template", $controller);
+        $this->assertStringContainsString('website.public_template', $controller);
         $this->assertStringContainsString("configuration['enabled']", $controller);
-        $this->assertStringContainsString("website.pharma.quick_order.view", $controller);
-        $this->assertStringContainsString("customerLinked' => false", $controller);
-        $this->assertStringNotContainsString('PriceListItem::query()', $controller);
+        $this->assertStringContainsString('user->is_active', $controller);
+        $this->assertStringContainsString("where('type', \\Modules\\Pharma\\Models\\PriceList::TYPE_GLOBAL)", $controller);
+        $this->assertStringContainsString('eligibleForCustomer(', $controller);
+        $this->assertStringNotContainsString('company_sale_price', $controller);
+        $this->assertStringNotContainsString('createDraft(', $controller);
+    }
+
+    public function test_quick_order_page_is_catalog_only_until_review_workflow_is_ready(): void
+    {
+        $view = file_get_contents(base_path('Modules/Website/resources/views/pages/pharma-quick-order.blade.php'));
+        $this->assertStringContainsString('quick-order-search', $view);
+        $this->assertStringContainsString('Xem thông tin', $view);
+        $this->assertStringNotContainsString('type="submit" name="order"', $view);
     }
 }
