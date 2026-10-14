@@ -15,7 +15,7 @@ final class PharmaQuickOrderAtomicApprovalContractTest extends TestCase
         $this->assertStringContainsString("['price_list_ids']", $service);
         $this->assertStringContainsString('$matches->count() !== 1', $service);
         $this->assertStringContainsString("'status' => 'accepted'", $service);
-        $this->assertStringContainsString("'inventory_issue_id' => $issue->id", $service);
+        $this->assertStringContainsString('\'inventory_issue_id\' => $issue->id', $service);
         $this->assertStringNotContainsString('->post(', $service);
     }
 
