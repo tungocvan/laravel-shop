@@ -112,3 +112,11 @@ No test PASS or UI PASS is claimed for this checkpoint.
 - Decisions are `accepted` or `rejected`, require an audit note, and acceptance additionally requires explicit manual eligibility confirmation. A transaction with row lock permits only one transition out of `pending_review`; reviewer ID, timestamp, note and append-only audit row are stored.
 - This manual acknowledgement is **not automated verification** of tax number, pharmacy licence, authorized purchaser, price/VAT or stock. Product IDs are deliberately not converted into inventory medicines or issue lines here. P5.3 must audit the canonical Pharma issue service, verified partner mapping, price and stock checks before creating any draft issue.
 - A separate migration adds reviewer fields and the review audit table. Run migrations in local before UI smoke. No inventory posting is triggered by this checkpoint.
+
+
+## P5.2A/B — Product-aware admin review and customer tracking checkpoint
+
+- Admin request detail now resolves Website Product titles by requested product IDs in one batch, preserving historical IDs and requested quantities. Missing products or missing Pharma links show explicit warnings. Current price/VAT is deliberately **not shown as a verified transaction price** because request records contain no server-side price snapshot and customer eligibility/price-list context may have changed.
+- Admin list adds status counters and search by request ID, buyer name, phone and tax code. Search currently submits a GET form; debounce and advanced date filters are deferred.
+- Website `/account/orders` now has a Pharma requests tab and the existing standard order Livewire tab. `/account/pharma-requests/{id}` shows product names, quantities, current status and rejection reason if applicable. Both list and detail enforce authenticated `user_id` scope; no admin-only review history is exposed.
+- This is a read/UI checkpoint, not a change to approval, pricing, stock or issue posting. Review acceptance remains an explicit manual decision; P5.3 requires verified price/VAT, purchaser eligibility and canonical inventory issue workflow.
