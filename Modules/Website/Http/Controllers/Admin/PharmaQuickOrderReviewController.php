@@ -49,6 +49,7 @@ final class PharmaQuickOrderReviewController extends Controller
 
         return view('Website::pages.admin.pharma-quick-order.request-detail', [
             'quickOrderRequest' => $quickOrderRequest,
+            'linkedIssue' => $quickOrderRequest->inventory_issue_id ? \Modules\Pharma\Models\InventoryIssue::query()->find($quickOrderRequest->inventory_issue_id) : null,
             'reviews' => $reviews,
             'lines' => $display->lines($quickOrderRequest),
             'issueReadiness' => $readiness->inspect($quickOrderRequest),
