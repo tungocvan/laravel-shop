@@ -97,3 +97,10 @@ No test PASS or UI PASS is claimed for this checkpoint.
 - Admin notification recipients accept up to 10 valid email addresses separated by semicolons or commas; whitespace and duplicate addresses are normalized, invalid addresses are rejected on save.
 - New requests dispatch `SendPharmaQuickOrderNotification` with `afterCommit()`, only for first creation (idempotent replays do not enqueue). Job implements `ShouldQueue` with three attempts and fetches request by ID. No buyer PII is embedded in the job payload.
 - Queue worker must be running and `QUEUE_CONNECTION` must not be `sync` to gain asynchronous behavior. Check `php artisan queue:failed` for delivery failures. Email is notification only, not approval or inventory posting.
+
+
+## Admin recipient list UX
+
+- Email recipient configuration now uses individual `notification_emails[]` inputs with Add/Remove controls (max 10). Each row uses native email input validation. Empty rows are ignored and duplicate addresses are removed server-side.
+- Existing semicolon/comma-delimited `notification_email` settings are parsed into rows when loading; the canonical saved setting remains a semicolon-delimited string for backward compatibility with the queued notification job.
+- Removing every row and saving clears the recipient list. Queue behavior is unchanged.
