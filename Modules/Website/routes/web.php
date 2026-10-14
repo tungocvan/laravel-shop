@@ -60,6 +60,7 @@ Route::middleware('web')->group(function () {
     });
 
     Route::middleware('auth')->get('/quick-order', [PharmaQuickOrderController::class, 'index'])->name('website.pharma.quick-order');
+    Route::middleware('auth')->post('/quick-order/requests', [PharmaQuickOrderController::class, 'store'])->name('website.pharma.quick-order.requests.store');
 
     Route::middleware('auth')->prefix('account')->name('account.')->controller(AccountController::class)->group(function () {
         Route::get('/', 'index')->name('dashboard');
