@@ -26,11 +26,21 @@ final class PharmaQuickOrderSettingsService
         ]), 'website', 'json');
     }
 
+    public function parseNotificationEmails(?string $input): array
+    {
+        $addresses = preg_split('/[;,]+/', (string) $input) ?: [];
+
+        return array_values(array_unique(array_filter(
+            array_map(static fn (string $email): string => trim($email), $addresses),
+            static fn (string $email): bool => $email !== ''
+        )));
+    }
+
     public function normalize(array $value): array
     {
         return [
             'enabled' => ($value['enabled'] ?? false) === true,
-            'notification_email' => trim((string) ($value['notification_email'] ?? '')),
+            'notification_email' => implode('; ', $this->parseNotificationEmails($value['notification_email'] ?? '')),
             'price_list_ids' => array_values(array_unique(array_filter(
                 array_map('intval', is_array($value['price_list_ids'] ?? null) ? $value['price_list_ids'] : []),
                 static fn (int $id): bool => $id > 0
