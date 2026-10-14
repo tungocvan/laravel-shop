@@ -11,6 +11,7 @@ use Modules\Website\Http\Controllers\Admin\FlashSaleController;
 use Modules\Website\Http\Controllers\Admin\FooterController;
 use Modules\Website\Http\Controllers\Admin\HeaderController;
 use Modules\Website\Http\Controllers\Admin\HomeSettingsController;
+use Modules\Website\Http\Controllers\Admin\PharmaQuickOrderSettingsController;
 use Modules\Website\Http\Controllers\Admin\WebsiteDashboardController;
 use Modules\Website\Http\Controllers\Admin\WebsiteSettingsController;
 use Modules\Website\Http\Controllers\AuthController;
@@ -70,6 +71,8 @@ Route::middleware('web')->group(function () {
 Route::middleware(['web', 'auth:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/website', [WebsiteDashboardController::class, 'index'])->middleware('permission:website.view,admin')->name('website.dashboard');
     Route::get('/website/settings', [WebsiteSettingsController::class, 'index'])->middleware('permission:website.settings.manage,admin')->name('website.settings');
+    Route::get('/website/pharma-quick-order', [PharmaQuickOrderSettingsController::class, 'index'])->middleware('permission:website.settings.manage,admin')->name('website.pharma-quick-order.index');
+    Route::put('/website/pharma-quick-order', [PharmaQuickOrderSettingsController::class, 'update'])->middleware('permission:website.settings.manage,admin')->name('website.pharma-quick-order.update');
     Route::get('/affiliate', [AffiliateController::class, 'index'])->middleware('permission:affiliate.view,admin')->name('affiliate.index');
     Route::get('/homepage-settings', [HomeSettingsController::class, 'index'])->middleware('permission:website.home.manage,admin')->name('home.settings');
     Route::get('/header-settings', [HeaderController::class, 'index'])->middleware('permission:website.menu.manage,admin')->name('header.settings');
