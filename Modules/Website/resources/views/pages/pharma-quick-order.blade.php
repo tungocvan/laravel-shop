@@ -70,7 +70,8 @@
                 </div>
             </div>
             <p class="mt-4 text-xs text-amber-700">Thông tin chưa bắt buộc ở bước chuẩn bị. Khi gửi yêu cầu chính thức, hệ thống sẽ kiểm tra điều kiện mua thuốc.</p>
-            <button type="button" disabled class="mt-4 cursor-not-allowed rounded-lg bg-slate-200 px-5 py-3 text-sm font-semibold text-slate-500">Gửi yêu cầu (sắp triển khai)</button>
+            <p id="quick-order-submit-status" role="status" aria-live="polite" class="mt-3 text-sm text-slate-600"></p>
+            <button id="quick-order-submit" type="button" class="mt-4 rounded-lg bg-emerald-700 px-5 py-3 text-sm font-semibold text-white disabled:opacity-50">Gửi yêu cầu đặt hàng</button>
         </section>
     </div>
 </main>
@@ -90,6 +91,8 @@
 <script>
 (() => {
     const endpoint = @json(route('website.pharma.quick-order'));
+    const submitEndpoint = @json(route('website.pharma.quick-order.requests.store'));
+    const csrfToken = @json(csrf_token());
     const initial = @json($quickOrderInitialProducts);
     const initialNext = @json($quickOrderInitialNextPage);
     const search = document.getElementById('quick-order-search');
@@ -100,6 +103,7 @@
     if (!search || !results) return;
     const draftStorageKey = 'website.pharma.quick_order.draft.v1.' + @json((string) auth()->id());
     const quantities = new Map();
+    let submissionKey = window.crypto?.randomUUID?.() || null;
     const buyerFields = ['buyer-type', 'company', 'tax-code', 'recipient', 'phone', 'address', 'notes'];
     const buyerPanel = document.getElementById('quick-order-buyer-panel');
     const catalogPanel = document.getElementById('quick-order-catalog');
@@ -107,6 +111,12 @@
     const reviewToggle = document.getElementById('quick-order-review-toggle');
     const reviewCount = document.getElementById('quick-order-review-count');
     const showBuyer = (show) => {
+        if (show) {
+            reviewLines.hidden = true;
+            reviewLines.classList.add('hidden');
+            reviewToggle.setAttribute('aria-expanded', 'false');
+            document.getElementById('quick-order-review-arrow').textContent = '⌄';
+        }
         buyerPanel.hidden = !show;
         buyerPanel.classList.toggle('hidden', !show);
         catalogPanel.hidden = show;
@@ -203,6 +213,7 @@
         if (amount) quantities.set(id, amount);
         else quantities.delete(id);
         updateSummary();
+        submissionKey = window.crypto?.randomUUID?.() || null;
         saveDraft();
         render();
     };
@@ -295,6 +306,44 @@
         search.focus();
     });
     more.addEventListener('click', () => { if (nextPage && !loading) fetchPage(nextPage, true); });
+    document.getElementById('quick-order-submit').addEventListener('click', async () => {
+        const button = document.getElementById('quick-order-submit');
+        const message = document.getElementById('quick-order-submit-status');
+        if (!quantities.size || !submissionKey || button.disabled) return;
+        button.disabled = true;
+        message.textContent = 'Đang gửi yêu cầu...';
+        const value = field => document.getElementById('quick-order-' + field).value.trim();
+        const payload = {
+            submission_key: submissionKey,
+            buyer_type: value('buyer-type'),
+            company_name: value('company'),
+            tax_code: value('tax-code'),
+            recipient_name: value('recipient'),
+            phone: value('phone'),
+            shipping_address: value('address'),
+            notes: value('notes'),
+            items: [...quantities].map(([product_id, quantity]) => ({product_id, quantity}))
+        };
+        try {
+            const response = await fetch(submitEndpoint, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken},
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                const first = data.errors && Object.values(data.errors).flat()[0];
+                throw new Error(first || data.message || 'Không gửi được yêu cầu.');
+            }
+            message.textContent = 'Đã tiếp nhận yêu cầu #' + data.id + '. Trạng thái: Chờ xét duyệt. Chưa tạo phiếu xuất kho.';
+            try { window.sessionStorage.removeItem(draftStorageKey); } catch (_) {}
+            button.textContent = 'Đã gửi yêu cầu';
+        } catch (error) {
+            message.textContent = error.message || 'Không gửi được yêu cầu. Vui lòng thử lại.';
+            button.disabled = false;
+        }
+    });
     render();
     updateSummary();
 })();
