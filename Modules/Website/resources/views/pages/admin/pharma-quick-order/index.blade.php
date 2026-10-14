@@ -43,11 +43,11 @@
             </div>
         </div>
         <div class="rounded-xl border border-gray-200 bg-white p-4">
-            <label for="quick-order-notification-email" class="block font-semibold text-gray-900">Email nhận yêu cầu đặt hàng mới</label>
-            <p class="mt-1 text-sm text-gray-500">Khi khách gửi yêu cầu thành công, hệ thống sẽ gửi thông báo tới địa chỉ này. Để trống nếu không cần thông báo email. Yêu cầu vẫn được lưu nếu email gặp lỗi.</p>
-            <input id="quick-order-notification-email" type="email" name="notification_email" maxlength="254" autocomplete="email"
+            <label for="quick-order-notification-email" class="block font-semibold text-gray-900">Danh sách email nhận yêu cầu đặt hàng mới</label>
+            <p class="mt-1 text-sm text-gray-500">Nhập tối đa 10 địa chỉ email, phân cách bằng dấu chấm phẩy (;) hoặc dấu phẩy (,). Thông báo được gửi qua queue. Để trống nếu không cần email; yêu cầu vẫn được lưu khi email lỗi.</p>
+            <input id="quick-order-notification-email" type="text" name="notification_email" maxlength="2550"
                 value="{{ old('notification_email', $configuration['notification_email'] ?? '') }}"
-                placeholder="donhang@example.com"
+                placeholder="donhang@example.com; quanly@example.com"
                 class="mt-3 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none">
             @error('notification_email')<p class="mt-2 text-sm text-red-700">{{ $message }}</p>@enderror
         </div>
