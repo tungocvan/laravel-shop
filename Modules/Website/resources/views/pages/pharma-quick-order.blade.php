@@ -33,8 +33,8 @@
                 <button type="button" data-quick-order-continue disabled class="mt-4 w-full rounded-lg bg-emerald-700 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">Tiếp tục</button>
             </aside>
         </div>
-        <section id="quick-order-buyer-panel" hidden class="mt-6 rounded-xl border border-slate-200 bg-white p-4 sm:p-6" aria-labelledby="quick-order-buyer-title">
-            <div class="flex flex-wrap items-center justify-between gap-3"><h2 id="quick-order-buyer-title" class="text-lg font-semibold">Thông tin người mua và nhận hàng</h2><button id="quick-order-back" type="button" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-emerald-700">← Bổ sung sản phẩm</button></div><div class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3"><button id="quick-order-review-toggle" type="button" aria-expanded="false" aria-controls="quick-order-review-lines" class="flex w-full items-center justify-between gap-2 text-left text-sm font-semibold"><span>Xem lại sản phẩm đã chọn (<span id="quick-order-review-count">0</span>)</span><span id="quick-order-review-arrow">⌄</span></button><div id="quick-order-review-lines" hidden class="mt-3 divide-y divide-slate-200"></div></div>
+        <section id="quick-order-buyer-panel" hidden class="hidden mt-6 rounded-xl border border-slate-200 bg-white p-4 sm:p-6" aria-labelledby="quick-order-buyer-title">
+            <div class="flex flex-wrap items-center justify-between gap-3"><h2 id="quick-order-buyer-title" class="text-lg font-semibold">Thông tin người mua và nhận hàng</h2><button id="quick-order-back" type="button" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-emerald-700">← Bổ sung sản phẩm</button></div><div class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3"><button id="quick-order-review-toggle" type="button" aria-expanded="false" aria-controls="quick-order-review-lines" class="flex w-full items-center justify-between gap-2 text-left text-sm font-semibold"><span>Xem lại sản phẩm đã chọn (<span id="quick-order-review-count">0</span>)</span><span id="quick-order-review-arrow">⌄</span></button><div id="quick-order-review-lines" hidden class="hidden mt-3 divide-y divide-slate-200"></div></div>
             <p class="mt-1 text-sm text-slate-600">Thông tin có thể bổ sung để Admin liên hệ và xác minh. Chưa gửi đến Admin.</p>
             <div class="mt-4 grid gap-4 sm:grid-cols-2">
                 <div>
@@ -108,14 +108,17 @@
     const reviewCount = document.getElementById('quick-order-review-count');
     const showBuyer = (show) => {
         buyerPanel.hidden = !show;
+        buyerPanel.classList.toggle('hidden', !show);
         catalogPanel.hidden = show;
-        document.querySelectorAll('[data-quick-order-mobile-summary]').forEach(el => el.hidden = show);
+        catalogPanel.classList.toggle('hidden', show);
+        document.querySelectorAll('[data-quick-order-mobile-summary]').forEach(el => { el.hidden = show; el.classList.toggle('hidden', show); });
         (show ? buyerPanel : catalogPanel).scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
     document.getElementById('quick-order-back').addEventListener('click', () => showBuyer(false));
     reviewToggle.addEventListener('click', () => {
         const expand = reviewLines.hidden;
         reviewLines.hidden = !expand;
+        reviewLines.classList.toggle('hidden', !expand);
         reviewToggle.setAttribute('aria-expanded', String(expand));
         document.getElementById('quick-order-review-arrow').textContent = expand ? '⌃' : '⌄';
     });
