@@ -42,11 +42,20 @@
 @endsection
 
 @push('scripts')
+@php
+    $quickOrderInitialProducts = $items->getCollection()->map(fn ($product) => [
+        'id' => $product->id,
+        'title' => $product->title,
+        'slug' => $product->slug,
+        'image' => $product->image,
+    ])->values()->all();
+    $quickOrderInitialNextPage = $items->hasMorePages() ? $items->currentPage() + 1 : null;
+@endphp
 <script>
 (() => {
     const endpoint = @json(route('website.pharma.quick-order'));
-    const initial = @json($items->getCollection()->map(fn ($p) => ['id' => $p->id, 'title' => $p->title, 'slug' => $p->slug, 'image' => $p->image])->values());
-    const initialNext = @json($items->hasMorePages() ? $items->currentPage() + 1 : null);
+    const initial = @json($quickOrderInitialProducts);
+    const initialNext = @json($quickOrderInitialNextPage);
     const search = document.getElementById('quick-order-search');
     const clear = document.getElementById('quick-order-clear');
     const results = document.getElementById('quick-order-results');
