@@ -104,3 +104,11 @@ No test PASS or UI PASS is claimed for this checkpoint.
 - Email recipient configuration now uses individual `notification_emails[]` inputs with Add/Remove controls (max 10). Each row uses native email input validation. Empty rows are ignored and duplicate addresses are removed server-side.
 - Existing semicolon/comma-delimited `notification_email` settings are parsed into rows when loading; the canonical saved setting remains a semicolon-delimited string for backward compatibility with the queued notification job.
 - Removing every row and saving clears the recipient list. Queue behavior is unchanged.
+
+
+## P5.2 — Admin review checkpoint (not yet UI/test accepted)
+
+- Admin review queue at `/admin/website/pharma-quick-order/requests` uses existing `auth:admin` and `website.settings.manage` permission. Filters pending, accepted, rejected, all; detail displays buyer/shipping details and requested Website product IDs/quantities.
+- Decisions are `accepted` or `rejected`, require an audit note, and acceptance additionally requires explicit manual eligibility confirmation. A transaction with row lock permits only one transition out of `pending_review`; reviewer ID, timestamp, note and append-only audit row are stored.
+- This manual acknowledgement is **not automated verification** of tax number, pharmacy licence, authorized purchaser, price/VAT or stock. Product IDs are deliberately not converted into inventory medicines or issue lines here. P5.3 must audit the canonical Pharma issue service, verified partner mapping, price and stock checks before creating any draft issue.
+- A separate migration adds reviewer fields and the review audit table. Run migrations in local before UI smoke. No inventory posting is triggered by this checkpoint.
