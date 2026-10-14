@@ -35,3 +35,10 @@ No test PASS or UI PASS is claimed for this checkpoint.
 - Settings key `website.pharma_quick_order` stores `enabled` (default false) and `price_list_ids` (default empty); empty selection fails closed.
 - Save accepts only existing price lists in `active` status; effective dates and per-user/per-partner eligibility MUST be rechecked when serving products and submitting orders.
 - No public quick-order endpoint or order creation exists at this checkpoint. UI/test acceptance is pending.
+
+
+## P4 gated frontend shell
+
+- `/quick-order` is authenticated, Pharma-template-only, settings-enabled and requires the dedicated `website.pharma.quick_order.view` permission on the web guard.
+- Until a canonical Website user -> Pharma partner/customer mapping is audited and implemented, the page displays a safe unlinked-customer state and never queries or exposes price-list items.
+- P4 product cards, customer-scoped pricing, search and quantity editing remain blocked pending this relationship; P5 submission remains unimplemented.
