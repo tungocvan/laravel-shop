@@ -4,6 +4,7 @@ namespace Modules\Website\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 use Modules\Pharma\Models\PriceListItem;
 use Modules\Product\Models\Product;
@@ -18,7 +19,7 @@ final class PharmaQuickOrderController extends Controller
         SettingsService $websiteSettings,
         PharmaQuickOrderSettingsService $quickOrderSettings,
         PharmaQuickOrderPriceListService $priceLists
-    ): View {
+    ): View|JsonResponse {
         abort_unless($websiteSettings->get('website.public_template', 'default') === 'pharma', 404);
 
         $configuration = $quickOrderSettings->get();
@@ -37,7 +38,7 @@ final class PharmaQuickOrderController extends Controller
             now()->toDateString()
         )->where('type', \Modules\Pharma\Models\PriceList::TYPE_GLOBAL)->pluck('id');
 
-        $search = trim((string) $request->query('search', ''));
+        $search = mb_substr(trim((string) $request->query('search', '')), 0, 120);
         $items = Product::query()->active()
             ->whereHas('pharmaLink', function ($link) use ($globalListIds): void {
                 $link->whereIn('medicine_id', PriceListItem::query()
@@ -56,6 +57,18 @@ final class PharmaQuickOrderController extends Controller
             ->orderBy('title')
             ->paginate(12)
             ->withQueryString();
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'products' => $items->getCollection()->map(fn ($product) => [
+                    'id' => $product->id,
+                    'title' => $product->title,
+                    'slug' => $product->slug,
+                    'image' => $product->image,
+                ])->values(),
+                'next_page' => $items->hasMorePages() ? $items->currentPage() + 1 : null,
+            ]);
+        }
 
         return view('Website::pages.pharma-quick-order', [
             'items' => $items,
