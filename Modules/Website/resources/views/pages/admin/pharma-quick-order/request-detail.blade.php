@@ -91,9 +91,20 @@
             </section>
 
             @if($quickOrderRequest->inventory_issue_id)
-                <div class="mt-4 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800">
-                    <p class="font-semibold">Đã liên kết phiếu xuất #{{ $quickOrderRequest->inventory_issue_id }}</p>
-                    <a href="{{ url('/admin/pharma/inventory/issues/'.$quickOrderRequest->inventory_issue_id) }}" class="mt-2 inline-block underline">Mở phiếu xuất</a>
+                <div class="mt-4 rounded-xl {{ $linkedIssue ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800' }} p-4 text-sm">
+                    @if($linkedIssue)
+                        <p class="font-semibold">Đã liên kết phiếu xuất #{{ $linkedIssue->id }}</p>
+                        <a href="{{ url('/admin/pharma/inventory/issues/'.$linkedIssue->id) }}" class="mt-2 inline-block underline">Mở phiếu xuất</a>
+                    @else
+                        <p class="font-semibold">Phiếu xuất #{{ $quickOrderRequest->inventory_issue_id }} không còn tồn tại</p>
+                        <p class="mt-1 text-xs">Liên kết đã lỗi thời. Có thể hủy liên kết để xử lý lại yêu cầu.</p>
+                    @endif
+                    <form method="POST" action="{{ route('admin.website.pharma-quick-order.requests.unlink', $quickOrderRequest) }}" class="mt-3 space-y-2">
+                        @csrf
+                        <label class="block text-xs font-semibold">Lý do hủy liên kết</label>
+                        <textarea name="reason" required minlength="3" maxlength="2000" rows="2" class="w-full rounded-lg border border-slate-200 p-2 text-sm text-slate-900"></textarea>
+                        <button onclick="return confirm('Hủy liên kết phiếu xuất? Không xóa phiếu kho.')" class="rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-semibold text-amber-800">Hủy liên kết Đặt hàng nhanh</button>
+                    </form>
                 </div>
             @endif
 
