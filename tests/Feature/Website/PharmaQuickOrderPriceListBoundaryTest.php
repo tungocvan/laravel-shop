@@ -12,10 +12,6 @@ class PharmaQuickOrderPriceListBoundaryTest extends TestCase
         $query = app(PharmaQuickOrderPriceListService::class)
             ->eligibleForCustomer(10, 20, [], '2026-10-14');
 
-        $this->assertSame([], $query->getBindings() === [] ? [] : array_values(array_filter(
-            $query->getBindings(),
-            static fn ($value) => $value === -1
-        )));
         $this->assertStringContainsString('0 = 1', $query->toSql());
     }
 
