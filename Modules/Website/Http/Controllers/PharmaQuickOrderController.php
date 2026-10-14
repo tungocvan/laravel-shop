@@ -54,7 +54,19 @@ final class PharmaQuickOrderController extends Controller
                     ->where(function ($item): void {
                         $item->whereNull('effective_to')->orWhereDate('effective_to', '>=', now()->toDateString());
                     })
-                    ->select('medicine_id'));
+                    ->where('status', 'active')
+                    ->select('medicine_id'))
+                    ->whereExists(fn ($sub) => $sub->selectRaw('1')
+                        ->from('pharma_price_list_items as exact_pli')
+                        ->whereIn('exact_pli.price_list_id', $globalListIds)
+                        ->where('exact_pli.status', 'active')
+                        ->whereColumn('exact_pli.medicine_id', 'pharma_product_links.medicine_id')
+                        ->whereColumn('exact_pli.medicine_variant_id', 'pharma_product_links.medicine_variant_id')
+                        ->where(fn ($q) => $q
+                            ->whereColumn('exact_pli.medicine_package_id', 'pharma_product_links.medicine_package_id')
+                            ->orWhere(fn ($n) => $n->whereNull('exact_pli.medicine_package_id')->whereNull('pharma_product_links.medicine_package_id')))
+                        ->where(fn ($q) => $q->whereNull('exact_pli.effective_from')->orWhereDate('exact_pli.effective_from', '<=', now()->toDateString()))
+                        ->where(fn ($q) => $q->whereNull('exact_pli.effective_to')->orWhereDate('exact_pli.effective_to', '>=', now()->toDateString())));
             })
             ->whereHas('categories', fn ($category) => $category->where('type', 'medicine'))
             ->when($search !== '', fn ($query) => $query->where('title', 'like', '%'.$search.'%'))
@@ -69,6 +81,7 @@ final class PharmaQuickOrderController extends Controller
         $links = $items->getCollection()->pluck('pharmaLink')->filter();
         $prices = PriceListItem::query()
             ->whereIn('price_list_id', $globalListIds)
+            ->where('status', 'active')
             ->whereIn('medicine_variant_id', $links->pluck('medicine_variant_id')->filter()->unique())
             ->where(fn ($q) => $q->whereNull('effective_from')->orWhereDate('effective_from', '<=', now()->toDateString()))
             ->where(fn ($q) => $q->whereNull('effective_to')->orWhereDate('effective_to', '>=', now()->toDateString()))
@@ -148,7 +161,19 @@ final class PharmaQuickOrderController extends Controller
                     ->whereIn('price_list_id', $listIds)
                     ->where(fn ($q) => $q->whereNull('effective_from')->orWhereDate('effective_from', '<=', now()->toDateString()))
                     ->where(fn ($q) => $q->whereNull('effective_to')->orWhereDate('effective_to', '>=', now()->toDateString()))
-                    ->select('medicine_id'));
+                    ->where('status', 'active')
+                    ->select('medicine_id'))
+                    ->whereExists(fn ($sub) => $sub->selectRaw('1')
+                        ->from('pharma_price_list_items as exact_pli')
+                        ->whereIn('exact_pli.price_list_id', $globalListIds)
+                        ->where('exact_pli.status', 'active')
+                        ->whereColumn('exact_pli.medicine_id', 'pharma_product_links.medicine_id')
+                        ->whereColumn('exact_pli.medicine_variant_id', 'pharma_product_links.medicine_variant_id')
+                        ->where(fn ($q) => $q
+                            ->whereColumn('exact_pli.medicine_package_id', 'pharma_product_links.medicine_package_id')
+                            ->orWhere(fn ($n) => $n->whereNull('exact_pli.medicine_package_id')->whereNull('pharma_product_links.medicine_package_id')))
+                        ->where(fn ($q) => $q->whereNull('exact_pli.effective_from')->orWhereDate('exact_pli.effective_from', '<=', now()->toDateString()))
+                        ->where(fn ($q) => $q->whereNull('exact_pli.effective_to')->orWhereDate('exact_pli.effective_to', '>=', now()->toDateString())));
             })->pluck('id');
 
         if ($eligible->count() !== $requestedIds->count()) {
