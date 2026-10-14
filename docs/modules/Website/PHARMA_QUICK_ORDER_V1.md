@@ -42,3 +42,12 @@ No test PASS or UI PASS is claimed for this checkpoint.
 - `/quick-order` is authenticated, Pharma-template-only, settings-enabled and requires the dedicated `website.pharma.quick_order.view` permission on the web guard.
 - Until a canonical Website user -> Pharma partner/customer mapping is audited and implemented, the page displays a safe unlinked-customer state and never queries or exposes price-list items.
 - P4 product cards, customer-scoped pricing, search and quantity editing remain blocked pending this relationship; P5 submission remains unimplemented.
+
+
+## Revised Website account and approval flow
+
+- Any authenticated active Website account may browse the Pharma quick-order catalog when Pharma is published and the feature is enabled; no pre-linked Partner or dedicated view permission required.
+- The initial catalog displays only active, Admin-allowed, actor-eligible **global** price-list medicines which also have a published Pharma storefront product; no private customer prices are disclosed.
+- This is a browse-only checkpoint: no cart, order submission, or inventory issue is created.
+- Next checkpoints: buyer tax/recipient/shipping profile and request persistence, Admin verification and acceptance/rejection, canonical Pharma inventory issue creation with idempotent linkage and stock posting only via existing workflow.
+- Regulatory buyer eligibility and controlled-product restrictions must be validated before accepting any request.
