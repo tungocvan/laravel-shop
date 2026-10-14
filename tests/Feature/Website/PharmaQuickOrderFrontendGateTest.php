@@ -29,7 +29,10 @@ class PharmaQuickOrderFrontendGateTest extends TestCase
     {
         $view = file_get_contents(base_path('Modules/Website/resources/views/pages/pharma-quick-order.blade.php'));
         $this->assertStringContainsString('quick-order-search', $view);
-        $this->assertStringContainsString('Xem thông tin', $view);
+        $this->assertStringContainsString('quick-order-results', $view);
+        $this->assertStringContainsString('setTimeout(() => fetchPage(1), 300)', $view);
+        $this->assertStringContainsString('data-quick-order-quantity', $view);
+        $this->assertStringContainsString('quick-order-more', $view);
         $this->assertStringNotContainsString('type="submit" name="order"', $view);
     }
 }
