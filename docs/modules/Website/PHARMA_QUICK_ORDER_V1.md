@@ -82,3 +82,11 @@ No test PASS or UI PASS is claimed for this checkpoint.
 - Record is created as `pending_review` in `website_pharma_quick_order_requests`. No Partner is automatically assigned; no Pharma inventory issue, approval, posting, or stock movement occurs.
 - UI displays confirmation and leaves buyer review collapsed by default on each transition. Submission requires a browser supporting crypto.randomUUID; unsupported browsers must not submit without an idempotency key.
 - Next checkpoint P5.2: admin review queue, buyer eligibility checks, verified price/VAT calculation and rejection/acceptance audit. P5.3: idempotent issue creation via canonical Pharma service. This checkpoint does not expose Admin approval controls.
+
+
+## P5.1 follow-up — Success modal and email recipient
+
+- Successful request submission opens a modal with request ID and pending-review status. The confirmation action navigates back to the Quick Order catalog; the browser draft was cleared after successful persistence.
+- Admin Website Quick Order settings include optional single notification email (`notification_email`, RFC format, max 254 characters), stored in the existing settings payload. Empty means no email.
+- A plain-text email with request ID, buyer type and item count is sent only when a new request record is created; idempotent replays do not send again. Mail failures are logged and do not change the persisted pending request. SMTP/mail configuration must be verified in the target environment.
+- This is notification only, not an Admin review queue, buyer approval, price validation, or inventory issue creation. Those remain future checkpoints.
