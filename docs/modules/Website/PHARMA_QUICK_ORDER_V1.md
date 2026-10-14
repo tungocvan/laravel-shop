@@ -1,0 +1,29 @@
+# Pharma Quick Order V1 — implementation checkpoint
+
+Base: main at `0c0cafe54887f7b76cf16458a0d3dfbd1bad4550` (PR #286).
+Branch: `feat/website-pharma-quick-order`.
+
+## Read-only audit findings
+
+- `Modules/Website/routes/web.php` uses the public `web` group, `auth` for account pages and `auth:admin` plus permission middleware for admin pages.
+- `Modules/Pharma/Models/PriceList` defines global/customer scopes, active date range and user-restricted global lists.
+- `PriceListItem` stores medicine/variant/package identity and several distinct price fields; selecting a sale price requires an explicit business decision.
+- `UserOrderAuthoringService` provides `priceLists()` and `createDraft()` for the existing inventory issue order workflow, but its manager-centric access is not automatically Website customer authorization.
+
+## Initial implementation
+
+`PharmaQuickOrderPriceListService::eligibleForCustomer()` provides a fail-closed query for an explicitly selected Admin allowlist, active dates, global-user restrictions and partner-scoped customer lists.
+
+This is an internal building block only: **no public route, price endpoint, cart, admin settings, or order submission has been enabled**. In particular, a caller must prove that the authenticated Website user is authorized to act for the supplied customer partner before using this query. Do not accept customerPartnerId from an untrusted request without this check.
+
+## Gates before exposing Quick Order
+
+1. Audit actual Website user-to-customer relation, permission registration and Pharma-only template selection.
+2. Resolve `official_facility` customer lists explicitly (not included in the initial partner-only query).
+3. Decide which price field is authoritative and VAT treatment; never return cost fields.
+4. Confirm selection/priority when multiple eligible price lists contain the same medicine variant/package.
+5. Bind Admin settings to the existing settings service, with server-side permission checks.
+6. Reuse Pharma order draft and approval workflow with server-side repricing and idempotency.
+7. Add database feature tests for tenant isolation, authorization, validity, price selection, cart and order lifecycle before exposing the route.
+
+No test PASS or UI PASS is claimed for this checkpoint.
