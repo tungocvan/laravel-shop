@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use Modules\Website\Models\PharmaQuickOrderRequest;
 use Modules\Website\Services\PharmaQuickOrderDisplayService;
+use Modules\Website\Services\PharmaQuickOrderIssueReadinessService;
+use Modules\Pharma\Services\UserOrderAuthoringService;
 
 final class PharmaQuickOrderReviewController extends Controller
 {
@@ -37,7 +39,7 @@ final class PharmaQuickOrderReviewController extends Controller
         return view('Website::pages.admin.pharma-quick-order.requests', compact('requests', 'status', 'counts', 'search'));
     }
 
-    public function show(PharmaQuickOrderRequest $quickOrderRequest, PharmaQuickOrderDisplayService $display): View
+    public function show(PharmaQuickOrderRequest $quickOrderRequest, PharmaQuickOrderDisplayService $display, PharmaQuickOrderIssueReadinessService $readiness, UserOrderAuthoringService $authoring): View
     {
         $reviews = DB::table('website_pharma_quick_order_reviews')
             ->where('quick_order_request_id', $quickOrderRequest->id)
@@ -47,6 +49,9 @@ final class PharmaQuickOrderReviewController extends Controller
             'quickOrderRequest' => $quickOrderRequest,
             'reviews' => $reviews,
             'lines' => $display->lines($quickOrderRequest),
+            'issueReadiness' => $readiness->inspect($quickOrderRequest),
+            'handoffManagers' => $authoring->orderManagers(),
+            'handoffCustomers' => $authoring->customers(),
         ]);
     }
 
