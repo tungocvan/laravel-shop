@@ -43,15 +43,80 @@
             </div>
         </div>
         <div class="rounded-xl border border-gray-200 bg-white p-4">
-            <label for="quick-order-notification-email" class="block font-semibold text-gray-900">Danh sách email nhận yêu cầu đặt hàng mới</label>
-            <p class="mt-1 text-sm text-gray-500">Nhập tối đa 10 địa chỉ email, phân cách bằng dấu chấm phẩy (;) hoặc dấu phẩy (,). Thông báo được gửi qua queue. Để trống nếu không cần email; yêu cầu vẫn được lưu khi email lỗi.</p>
-            <input id="quick-order-notification-email" type="text" name="notification_email" maxlength="2550"
-                value="{{ old('notification_email', $configuration['notification_email'] ?? '') }}"
-                placeholder="donhang@example.com; quanly@example.com"
-                class="mt-3 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none">
-            @error('notification_email')<p class="mt-2 text-sm text-red-700">{{ $message }}</p>@enderror
+            <h2 class="font-semibold text-gray-900">Danh sách email nhận yêu cầu đặt hàng mới</h2>
+            <p class="mt-1 text-sm text-gray-500">Tối đa 10 người nhận. Mỗi email một dòng; thông báo được gửi qua queue. Để trống nếu không cần thông báo.</p>
+            @php
+                $emailRows = old('notification_emails');
+                if (!is_array($emailRows)) {
+                    $emailRows = app(\Modules\Website\Services\PharmaQuickOrderSettingsService::class)
+                        ->parseNotificationEmails(old('notification_email', $configuration['notification_email'] ?? ''));
+                }
+                $emailRows = array_slice($emailRows ?: [''], 0, 10);
+            @endphp
+            <div id="quick-order-email-list" class="mt-3 space-y-2">
+                @foreach($emailRows as $email)
+                    <div data-email-row class="flex items-center gap-2">
+                        <input type="email" name="notification_emails[]" value="{{ $email }}" maxlength="254" autocomplete="off"
+                            aria-label="Email người nhận {{ $loop->iteration }}" placeholder="nguoinhan@example.com"
+                            class="min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none">
+                        <button type="button" data-remove-email aria-label="Xóa email" class="rounded-lg border border-gray-300 px-3 py-2 text-sm text-red-700 hover:bg-red-50">Xóa</button>
+                    </div>
+                @endforeach
+            </div>
+            <button id="quick-order-add-email" type="button" class="mt-3 rounded-lg border border-blue-300 px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50">+ Thêm email</button>
+            <p id="quick-order-email-count" class="mt-2 text-xs text-gray-500"></p>
+            @error('notification_emails')<p class="mt-2 text-sm text-red-700">{{ $message }}</p>@enderror
+            @error('notification_emails.*')<p class="mt-2 text-sm text-red-700">{{ $message }}</p>@enderror
         </div>
         <button type="submit" class="rounded-lg bg-blue-600 px-5 py-3 font-medium text-white hover:bg-blue-700 active:scale-[0.985]">Lưu thiết lập</button>
     </form>
 </div>
+@push('scripts')
+<script>
+(() => {
+    const list = document.getElementById('quick-order-email-list');
+    const add = document.getElementById('quick-order-add-email');
+    const count = document.getElementById('quick-order-email-count');
+    if (!list || !add) return;
+    const update = () => {
+        const total = list.querySelectorAll('[data-email-row]').length;
+        add.disabled = total >= 10;
+        add.classList.toggle('opacity-50', add.disabled);
+        count.textContent = total + '/10 người nhận';
+    };
+    add.addEventListener('click', () => {
+        if (list.querySelectorAll('[data-email-row]').length >= 10) return;
+        const row = document.createElement('div');
+        row.dataset.emailRow = '';
+        row.className = 'flex items-center gap-2';
+        const input = document.createElement('input');
+        input.type = 'email';
+        input.name = 'notification_emails[]';
+        input.maxLength = 254;
+        input.autocomplete = 'off';
+        input.placeholder = 'nguoinhan@example.com';
+        input.setAttribute('aria-label', 'Email người nhận mới');
+        input.className = 'min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none';
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.dataset.removeEmail = '';
+        remove.setAttribute('aria-label', 'Xóa email');
+        remove.className = 'rounded-lg border border-gray-300 px-3 py-2 text-sm text-red-700 hover:bg-red-50';
+        remove.textContent = 'Xóa';
+        row.append(input, remove);
+        list.append(row);
+        update();
+        input.focus();
+    });
+    list.addEventListener('click', event => {
+        const button = event.target.closest('[data-remove-email]');
+        if (!button) return;
+        const row = button.closest('[data-email-row]');
+        if (row) row.remove();
+        update();
+    });
+    update();
+})();
+</script>
+@endpush
 @endsection
