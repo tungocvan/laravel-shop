@@ -43,6 +43,9 @@ final class PharmaQuickOrderIssueHandoffService
             if (! $settings['enabled'] || empty($settings['price_list_ids'])) {
                 throw ValidationException::withMessages(['handoff' => 'Chưa bật đặt hàng nhanh hoặc chưa cấu hình bảng giá.']);
             }
+            if (! Partner::query()->withPartnerType('customer')->whereKey($partnerId)->where('status', 'active')->exists()) {
+                throw ValidationException::withMessages(['recipient_partner_id' => 'Khách hàng Pharma không còn hợp lệ hoặc chưa hoạt động.']);
+            }
             $date = now()->toDateString();
             $candidates = $this->authoring->priceLists($managerUserId, $date)
                 ->filter(fn ($list) => in_array((int) $list->id, $settings['price_list_ids'], true))
