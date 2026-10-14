@@ -11,7 +11,7 @@ class PharmaQuickOrderAdminSettingsContractTest extends TestCase
     {
         $resolved = app(PharmaQuickOrderSettingsService::class)->normalize([]);
 
-        $this->assertSame(['enabled' => false, 'price_list_ids' => []], $resolved);
+        $this->assertSame(['enabled' => false, 'notification_email' => '', 'price_list_ids' => []], $resolved);
     }
 
     public function test_settings_normalize_duplicate_and_invalid_identifiers(): void
@@ -21,7 +21,15 @@ class PharmaQuickOrderAdminSettingsContractTest extends TestCase
             'price_list_ids' => [3, '3', 0, -2, 5],
         ]);
 
-        $this->assertSame(['enabled' => true, 'price_list_ids' => [3, 5]], $resolved);
+        $this->assertSame(['enabled' => true, 'notification_email' => '', 'price_list_ids' => [3, 5]], $resolved);
+    }
+
+    public function test_admin_can_configure_notification_email(): void
+    {
+        $view = file_get_contents(base_path('Modules/Website/resources/views/pages/admin/pharma-quick-order/index.blade.php'));
+        $controller = file_get_contents(base_path('Modules/Website/Http/Controllers/Admin/PharmaQuickOrderSettingsController.php'));
+        $this->assertStringContainsString('name="notification_email"', $view);
+        $this->assertStringContainsString("'notification_email' => ['nullable', 'email:rfc', 'max:254']", $controller);
     }
 
     public function test_admin_routes_enforce_admin_guard_and_settings_permission(): void
