@@ -9,7 +9,7 @@
         <h1 id="quick-order-title" class="text-2xl font-bold sm:text-3xl">Đặt hàng nhanh Pharma</h1>
         <p class="mt-2 text-sm text-slate-600">Chọn số lượng thuốc cần mua. Giá và điều kiện mua sẽ được xác nhận khi xét duyệt yêu cầu.</p>
 
-        <div class="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_260px]">
+        <div id="quick-order-catalog" class="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_260px]">
             <section class="min-w-0" aria-label="Danh sách thuốc">
                 <label for="quick-order-search" class="sr-only">Tìm tên thuốc</label>
                 <div class="flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-sm">
@@ -34,8 +34,8 @@
             </aside>
         </div>
         <section id="quick-order-buyer-panel" hidden class="mt-6 rounded-xl border border-slate-200 bg-white p-4 sm:p-6" aria-labelledby="quick-order-buyer-title">
-            <h2 id="quick-order-buyer-title" class="text-lg font-semibold">Thông tin người mua và nhận hàng</h2>
-            <p class="mt-1 text-sm text-slate-600">Đây là bản nháp để chuẩn bị yêu cầu. Chưa gửi đến Admin.</p>
+            <div class="flex flex-wrap items-center justify-between gap-3"><h2 id="quick-order-buyer-title" class="text-lg font-semibold">Thông tin người mua và nhận hàng</h2><button id="quick-order-back" type="button" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-emerald-700">← Bổ sung sản phẩm</button></div><div class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3"><button id="quick-order-review-toggle" type="button" aria-expanded="false" aria-controls="quick-order-review-lines" class="flex w-full items-center justify-between gap-2 text-left text-sm font-semibold"><span>Xem lại sản phẩm đã chọn (<span id="quick-order-review-count">0</span>)</span><span id="quick-order-review-arrow">⌄</span></button><div id="quick-order-review-lines" hidden class="mt-3 divide-y divide-slate-200"></div></div>
+            <p class="mt-1 text-sm text-slate-600">Thông tin có thể bổ sung để Admin liên hệ và xác minh. Chưa gửi đến Admin.</p>
             <div class="mt-4 grid gap-4 sm:grid-cols-2">
                 <div>
                     <label for="quick-order-buyer-type" class="mb-1 block text-sm font-medium">Đối tượng mua</label>
@@ -69,12 +69,12 @@
                     <textarea id="quick-order-notes" rows="2" maxlength="1000" class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"></textarea>
                 </div>
             </div>
-            <p class="mt-4 text-xs text-amber-700">Thông tin được lưu tạm trong phiên đăng nhập trên trình duyệt này. Chưa xác minh tư cách mua thuốc; không phải đơn đặt hàng.</p>
+            <p class="mt-4 text-xs text-amber-700">Thông tin chưa bắt buộc ở bước chuẩn bị. Khi gửi yêu cầu chính thức, hệ thống sẽ kiểm tra điều kiện mua thuốc.</p>
             <button type="button" disabled class="mt-4 cursor-not-allowed rounded-lg bg-slate-200 px-5 py-3 text-sm font-semibold text-slate-500">Gửi yêu cầu (sắp triển khai)</button>
         </section>
     </div>
 </main>
-<div class="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white px-4 py-3 shadow-lg lg:hidden" style="padding-bottom:calc(12px + env(safe-area-inset-bottom, 0px))">
+<div data-quick-order-mobile-summary class="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white px-4 py-3 shadow-lg lg:hidden" style="padding-bottom:calc(12px + env(safe-area-inset-bottom, 0px))">
     <div class="mx-auto flex max-w-6xl items-center justify-between gap-3">
         <div><p class="text-sm font-semibold">Giỏ hàng tạm</p><p class="text-xs text-slate-500"><span data-quick-order-lines>0</span> sản phẩm · <span data-quick-order-quantity>0</span> đơn vị</p><p class="text-xs font-semibold text-emerald-700">Tạm tính: <span data-quick-order-total>0 đ</span></p><p class="text-xs text-amber-700" data-quick-order-unpriced hidden>Có sản phẩm chưa xác định đơn giá.</p></div>
         <button type="button" data-quick-order-continue disabled class="rounded-lg bg-emerald-700 px-4 py-3 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">Tiếp tục</button>
@@ -102,6 +102,23 @@
     const quantities = new Map();
     const buyerFields = ['buyer-type', 'company', 'tax-code', 'recipient', 'phone', 'address', 'notes'];
     const buyerPanel = document.getElementById('quick-order-buyer-panel');
+    const catalogPanel = document.getElementById('quick-order-catalog');
+    const reviewLines = document.getElementById('quick-order-review-lines');
+    const reviewToggle = document.getElementById('quick-order-review-toggle');
+    const reviewCount = document.getElementById('quick-order-review-count');
+    const showBuyer = (show) => {
+        buyerPanel.hidden = !show;
+        catalogPanel.hidden = show;
+        document.querySelectorAll('[data-quick-order-mobile-summary]').forEach(el => el.hidden = show);
+        (show ? buyerPanel : catalogPanel).scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+    document.getElementById('quick-order-back').addEventListener('click', () => showBuyer(false));
+    reviewToggle.addEventListener('click', () => {
+        const expand = reviewLines.hidden;
+        reviewLines.hidden = !expand;
+        reviewToggle.setAttribute('aria-expanded', String(expand));
+        document.getElementById('quick-order-review-arrow').textContent = expand ? '⌃' : '⌄';
+    });
     const buyerType = document.getElementById('quick-order-buyer-type');
     const saveDraft = () => {
         try {
@@ -137,8 +154,7 @@
     toggleCompanyFields();
     document.querySelectorAll('[data-quick-order-continue]').forEach(button => button.addEventListener('click', () => {
         if (!quantities.size) return;
-        buyerPanel.hidden = false;
-        buyerPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        showBuyer(true);
     }));
     const knownProducts = new Map(initial.map(product => [product.id, product]));
     let products = initial;
@@ -162,6 +178,21 @@
         document.querySelectorAll('[data-quick-order-total]').forEach(el => el.textContent = total.toLocaleString('vi-VN') + ' đ' + (unknown ? ' +' : ''));
         document.querySelectorAll('[data-quick-order-unpriced]').forEach(el => el.hidden = !unknown);
         document.querySelectorAll('[data-quick-order-continue]').forEach(el => el.disabled = entries.length === 0);
+        reviewCount.textContent = String(entries.length);
+        reviewLines.replaceChildren();
+        quantities.forEach((quantity, id) => {
+            const product = knownProducts.get(id);
+            const row = document.createElement('div');
+            row.className = 'flex items-center justify-between gap-3 py-2 text-sm';
+            const name = document.createElement('span');
+            name.className = 'min-w-0 flex-1';
+            name.textContent = product?.title || ('Sản phẩm #' + id);
+            const amount = document.createElement('span');
+            amount.className = 'shrink-0 font-semibold';
+            amount.textContent = '× ' + quantity;
+            row.append(name, amount);
+            reviewLines.append(row);
+        });
     };
     const setQuantity = (id, value) => {
         const parsed = Number(value);
