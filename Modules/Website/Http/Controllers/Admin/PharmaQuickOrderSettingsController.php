@@ -27,11 +27,18 @@ class PharmaQuickOrderSettingsController extends Controller
         $validated = $request->validate([
             'enabled' => ['required', 'boolean'],
             'notification_email' => ['nullable', 'string', 'max:2550'],
+            'notification_emails' => ['sometimes', 'array', 'max:10'],
+            'notification_emails.*' => ['nullable', 'email:rfc', 'max:254'],
             'price_list_ids' => ['sometimes', 'array', 'max:200'],
             'price_list_ids.*' => ['required', 'integer', 'distinct', 'min:1'],
         ]);
 
-        $recipients = $settings->parseNotificationEmails($validated['notification_email'] ?? '');
+        $recipients = array_key_exists('notification_emails', $validated)
+            ? array_values(array_unique(array_filter(array_map(
+                static fn ($email): string => trim((string) $email),
+                $validated['notification_emails']
+            ))))
+            : $settings->parseNotificationEmails($validated['notification_email'] ?? '');
         if (count($recipients) > 10 || collect($recipients)->contains(
             static fn (string $email): bool => strlen($email) > 254
                 || Validator::make(['email' => $email], ['email' => ['required', 'email:rfc']])->fails()
@@ -51,7 +58,7 @@ class PharmaQuickOrderSettingsController extends Controller
             ])->withInput();
         }
 
-        $settings->save((bool) $validated['enabled'], $ids, $validated['notification_email'] ?? null);
+        $settings->save((bool) $validated['enabled'], $ids, implode('; ', $recipients));
 
         return back()->with('success', 'Đã lưu thiết lập đặt hàng nhanh Pharma.');
     }
