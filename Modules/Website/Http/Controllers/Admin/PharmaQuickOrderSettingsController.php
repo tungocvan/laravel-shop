@@ -25,6 +25,7 @@ class PharmaQuickOrderSettingsController extends Controller
     {
         $validated = $request->validate([
             'enabled' => ['required', 'boolean'],
+            'notification_email' => ['nullable', 'email:rfc', 'max:254'],
             'price_list_ids' => ['sometimes', 'array', 'max:200'],
             'price_list_ids.*' => ['required', 'integer', 'distinct', 'min:1'],
         ]);
@@ -39,7 +40,7 @@ class PharmaQuickOrderSettingsController extends Controller
             ])->withInput();
         }
 
-        $settings->save((bool) $validated['enabled'], $ids);
+        $settings->save((bool) $validated['enabled'], $ids, $validated['notification_email'] ?? null);
 
         return back()->with('success', 'Đã lưu thiết lập đặt hàng nhanh Pharma.');
     }
