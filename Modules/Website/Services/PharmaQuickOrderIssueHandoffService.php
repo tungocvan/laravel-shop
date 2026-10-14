@@ -117,6 +117,14 @@ final class PharmaQuickOrderIssueHandoffService
             if ($request->inventory_issue_id) {
                 return InventoryIssue::query()->findOrFail($request->inventory_issue_id);
             }
+            if ($request->status !== 'accepted') {
+                throw ValidationException::withMessages(['handoff' => 'Chỉ được lập phiếu từ yêu cầu đã chấp nhận.']);
+            }
+
+            $settings = $this->settings->get();
+            if (! $settings['enabled'] || ! in_array($priceListId, $settings['price_list_ids'], true)) {
+                throw ValidationException::withMessages(['price_list_id' => 'Bảng giá không được phép sử dụng cho Đặt hàng nhanh.']);
+            }
 
             $inspection = $this->readiness->inspect($request);
             if (! $inspection['ready_for_authoring']) {
