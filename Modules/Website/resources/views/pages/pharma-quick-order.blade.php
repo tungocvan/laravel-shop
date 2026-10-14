@@ -75,6 +75,15 @@
         </section>
     </div>
 </main>
+<div id="quick-order-success-modal" role="dialog" aria-modal="true" aria-labelledby="quick-order-success-title" hidden class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
+    <div class="w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-2xl">
+        <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-2xl text-emerald-700" aria-hidden="true">✓</div>
+        <h2 id="quick-order-success-title" class="mt-4 text-xl font-bold text-slate-900">Gửi yêu cầu thành công!</h2>
+        <p class="mt-3 text-sm text-slate-600">Mã yêu cầu: <strong id="quick-order-success-id"></strong></p>
+        <p class="mt-2 text-sm text-slate-600">Yêu cầu đang chờ Admin xem xét. Chưa tạo phiếu xuất kho và chưa trừ tồn.</p>
+        <button id="quick-order-success-return" type="button" class="mt-6 w-full rounded-lg bg-emerald-700 px-4 py-3 font-semibold text-white">Quay về đặt hàng nhanh</button>
+    </div>
+</div>
 <div data-quick-order-mobile-summary class="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white px-4 py-3 shadow-lg lg:hidden" style="padding-bottom:calc(12px + env(safe-area-inset-bottom, 0px))">
     <div class="mx-auto flex max-w-6xl items-center justify-between gap-3">
         <div><p class="text-sm font-semibold">Giỏ hàng tạm</p><p class="text-xs text-slate-500"><span data-quick-order-lines>0</span> sản phẩm · <span data-quick-order-quantity>0</span> đơn vị</p><p class="text-xs font-semibold text-emerald-700">Tạm tính: <span data-quick-order-total>0 đ</span></p><p class="text-xs text-amber-700" data-quick-order-unpriced hidden>Có sản phẩm chưa xác định đơn giá.</p></div>
@@ -92,6 +101,10 @@
 (() => {
     const endpoint = @json(route('website.pharma.quick-order'));
     const submitEndpoint = @json(route('website.pharma.quick-order.requests.store'));
+    const successModal = document.getElementById('quick-order-success-modal');
+    document.getElementById('quick-order-success-return').addEventListener('click', () => {
+        window.location.assign(endpoint);
+    });
     const csrfToken = @json(csrf_token());
     const initial = @json($quickOrderInitialProducts);
     const initialNext = @json($quickOrderInitialNextPage);
@@ -339,6 +352,10 @@
             message.textContent = 'Đã tiếp nhận yêu cầu #' + data.id + '. Trạng thái: Chờ xét duyệt. Chưa tạo phiếu xuất kho.';
             try { window.sessionStorage.removeItem(draftStorageKey); } catch (_) {}
             button.textContent = 'Đã gửi yêu cầu';
+            document.getElementById('quick-order-success-id').textContent = '#' + data.id;
+            successModal.hidden = false;
+            successModal.classList.remove('hidden');
+            document.getElementById('quick-order-success-return').focus();
         } catch (error) {
             message.textContent = error.message || 'Không gửi được yêu cầu. Vui lòng thử lại.';
             button.disabled = false;
