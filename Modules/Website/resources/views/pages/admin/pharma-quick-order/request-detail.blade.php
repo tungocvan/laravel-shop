@@ -24,16 +24,25 @@
             </dl>
         </section>
         <section class="rounded-xl border bg-white p-4">
-            <h2 class="font-semibold">Sản phẩm yêu cầu</h2>
-            <p class="mt-2 text-xs text-amber-700">Danh sách chỉ là số lượng khách yêu cầu. Cần đối chiếu sản phẩm, bảng giá, VAT và tư cách người mua trước khi tạo phiếu xuất.</p>
-            <table class="mt-3 w-full text-sm">
-                <thead><tr class="border-b"><th class="py-2 text-left">Mã sản phẩm Website</th><th class="py-2 text-right">Số lượng</th></tr></thead>
-                <tbody>
-                    @foreach($quickOrderRequest->requested_items ?? [] as $line)
-                        <tr class="border-b"><td class="py-2">#{{ $line['product_id'] ?? '?' }}</td><td class="py-2 text-right">{{ $line['quantity'] ?? '?' }}</td></tr>
-                    @endforeach
-                </tbody>
-            </table>
+            <div class="flex items-center justify-between gap-2">
+                <h2 class="font-semibold">Danh sách thuốc yêu cầu</h2>
+                <span class="rounded-full bg-slate-100 px-2 py-1 text-xs">{{ count($lines) }} sản phẩm</span>
+            </div>
+            <p class="mt-2 text-xs text-amber-700">Đơn giá có VAT và thành tiền chưa được chốt tại bước này. Cần xác minh bảng giá, điều kiện mua thuốc và khả năng cung ứng trước khi lập phiếu xuất.</p>
+            <div class="mt-3 divide-y">
+                @foreach($lines as $line)
+                    <div class="flex items-start justify-between gap-3 py-3">
+                        <div class="min-w-0">
+                            <p class="text-sm font-semibold text-slate-900">{{ $line['title'] }}</p>
+                            <p class="mt-1 text-xs text-slate-500">Website #{{ $line['product_id'] }} · Đơn giá (Có VAT): Cần kiểm tra</p>
+                            @if($line['missing'] || !$line['has_pharma_link'])
+                                <p class="mt-1 text-xs font-semibold text-red-700">Cảnh báo: sản phẩm thiếu dữ liệu liên kết Pharma hoặc không còn tồn tại.</p>
+                            @endif
+                        </div>
+                        <span class="shrink-0 rounded-lg bg-emerald-50 px-2 py-1 text-sm font-bold text-emerald-800">× {{ $line['quantity'] }}</span>
+                    </div>
+                @endforeach
+            </div>
         </section>
     </div>
 
@@ -48,7 +57,7 @@
                 <span>Tôi đã kiểm tra thông tin người mua và xác nhận đủ điều kiện tiếp nhận yêu cầu mua dược phẩm. Việc chấp nhận chưa đồng nghĩa được xuất kho.</span>
             </label>
             <div class="flex flex-wrap gap-3">
-                <button type="submit" name="decision" value="accepted" class="rounded-lg bg-emerald-700 px-4 py-2.5 font-semibold text-white">Chấp nhận yêu cầu</button>
+                <button type="submit" onclick="return confirm('Xác nhận chấp nhận yêu cầu sau khi đã kiểm tra điều kiện mua thuốc?')"  name="decision" value="accepted" class="rounded-lg bg-emerald-700 px-4 py-2.5 font-semibold text-white">Chấp nhận yêu cầu</button>
                 <button type="submit" name="decision" value="rejected" class="rounded-lg border border-red-300 px-4 py-2.5 font-semibold text-red-700">Từ chối yêu cầu</button>
             </div>
         </form>
