@@ -33,6 +33,12 @@ final class PharmaQuickOrderRequest extends Model
         if ($this->status !== 'accepted') {
             return 'pending_review';
         }
+        if ($this->inventory_issue_id && $this->inventoryIssue?->status === InventoryIssue::REJECTED) {
+            return 'issue_rejected';
+        }
+        if ($this->inventory_issue_id && $this->inventoryIssue?->status === InventoryIssue::CANCELLED) {
+            return 'issue_cancelled';
+        }
         if ($this->inventory_issue_id && $this->inventoryIssue?->status === InventoryIssue::POSTED) {
             return 'completed';
         }
