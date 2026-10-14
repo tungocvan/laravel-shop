@@ -21,7 +21,10 @@ class PharmaQuickOrderFrontendGateTest extends TestCase
         $this->assertStringContainsString('user->is_active', $controller);
         $this->assertStringContainsString("where('type', \\Modules\\Pharma\\Models\\PriceList::TYPE_GLOBAL)", $controller);
         $this->assertStringContainsString('eligibleForCustomer(', $controller);
-        $this->assertStringNotContainsString('company_sale_price', $controller);
+        $this->assertStringContainsString('company_sale_price', $controller);
+        $this->assertStringContainsString('medicine_variant_id', $controller);
+        $this->assertStringContainsString('medicine_package_id', $controller);
+        $this->assertStringContainsString('$matches->count() === 1', $controller);
         $this->assertStringNotContainsString('createDraft(', $controller);
     }
 
@@ -30,6 +33,7 @@ class PharmaQuickOrderFrontendGateTest extends TestCase
         $view = file_get_contents(base_path('Modules/Website/resources/views/pages/pharma-quick-order.blade.php'));
         $this->assertStringContainsString('quick-order-search', $view);
         $this->assertStringContainsString('quick-order-results', $view);
+        $this->assertStringContainsString('Giá bán CT:', $view);
         $this->assertStringContainsString('setTimeout(() => fetchPage(1), 300)', $view);
         $this->assertStringContainsString('data-quick-order-quantity', $view);
         $this->assertStringContainsString('quick-order-more', $view);
