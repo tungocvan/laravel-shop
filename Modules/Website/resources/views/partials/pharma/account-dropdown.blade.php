@@ -11,12 +11,12 @@
 @endphp
 <div class="relative shrink-0" x-data="{ accountOpen: false }" @keydown.escape.window="accountOpen = false">
     @guest
-        <div class="flex items-center gap-2 text-sm">
+        <div class="flex min-w-0 flex-wrap items-center justify-end gap-1 text-sm sm:gap-2">
             @if(\Illuminate\Support\Facades\Route::has('login'))
-                <a href="{{ route('login') }}" class="rounded-lg px-2 py-2 font-semibold hover:bg-slate-100">Đăng nhập</a>
+                <a href="{{ route('login') }}" class="whitespace-nowrap rounded-lg px-1.5 py-2 font-semibold hover:bg-slate-100 sm:px-2">Đăng nhập</a>
             @endif
             @if(\Illuminate\Support\Facades\Route::has('register'))
-                <a href="{{ route('register') }}" class="rounded-lg border px-3 py-2 font-semibold" style="border-color:var(--pharma-header-accent);color:var(--pharma-header-accent)">Đăng ký</a>
+                <a href="{{ route('register') }}" class="whitespace-nowrap rounded-lg border px-2 py-2 font-semibold sm:px-3" style="border-color:var(--pharma-header-accent);color:var(--pharma-header-accent)">Đăng ký</a>
             @endif
         </div>
     @else
