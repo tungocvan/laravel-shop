@@ -2,56 +2,31 @@
 
 ## Current objective
 
-Admission public branding/logo alignment for the registration and search pages.
+Fix intermittent HTTP 403 when mobile QR scanners open signed Admission receipt search links with appended tracking query parameters.
 
-Branch: `fix/admission-public-branding-logo`
+Branch: `fix/admission-receipt-qr-tracking-signature`
 
-Status: implementation complete and manually accepted; ready for PR review.
+Status: implementation committed; awaiting local focused tests, Admission regression and manual UI acceptance. No merge approval.
 
-## Completed baseline
+## Root cause evidence (Production ntd, 2026-10-12, 16:45–17:05 Asia/Ho_Chi_Minh)
 
-The compact Admission major refactor and the subsequent admin-list UI/pagination refinement are already complete. Their architecture, persistence, authorization and pagination contracts remain unchanged by this follow-up.
+- Same `/admission/search/receipt/272` URL signature fingerprint returned HTTP 200 without extra parameters, but HTTP 403 when scanners added `zarsrc`, `utm_source`, `utm_medium`, `utm_campaign`, `gidzl`.
+- The signature value itself was unchanged. Raw signatures and student identifiers are not reproduced here.
+- `signed` middleware validates the signed URL's query string; adding tracking parameters invalidates it.
 
-## Public branding follow-up
+## Changes
 
-The public routes `/admission/register` and `/admission/search` previously duplicated a hard-coded Admission logo path.
+- Scoped exception to the existing `admission.search.receipt` route: `signed:zarsrc,utm_source,utm_medium,utm_campaign,gidzl`.
+- The `signature` parameter is **not** ignored. No global signature changes, QR generation changes, controller changes, schema changes or permission changes.
+- Added `tests/Feature/Admission/AdmissionReceiptQrTrackingSignatureTest.php`: checks real receipt middleware contract using an isolated probe route; original and tracked signed URL succeed, unknown parameter, modified signature and missing signature are rejected.
+- Existing approved-application status check and student-prefill behavior remain unchanged.
 
-Implemented in this branch:
+## Verification gate
 
-- added a shared Admission public branding-header partial used by both public pages;
-- removed duplicated hard-coded logo markup from register and search;
-- aligned both pages to the existing Website logo file contract at `storage/app/public/logo.png`;
-- added a compatibility fallback to the existing Admission asset at `storage/app/public/admission/img/logo.png` when the Website logo file is absent;
-- resolved the logo through the configured `public` filesystem disk before generating the `/storage/...` URL;
-- preserved the registration form, search workflow, school-year heading and legacy-search warning behavior.
+Not yet executed in user environment. Run focused test first, then Admission module regression. UI acceptance must confirm that scanning the existing QR on iPhone and Android works when tracking parameters are appended, while invalid/unsigned links remain denied. Full project regression: NOT APPLICABLE — module-scoped middleware change.
 
-During manual verification, the initial assumption that `site_logo` was the canonical persisted setting was disproved by the runtime environment: `site_logo` was `null`, while the active Website logo existed at `storage/app/public/logo.png`. The branch was corrected to follow that existing file contract rather than introducing a new settings dependency.
+Do not merge until test PASS + UI PASS and explicit user approval.
 
-## Safety
+## Historical context
 
-- No schema or migration changes.
-- No route changes.
-- No permission or authorization changes.
-- No Admission registration/search business logic changes.
-- No upload/storage migration or destructive file operation.
-- Existing Admission compatibility/quarantined debt remains unchanged.
-
-## Verification
-
-Manual UI acceptance:
-
-- user reported **UI PASS** on 2026-09-03 for both `/admission/register` and `/admission/search` after the corrected Website-logo resolution was applied.
-
-This is a focused Blade/public-branding fix. No application-wide regression was requested or required for this follow-up, and no automated-test/Pint result is claimed here.
-
-## Merge gate
-
-Ready for PR review:
-
-- both public Admission pages share one branding header;
-- Website logo contract verified against the runtime filesystem;
-- fallback uses the existing Admission logo asset;
-- UI PASS;
-- no schema, route, authz or business-workflow changes.
-
-After merge, synchronize `main`. The API placeholder, shared `job_batches` migration ownership, legacy credential lookup compatibility route and DVHC ownership questions remain separately documented Admission debt and are outside this branding fix.
+Prior handoff described public branding/logo alignment on branch `fix/admission-public-branding-logo` (manual UI PASS on 2026-09-03). This QR fix does not change branding, registration, school settings, Admission persistence or legacy route behavior.
