@@ -20,7 +20,7 @@ for project in tnv ntd; do
 done
 [[ "$(bash "$SCRIPT" --project tnv)" == *'Bạn muốn tôi xử lý vấn đề hoặc chức năng gì?'* ]]
 if bash "$SCRIPT" --project tnv --goal 'không hợp lệ' >/dev/null 2>&1; then echo 'Goal CLI input must be rejected' >&2; exit 1; fi
-[[ "$(grep -c 'IFS= read -r' "$SCRIPT")" -eq 3 ]]
+! grep -Fq 'Mô tả yêu cầu (Enter' "$SCRIPT"
 [[ "$(bash "$SCRIPT" --project unknownproject)" == *'PROFILE_NOT_FOUND'* ]]
 if bash "$SCRIPT" --project ../tnv >/dev/null 2>&1; then echo 'Traversal must fail' >&2; exit 1; fi
 if bash "$SCRIPT" --project tnv --mode invalid >/dev/null 2>&1; then echo 'Invalid mode must fail' >&2; exit 1; fi
