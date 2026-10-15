@@ -64,7 +64,7 @@ class HeaderStudioWorkspaceContractTest extends TestCase
         $drawer = substr($frontend, strpos($frontend, '<aside id="pharma-mobile-menu"'));
 
         $this->assertIsString($drawer);
-        $this->assertStringContainsString('@auth', $drawer);
+        $this->assertStringContainsString('@if(auth()->check())', $drawer);
         $this->assertStringContainsString('aria-label="Tài khoản của tôi"', $drawer);
         $this->assertStringContainsString('aria-label="Liên kết tài khoản"', $drawer);
         $this->assertLessThan(
