@@ -197,3 +197,12 @@ A future Website change must begin from a newly stated objective and must not tr
 - UI smoke: NOT VERIFIED; requires actual desktop/mobile browser acceptance.
 - Known remaining work: mobile Topbar visibility setting, icon-only Pharma menu, further studio UX and source-based regression checks. Not implemented in this checkpoint.
 - Next step: user pulls branch and runs focused tests; do not merge before test and UI PASS.
+
+### Header Studio checkpoint 2 — pending local test/UI gate
+
+- Reorganized Account Dropdown, Pharma Topbar and Appearance into collapsed, accessible disclosure panels; existing save actions and System setting keys remain unchanged.
+- Added `show_desktop` and `show_mobile` booleans to the existing `website.pharma_header.topbar` JSON setting, defaulting to desktop visible and mobile hidden for backward compatibility.
+- Applied the same visibility settings in Pharma frontend header and responsive builder preview. Topbar global `enabled` and slot enabled rules still gate rendering.
+- Replaced the Pharma mobile `Menu` text button with an accessible 44px hamburger/close icon; existing Alpine drawer state and route/menu data remain unchanged.
+- Updated focused contract coverage; user must pull and run targeted tests plus manual desktop/mobile UI verification.
+- Not merged, not locally executed by assistant, no production deployment.
