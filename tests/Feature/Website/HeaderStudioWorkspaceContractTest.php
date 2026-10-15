@@ -71,11 +71,28 @@ class HeaderStudioWorkspaceContractTest extends TestCase
         $this->assertSame(1, substr_count($header, "partials.pharma.account-dropdown"));
         $this->assertStringContainsString('aria-label="Tài khoản của tôi"', $account);
         $this->assertStringContainsString('aria-label="Liên kết tài khoản"', $account);
-        $this->assertStringContainsString('method="POST" action="{{ route(\'logout\') }}"', $account);
-        $this->assertStringContainsString('@csrf', $account);
+        $this->assertStringContainsString('method="POST" action="{{ route(\'logout\') }}"', $header);
+        $this->assertStringContainsString('@csrf', $header);
         $this->assertStringContainsString('show_orders', $account);
         $this->assertStringContainsString('show_admin', $account);
         $this->assertStringContainsString('$mobileAccountCanAdmin', $account);
+    }
+
+    public function test_mobile_drawer_v2_has_branded_header_account_card_and_pinned_footer(): void
+    {
+        $header = file_get_contents(base_path('Modules/Website/resources/views/partials/pharma/header.blade.php'));
+        $account = file_get_contents(base_path('Modules/Website/resources/views/partials/pharma/mobile-account-links.blade.php'));
+
+        $this->assertStringContainsString('FlexBiz - về trang chủ', $header);
+        $this->assertStringContainsString('overflow-hidden bg-white text-slate-900 shadow-2xl', $header);
+        $this->assertStringContainsString('min-h-0 flex-1 overflow-y-auto overscroll-contain', $header);
+        $this->assertStringContainsString('safe-area-inset-bottom', $header);
+        $this->assertStringContainsString('Khám phá', $header);
+        $this->assertStringContainsString('aria-label="Liên kết tài khoản"', $account);
+        $this->assertStringContainsString('grid grid-cols-2 gap-2', $account);
+        $this->assertStringContainsString('Đơn hàng của tôi', $account);
+        $this->assertStringContainsString('Thông tin cá nhân', $account);
+        $this->assertStringContainsString('Đăng xuất', $header);
     }
 
 }
