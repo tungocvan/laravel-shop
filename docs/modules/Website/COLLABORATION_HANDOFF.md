@@ -230,3 +230,12 @@ A future Website change must begin from a newly stated objective and must not tr
 - Preserved route checks, account settings, admin role gate, and POST+CSRF logout.
 - Added focused contract. **NOT YET TESTED IN LARAVEL RUNTIME**: mandatory `php artisan view:cache` before focused tests and browser UI; stop immediately if compile fails.
 - Do not merge without TEST + UI PASS.
+
+### Mobile Drawer V2 — UI checkpoint (awaiting local compile/tests/UI)
+
+- Replaced plain Menu title with brand/logo heading, retained existing company name and home route.
+- Signed-in account panel is a compact card with avatar, name/email, direct profile/order shortcuts and permission-gated secondary links; no nested dropdown.
+- Navigation uses labeled discovery section, touch-friendly rows and existing menu source. Search is full-width in the scroll region.
+- Sign-out moved into a pinned footer with POST+CSRF; guest login/register live in the same footer. Footer accounts for iPhone safe-area inset.
+- Drawer body scrolls independently; max width remains 360px. No admin header settings or desktop account behavior changed.
+- Added contract coverage. **Not executed in Laravel environment by assistant.** Mandatory first gate: `php artisan view:clear && php artisan view:cache`. Stop if compile fails. Then focused and Header regression tests; finally mobile guest/auth UI. No merge before TEST + UI PASS.
