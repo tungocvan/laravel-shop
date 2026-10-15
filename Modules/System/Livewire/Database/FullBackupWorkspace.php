@@ -6,6 +6,7 @@ namespace Modules\System\Livewire\Database;
 
 use Illuminate\Support\Facades\Log;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Modules\System\Jobs\UploadDatabaseBackupToGoogleDrive;
 use Modules\System\Livewire\Concerns\AuthorizesSystemActions;
 use Modules\System\Services\Cloud\GoogleDriveBackupBrowserService;
@@ -16,7 +17,10 @@ use Throwable;
 
 class FullBackupWorkspace extends Component
 {
-    use AuthorizesSystemActions;
+    use AuthorizesSystemActions, WithFileUploads;
+
+    public $sqlFile;
+    public bool $showUploadModal = false;
 
     public array $selectedNames = [];
     public bool $showRestoreModal = false;
@@ -65,6 +69,44 @@ class FullBackupWorkspace extends Component
         $this->selectedNames = array_values(array_intersect($this->selectedNames, array_column($catalog, 'name')));
 
         return view('System::livewire.database.full-backup-workspace', compact('catalog', 'driveConnected', 'driveReady', 'driveReadiness', 'remoteUnavailable', 'capabilities'));
+    }
+
+    public function openUpload(): void
+    {
+        $this->authorizePermission('database.backup');
+        $this->reset('sqlFile');
+        $this->resetValidation('sqlFile');
+        $this->showUploadModal = true;
+    }
+
+    public function closeUpload(): void
+    {
+        $this->showUploadModal = false;
+        $this->reset('sqlFile');
+        $this->resetValidation('sqlFile');
+    }
+
+    public function uploadSql(DatabaseService $service): void
+    {
+        $this->authorizePermission('database.backup');
+
+        $validated = $this->validate([
+            'sqlFile' => ['required', 'file', 'extensions:sql', 'max:20480'],
+        ], [
+            'sqlFile.required' => 'Vui lòng chọn file SQL.',
+            'sqlFile.extensions' => 'Chỉ chấp nhận file .sql.',
+            'sqlFile.max' => 'File upload trực tiếp không được vượt quá 20 MB.',
+        ]);
+
+        try {
+            $file = $validated['sqlFile'];
+            $name = $service->importBackupFile($file->getRealPath(), $file->getClientOriginalName());
+            $this->closeUpload();
+            $this->notify('success', 'Đã xác minh và lưu '.$name.' vào Backup Catalog (LOCAL ONLY). Chưa thực hiện Restore.');
+        } catch (Throwable $e) {
+            $this->fail('Full database SQL upload failed.', $e, 'File SQL không hợp lệ hoặc không thể lưu. Database hiện tại chưa bị thay đổi.');
+            $this->addError('sqlFile', 'Không thể nhập file. Chỉ hỗ trợ Full Database Backup MySQL/MariaDB hợp lệ.');
+        }
     }
 
     public function createBackup(DatabaseService $service): void
