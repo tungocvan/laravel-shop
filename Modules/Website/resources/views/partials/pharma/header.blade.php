@@ -110,15 +110,9 @@
                             @foreach($mobileMenu->isNotEmpty() ? $mobileMenu : $fallbackMenu as $item)
                                 @php($itemUrl = is_array($item) ? $item['url'] : $item->url)
                                 @php($itemTitle = is_array($item) ? $item['title'] : $item->title)
-                                <a href="{{ $itemUrl ?: '#' }}" class="flex min-h-11 items-center justify-between rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-800 hover:bg-emerald-50"><span>{{ $itemTitle }}</span><svg class="h-4 w-4 shrink-0 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></a>
+                                <a href="{{ $itemUrl ?: '#' }}" class="flex min-h-11 items-center rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-800 hover:bg-emerald-50">{{ $itemTitle }}</a>
                             @endforeach
                         </nav>
-                        @if(!empty($headerLayout['mobile.search']))
-                            <form action="{{ route('product.list') }}" method="GET" role="search" class="flex gap-2 border-t border-slate-100 px-3 py-3">
-                                <input name="search" type="search" aria-label="Tìm sản phẩm" placeholder="Tìm sản phẩm..." class="min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm focus:border-emerald-600 focus:outline-none">
-                                <button type="submit" class="min-h-11 rounded-xl px-4 py-2 text-sm font-bold text-white" style="background:var(--pharma-header-accent)">Tìm</button>
-                            </form>
-                        @endif
                         </div>
                         <div class="shrink-0 border-t border-slate-200 bg-white px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom,0px))]">
                             @if(auth()->check())
