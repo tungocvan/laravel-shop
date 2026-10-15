@@ -100,6 +100,8 @@
                             <span class="text-base font-bold">Menu</span>
                             <button type="button" @click="menuOpen = false" aria-label="Đóng menu" class="flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 text-xl">×</button>
                         </div>
+                        @include('Website::partials.pharma.mobile-account-links', ['accountConfig' => $accountConfig])
+                        <div class="min-h-0 flex-1 overflow-y-auto">
                         <nav aria-label="Điều hướng Pharma trên di động" class="flex flex-col gap-1 px-4 py-4">
                             @foreach($mobileMenu->isNotEmpty() ? $mobileMenu : $fallbackMenu as $item)
                                 @php($itemUrl = is_array($item) ? $item['url'] : $item->url)
@@ -113,8 +115,8 @@
                                 <button type="submit" class="rounded-lg px-4 py-2 text-sm font-bold text-white" style="background:var(--pharma-header-accent)">Tìm</button>
                             </form>
                         @endif
-                        <div class="mt-auto border-t border-slate-200 px-4 py-4">
-                            @guest
+                        @guest
+                            <div class="border-t border-slate-200 px-4 py-4">
                                 <div class="grid grid-cols-2 gap-2">
                                     @if(\Illuminate\Support\Facades\Route::has('login'))
                                         <a href="{{ route('login') }}" class="rounded-lg border border-slate-300 px-3 py-3 text-center text-sm font-semibold">Đăng nhập</a>
@@ -123,10 +125,8 @@
                                         <a href="{{ route('register') }}" class="rounded-lg px-3 py-3 text-center text-sm font-semibold text-white" style="background:var(--pharma-header-accent)">Đăng ký</a>
                                     @endif
                                 </div>
-                            @else
-                                <div class="mb-2 truncate text-sm font-semibold">{{ auth()->user()->name }}</div>
-                                @include('Website::partials.pharma.account-dropdown', ['accountConfig' => $accountConfig])
-                            @endguest
+                            </div>
+                        @endguest
                         </div>
                     </aside>
                 </div>
