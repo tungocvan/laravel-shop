@@ -65,9 +65,22 @@ final class RealtimeManager
 
     public function browserConfig(): array
     {
+        $publicUrl = trim((string) config('services.nodejs.public_url', ''));
+
+        // The internal NodeJS URL is a safe browser fallback only in local development.
+        // Production must continue using its explicitly configured public endpoint.
+        if ($publicUrl === '' && app()->environment('local')) {
+            $localUrl = trim((string) config('services.nodejs.url', ''));
+            $host = parse_url($localUrl, PHP_URL_HOST);
+
+            if (in_array($host, ['127.0.0.1', 'localhost', '::1'], true)) {
+                $publicUrl = $localUrl;
+            }
+        }
+
         return [
             'enabled' => $this->enabled(),
-            'url' => config('services.nodejs.public_url'),
+            'url' => $publicUrl !== '' ? $publicUrl : null,
         ];
     }
 
