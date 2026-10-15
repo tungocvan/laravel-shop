@@ -59,7 +59,7 @@ render() {
     printf -- '- Working directory: `%s`\n' "$(docker inspect -f '{{.Config.WorkingDir}}' "$app" 2>/dev/null || echo UNKNOWN)"
     printf -- '- Runtime user (Docker config): `%s`\n' "$(docker inspect -f '{{.Config.User}}' "$app" 2>/dev/null || echo UNKNOWN)"
     printf '\n### Mounts (type and destination only; source paths omitted)\n\n'
-    docker inspect -f '{{range .Mounts}}{{printf "%s -> %s\\n" .Type .Destination}}{{end}}' "$app" 2>/dev/null | while IFS= read -r line; do
+    docker inspect -f '{{range .Mounts}}{{println .Type "->" .Destination}}{{end}}' "$app" 2>/dev/null | while IFS= read -r line; do
       [[ -n "$line" ]] && printf -- '- `%s`\n' "$line"
     done
     printf '\n### Laravel / PHP (allowlisted values only)\n\n'
