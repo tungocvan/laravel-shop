@@ -10,7 +10,7 @@ validate_mode() {
   case "$1" in quick|debug|audit) ;; *) echo 'Invalid mode' >&2; exit 2 ;; esac
 }
 print_prompt() {
-  local project="$1" mode="$2" goal="$3" label
+  local project="$1" mode="$2" label
   validate_project "$project"
   validate_mode "$mode"
   case "$mode" in
@@ -27,11 +27,7 @@ Chế độ: $label
 
 YÊU CẦU CỦA TÔI:
 EOF
-  if [[ -n "$goal" ]]; then
-    printf '%s\n' "$goal"
-  else
-    echo 'Tôi chưa mô tả mục tiêu. Trước tiên chỉ hỏi tôi một câu: "Bạn muốn tôi xử lý vấn đề hoặc chức năng gì?" Sau khi tôi trả lời, tiếp tục thực hiện theo quy tắc bên dưới.'
-  fi
+  echo 'Tôi sẽ mô tả mục tiêu trong cuộc trò chuyện sau khi dán prompt này. Trước tiên hãy hỏi đúng một câu: "Bạn muốn tôi xử lý vấn đề hoặc chức năng gì?" Chờ tôi trả lời rồi mới bắt đầu audit hoặc đề xuất hành động.'
   cat <<EOF
 
 QUY TẮC THỰC HIỆN:
@@ -62,24 +58,23 @@ EOF
     printf 'NOTE (outside prompt): PROFILE_NOT_FOUND docs/projects/%s.md\n' "$project"
   fi
 }
-project='' mode='' goal=''
+project='' mode=''
 if (($#)); then
   while (($#)); do
     case "$1" in
       --help|-h) usage; exit 0 ;;
-      --project|--mode|--goal)
+      --project|--mode)
         [[ $# -ge 2 ]] || { usage >&2; exit 2; }
         case "$1" in
           --project) project="$2" ;;
           --mode) mode="$2" ;;
-          --goal) goal="$2" ;;
         esac
         shift 2 ;;
       *) usage >&2; exit 2 ;;
     esac
   done
   [[ -n "$project" ]] || { usage >&2; exit 2; }
-  print_prompt "$project" "${mode:-quick}" "$goal"
+  print_prompt "$project" "${mode:-quick}"
   exit 0
 fi
 if [[ ! -t 0 ]]; then
@@ -110,9 +105,7 @@ while true; do
         0) continue ;;
         *) echo 'Lựa chọn không hợp lệ.'; continue ;;
       esac
-      printf '\nMô tả yêu cầu (Enter để mô tả sau trong ChatGPT): '
-      IFS= read -r goal || exit 0
-      print_prompt "$project" "$mode" "$goal"
+      print_prompt "$project" "$mode"
       ;;
     *) echo 'Lựa chọn không hợp lệ.' ;;
   esac
