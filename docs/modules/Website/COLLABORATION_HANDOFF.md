@@ -187,3 +187,29 @@ Do not create speculative Cart/Promotion modules solely for architectural symmet
 `NOT DETERMINED` after this production corrective hotfix.
 
 A future Website change must begin from a newly stated objective and must not treat this handoff as authorization for additional destructive cleanup.
+
+## Header Studio workspace checkpoint (2026-10-15)
+
+- Branch: `feat/website-header-studio-workspace`.
+- Scope: initial low-risk UI reorganization of `/admin/header-settings`, preserving the existing Website Livewire component, System settings keys, builder slots, theme snapshots and save actions.
+- Implementation: preview-first workspace, collapsible theme library and advanced slot controls, full-width responsive admin content; no runtime setting migration.
+- Focused test: `tests/Feature/Website/HeaderStudioWorkspaceContractTest.php` (awaiting local execution).
+- UI smoke: NOT VERIFIED; requires actual desktop/mobile browser acceptance.
+- Known remaining work: mobile Topbar visibility setting, icon-only Pharma menu, further studio UX and source-based regression checks. Not implemented in this checkpoint.
+- Next step: user pulls branch and runs focused tests; do not merge before test and UI PASS.
+
+### Header Studio checkpoint 2 — pending local test/UI gate
+
+- Reorganized Account Dropdown, Pharma Topbar and Appearance into collapsed, accessible disclosure panels; existing save actions and System setting keys remain unchanged.
+- Added `show_desktop` and `show_mobile` booleans to the existing `website.pharma_header.topbar` JSON setting, defaulting to desktop visible and mobile hidden for backward compatibility.
+- Applied the same visibility settings in Pharma frontend header and responsive builder preview. Topbar global `enabled` and slot enabled rules still gate rendering.
+- Replaced the Pharma mobile `Menu` text button with an accessible 44px hamburger/close icon; existing Alpine drawer state and route/menu data remain unchanged.
+- Updated focused contract coverage; user must pull and run targeted tests plus manual desktop/mobile UI verification.
+- Not merged, not locally executed by assistant, no production deployment.
+
+### Header Studio checkpoint 3 — mobile Pharma layout (awaiting tests/UI)
+
+- Compact mobile header: brand subtitle hidden below sm, guest auth controls hidden from main header on mobile; desktop remains unchanged.
+- Mobile hamburger opens right-side fixed overlay drawer teleported to body; backdrop and close button, Escape close, links, search, and guest sign-in/register retained.
+- Added contract test for mobile overlay and compact header. Manual Safari iPhone test required: open/close, tap backdrop, scrolling, navigation, search, guest and authenticated states.
+- No merge until targeted tests and UI pass. Potential further accessibility enhancement: focus trap and scroll locking for modal drawer.

@@ -1,8 +1,8 @@
-<div class="max-w-6xl mx-auto py-6"
-    x-data="{ tab: @entangle('activeTab'), previewDevice: 'desktop', drag: null }">
+<div class="w-full px-3 py-5 sm:px-6"
+    x-data="{ tab: @entangle('activeTab'), previewDevice: 'desktop', drag: null, showLayoutTools: false, showThemeLibrary: false, showAccountSettings: false, showTopbarSettings: false, showAppearanceSettings: false }">
     <div class="mb-6">
-        <h2 class="text-2xl font-bold text-gray-800">Cấu hình Header System</h2>
-        <p class="text-sm text-gray-500">Quản lý nội dung, menu và bố cục Header theo schema an toàn.</p>
+        <h2 class="text-2xl font-bold text-gray-800">Thiết kế Header Website</h2>
+        <p class="text-sm text-gray-500">Chọn giao diện, xem trước theo thiết bị và chỉ mở các thiết lập chuyên sâu khi cần.</p>
     </div>
 
     <div class="mb-5 rounded-xl border border-gray-200 bg-white p-4">
@@ -30,8 +30,8 @@
     <div x-show="tab === 'builder'" x-cloak class="space-y-8 rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-                <h3 class="text-lg font-bold text-gray-900">Header Builder</h3>
-                <p class="text-sm text-gray-500">Kéo component để đổi thứ tự hoặc chuyển giữa các slot được Registry cho phép. Nút ↑/↓ và select vẫn được giữ làm phương án thao tác dự phòng.</p>
+                <h3 class="text-lg font-bold text-gray-900">Không gian thiết kế Header</h3>
+                <p class="text-sm text-gray-500">Xem trước trước khi lưu. Các công cụ sắp xếp kỹ thuật được thu gọn trong mục Bố cục nâng cao.</p>
             </div>
             <div class="flex gap-2">
                 <button type="button" wire:click="resetBuilder" class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Khôi phục mặc định</button>
@@ -43,7 +43,22 @@
             <div class="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{{ $message }}</div>
         @enderror
 
-        @include('Website::livewire.admin.header.partials.theme-manager')
+        <section class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <button type="button" @click="showThemeLibrary = !showThemeLibrary" :aria-expanded="showThemeLibrary.toString()" aria-controls="header-theme-library" class="flex w-full items-center justify-between gap-3 text-left text-sm font-semibold text-gray-800">
+                <span>Thư viện mẫu Header <span class="ml-2 text-xs font-normal text-gray-500">Chọn, lưu và quản lý các mẫu đã tạo</span></span>
+                <span x-text="showThemeLibrary ? 'Thu gọn −' : 'Mở thư viện +'"></span>
+            </button>
+            <div id="header-theme-library" x-show="showThemeLibrary" x-cloak class="mt-4">
+                @include('Website::livewire.admin.header.partials.theme-manager')
+            </div>
+        </section>
+        @include('Website::livewire.admin.header.partials.builder-preview')
+        <section class="rounded-xl border border-gray-200 bg-white p-4">
+            <button type="button" @click="showLayoutTools = !showLayoutTools" :aria-expanded="showLayoutTools.toString()" aria-controls="header-layout-tools" class="flex w-full items-center justify-between gap-3 text-left text-sm font-semibold text-gray-800">
+                <span>Bố cục nâng cao <span class="ml-2 text-xs font-normal text-gray-500">Sắp xếp, bật tắt và di chuyển thành phần giữa các vị trí</span></span>
+                <span x-text="showLayoutTools ? 'Thu gọn −' : 'Mở công cụ +'"></span>
+            </button>
+            <div id="header-layout-tools" x-show="showLayoutTools" x-cloak class="mt-4">
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
             @foreach($builderSlotNames as $slotKey => $slotLabel)
@@ -112,8 +127,16 @@
             @endforeach
         </div>
 
+        </div>
+        </section>
+
         @if($editingTemplate === 'pharma')
-            <section class="rounded-xl border border-emerald-200 bg-emerald-50/40 p-5 space-y-4" aria-label="Thiết lập Account Dropdown Pharma">
+            <section class="rounded-xl border border-emerald-200 bg-white p-4" aria-label="Thiết lập Account Dropdown Pharma">
+                <button type="button" @click="showAccountSettings = !showAccountSettings" :aria-expanded="showAccountSettings.toString()" aria-controls="header-account-settings" class="flex w-full items-center justify-between gap-3 text-left text-sm font-semibold text-gray-800">
+                    <span>Tài khoản & đăng nhập <span class="ml-2 text-xs font-normal text-gray-500">Kiểu hiển thị và các liên kết tài khoản</span></span>
+                    <span x-text="showAccountSettings ? 'Thu gọn −' : 'Cấu hình +'"></span>
+                </button>
+                <div id="header-account-settings" x-show="showAccountSettings" x-cloak class="mt-4 space-y-4">
                 <div>
                     <h4 class="text-base font-bold text-gray-900">Account Dropdown · Góc phải Header</h4>
                     <p class="mt-1 text-xs text-gray-600">Component độc lập với Menu điều hướng. Tổng quan tài khoản và Đăng xuất là mục bắt buộc; các mục khác chỉ hiện khi route khả dụng và người dùng có quyền.</p>
@@ -138,16 +161,26 @@
                     <span class="text-xs text-gray-600">Desktop và Mobile: góc phải · Đăng xuất dùng POST + CSRF.</span>
                     <button type="button" wire:click="saveAccountSettings" class="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Lưu Account Dropdown</button>
                 </div>
+                </div>
             </section>
         @endif
 
         @if($editingTemplate === 'pharma')
-            <section class="space-y-4 rounded-xl border border-teal-200 bg-teal-50/30 p-5">
+            <section class="rounded-xl border border-teal-200 bg-white p-4">
+                <button type="button" @click="showTopbarSettings = !showTopbarSettings" :aria-expanded="showTopbarSettings.toString()" aria-controls="header-topbar-settings" class="flex w-full items-center justify-between gap-3 text-left text-sm font-semibold text-gray-800">
+                    <span>Thanh thông tin Pharma <span class="ml-2 text-xs font-normal text-gray-500">Nội dung, liên hệ và hiển thị theo thiết bị</span></span>
+                    <span x-text="showTopbarSettings ? 'Thu gọn −' : 'Cấu hình +'"></span>
+                </button>
+                <div id="header-topbar-settings" x-show="showTopbarSettings" x-cloak class="mt-4 space-y-4">
                 <div>
                     <h4 class="text-base font-bold text-gray-900">Topbar Pharma · Nội dung & liên hệ</h4>
                     <p class="mt-1 text-xs text-gray-600">Nội dung độc lập với Topbar Default. Màu Topbar BG / Topbar Text của Pharma áp dụng độc lập, kể cả khi bật Kế thừa màu Global Website Theme. Chiều cao chỉnh trong Advanced phía dưới.</p>
                 </div>
                 <label class="flex items-center gap-2 text-sm font-medium"><input type="checkbox" wire:model="topbarSettings.enabled" class="rounded border-gray-300"> Hiển thị Topbar Pharma</label>
+                <div class="grid gap-3 rounded-lg border border-teal-100 bg-teal-50/50 p-3 sm:grid-cols-2">
+                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model="topbarSettings.show_desktop" class="rounded border-gray-300"> Hiển thị trên Desktop / Tablet</label>
+                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model="topbarSettings.show_mobile" class="rounded border-gray-300"> Hiển thị trên Mobile</label>
+                </div>
                 <div class="grid gap-4 md:grid-cols-2">
                     <label class="text-sm font-medium">Nội dung bên trái
                         <input type="text" wire:model="topbarSettings.left_text" maxlength="180" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100">
@@ -168,12 +201,16 @@
                     <button type="button" wire:click="saveTopbarSettings" class="ml-auto rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white">Lưu Topbar Pharma</button>
                 </div>
                 @error('topbarSettings.email')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
+                </div>
             </section>
         @endif
 
-        @include('Website::livewire.admin.header.partials.builder-preview')
-
-        <div class="border-t border-gray-100 pt-6">
+        <section class="rounded-xl border border-gray-200 bg-white p-4">
+            <button type="button" @click="showAppearanceSettings = !showAppearanceSettings" :aria-expanded="showAppearanceSettings.toString()" aria-controls="header-appearance-settings" class="flex w-full items-center justify-between gap-3 text-left text-sm font-semibold text-gray-800">
+                <span>Giao diện & kích thước <span class="ml-2 text-xs font-normal text-gray-500">Màu sắc, chiều cao và tùy chọn nâng cao</span></span>
+                <span x-text="showAppearanceSettings ? 'Thu gọn −' : 'Cấu hình +'"></span>
+            </button>
+            <div id="header-appearance-settings" x-show="showAppearanceSettings" x-cloak class="mt-4">
             <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h4 class="font-bold text-gray-900">Thiết lập giao diện Header</h4>
@@ -220,6 +257,7 @@
                     @endforeach
                 </div>
             @endif
-        </div>
+            </div>
+        </section>
     </div>
 </div>

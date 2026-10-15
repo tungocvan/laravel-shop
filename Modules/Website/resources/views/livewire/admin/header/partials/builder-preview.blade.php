@@ -50,7 +50,7 @@
             <div class="overflow-hidden rounded-lg shadow-sm" style="background: {{ $surface }}; color: {{ $foreground }}; border: 1px solid {{ $border }};">
                 @if($editingTemplate === 'pharma')
                     @if(($topbarSettings['enabled'] ?? true) && count($slotItems['desktop.topbar'] ?? []) > 0)
-                        <div x-show="previewDevice !== 'mobile'" class="flex flex-wrap items-center justify-between gap-2 px-4 text-xs" style="min-height: {{ $topbarHeight }}px; background: {{ $previewPresentation['colors']['topbar_background'] ?? $topbarBackground }}; color: {{ $previewPresentation['colors']['topbar_foreground'] ?? $topbarForeground }};">
+                        <div x-show="previewDevice === 'mobile' ? @js((bool) ($topbarSettings['show_mobile'] ?? false)) : @js((bool) ($topbarSettings['show_desktop'] ?? true))" class="flex flex-wrap items-center justify-between gap-2 px-4 text-xs" style="min-height: {{ $topbarHeight }}px; background: {{ $previewPresentation['colors']['topbar_background'] ?? $topbarBackground }}; color: {{ $previewPresentation['colors']['topbar_foreground'] ?? $topbarForeground }};">
                             <div class="flex flex-wrap items-center gap-3">
                                 <span>{{ $topbarSettings['left_text'] ?? 'THÔNG TIN DƯỢC PHẨM · TRA CỨU VÀ THAM KHẢO' }}</span>
                                 @if($topbarSettings['show_hotline'] ?? false)<span>{{ $topbarSettings['hotline'] ?? '' }}</span>@endif
