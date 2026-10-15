@@ -1,3 +1,17 @@
+## Pending UI Gate — Full Database SQL Upload (2026-10-15)
+
+- Base checkpoint: `main @ aca3d8a7f`. Feature branch: `feat/system-database-upload-sql-restore`.
+- `/admin/system/database` uses `FullBackupWorkspace`, `DatabaseService`, and the shared local/Drive Backup Catalog. Existing `BackupManager::uploadSql` was not surfaced in the unified workspace.
+- Add an Upload SQL modal in the unified workspace using Livewire `WithFileUploads`, `database.backup` authorization, SQL extension and 20 MB upload cap (matching existing legacy upload contract).
+- Reuse `DatabaseService::importBackupFile` and `DatabaseBackupCatalogService::isFullDatabaseBackup`; upload only stages a local catalog entry and never triggers restore.
+- Existing `database.restore` gate, local-only restore confirmation, restore lock, safety backup, and recovery path remain unchanged.
+- Harden the shared import helper to write a unique temporary file and publish atomically. Existing Google Drive download/import path continues to reuse it.
+- User acceptance pending: targeted test, System workspace regression, manual UI (valid/invalid SQL, permission, catalog visibility, no automatic restore).
+- Large files above 20 MB are not supported by the direct browser upload; do not raise PHP/Nginx limits implicitly. SQL format screening is heuristic and does not sandbox arbitrary SQL execution; restore must be restricted to trusted dumps.
+- No production restore or database mutation was performed by ChatGPT. Do not merge before TEST + UI PASS.
+
+---
+
 ## Corrective Checkpoint — Schema Doctor Snapshot v2 Semantics
 
 - Branch: `fix/system-schema-doctor-v2-semantics`
