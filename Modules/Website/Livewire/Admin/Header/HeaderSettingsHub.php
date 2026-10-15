@@ -107,6 +107,8 @@ class HeaderSettingsHub extends Component
         $values = is_array($saved) ? $saved : [];
         return [
             'enabled' => (bool) ($values['enabled'] ?? true),
+            'show_desktop' => (bool) ($values['show_desktop'] ?? true),
+            'show_mobile' => (bool) ($values['show_mobile'] ?? false),
             'left_text' => mb_substr((string) ($values['left_text'] ?? 'THÔNG TIN DƯỢC PHẨM · TRA CỨU VÀ THAM KHẢO'), 0, 180),
             'right_text' => mb_substr((string) ($values['right_text'] ?? 'Thông tin không thay thế tư vấn chuyên môn y tế'), 0, 180),
             'show_hotline' => (bool) ($values['show_hotline'] ?? false),
