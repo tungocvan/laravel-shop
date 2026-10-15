@@ -2,7 +2,6 @@
 
 namespace Modules\Category\Services;
 
-use Closure;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -41,8 +40,6 @@ class ImportExport extends BaseImportExportService
 
     protected string $mode = 'update_or_create';
 
-    private array $currentRow = [];
-
     public function __construct(private readonly CategoryService $categories)
     {
         $this->rules = [
@@ -53,14 +50,7 @@ class ImportExport extends BaseImportExportService
             'can' => ['nullable', 'string', 'max:255'],
             'type' => ['required', 'string', 'exists:category_types,type'],
             'type_title' => ['nullable', 'string', 'max:255'],
-            'parent_slug' => [
-                'nullable',
-                'string',
-                'max:255',
-                function (string $attribute, mixed $value, Closure $fail): void {
-                    $this->validateParentSlug($value, $fail);
-                },
-            ],
+            'parent_slug' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'is_active' => ['nullable', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:4294967295'],
@@ -114,6 +104,10 @@ class ImportExport extends BaseImportExportService
                     foreach ($pending as $item) {
                         $data = $item['data'];
                         $parentSlug = $data['parent_slug'] ?? null;
+                        if ($parentSlug !== null && $parentSlug === $data['slug']) {
+                            $this->addError($this->defaultSheetName, $item['number'], 'parent_slug', 'Parent category cannot be the same as the imported category.', $parentSlug);
+                            continue;
+                        }
                         if ($parentSlug !== null && ! Category::query()
                             ->where('type', $data['type'])
                             ->where('slug', $parentSlug)->exists()) {
@@ -207,7 +201,7 @@ class ImportExport extends BaseImportExportService
         $name = $this->cleanString($row['name'] ?? null);
         $parentSlug = $this->cleanString($row['parent_slug'] ?? null);
 
-        $this->currentRow = [
+        return [
             'name' => $name,
             'slug' => $this->categories->normalizeSlug($this->cleanString($row['slug'] ?? null), (string) $name),
             'url' => $this->cleanString($row['url'] ?? null),
@@ -223,7 +217,6 @@ class ImportExport extends BaseImportExportService
             'meta_description' => $this->cleanString($row['meta_description'] ?? null),
         ];
 
-        return $this->currentRow;
     }
 
     protected function beforePersist(array $data, array $row, int $rowNumber, string $sheet): array
@@ -328,39 +321,6 @@ class ImportExport extends BaseImportExportService
             'meta_title' => 'SEO title',
             'meta_description' => 'SEO description',
         ];
-    }
-
-    private function validateParentSlug(mixed $value, Closure $fail): void
-    {
-        $parentSlug = $this->cleanString($value);
-
-        if ($parentSlug === null) {
-            return;
-        }
-
-        $parentSlug = $this->categories->normalizeSlug($parentSlug, $parentSlug);
-
-        if (
-            $parentSlug === $this->currentRow['slug']
-            && $this->currentRow['type'] !== null
-        ) {
-            $fail('Parent category cannot be the same as the imported category.');
-
-            return;
-        }
-
-        if ($this->currentRow['type'] === null) {
-            return;
-        }
-
-        $exists = Category::query()
-            ->where('type', $this->currentRow['type'])
-            ->where('slug', $parentSlug)
-            ->exists();
-
-        if (! $exists) {
-            $fail('Parent category does not exist for this type.');
-        }
     }
 
     private function authorizeAdmin(string $permission): void
