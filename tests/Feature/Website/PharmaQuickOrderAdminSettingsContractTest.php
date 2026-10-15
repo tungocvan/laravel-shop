@@ -7,11 +7,12 @@ use Tests\TestCase;
 
 class PharmaQuickOrderAdminSettingsContractTest extends TestCase
 {
-    public function test_defaults_are_disabled_and_fail_closed(): void
+    public function test_defaults_are_enabled_without_overriding_explicit_disable(): void
     {
         $resolved = app(PharmaQuickOrderSettingsService::class)->normalize([]);
 
-        $this->assertSame(['enabled' => false, 'notification_email' => '', 'price_list_ids' => []], $resolved);
+        $this->assertSame(['enabled' => true, 'notification_email' => '', 'price_list_ids' => []], $resolved);
+        $this->assertFalse(app(PharmaQuickOrderSettingsService::class)->normalize(['enabled' => false])['enabled']);
     }
 
     public function test_settings_normalize_duplicate_and_invalid_identifiers(): void

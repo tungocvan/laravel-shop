@@ -213,3 +213,37 @@ A future Website change must begin from a newly stated objective and must not tr
 - Mobile hamburger opens right-side fixed overlay drawer teleported to body; backdrop and close button, Escape close, links, search, and guest sign-in/register retained.
 - Added contract test for mobile overlay and compact header. Manual Safari iPhone test required: open/close, tap backdrop, scrolling, navigation, search, guest and authenticated states.
 - No merge until targeted tests and UI pass. Potential further accessibility enhancement: focus trap and scroll locking for modal drawer.
+
+### Pharma mobile drawer account-first UI fix (2026-10-15, pending local test/UI)
+
+- Issue observed on iPhone SE 375×667 after login: account dropdown at bottom of mobile drawer required scrolling and another tap.
+- Fix branch: `fix/pharma-mobile-drawer-account-priority`.
+- Authenticated account section now immediately follows drawer title, with direct profile/dashboard/password/orders/admin (permission and settings gated) links and POST+CSRF logout.
+- Existing desktop account dropdown unchanged. Mobile navigation and search remain in separate scrollable region; guest login/register remain available.
+- Test: `HeaderStudioWorkspaceContractTest` extended; awaiting local focused and Website Header regression plus manual signed-in iPhone acceptance.
+- Do not merge until TEST + UI PASS.
+
+### Mobile drawer account-first checkpoint — second implementation
+
+- Extracted `Website::partials.pharma.mobile-account-links` for signed-in account navigation, using native PHP setup and explicit Blade conditional blocks, independent of desktop account dropdown.
+- Included partial immediately below drawer heading; mobile navigation/search/guest controls placed in a scrollable flex region.
+- Preserved route checks, account settings, admin role gate, and POST+CSRF logout.
+- Added focused contract. **NOT YET TESTED IN LARAVEL RUNTIME**: mandatory `php artisan view:cache` before focused tests and browser UI; stop immediately if compile fails.
+- Do not merge without TEST + UI PASS.
+
+### Mobile Drawer V2 — UI checkpoint (awaiting local compile/tests/UI)
+
+- Replaced plain Menu title with brand/logo heading, retained existing company name and home route.
+- Signed-in account panel is a compact card with avatar, name/email, direct profile/order shortcuts and permission-gated secondary links; no nested dropdown.
+- Navigation uses labeled discovery section, touch-friendly rows and existing menu source. Search is full-width in the scroll region.
+- Sign-out moved into a pinned footer with POST+CSRF; guest login/register live in the same footer. Footer accounts for iPhone safe-area inset.
+- Drawer body scrolls independently; max width remains 360px. No admin header settings or desktop account behavior changed.
+- Added contract coverage. **Not executed in Laravel environment by assistant.** Mandatory first gate: `php artisan view:clear && php artisan view:cache`. Stop if compile fails. Then focused and Header regression tests; finally mobile guest/auth UI. No merge before TEST + UI PASS.
+
+
+## Quick Order default and submission fix (2026-10-15)
+- Branch: `fix/pharma-mobile-drawer-account-priority` (shared Website checkpoint; not merged).
+- Default `website.pharma_quick_order.enabled` to true only when absent; explicit false remains authoritative.
+- Fix undefined `$globalListIds` in `PharmaQuickOrderController::store()` by using eligible `$listIds` for exact variant/package filters.
+- Added `tests/Feature/Website/PharmaQuickOrderDefaultsContractTest.php`.
+- Tests: pending local DELL Test 1 and Website regression Test 2; UI smoke pending. No PR/merge until PASS.
