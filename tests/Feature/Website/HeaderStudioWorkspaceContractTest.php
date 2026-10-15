@@ -53,7 +53,8 @@ class HeaderStudioWorkspaceContractTest extends TestCase
         $this->assertStringContainsString('@keydown.escape.window="menuOpen = false"', $frontend);
         $this->assertStringContainsString('class="hidden text-xs font-medium sm:block"', $frontend);
         $this->assertStringContainsString('lg:ml-0 lg:flex', $frontend);
-        $this->assertStringContainsString('aria-label="Tìm sản phẩm"', $frontend);
+        $drawer = substr($frontend, strpos($frontend, '<aside id="pharma-mobile-menu"'));
+        $this->assertStringNotContainsString('aria-label="Tìm sản phẩm"', $drawer);
         $this->assertStringContainsString("Route::has('login')", $frontend);
         $this->assertStringContainsString("Route::has('register')", $frontend);
     }
@@ -93,6 +94,19 @@ class HeaderStudioWorkspaceContractTest extends TestCase
         $this->assertStringContainsString('Đơn hàng của tôi', $account);
         $this->assertStringContainsString('Thông tin cá nhân', $account);
         $this->assertStringContainsString('Đăng xuất', $header);
+    }
+
+    public function test_mobile_drawer_has_direct_function_links_without_chevrons_or_search(): void
+    {
+        $header = file_get_contents(base_path('Modules/Website/resources/views/partials/pharma/header.blade.php'));
+        $drawer = substr($header, strpos($header, '<aside id="pharma-mobile-menu"'), strpos($header, '</aside>') - strpos($header, '<aside id="pharma-mobile-menu"'));
+
+        $this->assertStringContainsString('aria-label="Điều hướng Pharma trên di động"', $drawer);
+        $this->assertStringContainsString('{{ $itemTitle }}</a>', $drawer);
+        $this->assertStringNotContainsString('m9 18 6-6-6-6', $drawer);
+        $this->assertStringNotContainsString('mobile.search', $drawer);
+        $this->assertStringNotContainsString('role="search"', $drawer);
+        $this->assertStringNotContainsString('Tìm sản phẩm...', $drawer);
     }
 
 }
