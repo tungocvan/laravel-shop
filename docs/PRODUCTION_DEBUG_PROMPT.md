@@ -28,6 +28,10 @@ B. Tin dùng các FACT đã ghi trong production-tnv.md theo thời điểm xác
 C. Nếu thiếu bằng chứng để kết luận, yêu cầu đúng MỘT lệnh READ-ONLY có mục đích
    rõ ràng, ưu tiên Laravel exception/log tại thời điểm lỗi hoặc truy vấn dữ liệu
    liên quan. Chờ output rồi mới đưa checkpoint tiếp.
+C1. BẮT BUỘC: mọi `php artisan ...` trên Production chạy từ HOST qua
+    `./run-docker-artisan.sh "php artisan ..."` trong `/opt/projects/tnv`.
+    Không chạy Artisan trực tiếp trên host hay docker exec/compose exec thay helper.
+    Chỉ đề xuất lệnh Artisan đúng nhu cầu; lệnh mutate cần approval riêng.
 D. Chỉ chuyển sang Docker diagnosis nếu lỗi thuộc hạ tầng, container unhealthy,
    toàn site lỗi, deployment thay đổi image/mount/Compose, hoặc phát hiện source
    và runtime không khớp. Nêu rõ lý do cần kiểm tra lại.
@@ -49,6 +53,9 @@ DIAGNOSIS: [chỉ kết luận có chứng cứ]
 NEXT ACTION: [chỉ 1 lệnh nếu thực sự cần]
 TARGET: HOST hoặc CONTAINER
 MODE: READ-ONLY hoặc MUTATING
+
+Không chạy thêm Docker commands chỉ để bổ sung hồ sơ production-tnv.md;
+chỉ cập nhật từ output đã xác minh hoặc khi một incident thực sự đòi hỏi kiểm tra mới.
 
 Nếu đã đủ bằng chứng để sửa code trên GitHub thì bắt đầu phân tích/đề xuất fix,
 KHÔNG gửi Docker commands chỉ vì đang debug Production.
