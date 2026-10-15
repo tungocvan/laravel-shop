@@ -42,4 +42,20 @@ class HeaderStudioWorkspaceContractTest extends TestCase
         $this->assertStringContainsString('aria-controls="pharma-mobile-menu"', $frontend);
     }
 
+    public function test_pharma_mobile_header_uses_overlay_drawer_without_inline_expansion(): void
+    {
+        $frontend = file_get_contents(base_path('Modules/Website/resources/views/partials/pharma/header.blade.php'));
+
+        $this->assertStringContainsString('x-teleport="body"', $frontend);
+        $this->assertStringContainsString('role="dialog" aria-modal="true"', $frontend);
+        $this->assertStringContainsString('x-transition:enter-start="translate-x-full"', $frontend);
+        $this->assertStringContainsString('aria-label="Đóng menu"', $frontend);
+        $this->assertStringContainsString('@keydown.escape.window="menuOpen = false"', $frontend);
+        $this->assertStringContainsString('class="hidden text-xs font-medium sm:block"', $frontend);
+        $this->assertStringContainsString('lg:ml-0 lg:flex', $frontend);
+        $this->assertStringContainsString('aria-label="Tìm sản phẩm"', $frontend);
+        $this->assertStringContainsString("Route::has('login')", $frontend);
+        $this->assertStringContainsString("Route::has('register')", $frontend);
+    }
+
 }
