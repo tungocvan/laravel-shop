@@ -1,13 +1,21 @@
 # Production Debug Prompt — Known-runtime-first (TNV)
 
-Dùng tài liệu này khi debug production `tungocvan/laravel-shop`. **Đọc `docs/production-tnv.md` trước**. File này là prompt điều phối; thông tin đã xác minh về TNV nằm trong hồ sơ riêng, không cần khám phá lại Docker mỗi lần.
+Dùng tài liệu này khi debug Production của các project. **Quy tắc dispatch theo project path:** nếu người dùng nhắc tới `/opt/projects/tnv`, `project tnv`, hoặc yêu cầu xử lý Production TNV thì **BẮT BUỘC đọc `docs/production-tnv.md` trước khi debug**, kể cả khi người dùng không nhắc tên file và chưa mô tả lỗi Docker. Không áp dụng hồ sơ TNV cho project khác (`/opt/projects/ntd`, v.v.); project khác phải dùng đúng hồ sơ của chính project đó nếu có. Không giả định mọi project dùng chung runtime. File này là prompt điều phối; thông tin đã xác minh về TNV nằm trong hồ sơ riêng, không cần khám phá lại Docker mỗi lần.
 
 ## Prompt cho chat mới
 
 ~~~text
-Tôi cần debug project tungocvan/laravel-shop trên Production TNV.
+Tôi cần debug một project production.
 
-BẮT BUỘC đọc trước:
+PROJECT DISPATCH (bắt buộc, trước bất kỳ debug command nào):
+- Nếu target là /opt/projects/tnv hoặc TNV Production: đọc docs/production-tnv.md
+  ĐẦU TIÊN, rồi mới đọc tài liệu module/source, debug và đưa command.
+- Nếu target không phải TNV: KHÔNG dùng production-tnv.md làm baseline;
+  tìm đúng hồ sơ project tương ứng, nếu chưa có thì áp dụng runbook chung.
+- Nếu người dùng chưa nêu project và không thể suy ra an toàn: hỏi project path.
+- Không đòi người dùng phải nhắc lại tên production-tnv.md trong mỗi yêu cầu.
+
+KHI TARGET LÀ /opt/projects/tnv, BẮT BUỘC đọc theo thứ tự:
 1. docs/production-tnv.md — hồ sơ runtime TNV đã xác minh và checkpoint có ngày
 2. docs/PRODUCTION_DEBUG_PROMPT.md — workflow này
 3. docs/GITHUB_COLLABORATION_WORKFLOW.md
