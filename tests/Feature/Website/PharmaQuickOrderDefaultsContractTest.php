@@ -25,7 +25,7 @@ final class PharmaQuickOrderDefaultsContractTest extends TestCase
         $this->assertNotSame('', $store);
         $this->assertStringContainsString('$listIds = $priceLists->eligibleForCustomer(', $store);
         $this->assertStringContainsString('use ($listIds)', $store);
-        $this->assertStringContainsString("->whereIn('exact_pli.price_list_id', $listIds)", $store);
+        $this->assertStringContainsString("->whereIn('exact_pli.price_list_id', \$listIds)", $store);
         $this->assertStringNotContainsString('$globalListIds', $store);
     }
 }
