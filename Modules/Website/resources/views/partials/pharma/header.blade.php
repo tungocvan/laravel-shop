@@ -121,7 +121,7 @@
                         @endif
                         </div>
                         <div class="shrink-0 border-t border-slate-200 bg-white px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom,0px))]">
-                            @auth
+                            @if(auth()->check())
                                 @if(\Illuminate\Support\Facades\Route::has('logout'))
                                     <form method="POST" action="{{ route('logout') }}">
                                         @csrf
@@ -140,7 +140,7 @@
                                         <a href="{{ route('register') }}" class="flex min-h-11 items-center justify-center rounded-xl px-3 text-center text-sm font-semibold text-white" style="background:var(--pharma-header-accent)">Đăng ký</a>
                                     @endif
                                 </div>
-                            @endauth
+                            @endif
                         </div>
                     </aside>
                 </div>
