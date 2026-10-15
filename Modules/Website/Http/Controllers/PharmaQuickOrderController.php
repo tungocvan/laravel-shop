@@ -165,7 +165,7 @@ final class PharmaQuickOrderController extends Controller
                     ->select('medicine_id'))
                     ->whereExists(fn ($sub) => $sub->selectRaw('1')
                         ->from('pharma_price_list_items as exact_pli')
-                        ->whereIn('exact_pli.price_list_id', $globalListIds)
+                        ->whereIn('exact_pli.price_list_id', $listIds)
                         ->where('exact_pli.status', 'active')
                         ->whereColumn('exact_pli.medicine_id', 'pharma_product_links.medicine_id')
                         ->whereColumn('exact_pli.medicine_variant_id', 'pharma_product_links.medicine_variant_id')
