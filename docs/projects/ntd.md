@@ -1,6 +1,6 @@
 # NTD — Production Docker debug profile
 
-> Snapshot: **2026-10-15 06:05:28 UTC** (13:05:28 Asia/Ho_Chi_Minh). Source: operator output of `production-debug-profile.sh --project-dir /opt/projects/ntd` from testing worktree at commit `55f6c6f3f`. Historical evidence only. **HTTP/UI health not verified.**
+> Snapshot: **2026-10-15 06:09:22 UTC** (13:09:22 Asia/Ho_Chi_Minh). Source: operator output of `production-debug-profile.sh --project-dir /opt/projects/ntd` from testing worktree at commit `dad2529a3`. Historical evidence only. **HTTP/UI health not verified.**
 
 ## Project and Git
 
@@ -14,6 +14,9 @@
 | Docker | `29.3.0` |
 | Compose | `v5.1.1` |
 | App working directory | `/var/www/html` |
+| PHP CLI | `8.3.35` |
+| Laravel | `12.67.0` |
+| CLI OPcache validate timestamps | `0` (not evidence of FPM settings) |
 
 ## Observed services
 
@@ -39,6 +42,13 @@ App container ID prefix at snapshot: `06566d3a2dd6`. Docker configured user was 
 
 Mount source paths intentionally omitted. `Modules` is bind-mounted; **do not infer** that the remaining app source matches host Git or image build commit.
 
+## Compose overlay filenames
+
+- `compose.queue.yaml`
+- `compose.scheduler.yaml`
+- `compose.socket.yaml`
+- `compose.yaml`
+
 ## Comparison with TNV snapshot
 
 - NTD host Git HEAD `ea5867ae5` differs from TNV `26e789fb5`.
@@ -56,8 +66,6 @@ Mount source paths intentionally omitted. `Modules` is bind-mounted; **do not in
 
 ## Unverified / follow-up
 
-- PHP CLI and Laravel version: **not visible in the supplied NTD output**.
-- Compose overlay filenames: **not visible in the supplied NTD output**.
 - HTTP/UI behavior, proxy routing, queue processing, database connectivity, migrations and logs.
 - Effective code revision inside running container, PHP-FPM OPcache and worker identity.
 
