@@ -100,48 +100,6 @@
                             <span class="text-base font-bold">Menu</span>
                             <button type="button" @click="menuOpen = false" aria-label="Đóng menu" class="flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 text-xl">×</button>
                         </div>
-                        @if(auth()->check())
-                            @php
-                                $drawerUser = auth()->user();
-                                $drawerDashboardRoute = \Illuminate\Support\Facades\Route::has('account.dashboard') ? 'account.dashboard' : null;
-                                $drawerProfileRoute = collect(['account.profile', 'profile.edit'])->first(fn ($name) => \Illuminate\Support\Facades\Route::has($name));
-                                $drawerPasswordRoute = collect(['account.password', 'profile.password'])->first(fn ($name) => \Illuminate\Support\Facades\Route::has($name));
-                                $drawerOrdersRoute = collect(['account.orders.index', 'account.orders'])->first(fn ($name) => \Illuminate\Support\Facades\Route::has($name));
-                                $drawerAdminRoute = \Illuminate\Support\Facades\Route::has('admin.dashboard') ? 'admin.dashboard' : null;
-                                $drawerCanAccessAdmin = method_exists($drawerUser, 'hasRole') && ($drawerUser->hasRole('admin') || $drawerUser->hasRole('super-admin'));
-                                $drawerAccountConfig = is_array($accountConfig) ? $accountConfig : [];
-                            @endphp
-                            <section aria-label="Tài khoản của tôi" class="shrink-0 border-b border-slate-200 bg-slate-50 px-4 py-3">
-                                <div class="mb-2 min-w-0">
-                                    <div class="truncate text-sm font-bold">{{ $drawerUser->name }}</div>
-                                    <div class="truncate text-xs text-slate-500">{{ $drawerUser->email }}</div>
-                                </div>
-                                <nav aria-label="Liên kết tài khoản" class="grid grid-cols-1 gap-0.5 text-sm">
-                                    @if($drawerDashboardRoute)
-                                        <a href="{{ route($drawerDashboardRoute) }}" class="rounded-lg px-3 py-2 font-medium hover:bg-white">Tổng quan tài khoản</a>
-                                    @endif
-                                    @if(($drawerAccountConfig['show_profile'] ?? true) && $drawerProfileRoute)
-                                        <a href="{{ route($drawerProfileRoute) }}" class="rounded-lg px-3 py-2 font-medium hover:bg-white">Thông tin cá nhân</a>
-                                    @endif
-                                    @if(($drawerAccountConfig['show_password'] ?? true) && $drawerPasswordRoute)
-                                        <a href="{{ route($drawerPasswordRoute) }}" class="rounded-lg px-3 py-2 font-medium hover:bg-white">Đổi mật khẩu</a>
-                                    @endif
-                                    @if(($drawerAccountConfig['show_orders'] ?? true) && $drawerOrdersRoute)
-                                        <a href="{{ route($drawerOrdersRoute) }}" class="rounded-lg px-3 py-2 font-medium hover:bg-white">Đơn hàng của tôi</a>
-                                    @endif
-                                    @if(($drawerAccountConfig['show_admin'] ?? true) && $drawerCanAccessAdmin && $drawerAdminRoute)
-                                        <a href="{{ route($drawerAdminRoute) }}" class="rounded-lg px-3 py-2 font-medium hover:bg-white">Quản trị hệ thống</a>
-                                    @endif
-                                </nav>
-                                @if(\Illuminate\Support\Facades\Route::has('logout'))
-                                    <form method="POST" action="{{ route('logout') }}" class="mt-1 border-t border-slate-200 pt-2">
-                                        @csrf
-                                        <button type="submit" class="w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-red-600 hover:bg-red-50">Đăng xuất</button>
-                                    </form>
-                                @endif
-                            </section>
-                        @endif
-                        <div class="min-h-0 flex-1 overflow-y-auto">
                         <nav aria-label="Điều hướng Pharma trên di động" class="flex flex-col gap-1 px-4 py-4">
                             @foreach($mobileMenu->isNotEmpty() ? $mobileMenu : $fallbackMenu as $item)
                                 @php($itemUrl = is_array($item) ? $item['url'] : $item->url)
@@ -155,8 +113,8 @@
                                 <button type="submit" class="rounded-lg px-4 py-2 text-sm font-bold text-white" style="background:var(--pharma-header-accent)">Tìm</button>
                             </form>
                         @endif
-                        @if(auth()->guest())
-                            <div class="border-t border-slate-200 px-4 py-4">
+                        <div class="mt-auto border-t border-slate-200 px-4 py-4">
+                            @guest
                                 <div class="grid grid-cols-2 gap-2">
                                     @if(\Illuminate\Support\Facades\Route::has('login'))
                                         <a href="{{ route('login') }}" class="rounded-lg border border-slate-300 px-3 py-3 text-center text-sm font-semibold">Đăng nhập</a>
@@ -165,8 +123,10 @@
                                         <a href="{{ route('register') }}" class="rounded-lg px-3 py-3 text-center text-sm font-semibold text-white" style="background:var(--pharma-header-accent)">Đăng ký</a>
                                     @endif
                                 </div>
-                            </div>
-                        @endif
+                            @else
+                                <div class="mb-2 truncate text-sm font-semibold">{{ auth()->user()->name }}</div>
+                                @include('Website::partials.pharma.account-dropdown', ['accountConfig' => $accountConfig])
+                            @endguest
                         </div>
                     </aside>
                 </div>
