@@ -391,12 +391,23 @@ class DatabaseService
 
         $safeBase = preg_replace('/[^A-Za-z0-9_.-]+/', '-', pathinfo($originalName, PATHINFO_FILENAME));
         $safeBase = trim((string) $safeBase, '.-') ?: 'database';
-        $fileName = 'uploaded_'.now()->format('Y-m-d_H-i-s').'_'.substr($safeBase, 0, 80).'.sql';
+        $fileName = 'uploaded_'.now()->format('Y-m-d_H-i-s').'_'.substr($safeBase, 0, 80).'_'.bin2hex(random_bytes(4)).'.sql';
         $destination = Storage::disk('local')->path('private/backups/'.$fileName);
+        $temporary = $destination.'.partial';
 
         $this->ensureDirectory(dirname($destination));
-        if (! copy($sourcePath, $destination)) {
-            throw new Exception('Không thể lưu file SQL vào thư mục backup.');
+        try {
+            if (! copy($sourcePath, $temporary)) {
+                throw new Exception('Không thể lưu file SQL vào thư mục backup.');
+            }
+
+            if (! $this->backupCatalog->isFullDatabaseBackup($temporary) || ! rename($temporary, $destination)) {
+                throw new Exception('Không thể xác minh hoặc hoàn tất file SQL upload.');
+            }
+        } finally {
+            if (is_file($temporary)) {
+                @unlink($temporary);
+            }
         }
 
         return $fileName;

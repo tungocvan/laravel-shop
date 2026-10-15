@@ -411,10 +411,10 @@ class BackupManager extends Component
     {
         $this->authorizePermission('database.restore');
         $validated = $this->validate([
-            'sqlFile' => ['required', 'file', 'max:20480'],
+            'sqlFile' => ['required', 'file', 'max:61440'],
         ], [
             'sqlFile.required' => 'Vui lòng chọn file SQL.',
-            'sqlFile.max' => 'File upload trực tiếp không được vượt quá 20 MB.',
+            'sqlFile.max' => 'File upload trực tiếp không được vượt quá 60 MB.',
         ]);
 
         try {
