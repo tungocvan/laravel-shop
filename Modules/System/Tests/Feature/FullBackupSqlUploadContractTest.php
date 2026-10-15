@@ -19,7 +19,7 @@ class FullBackupSqlUploadContractTest extends TestCase
         self::assertStringContainsString('public function uploadSql(DatabaseService $service)', $component);
         self::assertStringContainsString("\$this->authorizePermission('database.backup');", $component);
         self::assertStringContainsString("'extensions:sql'", $component);
-        self::assertStringContainsString("'max:20480'", $component);
+        self::assertStringContainsString("'max:61440'", $component);
         self::assertStringContainsString('importBackupFile($file->getRealPath(), $file->getClientOriginalName())', $component);
         self::assertStringContainsString('wire:click="openUpload"', $view);
         self::assertStringContainsString('wire:submit="uploadSql"', $view);
