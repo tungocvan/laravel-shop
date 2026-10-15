@@ -1,27 +1,29 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
-ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
-bash -n "$ROOT/menu-prompt.sh"
-bash "$ROOT/menu-prompt.sh" --help | grep -Fq -- '--project PROJECT'
+ROOT="$(cd -- "$(dirname -- "$0")/../.." && pwd)"
+SCRIPT="$ROOT/menu-prompt.sh"
+bash -n "$SCRIPT"
+bash "$SCRIPT" --help | grep -Fq -- '--mode quick|debug|audit'
 for project in tnv ntd; do
-  output="$(bash "$ROOT/menu-prompt.sh" --project "$project")"
-  [[ "$output" == *"COPY PROMPT — PRODUCTION DEBUG: $project"* ]]
-  [[ "$output" == *'Production Docker Debug Master Prompt'* ]]
-  [[ "$output" == *"PROJECT PROFILE: docs/projects/$project.md"* ]]
-  [[ "$output" == *'MỤC TIÊU DEBUG HIỆN TẠI'* ]]
-  [[ "$output" == *'=== END OF PROMPT ==='* ]]
+  for mode in quick debug audit; do
+    output="$(bash "$SCRIPT" --project "$project" --mode "$mode")"
+    [[ "$output" == *"COPY PROMPT — "*" — $project"* ]]
+    [[ "$output" == *'Bạn muốn tôi xử lý vấn đề hoặc chức năng gì?'* ]]
+    [[ "$output" == *'docs/GITHUB_COLLABORATION_WORKFLOW.md'* ]]
+    [[ "$output" == *'KHÔNG merge'* ]]
+    [[ "$output" == *'=== END OF PROMPT ==='* ]]
+    [[ "$output" != *'Production Docker Debug Master Prompt'* ]]
+    [[ "$output" != *'[ĐIỀN]'* ]]
+    [[ "$output" != *'INCIDENT HIỆN TẠI'* ]]
+    [[ "$output" != *'PROJECT PROFILE:'* ]]
+  done
 done
-[[ "$(bash "$ROOT/menu-prompt.sh" --project unknownproject)" == *'PROFILE_NOT_FOUND'* ]]
-if bash "$ROOT/menu-prompt.sh" --project ../tnv >/dev/null 2>&1; then
-  echo 'Path traversal project must fail' >&2
-  exit 1
-fi
-if bash "$ROOT/menu-prompt.sh" --invalid >/dev/null 2>&1; then
-  echo 'Invalid flag must fail' >&2
-  exit 1
-fi
-if bash "$ROOT/menu-prompt.sh" </dev/null >/dev/null 2>&1; then
-  echo 'Noninteractive menu without project must fail' >&2
-  exit 1
-fi
-echo '[OK] Production prompt menu contract'
+[[ "$(bash "$SCRIPT" --project tnv)" == *'Bạn muốn tôi xử lý vấn đề hoặc chức năng gì?'* ]]
+if bash "$SCRIPT" --project tnv --goal 'không hợp lệ' >/dev/null 2>&1; then echo 'Goal CLI input must be rejected' >&2; exit 1; fi
+! grep -Fq 'Mô tả yêu cầu (Enter' "$SCRIPT"
+[[ "$(bash "$SCRIPT" --project unknownproject)" == *'PROFILE_NOT_FOUND'* ]]
+if bash "$SCRIPT" --project ../tnv >/dev/null 2>&1; then echo 'Traversal must fail' >&2; exit 1; fi
+if bash "$SCRIPT" --project tnv --mode invalid >/dev/null 2>&1; then echo 'Invalid mode must fail' >&2; exit 1; fi
+if bash "$SCRIPT" --invalid >/dev/null 2>&1; then echo 'Invalid flag must fail' >&2; exit 1; fi
+if bash "$SCRIPT" </dev/null >/dev/null 2>&1; then echo 'Noninteractive without project must fail' >&2; exit 1; fi
+echo '[OK] Three-mode prompt menu contract'

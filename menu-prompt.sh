@@ -1,113 +1,112 @@
 #!/usr/bin/env bash
-# Production debug prompt selector. Read-only: no Docker, Git, Artisan or file mutation.
+# Read-only prompt generator: never executes Git, Docker or Artisan.
 set -Eeuo pipefail
-ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-MASTER="$ROOT/docs/PRODUCTION_DEBUG_PROMPT.md"
-PROJECTS="$ROOT/docs/projects"
-usage() {
-  printf 'Usage: bash menu-prompt.sh [--help] [--project PROJECT]\n'
-  printf 'Interactive mode: select menu 1 and a production project.\n'
-}
+ROOT="$(cd -- "$(dirname -- "$0")" && pwd)"
+usage() { echo 'Usage: bash menu-prompt.sh [--project PROJECT] [--mode quick|debug|audit] [--goal TEXT]'; }
 validate_project() {
-  [[ "$1" =~ ^[a-zA-Z0-9][a-zA-Z0-9_-]*$ ]] || {
-    printf 'Invalid project name. Use letters, numbers, underscore or hyphen.\n' >&2
-    exit 2
-  }
+  [[ "$1" =~ ^[a-zA-Z0-9][a-zA-Z0-9_-]*$ ]] || { echo 'Invalid project name' >&2; exit 2; }
+}
+validate_mode() {
+  case "$1" in quick|debug|audit) ;; *) echo 'Invalid mode' >&2; exit 2 ;; esac
 }
 print_prompt() {
-  local project="$1" profile="$PROJECTS/$1.md"
+  local project="$1" mode="$2" label
   validate_project "$project"
-  [[ -f "$MASTER" ]] || { printf 'Missing master prompt: %s\n' "$MASTER" >&2; exit 1; }
-  printf '\n========================================================\n'
-  printf 'COPY PROMPT — PRODUCTION DEBUG: %s\n' "$project"
-  printf '========================================================\n\n'
+  validate_mode "$mode"
+  case "$mode" in
+    quick) label='PROMPT NHANH' ;;
+    debug) label='DEBUG CHUYÊN SÂU' ;;
+    audit) label='AUDIT / REFACTOR' ;;
+  esac
+  printf '\n========================================================\nCOPY PROMPT — %s — %s\n========================================================\n\n' "$label" "$project"
   cat <<EOF
-Tôi cần DEBUG PRODUCTION cho project: $project
-Repository: tungocvan/laravel-shop
-Production project directory: /opt/projects/$project
-Canonical master prompt: docs/PRODUCTION_DEBUG_PROMPT.md
-Project runtime profile: docs/projects/$project.md
+Bạn là AI technical lead hỗ trợ tôi với repository tungocvan/laravel-shop.
+Project: $project
+Production host path tham chiếu (KHÔNG tự thao tác): /opt/projects/$project
+Chế độ: $label
 
-YÊU CẦU BẮT BUỘC:
-- Đọc toàn bộ master prompt và tuân thủ production guardrails cùng GitHub collaboration workflow.
-- Đọc hồ sơ project tương ứng bên dưới. Đây là snapshot lịch sử, phải kiểm tra thời điểm và độ mới so với deploy/runtime hiện tại.
-- Nếu không có profile hoặc profile lỗi thời, thông báo rõ và yêu cầu thu thập lại bằng checkpoint READ-ONLY; không tự suy đoán.
-- Trước khi đưa lệnh Docker, xác định mục tiêu debug, URL/route, module và triệu chứng; audit source hiện tại trên GitHub khi có quyền truy cập.
-- Phân biệt HOST Git, Docker image, container, bind mount và volume; không suy luận phiên bản code chạy thực tế từ host HEAD.
-- Mỗi lần chỉ yêu cầu một checkpoint cần thiết; ghi HOST/CONTAINER và READ-ONLY/MUTATING; chờ output trước bước kế tiếp.
-- Khi root cause thuộc source, đề xuất fix/refactor có giới hạn trên feature branch, targeted tests, UI/HTTP acceptance và PR; không sửa production trực tiếp hoặc merge khi chưa được tôi duyệt.
-- Tài liệu trên repository đang hoạt động được ưu tiên nếu khác với bản prompt được copy.
+YÊU CẦU CỦA TÔI:
 EOF
-  printf '\n========================================================\n'
-  printf 'MASTER PROMPT: docs/PRODUCTION_DEBUG_PROMPT.md\n'
-  printf '========================================================\n\n'
-  cat "$MASTER"
-  printf '\n========================================================\n'
-  printf 'PROJECT PROFILE: docs/projects/%s.md\n' "$project"
-  printf '========================================================\n\n'
-  if [[ -f "$profile" ]]; then
-    cat "$profile"
-  else
-    printf 'PROFILE_NOT_FOUND: docs/projects/%s.md\n' "$project"
-    printf 'Do not invent runtime facts. Request a read-only snapshot before diagnosing infrastructure.\n'
-  fi
+  echo 'Tôi sẽ mô tả mục tiêu trong cuộc trò chuyện sau khi dán prompt này. Trước tiên hãy hỏi đúng một câu: "Bạn muốn tôi xử lý vấn đề hoặc chức năng gì?" Chờ tôi trả lời rồi mới bắt đầu audit hoặc đề xuất hành động.'
+  cat <<EOF
+
+QUY TẮC THỰC HIỆN:
+- Chỉ xử lý đúng mục tiêu tôi mô tả. Không tự mở rộng phạm vi.
+- Chủ động đọc source, routes, tests và tài liệu hiện hành trên GitHub nếu có công cụ/quyền truy cập. Không giả vờ đã đọc nếu chưa truy cập được. Khi không truy cập được, yêu cầu đúng tài liệu hoặc output thiết yếu.
+- Ưu tiên docs/GITHUB_COLLABORATION_WORKFLOW.md. Với Production đọc thêm docs/PRODUCTION_DEBUG_PROMPT.md, docs/projects/$project.md và production guardrails; profile chỉ là snapshot lịch sử.
+- Tự tìm module, route, dependency, tests liên quan từ source khi có thể. Không bắt tôi điền biểu mẫu.
+- Bắt đầu bằng audit READ-ONLY. Nếu cần tôi chạy lệnh, ghi máy Admin/Production, HOST/CONTAINER, READ-ONLY/MUTATING; một checkpoint cần thiết mỗi lần, chờ output.
+- Không sửa trực tiếp Production, không tiết lộ secrets, không xóa dữ liệu/volume, không tự chạy thao tác nguy hiểm; phân biệt host Git, image, container và mounts.
+- Nếu cần sửa source: tuân thủ gate phê duyệt hiện hành; chỉ làm trên feature branch sau khi được phép; thêm targeted tests, xác nhận UI/HTTP thực tế, tạo PR và KHÔNG merge nếu chưa được tôi duyệt.
+- Nếu yêu cầu không liên quan Production runtime, không tự yêu cầu Docker/log/deploy.
+EOF
+  case "$mode" in
+    quick)
+      echo '- PROMPT NHANH: Tập trung trực tiếp yêu cầu, audit tối thiểu phần source/dependency liên quan, đưa checkpoint hoặc kết quả ngắn gọn.' ;;
+    debug)
+      echo '- DEBUG CHUYÊN SÂU: Xác định symptom và root cause bằng chứng; chỉ kiểm tra log/runtime nếu cần. Không coi snapshot là trạng thái hiện tại, không đoán lỗi, không tự restart/reload/migrate.' ;;
+    audit)
+      echo '- AUDIT/REFACTOR: Audit architecture, ownership, callers, routes, tests, UI; đưa bằng chứng, plan, phạm vi và test gates trước implementation. Major Module Refactor phải tuân thủ workflow chuyên biệt và chờ duyệt kiến trúc. Admin/PWA UI phải đọc standard tương ứng.' ;;
+  esac
   cat <<'EOF'
+- Không tự nhận TEST/UI PASS nếu chưa xác minh. Chỉ hỏi thông tin thiết yếu; nếu công cụ không cho phép thực hiện, nói rõ giới hạn.
+- Hãy bắt đầu xử lý mục tiêu ngay.
 
-========================================================
-MỤC TIÊU DEBUG HIỆN TẠI — ĐIỀN TRƯỚC KHI GỬI
-========================================================
-
-- Project: [đã chọn ở trên]
-- Module/chức năng cần debug: [ĐIỀN]
-- Route/URL: [ĐIỀN]
-- Mục tiêu/hành vi mong muốn: [ĐIỀN]
-- Hiện tượng/lỗi thực tế: [ĐIỀN]
-- Thời điểm phát sinh: [ĐIỀN NẾU BIẾT]
-- Log/stack trace/ảnh chụp: [DÁN SAU KHI ẨN SECRETS]
-- Commit/deploy gần nhất: [ĐIỀN NẾU BIẾT]
-- Phạm vi được phép sửa: [ĐIỀN]
-- Tiêu chí TEST PASS + UI/HTTP PASS: [ĐIỀN]
-
-Hãy bắt đầu bằng audit read-only, chỉ hỏi thêm thông tin thiết yếu.
-Không tạo branch, sửa source hoặc thay đổi production trước các gate phê duyệt.
 === END OF PROMPT ===
 EOF
+  if [[ ! -f "$ROOT/docs/projects/$project.md" ]]; then
+    printf 'NOTE (outside prompt): PROFILE_NOT_FOUND docs/projects/%s.md\n' "$project"
+  fi
 }
+project='' mode=''
 if (($#)); then
-  case "$1" in
-    --help|-h) [[ $# -eq 1 ]] || { usage >&2; exit 2; }; usage; exit 0 ;;
-    --project) [[ $# -eq 2 ]] || { usage >&2; exit 2; }; print_prompt "$2"; exit 0 ;;
-    *) usage >&2; exit 2 ;;
-  esac
+  while (($#)); do
+    case "$1" in
+      --help|-h) usage; exit 0 ;;
+      --project|--mode)
+        [[ $# -ge 2 ]] || { usage >&2; exit 2; }
+        case "$1" in
+          --project) project="$2" ;;
+          --mode) mode="$2" ;;
+        esac
+        shift 2 ;;
+      *) usage >&2; exit 2 ;;
+    esac
+  done
+  [[ -n "$project" ]] || { usage >&2; exit 2; }
+  print_prompt "$project" "${mode:-quick}"
+  exit 0
 fi
 if [[ ! -t 0 ]]; then
-  printf 'Interactive menu requires a terminal. Use --project tnv or --project ntd.\n' >&2
+  echo 'Interactive menu requires a terminal. Use --project tnv [--mode quick|debug|audit].' >&2
   exit 2
 fi
 while true; do
-  printf '\n=== PRODUCTION DEBUG PROMPT MENU ===\n'
-  printf '1) Prompt Debug Production (chọn project)\n'
-  printf '0) Thoát\n'
-  printf 'Chọn [1/0]: '
+  printf '\n=== AI PROMPT MENU ===\n1) Tạo prompt theo project\n0) Thoát\nChọn [1/0]: '
   IFS= read -r choice || exit 0
   case "$choice" in
+    0) exit 0 ;;
     1)
-      printf '\nProject: 1) tnv  2) ntd  3) Khác  0) Quay lại\n'
-      printf 'Chọn project [1/2/3/0]: '
+      printf '\nProject: 1) tnv  2) ntd  3) Khác  0) Quay lại\nChọn project [1/2/3/0]: '
       IFS= read -r selection || exit 0
       case "$selection" in
-        1) print_prompt tnv ;;
-        2) print_prompt ntd ;;
-        3)
-          printf 'Nhập project (tên thư mục trong docs/projects): '
-          IFS= read -r project || exit 0
-          print_prompt "$project"
-          ;;
-        0) ;;
-        *) printf 'Lựa chọn không hợp lệ.\n' ;;
+        1) project=tnv ;;
+        2) project=ntd ;;
+        3) printf 'Nhập tên project: '; IFS= read -r project || exit 0; validate_project "$project" ;;
+        0) continue ;;
+        *) echo 'Lựa chọn không hợp lệ.'; continue ;;
       esac
+      printf '\nChế độ: 1) Prompt nhanh  2) Debug chuyên sâu  3) Audit / Refactor  0) Quay lại\nChọn [1/2/3/0]: '
+      IFS= read -r selection || exit 0
+      case "$selection" in
+        1) mode=quick ;;
+        2) mode=debug ;;
+        3) mode=audit ;;
+        0) continue ;;
+        *) echo 'Lựa chọn không hợp lệ.'; continue ;;
+      esac
+      print_prompt "$project" "$mode"
       ;;
-    0) exit 0 ;;
-    *) printf 'Lựa chọn không hợp lệ.\n' ;;
+    *) echo 'Lựa chọn không hợp lệ.' ;;
   esac
 done
