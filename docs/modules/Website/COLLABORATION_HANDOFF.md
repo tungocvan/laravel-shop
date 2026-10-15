@@ -206,3 +206,10 @@ A future Website change must begin from a newly stated objective and must not tr
 - Replaced the Pharma mobile `Menu` text button with an accessible 44px hamburger/close icon; existing Alpine drawer state and route/menu data remain unchanged.
 - Updated focused contract coverage; user must pull and run targeted tests plus manual desktop/mobile UI verification.
 - Not merged, not locally executed by assistant, no production deployment.
+
+### Header Studio checkpoint 3 — mobile Pharma layout (awaiting tests/UI)
+
+- Compact mobile header: brand subtitle hidden below sm, guest auth controls hidden from main header on mobile; desktop remains unchanged.
+- Mobile hamburger opens right-side fixed overlay drawer teleported to body; backdrop and close button, Escape close, links, search, and guest sign-in/register retained.
+- Added contract test for mobile overlay and compact header. Manual Safari iPhone test required: open/close, tap backdrop, scrolling, navigation, search, guest and authenticated states.
+- No merge until targeted tests and UI pass. Potential further accessibility enhancement: focus trap and scroll locking for modal drawer.
