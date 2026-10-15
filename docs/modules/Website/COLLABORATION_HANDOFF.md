@@ -187,3 +187,13 @@ Do not create speculative Cart/Promotion modules solely for architectural symmet
 `NOT DETERMINED` after this production corrective hotfix.
 
 A future Website change must begin from a newly stated objective and must not treat this handoff as authorization for additional destructive cleanup.
+
+## Header Studio workspace checkpoint (2026-10-15)
+
+- Branch: `feat/website-header-studio-workspace`.
+- Scope: initial low-risk UI reorganization of `/admin/header-settings`, preserving the existing Website Livewire component, System settings keys, builder slots, theme snapshots and save actions.
+- Implementation: preview-first workspace, collapsible theme library and advanced slot controls, full-width responsive admin content; no runtime setting migration.
+- Focused test: `tests/Feature/Website/HeaderStudioWorkspaceContractTest.php` (awaiting local execution).
+- UI smoke: NOT VERIFIED; requires actual desktop/mobile browser acceptance.
+- Known remaining work: mobile Topbar visibility setting, icon-only Pharma menu, further studio UX and source-based regression checks. Not implemented in this checkpoint.
+- Next step: user pulls branch and runs focused tests; do not merge before test and UI PASS.
