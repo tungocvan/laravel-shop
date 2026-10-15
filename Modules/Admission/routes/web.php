@@ -9,7 +9,7 @@ Route::middleware(['web'])
     ->group(function () {
         Route::get('/search', [AdmissionController::class, 'search'])->name('search');
         Route::get('/search/receipt/{application}', [AdmissionController::class, 'receiptSearch'])
-            ->middleware('signed')
+            ->middleware('signed:zarsrc,utm_source,utm_medium,utm_campaign,gidzl')
             ->name('search.receipt');
         Route::get('/search/{ma_dinh_danh}/{password}', [AdmissionController::class, 'legacySearch'])
             ->name('search.legacy');
