@@ -60,7 +60,9 @@ render() {
     printf -- '- Runtime user (Docker config): `%s`\n' "$(docker inspect -f '{{.Config.User}}' "$app" 2>/dev/null || echo UNKNOWN)"
     printf '\n### Mounts (type and destination only; source paths omitted)\n\n'
     docker inspect -f '{{range .Mounts}}{{println .Type "->" .Destination}}{{end}}' "$app" 2>/dev/null | while IFS= read -r line; do
-      [[ -n "$line" ]] && printf -- '- `%s`\n' "$line"
+      if [[ -n "$line" ]]; then
+        printf -- '- `%s`\n' "$line"
+      fi
     done
     printf '\n### Laravel / PHP (allowlisted values only)\n\n'
     local v
