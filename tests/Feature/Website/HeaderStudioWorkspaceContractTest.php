@@ -58,4 +58,27 @@ class HeaderStudioWorkspaceContractTest extends TestCase
         $this->assertStringContainsString("Route::has('register')", $frontend);
     }
 
+    public function test_authenticated_mobile_drawer_shows_account_actions_before_navigation_without_nested_dropdown(): void
+    {
+        $frontend = file_get_contents(base_path('Modules/Website/resources/views/partials/pharma/header.blade.php'));
+        $drawer = substr($frontend, strpos($frontend, '<aside id="pharma-mobile-menu"'));
+
+        $this->assertIsString($drawer);
+        $this->assertStringContainsString('@auth', $drawer);
+        $this->assertStringContainsString('aria-label="Tài khoản của tôi"', $drawer);
+        $this->assertStringContainsString('aria-label="Liên kết tài khoản"', $drawer);
+        $this->assertLessThan(
+            strpos($drawer, 'aria-label="Điều hướng Pharma trên di động"'),
+            strpos($drawer, 'aria-label="Tài khoản của tôi"')
+        );
+        $this->assertStringContainsString('min-h-0 flex-1 overflow-y-auto', $drawer);
+        $this->assertStringNotContainsString("@include('Website::partials.pharma.account-dropdown'", $drawer);
+        $this->assertStringContainsString("Route::has('logout')", $drawer);
+        $this->assertStringContainsString('method="POST" action="{{ route(\'logout\') }}"', $drawer);
+        $this->assertStringContainsString('@csrf', $drawer);
+        $this->assertStringContainsString("['show_profile'] ?? true", $drawer);
+        $this->assertStringContainsString("['show_orders'] ?? true", $drawer);
+        $this->assertStringContainsString('$drawerCanAccessAdmin', $drawer);
+    }
+
 }
