@@ -24,6 +24,10 @@ class AdmissionReceiptQrTrackingSignatureTest extends TestCase
             ->middleware($receiptRoute->gatherMiddleware())
             ->name('admission.receipt-signature-probe');
 
+        // Routes added after application boot need refreshed name/action lookups.
+        Route::getRoutes()->refreshNameLookups();
+        Route::getRoutes()->refreshActionLookups();
+
         $url = URL::signedRoute('admission.receipt-signature-probe');
 
         $this->get($url)->assertOk()->assertSee('ok');
