@@ -30,7 +30,7 @@
     @if(($topbarConfig['enabled'] ?? true))
         @foreach($headerLayout['desktop.topbar'] ?? [] as $component)
             @if($component['type'] === 'topbar')
-                <div class="border-b border-slate-800/20" style="background: {{ $topbarBackground }}; color: {{ $topbarForeground }};">
+                <div class="{{ ($topbarConfig['show_mobile'] ?? false) ? 'block' : 'hidden' }} {{ ($topbarConfig['show_desktop'] ?? true) ? 'md:block' : 'md:hidden' }} border-b border-slate-800/20" style="background: {{ $topbarBackground }}; color: {{ $topbarForeground }};">
                     <div class="mx-auto flex flex-wrap items-center justify-between gap-x-6 gap-y-2 px-5 py-2 text-xs sm:px-8" style="max-width: {{ $headerWidth ? $headerWidth.'px' : '1280px' }}; min-height: {{ $topbarHeight }}px">
                         <div class="flex flex-wrap items-center gap-x-5 gap-y-1.5">
                             @if(trim((string) ($topbarConfig['left_text'] ?? 'THÔNG TIN DƯỢC PHẨM · TRA CỨU VÀ THAM KHẢO')) !== '')
@@ -83,7 +83,12 @@
                 @include('Website::partials.pharma.account-dropdown', ['accountConfig' => $accountConfig])
             </div>
             @if(!empty($headerLayout['mobile.drawer']))
-                <button type="button" class="shrink-0 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold lg:hidden" @click="menuOpen = !menuOpen" :aria-expanded="menuOpen.toString()" aria-controls="pharma-mobile-menu">Menu</button>
+                <button type="button" class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-slate-300 text-slate-700 transition active:scale-[0.985] lg:hidden" @click="menuOpen = !menuOpen" :aria-expanded="menuOpen.toString()" aria-controls="pharma-mobile-menu" aria-label="Mở menu điều hướng" title="Menu">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path x-show="!menuOpen" d="M4 6h16M4 12h16M4 18h16"/>
+                        <path x-show="menuOpen" x-cloak d="M18 6 6 18M6 6l12 12"/>
+                    </svg>
+                </button>
             @endif
         </div>
         @foreach($headerLayout['mobile.drawer'] ?? [] as $component)
