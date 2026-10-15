@@ -6,9 +6,15 @@ PROJECT_NAME="$(basename "$SCRIPT_DIR")"
 MODE="${1:-all}"
 cd "$SCRIPT_DIR"
 
+# Opt-in Markdown profile; never writes to tracked docs unless operator explicitly chooses --output.
+if [[ "$MODE" == "--profile" ]]; then
+    shift
+    exec bash "$SCRIPT_DIR/production-debug-profile.sh" "$@"
+fi
+
 case "$MODE" in
     all|--docker|--permissions|--database|--logs) ;;
-    *) echo "Usage: $0 [--docker|--permissions|--database|--logs]" >&2; exit 1 ;;
+    *) echo "Usage: $0 [--docker|--permissions|--database|--logs|--profile [--project-dir PATH] [--output FILE]]" >&2; exit 1 ;;
 esac
 
 section() { printf '\n=== %s ===\n' "$1"; }
