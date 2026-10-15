@@ -27,6 +27,18 @@ class FullBackupSqlUploadContractTest extends TestCase
         self::assertStringContainsString('LOCAL ONLY', $view);
     }
 
+    public function test_livewire_temporary_and_legacy_upload_limits_are_aligned_to_60_mb(): void
+    {
+        $config = file_get_contents(base_path('config/livewire.php'));
+        $legacy = file_get_contents(base_path('Modules/System/Livewire/Database/BackupManager.php'));
+        self::assertIsString($config);
+        self::assertIsString($legacy);
+        self::assertStringContainsString("'max:61440'", $config);
+        self::assertStringContainsString("'max:61440'", $legacy);
+        self::assertStringNotContainsString("'max:20480'", $config);
+        self::assertStringNotContainsString("'max:20480'", $legacy);
+    }
+
     public function test_upload_only_stages_validated_sql_and_restore_still_requires_separate_confirmation(): void
     {
         $component = file_get_contents(base_path('Modules/System/Livewire/Database/FullBackupWorkspace.php'));
