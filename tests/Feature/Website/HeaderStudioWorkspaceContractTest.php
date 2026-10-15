@@ -58,4 +58,24 @@ class HeaderStudioWorkspaceContractTest extends TestCase
         $this->assertStringContainsString("Route::has('register')", $frontend);
     }
 
+    public function test_mobile_account_partial_is_above_navigation_without_nested_dropdown(): void
+    {
+        $header = file_get_contents(base_path('Modules/Website/resources/views/partials/pharma/header.blade.php'));
+        $account = file_get_contents(base_path('Modules/Website/resources/views/partials/pharma/mobile-account-links.blade.php'));
+
+        $this->assertLessThan(
+            strpos($header, 'aria-label="Điều hướng Pharma trên di động"'),
+            strpos($header, "partials.pharma.mobile-account-links")
+        );
+        $this->assertStringContainsString('min-h-0 flex-1 overflow-y-auto', $header);
+        $this->assertSame(1, substr_count($header, "partials.pharma.account-dropdown"));
+        $this->assertStringContainsString('aria-label="Tài khoản của tôi"', $account);
+        $this->assertStringContainsString('aria-label="Liên kết tài khoản"', $account);
+        $this->assertStringContainsString('method="POST" action="{{ route(\'logout\') }}"', $account);
+        $this->assertStringContainsString('@csrf', $account);
+        $this->assertStringContainsString('show_orders', $account);
+        $this->assertStringContainsString('show_admin', $account);
+        $this->assertStringContainsString('$mobileAccountCanAdmin', $account);
+    }
+
 }
