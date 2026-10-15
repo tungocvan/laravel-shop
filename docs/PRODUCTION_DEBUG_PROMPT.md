@@ -13,7 +13,12 @@ Repository: tungocvan/laravel-shop
 Module chính: Modules\Pharma
 
 Production:
-- Host project: /opt/projects/tnv
+- Chọn project cụ thể trước khi debug: tnv, ntd hoặc project khác.
+- Đọc docs/projects/<project>.md nếu tồn tại; đối chiếu thời gian snapshot với lần deploy mới nhất.
+- Nếu profile còn hiệu lực, bỏ qua kiểm tra Docker lặp lại không liên quan và đi thẳng vào route/exception/source.
+- Nếu chưa có hoặc profile cũ, yêu cầu một lệnh ./production-debug.sh --profile --project-dir /opt/projects/<project> từ worktree script mới, rồi rà soát và cập nhật hồ sơ qua PR.
+- Hồ sơ là snapshot, không thay thế HTTP/UI health và không được chứa secrets.
+- Host project ví dụ: /opt/projects/tnv
 - Docker Compose project: tnv
 - App working directory trong container: /var/www/html
 - Production đang chạy bằng Docker.
@@ -312,3 +317,7 @@ Trước tiên hãy đọc các production docs nêu trên, sau đó mới đưa
 ## Maintenance
 
 Khi production workflow, helper scripts, Docker topology hoặc test baseline thay đổi, cập nhật tài liệu nguồn trước. Prompt này chỉ là entry template và không được ghi đè contract trong các tài liệu production/collaboration hiện hành.
+
+## Hồ sơ project (cập nhật 2026-10)
+
+Quy trình và lệnh thu thập snapshot an toàn: [`docs/projects/README.md`](projects/README.md). Các file `docs/projects/<project>.md` chỉ được tạo khi đã có kết quả thực tế và được rà soát; không tạo dữ liệu runtime giả định. Mỗi lần debug, đọc hồ sơ trước và xác định có cần thu thập lại hay không.
