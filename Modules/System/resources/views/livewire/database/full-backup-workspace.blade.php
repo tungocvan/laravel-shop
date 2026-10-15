@@ -14,6 +14,7 @@
                 <div class="flex flex-wrap gap-2">
                     <button wire:click="createBackup" wire:loading.attr="disabled" class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50">+ Tạo Full Backup</button>
                     @if($driveReady)<button wire:click="createBackupAndUpload" wire:loading.attr="disabled" class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50">Backup & Upload Drive</button>@endif
+                    <button wire:click="openUpload" class="rounded-xl border border-indigo-300 bg-white px-4 py-2.5 text-sm font-bold text-indigo-700 hover:bg-indigo-50">Upload SQL</button>
                     <button wire:click="$refresh" class="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700">Làm mới</button>
                 </div>
             @endif
@@ -52,6 +53,27 @@
             @empty<div class="p-10 text-center text-sm text-gray-400">Chưa có Full Backup. Nhấn “+ Tạo Full Backup” để tạo bản đầu tiên.</div>@endforelse
         </div>
     </div>
+
+    @if($showUploadModal)
+        <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-label="Upload SQL">
+            <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
+                <h3 class="text-lg font-bold text-gray-900">Upload Full Database SQL</h3>
+                <p class="mt-2 text-sm text-gray-600">Chọn bản Full Backup MySQL/MariaDB (.sql, tối đa 20 MB). Upload chỉ lưu vào Backup Catalog (LOCAL ONLY), không tự động Restore.</p>
+                <form wire:submit="uploadSql" class="mt-5 space-y-4">
+                    <div>
+                        <label for="full-backup-sql-file" class="mb-2 block text-sm font-semibold text-gray-800">File .sql</label>
+                        <input id="full-backup-sql-file" type="file" accept=".sql" wire:model="sqlFile" class="block w-full rounded-xl border border-gray-300 p-3 text-sm text-gray-700" />
+                        @error('sqlFile')<p class="mt-2 text-sm text-red-700">{{ $message }}</p>@enderror
+                    </div>
+                    <p wire:loading wire:target="sqlFile" class="text-sm text-indigo-700">Đang tải file lên vùng tạm…</p>
+                    <div class="flex flex-wrap justify-end gap-2">
+                        <button type="button" wire:click="closeUpload" class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold">Hủy</button>
+                        <button type="submit" wire:loading.attr="disabled" wire:target="sqlFile,uploadSql" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">Xác minh &amp; Lưu Local</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endif
 
     @if($showRestoreModal)<div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true"><div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"><div class="rounded-xl border border-red-200 bg-red-50 p-4"><p class="text-xs font-bold uppercase text-red-700">Restore Database</p><h3 class="mt-1 break-all text-base font-bold text-gray-900">{{ $restoreName }}</h3></div><div class="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-emerald-800"><strong>Safety Backup được tạo tự động.</strong> Nếu restore thất bại, hệ thống sẽ cố phục hồi database về trạng thái trước thao tác.</div><p class="mt-4 text-sm text-gray-600">Restore thay đổi toàn bộ database hiện tại. Chỉ tiếp tục khi bạn chắc chắn đã chọn đúng file.</p><div class="mt-6 flex justify-end gap-2"><button wire:click="$set('showRestoreModal',false)" class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold">Hủy</button><button wire:click="confirmRestore" wire:loading.attr="disabled" class="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">Xác nhận Restore</button></div></div></div>@endif
 
