@@ -213,3 +213,12 @@ A future Website change must begin from a newly stated objective and must not tr
 - Mobile hamburger opens right-side fixed overlay drawer teleported to body; backdrop and close button, Escape close, links, search, and guest sign-in/register retained.
 - Added contract test for mobile overlay and compact header. Manual Safari iPhone test required: open/close, tap backdrop, scrolling, navigation, search, guest and authenticated states.
 - No merge until targeted tests and UI pass. Potential further accessibility enhancement: focus trap and scroll locking for modal drawer.
+
+### Pharma mobile drawer account-first UI fix (2026-10-15, pending local test/UI)
+
+- Issue observed on iPhone SE 375×667 after login: account dropdown at bottom of mobile drawer required scrolling and another tap.
+- Fix branch: `fix/pharma-mobile-drawer-account-priority`.
+- Authenticated account section now immediately follows drawer title, with direct profile/dashboard/password/orders/admin (permission and settings gated) links and POST+CSRF logout.
+- Existing desktop account dropdown unchanged. Mobile navigation and search remain in separate scrollable region; guest login/register remain available.
+- Test: `HeaderStudioWorkspaceContractTest` extended; awaiting local focused and Website Header regression plus manual signed-in iPhone acceptance.
+- Do not merge until TEST + UI PASS.
