@@ -69,7 +69,7 @@ return [
 
     'temporary_file_upload' => [
         'disk' => null,        // Example: 'local', 's3'              | Default: 'default'
-        'rules' => ['required', 'file', 'max:20480'], // 20 MB; must stay below PHP/nginx request limits.
+        'rules' => ['required', 'file', 'max:61440'], // 60 MB; PHP/nginx request limits must allow this payload.
         'directory' => null,   // Example: 'tmp'                      | Default: 'livewire-tmp'
         'middleware' => null,  // Example: 'throttle:5,1'             | Default: 'throttle:60,1'
         'preview_mimes' => [   // Supported file types for temporary pre-signed file URLs...
