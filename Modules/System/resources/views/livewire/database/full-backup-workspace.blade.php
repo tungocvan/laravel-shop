@@ -58,7 +58,7 @@
         <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-label="Upload SQL">
             <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
                 <h3 class="text-lg font-bold text-gray-900">Upload Full Database SQL</h3>
-                <p class="mt-2 text-sm text-gray-600">Chọn bản Full Backup MySQL/MariaDB (.sql, tối đa 20 MB). Upload chỉ lưu vào Backup Catalog (LOCAL ONLY), không tự động Restore.</p>
+                <p class="mt-2 text-sm text-gray-600">Chọn bản Full Backup MySQL/MariaDB (.sql, tối đa 60 MB). Upload chỉ lưu vào Backup Catalog (LOCAL ONLY), không tự động Restore.</p>
                 <form wire:submit="uploadSql" class="mt-5 space-y-4">
                     <div>
                         <label for="full-backup-sql-file" class="mb-2 block text-sm font-semibold text-gray-800">File .sql</label>
