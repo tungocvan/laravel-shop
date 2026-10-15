@@ -100,7 +100,7 @@
                             <span class="text-base font-bold">Menu</span>
                             <button type="button" @click="menuOpen = false" aria-label="Đóng menu" class="flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 text-xl">×</button>
                         </div>
-                        @auth
+                        @if(auth()->check())
                             @php
                                 $drawerUser = auth()->user();
                                 $drawerDashboardRoute = \Illuminate\Support\Facades\Route::has('account.dashboard') ? 'account.dashboard' : null;
@@ -140,7 +140,7 @@
                                     </form>
                                 @endif
                             </section>
-                        @endauth
+                        @endif
                         <div class="min-h-0 flex-1 overflow-y-auto">
                         <nav aria-label="Điều hướng Pharma trên di động" class="flex flex-col gap-1 px-4 py-4">
                             @foreach($mobileMenu->isNotEmpty() ? $mobileMenu : $fallbackMenu as $item)
@@ -155,7 +155,7 @@
                                 <button type="submit" class="rounded-lg px-4 py-2 text-sm font-bold text-white" style="background:var(--pharma-header-accent)">Tìm</button>
                             </form>
                         @endif
-                        @guest
+                        @if(auth()->guest())
                             <div class="border-t border-slate-200 px-4 py-4">
                                 <div class="grid grid-cols-2 gap-2">
                                     @if(\Illuminate\Support\Facades\Route::has('login'))
@@ -166,7 +166,7 @@
                                     @endif
                                 </div>
                             </div>
-                        @endguest
+                        @endif
                         </div>
                     </aside>
                 </div>
