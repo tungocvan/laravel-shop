@@ -39,7 +39,7 @@ final class PharmaQuickOrderSettingsService
     public function normalize(array $value): array
     {
         return [
-            'enabled' => ($value['enabled'] ?? false) === true,
+            'enabled' => ($value['enabled'] ?? true) === true,
             'notification_email' => implode('; ', $this->parseNotificationEmails($value['notification_email'] ?? '')),
             'price_list_ids' => array_values(array_unique(array_filter(
                 array_map('intval', is_array($value['price_list_ids'] ?? null) ? $value['price_list_ids'] : []),
