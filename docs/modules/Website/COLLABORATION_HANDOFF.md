@@ -239,3 +239,11 @@ A future Website change must begin from a newly stated objective and must not tr
 - Sign-out moved into a pinned footer with POST+CSRF; guest login/register live in the same footer. Footer accounts for iPhone safe-area inset.
 - Drawer body scrolls independently; max width remains 360px. No admin header settings or desktop account behavior changed.
 - Added contract coverage. **Not executed in Laravel environment by assistant.** Mandatory first gate: `php artisan view:clear && php artisan view:cache`. Stop if compile fails. Then focused and Header regression tests; finally mobile guest/auth UI. No merge before TEST + UI PASS.
+
+
+## Quick Order default and submission fix (2026-10-15)
+- Branch: `fix/pharma-mobile-drawer-account-priority` (shared Website checkpoint; not merged).
+- Default `website.pharma_quick_order.enabled` to true only when absent; explicit false remains authoritative.
+- Fix undefined `$globalListIds` in `PharmaQuickOrderController::store()` by using eligible `$listIds` for exact variant/package filters.
+- Added `tests/Feature/Website/PharmaQuickOrderDefaultsContractTest.php`.
+- Tests: pending local DELL Test 1 and Website regression Test 2; UI smoke pending. No PR/merge until PASS.
