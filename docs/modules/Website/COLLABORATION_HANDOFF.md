@@ -222,3 +222,11 @@ A future Website change must begin from a newly stated objective and must not tr
 - Existing desktop account dropdown unchanged. Mobile navigation and search remain in separate scrollable region; guest login/register remain available.
 - Test: `HeaderStudioWorkspaceContractTest` extended; awaiting local focused and Website Header regression plus manual signed-in iPhone acceptance.
 - Do not merge until TEST + UI PASS.
+
+### Mobile drawer account-first checkpoint — second implementation
+
+- Extracted `Website::partials.pharma.mobile-account-links` for signed-in account navigation, using native PHP setup and explicit Blade conditional blocks, independent of desktop account dropdown.
+- Included partial immediately below drawer heading; mobile navigation/search/guest controls placed in a scrollable flex region.
+- Preserved route checks, account settings, admin role gate, and POST+CSRF logout.
+- Added focused contract. **NOT YET TESTED IN LARAVEL RUNTIME**: mandatory `php artisan view:cache` before focused tests and browser UI; stop immediately if compile fails.
+- Do not merge without TEST + UI PASS.
