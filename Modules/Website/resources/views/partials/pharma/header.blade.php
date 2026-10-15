@@ -95,38 +95,52 @@
             <template x-teleport="body">
                 <div x-show="menuOpen" x-cloak class="fixed inset-0 z-[9999] lg:hidden">
                     <div class="absolute inset-0 bg-slate-950/50" @click="menuOpen = false" aria-hidden="true"></div>
-                    <aside id="pharma-mobile-menu" x-show="menuOpen" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full" role="dialog" aria-modal="true" aria-label="Menu điều hướng Pharma" class="absolute inset-y-0 right-0 flex h-full w-[min(88vw,360px)] flex-col overflow-y-auto bg-white text-slate-900 shadow-2xl">
-                        <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-                            <span class="text-base font-bold">Menu</span>
+                    <aside id="pharma-mobile-menu" x-show="menuOpen" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full" role="dialog" aria-modal="true" aria-label="Menu điều hướng Pharma" class="absolute inset-y-0 right-0 flex h-full w-[min(88vw,360px)] flex-col overflow-hidden bg-white text-slate-900 shadow-2xl">
+                        <div class="flex shrink-0 items-center justify-between border-b border-slate-100 px-4 py-3">
+                            <a href="{{ route('home') }}" class="flex min-w-0 items-center gap-2" aria-label="FlexBiz - về trang chủ">
+                                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xl font-bold text-white" style="background:var(--pharma-header-accent)" aria-hidden="true">+</span>
+                                <span class="min-w-0"><span class="block truncate text-sm font-extrabold">{{ $companyName }}</span><span class="block truncate text-xs text-slate-500">Danh mục dược phẩm</span></span>
+                            </a>
                             <button type="button" @click="menuOpen = false" aria-label="Đóng menu" class="flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 text-xl">×</button>
                         </div>
                         @include('Website::partials.pharma.mobile-account-links', ['accountConfig' => $accountConfig])
-                        <div class="min-h-0 flex-1 overflow-y-auto">
-                        <nav aria-label="Điều hướng Pharma trên di động" class="flex flex-col gap-1 px-4 py-4">
+                        <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+                        <nav aria-label="Điều hướng Pharma trên di động" class="flex flex-col gap-1 px-3 py-3">
+                            <span class="px-3 pb-1 text-[11px] font-bold uppercase tracking-widest text-slate-500">Khám phá</span>
                             @foreach($mobileMenu->isNotEmpty() ? $mobileMenu : $fallbackMenu as $item)
                                 @php($itemUrl = is_array($item) ? $item['url'] : $item->url)
                                 @php($itemTitle = is_array($item) ? $item['title'] : $item->title)
-                                <a href="{{ $itemUrl ?: '#' }}" class="rounded-lg px-3 py-3 text-sm font-semibold hover:bg-emerald-50">{{ $itemTitle }}</a>
+                                <a href="{{ $itemUrl ?: '#' }}" class="flex min-h-11 items-center justify-between rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-800 hover:bg-emerald-50"><span>{{ $itemTitle }}</span><svg class="h-4 w-4 shrink-0 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></a>
                             @endforeach
                         </nav>
                         @if(!empty($headerLayout['mobile.search']))
-                            <form action="{{ route('product.list') }}" method="GET" role="search" class="flex gap-2 border-t border-slate-100 px-4 py-4">
-                                <input name="search" type="search" aria-label="Tìm sản phẩm" placeholder="Tìm sản phẩm..." class="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                                <button type="submit" class="rounded-lg px-4 py-2 text-sm font-bold text-white" style="background:var(--pharma-header-accent)">Tìm</button>
+                            <form action="{{ route('product.list') }}" method="GET" role="search" class="flex gap-2 border-t border-slate-100 px-3 py-3">
+                                <input name="search" type="search" aria-label="Tìm sản phẩm" placeholder="Tìm sản phẩm..." class="min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm focus:border-emerald-600 focus:outline-none">
+                                <button type="submit" class="min-h-11 rounded-xl px-4 py-2 text-sm font-bold text-white" style="background:var(--pharma-header-accent)">Tìm</button>
                             </form>
                         @endif
-                        @guest
-                            <div class="border-t border-slate-200 px-4 py-4">
+                        </div>
+                        <div class="shrink-0 border-t border-slate-200 bg-white px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom,0px))]">
+                            @auth
+                                @if(\Illuminate\Support\Facades\Route::has('logout'))
+                                    <form method="POST" action="{{ route('logout') }}">
+                                        @csrf
+                                        <button type="submit" class="flex min-h-11 w-full items-center gap-2 rounded-xl px-3 text-left text-sm font-semibold text-red-600 hover:bg-red-50">
+                                            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+                                            Đăng xuất
+                                        </button>
+                                    </form>
+                                @endif
+                            @else
                                 <div class="grid grid-cols-2 gap-2">
                                     @if(\Illuminate\Support\Facades\Route::has('login'))
-                                        <a href="{{ route('login') }}" class="rounded-lg border border-slate-300 px-3 py-3 text-center text-sm font-semibold">Đăng nhập</a>
+                                        <a href="{{ route('login') }}" class="flex min-h-11 items-center justify-center rounded-xl border border-slate-200 px-3 text-center text-sm font-semibold">Đăng nhập</a>
                                     @endif
                                     @if(\Illuminate\Support\Facades\Route::has('register'))
-                                        <a href="{{ route('register') }}" class="rounded-lg px-3 py-3 text-center text-sm font-semibold text-white" style="background:var(--pharma-header-accent)">Đăng ký</a>
+                                        <a href="{{ route('register') }}" class="flex min-h-11 items-center justify-center rounded-xl px-3 text-center text-sm font-semibold text-white" style="background:var(--pharma-header-accent)">Đăng ký</a>
                                     @endif
                                 </div>
-                            </div>
-                        @endguest
+                            @endauth
                         </div>
                     </aside>
                 </div>
