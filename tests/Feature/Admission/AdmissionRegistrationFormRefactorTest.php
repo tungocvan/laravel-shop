@@ -119,7 +119,7 @@ class AdmissionRegistrationFormRefactorTest extends TestCase
         $this->assertStringNotContainsString("'password' =>", $method);
         $this->assertStringNotContainsString("'ma_dinh_danh' =>", $method);
 
-        $this->assertStringContainsString("->middleware('signed')", $routes);
+        $this->assertStringContainsString("->middleware('signed:zarsrc,utm_source,utm_medium,utm_campaign,gidzl')", $routes);
         $this->assertStringContainsString("->name('search.receipt')", $routes);
         $this->assertStringContainsString("public function receiptSearch(AdmissionApplication \$application)", $controller);
         $this->assertStringContainsString("abort_unless(\$application->status === 'approved', 404)", $controller);
