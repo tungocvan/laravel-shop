@@ -91,11 +91,11 @@ class FullBackupWorkspace extends Component
         $this->authorizePermission('database.backup');
 
         $validated = $this->validate([
-            'sqlFile' => ['required', 'file', 'extensions:sql', 'max:20480'],
+            'sqlFile' => ['required', 'file', 'extensions:sql', 'max:61440'],
         ], [
             'sqlFile.required' => 'Vui lòng chọn file SQL.',
             'sqlFile.extensions' => 'Chỉ chấp nhận file .sql.',
-            'sqlFile.max' => 'File upload trực tiếp không được vượt quá 20 MB.',
+            'sqlFile.max' => 'File upload trực tiếp không được vượt quá 60 MB.',
         ]);
 
         try {
