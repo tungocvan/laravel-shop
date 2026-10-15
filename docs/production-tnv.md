@@ -71,7 +71,30 @@ Trong app container:
 
 **Không biến hồ sơ thành lý do bỏ qua kiểm tra an toàn trước mutation.** Trước deploy/restart/migration phải xác định đúng target, ảnh hưởng, backup/rollback và trạng thái mới nếu có thay đổi kể từ snapshot.
 
-## 6. Lệnh tham chiếu — chỉ sử dụng theo điều kiện
+## 6. Quy tắc bắt buộc: PHP Artisan thông qua helper
+
+**Mọi lệnh `php artisan ...` trên Production TNV phải đi qua `./run-docker-artisan.sh` từ HOST `/opt/projects/tnv`.** Helper chọn đúng Compose project và app container. Không chạy `php artisan` trực tiếp trên HOST, không dùng `docker exec ... php artisan` hoặc `docker compose exec app php artisan` như lối tắt mặc định.
+
+Ví dụ (HOST, chỉ khi có mục đích kiểm tra cụ thể):
+
+```bash
+cd /opt/projects/tnv
+./run-docker-artisan.sh "php artisan route:list"
+```
+
+```bash
+./run-docker-artisan.sh "php artisan migrate:status"
+```
+
+```bash
+./run-docker-artisan.sh "php artisan queue:failed"
+```
+
+`route:list`, `migrate:status` và `queue:failed` là ví dụ read-only, **không phải** checklist chạy mỗi lần. Các Artisan command thay đổi dữ liệu/trạng thái (`migrate`, `db:seed`, `cache:clear`, `queue:restart`, v.v.) vẫn phải có lý do, impact/rollback và operator approval; helper không biến command mutation thành an toàn.
+
+Không tự ý chạy test suite trên Production chỉ vì code đã deploy; ưu tiên tests trên Admin WSL/CI. Khi cần truy vấn dữ liệu, không in credentials hoặc PII.
+
+## 7. Lệnh tham chiếu — chỉ sử dụng theo điều kiện
 
 - Khi **có bằng chứng** lỗi Docker/runtime: `./production-debug.sh --docker`
 - Khi lỗi log/exception: `./production-debug.sh --logs` hoặc log đúng thời điểm
@@ -83,7 +106,7 @@ Trong app container:
 
 Không dùng `git reset --hard`, `git clean -fd`, `docker compose down -v`, prune volume, `migrate:fresh`, `db:wipe`, `chmod 777`, `optimize:clear` hàng loạt để thử lỗi. Không xóa overlays.
 
-## 7. Nguồn quy định bổ sung
+## 8. Nguồn quy định bổ sung
 
 - `docs/PRODUCTION_OPERATIONS_GUIDE.md`: runbook và helper.
 - `docs/PRODUCTION_DOCKER_WORKFLOW_GUARDRAILS.md`: gate trước mutation và acceptance.
