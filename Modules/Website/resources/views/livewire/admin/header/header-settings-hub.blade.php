@@ -1,8 +1,8 @@
-<div class="max-w-6xl mx-auto py-6"
-    x-data="{ tab: @entangle('activeTab'), previewDevice: 'desktop', drag: null }">
+<div class="w-full px-3 py-5 sm:px-6"
+    x-data="{ tab: @entangle('activeTab'), previewDevice: 'desktop', drag: null, showLayoutTools: false, showThemeLibrary: false }">
     <div class="mb-6">
-        <h2 class="text-2xl font-bold text-gray-800">Cấu hình Header System</h2>
-        <p class="text-sm text-gray-500">Quản lý nội dung, menu và bố cục Header theo schema an toàn.</p>
+        <h2 class="text-2xl font-bold text-gray-800">Thiết kế Header Website</h2>
+        <p class="text-sm text-gray-500">Chọn giao diện, xem trước theo thiết bị và chỉ mở các thiết lập chuyên sâu khi cần.</p>
     </div>
 
     <div class="mb-5 rounded-xl border border-gray-200 bg-white p-4">
@@ -30,8 +30,8 @@
     <div x-show="tab === 'builder'" x-cloak class="space-y-8 rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-                <h3 class="text-lg font-bold text-gray-900">Header Builder</h3>
-                <p class="text-sm text-gray-500">Kéo component để đổi thứ tự hoặc chuyển giữa các slot được Registry cho phép. Nút ↑/↓ và select vẫn được giữ làm phương án thao tác dự phòng.</p>
+                <h3 class="text-lg font-bold text-gray-900">Không gian thiết kế Header</h3>
+                <p class="text-sm text-gray-500">Xem trước trước khi lưu. Các công cụ sắp xếp kỹ thuật được thu gọn trong mục Bố cục nâng cao.</p>
             </div>
             <div class="flex gap-2">
                 <button type="button" wire:click="resetBuilder" class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Khôi phục mặc định</button>
@@ -43,7 +43,22 @@
             <div class="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{{ $message }}</div>
         @enderror
 
-        @include('Website::livewire.admin.header.partials.theme-manager')
+        <section class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <button type="button" @click="showThemeLibrary = !showThemeLibrary" :aria-expanded="showThemeLibrary.toString()" aria-controls="header-theme-library" class="flex w-full items-center justify-between gap-3 text-left text-sm font-semibold text-gray-800">
+                <span>Thư viện mẫu Header <span class="ml-2 text-xs font-normal text-gray-500">Chọn, lưu và quản lý các mẫu đã tạo</span></span>
+                <span x-text="showThemeLibrary ? 'Thu gọn −' : 'Mở thư viện +'"></span>
+            </button>
+            <div id="header-theme-library" x-show="showThemeLibrary" x-cloak class="mt-4">
+                @include('Website::livewire.admin.header.partials.theme-manager')
+            </div>
+        </section>
+        @include('Website::livewire.admin.header.partials.builder-preview')
+        <section class="rounded-xl border border-gray-200 bg-white p-4">
+            <button type="button" @click="showLayoutTools = !showLayoutTools" :aria-expanded="showLayoutTools.toString()" aria-controls="header-layout-tools" class="flex w-full items-center justify-between gap-3 text-left text-sm font-semibold text-gray-800">
+                <span>Bố cục nâng cao <span class="ml-2 text-xs font-normal text-gray-500">Sắp xếp, bật tắt và di chuyển thành phần giữa các vị trí</span></span>
+                <span x-text="showLayoutTools ? 'Thu gọn −' : 'Mở công cụ +'"></span>
+            </button>
+            <div id="header-layout-tools" x-show="showLayoutTools" x-cloak class="mt-4">
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
             @foreach($builderSlotNames as $slotKey => $slotLabel)
@@ -112,6 +127,9 @@
             @endforeach
         </div>
 
+        </div>
+        </section>
+
         @if($editingTemplate === 'pharma')
             <section class="rounded-xl border border-emerald-200 bg-emerald-50/40 p-5 space-y-4" aria-label="Thiết lập Account Dropdown Pharma">
                 <div>
@@ -170,8 +188,6 @@
                 @error('topbarSettings.email')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
             </section>
         @endif
-
-        @include('Website::livewire.admin.header.partials.builder-preview')
 
         <div class="border-t border-gray-100 pt-6">
             <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
