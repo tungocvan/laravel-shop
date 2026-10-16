@@ -37,5 +37,10 @@ final class PharmaHeaderDeviceVisibilityContractTest extends TestCase
         $this->assertStringContainsString('Chỉ Desktop', $view);
         $this->assertStringContainsString('Chỉ Mobile', $view);
         $this->assertStringContainsString('Ẩn hoàn toàn', $view);
+        $header = file_get_contents(base_path('Modules/Website/resources/views/partials/pharma/header.blade.php'));
+        $this->assertStringContainsString('visibilityClass', $header);
+        $this->assertStringContainsString('drawerVisibility', $header);
+        $this->assertStringContainsString("mobile.search", $header);
+        $this->assertStringContainsString('topbarVisibility', $header);
     }
 }
