@@ -34,8 +34,14 @@
                 </div>
                 <label class="flex items-center gap-2 text-sm font-medium"><input type="checkbox" wire:model="topbarSettings.enabled" class="rounded border-gray-300"> Hiển thị Topbar Pharma</label>
                 <div class="grid gap-3 rounded-lg border border-teal-100 bg-teal-50/50 p-3 sm:grid-cols-2">
-                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model="topbarSettings.show_desktop" class="rounded border-gray-300"> Hiển thị trên Desktop / Tablet</label>
-                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model="topbarSettings.show_mobile" class="rounded border-gray-300"> Hiển thị trên Mobile</label>
+                    <label class="block text-sm font-medium">Thiết bị hiển thị Topbar
+                        <select wire:change="setTopbarDeviceVisibility($event.target.value)" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+                            <option value="both" @selected(($topbarSettings['show_desktop'] ?? true) && ($topbarSettings['show_mobile'] ?? false))>Hiển thị cả 2</option>
+                            <option value="desktop" @selected(($topbarSettings['show_desktop'] ?? true) && !($topbarSettings['show_mobile'] ?? false))>Hiển thị Desktop</option>
+                            <option value="mobile" @selected(!($topbarSettings['show_desktop'] ?? true) && ($topbarSettings['show_mobile'] ?? false))>Hiển thị Mobile</option>
+                            <option value="hidden" @selected(!($topbarSettings['show_desktop'] ?? true) && !($topbarSettings['show_mobile'] ?? false))>Ẩn trên cả 2</option>
+                        </select>
+                    </label>
                 </div>
                 <div class="grid gap-4 md:grid-cols-2">
                     <label class="text-sm font-medium">Nội dung bên trái
