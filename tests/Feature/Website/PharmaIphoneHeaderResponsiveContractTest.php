@@ -27,7 +27,9 @@ final class PharmaIphoneHeaderResponsiveContractTest extends TestCase
 
         $this->assertStringContainsString('x-teleport="body"', $header);
         $this->assertStringContainsString('fixed inset-0 z-[9999]', $header);
-        $this->assertStringContainsString('fixed inset-0 z-[9999] lg:hidden', $header);
+        $this->assertStringContainsString('fixed inset-0 z-[9999]', $header);
+        $this->assertStringContainsString('drawerVisibility', $header);
+        $this->assertStringContainsString('visibilityClass', $header);
         $this->assertStringContainsString("headerLayout['mobile.drawer']", $header);
         $this->assertStringContainsString('w-[min(88vw,360px)]', $header);
         $this->assertStringContainsString('overflow-y-auto', $header);
