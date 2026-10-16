@@ -75,6 +75,26 @@ class AdminLayoutConfig extends Component
     public string $presetName = '';
     public bool $presetIncludeTypography = true;
     public ?string $selectedSidebarPresetKey = null;
+    public bool $presetIncludeLayout = true;
+
+    public function applySidebarLayoutPreset(string $preset): void
+    {
+        abort_unless($this->section === 'sidebar', 404);
+        $options = [
+            'compact' => ['item_height' => '40', 'padding_x' => '8', 'padding_y' => '6', 'content_gap' => '8', 'item_gap' => '2', 'menu_border_width' => '1'],
+            'comfortable' => ['item_height' => '44', 'padding_x' => '12', 'padding_y' => '8', 'content_gap' => '12', 'item_gap' => '6', 'menu_border_width' => '1'],
+            'spacious' => ['item_height' => '48', 'padding_x' => '16', 'padding_y' => '12', 'content_gap' => '16', 'item_gap' => '8', 'menu_border_width' => '2'],
+        ];
+        abort_unless(isset($options[$preset]), 404);
+        foreach ($options[$preset] as $field => $value) {
+            $path = in_array($field, ['menu_border_width'], true)
+                ? 'design.sidebar_menu.active.'.$field
+                : 'design.sidebar_menu.item.'.$field;
+            data_set($this->config, $path, $value);
+        }
+        data_set($this->config, 'design.sidebar_menu.active.menu_border_style', 'solid');
+    }
+
 
     public function sidebarVisualPresets(): array
     {
@@ -125,6 +145,19 @@ class AdminLayoutConfig extends Component
                 }
             }
         }
+        $layout = data_get($preset, 'layout');
+        if (is_array($layout)) {
+            foreach (['item_height', 'padding_x', 'padding_y', 'content_gap', 'item_gap'] as $field) {
+                if (array_key_exists($field, $layout)) {
+                    data_set($this->config, 'design.sidebar_menu.item.'.$field, $layout[$field]);
+                }
+            }
+            foreach (['menu_border_color', 'menu_border_width', 'menu_border_style'] as $field) {
+                if (array_key_exists($field, $layout)) {
+                    data_set($this->config, 'design.sidebar_menu.active.'.$field, $layout[$field]);
+                }
+            }
+        }
         $this->dispatch('sidebar-preset-applied', background: $preset['background'], accent: data_get($this->config, 'sidebar.presentation.custom_accent'));
     }
 
@@ -163,6 +196,12 @@ class AdminLayoutConfig extends Component
             $current[$key]['typography'] = array_intersect_key(
                 (array) data_get($this->config, 'design.sidebar_menu.item', []),
                 array_flip(['font_family', 'font_size', 'font_weight', 'icon_size'])
+            );
+        }
+        if ($this->presetIncludeLayout) {
+            $current[$key]['layout'] = array_merge(
+                array_intersect_key((array) data_get($this->config, 'design.sidebar_menu.item', []), array_flip(['item_height', 'padding_x', 'padding_y', 'content_gap', 'item_gap'])),
+                array_intersect_key((array) data_get($this->config, 'design.sidebar_menu.active', []), array_flip(['menu_border_color', 'menu_border_width', 'menu_border_style']))
             );
         }
         $this->selectedSidebarPresetKey = $key;
