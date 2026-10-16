@@ -126,4 +126,19 @@ class SidebarMenuConsolidationContractTest extends TestCase
         $this->assertStringContainsString("None (ẩn viền)", $view);
     }
 
+    public function test_shell_does_not_override_configured_submenu_visual_states(): void
+    {
+        $shell = file_get_contents(base_path('Modules/Admin/Services/AdminShellPresentationService.php'));
+        $design = file_get_contents(base_path('Modules/Admin/Services/AdminDesignService.php'));
+        $runtime = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/sidebar/navigation/group.blade.php'));
+
+        foreach (['--admin-sidebar-menu-title-color', '--admin-sidebar-submenu-title-color',
+            '--admin-sidebar-active-title-color', '--admin-sidebar-submenu-active-border-color'] as $variable) {
+            $this->assertStringNotContainsString("'".$variable.": '.", $shell);
+            $this->assertStringContainsString("'".$variable."' =>", $design);
+        }
+        $this->assertStringContainsString('var(--admin-sidebar-submenu-hover-background)', $runtime);
+        $this->assertStringContainsString('var(--admin-sidebar-submenu-active-background)', $runtime);
+    }
+
 }
