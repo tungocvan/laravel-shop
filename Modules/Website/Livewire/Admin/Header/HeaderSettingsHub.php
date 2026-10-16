@@ -233,6 +233,71 @@ class HeaderSettingsHub extends Component
         $this->builderSlots[$toSlot] = array_values($this->builderSlots[$toSlot]);
     }
 
+    /**
+     * Persist the Pharma builder with device choices supplied by the browser.
+     * The old deferred $wire.set(..., false) did not reliably reach the
+     * server action and could silently restore the previous saved layout.
+     */
+    public function savePharmaBuilder(
+        array $visibilityOverrides,
+        SettingsService $settingsService,
+        HeaderComponentRegistry $registry,
+        HeaderPresentationService $presentationService
+    ): void {
+        $this->authorizeAdminPermission('website.settings.manage');
+        if ($this->editingTemplate !== 'pharma') {
+            return;
+        }
+
+        $this->normalizePharmaBuilder();
+        foreach ($this->builderSlots as $slot => &$items) {
+            foreach ($items as &$item) {
+                $type = $item['type'] ?? '';
+                if (! array_key_exists($type, $visibilityOverrides)) {
+                    continue;
+                }
+                $visibility = $visibilityOverrides[$type];
+                if (! is_string($visibility) || ! in_array($visibility, ['both', 'desktop', 'mobile', 'hidden'], true)) {
+                    continue;
+                }
+                if ($type === 'mobile-menu') {
+                    $visibility = $visibility === 'hidden' ? 'hidden' : 'mobile';
+                }
+                $item['enabled'] = $visibility !== 'hidden';
+                $item['config'] = is_array($item['config'] ?? null) ? $item['config'] : [];
+                $item['config']['visibility'] = $visibility;
+            }
+            unset($item);
+        }
+        unset($items);
+
+        // Save the already-normalized layout once. A second normalization inside
+        // saveBuilder() can reinterpret hidden Search visibility as a legacy
+        // desktop/mobile combination and silently overwrite the user's choice.
+        $layout = $this->safeLayout($this->builderSlots, $registry);
+        $presentation = $presentationService->resolve($this->presentation);
+        $key = $this->settingKey('layout');
+
+        $settingsService->updateMany([
+            $key => $layout,
+            $this->settingKey('presentation') => $presentation,
+        ], 'header');
+
+        // Verify actual storage read-back before reporting success.
+        $stored = $settingsService->get($key);
+        if (! is_array($stored) || $stored !== $layout) {
+            $this->addError('builder', 'Không thể xác nhận bố cục đã được lưu. Vui lòng thử lại.');
+            return;
+        }
+
+        $this->presentation = $presentation;
+        $this->loadBuilderLayout($stored);
+        $this->dispatch('show-toast', [[
+            'type' => 'success',
+            'message' => 'Đã lưu và xác nhận bố cục Header.',
+        ]]);
+    }
+
     public function saveBuilder(
         SettingsService $settingsService,
         HeaderComponentRegistry $registry,
