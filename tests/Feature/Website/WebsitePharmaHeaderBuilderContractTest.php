@@ -93,9 +93,14 @@ class WebsitePharmaHeaderBuilderContractTest extends TestCase
 
         $header = file_get_contents(base_path('Modules/Website/resources/views/partials/pharma/header.blade.php'));
         $this->assertStringContainsString('website.pharma_header.topbar', $header);
+        $this->assertStringContainsString("get('header.topbar.hotline'", $header);
+        $this->assertStringContainsString("get('header.topbar.email'", $header);
+        $this->assertStringNotContainsString('$topbarConfig[\'hotline\']', $header);
+        $this->assertStringNotContainsString('$topbarConfig[\'email\']', $header);
         $this->assertStringContainsString("topbarConfig['enabled']", $header);
         $this->assertStringContainsString("topbarConfig['left_text']", $header);
-        $this->assertStringContainsString("topbarConfig['right_text']", $header);
+        $this->assertStringContainsString('Theo dõi đơn hàng', $header);
+        $this->assertStringContainsString('Trợ giúp', $header);
         $this->assertStringContainsString('topbarHeight', $header);
 
         $admin = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/header/header-settings-hub.blade.php'));

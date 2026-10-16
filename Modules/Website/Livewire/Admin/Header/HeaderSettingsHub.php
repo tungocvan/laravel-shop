@@ -66,6 +66,9 @@ class HeaderSettingsHub extends Component
     {
         $savedLayout = $settingsService->get($this->settingKey('layout'));
         $this->loadBuilderLayout(is_array($savedLayout) ? $savedLayout : $this->defaultLayout());
+        if ($this->editingTemplate === 'pharma') {
+            $this->normalizePharmaBuilder();
+        }
         $savedPresentation = $settingsService->get($this->settingKey('presentation'));
         $this->presentation = $presentationService->resolve(is_array($savedPresentation) ? $savedPresentation : null);
         $savedThemes = $settingsService->get($this->settingKey('layout_themes'), []);
@@ -113,8 +116,6 @@ class HeaderSettingsHub extends Component
             'right_text' => mb_substr((string) ($values['right_text'] ?? 'Thông tin không thay thế tư vấn chuyên môn y tế'), 0, 180),
             'show_hotline' => (bool) ($values['show_hotline'] ?? false),
             'show_email' => (bool) ($values['show_email'] ?? false),
-            'hotline' => mb_substr((string) ($values['hotline'] ?? ''), 0, 50),
-            'email' => mb_substr((string) ($values['email'] ?? ''), 0, 100),
         ];
     }
 
@@ -127,12 +128,35 @@ class HeaderSettingsHub extends Component
         $this->validate([
             'topbarSettings.left_text' => ['nullable', 'string', 'max:180'],
             'topbarSettings.right_text' => ['nullable', 'string', 'max:180'],
-            'topbarSettings.hotline' => ['nullable', 'string', 'max:50'],
-            'topbarSettings.email' => ['nullable', 'email', 'max:100'],
         ]);
         $this->topbarSettings = $this->normalizeTopbarSettings($this->topbarSettings);
         $settingsService->set('website.pharma_header.topbar', $this->topbarSettings, 'header', 'json');
         $this->dispatch('show-toast', [['type' => 'success', 'message' => 'Đã lưu Topbar Pharma.']]);
+    }
+
+    public function setTopbarDeviceVisibility(string $visibility): void
+    {
+        $this->authorizeAdminPermission('website.settings.manage');
+        if (! in_array($visibility, ['both', 'desktop', 'mobile', 'hidden'], true)) {
+            return;
+        }
+
+        $this->topbarSettings['show_desktop'] = in_array($visibility, ['both', 'desktop'], true);
+        $this->topbarSettings['show_mobile'] = in_array($visibility, ['both', 'mobile'], true);
+    }
+
+    public function setComponentVisibility(string $slot, int $index, string $visibility): void
+    {
+        $this->authorizeAdminPermission('website.settings.manage');
+        if (! $this->hasItem($slot, $index) || ! in_array($visibility, ['both', 'desktop', 'mobile', 'hidden'], true)) {
+            return;
+        }
+
+        if ($this->editingTemplate === 'pharma' && ($this->builderSlots[$slot][$index]['type'] ?? null) === 'mobile-menu') {
+            $visibility = $visibility === 'hidden' ? 'hidden' : 'mobile';
+        }
+        $this->builderSlots[$slot][$index]['enabled'] = $visibility !== 'hidden';
+        $this->builderSlots[$slot][$index]['config']['visibility'] = $visibility;
     }
 
     public function toggleComponent(string $slot, int $index): void
@@ -215,6 +239,9 @@ class HeaderSettingsHub extends Component
         HeaderPresentationService $presentationService
     ): void {
         $this->authorizeAdminPermission('website.settings.manage');
+        if ($this->editingTemplate === 'pharma') {
+            $this->normalizePharmaBuilder();
+        }
         $layout = $this->safeLayout($this->builderSlots, $registry);
         $presentation = $presentationService->resolve($this->presentation);
 
@@ -234,6 +261,9 @@ class HeaderSettingsHub extends Component
     {
         $this->authorizeAdminPermission('website.settings.manage');
         $this->loadBuilderLayout($this->defaultLayout());
+        if ($this->editingTemplate === 'pharma') {
+            $this->normalizePharmaBuilder();
+        }
         $this->presentation = $presentationService->resolve((array) config('website.header.presentation', []));
         $this->selectedTheme = '';
         $this->resetErrorBag(['builder', 'theme']);
@@ -397,6 +427,80 @@ class HeaderSettingsHub extends Component
             $items = array_key_exists($slot, $layout) ? $layout[$slot] : data_get($layout, $slot, []);
             $this->builderSlots[$slot] = is_array($items) ? array_values($items) : [];
         }
+    }
+
+    /**
+     * Pharma has one Search component. Older layouts stored separate desktop and
+     * mobile Search entries; fold them into one canonical desktop Search entry.
+     * The frontend uses its visibility for both breakpoints.
+     */
+    private function normalizePharmaBuilder(): void
+    {
+        foreach ($this->builderSlots['mobile.drawer'] ?? [] as $index => $item) {
+            if (($item['type'] ?? null) === 'mobile-menu') {
+                $this->builderSlots['mobile.drawer'][$index]['config']['visibility'] = ($item['enabled'] ?? true) ? 'mobile' : 'hidden';
+            }
+        }
+
+        $search = null;
+        $searchSlot = 'desktop.main.right';
+        $desktopVisible = false;
+        $mobileVisible = false;
+        $explicit = null;
+
+        foreach (self::BUILDER_SLOTS as $slot) {
+            $kept = [];
+            foreach ($this->builderSlots[$slot] ?? [] as $item) {
+                if (($item['type'] ?? null) !== 'search') {
+                    $kept[] = $item;
+                    continue;
+                }
+                if ($search === null || ($searchSlot === 'desktop.main.right' && $slot !== 'mobile.search')) {
+                    $search = $item;
+                    if (str_starts_with($slot, 'desktop.main.')) {
+                        $searchSlot = $slot;
+                    }
+                }
+                $visibility = $item['config']['visibility'] ?? (($item['enabled'] ?? true) ? (str_starts_with($slot, 'mobile.') ? 'mobile' : 'desktop') : 'hidden');
+                if ($slot !== 'mobile.search' && array_key_exists('visibility', $item['config'] ?? [])) {
+                    $explicit = $visibility;
+                }
+                if (($item['enabled'] ?? true) && in_array($visibility, ['desktop', 'both'], true)) {
+                    $desktopVisible = true;
+                }
+                if (($item['enabled'] ?? true) && in_array($visibility, ['mobile', 'both'], true)) {
+                    $mobileVisible = true;
+                }
+            }
+            $this->builderSlots[$slot] = array_values($kept);
+        }
+
+        if ($search === null) {
+            return;
+        }
+
+        $visibility = ($explicit === null || ($explicit === 'hidden' && $mobileVisible))
+            ? ($desktopVisible && $mobileVisible ? 'both' : ($desktopVisible ? 'desktop' : ($mobileVisible ? 'mobile' : 'hidden')))
+            : $explicit;
+        $search['enabled'] = $visibility !== 'hidden';
+        $search['config'] = is_array($search['config'] ?? null) ? $search['config'] : [];
+        $search['config']['visibility'] = $visibility;
+        $this->builderSlots[$searchSlot][] = $search;
+    }
+
+    public function setPharmaComponentPosition(string $slot, int $index, string $position, HeaderComponentRegistry $registry): void
+    {
+        $this->authorizeAdminPermission('website.settings.manage');
+        if ($this->editingTemplate !== 'pharma' || ! $this->hasItem($slot, $index)) {
+            return;
+        }
+        if (($this->builderSlots[$slot][$index]['type'] ?? null) === 'mobile-menu') {
+            return;
+        }
+        if (! in_array($position, ['desktop.main.left', 'desktop.main.center', 'desktop.main.right'], true)) {
+            return;
+        }
+        $this->moveComponent($slot, $index, $position, $registry);
     }
 
     private function selectedThemeData(): ?array

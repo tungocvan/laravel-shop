@@ -41,10 +41,17 @@ class HeaderLayoutService
                 continue;
             }
 
+            $config = is_array($item['config'] ?? null) ? $item['config'] : [];
+            $visibility = $config['visibility'] ?? (($item['enabled'] ?? true) ? (str_starts_with($slot, 'mobile.') ? 'mobile' : 'desktop') : 'hidden');
+            if (! in_array($visibility, ['both', 'desktop', 'mobile', 'hidden'], true) || $visibility === 'hidden') {
+                continue;
+            }
+
             $resolved[] = [
                 'type' => $item['type'],
                 'view' => $definition['view'],
-                'config' => is_array($item['config'] ?? null) ? $item['config'] : [],
+                'config' => $config,
+                'visibility' => $visibility,
             ];
         }
 

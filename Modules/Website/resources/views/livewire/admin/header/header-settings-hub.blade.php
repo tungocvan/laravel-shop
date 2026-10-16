@@ -1,5 +1,5 @@
 <div class="w-full px-3 py-5 sm:px-6"
-    x-data="{ tab: @entangle('activeTab'), previewDevice: 'desktop', drag: null, showLayoutTools: false, showThemeLibrary: false, showAccountSettings: false, showTopbarSettings: false, showAppearanceSettings: false }">
+    x-data="{ tab: @entangle('activeTab'), previewDevice: 'desktop', drag: null, showLayoutTools: false, showThemeLibrary: false, showAccountSettings: false, showTopbarSettings: true, showAppearanceSettings: false }">
     <div class="mb-6">
         <h2 class="text-2xl font-bold text-gray-800">Thiết kế Header Website</h2>
         <p class="text-sm text-gray-500">Chọn giao diện, xem trước theo thiết bị và chỉ mở các thiết lập chuyên sâu khi cần.</p>
@@ -21,6 +21,42 @@
 
     <div x-show="tab === 'general'" x-cloak>
         @livewire('website.admin.header.general-settings', key('header-general-settings'))
+        @if($editingTemplate === 'pharma')
+            <section class="rounded-xl border border-teal-200 bg-white p-4">
+                <button type="button" @click="showTopbarSettings = !showTopbarSettings" :aria-expanded="showTopbarSettings.toString()" aria-controls="header-topbar-settings" class="flex w-full items-center justify-between gap-3 text-left text-sm font-semibold text-gray-800">
+                    <span>Thanh thông tin Pharma <span class="ml-2 text-xs font-normal text-gray-500">Nội dung, liên hệ và hiển thị theo thiết bị</span></span>
+                    <span x-text="showTopbarSettings ? 'Thu gọn −' : 'Cấu hình +'"></span>
+                </button>
+                <div id="header-topbar-settings" x-show="showTopbarSettings" class="mt-4 space-y-4">
+                <div>
+                    <h4 class="text-base font-bold text-gray-900">Topbar Pharma · Nội dung & hiển thị</h4>
+                    <p class="mt-1 text-xs text-gray-600">Hotline và email được quản lý tại Thông tin chung phía trên. Nội dung bên trái và tùy chọn hiển thị áp dụng cho Topbar Pharma. Bên phải sử dụng hai liên kết chung: Theo dõi đơn hàng và Trợ giúp.</p>
+                </div>
+                <label class="flex items-center gap-2 text-sm font-medium"><input type="checkbox" wire:model="topbarSettings.enabled" class="rounded border-gray-300"> Hiển thị Topbar Pharma</label>
+                <div class="grid gap-3 rounded-lg border border-teal-100 bg-teal-50/50 p-3 sm:grid-cols-2">
+                    <label class="block text-sm font-medium">Thiết bị hiển thị Topbar
+                        <select wire:change="setTopbarDeviceVisibility($event.target.value)" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+                            <option value="both" @selected(($topbarSettings['show_desktop'] ?? true) && ($topbarSettings['show_mobile'] ?? false))>Hiển thị cả 2</option>
+                            <option value="desktop" @selected(($topbarSettings['show_desktop'] ?? true) && !($topbarSettings['show_mobile'] ?? false))>Hiển thị Desktop</option>
+                            <option value="mobile" @selected(!($topbarSettings['show_desktop'] ?? true) && ($topbarSettings['show_mobile'] ?? false))>Hiển thị Mobile</option>
+                            <option value="hidden" @selected(!($topbarSettings['show_desktop'] ?? true) && !($topbarSettings['show_mobile'] ?? false))>Ẩn trên cả 2</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="grid gap-4 md:grid-cols-2">
+                    <label class="text-sm font-medium">Nội dung bên trái
+                        <input type="text" wire:model="topbarSettings.left_text" maxlength="180" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100">
+                    </label>
+                </div>
+                <div class="flex flex-wrap items-center gap-5">
+                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model="topbarSettings.show_hotline" class="rounded border-gray-300"> Hiện hotline</label>
+                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model="topbarSettings.show_email" class="rounded border-gray-300"> Hiện email</label>
+                    <button type="button" wire:click="saveTopbarSettings" class="ml-auto rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white">Lưu Topbar Pharma</button>
+                </div>
+                <p class="text-xs text-slate-500">Hotline, Email hỗ trợ, Link Trợ giúp và Link Theo dõi đơn hàng được lưu bằng nút “Lưu thông tin Header” ở phần Thông tin chung. Nút “Lưu Topbar Pharma” chỉ lưu nội dung bên trái và tùy chọn hiển thị.</p>
+                </div>
+            </section>
+        @endif
     </div>
 
     <div x-show="tab === 'menu'" x-cloak>
@@ -55,11 +91,76 @@
         @include('Website::livewire.admin.header.partials.builder-preview')
         <section class="rounded-xl border border-gray-200 bg-white p-4">
             <button type="button" @click="showLayoutTools = !showLayoutTools" :aria-expanded="showLayoutTools.toString()" aria-controls="header-layout-tools" class="flex w-full items-center justify-between gap-3 text-left text-sm font-semibold text-gray-800">
-                <span>Bố cục nâng cao <span class="ml-2 text-xs font-normal text-gray-500">Sắp xếp, bật tắt và di chuyển thành phần giữa các vị trí</span></span>
+                <span>Bố cục nâng cao <span class="ml-2 text-xs font-normal text-gray-500">Sắp xếp, chọn thiết bị hiển thị và chuyển vị trí thành phần</span></span>
                 <span x-text="showLayoutTools ? 'Thu gọn −' : 'Mở công cụ +'"></span>
             </button>
             <div id="header-layout-tools" x-show="showLayoutTools" x-cloak class="mt-4">
 
+        @if($editingTemplate === 'pharma')
+            <div class="space-y-2" aria-label="Danh sách thành phần Header Pharma">
+                <p class="text-xs text-slate-500">Mỗi chức năng chỉ có một thành phần. Chọn thiết bị hiển thị và vị trí; Menu di động chỉ hỗ trợ Mobile.</p>
+                <p class="text-xs text-slate-500">Chọn trạng thái không tải lại giao diện. Nhấn <strong>Lưu bố cục</strong> để áp dụng và cập nhật bản xem trước.</p>
+                @foreach($builderSlotNames as $slotKey => $slotLabel)
+                    @foreach($builderSlots[$slotKey] ?? [] as $index => $item)
+                        @php
+                            $definition = $headerComponents[$item['type']] ?? [];
+                            $enabled = $item['enabled'] ?? true;
+                            $deviceVisibility = $item['config']['visibility'] ?? ($enabled ? (str_starts_with($slotKey, 'mobile.') ? 'mobile' : 'desktop') : 'hidden');
+                            $isDrawer = ($item['type'] ?? '') === 'mobile-menu';
+                            $isTopbar = ($item['type'] ?? '') === 'topbar';
+                        @endphp
+                        <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm {{ $enabled ? '' : 'opacity-65' }}" wire:key="pharma-component-{{ str_replace('.', '-', $slotKey) }}-{{ $index }}-{{ $item['type'] ?? 'unknown' }}">
+                            <div class="flex flex-col gap-3 md:flex-row md:items-center">
+                                <div class="flex min-w-0 flex-1 items-center gap-3">
+                                    <span class="text-slate-400" aria-hidden="true">⋮⋮</span>
+                                    <div class="min-w-0">
+                                        <div class="text-sm font-semibold text-slate-900">{{ $definition['label'] ?? ($item['type'] ?? 'Component') }}</div>
+                                        <div class="text-xs text-slate-500">{{ $isDrawer ? 'Menu mở trên điện thoại' : ($isTopbar ? 'Thanh thông tin phía trên' : ($item['type'] === 'search' ? 'Tìm kiếm dùng chung cho Desktop và Mobile' : $slotLabel)) }}</div>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 md:w-[440px]">
+                                    <label class="block text-xs font-medium text-slate-600">Hiển thị
+                                        <select x-data="{ visibility: @js($deviceVisibility) }"
+                                                x-model="visibility"
+                                                x-on:change="
+                                                    const slots = JSON.parse(JSON.stringify($wire.get('builderSlots')));
+                                                    const item = slots[@js($slotKey)][{{ $index }}];
+                                                    item.config = item.config || {};
+                                                    item.config.visibility = visibility;
+                                                    item.enabled = visibility !== 'hidden';
+                                                    $wire.set('builderSlots', slots, false);
+                                                "
+                                                aria-label="Hiển thị {{ $definition['label'] ?? ($item['type'] ?? 'thành phần') }}" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-2 py-2 text-sm">
+                                            @if(!$isDrawer)
+                                                <option value="both" @selected($deviceVisibility === 'both')>Desktop + Mobile</option>
+                                                <option value="desktop" @selected($deviceVisibility === 'desktop')>Chỉ Desktop</option>
+                                            @endif
+                                            <option value="mobile" @selected($deviceVisibility === 'mobile')>Chỉ Mobile</option>
+                                            <option value="hidden" @selected($deviceVisibility === 'hidden')>Ẩn hoàn toàn</option>
+                                        </select>
+                                    </label>
+                                    <label class="block text-xs font-medium text-slate-600">Vị trí
+                                        @if($isTopbar || $isDrawer)
+                                            <div class="mt-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500">{{ $isTopbar ? 'Trên cùng' : 'Menu di động' }}</div>
+                                        @else
+                                            <select wire:change="setPharmaComponentPosition('{{ $slotKey }}', {{ $index }}, $event.target.value)" aria-label="Vị trí {{ $definition['label'] ?? ($item['type'] ?? 'thành phần') }}" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-2 py-2 text-sm">
+                                                <option value="desktop.main.left" @selected($slotKey === 'desktop.main.left')>Bên trái</option>
+                                                <option value="desktop.main.center" @selected($slotKey === 'desktop.main.center')>Ở giữa</option>
+                                                <option value="desktop.main.right" @selected($slotKey === 'desktop.main.right')>Bên phải</option>
+                                            </select>
+                                        @endif
+                                    </label>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <button type="button" wire:click="moveUp('{{ $slotKey }}', {{ $index }})" @disabled($index === 0) aria-label="Đưa {{ $definition['label'] ?? 'component' }} lên" class="rounded-lg border border-slate-200 px-3 py-2 text-xs disabled:opacity-30">↑</button>
+                                    <button type="button" wire:click="moveDown('{{ $slotKey }}', {{ $index }})" @disabled($index === count($builderSlots[$slotKey] ?? []) - 1) aria-label="Đưa {{ $definition['label'] ?? 'component' }} xuống" class="rounded-lg border border-slate-200 px-3 py-2 text-xs disabled:opacity-30">↓</button>
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                @endforeach
+            </div>
+        @else
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
             @foreach($builderSlotNames as $slotKey => $slotLabel)
                 <section class="rounded-xl border border-gray-200 bg-gray-50 p-4 transition"
@@ -95,7 +196,13 @@
                                             <div class="mt-1 text-xs text-gray-500">{{ $item['type'] ?? '' }}</div>
                                         </div>
                                     </div>
-                                    <button type="button" wire:click="toggleComponent('{{ $slotKey }}', {{ $index }})" class="shrink-0 rounded-md px-2 py-1 text-xs font-semibold {{ $enabled ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600' }}">{{ $enabled ? 'Đang bật' : 'Đang tắt' }}</button>
+                                    <select wire:change="setComponentVisibility('{{ $slotKey }}', {{ $index }}, $event.target.value)" aria-label="Thiết bị hiển thị {{ $definition['label'] ?? ($item['type'] ?? 'thành phần') }}" class="w-40 shrink-0 rounded-lg border border-slate-300 bg-white px-2 py-2 text-xs">
+                                        @php($deviceVisibility = $item['config']['visibility'] ?? ($enabled ? (str_starts_with($slotKey, 'mobile.') ? 'mobile' : 'desktop') : 'hidden'))
+                                        <option value="both" @selected($deviceVisibility === 'both')>Desktop + Mobile</option>
+                                        <option value="desktop" @selected($deviceVisibility === 'desktop')>Chỉ Desktop</option>
+                                        <option value="mobile" @selected($deviceVisibility === 'mobile')>Chỉ Mobile</option>
+                                        <option value="hidden" @selected($deviceVisibility === 'hidden')>Ẩn hoàn toàn</option>
+                                    </select>
                                 </div>
 
                                 <div class="mt-3 flex items-center gap-2">
@@ -126,6 +233,7 @@
                 </section>
             @endforeach
         </div>
+        @endif
 
         </div>
         </section>
@@ -165,45 +273,7 @@
             </section>
         @endif
 
-        @if($editingTemplate === 'pharma')
-            <section class="rounded-xl border border-teal-200 bg-white p-4">
-                <button type="button" @click="showTopbarSettings = !showTopbarSettings" :aria-expanded="showTopbarSettings.toString()" aria-controls="header-topbar-settings" class="flex w-full items-center justify-between gap-3 text-left text-sm font-semibold text-gray-800">
-                    <span>Thanh thông tin Pharma <span class="ml-2 text-xs font-normal text-gray-500">Nội dung, liên hệ và hiển thị theo thiết bị</span></span>
-                    <span x-text="showTopbarSettings ? 'Thu gọn −' : 'Cấu hình +'"></span>
-                </button>
-                <div id="header-topbar-settings" x-show="showTopbarSettings" x-cloak class="mt-4 space-y-4">
-                <div>
-                    <h4 class="text-base font-bold text-gray-900">Topbar Pharma · Nội dung & liên hệ</h4>
-                    <p class="mt-1 text-xs text-gray-600">Nội dung độc lập với Topbar Default. Màu Topbar BG / Topbar Text của Pharma áp dụng độc lập, kể cả khi bật Kế thừa màu Global Website Theme. Chiều cao chỉnh trong Advanced phía dưới.</p>
-                </div>
-                <label class="flex items-center gap-2 text-sm font-medium"><input type="checkbox" wire:model="topbarSettings.enabled" class="rounded border-gray-300"> Hiển thị Topbar Pharma</label>
-                <div class="grid gap-3 rounded-lg border border-teal-100 bg-teal-50/50 p-3 sm:grid-cols-2">
-                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model="topbarSettings.show_desktop" class="rounded border-gray-300"> Hiển thị trên Desktop / Tablet</label>
-                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model="topbarSettings.show_mobile" class="rounded border-gray-300"> Hiển thị trên Mobile</label>
-                </div>
-                <div class="grid gap-4 md:grid-cols-2">
-                    <label class="text-sm font-medium">Nội dung bên trái
-                        <input type="text" wire:model="topbarSettings.left_text" maxlength="180" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100">
-                    </label>
-                    <label class="text-sm font-medium">Nội dung bên phải
-                        <input type="text" wire:model="topbarSettings.right_text" maxlength="180" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100">
-                    </label>
-                    <label class="text-sm font-medium">Hotline Pharma
-                        <input type="text" wire:model="topbarSettings.hotline" maxlength="50" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100" placeholder="Số điện thoại liên hệ">
-                    </label>
-                    <label class="text-sm font-medium">Email Pharma
-                        <input type="email" wire:model="topbarSettings.email" maxlength="100" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100" placeholder="contact@example.com">
-                    </label>
-                </div>
-                <div class="flex flex-wrap items-center gap-5">
-                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model="topbarSettings.show_hotline" class="rounded border-gray-300"> Hiện hotline</label>
-                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model="topbarSettings.show_email" class="rounded border-gray-300"> Hiện email</label>
-                    <button type="button" wire:click="saveTopbarSettings" class="ml-auto rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white">Lưu Topbar Pharma</button>
-                </div>
-                @error('topbarSettings.email')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
-                </div>
-            </section>
-        @endif
+
 
         <section class="rounded-xl border border-gray-200 bg-white p-4">
             <button type="button" @click="showAppearanceSettings = !showAppearanceSettings" :aria-expanded="showAppearanceSettings.toString()" aria-controls="header-appearance-settings" class="flex w-full items-center justify-between gap-3 text-left text-sm font-semibold text-gray-800">
