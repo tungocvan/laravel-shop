@@ -42,6 +42,10 @@ class LoginTheme extends Component
     protected function rules(): array
     {
         return [
+            'settings.logo_size' => ['required', 'in:small,medium,large'],
+            'settings.background_type' => ['required', 'in:image,color'],
+            'settings.background_color' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'settings.form_background_color' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'settings.theme' => ['required', 'in:classic-card,split-brand,hero-overlay,minimal'],
             'settings.title_line_1' => ['nullable', 'string', 'max:160'],
             'settings.title_line_2' => ['required', 'string', 'max:200'],
@@ -90,6 +94,10 @@ class LoginTheme extends Component
         $config = app(LoginPresentationService::class)->forGuard($this->target === 'admin' ? 'admin' : 'web');
         $this->settings = [
             'theme' => $config['theme'],
+            'logo_size' => $config['logo_size'],
+            'background_type' => $config['background_type'],
+            'background_color' => $config['background_color'],
+            'form_background_color' => $config['form_background_color'],
             'title_line_1' => $config['title_line_1'],
             'title_line_2' => $config['title_line_2'],
             'description' => $config['description'],
