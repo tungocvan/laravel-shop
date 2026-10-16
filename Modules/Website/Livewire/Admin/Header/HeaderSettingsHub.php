@@ -233,6 +233,47 @@ class HeaderSettingsHub extends Component
         $this->builderSlots[$toSlot] = array_values($this->builderSlots[$toSlot]);
     }
 
+    /**
+     * Persist the Pharma builder with device choices supplied by the browser.
+     * The old deferred $wire.set(..., false) did not reliably reach the
+     * server action and could silently restore the previous saved layout.
+     */
+    public function savePharmaBuilder(
+        array $visibilityOverrides,
+        SettingsService $settingsService,
+        HeaderComponentRegistry $registry,
+        HeaderPresentationService $presentationService
+    ): void {
+        $this->authorizeAdminPermission('website.settings.manage');
+        if ($this->editingTemplate !== 'pharma') {
+            return;
+        }
+
+        $this->normalizePharmaBuilder();
+        foreach ($this->builderSlots as $slot => &$items) {
+            foreach ($items as &$item) {
+                $type = $item['type'] ?? '';
+                if (! array_key_exists($type, $visibilityOverrides)) {
+                    continue;
+                }
+                $visibility = $visibilityOverrides[$type];
+                if (! is_string($visibility) || ! in_array($visibility, ['both', 'desktop', 'mobile', 'hidden'], true)) {
+                    continue;
+                }
+                if ($type === 'mobile-menu') {
+                    $visibility = $visibility === 'hidden' ? 'hidden' : 'mobile';
+                }
+                $item['enabled'] = $visibility !== 'hidden';
+                $item['config'] = is_array($item['config'] ?? null) ? $item['config'] : [];
+                $item['config']['visibility'] = $visibility;
+            }
+            unset($item);
+        }
+        unset($items);
+
+        $this->saveBuilder($settingsService, $registry, $presentationService);
+    }
+
     public function saveBuilder(
         SettingsService $settingsService,
         HeaderComponentRegistry $registry,
