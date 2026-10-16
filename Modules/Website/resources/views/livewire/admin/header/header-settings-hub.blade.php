@@ -99,7 +99,7 @@
         @if($editingTemplate === 'pharma')
             <div class="space-y-2" aria-label="Danh sách thành phần Header Pharma">
                 <p class="text-xs text-slate-500">Mỗi chức năng chỉ có một thành phần. Chọn thiết bị hiển thị và vị trí; Menu di động chỉ hỗ trợ Mobile.</p>
-                <div wire:loading.delay.longer wire:target="setComponentVisibility,setPharmaComponentPosition" class="text-xs text-blue-600" role="status" aria-live="polite">Đang cập nhật bản xem trước…</div>
+                <p class="text-xs text-slate-500">Chọn trạng thái không tải lại giao diện. Nhấn <strong>Lưu bố cục</strong> để áp dụng và cập nhật bản xem trước.</p>
                 @foreach($builderSlotNames as $slotKey => $slotLabel)
                     @foreach($builderSlots[$slotKey] ?? [] as $index => $item)
                         @php
@@ -120,7 +120,17 @@
                                 </div>
                                 <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 md:w-[440px]">
                                     <label class="block text-xs font-medium text-slate-600">Hiển thị
-                                        <select wire:change="setComponentVisibility('{{ $slotKey }}', {{ $index }}, $event.target.value)" wire:loading.attr="disabled" wire:target="setComponentVisibility" aria-label="Hiển thị {{ $definition['label'] ?? ($item['type'] ?? 'thành phần') }}" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-2 py-2 text-sm">
+                                        <select x-data="{ visibility: @js($deviceVisibility) }"
+                                                x-model="visibility"
+                                                x-on:change="
+                                                    const slots = JSON.parse(JSON.stringify($wire.get('builderSlots')));
+                                                    const item = slots[@js($slotKey)][{{ $index }}];
+                                                    item.config = item.config || {};
+                                                    item.config.visibility = visibility;
+                                                    item.enabled = visibility !== 'hidden';
+                                                    $wire.set('builderSlots', slots, false);
+                                                "
+                                                aria-label="Hiển thị {{ $definition['label'] ?? ($item['type'] ?? 'thành phần') }}" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-2 py-2 text-sm">
                                             @if(!$isDrawer)
                                                 <option value="both" @selected($deviceVisibility === 'both')>Desktop + Mobile</option>
                                                 <option value="desktop" @selected($deviceVisibility === 'desktop')>Chỉ Desktop</option>
