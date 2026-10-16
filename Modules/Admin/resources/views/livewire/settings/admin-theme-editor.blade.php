@@ -120,7 +120,11 @@
             <div class="mt-5 grid grid-cols-3 overflow-hidden rounded-xl border border-slate-200 text-center text-xs font-semibold"><div class="p-4" style="background:{{ $sidebarPreviewHeader }}">Header</div><div class="p-4" style="background:{{ $sidebarPreviewNavigation }}">Navigation</div><div class="p-4" style="background:{{ $sidebarPreviewFooter }}">Footer</div></div>
         </section>
 
-        @include('Admin::livewire.settings.partials.sidebar-menu-designer')
+        <section id="sidebar-menu" x-show="section === 'menu'" x-cloak class="rounded-2xl border border-indigo-100 bg-white p-6">
+            <h2 class="text-base font-semibold text-slate-900">Sidebar Menu Designer đã chuyển về cấu hình Sidebar</h2>
+            <p class="mt-2 text-sm text-slate-600">Màu Normal, Hover, Active, SubMenu và kích thước menu được quản lý tập trung tại Sidebar. Các thông số đã lưu được giữ nguyên.</p>
+            <a href="{{ url('/admin/layout/sidebar') }}#sidebar-menu" class="mt-4 inline-flex rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700">Mở cấu hình Sidebar →</a>
+        </section>
 
         <section x-show="section === 'header'" x-cloak class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div class="mb-5"><h2 class="text-base font-semibold text-slate-900">Header presentation</h2><p class="mt-1 text-sm text-slate-500">Điều chỉnh surface và mật độ Header mà không ảnh hưởng dữ liệu Header Actions/UserMenu.</p></div>
