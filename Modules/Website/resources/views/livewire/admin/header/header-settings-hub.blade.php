@@ -134,7 +134,7 @@
                                     <label class="shrink-0 text-xs font-medium text-slate-600">Hiển thị
                                         <select wire:change="setComponentVisibility('{{ $slotKey }}', {{ $index }}, $event.target.value)" aria-label="Hiển thị {{ $definition['label'] ?? ($item['type'] ?? 'thành phần') }}" class="mt-1 block w-full max-w-40 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs">
                                             @if($slotKey === 'desktop.topbar')
-                                                <option value="both" @selected($enabled)>Cả Desktop & Mobile</option>
+                                                <option value="both" @selected($enabled)>Theo cấu hình Topbar</option>
                                             @elseif(str_starts_with($slotKey, 'desktop.'))
                                                 <option value="desktop" @selected($enabled)>Hiển thị Desktop</option>
                                             @else
