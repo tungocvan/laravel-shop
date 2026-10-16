@@ -56,4 +56,19 @@ class SidebarMenuConsolidationContractTest extends TestCase
         $this->assertStringContainsString("'visual_presets' =>", $manager);
     }
 
+    public function test_sidebar_visual_presets_defaults_do_not_reference_undefined_sidebar_variable(): void
+    {
+        $source = file_get_contents(base_path('Modules/Admin/Support/AdminLayoutManager.php'));
+        $start = strpos($source, 'private function sidebarDefaults()');
+        $end = strpos($source, 'private function headerDefaults()', $start);
+        $defaults = substr($source, $start, $end - $start);
+
+        $this->assertStringContainsString("'visual_presets' => []", $defaults);
+        $this->assertStringNotContainsString("data_get(\$sidebar, 'visual_presets'", $defaults);
+        $this->assertStringContainsString(
+            "'visual_presets' => \$this->normalizeSidebarVisualPresets((array) data_get(\$sidebar, 'visual_presets', []))",
+            $source
+        );
+    }
+
 }
