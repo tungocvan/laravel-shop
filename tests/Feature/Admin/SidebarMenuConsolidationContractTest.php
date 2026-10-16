@@ -115,4 +115,15 @@ class SidebarMenuConsolidationContractTest extends TestCase
         $this->assertStringContainsString('wire:click="applySidebarLayoutPreset(', $designer);
     }
 
+    public function test_active_border_controls_are_visible_in_live_menu_preview(): void
+    {
+        $view = file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/partials/sidebar-menu-designer.blade.php'));
+        foreach (['menu', 'submenu'] as $kind) {
+            $this->assertStringContainsString("var(--admin-sidebar-{$kind}-active-border-width,0px)", $view);
+            $this->assertStringContainsString("var(--admin-sidebar-{$kind}-active-border-style,solid)", $view);
+            $this->assertStringContainsString("var(--admin-sidebar-{$kind}-active-border-color,transparent)", $view);
+        }
+        $this->assertStringContainsString("None (ẩn viền)", $view);
+    }
+
 }
