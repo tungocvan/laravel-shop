@@ -147,29 +147,47 @@
         @if($drawerEnabled)
             <template x-teleport="body">
                 <div x-show="menuOpen" x-cloak class="fixed inset-0 z-[9999] {{ $drawerVisibility === 'mobile' ? 'lg:hidden' : ($drawerVisibility === 'desktop' ? 'hidden lg:block' : '') }}">
-                    <div class="absolute inset-0 bg-slate-950/50" @click="menuOpen = false" aria-hidden="true"></div>
+                    <div class="absolute inset-0 bg-slate-950/55 backdrop-blur-[2px]" @click="menuOpen = false" aria-hidden="true"></div>
                     <aside id="pharma-mobile-menu" x-show="menuOpen" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full" role="dialog" aria-modal="true" aria-label="Menu điều hướng Pharma" class="absolute inset-y-0 right-0 flex h-full w-[min(88vw,360px)] flex-col overflow-hidden bg-white text-slate-900 shadow-2xl">
-                        <div class="flex shrink-0 items-center justify-between border-b border-slate-100 px-4 py-3">
-                            <a href="{{ route('home') }}" class="flex min-w-0 items-center gap-2" aria-label="{{ $companyName }} - về trang chủ">
-                                @if($brandLogoUrl)
-                                    <img src="{{ $brandLogoUrl }}" alt="{{ $companyName }}" class="max-w-32 shrink-0 object-contain" style="max-height:{{ min($brandHeight, 40) }}px">
-                                @else
-                                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xl font-bold text-white" style="background:var(--pharma-header-accent)" aria-hidden="true">{{ mb_substr($companyName, 0, 1) }}</span>
-                                @endif
-                                <span class="min-w-0"><span class="block truncate text-sm font-extrabold">{{ $companyName }}</span><span class="block truncate text-xs text-slate-500">Danh mục dược phẩm</span></span>
-                            </a>
-                            <button type="button" @click="menuOpen = false" aria-label="Đóng menu" class="flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 text-xl">×</button>
+                        <div class="shrink-0 border-b border-slate-100 bg-white px-4 py-4">
+                            <div class="flex min-w-0 items-center gap-3">
+                                <a href="{{ route('home') }}" class="flex min-w-0 flex-1 items-center gap-3" aria-label="{{ $companyName }} - về trang chủ">
+                                    <span class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-100 bg-slate-50">
+                                        @if($brandLogoUrl)
+                                            <img src="{{ $brandLogoUrl }}" alt="" class="h-full w-full object-contain">
+                                        @else
+                                            <span class="flex h-full w-full items-center justify-center text-xl font-bold text-white" style="background:var(--pharma-header-accent)" aria-hidden="true">{{ mb_substr($companyName, 0, 1) }}</span>
+                                        @endif
+                                    </span>
+                                    <span class="min-w-0 flex-1">
+                                        <span class="block line-clamp-2 break-words text-[13px] font-extrabold leading-snug text-slate-900">{{ $companyName }}</span>
+                                        <span class="mt-0.5 block text-[11px] font-medium text-slate-500">Dược phẩm &amp; chăm sóc sức khỏe</span>
+                                    </span>
+                                </a>
+                                <button type="button" @click="menuOpen = false" aria-label="Đóng menu" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 transition hover:bg-slate-100 active:scale-[0.985] focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-600 motion-reduce:transform-none">
+                                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+                                </button>
+                            </div>
                         </div>
-                        @include('Website::partials.pharma.mobile-account-links', ['accountConfig' => $accountConfig])
-                        <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-                        <nav aria-label="Điều hướng Pharma trên di động" class="flex flex-col gap-1 px-3 py-3">
-                            <span class="px-3 pb-1 text-[11px] font-bold uppercase tracking-widest text-slate-500">Khám phá</span>
-                            @foreach($mobileMenu->isNotEmpty() ? $mobileMenu : $fallbackMenu as $item)
-                                @php($itemUrl = is_array($item) ? $item['url'] : $item->url)
-                                @php($itemTitle = is_array($item) ? $item['title'] : $item->title)
-                                <a href="{{ $itemUrl ?: '#' }}" class="flex min-h-11 items-center rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-800 hover:bg-emerald-50">{{ $itemTitle }}</a>
-                            @endforeach
-                        </nav>
+                        <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-slate-50/50">
+                            @include('Website::partials.pharma.mobile-account-links', ['accountConfig' => $accountConfig])
+                            <nav aria-label="Điều hướng Pharma trên di động" class="px-3 pb-6 pt-4">
+                                <div class="mb-2 px-3 text-[10px] font-extrabold uppercase tracking-[0.16em] text-slate-500">Khám phá</div>
+                                <div class="space-y-1">
+                                    @foreach($mobileMenu->isNotEmpty() ? $mobileMenu : $fallbackMenu as $item)
+                                        @php($itemUrl = is_array($item) ? $item['url'] : $item->url)
+                                        @php($itemTitle = is_array($item) ? $item['title'] : $item->title)
+                                        @php($isActiveMobileItem = $itemUrl && $itemUrl !== '#' && (url()->current() === $itemUrl || request()->fullUrl() === $itemUrl))
+                                        <a href="{{ $itemUrl ?: '#' }}" @if($isActiveMobileItem) aria-current="page" @endif class="group flex min-h-12 items-center gap-3 rounded-xl px-3 py-3 text-[13px] font-semibold transition active:scale-[0.985] motion-reduce:transform-none {{ $isActiveMobileItem ? 'bg-emerald-50 text-emerald-800' : 'text-slate-700 hover:bg-white hover:text-emerald-800' }}">
+                                            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg {{ $isActiveMobileItem ? 'bg-emerald-100 text-emerald-700' : 'bg-white text-slate-500' }}" aria-hidden="true">
+                                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+                                            </span>
+                                            <span class="min-w-0 flex-1">{{ $itemTitle }}</span>
+                                            <svg class="h-4 w-4 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+                                        </a>
+                                    @endforeach
+                                </div>
+                            </nav>
                         </div>
                         <div class="shrink-0 border-t border-slate-200 bg-white px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom,0px))]">
                             @if(auth()->check())
