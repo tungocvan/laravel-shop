@@ -46,7 +46,7 @@
                                 <a href="tel:{{ preg_replace('/[^+0-9]/', '', $sharedHotline) }}" class="inline-flex items-center border-l border-current/20 pl-4 font-semibold hover:underline">{{ $sharedHotline }}</a>
                             @endif
                             @if(($topbarConfig['show_email'] ?? false) && filter_var($sharedEmail, FILTER_VALIDATE_EMAIL))
-                                <a href="mailto:{{ $sharedEmail }}" class="inline-flex items-center border-l border-current/20 pl-4 hover:underline">{{ $topbarConfig['email'] }}</a>
+                                <a href="mailto:{{ $sharedEmail }}" class="inline-flex items-center border-l border-current/20 pl-4 hover:underline">{{ $sharedEmail }}</a>
                             @endif
                         </div>
                         @if(trim((string) ($topbarConfig['right_text'] ?? 'Thông tin không thay thế tư vấn chuyên môn y tế')) !== '')
