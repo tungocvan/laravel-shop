@@ -71,4 +71,15 @@ class SidebarMenuConsolidationContractTest extends TestCase
         );
     }
 
+    public function test_custom_palette_transparent_active_color_uses_valid_hex_accent_and_name_has_border(): void
+    {
+        $component = file_get_contents(base_path('Modules/Admin/Livewire/Settings/AdminLayoutConfig.php'));
+        $view = file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/admin-sidebar-config.blade.php'));
+
+        $this->assertStringContainsString("preg_match('/^#[0-9a-fA-F]{6}$/', \$activeBackground)", $component);
+        $this->assertStringContainsString("data_set(\$this->config, 'sidebar.presentation.custom_accent', \$accent)", $component);
+        $this->assertStringContainsString('wire:model="presetName"', $view);
+        $this->assertStringContainsString('border border-solid border-slate-200 bg-white', $view);
+    }
+
 }
