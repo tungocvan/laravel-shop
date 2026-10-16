@@ -106,6 +106,7 @@ class AdminLayoutConfig extends Component
             data_set($this->config, $prefix.$mode, $preset[$state]['background'] === 'transparent' ? 'transparent' : 'color');
             if ($preset[$state]['background'] !== 'transparent') data_set($this->config, $prefix.$color, $preset[$state]['background']);
         }
+        $this->dispatch('sidebar-preset-applied', background: $preset['background'], accent: data_get($this->config, 'sidebar.presentation.custom_accent'));
     }
 
     public function saveSidebarVisualPreset(AdminLayoutManager $manager): void
