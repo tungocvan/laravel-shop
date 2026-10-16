@@ -96,6 +96,60 @@
             </button>
             <div id="header-layout-tools" x-show="showLayoutTools" x-cloak class="mt-4">
 
+        @if($editingTemplate === 'pharma')
+            <div class="space-y-2" aria-label="Danh sách thành phần Header Pharma">
+                <p class="text-xs text-slate-500">Mỗi chức năng chỉ có một thành phần. Chọn thiết bị hiển thị và vị trí; Menu di động chỉ hỗ trợ Mobile.</p>
+                @foreach($builderSlotNames as $slotKey => $slotLabel)
+                    @foreach($builderSlots[$slotKey] ?? [] as $index => $item)
+                        @php
+                            $definition = $headerComponents[$item['type']] ?? [];
+                            $enabled = $item['enabled'] ?? true;
+                            $deviceVisibility = $item['config']['visibility'] ?? ($enabled ? (str_starts_with($slotKey, 'mobile.') ? 'mobile' : 'desktop') : 'hidden');
+                            $isDrawer = ($item['type'] ?? '') === 'mobile-menu';
+                            $isTopbar = ($item['type'] ?? '') === 'topbar';
+                        @endphp
+                        <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm {{ $enabled ? '' : 'opacity-65' }}" wire:key="pharma-component-{{ str_replace('.', '-', $slotKey) }}-{{ $index }}-{{ $item['type'] ?? 'unknown' }}">
+                            <div class="flex flex-col gap-3 md:flex-row md:items-center">
+                                <div class="flex min-w-0 flex-1 items-center gap-3">
+                                    <span class="text-slate-400" aria-hidden="true">⋮⋮</span>
+                                    <div class="min-w-0">
+                                        <div class="text-sm font-semibold text-slate-900">{{ $definition['label'] ?? ($item['type'] ?? 'Component') }}</div>
+                                        <div class="text-xs text-slate-500">{{ $isDrawer ? 'Menu mở trên điện thoại' : ($isTopbar ? 'Thanh thông tin phía trên' : ($item['type'] === 'search' ? 'Tìm kiếm dùng chung cho Desktop và Mobile' : $slotLabel)) }}</div>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 md:w-[440px]">
+                                    <label class="block text-xs font-medium text-slate-600">Hiển thị
+                                        <select wire:change="setComponentVisibility('{{ $slotKey }}', {{ $index }}, $event.target.value)" aria-label="Hiển thị {{ $definition['label'] ?? ($item['type'] ?? 'thành phần') }}" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-2 py-2 text-sm">
+                                            @if(!$isDrawer)
+                                                <option value="both" @selected($deviceVisibility === 'both')>Desktop + Mobile</option>
+                                                <option value="desktop" @selected($deviceVisibility === 'desktop')>Chỉ Desktop</option>
+                                            @endif
+                                            <option value="mobile" @selected($deviceVisibility === 'mobile')>Chỉ Mobile</option>
+                                            <option value="hidden" @selected($deviceVisibility === 'hidden')>Ẩn hoàn toàn</option>
+                                        </select>
+                                    </label>
+                                    <label class="block text-xs font-medium text-slate-600">Vị trí
+                                        @if($isTopbar || $isDrawer)
+                                            <div class="mt-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500">{{ $isTopbar ? 'Trên cùng' : 'Menu di động' }}</div>
+                                        @else
+                                            <select wire:change="setPharmaComponentPosition('{{ $slotKey }}', {{ $index }}, $event.target.value)" aria-label="Vị trí {{ $definition['label'] ?? ($item['type'] ?? 'thành phần') }}" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-2 py-2 text-sm">
+                                                <option value="desktop.main.left" @selected($slotKey === 'desktop.main.left')>Bên trái</option>
+                                                <option value="desktop.main.center" @selected($slotKey === 'desktop.main.center')>Ở giữa</option>
+                                                <option value="desktop.main.right" @selected($slotKey === 'desktop.main.right')>Bên phải</option>
+                                            </select>
+                                        @endif
+                                    </label>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <button type="button" wire:click="moveUp('{{ $slotKey }}', {{ $index }})" @disabled($index === 0) aria-label="Đưa {{ $definition['label'] ?? 'component' }} lên" class="rounded-lg border border-slate-200 px-3 py-2 text-xs disabled:opacity-30">↑</button>
+                                    <button type="button" wire:click="moveDown('{{ $slotKey }}', {{ $index }})" @disabled($index === count($builderSlots[$slotKey] ?? []) - 1) aria-label="Đưa {{ $definition['label'] ?? 'component' }} xuống" class="rounded-lg border border-slate-200 px-3 py-2 text-xs disabled:opacity-30">↓</button>
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                @endforeach
+            </div>
+        @else
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
             @foreach($builderSlotNames as $slotKey => $slotLabel)
                 <section class="rounded-xl border border-gray-200 bg-gray-50 p-4 transition"
@@ -168,6 +222,7 @@
                 </section>
             @endforeach
         </div>
+        @endif
 
         </div>
         </section>
