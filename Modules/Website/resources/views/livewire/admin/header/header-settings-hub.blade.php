@@ -30,7 +30,7 @@
                 <div id="header-topbar-settings" x-show="showTopbarSettings" class="mt-4 space-y-4">
                 <div>
                     <h4 class="text-base font-bold text-gray-900">Topbar Pharma · Nội dung & hiển thị</h4>
-                    <p class="mt-1 text-xs text-gray-600">Hotline và email được quản lý tại Thông tin chung phía trên. Nội dung trái/phải và tùy chọn hiển thị chỉ áp dụng cho Topbar Pharma.</p>
+                    <p class="mt-1 text-xs text-gray-600">Hotline và email được quản lý tại Thông tin chung phía trên. Nội dung bên trái và tùy chọn hiển thị áp dụng cho Topbar Pharma. Bên phải sử dụng hai liên kết chung: Theo dõi đơn hàng và Trợ giúp.</p>
                 </div>
                 <label class="flex items-center gap-2 text-sm font-medium"><input type="checkbox" wire:model="topbarSettings.enabled" class="rounded border-gray-300"> Hiển thị Topbar Pharma</label>
                 <div class="grid gap-3 rounded-lg border border-teal-100 bg-teal-50/50 p-3 sm:grid-cols-2">
@@ -41,16 +41,13 @@
                     <label class="text-sm font-medium">Nội dung bên trái
                         <input type="text" wire:model="topbarSettings.left_text" maxlength="180" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100">
                     </label>
-                    <label class="text-sm font-medium">Nội dung bên phải
-                        <input type="text" wire:model="topbarSettings.right_text" maxlength="180" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100">
-                    </label>
                 </div>
                 <div class="flex flex-wrap items-center gap-5">
                     <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model="topbarSettings.show_hotline" class="rounded border-gray-300"> Hiện hotline</label>
                     <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model="topbarSettings.show_email" class="rounded border-gray-300"> Hiện email</label>
                     <button type="button" wire:click="saveTopbarSettings" class="ml-auto rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white">Lưu Topbar Pharma</button>
                 </div>
-                <p class="text-xs text-slate-500">Hotline, Email hỗ trợ, Link Trợ giúp và Link Theo dõi đơn hàng được lưu bằng nút “Lưu thông tin Header” ở phần Thông tin chung. Nút “Lưu Topbar Pharma” chỉ lưu nội dung trái/phải và tùy chọn hiển thị.</p>
+                <p class="text-xs text-slate-500">Hotline, Email hỗ trợ, Link Trợ giúp và Link Theo dõi đơn hàng được lưu bằng nút “Lưu thông tin Header” ở phần Thông tin chung. Nút “Lưu Topbar Pharma” chỉ lưu nội dung bên trái và tùy chọn hiển thị.</p>
                 </div>
             </section>
         @endif
