@@ -40,4 +40,20 @@ class SidebarMenuConsolidationContractTest extends TestCase
         $this->assertStringContainsString("window.history.replaceState", $view);
     }
 
+    public function test_visual_state_presets_are_shared_with_sidebar_menu_and_persisted(): void
+    {
+        $component = file_get_contents(base_path('Modules/Admin/Livewire/Settings/AdminLayoutConfig.php'));
+        $view = file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/admin-sidebar-config.blade.php'));
+        $manager = file_get_contents(base_path('Modules/Admin/Support/AdminLayoutManager.php'));
+
+        foreach (['FlexBiz Emerald', 'Corporate Slate', 'Minimal Light'] as $name) {
+            $this->assertStringContainsString($name, $component);
+        }
+        $this->assertStringContainsString('applySidebarVisualPreset', $view);
+        $this->assertStringContainsString('saveSidebarVisualPreset', $view);
+        $this->assertStringContainsString('sidebar-preset-applied', $view);
+        $this->assertStringContainsString('normalizeSidebarVisualPresets', $manager);
+        $this->assertStringContainsString("'visual_presets' =>", $manager);
+    }
+
 }
