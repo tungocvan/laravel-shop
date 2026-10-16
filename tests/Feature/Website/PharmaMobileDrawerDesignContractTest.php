@@ -33,6 +33,9 @@ final class PharmaMobileDrawerDesignContractTest extends TestCase
         $this->assertStringContainsString('aria-current="page"', $menu);
         $this->assertStringContainsString('min-h-12 w-full items-center justify-center', $header);
         $this->assertStringContainsString('pb-[calc(20px+env(safe-area-inset-bottom,0px))]', $header);
+        $this->assertStringContainsString('style="--pharma-header-accent: {{ $accent }};"', $header);
+        $this->assertStringContainsString('style="background-color: {{ $accent }};"', $header);
+        $this->assertStringContainsString('Chưa có tài khoản?', $header);
     }
 
     public function test_account_links_remain_conditional_and_compact(): void
@@ -44,6 +47,7 @@ final class PharmaMobileDrawerDesignContractTest extends TestCase
         $this->assertStringContainsString("show_profile", $account);
         $this->assertStringContainsString("show_orders", $account);
         $this->assertStringContainsString("show_admin", $account);
-        $this->assertStringContainsString('min-h-11', $account);
+        $this->assertStringContainsString('min-h-12', $account);
+        $this->assertStringNotContainsString('aria-hidden="true">›', $account);
     }
 }
