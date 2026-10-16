@@ -152,6 +152,9 @@ class HeaderSettingsHub extends Component
             return;
         }
 
+        if ($this->editingTemplate === 'pharma' && ($this->builderSlots[$slot][$index]['type'] ?? null) === 'mobile-menu') {
+            $visibility = $visibility === 'hidden' ? 'hidden' : 'mobile';
+        }
         $this->builderSlots[$slot][$index]['enabled'] = $visibility !== 'hidden';
         $this->builderSlots[$slot][$index]['config']['visibility'] = $visibility;
     }
@@ -433,6 +436,12 @@ class HeaderSettingsHub extends Component
      */
     private function normalizePharmaBuilder(): void
     {
+        foreach ($this->builderSlots['mobile.drawer'] ?? [] as $index => $item) {
+            if (($item['type'] ?? null) === 'mobile-menu') {
+                $this->builderSlots['mobile.drawer'][$index]['config']['visibility'] = ($item['enabled'] ?? true) ? 'mobile' : 'hidden';
+            }
+        }
+
         $search = null;
         $desktopVisible = false;
         $mobileVisible = false;
