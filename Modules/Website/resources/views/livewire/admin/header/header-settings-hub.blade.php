@@ -99,6 +99,7 @@
         @if($editingTemplate === 'pharma')
             <div class="space-y-2" aria-label="Danh sách thành phần Header Pharma">
                 <p class="text-xs text-slate-500">Mỗi chức năng chỉ có một thành phần. Chọn thiết bị hiển thị và vị trí; Menu di động chỉ hỗ trợ Mobile.</p>
+                <div wire:loading.delay.longer wire:target="setComponentVisibility,setPharmaComponentPosition" class="text-xs text-blue-600" role="status" aria-live="polite">Đang cập nhật bản xem trước…</div>
                 @foreach($builderSlotNames as $slotKey => $slotLabel)
                     @foreach($builderSlots[$slotKey] ?? [] as $index => $item)
                         @php
@@ -119,7 +120,7 @@
                                 </div>
                                 <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 md:w-[440px]">
                                     <label class="block text-xs font-medium text-slate-600">Hiển thị
-                                        <select wire:change="setComponentVisibility('{{ $slotKey }}', {{ $index }}, $event.target.value)" aria-label="Hiển thị {{ $definition['label'] ?? ($item['type'] ?? 'thành phần') }}" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-2 py-2 text-sm">
+                                        <select wire:change="setComponentVisibility('{{ $slotKey }}', {{ $index }}, $event.target.value)" wire:loading.attr="disabled" wire:target="setComponentVisibility" aria-label="Hiển thị {{ $definition['label'] ?? ($item['type'] ?? 'thành phần') }}" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-2 py-2 text-sm">
                                             @if(!$isDrawer)
                                                 <option value="both" @selected($deviceVisibility === 'both')>Desktop + Mobile</option>
                                                 <option value="desktop" @selected($deviceVisibility === 'desktop')>Chỉ Desktop</option>
