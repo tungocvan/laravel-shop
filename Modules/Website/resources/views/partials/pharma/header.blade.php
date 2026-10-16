@@ -39,13 +39,19 @@
     $desktopMenu = $menuService->getMenuTreeByLocation('pharma_primary');
     $mobileMenu = $menuService->getMenuTreeByLocation('pharma_mobile');
     if ($mobileMenu->isEmpty()) $mobileMenu = $desktopMenu;
+    $deviceClass = static fn (string $visibility): string => match ($visibility) {
+        'both' => 'flex',
+        'mobile' => 'flex lg:hidden',
+        'desktop' => 'hidden lg:flex',
+        default => 'hidden',
+    };
     $fallbackMenu = [['title' => 'Trang chủ', 'url' => route('home')], ['title' => 'Danh mục dược phẩm', 'url' => route('product.list')]];
 @endphp
 <div style="display: contents; --pharma-header-accent: {{ $accent }}; --pharma-header-bg: {{ $background }}; --pharma-header-text: {{ $foreground }};">
     @if(($topbarConfig['enabled'] ?? true))
         @foreach($headerLayout['desktop.topbar'] ?? [] as $component)
-            @if($component['type'] === 'topbar')
-                <div class="{{ ($topbarConfig['show_mobile'] ?? false) ? 'block' : 'hidden' }} {{ ($topbarConfig['show_desktop'] ?? true) ? 'md:block' : 'md:hidden' }} border-b border-slate-800/20" style="background: {{ $topbarBackground }}; color: {{ $topbarForeground }};">
+            @if($component['type'] === 'topbar' && in_array($component['visibility'] ?? 'desktop', ['both', 'desktop', 'mobile'], true))
+                <div class="{{ in_array($component['visibility'] ?? 'desktop', ['both', 'mobile'], true) && ($topbarConfig['show_mobile'] ?? false) ? 'block' : 'hidden' }} {{ in_array($component['visibility'] ?? 'desktop', ['both', 'desktop'], true) && ($topbarConfig['show_desktop'] ?? true) ? 'md:block' : 'md:hidden' }} border-b border-slate-800/20" style="background: {{ $topbarBackground }}; color: {{ $topbarForeground }};">
                     <div class="mx-auto flex flex-wrap items-center justify-between gap-x-6 gap-y-2 px-5 py-2 text-xs sm:px-8" style="max-width: {{ $headerWidth ? $headerWidth.'px' : '1280px' }}; min-height: {{ $topbarHeight }}px">
                         <div class="flex flex-wrap items-center gap-x-5 gap-y-1.5">
                             @if(trim((string) ($topbarConfig['left_text'] ?? 'THÔNG TIN DƯỢC PHẨM · TRA CỨU VÀ THAM KHẢO')) !== '')
@@ -74,8 +80,9 @@
     <header class="{{ ($presentation['sticky'] ?? true) ? 'sticky top-0' : 'relative' }} z-40 border-b border-slate-200" style="background:var(--pharma-header-bg);color:var(--pharma-header-text);box-shadow:{{ $shadow }}" x-data="{ menuOpen: false }" @keydown.escape.window="menuOpen = false">
         <div class="mx-auto flex w-full min-w-0 items-center gap-2 px-3 py-3 sm:gap-3 sm:px-6 lg:gap-6 lg:px-8" style="max-width:{{ $headerWidth ? $headerWidth.'px' : '1280px' }};min-height:{{ (int)($presentation['heights']['desktop'] ?? 80) }}px">
             @foreach(['desktop.main.left','desktop.main.center','desktop.main.right'] as $slot)
-                <div class="{{ $slot === 'desktop.main.left' ? 'flex min-w-0 flex-1 items-center lg:flex-none' : ($slot === 'desktop.main.center' ? 'hidden min-w-0 flex-1 items-center justify-center gap-5 lg:flex' : 'ml-auto hidden min-w-0 items-center justify-end gap-4 lg:flex') }}">
+                <div class="{{ $slot === 'desktop.main.left' ? 'flex min-w-0 flex-1 items-center lg:flex-none' : ($slot === 'desktop.main.center' ? 'min-w-0 flex-1 items-center justify-center gap-5' : 'ml-auto min-w-0 items-center justify-end gap-4') }} {{ $slot === 'desktop.main.left' ? '' : 'contents' }}">
                 @foreach($headerLayout[$slot] ?? [] as $component)
+                    <div class="{{ $deviceClass($component['visibility'] ?? 'desktop') }} min-w-0 items-center">
                     @if($component['type'] === 'brand')
                         <a href="{{ route('home') }}" class="flex min-w-0 max-w-full items-center gap-2 sm:gap-3" aria-label="Về trang chủ">
                             @if($brandLogoUrl)
@@ -100,6 +107,7 @@
                             <button type="submit" class="rounded-xl px-4 py-2 text-sm font-bold text-white" style="background:var(--pharma-header-accent)">Tra cứu →</button>
                         </form>
                     @endif
+                    </div>
                 @endforeach
                 </div>
             @endforeach
