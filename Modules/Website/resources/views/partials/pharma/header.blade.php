@@ -91,7 +91,7 @@
             @endif
         @endforeach
     @endif
-    <header class="{{ ($presentation['sticky'] ?? true) ? 'sticky top-0' : 'relative' }} z-40 border-b border-slate-200" style="background:var(--pharma-header-bg);color:var(--pharma-header-text);box-shadow:{{ $shadow }}" x-data="{ menuOpen: false }" @keydown.escape.window="menuOpen = false">
+    <header class="{{ ($presentation['sticky'] ?? true) ? 'sticky top-0' : 'relative' }} z-40 border-b border-slate-200" style="background:var(--pharma-header-bg);color:var(--pharma-header-text);box-shadow:{{ $shadow }}" x-data="{ menuOpen: false, quickOrderLoginPrompt: false }" @keydown.escape.window="menuOpen = false; quickOrderLoginPrompt = false" @click.capture="@guest const link = $event.target.closest('a[href]'); if (link && new URL(link.href, window.location.origin).pathname.replace(/\\/$/, '') === '/quick-order') { $event.preventDefault(); $event.stopPropagation(); menuOpen = false; quickOrderLoginPrompt = true; } @endguest">
         <div class="mx-auto flex w-full min-w-0 items-center gap-2 px-3 py-3 sm:gap-3 sm:px-6 lg:gap-6 lg:px-8" style="max-width:{{ $headerWidth ? $headerWidth.'px' : '1280px' }};min-height:{{ (int)($presentation['heights']['desktop'] ?? 80) }}px">
             @foreach(['desktop.main.left','desktop.main.center','desktop.main.right'] as $slot)
                 <div class="{{ $mobileSlotVisible[$slot] ? 'flex' : 'hidden lg:flex' }} {{ $slot === 'desktop.main.left' ? 'min-w-0 flex-1 items-center lg:flex-none' : ($slot === 'desktop.main.center' ? 'min-w-0 items-center justify-center gap-5 lg:flex-1' : 'min-w-0 items-center justify-end gap-4 lg:ml-auto') }}">
@@ -144,6 +144,23 @@
                 </button>
             @endif
         </div>
+        @guest
+            <template x-teleport="body">
+                <div x-show="quickOrderLoginPrompt" x-cloak class="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/60 px-4 backdrop-blur-[2px]" role="presentation" @click.self="quickOrderLoginPrompt = false">
+                    <section role="dialog" aria-modal="true" aria-labelledby="pharma-quick-order-login-title" aria-describedby="pharma-quick-order-login-description" class="w-full max-w-sm rounded-2xl bg-white p-6 text-slate-900 shadow-2xl">
+                        <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700" aria-hidden="true">
+                            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 17l5-5-5-5M15 12H3M12 3h7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-7"/></svg>
+                        </div>
+                        <h2 id="pharma-quick-order-login-title" class="text-lg font-extrabold">Vui lòng đăng nhập để đặt hàng nhanh</h2>
+                        <p id="pharma-quick-order-login-description" class="mt-2 text-sm leading-6 text-slate-600">Chức năng đặt hàng nhanh chỉ dành cho tài khoản đã đăng nhập và được cấp quyền sử dụng.</p>
+                        <div class="mt-6 flex flex-col gap-2">
+                            <a href="{{ route('login') }}" class="flex min-h-12 items-center justify-center rounded-xl bg-emerald-700 px-4 text-sm font-bold text-white hover:bg-emerald-800">Đăng nhập</a>
+                            <button type="button" @click="quickOrderLoginPrompt = false" class="min-h-11 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">Để sau</button>
+                        </div>
+                    </section>
+                </div>
+            </template>
+        @endguest
         @if($drawerEnabled)
             <template x-teleport="body">
                 <div x-show="menuOpen" x-cloak class="fixed inset-0 z-[9999] {{ $drawerVisibility === 'mobile' ? 'lg:hidden' : ($drawerVisibility === 'desktop' ? 'hidden lg:block' : '') }}">
