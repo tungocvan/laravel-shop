@@ -20,6 +20,16 @@ class LoginTheme extends Component
 
     public bool $canUpdate = false;
 
+    public int $selectedPreset = 1;
+
+    public array $presets = [];
+
+    private const PRESET_DEFAULTS = [
+        1 => ['name' => 'FlexBiz Light', 'background_type' => 'color', 'background_color' => '#f1f5f9', 'form_background_color' => '#ffffff', 'primary_color' => '#0f766e', 'overlay_opacity' => 45, 'logo_size' => 'large'],
+        2 => ['name' => 'Corporate Blue', 'background_type' => 'color', 'background_color' => '#0f2747', 'form_background_color' => '#ffffff', 'primary_color' => '#2563eb', 'overlay_opacity' => 45, 'logo_size' => 'large'],
+        3 => ['name' => 'Emerald Modern', 'background_type' => 'color', 'background_color' => '#e6f4f1', 'form_background_color' => '#ffffff', 'primary_color' => '#047857', 'overlay_opacity' => 45, 'logo_size' => 'large'],
+    ];
+
     public function mount(SettingsService $service): void
     {
         $this->canUpdate = (bool) (auth('admin')->user() ?: auth()->user())?->can('system.settings.update');
@@ -37,6 +47,40 @@ class LoginTheme extends Component
     public function setPreviewDevice(string $device): void
     {
         $this->previewDevice = in_array($device, ['desktop', 'mobile'], true) ? $device : 'desktop';
+    }
+
+    public function applyPreset(int $slot): void
+    {
+        if (! isset($this->presets[$slot])) {
+            return;
+        }
+
+        $this->selectedPreset = $slot;
+        foreach (array_keys(self::PRESET_DEFAULTS[1]) as $key) {
+            if ($key !== 'name' && isset($this->presets[$slot][$key])) {
+                $this->settings[$key] = $this->presets[$slot][$key];
+            }
+        }
+    }
+
+    public function savePreset(int $slot, SettingsService $service): void
+    {
+        $this->authorizePermission('system.settings.update');
+        if (! isset(self::PRESET_DEFAULTS[$slot])) {
+            return;
+        }
+
+        $validated = $this->validate();
+        $preset = ['name' => self::PRESET_DEFAULTS[$slot]['name']];
+        foreach (array_keys(self::PRESET_DEFAULTS[1]) as $key) {
+            if ($key !== 'name') {
+                $preset[$key] = $validated['settings'][$key];
+            }
+        }
+        $service->set($this->prefix().'preset_'.$slot, $preset, 'auth_login');
+        $this->presets[$slot] = $preset;
+        $this->selectedPreset = $slot;
+        $this->dispatch('notify', type: 'success', message: 'Đã lưu bộ thiết lập '.$slot.'.');
     }
 
     protected function rules(): array
@@ -92,6 +136,12 @@ class LoginTheme extends Component
     private function loadSettings(SettingsService $service): void
     {
         $config = app(LoginPresentationService::class)->forGuard($this->target === 'admin' ? 'admin' : 'web');
+        $this->presets = [];
+        foreach (self::PRESET_DEFAULTS as $slot => $default) {
+            $stored = $service->get($this->prefix().'preset_'.$slot);
+            $this->presets[$slot] = is_array($stored) && array_keys($default) === array_keys($stored) ? $stored : $default;
+        }
+        $this->selectedPreset = 1;
         $this->settings = [
             'theme' => $config['theme'],
             'logo_size' => $config['logo_size'],
