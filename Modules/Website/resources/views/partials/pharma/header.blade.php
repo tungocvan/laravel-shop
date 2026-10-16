@@ -25,6 +25,15 @@
     $topbarConfig = is_array($topbarConfig) ? $topbarConfig : [];
     $sharedHotline = (string) $settings->get('header.topbar.hotline', '');
     $sharedEmail = (string) $settings->get('header.topbar.email', '');
+    $helpUrl = (string) $settings->get('header.topbar.help_url', '');
+    $orderTrackingUrl = (string) $settings->get('header.topbar.order_tracking_url', '');
+    $safeTopbarLink = static function (string $url): ?string {
+        $url = trim($url);
+        if ($url === '' || preg_match('~^(?:javascript|data|vbscript):~i', $url)) return null;
+        if (preg_match('~^https?://~i', $url)) return $url;
+        if (str_starts_with($url, '//') || str_contains($url, ':')) return null;
+        return url('/'.ltrim($url, '/'));
+    };
     $topbarHeight = (int) ($presentation['custom']['topbar_height'] ?? 32);
     $menuService = app(\Modules\Website\Services\HeaderMenuService::class);
     $desktopMenu = $menuService->getMenuTreeByLocation('pharma_primary');
@@ -49,9 +58,14 @@
                                 <a href="mailto:{{ $sharedEmail }}" class="inline-flex items-center border-l border-current/20 pl-4 hover:underline">{{ $sharedEmail }}</a>
                             @endif
                         </div>
-                        @if(trim((string) ($topbarConfig['right_text'] ?? 'Thông tin không thay thế tư vấn chuyên môn y tế')) !== '')
-                            <span class="hidden sm:inline">{{ $topbarConfig['right_text'] ?? 'Thông tin không thay thế tư vấn chuyên môn y tế' }}</span>
-                        @endif
+                        <nav aria-label="Liên kết Topbar" class="flex flex-wrap items-center gap-4">
+                            @if($safeTopbarLink($orderTrackingUrl))
+                                <a href="{{ $safeTopbarLink($orderTrackingUrl) }}" class="font-semibold hover:underline">Theo dõi đơn hàng</a>
+                            @endif
+                            @if($safeTopbarLink($helpUrl))
+                                <a href="{{ $safeTopbarLink($helpUrl) }}" class="font-semibold hover:underline">Trợ giúp</a>
+                            @endif
+                        </nav>
                     </div>
                 </div>
             @endif
