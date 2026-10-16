@@ -39,6 +39,22 @@
 
                 <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
                     <h3 class="text-base font-semibold text-gray-900">Màu sắc & hiệu ứng</h3>
+                    <div class="mt-4 rounded-xl border border-indigo-100 bg-indigo-50/40 p-4">
+                        <p class="text-sm font-semibold text-gray-800">Ba bộ thiết lập</p>
+                        <p class="mt-1 text-xs text-gray-600">Áp dụng để xem trước, sau đó lưu giao diện. Lưu vào bộ để ghi nhớ các thông số màu sắc.</p>
+                        <div class="mt-3 grid gap-3 sm:grid-cols-3">
+                            @foreach($presets as $slot => $preset)
+                                <div class="rounded-xl border bg-white p-3">
+                                    <div class="flex gap-1"><span class="h-5 w-5 rounded" style="background-color:{{ $preset['background_color'] }}"></span><span class="h-5 w-5 rounded" style="background-color:{{ $preset['primary_color'] }}"></span></div>
+                                    <p class="mt-2 text-xs font-semibold">{{ $preset['name'] }}</p>
+                                    <div class="mt-2 flex flex-wrap gap-2">
+                                        <button type="button" wire:click="applyPreset({{ $slot }})" class="rounded-lg border px-2 py-1 text-xs">Áp dụng</button>
+                                        @if($canUpdate)<button type="button" wire:click="savePreset({{ $slot }})" class="rounded-lg border px-2 py-1 text-xs">Lưu vào bộ</button>@endif
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
                     <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
                         <div><label class="block text-sm font-semibold text-gray-700">Kích thước logo</label><select wire:model.live="settings.logo_size" class="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm"><option value="small">Nhỏ · 100px</option><option value="medium">Vừa · 160px</option><option value="large">Lớn · 220px</option></select></div>
                         <div><label class="block text-sm font-semibold text-gray-700">Loại nền trang</label><select wire:model.live="settings.background_type" class="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm"><option value="image">Ảnh nền</option><option value="color">Màu nền</option></select></div>
