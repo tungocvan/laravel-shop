@@ -91,7 +91,14 @@ class AdminLayoutConfig extends Component
         $preset = $presets[$key];
         data_set($this->config, 'sidebar.presentation.background', 'custom');
         data_set($this->config, 'sidebar.presentation.custom_background', $preset['background']);
-        data_set($this->config, 'sidebar.presentation.custom_accent', $preset['active']['background'] === '#FFFFFF' ? '#087F5B' : $preset['active']['background']);
+        // Accent must always be a six-digit HEX; saved palettes may use transparent.
+        $activeBackground = (string) data_get($preset, 'active.background', '');
+        $activeText = (string) data_get($preset, 'active.title', '');
+        $accent = preg_match('/^#[0-9a-fA-F]{6}$/', $activeBackground) === 1
+            && strcasecmp($activeBackground, '#FFFFFF') !== 0
+            ? $activeBackground
+            : (preg_match('/^#[0-9a-fA-F]{6}$/', $activeText) === 1 ? $activeText : '#087F5B');
+        data_set($this->config, 'sidebar.presentation.custom_accent', $accent);
         foreach (['normal' => 'item', 'hover' => 'item', 'active' => 'active'] as $state => $target) {
             $prefix = 'design.sidebar_menu.'.$target.'.';
             $base = $state === 'hover' ? 'hover_' : '';
