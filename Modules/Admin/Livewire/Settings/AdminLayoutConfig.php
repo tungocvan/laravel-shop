@@ -72,6 +72,70 @@ class AdminLayoutConfig extends Component
         $this->config['header']['user_menu_config']['items'] = array_values($items);
     }
 
+    public string $presetName = '';
+
+    public function sidebarVisualPresets(): array
+    {
+        return [
+            'emerald' => ['name' => 'FlexBiz Emerald', 'background' => '#087F5B', 'normal' => ['title' => '#FFFFFF', 'icon' => '#FFFFFF', 'background' => 'transparent'], 'hover' => ['title' => '#064E3B', 'icon' => '#064E3B', 'background' => '#D1FAE5'], 'active' => ['title' => '#065F46', 'icon' => '#065F46', 'background' => '#FFFFFF']],
+            'slate' => ['name' => 'Corporate Slate', 'background' => '#0F172A', 'normal' => ['title' => '#E2E8F0', 'icon' => '#E2E8F0', 'background' => 'transparent'], 'hover' => ['title' => '#FFFFFF', 'icon' => '#FFFFFF', 'background' => '#334155'], 'active' => ['title' => '#FFFFFF', 'icon' => '#FFFFFF', 'background' => '#4F46E5']],
+            'light' => ['name' => 'Minimal Light', 'background' => '#F8FAFC', 'normal' => ['title' => '#334155', 'icon' => '#334155', 'background' => 'transparent'], 'hover' => ['title' => '#0F172A', 'icon' => '#0F172A', 'background' => '#E2E8F0'], 'active' => ['title' => '#1D4ED8', 'icon' => '#1D4ED8', 'background' => '#DBEAFE']],
+        ];
+    }
+
+    public function applySidebarVisualPreset(string $key): void
+    {
+        abort_unless($this->section === 'sidebar', 404);
+        $presets = array_merge($this->sidebarVisualPresets(), (array) data_get($this->config, 'sidebar.visual_presets', []));
+        abort_unless(isset($presets[$key]) && is_array($presets[$key]), 404);
+        $preset = $presets[$key];
+        data_set($this->config, 'sidebar.presentation.background', 'custom');
+        data_set($this->config, 'sidebar.presentation.custom_background', $preset['background']);
+        data_set($this->config, 'sidebar.presentation.custom_accent', $preset['active']['background'] === '#FFFFFF' ? '#087F5B' : $preset['active']['background']);
+        foreach (['normal' => 'item', 'hover' => 'item', 'active' => 'active'] as $state => $target) {
+            $prefix = 'design.sidebar_menu.'.$target.'.';
+            $base = $state === 'hover' ? 'hover_' : '';
+            data_set($this->config, $prefix.$base.'title_color', $preset[$state]['title']);
+            if ($state !== 'active') {
+                data_set($this->config, $prefix.$base.'icon_color', $preset[$state]['icon']);
+            } else {
+                data_set($this->config, $prefix.'icon_color', $preset[$state]['icon']);
+            }
+            $mode = $state === 'active' ? 'menu_background_mode' : $base.'background_mode';
+            $color = $state === 'active' ? 'menu_background_color' : $base.'background_color';
+            data_set($this->config, $prefix.$mode, $preset[$state]['background'] === 'transparent' ? 'transparent' : 'color');
+            if ($preset[$state]['background'] !== 'transparent') data_set($this->config, $prefix.$color, $preset[$state]['background']);
+        }
+    }
+
+    public function saveSidebarVisualPreset(AdminLayoutManager $manager): void
+    {
+        abort_unless($this->section === 'sidebar', 404);
+        $this->authorizePermission($this->updatePermission());
+        $name = trim($this->presetName);
+        $this->validate(['presetName' => 'required|string|min:2|max:40']);
+        $current = (array) data_get($manager->config(), 'sidebar.visual_presets', []);
+        if (count($current) >= 6) {
+            $this->addError('presetName', 'Tối đa 6 bộ màu tùy chỉnh.');
+            return;
+        }
+        $menu = (array) data_get($this->config, 'design.sidebar_menu', []);
+        $read = static fn (string $path, string $fallback): string => (string) data_get($menu, $path, $fallback);
+        $current['custom_'.(count($current) + 1)] = [
+            'name' => $name,
+            'background' => (string) data_get($this->config, 'sidebar.presentation.custom_background', '#087F5B'),
+            'normal' => ['title' => $read('item.title_color', '#FFFFFF'), 'icon' => $read('item.icon_color', '#FFFFFF'), 'background' => $read('item.background_mode', 'transparent') === 'color' ? $read('item.background_color', '#087F5B') : 'transparent'],
+            'hover' => ['title' => $read('item.hover_title_color', '#064E3B'), 'icon' => $read('item.hover_icon_color', '#064E3B'), 'background' => $read('item.hover_background_mode', 'transparent') === 'color' ? $read('item.hover_background_color', '#D1FAE5') : 'transparent'],
+            'active' => ['title' => $read('active.title_color', '#065F46'), 'icon' => $read('active.icon_color', '#065F46'), 'background' => $read('active.menu_background_mode', 'transparent') === 'color' ? $read('active.menu_background_color', '#FFFFFF') : 'transparent'],
+        ];
+        $payload = $manager->config();
+        data_set($payload, 'sidebar.visual_presets', $current);
+        $manager->save($payload);
+        data_set($this->config, 'sidebar.visual_presets', $current);
+        $this->presetName = '';
+        $this->dispatch('notify', type: 'success', title: 'Đã lưu bộ màu', message: 'Bộ màu đã được lưu để sử dụng sau.', duration: 1800);
+    }
+
     public function save(AdminLayoutManager $manager): void
     {
         $this->authorizePermission($this->updatePermission());
