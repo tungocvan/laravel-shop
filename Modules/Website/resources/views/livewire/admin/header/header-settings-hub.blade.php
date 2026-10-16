@@ -1,5 +1,5 @@
 <div class="w-full px-3 py-5 sm:px-6"
-    x-data="{ tab: @entangle('activeTab'), previewDevice: 'desktop', drag: null, showLayoutTools: false, showThemeLibrary: false, showAccountSettings: false, showTopbarSettings: false, showAppearanceSettings: false }">
+    x-data="{ tab: @entangle('activeTab'), previewDevice: 'desktop', drag: null, showLayoutTools: false, showThemeLibrary: false, showAccountSettings: false, showTopbarSettings: true, showAppearanceSettings: false }">
     <div class="mb-6">
         <h2 class="text-2xl font-bold text-gray-800">Thiết kế Header Website</h2>
         <p class="text-sm text-gray-500">Chọn giao diện, xem trước theo thiết bị và chỉ mở các thiết lập chuyên sâu khi cần.</p>
@@ -27,10 +27,10 @@
                     <span>Thanh thông tin Pharma <span class="ml-2 text-xs font-normal text-gray-500">Nội dung, liên hệ và hiển thị theo thiết bị</span></span>
                     <span x-text="showTopbarSettings ? 'Thu gọn −' : 'Cấu hình +'"></span>
                 </button>
-                <div id="header-topbar-settings" x-show="showTopbarSettings" x-cloak class="mt-4 space-y-4">
+                <div id="header-topbar-settings" x-show="showTopbarSettings" class="mt-4 space-y-4">
                 <div>
-                    <h4 class="text-base font-bold text-gray-900">Topbar Pharma · Nội dung & liên hệ</h4>
-                    <p class="mt-1 text-xs text-gray-600">Nội dung độc lập với Topbar Default. Màu Topbar BG / Topbar Text của Pharma áp dụng độc lập, kể cả khi bật Kế thừa màu Global Website Theme. Chiều cao chỉnh trong Advanced phía dưới.</p>
+                    <h4 class="text-base font-bold text-gray-900">Topbar Pharma · Nội dung & hiển thị</h4>
+                    <p class="mt-1 text-xs text-gray-600">Hotline và email được quản lý tại Thông tin chung phía trên. Nội dung trái/phải và tùy chọn hiển thị chỉ áp dụng cho Topbar Pharma.</p>
                 </div>
                 <label class="flex items-center gap-2 text-sm font-medium"><input type="checkbox" wire:model="topbarSettings.enabled" class="rounded border-gray-300"> Hiển thị Topbar Pharma</label>
                 <div class="grid gap-3 rounded-lg border border-teal-100 bg-teal-50/50 p-3 sm:grid-cols-2">
@@ -50,7 +50,7 @@
                     <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model="topbarSettings.show_email" class="rounded border-gray-300"> Hiện email</label>
                     <button type="button" wire:click="saveTopbarSettings" class="ml-auto rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white">Lưu Topbar Pharma</button>
                 </div>
-                <p class="text-xs text-slate-500">Hotline và email sử dụng thông tin chung phía trên. Lưu tại “Lưu thông tin Header” để cập nhật Website.</p>
+                <p class="text-xs text-slate-500">Hotline, Email hỗ trợ, Link Trợ giúp và Link Theo dõi đơn hàng được lưu bằng nút “Lưu thông tin Header” ở phần Thông tin chung. Nút “Lưu Topbar Pharma” chỉ lưu nội dung trái/phải và tùy chọn hiển thị.</p>
                 </div>
             </section>
         @endif
