@@ -20,6 +20,23 @@
         $slotItems[$slotKey] = $enabledItems((array) ($builderSlots[$slotKey] ?? []));
     }
 
+    $previewVisible = static function (array $item, string $device, string $slot): bool {
+        if (($item['enabled'] ?? true) === false) {
+            return false;
+        }
+        $visibility = $item['config']['visibility'] ?? (str_starts_with($slot, 'mobile.') ? 'mobile' : 'desktop');
+        return $visibility === 'both' || $visibility === $device;
+    };
+    $mobileComponents = [];
+    foreach (['desktop.main.left', 'desktop.main.center', 'desktop.main.right', 'mobile.search', 'mobile.drawer'] as $previewSlot) {
+        foreach ($slotItems[$previewSlot] ?? [] as $previewItem) {
+            if ($previewVisible($previewItem, 'mobile', $previewSlot)) {
+                $mobileComponents[] = $previewItem;
+            }
+        }
+    }
+    $previewTopbarItem = $slotItems['desktop.topbar'][0] ?? null;
+    $previewTopbarVisibility = $previewTopbarItem['config']['visibility'] ?? (($topbarSettings['show_desktop'] ?? true) ? (($topbarSettings['show_mobile'] ?? false) ? 'both' : 'desktop') : (($topbarSettings['show_mobile'] ?? false) ? 'mobile' : 'hidden'));
     $desktopHeight = (int) data_get($previewPresentation, 'heights.desktop', 80);
     $tabletHeight = (int) data_get($previewPresentation, 'heights.tablet', 72);
     $mobileHeight = (int) data_get($previewPresentation, 'heights.mobile', 64);
@@ -50,7 +67,7 @@
             <div class="overflow-hidden rounded-lg shadow-sm" style="background: {{ $surface }}; color: {{ $foreground }}; border: 1px solid {{ $border }};">
                 @if($editingTemplate === 'pharma')
                     @if(($topbarSettings['enabled'] ?? true) && count($slotItems['desktop.topbar'] ?? []) > 0)
-                        <div x-show="previewDevice === 'mobile' ? @js((bool) ($topbarSettings['show_mobile'] ?? false)) : @js((bool) ($topbarSettings['show_desktop'] ?? true))" class="flex flex-wrap items-center justify-between gap-2 px-4 text-xs" style="min-height: {{ $topbarHeight }}px; background: {{ $previewPresentation['colors']['topbar_background'] ?? $topbarBackground }}; color: {{ $previewPresentation['colors']['topbar_foreground'] ?? $topbarForeground }};">
+                        <div x-show="previewDevice === 'mobile' ? @js(in_array($previewTopbarVisibility, ['both', 'mobile'], true)) : @js(in_array($previewTopbarVisibility, ['both', 'desktop'], true))" class="flex flex-wrap items-center justify-between gap-2 px-4 text-xs" style="min-height: {{ $topbarHeight }}px; background: {{ $previewPresentation['colors']['topbar_background'] ?? $topbarBackground }}; color: {{ $previewPresentation['colors']['topbar_foreground'] ?? $topbarForeground }};">
                             <div class="flex flex-wrap items-center gap-3">
                                 <span>{{ $topbarSettings['left_text'] ?? 'THÔNG TIN DƯỢC PHẨM · TRA CỨU VÀ THAM KHẢO' }}</span>
                                 @if($topbarSettings['show_hotline'] ?? false)<span>{{ $topbarSettings['hotline'] ?? '' }}</span>@endif
@@ -73,7 +90,7 @@
                 <div x-show="previewDevice === 'desktop'" class="grid grid-cols-3 items-center gap-3 px-4" style="height: {{ $desktopHeight }}px;">
                     @foreach(['desktop.main.left', 'desktop.main.center', 'desktop.main.right'] as $slotKey)
                         <div class="flex items-center {{ $slotKey === 'desktop.main.center' ? 'justify-center' : ($slotKey === 'desktop.main.right' ? 'justify-end' : 'justify-start') }} gap-2 rounded-md border border-dashed p-2" style="border-color: {{ $border }}; min-height: 48px;">
-                            @forelse($slotItems[$slotKey] ?? [] as $item)
+                            @forelse(array_values(array_filter($slotItems[$slotKey] ?? [], fn ($item) => $editingTemplate !== 'pharma' || $previewVisible($item, 'desktop', $slotKey))) as $item)
                                 @php($type = $item['type'] ?? '')
                                 <span class="inline-flex items-center justify-center rounded-md px-2 py-1 text-xs font-semibold" style="border: 1px solid {{ $border }}; color: {{ $foreground }}; max-width: {{ $type === 'search' ? $searchWidth.'px' : 'none' }};">
                                     @if($type === 'brand')
@@ -91,7 +108,7 @@
                 <div x-show="previewDevice === 'tablet'" class="grid grid-cols-[auto_1fr_auto] items-center gap-2 px-3" style="height: {{ $tabletHeight }}px;">
                     @foreach(['desktop.main.left', 'desktop.main.center', 'desktop.main.right'] as $slotKey)
                         <div class="flex items-center {{ $slotKey === 'desktop.main.center' ? 'justify-center' : ($slotKey === 'desktop.main.right' ? 'justify-end' : 'justify-start') }} gap-1 overflow-hidden">
-                            @foreach($slotItems[$slotKey] ?? [] as $item)
+                            @foreach(array_values(array_filter($slotItems[$slotKey] ?? [], fn ($item) => $editingTemplate !== 'pharma' || $previewVisible($item, 'desktop', $slotKey))) as $item)
                                 <span class="truncate rounded border px-2 py-1 text-[11px] font-semibold" style="border-color: {{ $border }};">{{ $headerComponents[$item['type']]['label'] ?? $item['type'] }}</span>
                             @endforeach
                         </div>
@@ -99,22 +116,31 @@
                 </div>
 
                 <div x-show="previewDevice === 'mobile'">
-                    <div class="flex items-center justify-between gap-2 px-3" style="height: {{ $mobileHeight }}px;">
-                        <span class="rounded border px-2 py-1 text-xs font-semibold" style="border-color: {{ $border }};">☰</span>
-                        <div class="flex min-w-0 flex-1 items-center gap-2">
-                            <span class="inline-block rounded bg-gray-900" style="width: {{ min(28, $logoHeight) }}px; height: {{ min(28, $logoHeight) }}px;"></span>
-                            <span class="truncate text-xs font-bold">Brand</span>
+                    @if($editingTemplate === 'pharma')
+                        <div class="flex flex-wrap items-center gap-2 px-3 py-3" style="min-height: {{ $mobileHeight }}px;">
+                            @forelse($mobileComponents as $item)
+                                <span class="rounded-lg border px-2 py-1.5 text-xs font-semibold" style="border-color: {{ $border }};">
+                                    {{ $headerComponents[$item['type']]['label'] ?? $item['type'] }}
+                                </span>
+                            @empty
+                                <span class="text-xs text-slate-400">Không có component hiển thị trên Mobile</span>
+                            @endforelse
                         </div>
-                        <span class="rounded px-2 py-1 text-xs font-semibold" style="background: {{ $accent }}; color: #fff;">Actions</span>
-                    </div>
-                    <div class="space-y-2 border-t px-3 py-3" style="border-color: {{ $border }};">
-                        @foreach($slotItems['mobile.search'] ?? [] as $item)
-                            <div class="rounded-lg border px-3 py-2 text-xs" style="border-color: {{ $border }};">{{ $headerComponents[$item['type']]['label'] ?? $item['type'] }}</div>
-                        @endforeach
-                        @foreach($slotItems['mobile.drawer'] ?? [] as $item)
-                            <div class="rounded-lg border border-dashed px-3 py-2 text-xs" style="border-color: {{ $border }};">{{ $headerComponents[$item['type']]['label'] ?? $item['type'] }} · drawer</div>
-                        @endforeach
-                    </div>
+                    @else
+                        <div class="flex items-center justify-between gap-2 px-3" style="height: {{ $mobileHeight }}px;">
+                            <span class="rounded border px-2 py-1 text-xs font-semibold" style="border-color: {{ $border }};">☰</span>
+                            <span class="truncate text-xs font-bold">Brand</span>
+                            <span class="rounded px-2 py-1 text-xs font-semibold" style="background: {{ $accent }}; color: #fff;">Actions</span>
+                        </div>
+                        <div class="space-y-2 border-t px-3 py-3" style="border-color: {{ $border }};">
+                            @foreach($slotItems['mobile.search'] ?? [] as $item)
+                                <div class="rounded-lg border px-3 py-2 text-xs" style="border-color: {{ $border }};">{{ $headerComponents[$item['type']]['label'] ?? $item['type'] }}</div>
+                            @endforeach
+                            @foreach($slotItems['mobile.drawer'] ?? [] as $item)
+                                <div class="rounded-lg border border-dashed px-3 py-2 text-xs" style="border-color: {{ $border }};">{{ $headerComponents[$item['type']]['label'] ?? $item['type'] }} · drawer</div>
+                            @endforeach
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
