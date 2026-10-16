@@ -24,7 +24,7 @@
         <button type="button" wire:click="resetSection" wire:confirm="Khôi phục Sidebar về mặc định?" class="inline-flex h-10 shrink-0 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Khôi phục Sidebar</button>
     </div>
 
-    <form wire:submit="save" class="space-y-6" x-data="{
+    <form wire:submit="save" class="space-y-6" x-on:sidebar-preset-applied.window="sidebarBackground = 'custom'; customBackground = $event.detail.background; customAccent = $event.detail.accent" x-data="{
         activeTab: window.location.hash === '#sidebar-menu' ? 'menu' : (['overview','colors','menu','layout','header','footer'].includes(window.location.hash.slice(1)) ? window.location.hash.slice(1) : 'overview'),
         selectTab(tab) { this.activeTab = tab; window.history.replaceState(null, '', '#'+tab); },
         sidebarBackground: @js($background), customBackground: @js($customBackground), customAccent: @js($customAccent),
