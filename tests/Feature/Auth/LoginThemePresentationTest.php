@@ -136,4 +136,29 @@ class LoginThemePresentationTest extends TestCase
         $this->assertStringContainsString('Đăng nhập bằng Google Workspace', $view);
     }
 
+    public function test_login_footer_uses_flexbiz_default_only_when_unconfigured(): void
+    {
+        $service = app(LoginPresentationService::class);
+        $this->assertSame('© '.date('Y').' FlexBiz. All rights reserved.', $service->forGuard('admin')['footer']);
+
+        app(SettingsService::class)->set('auth_login_admin_footer', 'Custom footer', 'auth_login');
+        $this->assertSame('Custom footer', $service->forGuard('admin')['footer']);
+    }
+
+    public function test_login_preset_slots_have_persistent_json_storage(): void
+    {
+        $settings = app(SettingsService::class);
+        $preset = [
+            'name' => 'FlexBiz Light',
+            'background_type' => 'color',
+            'background_color' => '#f1f5f9',
+            'form_background_color' => '#ffffff',
+            'primary_color' => '#0f766e',
+            'overlay_opacity' => 45,
+            'logo_size' => 'large',
+        ];
+        $settings->set('auth_login_admin_preset_1', $preset, 'auth_login');
+        $this->assertSame($preset, $settings->get('auth_login_admin_preset_1'));
+        $this->assertNull($settings->get('auth_login_client_preset_1'));
+    }
 }
