@@ -42,5 +42,6 @@ final class PharmaHeaderDeviceVisibilityContractTest extends TestCase
         $this->assertStringContainsString('drawerVisibility', $header);
         $this->assertStringContainsString("mobile.search", $header);
         $this->assertStringContainsString('topbarVisibility', $header);
+        $this->assertStringContainsString(\'$component[\\\'config\\\'][\\\'visibility\\\'] ?? $topbarFallbackVisibility\', $header);
     }
 }
