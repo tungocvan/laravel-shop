@@ -13,7 +13,9 @@ final class PharmaIphoneHeaderResponsiveContractTest extends TestCase
         $meta = file_get_contents(base_path('Modules/Website/resources/views/partials/layout/head-meta.blade.php'));
 
         $this->assertStringContainsString('flex w-full min-w-0 items-center gap-2', $header);
-        $this->assertStringContainsString('flex min-w-0 flex-1 items-center lg:flex-none', $header);
+        $this->assertStringContainsString("'min-w-0 flex-1 items-center lg:flex-none'", $header);
+        $this->assertStringContainsString('mobileSlotVisible', $header);
+        $this->assertStringContainsString('max-w-[96px]', $header);
         $this->assertStringContainsString('class="hidden text-xs font-medium sm:block"', $header);
         $this->assertStringContainsString('ml-auto hidden min-w-0 shrink-0 items-center justify-end lg:ml-0 lg:flex', $header);
         $this->assertStringContainsString('h-11 w-11 shrink-0 items-center justify-center', $header);
