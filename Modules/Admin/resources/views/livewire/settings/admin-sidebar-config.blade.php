@@ -106,10 +106,16 @@
                             <input type="text" maxlength="40" wire:model="presetName" placeholder="Ví dụ: FlexBiz Custom" class="mt-1 block h-10 w-full rounded-xl border border-solid border-slate-200 bg-white px-3 text-sm text-slate-800 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-indigo-400 focus:ring-1 focus:ring-indigo-100">
                         </label>
                         <label class="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" wire:model="presetIncludeTypography" class="rounded border-slate-300 text-indigo-600"> Lưu cả Typography &amp; Icon</label>
-                        <button type="button" wire:click="saveSidebarVisualPreset" class="h-10 rounded-xl border border-indigo-200 bg-indigo-50 px-4 text-sm font-semibold text-indigo-700 hover:bg-indigo-100">Lưu bộ màu hiện tại</button>
+                        <button type="button" wire:click="saveSidebarVisualPreset" class="h-10 rounded-xl border border-indigo-200 bg-indigo-50 px-4 text-sm font-semibold text-indigo-700 hover:bg-indigo-100">Lưu bộ màu mới</button>
                     </div>
+                    @if($selectedSidebarPresetKey && array_key_exists($selectedSidebarPresetKey, (array) data_get($config, 'sidebar.visual_presets', [])))
+                        <div class="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                            <span class="text-sm text-slate-700">Đang chọn: <strong>{{ data_get($config, 'sidebar.visual_presets.'.$selectedSidebarPresetKey.'.name') }}</strong></span>
+                            <button type="button" wire:click="saveSidebarVisualPreset(true)" class="rounded-lg border border-indigo-200 bg-white px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50">Cập nhật bộ màu đã lưu</button>
+                        </div>
+                    @endif
                     @error('presetName') <p class="mt-2 text-xs text-red-600">{{ $message }}</p> @enderror
-                    <p class="mt-2 text-xs text-slate-500">Tối đa 6 bộ tùy chỉnh. Có thể lưu kèm Font Family, Font Size, Font Weight và Icon Size. Bộ màu cũ vẫn chỉ áp dụng màu. Nhấn Lưu Sidebar để áp dụng thực tế.</p>
+                    <p class="mt-2 text-xs text-slate-500">Để tạo bộ mới, nhập tên. Để cập nhật, chọn bộ màu của bạn rồi nhấn Cập nhật. Tối đa 6 bộ tùy chỉnh. Có thể lưu kèm Font Family, Font Size, Font Weight và Icon Size. Bộ màu cũ vẫn chỉ áp dụng màu. Nhấn Lưu Sidebar để áp dụng thực tế.</p>
                 </section>
 
                 <div id="sidebar-menu" x-cloak x-show="activeTab === 'menu'" x-data="{ section: 'menu', advancedMenu: false }" class="space-y-3">
