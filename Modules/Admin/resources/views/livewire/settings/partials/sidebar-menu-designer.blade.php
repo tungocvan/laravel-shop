@@ -87,7 +87,13 @@
                 </section>
 
                 <section x-show="advancedMenu" x-collapse class="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <h3 class="text-sm font-semibold text-slate-900">Layout & Active Border</h3>
+                    <h3 class="text-sm font-semibold text-slate-900">Layout &amp; Interaction</h3>
+                    <p class="mt-1 text-xs text-slate-500">Chọn mật độ menu, sau đó tinh chỉnh khoảng cách và viền Active. Preview cập nhật trước khi Lưu Sidebar.</p>
+                    <div class="mt-3 grid gap-2 sm:grid-cols-3">
+                        @foreach(['compact'=>'Compact · 40px', 'comfortable'=>'Comfortable · 44px', 'spacious'=>'Spacious · 48px'] as $layoutKey => $layoutLabel)
+                            <button type="button" wire:click="applySidebarLayoutPreset('{{ $layoutKey }}')" class="rounded-xl border border-slate-200 bg-white px-3 py-3 text-left text-sm font-semibold text-slate-700 shadow-sm transition hover:border-indigo-300 hover:bg-indigo-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500">{{ $layoutLabel }}</button>
+                        @endforeach
+                    </div>
                     <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         <label class="text-xs font-semibold text-slate-700">Min Height<select wire:model.live="config.design.sidebar_menu.item.item_height" class="{{ $select }}">@foreach(['40','44','48','52'] as $v)<option value="{{ $v }}">{{ $v }} px</option>@endforeach</select></label>
                         <label class="text-xs font-semibold text-slate-700">Padding X<select wire:model.live="config.design.sidebar_menu.item.padding_x" class="{{ $select }}">@foreach(['8','10','12','14','16'] as $v)<option value="{{ $v }}">{{ $v }} px</option>@endforeach</select></label>
