@@ -75,6 +75,42 @@
                     </div>
                 </section>
 
+                <section x-cloak x-show="activeTab === 'menu' || activeTab === 'colors'" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <div class="mb-4">
+                        <h2 class="text-base font-semibold text-slate-900">Bộ màu Visual States</h2>
+                        <p class="mt-1 text-sm text-slate-500">Chọn một bộ để nạp Normal, Hover, Active vào biểu mẫu. Nhấn Lưu Sidebar để áp dụng thực tế.</p>
+                    </div>
+                    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        @foreach($this->sidebarVisualPresets() as $key => $preset)
+                            <button type="button" wire:click="applySidebarVisualPreset('{{ $key }}')" class="rounded-xl border border-slate-200 p-3 text-left transition hover:border-indigo-400 hover:shadow-sm">
+                                <span class="mb-2 block text-sm font-semibold text-slate-900">{{ $preset['name'] }}</span>
+                                <span class="block space-y-1 rounded-lg p-2" style="background:{{ $preset['background'] }}">
+                                    @foreach(['normal' => 'Normal', 'hover' => 'Hover', 'active' => 'Active'] as $state => $label)
+                                        <span class="block rounded-md px-2 py-1.5 text-xs font-semibold" style="background:{{ $preset[$state]['background'] }};color:{{ $preset[$state]['title'] }}">{{ $label }}</span>
+                                    @endforeach
+                                </span>
+                                <span class="mt-2 block text-xs text-indigo-600">Áp dụng bộ màu →</span>
+                            </button>
+                        @endforeach
+                    </div>
+                    @if(count((array) data_get($config, 'sidebar.visual_presets', [])))
+                        <h3 class="mb-2 mt-5 text-sm font-semibold text-slate-900">Bộ màu của bạn</h3>
+                        <div class="flex flex-wrap gap-2">
+                            @foreach((array) data_get($config, 'sidebar.visual_presets', []) as $key => $preset)
+                                <button type="button" wire:click="applySidebarVisualPreset('{{ $key }}')" class="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm text-indigo-700">{{ $preset['name'] }}</button>
+                            @endforeach
+                        </div>
+                    @endif
+                    <div class="mt-5 flex flex-wrap items-end gap-3 border-t border-slate-100 pt-4">
+                        <label class="min-w-0 flex-1 text-sm font-medium text-slate-700">Tên bộ màu tùy chỉnh
+                            <input type="text" maxlength="40" wire:model="presetName" placeholder="Ví dụ: FlexBiz Custom" class="mt-1 block h-10 w-full rounded-xl border-slate-300 text-sm">
+                        </label>
+                        <button type="button" wire:click="saveSidebarVisualPreset" class="h-10 rounded-xl border border-indigo-200 bg-indigo-50 px-4 text-sm font-semibold text-indigo-700 hover:bg-indigo-100">Lưu bộ màu hiện tại</button>
+                    </div>
+                    @error('presetName') <p class="mt-2 text-xs text-red-600">{{ $message }}</p> @enderror
+                    <p class="mt-2 text-xs text-slate-500">Tối đa 6 bộ tùy chỉnh. Lưu bộ màu không thay thế thao tác Lưu Sidebar.</p>
+                </section>
+
                 <div id="sidebar-menu" x-cloak x-show="activeTab === 'menu'" x-data="{ section: 'menu', advancedMenu: false }" class="space-y-3">
                     <div class="rounded-xl border border-indigo-100 bg-indigo-50/50 p-4 text-sm text-slate-700">
                         <strong>Menu Sidebar</strong> — Thiết lập Normal, Hover, Active và SubMenu tại đây. Dữ liệu dùng chung với Theme Editor, không tạo cấu hình trùng.
