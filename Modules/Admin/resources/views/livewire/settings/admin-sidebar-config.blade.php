@@ -103,7 +103,7 @@
                     @endif
                     <div class="mt-5 flex flex-wrap items-end gap-3 border-t border-slate-100 pt-4">
                         <label class="min-w-0 flex-1 text-sm font-medium text-slate-700">Tên bộ màu tùy chỉnh
-                            <input type="text" maxlength="40" wire:model="presetName" placeholder="Ví dụ: FlexBiz Custom" class="mt-1 block h-10 w-full rounded-xl border-slate-300 text-sm">
+                            <input type="text" maxlength="40" wire:model="presetName" placeholder="Ví dụ: FlexBiz Custom" class="mt-1 block h-10 w-full rounded-xl border border-solid border-slate-200 bg-white px-3 text-sm text-slate-800 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-indigo-400 focus:ring-1 focus:ring-indigo-100">
                         </label>
                         <button type="button" wire:click="saveSidebarVisualPreset" class="h-10 rounded-xl border border-indigo-200 bg-indigo-50 px-4 text-sm font-semibold text-indigo-700 hover:bg-indigo-100">Lưu bộ màu hiện tại</button>
                     </div>
