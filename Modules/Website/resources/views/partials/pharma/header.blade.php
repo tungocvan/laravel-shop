@@ -1,6 +1,10 @@
 @php
     $settings = app(\Modules\System\Services\SettingsService::class);
-    $companyName = (string) $settings->get('site_name', 'Dược phẩm');
+    $companyName = (string) ($settings->get('header.brand_name') ?: $settings->get('site_name', 'Dược phẩm'));
+    $brandLogo = $settings->get('header.brand_logo') ?: $settings->get('site_logo');
+    $brandLogoUrl = is_string($brandLogo) && trim($brandLogo) !== ''
+        ? (preg_match('~^https?://~i', $brandLogo) ? $brandLogo : asset('storage/'.ltrim($brandLogo, '/')))
+        : null;
     $savedLayout = $settings->get('website.pharma_header.layout');
     $rawLayout = is_array($savedLayout) ? $savedLayout : (array) config('website.header.pharma_layout', []);
     $headerLayout = app(\Modules\Website\Services\HeaderLayoutService::class)->resolvedLayout($rawLayout);
@@ -58,7 +62,11 @@
                 @foreach($headerLayout[$slot] ?? [] as $component)
                     @if($component['type'] === 'brand')
                         <a href="{{ route('home') }}" class="flex min-w-0 max-w-full items-center gap-2 sm:gap-3" aria-label="Về trang chủ">
-                            <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-2xl font-bold text-white shadow-sm" style="background:var(--pharma-header-accent);max-height:{{ $brandHeight }}px" aria-hidden="true">+</span>
+                            @if($brandLogoUrl)
+                                <img src="{{ $brandLogoUrl }}" alt="{{ $companyName }}" class="max-w-40 shrink-0 object-contain" style="max-height:{{ $brandHeight }}px">
+                            @else
+                                <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-2xl font-bold text-white shadow-sm" style="background:var(--pharma-header-accent);max-height:{{ $brandHeight }}px" aria-hidden="true">{{ mb_substr($companyName, 0, 1) }}</span>
+                            @endif
                             <span class="min-w-0"><span class="block truncate text-base font-extrabold sm:text-lg">{{ $companyName }}</span><span class="hidden text-xs font-medium sm:block" style="color:var(--pharma-header-accent)">Danh mục và thông tin dược phẩm</span></span>
                         </a>
                     @elseif($component['type'] === 'actions')
@@ -97,8 +105,12 @@
                     <div class="absolute inset-0 bg-slate-950/50" @click="menuOpen = false" aria-hidden="true"></div>
                     <aside id="pharma-mobile-menu" x-show="menuOpen" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full" role="dialog" aria-modal="true" aria-label="Menu điều hướng Pharma" class="absolute inset-y-0 right-0 flex h-full w-[min(88vw,360px)] flex-col overflow-hidden bg-white text-slate-900 shadow-2xl">
                         <div class="flex shrink-0 items-center justify-between border-b border-slate-100 px-4 py-3">
-                            <a href="{{ route('home') }}" class="flex min-w-0 items-center gap-2" aria-label="FlexBiz - về trang chủ">
-                                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xl font-bold text-white" style="background:var(--pharma-header-accent)" aria-hidden="true">+</span>
+                            <a href="{{ route('home') }}" class="flex min-w-0 items-center gap-2" aria-label="{{ $companyName }} - về trang chủ">
+                                @if($brandLogoUrl)
+                                    <img src="{{ $brandLogoUrl }}" alt="{{ $companyName }}" class="max-w-32 shrink-0 object-contain" style="max-height:{{ min($brandHeight, 40) }}px">
+                                @else
+                                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xl font-bold text-white" style="background:var(--pharma-header-accent)" aria-hidden="true">{{ mb_substr($companyName, 0, 1) }}</span>
+                                @endif
                                 <span class="min-w-0"><span class="block truncate text-sm font-extrabold">{{ $companyName }}</span><span class="block truncate text-xs text-slate-500">Danh mục dược phẩm</span></span>
                             </a>
                             <button type="button" @click="menuOpen = false" aria-label="Đóng menu" class="flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 text-xl">×</button>
