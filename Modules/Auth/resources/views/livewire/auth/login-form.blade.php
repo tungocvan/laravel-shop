@@ -1,6 +1,10 @@
 @php
     $theme = $presentation['theme'] ?? 'classic-card';
-    $backgroundUrl = $presentation['background_url'] ?? null;
+    $backgroundUrl = ($presentation['background_type'] ?? 'image') === 'image' ? ($presentation['background_url'] ?? null) : null;
+    $backgroundColor = $presentation['background_color'] ?? '#f1f5f9';
+    $formBackgroundColor = $presentation['form_background_color'] ?? '#ffffff';
+    $logoSize = $presentation['logo_size'] ?? 'large';
+    $logoWidth = ['small' => '100px', 'medium' => '160px', 'large' => '220px'][$logoSize] ?? '220px';
     $primaryColor = $presentation['primary_color'] ?? '#0f172a';
     $overlayOpacity = ((int) ($presentation['overlay_opacity'] ?? 55)) / 100;
     $showGoogle = (bool) ($presentation['show_google'] ?? true);
@@ -10,9 +14,7 @@
 
 <div
     class="relative flex min-h-screen w-screen overflow-hidden {{ $theme === 'minimal' ? 'bg-white' : 'bg-slate-100' }}"
-    @if($backgroundUrl)
-        style="background-image: url('{{ $backgroundUrl }}'); background-size: cover; background-position: center;"
-    @endif
+    style="background-color: {{ $backgroundColor }}; @if($backgroundUrl) background-image: url('{{ $backgroundUrl }}'); background-size: cover; background-position: center; @endif"
 >
     @if($backgroundUrl)
         <div class="absolute inset-0 bg-black" style="opacity: {{ $overlayOpacity }}"></div>
@@ -30,10 +32,10 @@
         @endif
 
         <main class="flex w-full items-center justify-center {{ $theme === 'split-brand' ? 'lg:w-1/2' : '' }}">
-            <div class="w-full max-w-md {{ $theme === 'minimal' ? 'bg-white shadow-none' : ($theme === 'hero-overlay' ? 'bg-white/90 shadow-2xl backdrop-blur-md' : 'bg-white shadow-xl') }} rounded-2xl border {{ $theme === 'minimal' ? 'border-transparent' : 'border-white/60' }} p-6 sm:p-8">
+            <div class="w-full max-w-md {{ $theme === 'minimal' ? 'bg-white shadow-none' : ($theme === 'hero-overlay' ? 'bg-white/90 shadow-2xl backdrop-blur-md' : 'bg-white shadow-xl') }} rounded-2xl border {{ $theme === 'minimal' ? 'border-transparent' : 'border-white/60' }} p-6 sm:p-8" style="background-color: {{ $formBackgroundColor }};">
                 <div class="text-center">
                     @if($logo)
-                        <img src="{{ $logo }}" class="mx-auto h-24 w-24 object-contain sm:h-28 sm:w-28" alt="Logo {{ $login_name_line_2 }}">
+                        <img src="{{ $logo }}" class="mx-auto h-auto max-w-full object-contain" style="width: {{ $logoWidth }}; max-height: 140px;" alt="Logo {{ $login_name_line_2 }}">
                     @endif
 
                     @if($theme !== 'split-brand')
