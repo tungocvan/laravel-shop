@@ -73,6 +73,7 @@ class AdminLayoutConfig extends Component
     }
 
     public string $presetName = '';
+    public bool $presetIncludeTypography = true;
 
     public function sidebarVisualPresets(): array
     {
@@ -113,6 +114,15 @@ class AdminLayoutConfig extends Component
             data_set($this->config, $prefix.$mode, $preset[$state]['background'] === 'transparent' ? 'transparent' : 'color');
             if ($preset[$state]['background'] !== 'transparent') data_set($this->config, $prefix.$color, $preset[$state]['background']);
         }
+        // Legacy color-only presets intentionally leave typography untouched.
+        $typography = data_get($preset, 'typography');
+        if (is_array($typography)) {
+            foreach (['font_family', 'font_size', 'font_weight', 'icon_size'] as $field) {
+                if (array_key_exists($field, $typography)) {
+                    data_set($this->config, 'design.sidebar_menu.item.'.$field, $typography[$field]);
+                }
+            }
+        }
         $this->dispatch('sidebar-preset-applied', background: $preset['background'], accent: data_get($this->config, 'sidebar.presentation.custom_accent'));
     }
 
@@ -136,6 +146,12 @@ class AdminLayoutConfig extends Component
             'hover' => ['title' => $read('item.hover_title_color', '#064E3B'), 'icon' => $read('item.hover_icon_color', '#064E3B'), 'background' => $read('item.hover_background_mode', 'transparent') === 'color' ? $read('item.hover_background_color', '#D1FAE5') : 'transparent'],
             'active' => ['title' => $read('active.title_color', '#065F46'), 'icon' => $read('active.icon_color', '#065F46'), 'background' => $read('active.menu_background_mode', 'transparent') === 'color' ? $read('active.menu_background_color', '#FFFFFF') : 'transparent'],
         ];
+        if ($this->presetIncludeTypography) {
+            $current['custom_'.(count($current))]['typography'] = array_intersect_key(
+                (array) data_get($this->config, 'design.sidebar_menu.item', []),
+                array_flip(['font_family', 'font_size', 'font_weight', 'icon_size'])
+            );
+        }
         $payload = $manager->config();
         data_set($payload, 'sidebar.visual_presets', $current);
         $manager->save($payload);
