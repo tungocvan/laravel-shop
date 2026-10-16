@@ -473,7 +473,9 @@ class HeaderSettingsHub extends Component
             return;
         }
 
-        $visibility = $explicit ?? ($desktopVisible && $mobileVisible ? 'both' : ($desktopVisible ? 'desktop' : ($mobileVisible ? 'mobile' : 'hidden')));
+        $visibility = ($explicit === null || ($explicit === 'hidden' && $mobileVisible))
+            ? ($desktopVisible && $mobileVisible ? 'both' : ($desktopVisible ? 'desktop' : ($mobileVisible ? 'mobile' : 'hidden')))
+            : $explicit;
         $search['enabled'] = $visibility !== 'hidden';
         $search['config'] = is_array($search['config'] ?? null) ? $search['config'] : [];
         $search['config']['visibility'] = $visibility;
