@@ -60,6 +60,13 @@
                     </div>
                 </section>
 
+                <div x-data="{ section: 'menu', advancedMenu: false }" class="space-y-3">
+                    <div class="rounded-xl border border-indigo-100 bg-indigo-50/50 p-4 text-sm text-slate-700">
+                        <strong>Menu Sidebar</strong> — Thiết lập Normal, Hover, Active và SubMenu tại đây. Dữ liệu dùng chung với Theme Editor, không tạo cấu hình trùng.
+                    </div>
+                    @include('Admin::livewire.settings.partials.sidebar-menu-designer')
+                </div>
+
                 <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" data-admin-sidebar-width-settings>
                     <div class="mb-5"><h2 class="text-base font-semibold text-slate-900">Kích thước & hành vi</h2><p class="mt-1 text-sm leading-6 text-slate-500">Giữ Sidebar gọn trên desktop, drawer trên mobile và nhớ trạng thái nếu cần.</p></div>
                     <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
