@@ -99,4 +99,20 @@ class SidebarMenuConsolidationContractTest extends TestCase
         }
     }
 
+    public function test_sidebar_layout_presets_can_be_saved_and_reapplied(): void
+    {
+        $component = file_get_contents(base_path('Modules/Admin/Livewire/Settings/AdminLayoutConfig.php'));
+        $sidebar = file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/admin-sidebar-config.blade.php'));
+        $designer = file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/partials/sidebar-menu-designer.blade.php'));
+
+        $this->assertStringContainsString('function applySidebarLayoutPreset(', $component);
+        $this->assertStringContainsString("'compact'", $component);
+        $this->assertStringContainsString("'comfortable'", $component);
+        $this->assertStringContainsString("'spacious'", $component);
+        $this->assertStringContainsString("data_get(\$preset, 'layout')", $component);
+        $this->assertStringContainsString("if (\$this->presetIncludeLayout)", $component);
+        $this->assertStringContainsString('wire:model="presetIncludeLayout"', $sidebar);
+        $this->assertStringContainsString('wire:click="applySidebarLayoutPreset(', $designer);
+    }
+
 }
