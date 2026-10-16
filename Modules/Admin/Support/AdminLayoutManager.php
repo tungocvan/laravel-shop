@@ -99,6 +99,7 @@ class AdminLayoutManager
             'search' => [
                 'enabled' => (bool) data_get($this->defaults, 'sidebar.search.enabled', true),
             ],
+            'visual_presets' => $this->normalizeSidebarVisualPresets((array) data_get($sidebar, 'visual_presets', [])),
             'presentation' => [
                 'background' => $this->normalizeSidebarBackgroundMode(data_get($this->defaults, 'sidebar.presentation.background', 'theme')),
                 'custom_background' => $this->normalizeHexColor(data_get($this->defaults, 'sidebar.presentation.custom_background'), '#0f172a'),
@@ -256,6 +257,14 @@ class AdminLayoutManager
                 'max_depth' => max(1, min(3, (int) data_get($payload, 'navigation.max_depth', data_get($defaults, 'navigation.max_depth')))),
             ],
         ];
+    }
+
+    private function normalizeSidebarVisualPresets(array $presets): array
+    {
+        return array_filter(array_slice($presets, 0, 6, true), static function ($preset, $key): bool {
+            return is_array($preset) && str_starts_with((string) $key, 'custom_')
+                && isset($preset['name'], $preset['background'], $preset['normal'], $preset['hover'], $preset['active']);
+        }, ARRAY_FILTER_USE_BOTH);
     }
 
     private function normalizeSidebar(array $sidebar, array $defaults): array
