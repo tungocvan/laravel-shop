@@ -26,4 +26,18 @@ class SidebarMenuConsolidationContractTest extends TestCase
         $this->assertStringContainsString('isMenuColorReference', $source);
         $this->assertStringContainsString('array_replace_recursive($manager->config(), $validated)', $source);
     }
+    public function test_sidebar_studio_has_six_tabs_and_preserves_single_save_form(): void
+    {
+        $view = file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/admin-sidebar-config.blade.php'));
+
+        foreach (['overview', 'colors', 'menu', 'layout', 'header', 'footer'] as $tab) {
+            $this->assertStringContainsString("'".$tab."' =>", $view);
+            $this->assertStringContainsString("activeTab === '".$tab."'", $view);
+        }
+
+        $this->assertSame(1, substr_count($view, 'wire:submit="save"'));
+        $this->assertStringContainsString('id="sidebar-menu"', $view);
+        $this->assertStringContainsString("window.history.replaceState", $view);
+    }
+
 }
