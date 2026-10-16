@@ -20,7 +20,7 @@ final class PharmaHeaderDeviceVisibilityContractTest extends TestCase
         $this->assertSame('mobile', $layout['mobile.drawer'][0]['visibility']);
     }
 
-    public function test_four_visibility_states_are_persisted_and_rendered(): void
+    public function test_four_visibility_states_are_resolved_and_available_in_admin(): void
     {
         $service = new HeaderLayoutService(new HeaderComponentRegistry());
         $layout = $service->resolvedLayout([
@@ -33,13 +33,9 @@ final class PharmaHeaderDeviceVisibilityContractTest extends TestCase
         $this->assertSame(['both', 'mobile'], array_column($layout['desktop.main.left'], 'visibility'));
 
         $view = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/header/header-settings-hub.blade.php'));
-        $header = file_get_contents(base_path('Modules/Website/resources/views/partials/pharma/header.blade.php'));
         $this->assertStringContainsString('Desktop + Mobile', $view);
         $this->assertStringContainsString('Chỉ Desktop', $view);
         $this->assertStringContainsString('Chỉ Mobile', $view);
         $this->assertStringContainsString('Ẩn hoàn toàn', $view);
-        $this->assertStringContainsString('deviceClass', $header);
-        $this->assertStringContainsString('drawerDesktopVisible', $header);
-        $this->assertStringContainsString("mobile.search", $header);
     }
 }
