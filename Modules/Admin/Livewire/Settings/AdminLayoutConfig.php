@@ -144,7 +144,7 @@ class AdminLayoutConfig extends Component
         if ($this->section === 'sidebar') {
             $designService = app(AdminDesignService::class);
             $validated['design']['sidebar_menu'] = data_get($validated, 'design.sidebar_menu', []);
-            $validated['design']['sidebar_menu'] = data_get($designService->sanitize(['sidebar_menu' => $validated['design']['sidebar_menu']]), 'sidebar_menu');
+            $validated['design']['sidebar_menu'] = data_get($designService->sanitize(array_replace_recursive((array) data_get($manager->config(), 'design', []), ['sidebar_menu' => $validated['design']['sidebar_menu']])), 'sidebar_menu');
         }
         $manager->save(array_replace_recursive($manager->config(), $validated));
         $this->config = $manager->config();
