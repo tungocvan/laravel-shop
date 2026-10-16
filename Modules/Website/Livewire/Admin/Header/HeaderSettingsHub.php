@@ -443,6 +443,7 @@ class HeaderSettingsHub extends Component
         }
 
         $search = null;
+        $searchSlot = 'desktop.main.right';
         $desktopVisible = false;
         $mobileVisible = false;
         $explicit = null;
@@ -454,7 +455,12 @@ class HeaderSettingsHub extends Component
                     $kept[] = $item;
                     continue;
                 }
-                $search ??= $item;
+                if ($search === null || ($searchSlot === 'desktop.main.right' && $slot !== 'mobile.search')) {
+                    $search = $item;
+                    if (str_starts_with($slot, 'desktop.main.')) {
+                        $searchSlot = $slot;
+                    }
+                }
                 $visibility = $item['config']['visibility'] ?? (($item['enabled'] ?? true) ? (str_starts_with($slot, 'mobile.') ? 'mobile' : 'desktop') : 'hidden');
                 if ($slot !== 'mobile.search' && array_key_exists('visibility', $item['config'] ?? [])) {
                     $explicit = $visibility;
@@ -479,7 +485,7 @@ class HeaderSettingsHub extends Component
         $search['enabled'] = $visibility !== 'hidden';
         $search['config'] = is_array($search['config'] ?? null) ? $search['config'] : [];
         $search['config']['visibility'] = $visibility;
-        $this->builderSlots['desktop.main.right'][] = $search;
+        $this->builderSlots[$searchSlot][] = $search;
     }
 
     public function setPharmaComponentPosition(string $slot, int $index, string $position, HeaderComponentRegistry $registry): void
