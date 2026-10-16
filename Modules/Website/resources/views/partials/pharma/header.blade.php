@@ -39,13 +39,22 @@
     $desktopMenu = $menuService->getMenuTreeByLocation('pharma_primary');
     $mobileMenu = $menuService->getMenuTreeByLocation('pharma_mobile');
     if ($mobileMenu->isEmpty()) $mobileMenu = $desktopMenu;
+    $visibilityClass = static fn (string $visibility): string => match ($visibility) {
+        'both' => 'flex',
+        'desktop' => 'hidden lg:flex',
+        'mobile' => 'flex lg:hidden',
+        default => 'hidden',
+    };
+    $topbarVisibleDesktop = (bool) ($topbarConfig['show_desktop'] ?? true);
+    $topbarVisibleMobile = (bool) ($topbarConfig['show_mobile'] ?? false);
+    $topbarVisibility = $topbarVisibleDesktop && $topbarVisibleMobile ? 'both' : ($topbarVisibleDesktop ? 'desktop' : ($topbarVisibleMobile ? 'mobile' : 'hidden'));
     $fallbackMenu = [['title' => 'Trang chủ', 'url' => route('home')], ['title' => 'Danh mục dược phẩm', 'url' => route('product.list')]];
 @endphp
 <div style="display: contents; --pharma-header-accent: {{ $accent }}; --pharma-header-bg: {{ $background }}; --pharma-header-text: {{ $foreground }};">
     @if(($topbarConfig['enabled'] ?? true))
         @foreach($headerLayout['desktop.topbar'] ?? [] as $component)
             @if($component['type'] === 'topbar')
-                <div class="{{ ($topbarConfig['show_mobile'] ?? false) ? 'block' : 'hidden' }} {{ ($topbarConfig['show_desktop'] ?? true) ? 'md:block' : 'md:hidden' }} border-b border-slate-800/20" style="background: {{ $topbarBackground }}; color: {{ $topbarForeground }};">
+                <div class="{{ $topbarVisibility === 'both' ? 'block' : ($topbarVisibility === 'mobile' ? 'block lg:hidden' : ($topbarVisibility === 'desktop' ? 'hidden lg:block' : 'hidden')) }} border-b border-slate-800/20" style="background: {{ $topbarBackground }}; color: {{ $topbarForeground }};">
                     <div class="mx-auto flex flex-wrap items-center justify-between gap-x-6 gap-y-2 px-5 py-2 text-xs sm:px-8" style="max-width: {{ $headerWidth ? $headerWidth.'px' : '1280px' }}; min-height: {{ $topbarHeight }}px">
                         <div class="flex flex-wrap items-center gap-x-5 gap-y-1.5">
                             @if(trim((string) ($topbarConfig['left_text'] ?? 'THÔNG TIN DƯỢC PHẨM · TRA CỨU VÀ THAM KHẢO')) !== '')
