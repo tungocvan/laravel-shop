@@ -83,10 +83,10 @@
     <header class="{{ ($presentation['sticky'] ?? true) ? 'sticky top-0' : 'relative' }} z-40 border-b border-slate-200" style="background:var(--pharma-header-bg);color:var(--pharma-header-text);box-shadow:{{ $shadow }}" x-data="{ menuOpen: false }" @keydown.escape.window="menuOpen = false">
         <div class="mx-auto flex w-full min-w-0 items-center gap-2 px-3 py-3 sm:gap-3 sm:px-6 lg:gap-6 lg:px-8" style="max-width:{{ $headerWidth ? $headerWidth.'px' : '1280px' }};min-height:{{ (int)($presentation['heights']['desktop'] ?? 80) }}px">
             @foreach(['desktop.main.left','desktop.main.center','desktop.main.right'] as $slot)
-                <div class="{{ $slot === 'desktop.main.left' ? 'flex min-w-0 flex-1 items-center lg:flex-none' : ($slot === 'desktop.main.center' ? 'hidden min-w-0 flex-1 items-center justify-center gap-5 lg:flex' : 'ml-auto hidden min-w-0 items-center justify-end gap-4 lg:flex') }}">
+                <div class="{{ $slot === 'desktop.main.left' ? 'flex min-w-0 flex-1 items-center lg:flex-none' : ($slot === 'desktop.main.center' ? 'flex min-w-0 flex-1 items-center justify-center gap-5' : 'ml-auto flex min-w-0 items-center justify-end gap-4') }}">
                 @foreach($headerLayout[$slot] ?? [] as $component)
                     @if($component['type'] === 'brand')
-                        <a href="{{ route('home') }}" class="flex min-w-0 max-w-full items-center gap-2 sm:gap-3" aria-label="Về trang chủ">
+                        <a href="{{ route('home') }}" class="{{ $visibilityClass($component['visibility'] ?? 'desktop') }} min-w-0 max-w-full items-center gap-2 sm:gap-3" aria-label="Về trang chủ">
                             @if($brandLogoUrl)
                                 <img src="{{ $brandLogoUrl }}" alt="{{ $companyName }}" class="max-w-40 shrink-0 object-contain" style="max-height:{{ $brandHeight }}px">
                             @else
@@ -95,7 +95,7 @@
                             <span class="min-w-0"><span class="block truncate text-base font-extrabold sm:text-lg">{{ $companyName }}</span><span class="hidden text-xs font-medium sm:block" style="color:var(--pharma-header-accent)">Danh mục và thông tin dược phẩm</span></span>
                         </a>
                     @elseif($component['type'] === 'actions')
-                        <nav aria-label="Điều hướng Pharma" class="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm font-semibold">
+                        <nav aria-label="Điều hướng Pharma" class="{{ $visibilityClass($component['visibility'] ?? 'desktop') }} flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm font-semibold">
                             @foreach($desktopMenu->isNotEmpty() ? $desktopMenu : $fallbackMenu as $item)
                                 @php($itemUrl = is_array($item) ? $item['url'] : $item->url)
                                 @php($itemTitle = is_array($item) ? $item['title'] : $item->title)
@@ -103,7 +103,7 @@
                             @endforeach
                         </nav>
                     @elseif($component['type'] === 'search')
-                        <form action="{{ route('product.list') }}" method="GET" role="search" class="flex min-w-0 items-center gap-2" style="max-width:{{ $searchWidth }}px">
+                        <form action="{{ route('product.list') }}" method="GET" role="search" class="{{ $visibilityClass($component['visibility'] ?? 'desktop') }} min-w-0 items-center gap-2" style="max-width:{{ $searchWidth }}px">
                             <label class="sr-only" for="pharma-header-search-{{ str_replace('.', '-', $slot) }}">Tìm sản phẩm dược phẩm</label>
                             <input id="pharma-header-search-{{ str_replace('.', '-', $slot) }}" name="search" type="search" value="{{ request('search') }}" placeholder="Tên thuốc, hoạt chất..." class="w-32 min-w-0 rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm focus:outline-none xl:w-48 2xl:w-56">
                             <button type="submit" class="rounded-xl px-4 py-2 text-sm font-bold text-white" style="background:var(--pharma-header-accent)">Tra cứu →</button>
