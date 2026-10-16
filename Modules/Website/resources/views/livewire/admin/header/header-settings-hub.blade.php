@@ -1,5 +1,5 @@
 <div class="w-full px-3 py-5 sm:px-6"
-    x-data="{ tab: @entangle('activeTab'), previewDevice: 'desktop', drag: null, showLayoutTools: false, showThemeLibrary: false, showAccountSettings: false, showTopbarSettings: true, showAppearanceSettings: false }">
+    x-data="{ tab: @entangle('activeTab'), previewDevice: 'desktop', drag: null, showLayoutTools: false, showThemeLibrary: false, showAccountSettings: false, showTopbarSettings: true, showAppearanceSettings: false, pharmaVisibilityOverrides: {} }">
     <div class="mb-6">
         <h2 class="text-2xl font-bold text-gray-800">Thiết kế Header Website</h2>
         <p class="text-sm text-gray-500">Chọn giao diện, xem trước theo thiết bị và chỉ mở các thiết lập chuyên sâu khi cần.</p>
@@ -71,7 +71,11 @@
             </div>
             <div class="flex gap-2">
                 <button type="button" wire:click="resetBuilder" class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Khôi phục mặc định</button>
-                <button type="button" wire:click="saveBuilder" wire:loading.attr="disabled" wire:target="saveBuilder" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">Lưu bố cục</button>
+                @if($editingTemplate === 'pharma')
+                    <button type="button" @click="$wire.savePharmaBuilder(pharmaVisibilityOverrides).then(() => { pharmaVisibilityOverrides = {}; })" wire:loading.attr="disabled" wire:target="savePharmaBuilder" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">Lưu bố cục</button>
+                @else
+                    <button type="button" wire:click="saveBuilder" wire:loading.attr="disabled" wire:target="saveBuilder" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">Lưu bố cục</button>
+                @endif
             </div>
         </div>
 
@@ -120,16 +124,8 @@
                                 </div>
                                 <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 md:w-[440px]">
                                     <label class="block text-xs font-medium text-slate-600">Hiển thị
-                                        <select x-data="{ visibility: @js($deviceVisibility) }"
-                                                x-model="visibility"
-                                                x-on:change="
-                                                    const slots = JSON.parse(JSON.stringify($wire.get('builderSlots')));
-                                                    const item = slots[@js($slotKey)][{{ $index }}];
-                                                    item.config = item.config || {};
-                                                    item.config.visibility = visibility;
-                                                    item.enabled = visibility !== 'hidden';
-                                                    $wire.set('builderSlots', slots, false);
-                                                "
+                                        <select x-bind:value="pharmaVisibilityOverrides[@js($item['type'])] ?? @js($deviceVisibility)"
+                                                x-on:change="pharmaVisibilityOverrides[@js($item['type'])] = $event.target.value"
                                                 aria-label="Hiển thị {{ $definition['label'] ?? ($item['type'] ?? 'thành phần') }}" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-2 py-2 text-sm">
                                             @if(!$isDrawer)
                                                 <option value="both" @selected($deviceVisibility === 'both')>Desktop + Mobile</option>
