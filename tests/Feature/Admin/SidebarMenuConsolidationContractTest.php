@@ -22,7 +22,7 @@ class SidebarMenuConsolidationContractTest extends TestCase
         $source = file_get_contents(base_path('Modules/Admin/Livewire/Settings/AdminLayoutConfig.php'));
 
         $this->assertStringContainsString("'design' => ['sidebar_menu' => data_get(", $source);
-        $this->assertStringContainsString("'design.sidebar_menu.'.$area", $source);
+        $this->assertStringContainsString("'design.sidebar_menu.'.\$area", $source);
         $this->assertStringContainsString('isMenuColorReference', $source);
         $this->assertStringContainsString('array_replace_recursive($manager->config(), $validated)', $source);
     }
