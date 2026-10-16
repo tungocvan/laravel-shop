@@ -271,7 +271,31 @@ class HeaderSettingsHub extends Component
         }
         unset($items);
 
-        $this->saveBuilder($settingsService, $registry, $presentationService);
+        // Save the already-normalized layout once. A second normalization inside
+        // saveBuilder() can reinterpret hidden Search visibility as a legacy
+        // desktop/mobile combination and silently overwrite the user's choice.
+        $layout = $this->safeLayout($this->builderSlots, $registry);
+        $presentation = $presentationService->resolve($this->presentation);
+        $key = $this->settingKey('layout');
+
+        $settingsService->updateMany([
+            $key => $layout,
+            $this->settingKey('presentation') => $presentation,
+        ], 'header');
+
+        // Verify actual storage read-back before reporting success.
+        $stored = $settingsService->get($key);
+        if (! is_array($stored) || $stored !== $layout) {
+            $this->addError('builder', 'Không thể xác nhận bố cục đã được lưu. Vui lòng thử lại.');
+            return;
+        }
+
+        $this->presentation = $presentation;
+        $this->loadBuilderLayout($stored);
+        $this->dispatch('show-toast', [[
+            'type' => 'success',
+            'message' => 'Đã lưu và xác nhận bố cục Header.',
+        ]]);
     }
 
     public function saveBuilder(
