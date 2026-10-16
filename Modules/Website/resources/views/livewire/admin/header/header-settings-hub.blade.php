@@ -91,7 +91,7 @@
         @include('Website::livewire.admin.header.partials.builder-preview')
         <section class="rounded-xl border border-gray-200 bg-white p-4">
             <button type="button" @click="showLayoutTools = !showLayoutTools" :aria-expanded="showLayoutTools.toString()" aria-controls="header-layout-tools" class="flex w-full items-center justify-between gap-3 text-left text-sm font-semibold text-gray-800">
-                <span>Bố cục nâng cao <span class="ml-2 text-xs font-normal text-gray-500">Sắp xếp, chọn thiết bị hiển thị và chuyển vị trí thành phần. Mỗi vị trí chỉ hỗ trợ thiết bị tương ứng</span></span>
+                <span>Bố cục nâng cao <span class="ml-2 text-xs font-normal text-gray-500">Sắp xếp, chọn thiết bị hiển thị và chuyển vị trí thành phần</span></span>
                 <span x-text="showLayoutTools ? 'Thu gọn −' : 'Mở công cụ +'"></span>
             </button>
             <div id="header-layout-tools" x-show="showLayoutTools" x-cloak class="mt-4">
@@ -131,18 +131,13 @@
                                             <div class="mt-1 text-xs text-gray-500">{{ $item['type'] ?? '' }}</div>
                                         </div>
                                     </div>
-                                    <label class="shrink-0 text-xs font-medium text-slate-600">Hiển thị
-                                        <select wire:change="setComponentVisibility('{{ $slotKey }}', {{ $index }}, $event.target.value)" aria-label="Hiển thị {{ $definition['label'] ?? ($item['type'] ?? 'thành phần') }}" class="mt-1 block w-full max-w-40 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs">
-                                            @if($slotKey === 'desktop.topbar')
-                                                <option value="both" @selected($enabled)>Theo cấu hình Topbar</option>
-                                            @elseif(str_starts_with($slotKey, 'desktop.'))
-                                                <option value="desktop" @selected($enabled)>Hiển thị Desktop</option>
-                                            @else
-                                                <option value="mobile" @selected($enabled)>Hiển thị Mobile</option>
-                                            @endif
-                                            <option value="hidden" @selected(!$enabled)>Ẩn</option>
-                                        </select>
-                                    </label>
+                                    <select wire:change="setComponentVisibility('{{ $slotKey }}', {{ $index }}, $event.target.value)" aria-label="Thiết bị hiển thị {{ $definition['label'] ?? ($item['type'] ?? 'thành phần') }}" class="w-40 shrink-0 rounded-lg border border-slate-300 bg-white px-2 py-2 text-xs">
+                                        @php($deviceVisibility = $item['config']['visibility'] ?? ($enabled ? (str_starts_with($slotKey, 'mobile.') ? 'mobile' : 'desktop') : 'hidden'))
+                                        <option value="both" @selected($deviceVisibility === 'both')>Desktop + Mobile</option>
+                                        <option value="desktop" @selected($deviceVisibility === 'desktop')>Chỉ Desktop</option>
+                                        <option value="mobile" @selected($deviceVisibility === 'mobile')>Chỉ Mobile</option>
+                                        <option value="hidden" @selected($deviceVisibility === 'hidden')>Ẩn hoàn toàn</option>
+                                    </select>
                                 </div>
 
                                 <div class="mt-3 flex items-center gap-2">
