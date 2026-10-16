@@ -48,6 +48,8 @@
     $topbarVisibleDesktop = (bool) ($topbarConfig['show_desktop'] ?? true);
     $topbarVisibleMobile = (bool) ($topbarConfig['show_mobile'] ?? false);
     $topbarVisibility = $topbarVisibleDesktop && $topbarVisibleMobile ? 'both' : ($topbarVisibleDesktop ? 'desktop' : ($topbarVisibleMobile ? 'mobile' : 'hidden'));
+    $drawerVisibility = collect($headerLayout['mobile.drawer'] ?? [])->firstWhere('type', 'mobile-menu')['visibility'] ?? 'hidden';
+    $drawerEnabled = $drawerVisibility !== 'hidden';
     $fallbackMenu = [['title' => 'Trang chủ', 'url' => route('home')], ['title' => 'Danh mục dược phẩm', 'url' => route('product.list')]];
 @endphp
 <div style="display: contents; --pharma-header-accent: {{ $accent }}; --pharma-header-bg: {{ $background }}; --pharma-header-text: {{ $foreground }};">
@@ -115,8 +117,17 @@
             <div class="ml-auto hidden min-w-0 shrink-0 items-center justify-end lg:ml-0 lg:flex">
                 @include('Website::partials.pharma.account-dropdown', ['accountConfig' => $accountConfig])
             </div>
-            @if(!empty($headerLayout['mobile.drawer']))
-                <button type="button" class="ml-auto inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-slate-300 text-slate-700 transition active:scale-[0.985] lg:hidden" @click="menuOpen = !menuOpen" :aria-expanded="menuOpen.toString()" aria-controls="pharma-mobile-menu" aria-label="Mở menu điều hướng" title="Menu">
+            @foreach($headerLayout['mobile.search'] ?? [] as $mobileSearch)
+                @if(($mobileSearch['type'] ?? null) === 'search')
+                    <form action="{{ route('product.list') }}" method="GET" role="search" class="{{ $visibilityClass($mobileSearch['visibility'] ?? 'mobile') }} min-w-0 items-center gap-2">
+                        <label class="sr-only" for="pharma-mobile-search">Tìm sản phẩm dược phẩm</label>
+                        <input id="pharma-mobile-search" name="search" type="search" value="{{ request('search') }}" placeholder="Tìm thuốc..." class="w-24 min-w-0 rounded-lg border border-slate-300 px-2 py-2 text-sm sm:w-40">
+                        <button type="submit" class="rounded-lg px-2 py-2 text-sm font-semibold text-white" style="background:var(--pharma-header-accent)">Tìm</button>
+                    </form>
+                @endif
+            @endforeach
+            @if($drawerEnabled)
+                <button type="button" class="ml-auto {{ $visibilityClass($drawerVisibility) }} h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-slate-300 text-slate-700 transition active:scale-[0.985]" @click="menuOpen = !menuOpen" :aria-expanded="menuOpen.toString()" aria-controls="pharma-mobile-menu" aria-label="Mở menu điều hướng" title="Menu">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path x-show="!menuOpen" d="M4 6h16M4 12h16M4 18h16"/>
                         <path x-show="menuOpen" x-cloak d="M18 6 6 18M6 6l12 12"/>
@@ -124,9 +135,9 @@
                 </button>
             @endif
         </div>
-        @if(collect($headerLayout['mobile.drawer'] ?? [])->contains(fn ($component) => ($component['type'] ?? null) === 'mobile-menu'))
+        @if($drawerEnabled)
             <template x-teleport="body">
-                <div x-show="menuOpen" x-cloak class="fixed inset-0 z-[9999] lg:hidden">
+                <div x-show="menuOpen" x-cloak class="fixed inset-0 z-[9999] {{ $drawerVisibility === 'mobile' ? 'lg:hidden' : ($drawerVisibility === 'desktop' ? 'hidden lg:block' : '') }}">
                     <div class="absolute inset-0 bg-slate-950/50" @click="menuOpen = false" aria-hidden="true"></div>
                     <aside id="pharma-mobile-menu" x-show="menuOpen" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full" role="dialog" aria-modal="true" aria-label="Menu điều hướng Pharma" class="absolute inset-y-0 right-0 flex h-full w-[min(88vw,360px)] flex-col overflow-hidden bg-white text-slate-900 shadow-2xl">
                         <div class="flex shrink-0 items-center justify-between border-b border-slate-100 px-4 py-3">
