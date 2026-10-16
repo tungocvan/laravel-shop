@@ -37,7 +37,7 @@ class LoginPresentationService
             'form_background_color' => $this->normalizeColor((string) $this->settings->get($prefix.'form_background_color', '#ffffff')),
             'overlay_opacity' => $this->normalizeOpacity($this->settings->get($prefix.'overlay_opacity', 55)),
             'show_google' => (bool) $this->settings->get($prefix.'show_google', true),
-            'footer' => (string) $this->settings->get($prefix.'footer', ''),
+            'footer' => (string) $this->settings->get($prefix.'footer', '© '.date('Y').' FlexBiz. All rights reserved.'),
         ];
     }
 
