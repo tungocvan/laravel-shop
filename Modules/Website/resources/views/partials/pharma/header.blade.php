@@ -23,6 +23,8 @@
     $accountConfig = $settings->get('website.pharma_header.account', []);
     $topbarConfig = $settings->get('website.pharma_header.topbar', []);
     $topbarConfig = is_array($topbarConfig) ? $topbarConfig : [];
+    $sharedHotline = (string) $settings->get('header.topbar.hotline', '');
+    $sharedEmail = (string) $settings->get('header.topbar.email', '');
     $topbarHeight = (int) ($presentation['custom']['topbar_height'] ?? 32);
     $menuService = app(\Modules\Website\Services\HeaderMenuService::class);
     $desktopMenu = $menuService->getMenuTreeByLocation('pharma_primary');
@@ -40,11 +42,11 @@
                             @if(trim((string) ($topbarConfig['left_text'] ?? 'THÔNG TIN DƯỢC PHẨM · TRA CỨU VÀ THAM KHẢO')) !== '')
                                 <span>{{ $topbarConfig['left_text'] ?? 'THÔNG TIN DƯỢC PHẨM · TRA CỨU VÀ THAM KHẢO' }}</span>
                             @endif
-                            @if(($topbarConfig['show_hotline'] ?? false) && filled($topbarConfig['hotline'] ?? null))
-                                <a href="tel:{{ preg_replace('/[^+0-9]/', '', (string) $topbarConfig['hotline']) }}" class="inline-flex items-center border-l border-current/20 pl-4 font-semibold hover:underline">{{ $topbarConfig['hotline'] }}</a>
+                            @if(($topbarConfig['show_hotline'] ?? false) && filled($sharedHotline))
+                                <a href="tel:{{ preg_replace('/[^+0-9]/', '', $sharedHotline) }}" class="inline-flex items-center border-l border-current/20 pl-4 font-semibold hover:underline">{{ $sharedHotline }}</a>
                             @endif
-                            @if(($topbarConfig['show_email'] ?? false) && filter_var($topbarConfig['email'] ?? null, FILTER_VALIDATE_EMAIL))
-                                <a href="mailto:{{ $topbarConfig['email'] }}" class="inline-flex items-center border-l border-current/20 pl-4 hover:underline">{{ $topbarConfig['email'] }}</a>
+                            @if(($topbarConfig['show_email'] ?? false) && filter_var($sharedEmail, FILTER_VALIDATE_EMAIL))
+                                <a href="mailto:{{ $sharedEmail }}" class="inline-flex items-center border-l border-current/20 pl-4 hover:underline">{{ $topbarConfig['email'] }}</a>
                             @endif
                         </div>
                         @if(trim((string) ($topbarConfig['right_text'] ?? 'Thông tin không thay thế tư vấn chuyên môn y tế')) !== '')
