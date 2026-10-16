@@ -10,10 +10,10 @@
         && ($mobileAccountUser->hasRole('admin') || $mobileAccountUser->hasRole('super-admin'));
 ?>
 @if($mobileAccountUser)
-    <section aria-label="Tài khoản của tôi" class="px-3 pt-4">
-        <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div class="flex min-w-0 items-center gap-3 px-3 py-3">
-                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-extrabold text-white" style="background:var(--pharma-header-accent)" aria-hidden="true">{{ mb_strtoupper(mb_substr(trim((string) $mobileAccountUser->name), 0, 1)) }}</span>
+    <section aria-label="Tài khoản của tôi" class="px-4 pt-4">
+        <div class="overflow-hidden rounded-xl border border-slate-200 bg-slate-50/70">
+            <div class="flex min-w-0 items-center gap-3 px-3 py-3.5">
+                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-extrabold text-white" style="background-color:var(--pharma-header-accent, #047857)" aria-hidden="true">{{ mb_strtoupper(mb_substr(trim((string) $mobileAccountUser->name), 0, 1)) }}</span>
                 <div class="min-w-0 flex-1">
                     <div class="truncate text-[13px] font-bold text-slate-900">{{ $mobileAccountUser->name }}</div>
                     <div class="truncate text-[11px] text-slate-500">{{ $mobileAccountUser->email }}</div>
@@ -25,17 +25,17 @@
                 @endif
             </div>
             @if((($mobileAccountConfig['show_profile'] ?? true) && $mobileAccountProfile) || (($mobileAccountConfig['show_orders'] ?? true) && $mobileAccountOrders))
-                <nav aria-label="Liên kết tài khoản" class="border-t border-slate-100 px-2 py-1">
+                <nav aria-label="Liên kết tài khoản" class="divide-y divide-slate-200/70 border-t border-slate-200/70 px-3">
                     @if(($mobileAccountConfig['show_profile'] ?? true) && $mobileAccountProfile)
-                        <a href="{{ route($mobileAccountProfile) }}" class="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-[12px] font-semibold text-slate-700 transition hover:bg-slate-50 active:scale-[0.985] motion-reduce:transform-none">
+                        <a href="{{ route($mobileAccountProfile) }}" class="flex min-h-12 items-center gap-3 px-1 py-3 text-[13px] font-semibold text-slate-700 transition hover:text-emerald-800 active:scale-[0.985] motion-reduce:transform-none">
                             <svg class="h-4 w-4 shrink-0 text-emerald-700" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
-                            <span class="flex-1">Thông tin cá nhân</span><span class="text-slate-400" aria-hidden="true">›</span>
+                            <span class="flex-1">Thông tin cá nhân</span>
                         </a>
                     @endif
                     @if(($mobileAccountConfig['show_orders'] ?? true) && $mobileAccountOrders)
                         <a href="{{ route($mobileAccountOrders) }}" class="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-[12px] font-semibold text-slate-700 transition hover:bg-slate-50 active:scale-[0.985] motion-reduce:transform-none">
                             <svg class="h-4 w-4 shrink-0 text-emerald-700" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 7 9-4 9 4v10l-9 4-9-4zM3 7l9 4 9-4M12 11v10"/></svg>
-                            <span class="flex-1">Đơn hàng của tôi</span><span class="text-slate-400" aria-hidden="true">›</span>
+                            <span class="flex-1">Đơn hàng của tôi</span>
                         </a>
                     @endif
                 </nav>
