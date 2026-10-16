@@ -178,35 +178,34 @@
                                         @php($itemUrl = is_array($item) ? $item['url'] : $item->url)
                                         @php($itemTitle = is_array($item) ? $item['title'] : $item->title)
                                         @php($isActiveMobileItem = $itemUrl && $itemUrl !== '#' && (url()->current() === $itemUrl || request()->fullUrl() === $itemUrl))
-                                        <a href="{{ $itemUrl ?: '#' }}" @if($isActiveMobileItem) aria-current="page" @endif class="group flex min-h-12 items-center gap-3 rounded-xl px-3 py-3 text-[13px] font-semibold transition active:scale-[0.985] motion-reduce:transform-none {{ $isActiveMobileItem ? 'bg-emerald-50 text-emerald-800' : 'text-slate-700 hover:bg-white hover:text-emerald-800' }}">
-                                            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg {{ $isActiveMobileItem ? 'bg-emerald-100 text-emerald-700' : 'bg-white text-slate-500' }}" aria-hidden="true">
-                                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
-                                            </span>
+                                        <a href="{{ $itemUrl ?: '#' }}" @if($isActiveMobileItem) aria-current="page" @endif class="group flex min-h-12 items-center rounded-xl border border-transparent px-4 py-3 text-[13px] font-semibold leading-5 transition-colors active:scale-[0.985] motion-reduce:transform-none {{ $isActiveMobileItem ? 'border-emerald-100 bg-emerald-50 text-emerald-800 shadow-sm' : 'text-slate-700 hover:border-slate-100 hover:bg-white hover:text-emerald-800' }}">
                                             <span class="min-w-0 flex-1">{{ $itemTitle }}</span>
-                                            <svg class="h-4 w-4 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+                                            @if($isActiveMobileItem)
+                                                <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-600" aria-hidden="true"></span>
+                                            @endif
                                         </a>
                                     @endforeach
                                 </div>
                             </nav>
                         </div>
-                        <div class="shrink-0 border-t border-slate-200 bg-white px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom,0px))]">
+                        <div class="shrink-0 border-t border-slate-200 bg-white px-4 pt-4 pb-[calc(20px+env(safe-area-inset-bottom,0px))]">
                             @if(auth()->check())
                                 @if(\Illuminate\Support\Facades\Route::has('logout'))
                                     <form method="POST" action="{{ route('logout') }}">
                                         @csrf
-                                        <button type="submit" class="flex min-h-11 w-full items-center gap-2 rounded-xl px-3 text-left text-sm font-semibold text-red-600 hover:bg-red-50">
+                                        <button type="submit" class="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50 px-4 text-center text-sm font-semibold text-red-700 transition hover:bg-red-100 active:scale-[0.985] motion-reduce:transform-none">
                                             <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
                                             Đăng xuất
                                         </button>
                                     </form>
                                 @endif
                             @else
-                                <div class="grid grid-cols-2 gap-2">
+                                <div class="flex flex-col gap-2">
                                     @if(\Illuminate\Support\Facades\Route::has('login'))
-                                        <a href="{{ route('login') }}" class="flex min-h-11 items-center justify-center rounded-xl border border-slate-200 px-3 text-center text-sm font-semibold">Đăng nhập</a>
+                                        <a href="{{ route('login') }}" class="flex min-h-12 w-full items-center justify-center rounded-xl px-4 text-center text-sm font-bold text-white shadow-md transition hover:brightness-95 active:scale-[0.985] motion-reduce:transform-none" style="background:var(--pharma-header-accent)">Đăng nhập</a>
                                     @endif
                                     @if(\Illuminate\Support\Facades\Route::has('register'))
-                                        <a href="{{ route('register') }}" class="flex min-h-11 items-center justify-center rounded-xl px-3 text-center text-sm font-semibold text-white" style="background:var(--pharma-header-accent)">Đăng ký</a>
+                                        <a href="{{ route('register') }}" class="flex min-h-11 w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-center text-sm font-semibold text-slate-700 transition hover:bg-slate-50 active:scale-[0.985] motion-reduce:transform-none">Đăng ký</a>
                                     @endif
                                 </div>
                             @endif
