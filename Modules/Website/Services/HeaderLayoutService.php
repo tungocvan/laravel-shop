@@ -42,7 +42,7 @@ class HeaderLayoutService
             }
 
             $config = is_array($item['config'] ?? null) ? $item['config'] : [];
-            $visibility = $config['visibility'] ?? (($item['enabled'] ?? true) ? 'both' : 'hidden');
+            $visibility = $config['visibility'] ?? (($item['enabled'] ?? true) ? (str_starts_with($slot, 'mobile.') ? 'mobile' : 'desktop') : 'hidden');
             if (! in_array($visibility, ['both', 'desktop', 'mobile', 'hidden'], true) || $visibility === 'hidden') {
                 continue;
             }
