@@ -96,12 +96,6 @@ class AdminLayoutConfig extends Component
             $prefix = 'design.sidebar_menu.'.$target.'.';
             $base = $state === 'hover' ? 'hover_' : '';
             data_set($this->config, $prefix.$base.'title_color', $preset[$state]['title']);
-            if ($state === 'active') {
-                // Expanded parent menus can use a separate active visual state.
-                // Keep it in sync so a white active background never retains white text.
-                data_set($this->config, 'design.sidebar_menu.item.expanded_title_color', $preset[$state]['title']);
-                data_set($this->config, 'design.sidebar_menu.item.expanded_icon_color', $preset[$state]['icon']);
-            }
             if ($state !== 'active') {
                 data_set($this->config, $prefix.$base.'icon_color', $preset[$state]['icon']);
             } else {
