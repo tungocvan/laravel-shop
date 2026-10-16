@@ -25,7 +25,7 @@
     </div>
 
     <form wire:submit="save" class="space-y-6" x-data="{
-        activeTab: ['overview','colors','menu','layout','header','footer'].includes(window.location.hash.slice(1)) ? window.location.hash.slice(1) : 'overview',
+        activeTab: window.location.hash === '#sidebar-menu' ? 'menu' : (['overview','colors','menu','layout','header','footer'].includes(window.location.hash.slice(1)) ? window.location.hash.slice(1) : 'overview'),
         selectTab(tab) { this.activeTab = tab; window.history.replaceState(null, '', '#'+tab); },
         sidebarBackground: @js($background), customBackground: @js($customBackground), customAccent: @js($customAccent),
         choose(mode) { this.sidebarBackground = mode; $wire.set('config.sidebar.presentation.background', mode); },
