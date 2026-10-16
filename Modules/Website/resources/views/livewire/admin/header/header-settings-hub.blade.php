@@ -44,19 +44,13 @@
                     <label class="text-sm font-medium">Nội dung bên phải
                         <input type="text" wire:model="topbarSettings.right_text" maxlength="180" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100">
                     </label>
-                    <label class="text-sm font-medium">Hotline Pharma
-                        <input type="text" wire:model="topbarSettings.hotline" maxlength="50" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100" placeholder="Số điện thoại liên hệ">
-                    </label>
-                    <label class="text-sm font-medium">Email Pharma
-                        <input type="email" wire:model="topbarSettings.email" maxlength="100" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100" placeholder="contact@example.com">
-                    </label>
                 </div>
                 <div class="flex flex-wrap items-center gap-5">
                     <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model="topbarSettings.show_hotline" class="rounded border-gray-300"> Hiện hotline</label>
                     <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model="topbarSettings.show_email" class="rounded border-gray-300"> Hiện email</label>
                     <button type="button" wire:click="saveTopbarSettings" class="ml-auto rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white">Lưu Topbar Pharma</button>
                 </div>
-                @error('topbarSettings.email')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
+                <p class="text-xs text-slate-500">Hotline và email sử dụng thông tin chung phía trên. Lưu tại “Lưu thông tin Header” để cập nhật Website.</p>
                 </div>
             </section>
         @endif
