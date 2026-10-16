@@ -82,4 +82,21 @@ class SidebarMenuConsolidationContractTest extends TestCase
         $this->assertStringContainsString('border border-solid border-slate-200 bg-white', $view);
     }
 
+    public function test_sidebar_full_style_presets_preserve_typography_and_google_font_options(): void
+    {
+        $component = file_get_contents(base_path('Modules/Admin/Livewire/Settings/AdminLayoutConfig.php'));
+        $view = file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/admin-sidebar-config.blade.php'));
+        $design = file_get_contents(base_path('Modules/Admin/Services/AdminDesignService.php'));
+
+        $this->assertStringContainsString('presetIncludeTypography', $component);
+        $this->assertStringContainsString("'typography'", $component);
+        foreach (['font_family', 'font_size', 'font_weight', 'icon_size'] as $field) {
+            $this->assertStringContainsString("'".$field."'", $component);
+        }
+        $this->assertStringContainsString('wire:model="presetIncludeTypography"', $view);
+        foreach (['inter', 'roboto', 'be_vietnam_pro', 'nunito_sans'] as $font) {
+            $this->assertStringContainsString("'".$font."'", $design);
+        }
+    }
+
 }
