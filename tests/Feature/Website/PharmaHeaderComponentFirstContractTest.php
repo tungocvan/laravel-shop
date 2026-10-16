@@ -38,6 +38,8 @@ final class PharmaHeaderComponentFirstContractTest extends TestCase
 
         $this->assertStringContainsString('Danh sách thành phần Header Pharma', $admin);
         $this->assertStringContainsString('setPharmaComponentPosition', $admin);
+        $this->assertStringContainsString("$".'wire.set(\'builderSlots\', slots, false)', $admin);
+        $this->assertStringNotContainsString('wire:change="setComponentVisibility', $admin);
         $this->assertStringContainsString('@if(!$isDrawer)', $admin);
         $this->assertStringContainsString('mobileComponents', $preview);
         $this->assertStringContainsString('previewTopbarVisibility', $preview);
