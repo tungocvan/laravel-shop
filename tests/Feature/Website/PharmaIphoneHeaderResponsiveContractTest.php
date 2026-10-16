@@ -26,7 +26,10 @@ final class PharmaIphoneHeaderResponsiveContractTest extends TestCase
         $header = file_get_contents(base_path('Modules/Website/resources/views/partials/pharma/header.blade.php'));
 
         $this->assertStringContainsString('x-teleport="body"', $header);
-        $this->assertStringContainsString('fixed inset-0 z-[9999] lg:hidden', $header);
+        $this->assertStringContainsString('fixed inset-0 z-[9999]', $header);
+        $this->assertStringContainsString('drawerDesktopVisible', $header);
+        $this->assertStringContainsString('drawerVisible', $header);
+        $this->assertStringContainsString("$".'deviceClass', $header);
         $this->assertStringContainsString('w-[min(88vw,360px)]', $header);
         $this->assertStringContainsString('overflow-y-auto', $header);
         $this->assertStringContainsString('aria-controls="pharma-mobile-menu"', $header);
