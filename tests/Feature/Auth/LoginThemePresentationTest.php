@@ -76,4 +76,50 @@ class LoginThemePresentationTest extends TestCase
 
         $this->assertSame('/admin/login', route('admin.login', absolute: false));
     }
+    public function test_login_appearance_options_are_persisted_and_guard_scoped(): void
+    {
+        app(SettingsService::class)->updateMany([
+            'auth_login_admin_logo_size' => 'large',
+            'auth_login_admin_background_type' => 'color',
+            'auth_login_admin_background_color' => '#123456',
+            'auth_login_admin_form_background_color' => '#abcdef',
+            'auth_login_client_logo_size' => 'small',
+        ], 'auth_login');
+
+        $service = app(LoginPresentationService::class);
+        $admin = $service->forGuard('admin');
+        $client = $service->forGuard('web');
+
+        $this->assertSame('large', $admin['logo_size']);
+        $this->assertSame('color', $admin['background_type']);
+        $this->assertSame('#123456', $admin['background_color']);
+        $this->assertSame('#abcdef', $admin['form_background_color']);
+        $this->assertSame('small', $client['logo_size']);
+        $this->assertSame('image', $client['background_type']);
+        $this->assertSame('#ffffff', $client['form_background_color']);
+
+        $this->get('/admin/login')
+            ->assertOk()
+            ->assertSee('background-color: #123456', false)
+            ->assertSee('background-color: #abcdef', false)
+            ->assertSee('width: 220px', false);
+    }
+
+    public function test_invalid_appearance_settings_fall_back_to_safe_defaults(): void
+    {
+        app(SettingsService::class)->updateMany([
+            'auth_login_admin_logo_size' => 'huge',
+            'auth_login_admin_background_type' => 'javascript',
+            'auth_login_admin_background_color' => 'red; background-image: url(evil)',
+            'auth_login_admin_form_background_color' => 'transparent',
+        ], 'auth_login');
+
+        $admin = app(LoginPresentationService::class)->forGuard('admin');
+
+        $this->assertSame('large', $admin['logo_size']);
+        $this->assertSame('image', $admin['background_type']);
+        $this->assertSame('#0f172a', $admin['background_color']);
+        $this->assertSame('#0f172a', $admin['form_background_color']);
+    }
+
 }
