@@ -49,5 +49,9 @@ final class PharmaMobileDrawerDesignContractTest extends TestCase
         $this->assertStringContainsString("show_admin", $account);
         $this->assertStringContainsString('min-h-12', $account);
         $this->assertStringNotContainsString('aria-hidden="true">›', $account);
+        $this->assertStringContainsString('border-t border-slate-100 px-3', $account);
+        $this->assertStringContainsString('border-b border-slate-100 px-1 py-3', $account);
+        $this->assertStringNotContainsString('divide-y divide-slate-200/70', $account);
+        $this->assertStringNotContainsString('min-h-11 items-center gap-3 rounded-lg', $account);
     }
 }
