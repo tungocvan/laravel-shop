@@ -95,8 +95,8 @@ class WebsitePharmaHeaderBuilderContractTest extends TestCase
         $this->assertStringContainsString('website.pharma_header.topbar', $header);
         $this->assertStringContainsString("get('header.topbar.hotline'", $header);
         $this->assertStringContainsString("get('header.topbar.email'", $header);
-        $this->assertStringNotContainsString("$"+"topbarConfig['hotline']", $header);
-        $this->assertStringNotContainsString("$"+"topbarConfig['email']", $header);
+        $this->assertStringNotContainsString('\$topbarConfig[\'hotline\']', $header);
+        $this->assertStringNotContainsString('\$topbarConfig[\'email\']', $header);
         $this->assertStringContainsString("topbarConfig['enabled']", $header);
         $this->assertStringContainsString("topbarConfig['left_text']", $header);
         $this->assertStringContainsString("topbarConfig['right_text']", $header);
