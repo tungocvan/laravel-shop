@@ -20,6 +20,21 @@ final class PharmaMobileDrawerDesignContractTest extends TestCase
         $this->assertStringContainsString('line-clamp-2 break-words', $header);
     }
 
+    public function test_drawer_navigation_has_no_chevrons_and_login_is_prominent(): void
+    {
+        $header = file_get_contents(base_path('Modules/Website/resources/views/partials/pharma/header.blade.php'));
+        $menuStart = strpos($header, '<nav aria-label="Điều hướng Pharma trên di động"');
+        $menuEnd = strpos($header, '</nav>', $menuStart);
+        $this->assertNotFalse($menuStart);
+        $this->assertNotFalse($menuEnd);
+        $menu = substr($header, $menuStart, $menuEnd - $menuStart);
+        $this->assertStringNotContainsString('M5 12h14', $menu);
+        $this->assertStringNotContainsString('m9 18 6-6-6-6', $menu);
+        $this->assertStringContainsString('aria-current="page"', $menu);
+        $this->assertStringContainsString('min-h-12 w-full items-center justify-center', $header);
+        $this->assertStringContainsString('pb-[calc(20px+env(safe-area-inset-bottom,0px))]', $header);
+    }
+
     public function test_account_links_remain_conditional_and_compact(): void
     {
         $account = file_get_contents(base_path('Modules/Website/resources/views/partials/pharma/mobile-account-links.blade.php'));
