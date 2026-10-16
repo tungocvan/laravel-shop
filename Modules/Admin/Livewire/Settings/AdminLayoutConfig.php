@@ -74,6 +74,7 @@ class AdminLayoutConfig extends Component
 
     public string $presetName = '';
     public bool $presetIncludeTypography = true;
+    public ?string $selectedSidebarPresetKey = null;
 
     public function sidebarVisualPresets(): array
     {
@@ -90,6 +91,7 @@ class AdminLayoutConfig extends Component
         $presets = array_merge($this->sidebarVisualPresets(), (array) data_get($this->config, 'sidebar.visual_presets', []));
         abort_unless(isset($presets[$key]) && is_array($presets[$key]), 404);
         $preset = $presets[$key];
+        $this->selectedSidebarPresetKey = str_starts_with($key, 'custom_') ? $key : null;
         data_set($this->config, 'sidebar.presentation.background', 'custom');
         data_set($this->config, 'sidebar.presentation.custom_background', $preset['background']);
         // Accent must always be a six-digit HEX; saved palettes may use transparent.
@@ -126,20 +128,31 @@ class AdminLayoutConfig extends Component
         $this->dispatch('sidebar-preset-applied', background: $preset['background'], accent: data_get($this->config, 'sidebar.presentation.custom_accent'));
     }
 
-    public function saveSidebarVisualPreset(AdminLayoutManager $manager): void
+    public function saveSidebarVisualPreset(AdminLayoutManager $manager, bool $updateExisting = false): void
     {
         abort_unless($this->section === 'sidebar', 404);
         $this->authorizePermission($this->updatePermission());
-        $name = trim($this->presetName);
-        $this->validate(['presetName' => 'required|string|min:2|max:40']);
         $current = (array) data_get($manager->config(), 'sidebar.visual_presets', []);
-        if (count($current) >= 6) {
+        $selected = $this->selectedSidebarPresetKey;
+        if ($updateExisting && (!$selected || !array_key_exists($selected, $current))) {
+            $this->addError('presetName', 'Vui lòng chọn một bộ màu tùy chỉnh đã lưu để cập nhật.');
+            return;
+        }
+        if (!$updateExisting) {
+            $this->validate(['presetName' => 'required|string|min:2|max:40']);
+        }
+        $name = $updateExisting ? (string) $current[$selected]['name'] : trim($this->presetName);
+        if (!$updateExisting && count($current) >= 6) {
             $this->addError('presetName', 'Tối đa 6 bộ màu tùy chỉnh.');
             return;
         }
         $menu = (array) data_get($this->config, 'design.sidebar_menu', []);
         $read = static fn (string $path, string $fallback): string => (string) data_get($menu, $path, $fallback);
-        $current['custom_'.(count($current) + 1)] = [
+        $key = $updateExisting ? $selected : 'custom_'.(max(array_map(
+            static fn ($key): int => preg_match('/^custom_(\\d+)$/', (string) $key, $matches) ? (int) $matches[1] : 0,
+            array_keys($current)
+        ) ?: [0]) + 1);
+        $current[$key] = [
             'name' => $name,
             'background' => (string) data_get($this->config, 'sidebar.presentation.custom_background', '#087F5B'),
             'normal' => ['title' => $read('item.title_color', '#FFFFFF'), 'icon' => $read('item.icon_color', '#FFFFFF'), 'background' => $read('item.background_mode', 'transparent') === 'color' ? $read('item.background_color', '#087F5B') : 'transparent'],
@@ -147,17 +160,18 @@ class AdminLayoutConfig extends Component
             'active' => ['title' => $read('active.title_color', '#065F46'), 'icon' => $read('active.icon_color', '#065F46'), 'background' => $read('active.menu_background_mode', 'transparent') === 'color' ? $read('active.menu_background_color', '#FFFFFF') : 'transparent'],
         ];
         if ($this->presetIncludeTypography) {
-            $current['custom_'.(count($current))]['typography'] = array_intersect_key(
+            $current[$key]['typography'] = array_intersect_key(
                 (array) data_get($this->config, 'design.sidebar_menu.item', []),
                 array_flip(['font_family', 'font_size', 'font_weight', 'icon_size'])
             );
         }
+        $this->selectedSidebarPresetKey = $key;
         $payload = $manager->config();
         data_set($payload, 'sidebar.visual_presets', $current);
         $manager->save($payload);
         data_set($this->config, 'sidebar.visual_presets', $current);
         $this->presetName = '';
-        $this->dispatch('notify', type: 'success', title: 'Đã lưu bộ màu', message: 'Bộ màu đã được lưu để sử dụng sau.', duration: 1800);
+        $this->dispatch('notify', type: 'success', title: $updateExisting ? 'Đã cập nhật bộ màu' : 'Đã lưu bộ màu', message: 'Bộ màu đã được lưu để sử dụng sau.', duration: 1800);
     }
 
     public function save(AdminLayoutManager $manager): void
