@@ -47,7 +47,9 @@
     };
     $topbarVisibleDesktop = (bool) ($topbarConfig['show_desktop'] ?? true);
     $topbarVisibleMobile = (bool) ($topbarConfig['show_mobile'] ?? false);
-    $topbarVisibility = $topbarVisibleDesktop && $topbarVisibleMobile ? 'both' : ($topbarVisibleDesktop ? 'desktop' : ($topbarVisibleMobile ? 'mobile' : 'hidden'));
+    // The Builder visibility is authoritative when explicitly configured.
+    // Legacy layouts without a visibility setting continue using Topbar settings.
+    $topbarFallbackVisibility = $topbarVisibleDesktop && $topbarVisibleMobile ? 'both' : ($topbarVisibleDesktop ? 'desktop' : ($topbarVisibleMobile ? 'mobile' : 'hidden'));
     $drawerVisibility = collect($headerLayout['mobile.drawer'] ?? [])->firstWhere('type', 'mobile-menu')['visibility'] ?? 'hidden';
     $drawerEnabled = $drawerVisibility !== 'hidden';
     $fallbackMenu = [['title' => 'Trang chủ', 'url' => route('home')], ['title' => 'Danh mục dược phẩm', 'url' => route('product.list')]];
@@ -56,6 +58,7 @@
     @if(($topbarConfig['enabled'] ?? true))
         @foreach($headerLayout['desktop.topbar'] ?? [] as $component)
             @if($component['type'] === 'topbar')
+                @php($topbarVisibility = $component['config']['visibility'] ?? $topbarFallbackVisibility)
                 <div class="{{ $topbarVisibility === 'both' ? 'block' : ($topbarVisibility === 'mobile' ? 'block lg:hidden' : ($topbarVisibility === 'desktop' ? 'hidden lg:block' : 'hidden')) }} border-b border-slate-800/20" style="background: {{ $topbarBackground }}; color: {{ $topbarForeground }};">
                     <div class="mx-auto flex flex-wrap items-center justify-between gap-x-6 gap-y-2 px-5 py-2 text-xs sm:px-8" style="max-width: {{ $headerWidth ? $headerWidth.'px' : '1280px' }}; min-height: {{ $topbarHeight }}px">
                         <div class="flex flex-wrap items-center gap-x-5 gap-y-1.5">
