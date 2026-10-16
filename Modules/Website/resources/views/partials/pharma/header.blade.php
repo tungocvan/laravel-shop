@@ -39,19 +39,13 @@
     $desktopMenu = $menuService->getMenuTreeByLocation('pharma_primary');
     $mobileMenu = $menuService->getMenuTreeByLocation('pharma_mobile');
     if ($mobileMenu->isEmpty()) $mobileMenu = $desktopMenu;
-    $deviceClass = static fn (string $visibility): string => match ($visibility) {
-        'both' => 'flex',
-        'mobile' => 'flex lg:hidden',
-        'desktop' => 'hidden lg:flex',
-        default => 'hidden',
-    };
     $fallbackMenu = [['title' => 'Trang chủ', 'url' => route('home')], ['title' => 'Danh mục dược phẩm', 'url' => route('product.list')]];
 @endphp
 <div style="display: contents; --pharma-header-accent: {{ $accent }}; --pharma-header-bg: {{ $background }}; --pharma-header-text: {{ $foreground }};">
     @if(($topbarConfig['enabled'] ?? true))
         @foreach($headerLayout['desktop.topbar'] ?? [] as $component)
-            @if($component['type'] === 'topbar' && in_array($component['visibility'] ?? 'desktop', ['both', 'desktop', 'mobile'], true))
-                <div class="{{ in_array($component['visibility'] ?? 'desktop', ['both', 'mobile'], true) && ($topbarConfig['show_mobile'] ?? false) ? 'block' : 'hidden' }} {{ in_array($component['visibility'] ?? 'desktop', ['both', 'desktop'], true) && ($topbarConfig['show_desktop'] ?? true) ? 'md:block' : 'md:hidden' }} border-b border-slate-800/20" style="background: {{ $topbarBackground }}; color: {{ $topbarForeground }};">
+            @if($component['type'] === 'topbar')
+                <div class="{{ ($topbarConfig['show_mobile'] ?? false) ? 'block' : 'hidden' }} {{ ($topbarConfig['show_desktop'] ?? true) ? 'md:block' : 'md:hidden' }} border-b border-slate-800/20" style="background: {{ $topbarBackground }}; color: {{ $topbarForeground }};">
                     <div class="mx-auto flex flex-wrap items-center justify-between gap-x-6 gap-y-2 px-5 py-2 text-xs sm:px-8" style="max-width: {{ $headerWidth ? $headerWidth.'px' : '1280px' }}; min-height: {{ $topbarHeight }}px">
                         <div class="flex flex-wrap items-center gap-x-5 gap-y-1.5">
                             @if(trim((string) ($topbarConfig['left_text'] ?? 'THÔNG TIN DƯỢC PHẨM · TRA CỨU VÀ THAM KHẢO')) !== '')
@@ -80,9 +74,8 @@
     <header class="{{ ($presentation['sticky'] ?? true) ? 'sticky top-0' : 'relative' }} z-40 border-b border-slate-200" style="background:var(--pharma-header-bg);color:var(--pharma-header-text);box-shadow:{{ $shadow }}" x-data="{ menuOpen: false }" @keydown.escape.window="menuOpen = false">
         <div class="mx-auto flex w-full min-w-0 items-center gap-2 px-3 py-3 sm:gap-3 sm:px-6 lg:gap-6 lg:px-8" style="max-width:{{ $headerWidth ? $headerWidth.'px' : '1280px' }};min-height:{{ (int)($presentation['heights']['desktop'] ?? 80) }}px">
             @foreach(['desktop.main.left','desktop.main.center','desktop.main.right'] as $slot)
-                <div class="{{ $slot === 'desktop.main.left' ? 'flex min-w-0 flex-1 items-center lg:flex-none' : ($slot === 'desktop.main.center' ? 'min-w-0 flex-1 items-center justify-center gap-5' : 'ml-auto min-w-0 items-center justify-end gap-4') }} {{ $slot === 'desktop.main.left' ? '' : 'contents' }}">
+                <div class="{{ $slot === 'desktop.main.left' ? 'flex min-w-0 flex-1 items-center lg:flex-none' : ($slot === 'desktop.main.center' ? 'hidden min-w-0 flex-1 items-center justify-center gap-5 lg:flex' : 'ml-auto hidden min-w-0 items-center justify-end gap-4 lg:flex') }}">
                 @foreach($headerLayout[$slot] ?? [] as $component)
-                    <div class="{{ $deviceClass($component['visibility'] ?? 'desktop') }} min-w-0 items-center">
                     @if($component['type'] === 'brand')
                         <a href="{{ route('home') }}" class="flex min-w-0 max-w-full items-center gap-2 sm:gap-3" aria-label="Về trang chủ">
                             @if($brandLogoUrl)
@@ -107,28 +100,14 @@
                             <button type="submit" class="rounded-xl px-4 py-2 text-sm font-bold text-white" style="background:var(--pharma-header-accent)">Tra cứu →</button>
                         </form>
                     @endif
-                    </div>
                 @endforeach
                 </div>
             @endforeach
             <div class="ml-auto hidden min-w-0 shrink-0 items-center justify-end lg:ml-0 lg:flex">
                 @include('Website::partials.pharma.account-dropdown', ['accountConfig' => $accountConfig])
             </div>
-            @php
-                $drawerVisible = collect($headerLayout['mobile.drawer'] ?? [])->contains(fn ($item) => ($item['type'] ?? null) === 'mobile-menu' && in_array($item['visibility'] ?? 'mobile', ['both', 'mobile'], true));
-                $drawerDesktopVisible = collect($headerLayout['mobile.drawer'] ?? [])->contains(fn ($item) => ($item['type'] ?? null) === 'mobile-menu' && in_array($item['visibility'] ?? 'mobile', ['both', 'desktop'], true));
-            @endphp
-            @foreach($headerLayout['mobile.search'] ?? [] as $mobileSearch)
-                @if(($mobileSearch['type'] ?? null) === 'search')
-                    <form action="{{ route('product.list') }}" method="GET" role="search" class="{{ $deviceClass($mobileSearch['visibility'] ?? 'mobile') }} min-w-0 items-center gap-2">
-                        <label class="sr-only" for="pharma-mobile-header-search">Tìm sản phẩm dược phẩm</label>
-                        <input id="pharma-mobile-header-search" name="search" type="search" value="{{ request('search') }}" placeholder="Tên thuốc, hoạt chất..." class="w-28 min-w-0 rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm sm:w-40">
-                        <button type="submit" class="rounded-xl px-3 py-2 text-sm font-bold text-white" style="background:var(--pharma-header-accent)">Tìm</button>
-                    </form>
-                @endif
-            @endforeach
-            @if($drawerVisible || $drawerDesktopVisible)
-                <button type="button" class="ml-auto {{ $deviceClass($drawerVisible && $drawerDesktopVisible ? 'both' : ($drawerDesktopVisible ? 'desktop' : 'mobile')) }} h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-slate-300 text-slate-700 transition active:scale-[0.985]" @click="menuOpen = !menuOpen" :aria-expanded="menuOpen.toString()" aria-controls="pharma-mobile-menu" aria-label="Mở menu điều hướng" title="Menu">
+            @if(!empty($headerLayout['mobile.drawer']))
+                <button type="button" class="ml-auto inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-slate-300 text-slate-700 transition active:scale-[0.985] lg:hidden" @click="menuOpen = !menuOpen" :aria-expanded="menuOpen.toString()" aria-controls="pharma-mobile-menu" aria-label="Mở menu điều hướng" title="Menu">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path x-show="!menuOpen" d="M4 6h16M4 12h16M4 18h16"/>
                         <path x-show="menuOpen" x-cloak d="M18 6 6 18M6 6l12 12"/>
@@ -136,9 +115,9 @@
                 </button>
             @endif
         </div>
-        @if($drawerVisible || $drawerDesktopVisible)
+        @if(collect($headerLayout['mobile.drawer'] ?? [])->contains(fn ($component) => ($component['type'] ?? null) === 'mobile-menu'))
             <template x-teleport="body">
-                <div x-show="menuOpen" x-cloak class="fixed inset-0 z-[9999]">
+                <div x-show="menuOpen" x-cloak class="fixed inset-0 z-[9999] lg:hidden">
                     <div class="absolute inset-0 bg-slate-950/50" @click="menuOpen = false" aria-hidden="true"></div>
                     <aside id="pharma-mobile-menu" x-show="menuOpen" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full" role="dialog" aria-modal="true" aria-label="Menu điều hướng Pharma" class="absolute inset-y-0 right-0 flex h-full w-[min(88vw,360px)] flex-col overflow-hidden bg-white text-slate-900 shadow-2xl">
                         <div class="flex shrink-0 items-center justify-between border-b border-slate-100 px-4 py-3">
