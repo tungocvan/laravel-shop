@@ -52,6 +52,12 @@
     $topbarFallbackVisibility = $topbarVisibleDesktop && $topbarVisibleMobile ? 'both' : ($topbarVisibleDesktop ? 'desktop' : ($topbarVisibleMobile ? 'mobile' : 'hidden'));
     $drawerVisibility = collect($headerLayout['mobile.drawer'] ?? [])->firstWhere('type', 'mobile-menu')['visibility'] ?? 'hidden';
     $drawerEnabled = $drawerVisibility !== 'hidden';
+    $mobileSlotVisible = [];
+    foreach (['desktop.main.left', 'desktop.main.center', 'desktop.main.right'] as $mobileSlot) {
+        $mobileSlotVisible[$mobileSlot] = collect($headerLayout[$mobileSlot] ?? [])->contains(
+            static fn ($item) => in_array($item['visibility'] ?? 'desktop', ['mobile', 'both'], true)
+        );
+    }
     $fallbackMenu = [['title' => 'Trang chủ', 'url' => route('home')], ['title' => 'Danh mục dược phẩm', 'url' => route('product.list')]];
 @endphp
 <div style="display: contents; --pharma-header-accent: {{ $accent }}; --pharma-header-bg: {{ $background }}; --pharma-header-text: {{ $foreground }};">
@@ -88,16 +94,16 @@
     <header class="{{ ($presentation['sticky'] ?? true) ? 'sticky top-0' : 'relative' }} z-40 border-b border-slate-200" style="background:var(--pharma-header-bg);color:var(--pharma-header-text);box-shadow:{{ $shadow }}" x-data="{ menuOpen: false }" @keydown.escape.window="menuOpen = false">
         <div class="mx-auto flex w-full min-w-0 items-center gap-2 px-3 py-3 sm:gap-3 sm:px-6 lg:gap-6 lg:px-8" style="max-width:{{ $headerWidth ? $headerWidth.'px' : '1280px' }};min-height:{{ (int)($presentation['heights']['desktop'] ?? 80) }}px">
             @foreach(['desktop.main.left','desktop.main.center','desktop.main.right'] as $slot)
-                <div class="{{ $slot === 'desktop.main.left' ? 'flex min-w-0 flex-1 items-center lg:flex-none' : ($slot === 'desktop.main.center' ? 'flex min-w-0 flex-1 items-center justify-center gap-5' : 'ml-auto flex min-w-0 items-center justify-end gap-4') }}">
+                <div class="{{ $mobileSlotVisible[$slot] ? 'flex' : 'hidden lg:flex' }} {{ $slot === 'desktop.main.left' ? 'min-w-0 flex-1 items-center lg:flex-none' : ($slot === 'desktop.main.center' ? 'min-w-0 items-center justify-center gap-5 lg:flex-1' : 'min-w-0 items-center justify-end gap-4 lg:ml-auto') }}">
                 @foreach($headerLayout[$slot] ?? [] as $component)
                     @if($component['type'] === 'brand')
                         <a href="{{ route('home') }}" class="{{ $visibilityClass($component['visibility'] ?? 'desktop') }} min-w-0 max-w-full items-center gap-2 sm:gap-3" aria-label="Về trang chủ">
                             @if($brandLogoUrl)
-                                <img src="{{ $brandLogoUrl }}" alt="{{ $companyName }}" class="max-w-40 shrink-0 object-contain" style="max-height:{{ $brandHeight }}px">
+                                <img src="{{ $brandLogoUrl }}" alt="{{ $companyName }}" class="w-auto max-w-[96px] shrink-0 object-contain sm:max-w-40" style="max-height:{{ $brandHeight }}px">
                             @else
                                 <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-2xl font-bold text-white shadow-sm" style="background:var(--pharma-header-accent);max-height:{{ $brandHeight }}px" aria-hidden="true">{{ mb_substr($companyName, 0, 1) }}</span>
                             @endif
-                            <span class="min-w-0"><span class="block truncate text-base font-extrabold sm:text-lg">{{ $companyName }}</span><span class="hidden text-xs font-medium sm:block" style="color:var(--pharma-header-accent)">Danh mục và thông tin dược phẩm</span></span>
+                            <span class="hidden min-w-0 sm:block"><span class="block truncate text-base font-extrabold sm:text-lg">{{ $companyName }}</span><span class="hidden text-xs font-medium sm:block" style="color:var(--pharma-header-accent)">Danh mục và thông tin dược phẩm</span></span>
                         </a>
                     @elseif($component['type'] === 'actions')
                         <nav aria-label="Điều hướng Pharma" class="{{ $visibilityClass($component['visibility'] ?? 'desktop') }} flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm font-semibold">
