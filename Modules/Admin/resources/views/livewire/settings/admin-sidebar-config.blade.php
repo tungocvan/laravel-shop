@@ -82,11 +82,49 @@
 
             <aside class="xl:sticky xl:top-24" aria-label="Xem trước Sidebar">
                 <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg shadow-slate-950/5"><div class="border-b border-slate-100 px-4 py-3"><div class="flex items-center justify-between"><div><h2 class="text-sm font-semibold text-slate-900">Sidebar preview</h2><p class="mt-0.5 text-xs text-slate-500">Visual hierarchy gần runtime thật.</p></div><span class="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700 ring-1 ring-emerald-200">LIVE</span></div></div><div class="p-4">
-                    <div class="mx-auto flex h-[34rem] w-[17rem] flex-col overflow-hidden rounded-2xl shadow-xl ring-1 ring-black/5 transition-colors" :style="`background:${bg()};color:${text()}`">
-                        <div class="flex min-h-16 items-center gap-3 border-b px-3" :style="`border-color:${border()}`"><span class="flex h-9 w-9 items-center justify-center rounded-xl text-xs font-bold shadow-sm" :style="`background:${accent()};color:${activeText()}`">A</span><div class="min-w-0"><div class="truncate text-sm font-semibold">Admin Workspace</div><div class="truncate text-[10px]" :style="`color:${muted()}`">Không gian quản trị</div></div><span class="ml-auto h-8 w-8 rounded-xl border" :style="`background:${soft()};border-color:${border()}`"></span></div>
-                        <div class="px-3 pt-3"><div class="flex h-9 items-center gap-2 rounded-xl border px-3 text-[11px]" :style="`background:${soft()};border-color:${border()};color:${muted()}`"><span>⌕</span><span>Tìm chức năng...</span></div></div>
-                        <div class="flex-1 px-2 py-3"><div class="px-2 pb-2 text-[9px] font-semibold uppercase tracking-[.16em]" :style="`color:${muted()}`">Điều hướng</div><div class="space-y-1.5"><div class="flex h-10 items-center gap-3 rounded-xl px-3 text-xs font-semibold shadow-sm" :style="`background:${accent()};color:${activeText()}`"><span>◈</span><span>Tổng quan</span></div><div class="flex h-10 items-center gap-3 rounded-xl px-3 text-xs" :style="`background:${soft()};color:${secondary()}`"><span>▦</span><span>Quản lý dữ liệu</span><span class="ml-auto opacity-50">›</span></div><div class="ml-5 space-y-1 border-l pl-3" :style="`border-color:${border()}`"><div class="rounded-lg px-3 py-2 text-[11px]" :style="`color:${muted()}`">Danh mục</div><div class="rounded-lg px-3 py-2 text-[11px]" :style="`color:${muted()}`">Dữ liệu nhập</div></div><div class="flex h-10 items-center gap-3 rounded-xl px-3 text-xs" :style="`color:${secondary()}`"><span>▥</span><span>Báo cáo</span></div><div class="flex h-10 items-center gap-3 rounded-xl px-3 text-xs" :style="`color:${secondary()}`"><span>⚙</span><span>Cấu hình</span></div></div></div>
-                        <div class="border-t p-3" :style="`border-color:${border()}`"><div class="flex items-center gap-3 rounded-xl px-2 py-2" :style="`background:${soft()}`"><span class="flex h-9 w-9 items-center justify-center rounded-xl text-xs font-bold" :style="`background:${accent()};color:${activeText()}`">T</span><div class="min-w-0"><div class="truncate text-xs font-semibold">Từ Ngọc Vân</div><div class="truncate text-[10px]" :style="`color:${muted()}`">Tài khoản quản trị</div></div></div></div>
+                    @php
+                        $previewTitle = (string) data_get($config, 'sidebar.header.title', '');
+                        $previewTitle = trim($previewTitle) !== '' ? $previewTitle : (string) config('app.name', 'Laravel Shop');
+                        $previewSubtitle = (string) data_get($config, 'sidebar.header.subtitle', 'Không gian quản trị');
+                        $previewUser = auth('admin')->user();
+                        $previewUserName = (string) ($previewUser?->name ?? 'Quản trị viên');
+                        $previewMark = mb_strtoupper(mb_substr($previewTitle, 0, 1));
+                        $previewAvatar = mb_strtoupper(mb_substr($previewUserName, 0, 1));
+                        $previewFooterSubtitle = (string) data_get($config, 'sidebar.footer.subtitle', 'Tài khoản quản trị');
+                    @endphp
+                    <div class="mx-auto flex h-[34rem] w-full max-w-[17rem] flex-col overflow-hidden rounded-2xl shadow-xl ring-1 ring-black/5 transition-colors" :style="`background:${bg()};color:${text()}`">
+                        @if(data_get($config, 'sidebar.header.enabled', true))
+                            <div class="flex min-h-16 items-center gap-3 border-b px-3" :style="`border-color:${border()}`">
+                                @if(data_get($config, 'sidebar.header.show_mark', true))<span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-bold shadow-sm" :style="`background:${accent()};color:${activeText()}`">{{ $previewMark }}</span>@endif
+                                <div class="min-w-0">
+                                    @if(data_get($config, 'sidebar.header.show_title', true))<div class="truncate text-sm font-semibold">{{ $previewTitle }}</div>@endif
+                                    @if(data_get($config, 'sidebar.header.show_subtitle', true))<div class="truncate text-[10px]" :style="`color:${muted()}`">{{ $previewSubtitle }}</div>@endif
+                                </div>
+                                @if(data_get($config, 'sidebar.controls.collapse_enabled', true))<span class="ml-auto h-8 w-8 shrink-0 rounded-xl border" :style="`background:${soft()};border-color:${border()}`"></span>@endif
+                            </div>
+                        @endif
+                        @if(data_get($config, 'sidebar.search.enabled', true))
+                            <div class="px-3 pt-3"><div class="flex h-9 items-center gap-2 rounded-xl border px-3 text-[11px]" :style="`background:${soft()};border-color:${border()};color:${muted()}`"><span>⌕</span><span>Tìm chức năng...</span></div></div>
+                        @endif
+                        <div class="flex-1 overflow-y-auto px-2 py-3">
+                            <div class="px-2 pb-2 text-[9px] font-semibold uppercase tracking-[.16em]" :style="`color:${muted()}`">Điều hướng</div>
+                            <div class="space-y-1.5">
+                                <div class="flex h-10 items-center gap-3 rounded-xl px-3 text-xs font-semibold" :style="`color:${secondary()}`"><span>⌂</span><span>Dashboard</span></div>
+                                <div class="flex h-10 items-center gap-3 rounded-xl px-3 text-xs font-semibold" :style="`background:${isDark(bg())?'#ffffff':'#f1f5f9'};color:#0f172a`"><span>ⓘ</span><span class="truncate">Website &amp; Nội dung</span><span class="ml-auto">›</span></div>
+                                <div class="flex h-10 items-center gap-3 rounded-xl px-3 text-xs" :style="`color:${secondary()}`"><span>◈</span><span>DƯỢC PHẨM</span><span class="ml-auto">›</span></div>
+                                <div class="flex h-10 items-center gap-3 rounded-xl px-3 text-xs" :style="`color:${secondary()}`"><span>◈</span><span>Requests</span><span class="ml-auto">›</span></div>
+                                <div class="flex h-10 items-center gap-3 rounded-xl px-3 text-xs" :style="`color:${secondary()}`"><span>◈</span><span>Phân quyền &amp; Nhân sự</span><span class="ml-auto">›</span></div>
+                                <div class="flex h-10 items-center gap-3 rounded-xl px-3 text-xs" :style="`color:${secondary()}`"><span>◈</span><span>Công cụ Hệ thống</span><span class="ml-auto">›</span></div>
+                                <div class="flex h-10 items-center gap-3 rounded-xl px-3 text-xs" :style="`color:${secondary()}`"><span>◈</span><span>Client Apps</span><span class="ml-auto">›</span></div>
+                            </div>
+                        </div>
+                        @if(data_get($config, 'sidebar.footer.enabled', true))
+                            <div class="border-t p-3" :style="`border-color:${border()}`"><div class="flex items-center gap-3 rounded-xl px-2 py-2" :style="`background:${soft()}`">
+                                @if(data_get($config, 'sidebar.footer.show_avatar', true))<span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-bold" :style="`background:${accent()};color:${activeText()}`">{{ $previewAvatar }}</span>@endif
+                                <div class="min-w-0">@if(data_get($config, 'sidebar.footer.show_name', true))<div class="truncate text-xs font-semibold">{{ $previewUserName }}</div>@endif
+                                @if(data_get($config, 'sidebar.footer.show_subtitle', true))<div class="truncate text-[10px]" :style="`color:${muted()}`">{{ $previewFooterSubtitle }}</div>@endif</div>
+                            </div></div>
+                        @endif
                     </div><div class="mt-4 flex items-center justify-between text-xs text-slate-500"><span>Expanded <strong class="text-slate-700">{{ $expandedWidthPx }}px</strong></span><span>Collapsed <strong class="text-slate-700">{{ $collapsedWidthPx }}px</strong></span></div>
                 </div></div>
             </aside>
