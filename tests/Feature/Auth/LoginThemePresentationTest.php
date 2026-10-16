@@ -122,4 +122,18 @@ class LoginThemePresentationTest extends TestCase
         $this->assertSame('#0f172a', $admin['form_background_color']);
     }
 
+    public function test_login_form_has_accessible_password_toggle_and_mobile_controls(): void
+    {
+        $view = file_get_contents(base_path('Modules/Auth/resources/views/livewire/auth/login-form.blade.php'));
+
+        $this->assertStringContainsString('x-bind:type="visible ?', $view);
+        $this->assertStringContainsString('Hiện mật khẩu', $view);
+        $this->assertStringContainsString('Ẩn mật khẩu', $view);
+        $this->assertStringContainsString('x-bind:aria-pressed', $view);
+        $this->assertStringContainsString('active:scale-[0.985]', $view);
+        $this->assertStringContainsString('motion-reduce:transform-none', $view);
+        $this->assertStringContainsString('min-h-11', $view);
+        $this->assertStringContainsString('Đăng nhập bằng Google Workspace', $view);
+    }
+
 }
