@@ -21,7 +21,12 @@ class AdminDesignService
         'arial'=>'Arial, Helvetica, sans-serif','verdana'=>'Verdana, Geneva, sans-serif','trebuchet'=>'"Trebuchet MS", Arial, sans-serif','georgia'=>'Georgia, "Times New Roman", serif','times'=>'"Times New Roman", Times, serif','mono'=>'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace',
     ];
     private const FONT_LABELS = ['sans'=>'System UI (khuyên dùng)','arial'=>'Arial','verdana'=>'Verdana','trebuchet'=>'Trebuchet MS','georgia'=>'Georgia','times'=>'Times New Roman','mono'=>'Monospace'];
-    private const MENU_FONT_FAMILIES = ['inherit'=>'inherit'] + self::FONT_FAMILIES;
+    private const MENU_FONT_FAMILIES = ['inherit'=>'inherit'] + self::FONT_FAMILIES + [
+        'inter' => '"Inter", ui-sans-serif, system-ui, sans-serif',
+        'roboto' => '"Roboto", Arial, sans-serif',
+        'be_vietnam_pro' => '"Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif',
+        'nunito_sans' => '"Nunito Sans", ui-sans-serif, system-ui, sans-serif',
+    ];
     private const FONT_SIZES = ['xs'=>'0.75rem','sm'=>'0.875rem','base'=>'1rem','lg'=>'1.125rem','2xl'=>'1.5rem'];
     private const MENU_FONT_SIZES = ['12'=>'0.75rem','13'=>'0.8125rem','sm'=>'0.875rem','15'=>'0.9375rem','base'=>'1rem'];
     private const FONT_WEIGHTS = ['normal'=>'400','medium'=>'500','semibold'=>'600','bold'=>'700'];
