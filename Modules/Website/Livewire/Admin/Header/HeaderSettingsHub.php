@@ -113,8 +113,6 @@ class HeaderSettingsHub extends Component
             'right_text' => mb_substr((string) ($values['right_text'] ?? 'Thông tin không thay thế tư vấn chuyên môn y tế'), 0, 180),
             'show_hotline' => (bool) ($values['show_hotline'] ?? false),
             'show_email' => (bool) ($values['show_email'] ?? false),
-            'hotline' => mb_substr((string) ($values['hotline'] ?? ''), 0, 50),
-            'email' => mb_substr((string) ($values['email'] ?? ''), 0, 100),
         ];
     }
 
@@ -127,8 +125,6 @@ class HeaderSettingsHub extends Component
         $this->validate([
             'topbarSettings.left_text' => ['nullable', 'string', 'max:180'],
             'topbarSettings.right_text' => ['nullable', 'string', 'max:180'],
-            'topbarSettings.hotline' => ['nullable', 'string', 'max:50'],
-            'topbarSettings.email' => ['nullable', 'email', 'max:100'],
         ]);
         $this->topbarSettings = $this->normalizeTopbarSettings($this->topbarSettings);
         $settingsService->set('website.pharma_header.topbar', $this->topbarSettings, 'header', 'json');
