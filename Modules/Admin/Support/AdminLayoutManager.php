@@ -303,6 +303,7 @@ class AdminLayoutManager
             'search' => [
                 'enabled' => (bool) data_get($sidebar, 'search.enabled', data_get($defaults, 'search.enabled')),
             ],
+            'visual_presets' => $this->normalizeSidebarVisualPresets((array) data_get($sidebar, 'visual_presets', [])),
             'presentation' => [
                 'background' => $this->normalizeSidebarBackgroundMode(data_get($sidebar, 'presentation.background'), data_get($defaults, 'presentation.background')),
                 'custom_background' => $this->normalizeHexColor(data_get($sidebar, 'presentation.custom_background'), data_get($defaults, 'presentation.custom_background', '#0f172a')),
