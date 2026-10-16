@@ -34,7 +34,7 @@ final class PharmaHeaderBuilderSavePersistenceContractTest extends TestCase
 
         $this->assertStringContainsString('array $visibilityOverrides', $save);
         $this->assertStringContainsString("['both', 'desktop', 'mobile', 'hidden']", $save);
-        $this->assertStringContainsString("if ($type === 'mobile-menu')", $save);
+        $this->assertStringContainsString('if ($type === \'mobile-menu\')', $save);
         $this->assertStringContainsString("$".'this->saveBuilder($settingsService, $registry, $presentationService)', $save);
     }
 }
