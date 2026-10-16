@@ -99,7 +99,7 @@ class AdminLayoutManager
             'search' => [
                 'enabled' => (bool) data_get($this->defaults, 'sidebar.search.enabled', true),
             ],
-            'visual_presets' => $this->normalizeSidebarVisualPresets((array) data_get($sidebar, 'visual_presets', [])),
+            'visual_presets' => [],
             'presentation' => [
                 'background' => $this->normalizeSidebarBackgroundMode(data_get($this->defaults, 'sidebar.presentation.background', 'theme')),
                 'custom_background' => $this->normalizeHexColor(data_get($this->defaults, 'sidebar.presentation.custom_background'), '#0f172a'),
