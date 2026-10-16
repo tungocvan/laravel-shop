@@ -21,6 +21,45 @@
 
     <div x-show="tab === 'general'" x-cloak>
         @livewire('website.admin.header.general-settings', key('header-general-settings'))
+        @if($editingTemplate === 'pharma')
+            <section class="rounded-xl border border-teal-200 bg-white p-4">
+                <button type="button" @click="showTopbarSettings = !showTopbarSettings" :aria-expanded="showTopbarSettings.toString()" aria-controls="header-topbar-settings" class="flex w-full items-center justify-between gap-3 text-left text-sm font-semibold text-gray-800">
+                    <span>Thanh thông tin Pharma <span class="ml-2 text-xs font-normal text-gray-500">Nội dung, liên hệ và hiển thị theo thiết bị</span></span>
+                    <span x-text="showTopbarSettings ? 'Thu gọn −' : 'Cấu hình +'"></span>
+                </button>
+                <div id="header-topbar-settings" x-show="showTopbarSettings" x-cloak class="mt-4 space-y-4">
+                <div>
+                    <h4 class="text-base font-bold text-gray-900">Topbar Pharma · Nội dung & liên hệ</h4>
+                    <p class="mt-1 text-xs text-gray-600">Nội dung độc lập với Topbar Default. Màu Topbar BG / Topbar Text của Pharma áp dụng độc lập, kể cả khi bật Kế thừa màu Global Website Theme. Chiều cao chỉnh trong Advanced phía dưới.</p>
+                </div>
+                <label class="flex items-center gap-2 text-sm font-medium"><input type="checkbox" wire:model="topbarSettings.enabled" class="rounded border-gray-300"> Hiển thị Topbar Pharma</label>
+                <div class="grid gap-3 rounded-lg border border-teal-100 bg-teal-50/50 p-3 sm:grid-cols-2">
+                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model="topbarSettings.show_desktop" class="rounded border-gray-300"> Hiển thị trên Desktop / Tablet</label>
+                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model="topbarSettings.show_mobile" class="rounded border-gray-300"> Hiển thị trên Mobile</label>
+                </div>
+                <div class="grid gap-4 md:grid-cols-2">
+                    <label class="text-sm font-medium">Nội dung bên trái
+                        <input type="text" wire:model="topbarSettings.left_text" maxlength="180" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100">
+                    </label>
+                    <label class="text-sm font-medium">Nội dung bên phải
+                        <input type="text" wire:model="topbarSettings.right_text" maxlength="180" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100">
+                    </label>
+                    <label class="text-sm font-medium">Hotline Pharma
+                        <input type="text" wire:model="topbarSettings.hotline" maxlength="50" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100" placeholder="Số điện thoại liên hệ">
+                    </label>
+                    <label class="text-sm font-medium">Email Pharma
+                        <input type="email" wire:model="topbarSettings.email" maxlength="100" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100" placeholder="contact@example.com">
+                    </label>
+                </div>
+                <div class="flex flex-wrap items-center gap-5">
+                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model="topbarSettings.show_hotline" class="rounded border-gray-300"> Hiện hotline</label>
+                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model="topbarSettings.show_email" class="rounded border-gray-300"> Hiện email</label>
+                    <button type="button" wire:click="saveTopbarSettings" class="ml-auto rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white">Lưu Topbar Pharma</button>
+                </div>
+                @error('topbarSettings.email')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
+                </div>
+            </section>
+        @endif
     </div>
 
     <div x-show="tab === 'menu'" x-cloak>
@@ -165,45 +204,7 @@
             </section>
         @endif
 
-        @if($editingTemplate === 'pharma')
-            <section class="rounded-xl border border-teal-200 bg-white p-4">
-                <button type="button" @click="showTopbarSettings = !showTopbarSettings" :aria-expanded="showTopbarSettings.toString()" aria-controls="header-topbar-settings" class="flex w-full items-center justify-between gap-3 text-left text-sm font-semibold text-gray-800">
-                    <span>Thanh thông tin Pharma <span class="ml-2 text-xs font-normal text-gray-500">Nội dung, liên hệ và hiển thị theo thiết bị</span></span>
-                    <span x-text="showTopbarSettings ? 'Thu gọn −' : 'Cấu hình +'"></span>
-                </button>
-                <div id="header-topbar-settings" x-show="showTopbarSettings" x-cloak class="mt-4 space-y-4">
-                <div>
-                    <h4 class="text-base font-bold text-gray-900">Topbar Pharma · Nội dung & liên hệ</h4>
-                    <p class="mt-1 text-xs text-gray-600">Nội dung độc lập với Topbar Default. Màu Topbar BG / Topbar Text của Pharma áp dụng độc lập, kể cả khi bật Kế thừa màu Global Website Theme. Chiều cao chỉnh trong Advanced phía dưới.</p>
-                </div>
-                <label class="flex items-center gap-2 text-sm font-medium"><input type="checkbox" wire:model="topbarSettings.enabled" class="rounded border-gray-300"> Hiển thị Topbar Pharma</label>
-                <div class="grid gap-3 rounded-lg border border-teal-100 bg-teal-50/50 p-3 sm:grid-cols-2">
-                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model="topbarSettings.show_desktop" class="rounded border-gray-300"> Hiển thị trên Desktop / Tablet</label>
-                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model="topbarSettings.show_mobile" class="rounded border-gray-300"> Hiển thị trên Mobile</label>
-                </div>
-                <div class="grid gap-4 md:grid-cols-2">
-                    <label class="text-sm font-medium">Nội dung bên trái
-                        <input type="text" wire:model="topbarSettings.left_text" maxlength="180" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100">
-                    </label>
-                    <label class="text-sm font-medium">Nội dung bên phải
-                        <input type="text" wire:model="topbarSettings.right_text" maxlength="180" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100">
-                    </label>
-                    <label class="text-sm font-medium">Hotline Pharma
-                        <input type="text" wire:model="topbarSettings.hotline" maxlength="50" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100" placeholder="Số điện thoại liên hệ">
-                    </label>
-                    <label class="text-sm font-medium">Email Pharma
-                        <input type="email" wire:model="topbarSettings.email" maxlength="100" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100" placeholder="contact@example.com">
-                    </label>
-                </div>
-                <div class="flex flex-wrap items-center gap-5">
-                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model="topbarSettings.show_hotline" class="rounded border-gray-300"> Hiện hotline</label>
-                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model="topbarSettings.show_email" class="rounded border-gray-300"> Hiện email</label>
-                    <button type="button" wire:click="saveTopbarSettings" class="ml-auto rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white">Lưu Topbar Pharma</button>
-                </div>
-                @error('topbarSettings.email')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
-                </div>
-            </section>
-        @endif
+
 
         <section class="rounded-xl border border-gray-200 bg-white p-4">
             <button type="button" @click="showAppearanceSettings = !showAppearanceSettings" :aria-expanded="showAppearanceSettings.toString()" aria-controls="header-appearance-settings" class="flex w-full items-center justify-between gap-3 text-left text-sm font-semibold text-gray-800">
