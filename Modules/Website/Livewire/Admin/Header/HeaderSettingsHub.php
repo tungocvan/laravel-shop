@@ -66,6 +66,9 @@ class HeaderSettingsHub extends Component
     {
         $savedLayout = $settingsService->get($this->settingKey('layout'));
         $this->loadBuilderLayout(is_array($savedLayout) ? $savedLayout : $this->defaultLayout());
+        if ($this->editingTemplate === 'pharma') {
+            $this->normalizePharmaBuilder();
+        }
         $savedPresentation = $settingsService->get($this->settingKey('presentation'));
         $this->presentation = $presentationService->resolve(is_array($savedPresentation) ? $savedPresentation : null);
         $savedThemes = $settingsService->get($this->settingKey('layout_themes'), []);
@@ -233,6 +236,9 @@ class HeaderSettingsHub extends Component
         HeaderPresentationService $presentationService
     ): void {
         $this->authorizeAdminPermission('website.settings.manage');
+        if ($this->editingTemplate === 'pharma') {
+            $this->normalizePharmaBuilder();
+        }
         $layout = $this->safeLayout($this->builderSlots, $registry);
         $presentation = $presentationService->resolve($this->presentation);
 
@@ -252,6 +258,9 @@ class HeaderSettingsHub extends Component
     {
         $this->authorizeAdminPermission('website.settings.manage');
         $this->loadBuilderLayout($this->defaultLayout());
+        if ($this->editingTemplate === 'pharma') {
+            $this->normalizePharmaBuilder();
+        }
         $this->presentation = $presentationService->resolve((array) config('website.header.presentation', []));
         $this->selectedTheme = '';
         $this->resetErrorBag(['builder', 'theme']);
@@ -415,6 +424,66 @@ class HeaderSettingsHub extends Component
             $items = array_key_exists($slot, $layout) ? $layout[$slot] : data_get($layout, $slot, []);
             $this->builderSlots[$slot] = is_array($items) ? array_values($items) : [];
         }
+    }
+
+    /**
+     * Pharma has one Search component. Older layouts stored separate desktop and
+     * mobile Search entries; fold them into one canonical desktop Search entry.
+     * The frontend uses its visibility for both breakpoints.
+     */
+    private function normalizePharmaBuilder(): void
+    {
+        $search = null;
+        $desktopVisible = false;
+        $mobileVisible = false;
+        $explicit = null;
+
+        foreach (self::BUILDER_SLOTS as $slot) {
+            $kept = [];
+            foreach ($this->builderSlots[$slot] ?? [] as $item) {
+                if (($item['type'] ?? null) !== 'search') {
+                    $kept[] = $item;
+                    continue;
+                }
+                $search ??= $item;
+                $visibility = $item['config']['visibility'] ?? (($item['enabled'] ?? true) ? (str_starts_with($slot, 'mobile.') ? 'mobile' : 'desktop') : 'hidden');
+                if ($slot !== 'mobile.search' && array_key_exists('visibility', $item['config'] ?? [])) {
+                    $explicit = $visibility;
+                }
+                if (($item['enabled'] ?? true) && in_array($visibility, ['desktop', 'both'], true)) {
+                    $desktopVisible = true;
+                }
+                if (($item['enabled'] ?? true) && in_array($visibility, ['mobile', 'both'], true)) {
+                    $mobileVisible = true;
+                }
+            }
+            $this->builderSlots[$slot] = array_values($kept);
+        }
+
+        if ($search === null) {
+            return;
+        }
+
+        $visibility = $explicit ?? ($desktopVisible && $mobileVisible ? 'both' : ($desktopVisible ? 'desktop' : ($mobileVisible ? 'mobile' : 'hidden')));
+        $search['enabled'] = $visibility !== 'hidden';
+        $search['config'] = is_array($search['config'] ?? null) ? $search['config'] : [];
+        $search['config']['visibility'] = $visibility;
+        $this->builderSlots['desktop.main.right'][] = $search;
+    }
+
+    public function setPharmaComponentPosition(string $slot, int $index, string $position, HeaderComponentRegistry $registry): void
+    {
+        $this->authorizeAdminPermission('website.settings.manage');
+        if ($this->editingTemplate !== 'pharma' || ! $this->hasItem($slot, $index)) {
+            return;
+        }
+        if (($this->builderSlots[$slot][$index]['type'] ?? null) === 'mobile-menu') {
+            return;
+        }
+        if (! in_array($position, ['desktop.main.left', 'desktop.main.center', 'desktop.main.right'], true)) {
+            return;
+        }
+        $this->moveComponent($slot, $index, $position, $registry);
     }
 
     private function selectedThemeData(): ?array
