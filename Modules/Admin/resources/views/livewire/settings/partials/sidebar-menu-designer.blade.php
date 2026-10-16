@@ -101,8 +101,8 @@
                         <label class="text-xs font-semibold text-slate-700">Icon ↔ Title Gap<select wire:model.live="config.design.sidebar_menu.item.content_gap" class="{{ $select }}">@foreach(['8','10','12','14','16'] as $v)<option value="{{ $v }}">{{ $v }} px</option>@endforeach</select></label>
                         <label class="text-xs font-semibold text-slate-700">Item Gap<select wire:model.live="config.design.sidebar_menu.item.item_gap" class="{{ $select }}">@foreach(['0','2','4','6','8'] as $v)<option value="{{ $v }}">{{ $v }} px</option>@endforeach</select></label>
                         @include('Admin::livewire.settings.partials.menu-color-control', ['label'=>'Active Border Color','model'=>'config.design.sidebar_menu.active.menu_border_color','fallback'=>'indigo-600','fallbackHex'=>'#4f46e5'])
-                        <label class="text-xs font-semibold text-slate-700">Border Width<select wire:model.live="config.design.sidebar_menu.active.menu_border_width" class="{{ $select }}">@foreach(['0'=>'None','1'=>'1 px','2'=>'2 px','3'=>'3 px'] as $v=>$l)<option value="{{ $v }}">{{ $l }}</option>@endforeach</select></label>
-                        <label class="text-xs font-semibold text-slate-700">Border Style<select wire:model.live="config.design.sidebar_menu.active.menu_border_style" class="{{ $select }}">@foreach(['solid'=>'Solid','dashed'=>'Dashed','dotted'=>'Dotted','double'=>'Double'] as $v=>$l)<option value="{{ $v }}">{{ $l }}</option>@endforeach</select></label>
+                        <label class="text-xs font-semibold text-slate-700">Border Width<select wire:model.live="config.design.sidebar_menu.active.menu_border_width" class="{{ $select }}">@foreach(['0'=>'None (ẩn viền)','1'=>'1 px','2'=>'2 px','3'=>'3 px'] as $v=>$l)<option value="{{ $v }}">{{ $l }}</option>@endforeach</select></label>
+                        <label class="text-xs font-semibold text-slate-700">Border Style<select @disabled((string) data_get($config, 'design.sidebar_menu.active.menu_border_width', '0') === '0') wire:model.live="config.design.sidebar_menu.active.menu_border_style" class="{{ $select }}">@foreach(['solid'=>'Solid','dashed'=>'Dashed','dotted'=>'Dotted','double'=>'Double'] as $v=>$l)<option value="{{ $v }}">{{ $l }}</option>@endforeach</select></label>
                     </div>
                 </section>
             </div>
@@ -150,7 +150,7 @@
                         <label class="text-xs font-semibold text-slate-700">Group Gap<select wire:model.live="config.design.sidebar_menu.group.gap" class="{{ $select }}">@foreach(['2','4','6','8','12'] as $v)<option value="{{ $v }}">{{ $v }} px</option>@endforeach</select></label>
                         @include('Admin::livewire.settings.partials.menu-color-control', ['label'=>'Active Border Color','model'=>'config.design.sidebar_menu.active.submenu_border_color','fallback'=>'indigo-600','fallbackHex'=>'#4f46e5'])
                         <label class="text-xs font-semibold text-slate-700">Border Width<select wire:model.live="config.design.sidebar_menu.active.submenu_border_width" class="{{ $select }}">@foreach(['0'=>'None','1'=>'1 px','2'=>'2 px','3'=>'3 px'] as $v=>$l)<option value="{{ $v }}">{{ $l }}</option>@endforeach</select></label>
-                        <label class="text-xs font-semibold text-slate-700">Border Style<select wire:model.live="config.design.sidebar_menu.active.submenu_border_style" class="{{ $select }}">@foreach(['solid'=>'Solid','dashed'=>'Dashed','dotted'=>'Dotted','double'=>'Double'] as $v=>$l)<option value="{{ $v }}">{{ $l }}</option>@endforeach</select></label>
+                        <label class="text-xs font-semibold text-slate-700">Border Style<select @disabled((string) data_get($config, 'design.sidebar_menu.active.submenu_border_width', '0') === '0') wire:model.live="config.design.sidebar_menu.active.submenu_border_style" class="{{ $select }}">@foreach(['solid'=>'Solid','dashed'=>'Dashed','dotted'=>'Dotted','double'=>'Double'] as $v=>$l)<option value="{{ $v }}">{{ $l }}</option>@endforeach</select></label>
                     </div>
                 </section>
             </div>
@@ -162,11 +162,11 @@
                 <div class="mt-4 space-y-2 rounded-xl bg-white/5 p-3">
                     <div class="rounded-lg px-3 py-2 text-xs" style="color:var(--admin-sidebar-menu-title-color);background:var(--admin-sidebar-menu-background)"><span class="font-semibold">Normal</span><span class="ml-2 opacity-70">Menu Item</span></div>
                     <div class="rounded-lg px-3 py-2 text-xs" style="color:var(--admin-sidebar-menu-hover-title-color);background:var(--admin-sidebar-menu-hover-background)"><span class="font-semibold">Hover</span><span class="ml-2 opacity-70">Menu Item</span></div>
-                    <div class="rounded-lg px-3 py-2 text-xs" style="color:var(--admin-sidebar-active-title-color);background:var(--admin-sidebar-menu-active-background)"><span class="font-semibold">Active</span><span class="ml-2 opacity-70">Menu Item</span></div>
+                    <div class="rounded-lg px-3 py-2 text-xs" style="color:var(--admin-sidebar-active-title-color);background:var(--admin-sidebar-menu-active-background);border:var(--admin-sidebar-menu-active-border-width,0px) var(--admin-sidebar-menu-active-border-style,solid) var(--admin-sidebar-menu-active-border-color,transparent);box-sizing:border-box"><span class="font-semibold">Active</span><span class="ml-2 opacity-70">Menu Item</span></div>
                     <div class="my-3 border-t border-white/10"></div>
                     <div class="ml-3 rounded-lg px-3 py-2 text-xs" style="color:var(--admin-sidebar-submenu-title-color);background:var(--admin-sidebar-submenu-background)">Normal · SubMenu</div>
                     <div class="ml-3 rounded-lg px-3 py-2 text-xs" style="color:var(--admin-sidebar-submenu-hover-title-color);background:var(--admin-sidebar-submenu-hover-background)">Hover · SubMenu</div>
-                    <div class="ml-3 rounded-lg px-3 py-2 text-xs" style="color:var(--admin-sidebar-submenu-active-title-color);background:var(--admin-sidebar-submenu-active-background)">Active · SubMenu</div>
+                    <div class="ml-3 rounded-lg px-3 py-2 text-xs" style="color:var(--admin-sidebar-submenu-active-title-color);background:var(--admin-sidebar-submenu-active-background);border:var(--admin-sidebar-submenu-active-border-width,0px) var(--admin-sidebar-submenu-active-border-style,solid) var(--admin-sidebar-submenu-active-border-color,transparent);box-sizing:border-box">Active · SubMenu</div>
                 </div>
                 <p class="mt-3 text-[10px] leading-4 text-slate-400">Preset và HEX custom đều được sanitize trước khi phát CSS variable.</p>
             </div>
