@@ -131,6 +131,17 @@ class HeaderSettingsHub extends Component
         $this->dispatch('show-toast', [['type' => 'success', 'message' => 'Đã lưu Topbar Pharma.']]);
     }
 
+    public function setTopbarDeviceVisibility(string $visibility): void
+    {
+        $this->authorizeAdminPermission('website.settings.manage');
+        if (! in_array($visibility, ['both', 'desktop', 'mobile', 'hidden'], true)) {
+            return;
+        }
+
+        $this->topbarSettings['show_desktop'] = in_array($visibility, ['both', 'desktop'], true);
+        $this->topbarSettings['show_mobile'] = in_array($visibility, ['both', 'mobile'], true);
+    }
+
     public function setComponentVisibility(string $slot, int $index, string $visibility): void
     {
         $this->authorizeAdminPermission('website.settings.manage');
