@@ -50,14 +50,8 @@ class AdminShellPresentationService
             '--admin-text-secondary: '.$textSecondary,
             '--admin-text-muted: '.$textMuted,
             '--admin-border-subtle: '.$border,
-            '--admin-sidebar-menu-title-color: '.$textSecondary,
-            '--admin-sidebar-menu-icon-color: '.$textMuted,
-            '--admin-sidebar-submenu-title-color: '.$textMuted,
-            '--admin-sidebar-submenu-icon-color: '.$textMuted,
-            '--admin-sidebar-active-title-color: '.$activeText,
-            '--admin-sidebar-active-icon-color: '.$activeText,
-            '--admin-sidebar-menu-active-border-color: '.$accent,
-            '--admin-sidebar-submenu-active-border-color: '.$accent,
+            // Menu and SubMenu visual states are owned by AdminDesignService.
+            // Do not shadow their configured CSS variables on the sidebar element.
         ];
 
         return ['mode'=>$mode,'background'=>$background,'style'=>implode('; ',$style)];
