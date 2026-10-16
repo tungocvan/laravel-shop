@@ -5,6 +5,7 @@ namespace Modules\Admin\Livewire\Settings;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Component;
 use Modules\Admin\Support\AdminLayoutManager;
+use Modules\Admin\Services\AdminDesignService;
 use Modules\Admin\Support\ThemeManager;
 use Modules\Website\Services\HeaderMenuService;
 
@@ -24,6 +25,9 @@ class AdminLayoutConfig extends Component
             data_set($this->config, 'sidebar.presentation.background', $this->sidebarBackgroundMode(data_get($this->config, 'sidebar.presentation.background')));
         }
         $this->themes = $themeManager->all();
+        if ($section === 'sidebar') {
+            $this->config['design'] = app(AdminDesignService::class)->sanitize((array) data_get($this->config, 'design', []));
+        }
 
         if ($section === 'header' && count((array) data_get($this->config, 'header.user_menu_config.items', [])) === 0) {
             $currentMenuItems = $this->exportWebsiteHeaderMenuItems($headerMenuService);
@@ -72,6 +76,11 @@ class AdminLayoutConfig extends Component
     {
         $this->authorizePermission($this->updatePermission());
         $validated = $this->validate($this->rules())['config'];
+        if ($this->section === 'sidebar') {
+            $designService = app(AdminDesignService::class);
+            $validated['design']['sidebar_menu'] = data_get($validated, 'design.sidebar_menu', []);
+            $validated['design']['sidebar_menu'] = data_get($designService->sanitize(['sidebar_menu' => $validated['design']['sidebar_menu']]), 'sidebar_menu');
+        }
         $manager->save(array_replace_recursive($manager->config(), $validated));
         $this->config = $manager->config();
         $this->dispatch('admin-layout-updated');
@@ -106,7 +115,15 @@ class AdminLayoutConfig extends Component
     public function render()
     {
         if ($this->section === 'header') return view('Admin::livewire.settings.admin-header-config', ['sectionTitle' => $this->sectionTitle(), 'sectionDescription' => $this->sectionDescription()]);
-        if ($this->section === 'sidebar') return view('Admin::livewire.settings.admin-sidebar-config', ['sectionTitle' => $this->sectionTitle(), 'sectionDescription' => $this->sectionDescription()]);
+        if ($this->section === 'sidebar') {
+            $design = app(AdminDesignService::class);
+            return view('Admin::livewire.settings.admin-sidebar-config', [
+                'sectionTitle' => $this->sectionTitle(), 'sectionDescription' => $this->sectionDescription(),
+                'colorOptions' => $design->colorOptions(),
+                'menuFontFamilyOptions' => $design->menuFontFamilyOptions(),
+                'menuFontSizeOptions' => $design->menuFontSizeOptions(),
+            ]);
+        }
         if ($this->section === 'footer') return view('Admin::livewire.settings.admin-footer-config', ['sectionTitle' => $this->sectionTitle(), 'sectionDescription' => $this->sectionDescription()]);
         return view('Admin::livewire.settings.admin-layout-config', ['sectionTitle' => $this->sectionTitle(), 'sectionDescription' => $this->sectionDescription()]);
     }
@@ -171,6 +188,24 @@ class AdminLayoutConfig extends Component
             'design' => ['config.theme.default' => 'required|in:'.implode(',', $this->themes ?: ['corporate-blue']), 'config.theme.dark_mode' => 'required|in:class', 'config.theme.accent' => 'required|in:blue,indigo,emerald,rose,amber'],
             'navigation' => ['config.navigation.cache_ttl' => 'required|integer|min:60|max:86400', 'config.navigation.active_strategy' => 'required|in:url-prefix', 'config.navigation.max_depth' => 'required|integer|min:1|max:3'],
         ];
+        if ($this->section === 'sidebar') {
+            $design = app(AdminDesignService::class);
+            $menuColor = ['required', 'string', 'max:32', function (string $attribute, mixed $value, \Closure $fail) use ($design): void {
+                if (! $design->isMenuColorReference($value)) $fail('Màu menu phải là preset hợp lệ hoặc mã HEX #RRGGBB.');
+            }];
+            foreach (['item', 'submenu', 'active', 'group'] as $area) {
+                foreach ((array) data_get($this->config, 'design.sidebar_menu.'.$area, []) as $key => $value) {
+                    $field = 'config.design.sidebar_menu.'.$area.'.'.$key;
+                    if (str_contains($key, 'color')) $rules['sidebar'][$field] = $menuColor;
+                    elseif (str_ends_with($key, '_mode')) $rules['sidebar'][$field] = 'required|in:transparent,color';
+                    elseif (str_contains($key, 'font_family')) $rules['sidebar'][$field] = 'required|in:'.implode(',', AdminDesignService::menuFontFamilyKeys());
+                    elseif (str_contains($key, 'font_size')) $rules['sidebar'][$field] = 'required|in:12,13,sm,15,base';
+                    elseif (str_contains($key, 'font_weight')) $rules['sidebar'][$field] = 'required|in:normal,medium,semibold,bold';
+                    elseif (str_contains($key, 'border_style')) $rules['sidebar'][$field] = 'required|in:solid,dashed,dotted,double';
+                    elseif (is_scalar($value)) $rules['sidebar'][$field] = 'required|integer|min:0|max:64';
+                }
+            }
+        }
         return $rules[$this->section];
     }
 
@@ -178,7 +213,7 @@ class AdminLayoutConfig extends Component
     {
         return match ($this->section) {
             'general' => ['locale' => data_get($config, 'locale'), 'layout' => ['preset' => data_get($config, 'layout.preset'), 'container' => data_get($config, 'layout.container'), 'density' => data_get($config, 'layout.density'), 'sticky_header' => data_get($config, 'layout.sticky_header'), 'spacing' => data_get($config, 'layout.spacing', []), 'surface' => data_get($config, 'layout.surface', []), 'behavior' => data_get($config, 'layout.behavior', [])]],
-            'header' => ['header' => $config['header'] ?? []], 'sidebar' => ['sidebar' => $config['sidebar'] ?? []], 'footer' => ['layout' => ['show_footer' => data_get($config, 'layout.show_footer')], 'footer' => $config['footer'] ?? []], 'design' => ['theme' => $config['theme'] ?? []], 'navigation' => ['navigation' => $config['navigation'] ?? []],
+            'header' => ['header' => $config['header'] ?? []], 'sidebar' => ['sidebar' => $config['sidebar'] ?? [], 'design' => ['sidebar_menu' => data_get($config, 'design.sidebar_menu', [])]], 'footer' => ['layout' => ['show_footer' => data_get($config, 'layout.show_footer')], 'footer' => $config['footer'] ?? []], 'design' => ['theme' => $config['theme'] ?? []], 'navigation' => ['navigation' => $config['navigation'] ?? []],
         };
     }
 
