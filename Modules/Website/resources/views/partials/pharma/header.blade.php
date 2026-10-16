@@ -148,7 +148,7 @@
             <template x-teleport="body">
                 <div x-show="menuOpen" x-cloak class="fixed inset-0 z-[9999] {{ $drawerVisibility === 'mobile' ? 'lg:hidden' : ($drawerVisibility === 'desktop' ? 'hidden lg:block' : '') }}">
                     <div class="absolute inset-0 bg-slate-950/55 backdrop-blur-[2px]" @click="menuOpen = false" aria-hidden="true"></div>
-                    <aside id="pharma-mobile-menu" x-show="menuOpen" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full" role="dialog" aria-modal="true" aria-label="Menu điều hướng Pharma" class="absolute inset-y-0 right-0 flex h-full w-[min(88vw,360px)] flex-col overflow-hidden bg-white text-slate-900 shadow-2xl">
+                    <aside id="pharma-mobile-menu" x-show="menuOpen" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full" role="dialog" aria-modal="true" aria-label="Menu điều hướng Pharma" class="absolute inset-y-0 right-0 flex h-full w-[min(88vw,360px)] flex-col overflow-hidden bg-white text-slate-900 shadow-2xl" style="--pharma-header-accent: {{ $accent }};">
                         <div class="shrink-0 border-b border-slate-100 bg-white px-4 py-4">
                             <div class="flex min-w-0 items-center gap-3">
                                 <a href="{{ route('home') }}" class="flex min-w-0 flex-1 items-center gap-3" aria-label="{{ $companyName }} - về trang chủ">
@@ -169,16 +169,16 @@
                                 </button>
                             </div>
                         </div>
-                        <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-slate-50/50">
+                        <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-white">
                             @include('Website::partials.pharma.mobile-account-links', ['accountConfig' => $accountConfig])
-                            <nav aria-label="Điều hướng Pharma trên di động" class="px-3 pb-6 pt-4">
-                                <div class="mb-2 px-3 text-[10px] font-extrabold uppercase tracking-[0.16em] text-slate-500">Khám phá</div>
-                                <div class="space-y-1">
+                            <nav aria-label="Điều hướng Pharma trên di động" class="px-4 pb-6 pt-4">
+                                <div class="mb-2 px-2 text-[10px] font-extrabold uppercase tracking-[0.14em] text-slate-500">Khám phá</div>
+                                <div class="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-100 bg-white">
                                     @foreach($mobileMenu->isNotEmpty() ? $mobileMenu : $fallbackMenu as $item)
                                         @php($itemUrl = is_array($item) ? $item['url'] : $item->url)
                                         @php($itemTitle = is_array($item) ? $item['title'] : $item->title)
                                         @php($isActiveMobileItem = $itemUrl && $itemUrl !== '#' && (url()->current() === $itemUrl || request()->fullUrl() === $itemUrl))
-                                        <a href="{{ $itemUrl ?: '#' }}" @if($isActiveMobileItem) aria-current="page" @endif class="group flex min-h-12 items-center rounded-xl border border-transparent px-4 py-3 text-[13px] font-semibold leading-5 transition-colors active:scale-[0.985] motion-reduce:transform-none {{ $isActiveMobileItem ? 'border-emerald-100 bg-emerald-50 text-emerald-800 shadow-sm' : 'text-slate-700 hover:border-slate-100 hover:bg-white hover:text-emerald-800' }}">
+                                        <a href="{{ $itemUrl ?: '#' }}" @if($isActiveMobileItem) aria-current="page" @endif class="group flex min-h-12 items-center px-4 py-3.5 text-sm font-semibold leading-5 transition-colors active:scale-[0.985] motion-reduce:transform-none {{ $isActiveMobileItem ? 'bg-emerald-50 text-emerald-800' : 'text-slate-700 hover:bg-slate-50 hover:text-emerald-800' }}">
                                             <span class="min-w-0 flex-1">{{ $itemTitle }}</span>
                                             @if($isActiveMobileItem)
                                                 <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-600" aria-hidden="true"></span>
@@ -200,12 +200,12 @@
                                     </form>
                                 @endif
                             @else
-                                <div class="flex flex-col gap-2">
+                                <div class="flex flex-col items-center gap-3">
                                     @if(\Illuminate\Support\Facades\Route::has('login'))
-                                        <a href="{{ route('login') }}" class="flex min-h-12 w-full items-center justify-center rounded-xl px-4 text-center text-sm font-bold text-white shadow-md transition hover:brightness-95 active:scale-[0.985] motion-reduce:transform-none" style="background:var(--pharma-header-accent)">Đăng nhập</a>
+                                        <a href="{{ route('login') }}" class="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-center text-sm font-bold text-white shadow-sm transition hover:brightness-95 active:scale-[0.985] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 motion-reduce:transform-none" style="background-color: {{ $accent }};"><svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3M12 3h7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-7"/></svg>Đăng nhập</a>
                                     @endif
                                     @if(\Illuminate\Support\Facades\Route::has('register'))
-                                        <a href="{{ route('register') }}" class="flex min-h-11 w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-center text-sm font-semibold text-slate-700 transition hover:bg-slate-50 active:scale-[0.985] motion-reduce:transform-none">Đăng ký</a>
+                                        <a href="{{ route('register') }}" class="inline-flex min-h-11 items-center justify-center px-3 text-center text-xs font-medium text-slate-500 transition hover:text-emerald-800 active:scale-[0.985] motion-reduce:transform-none">Chưa có tài khoản? <span class="ml-1 font-bold text-emerald-800">Đăng ký</span></a>
                                     @endif
                                 </div>
                             @endif
