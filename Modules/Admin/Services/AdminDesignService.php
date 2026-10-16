@@ -166,7 +166,15 @@ class AdminDesignService
     public function colorOptions(): array { return self::COLOR_VALUES; }
     public function surfaceColorOptions(): array { return array_intersect_key(self::COLOR_VALUES, array_flip(self::SURFACE_COLOR_KEYS)); }
     public function fontFamilyOptions(): array { return self::FONT_LABELS; }
-    public function menuFontFamilyOptions(): array { return ['inherit'=>'Kế thừa font Admin'] + self::FONT_LABELS; }
+    public function menuFontFamilyOptions(): array
+    {
+        return ['inherit'=>'Kế thừa font Admin'] + self::FONT_LABELS + [
+            'inter' => 'Inter (Google Fonts)',
+            'roboto' => 'Roboto (Google Fonts)',
+            'be_vietnam_pro' => 'Be Vietnam Pro (Google Fonts)',
+            'nunito_sans' => 'Nunito Sans (Google Fonts)',
+        ];
+    }
     public function menuFontSizeOptions(): array { return ['12'=>'12 px','13'=>'13 px','sm'=>'14 px','15'=>'15 px','base'=>'16 px']; }
     public static function fontFamilyKeys(): array { return array_keys(self::FONT_FAMILIES); }
     public static function menuFontFamilyKeys(): array { return array_keys(self::MENU_FONT_FAMILIES); }
