@@ -148,7 +148,7 @@ class SidebarMenuConsolidationContractTest extends TestCase
         $view = file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/admin-sidebar-config.blade.php'));
 
         $this->assertStringContainsString('function applySidebarQuickProfile(', $component);
-        $this->assertStringContainsString("'snapshot' => [", $component);
+        $this->assertStringContainsString("\$current[\$key]['snapshot'] = [", $component);
         $this->assertStringContainsString("data_get(\$presets[\$key], 'snapshot')", $component);
         $this->assertStringContainsString("array_key_exists(\$field", $component);
         $this->assertStringContainsString("'quick' => 'Đổi nhanh giao diện'", $view);
