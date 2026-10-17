@@ -58,8 +58,8 @@ final class PharmaHomepageHeroEditorContractTest extends TestCase
         $this->assertStringContainsString("['show_illustration']", $frontend);
         $this->assertStringContainsString('wire:model="pharmaHeroUpload"', $editor);
         $this->assertStringContainsString('wire:model.live="pharmaHero.illustration_type"', $editor);
-        $this->assertStringContainsString('pharmaHero.desktop_width', $editor);
-        $this->assertStringContainsString('pharmaHero.mobile_min_height', $editor);
+        $this->assertStringContainsString("'desktop_width' => 'Chiều rộng nội dung Desktop", $editor);
+        $this->assertStringContainsString("'mobile_min_height' => 'Chiều cao tối thiểu Mobile", $editor);
         $this->assertStringContainsString('pharmaHeroSavedModal', $editor);
         $this->assertStringContainsString('closePharmaHeroSavedModal', $hub);
         $this->assertStringContainsString('pharma-hero-illustration', $frontend);
