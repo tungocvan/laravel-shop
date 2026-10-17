@@ -1,4 +1,4 @@
-<div class="space-y-6" x-data="{ builderDevice: 'desktop', previewDevice: 'desktop', drag: null }">
+<div class="space-y-6" x-data="{ builderDevice: 'desktop', previewDevice: 'desktop', drag: null, footerPanel: 'layout' }">
     <section class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <label for="footer-editing-template" class="mb-2 block text-sm font-semibold text-gray-900">Template đang quản trị</label>
         <select id="footer-editing-template" wire:model.live="editingTemplate" class="w-full max-w-md rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm">
@@ -8,7 +8,78 @@
         <p class="mt-2 text-xs text-slate-500">Đang xuất bản: <strong>{{ $publishedTemplate === 'pharma' ? 'Pharma' : 'Default' }}</strong>. Chọn workspace chỉ thay đổi phần đang quản trị, không thay đổi template đang xuất bản.</p>
     </section>
 
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <nav class="flex flex-wrap gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm" aria-label="Các bước cấu hình Footer">
+        @foreach(['layout' => '1. Bố cục', 'preview' => '2. Xem trước', 'style' => '3. Giao diện'] as $panel => $label)
+            <button type="button" @click="footerPanel = '{{ $panel }}'" :class="footerPanel === '{{ $panel }}' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'" class="rounded-lg px-4 py-2.5 text-sm font-semibold">{{ $label }}</button>
+        @endforeach
+    </nav>
+
+    <section x-show="footerPanel === 'layout'" x-cloak class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+                <h3 class="font-semibold text-slate-900">Thiết kế cột Footer</h3>
+                <p class="mt-1 text-sm text-slate-500">Giai đoạn 1: tạo bản nháp số cột, thứ tự, độ rộng và ẩn/hiện. Chưa áp dụng ra Footer công khai.</p>
+            </div>
+            <button type="button" wire:click="addFooterColumn" @disabled(count($footerColumns) >= 6) class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 disabled:opacity-40">+ Thêm cột</button>
+        </div>
+        <div class="mt-4 space-y-3">
+            @foreach($footerColumns as $index => $column)
+                <div wire:key="footer-column-editor-{{ $index }}" class="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 md:grid-cols-[minmax(0,1fr)_150px_auto] md:items-end">
+                    <label class="text-sm font-medium text-slate-700">Tên cột
+                        <input type="text" maxlength="80" wire:model="footerColumns.{{ $index }}.title" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
+                    </label>
+                    <label class="text-sm font-medium text-slate-700">Độ rộng / 12
+                        <select wire:model="footerColumns.{{ $index }}.width" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
+                            @foreach([2,3,4,6,12] as $width)
+                                <option value="{{ $width }}">{{ $width }}/12</option>
+                            @endforeach
+                        </select>
+                    </label>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <label class="inline-flex items-center gap-1 text-sm"><input type="checkbox" wire:model="footerColumns.{{ $index }}.enabled"> Hiện</label>
+                        <button type="button" wire:click="moveFooterColumn({{ $index }}, -1)" @disabled($index === 0) class="rounded border px-2 py-1 disabled:opacity-30" aria-label="Đưa cột lên">↑</button>
+                        <button type="button" wire:click="moveFooterColumn({{ $index }}, 1)" @disabled($index === count($footerColumns) - 1) class="rounded border px-2 py-1 disabled:opacity-30" aria-label="Đưa cột xuống">↓</button>
+                        <button type="button" wire:click="removeFooterColumn({{ $index }})" @disabled(count($footerColumns) <= 1) class="rounded border border-red-200 px-2 py-1 text-red-700 disabled:opacity-30">Xóa</button>
+                    </div>
+                </div>
+                <div class="mt-3 rounded-lg border border-slate-200 bg-white p-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <h4 class="text-sm font-semibold text-slate-800">Nội dung cột</h4>
+                        <div class="flex gap-2">
+                            <button type="button" wire:click="addFooterColumnItem({{ $index }}, 'text')" class="rounded border px-2 py-1 text-xs">+ Văn bản</button>
+                            <button type="button" wire:click="addFooterColumnItem({{ $index }}, 'link')" class="rounded border px-2 py-1 text-xs">+ Liên kết</button>
+                        </div>
+                    </div>
+                    <div class="mt-3 space-y-2">
+                        @foreach(($column['items'] ?? []) as $itemIndex => $item)
+                            <div wire:key="footer-column-item-{{ $index }}-{{ $itemIndex }}" class="grid gap-2 rounded-lg bg-slate-50 p-2 sm:grid-cols-[1fr_1fr_auto] sm:items-center">
+                                <label class="text-xs text-slate-600">{{ $item['type'] === 'link' ? 'Tên liên kết' : 'Văn bản' }}
+                                    <input type="text" maxlength="250" wire:model="footerColumns.{{ $index }}.items.{{ $itemIndex }}.label" class="mt-1 w-full rounded border border-slate-300 px-2 py-1.5">
+                                </label>
+                                @if($item['type'] === 'link')
+                                    <label class="text-xs text-slate-600">URL (https:// hoặc /)
+                                        <input type="text" maxlength="2048" wire:model="footerColumns.{{ $index }}.items.{{ $itemIndex }}.url" class="mt-1 w-full rounded border border-slate-300 px-2 py-1.5">
+                                    </label>
+                                @else
+                                    <span class="text-xs text-slate-400">Đoạn văn bản</span>
+                                @endif
+                                <div class="flex gap-1">
+                                    <button type="button" wire:click="moveFooterColumnItem({{ $index }}, {{ $itemIndex }}, -1)" @disabled($itemIndex === 0) class="rounded border px-2 py-1 disabled:opacity-30" aria-label="Đưa nội dung lên">↑</button>
+                                    <button type="button" wire:click="moveFooterColumnItem({{ $index }}, {{ $itemIndex }}, 1)" @disabled($itemIndex === count($column['items']) - 1) class="rounded border px-2 py-1 disabled:opacity-30" aria-label="Đưa nội dung xuống">↓</button>
+                                    <button type="button" wire:click="removeFooterColumnItem({{ $index }}, {{ $itemIndex }})" class="rounded border border-red-200 px-2 py-1 text-red-700">Xóa</button>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endforeach
+        </div>
+        <div class="mt-4 flex justify-end">
+            <button type="button" wire:click="saveFooterColumns" wire:loading.attr="disabled" wire:target="saveFooterColumns" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Lưu bản nháp cột</button>
+        </div>
+    </section>
+
+    <div x-show="footerPanel === 'layout'" x-cloak class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
             <h2 class="text-xl font-bold text-gray-900">Bố cục Footer</h2>
             <p class="mt-1 text-sm text-gray-500">Bật/tắt, kéo thả, sắp xếp và theo dõi Footer riêng cho Desktop / Mobile.</p>
@@ -23,7 +94,7 @@
         <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ $message }}</div>
     @enderror
 
-    <div class="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+    <div x-show="footerPanel === 'layout'" x-cloak class="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div>
             <div class="font-semibold text-gray-900">Bộ lọc thiết bị</div>
             <p class="text-sm text-gray-500">Chỉ hiển thị các vùng của thiết bị đang chỉnh. Overlay dùng chung luôn hiển thị.</p>
@@ -34,7 +105,7 @@
         </div>
     </div>
 
-    <div class="grid gap-6 xl:grid-cols-2">
+    <div x-show="footerPanel === 'layout'" x-cloak class="grid gap-6 xl:grid-cols-2">
         @foreach($builderSlotNames as $slot => $slotLabel)
             @php
                 $isDesktopSlot = str_starts_with($slot, 'desktop.');
@@ -107,9 +178,41 @@
         @endforeach
     </div>
 
-    @include('Website::livewire.admin.footer.partials.builder-preview')
+    <section x-show="footerPanel === 'style' || footerPanel === 'preview'" x-cloak class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="mb-4">
+            <h3 class="font-semibold text-slate-900">Thư viện giao diện Footer</h3>
+            <p class="mt-1 text-sm text-slate-500">5 mẫu có sẵn, không phụ thuộc danh sách theme cá nhân đã lưu. Chọn mẫu để đổi màu Footer. Theme đã lưu riêng vẫn nằm trong phần quản lý bên dưới. Chỉ áp dụng lên Website sau khi bấm Lưu giao diện.</p>
+        </div>
+        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            @foreach($this->footerThemePresets() as $presetKey => $preset)
+                <button type="button" wire:click="applyFooterThemePreset('{{ $presetKey }}')" class="overflow-hidden rounded-xl border bg-white text-left transition hover:shadow-md {{ !($presentation['inherit_colors'] ?? true) && ($presentation['colors']['background'] ?? '') === $preset['background'] ? 'border-blue-500 ring-2 ring-blue-200' : 'border-slate-200' }}">
+                    <div class="p-4" style="background-color: {{ $preset['background'] }}; color: {{ $preset['foreground'] }};">
+                        <div class="mb-3 text-sm font-bold" style="color: {{ $preset['heading'] }};">{{ $preset['name'] }}</div>
+                        <div class="mb-2 h-2 w-3/4 rounded" style="background-color: {{ $preset['foreground'] }};"></div>
+                        <div class="mb-2 h-2 w-1/2 rounded" style="background-color: {{ $preset['muted'] }};"></div>
+                        <div class="mt-4 h-1 w-full rounded" style="background-color: {{ $preset['accent'] }};"></div>
+                    </div>
+                    <div class="px-3 py-2">
+                        <div class="text-sm font-semibold text-slate-800">{{ $preset['name'] }}</div>
+                        <div class="text-xs text-slate-500">{{ $preset['description'] }}</div>
+                        @if(!($presentation['inherit_colors'] ?? true) && ($presentation['colors']['background'] ?? '') === $preset['background'])
+                            <span class="text-xs font-semibold text-blue-700">Đang chọn</span>
+                        @endif
+                    </div>
+                </button>
+            @endforeach
+        </div>
+    </section>
 
-    <section class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+    <section x-show="footerPanel === 'preview'" x-cloak>
+        <div class="mb-4 rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-slate-700">Xem trước Footer trên Desktop và Mobile trước khi lưu bố cục.</div>
+        @include('Website::livewire.admin.footer.partials.builder-preview')
+        <div class="mt-4 flex justify-end">
+            <button type="button" wire:click="saveBuilder" wire:loading.attr="disabled" wire:target="saveBuilder" class="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">Lưu bố cục & giao diện</button>
+        </div>
+    </section>
+
+    <section x-show="footerPanel === 'style'" x-cloak class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h3 class="font-semibold text-gray-900">Presentation</h3>
@@ -161,5 +264,8 @@
                 @endforeach
             </div>
         @endif
+        <div class="mt-5 flex justify-end">
+            <button type="button" wire:click="saveBuilder" wire:loading.attr="disabled" wire:target="saveBuilder" class="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">Lưu giao diện</button>
+        </div>
     </section>
 </div>

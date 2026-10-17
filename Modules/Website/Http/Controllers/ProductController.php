@@ -18,6 +18,7 @@ class ProductController extends Controller
             return view('Website::pages.shop');
         }
 
+        $catalogCardDesign = app(\Modules\Website\Services\PharmaProductCardStyle::class)->normalize((array) $settings->get('website.pharma_catalog.card_design', []));
         $filterVisibility = array_replace(['category' => true, 'supplier' => true, 'product_type' => true, 'circular_group' => true], (array) $settings->get('website.pharma_catalog.filters', []));
         $authenticated = auth()->check();
         $search = trim((string) $request->query('search', ''));
@@ -85,6 +86,7 @@ class ProductController extends Controller
         return view('Website::pages.shop-pharma', [
             'products' => $query->paginate(12)->withQueryString(),
             'filterVisibility' => $filterVisibility,
+            'catalogCardDesign' => $catalogCardDesign,
             'categories' => $categories,
             'suppliers' => $suppliers,
             'authenticated' => $authenticated,

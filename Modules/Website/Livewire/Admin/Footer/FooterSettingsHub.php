@@ -17,6 +17,7 @@ class FooterSettingsHub extends Component
     public string $publishedTemplate = 'default';
     public array $pharmaContent = [];
     public array $builderSlots = [];
+    public array $footerColumns = [];
     public array $presentation = [];
     public array $layoutThemes = [];
     public string $selectedTheme = '';
@@ -45,6 +46,7 @@ class FooterSettingsHub extends Component
         $savedLayout = $settingsService->get($this->settingKey('layout'));
         $rawLayout = is_array($savedLayout) ? $savedLayout : (array) config('website.footer.layout', []);
         $this->loadBuilderLayout($rawLayout);
+        $this->loadFooterColumns($settingsService);
 
         $savedPresentation = $settingsService->get($this->settingKey('presentation'));
         $this->presentation = $presentationService->resolve(is_array($savedPresentation) ? $savedPresentation : null);
@@ -83,6 +85,7 @@ class FooterSettingsHub extends Component
         $presentationService = app(FooterPresentationService::class);
         $layout = $settings->get($this->settingKey('layout'));
         $this->loadBuilderLayout(is_array($layout) ? $layout : (array) config('website.footer.layout', []));
+        $this->loadFooterColumns($settings);
         $savedPresentation = $settings->get($this->settingKey('presentation'));
         $this->presentation = $presentationService->resolve(is_array($savedPresentation) ? $savedPresentation : null);
         $themes = $settings->get($this->settingKey('layout_themes'), []);
@@ -227,6 +230,132 @@ class FooterSettingsHub extends Component
         $this->builderSlots[$toSlot] = array_values($this->builderSlots[$toSlot]);
     }
 
+    /**
+     * Column editor v1: independent draft metadata. The public renderer continues
+     * using the existing layout until a compatible column renderer is enabled.
+     */
+    private function loadFooterColumns(SettingsService $settings): void
+    {
+        $stored = $settings->get($this->settingKey('columns'), []);
+        $this->footerColumns = $this->normalizeFooterColumns(is_array($stored) ? $stored : []);
+    }
+
+    public function addFooterColumn(): void
+    {
+        $this->authorizeAdminPermission('website.footer.manage');
+        if (count($this->footerColumns) >= 6) {
+            return;
+        }
+        $this->footerColumns[] = ['title' => 'Cột mới', 'width' => 3, 'enabled' => true, 'items' => []];
+    }
+
+    public function removeFooterColumn(int $index): void
+    {
+        $this->authorizeAdminPermission('website.footer.manage');
+        if (count($this->footerColumns) <= 1 || ! isset($this->footerColumns[$index])) {
+            return;
+        }
+        array_splice($this->footerColumns, $index, 1);
+    }
+
+    public function moveFooterColumn(int $index, int $direction): void
+    {
+        $this->authorizeAdminPermission('website.footer.manage');
+        $target = $index + ($direction < 0 ? -1 : 1);
+        if (! isset($this->footerColumns[$index], $this->footerColumns[$target])) {
+            return;
+        }
+        [$this->footerColumns[$index], $this->footerColumns[$target]] =
+            [$this->footerColumns[$target], $this->footerColumns[$index]];
+    }
+
+    public function addFooterColumnItem(int $index, string $type): void
+    {
+        $this->authorizeAdminPermission('website.footer.manage');
+        if (! in_array($type, ['text', 'link'], true) || ! isset($this->footerColumns[$index])) {
+            return;
+        }
+        $items = $this->footerColumns[$index]['items'] ?? [];
+        if (count($items) >= 12) {
+            return;
+        }
+        $this->footerColumns[$index]['items'][] = ['type' => $type, 'label' => '', 'url' => ''];
+    }
+
+    public function removeFooterColumnItem(int $index, int $itemIndex): void
+    {
+        $this->authorizeAdminPermission('website.footer.manage');
+        if (! isset($this->footerColumns[$index]['items'][$itemIndex])) {
+            return;
+        }
+        array_splice($this->footerColumns[$index]['items'], $itemIndex, 1);
+    }
+
+    public function moveFooterColumnItem(int $index, int $itemIndex, int $direction): void
+    {
+        $this->authorizeAdminPermission('website.footer.manage');
+        $target = $itemIndex + ($direction < 0 ? -1 : 1);
+        if (! isset($this->footerColumns[$index]['items'][$itemIndex], $this->footerColumns[$index]['items'][$target])) {
+            return;
+        }
+        [$this->footerColumns[$index]['items'][$itemIndex], $this->footerColumns[$index]['items'][$target]] =
+            [$this->footerColumns[$index]['items'][$target], $this->footerColumns[$index]['items'][$itemIndex]];
+    }
+
+    public function saveFooterColumns(SettingsService $settings): void
+    {
+        $this->authorizeAdminPermission('website.footer.manage');
+        $this->footerColumns = $this->normalizeFooterColumns($this->footerColumns);
+        $settings->set($this->settingKey('columns'), $this->footerColumns, 'footer', 'json');
+        $this->dispatch('show-toast', [['type' => 'success', 'message' => 'Đã lưu bản nháp cấu trúc cột Footer.']]);
+    }
+
+    private function normalizeFooterColumns(array $columns): array
+    {
+        $normalized = [];
+        foreach (array_slice($columns, 0, 6) as $column) {
+            if (! is_array($column)) {
+                continue;
+            }
+            $normalized[] = [
+                'title' => mb_substr(trim((string) ($column['title'] ?? '')), 0, 80),
+                'width' => in_array((int) ($column['width'] ?? 3), [2, 3, 4, 6, 12], true) ? (int) $column['width'] : 3,
+                'enabled' => (bool) ($column['enabled'] ?? true),
+                'items' => $this->normalizeFooterColumnItems($column['items'] ?? []),
+            ];
+        }
+        return $normalized ?: [
+            ['title' => 'Thương hiệu & liên hệ', 'width' => 4, 'enabled' => true],
+            ['title' => 'Liên kết', 'width' => 3, 'enabled' => true],
+            ['title' => 'Hỗ trợ', 'width' => 3, 'enabled' => true],
+            ['title' => 'Ứng dụng', 'width' => 2, 'enabled' => true],
+        ];
+    }
+
+    private function normalizeFooterColumnItems(mixed $items): array
+    {
+        if (! is_array($items)) {
+            return [];
+        }
+        $result = [];
+        foreach (array_slice($items, 0, 12) as $item) {
+            if (! is_array($item) || ! in_array($item['type'] ?? null, ['text', 'link'], true)) {
+                continue;
+            }
+            $url = trim((string) ($item['url'] ?? ''));
+            if ($item['type'] === 'link' && $url !== '' && ! str_starts_with($url, '/') &&
+                ! preg_match('~^https?://~i', $url) && ! str_starts_with($url, '#')) {
+                $url = '';
+            }
+            $result[] = [
+                'type' => $item['type'],
+                'label' => mb_substr(trim((string) ($item['label'] ?? '')), 0, 250),
+                'url' => mb_substr($url, 0, 2048),
+            ];
+        }
+        return $result;
+    }
+
     public function saveBuilder(
         SettingsService $settingsService,
         FooterComponentRegistry $registry,
@@ -257,6 +386,33 @@ class FooterSettingsHub extends Component
         $this->presentation = $presentationService->resolve((array) config('website.footer.presentation', []));
         $this->selectedTheme = '';
         $this->resetErrorBag(['builder', 'theme']);
+    }
+
+    public function footerThemePresets(): array
+    {
+        return [
+            'midnight' => ['name' => 'Midnight', 'description' => 'Xanh đen hiện đại', 'background' => '#111827', 'heading' => '#ffffff', 'foreground' => '#cbd5e1', 'muted' => '#94a3b8', 'accent' => '#38bdf8', 'border' => '#334155'],
+            'emerald' => ['name' => 'Emerald', 'description' => 'Xanh lá doanh nghiệp', 'background' => '#0f513f', 'heading' => '#ffffff', 'foreground' => '#f0fdf4', 'muted' => '#d1fae5', 'accent' => '#34d399', 'border' => '#527f70'],
+            'ocean' => ['name' => 'Ocean', 'description' => 'Xanh dương tin cậy', 'background' => '#102a43', 'heading' => '#ffffff', 'foreground' => '#d9e8f4', 'muted' => '#a9c5da', 'accent' => '#60a5fa', 'border' => '#335772'],
+            'charcoal' => ['name' => 'Charcoal', 'description' => 'Xám đậm tối giản', 'background' => '#20252b', 'heading' => '#ffffff', 'foreground' => '#d1d5db', 'muted' => '#a6afb8', 'accent' => '#fbbf24', 'border' => '#454d57'],
+            'light' => ['name' => 'Clean Light', 'description' => 'Nền sáng thanh lịch', 'background' => '#f8fafc', 'heading' => '#0f172a', 'foreground' => '#334155', 'muted' => '#64748b', 'accent' => '#2563eb', 'border' => '#cbd5e1'],
+        ];
+    }
+
+    public function applyFooterThemePreset(string $preset, FooterPresentationService $presentationService): void
+    {
+        $this->authorizeAdminPermission('website.footer.manage');
+        $definition = $this->footerThemePresets()[$preset] ?? null;
+        if ($definition === null) {
+            return;
+        }
+        $this->presentation = $presentationService->resolve(array_replace($this->presentation, [
+            'inherit_colors' => false,
+            'accent' => false,
+            'border' => false,
+            'colors' => array_intersect_key($definition, array_flip(['background', 'heading', 'foreground', 'muted', 'accent', 'border'])),
+        ]));
+        $this->dispatchThemeToast('Đã nạp giao diện '.$definition['name'].' vào bản xem trước. Bấm Lưu giao diện để áp dụng.');
     }
 
     public function saveTheme(

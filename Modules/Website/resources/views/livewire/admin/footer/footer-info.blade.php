@@ -47,6 +47,17 @@
                 <div><label class="block text-sm font-semibold text-gray-700">Tiêu đề nút PWA</label><input type="text" wire:model="app_button_title" class="{{ $fieldClass }}"></div>
                 <div class="md:col-span-2"><label class="block text-sm font-semibold text-gray-700">Mô tả khu vực</label><textarea wire:model="app_description" rows="3" class="{{ $fieldClass }}"></textarea></div>
                 <div class="md:col-span-2"><label class="block text-sm font-semibold text-gray-700">Mô tả nút PWA</label><input type="text" wire:model="app_button_subtitle" class="{{ $fieldClass }}"></div>
+                <div class="md:col-span-2 mt-2 border-t border-gray-200 pt-4"><h5 class="font-semibold text-gray-900">Giao diện Card cài đặt PWA</h5><p class="text-sm text-gray-500">Tùy chỉnh độc lập với màu nền Footer.</p></div>
+                <div><label class="block text-sm font-semibold text-gray-700">Màu nền Card</label><input type="color" wire:model="app_card_background" class="mt-2 h-10 w-full cursor-pointer rounded-lg border border-gray-300"></div>
+                <div><label class="block text-sm font-semibold text-gray-700">Màu chữ chính</label><input type="color" wire:model="app_card_text" class="mt-2 h-10 w-full cursor-pointer rounded-lg border border-gray-300"></div>
+                <div><label class="block text-sm font-semibold text-gray-700">Màu chữ phụ</label><input type="color" wire:model="app_card_muted" class="mt-2 h-10 w-full cursor-pointer rounded-lg border border-gray-300"></div>
+                <label class="flex items-center gap-2 text-sm font-semibold text-gray-700"><input type="checkbox" wire:model="app_card_shadow" class="rounded border-gray-300"> Đổ bóng nổi bật cho Card</label>
+                <div class="md:col-span-2 mt-2 border-t border-gray-200 pt-4"><h5 class="font-semibold text-gray-900">Modal hướng dẫn cài đặt PWA</h5><p class="text-sm text-gray-500">Nội dung được hiển thị dạng văn bản an toàn, có xuống dòng. Hướng dẫn riêng theo thiết bị.</p></div>
+                <div><label class="block text-sm font-semibold text-gray-700">Tên nút hướng dẫn</label><input type="text" wire:model="app_guide_label" class="{{ $fieldClass }}"></div>
+                <div><label class="block text-sm font-semibold text-gray-700">Tiêu đề Modal</label><input type="text" wire:model="app_guide_title" class="{{ $fieldClass }}"></div>
+                <div class="md:col-span-2"><label class="block text-sm font-semibold text-gray-700">Hướng dẫn iPhone/iPad (Safari)</label><textarea wire:model="app_guide_ios" rows="3" class="{{ $fieldClass }}"></textarea></div>
+                <div class="md:col-span-2"><label class="block text-sm font-semibold text-gray-700">Hướng dẫn Android (Chrome)</label><textarea wire:model="app_guide_android" rows="3" class="{{ $fieldClass }}"></textarea></div>
+                <div class="md:col-span-2"><label class="block text-sm font-semibold text-gray-700">Hướng dẫn trình duyệt khác</label><textarea wire:model="app_guide_other" rows="3" class="{{ $fieldClass }}"></textarea></div>
                 <div><label class="block text-sm font-semibold text-gray-700">App Store URL</label><input type="text" wire:model="appstore_url" placeholder="https://apps.apple.com/..." class="{{ $fieldClass }}"></div>
                 <div><label class="block text-sm font-semibold text-gray-700">Google Play URL</label><input type="text" wire:model="playstore_url" placeholder="https://play.google.com/..." class="{{ $fieldClass }}"></div>
             </div>

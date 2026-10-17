@@ -22,6 +22,15 @@ class FooterInfo extends Component
     public $app_description;
     public $app_button_title;
     public $app_button_subtitle;
+    public $app_card_background;
+    public $app_card_text;
+    public $app_card_muted;
+    public $app_card_shadow;
+    public $app_guide_label;
+    public $app_guide_title;
+    public $app_guide_ios;
+    public $app_guide_android;
+    public $app_guide_other;
     public $appstore_url;
     public $playstore_url;
     public $copyright;
@@ -44,6 +53,15 @@ class FooterInfo extends Component
         $this->app_description = $settingsService->get('footer.app_description', 'Cài ứng dụng để truy cập nhanh trên iPhone, iPad, Android hoặc máy tính.');
         $this->app_button_title = $settingsService->get('footer.app_button_title', 'Cài ứng dụng '.$this->fallback_site_name);
         $this->app_button_subtitle = $settingsService->get('footer.app_button_subtitle', 'Truy cập nhanh từ màn hình chính · Không cần App Store');
+        $this->app_card_background = $settingsService->get('footer.app_card_background', '#1e293b');
+        $this->app_card_text = $settingsService->get('footer.app_card_text', '#ffffff');
+        $this->app_card_muted = $settingsService->get('footer.app_card_muted', '#cbd5e1');
+        $this->app_card_shadow = (bool) $settingsService->get('footer.app_card_shadow', true);
+        $this->app_guide_label = $settingsService->get('footer.app_guide_label', 'Hướng dẫn cài đặt');
+        $this->app_guide_title = $settingsService->get('footer.app_guide_title', 'Hướng dẫn cài đặt ứng dụng');
+        $this->app_guide_ios = $settingsService->get('footer.app_guide_ios', 'Mở website bằng Safari, nhấn Chia sẻ, chọn Thêm vào Màn hình chính, sau đó nhấn Thêm.');
+        $this->app_guide_android = $settingsService->get('footer.app_guide_android', 'Mở website bằng Chrome, nhấn menu ba chấm, chọn Cài đặt ứng dụng hoặc Thêm vào màn hình chính và xác nhận.');
+        $this->app_guide_other = $settingsService->get('footer.app_guide_other', 'Mở menu trình duyệt và tìm Cài đặt ứng dụng hoặc Thêm vào màn hình chính.');
         $this->appstore_url = $settingsService->get('footer.appstore_url');
         $this->playstore_url = $settingsService->get('footer.playstore_url');
         $this->copyright = $settingsService->get('footer.copyright', '© '.date('Y').' '.$this->fallback_site_name.'. All rights reserved.');
@@ -98,6 +116,15 @@ class FooterInfo extends Component
             'app_description' => ['nullable', 'string', 'max:500'],
             'app_button_title' => ['nullable', 'string', 'max:120'],
             'app_button_subtitle' => ['nullable', 'string', 'max:255'],
+            'app_card_background' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'app_card_text' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'app_card_muted' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'app_card_shadow' => ['boolean'],
+            'app_guide_label' => ['required', 'string', 'max:80'],
+            'app_guide_title' => ['required', 'string', 'max:120'],
+            'app_guide_ios' => ['required', 'string', 'max:1500'],
+            'app_guide_android' => ['required', 'string', 'max:1500'],
+            'app_guide_other' => ['required', 'string', 'max:1500'],
             'appstore_url' => ['nullable', 'string', 'max:500'],
             'playstore_url' => ['nullable', 'string', 'max:500'],
             'copyright' => ['nullable', 'string', 'max:255'],
@@ -132,6 +159,15 @@ class FooterInfo extends Component
                 'footer.app_description' => $this->app_description,
                 'footer.app_button_title' => $this->app_button_title,
                 'footer.app_button_subtitle' => $this->app_button_subtitle,
+                'footer.app_card_background' => $this->app_card_background,
+                'footer.app_card_text' => $this->app_card_text,
+                'footer.app_card_muted' => $this->app_card_muted,
+                'footer.app_card_shadow' => (bool) $this->app_card_shadow,
+                'footer.app_guide_label' => $this->app_guide_label,
+                'footer.app_guide_title' => $this->app_guide_title,
+                'footer.app_guide_ios' => $this->app_guide_ios,
+                'footer.app_guide_android' => $this->app_guide_android,
+                'footer.app_guide_other' => $this->app_guide_other,
                 'footer.appstore_url' => $this->appstore_url,
                 'footer.playstore_url' => $this->playstore_url,
                 'footer.copyright' => $this->copyright,
