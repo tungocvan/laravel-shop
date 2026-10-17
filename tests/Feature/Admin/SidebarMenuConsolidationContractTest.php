@@ -168,4 +168,26 @@ class SidebarMenuConsolidationContractTest extends TestCase
         $this->assertStringContainsString('applySidebarQuickProfile', $view);
         $this->assertStringContainsString('Áp dụng &amp; lưu Sidebar', $view);
     }
+    public function test_sidebar_json_profiles_and_submenu_runtime_contrast_contract(): void
+    {
+        $json = json_decode(file_get_contents(base_path('Modules/Admin/resources/sidebar-profiles/defaults.json')), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame(1, $json['schema_version']);
+        $this->assertCount(3, $json['profiles']);
+        $this->assertSame('#334155', $json['profiles']['light']['normal']['title']);
+
+        $component = file_get_contents(base_path('Modules/Admin/Livewire/Settings/AdminLayoutConfig.php'));
+        $this->assertStringContainsString('function importSidebarProfile(', $component);
+        $this->assertStringContainsString('function exportSidebarProfile(', $component);
+        $this->assertStringContainsString('sidebar-profiles/defaults.json', $component);
+        $this->assertStringContainsString("'design.sidebar_menu.submenu.'.$field", $component);
+
+        $runtime = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/sidebar/navigation/group.blade.php'));
+        $this->assertStringContainsString('$submenuNormal', $runtime);
+        $this->assertStringContainsString('$submenuHover', $runtime);
+        $this->assertStringContainsString('$submenuActive', $runtime);
+
+        $view = file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/admin-sidebar-config.blade.php'));
+        $this->assertStringContainsString('wire:model="sidebarProfileUpload"', $view);
+    }
+
 }
