@@ -30,12 +30,14 @@
     @if($editingTemplate === 'pharma')
         <div class="overflow-x-auto rounded-xl border border-gray-200 bg-white p-2 shadow-sm">
             <nav class="flex gap-2" aria-label="Pharma workspaces">
-                @foreach(['layout' => 'Bố cục Pharma', 'themes' => 'Themes Pharma'] as $key => $label)
+                @foreach(['layout' => 'Bố cục Pharma', 'hero' => 'Hero Banner Pharma', 'themes' => 'Themes Pharma'] as $key => $label)
                     <button type="button" wire:click="$set('activeTab', '{{ $key }}')" class="rounded-lg px-4 py-2 text-sm font-semibold {{ $activeTab === $key ? 'bg-emerald-700 text-white' : 'text-gray-600 hover:bg-gray-100' }}">{{ $label }}</button>
                 @endforeach
             </nav>
         </div>
-        @if($activeTab === 'themes')
+        @if($activeTab === 'hero')
+            @include('Website::livewire.admin.home.partials.pharma-hero-editor')
+        @elseif($activeTab === 'themes')
             @include('Website::livewire.admin.home.partials.pharma-themes')
         @else
             @include('Website::livewire.admin.home.partials.pharma-layout-builder')
