@@ -48,8 +48,8 @@ class PharmaHomepageCategoryCardStyleTest extends TestCase
         $blade = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/home/partials/pharma-layout-builder.blade.php'));
         $livewire = file_get_contents(base_path('Modules/Website/Livewire/Admin/Home/HomeSettings.php'));
         $this->assertStringContainsString('aria-modal="true"', $blade);
-        $this->assertStringContainsString("<?php if (\$editingPharmaCategories || \$editingPharmaProductSection || \$editingPharmaBlogSection): ?>", $blade);
-        $this->assertStringContainsString("<?php endif; ?>\n</section>", $blade);
+        $this->assertStringContainsString('@if($editingPharmaCategories || $editingPharmaProductSection || $editingPharmaBlogSection)', $blade);
+        $this->assertStringContainsString("@endif\n</section>", $blade);
         $this->assertStringNotContainsString("</section>\n        </div>\n    @endif\n</section>", $blade);
         $this->assertStringContainsString('pharma-category-card-preview', $blade);
         $this->assertStringContainsString("'website.pharma_homepage.categories'", $livewire);
@@ -59,6 +59,7 @@ class PharmaHomepageCategoryCardStyleTest extends TestCase
         $this->assertStringContainsString('selectedCategoryIconId', $blade);
         $this->assertStringContainsString('selectedCategoryIconValue', $blade);
         $this->assertStringContainsString("\$preview['icons_by_category'][\$previewCategoryId] ?? \$preview['icon']", $blade);
+        $this->assertStringContainsString("\$selectedCategoryIconValue !== ''", $blade);
         $this->assertStringContainsString('previewCategoryIds', $blade);
         $this->assertStringContainsString('cardIcon', $blade);
         $this->assertStringContainsString('icon_background', $blade);
