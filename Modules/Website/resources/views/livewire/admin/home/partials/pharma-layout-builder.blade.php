@@ -171,11 +171,18 @@ foreach($pharmaProductSections as $key => $config) {
                 <p class="mt-1 text-xs text-gray-500">Cấu hình riêng cho Section này. Preview dùng cùng component với Website.</p>
                 <div class="mt-4 grid gap-5 lg:grid-cols-2">
                     <div class="grid grid-cols-2 gap-3">
-                        <label class="col-span-2 text-sm">Mẫu Card
-                            <select wire:model.live="pharmaProductSections.{{ $sectionKey }}.card_design.preset" class="mt-1 w-full rounded-lg border border-gray-300 p-2">
-                                <option value="classic">Classic</option><option value="modern">Modern</option><option value="compact">Compact</option>
-                            </select>
-                        </label>
+                        <div class="col-span-2">
+                            <p class="mb-2 text-sm font-semibold">Mẫu Card · Chọn để áp dụng ngay</p>
+                            <div class="grid grid-cols-3 gap-2">
+                                @foreach(['classic' => 'Classic', 'modern' => 'Modern', 'compact' => 'Compact'] as $presetKey => $presetLabel)
+                                    <button type="button" wire:click="choosePharmaProductCardPreset('{{ $sectionKey }}', '{{ $presetKey }}')"
+                                        class="rounded-lg border px-2 py-3 text-sm font-semibold transition {{ $productCard['preset'] === $presetKey ? 'border-emerald-600 bg-emerald-50 text-emerald-900 ring-1 ring-emerald-600' : 'border-gray-200 bg-white text-gray-700 hover:border-emerald-300' }}">
+                                        {{ $presetLabel }}
+                                    </button>
+                                @endforeach
+                            </div>
+                            <p class="mt-2 text-xs text-gray-500">Mỗi mẫu thay đổi rõ rệt tỷ lệ ảnh, bo góc, khoảng cách, màu nền ảnh và shadow. Các tùy chỉnh bên dưới vẫn có thể chỉnh riêng.</p>
+                        </div>
                         @foreach(['image_ratio'=>['1/1'=>'Vuông 1:1','4/3'=>'Ngang 4:3','3/4'=>'Dọc 3:4'],'image_fit'=>['contain'=>'Giữ nguyên ảnh','cover'=>'Lấp đầy ảnh'],'desktop_columns'=>[2=>'2 cột',3=>'3 cột',4=>'4 cột',5=>'5 cột'],'tablet_columns'=>[1=>'1 cột',2=>'2 cột',3=>'3 cột'],'mobile_columns'=>[1=>'1 cột',2=>'2 cột']] as $field=>$options)
                             <label class="text-xs font-medium">{{ ['image_ratio'=>'Tỷ lệ ảnh','image_fit'=>'Cách hiển thị ảnh','desktop_columns'=>'Cột Desktop','tablet_columns'=>'Cột Tablet','mobile_columns'=>'Cột Mobile'][$field] }}
                                 <select wire:model.live="pharmaProductSections.{{ $sectionKey }}.card_design.{{ $field }}" class="mt-1 w-full rounded-lg border border-gray-300 p-2">

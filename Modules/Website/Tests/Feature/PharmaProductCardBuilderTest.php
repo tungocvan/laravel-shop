@@ -43,4 +43,20 @@ class PharmaProductCardBuilderTest extends TestCase
     }
 
 
+    public function test_preset_selection_changes_real_visual_properties(): void
+    {
+        $style = app(PharmaProductCardStyle::class);
+        $classic = $style->normalize($style->preset('classic'));
+        $modern = $style->normalize($style->preset('modern'));
+        $compact = $style->normalize($style->preset('compact'));
+        $this->assertNotSame($classic['image_ratio'], $modern['image_ratio']);
+        $this->assertNotSame($modern['image_ratio'], $compact['image_ratio']);
+        $this->assertNotSame($classic['radius'], $modern['radius']);
+        $this->assertTrue($modern['shadow']);
+        $this->assertLessThan($classic['padding'], $compact['padding']);
+        $admin = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/home/partials/pharma-layout-builder.blade.php'));
+        $this->assertStringContainsString('choosePharmaProductCardPreset(', $admin);
+    }
+
+
 }

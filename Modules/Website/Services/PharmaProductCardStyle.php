@@ -4,6 +4,15 @@ namespace Modules\Website\Services;
 
 class PharmaProductCardStyle
 {
+    public function preset(string $name): array
+    {
+        return match ($name) {
+            'modern' => ['preset' => 'modern', 'radius' => 24, 'padding' => 22, 'shadow' => true, 'background' => '#ffffff', 'image_background' => '#f0fdfa', 'border_color' => '#99f6e4', 'title_size' => 19, 'image_ratio' => '1/1', 'action_color' => '#0f766e'],
+            'compact' => ['preset' => 'compact', 'radius' => 8, 'padding' => 12, 'gap' => 12, 'shadow' => false, 'image_background' => '#f8fafc', 'title_size' => 15, 'title_lines' => 2, 'image_ratio' => '3/4', 'border_color' => '#cbd5e1'],
+            default => ['preset' => 'classic', 'radius' => 16, 'padding' => 20, 'gap' => 20, 'shadow' => false, 'background' => '#ffffff', 'image_background' => '#ecfdf5', 'border_color' => '#e2e8f0', 'title_size' => 18, 'image_ratio' => '4/3'],
+        };
+    }
+
     public function normalize(array $input): array
     {
         $preset = in_array($input['preset'] ?? '', ['classic', 'modern', 'compact'], true) ? $input['preset'] : 'classic';

@@ -469,6 +469,17 @@ class HomeSettings extends Component
         $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã xóa section sản phẩm khỏi trang chủ Pharma.']);
     }
 
+    public function choosePharmaProductCardPreset(string $sectionKey, string $preset): void
+    {
+        $this->authorizeAdminPermission('website.home.manage');
+        if (! isset($this->pharmaProductSections[$sectionKey]) || ! in_array($preset, ['classic', 'modern', 'compact'], true)) {
+            return;
+        }
+        $style = app(\Modules\Website\Services\PharmaProductCardStyle::class);
+        $current = (array) ($this->pharmaProductSections[$sectionKey]['card_design'] ?? []);
+        $this->pharmaProductSections[$sectionKey]['card_design'] = $style->normalize(array_replace($current, $style->preset($preset)));
+    }
+
     public function savePharmaProductSections(SettingsService $settings): void
     {
         $this->authorizeAdminPermission('website.home.manage');
