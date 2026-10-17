@@ -1,3 +1,16 @@
+@php
+    // Scope the saved, sanitized submenu palette to this navigation group.
+    // A previously selected shell palette must not override submenu contrast.
+    $designService = app(\Modules\Admin\Services\AdminDesignService::class);
+    $submenuDesign = $designService->sanitize((array) data_get(app(\Modules\Admin\Support\AdminLayoutManager::class)->config(), 'design'))['sidebar_menu']['submenu'];
+    $submenuColor = fn (string $field) => $designService->menuColorValue($submenuDesign[$field]);
+    $submenuNormal = $submenuColor('title_color');
+    $submenuHover = $submenuColor('hover_title_color');
+    $submenuActive = $submenuColor('active_title_color');
+    $submenuBackground = $submenuDesign['background_mode'] === 'color' ? $submenuColor('background_color') : 'transparent';
+    $submenuHoverBackground = $submenuDesign['hover_background_mode'] === 'color' ? $submenuColor('hover_background_color') : 'transparent';
+    $submenuActiveBackground = $submenuDesign['active_background_mode'] === 'color' ? $submenuColor('active_background_color') : 'transparent';
+@endphp
 <div x-data="{ open: {{ $item['active'] ? 'true' : 'false' }}, filterEnabled: @js($showNavigationSearch) }">
     <button
         @click="sidebarOpen ? open = !open : sidebarOpen = true"
@@ -23,7 +36,7 @@
         <svg x-cloak x-show="sidebarOpen" :class="(open || (filterEnabled && navQuery.trim() !== '')) ? 'rotate-90' : ''" class="h-3.5 w-3.5 shrink-0 opacity-50 transition-transform duration-150 motion-reduce:transition-none" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M6 6L14 10L6 14V6Z" /></svg>
     </button>
 
-    <div id="{{ $item['group_id'] }}" x-cloak x-show="(open || (filterEnabled && navQuery.trim() !== '')) && sidebarOpen" x-collapse class="flex flex-col border-l" style="margin-left:var(--admin-sidebar-submenu-indent);margin-top:var(--admin-sidebar-menu-group-gap);padding-left:var(--admin-sidebar-submenu-offset);gap:var(--admin-sidebar-submenu-item-gap);border-color:var(--admin-border-subtle,currentColor)">
+    <div id="{{ $item['group_id'] }}" x-cloak x-show="(open || (filterEnabled && navQuery.trim() !== '')) && sidebarOpen" x-collapse class="flex flex-col border-l" style="margin-left:var(--admin-sidebar-submenu-indent);margin-top:var(--admin-sidebar-menu-group-gap);padding-left:var(--admin-sidebar-submenu-offset);gap:var(--admin-sidebar-submenu-item-gap);border-color:var(--admin-border-subtle,currentColor);--admin-sidebar-submenu-title-color:{{ $submenuNormal }};--admin-sidebar-submenu-hover-title-color:{{ $submenuHover }};--admin-sidebar-submenu-active-title-color:{{ $submenuActive }};--admin-sidebar-submenu-background:{{ $submenuBackground }};--admin-sidebar-submenu-hover-background:{{ $submenuHoverBackground }};--admin-sidebar-submenu-active-background:{{ $submenuActiveBackground }}">
         @foreach ($item['children'] as $child)
             <a
                 href="{{ $child['href'] }}"
