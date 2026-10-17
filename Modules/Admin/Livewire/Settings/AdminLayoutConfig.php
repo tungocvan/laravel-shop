@@ -112,7 +112,7 @@ class AdminLayoutConfig extends Component
     public function exportSidebarProfile(string $key): \Symfony\Component\HttpFoundation\StreamedResponse
     {
         abort_unless($this->section === 'sidebar', 404);
-        $this->authorizePermission($this->viewPermission());
+        $this->authorizePermission('admin.layout.view');
         $presets = array_merge($this->sidebarVisualPresets(), (array) data_get($this->config, 'sidebar.visual_presets', []));
         abort_unless(isset($presets[$key]), 404);
         $payload = json_encode(['schema_version' => 1, 'profile' => $presets[$key]], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
