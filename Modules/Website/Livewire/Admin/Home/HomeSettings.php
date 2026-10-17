@@ -45,6 +45,8 @@ class HomeSettings extends Component
     public bool $editingPharmaCatalogCard = false;
     public array $pharmaCatalogCard = [];
     public array $pharmaHero = [];
+    public $pharmaHeroUpload = null;
+    public bool $pharmaHeroSavedModal = false;
     public string $pharmaTheme = 'clinical';
     public string $pharmaPrimaryColor = '#047857';
     public string $pharmaAccentColor = '#10b981';
@@ -235,6 +237,13 @@ class HomeSettings extends Component
         if ($this->editingTemplate !== 'pharma') {
             return;
         }
+        $this->validate([
+            'pharmaHeroUpload' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,gif', 'max:4096'],
+        ]);
+        if ($this->pharmaHeroUpload) {
+            $this->pharmaHero['illustration_image'] = $this->pharmaHeroUpload->store('pharma/hero', 'public');
+            $this->pharmaHero['illustration_type'] = 'image';
+        }
         $this->pharmaHero = $service->normalize($this->pharmaHero);
         $settings->updateMany(['website.pharma_hero' => $this->pharmaHero], 'homepage');
         $saved = $settings->get('website.pharma_hero');
@@ -243,7 +252,13 @@ class HomeSettings extends Component
             return;
         }
         $this->resetErrorBag('pharmaHero');
-        $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã lưu Hero Banner Pharma.']);
+        $this->pharmaHeroUpload = null;
+        $this->pharmaHeroSavedModal = true;
+    }
+
+    public function closePharmaHeroSavedModal(): void
+    {
+        $this->pharmaHeroSavedModal = false;
     }
 
     public function resetPharmaHero(PharmaHeroService $service): void
