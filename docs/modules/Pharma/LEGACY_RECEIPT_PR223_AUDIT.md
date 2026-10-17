@@ -16,8 +16,8 @@ PR #223 uses generic `receiptPdf`/`receiptPrint` endpoints, a single price prese
 
 ## Still to verify before closing #223
 
-- Locate the **current** migration that creates or modifies `pharma_inventory_receipt_document_settings` and verify all columns used by the current model and views. The original PR migration filename is not present on `main`; that alone does not establish a missing table.
-- Run the targeted unit contract test and existing receipt document integration tests; check both permission-denied and posted-only cases.
+- **Verified on main:** `2026_10_04_150000_create_pharma_inventory_receipt_document_settings_table.php` creates the table and its core fields; `2026_10_04_151000_upgrade_pharma_inventory_receipt_document_settings_table.php` adds compatibility columns; `2026_10_04_152000_add_receipt_document_profiles.php` adds separate invoice/cost profile settings and the cost-view permission. The older PR's 24 September migration is superseded, not required by filename. Verify actual migration execution on the target environment separately.
+- **DELL contract checkpoint passed:** 3 tests / 22 assertions at commit `b0e56c654` (reported by developer). Still run existing receipt-document integration tests, including permission-denied and posted-only cases.
 - Review invoice and cost PDF outputs on the actual UI with a posted receipt; verify no cost fields leak into the invoice document.
 
 ## Checkpoint
