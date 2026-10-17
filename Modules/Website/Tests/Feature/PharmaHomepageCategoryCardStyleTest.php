@@ -3,6 +3,9 @@
 namespace Modules\Website\Tests\Feature;
 
 use Modules\Website\Services\PharmaCategoryCardStyle;
+use Modules\Website\Livewire\Admin\Home\HomeSettings;
+use Illuminate\Support\Facades\Blade;
+use Symfony\Component\Process\Process;
 use Tests\TestCase;
 
 class PharmaHomepageCategoryCardStyleTest extends TestCase
@@ -41,6 +44,35 @@ class PharmaHomepageCategoryCardStyleTest extends TestCase
         $this->assertStringContainsString("isset(\$categoryDisplay['card_design'])", $source);
         $this->assertStringContainsString('pharma-category-card-custom', $source);
         $this->assertStringContainsString('pharma-category-grid-custom', $source);
+    }
+
+    public function test_pharma_modal_blade_compiles_to_valid_php(): void
+    {
+        $path = base_path('Modules/Website/resources/views/livewire/admin/home/partials/pharma-layout-builder.blade.php');
+        $compiled = Blade::compileString(file_get_contents($path));
+        $temporaryFile = tempnam(sys_get_temp_dir(), 'pharma-blade-');
+        try {
+            file_put_contents($temporaryFile, $compiled);
+            $process = new Process([PHP_BINARY, '-l', $temporaryFile]);
+            $process->run();
+            $this->assertTrue($process->isSuccessful(), $process->getErrorOutput().$process->getOutput());
+        } finally {
+            @unlink($temporaryFile);
+        }
+    }
+
+    public function test_category_preview_uses_actual_category_icon_overrides(): void
+    {
+        $component = new HomeSettings();
+        $component->pharmaCategoryCard = ['icon' => 'medical', 'icons_by_category' => [12 => 'heart']];
+        $component->pharmaCategoryIconChoices = [12 => 'Dược phẩm', 20 => 'Thuốc khác'];
+        $component->selectedCategoryIconId = '20';
+
+        $items = $component->categoryCardPreviewItems();
+        $this->assertSame('Thuốc khác', $items[0]['name']);
+        $this->assertSame('medical', $items[0]['icon']);
+        $this->assertSame('Dược phẩm', $items[1]['name']);
+        $this->assertSame('heart', $items[1]['icon']);
     }
 
     public function test_category_editor_is_modal_and_saves_through_existing_settings_key(): void

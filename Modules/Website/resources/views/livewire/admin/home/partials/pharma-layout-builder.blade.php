@@ -343,10 +343,11 @@ foreach($pharmaProductSections as $key => $config) {
                         <span class="text-xs text-gray-500">4 mẫu tên ngắn/dài · Chung CSS với Website</span>
                     </div>
                     <div class="pharma-category-v2-preview-grid" data-preview-columns="{{ $preview['mobile_columns'] }}" data-preview-tablet="{{ $preview['tablet_columns'] }}">
-                        @foreach([['Dược phẩm',1],['Tim mạch – Huyết áp',3],['Thuốc điều trị tăng huyết áp',6],['Kháng sinh – Kháng khuẩn',2]] as $sample)
+                        @foreach($this->categoryCardPreviewItems() as $sample)
                             @include('Website::partials.pharma-category-card-v2', [
-                                'cardName' => $sample[0], 'cardCount' => $sample[1],
+                                'cardName' => $sample['name'], 'cardCount' => $sample['count'],
                                 'cardDesign' => $preview,
+                                'cardIcon' => $sample['icon'],
                                 'cardCss' => app(\Modules\Website\Services\PharmaCategoryCardStyle::class)->css($preview),
                                 'cardPreview' => true,
                             ])

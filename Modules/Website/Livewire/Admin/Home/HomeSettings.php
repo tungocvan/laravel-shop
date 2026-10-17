@@ -272,6 +272,34 @@ class HomeSettings extends Component
         $this->editingPharmaBlogSection = null;
     }
 
+    /**
+     * Preview uses the same category-specific icon fallback as the public homepage.
+     * Keep this preparation outside Blade to avoid fragile template directives.
+     *
+     * @return array<int, array{name: string, count: int, icon: string}>
+     */
+    public function categoryCardPreviewItems(): array
+    {
+        $design = app(PharmaCategoryCardStyle::class)->normalize($this->pharmaCategoryCard);
+        $choices = $this->pharmaCategoryIconChoices;
+
+        if ($this->selectedCategoryIconId !== '' && isset($choices[(int) $this->selectedCategoryIconId])) {
+            $selected = (int) $this->selectedCategoryIconId;
+            $choices = [$selected => $choices[$selected]] + $choices;
+        }
+
+        $items = [];
+        foreach (array_slice($choices, 0, 4, true) as $id => $name) {
+            $items[] = [
+                'name' => (string) $name,
+                'count' => [1, 3, 6, 2][count($items)],
+                'icon' => $design['icons_by_category'][$id] ?? $design['icon'],
+            ];
+        }
+
+        return $items;
+    }
+
     public function updatedSelectedCategoryIconId(): void
     {
         $this->selectedCategoryIconValue = (string) ($this->pharmaCategoryCard['icons_by_category'][$this->selectedCategoryIconId] ?? '');
