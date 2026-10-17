@@ -16,6 +16,7 @@ use Modules\Website\Services\HomepageContentWriteService;
 use Modules\Website\Services\HomepagePresentationService;
 use Modules\Website\Services\HomepageSectionRegistry;
 use Modules\Website\Services\PharmaCategoryCardStyle;
+use Modules\Website\Services\PharmaHeroService;
 
 class HomeSettings extends Component
 {
@@ -43,6 +44,7 @@ class HomeSettings extends Component
     public array $pharmaCatalogHeader = [];
     public bool $editingPharmaCatalogCard = false;
     public array $pharmaCatalogCard = [];
+    public array $pharmaHero = [];
     public string $pharmaTheme = 'clinical';
     public string $pharmaPrimaryColor = '#047857';
     public string $pharmaAccentColor = '#10b981';
@@ -94,6 +96,7 @@ class HomeSettings extends Component
         $this->pharmaTheme = in_array($theme['preset'] ?? '', ['clinical', 'ocean', 'modern'], true) ? $theme['preset'] : 'clinical';
         $this->pharmaPrimaryColor = $theme['primary'] ?? '#047857';
         $this->pharmaAccentColor = $theme['accent'] ?? '#10b981';
+        $this->pharmaHero = app(PharmaHeroService::class)->normalize($settings->get('website.pharma_hero'));
         $this->pharmaLayout = (array) $settings->get('website.pharma_homepage.layout', [
             'hero' => 'all', 'categories' => 'all', 'new_arrivals' => 'all',
         ]);
@@ -224,6 +227,29 @@ class HomeSettings extends Component
 
         $this->editingTemplate = $template;
         $this->activeTab = 'layout';
+    }
+
+    public function savePharmaHero(SettingsService $settings, PharmaHeroService $service): void
+    {
+        $this->authorizeAdminPermission('website.home.manage');
+        if ($this->editingTemplate !== 'pharma') {
+            return;
+        }
+        $this->pharmaHero = $service->normalize($this->pharmaHero);
+        $settings->updateMany(['website.pharma_hero' => $this->pharmaHero], 'homepage');
+        $saved = $settings->get('website.pharma_hero');
+        if (! is_array($saved) || $service->normalize($saved) !== $this->pharmaHero) {
+            $this->addError('pharmaHero', 'Không xác nhận được dữ liệu Hero vừa lưu.');
+            return;
+        }
+        $this->resetErrorBag('pharmaHero');
+        $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã lưu Hero Banner Pharma.']);
+    }
+
+    public function resetPharmaHero(PharmaHeroService $service): void
+    {
+        $this->authorizeAdminPermission('website.home.manage');
+        $this->pharmaHero = $service->defaults();
     }
 
     public function choosePharmaTheme(string $preset): void
