@@ -141,4 +141,18 @@ class SidebarMenuConsolidationContractTest extends TestCase
         $this->assertStringContainsString('var(--admin-sidebar-submenu-active-background)', $runtime);
     }
 
+
+    public function test_quick_sidebar_profiles_include_snapshot_and_preview_first_flow(): void
+    {
+        $component = file_get_contents(base_path('Modules/Admin/Livewire/Settings/AdminLayoutConfig.php'));
+        $view = file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/admin-sidebar-config.blade.php'));
+
+        $this->assertStringContainsString('function applySidebarQuickProfile(', $component);
+        $this->assertStringContainsString("'snapshot' => [", $component);
+        $this->assertStringContainsString("data_get(\$presets[\$key], 'snapshot')", $component);
+        $this->assertStringContainsString("array_key_exists(\$field", $component);
+        $this->assertStringContainsString("'quick' => 'Đổi nhanh giao diện'", $view);
+        $this->assertStringContainsString('applySidebarQuickProfile', $view);
+        $this->assertStringContainsString('Áp dụng &amp; lưu Sidebar', $view);
+    }
 }
