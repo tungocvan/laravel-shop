@@ -60,6 +60,79 @@
     </div>
 
     <div x-show="tab === 'menu'" x-cloak>
+        @if($editingTemplate === 'pharma')
+            <section class="mb-5 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5" x-data="{ menuDevice: 'primary' }" aria-label="Thiết lập giao diện Menu điều hướng">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900">Thiết lập giao diện Menu điều hướng</h3>
+                        <p class="mt-1 text-xs text-slate-500">Chỉ thay đổi kiểu hiển thị, không thay đổi nội dung hoặc thứ tự menu. Chọn thiết bị để cấu hình độc lập.</p>
+                    </div>
+                    <div class="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1" role="group" aria-label="Thiết bị menu">
+                        <button type="button" @click="menuDevice = 'primary'" :aria-pressed="(menuDevice === 'primary').toString()" :class="menuDevice === 'primary' ? 'bg-blue-600 text-white' : 'text-slate-700'" class="rounded-md px-3 py-2 text-xs font-semibold">Desktop</button>
+                        <button type="button" @click="menuDevice = 'mobile'" :aria-pressed="(menuDevice === 'mobile').toString()" :class="menuDevice === 'mobile' ? 'bg-blue-600 text-white' : 'text-slate-700'" class="rounded-md px-3 py-2 text-xs font-semibold">Mobile</button>
+                    </div>
+                </div>
+                @foreach(['primary' => 'Desktop', 'mobile' => 'Mobile'] as $device => $deviceLabel)
+                    <div x-show="menuDevice === '{{ $device }}'" x-cloak class="mt-4 space-y-4">
+                        @php
+                            $style = $presentation['menu_style'][$device] ?? [];
+                        @endphp
+                        <div class="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                            <p class="mb-3 text-xs font-semibold text-slate-500">Xem trước · {{ $deviceLabel }}</p>
+                            <nav aria-label="Xem trước menu {{ $deviceLabel }}" class="flex flex-wrap items-center" style="gap: {{ (int) ($style['item_gap'] ?? 20) }}px; font-family: {{ $style['font_family'] ?? 'inherit' }}; font-size: {{ (int) ($style['font_size'] ?? 14) }}px; font-weight: {{ $style['font_weight'] ?? '600' }}; color: {{ $style['text_color'] ?? '#0f172a' }};">
+                                @foreach(['Trang chủ', 'Sản phẩm', 'Giới thiệu', 'Liên hệ'] as $previewItem)
+                                    <span class="px-2 py-1" style="border-radius: {{ (int) ($style['radius'] ?? 8) }}px">{{ $previewItem }}</span>
+                                @endforeach
+                            </nav>
+                            <p class="mt-2 text-xs text-slate-400">Bản xem trước minh họa typography và khoảng cách. Hover và trạng thái đang chọn áp dụng trên website sau khi lưu.</p>
+                        </div>
+                        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            <label class="block text-sm font-medium text-slate-700">Font family
+                                <select wire:model.live="presentation.menu_style.{{ $device }}.font_family" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2">
+                                    @foreach(['inherit' => 'Kế thừa Header', 'Arial, sans-serif' => 'Arial', 'Roboto, sans-serif' => 'Roboto', 'Inter, sans-serif' => 'Inter', 'system-ui, sans-serif' => 'System UI', 'Georgia, serif' => 'Georgia'] as $fontValue => $fontLabel)
+                                        <option value="{{ $fontValue }}">{{ $fontLabel }}</option>
+                                    @endforeach
+                                </select>
+                            </label>
+                            <label class="block text-sm font-medium text-slate-700">Font size (px)
+                                <input type="number" min="12" max="22" step="1" wire:model.live.debounce.300ms="presentation.menu_style.{{ $device }}.font_size" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
+                            </label>
+                            <label class="block text-sm font-medium text-slate-700">Font weight
+                                <select wire:model.live="presentation.menu_style.{{ $device }}.font_weight" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2">
+                                    @foreach(['400' => '400 · Regular', '500' => '500 · Medium', '600' => '600 · Semibold', '700' => '700 · Bold'] as $weightValue => $weightLabel)
+                                        <option value="{{ $weightValue }}">{{ $weightLabel }}</option>
+                                    @endforeach
+                                </select>
+                            </label>
+                            <label class="block text-sm font-medium text-slate-700">Khoảng cách mục (px)
+                                <input type="number" min="0" max="40" step="1" wire:model.live.debounce.300ms="presentation.menu_style.{{ $device }}.item_gap" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
+                            </label>
+                            <label class="block text-sm font-medium text-slate-700">Bo góc (px)
+                                <input type="number" min="0" max="24" step="1" wire:model.live.debounce.300ms="presentation.menu_style.{{ $device }}.radius" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
+                            </label>
+                            <label class="block text-sm font-medium text-slate-700">Hiệu ứng hover
+                                <select wire:model.live="presentation.menu_style.{{ $device }}.hover_effect" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2">
+                                    <option value="underline">Gạch chân</option><option value="color">Đổi màu chữ</option><option value="background">Đổi màu nền</option><option value="none">Không hiệu ứng</option>
+                                </select>
+                            </label>
+                            @foreach(['text_color' => 'Màu chữ', 'hover_color' => 'Màu Hover', 'active_color' => 'Màu mục đang chọn'] as $colorKey => $colorLabel)
+                                <label class="block text-sm font-medium text-slate-700">{{ $colorLabel }}
+                                    <div class="mt-1 flex items-center gap-2 rounded-lg border border-slate-300 px-2 py-1">
+                                        <input type="color" wire:model.live="presentation.menu_style.{{ $device }}.{{ $colorKey }}" class="h-9 w-12 cursor-pointer border-0 bg-transparent">
+                                        <span class="text-xs text-slate-500">{{ $style[$colorKey] ?? '' }}</span>
+                                    </div>
+                                </label>
+                            @endforeach
+                        </div>
+                    </div>
+                @endforeach
+                @error('menuAppearance')<p class="mt-3 text-sm text-red-700">{{ $message }}</p>@enderror
+                <div class="mt-5 flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-4">
+                    <button type="button" wire:click="resetMenuAppearance" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Khôi phục mặc định</button>
+                    <button type="button" wire:click="saveMenuAppearance" wire:loading.attr="disabled" wire:target="saveMenuAppearance" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Lưu thiết lập Menu</button>
+                </div>
+            </section>
+        @endif
         @livewire('website.admin.header.menu-manager', ['editingTemplate' => $editingTemplate], key('header-menu-manager-'.$editingTemplate))
     </div>
 
