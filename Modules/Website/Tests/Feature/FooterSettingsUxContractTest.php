@@ -62,6 +62,23 @@ class FooterSettingsUxContractTest extends TestCase
         $this->assertStringContainsString("'border' => false", $component);
     }
 
+    public function test_pwa_footer_card_settings_and_install_guide_are_configurable(): void
+    {
+        $component = file_get_contents(base_path('Modules/Website/Livewire/Admin/Footer/FooterInfo.php'));
+        $admin = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/footer/footer-info.blade.php'));
+        $card = file_get_contents(base_path('Modules/Website/resources/views/components/footer/app-install.blade.php'));
+        $installer = file_get_contents(base_path('Modules/Website/resources/views/partials/pwa-installer.blade.php'));
+
+        foreach (['app_card_background', 'app_card_text', 'app_card_muted', 'app_card_shadow', 'app_guide_label', 'app_guide_title', 'app_guide_ios', 'app_guide_android', 'app_guide_other'] as $key) {
+            $this->assertStringContainsString("'footer.".$key."'", $component);
+            $this->assertStringContainsString('wire:model="'.$key.'"', $admin);
+            $this->assertStringContainsString("'footer.".$key."'", $card);
+        }
+        $this->assertStringContainsString('data-pwa-guide-open', $installer);
+        $this->assertStringContainsString('data-pwa-android-guide', $installer);
+        $this->assertStringContainsString("guideButton?.addEventListener('click'", $installer);
+    }
+
     public function test_footer_admin_blade_compiles_without_php_parse_errors(): void
     {
         foreach ([
