@@ -24,6 +24,8 @@ class PharmaHomepageCategoryCardStyleTest extends TestCase
         $this->assertSame('#ffffff', $result['background']);
         $this->assertFalse($result['show_icon']);
         $this->assertSame(2, $result['mobile_columns']);
+        $this->assertSame('medical', $service->normalize(['icon' => '<script>'])['icon']);
+        $this->assertSame('pill', $service->normalize(['icon' => 'pill'])['icon']);
         $this->assertStringNotContainsString('evil', $service->css($result));
     }
 
@@ -43,5 +45,9 @@ class PharmaHomepageCategoryCardStyleTest extends TestCase
         $this->assertStringContainsString('pharma-category-card-preview', $blade);
         $this->assertStringContainsString("'website.pharma_homepage.categories'", $livewire);
         $this->assertStringContainsString("['card_design']", $livewire);
+        $this->assertStringContainsString("\$validated['pharmaCategoryDisplay']['card_design'] = app(PharmaCategoryCardStyle::class)->normalize(\$this->pharmaCategoryCard)", $livewire);
+        $this->assertStringContainsString('pharmaCategoryCard.icon', $blade);
+        $this->assertStringContainsString("partials.pharma-category-icon", $blade);
+        $this->assertStringContainsString("partials.pharma-category-icon", file_get_contents(base_path('Modules/Website/resources/views/pages/home/pharma.blade.php')));
     }
 }

@@ -12,7 +12,7 @@ foreach($pharmaProductSections as $key => $config) {
 }
 @endphp
 <style>
-.pharma-category-card-preview{display:flex;align-items:center;gap:var(--category-card-gap);min-height:var(--category-card-height);padding:var(--category-card-padding);border:1px solid var(--category-card-border);border-radius:var(--category-card-radius);background:var(--category-card-bg);color:var(--category-card-text);font-size:var(--category-card-font)}
+.pharma-category-card-preview{display:flex;align-items:center;gap:var(--category-card-gap);min-height:var(--category-card-height);padding:var(--category-card-padding);border:1px solid var(--category-card-border);border-radius:var(--category-card-radius);background:var(--category-card-bg);color:var(--category-card-text);font-size:var(--category-card-font);flex-wrap:wrap}.pharma-category-card-preview .preview-icon{display:flex;align-items:center;justify-content:center;width:48px;height:48px;flex-shrink:0;border-radius:12px;background:#fff;color:var(--category-card-accent);border:1px solid var(--category-card-border)}.pharma-category-card-preview .preview-count{background:#fff;color:var(--category-card-accent);white-space:nowrap}.pharma-category-card-preview .preview-arrow{color:var(--category-card-accent)}
 </style>
 <section class="rounded-xl border border-emerald-200 bg-white p-5 shadow-sm">
     <div class="mb-5">
@@ -282,6 +282,13 @@ foreach($pharmaProductSections as $key => $config) {
                         <label class="text-sm font-medium">{{ $label }}<input type="color" wire:model.live="pharmaCategoryCard.{{ $key }}" class="mt-1 block h-10 w-full rounded-lg border border-gray-300 bg-white p-1"></label>
                     @endforeach
                 </div>
+                <label class="mt-4 block max-w-sm text-sm font-medium">Biểu tượng Card
+                    <select wire:model.live="pharmaCategoryCard.icon" class="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2">
+                        @foreach(['medical'=>'Y tế / Dược phẩm','heart'=>'Trái tim','shield'=>'Bảo vệ','pill'=>'Viên thuốc','cross'=>'Dấu cộng','leaf'=>'Lá cây','none'=>'Không có icon'] as $value=>$label)
+                            <option value="{{ $value }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </label>
                 <div class="mt-4 flex flex-wrap gap-4">
                     @foreach(['show_icon'=>'Hiện icon','show_count'=>'Hiện số SP','show_arrow'=>'Hiện mũi tên'] as $key=>$label)
                         <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model.live="pharmaCategoryCard.{{ $key }}" class="rounded border-gray-300"> {{ $label }}</label>
@@ -291,10 +298,10 @@ foreach($pharmaProductSections as $key => $config) {
                 <div class="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
                     <p class="mb-3 text-xs font-semibold uppercase text-gray-500">Xem trước · Card danh mục</p>
                     <div class="pharma-category-card-preview" style="{{ app(\Modules\Website\Services\PharmaCategoryCardStyle::class)->css($preview) }}">
-                        @if($preview['show_icon'])<span class="font-bold" style="color:var(--category-card-accent)">⊞</span>@endif
-                        <span class="min-w-0 flex-1 font-semibold">Kháng sinh – Kháng khuẩn</span>
-                        @if($preview['show_count'])<span class="rounded-full border px-2 py-1 text-xs" style="color:var(--category-card-accent)">6 SP</span>@endif
-                        @if($preview['show_arrow'])<span style="color:var(--category-card-accent)">→</span>@endif
+                        @if($preview['show_icon'] && $preview['icon'] !== 'none')<span class="preview-icon">@include('Website::partials.pharma-category-icon', ['icon' => $preview['icon']])</span>@endif
+                        <span class="min-w-0 flex-1 font-semibold" style="color:var(--category-card-text);overflow-wrap:anywhere">Kháng sinh – Kháng khuẩn</span>
+                        @if($preview['show_count'])<span class="preview-count rounded-full border px-2 py-1 text-xs">6 SP</span>@endif
+                        @if($preview['show_arrow'])<span class="preview-arrow shrink-0" aria-hidden="true">→</span>@endif
                     </div>
                 </div>
                 @endif

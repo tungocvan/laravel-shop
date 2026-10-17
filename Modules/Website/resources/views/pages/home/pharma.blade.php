@@ -66,9 +66,11 @@
     .pharma-category-card-custom { min-height:var(--category-card-height);padding:var(--category-card-padding);gap:var(--category-card-gap);border-radius:var(--category-card-radius);font-size:var(--category-card-font);background:var(--category-card-bg);color:var(--category-card-text);border-color:var(--category-card-border); }
     .pharma-category-card-custom:hover { border-color:var(--category-card-accent); }
     .pharma-category-card-custom .pharma-category-card-name { font-size:inherit;color:inherit; }
-    .pharma-category-card-custom .pharma-category-card-icon { color:var(--category-card-accent); }
-    .pharma-category-card-custom .pharma-category-card-count { color:var(--category-card-accent); }
+    .pharma-category-card-custom .pharma-category-card-icon { color:var(--category-card-accent); background:#fff; border:1px solid var(--category-card-border); }
+    .pharma-category-card-custom .pharma-category-card-icon svg { width:24px;height:24px; }
+    .pharma-category-card-custom .pharma-category-card-count { color:var(--category-card-accent); background:#fff; }
     .pharma-category-card-custom .pharma-category-card-arrow { color:var(--category-card-accent); }
+    .pharma-category-card-custom .pharma-category-card-name { min-width:0; overflow-wrap:anywhere; }
     .pharma-category-card-custom[data-preset="soft"] { box-shadow:0 3px 16px rgba(15,23,42,.05); }
     .pharma-category-card-custom[data-preset="minimal"] { box-shadow:none; }
     @media(max-width:639px){.pharma-category-grid-custom[data-mobile-columns="2"]{grid-template-columns:repeat(2,minmax(0,1fr));}}
@@ -122,11 +124,9 @@
                     <div class="mt-8 grid gap-4 sm:grid-cols-2 {{ $categoryDesignEnabled ? 'pharma-category-grid-custom' : '' }} {{ $categoryColumns === 2 ? 'lg:grid-cols-2' : ($categoryColumns === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-4') }}" @if($categoryDesignEnabled) data-mobile-columns="{{ $categoryDesign['mobile_columns'] }}" data-tablet-columns="{{ $categoryDesign['tablet_columns'] }}" @endif>
                         @forelse($categories as $category)
                             <a href="{{ route('product.list', ['category' => $category->slug]) }}" class="pharma-card group flex items-center gap-4 rounded-2xl border border-slate-200 bg-white {{ $categoryDesignEnabled ? 'pharma-category-card-custom' : '' }} {{ $categoryCardStyle === 'compact' ? 'min-h-24 p-5' : 'min-h-32 p-6' }} shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" style="outline-color: {{ $primary }};{{ $categoryDesignEnabled ? $categoryDesignService->css($categoryDesign) : '' }}" @if($categoryDesignEnabled) data-preset="{{ $categoryDesign['preset'] }}" @endif>
-                                @if($categoryDesignEnabled ? $categoryDesign['show_icon'] : $categoryCardStyle === 'clinical')
+                                @if($categoryDesignEnabled ? ($categoryDesign['show_icon'] && $categoryDesign['icon'] !== 'none') : $categoryCardStyle === 'clinical')
                                     <span class="pharma-category-card-icon flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700" aria-hidden="true">
-                                        <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-                                            <rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/>
-                                        </svg>
+                                        @include('Website::partials.pharma-category-icon', ['icon' => $categoryDesignEnabled ? $categoryDesign['icon'] : 'medical'])
                                     </span>
                                 @endif
                                 <span class="pharma-category-card-name min-w-0 flex-1 text-sm font-semibold leading-6 text-slate-900">{{ $category->name }}</span>

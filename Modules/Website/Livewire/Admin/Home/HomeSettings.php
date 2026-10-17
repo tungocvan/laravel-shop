@@ -288,6 +288,10 @@ class HomeSettings extends Component
         ]);
         $allowedIds = Category::query()->ofType('medicine')->active()->pluck('id')->map(fn ($id) => (int) $id)->all();
         $validated['pharmaCategoryDisplay']['selected_ids'] = array_values(array_unique(array_intersect(array_map('intval', $validated['pharmaCategoryDisplay']['selected_ids'] ?? []), $allowedIds)));
+        if ($this->pharmaCategoryCardEnabled) {
+            $validated['pharmaCategoryDisplay']['card_design'] = app(PharmaCategoryCardStyle::class)->normalize($this->pharmaCategoryCard);
+        }
+        $this->pharmaCategoryDisplay = $validated['pharmaCategoryDisplay'];
         $settings->updateMany([
             'website.pharma_homepage.categories' => $validated['pharmaCategoryDisplay'],
         ], 'homepage');

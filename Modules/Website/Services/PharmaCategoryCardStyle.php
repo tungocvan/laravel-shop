@@ -10,7 +10,7 @@ class PharmaCategoryCardStyle
             'preset'=>'clinical','font_size'=>14,'radius'=>16,'padding'=>24,'min_height'=>128,
             'gap'=>16,'accent'=>'#047857','background'=>'#ffffff','text_color'=>'#0f172a',
             'border_color'=>'#e2e8f0','show_icon'=>true,'show_count'=>true,'show_arrow'=>true,
-            'mobile_columns'=>1,'tablet_columns'=>2,
+            'mobile_columns'=>1,'tablet_columns'=>2,'icon'=>'medical',
         ];
     }
 
@@ -19,6 +19,7 @@ class PharmaCategoryCardStyle
         $input=is_array($input)?$input:[];
         $v=$this->defaults();
         $v['preset']=in_array($input['preset']??null,['clinical','compact','soft','minimal'],true)?$input['preset']:$v['preset'];
+        $v['icon'] = in_array($input['icon'] ?? null, ['medical','heart','shield','pill','cross','leaf','none'], true) ? $input['icon'] : $v['icon'];
         foreach (['font_size'=>[11,20],'radius'=>[0,32],'padding'=>[8,32],'min_height'=>[80,180],'gap'=>[0,32],'mobile_columns'=>[1,2],'tablet_columns'=>[1,3]] as $key=>[$min,$max]) {
             $v[$key]=is_numeric($input[$key]??null)?max($min,min($max,(int)$input[$key])):$v[$key];
         }
