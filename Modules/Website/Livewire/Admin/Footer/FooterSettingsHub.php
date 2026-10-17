@@ -246,7 +246,7 @@ class FooterSettingsHub extends Component
         if (count($this->footerColumns) >= 6) {
             return;
         }
-        $this->footerColumns[] = ['title' => 'Cột mới', 'width' => 3, 'enabled' => true];
+        $this->footerColumns[] = ['title' => 'Cột mới', 'width' => 3, 'enabled' => true, 'items' => []];
     }
 
     public function removeFooterColumn(int $index): void
@@ -269,6 +269,39 @@ class FooterSettingsHub extends Component
             [$this->footerColumns[$target], $this->footerColumns[$index]];
     }
 
+    public function addFooterColumnItem(int $index, string $type): void
+    {
+        $this->authorizeAdminPermission('website.footer.manage');
+        if (! in_array($type, ['text', 'link'], true) || ! isset($this->footerColumns[$index])) {
+            return;
+        }
+        $items = $this->footerColumns[$index]['items'] ?? [];
+        if (count($items) >= 12) {
+            return;
+        }
+        $this->footerColumns[$index]['items'][] = ['type' => $type, 'label' => '', 'url' => ''];
+    }
+
+    public function removeFooterColumnItem(int $index, int $itemIndex): void
+    {
+        $this->authorizeAdminPermission('website.footer.manage');
+        if (! isset($this->footerColumns[$index]['items'][$itemIndex])) {
+            return;
+        }
+        array_splice($this->footerColumns[$index]['items'], $itemIndex, 1);
+    }
+
+    public function moveFooterColumnItem(int $index, int $itemIndex, int $direction): void
+    {
+        $this->authorizeAdminPermission('website.footer.manage');
+        $target = $itemIndex + ($direction < 0 ? -1 : 1);
+        if (! isset($this->footerColumns[$index]['items'][$itemIndex], $this->footerColumns[$index]['items'][$target])) {
+            return;
+        }
+        [$this->footerColumns[$index]['items'][$itemIndex], $this->footerColumns[$index]['items'][$target]] =
+            [$this->footerColumns[$index]['items'][$target], $this->footerColumns[$index]['items'][$itemIndex]];
+    }
+
     public function saveFooterColumns(SettingsService $settings): void
     {
         $this->authorizeAdminPermission('website.footer.manage');
@@ -288,6 +321,7 @@ class FooterSettingsHub extends Component
                 'title' => mb_substr(trim((string) ($column['title'] ?? '')), 0, 80),
                 'width' => in_array((int) ($column['width'] ?? 3), [2, 3, 4, 6, 12], true) ? (int) $column['width'] : 3,
                 'enabled' => (bool) ($column['enabled'] ?? true),
+                'items' => $this->normalizeFooterColumnItems($column['items'] ?? []),
             ];
         }
         return $normalized ?: [
@@ -296,6 +330,30 @@ class FooterSettingsHub extends Component
             ['title' => 'Hỗ trợ', 'width' => 3, 'enabled' => true],
             ['title' => 'Ứng dụng', 'width' => 2, 'enabled' => true],
         ];
+    }
+
+    private function normalizeFooterColumnItems(mixed $items): array
+    {
+        if (! is_array($items)) {
+            return [];
+        }
+        $result = [];
+        foreach (array_slice($items, 0, 12) as $item) {
+            if (! is_array($item) || ! in_array($item['type'] ?? null, ['text', 'link'], true)) {
+                continue;
+            }
+            $url = trim((string) ($item['url'] ?? ''));
+            if ($item['type'] === 'link' && $url !== '' && ! str_starts_with($url, '/') &&
+                ! preg_match('~^https?://~i', $url) && ! str_starts_with($url, '#')) {
+                $url = '';
+            }
+            $result[] = [
+                'type' => $item['type'],
+                'label' => mb_substr(trim((string) ($item['label'] ?? '')), 0, 250),
+                'url' => mb_substr($url, 0, 2048),
+            ];
+        }
+        return $result;
     }
 
     public function saveBuilder(

@@ -42,6 +42,36 @@
                         <button type="button" wire:click="removeFooterColumn({{ $index }})" @disabled(count($footerColumns) <= 1) class="rounded border border-red-200 px-2 py-1 text-red-700 disabled:opacity-30">Xóa</button>
                     </div>
                 </div>
+                <div class="mt-3 rounded-lg border border-slate-200 bg-white p-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <h4 class="text-sm font-semibold text-slate-800">Nội dung cột</h4>
+                        <div class="flex gap-2">
+                            <button type="button" wire:click="addFooterColumnItem({{ $index }}, 'text')" class="rounded border px-2 py-1 text-xs">+ Văn bản</button>
+                            <button type="button" wire:click="addFooterColumnItem({{ $index }}, 'link')" class="rounded border px-2 py-1 text-xs">+ Liên kết</button>
+                        </div>
+                    </div>
+                    <div class="mt-3 space-y-2">
+                        @foreach(($column['items'] ?? []) as $itemIndex => $item)
+                            <div wire:key="footer-column-item-{{ $index }}-{{ $itemIndex }}" class="grid gap-2 rounded-lg bg-slate-50 p-2 sm:grid-cols-[1fr_1fr_auto] sm:items-center">
+                                <label class="text-xs text-slate-600">{{ $item['type'] === 'link' ? 'Tên liên kết' : 'Văn bản' }}
+                                    <input type="text" maxlength="250" wire:model="footerColumns.{{ $index }}.items.{{ $itemIndex }}.label" class="mt-1 w-full rounded border border-slate-300 px-2 py-1.5">
+                                </label>
+                                @if($item['type'] === 'link')
+                                    <label class="text-xs text-slate-600">URL (https:// hoặc /)
+                                        <input type="text" maxlength="2048" wire:model="footerColumns.{{ $index }}.items.{{ $itemIndex }}.url" class="mt-1 w-full rounded border border-slate-300 px-2 py-1.5">
+                                    </label>
+                                @else
+                                    <span class="text-xs text-slate-400">Đoạn văn bản</span>
+                                @endif
+                                <div class="flex gap-1">
+                                    <button type="button" wire:click="moveFooterColumnItem({{ $index }}, {{ $itemIndex }}, -1)" @disabled($itemIndex === 0) class="rounded border px-2 py-1 disabled:opacity-30" aria-label="Đưa nội dung lên">↑</button>
+                                    <button type="button" wire:click="moveFooterColumnItem({{ $index }}, {{ $itemIndex }}, 1)" @disabled($itemIndex === count($column['items']) - 1) class="rounded border px-2 py-1 disabled:opacity-30" aria-label="Đưa nội dung xuống">↓</button>
+                                    <button type="button" wire:click="removeFooterColumnItem({{ $index }}, {{ $itemIndex }})" class="rounded border border-red-200 px-2 py-1 text-red-700">Xóa</button>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
             @endforeach
         </div>
         <div class="mt-4 flex justify-end">
