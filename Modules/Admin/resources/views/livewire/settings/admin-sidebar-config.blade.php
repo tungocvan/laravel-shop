@@ -43,6 +43,18 @@
         <section x-cloak x-show="activeTab === 'quick'" class="mb-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <h2 class="text-base font-semibold text-slate-900">Đổi nhanh giao diện Sidebar</h2>
             <p class="mt-1 text-sm text-slate-500">Chọn profile để nạp vào bản xem trước. Chỉ khi nhấn Lưu Sidebar thì giao diện thực tế mới thay đổi.</p>
+            @php
+                $activeProfileKey = data_get($config, 'sidebar.active_profile_key');
+                $allSidebarProfiles = array_merge($this->sidebarVisualPresets(), (array) data_get($config, 'sidebar.visual_presets', []));
+                $activeProfileName = data_get($allSidebarProfiles, $activeProfileKey.'.name');
+            @endphp
+            <div class="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                <span class="font-semibold text-slate-800">Profile đang sử dụng:</span>
+                <span class="ml-1 text-slate-700">{{ $activeProfileName ?: 'Giao diện tùy chỉnh / chưa xác định profile' }}</span>
+                @if($selectedSidebarPresetKey && $selectedSidebarPresetKey !== $activeProfileKey)
+                    <span class="mt-1 block text-xs text-indigo-700">Đang xem trước: {{ data_get($allSidebarProfiles, $selectedSidebarPresetKey.'.name', $selectedSidebarPresetKey) }} — chưa lưu</span>
+                @endif
+            </div>
             <h3 class="mt-5 text-sm font-semibold text-slate-800">Profile mặc định</h3>
             <div class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 @foreach($this->sidebarVisualPresets() as $key => $preset)
@@ -171,11 +183,17 @@
                     <p class="mt-2 text-xs text-slate-500">Để tạo bộ mới, nhập tên. Để cập nhật, chọn bộ màu của bạn rồi nhấn Cập nhật. Tối đa 6 bộ tùy chỉnh. Có thể lưu kèm Typography & Icon và Layout & Active Border. Bộ màu cũ vẫn chỉ áp dụng màu. Nhấn Lưu Sidebar để áp dụng thực tế.</p>
                 </section>
 
-                <div id="sidebar-menu" x-cloak x-show="activeTab === 'menu'" x-data="{ section: 'menu', advancedMenu: false }" class="space-y-3">
+                <div id="sidebar-menu" x-cloak x-show="activeTab === 'menu'" x-data="{ section: 'menu', designerOpen: false }" class="space-y-3">
                     <div class="rounded-xl border border-indigo-100 bg-indigo-50/50 p-4 text-sm text-slate-700">
                         <strong>Menu Sidebar</strong> — Thiết lập Normal, Hover, Active và SubMenu tại đây. Dữ liệu dùng chung với Theme Editor, không tạo cấu hình trùng.
                     </div>
-                    @include('Admin::livewire.settings.partials.sidebar-menu-designer')
+                    <button type="button" @click="designerOpen = !designerOpen" :aria-expanded="designerOpen.toString()" aria-controls="sidebar-menu-designer-panel" class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">
+                        <span x-text="designerOpen ? 'Ẩn Sidebar Menu Designer' : 'Hiển thị Sidebar Menu Designer'"></span>
+                        <span aria-hidden="true" x-text="designerOpen ? '▴' : '▾'"></span>
+                    </button>
+                    <div id="sidebar-menu-designer-panel" x-show="designerOpen" x-cloak>
+                        @include('Admin::livewire.settings.partials.sidebar-menu-designer')
+                    </div>
                 </div>
 
                 <section x-cloak x-show="activeTab === 'layout'" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" data-admin-sidebar-width-settings>
