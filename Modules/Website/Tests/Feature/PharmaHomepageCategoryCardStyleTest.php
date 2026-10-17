@@ -49,6 +49,7 @@ class PharmaHomepageCategoryCardStyleTest extends TestCase
         $livewire = file_get_contents(base_path('Modules/Website/Livewire/Admin/Home/HomeSettings.php'));
         $this->assertStringContainsString('aria-modal="true"', $blade);
         $this->assertStringContainsString(" ? 'flex' : 'hidden' ", $blade);
+        $this->assertStringContainsString("editingPharmaCategories ? ''", $blade);
         $this->assertStringNotContainsString("@endif\n</section>", $blade);
         $this->assertStringNotContainsString("</section>\n        </div>\n    @endif\n</section>", $blade);
         $this->assertStringContainsString('pharma-category-card-preview', $blade);

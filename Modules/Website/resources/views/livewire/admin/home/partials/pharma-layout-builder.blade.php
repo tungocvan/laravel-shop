@@ -193,8 +193,7 @@ foreach($pharmaProductSections as $key => $config) {
             <div class="mt-4 flex justify-end gap-2"><button type="button" wire:click="$set('editingPharmaBlogSection', null)" class="rounded-lg border border-gray-300 bg-white px-4 py-2">Đóng</button><button type="button" wire:click="savePharmaBlogSections" class="rounded-lg bg-emerald-700 px-4 py-2 font-semibold text-white">Lưu Section Blog</button></div>
         </div>
     @endif
-    @if($editingPharmaCategories)
-        <div class="space-y-5" wire:key="pharma-category-settings">
+        <div class="space-y-5 {{ $editingPharmaCategories ? '': 'hidden' }}" wire:key="pharma-category-settings">
             <h3 class="text-base font-bold text-gray-900">Thiết lập UI danh mục dược phẩm</h3>
             <p class="mt-1 text-sm text-gray-600">Chỉ áp dụng cho Homepage Pharma; không thay đổi dữ liệu danh mục và template Default.</p>
             <div class="mt-4 grid gap-4 md:grid-cols-2">
@@ -372,7 +371,6 @@ foreach($pharmaProductSections as $key => $config) {
                 <button type="button" wire:click="savePharmaCategories" wire:loading.attr="disabled" class="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">Lưu thiết lập danh mục</button>
             </div>
         </div>
-    @endif
 
                 </div>
             </section>
