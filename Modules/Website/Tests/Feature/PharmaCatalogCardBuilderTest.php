@@ -19,7 +19,7 @@ class PharmaCatalogCardBuilderTest extends TestCase
         $this->assertStringContainsString("Website::partials.pharma-product-card", $view);
         $this->assertStringContainsString('data-product-card-grid', $view);
         $this->assertStringContainsString('grid-template-columns:repeat(var(--pharma-product-cols)', $view);
-        $this->assertStringContainsString("'cardShowPrice' => $authenticated", $view);
+        $this->assertStringContainsString("'cardShowPrice' => \$authenticated", $view);
         $this->assertStringContainsString('savePharmaCatalogCard', $editor);
         $this->assertStringContainsString('copyHomepageCardToCatalog', $editor);
         $this->assertStringContainsString('pharmaCatalogCard.fallback_image_url', $editor);
