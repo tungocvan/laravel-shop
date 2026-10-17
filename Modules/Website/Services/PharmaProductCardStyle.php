@@ -18,6 +18,7 @@ class PharmaProductCardStyle
         $preset = in_array($input['preset'] ?? '', ['classic', 'modern', 'compact'], true) ? $input['preset'] : 'classic';
         $defaults = [
             'preset' => $preset, 'image_ratio' => '4/3', 'image_fit' => 'contain',
+            'fallback_image_url' => '/images/pharma/product-placeholder.svg',
             'radius' => $preset === 'compact' ? 10 : 16, 'padding' => $preset === 'compact' ? 12 : 20,
             'gap' => 20, 'desktop_columns' => 4, 'tablet_columns' => 2, 'mobile_columns' => 1,
             'title_size' => 18, 'title_lines' => 2, 'shadow' => $preset === 'modern',
@@ -39,6 +40,10 @@ class PharmaProductCardStyle
         }
         $style['image_ratio'] = in_array($style['image_ratio'], ['1/1','4/3','3/4'], true) ? $style['image_ratio'] : '4/3';
         $style['image_fit'] = in_array($style['image_fit'], ['contain','cover'], true) ? $style['image_fit'] : 'contain';
+        $fallback = trim((string) ($style['fallback_image_url'] ?? ''));
+        $safeRelative = str_starts_with($fallback, '/') && ! str_starts_with($fallback, '//') && ! preg_match('/[\\s\\x00-\\x1F<>"\\x27]/', $fallback);
+        $safeHttps = filter_var($fallback, FILTER_VALIDATE_URL) && parse_url($fallback, PHP_URL_SCHEME) === 'https';
+        $style['fallback_image_url'] = (strlen($fallback) <= 2048 && ($safeRelative || $safeHttps)) ? $fallback : '';
         $style['action_label'] = mb_substr(trim((string) $style['action_label']), 0, 60) ?: 'Xem thông tin';
         foreach (['shadow','show_category','show_action'] as $key) $style[$key] = filter_var($style[$key], FILTER_VALIDATE_BOOLEAN);
         return $style;

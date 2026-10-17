@@ -203,6 +203,11 @@ foreach($pharmaProductSections as $key => $config) {
                         @foreach(['shadow'=>'Đổ bóng','show_category'=>'Hiện danh mục','show_action'=>'Hiện nút xem'] as $field=>$name)
                             <label class="flex items-center gap-2 text-xs"><input type="checkbox" wire:model.live="pharmaProductSections.{{ $sectionKey }}.card_design.{{ $field }}"> {{ $name }}</label>
                         @endforeach
+                        <label class="col-span-2 text-xs font-medium">URL ảnh mặc định khi sản phẩm chưa có ảnh
+                            <input type="url" wire:model.live.debounce.400ms="pharmaProductSections.{{ $sectionKey }}.card_design.fallback_image_url"
+                                placeholder="/images/pharma/product-placeholder.svg hoặc https://..." class="mt-1 w-full rounded-lg border border-gray-300 p-2">
+                            <span class="mt-1 block text-gray-500">Ưu tiên ảnh sản phẩm → ảnh mặc định → thông báo chưa có ảnh nếu cả hai lỗi. Có thể nhập đường dẫn nội bộ bắt đầu bằng / hoặc HTTPS.</span>
+                        </label>
                         <label class="col-span-2 text-xs font-medium">Tên nút thao tác
                             <input type="text" maxlength="60" wire:model.live.debounce.400ms="pharmaProductSections.{{ $sectionKey }}.card_design.action_label" class="mt-1 w-full rounded-lg border border-gray-300 p-2">
                         </label>

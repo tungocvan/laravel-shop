@@ -59,4 +59,18 @@ class PharmaProductCardBuilderTest extends TestCase
     }
 
 
+    public function test_fallback_image_url_is_validated_and_rendered(): void
+    {
+        $style = app(PharmaProductCardStyle::class);
+        $this->assertSame('/images/pharma/product-placeholder.svg', $style->normalize([])['fallback_image_url']);
+        $this->assertSame('', $style->normalize(['fallback_image_url' => 'javascript:alert(1)'])['fallback_image_url']);
+        $this->assertSame('', $style->normalize(['fallback_image_url' => '//evil.example/img.png'])['fallback_image_url']);
+        $this->assertSame('https://example.com/image.png', $style->normalize(['fallback_image_url' => 'https://example.com/image.png'])['fallback_image_url']);
+        $admin = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/home/partials/pharma-layout-builder.blade.php'));
+        $card = file_get_contents(base_path('Modules/Website/resources/views/partials/pharma-product-card.blade.php'));
+        $this->assertStringContainsString('card_design.fallback_image_url', $admin);
+        $this->assertStringContainsString('data-fallback-image=', $card);
+        $this->assertStringContainsString('this.nextElementSibling.hidden=false', $card);
+    }
+
 }
