@@ -18,6 +18,7 @@ class PharmaProductCardStyle
             'border_color' => '#e2e8f0', 'action_color' => '#047857',
         ];
         $style = array_replace($defaults, array_intersect_key($input, $defaults));
+        $style['preset'] = $preset;
         foreach (['radius' => [0,32], 'padding' => [8,32], 'gap' => [8,40], 'title_size' => [12,26], 'title_lines' => [1,4]] as $key => [$min,$max]) {
             $style[$key] = max($min, min($max, (int) $style[$key]));
         }
