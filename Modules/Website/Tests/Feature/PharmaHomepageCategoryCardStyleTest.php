@@ -50,7 +50,6 @@ class PharmaHomepageCategoryCardStyleTest extends TestCase
         $this->assertStringContainsString('aria-modal="true"', $blade);
         $this->assertStringContainsString(" ? 'flex' : 'hidden' ", $blade);
         $this->assertStringNotContainsString("@endif\n</section>", $blade);
-        $this->assertStringContainsString("@endif\n</section>", $blade);
         $this->assertStringNotContainsString("</section>\n        </div>\n    @endif\n</section>", $blade);
         $this->assertStringContainsString('pharma-category-card-preview', $blade);
         $this->assertStringContainsString("'website.pharma_homepage.categories'", $livewire);
