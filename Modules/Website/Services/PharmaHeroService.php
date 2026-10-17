@@ -17,6 +17,14 @@ final class PharmaHeroService
             'show_button' => true,
             'show_caption' => true,
             'show_illustration' => true,
+            'illustration_type' => 'default',
+            'illustration_image' => '',
+            'desktop_width' => 1280,
+            'mobile_width' => 100,
+            'desktop_min_height' => 0,
+            'mobile_min_height' => 0,
+            'desktop_illustration_size' => 320,
+            'mobile_illustration_size' => 220,
             'background_start' => '#073b48',
             'background_end' => '#0c6870',
             'text_color' => '#ffffff',
@@ -38,6 +46,10 @@ final class PharmaHeroService
         foreach (['badge' => 60, 'title' => 160, 'description' => 400, 'button_text' => 80, 'caption' => 120] as $field => $max) {
             $result[$field] = mb_substr(trim(strip_tags((string) ($input[$field] ?? $defaults[$field]))), 0, $max);
         }
+        $type = $input['illustration_type'] ?? 'default';
+        $result['illustration_type'] = in_array($type, ['default', 'image', 'none'], true) ? $type : 'default';
+        $image = trim((string) ($input['illustration_image'] ?? ''));
+        $result['illustration_image'] = preg_match('~^pharma/hero/[a-zA-Z0-9_.-]+\\.(?:png|jpe?g|webp|gif)$~i', $image) ? $image : '';
         $url = trim((string) ($input['button_url'] ?? $defaults['button_url']));
         $result['button_url'] = preg_match('~^/(?!/)[a-zA-Z0-9/_?#=&%.+-]*$~', $url) ? $url : $defaults['button_url'];
         foreach (['show_badge', 'show_button', 'show_caption', 'show_illustration'] as $field) {
@@ -49,7 +61,7 @@ final class PharmaHeroService
         }
         $fonts = ['inherit', 'Arial, sans-serif', 'Roboto, sans-serif', 'Inter, sans-serif', 'system-ui, sans-serif', 'Georgia, serif'];
         $result['title_font'] = in_array($input['title_font'] ?? null, $fonts, true) ? $input['title_font'] : 'inherit';
-        foreach (['desktop_title_size' => [28, 80], 'mobile_title_size' => [20, 52], 'desktop_padding' => [0, 160], 'mobile_padding' => [0, 120]] as $field => [$min, $max]) {
+        foreach (['desktop_title_size' => [28, 80], 'mobile_title_size' => [20, 52], 'desktop_padding' => [0, 160], 'mobile_padding' => [0, 120], 'desktop_width' => [720, 1920], 'mobile_width' => [80, 100], 'desktop_min_height' => [0, 900], 'mobile_min_height' => [0, 700], 'desktop_illustration_size' => [120, 600], 'mobile_illustration_size' => [80, 400]] as $field => [$min, $max]) {
             $result[$field] = max($min, min($max, (int) ($input[$field] ?? $defaults[$field])));
         }
         return $result;
