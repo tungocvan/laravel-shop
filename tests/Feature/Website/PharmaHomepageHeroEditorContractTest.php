@@ -28,6 +28,10 @@ final class PharmaHomepageHeroEditorContractTest extends TestCase
         $this->assertSame(80, $changed['desktop_title_size']);
         $this->assertSame(0, $changed['mobile_padding']);
         $this->assertFalse($changed['show_button']);
+        $this->assertSame(1920, $service->normalize(['desktop_width' => 99999])['desktop_width']);
+        $this->assertSame(0, $service->normalize(['mobile_min_height' => -1])['mobile_min_height']);
+        $this->assertSame('', $service->normalize(['illustration_image' => '../secret.png'])['illustration_image']);
+        $this->assertSame('default', $service->normalize(['illustration_type' => 'javascript'])['illustration_type']);
     }
 
     public function test_homepage_workspace_save_and_public_hero_are_connected(): void
@@ -52,5 +56,12 @@ final class PharmaHomepageHeroEditorContractTest extends TestCase
         $this->assertStringContainsString("['mobile_title_size']", $frontend);
         $this->assertStringContainsString("['desktop_title_size']", $frontend);
         $this->assertStringContainsString("['show_illustration']", $frontend);
+        $this->assertStringContainsString('wire:model="pharmaHeroUpload"', $editor);
+        $this->assertStringContainsString('wire:model.live="pharmaHero.illustration_type"', $editor);
+        $this->assertStringContainsString('pharmaHero.desktop_width', $editor);
+        $this->assertStringContainsString('pharmaHero.mobile_min_height', $editor);
+        $this->assertStringContainsString('pharmaHeroSavedModal', $editor);
+        $this->assertStringContainsString('closePharmaHeroSavedModal', $hub);
+        $this->assertStringContainsString('pharma-hero-illustration', $frontend);
     }
 }
