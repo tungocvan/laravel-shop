@@ -26,6 +26,7 @@ class AdminLayoutConfig extends Component
         $this->section = $section;
         $this->config = $manager->config();
         if ($section === 'sidebar') {
+            $this->selectedSidebarPresetKey = data_get($this->config, 'sidebar.active_profile_key');
             data_set($this->config, 'sidebar.presentation.background', $this->sidebarBackgroundMode(data_get($this->config, 'sidebar.presentation.background')));
         }
         $this->themes = $themeManager->all();
@@ -167,7 +168,7 @@ class AdminLayoutConfig extends Component
         $presets = array_merge($this->sidebarVisualPresets(), (array) data_get($this->config, 'sidebar.visual_presets', []));
         abort_unless(isset($presets[$key]) && is_array($presets[$key]), 404);
         $preset = $presets[$key];
-        $this->selectedSidebarPresetKey = str_starts_with($key, 'custom_') ? $key : null;
+        $this->selectedSidebarPresetKey = $key;
         data_set($this->config, 'sidebar.presentation.background', 'custom');
         data_set($this->config, 'sidebar.presentation.custom_background', $preset['background']);
         // Accent must always be a six-digit HEX; saved palettes may use transparent.
@@ -279,6 +280,9 @@ class AdminLayoutConfig extends Component
         abort_unless(array_key_exists($key, $custom), 404);
 
         unset($custom[$key]);
+        if (data_get($payload, 'sidebar.active_profile_key') === $key) {
+            data_set($payload, 'sidebar.active_profile_key', null);
+        }
         data_set($payload, 'sidebar.visual_presets', $custom);
         $manager->save($payload);
         data_set($this->config, 'sidebar.visual_presets', $custom);
@@ -341,7 +345,6 @@ class AdminLayoutConfig extends Component
             ])),
             'design' => ['sidebar_menu' => (array) data_get($this->config, 'design.sidebar_menu', [])],
         ];
-        $this->selectedSidebarPresetKey = $key;
         $payload = $manager->config();
         data_set($payload, 'sidebar.visual_presets', $current);
         $manager->save($payload);
@@ -358,6 +361,10 @@ class AdminLayoutConfig extends Component
             $designService = app(AdminDesignService::class);
             $validated['design']['sidebar_menu'] = data_get($validated, 'design.sidebar_menu', []);
             $validated['design']['sidebar_menu'] = data_get($designService->sanitize(array_replace_recursive((array) data_get($manager->config(), 'design', []), ['sidebar_menu' => $validated['design']['sidebar_menu']])), 'sidebar_menu');
+        }
+        if ($this->section === 'sidebar') {
+            // The profile key records the last explicitly applied profile, not a preview selection.
+            $validated['sidebar']['active_profile_key'] = $this->selectedSidebarPresetKey;
         }
         $manager->save(array_replace_recursive($manager->config(), $validated));
         $this->config = $manager->config();
