@@ -4,6 +4,7 @@ namespace Modules\Admin\Livewire\Settings;
 
 use Illuminate\Support\Facades\Gate;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Modules\Admin\Support\AdminLayoutManager;
 use Modules\Admin\Services\AdminDesignService;
 use Modules\Admin\Support\ThemeManager;
@@ -11,6 +12,9 @@ use Modules\Website\Services\HeaderMenuService;
 
 class AdminLayoutConfig extends Component
 {
+    use WithFileUploads;
+
+    public $sidebarProfileUpload = null;
     public array $config = [];
     public array $themes = [];
     public string $section = 'general';
@@ -98,14 +102,66 @@ class AdminLayoutConfig extends Component
 
     public function sidebarVisualPresets(): array
     {
-        return [
-            'emerald' => ['name' => 'FlexBiz Emerald', 'background' => '#087F5B', 'normal' => ['title' => '#FFFFFF', 'icon' => '#FFFFFF', 'background' => 'transparent'], 'hover' => ['title' => '#064E3B', 'icon' => '#064E3B', 'background' => '#D1FAE5'], 'active' => ['title' => '#065F46', 'icon' => '#065F46', 'background' => '#FFFFFF']],
-            'slate' => ['name' => 'Corporate Slate', 'background' => '#0F172A', 'normal' => ['title' => '#E2E8F0', 'icon' => '#E2E8F0', 'background' => 'transparent'], 'hover' => ['title' => '#FFFFFF', 'icon' => '#FFFFFF', 'background' => '#334155'], 'active' => ['title' => '#FFFFFF', 'icon' => '#FFFFFF', 'background' => '#4F46E5']],
-            'light' => ['name' => 'Minimal Light', 'background' => '#F8FAFC', 'normal' => ['title' => '#334155', 'icon' => '#334155', 'background' => 'transparent'], 'hover' => ['title' => '#0F172A', 'icon' => '#0F172A', 'background' => '#E2E8F0'], 'active' => ['title' => '#1D4ED8', 'icon' => '#1D4ED8', 'background' => '#DBEAFE']],
-        ];
+        $path = base_path('Modules/Admin/resources/sidebar-profiles/defaults.json');
+        $document = json_decode((string) file_get_contents($path), true);
+        return is_array($document) && ($document['schema_version'] ?? null) === 1
+            ? (array) ($document['profiles'] ?? [])
+            : [];
     }
 
-    public function applySidebarVisualPreset(string $key): void
+    public function exportSidebarProfile(string $key): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        abort_unless($this->section === 'sidebar', 404);
+        $this->authorizePermission($this->viewPermission());
+        $presets = array_merge($this->sidebarVisualPresets(), (array) data_get($this->config, 'sidebar.visual_presets', []));
+        abort_unless(isset($presets[$key]), 404);
+        $payload = json_encode(['schema_version' => 1, 'profile' => $presets[$key]], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        return response()->streamDownload(static function () use ($payload): void { echo $payload; }, 'sidebar-profile-'.preg_replace('/[^a-z0-9_-]/i', '-', $key).'.json', ['Content-Type' => 'application/json']);
+    }
+
+    public function importSidebarProfile(AdminLayoutManager $manager): void
+    {
+        abort_unless($this->section === 'sidebar', 404);
+        $this->authorizePermission($this->updatePermission());
+        $this->validate(['sidebarProfileUpload' => 'required|file|mimes:json,txt|max:128']);
+        $document = json_decode((string) file_get_contents($this->sidebarProfileUpload->getRealPath()), true);
+        $profile = is_array($document) && ($document['schema_version'] ?? null) === 1 ? ($document['profile'] ?? null) : null;
+        if (!is_array($profile) || !is_string($profile['name'] ?? null) || mb_strlen($profile['name']) < 2 || mb_strlen($profile['name']) > 40) {
+            $this->addError('sidebarProfileUpload', 'File profile JSON không hợp lệ.');
+            return;
+        }
+        $validColor = static fn ($value, $transparent = false): bool => is_string($value) && (preg_match('/^#[0-9a-fA-F]{6}$/', $value) === 1 || ($transparent && $value === 'transparent'));
+        if (!$validColor($profile['background'] ?? null)) {
+            $this->addError('sidebarProfileUpload', 'Màu nền profile không hợp lệ.');
+            return;
+        }
+        foreach (['normal', 'hover', 'active'] as $state) {
+            foreach (['title', 'icon', 'background'] as $field) {
+                if (!$validColor(data_get($profile, "$state.$field"), $field === 'background')) {
+                    $this->addError('sidebarProfileUpload', 'Màu trạng thái '.$state.' không hợp lệ.');
+                    return;
+                }
+            }
+        }
+        // Imports intentionally accept color-only data; never trust arbitrary snapshot,
+        // layout or typography fields from a user-supplied JSON document.
+        $profile = array_intersect_key($profile, array_flip(['name', 'background', 'normal', 'hover', 'active']));
+        $current = (array) data_get($manager->config(), 'sidebar.visual_presets', []);
+        if (count($current) >= 6) {
+            $this->addError('sidebarProfileUpload', 'Tối đa 6 profile tùy chỉnh.');
+            return;
+        }
+        $key = 'custom_'.(max(array_map(static fn ($k): int => preg_match('/^custom_(\\d+)$/', (string) $k, $m) ? (int) $m[1] : 0, array_keys($current)) ?: [0]) + 1);
+        $current[$key] = $profile;
+        $payload = $manager->config();
+        data_set($payload, 'sidebar.visual_presets', $current);
+        $manager->save($payload);
+        data_set($this->config, 'sidebar.visual_presets', $current);
+        $this->reset('sidebarProfileUpload');
+        $this->dispatch('notify', type: 'success', title: 'Đã nhập profile JSON', message: 'Profile đã sẵn sàng để nạp.', duration: 2400);
+    }
+
+        public function applySidebarVisualPreset(string $key): void
     {
         abort_unless($this->section === 'sidebar', 404);
         $presets = array_merge($this->sidebarVisualPresets(), (array) data_get($this->config, 'sidebar.visual_presets', []));
