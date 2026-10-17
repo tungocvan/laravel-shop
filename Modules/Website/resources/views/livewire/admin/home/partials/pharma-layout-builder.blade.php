@@ -104,8 +104,8 @@ foreach($pharmaProductSections as $key => $config) {
     @endif
     <p class="mt-4 text-xs text-gray-500">Cấu hình Pharma được lưu riêng. Thay đổi hiển thị sau khi lưu và tải lại Website.</p>
 
-    @if($editingPharmaCategories || $editingPharmaProductSection || $editingPharmaBlogSection)
-        <div class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 p-0 sm:p-4" role="presentation">
+    {{-- Keep the dialog in the single Livewire root; visibility is controlled by editor state. --}}
+        <div class="fixed inset-0 z-[100] {{ ($editingPharmaCategories || $editingPharmaProductSection || $editingPharmaBlogSection) ? 'flex' : 'hidden' }} items-center justify-center bg-slate-900/60 p-0 sm:p-4" role="presentation">
             <section role="dialog" aria-modal="true" aria-label="Thiết lập section Homepage Pharma" class="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white shadow-2xl sm:h-auto sm:max-h-[90dvh] sm:rounded-2xl">
                 <header class="flex shrink-0 items-center justify-between gap-3 border-b border-gray-200 px-5 py-4">
                     <div><h2 class="text-lg font-bold text-gray-900">Thiết lập Section Homepage Pharma</h2><p class="text-xs text-gray-500">Cấu hình riêng cho Website Pharma</p></div>
@@ -377,5 +377,4 @@ foreach($pharmaProductSections as $key => $config) {
                 </div>
             </section>
         </div>
-    @endif
 </section>
