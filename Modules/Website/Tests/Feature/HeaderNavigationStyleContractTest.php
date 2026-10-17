@@ -16,7 +16,8 @@ class HeaderNavigationStyleContractTest extends TestCase
         $this->assertSame('classic',$value['style']);
         $this->assertSame('#334155',$value['text_color']);
         $this->assertSame('#aabbcc',$value['active_color']);
-        $this->assertSame(600,$value['font_weight']);
+        $this->assertSame(700,$value['font_weight']);
+        $this->assertSame(600,$service->resolve(['font_weight'=>'invalid'])['font_weight']);
         $this->assertStringNotContainsString('evil',$service->css($value));
     }
 }
