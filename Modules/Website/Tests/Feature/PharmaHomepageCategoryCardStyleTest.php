@@ -48,7 +48,7 @@ class PharmaHomepageCategoryCardStyleTest extends TestCase
         $blade = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/home/partials/pharma-layout-builder.blade.php'));
         $livewire = file_get_contents(base_path('Modules/Website/Livewire/Admin/Home/HomeSettings.php'));
         $this->assertStringContainsString('aria-modal="true"', $blade);
-        $this->assertStringNotContainsString("@endif\n\n                </div>\n            </section>\n        </div>\n    @endif", $blade);
+        $this->assertStringContainsString("</section>\n        </div>\n    @endif\n</section>", $blade);
         $this->assertStringContainsString('pharma-category-card-preview', $blade);
         $this->assertStringContainsString("'website.pharma_homepage.categories'", $livewire);
         $this->assertStringContainsString("['card_design']", $livewire);

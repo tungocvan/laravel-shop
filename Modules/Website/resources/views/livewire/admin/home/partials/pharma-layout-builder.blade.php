@@ -371,4 +371,8 @@ foreach($pharmaProductSections as $key => $config) {
             </div>
         </div>
     @endif
+                </div>
+            </section>
+        </div>
+    @endif
 </section>
