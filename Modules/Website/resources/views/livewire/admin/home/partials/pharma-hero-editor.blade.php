@@ -39,6 +39,34 @@
                     </select>
                 </label>
             </div>
+            <div class="rounded-xl border border-slate-200 p-4 space-y-3">
+                <h3 class="text-sm font-bold text-slate-800">Hình minh họa Hero</h3>
+                <label class="block text-xs font-semibold text-slate-700">Nguồn minh họa
+                    <select wire:model.live="pharmaHero.illustration_type" class="mt-1 w-full rounded-lg border border-slate-300 p-2">
+                        <option value="default">Icon dược phẩm mặc định</option>
+                        <option value="image">Ảnh tải lên</option>
+                        <option value="none">Không hiển thị</option>
+                    </select>
+                </label>
+                @if(($pharmaHero['illustration_type'] ?? 'default') === 'image')
+                    <label class="block text-xs font-semibold text-slate-700">Tải ảnh (JPG, PNG, WebP, GIF — tối đa 4MB)
+                        <input type="file" wire:model="pharmaHeroUpload" accept="image/jpeg,image/png,image/webp,image/gif" class="mt-2 block w-full rounded-lg border border-slate-300 p-2 text-sm">
+                    </label>
+                    @if($pharmaHeroUpload)
+                        <img src="{{ $pharmaHeroUpload->temporaryUrl() }}" alt="Xem trước ảnh vừa tải lên" class="h-40 w-full object-contain">
+                    @elseif(!empty($pharmaHero['illustration_image']))
+                        <img src="{{ asset('storage/'.$pharmaHero['illustration_image']) }}" alt="Ảnh Hero đã lưu" class="h-40 w-full object-contain">
+                    @endif
+                    @error('pharmaHeroUpload') <p class="text-xs text-red-700">{{ $message }}</p> @enderror
+                @endif
+            </div>
+            <div class="grid gap-3 sm:grid-cols-2">
+                @foreach(['desktop_width' => 'Chiều rộng nội dung Desktop (720–1920px)', 'mobile_width' => 'Chiều rộng Mobile (80–100%)', 'desktop_min_height' => 'Chiều cao tối thiểu Desktop (0–900px)', 'mobile_min_height' => 'Chiều cao tối thiểu Mobile (0–700px)', 'desktop_illustration_size' => 'Kích thước minh họa Desktop (120–600px)', 'mobile_illustration_size' => 'Kích thước minh họa Mobile (80–400px)'] as $field => $label)
+                    <label class="text-xs font-semibold text-slate-700">{{ $label }}
+                        <input type="number" wire:model.live.debounce.400ms="pharmaHero.{{ $field }}" min="0" max="1920" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    </label>
+                @endforeach
+            </div>
             <div class="grid gap-3 sm:grid-cols-2">
                 @foreach(['desktop_title_size' => 'Cỡ tiêu đề Desktop (28–80px)', 'mobile_title_size' => 'Cỡ tiêu đề Mobile (20–52px)', 'desktop_padding' => 'Padding dọc Desktop (0–160px)', 'mobile_padding' => 'Padding dọc Mobile (0–120px)'] as $field => $label)
                     <label class="text-xs font-semibold text-slate-700">{{ $label }}
@@ -65,6 +93,18 @@
             <p class="text-xs text-slate-500">Xem trước nội dung/màu sắc. Desktop/Mobile thực tế cần kiểm tra trên trang chủ sau khi lưu. Khoảng cách Header → Banner được quản lý riêng trong Header Settings.</p>
         </div>
     </div>
+    @if($pharmaHeroSavedModal)
+        <div class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-4" role="dialog" aria-modal="true" aria-labelledby="pharma-hero-save-title">
+            <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+                <h3 id="pharma-hero-save-title" class="text-lg font-bold text-emerald-800">Đã lưu Hero Banner thành công</h3>
+                <p class="mt-2 text-sm text-slate-600">Cấu hình đã được ghi và xác nhận. Bạn có thể mở trang chủ để xem kết quả.</p>
+                <div class="mt-5 flex justify-end gap-2">
+                    <button type="button" wire:click="closePharmaHeroSavedModal" class="rounded-lg border border-slate-300 px-4 py-2 text-sm">Đóng</button>
+                    <a href="{{ route('home') }}" target="_blank" rel="noopener" class="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">Xem trang chủ</a>
+                </div>
+            </div>
+        </div>
+    @endif
     @error('pharmaHero') <p class="mt-4 text-sm text-red-700">{{ $message }}</p> @enderror
     <div class="mt-6 flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
         <button type="button" wire:click="resetPharmaHero" class="rounded-lg border border-slate-300 px-4 py-2 text-sm">Khôi phục mặc định (chưa lưu)</button>
