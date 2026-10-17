@@ -1,11 +1,11 @@
 <?php
 
-namespace Modules\\Website\\Tests\\Feature;
+namespace Modules\Website\Tests\Feature;
 
-use Illuminate\\Foundation\\Testing\\RefreshDatabase;
-use Modules\\Website\\Models\\HeaderMenu;
-use Modules\\Website\\Services\\HeaderMenuService;
-use Tests\\TestCase;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Modules\Website\Models\HeaderMenu;
+use Modules\Website\Services\HeaderMenuService;
+use Tests\TestCase;
 
 class PharmaHeaderDefaultNavigationContractTest extends TestCase
 {
