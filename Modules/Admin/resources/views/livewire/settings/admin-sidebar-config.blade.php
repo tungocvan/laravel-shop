@@ -60,11 +60,14 @@
             <h3 class="mt-6 text-sm font-semibold text-slate-800">Profile đã lưu</h3>
             <div class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 @forelse((array) data_get($config, 'sidebar.visual_presets', []) as $key => $preset)
-                    <button type="button" wire:click="applySidebarQuickProfile(@js($key))" class="rounded-xl border border-slate-200 p-3 text-left transition hover:border-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500">
-                        <span class="block text-sm font-semibold text-slate-900">{{ $preset['name'] ?? $key }}</span>
-                        <span class="mt-2 block text-xs text-slate-500">{{ isset($preset['snapshot']) ? 'Profile Sidebar đầy đủ' : 'Profile màu sắc cũ' }}</span>
-                        <span class="mt-2 block text-xs font-medium text-indigo-600">Nạp profile →</span>
-                    </button>
+                    <div class="relative rounded-xl border border-slate-200 p-3 transition hover:border-indigo-400">
+                        <button type="button" wire:click="applySidebarQuickProfile(@js($key))" class="block w-full pr-9 text-left focus-visible:rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500">
+                            <span class="block text-sm font-semibold text-slate-900">{{ $preset['name'] ?? $key }}</span>
+                            <span class="mt-2 block text-xs text-slate-500">{{ isset($preset['snapshot']) ? 'Profile Sidebar đầy đủ' : 'Profile màu sắc cũ' }}</span>
+                            <span class="mt-2 block text-xs font-medium text-indigo-600">Nạp profile →</span>
+                        </button>
+                        <button type="button" wire:click="deleteSidebarVisualPreset(@js($key))" wire:confirm="Xóa profile tùy chỉnh này? Sidebar đang sử dụng sẽ không thay đổi." aria-label="Xóa profile {{ $preset['name'] ?? $key }}" title="Xóa profile" class="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 bg-white text-rose-600 transition hover:bg-rose-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rose-500">×</button>
+                    </div>
                 @empty
                     <p class="text-sm text-slate-500">Chưa có profile tùy chỉnh. Hãy lưu một bộ trong tab Menu.</p>
                 @endforelse
