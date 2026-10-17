@@ -310,6 +310,7 @@ class HeaderSettingsHub extends Component
         $settingsService->updateMany([
             $key => $layout,
             $this->settingKey('presentation') => $presentation,
+            'website.pharma_header.brand_appearance' => app(PharmaBrandAppearanceService::class)->resolve($this->brandAppearance),
         ], 'header');
 
         // Verify actual storage read-back before reporting success.
@@ -430,6 +431,9 @@ class HeaderSettingsHub extends Component
 
         $this->loadBuilderLayout($this->safeLayout(is_array($theme['layout'] ?? null) ? $theme['layout'] : [], $registry));
         $this->presentation = $presentationService->resolve(is_array($theme['presentation'] ?? null) ? $theme['presentation'] : null);
+        if ($this->editingTemplate === 'pharma' && is_array($theme['brand_appearance'] ?? null)) {
+            $this->brandAppearance = app(PharmaBrandAppearanceService::class)->resolve($theme['brand_appearance']);
+        }
         $this->themeName = (string) ($theme['name'] ?? '');
         $this->resetErrorBag('theme');
         $this->dispatchThemeToast('Đã nạp theme vào Builder. Kiểm tra Preview rồi bấm Lưu bố cục để publish.');
@@ -517,6 +521,7 @@ class HeaderSettingsHub extends Component
             'name' => trim($name),
             'layout' => $this->safeLayout($this->builderSlots, $registry),
             'presentation' => $presentationService->resolve($this->presentation),
+            'brand_appearance' => $this->editingTemplate === 'pharma' ? app(PharmaBrandAppearanceService::class)->resolve($this->brandAppearance) : null,
             'updated_at' => now()->toIso8601String(),
         ];
     }
