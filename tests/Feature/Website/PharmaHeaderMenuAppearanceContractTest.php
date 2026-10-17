@@ -38,6 +38,7 @@ final class PharmaHeaderMenuAppearanceContractTest extends TestCase
         $this->assertSame('#047857', $desktop['hover_color']);
         $this->assertSame('underline', $desktop['hover_effect']);
         $this->assertSame('Georgia, serif', $mobile['font_family']);
+        $this->assertSame('600', $mobile['font_weight']); // Missing key must resolve safely.
         $this->assertSame(16, $mobile['font_size']);
         $this->assertSame(8, $mobile['item_gap']);
         $this->assertSame(20, $service->resolve([])['menu_style']['primary']['item_gap']);
