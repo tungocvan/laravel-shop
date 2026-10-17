@@ -15,6 +15,7 @@ use Modules\Website\Services\HomepageContentService;
 use Modules\Website\Services\HomepageContentWriteService;
 use Modules\Website\Services\HomepagePresentationService;
 use Modules\Website\Services\HomepageSectionRegistry;
+use Modules\Website\Services\PharmaCategoryCardStyle;
 
 class HomeSettings extends Component
 {
@@ -31,6 +32,11 @@ class HomeSettings extends Component
     public ?string $editingPharmaBlogSection = null;
     public ?string $editingPharmaProductSection = null;
     public bool $editingPharmaCategories = false;
+    public array $pharmaCategoryCard = [];
+    public array $pharmaCategoryIconChoices = [];
+    public string $selectedCategoryIconId = '';
+    public string $selectedCategoryIconValue = '';
+    public bool $pharmaCategoryCardEnabled = false;
     public bool $pharmaOnlyCategoriesWithProducts = true;
     public bool $editingPharmaProductFilters = false;
     public array $pharmaProductFilters = [];
@@ -97,6 +103,11 @@ class HomeSettings extends Component
             'card_style' => 'clinical',
             'selected_ids' => [],
         ], (array) $settings->get('website.pharma_homepage.categories', []));
+        $this->pharmaCategoryCardEnabled = isset($this->pharmaCategoryDisplay['card_design']);
+        $this->pharmaCategoryCard = app(PharmaCategoryCardStyle::class)->normalize($this->pharmaCategoryDisplay['card_design'] ?? []);
+        $this->pharmaCategoryIconChoices = Category::query()->ofType('medicine')->active()->orderBy('name')->pluck('name', 'id')->all();
+        $this->selectedCategoryIconId = '';
+        $this->selectedCategoryIconValue = '';
         $this->pharmaBlogSections = (array) $settings->get('website.pharma_homepage.blog_sections', []);
         $this->pharmaBlogSections = array_replace(['blog' => $this->defaultPharmaBlogSection()], $this->pharmaBlogSections);
         $this->pharmaProductSections = (array) $settings->get('website.pharma_homepage.product_sections', []);
@@ -254,6 +265,68 @@ class HomeSettings extends Component
         $this->pharmaCategoryDisplay['selected_ids'] = $ids;
     }
 
+    public function closePharmaSectionEditor(): void
+    {
+        $this->editingPharmaCategories = false;
+        $this->editingPharmaProductSection = null;
+        $this->editingPharmaBlogSection = null;
+    }
+
+    /**
+     * Preview uses the same category-specific icon fallback as the public homepage.
+     * Keep this preparation outside Blade to avoid fragile template directives.
+     *
+     * @return array<int, array{name: string, count: int, icon: string}>
+     */
+    public function categoryCardPreviewItems(): array
+    {
+        $design = app(PharmaCategoryCardStyle::class)->normalize($this->pharmaCategoryCard);
+        $choices = $this->pharmaCategoryIconChoices;
+
+        if ($this->selectedCategoryIconId !== '' && isset($choices[(int) $this->selectedCategoryIconId])) {
+            $selected = (int) $this->selectedCategoryIconId;
+            $choices = [$selected => $choices[$selected]] + $choices;
+        }
+
+        $items = [];
+        foreach (array_slice($choices, 0, 4, true) as $id => $name) {
+            $items[] = [
+                'name' => (string) $name,
+                'count' => [1, 3, 6, 2][count($items)],
+                'icon' => $design['icons_by_category'][$id] ?? $design['icon'],
+            ];
+        }
+
+        return $items;
+    }
+
+    public function updatedSelectedCategoryIconId(): void
+    {
+        $this->selectedCategoryIconValue = (string) ($this->pharmaCategoryCard['icons_by_category'][$this->selectedCategoryIconId] ?? '');
+    }
+
+    public function updatedSelectedCategoryIconValue(): void
+    {
+        $id = $this->selectedCategoryIconId;
+        if (! ctype_digit($id) || ! array_key_exists((int) $id, $this->pharmaCategoryIconChoices)) {
+            return;
+        }
+
+        $allowed = ['medical', 'heart', 'shield', 'pill', 'cross', 'leaf', 'none'];
+        if ($this->selectedCategoryIconValue === '') {
+            unset($this->pharmaCategoryCard['icons_by_category'][$id]);
+        } elseif (in_array($this->selectedCategoryIconValue, $allowed, true)) {
+            $this->pharmaCategoryCard['icons_by_category'][$id] = $this->selectedCategoryIconValue;
+        }
+    }
+
+    public function resetPharmaCategoryCard(): void
+    {
+        $this->authorizeAdminPermission('website.home.manage');
+        $this->pharmaCategoryCard = app(PharmaCategoryCardStyle::class)->defaults();
+        $this->pharmaCategoryCardEnabled = false;
+    }
+
     public function savePharmaCategories(SettingsService $settings): void
     {
         $this->authorizeAdminPermission('website.home.manage');
@@ -269,6 +342,10 @@ class HomeSettings extends Component
         ]);
         $allowedIds = Category::query()->ofType('medicine')->active()->pluck('id')->map(fn ($id) => (int) $id)->all();
         $validated['pharmaCategoryDisplay']['selected_ids'] = array_values(array_unique(array_intersect(array_map('intval', $validated['pharmaCategoryDisplay']['selected_ids'] ?? []), $allowedIds)));
+        if ($this->pharmaCategoryCardEnabled) {
+            $validated['pharmaCategoryDisplay']['card_design'] = app(PharmaCategoryCardStyle::class)->normalize($this->pharmaCategoryCard);
+        }
+        $this->pharmaCategoryDisplay = $validated['pharmaCategoryDisplay'];
         $settings->updateMany([
             'website.pharma_homepage.categories' => $validated['pharmaCategoryDisplay'],
         ], 'homepage');
