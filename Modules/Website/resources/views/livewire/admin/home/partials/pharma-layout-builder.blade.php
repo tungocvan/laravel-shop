@@ -165,6 +165,49 @@ foreach($pharmaProductSections as $key => $config) {
                     </div>
                 </div>
             </div>
+            @php($productCard = app(\Modules\Website\Services\PharmaProductCardStyle::class)->normalize($pharmaProductSections[$sectionKey]['card_design'] ?? []))
+            <div class="mt-5 rounded-xl border border-gray-200 bg-white p-4">
+                <h4 class="font-bold text-gray-900">Product Card Builder · Giao diện Card</h4>
+                <p class="mt-1 text-xs text-gray-500">Cấu hình riêng cho Section này. Preview dùng cùng component với Website.</p>
+                <div class="mt-4 grid gap-5 lg:grid-cols-2">
+                    <div class="grid grid-cols-2 gap-3">
+                        <label class="col-span-2 text-sm">Mẫu Card
+                            <select wire:model.live="pharmaProductSections.{{ $sectionKey }}.card_design.preset" class="mt-1 w-full rounded-lg border border-gray-300 p-2">
+                                <option value="classic">Classic</option><option value="modern">Modern</option><option value="compact">Compact</option>
+                            </select>
+                        </label>
+                        @foreach(['image_ratio'=>['1/1'=>'Vuông 1:1','4/3'=>'Ngang 4:3','3/4'=>'Dọc 3:4'],'image_fit'=>['contain'=>'Giữ nguyên ảnh','cover'=>'Lấp đầy ảnh'],'desktop_columns'=>[2=>'2 cột',3=>'3 cột',4=>'4 cột',5=>'5 cột'],'tablet_columns'=>[1=>'1 cột',2=>'2 cột',3=>'3 cột'],'mobile_columns'=>[1=>'1 cột',2=>'2 cột']] as $field=>$options)
+                            <label class="text-xs font-medium">{{ ['image_ratio'=>'Tỷ lệ ảnh','image_fit'=>'Cách hiển thị ảnh','desktop_columns'=>'Cột Desktop','tablet_columns'=>'Cột Tablet','mobile_columns'=>'Cột Mobile'][$field] }}
+                                <select wire:model.live="pharmaProductSections.{{ $sectionKey }}.card_design.{{ $field }}" class="mt-1 w-full rounded-lg border border-gray-300 p-2">
+                                    @foreach($options as $value=>$name)<option value="{{ $value }}">{{ $name }}</option>@endforeach
+                                </select>
+                            </label>
+                        @endforeach
+                        @foreach(['radius'=>'Bo góc (px)','padding'=>'Padding (px)','gap'=>'Khoảng cách Card (px)','title_size'=>'Cỡ chữ tiêu đề (px)','title_lines'=>'Số dòng tiêu đề'] as $field=>$name)
+                            <label class="text-xs font-medium">{{ $name }}
+                                <input type="number" wire:model.live.debounce.400ms="pharmaProductSections.{{ $sectionKey }}.card_design.{{ $field }}" class="mt-1 w-full rounded-lg border border-gray-300 p-2">
+                            </label>
+                        @endforeach
+                        @foreach(['background'=>'Nền Card','image_background'=>'Nền ảnh','text_color'=>'Màu tiêu đề','muted_color'=>'Màu danh mục','border_color'=>'Màu viền','action_color'=>'Màu nút'] as $field=>$name)
+                            <label class="text-xs font-medium">{{ $name }}
+                                <input type="color" wire:model.live="pharmaProductSections.{{ $sectionKey }}.card_design.{{ $field }}" class="mt-1 block h-10 w-full rounded-lg border border-gray-300">
+                            </label>
+                        @endforeach
+                        @foreach(['shadow'=>'Đổ bóng','show_category'=>'Hiện danh mục','show_action'=>'Hiện nút xem'] as $field=>$name)
+                            <label class="flex items-center gap-2 text-xs"><input type="checkbox" wire:model.live="pharmaProductSections.{{ $sectionKey }}.card_design.{{ $field }}"> {{ $name }}</label>
+                        @endforeach
+                        <label class="col-span-2 text-xs font-medium">Tên nút thao tác
+                            <input type="text" maxlength="60" wire:model.live.debounce.400ms="pharmaProductSections.{{ $sectionKey }}.card_design.action_label" class="mt-1 w-full rounded-lg border border-gray-300 p-2">
+                        </label>
+                    </div>
+                    <div class="rounded-xl bg-slate-50 p-4">
+                        <p class="mb-3 text-xs font-bold uppercase text-gray-500">Live Preview · Dữ liệu minh họa</p>
+                        <div class="mx-auto max-w-sm">
+                            @include('Website::partials.pharma-product-card', ['cardDesign' => $productCard, 'cardPreview' => true, 'cardName' => 'Anvo-Telmisartan HCTZ 80/12,5mg - Hộp 2 vỉ x 7 viên'])
+                        </div>
+                    </div>
+                </div>
+            </div>
             @error('pharmaProductSections') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
             <div class="mt-4 flex justify-end gap-2">
                 <button type="button" wire:click="$set('editingPharmaProductSection', null)" class="rounded-lg border border-gray-300 px-4 py-2">Đóng</button>

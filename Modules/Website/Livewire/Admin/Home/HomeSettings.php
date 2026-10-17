@@ -112,6 +112,10 @@ class HomeSettings extends Component
         $this->pharmaBlogSections = array_replace(['blog' => $this->defaultPharmaBlogSection()], $this->pharmaBlogSections);
         $this->pharmaProductSections = (array) $settings->get('website.pharma_homepage.product_sections', []);
         $this->pharmaProductSections = array_replace(['new_arrivals' => $this->defaultPharmaProductSection()], $this->pharmaProductSections);
+        foreach ($this->pharmaProductSections as &$productSection) {
+            $productSection['card_design'] = app(\Modules\Website\Services\PharmaProductCardStyle::class)->normalize((array) ($productSection['card_design'] ?? []));
+        }
+        unset($productSection);
         $this->pharmaProductFilters = array_replace(array_fill_keys(['category', 'supplier', 'product_type', 'circular_group'], true), (array) $settings->get('website.pharma_catalog.filters', []));
         $this->pharmaSectionOrder = (array) $settings->get('website.pharma_homepage.order', [
             'hero', 'categories', 'new_arrivals',
