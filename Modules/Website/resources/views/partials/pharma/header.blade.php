@@ -112,7 +112,8 @@
                             @foreach($desktopMenu->isNotEmpty() ? $desktopMenu : $fallbackMenu as $item)
                                 @php($itemUrl = is_array($item) ? $item['url'] : $item->url)
                                 @php($itemTitle = is_array($item) ? $item['title'] : $item->title)
-                                <a href="{{ $itemUrl ?: '#' }}" class="transition-colors active:scale-[0.985] {{ $desktopMenuStyle['hover_effect'] === 'underline' ? 'hover:underline' : '' }} {{ $desktopMenuStyle['hover_effect'] === 'color' ? 'hover:!text-[var(--menu-hover-color)]' : '' }} {{ $desktopMenuStyle['hover_effect'] === 'background' ? 'hover:bg-[var(--menu-hover-color)] hover:!text-white' : '' }}" style="--menu-hover-color:{{ $desktopMenuStyle['hover_color'] }};border-radius:{{ $desktopMenuStyle['radius'] }}px;padding:4px 8px;">{{ $itemTitle }}</a>
+                                @php($isActiveDesktopItem = $itemUrl && $itemUrl !== '#' && (url()->current() === $itemUrl || request()->fullUrl() === $itemUrl))
+                                <a href="{{ $itemUrl ?: '#' }}" @if($isActiveDesktopItem) aria-current="page" @endif class="transition-colors active:scale-[0.985] {{ $desktopMenuStyle['hover_effect'] === 'underline' ? 'hover:underline' : '' }} {{ $desktopMenuStyle['hover_effect'] === 'color' ? 'hover:!text-[var(--menu-hover-color)]' : '' }} {{ $desktopMenuStyle['hover_effect'] === 'background' ? 'hover:bg-[var(--menu-hover-color)] hover:!text-white' : '' }}" style="--menu-hover-color:{{ $desktopMenuStyle['hover_color'] }};border-radius:{{ $desktopMenuStyle['radius'] }}px;padding:4px 8px;{{ $isActiveDesktopItem ? 'color:'.$desktopMenuStyle['active_color'].';' : '' }}">{{ $itemTitle }}</a>
                             @endforeach
                         </nav>
                     @elseif($component['type'] === 'search')
