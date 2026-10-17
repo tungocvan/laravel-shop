@@ -69,6 +69,23 @@
                     <p class="text-sm text-slate-500">Chưa có profile tùy chỉnh. Hãy lưu một bộ trong tab Menu.</p>
                 @endforelse
             </div>
+            <div class="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <h3 class="text-sm font-semibold text-slate-900">Chia sẻ profile JSON qua GitHub</h3>
+                <p class="mt-1 text-xs leading-5 text-slate-600">Xuất profile ra file JSON, commit vào repository để các máy khác nhận bằng git pull. Nhập file sẽ tạo profile tùy chỉnh mới trong database; không tự thay đổi Sidebar đang dùng.</p>
+                <div class="mt-3 flex flex-wrap gap-2">
+                    @foreach($this->sidebarVisualPresets() as $key => $preset)
+                        <button type="button" wire:click="exportSidebarProfile('{{ $key }}')" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700">Xuất {{ $preset['name'] }}</button>
+                    @endforeach
+                    @foreach((array) data_get($config, 'sidebar.visual_presets', []) as $key => $preset)
+                        <button type="button" wire:click="exportSidebarProfile(@js($key))" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700">Xuất {{ $preset['name'] ?? $key }}</button>
+                    @endforeach
+                </div>
+                <div class="mt-4 flex flex-wrap items-center gap-3">
+                    <input type="file" wire:model="sidebarProfileUpload" accept=".json,application/json" class="block max-w-full text-xs text-slate-700 file:mr-3 file:rounded-lg file:border file:border-slate-300 file:bg-white file:px-3 file:py-2" />
+                    <button type="button" wire:click="importSidebarProfile" wire:loading.attr="disabled" class="rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm font-semibold text-indigo-700">Nhập profile JSON</button>
+                </div>
+                @error('sidebarProfileUpload') <p class="mt-2 text-xs text-red-600">{{ $message }}</p> @enderror
+            </div>
             <p class="mt-5 text-xs text-amber-700">Profile màu sắc cũ chỉ khôi phục những trường đã lưu; không ghi đè Header, Footer hoặc các thông số chưa có.</p>
             <button type="submit" class="mt-4 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700">Áp dụng &amp; lưu Sidebar</button>
         </section>
