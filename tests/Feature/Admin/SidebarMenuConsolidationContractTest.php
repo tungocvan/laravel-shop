@@ -59,9 +59,9 @@ class SidebarMenuConsolidationContractTest extends TestCase
         $view = file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/admin-sidebar-config.blade.php'));
         $manager = file_get_contents(base_path('Modules/Admin/Support/AdminLayoutManager.php'));
 
-        foreach (['FlexBiz Emerald', 'Corporate Slate', 'Minimal Light'] as $name) {
-            $this->assertStringContainsString($name, $component);
-        }
+        $defaults = json_decode(file_get_contents(base_path('Modules/Admin/resources/sidebar-profiles/defaults.json')), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame(['FlexBiz Emerald', 'Corporate Slate', 'Minimal Light'], array_column(array_values($defaults['profiles']), 'name'));
+        $this->assertStringContainsString('sidebar-profiles/defaults.json', $component);
         $this->assertStringContainsString('applySidebarVisualPreset', $view);
         $this->assertStringContainsString('saveSidebarVisualPreset', $view);
         $this->assertStringContainsString('sidebar-preset-applied', $view);
@@ -179,12 +179,12 @@ class SidebarMenuConsolidationContractTest extends TestCase
         $this->assertStringContainsString('function importSidebarProfile(', $component);
         $this->assertStringContainsString('function exportSidebarProfile(', $component);
         $this->assertStringContainsString('sidebar-profiles/defaults.json', $component);
-        $this->assertStringContainsString("'design.sidebar_menu.submenu.'.$field", $component);
+        $this->assertStringContainsString("'design.sidebar_menu.submenu.'.\$field", $component);
 
         $runtime = file_get_contents(base_path('Modules/Admin/resources/views/livewire/partials/sidebar/navigation/group.blade.php'));
-        $this->assertStringContainsString('$submenuNormal', $runtime);
-        $this->assertStringContainsString('$submenuHover', $runtime);
-        $this->assertStringContainsString('$submenuActive', $runtime);
+        $this->assertStringContainsString('var(--admin-sidebar-submenu-title-color)', $runtime);
+        $this->assertStringContainsString('var(--admin-sidebar-submenu-hover-title-color)', $runtime);
+        $this->assertStringContainsString('var(--admin-sidebar-submenu-active-title-color)', $runtime);
 
         $view = file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/admin-sidebar-config.blade.php'));
         $this->assertStringContainsString('wire:model="sidebarProfileUpload"', $view);
