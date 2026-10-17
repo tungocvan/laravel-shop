@@ -9,6 +9,7 @@ use Modules\System\Services\SettingsService;
 use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
 use Modules\Website\Models\HeaderMenuItem;
 use Modules\Website\Services\HeaderMenuService;
+use Modules\Website\Services\HeaderNavigationStyleService;
 
 class MenuManager extends Component
 {
@@ -19,6 +20,8 @@ class MenuManager extends Component
     public array $menuLocations = [];
     public array $headerActions = [];
     public bool $isModalOpen = false;
+    public bool $showNavigationStyle = false;
+    public array $navigationStyle = [];
     public $editingId = null;
     public $title;
     public $url;
@@ -38,6 +41,35 @@ class MenuManager extends Component
         if (! array_key_exists($this->location, $this->menuLocations)) $this->location = (string) array_key_first($this->menuLocations);
         $saved = $settings->get('header.actions');
         $this->headerActions = $this->normalizeActions(is_array($saved) ? $saved : []);
+        $this->loadNavigationStyle($settings, app(HeaderNavigationStyleService::class));
+    }
+
+    public function updatedLocation(SettingsService $settings, HeaderNavigationStyleService $styles): void
+    {
+        $this->loadNavigationStyle($settings, $styles);
+    }
+
+    private function loadNavigationStyle(SettingsService $settings, HeaderNavigationStyleService $styles): void
+    {
+        $this->navigationStyle = $styles->resolve($settings->get('website.header_navigation.'.$this->location));
+    }
+
+    public function saveNavigationStyle(SettingsService $settings, HeaderNavigationStyleService $styles, HeaderMenuService $menus): void
+    {
+        $this->authorizeAdminPermission('website.menu.manage');
+        if ($this->editingTemplate !== 'pharma' || !array_key_exists($this->location, $this->availableLocations($menus))) {
+            $this->addError('navigationStyle', 'Vị trí menu không hợp lệ.');
+            return;
+        }
+        $this->navigationStyle = $styles->resolve($this->navigationStyle);
+        $settings->set('website.header_navigation.'.$this->location, $this->navigationStyle, 'header', 'json');
+        $this->dispatch('show-toast', [['type'=>'success','message'=>'Đã lưu giao diện menu.']]);
+    }
+
+    public function resetNavigationStyle(HeaderNavigationStyleService $styles): void
+    {
+        $this->authorizeAdminPermission('website.menu.manage');
+        $this->navigationStyle = $styles->defaults();
     }
 
     private function availableLocations(HeaderMenuService $service): array

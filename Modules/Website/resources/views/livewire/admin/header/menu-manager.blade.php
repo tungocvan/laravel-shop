@@ -1,4 +1,5 @@
 <div class="space-y-6" x-data="{ open:@entangle('isModalOpen'), dragItem:null, dropBefore(targetId,parentId,list){if(!this.dragItem)return;let ids=Array.from(list.querySelectorAll(':scope > li[data-id]')).map(el=>Number(el.dataset.id)).filter(id=>id!==Number(this.dragItem.id));const i=ids.indexOf(Number(targetId));i>=0?ids.splice(i,0,Number(this.dragItem.id)):ids.push(Number(this.dragItem.id));$wire.moveItemByDrag(Number(this.dragItem.id),parentId===null?null:Number(parentId),ids);this.dragItem=null}, dropEnd(parentId,list){if(!this.dragItem)return;let ids=Array.from(list.querySelectorAll(':scope > li[data-id]')).map(el=>Number(el.dataset.id)).filter(id=>id!==Number(this.dragItem.id));ids.push(Number(this.dragItem.id));$wire.moveItemByDrag(Number(this.dragItem.id),parentId===null?null:Number(parentId),ids);this.dragItem=null} }">
+    @include('Website::partials.pharma.navigation-style')
     @php($fieldClass='mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 shadow-sm transition placeholder:text-gray-400 hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100')
 
     @include('Website::livewire.admin.header.partials.system-actions')
@@ -7,6 +8,61 @@
         <div class="w-full sm:max-w-md"><label class="block text-sm font-semibold text-gray-700">Vị trí Menu</label><select wire:model.live="location" class="{{ $fieldClass }}">@foreach($menuLocations as $key=>$name)<option value="{{ $key }}">{{ $name }}</option>@endforeach</select><p class="mt-1 text-xs text-gray-500">Location lấy từ cấu hình Header, không hardcode trong Livewire.</p></div>
         <button type="button" wire:click="openModal" class="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-blue-700">+ Thêm mục mới</button>
     </div>
+
+
+    @if($editingTemplate === 'pharma')
+    <section class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <button type="button" wire:click="$toggle('showNavigationStyle')" aria-controls="pharma-navigation-style" aria-expanded="{{ $showNavigationStyle ? 'true' : 'false' }}" class="flex w-full items-center justify-between gap-3 text-left text-sm font-semibold text-gray-900">
+            <span>⚙ Cấu hình giao diện Menu <span class="ml-2 text-xs font-normal text-gray-500">Font, màu sắc, khoảng cách và trạng thái</span></span>
+            <span>{{ $showNavigationStyle ? 'Thu gọn −' : 'Mở cấu hình +' }}</span>
+        </button>
+        @if($showNavigationStyle)
+        <div id="pharma-navigation-style" class="mt-4 space-y-4">
+            <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <label class="text-sm font-medium text-gray-700">Font family
+                    <select wire:model.live="navigationStyle.font_family" class="{{ $fieldClass }}">
+                        @foreach(['system'=>'System UI','arial'=>'Arial','inter'=>'Inter','roboto'=>'Roboto','georgia'=>'Georgia'] as $value=>$label)<option value="{{ $value }}">{{ $label }}</option>@endforeach
+                    </select>
+                </label>
+                <label class="text-sm font-medium text-gray-700">Kiểu menu
+                    <select wire:model.live="navigationStyle.style" class="{{ $fieldClass }}">
+                        @foreach(['classic'=>'Classic','pills'=>'Pills','underline'=>'Underline'] as $value=>$label)<option value="{{ $value }}">{{ $label }}</option>@endforeach
+                    </select>
+                </label>
+                <label class="text-sm font-medium text-gray-700">Độ đậm chữ
+                    <select wire:model.live="navigationStyle.font_weight" class="{{ $fieldClass }}">
+                        @foreach([400=>'Normal',500=>'Medium',600=>'Semibold',700=>'Bold'] as $value=>$label)<option value="{{ $value }}">{{ $label }}</option>@endforeach
+                    </select>
+                </label>
+                @foreach(['font_size'=>'Font size','padding_x'=>'Padding ngang','padding_y'=>'Padding dọc','gap'=>'Khoảng cách','radius'=>'Bo góc'] as $key=>$label)
+                    <label class="text-sm font-medium text-gray-700">{{ $label }} (px)
+                        <input type="number" wire:model.live.debounce.300ms="navigationStyle.{{ $key }}" min="0" max="32" class="{{ $fieldClass }}">
+                    </label>
+                @endforeach
+                @foreach(['text_color'=>'Màu chữ','active_color'=>'Màu Active','active_background'=>'Nền Active','hover_color'=>'Màu Hover','hover_background'=>'Nền Hover'] as $key=>$label)
+                    <label class="text-sm font-medium text-gray-700">{{ $label }}
+                        <input type="color" wire:model.live="navigationStyle.{{ $key }}" class="mt-1 block h-11 w-full cursor-pointer rounded-lg border border-gray-300 bg-white p-1">
+                    </label>
+                @endforeach
+            </div>
+            @php($navPreview = app(\Modules\Website\Services\HeaderNavigationStyleService::class)->resolve($navigationStyle))
+            <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Xem trước · {{ $location }}</p>
+                <nav aria-label="Xem trước giao diện menu" class="pharma-nav-preview flex flex-wrap items-center" data-nav-style="{{ $navPreview['style'] }}" style="{{ app(\Modules\Website\Services\HeaderNavigationStyleService::class)->css($navPreview) }}">
+                    <a class="pharma-nav-link" href="#" onclick="return false" aria-current="page">Trang chủ</a>
+                    <a class="pharma-nav-link" href="#" onclick="return false">Danh mục dược phẩm</a>
+                    <a class="pharma-nav-link" href="#" onclick="return false">Đặt hàng nhanh</a>
+                </nav>
+            </div>
+            <div class="flex flex-wrap justify-end gap-2">
+                <button type="button" wire:click="resetNavigationStyle" class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold">Khôi phục mặc định</button>
+                <button type="button" wire:click="saveNavigationStyle" wire:loading.attr="disabled" wire:target="saveNavigationStyle" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Lưu cấu hình</button>
+            </div>
+            @error('navigationStyle')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
+        </div>
+        @endif
+    </section>
+    @endif
 
     @error('menu')<div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ $message }}</div>@enderror
 

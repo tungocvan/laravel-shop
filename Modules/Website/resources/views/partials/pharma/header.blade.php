@@ -36,6 +36,9 @@
     };
     $topbarHeight = (int) ($presentation['custom']['topbar_height'] ?? 32);
     $menuService = app(\Modules\Website\Services\HeaderMenuService::class);
+    $navigationStyles = app(\Modules\Website\Services\HeaderNavigationStyleService::class);
+    $desktopNavStyle = $navigationStyles->resolve($settings->get('website.header_navigation.pharma_primary'));
+    $mobileNavStyle = $navigationStyles->resolve($settings->get('website.header_navigation.pharma_mobile') ?: $desktopNavStyle);
     $pharmaMenuConfigured = $menuService->getMenuForAdmin('pharma_primary') !== null;
     $desktopMenu = $menuService->getMenuTreeByLocation('pharma_primary');
     $mobileMenu = $menuService->getMenuTreeByLocation('pharma_mobile');
@@ -61,6 +64,7 @@
     }
     $fallbackMenu = [['title' => 'Trang chủ', 'url' => route('home')], ['title' => 'Danh mục dược phẩm', 'url' => route('product.list')]];
 @endphp
+@include('Website::partials.pharma.navigation-style')
 <div style="display: contents; --pharma-header-accent: {{ $accent }}; --pharma-header-bg: {{ $background }}; --pharma-header-text: {{ $foreground }};">
     @if(($topbarConfig['enabled'] ?? true))
         @foreach($headerLayout['desktop.topbar'] ?? [] as $component)
@@ -107,11 +111,11 @@
                             <span class="min-w-0 max-w-[130px] sm:max-w-none"><span class="block line-clamp-2 break-words text-[11px] font-extrabold leading-tight sm:truncate sm:text-lg">{{ $companyName }}</span><span class="hidden text-xs font-medium sm:block" style="color:var(--pharma-header-accent)">Danh mục và thông tin dược phẩm</span></span>
                         </a>
                     @elseif($component['type'] === 'actions')
-                        <nav aria-label="Điều hướng Pharma" class="{{ $visibilityClass($component['visibility'] ?? 'desktop') }} flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm font-semibold">
+                        <nav aria-label="Điều hướng Pharma" class="{{ $visibilityClass($component['visibility'] ?? 'desktop') }} pharma-nav-preview flex-wrap items-center justify-center" data-nav-style="{{ $desktopNavStyle['style'] }}" style="{{ $navigationStyles->css($desktopNavStyle) }}">
                             @foreach($pharmaMenuConfigured ? $desktopMenu : $fallbackMenu as $item)
                                 @php($itemUrl = is_array($item) ? $item['url'] : $item->url)
                                 @php($itemTitle = is_array($item) ? $item['title'] : $item->title)
-                                <a href="{{ $itemUrl ?: '#' }}" class="hover:underline">{{ $itemTitle }}</a>
+                                <a href="{{ $itemUrl ?: '#' }}" class="pharma-nav-link" @if($itemUrl && $itemUrl !== '#' && url()->current() === url($itemUrl)) aria-current="page" @endif>{{ $itemTitle }}</a>
                             @endforeach
                         </nav>
                     @elseif($component['type'] === 'search')
@@ -191,12 +195,12 @@
                             @include('Website::partials.pharma.mobile-account-links', ['accountConfig' => $accountConfig])
                             <nav aria-label="Điều hướng Pharma trên di động" class="px-4 pb-6 pt-4">
                                 <div class="mb-2 px-2 text-[10px] font-extrabold uppercase tracking-[0.14em] text-slate-500">Khám phá</div>
-                                <div class="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-100 bg-white">
+                                <div class="pharma-nav-preview flex flex-col overflow-hidden rounded-xl border border-slate-100 bg-white" data-nav-style="{{ $mobileNavStyle['style'] }}" style="{{ $navigationStyles->css($mobileNavStyle) }}">
                                     @foreach($pharmaMenuConfigured ? $mobileMenu : $fallbackMenu as $item)
                                         @php($itemUrl = is_array($item) ? $item['url'] : $item->url)
                                         @php($itemTitle = is_array($item) ? $item['title'] : $item->title)
                                         @php($isActiveMobileItem = $itemUrl && $itemUrl !== '#' && (url()->current() === $itemUrl || request()->fullUrl() === $itemUrl))
-                                        <a href="{{ $itemUrl ?: '#' }}" @if($isActiveMobileItem) aria-current="page" @endif class="group flex min-h-12 items-center px-4 py-3.5 text-sm font-semibold leading-5 transition-colors active:scale-[0.985] motion-reduce:transform-none {{ $isActiveMobileItem ? 'bg-emerald-50 text-emerald-800' : 'text-slate-700 hover:bg-slate-50 hover:text-emerald-800' }}">
+                                        <a href="{{ $itemUrl ?: '#' }}" @if($isActiveMobileItem) aria-current="page" @endif class="pharma-nav-link group flex min-h-12 items-center leading-5 transition-colors active:scale-[0.985] motion-reduce:transform-none">
                                             <span class="min-w-0 flex-1">{{ $itemTitle }}</span>
                                             @if($isActiveMobileItem)
                                                 <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-600" aria-hidden="true"></span>
