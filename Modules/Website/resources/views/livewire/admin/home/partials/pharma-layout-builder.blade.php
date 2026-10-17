@@ -374,5 +374,4 @@ foreach($pharmaProductSections as $key => $config) {
                 </div>
             </section>
         </div>
-    @endif
 </section>
