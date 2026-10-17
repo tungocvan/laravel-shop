@@ -55,6 +55,9 @@ class PharmaHomepageCategoryCardStyleTest extends TestCase
         $this->assertStringContainsString('pharmaCategoryCard.icon', $blade);
         $this->assertStringContainsString('selectedCategoryIconId', $blade);
         $this->assertStringContainsString('selectedCategoryIconValue', $blade);
+        $this->assertStringContainsString("\$preview['icons_by_category'][\$previewCategoryId] ?? \$preview['icon']", $blade);
+        $this->assertStringContainsString('previewCategoryIds', $blade);
+        $this->assertStringContainsString('cardIcon', $blade);
         $this->assertStringContainsString('icon_background', $blade);
         $this->assertStringContainsString('updatedSelectedCategoryIconValue', $livewire);
         $this->assertStringContainsString("partials.pharma-category-card-v2", $blade);
