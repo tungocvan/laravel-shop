@@ -7,6 +7,29 @@
         </button>
     </div>
 
+    <section class="mb-6 rounded-xl border border-emerald-200 bg-white p-5">
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <h2 class="text-lg font-bold text-slate-900">Thư viện Banner Themes — Pharma</h2>
+                <p class="text-sm text-slate-500">Các mẫu giao diện dùng chung. Chọn và áp dụng trong Homepage Settings; không ghi đè nội dung Hero hoặc banner ảnh đang quản lý.</p>
+            </div>
+            <a href="{{ route('admin.home.settings') }}" class="rounded-lg border border-emerald-300 px-3 py-2 text-sm font-semibold text-emerald-800">Thiết lập trang chủ ↗</a>
+        </div>
+        <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            @foreach(app(\Modules\Website\Services\BannerThemeLibrary::class)->all() as $themeId => $theme)
+                <article class="overflow-hidden rounded-xl border border-slate-200">
+                    <div class="flex h-28 items-center justify-center px-4 text-center" style="background:linear-gradient(115deg, {{ $theme['background_start'] }}, {{ $theme['background_end'] }});color:{{ $theme['text_color'] }}">
+                        <span class="text-lg font-extrabold">{{ $theme['name'] }}</span>
+                    </div>
+                    <div class="p-3">
+                        <p class="text-sm font-semibold text-slate-800">{{ $theme['name'] }}</p>
+                        <p class="mt-1 text-xs text-slate-500">{{ $theme['description'] }}</p>
+                    </div>
+                </article>
+            @endforeach
+        </div>
+    </section>
+
     <div class="bg-white shadow-sm rounded-lg overflow-x-auto border border-gray-200">
         <table class="min-w-[900px] w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
