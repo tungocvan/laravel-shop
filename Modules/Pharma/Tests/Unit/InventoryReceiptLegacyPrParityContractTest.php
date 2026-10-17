@@ -20,6 +20,18 @@ class InventoryReceiptLegacyPrParityContractTest extends TestCase
         $this->assertStringNotContainsString("name('receipts.print')", $routes);
     }
 
+    public function test_receipt_document_service_rejects_drafts_and_limits_shares_to_invoice(): void
+    {
+        $service = file_get_contents(base_path('Modules/Pharma/Services/InventoryReceiptDocumentService.php'));
+
+        $this->assertStringContainsString('InventoryReceipt::POSTED, 409', $service);
+        $this->assertStringContainsString('if ($receipt->status !== InventoryReceipt::POSTED) return null;', $service);
+        $this->assertStringContainsString("public const INVOICE = 'invoice';", $service);
+        $this->assertStringContainsString("public const COST = 'cost';", $service);
+        $this->assertStringContainsString('$document->profile === self::INVOICE', $service);
+        $this->assertStringContainsString('public function invalidate(InventoryReceipt $receipt)', $service);
+    }
+
     public function test_receipt_documents_use_separate_settings_and_posted_gate(): void
     {
         $model = file_get_contents(base_path('Modules/Pharma/Models/InventoryReceiptDocumentSetting.php'));
