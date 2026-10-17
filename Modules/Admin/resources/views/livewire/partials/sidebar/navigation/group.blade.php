@@ -1,3 +1,16 @@
+@php
+    // Resolve SubMenu colors from the saved design, not from shell/theme CSS
+    // variables that can be overridden by an earlier palette.
+    $sidebarDesign = app(\Modules\Admin\Services\AdminDesignService::class);
+    $sidebarMenu = $sidebarDesign->sanitize((array) data_get(app(\Modules\Admin\Support\AdminLayoutManager::class)->config(), 'design'))['sidebar_menu']['submenu'];
+    $submenuColor = fn (string $key) => $sidebarDesign->menuColorValue($sidebarMenu[$key]);
+    $submenuNormal = $submenuColor('title_color');
+    $submenuHover = $submenuColor('hover_title_color');
+    $submenuActive = $submenuColor('active_title_color');
+    $submenuBackground = $sidebarMenu['background_mode'] === 'color' ? $submenuColor('background_color') : 'transparent';
+    $submenuHoverBackground = $sidebarMenu['hover_background_mode'] === 'color' ? $submenuColor('hover_background_color') : 'transparent';
+    $submenuActiveBackground = $sidebarMenu['active_background_mode'] === 'color' ? $submenuColor('active_background_color') : 'transparent';
+@endphp
 <div x-data="{ open: {{ $item['active'] ? 'true' : 'false' }}, filterEnabled: @js($showNavigationSearch) }">
     <button
         @click="sidebarOpen ? open = !open : sidebarOpen = true"
@@ -29,8 +42,8 @@
                 href="{{ $child['href'] }}"
                 @if($showNavigationSearch) x-show="navQuery.trim() === '' || matches(@js($child['name'])) || matches(@js($item['name']))" @endif
                 class="relative flex items-center rounded-lg transition duration-150 focus:outline-none focus:ring-2 focus:ring-current focus:ring-offset-1 motion-reduce:transition-none"
-                style="min-height:var(--admin-sidebar-submenu-item-height);padding:var(--admin-sidebar-submenu-padding-y) var(--admin-sidebar-submenu-padding-x);font-family:var(--admin-sidebar-submenu-font-family);font-size:var(--admin-sidebar-submenu-font-size);font-weight:{{ $child['active'] ? 'var(--admin-sidebar-active-font-weight)' : 'var(--admin-sidebar-submenu-font-weight)' }};color:{{ $child['active'] ? 'var(--admin-sidebar-submenu-active-title-color)' : 'var(--admin-sidebar-submenu-title-color)' }};background:{{ $child['active'] ? 'var(--admin-sidebar-submenu-active-background)' : 'var(--admin-sidebar-submenu-background)' }};{{ $child['active'] ? 'border-width:var(--admin-sidebar-submenu-active-border-width);border-style:var(--admin-sidebar-submenu-active-border-style);border-color:var(--admin-sidebar-submenu-active-border-color);' : '' }}"
-                @if(!$child['active']) onmouseenter="this.style.background='var(--admin-sidebar-submenu-hover-background)';this.style.color='var(--admin-sidebar-submenu-hover-title-color)'" onmouseleave="this.style.background='var(--admin-sidebar-submenu-background)';this.style.color='var(--admin-sidebar-submenu-title-color)'" @endif
+                style="min-height:var(--admin-sidebar-submenu-item-height);padding:var(--admin-sidebar-submenu-padding-y) var(--admin-sidebar-submenu-padding-x);font-family:var(--admin-sidebar-submenu-font-family);font-size:var(--admin-sidebar-submenu-font-size);font-weight:{{ $child['active'] ? 'var(--admin-sidebar-active-font-weight)' : 'var(--admin-sidebar-submenu-font-weight)' }};color:{{ $child['active'] ? $submenuActive : $submenuNormal }};background:{{ $child['active'] ? $submenuActiveBackground : $submenuBackground }};{{ $child['active'] ? 'border-width:var(--admin-sidebar-submenu-active-border-width);border-style:var(--admin-sidebar-submenu-active-border-style);border-color:var(--admin-sidebar-submenu-active-border-color);' : '' }}"
+                @if(!$child['active']) onmouseenter="this.style.background=@js($submenuHoverBackground);this.style.color=@js($submenuHover)" onmouseleave="this.style.background=@js($submenuBackground);this.style.color=@js($submenuNormal)" @endif
                 @if ($child['active']) aria-current="page" @endif
             >
                 @if ($child['active'])<span class="absolute -left-[13px] h-5 w-0.5 rounded-full bg-current" aria-hidden="true"></span>@endif
