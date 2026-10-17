@@ -74,7 +74,9 @@
                 </div>
                 @foreach(['primary' => 'Desktop', 'mobile' => 'Mobile'] as $device => $deviceLabel)
                     <div x-show="menuDevice === '{{ $device }}'" x-cloak class="mt-4 space-y-4">
-                        @php($style = $presentation['menu_style'][$device] ?? [])
+                        @php
+                            $style = $presentation['menu_style'][$device] ?? [];
+                        @endphp
                         <div class="rounded-lg border border-slate-200 bg-slate-50 p-4">
                             <p class="mb-3 text-xs font-semibold text-slate-500">Xem trước · {{ $deviceLabel }}</p>
                             <nav aria-label="Xem trước menu {{ $deviceLabel }}" class="flex flex-wrap items-center" style="gap: {{ (int) ($style['item_gap'] ?? 20) }}px; font-family: {{ $style['font_family'] ?? 'inherit' }}; font-size: {{ (int) ($style['font_size'] ?? 14) }}px; font-weight: {{ $style['font_weight'] ?? '600' }}; color: {{ $style['text_color'] ?? '#0f172a' }};">
