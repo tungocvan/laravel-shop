@@ -22,6 +22,21 @@
     $headerWidth = $presentation['container_width'] ?? null;
     $searchWidth = (int) ($presentation['custom']['search_max_width'] ?? 560);
     $brandHeight = (int) ($presentation['custom']['logo_max_height'] ?? 48);
+    $brandService = app(\Modules\Website\Services\PharmaBrandAppearanceService::class);
+    $brandAppearance = $brandService->resolve($settings->get('website.pharma_header.brand_appearance'));
+    $brandVisibilityClass = static fn (string $part): string => match ($brandAppearance['visibility'][$part] ?? 'both') {
+        'desktop' => 'hidden lg:inline-flex',
+        'mobile' => 'inline-flex lg:hidden',
+        'hidden' => 'hidden',
+        default => 'inline-flex',
+    };
+    $brandTextStyle = static fn (string $part, string $device): string => sprintf(
+        'font-family:%s;font-size:%dpx;font-weight:%s;color:%s',
+        $brandAppearance['typography'][$device][$part]['font_family'],
+        $brandAppearance['typography'][$device][$part]['font_size'],
+        $brandAppearance['typography'][$device][$part]['font_weight'],
+        $brandAppearance['typography'][$device][$part]['color']
+    );
     $accountConfig = $settings->get('website.pharma_header.account', []);
     $topbarConfig = $settings->get('website.pharma_header.topbar', []);
     $topbarConfig = is_array($topbarConfig) ? $topbarConfig : [];
@@ -99,14 +114,26 @@
                 <div class="{{ $mobileSlotVisible[$slot] ? 'flex' : 'hidden lg:flex' }} {{ $slot === 'desktop.main.left' ? 'min-w-0 flex-1 items-center lg:flex-none' : ($slot === 'desktop.main.center' ? 'min-w-0 items-center justify-center gap-5 lg:flex-1' : 'min-w-0 items-center justify-end gap-4 lg:ml-auto') }}">
                 @foreach($headerLayout[$slot] ?? [] as $component)
                     @if($component['type'] === 'brand')
-                        <a href="{{ route('home') }}" class="{{ $visibilityClass($component['visibility'] ?? 'desktop') }} min-w-0 max-w-full items-center gap-2 sm:gap-3" aria-label="Về trang chủ">
-                            @if($brandLogoUrl)
-                                <img src="{{ $brandLogoUrl }}" alt="{{ $companyName }}" class="w-auto max-w-[96px] shrink-0 object-contain sm:max-w-40" style="max-height:{{ $brandHeight }}px">
-                            @else
-                                <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-2xl font-bold text-white shadow-sm" style="background:var(--pharma-header-accent);max-height:{{ $brandHeight }}px" aria-hidden="true">{{ mb_substr($companyName, 0, 1) }}</span>
-                            @endif
-                            <span class="min-w-0 max-w-[130px] sm:max-w-none"><span class="block line-clamp-2 break-words text-[11px] font-extrabold leading-tight sm:truncate sm:text-lg">{{ $companyName }}</span><span class="hidden text-xs font-medium sm:block" style="color:var(--pharma-header-accent)">Danh mục và thông tin dược phẩm</span></span>
-                        </a>
+                        <div class="{{ $visibilityClass($component['visibility'] ?? 'desktop') }} min-w-0 max-w-full items-center gap-2 sm:gap-3">
+                            <a href="{{ route('home') }}" class="{{ $brandVisibilityClass('logo') }} shrink-0 items-center" aria-label="{{ $companyName }} - Trang chủ">
+                                @if($brandLogoUrl)
+                                    <img src="{{ $brandLogoUrl }}" alt="{{ $companyName }}" class="w-auto max-w-[96px] object-contain sm:max-w-40" style="max-height:{{ $brandHeight }}px">
+                                @else
+                                    <span class="flex h-11 w-11 items-center justify-center rounded-xl text-2xl font-bold text-white" style="background:var(--pharma-header-accent)">{{ mb_substr($companyName, 0, 1) }}</span>
+                                @endif
+                            </a>
+                            <span class="min-w-0 max-w-[130px] sm:max-w-none">
+                                @foreach(['name', 'slogan'] as $part)
+                                    @php
+                                        $value = $part === 'name' ? $companyName : $brandAppearance['slogan'];
+                                    @endphp
+                                    @if(trim($value) !== '')
+                                        <span class="{{ $brandVisibilityClass($part) }} min-w-0 break-words leading-tight lg:hidden" style="{{ $brandTextStyle($part, 'mobile') }}">{{ $value }}</span>
+                                        <span class="hidden min-w-0 break-words leading-tight lg:{{ in_array($brandAppearance['visibility'][$part], ['both', 'desktop'], true) ? 'inline-flex' : 'hidden' }}" style="{{ $brandTextStyle($part, 'desktop') }}">{{ $value }}</span>
+                                    @endif
+                                @endforeach
+                            </span>
+                        </div>
                     @elseif($component['type'] === 'actions')
                         <nav aria-label="Điều hướng Pharma" class="{{ $visibilityClass($component['visibility'] ?? 'desktop') }} flex-wrap items-center justify-center gap-y-2" style="column-gap:{{ $desktopMenuStyle['item_gap'] }}px;font-family:{{ $desktopMenuStyle['font_family'] }};font-size:{{ $desktopMenuStyle['font_size'] }}px;font-weight:{{ $desktopMenuStyle['font_weight'] }};color:{{ $desktopMenuStyle['text_color'] }};">
                             @foreach($desktopMenu->isNotEmpty() ? $desktopMenu : $fallbackMenu as $item)
