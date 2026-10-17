@@ -11,6 +11,9 @@ foreach($pharmaProductSections as $key => $config) {
     $pharmaSections[$key] = [$config['title'] ?? 'Section sản phẩm', 'Danh sách sản phẩm Pharma theo cấu hình riêng.'];
 }
 @endphp
+<style>
+.pharma-category-card-preview{display:flex;align-items:center;gap:var(--category-card-gap);min-height:var(--category-card-height);padding:var(--category-card-padding);border:1px solid var(--category-card-border);border-radius:var(--category-card-radius);background:var(--category-card-bg);color:var(--category-card-text);font-size:var(--category-card-font)}
+</style>
 <section class="rounded-xl border border-emerald-200 bg-white p-5 shadow-sm">
     <div class="mb-5">
         <h2 class="text-lg font-bold text-gray-900">Bố cục Homepage — Pharma</h2>
