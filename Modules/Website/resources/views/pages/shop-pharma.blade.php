@@ -1,18 +1,25 @@
 @extends('Website::layouts.frontend')
 @section('title', 'Danh mục dược phẩm')
 @section('content')
+@php
+    $catalogHeader = array_replace(['title' => 'Tra cứu danh mục dược phẩm', 'description' => 'Tìm sản phẩm theo tên, nhóm dược phẩm và nhà cung cấp.', 'background' => '#ffffff', 'text_color' => '#0f172a'], (array) app(\Modules\System\Services\SettingsService::class)->get('website.pharma_catalog.header', []));
+    $catalogHeader['background'] = preg_match('/^#[0-9a-fA-F]{6}$/', (string) $catalogHeader['background']) ? $catalogHeader['background'] : '#ffffff';
+    $catalogHeader['text_color'] = preg_match('/^#[0-9a-fA-F]{6}$/', (string) $catalogHeader['text_color']) ? $catalogHeader['text_color'] : '#0f172a';
+@endphp
 <div class="min-h-screen bg-slate-50 text-slate-900">
-    <header class="border-b border-slate-100 bg-white">
-        <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-7">
+    <header class="border-b border-slate-100" style="background-color:{{ $catalogHeader['background'] }};color:{{ $catalogHeader['text_color'] }}">
+        <div class="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:py-4">
             <nav class="text-xs font-medium text-slate-500"><a href="{{ route('home') }}" class="hover:text-teal-700">Trang chủ</a> / Danh mục dược phẩm</nav>
-            <h1 class="mt-2 text-2xl font-extrabold tracking-tight sm:text-3xl">Tra cứu danh mục dược phẩm</h1>
-            <p class="mt-1 text-sm text-slate-600">Tìm sản phẩm theo tên, nhóm dược phẩm và nhà cung cấp.</p>
+            <h1 class="mt-1 text-xl font-extrabold tracking-tight sm:text-2xl">{{ $catalogHeader['title'] }}</h1>
+            @if($catalogHeader['description'] !== '')<p class="mt-0.5 text-sm opacity-80">{{ $catalogHeader['description'] }}</p>@endif
         </div>
     </header>
-    <div class="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6">
+    <div class="mx-auto max-w-7xl space-y-4 px-4 py-4 sm:px-6">
         <section aria-label="Bộ lọc danh mục">
-            <form id="pharma-filters" action="{{ route('product.list') }}" method="GET" class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-                <div class="flex items-center justify-between gap-2"><h2 class="text-sm font-bold text-slate-900">Lọc sản phẩm</h2><a href="{{ route('product.list') }}" class="text-xs font-semibold text-teal-700 hover:underline">Xóa bộ lọc</a></div>
+            <details class="group rounded-xl border border-slate-200 bg-white shadow-sm" {{ collect([request('category'), request('supplier'), request('product_type'), request('circular_group')])->filter(fn ($value) => $value !== null && $value !== '')->isNotEmpty() ? 'open' : '' }}>
+                <summary class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-slate-900 marker:hidden">Lọc sản phẩm <span class="text-xs font-medium text-teal-700 group-open:hidden">Hiện bộ lọc ▾</span><span class="hidden text-xs font-medium text-teal-700 group-open:inline">Ẩn bộ lọc ▴</span></summary>
+            <form id="pharma-filters" action="{{ route('product.list') }}" method="GET" class="border-t border-slate-100 px-4 pb-4 pt-3">
+                <div class="flex items-center justify-end gap-2"><a href="{{ route('product.list') }}" class="text-xs font-semibold text-teal-700 hover:underline">Xóa bộ lọc</a></div>
                 @if($search !== '')
                     <input type="hidden" name="search" value="{{ $search }}">
                     <p class="mt-4 rounded-lg bg-teal-50 px-3 py-2 text-xs text-teal-800">Từ khóa từ thanh tìm kiếm: <strong>{{ $search }}</strong></p>
@@ -61,6 +68,7 @@
 
                 </div>
             </form>
+            </details>
         </section>
         <main class="min-w-0">
             <div class="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">

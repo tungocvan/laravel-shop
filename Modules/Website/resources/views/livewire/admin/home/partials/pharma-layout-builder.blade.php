@@ -74,6 +74,13 @@ foreach($pharmaProductSections as $key => $config) {
             </div>
             <button type="button" wire:click="$toggle('editingPharmaProductFilters')" class="rounded-lg border border-emerald-300 bg-white px-3 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-50">Thiết lập</button>
         </div>
+        <div class="mt-4 grid grid-cols-1 gap-3 border-t border-emerald-100 pt-4 sm:grid-cols-2">
+            <label class="text-xs font-semibold text-gray-700">Tiêu đề trang<input type="text" maxlength="120" wire:model="pharmaCatalogHeader.title" class="mt-1 w-full rounded-lg border border-gray-200 p-2.5"></label>
+            <label class="text-xs font-semibold text-gray-700">Mô tả trang<input type="text" maxlength="240" wire:model="pharmaCatalogHeader.description" class="mt-1 w-full rounded-lg border border-gray-200 p-2.5"></label>
+            <label class="text-xs font-semibold text-gray-700">Màu nền header<input type="color" wire:model="pharmaCatalogHeader.background" class="mt-1 block h-10 w-full rounded-lg border border-gray-200"></label>
+            <label class="text-xs font-semibold text-gray-700">Màu chữ header<input type="color" wire:model="pharmaCatalogHeader.text_color" class="mt-1 block h-10 w-full rounded-lg border border-gray-200"></label>
+            <div class="sm:col-span-2 flex justify-end"><button type="button" wire:click="savePharmaCatalogHeader" class="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">Lưu nội dung & màu sắc</button></div>
+        </div>
         @if($editingPharmaProductFilters)
             <div class="mt-4 space-y-3 border-t border-emerald-100 pt-4" wire:key="pharma-product-filters">
                 <p class="text-sm font-semibold text-gray-700">Ẩn / hiện bộ lọc tra cứu</p>

@@ -40,6 +40,7 @@ class HomeSettings extends Component
     public bool $pharmaOnlyCategoriesWithProducts = true;
     public bool $editingPharmaProductFilters = false;
     public array $pharmaProductFilters = [];
+    public array $pharmaCatalogHeader = [];
     public bool $editingPharmaCatalogCard = false;
     public array $pharmaCatalogCard = [];
     public string $pharmaTheme = 'clinical';
@@ -118,6 +119,7 @@ class HomeSettings extends Component
             $productSection['card_design'] = app(\Modules\Website\Services\PharmaProductCardStyle::class)->normalize((array) ($productSection['card_design'] ?? []));
         }
         unset($productSection);
+        $this->pharmaCatalogHeader = array_replace(['title' => 'Tra cứu danh mục dược phẩm', 'description' => 'Tìm sản phẩm theo tên, nhóm dược phẩm và nhà cung cấp.', 'background' => '#ffffff', 'text_color' => '#0f172a'], (array) $settings->get('website.pharma_catalog.header', []));
         $this->pharmaProductFilters = array_replace(array_fill_keys(['category', 'supplier', 'product_type', 'circular_group'], true), (array) $settings->get('website.pharma_catalog.filters', []));
         $this->pharmaCatalogCard = app(\Modules\Website\Services\PharmaProductCardStyle::class)->normalize((array) $settings->get('website.pharma_catalog.card_design', []));
         $this->pharmaSectionOrder = (array) $settings->get('website.pharma_homepage.order', [
@@ -391,6 +393,23 @@ class HomeSettings extends Component
         $this->pharmaCatalogCard = $design;
         $this->editingPharmaCatalogCard = false;
         $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã lưu thiết kế Card trang /product.']);
+    }
+
+    public function savePharmaCatalogHeader(SettingsService $settings): void
+    {
+        $this->authorizeAdminPermission('website.home.manage');
+        $header = [
+            'title' => mb_substr(trim(strip_tags((string) ($this->pharmaCatalogHeader['title'] ?? ''))), 0, 120),
+            'description' => mb_substr(trim(strip_tags((string) ($this->pharmaCatalogHeader['description'] ?? ''))), 0, 240),
+        ];
+        if ($header['title'] === '') $header['title'] = 'Tra cứu danh mục dược phẩm';
+        foreach (['background' => '#ffffff', 'text_color' => '#0f172a'] as $key => $default) {
+            $value = (string) ($this->pharmaCatalogHeader[$key] ?? '');
+            $header[$key] = preg_match('/^#[0-9a-fA-F]{6}$/', $value) ? $value : $default;
+        }
+        $settings->updateMany(['website.pharma_catalog.header' => $header], 'homepage');
+        $this->pharmaCatalogHeader = $header;
+        $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã lưu tiêu đề và màu sắc trang /product.']);
     }
 
     public function savePharmaProductFilters(SettingsService $settings): void
