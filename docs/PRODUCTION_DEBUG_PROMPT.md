@@ -4,6 +4,8 @@ Dùng prompt này khi mở chat mới để chẩn đoán Production Docker củ
 
 > **Cách dùng:** copy toàn bộ khối prompt bên dưới sang chat mới, sau đó điền phần **INCIDENT HIỆN TẠI**. Các tài liệu trong repository là nguồn chuẩn; nếu tài liệu thay đổi thì nội dung tài liệu mới được ưu tiên hơn prompt này.
 
+> **TNV baseline:** Khi xử lý sự cố của TNV, đọc `docs/production-tnv.md` trước. Hồ sơ này là snapshot lịch sử, không bảo đảm trạng thái hiện tại. Ưu tiên kiểm tra route/source/tests/log liên quan trước khi yêu cầu khảo sát Docker; mọi thao tác thay đổi production vẫn cần xác minh điều kiện hiện tại và phê duyệt riêng.
+
 ## Prompt
 
 ~~~text
