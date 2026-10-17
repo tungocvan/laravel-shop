@@ -8,33 +8,29 @@
 
 @section('content')
     @php($isPharmaPublished = app(\Modules\System\Services\SettingsService::class)->get('website.public_template', 'default') === 'pharma')
-    <div class="max-w-7xl mx-auto py-6" x-data="{ activeTab: '{{ $isPharmaPublished ? 'builder' : 'info' }}' }">
+    <div class="max-w-7xl mx-auto py-6" x-data="{ activeTab: 'builder', showLegacy: false }">
         <div class="flex justify-between items-center mb-6">
             <div><h1 class="text-2xl font-bold text-gray-900">Quản trị Footer Website</h1><p class="mt-1 text-sm text-gray-500">Template đang xuất bản: {{ $isPharmaPublished ? 'Pharma' : 'Default' }}. Chọn template cần quản trị trong tab Bố cục Footer.</p></div>
         </div>
 
-        <div class="border-b border-gray-200 mb-6 overflow-x-auto">
-            <nav class="-mb-px flex min-w-max space-x-8">
-                <button @click="activeTab = 'info'"
-                    :class="activeTab === 'info' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
-                    class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors">
-                    Thông tin & Brand (Default)
+        <div class="mb-5 rounded-xl border border-blue-100 bg-blue-50 p-4">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h2 class="font-semibold text-slate-900">Không gian thiết lập Footer</h2>
+                    <p class="mt-1 text-sm text-slate-600">Chỉnh bố cục, giao diện và xem trước tại một nơi. Dữ liệu Footer hiện có được giữ nguyên.</p>
+                </div>
+                <button type="button" @click="showLegacy = !showLegacy; activeTab = 'builder'" :aria-expanded="showLegacy.toString()" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700">
+                    <span x-text="showLegacy ? 'Ẩn công cụ Footer cũ' : 'Công cụ Footer cũ (Default)'"></span>
                 </button>
-                <button @click="activeTab = 'columns'"
-                    :class="activeTab === 'columns' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
-                    class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors">
-                    Cột Menu Links (Default)
-                </button>
-                <button @click="activeTab = 'social'"
-                    :class="activeTab === 'social' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
-                    class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors">
-                    Mạng xã hội (Default)
-                </button>
-                <button @click="activeTab = 'builder'"
-                    :class="activeTab === 'builder' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
-                    class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors">
-                    Bố cục Footer
-                </button>
+            </div>
+        </div>
+        <div x-show="showLegacy" x-cloak class="mb-5 rounded-xl border border-gray-200 bg-white p-3">
+            <p class="mb-3 text-xs text-slate-500">Các công cụ cũ chỉ dùng cho Footer Default. Chọn một mục để chỉnh sửa khi cần.</p>
+            <nav class="flex flex-wrap gap-2" aria-label="Công cụ Footer Default">
+                @foreach(['info' => 'Thương hiệu & liên hệ', 'columns' => 'Cột liên kết', 'social' => 'Mạng xã hội'] as $key => $label)
+                    <button type="button" @click="activeTab = '{{ $key }}'" :class="activeTab === '{{ $key }}' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700'" class="rounded-lg px-3 py-2 text-sm font-medium">{{ $label }}</button>
+                @endforeach
+                <button type="button" @click="activeTab = 'builder'" class="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800">Quay lại trình thiết lập mới</button>
             </nav>
         </div>
 

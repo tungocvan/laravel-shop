@@ -1,4 +1,4 @@
-<div class="space-y-6" x-data="{ builderDevice: 'desktop', previewDevice: 'desktop', drag: null }">
+<div class="space-y-6" x-data="{ builderDevice: 'desktop', previewDevice: 'desktop', drag: null, footerPanel: 'layout' }">
     <section class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <label for="footer-editing-template" class="mb-2 block text-sm font-semibold text-gray-900">Template đang quản trị</label>
         <select id="footer-editing-template" wire:model.live="editingTemplate" class="w-full max-w-md rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm">
@@ -8,7 +8,13 @@
         <p class="mt-2 text-xs text-slate-500">Đang xuất bản: <strong>{{ $publishedTemplate === 'pharma' ? 'Pharma' : 'Default' }}</strong>. Chọn workspace chỉ thay đổi phần đang quản trị, không thay đổi template đang xuất bản.</p>
     </section>
 
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <nav class="flex flex-wrap gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm" aria-label="Các bước cấu hình Footer">
+        @foreach(['layout' => '1. Bố cục', 'preview' => '2. Xem trước', 'style' => '3. Giao diện'] as $panel => $label)
+            <button type="button" @click="footerPanel = '{{ $panel }}'" :class="footerPanel === '{{ $panel }}' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'" class="rounded-lg px-4 py-2.5 text-sm font-semibold">{{ $label }}</button>
+        @endforeach
+    </nav>
+
+    <div x-show="footerPanel === 'layout'" x-cloak class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
             <h2 class="text-xl font-bold text-gray-900">Bố cục Footer</h2>
             <p class="mt-1 text-sm text-gray-500">Bật/tắt, kéo thả, sắp xếp và theo dõi Footer riêng cho Desktop / Mobile.</p>
@@ -23,7 +29,7 @@
         <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ $message }}</div>
     @enderror
 
-    <div class="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+    <div x-show="footerPanel === 'layout'" x-cloak class="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div>
             <div class="font-semibold text-gray-900">Bộ lọc thiết bị</div>
             <p class="text-sm text-gray-500">Chỉ hiển thị các vùng của thiết bị đang chỉnh. Overlay dùng chung luôn hiển thị.</p>
@@ -34,7 +40,7 @@
         </div>
     </div>
 
-    <div class="grid gap-6 xl:grid-cols-2">
+    <div x-show="footerPanel === 'layout'" x-cloak class="grid gap-6 xl:grid-cols-2">
         @foreach($builderSlotNames as $slot => $slotLabel)
             @php
                 $isDesktopSlot = str_starts_with($slot, 'desktop.');
@@ -107,9 +113,15 @@
         @endforeach
     </div>
 
-    @include('Website::livewire.admin.footer.partials.builder-preview')
+    <section x-show="footerPanel === 'preview'" x-cloak>
+        <div class="mb-4 rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-slate-700">Xem trước Footer trên Desktop và Mobile trước khi lưu bố cục.</div>
+        @include('Website::livewire.admin.footer.partials.builder-preview')
+        <div class="mt-4 flex justify-end">
+            <button type="button" wire:click="saveBuilder" wire:loading.attr="disabled" wire:target="saveBuilder" class="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">Lưu bố cục & giao diện</button>
+        </div>
+    </section>
 
-    <section class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+    <section x-show="footerPanel === 'style'" x-cloak class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h3 class="font-semibold text-gray-900">Presentation</h3>
@@ -161,5 +173,8 @@
                 @endforeach
             </div>
         @endif
+        <div class="mt-5 flex justify-end">
+            <button type="button" wire:click="saveBuilder" wire:loading.attr="disabled" wire:target="saveBuilder" class="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">Lưu giao diện</button>
+        </div>
     </section>
 </div>
