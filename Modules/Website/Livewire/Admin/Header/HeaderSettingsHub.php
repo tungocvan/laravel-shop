@@ -298,6 +298,38 @@ class HeaderSettingsHub extends Component
         ]]);
     }
 
+    /** Persist menu appearance independently of the builder layout and menu content. */
+    public function saveMenuAppearance(SettingsService $settingsService, HeaderPresentationService $presentationService): void
+    {
+        $this->authorizeAdminPermission('website.settings.manage');
+        if ($this->editingTemplate !== 'pharma') {
+            return;
+        }
+
+        $presentation = $presentationService->resolve($this->presentation);
+        $key = $this->settingKey('presentation');
+        $settingsService->set($key, $presentation, 'header', 'json');
+        $stored = $settingsService->get($key);
+        if (! is_array($stored) || $presentationService->resolve($stored) !== $presentation) {
+            $this->addError('menuAppearance', 'Không thể xác nhận thiết lập menu đã được lưu.');
+            return;
+        }
+
+        $this->presentation = $presentation;
+        $this->resetErrorBag('menuAppearance');
+        $this->dispatch('show-toast', [['type' => 'success', 'message' => 'Đã lưu giao diện Menu điều hướng.']]);
+    }
+
+    public function resetMenuAppearance(HeaderPresentationService $presentationService): void
+    {
+        $this->authorizeAdminPermission('website.settings.manage');
+        if ($this->editingTemplate !== 'pharma') {
+            return;
+        }
+        $defaults = $presentationService->resolve([]);
+        $this->presentation['menu_style'] = $defaults['menu_style'];
+    }
+
     public function saveBuilder(
         SettingsService $settingsService,
         HeaderComponentRegistry $registry,
