@@ -136,6 +136,27 @@ class AdminLayoutConfig extends Component
             data_set($this->config, $prefix.$mode, $preset[$state]['background'] === 'transparent' ? 'transparent' : 'color');
             if ($preset[$state]['background'] !== 'transparent') data_set($this->config, $prefix.$color, $preset[$state]['background']);
         }
+        // A quick color profile must also theme SubMenu. Otherwise dark-theme
+        // SubMenu text survives on a light background and becomes unreadable.
+        foreach ([
+            'title_color' => $preset['normal']['title'],
+            'icon_color' => $preset['normal']['icon'],
+            'hover_title_color' => $preset['hover']['title'],
+            'hover_background_mode' => $preset['hover']['background'] === 'transparent' ? 'transparent' : 'color',
+            'active_title_color' => $preset['active']['title'],
+            'active_background_mode' => $preset['active']['background'] === 'transparent' ? 'transparent' : 'color',
+        ] as $field => $value) {
+            data_set($this->config, 'design.sidebar_menu.submenu.'.$field, $value);
+        }
+        foreach (['hover' => 'hover_background_color', 'active' => 'active_background_color'] as $state => $field) {
+            if ($preset[$state]['background'] !== 'transparent') {
+                data_set($this->config, 'design.sidebar_menu.submenu.'.$field, $preset[$state]['background']);
+            }
+        }
+        data_set($this->config, 'design.sidebar_menu.submenu.background_mode', 'transparent');
+        // Presets should not inherit a previous theme's invisible or loud active border.
+        data_set($this->config, 'design.sidebar_menu.active.menu_border_width', '0');
+        data_set($this->config, 'design.sidebar_menu.active.submenu_border_width', '0');
         // Legacy color-only presets intentionally leave typography untouched.
         $typography = data_get($preset, 'typography');
         if (is_array($typography)) {
