@@ -100,6 +100,7 @@ class AdminLayoutManager
                 'enabled' => (bool) data_get($this->defaults, 'sidebar.search.enabled', true),
             ],
             'visual_presets' => [],
+            'active_profile_key' => null,
             'presentation' => [
                 'background' => $this->normalizeSidebarBackgroundMode(data_get($this->defaults, 'sidebar.presentation.background', 'theme')),
                 'custom_background' => $this->normalizeHexColor(data_get($this->defaults, 'sidebar.presentation.custom_background'), '#0f172a'),
@@ -304,6 +305,7 @@ class AdminLayoutManager
                 'enabled' => (bool) data_get($sidebar, 'search.enabled', data_get($defaults, 'search.enabled')),
             ],
             'visual_presets' => $this->normalizeSidebarVisualPresets((array) data_get($sidebar, 'visual_presets', [])),
+            'active_profile_key' => is_string(data_get($sidebar, 'active_profile_key')) && preg_match('/^[a-zA-Z0-9_-]{1,80}$/', data_get($sidebar, 'active_profile_key')) ? data_get($sidebar, 'active_profile_key') : null,
             'presentation' => [
                 'background' => $this->normalizeSidebarBackgroundMode(data_get($sidebar, 'presentation.background'), data_get($defaults, 'presentation.background')),
                 'custom_background' => $this->normalizeHexColor(data_get($sidebar, 'presentation.custom_background'), data_get($defaults, 'presentation.custom_background', '#0f172a')),
