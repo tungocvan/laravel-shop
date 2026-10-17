@@ -68,6 +68,32 @@ class HeaderMenuService
         );
     }
 
+    /** Bootstrap the Pharma navigation once, without restoring intentionally deleted items. */
+    public function initializePharmaNavigation(): HeaderMenu
+    {
+        return DB::transaction(function (): HeaderMenu {
+            $menu = HeaderMenu::query()->firstOrCreate(
+                ['location' => 'pharma_primary'],
+                ['name' => (string) ($this->getAvailableLocations()['pharma_primary'] ?? 'Pharma primary'), 'is_active' => true]
+            );
+
+            // Existing menus, including intentionally emptied ones, remain authoritative.
+            if (! $menu->wasRecentlyCreated) {
+                return $menu;
+            }
+
+            foreach ([
+                ['title' => 'Trang chủ', 'url' => '/', 'sort_order' => 1],
+                ['title' => 'Danh mục dược phẩm', 'url' => '/product', 'sort_order' => 2],
+            ] as $item) {
+                $menu->items()->create($item + ['parent_id' => null, 'is_active' => true]);
+            }
+
+            $this->clearMenuCache($menu->id);
+            return $menu;
+        });
+    }
+
     public function createItem(array $data): HeaderMenuItem
     {
         $item = HeaderMenuItem::create($data);

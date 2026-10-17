@@ -53,6 +53,9 @@ class MenuManager extends Component
         if (! array_key_exists($this->location, $this->menuLocations)) {
             $this->location = (string) array_key_first($this->menuLocations);
         }
+        if ($this->editingTemplate === 'pharma' && $this->location === 'pharma_primary') {
+            $service->initializePharmaNavigation();
+        }
         $currentMenu = $service->getMenuForAdmin($this->location);
         $menuTree = $currentMenu ? $service->getMenuTreeForAdmin($this->location) : new Collection;
         $flatItems = $currentMenu ? HeaderMenuItem::where('header_menu_id', $currentMenu->id)->whereNull('parent_id')->orderBy('sort_order')->get() : new Collection;

@@ -36,6 +36,7 @@
     };
     $topbarHeight = (int) ($presentation['custom']['topbar_height'] ?? 32);
     $menuService = app(\Modules\Website\Services\HeaderMenuService::class);
+    $pharmaMenuConfigured = $menuService->getMenuForAdmin('pharma_primary') !== null;
     $desktopMenu = $menuService->getMenuTreeByLocation('pharma_primary');
     $mobileMenu = $menuService->getMenuTreeByLocation('pharma_mobile');
     if ($mobileMenu->isEmpty()) $mobileMenu = $desktopMenu;
@@ -107,7 +108,7 @@
                         </a>
                     @elseif($component['type'] === 'actions')
                         <nav aria-label="Điều hướng Pharma" class="{{ $visibilityClass($component['visibility'] ?? 'desktop') }} flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm font-semibold">
-                            @foreach($desktopMenu->isNotEmpty() ? $desktopMenu : $fallbackMenu as $item)
+                            @foreach($pharmaMenuConfigured ? $desktopMenu : $fallbackMenu as $item)
                                 @php($itemUrl = is_array($item) ? $item['url'] : $item->url)
                                 @php($itemTitle = is_array($item) ? $item['title'] : $item->title)
                                 <a href="{{ $itemUrl ?: '#' }}" class="hover:underline">{{ $itemTitle }}</a>
@@ -191,7 +192,7 @@
                             <nav aria-label="Điều hướng Pharma trên di động" class="px-4 pb-6 pt-4">
                                 <div class="mb-2 px-2 text-[10px] font-extrabold uppercase tracking-[0.14em] text-slate-500">Khám phá</div>
                                 <div class="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-100 bg-white">
-                                    @foreach($mobileMenu->isNotEmpty() ? $mobileMenu : $fallbackMenu as $item)
+                                    @foreach($pharmaMenuConfigured ? $mobileMenu : $fallbackMenu as $item)
                                         @php($itemUrl = is_array($item) ? $item['url'] : $item->url)
                                         @php($itemTitle = is_array($item) ? $item['title'] : $item->title)
                                         @php($isActiveMobileItem = $itemUrl && $itemUrl !== '#' && (url()->current() === $itemUrl || request()->fullUrl() === $itemUrl))
