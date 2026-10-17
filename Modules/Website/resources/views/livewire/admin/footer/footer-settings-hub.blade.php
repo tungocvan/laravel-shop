@@ -14,6 +14,41 @@
         @endforeach
     </nav>
 
+    <section x-show="footerPanel === 'layout'" x-cloak class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+                <h3 class="font-semibold text-slate-900">Thiết kế cột Footer</h3>
+                <p class="mt-1 text-sm text-slate-500">Giai đoạn 1: tạo bản nháp số cột, thứ tự, độ rộng và ẩn/hiện. Chưa áp dụng ra Footer công khai.</p>
+            </div>
+            <button type="button" wire:click="addFooterColumn" @disabled(count($footerColumns) >= 6) class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 disabled:opacity-40">+ Thêm cột</button>
+        </div>
+        <div class="mt-4 space-y-3">
+            @foreach($footerColumns as $index => $column)
+                <div wire:key="footer-column-editor-{{ $index }}" class="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 md:grid-cols-[minmax(0,1fr)_150px_auto] md:items-end">
+                    <label class="text-sm font-medium text-slate-700">Tên cột
+                        <input type="text" maxlength="80" wire:model="footerColumns.{{ $index }}.title" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
+                    </label>
+                    <label class="text-sm font-medium text-slate-700">Độ rộng / 12
+                        <select wire:model="footerColumns.{{ $index }}.width" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
+                            @foreach([2,3,4,6,12] as $width)
+                                <option value="{{ $width }}">{{ $width }}/12</option>
+                            @endforeach
+                        </select>
+                    </label>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <label class="inline-flex items-center gap-1 text-sm"><input type="checkbox" wire:model="footerColumns.{{ $index }}.enabled"> Hiện</label>
+                        <button type="button" wire:click="moveFooterColumn({{ $index }}, -1)" @disabled($index === 0) class="rounded border px-2 py-1 disabled:opacity-30" aria-label="Đưa cột lên">↑</button>
+                        <button type="button" wire:click="moveFooterColumn({{ $index }}, 1)" @disabled($index === count($footerColumns) - 1) class="rounded border px-2 py-1 disabled:opacity-30" aria-label="Đưa cột xuống">↓</button>
+                        <button type="button" wire:click="removeFooterColumn({{ $index }})" @disabled(count($footerColumns) <= 1) class="rounded border border-red-200 px-2 py-1 text-red-700 disabled:opacity-30">Xóa</button>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+        <div class="mt-4 flex justify-end">
+            <button type="button" wire:click="saveFooterColumns" wire:loading.attr="disabled" wire:target="saveFooterColumns" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Lưu bản nháp cột</button>
+        </div>
+    </section>
+
     <div x-show="footerPanel === 'layout'" x-cloak class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
             <h2 class="text-xl font-bold text-gray-900">Bố cục Footer</h2>

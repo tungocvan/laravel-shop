@@ -32,6 +32,20 @@ class FooterSettingsUxContractTest extends TestCase
         $this->assertStringContainsString('wire:model.live="editingTemplate"', $source);
     }
 
+    public function test_column_draft_is_isolated_from_published_layout_and_has_controls(): void
+    {
+        $component = file_get_contents(base_path('Modules/Website/Livewire/Admin/Footer/FooterSettingsHub.php'));
+        $view = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/footer/footer-settings-hub.blade.php'));
+
+        $this->assertStringContainsString("settingKey('columns')", $component);
+        $this->assertStringContainsString('function saveFooterColumns', $component);
+        $this->assertStringContainsString('function addFooterColumn', $component);
+        $this->assertStringContainsString('function removeFooterColumn', $component);
+        $this->assertStringContainsString('function moveFooterColumn', $component);
+        $this->assertStringContainsString('wire:click="saveFooterColumns"', $view);
+        $this->assertStringContainsString('Chưa áp dụng ra Footer công khai', $view);
+    }
+
     public function test_footer_admin_blade_compiles_without_php_parse_errors(): void
     {
         foreach ([

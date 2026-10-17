@@ -17,6 +17,7 @@ class FooterSettingsHub extends Component
     public string $publishedTemplate = 'default';
     public array $pharmaContent = [];
     public array $builderSlots = [];
+    public array $footerColumns = [];
     public array $presentation = [];
     public array $layoutThemes = [];
     public string $selectedTheme = '';
@@ -45,6 +46,7 @@ class FooterSettingsHub extends Component
         $savedLayout = $settingsService->get($this->settingKey('layout'));
         $rawLayout = is_array($savedLayout) ? $savedLayout : (array) config('website.footer.layout', []);
         $this->loadBuilderLayout($rawLayout);
+        $this->loadFooterColumns($settingsService);
 
         $savedPresentation = $settingsService->get($this->settingKey('presentation'));
         $this->presentation = $presentationService->resolve(is_array($savedPresentation) ? $savedPresentation : null);
@@ -83,6 +85,7 @@ class FooterSettingsHub extends Component
         $presentationService = app(FooterPresentationService::class);
         $layout = $settings->get($this->settingKey('layout'));
         $this->loadBuilderLayout(is_array($layout) ? $layout : (array) config('website.footer.layout', []));
+        $this->loadFooterColumns($settings);
         $savedPresentation = $settings->get($this->settingKey('presentation'));
         $this->presentation = $presentationService->resolve(is_array($savedPresentation) ? $savedPresentation : null);
         $themes = $settings->get($this->settingKey('layout_themes'), []);
@@ -225,6 +228,74 @@ class FooterSettingsHub extends Component
         $toIndex = max(0, min($toIndex, count($this->builderSlots[$toSlot] ?? [])));
         array_splice($this->builderSlots[$toSlot], $toIndex, 0, [$item]);
         $this->builderSlots[$toSlot] = array_values($this->builderSlots[$toSlot]);
+    }
+
+    /**
+     * Column editor v1: independent draft metadata. The public renderer continues
+     * using the existing layout until a compatible column renderer is enabled.
+     */
+    private function loadFooterColumns(SettingsService $settings): void
+    {
+        $stored = $settings->get($this->settingKey('columns'), []);
+        $this->footerColumns = $this->normalizeFooterColumns(is_array($stored) ? $stored : []);
+    }
+
+    public function addFooterColumn(): void
+    {
+        $this->authorizeAdminPermission('website.footer.manage');
+        if (count($this->footerColumns) >= 6) {
+            return;
+        }
+        $this->footerColumns[] = ['title' => 'Cột mới', 'width' => 3, 'enabled' => true];
+    }
+
+    public function removeFooterColumn(int $index): void
+    {
+        $this->authorizeAdminPermission('website.footer.manage');
+        if (count($this->footerColumns) <= 1 || ! isset($this->footerColumns[$index])) {
+            return;
+        }
+        array_splice($this->footerColumns, $index, 1);
+    }
+
+    public function moveFooterColumn(int $index, int $direction): void
+    {
+        $this->authorizeAdminPermission('website.footer.manage');
+        $target = $index + ($direction < 0 ? -1 : 1);
+        if (! isset($this->footerColumns[$index], $this->footerColumns[$target])) {
+            return;
+        }
+        [$this->footerColumns[$index], $this->footerColumns[$target]] =
+            [$this->footerColumns[$target], $this->footerColumns[$index]];
+    }
+
+    public function saveFooterColumns(SettingsService $settings): void
+    {
+        $this->authorizeAdminPermission('website.footer.manage');
+        $this->footerColumns = $this->normalizeFooterColumns($this->footerColumns);
+        $settings->set($this->settingKey('columns'), $this->footerColumns, 'footer', 'json');
+        $this->dispatch('show-toast', [['type' => 'success', 'message' => 'Đã lưu bản nháp cấu trúc cột Footer.']]);
+    }
+
+    private function normalizeFooterColumns(array $columns): array
+    {
+        $normalized = [];
+        foreach (array_slice($columns, 0, 6) as $column) {
+            if (! is_array($column)) {
+                continue;
+            }
+            $normalized[] = [
+                'title' => mb_substr(trim((string) ($column['title'] ?? '')), 0, 80),
+                'width' => in_array((int) ($column['width'] ?? 3), [2, 3, 4, 6, 12], true) ? (int) $column['width'] : 3,
+                'enabled' => (bool) ($column['enabled'] ?? true),
+            ];
+        }
+        return $normalized ?: [
+            ['title' => 'Thương hiệu & liên hệ', 'width' => 4, 'enabled' => true],
+            ['title' => 'Liên kết', 'width' => 3, 'enabled' => true],
+            ['title' => 'Hỗ trợ', 'width' => 3, 'enabled' => true],
+            ['title' => 'Ứng dụng', 'width' => 2, 'enabled' => true],
+        ];
     }
 
     public function saveBuilder(
