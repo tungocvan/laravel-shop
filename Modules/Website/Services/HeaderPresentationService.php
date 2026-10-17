@@ -51,6 +51,10 @@ class HeaderPresentationService
                 'topbar_background' => $this->color($colors['topbar_background'] ?? $input['topbar_background'] ?? '#111827', '#111827'),
                 'topbar_foreground' => $this->color($colors['topbar_foreground'] ?? $input['topbar_foreground'] ?? '#ffffff', '#ffffff'),
             ],
+            'menu_style' => [
+                'primary' => $this->menuStyle($input['menu_style']['primary'] ?? null),
+                'mobile' => $this->menuStyle($input['menu_style']['mobile'] ?? null),
+            ],
             'custom' => [
                 'container_width' => $this->clamp($custom['container_width'] ?? 1280, $bounds['container_width'] ?? [960, 1920]),
                 'desktop_height' => $this->clamp($custom['desktop_height'] ?? 80, $bounds['header_height'] ?? [52, 120]),
@@ -60,6 +64,27 @@ class HeaderPresentationService
                 'logo_max_height' => $this->clamp($custom['logo_max_height'] ?? 48, $bounds['logo_max_height'] ?? [24, 72]),
                 'search_max_width' => $this->clamp($custom['search_max_width'] ?? 560, $bounds['search_max_width'] ?? [320, 900]),
             ],
+        ];
+    }
+
+    /** Whitelisted values only: never render arbitrary CSS supplied by an admin form. */
+    private function menuStyle(mixed $input): array
+    {
+        $input = is_array($input) ? $input : [];
+        $fonts = ['inherit', 'Arial, sans-serif', 'Roboto, sans-serif', 'Inter, sans-serif', 'system-ui, sans-serif', 'Georgia, serif'];
+        $weights = ['400', '500', '600', '700'];
+        $effects = ['underline', 'color', 'background', 'none'];
+
+        return [
+            'font_family' => in_array($input['font_family'] ?? null, $fonts, true) ? $input['font_family'] : 'inherit',
+            'font_size' => $this->clamp($input['font_size'] ?? 14, [12, 22]),
+            'font_weight' => in_array((string) ($input['font_weight'] ?? '600'), $weights, true) ? (string) $input['font_weight'] : '600',
+            'item_gap' => $this->clamp($input['item_gap'] ?? 20, [0, 40]),
+            'radius' => $this->clamp($input['radius'] ?? 8, [0, 24]),
+            'text_color' => $this->color($input['text_color'] ?? '#0f172a', '#0f172a'),
+            'hover_color' => $this->color($input['hover_color'] ?? '#047857', '#047857'),
+            'active_color' => $this->color($input['active_color'] ?? '#047857', '#047857'),
+            'hover_effect' => in_array($input['hover_effect'] ?? null, $effects, true) ? $input['hover_effect'] : 'underline',
         ];
     }
 
