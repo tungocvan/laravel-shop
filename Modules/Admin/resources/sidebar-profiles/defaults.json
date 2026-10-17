@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "profiles": {
+    "emerald": {
+      "name": "FlexBiz Emerald",
+      "background": "#087F5B",
+      "normal": {
+        "title": "#FFFFFF",
+        "icon": "#FFFFFF",
+        "background": "transparent"
+      },
+      "hover": {
+        "title": "#064E3B",
+        "icon": "#064E3B",
+        "background": "#D1FAE5"
+      },
+      "active": {
+        "title": "#065F46",
+        "icon": "#065F46",
+        "background": "#FFFFFF"
+      }
+    },
+    "slate": {
+      "name": "Corporate Slate",
+      "background": "#0F172A",
+      "normal": {
+        "title": "#E2E8F0",
+        "icon": "#E2E8F0",
+        "background": "transparent"
+      },
+      "hover": {
+        "title": "#FFFFFF",
+        "icon": "#FFFFFF",
+        "background": "#334155"
+      },
+      "active": {
+        "title": "#FFFFFF",
+        "icon": "#FFFFFF",
+        "background": "#4F46E5"
+      }
+    },
+    "light": {
+      "name": "Minimal Light",
+      "background": "#F8FAFC",
+      "normal": {
+        "title": "#334155",
+        "icon": "#334155",
+        "background": "transparent"
+      },
+      "hover": {
+        "title": "#0F172A",
+        "icon": "#0F172A",
+        "background": "#E2E8F0"
+      },
+      "active": {
+        "title": "#1D4ED8",
+        "icon": "#1D4ED8",
+        "background": "#DBEAFE"
+      }
+    }
+  }
+}
