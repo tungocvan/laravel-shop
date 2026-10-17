@@ -25,7 +25,7 @@
     </div>
 
     <form wire:submit="save" class="space-y-6" x-on:sidebar-preset-applied.window="sidebarBackground = 'custom'; customBackground = $event.detail.background; customAccent = $event.detail.accent" x-data="{
-        activeTab: window.location.hash === '#sidebar-menu' ? 'menu' : (['overview','colors','menu','layout','header','footer'].includes(window.location.hash.slice(1)) ? window.location.hash.slice(1) : 'overview'),
+        activeTab: window.location.hash === '#sidebar-menu' ? 'menu' : (['overview','quick','colors','menu','layout','header','footer'].includes(window.location.hash.slice(1)) ? window.location.hash.slice(1) : 'overview'),
         selectTab(tab) { this.activeTab = tab; window.history.replaceState(null, '', '#'+tab); },
         sidebarBackground: @js($background), customBackground: @js($customBackground), customAccent: @js($customAccent),
         choose(mode) { this.sidebarBackground = mode; $wire.set('config.sidebar.presentation.background', mode); },
@@ -36,10 +36,42 @@
         text() { return this.isDark(this.bg())?'#f8fafc':'#0f172a'; }, secondary() { return this.isDark(this.bg())?'#cbd5e1':'#475569'; }, muted() { return this.isDark(this.bg())?'#94a3b8':'#64748b'; }, soft() { return this.isDark(this.bg())?'rgba(255,255,255,.075)':'rgba(15,23,42,.055)'; }, border() { return this.isDark(this.bg())?'rgba(255,255,255,.13)':'rgba(15,23,42,.10)'; }, activeText() { return this.isDark(this.accent())?'#ffffff':'#0f172a'; }
     }">
         <nav aria-label="Nhóm thiết lập Sidebar" class="mb-5 flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
-            @foreach (['overview' => 'Tổng quan', 'colors' => 'Màu sắc', 'menu' => 'Menu', 'layout' => 'Bố cục', 'header' => 'Header', 'footer' => 'Footer'] as $tab => $label)
+            @foreach (['overview' => 'Tổng quan', 'quick' => 'Đổi nhanh giao diện', 'colors' => 'Màu sắc', 'menu' => 'Menu', 'layout' => 'Bố cục', 'header' => 'Header', 'footer' => 'Footer'] as $tab => $label)
                 <button type="button" @click="selectTab('{{ $tab }}')" :aria-current="activeTab === '{{ $tab }}' ? 'page' : null" :class="activeTab === '{{ $tab }}' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'" class="shrink-0 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500">{{ $label }}</button>
             @endforeach
         </nav>
+        <section x-cloak x-show="activeTab === 'quick'" class="mb-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 class="text-base font-semibold text-slate-900">Đổi nhanh giao diện Sidebar</h2>
+            <p class="mt-1 text-sm text-slate-500">Chọn profile để nạp vào bản xem trước. Chỉ khi nhấn Lưu Sidebar thì giao diện thực tế mới thay đổi.</p>
+            <h3 class="mt-5 text-sm font-semibold text-slate-800">Profile mặc định</h3>
+            <div class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                @foreach($this->sidebarVisualPresets() as $key => $preset)
+                    <button type="button" wire:click="applySidebarQuickProfile('{{ $key }}')" class="rounded-xl border border-slate-200 p-3 text-left transition hover:border-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500">
+                        <span class="block text-sm font-semibold text-slate-900">{{ $preset['name'] }}</span>
+                        <span class="mt-2 flex gap-1 rounded-lg p-2" style="background:{{ $preset['background'] }}">
+                            @foreach(['normal', 'hover', 'active'] as $state)
+                                <span class="flex-1 rounded px-1 py-2 text-center text-xs" style="background:{{ $preset[$state]['background'] }};color:{{ $preset[$state]['title'] }}">{{ ucfirst($state) }}</span>
+                            @endforeach
+                        </span>
+                        <span class="mt-2 block text-xs font-medium text-indigo-600">Nạp profile →</span>
+                    </button>
+                @endforeach
+            </div>
+            <h3 class="mt-6 text-sm font-semibold text-slate-800">Profile đã lưu</h3>
+            <div class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                @forelse((array) data_get($config, 'sidebar.visual_presets', []) as $key => $preset)
+                    <button type="button" wire:click="applySidebarQuickProfile(@js($key))" class="rounded-xl border border-slate-200 p-3 text-left transition hover:border-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500">
+                        <span class="block text-sm font-semibold text-slate-900">{{ $preset['name'] ?? $key }}</span>
+                        <span class="mt-2 block text-xs text-slate-500">{{ isset($preset['snapshot']) ? 'Profile Sidebar đầy đủ' : 'Profile màu sắc cũ' }}</span>
+                        <span class="mt-2 block text-xs font-medium text-indigo-600">Nạp profile →</span>
+                    </button>
+                @empty
+                    <p class="text-sm text-slate-500">Chưa có profile tùy chỉnh. Hãy lưu một bộ trong tab Menu.</p>
+                @endforelse
+            </div>
+            <p class="mt-5 text-xs text-amber-700">Profile màu sắc cũ chỉ khôi phục những trường đã lưu; không ghi đè Header, Footer hoặc các thông số chưa có.</p>
+            <button type="submit" class="mt-4 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700">Áp dụng &amp; lưu Sidebar</button>
+        </section>
         <section x-cloak x-show="activeTab === 'overview'" class="mb-5 rounded-2xl border border-indigo-100 bg-indigo-50/50 p-5">
             <h2 class="text-base font-semibold text-slate-900">Sidebar Design Studio</h2>
             <p class="mt-2 text-sm leading-6 text-slate-600">Chọn nhóm thiết lập phía trên để điều chỉnh. Cấu hình Menu được dùng chung với Theme Editor. Preview bên phải hiển thị thay đổi trước khi lưu.</p>
