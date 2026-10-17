@@ -52,8 +52,8 @@ class HeaderPresentationService
                 'topbar_foreground' => $this->color($colors['topbar_foreground'] ?? $input['topbar_foreground'] ?? '#ffffff', '#ffffff'),
             ],
             'menu_style' => [
-                'primary' => $this->menuStyle($input['menu_style']['primary'] ?? null),
-                'mobile' => $this->menuStyle($input['menu_style']['mobile'] ?? null),
+                'primary' => $this->menuStyle($input['menu_style']['primary'] ?? null, 20),
+                'mobile' => $this->menuStyle($input['menu_style']['mobile'] ?? null, 0),
             ],
             'custom' => [
                 'container_width' => $this->clamp($custom['container_width'] ?? 1280, $bounds['container_width'] ?? [960, 1920]),
@@ -68,7 +68,7 @@ class HeaderPresentationService
     }
 
     /** Whitelisted values only: never render arbitrary CSS supplied by an admin form. */
-    private function menuStyle(mixed $input): array
+    private function menuStyle(mixed $input, int $defaultGap): array
     {
         $input = is_array($input) ? $input : [];
         $fonts = ['inherit', 'Arial, sans-serif', 'Roboto, sans-serif', 'Inter, sans-serif', 'system-ui, sans-serif', 'Georgia, serif'];
@@ -79,7 +79,7 @@ class HeaderPresentationService
             'font_family' => in_array($input['font_family'] ?? null, $fonts, true) ? $input['font_family'] : 'inherit',
             'font_size' => $this->clamp($input['font_size'] ?? 14, [12, 22]),
             'font_weight' => in_array((string) ($input['font_weight'] ?? '600'), $weights, true) ? (string) $input['font_weight'] : '600',
-            'item_gap' => $this->clamp($input['item_gap'] ?? 0, [0, 40]),
+            'item_gap' => $this->clamp($input['item_gap'] ?? $defaultGap, [0, 40]),
             'radius' => $this->clamp($input['radius'] ?? 8, [0, 24]),
             'text_color' => $this->color($input['text_color'] ?? '#0f172a', '#0f172a'),
             'hover_color' => $this->color($input['hover_color'] ?? '#047857', '#047857'),
