@@ -47,7 +47,7 @@ class PharmaHomepageCategoryCardStyleTest extends TestCase
         $this->assertStringContainsString("['card_design']", $livewire);
         $this->assertStringContainsString("\$validated['pharmaCategoryDisplay']['card_design'] = app(PharmaCategoryCardStyle::class)->normalize(\$this->pharmaCategoryCard)", $livewire);
         $this->assertStringContainsString('pharmaCategoryCard.icon', $blade);
-        $this->assertStringContainsString("partials.pharma-category-icon", $blade);
-        $this->assertStringContainsString("partials.pharma-category-icon", file_get_contents(base_path('Modules/Website/resources/views/pages/home/pharma.blade.php')));
+        $this->assertStringContainsString("partials.pharma-category-card-v2", $blade);
+        $this->assertStringContainsString("partials.pharma-category-card-v2", file_get_contents(base_path('Modules/Website/resources/views/pages/home/pharma.blade.php')));
     }
 }

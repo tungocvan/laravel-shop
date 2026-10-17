@@ -13,6 +13,30 @@ foreach($pharmaProductSections as $key => $config) {
 @endphp
 <style>
 .pharma-category-card-preview{display:flex;align-items:center;gap:var(--category-card-gap);min-height:var(--category-card-height);padding:var(--category-card-padding);border:1px solid var(--category-card-border);border-radius:var(--category-card-radius);background:var(--category-card-bg);color:var(--category-card-text);font-size:var(--category-card-font);flex-wrap:wrap}.pharma-category-card-preview .preview-icon{display:flex;align-items:center;justify-content:center;width:48px;height:48px;flex-shrink:0;border-radius:12px;background:#fff;color:var(--category-card-accent);border:1px solid var(--category-card-border)}.pharma-category-card-preview .preview-count{background:#fff;color:var(--category-card-accent);white-space:nowrap}.pharma-category-card-preview .preview-arrow{color:var(--category-card-accent)}
+
+.pharma-category-v2-preview-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.pharma-category-v2-preview-grid .pharma-category-card-custom{min-width:0}
+.pharma-category-v2-preview-grid .pharma-category-card-custom{box-sizing:border-box;min-height:var(--category-card-height);padding:var(--category-card-padding);border:1px solid var(--category-card-border);border-radius:var(--category-card-radius);display:flex;gap:var(--category-card-gap);align-items:center;background:var(--category-card-bg);color:var(--category-card-text);font-size:var(--category-card-font)}
+.pharma-category-v2-preview-grid .pharma-category-card-icon{width:var(--category-icon-size);height:var(--category-icon-size);min-width:var(--category-icon-size);display:flex;align-items:center;justify-content:center;border-radius:12px;background:#ecfdf5;color:var(--category-card-accent)}
+.pharma-category-v2-preview-grid .pharma-category-card-icon svg{width:52%;height:52%}
+.pharma-category-v2-preview-grid [data-icon-shadow="1"] .pharma-category-card-icon{box-shadow:0 3px 10px rgba(15,23,42,.12)}
+.pharma-category-v2-preview-grid .pharma-category-card-content{display:flex;flex:1;flex-direction:column;gap:6px;min-width:0}
+.pharma-category-v2-preview-grid .pharma-category-card-name{font-weight:650;line-height:1.5;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;word-break:normal;overflow-wrap:normal}
+.pharma-category-v2-preview-grid .pharma-category-card-count{font-size:12px;color:var(--category-card-accent);white-space:nowrap}
+.pharma-category-v2-preview-grid .pharma-category-card-count[data-count-style="badge"]{border-radius:999px;background:#ecfdf5;padding:4px 9px;align-self:flex-start}
+.pharma-category-v2-preview-grid .pharma-category-card-arrow{width:20px;height:20px;min-width:20px;margin-left:auto;color:var(--category-card-accent)}
+.pharma-category-v2-preview-grid [data-layout="stacked"]{flex-wrap:wrap;align-content:space-between;align-items:flex-start}
+.pharma-category-v2-preview-grid [data-layout="stacked"] .pharma-category-card-content{flex-basis:100%;order:3}
+.pharma-category-v2-preview-grid [data-preset="clean"]{background:#fff;color:#0f172a;border-color:#dbe5e7;box-shadow:0 2px 7px rgba(15,23,42,.04)}
+.pharma-category-v2-preview-grid [data-preset="premium"]{background:var(--category-card-accent);color:#fff;border-color:var(--category-card-accent)}
+.pharma-category-v2-preview-grid [data-preset="premium"] .pharma-category-card-icon{background:#fff}
+.pharma-category-v2-preview-grid [data-preset="premium"] .pharma-category-card-count,.pharma-category-v2-preview-grid [data-preset="premium"] .pharma-category-card-arrow{color:#fff}
+.pharma-category-v2-preview-grid [data-preset="premium"] .pharma-category-card-count[data-count-style="badge"]{background:rgba(255,255,255,.18)}
+.pharma-category-v2-preview-grid [data-preset="soft"]{background:#f0fdf8;color:#064e3b;border-color:#bbebd6}
+.pharma-category-v2-preview-grid [data-preset="soft"] .pharma-category-card-icon{background:#fff}
+@media(max-width:639px){.pharma-category-v2-preview-grid{grid-template-columns:minmax(0,1fr)}.pharma-category-v2-preview-grid[data-preview-columns="2"]{grid-template-columns:repeat(2,minmax(0,1fr))}.pharma-category-v2-preview-grid[data-preview-columns="2"] .pharma-category-card-custom{flex-wrap:wrap}.pharma-category-v2-preview-grid[data-preview-columns="2"] .pharma-category-card-content{order:3;flex-basis:100%}}
+@media(min-width:640px) and (max-width:1023px){.pharma-category-v2-preview-grid[data-preview-tablet="1"]{grid-template-columns:1fr}.pharma-category-v2-preview-grid[data-preview-tablet="3"]{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(min-width:1024px){.pharma-category-v2-preview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 <section class="rounded-xl border border-emerald-200 bg-white p-5 shadow-sm">
     <div class="mb-5">
@@ -270,8 +294,21 @@ foreach($pharmaProductSections as $key => $config) {
                 <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     <label class="text-sm font-medium">Preset
                         <select wire:model.live="pharmaCategoryCard.preset" class="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2">
-                            @foreach(['clinical'=>'Clinical','compact'=>'Compact','soft'=>'Soft','minimal'=>'Minimal'] as $value=>$label)<option value="{{ $value }}">{{ $label }}</option>@endforeach
+                            @foreach(['clean'=>'Pharma Clean (đề xuất)','premium'=>'Pharma Premium','soft'=>'Pharma Soft','clinical'=>'Classic (cũ)','compact'=>'Compact (cũ)','minimal'=>'Minimal'] as $value=>$label)<option value="{{ $value }}">{{ $label }}</option>@endforeach
                         </select>
+                    </label>
+                    <label class="text-sm font-medium">Bố cục Card
+                        <select wire:model.live="pharmaCategoryCard.layout" class="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2">
+                            <option value="horizontal">Ngang · Icon / Tên / Mũi tên</option><option value="stacked">Hai tầng · Icon trên / Nội dung dưới</option>
+                        </select>
+                    </label>
+                    <label class="text-sm font-medium">Hiển thị số sản phẩm
+                        <select wire:model.live="pharmaCategoryCard.count_style" class="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2">
+                            <option value="subtitle">Dòng mô tả dưới tên</option><option value="badge">Badge</option>
+                        </select>
+                    </label>
+                    <label class="text-sm font-medium">Kích thước icon (px)
+                        <input type="number" min="36" max="64" wire:model.live.debounce.300ms="pharmaCategoryCard.icon_size" class="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2">
                     </label>
                     @foreach(['font_size'=>['Font size',11,20],'radius'=>['Bo góc',0,32],'padding'=>['Padding',8,32],'min_height'=>['Chiều cao tối thiểu',80,180],'gap'=>['Khoảng cách',0,32],'mobile_columns'=>['Số cột Mobile',1,2],'tablet_columns'=>['Số cột Tablet',1,3]] as $key=>$field)
                         <label class="text-sm font-medium">{{ $field[0] }} ({{ $key === 'mobile_columns' || $key === 'tablet_columns' ? 'cột' : 'px' }})
@@ -290,18 +327,26 @@ foreach($pharmaProductSections as $key => $config) {
                     </select>
                 </label>
                 <div class="mt-4 flex flex-wrap gap-4">
+                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model.live="pharmaCategoryCard.icon_shadow" class="rounded border-gray-300"> Shadow nhẹ cho icon</label>
                     @foreach(['show_icon'=>'Hiện icon','show_count'=>'Hiện số SP','show_arrow'=>'Hiện mũi tên'] as $key=>$label)
                         <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model.live="pharmaCategoryCard.{{ $key }}" class="rounded border-gray-300"> {{ $label }}</label>
                     @endforeach
                 </div>
                 @php($preview = app(\Modules\Website\Services\PharmaCategoryCardStyle::class)->normalize($pharmaCategoryCard))
                 <div class="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
-                    <p class="mb-3 text-xs font-semibold uppercase text-gray-500">Xem trước · Card danh mục</p>
-                    <div class="pharma-category-card-preview" style="{{ app(\Modules\Website\Services\PharmaCategoryCardStyle::class)->css($preview) }}">
-                        @if($preview['show_icon'] && $preview['icon'] !== 'none')<span class="preview-icon">@include('Website::partials.pharma-category-icon', ['icon' => $preview['icon']])</span>@endif
-                        <span class="min-w-0 flex-1 font-semibold" style="color:var(--category-card-text);overflow-wrap:anywhere">Kháng sinh – Kháng khuẩn</span>
-                        @if($preview['show_count'])<span class="preview-count rounded-full border px-2 py-1 text-xs">6 SP</span>@endif
-                        @if($preview['show_arrow'])<span class="preview-arrow shrink-0" aria-hidden="true">→</span>@endif
+                    <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+                        <p class="text-xs font-semibold uppercase text-gray-500">Xem trước · Lưới Card danh mục</p>
+                        <span class="text-xs text-gray-500">4 mẫu tên ngắn/dài · Giao diện thật</span>
+                    </div>
+                    <div class="pharma-category-v2-preview-grid" data-preview-columns="{{ $preview['mobile_columns'] }}" data-preview-tablet="{{ $preview['tablet_columns'] }}">
+                        @foreach([['Dược phẩm',1],['Tim mạch – Huyết áp',3],['Thuốc điều trị tăng huyết áp',6],['Kháng sinh – Kháng khuẩn',2]] as $sample)
+                            @include('Website::partials.pharma-category-card-v2', [
+                                'cardName' => $sample[0], 'cardCount' => $sample[1],
+                                'cardDesign' => $preview,
+                                'cardCss' => app(\Modules\Website\Services\PharmaCategoryCardStyle::class)->css($preview),
+                                'cardPreview' => true,
+                            ])
+                        @endforeach
                     </div>
                 </div>
                 @endif
