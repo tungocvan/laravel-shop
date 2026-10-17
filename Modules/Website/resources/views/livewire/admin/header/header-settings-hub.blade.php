@@ -436,6 +436,26 @@
                         <option value="compact">Compact</option><option value="normal">Normal</option><option value="comfortable">Comfortable</option>
                     </select>
                 </label>
+                @if($editingTemplate === 'pharma')
+                    <div class="rounded-xl border border-blue-100 bg-blue-50/40 p-4 sm:col-span-2" aria-label="Khoảng cách Header đến Banner">
+                        <h4 class="text-sm font-bold text-slate-800">Khoảng cách Header → Banner</h4>
+                        <p class="mt-1 text-xs text-slate-500">Khoảng cách ngoài Header, không thay đổi chiều cao hoặc padding của logo và menu. Mặc định 0px.</p>
+                        <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                            <label class="block text-xs font-semibold text-slate-700">Desktop (0–120px)
+                                <input type="number" min="0" max="120" step="1" wire:model.live.debounce.300ms="presentation.banner_gap.desktop" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+                            </label>
+                            <label class="block text-xs font-semibold text-slate-700">Mobile (0–80px)
+                                <input type="number" min="0" max="80" step="1" wire:model.live.debounce.300ms="presentation.banner_gap.mobile" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+                            </label>
+                        </div>
+                        <div class="mt-3 overflow-hidden rounded-lg border border-slate-200 bg-white">
+                            <div class="bg-slate-100 px-3 py-2 text-center text-xs font-semibold text-slate-600">HEADER</div>
+                            <div class="bg-white" style="height:{{ max(0, min(120, (int) ($presentation['banner_gap']['desktop'] ?? 0))) }}px"></div>
+                            <div class="bg-emerald-100 px-3 py-2 text-center text-xs font-semibold text-emerald-800">BANNER</div>
+                        </div>
+                        <p class="mt-2 text-xs text-slate-500">Xem trước minh họa Desktop. Nhấn “Lưu bố cục” để xuất bản cả hai giá trị; Header Themes sẽ lưu theo snapshot Presentation.</p>
+                    </div>
+                @endif
                 <label class="flex items-center gap-3 rounded-lg border border-gray-200 px-4 py-3 text-sm font-medium text-gray-700"><input type="checkbox" wire:model.live="presentation.sticky" class="rounded border-gray-300 text-blue-600"> Sticky Header</label>
                 <label class="text-sm font-medium text-gray-700">Shadow
                     <select wire:model.live="presentation.shadow" class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100"><option value="none">None</option><option value="soft">Soft</option><option value="medium">Medium</option></select>
