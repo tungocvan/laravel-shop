@@ -48,15 +48,17 @@
         $categories = $categoryQuery->sorted()->limit($categoryLimit)->get();
     }
 
-    $hero = $settings->get('website.pharma_hero', []);
-    $hero = is_array($hero) ? $hero : [];
-    $heroBadge = trim((string) ($hero['badge'] ?? 'Thông tin dược phẩm')) ?: 'Thông tin dược phẩm';
-    $heroTitle = trim((string) ($hero['title'] ?? 'Khám phá danh mục sản phẩm dược phẩm')) ?: 'Khám phá danh mục sản phẩm dược phẩm';
-    $heroDescription = trim((string) ($hero['description'] ?? 'Tra cứu sản phẩm và nhóm dược phẩm từ danh mục được công bố, cập nhật theo hệ thống.'));
-    $heroButton = trim((string) ($hero['button_text'] ?? 'Tra cứu sản phẩm')) ?: 'Tra cứu sản phẩm';
+    $hero = app(\Modules\Website\Services\PharmaHeroService::class)->normalize($settings->get('website.pharma_hero'));
+
 @endphp
 <style>
     .pharma-public { --pharma-primary: {{ $primary }}; --pharma-accent: {{ $accent }}; background: #f7fafc; color: #142238; }
+    .pharma-hero { padding-block: {{ $hero['mobile_padding'] }}px; }
+    .pharma-hero-title { font-family: {{ $hero['title_font'] }}; font-size: {{ $hero['mobile_title_size'] }}px; }
+    @media (min-width: 768px) {
+        .pharma-hero { padding-block: {{ $hero['desktop_padding'] }}px; }
+        .pharma-hero-title { font-size: {{ $hero['desktop_title_size'] }}px; }
+    }
     .pharma-public .pharma-button { background: var(--pharma-primary); color: white; }
     .pharma-public .pharma-card { transition: transform .2s ease, box-shadow .2s ease; }
     .pharma-public .pharma-card:hover { transform: translateY(-3px); box-shadow: 0 16px 32px rgba(20,34,56,.09); }
@@ -77,20 +79,28 @@
         @endphp
         @if($visibility !== 'none')
             @if($section === 'hero')
-                <section class="{{ $responsiveClass }} relative overflow-hidden px-5 py-16 text-white sm:px-8 md:py-24" style="background: linear-gradient(115deg, #073b48 0%, {{ $primary }} 62%, #0c6870 100%)">
+                <section class="{{ $responsiveClass }} pharma-hero relative overflow-hidden px-5 sm:px-8" style="color:{{ $hero['text_color'] }};background:linear-gradient(115deg, {{ $hero['background_start'] }} 0%, {{ $primary }} 62%, {{ $hero['background_end'] }} 100%)">
                     <div class="pointer-events-none absolute -right-24 -top-40 h-96 w-96 rounded-full border border-white/10"></div>
                     <div class="pointer-events-none absolute -bottom-52 right-1/4 h-96 w-96 rounded-full border border-white/10"></div>
                     <div class="relative mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-12">
                         <div class="lg:col-span-7">
-                            <p class="inline-flex rounded-full border border-white/30 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-widest">{{ $heroBadge }}</p>
-                            <h1 class="mt-7 max-w-3xl text-4xl font-extrabold leading-tight tracking-tight md:text-5xl lg:text-6xl">{{ $heroTitle }}</h1>
-                            <p class="mt-6 max-w-2xl text-base leading-8 text-white/90">{{ $heroDescription }}</p>
+                            @if($hero['show_badge'] && $hero['badge'] !== '')
+                            <p class="inline-flex rounded-full border border-white/30 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-widest">{{ $hero['badge'] }}</p>
+                            @endif
+                            <h1 class="pharma-hero-title mt-7 max-w-3xl font-extrabold leading-tight tracking-tight">{{ $hero['title'] }}</h1>
+                            @if($hero['description'] !== '')
+                            <p class="mt-6 max-w-2xl text-base leading-8 opacity-90">{{ $hero['description'] }}</p>
+                            @endif
                             <div class="mt-9 flex flex-wrap items-center gap-4">
-                                <a href="{{ route('product.list') }}" class="inline-flex items-center justify-center rounded-xl bg-white px-7 py-3.5 text-sm font-bold shadow-lg transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" style="color: {{ $primary }}">{{ $heroButton }} →</a>
-                                <span class="text-sm font-medium text-white/80">Danh mục · Hoạt chất · Thông tin sản phẩm</span>
+                                @if($hero['show_button'] && $hero['button_text'] !== '')
+                                <a href="{{ $hero['button_url'] }}" class="inline-flex items-center justify-center rounded-xl px-7 py-3.5 text-sm font-bold shadow-lg transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" style="background:{{ $hero['button_background'] }};color:{{ $hero['button_color'] }}">{{ $hero['button_text'] }} →</a>
+                                @endif
+                                @if($hero['show_caption'] && $hero['caption'] !== '')
+                                <span class="text-sm font-medium opacity-80">{{ $hero['caption'] }}</span>
+                                @endif
                             </div>
                         </div>
-                        <div class="hidden lg:col-span-5 lg:flex lg:justify-center" aria-hidden="true">
+                        <div class="{{ $hero['show_illustration'] ? 'hidden lg:flex' : 'hidden' }} lg:col-span-5 lg:justify-center" aria-hidden="true">
                             <div class="relative flex h-80 w-80 items-center justify-center rounded-[3rem] border border-white/20 bg-white/10 shadow-2xl backdrop-blur-sm">
                                 <div class="absolute -left-7 top-12 h-20 w-20 rounded-2xl border border-white/20 bg-white/10"></div>
                                 <div class="absolute -bottom-6 right-3 h-24 w-24 rounded-2xl border border-white/20 bg-white/10"></div>
