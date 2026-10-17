@@ -24,7 +24,11 @@ class PharmaCatalogCardBuilderTest extends TestCase
         $this->assertStringContainsString('copyHomepageCardToCatalog', $editor);
         $this->assertStringContainsString('pharmaCatalogCard.fallback_image_url', $editor);
         $this->assertStringContainsString('pharmaProductFilters.', $editor);
-        $this->assertStringContainsString('$products->links()', $view);
+        $this->assertStringContainsString('aria-label="Bộ lọc danh mục"', $view);
+        $this->assertStringContainsString('lg:grid-cols-4', $view);
+        $this->assertStringContainsString('aria-label="Phân trang sản phẩm"', $view);
+        $this->assertStringContainsString('$products->getUrlRange(', $view);
+        $this->assertStringContainsString('$products->previousPageUrl()', $view);
     }
 
     public function test_catalog_design_normalizes_invalid_input(): void
