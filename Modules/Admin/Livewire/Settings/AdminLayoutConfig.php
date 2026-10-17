@@ -161,6 +161,32 @@ class AdminLayoutConfig extends Component
         $this->dispatch('sidebar-preset-applied', background: $preset['background'], accent: data_get($this->config, 'sidebar.presentation.custom_accent'));
     }
 
+
+    public function applySidebarQuickProfile(string $key): void
+    {
+        abort_unless($this->section === 'sidebar', 404);
+        $this->authorizePermission($this->updatePermission());
+        $presets = array_merge($this->sidebarVisualPresets(), (array) data_get($this->config, 'sidebar.visual_presets', []));
+        abort_unless(isset($presets[$key]) && is_array($presets[$key]), 404);
+        $this->applySidebarVisualPreset($key);
+
+        // Older color-only presets must not overwrite unrelated Sidebar settings.
+        $snapshot = data_get($presets[$key], 'snapshot');
+        if (is_array($snapshot)) {
+            foreach (['enabled', 'expanded_width', 'collapsed_width', 'desktop_collapsible', 'mobile_drawer', 'persist_state', 'show_footer_profile', 'navigation_search_threshold', 'controls', 'header', 'footer', 'search'] as $field) {
+                if (array_key_exists($field, (array) data_get($snapshot, 'sidebar', []))) {
+                    data_set($this->config, 'sidebar.'.$field, $snapshot['sidebar'][$field]);
+                }
+            }
+            if (is_array(data_get($snapshot, 'design.sidebar_menu'))) {
+                data_set($this->config, 'design.sidebar_menu', app(AdminDesignService::class)->sanitize([
+                    'sidebar_menu' => array_replace_recursive((array) data_get($this->config, 'design.sidebar_menu', []), $snapshot['design']['sidebar_menu']),
+                ])['sidebar_menu']);
+            }
+        }
+        $this->dispatch('notify', type: 'info', title: 'Đã nạp profile', message: 'Kiểm tra bản xem trước và nhấn Lưu Sidebar để áp dụng.', duration: 2400);
+    }
+
     public function saveSidebarVisualPreset(AdminLayoutManager $manager, bool $updateExisting = false): void
     {
         abort_unless($this->section === 'sidebar', 404);
@@ -204,6 +230,13 @@ class AdminLayoutConfig extends Component
                 array_intersect_key((array) data_get($this->config, 'design.sidebar_menu.active', []), array_flip(['menu_border_color', 'menu_border_width', 'menu_border_style']))
             );
         }
+        $current[$key]['snapshot'] = [
+            'sidebar' => array_intersect_key((array) data_get($this->config, 'sidebar', []), array_flip([
+                'enabled', 'expanded_width', 'collapsed_width', 'desktop_collapsible', 'mobile_drawer',
+                'persist_state', 'show_footer_profile', 'navigation_search_threshold', 'controls', 'header', 'footer', 'search',
+            ])),
+            'design' => ['sidebar_menu' => (array) data_get($this->config, 'design.sidebar_menu', [])],
+        ];
         $this->selectedSidebarPresetKey = $key;
         $payload = $manager->config();
         data_set($payload, 'sidebar.visual_presets', $current);
