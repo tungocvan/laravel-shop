@@ -40,6 +40,8 @@ class HomeSettings extends Component
     public bool $pharmaOnlyCategoriesWithProducts = true;
     public bool $editingPharmaProductFilters = false;
     public array $pharmaProductFilters = [];
+    public bool $editingPharmaCatalogCard = false;
+    public array $pharmaCatalogCard = [];
     public string $pharmaTheme = 'clinical';
     public string $pharmaPrimaryColor = '#047857';
     public string $pharmaAccentColor = '#10b981';
@@ -117,6 +119,7 @@ class HomeSettings extends Component
         }
         unset($productSection);
         $this->pharmaProductFilters = array_replace(array_fill_keys(['category', 'supplier', 'product_type', 'circular_group'], true), (array) $settings->get('website.pharma_catalog.filters', []));
+        $this->pharmaCatalogCard = app(\Modules\Website\Services\PharmaProductCardStyle::class)->normalize((array) $settings->get('website.pharma_catalog.card_design', []));
         $this->pharmaSectionOrder = (array) $settings->get('website.pharma_homepage.order', [
             'hero', 'categories', 'new_arrivals',
         ]);
@@ -355,6 +358,39 @@ class HomeSettings extends Component
         ], 'homepage');
         $this->editingPharmaCategories = false;
         $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã lưu thiết lập danh mục Pharma.']);
+    }
+
+    public function choosePharmaCatalogCardPreset(string $preset): void
+    {
+        $this->authorizeAdminPermission('website.home.manage');
+        if (! in_array($preset, ['classic', 'modern', 'compact'], true)) {
+            return;
+        }
+        $style = app(\Modules\Website\Services\PharmaProductCardStyle::class);
+        $this->pharmaCatalogCard = $style->normalize(array_replace($this->pharmaCatalogCard, $style->preset($preset)));
+    }
+
+    public function copyHomepageCardToCatalog(): void
+    {
+        $this->authorizeAdminPermission('website.home.manage');
+        $source = (array) ($this->pharmaProductSections['new_arrivals']['card_design'] ?? []);
+        $this->pharmaCatalogCard = app(\Modules\Website\Services\PharmaProductCardStyle::class)->normalize($source);
+    }
+
+    public function resetPharmaCatalogCard(): void
+    {
+        $this->authorizeAdminPermission('website.home.manage');
+        $this->pharmaCatalogCard = app(\Modules\Website\Services\PharmaProductCardStyle::class)->normalize([]);
+    }
+
+    public function savePharmaCatalogCard(SettingsService $settings): void
+    {
+        $this->authorizeAdminPermission('website.home.manage');
+        $design = app(\Modules\Website\Services\PharmaProductCardStyle::class)->normalize($this->pharmaCatalogCard);
+        $settings->updateMany(['website.pharma_catalog.card_design' => $design], 'homepage');
+        $this->pharmaCatalogCard = $design;
+        $this->editingPharmaCatalogCard = false;
+        $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã lưu thiết kế Card trang /product.']);
     }
 
     public function savePharmaProductFilters(SettingsService $settings): void

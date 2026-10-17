@@ -80,29 +80,24 @@
                     <a href="{{ route('product.list') }}" class="mt-4 inline-block text-sm font-semibold text-teal-700">Xem tất cả sản phẩm →</a>
                 </div>
             @else
-                <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                <style>
+                    [data-product-card-grid][data-mobile="1"] { --pharma-product-cols: 1; }
+                    [data-product-card-grid][data-mobile="2"] { --pharma-product-cols: 2; }
+                    @media (min-width: 640px) {
+                        [data-product-card-grid][data-tablet="1"] { --pharma-product-cols: 1; }
+                        [data-product-card-grid][data-tablet="2"] { --pharma-product-cols: 2; }
+                        [data-product-card-grid][data-tablet="3"] { --pharma-product-cols: 3; }
+                    }
+                    @media (min-width: 1024px) {
+                        [data-product-card-grid][data-desktop="2"] { --pharma-product-cols: 2; }
+                        [data-product-card-grid][data-desktop="3"] { --pharma-product-cols: 3; }
+                        [data-product-card-grid][data-desktop="4"] { --pharma-product-cols: 4; }
+                        [data-product-card-grid][data-desktop="5"] { --pharma-product-cols: 5; }
+                    }
+                </style>
+                <div class="grid" data-product-card-grid data-mobile="{{ $catalogCardDesign['mobile_columns'] }}" data-tablet="{{ $catalogCardDesign['tablet_columns'] }}" data-desktop="{{ $catalogCardDesign['desktop_columns'] }}" style="gap:{{ $catalogCardDesign['gap'] }}px;grid-template-columns:repeat(var(--pharma-product-cols),minmax(0,1fr))">
                     @foreach($products as $product)
-                        <article class="group flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
-                            <a href="{{ route('product.detail', $product->slug) }}" class="flex aspect-[4/3] items-center justify-center overflow-hidden bg-teal-50/60">
-                                @if($product->image)
-                                    <img src="{{ $product->image_url }}" alt="{{ $product->title }}" loading="lazy" class="h-full w-full object-contain p-4" onerror="this.hidden=true;this.nextElementSibling.hidden=false">
-                                    <span hidden class="text-sm text-slate-500">Chưa có ảnh sản phẩm</span>
-                                @else
-                                    <div class="flex flex-col items-center gap-3 text-teal-700">
-                                        <svg class="h-12 w-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><path d="M12 7v10M7 12h10"/></svg>
-                                        <span class="text-xs text-slate-500">Chưa có ảnh sản phẩm</span>
-                                    </div>
-                                @endif
-                            </a>
-                            <div class="flex flex-1 flex-col p-5">
-                                <p class="text-xs font-bold uppercase tracking-wide text-teal-700">{{ $product->categories->first()?->name ?? 'Dược phẩm' }}</p>
-                                <h2 class="mt-2 line-clamp-2 text-base font-bold leading-6"><a href="{{ route('product.detail', $product->slug) }}" class="hover:text-teal-700">{{ $product->title }}</a></h2>
-                                @if($authenticated)
-                                    <p class="mt-3 text-lg font-bold text-slate-900">{{ number_format((float) ($product->sale_price > 0 ? $product->sale_price : $product->regular_price), 0, ',', '.') }}đ</p>
-                                @endif
-                                <a href="{{ route('product.detail', $product->slug) }}" class="mt-auto pt-5 text-sm font-bold text-teal-700">Xem thông tin sản phẩm →</a>
-                            </div>
-                        </article>
+                        @include('Website::partials.pharma-product-card', ['cardDesign' => $catalogCardDesign, 'cardPreview' => false, 'cardShowPrice' => $authenticated])
                     @endforeach
                 </div>
                 <div class="mt-8">{{ $products->links() }}</div>

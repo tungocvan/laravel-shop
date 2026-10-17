@@ -91,6 +91,57 @@ foreach($pharmaProductSections as $key => $config) {
             </div>
         @endif
     </article>
+    <article class="mt-4 rounded-xl border border-emerald-200 bg-white p-4" wire:key="pharma-catalog-card-editor">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div><h3 class="font-semibold text-gray-900">Giao diện Card sản phẩm — /product</h3><p class="text-xs text-gray-500">Cấu hình độc lập với Homepage, sử dụng cùng component Card.</p></div>
+            <button type="button" wire:click="$toggle('editingPharmaCatalogCard')" class="rounded-lg border border-emerald-300 px-3 py-2 text-sm font-semibold text-emerald-800">Thiết lập Card</button>
+        </div>
+        @if($editingPharmaCatalogCard)
+            @php($catalogPreview = app(\Modules\Website\Services\PharmaProductCardStyle::class)->normalize($pharmaCatalogCard))
+            <div class="mt-4 border-t border-gray-100 pt-4">
+                <div class="mb-4 flex flex-wrap gap-2">
+                    @foreach(['classic'=>'Classic','modern'=>'Modern','compact'=>'Compact'] as $preset=>$label)
+                        <button type="button" wire:click="choosePharmaCatalogCardPreset('{{ $preset }}')" class="rounded-lg border px-4 py-2 text-sm {{ $catalogPreview['preset'] === $preset ? 'border-emerald-500 bg-emerald-50 font-bold text-emerald-800' : 'border-gray-200' }}">{{ $label }}</button>
+                    @endforeach
+                    <button type="button" wire:click="copyHomepageCardToCatalog" class="rounded-lg border border-gray-300 px-3 py-2 text-sm">Sao chép từ Homepage</button>
+                    <button type="button" wire:click="resetPharmaCatalogCard" class="rounded-lg border border-gray-300 px-3 py-2 text-sm">Khôi phục mặc định</button>
+                </div>
+                <div class="grid gap-5 lg:grid-cols-2">
+                    <div class="grid grid-cols-2 gap-3">
+                        @foreach(['image_ratio'=>['1/1'=>'Vuông 1:1','4/3'=>'Ngang 4:3','3/4'=>'Dọc 3:4'],'image_fit'=>['contain'=>'Giữ nguyên ảnh','cover'=>'Lấp đầy ảnh'],'desktop_columns'=>[2=>'2 cột',3=>'3 cột',4=>'4 cột',5=>'5 cột'],'tablet_columns'=>[1=>'1 cột',2=>'2 cột',3=>'3 cột'],'mobile_columns'=>[1=>'1 cột',2=>'2 cột']] as $field=>$options)
+                            <label class="text-xs font-medium">{{ ['image_ratio'=>'Tỷ lệ ảnh','image_fit'=>'Cách hiển thị ảnh','desktop_columns'=>'Cột Desktop','tablet_columns'=>'Cột Tablet','mobile_columns'=>'Cột Mobile'][$field] }}
+                                <select wire:model.live="pharmaCatalogCard.{{ $field }}" class="mt-1 w-full rounded-lg border border-gray-300 p-2">
+                                    @foreach($options as $value=>$name)<option value="{{ $value }}">{{ $name }}</option>@endforeach
+                                </select>
+                            </label>
+                        @endforeach
+                        @foreach(['radius'=>'Bo góc (px)','padding'=>'Padding (px)','gap'=>'Khoảng cách (px)','title_size'=>'Cỡ chữ (px)','title_lines'=>'Số dòng tên'] as $field=>$label)
+                            <label class="text-xs font-medium">{{ $label }}<input type="number" wire:model.live.debounce.400ms="pharmaCatalogCard.{{ $field }}" class="mt-1 w-full rounded-lg border border-gray-300 p-2"></label>
+                        @endforeach
+                        @foreach(['background'=>'Nền Card','image_background'=>'Nền ảnh','text_color'=>'Màu tiêu đề','muted_color'=>'Màu danh mục','border_color'=>'Màu viền','action_color'=>'Màu thao tác'] as $field=>$label)
+                            <label class="text-xs font-medium">{{ $label }}<input type="color" wire:model.live="pharmaCatalogCard.{{ $field }}" class="mt-1 block h-10 w-full rounded-lg border border-gray-300"></label>
+                        @endforeach
+                        @foreach(['shadow'=>'Shadow','show_category'=>'Hiện danh mục','show_action'=>'Hiện nút xem'] as $field=>$label)
+                            <label class="flex items-center gap-2 text-xs"><input type="checkbox" wire:model.live="pharmaCatalogCard.{{ $field }}"> {{ $label }}</label>
+                        @endforeach
+                        <label class="col-span-2 text-xs font-medium">URL ảnh mặc định<input type="text" wire:model.live.debounce.400ms="pharmaCatalogCard.fallback_image_url" class="mt-1 w-full rounded-lg border border-gray-300 p-2" placeholder="/images/pharma/product-placeholder.svg"></label>
+                        <label class="col-span-2 text-xs font-medium">Tên nút thao tác<input type="text" maxlength="60" wire:model.live.debounce.400ms="pharmaCatalogCard.action_label" class="mt-1 w-full rounded-lg border border-gray-300 p-2"></label>
+                    </div>
+                    <div class="rounded-xl bg-slate-50 p-4">
+                        <p class="mb-3 text-xs font-bold uppercase text-gray-500">Live Preview · Dùng chung component Website</p>
+                        <div class="mx-auto max-w-sm">
+                            @include('Website::partials.pharma-product-card', ['cardDesign' => $catalogPreview, 'cardPreview' => true, 'cardName' => 'Anvo-Telmisartan HCTZ 80/12,5mg - Hộp 2 vỉ x 7 viên'])
+                        </div>
+                        <p class="mt-3 text-xs text-gray-500">Số cột sẽ áp dụng trên trang /product sau khi lưu. Giá chỉ hiển thị với tài khoản đăng nhập.</p>
+                    </div>
+                </div>
+                <div class="mt-5 flex justify-end gap-2">
+                    <button type="button" wire:click="$set('editingPharmaCatalogCard', false)" class="rounded-lg border border-gray-300 px-4 py-2">Đóng</button>
+                    <button type="button" wire:click="savePharmaCatalogCard" class="rounded-lg bg-emerald-700 px-4 py-2 font-semibold text-white">Lưu thiết kế Card</button>
+                </div>
+            </div>
+        @endif
+    </article>
     @if(auth('admin')->user()?->hasPermissionTo('website.settings.manage', 'admin'))
         <article class="mt-5 rounded-xl border border-emerald-200 bg-emerald-50/30 p-4">
             <div class="flex flex-wrap items-center justify-between gap-3">
