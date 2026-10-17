@@ -123,14 +123,9 @@
                                 @endif
                             </a>
                             <span class="flex min-w-0 max-w-[130px] flex-col sm:max-w-none">
-                                @foreach(['name', 'slogan'] as $part)
-                                    @php
-                                        $value = $part === 'name' ? $companyName : $brandAppearance['slogan'];
-                                    @endphp
-                                    @if(trim($value) !== '')
-                                        <span class="{{ in_array($brandAppearance['visibility'][$part], ['both', 'mobile'], true) ? 'block lg:hidden' : 'hidden' }} min-w-0 break-words leading-tight" style="{{ $brandTextStyle($part, 'mobile') }}">{{ $value }}</span>
-                                        <span class="{{ in_array($brandAppearance['visibility'][$part], ['both', 'desktop'], true) ? 'hidden lg:block' : 'hidden' }} min-w-0 break-words leading-tight" style="{{ $brandTextStyle($part, 'desktop') }}">{{ $value }}</span>
-                                    @endif
+                                @foreach(['name' => $companyName, 'slogan' => $brandAppearance['slogan']] as $part => $brandText)
+                                    <span class="{{ trim($brandText) !== '' && in_array($brandAppearance['visibility'][$part], ['both', 'mobile'], true) ? 'block lg:hidden' : 'hidden' }} min-w-0 break-words leading-tight" style="{{ $brandTextStyle($part, 'mobile') }}">{{ $brandText }}</span>
+                                    <span class="{{ trim($brandText) !== '' && in_array($brandAppearance['visibility'][$part], ['both', 'desktop'], true) ? 'hidden lg:block' : 'hidden' }} min-w-0 break-words leading-tight" style="{{ $brandTextStyle($part, 'desktop') }}">{{ $brandText }}</span>
                                 @endforeach
                             </span>
                         </div>
