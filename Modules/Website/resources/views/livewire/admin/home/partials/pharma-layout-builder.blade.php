@@ -104,7 +104,7 @@ foreach($pharmaProductSections as $key => $config) {
     @endif
     <p class="mt-4 text-xs text-gray-500">Cấu hình Pharma được lưu riêng. Thay đổi hiển thị sau khi lưu và tải lại Website.</p>
 
-    <?php if ($editingPharmaCategories || $editingPharmaProductSection || $editingPharmaBlogSection): ?>
+    @if($editingPharmaCategories || $editingPharmaProductSection || $editingPharmaBlogSection)
         <div class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 p-0 sm:p-4" role="presentation">
             <section role="dialog" aria-modal="true" aria-label="Thiết lập section Homepage Pharma" class="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white shadow-2xl sm:h-auto sm:max-h-[90dvh] sm:rounded-2xl">
                 <header class="flex shrink-0 items-center justify-between gap-3 border-b border-gray-200 px-5 py-4">
@@ -193,7 +193,7 @@ foreach($pharmaProductSections as $key => $config) {
             <div class="mt-4 flex justify-end gap-2"><button type="button" wire:click="$set('editingPharmaBlogSection', null)" class="rounded-lg border border-gray-300 bg-white px-4 py-2">Đóng</button><button type="button" wire:click="savePharmaBlogSections" class="rounded-lg bg-emerald-700 px-4 py-2 font-semibold text-white">Lưu Section Blog</button></div>
         </div>
     @endif
-    <?php if ($editingPharmaCategories): ?>
+    @if($editingPharmaCategories)
         <div class="space-y-5" wire:key="pharma-category-settings">
             <h3 class="text-base font-bold text-gray-900">Thiết lập UI danh mục dược phẩm</h3>
             <p class="mt-1 text-sm text-gray-600">Chỉ áp dụng cho Homepage Pharma; không thay đổi dữ liệu danh mục và template Default.</p>
@@ -272,7 +272,7 @@ foreach($pharmaProductSections as $key => $config) {
                     <div><h4 class="font-semibold text-gray-900">Giao diện Card danh mục</h4><p class="text-xs text-gray-500">Không bật tùy chỉnh: giữ nguyên giao diện cũ.</p></div>
                     <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model.live="pharmaCategoryCardEnabled" class="rounded border-gray-300"> Tùy chỉnh Card</label>
                 </div>
-                <?php if ($pharmaCategoryCardEnabled): ?>
+                @if($pharmaCategoryCardEnabled)
                 <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     <label class="text-sm font-medium">Preset
                         <select wire:model.live="pharmaCategoryCard.preset" class="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2">
@@ -340,29 +340,20 @@ foreach($pharmaProductSections as $key => $config) {
                 <div class="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
                     <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
                         <p class="text-xs font-semibold uppercase text-gray-500">Xem trước · Lưới Card danh mục</p>
-                        <span class="text-xs text-gray-500">4 danh mục thực tế · Số SP minh họa · Chung CSS với Website</span>
+                        <span class="text-xs text-gray-500">4 mẫu tên ngắn/dài · Chung CSS với Website</span>
                     </div>
                     <div class="pharma-category-v2-preview-grid" data-preview-columns="{{ $preview['mobile_columns'] }}" data-preview-tablet="{{ $preview['tablet_columns'] }}">
-                        @php
-                            $previewCategoryIds = array_keys($pharmaCategoryIconChoices);
-                            if ($selectedCategoryIconId !== '' && array_key_exists((int) $selectedCategoryIconId, $pharmaCategoryIconChoices)) {
-                                $previewCategoryIds = array_values(array_unique(array_merge([(int) $selectedCategoryIconId], $previewCategoryIds)));
-                            }
-                            $previewCategoryIds = array_slice($previewCategoryIds, 0, 4);
-                        @endphp
-                        @foreach($previewCategoryIds as $previewIndex => $previewCategoryId)
+                        @foreach([['Dược phẩm',1],['Tim mạch – Huyết áp',3],['Thuốc điều trị tăng huyết áp',6],['Kháng sinh – Kháng khuẩn',2]] as $sample)
                             @include('Website::partials.pharma-category-card-v2', [
-                                'cardName' => $pharmaCategoryIconChoices[$previewCategoryId],
-                                'cardCount' => [1, 3, 6, 2][$previewIndex],
+                                'cardName' => $sample[0], 'cardCount' => $sample[1],
                                 'cardDesign' => $preview,
-                                'cardIcon' => $preview['icons_by_category'][$previewCategoryId] ?? $preview['icon'],
                                 'cardCss' => app(\Modules\Website\Services\PharmaCategoryCardStyle::class)->css($preview),
                                 'cardPreview' => true,
                             ])
                         @endforeach
                     </div>
                 </div>
-                <?php endif; ?>
+                @endif
                 <button type="button" wire:click="resetPharmaCategoryCard" class="mt-3 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm">Khôi phục Card mặc định</button>
             </div>
             <div class="mt-4 flex justify-end gap-2">
@@ -370,9 +361,10 @@ foreach($pharmaProductSections as $key => $config) {
                 <button type="button" wire:click="savePharmaCategories" wire:loading.attr="disabled" class="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">Lưu thiết lập danh mục</button>
             </div>
         </div>
-    <?php endif; ?>
+    @endif
+
                 </div>
             </section>
         </div>
-    <?php endif; ?>
+    @endif
 </section>
