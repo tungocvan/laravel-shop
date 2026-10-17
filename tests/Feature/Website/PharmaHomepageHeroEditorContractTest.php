@@ -46,7 +46,8 @@ final class PharmaHomepageHeroEditorContractTest extends TestCase
         $this->assertStringContainsString("'hero' => 'Hero Banner Pharma'", $tabs);
         $this->assertStringContainsString('pharma-hero-editor', $tabs);
         $this->assertStringContainsString('wire:click="savePharmaHero"', $editor);
-        $this->assertStringContainsString('wire:model.live.debounce.400ms="pharmaHero.title"', $editor);
+        $this->assertStringContainsString("'title' => 'Tiêu đề chính'", $editor);
+        $this->assertStringContainsString('wire:model.live.debounce.400ms="pharmaHero.{{ $field }}"', $editor);
         $this->assertStringContainsString('PharmaHeroService::class', $frontend);
         $this->assertStringContainsString("['mobile_title_size']", $frontend);
         $this->assertStringContainsString("['desktop_title_size']", $frontend);
