@@ -11,6 +11,8 @@
     $savedPresentation = $settings->get('website.pharma_header.presentation');
     $presentation = app(\Modules\Website\Services\HeaderPresentationService::class)->resolve(is_array($savedPresentation) ? $savedPresentation : null);
     $colors = $presentation['colors'];
+    $desktopMenuStyle = $presentation['menu_style']['primary'];
+    $mobileMenuStyle = $presentation['menu_style']['mobile'];
     $accent = ($presentation['inherit_colors'] ?? true) ? '#047857' : $colors['accent'];
     $background = ($presentation['inherit_colors'] ?? true) ? '#ffffff' : $colors['background'];
     $foreground = ($presentation['inherit_colors'] ?? true) ? '#0f172a' : $colors['foreground'];
@@ -106,11 +108,11 @@
                             <span class="min-w-0 max-w-[130px] sm:max-w-none"><span class="block line-clamp-2 break-words text-[11px] font-extrabold leading-tight sm:truncate sm:text-lg">{{ $companyName }}</span><span class="hidden text-xs font-medium sm:block" style="color:var(--pharma-header-accent)">Danh mục và thông tin dược phẩm</span></span>
                         </a>
                     @elseif($component['type'] === 'actions')
-                        <nav aria-label="Điều hướng Pharma" class="{{ $visibilityClass($component['visibility'] ?? 'desktop') }} flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm font-semibold">
+                        <nav aria-label="Điều hướng Pharma" class="{{ $visibilityClass($component['visibility'] ?? 'desktop') }} flex-wrap items-center justify-center gap-y-2" style="column-gap:{{ $desktopMenuStyle['item_gap'] }}px;font-family:{{ $desktopMenuStyle['font_family'] }};font-size:{{ $desktopMenuStyle['font_size'] }}px;font-weight:{{ $desktopMenuStyle['font_weight'] }};color:{{ $desktopMenuStyle['text_color'] }};">
                             @foreach($desktopMenu->isNotEmpty() ? $desktopMenu : $fallbackMenu as $item)
                                 @php($itemUrl = is_array($item) ? $item['url'] : $item->url)
                                 @php($itemTitle = is_array($item) ? $item['title'] : $item->title)
-                                <a href="{{ $itemUrl ?: '#' }}" class="hover:underline">{{ $itemTitle }}</a>
+                                <a href="{{ $itemUrl ?: '#' }}" class="transition-colors active:scale-[0.985] {{ $desktopMenuStyle['hover_effect'] === 'underline' ? 'hover:underline' : '' }} {{ $desktopMenuStyle['hover_effect'] === 'color' ? 'hover:!text-[var(--menu-hover-color)]' : '' }} {{ $desktopMenuStyle['hover_effect'] === 'background' ? 'hover:bg-[var(--menu-hover-color)] hover:!text-white' : '' }}" style="--menu-hover-color:{{ $desktopMenuStyle['hover_color'] }};border-radius:{{ $desktopMenuStyle['radius'] }}px;padding:4px 8px;">{{ $itemTitle }}</a>
                             @endforeach
                         </nav>
                     @elseif($component['type'] === 'search')
@@ -188,14 +190,14 @@
                         </div>
                         <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-white">
                             @include('Website::partials.pharma.mobile-account-links', ['accountConfig' => $accountConfig])
-                            <nav aria-label="Điều hướng Pharma trên di động" class="px-4 pb-6 pt-4">
+                            <nav aria-label="Điều hướng Pharma trên di động" class="px-4 pb-6 pt-4" style="font-family:{{ $mobileMenuStyle['font_family'] }};font-size:{{ $mobileMenuStyle['font_size'] }}px;font-weight:{{ $mobileMenuStyle['font_weight'] }};color:{{ $mobileMenuStyle['text_color'] }};">
                                 <div class="mb-2 px-2 text-[10px] font-extrabold uppercase tracking-[0.14em] text-slate-500">Khám phá</div>
                                 <div class="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-100 bg-white">
                                     @foreach($mobileMenu->isNotEmpty() ? $mobileMenu : $fallbackMenu as $item)
                                         @php($itemUrl = is_array($item) ? $item['url'] : $item->url)
                                         @php($itemTitle = is_array($item) ? $item['title'] : $item->title)
                                         @php($isActiveMobileItem = $itemUrl && $itemUrl !== '#' && (url()->current() === $itemUrl || request()->fullUrl() === $itemUrl))
-                                        <a href="{{ $itemUrl ?: '#' }}" @if($isActiveMobileItem) aria-current="page" @endif class="group flex min-h-12 items-center px-4 py-3.5 text-sm font-semibold leading-5 transition-colors active:scale-[0.985] motion-reduce:transform-none {{ $isActiveMobileItem ? 'bg-emerald-50 text-emerald-800' : 'text-slate-700 hover:bg-slate-50 hover:text-emerald-800' }}">
+                                        <a href="{{ $itemUrl ?: '#' }}" @if($isActiveMobileItem) aria-current="page" @endif class="group flex min-h-12 items-center px-4 py-3.5 leading-5 transition-colors active:scale-[0.985] motion-reduce:transform-none {{ $mobileMenuStyle['hover_effect'] === 'underline' ? 'hover:underline' : '' }} {{ $mobileMenuStyle['hover_effect'] === 'color' ? 'hover:!text-[var(--menu-hover-color)]' : '' }} {{ $mobileMenuStyle['hover_effect'] === 'background' ? 'hover:bg-[var(--menu-hover-color)] hover:!text-white' : '' }}" style="--menu-hover-color:{{ $mobileMenuStyle['hover_color'] }};font-size:inherit;font-weight:inherit;border-radius:{{ $mobileMenuStyle['radius'] }}px;margin-bottom:{{ $mobileMenuStyle['item_gap'] }}px;color:{{ $isActiveMobileItem ? $mobileMenuStyle['active_color'] : $mobileMenuStyle['text_color'] }};">
                                             <span class="min-w-0 flex-1">{{ $itemTitle }}</span>
                                             @if($isActiveMobileItem)
                                                 <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-600" aria-hidden="true"></span>
