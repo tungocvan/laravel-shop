@@ -186,6 +186,29 @@
         </div>
     </section>
 
+    <section x-show="footerPanel === 'style' || footerPanel === 'preview'" x-cloak class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="mb-4">
+            <h3 class="font-semibold text-slate-900">Thư viện giao diện Footer</h3>
+            <p class="mt-1 text-sm text-slate-500">Chọn một mẫu có sẵn để đổi màu Footer. Theme đã lưu riêng vẫn nằm trong phần quản lý bên dưới. Chỉ áp dụng lên Website sau khi bấm Lưu giao diện.</p>
+        </div>
+        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            @foreach($this->footerThemePresets() as $presetKey => $preset)
+                <button type="button" wire:click="applyFooterThemePreset('{{ $presetKey }}')" class="overflow-hidden rounded-xl border border-slate-200 bg-white text-left shadow-sm transition hover:border-blue-400 hover:shadow-md">
+                    <div class="p-4" style="background-color: {{ $preset['background'] }}; color: {{ $preset['foreground'] }};">
+                        <div class="mb-3 text-sm font-bold" style="color: {{ $preset['heading'] }};">{{ $preset['name'] }}</div>
+                        <div class="mb-2 h-2 w-3/4 rounded" style="background-color: {{ $preset['foreground'] }};"></div>
+                        <div class="mb-2 h-2 w-1/2 rounded" style="background-color: {{ $preset['muted'] }};"></div>
+                        <div class="mt-4 h-1 w-full rounded" style="background-color: {{ $preset['accent'] }};"></div>
+                    </div>
+                    <div class="px-3 py-2">
+                        <div class="text-sm font-semibold text-slate-800">{{ $preset['name'] }}</div>
+                        <div class="text-xs text-slate-500">{{ $preset['description'] }}</div>
+                    </div>
+                </button>
+            @endforeach
+        </div>
+    </section>
+
     <section x-show="footerPanel === 'style'" x-cloak class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>

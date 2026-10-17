@@ -46,6 +46,19 @@ class FooterSettingsUxContractTest extends TestCase
         $this->assertStringContainsString('Chưa áp dụng ra Footer công khai', $view);
     }
 
+    public function test_footer_has_built_in_theme_gallery_independent_of_saved_themes(): void
+    {
+        $component = file_get_contents(base_path('Modules/Website/Livewire/Admin/Footer/FooterSettingsHub.php'));
+        $view = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/footer/footer-settings-hub.blade.php'));
+        $this->assertStringContainsString('function footerThemePresets()', $component);
+        $this->assertStringContainsString('function applyFooterThemePreset(', $component);
+        foreach (['midnight', 'emerald', 'ocean', 'charcoal', 'light'] as $preset) {
+            $this->assertStringContainsString("'".$preset."' =>", $component);
+        }
+        $this->assertStringContainsString('wire:click="applyFooterThemePreset(', $view);
+        $this->assertStringContainsString('Thư viện giao diện Footer', $view);
+    }
+
     public function test_footer_admin_blade_compiles_without_php_parse_errors(): void
     {
         foreach ([
