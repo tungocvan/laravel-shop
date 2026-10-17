@@ -231,6 +231,24 @@ class HomeSettings extends Component
         $this->activeTab = 'layout';
     }
 
+    public string $pharmaHeroThemeId = 'pharma-gradient';
+
+    public function applyPharmaHeroTheme(\Modules\Website\Services\BannerThemeLibrary $themes, \Modules\Website\Services\PharmaHeroService $hero): void
+    {
+        $this->authorizeAdminPermission('website.home.manage');
+        if ($this->editingTemplate !== 'pharma') {
+            return;
+        }
+        $applied = $themes->apply($this->pharmaHeroThemeId, $this->pharmaHero, $hero);
+        if ($applied === null) {
+            $this->addError('pharmaHeroThemeId', 'Mẫu Banner không hợp lệ.');
+            return;
+        }
+        $this->pharmaHero = $applied;
+        $this->resetErrorBag('pharmaHeroThemeId');
+        // Deliberately do not persist here: user must confirm with Save Hero Banner.
+    }
+
     public function savePharmaHero(SettingsService $settings, PharmaHeroService $service): void
     {
         $this->authorizeAdminPermission('website.home.manage');
