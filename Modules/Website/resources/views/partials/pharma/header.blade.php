@@ -122,14 +122,14 @@
                                     <span class="flex h-11 w-11 items-center justify-center rounded-xl text-2xl font-bold text-white" style="background:var(--pharma-header-accent)">{{ mb_substr($companyName, 0, 1) }}</span>
                                 @endif
                             </a>
-                            <span class="min-w-0 max-w-[130px] sm:max-w-none">
+                            <span class="flex min-w-0 max-w-[130px] flex-col sm:max-w-none">
                                 @foreach(['name', 'slogan'] as $part)
                                     @php
                                         $value = $part === 'name' ? $companyName : $brandAppearance['slogan'];
                                     @endphp
                                     @if(trim($value) !== '')
-                                        <span class="{{ $brandVisibilityClass($part) }} min-w-0 break-words leading-tight lg:hidden" style="{{ $brandTextStyle($part, 'mobile') }}">{{ $value }}</span>
-                                        <span class="hidden min-w-0 break-words leading-tight lg:{{ in_array($brandAppearance['visibility'][$part], ['both', 'desktop'], true) ? 'inline-flex' : 'hidden' }}" style="{{ $brandTextStyle($part, 'desktop') }}">{{ $value }}</span>
+                                        <span class="{{ in_array($brandAppearance['visibility'][$part], ['both', 'mobile'], true) ? 'block lg:hidden' : 'hidden' }} min-w-0 break-words leading-tight" style="{{ $brandTextStyle($part, 'mobile') }}">{{ $value }}</span>
+                                        <span class="{{ in_array($brandAppearance['visibility'][$part], ['both', 'desktop'], true) ? 'hidden lg:block' : 'hidden' }} min-w-0 break-words leading-tight" style="{{ $brandTextStyle($part, 'desktop') }}">{{ $value }}</span>
                                     @endif
                                 @endforeach
                             </span>
