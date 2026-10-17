@@ -33,6 +33,7 @@ class HomeSettings extends Component
     public ?string $editingPharmaProductSection = null;
     public bool $editingPharmaCategories = false;
     public array $pharmaCategoryCard = [];
+    public array $pharmaCategoryIconChoices = [];
     public bool $pharmaCategoryCardEnabled = false;
     public bool $pharmaOnlyCategoriesWithProducts = true;
     public bool $editingPharmaProductFilters = false;
@@ -102,6 +103,7 @@ class HomeSettings extends Component
         ], (array) $settings->get('website.pharma_homepage.categories', []));
         $this->pharmaCategoryCardEnabled = isset($this->pharmaCategoryDisplay['card_design']);
         $this->pharmaCategoryCard = app(PharmaCategoryCardStyle::class)->normalize($this->pharmaCategoryDisplay['card_design'] ?? []);
+        $this->pharmaCategoryIconChoices = Category::query()->ofType('medicine')->active()->orderBy('name')->pluck('name', 'id')->all();
         $this->pharmaBlogSections = (array) $settings->get('website.pharma_homepage.blog_sections', []);
         $this->pharmaBlogSections = array_replace(['blog' => $this->defaultPharmaBlogSection()], $this->pharmaBlogSections);
         $this->pharmaProductSections = (array) $settings->get('website.pharma_homepage.product_sections', []);

@@ -12,6 +12,7 @@ class PharmaCategoryCardStyle
             'border_color'=>'#e2e8f0','show_icon'=>true,'show_count'=>true,'show_arrow'=>true,
             'mobile_columns'=>1,'tablet_columns'=>2,'icon'=>'medical',
             'layout'=>'horizontal','icon_size'=>46,'icon_shadow'=>false,'count_style'=>'subtitle',
+            'icons_by_category'=>[],
         ];
     }
 
@@ -34,6 +35,12 @@ class PharmaCategoryCardStyle
         }
         foreach (['show_icon','show_count','show_arrow'] as $key) {
             if(array_key_exists($key,$input))$v[$key]=filter_var($input[$key],FILTER_VALIDATE_BOOLEAN);
+        }
+        $overrides = is_array($input['icons_by_category'] ?? null) ? $input['icons_by_category'] : [];
+        foreach (array_slice($overrides, 0, 100, true) as $id => $icon) {
+            if (ctype_digit((string) $id) && (int) $id > 0 && in_array($icon, ['medical','heart','shield','pill','cross','leaf','none'], true)) {
+                $v['icons_by_category'][(int) $id] = $icon;
+            }
         }
         return $v;
     }

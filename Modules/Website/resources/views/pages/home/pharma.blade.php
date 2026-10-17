@@ -63,32 +63,11 @@
     @media (max-width: 767px) { .pharma-desktop-only { display: none !important; } }
     @media (min-width: 768px) { .pharma-mobile-only { display: none !important; } }
 
-    .pharma-category-card-custom { box-sizing:border-box; min-height:var(--category-card-height);padding:var(--category-card-padding);border-radius:var(--category-card-radius);font-size:var(--category-card-font);background:var(--category-card-bg);color:var(--category-card-text);border:1px solid var(--category-card-border);display:flex;gap:var(--category-card-gap);align-items:center;text-decoration:none;min-width:0; }
-    .pharma-category-card-custom:hover { border-color:var(--category-card-accent); }
-    .pharma-category-card-custom .pharma-category-card-icon { width:var(--category-icon-size);height:var(--category-icon-size);min-width:var(--category-icon-size);display:flex;align-items:center;justify-content:center;border-radius:12px;color:var(--category-card-accent);background:#ecfdf5; }
-    .pharma-category-card-custom .pharma-category-card-icon svg { width:52%;height:52%; }
-    .pharma-category-card-custom[data-icon-shadow="1"] .pharma-category-card-icon { box-shadow:0 3px 10px rgba(15,23,42,.12); }
-    .pharma-category-card-custom .pharma-category-card-content { display:flex;flex:1;flex-direction:column;gap:6px;min-width:0; }
-    .pharma-category-card-custom .pharma-category-card-name { display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;line-height:1.5;font-size:inherit;font-weight:650;color:inherit;overflow-wrap:normal;word-break:normal;hyphens:none; }
-    .pharma-category-card-custom .pharma-category-card-count { font-size:12px;font-weight:550;line-height:1.35;color:var(--category-card-accent);align-self:flex-start;white-space:nowrap; }
-    .pharma-category-card-custom .pharma-category-card-count[data-count-style="badge"] { border-radius:999px;background:#ecfdf5;padding:4px 9px; }
-    .pharma-category-card-custom .pharma-category-card-arrow { color:var(--category-card-accent);width:20px;height:20px;min-width:20px;margin-left:auto; }
-    .pharma-category-card-custom[data-layout="stacked"] { flex-wrap:wrap;align-content:space-between;align-items:flex-start; }
-    .pharma-category-card-custom[data-layout="stacked"] .pharma-category-card-content { flex-basis:100%;order:3; }
-    .pharma-category-card-custom[data-layout="stacked"] .pharma-category-card-arrow { align-self:center; }
-    .pharma-category-card-custom[data-preset="clean"] { background:#fff; color:#0f172a; border-color:#dbe5e7;box-shadow:0 2px 7px rgba(15,23,42,.04); }
-    .pharma-category-card-custom[data-preset="clean"] .pharma-category-card-icon { background:#ecfdf5; }
-    .pharma-category-card-custom[data-preset="premium"] { background:var(--category-card-accent);color:#fff;border-color:var(--category-card-accent); }
-    .pharma-category-card-custom[data-preset="premium"] .pharma-category-card-icon { background:#fff;color:var(--category-card-accent); }
-    .pharma-category-card-custom[data-preset="premium"] .pharma-category-card-count,.pharma-category-card-custom[data-preset="premium"] .pharma-category-card-arrow { color:#fff; }
-    .pharma-category-card-custom[data-preset="premium"] .pharma-category-card-count[data-count-style="badge"] { background:rgba(255,255,255,.18); }
-    .pharma-category-card-custom[data-preset="soft"] { background:#f0fdf8;color:#064e3b;border-color:#bbebd6;box-shadow:0 3px 16px rgba(15,23,42,.04); }
-    .pharma-category-card-custom[data-preset="soft"] .pharma-category-card-icon { background:#fff; }
-    .pharma-category-card-custom[data-preset="minimal"] { box-shadow:none; }
     @media(max-width:639px){.pharma-category-card-custom{gap:12px;padding:min(var(--category-card-padding),16px)}.pharma-category-grid-custom[data-mobile-columns="2"] .pharma-category-card-custom{flex-wrap:wrap;align-content:start}.pharma-category-grid-custom[data-mobile-columns="2"] .pharma-category-card-content{flex-basis:100%;order:3}.pharma-category-grid-custom[data-mobile-columns="2"] .pharma-category-card-arrow{margin-left:auto}}
     @media(max-width:639px){.pharma-category-grid-custom[data-mobile-columns="2"]{grid-template-columns:repeat(2,minmax(0,1fr));}}
     @media(min-width:640px) and (max-width:1023px){.pharma-category-grid-custom[data-tablet-columns="1"]{grid-template-columns:minmax(0,1fr)}.pharma-category-grid-custom[data-tablet-columns="3"]{grid-template-columns:repeat(3,minmax(0,1fr))}}
 </style>
+@include('Website::partials.pharma-category-card-style')
 <div class="pharma-public">
     @foreach($order as $section)
         @php
@@ -142,6 +121,7 @@
                                     'cardCount' => $category->storefront_products_count,
                                     'cardUrl' => route('product.list', ['category' => $category->slug]),
                                     'cardDesign' => $categoryDesign,
+                                    'cardIcon' => $categoryDesign['icons_by_category'][$category->id] ?? $categoryDesign['icon'],
                                     'cardCss' => $categoryDesignService->css($categoryDesign),
                                     'cardPreview' => false,
                                 ])

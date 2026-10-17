@@ -15,29 +15,11 @@ foreach($pharmaProductSections as $key => $config) {
 .pharma-category-card-preview{display:flex;align-items:center;gap:var(--category-card-gap);min-height:var(--category-card-height);padding:var(--category-card-padding);border:1px solid var(--category-card-border);border-radius:var(--category-card-radius);background:var(--category-card-bg);color:var(--category-card-text);font-size:var(--category-card-font);flex-wrap:wrap}.pharma-category-card-preview .preview-icon{display:flex;align-items:center;justify-content:center;width:48px;height:48px;flex-shrink:0;border-radius:12px;background:#fff;color:var(--category-card-accent);border:1px solid var(--category-card-border)}.pharma-category-card-preview .preview-count{background:#fff;color:var(--category-card-accent);white-space:nowrap}.pharma-category-card-preview .preview-arrow{color:var(--category-card-accent)}
 
 .pharma-category-v2-preview-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
-.pharma-category-v2-preview-grid .pharma-category-card-custom{min-width:0}
-.pharma-category-v2-preview-grid .pharma-category-card-custom{box-sizing:border-box;min-height:var(--category-card-height);padding:var(--category-card-padding);border:1px solid var(--category-card-border);border-radius:var(--category-card-radius);display:flex;gap:var(--category-card-gap);align-items:center;background:var(--category-card-bg);color:var(--category-card-text);font-size:var(--category-card-font)}
-.pharma-category-v2-preview-grid .pharma-category-card-icon{width:var(--category-icon-size);height:var(--category-icon-size);min-width:var(--category-icon-size);display:flex;align-items:center;justify-content:center;border-radius:12px;background:#ecfdf5;color:var(--category-card-accent)}
-.pharma-category-v2-preview-grid .pharma-category-card-icon svg{width:52%;height:52%}
-.pharma-category-v2-preview-grid [data-icon-shadow="1"] .pharma-category-card-icon{box-shadow:0 3px 10px rgba(15,23,42,.12)}
-.pharma-category-v2-preview-grid .pharma-category-card-content{display:flex;flex:1;flex-direction:column;gap:6px;min-width:0}
-.pharma-category-v2-preview-grid .pharma-category-card-name{font-weight:650;line-height:1.5;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;word-break:normal;overflow-wrap:normal}
-.pharma-category-v2-preview-grid .pharma-category-card-count{font-size:12px;color:var(--category-card-accent);white-space:nowrap}
-.pharma-category-v2-preview-grid .pharma-category-card-count[data-count-style="badge"]{border-radius:999px;background:#ecfdf5;padding:4px 9px;align-self:flex-start}
-.pharma-category-v2-preview-grid .pharma-category-card-arrow{width:20px;height:20px;min-width:20px;margin-left:auto;color:var(--category-card-accent)}
-.pharma-category-v2-preview-grid [data-layout="stacked"]{flex-wrap:wrap;align-content:space-between;align-items:flex-start}
-.pharma-category-v2-preview-grid [data-layout="stacked"] .pharma-category-card-content{flex-basis:100%;order:3}
-.pharma-category-v2-preview-grid [data-preset="clean"]{background:#fff;color:#0f172a;border-color:#dbe5e7;box-shadow:0 2px 7px rgba(15,23,42,.04)}
-.pharma-category-v2-preview-grid [data-preset="premium"]{background:var(--category-card-accent);color:#fff;border-color:var(--category-card-accent)}
-.pharma-category-v2-preview-grid [data-preset="premium"] .pharma-category-card-icon{background:#fff}
-.pharma-category-v2-preview-grid [data-preset="premium"] .pharma-category-card-count,.pharma-category-v2-preview-grid [data-preset="premium"] .pharma-category-card-arrow{color:#fff}
-.pharma-category-v2-preview-grid [data-preset="premium"] .pharma-category-card-count[data-count-style="badge"]{background:rgba(255,255,255,.18)}
-.pharma-category-v2-preview-grid [data-preset="soft"]{background:#f0fdf8;color:#064e3b;border-color:#bbebd6}
-.pharma-category-v2-preview-grid [data-preset="soft"] .pharma-category-card-icon{background:#fff}
 @media(max-width:639px){.pharma-category-v2-preview-grid{grid-template-columns:minmax(0,1fr)}.pharma-category-v2-preview-grid[data-preview-columns="2"]{grid-template-columns:repeat(2,minmax(0,1fr))}.pharma-category-v2-preview-grid[data-preview-columns="2"] .pharma-category-card-custom{flex-wrap:wrap}.pharma-category-v2-preview-grid[data-preview-columns="2"] .pharma-category-card-content{order:3;flex-basis:100%}}
 @media(min-width:640px) and (max-width:1023px){.pharma-category-v2-preview-grid[data-preview-tablet="1"]{grid-template-columns:1fr}.pharma-category-v2-preview-grid[data-preview-tablet="3"]{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(min-width:1024px){.pharma-category-v2-preview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
+@include('Website::partials.pharma-category-card-style')
 <section class="rounded-xl border border-emerald-200 bg-white p-5 shadow-sm">
     <div class="mb-5">
         <h2 class="text-lg font-bold text-gray-900">Bố cục Homepage — Pharma</h2>
@@ -326,6 +308,22 @@ foreach($pharmaProductSections as $key => $config) {
                         @endforeach
                     </select>
                 </label>
+                <div class="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                    <h5 class="text-sm font-semibold text-gray-900">Icon riêng theo danh mục</h5>
+                    <p class="mt-1 text-xs text-gray-500">Chỉ ghi đè icon; các thông số Card vẫn dùng chung.</p>
+                    <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                        @foreach($pharmaCategoryIconChoices as $categoryId => $categoryName)
+                            <label class="block text-xs font-medium text-gray-700">{{ $categoryName }}
+                                <select wire:model.live="pharmaCategoryCard.icons_by_category.{{ $categoryId }}" class="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-2 py-2 text-sm">
+                                    <option value="">Dùng icon chung</option>
+                                    @foreach(['medical'=>'Y tế','heart'=>'Trái tim','shield'=>'Bảo vệ','pill'=>'Viên thuốc','cross'=>'Dấu cộng','leaf'=>'Lá cây','none'=>'Ẩn icon'] as $value=>$label)
+                                        <option value="{{ $value }}">{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                            </label>
+                        @endforeach
+                    </div>
+                </div>
                 <div class="mt-4 flex flex-wrap gap-4">
                     <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model.live="pharmaCategoryCard.icon_shadow" class="rounded border-gray-300"> Shadow nhẹ cho icon</label>
                     @foreach(['show_icon'=>'Hiện icon','show_count'=>'Hiện số SP','show_arrow'=>'Hiện mũi tên'] as $key=>$label)
@@ -336,7 +334,7 @@ foreach($pharmaProductSections as $key => $config) {
                 <div class="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
                     <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
                         <p class="text-xs font-semibold uppercase text-gray-500">Xem trước · Lưới Card danh mục</p>
-                        <span class="text-xs text-gray-500">4 mẫu tên ngắn/dài · Giao diện thật</span>
+                        <span class="text-xs text-gray-500">4 mẫu tên ngắn/dài · Chung CSS với Website</span>
                     </div>
                     <div class="pharma-category-v2-preview-grid" data-preview-columns="{{ $preview['mobile_columns'] }}" data-preview-tablet="{{ $preview['tablet_columns'] }}">
                         @foreach([['Dược phẩm',1],['Tim mạch – Huyết áp',3],['Thuốc điều trị tăng huyết áp',6],['Kháng sinh – Kháng khuẩn',2]] as $sample)
