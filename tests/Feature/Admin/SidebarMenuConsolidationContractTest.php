@@ -26,6 +26,19 @@ class SidebarMenuConsolidationContractTest extends TestCase
         $this->assertStringContainsString('isMenuColorReference', $source);
         $this->assertStringContainsString('array_replace_recursive($manager->config(), $validated)', $source);
     }
+    public function test_sidebar_save_preserves_current_tab_without_redirect(): void
+    {
+        $component = file_get_contents(base_path('Modules/Admin/Livewire/Settings/AdminLayoutConfig.php'));
+        $start = strpos($component, 'public function save(AdminLayoutManager $manager): void');
+        $end = strpos($component, 'public function resetSection(', $start);
+        $save = substr($component, $start, $end - $start);
+
+        $this->assertStringContainsString("if (\$this->section === 'sidebar') {", $save);
+        $this->assertStringContainsString("title: 'Đã lưu Sidebar'", $save);
+        $this->assertStringContainsString("['general', 'header', 'footer']", $save);
+        $this->assertStringNotContainsString("['general', 'header', 'sidebar', 'footer']", $save);
+    }
+
     public function test_sidebar_studio_has_six_tabs_and_preserves_single_save_form(): void
     {
         $view = file_get_contents(base_path('Modules/Admin/resources/views/livewire/settings/admin-sidebar-config.blade.php'));
