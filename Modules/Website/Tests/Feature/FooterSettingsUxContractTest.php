@@ -57,6 +57,9 @@ class FooterSettingsUxContractTest extends TestCase
         }
         $this->assertStringContainsString('wire:click="applyFooterThemePreset(', $view);
         $this->assertStringContainsString('Thư viện giao diện Footer', $view);
+        $this->assertStringContainsString('Đang chọn', $view);
+        $this->assertStringContainsString("'accent' => false", $component);
+        $this->assertStringContainsString("'border' => false", $component);
     }
 
     public function test_footer_admin_blade_compiles_without_php_parse_errors(): void

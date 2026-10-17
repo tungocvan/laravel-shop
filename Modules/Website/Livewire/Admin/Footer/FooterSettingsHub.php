@@ -392,7 +392,7 @@ class FooterSettingsHub extends Component
     {
         return [
             'midnight' => ['name' => 'Midnight', 'description' => 'Xanh đen hiện đại', 'background' => '#111827', 'heading' => '#ffffff', 'foreground' => '#cbd5e1', 'muted' => '#94a3b8', 'accent' => '#38bdf8', 'border' => '#334155'],
-            'emerald' => ['name' => 'Emerald', 'description' => 'Xanh lá doanh nghiệp', 'background' => '#0f513f', 'heading' => '#ffffff', 'foreground' => '#d1e7df', 'muted' => '#b3d5c9', 'accent' => '#34d399', 'border' => '#367c67'],
+            'emerald' => ['name' => 'Emerald', 'description' => 'Xanh lá doanh nghiệp', 'background' => '#0f513f', 'heading' => '#ffffff', 'foreground' => '#f0fdf4', 'muted' => '#d1fae5', 'accent' => '#34d399', 'border' => '#527f70'],
             'ocean' => ['name' => 'Ocean', 'description' => 'Xanh dương tin cậy', 'background' => '#102a43', 'heading' => '#ffffff', 'foreground' => '#d9e8f4', 'muted' => '#a9c5da', 'accent' => '#60a5fa', 'border' => '#335772'],
             'charcoal' => ['name' => 'Charcoal', 'description' => 'Xám đậm tối giản', 'background' => '#20252b', 'heading' => '#ffffff', 'foreground' => '#d1d5db', 'muted' => '#a6afb8', 'accent' => '#fbbf24', 'border' => '#454d57'],
             'light' => ['name' => 'Clean Light', 'description' => 'Nền sáng thanh lịch', 'background' => '#f8fafc', 'heading' => '#0f172a', 'foreground' => '#334155', 'muted' => '#64748b', 'accent' => '#2563eb', 'border' => '#cbd5e1'],
@@ -408,6 +408,8 @@ class FooterSettingsHub extends Component
         }
         $this->presentation = $presentationService->resolve(array_replace($this->presentation, [
             'inherit_colors' => false,
+            'accent' => false,
+            'border' => false,
             'colors' => array_intersect_key($definition, array_flip(['background', 'heading', 'foreground', 'muted', 'accent', 'border'])),
         ]));
         $this->dispatchThemeToast('Đã nạp giao diện '.$definition['name'].' vào bản xem trước. Bấm Lưu giao diện để áp dụng.');

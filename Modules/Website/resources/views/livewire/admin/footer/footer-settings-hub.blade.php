@@ -178,22 +178,14 @@
         @endforeach
     </div>
 
-    <section x-show="footerPanel === 'preview'" x-cloak>
-        <div class="mb-4 rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-slate-700">Xem trước Footer trên Desktop và Mobile trước khi lưu bố cục.</div>
-        @include('Website::livewire.admin.footer.partials.builder-preview')
-        <div class="mt-4 flex justify-end">
-            <button type="button" wire:click="saveBuilder" wire:loading.attr="disabled" wire:target="saveBuilder" class="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">Lưu bố cục & giao diện</button>
-        </div>
-    </section>
-
     <section x-show="footerPanel === 'style' || footerPanel === 'preview'" x-cloak class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
         <div class="mb-4">
             <h3 class="font-semibold text-slate-900">Thư viện giao diện Footer</h3>
-            <p class="mt-1 text-sm text-slate-500">Chọn một mẫu có sẵn để đổi màu Footer. Theme đã lưu riêng vẫn nằm trong phần quản lý bên dưới. Chỉ áp dụng lên Website sau khi bấm Lưu giao diện.</p>
+            <p class="mt-1 text-sm text-slate-500">5 mẫu có sẵn, không phụ thuộc danh sách theme cá nhân đã lưu. Chọn mẫu để đổi màu Footer. Theme đã lưu riêng vẫn nằm trong phần quản lý bên dưới. Chỉ áp dụng lên Website sau khi bấm Lưu giao diện.</p>
         </div>
         <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             @foreach($this->footerThemePresets() as $presetKey => $preset)
-                <button type="button" wire:click="applyFooterThemePreset('{{ $presetKey }}')" class="overflow-hidden rounded-xl border border-slate-200 bg-white text-left shadow-sm transition hover:border-blue-400 hover:shadow-md">
+                <button type="button" wire:click="applyFooterThemePreset('{{ $presetKey }}')" class="overflow-hidden rounded-xl border bg-white text-left transition hover:shadow-md {{ !($presentation['inherit_colors'] ?? true) && ($presentation['colors']['background'] ?? '') === $preset['background'] ? 'border-blue-500 ring-2 ring-blue-200' : 'border-slate-200' }}">
                     <div class="p-4" style="background-color: {{ $preset['background'] }}; color: {{ $preset['foreground'] }};">
                         <div class="mb-3 text-sm font-bold" style="color: {{ $preset['heading'] }};">{{ $preset['name'] }}</div>
                         <div class="mb-2 h-2 w-3/4 rounded" style="background-color: {{ $preset['foreground'] }};"></div>
@@ -203,9 +195,20 @@
                     <div class="px-3 py-2">
                         <div class="text-sm font-semibold text-slate-800">{{ $preset['name'] }}</div>
                         <div class="text-xs text-slate-500">{{ $preset['description'] }}</div>
+                        @if(!($presentation['inherit_colors'] ?? true) && ($presentation['colors']['background'] ?? '') === $preset['background'])
+                            <span class="text-xs font-semibold text-blue-700">Đang chọn</span>
+                        @endif
                     </div>
                 </button>
             @endforeach
+        </div>
+    </section>
+
+    <section x-show="footerPanel === 'preview'" x-cloak>
+        <div class="mb-4 rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-slate-700">Xem trước Footer trên Desktop và Mobile trước khi lưu bố cục.</div>
+        @include('Website::livewire.admin.footer.partials.builder-preview')
+        <div class="mt-4 flex justify-end">
+            <button type="button" wire:click="saveBuilder" wire:loading.attr="disabled" wire:target="saveBuilder" class="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">Lưu bố cục & giao diện</button>
         </div>
     </section>
 
