@@ -34,6 +34,8 @@ class HomeSettings extends Component
     public bool $editingPharmaCategories = false;
     public array $pharmaCategoryCard = [];
     public array $pharmaCategoryIconChoices = [];
+    public string $selectedCategoryIconId = '';
+    public string $selectedCategoryIconValue = '';
     public bool $pharmaCategoryCardEnabled = false;
     public bool $pharmaOnlyCategoriesWithProducts = true;
     public bool $editingPharmaProductFilters = false;
@@ -104,6 +106,8 @@ class HomeSettings extends Component
         $this->pharmaCategoryCardEnabled = isset($this->pharmaCategoryDisplay['card_design']);
         $this->pharmaCategoryCard = app(PharmaCategoryCardStyle::class)->normalize($this->pharmaCategoryDisplay['card_design'] ?? []);
         $this->pharmaCategoryIconChoices = Category::query()->ofType('medicine')->active()->orderBy('name')->pluck('name', 'id')->all();
+        $this->selectedCategoryIconId = '';
+        $this->selectedCategoryIconValue = '';
         $this->pharmaBlogSections = (array) $settings->get('website.pharma_homepage.blog_sections', []);
         $this->pharmaBlogSections = array_replace(['blog' => $this->defaultPharmaBlogSection()], $this->pharmaBlogSections);
         $this->pharmaProductSections = (array) $settings->get('website.pharma_homepage.product_sections', []);
@@ -266,6 +270,26 @@ class HomeSettings extends Component
         $this->editingPharmaCategories = false;
         $this->editingPharmaProductSection = null;
         $this->editingPharmaBlogSection = null;
+    }
+
+    public function updatedSelectedCategoryIconId(): void
+    {
+        $this->selectedCategoryIconValue = (string) ($this->pharmaCategoryCard['icons_by_category'][$this->selectedCategoryIconId] ?? '');
+    }
+
+    public function updatedSelectedCategoryIconValue(): void
+    {
+        $id = $this->selectedCategoryIconId;
+        if (! ctype_digit($id) || ! array_key_exists((int) $id, $this->pharmaCategoryIconChoices)) {
+            return;
+        }
+
+        $allowed = ['medical', 'heart', 'shield', 'pill', 'cross', 'leaf', 'none'];
+        if ($this->selectedCategoryIconValue === '') {
+            unset($this->pharmaCategoryCard['icons_by_category'][$id]);
+        } elseif (in_array($this->selectedCategoryIconValue, $allowed, true)) {
+            $this->pharmaCategoryCard['icons_by_category'][$id] = $this->selectedCategoryIconValue;
+        }
     }
 
     public function resetPharmaCategoryCard(): void

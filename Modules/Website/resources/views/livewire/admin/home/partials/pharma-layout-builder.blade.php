@@ -297,7 +297,7 @@ foreach($pharmaProductSections as $key => $config) {
                             <input type="number" min="{{ $field[1] }}" max="{{ $field[2] }}" wire:model.live.debounce.300ms="pharmaCategoryCard.{{ $key }}" class="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2">
                         </label>
                     @endforeach
-                    @foreach(['accent'=>'Màu chủ đạo','background'=>'Nền Card','text_color'=>'Màu chữ','border_color'=>'Màu viền'] as $key=>$label)
+                    @foreach(['accent'=>'Màu chủ đạo','background'=>'Nền Card','text_color'=>'Màu chữ','border_color'=>'Màu viền','icon_color'=>'Màu icon','icon_background'=>'Nền icon'] as $key=>$label)
                         <label class="text-sm font-medium">{{ $label }}<input type="color" wire:model.live="pharmaCategoryCard.{{ $key }}" class="mt-1 block h-10 w-full rounded-lg border border-gray-300 bg-white p-1"></label>
                     @endforeach
                 </div>
@@ -310,18 +310,24 @@ foreach($pharmaProductSections as $key => $config) {
                 </label>
                 <div class="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-3">
                     <h5 class="text-sm font-semibold text-gray-900">Icon riêng theo danh mục</h5>
-                    <p class="mt-1 text-xs text-gray-500">Chỉ ghi đè icon; các thông số Card vẫn dùng chung.</p>
+                    <p class="mt-1 text-xs text-gray-500">Chọn danh mục và icon tương ứng. Những danh mục khác giữ nguyên thiết lập đã lưu.</p>
                     <div class="mt-3 grid gap-3 sm:grid-cols-2">
-                        @foreach($pharmaCategoryIconChoices as $categoryId => $categoryName)
-                            <label class="block text-xs font-medium text-gray-700">{{ $categoryName }}
-                                <select wire:model.live="pharmaCategoryCard.icons_by_category.{{ $categoryId }}" class="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-2 py-2 text-sm">
-                                    <option value="">Dùng icon chung</option>
-                                    @foreach(['medical'=>'Y tế','heart'=>'Trái tim','shield'=>'Bảo vệ','pill'=>'Viên thuốc','cross'=>'Dấu cộng','leaf'=>'Lá cây','none'=>'Ẩn icon'] as $value=>$label)
-                                        <option value="{{ $value }}">{{ $label }}</option>
-                                    @endforeach
-                                </select>
-                            </label>
-                        @endforeach
+                        <label class="block text-sm font-medium text-gray-700">Danh mục
+                            <select wire:model.live="selectedCategoryIconId" class="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2">
+                                <option value="">Chọn danh mục</option>
+                                @foreach($pharmaCategoryIconChoices as $categoryId => $categoryName)
+                                    <option value="{{ $categoryId }}">{{ $categoryName }}</option>
+                                @endforeach
+                            </select>
+                        </label>
+                        <label class="block text-sm font-medium text-gray-700">Icon của danh mục
+                            <select wire:model.live="selectedCategoryIconValue" wire:key="category-icon-picker-{{ $selectedCategoryIconId ?: 'none' }}" @disabled(!$selectedCategoryIconId) class="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2">
+                                <option value="">Dùng icon chung</option>
+                                @foreach(['medical'=>'Y tế','heart'=>'Trái tim','shield'=>'Bảo vệ','pill'=>'Viên thuốc','cross'=>'Dấu cộng','leaf'=>'Lá cây','none'=>'Ẩn icon'] as $value=>$label)
+                                    <option value="{{ $value }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </label>
                     </div>
                 </div>
                 <div class="mt-4 flex flex-wrap gap-4">

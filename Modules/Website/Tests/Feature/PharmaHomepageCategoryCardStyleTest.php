@@ -27,6 +27,9 @@ class PharmaHomepageCategoryCardStyleTest extends TestCase
         $this->assertSame('medical', $service->normalize(['icon' => '<script>'])['icon']);
         $this->assertSame('pill', $service->normalize(['icon' => 'pill'])['icon']);
         $this->assertStringNotContainsString('evil', $service->css($result));
+        $contrast = $service->normalize(['icon_color'=>'#047857','icon_background'=>'#047857']);
+        $this->assertNotSame($contrast['icon_color'], $contrast['icon_background']);
+        $this->assertStringContainsString('--category-icon-bg:', $service->css($contrast));
     }
 
     public function test_homepage_uses_saved_card_design_only_when_present(): void
@@ -47,6 +50,10 @@ class PharmaHomepageCategoryCardStyleTest extends TestCase
         $this->assertStringContainsString("['card_design']", $livewire);
         $this->assertStringContainsString("\$validated['pharmaCategoryDisplay']['card_design'] = app(PharmaCategoryCardStyle::class)->normalize(\$this->pharmaCategoryCard)", $livewire);
         $this->assertStringContainsString('pharmaCategoryCard.icon', $blade);
+        $this->assertStringContainsString('selectedCategoryIconId', $blade);
+        $this->assertStringContainsString('selectedCategoryIconValue', $blade);
+        $this->assertStringContainsString('icon_background', $blade);
+        $this->assertStringContainsString('updatedSelectedCategoryIconValue', $livewire);
         $this->assertStringContainsString("partials.pharma-category-card-v2", $blade);
         $this->assertStringContainsString("partials.pharma-category-card-v2", file_get_contents(base_path('Modules/Website/resources/views/pages/home/pharma.blade.php')));
     }
