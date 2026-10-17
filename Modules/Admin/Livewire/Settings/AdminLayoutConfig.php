@@ -259,8 +259,15 @@ class AdminLayoutConfig extends Component
         $this->config = $manager->config();
         $this->dispatch('admin-layout-updated');
 
-        if (in_array($this->section, ['general', 'header', 'sidebar', 'footer'], true)) {
-            $messages = ['general' => 'Thiết lập Layout tổng thể đã được lưu và áp dụng.', 'header' => 'Thiết lập Header đã được lưu và áp dụng.', 'sidebar' => 'Thiết lập Sidebar đã được lưu và áp dụng.', 'footer' => 'Thiết lập Footer đã được lưu và áp dụng.'];
+        if ($this->section === 'sidebar') {
+            // Keep the Alpine tab, URL fragment and scroll position after saving.
+            // A full-page redirect would reset the editor to its initial tab.
+            $this->dispatch('notify', type: 'success', title: 'Đã lưu Sidebar', message: 'Thiết lập Sidebar đã được lưu và áp dụng.', duration: 2400);
+            return;
+        }
+
+        if (in_array($this->section, ['general', 'header', 'footer'], true)) {
+            $messages = ['general' => 'Thiết lập Layout tổng thể đã được lưu và áp dụng.', 'header' => 'Thiết lập Header đã được lưu và áp dụng.', 'footer' => 'Thiết lập Footer đã được lưu và áp dụng.'];
             session()->flash('success', $messages[$this->section]);
             $this->redirect(url()->previous(), navigate: false);
             return;
