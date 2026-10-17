@@ -57,12 +57,17 @@ class PharmaCategoryCardStyle
                 $v['icon_color'] = $b > 0.18 ? '#000000' : '#ffffff';
             }
         }
+        $cardBackground = $v['preset'] === 'premium' ? $v['accent'] : ($v['preset'] === 'clean' ? '#ffffff' : ($v['preset'] === 'soft' ? '#f0fdf8' : $v['background']));
+        $bgLum = $contrast($cardBackground);
+        $v['control_foreground'] = $bgLum > 0.18 ? '#064e3b' : '#ffffff';
+        $v['control_background'] = $bgLum > 0.18 ? '#d1fae5' : 'rgba(255,255,255,0.20)';
+        $v['control_border'] = $bgLum > 0.18 ? '#a7f3d0' : 'rgba(255,255,255,0.45)';
         return $v;
     }
 
     public function css(mixed $input): string
     {
         $v=$this->normalize($input);
-        return '--category-icon-color:'.$v['icon_color'].';--category-icon-bg:'.$v['icon_background'].';--category-icon-size:'.$v['icon_size'].'px;--category-card-font:'.$v['font_size'].'px;--category-card-radius:'.$v['radius'].'px;--category-card-padding:'.$v['padding'].'px;--category-card-height:'.$v['min_height'].'px;--category-card-gap:'.$v['gap'].'px;--category-card-accent:'.$v['accent'].';--category-card-bg:'.$v['background'].';--category-card-text:'.$v['text_color'].';--category-card-border:'.$v['border_color'].';';
+        return '--category-control-fg:'.$v['control_foreground'].';--category-control-bg:'.$v['control_background'].';--category-control-border:'.$v['control_border'].';--category-icon-color:'.$v['icon_color'].';--category-icon-bg:'.$v['icon_background'].';--category-icon-size:'.$v['icon_size'].'px;--category-card-font:'.$v['font_size'].'px;--category-card-radius:'.$v['radius'].'px;--category-card-padding:'.$v['padding'].'px;--category-card-height:'.$v['min_height'].'px;--category-card-gap:'.$v['gap'].'px;--category-card-accent:'.$v['accent'].';--category-card-bg:'.$v['background'].';--category-card-text:'.$v['text_color'].';--category-card-border:'.$v['border_color'].';';
     }
 }

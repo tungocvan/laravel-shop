@@ -9,9 +9,9 @@
 .pharma-category-card-custom[data-icon-shadow="1"] .pharma-category-card-icon{box-shadow:0 2px 7px rgba(15,23,42,.11)}
 .pharma-category-card-custom .pharma-category-card-content{display:flex;flex-direction:column;gap:5px;flex:1;min-width:0}
 .pharma-category-card-custom .pharma-category-card-name{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;line-height:1.45;font-size:inherit;font-weight:650;word-break:normal;overflow-wrap:normal;hyphens:none;color:inherit}
-.pharma-category-card-custom .pharma-category-card-count{display:inline-flex;align-items:center;flex:0 0 auto;font-size:12px;font-weight:600;white-space:nowrap;line-height:1.35;color:var(--category-card-accent)}
-.pharma-category-card-custom .pharma-category-card-count[data-count-style="badge"]{border-radius:999px;padding:5px 10px;background:#ecfdf5}
-.pharma-category-card-custom .pharma-category-card-arrow{display:block;width:20px;height:20px;flex:0 0 20px;color:var(--category-card-accent)}
+.pharma-category-card-custom .pharma-category-card-count{display:inline-flex;align-items:center;flex:0 0 auto;font-size:12px;font-weight:600;white-space:nowrap;line-height:1.35;color:var(--category-control-fg)}
+.pharma-category-card-custom .pharma-category-card-count[data-count-style="badge"]{border-radius:999px;padding:5px 10px;background:var(--category-control-bg);border:1px solid var(--category-control-border)}
+.pharma-category-card-custom .pharma-category-card-arrow{display:block;width:20px;height:20px;flex:0 0 20px;color:var(--category-control-fg)}
 .pharma-category-card-custom[data-layout="horizontal"]{flex-direction:row;align-items:center;justify-content:flex-start}
 .pharma-category-card-custom[data-layout="horizontal"] .pharma-category-card-top{width:auto;flex:0 0 auto}
 .pharma-category-card-custom[data-layout="horizontal"] .pharma-category-card-bottom{flex:1;min-width:0}
@@ -20,8 +20,8 @@
 .pharma-category-card-custom[data-preset="clean"]{background:#fff;color:#0f172a;border-color:#dbe5e7;box-shadow:0 2px 7px rgba(15,23,42,.04)}
 .pharma-category-card-custom[data-preset="premium"]{background:var(--category-card-accent);color:#fff;border-color:var(--category-card-accent)}
 .pharma-category-card-custom[data-preset="premium"] .pharma-category-card-icon{background:var(--category-icon-bg);color:var(--category-icon-color)}
-.pharma-category-card-custom[data-preset="premium"] .pharma-category-card-count,.pharma-category-card-custom[data-preset="premium"] .pharma-category-card-arrow{color:#fff}
-.pharma-category-card-custom[data-preset="premium"] .pharma-category-card-count[data-count-style="badge"]{background:rgba(255,255,255,.18)}
+.pharma-category-card-custom[data-preset="premium"] .pharma-category-card-count,.pharma-category-card-custom[data-preset="premium"] .pharma-category-card-arrow{color:var(--category-control-fg)}
+.pharma-category-card-custom[data-preset="premium"] .pharma-category-card-count[data-count-style="badge"]{background:var(--category-control-bg)}
 .pharma-category-card-custom[data-preset="soft"]{background:#f0fdf8;color:#064e3b;border-color:#bbebd6}
 .pharma-category-card-custom[data-preset="soft"] .pharma-category-card-icon{background:var(--category-icon-bg)}
 @media(max-width:639px){.pharma-category-card-custom{padding:min(var(--category-card-padding),16px)}.pharma-category-grid-custom[data-mobile-columns="2"] .pharma-category-card-custom{min-height:150px}.pharma-category-grid-custom[data-mobile-columns="2"] .pharma-category-card-custom[data-layout="horizontal"]{flex-direction:column;align-items:stretch}}

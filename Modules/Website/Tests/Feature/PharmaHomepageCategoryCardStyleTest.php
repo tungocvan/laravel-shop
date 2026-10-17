@@ -30,6 +30,9 @@ class PharmaHomepageCategoryCardStyleTest extends TestCase
         $contrast = $service->normalize(['icon_color'=>'#047857','icon_background'=>'#047857']);
         $this->assertNotSame($contrast['icon_color'], $contrast['icon_background']);
         $this->assertStringContainsString('--category-icon-bg:', $service->css($contrast));
+        $this->assertSame('#ffffff', $service->normalize(['preset'=>'premium','accent'=>'#047857'])['control_foreground']);
+        $this->assertSame('#064e3b', $service->normalize(['preset'=>'premium','accent'=>'#ffffff'])['control_foreground']);
+        $this->assertStringContainsString('--category-control-fg:', $service->css(['preset'=>'premium']));
     }
 
     public function test_homepage_uses_saved_card_design_only_when_present(): void
