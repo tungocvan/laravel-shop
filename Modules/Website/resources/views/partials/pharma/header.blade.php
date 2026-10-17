@@ -198,19 +198,25 @@
                     <aside id="pharma-mobile-menu" x-show="menuOpen" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full" role="dialog" aria-modal="true" aria-label="Menu điều hướng Pharma" class="absolute inset-y-0 right-0 flex h-full w-[min(88vw,360px)] flex-col overflow-hidden bg-white text-slate-900 shadow-2xl" style="--pharma-header-accent: {{ $accent }};">
                         <div class="shrink-0 border-b border-slate-100 bg-white px-4 py-4">
                             <div class="flex min-w-0 items-center gap-3">
-                                <a href="{{ route('home') }}" class="flex min-w-0 flex-1 items-center gap-3" aria-label="{{ $companyName }} - về trang chủ">
-                                    <span class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-100 bg-slate-50">
-                                        @if($brandLogoUrl)
-                                            <img src="{{ $brandLogoUrl }}" alt="" class="h-full w-full object-contain">
-                                        @else
-                                            <span class="flex h-full w-full items-center justify-center text-xl font-bold text-white" style="background:var(--pharma-header-accent)" aria-hidden="true">{{ mb_substr($companyName, 0, 1) }}</span>
+                                <div class="flex min-w-0 flex-1 items-center gap-3">
+                                    @if(in_array($brandAppearance['visibility']['logo'], ['both', 'mobile'], true))
+                                        <a href="{{ route('home') }}" class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-100 bg-slate-50" aria-label="{{ $companyName }} - về trang chủ">
+                                            @if($brandLogoUrl)
+                                                <img src="{{ $brandLogoUrl }}" alt="{{ $companyName }}" class="h-full w-full object-contain">
+                                            @else
+                                                <span class="flex h-full w-full items-center justify-center text-xl font-bold text-white" style="background:var(--pharma-header-accent)">{{ mb_substr($companyName, 0, 1) }}</span>
+                                            @endif
+                                        </a>
+                                    @endif
+                                    <span class="flex min-w-0 flex-1 flex-col">
+                                        @if(in_array($brandAppearance['visibility']['name'], ['both', 'mobile'], true))
+                                            <span class="line-clamp-2 break-words leading-snug" style="{{ $brandTextStyle('name', 'mobile') }}">{{ $companyName }}</span>
+                                        @endif
+                                        @if(in_array($brandAppearance['visibility']['slogan'], ['both', 'mobile'], true) && trim($brandAppearance['slogan']) !== '')
+                                            <span class="mt-0.5 break-words leading-snug" style="{{ $brandTextStyle('slogan', 'mobile') }}">{{ $brandAppearance['slogan'] }}</span>
                                         @endif
                                     </span>
-                                    <span class="min-w-0 flex-1">
-                                        <span class="block line-clamp-2 break-words text-[13px] font-extrabold leading-snug text-slate-900">{{ $companyName }}</span>
-                                        <span class="mt-0.5 block text-[11px] font-medium text-slate-500">Dược phẩm &amp; chăm sóc sức khỏe</span>
-                                    </span>
-                                </a>
+                                </div>
                                 <button type="button" @click="menuOpen = false" aria-label="Đóng menu" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 transition hover:bg-slate-100 active:scale-[0.985] focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-600 motion-reduce:transform-none">
                                     <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
                                 </button>
