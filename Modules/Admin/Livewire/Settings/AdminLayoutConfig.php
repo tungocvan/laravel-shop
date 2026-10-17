@@ -267,6 +267,30 @@ class AdminLayoutConfig extends Component
         $this->dispatch('notify', type: 'info', title: 'Đã nạp profile', message: 'Kiểm tra bản xem trước và nhấn Lưu Sidebar để áp dụng.', duration: 2400);
     }
 
+    public function deleteSidebarVisualPreset(string $key, AdminLayoutManager $manager): void
+    {
+        abort_unless($this->section === 'sidebar', 404);
+        $this->authorizePermission($this->updatePermission());
+
+        // Only persisted custom profiles may be removed. Built-in JSON profiles
+        // are intentionally immutable and cannot be deleted through this action.
+        $payload = $manager->config();
+        $custom = (array) data_get($payload, 'sidebar.visual_presets', []);
+        abort_unless(array_key_exists($key, $custom), 404);
+
+        unset($custom[$key]);
+        data_set($payload, 'sidebar.visual_presets', $custom);
+        $manager->save($payload);
+        data_set($this->config, 'sidebar.visual_presets', $custom);
+
+        if ($this->selectedSidebarPresetKey === $key) {
+            $this->selectedSidebarPresetKey = null;
+        }
+
+        // Do not touch the active sidebar presentation or design configuration.
+        $this->dispatch('notify', type: 'success', title: 'Đã xóa profile', message: 'Profile tùy chỉnh đã được xóa. Sidebar hiện tại không thay đổi.', duration: 2400);
+    }
+
     public function saveSidebarVisualPreset(AdminLayoutManager $manager, bool $updateExisting = false): void
     {
         abort_unless($this->section === 'sidebar', 404);
