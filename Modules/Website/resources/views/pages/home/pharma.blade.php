@@ -95,14 +95,14 @@
                             @if($hero['description'] !== '')
                             <p class="mt-6 max-w-2xl text-base leading-8 opacity-90">{{ $hero['description'] }}</p>
                             @endif
-                            <div class="mt-9 flex flex-wrap items-center gap-4">
-                                @if($hero['show_button'] && $hero['button_text'] !== '')
+                            @if($hero['show_button'] && $hero['button_text'] !== '')
+                            <div class="mt-9">
                                 <a href="{{ $hero['button_url'] }}" class="inline-flex items-center justify-center rounded-xl px-7 py-3.5 text-sm font-bold shadow-lg transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" style="background:{{ $hero['button_background'] }};color:{{ $hero['button_color'] }}">{{ $hero['button_text'] }} →</a>
-                                @endif
-                                @if($hero['show_caption'] && $hero['caption'] !== '')
-                                <span class="text-sm font-medium opacity-80">{{ $hero['caption'] }}</span>
-                                @endif
                             </div>
+                            @endif
+                            @if($hero['show_caption'] && $hero['caption'] !== '')
+                            <p class="mt-4 max-w-2xl text-sm font-medium leading-6 opacity-80">{{ $hero['caption'] }}</p>
+                            @endif
                         </div>
                         <div class="{{ $hero['show_illustration'] && $hero['illustration_type'] !== 'none' ? 'hidden lg:flex' : 'hidden' }} lg:col-span-5 lg:justify-center" aria-hidden="true">
                             <div class="pharma-hero-illustration relative flex items-center justify-center rounded-[3rem] border border-white/20 bg-white/10 shadow-2xl backdrop-blur-sm">
