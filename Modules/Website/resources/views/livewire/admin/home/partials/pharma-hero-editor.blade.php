@@ -6,6 +6,24 @@
         </div>
         <a href="{{ route('home') }}" target="_blank" rel="noopener" class="rounded-lg border border-emerald-300 px-3 py-2 text-sm font-semibold text-emerald-800">Xem trang chủ ↗</a>
     </div>
+    <div class="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <div>
+                <h3 class="text-sm font-bold text-emerald-950">Thư viện Banner Themes</h3>
+                <p class="text-xs text-emerald-800">Chỉ áp dụng màu sắc, font và khoảng cách. Giữ nguyên tiêu đề, mô tả, CTA và ảnh. Sau khi chọn mẫu, nhấn Lưu Hero Banner.</p>
+            </div>
+            <a href="{{ route('admin.banners') }}" target="_blank" rel="noopener" class="text-xs font-semibold text-emerald-800 underline">Quản lý Banner ↗</a>
+        </div>
+        <div class="grid gap-3 sm:grid-cols-[1fr_auto]">
+            <select wire:model="pharmaHeroThemeId" class="w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm">
+                @foreach(app(\Modules\Website\Services\BannerThemeLibrary::class)->all() as $themeId => $theme)
+                    <option value="{{ $themeId }}">{{ $theme['name'] }} — {{ $theme['description'] }}</option>
+                @endforeach
+            </select>
+            <button type="button" wire:click="applyPharmaHeroTheme" class="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">Áp dụng mẫu (chưa lưu)</button>
+        </div>
+        @error('pharmaHeroThemeId') <p class="mt-2 text-xs text-red-700">{{ $message }}</p> @enderror
+    </div>
     <div class="grid gap-6 xl:grid-cols-2">
         <div class="space-y-5">
             <div class="grid gap-3 sm:grid-cols-2">
