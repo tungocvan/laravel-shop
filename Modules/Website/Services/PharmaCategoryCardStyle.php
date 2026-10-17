@@ -63,6 +63,6 @@ class PharmaCategoryCardStyle
     public function css(mixed $input): string
     {
         $v=$this->normalize($input);
-        return '--category-icon-color:'.$v['icon_color'].';--category-icon-bg:'.$v['icon_background'].';--category-icon-size:.$v['icon_size'].'px;--category-card-font:'.$v['font_size'].'px;--category-card-radius:'.$v['radius'].'px;--category-card-padding:'.$v['padding'].'px;--category-card-height:'.$v['min_height'].'px;--category-card-gap:'.$v['gap'].'px;--category-card-accent:'.$v['accent'].';--category-card-bg:'.$v['background'].';--category-card-text:'.$v['text_color'].';--category-card-border:'.$v['border_color'].';';
+        return '--category-icon-color:'.$v['icon_color'].';--category-icon-bg:'.$v['icon_background'].';--category-icon-size:'.$v['icon_size'].'px;--category-card-font:'.$v['font_size'].'px;--category-card-radius:'.$v['radius'].'px;--category-card-padding:'.$v['padding'].'px;--category-card-height:'.$v['min_height'].'px;--category-card-gap:'.$v['gap'].'px;--category-card-accent:'.$v['accent'].';--category-card-bg:'.$v['background'].';--category-card-text:'.$v['text_color'].';--category-card-border:'.$v['border_color'].';';
     }
 }
