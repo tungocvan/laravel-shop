@@ -343,10 +343,19 @@ foreach($pharmaProductSections as $key => $config) {
                         <span class="text-xs text-gray-500">4 mẫu tên ngắn/dài · Chung CSS với Website</span>
                     </div>
                     <div class="pharma-category-v2-preview-grid" data-preview-columns="{{ $preview['mobile_columns'] }}" data-preview-tablet="{{ $preview['tablet_columns'] }}">
-                        @foreach([['Dược phẩm',1],['Tim mạch – Huyết áp',3],['Thuốc điều trị tăng huyết áp',6],['Kháng sinh – Kháng khuẩn',2]] as $sample)
+                        @php
+                            $previewCategoryIds = array_keys($pharmaCategoryIconChoices);
+                            if ($selectedCategoryIconId !== '' && array_key_exists((int) $selectedCategoryIconId, $pharmaCategoryIconChoices)) {
+                                $previewCategoryIds = array_values(array_unique(array_merge([(int) $selectedCategoryIconId], $previewCategoryIds)));
+                            }
+                            $previewCategoryIds = array_slice($previewCategoryIds, 0, 4);
+                        @endphp
+                        @foreach($previewCategoryIds as $previewIndex => $previewCategoryId)
                             @include('Website::partials.pharma-category-card-v2', [
-                                'cardName' => $sample[0], 'cardCount' => $sample[1],
+                                'cardName' => $pharmaCategoryIconChoices[$previewCategoryId],
+                                'cardCount' => [1, 3, 6, 2][$previewIndex],
                                 'cardDesign' => $preview,
+                                'cardIcon' => $preview['icons_by_category'][$previewCategoryId] ?? $preview['icon'],
                                 'cardCss' => app(\Modules\Website\Services\PharmaCategoryCardStyle::class)->css($preview),
                                 'cardPreview' => true,
                             ])

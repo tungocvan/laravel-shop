@@ -55,6 +55,9 @@ class PharmaHomepageCategoryCardStyleTest extends TestCase
         $this->assertStringContainsString('pharmaCategoryCard.icon', $blade);
         $this->assertStringContainsString('selectedCategoryIconId', $blade);
         $this->assertStringContainsString('selectedCategoryIconValue', $blade);
+        $this->assertStringContainsString('array_keys($pharmaCategoryIconChoices)', $blade);
+        $this->assertStringContainsString("'cardIcon' => \$preview['icons_by_category'][\$previewCategoryId] ?? \$preview['icon']", $blade);
+        $this->assertStringNotContainsString("@foreach([['Dược phẩm',1]", $blade);
         $this->assertStringContainsString('icon_background', $blade);
         $this->assertStringContainsString('updatedSelectedCategoryIconValue', $livewire);
         $this->assertStringContainsString("partials.pharma-category-card-v2", $blade);
