@@ -261,6 +261,9 @@ class AdminLayoutConfig extends Component
                 ])['sidebar_menu']);
             }
         }
+        // Legacy snapshots can contain stale submenu colors. Apply the selected
+        // palette last so Normal/Hover/Active remain readable after import.
+        $this->applySidebarVisualPreset($key);
         $this->dispatch('notify', type: 'info', title: 'Đã nạp profile', message: 'Kiểm tra bản xem trước và nhấn Lưu Sidebar để áp dụng.', duration: 2400);
     }
 
