@@ -22,6 +22,21 @@
     $headerWidth = $presentation['container_width'] ?? null;
     $searchWidth = (int) ($presentation['custom']['search_max_width'] ?? 560);
     $brandHeight = (int) ($presentation['custom']['logo_max_height'] ?? 48);
+    $brandService = app(\Modules\Website\Services\PharmaBrandAppearanceService::class);
+    $brandAppearance = $brandService->resolve($settings->get('website.pharma_header.brand_appearance'));
+    $brandVisibilityClass = static fn (string $part): string => match ($brandAppearance['visibility'][$part] ?? 'both') {
+        'desktop' => 'hidden lg:inline-flex',
+        'mobile' => 'inline-flex lg:hidden',
+        'hidden' => 'hidden',
+        default => 'inline-flex',
+    };
+    $brandTextStyle = static fn (string $part, string $device): string => sprintf(
+        'font-family:%s;font-size:%dpx;font-weight:%s;color:%s',
+        $brandAppearance['typography'][$device][$part]['font_family'],
+        $brandAppearance['typography'][$device][$part]['font_size'],
+        $brandAppearance['typography'][$device][$part]['font_weight'],
+        $brandAppearance['typography'][$device][$part]['color']
+    );
     $accountConfig = $settings->get('website.pharma_header.account', []);
     $topbarConfig = $settings->get('website.pharma_header.topbar', []);
     $topbarConfig = is_array($topbarConfig) ? $topbarConfig : [];
@@ -93,20 +108,33 @@
             @endif
         @endforeach
     @endif
-    <header class="{{ ($presentation['sticky'] ?? true) ? 'sticky top-0' : 'relative' }} z-40 border-b border-slate-200" style="background:var(--pharma-header-bg);color:var(--pharma-header-text);box-shadow:{{ $shadow }}" x-data="{ menuOpen: false, quickOrderLoginPrompt: false }" @keydown.escape.window="menuOpen = false; quickOrderLoginPrompt = false" @click.capture="if ({{ auth()->guest() ? 'true' : 'false' }}) { const link = $event.target.closest('a[href]'); if (link && new URL(link.href, window.location.origin).pathname.replace(/\/$/, '') === '/quick-order') { $event.preventDefault(); $event.stopPropagation(); menuOpen = false; quickOrderLoginPrompt = true; } }">
+    <style>
+        .pharma-header-banner-gap { margin-bottom: {{ $presentation['banner_gap']['mobile'] }}px; }
+        @media (min-width: 1024px) {
+            .pharma-header-banner-gap { margin-bottom: {{ $presentation['banner_gap']['desktop'] }}px; }
+        }
+    </style>
+    <header class="{{ ($presentation['sticky'] ?? true) ? 'sticky top-0' : 'relative' }} pharma-header-banner-gap z-40 border-b border-slate-200" style="background:var(--pharma-header-bg);color:var(--pharma-header-text);box-shadow:{{ $shadow }}" x-data="{ menuOpen: false, quickOrderLoginPrompt: false }" @keydown.escape.window="menuOpen = false; quickOrderLoginPrompt = false" @click.capture="if ({{ auth()->guest() ? 'true' : 'false' }}) { const link = $event.target.closest('a[href]'); if (link && new URL(link.href, window.location.origin).pathname.replace(/\/$/, '') === '/quick-order') { $event.preventDefault(); $event.stopPropagation(); menuOpen = false; quickOrderLoginPrompt = true; } }">
         <div class="mx-auto flex w-full min-w-0 items-center gap-2 px-3 py-3 sm:gap-3 sm:px-6 lg:gap-6 lg:px-8" style="max-width:{{ $headerWidth ? $headerWidth.'px' : '1280px' }};min-height:{{ (int)($presentation['heights']['desktop'] ?? 80) }}px">
             @foreach(['desktop.main.left','desktop.main.center','desktop.main.right'] as $slot)
                 <div class="{{ $mobileSlotVisible[$slot] ? 'flex' : 'hidden lg:flex' }} {{ $slot === 'desktop.main.left' ? 'min-w-0 flex-1 items-center lg:flex-none' : ($slot === 'desktop.main.center' ? 'min-w-0 items-center justify-center gap-5 lg:flex-1' : 'min-w-0 items-center justify-end gap-4 lg:ml-auto') }}">
                 @foreach($headerLayout[$slot] ?? [] as $component)
                     @if($component['type'] === 'brand')
-                        <a href="{{ route('home') }}" class="{{ $visibilityClass($component['visibility'] ?? 'desktop') }} min-w-0 max-w-full items-center gap-2 sm:gap-3" aria-label="Về trang chủ">
-                            @if($brandLogoUrl)
-                                <img src="{{ $brandLogoUrl }}" alt="{{ $companyName }}" class="w-auto max-w-[96px] shrink-0 object-contain sm:max-w-40" style="max-height:{{ $brandHeight }}px">
-                            @else
-                                <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-2xl font-bold text-white shadow-sm" style="background:var(--pharma-header-accent);max-height:{{ $brandHeight }}px" aria-hidden="true">{{ mb_substr($companyName, 0, 1) }}</span>
-                            @endif
-                            <span class="min-w-0 max-w-[130px] sm:max-w-none"><span class="block line-clamp-2 break-words text-[11px] font-extrabold leading-tight sm:truncate sm:text-lg">{{ $companyName }}</span><span class="hidden text-xs font-medium sm:block" style="color:var(--pharma-header-accent)">Danh mục và thông tin dược phẩm</span></span>
-                        </a>
+                        <div class="{{ $visibilityClass($component['visibility'] ?? 'desktop') }} min-w-0 max-w-full items-center gap-2 sm:gap-3">
+                            <a href="{{ route('home') }}" class="{{ $brandVisibilityClass('logo') }} shrink-0 items-center" aria-label="{{ $companyName }} - Trang chủ">
+                                @if($brandLogoUrl)
+                                    <img src="{{ $brandLogoUrl }}" alt="{{ $companyName }}" class="w-auto max-w-[96px] object-contain sm:max-w-40" style="max-height:{{ $brandHeight }}px">
+                                @else
+                                    <span class="flex h-11 w-11 items-center justify-center rounded-xl text-2xl font-bold text-white" style="background:var(--pharma-header-accent)">{{ mb_substr($companyName, 0, 1) }}</span>
+                                @endif
+                            </a>
+                            <span class="flex min-w-0 max-w-[130px] flex-col sm:max-w-none">
+                                @foreach(['name' => $companyName, 'slogan' => $brandAppearance['slogan']] as $part => $brandText)
+                                    <span class="{{ trim($brandText) !== '' && in_array($brandAppearance['visibility'][$part], ['both', 'mobile'], true) ? 'block lg:hidden' : 'hidden' }} min-w-0 break-words leading-tight" style="{{ $brandTextStyle($part, 'mobile') }}">{{ $brandText }}</span>
+                                    <span class="{{ trim($brandText) !== '' && in_array($brandAppearance['visibility'][$part], ['both', 'desktop'], true) ? 'hidden lg:block' : 'hidden' }} min-w-0 break-words leading-tight" style="{{ $brandTextStyle($part, 'desktop') }}">{{ $brandText }}</span>
+                                @endforeach
+                            </span>
+                        </div>
                     @elseif($component['type'] === 'actions')
                         <nav aria-label="Điều hướng Pharma" class="{{ $visibilityClass($component['visibility'] ?? 'desktop') }} flex-wrap items-center justify-center gap-y-2" style="column-gap:{{ $desktopMenuStyle['item_gap'] }}px;font-family:{{ $desktopMenuStyle['font_family'] }};font-size:{{ $desktopMenuStyle['font_size'] }}px;font-weight:{{ $desktopMenuStyle['font_weight'] }};color:{{ $desktopMenuStyle['text_color'] }};">
                             @foreach($desktopMenu->isNotEmpty() ? $desktopMenu : $fallbackMenu as $item)
@@ -171,19 +199,25 @@
                     <aside id="pharma-mobile-menu" x-show="menuOpen" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full" role="dialog" aria-modal="true" aria-label="Menu điều hướng Pharma" class="absolute inset-y-0 right-0 flex h-full w-[min(88vw,360px)] flex-col overflow-hidden bg-white text-slate-900 shadow-2xl" style="--pharma-header-accent: {{ $accent }};">
                         <div class="shrink-0 border-b border-slate-100 bg-white px-4 py-4">
                             <div class="flex min-w-0 items-center gap-3">
-                                <a href="{{ route('home') }}" class="flex min-w-0 flex-1 items-center gap-3" aria-label="{{ $companyName }} - về trang chủ">
-                                    <span class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-100 bg-slate-50">
-                                        @if($brandLogoUrl)
-                                            <img src="{{ $brandLogoUrl }}" alt="" class="h-full w-full object-contain">
-                                        @else
-                                            <span class="flex h-full w-full items-center justify-center text-xl font-bold text-white" style="background:var(--pharma-header-accent)" aria-hidden="true">{{ mb_substr($companyName, 0, 1) }}</span>
+                                <div class="flex min-w-0 flex-1 items-center gap-3">
+                                    @if(in_array($brandAppearance['visibility']['logo'], ['both', 'mobile'], true))
+                                        <a href="{{ route('home') }}" class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-100 bg-slate-50" aria-label="{{ $companyName }} - về trang chủ">
+                                            @if($brandLogoUrl)
+                                                <img src="{{ $brandLogoUrl }}" alt="{{ $companyName }}" class="h-full w-full object-contain">
+                                            @else
+                                                <span class="flex h-full w-full items-center justify-center text-xl font-bold text-white" style="background:var(--pharma-header-accent)">{{ mb_substr($companyName, 0, 1) }}</span>
+                                            @endif
+                                        </a>
+                                    @endif
+                                    <span class="flex min-w-0 flex-1 flex-col">
+                                        @if(in_array($brandAppearance['visibility']['name'], ['both', 'mobile'], true))
+                                            <span class="line-clamp-2 break-words leading-snug" style="{{ $brandTextStyle('name', 'mobile') }}">{{ $companyName }}</span>
+                                        @endif
+                                        @if(in_array($brandAppearance['visibility']['slogan'], ['both', 'mobile'], true) && trim($brandAppearance['slogan']) !== '')
+                                            <span class="mt-0.5 break-words leading-snug" style="{{ $brandTextStyle('slogan', 'mobile') }}">{{ $brandAppearance['slogan'] }}</span>
                                         @endif
                                     </span>
-                                    <span class="min-w-0 flex-1">
-                                        <span class="block line-clamp-2 break-words text-[13px] font-extrabold leading-snug text-slate-900">{{ $companyName }}</span>
-                                        <span class="mt-0.5 block text-[11px] font-medium text-slate-500">Dược phẩm &amp; chăm sóc sức khỏe</span>
-                                    </span>
-                                </a>
+                                </div>
                                 <button type="button" @click="menuOpen = false" aria-label="Đóng menu" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 transition hover:bg-slate-100 active:scale-[0.985] focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-600 motion-reduce:transform-none">
                                     <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
                                 </button>

@@ -22,6 +22,53 @@
     <div x-show="tab === 'general'" x-cloak>
         @livewire('website.admin.header.general-settings', key('header-general-settings'))
         @if($editingTemplate === 'pharma')
+            <section class="mb-5 rounded-xl border border-slate-200 bg-white p-4 sm:p-5" x-data="{ brandDevice: 'desktop' }">
+                <h3 class="text-base font-bold text-slate-900">Thương hiệu & Slogan</h3>
+                <p class="mt-1 text-xs text-slate-500">Logo và tên thương hiệu tiếp tục dùng dữ liệu tại Thông tin chung phía trên. Slogan có thể thay đổi riêng cho Pharma.</p>
+                <label class="mt-4 block text-sm font-semibold text-slate-700">Nội dung slogan
+                    <textarea wire:model="brandAppearance.slogan" maxlength="180" rows="2" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2"></textarea>
+                </label>
+                <div class="mt-5 flex flex-wrap gap-2" role="group" aria-label="Thiết bị typography thương hiệu">
+                    <button type="button" @click="brandDevice = 'desktop'" :aria-pressed="(brandDevice === 'desktop').toString()" class="rounded-lg border border-slate-300 px-3 py-2 text-sm" :class="brandDevice === 'desktop' ? 'bg-blue-600 text-white' : 'bg-white text-slate-700'">Desktop</button>
+                    <button type="button" @click="brandDevice = 'mobile'" :aria-pressed="(brandDevice === 'mobile').toString()" class="rounded-lg border border-slate-300 px-3 py-2 text-sm" :class="brandDevice === 'mobile' ? 'bg-blue-600 text-white' : 'bg-white text-slate-700'">Mobile</button>
+                </div>
+                @foreach(['desktop' => 'Desktop', 'mobile' => 'Mobile'] as $device => $label)
+                    <div x-show="brandDevice === '{{ $device }}'" x-cloak class="mt-4 grid gap-4 md:grid-cols-2">
+                        @foreach(['name' => 'Tên thương hiệu', 'slogan' => 'Slogan'] as $part => $partLabel)
+                            <div class="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                                <h4 class="text-sm font-semibold text-slate-800">{{ $partLabel }} · {{ $label }}</h4>
+                                <label class="block text-xs font-medium">Font family
+                                    <select wire:model="brandAppearance.typography.{{ $device }}.{{ $part }}.font_family" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-2 py-2">
+                                        @foreach(['inherit' => 'Kế thừa', 'Arial, sans-serif' => 'Arial', 'Roboto, sans-serif' => 'Roboto', 'Inter, sans-serif' => 'Inter', 'system-ui, sans-serif' => 'System UI', 'Georgia, serif' => 'Georgia'] as $fontValue => $fontLabel)
+                                            <option value="{{ $fontValue }}">{{ $fontLabel }}</option>
+                                        @endforeach
+                                    </select>
+                                </label>
+                                <label class="block text-xs font-medium">Font size (px)
+                                    <input type="number" min="9" max="32" wire:model="brandAppearance.typography.{{ $device }}.{{ $part }}.font_size" class="mt-1 block w-full rounded-lg border border-slate-300 px-2 py-2">
+                                </label>
+                                <label class="block text-xs font-medium">Font weight
+                                    <select wire:model="brandAppearance.typography.{{ $device }}.{{ $part }}.font_weight" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-2 py-2">
+                                        @foreach(['400','500','600','700','800'] as $weight)
+                                            <option value="{{ $weight }}">{{ $weight }}</option>
+                                        @endforeach
+                                    </select>
+                                </label>
+                                <label class="flex items-center gap-3 text-xs font-medium">Màu chữ
+                                    <input type="color" wire:model="brandAppearance.typography.{{ $device }}.{{ $part }}.color" class="h-10 w-16 cursor-pointer">
+                                </label>
+                            </div>
+                        @endforeach
+                    </div>
+                @endforeach
+                @error('brandAppearance')<p class="mt-3 text-sm text-red-700">{{ $message }}</p>@enderror
+                <div class="mt-4 flex justify-end gap-2 border-t border-slate-100 pt-4">
+                    <button type="button" wire:click="resetBrandAppearance" class="rounded-lg border border-slate-300 px-4 py-2 text-sm">Khôi phục mặc định</button>
+                    <button type="button" wire:click="saveBrandAppearance" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Lưu thương hiệu & Slogan</button>
+                </div>
+            </section>
+        @endif
+        @if($editingTemplate === 'pharma')
             <section class="rounded-xl border border-teal-200 bg-white p-4">
                 <button type="button" @click="showTopbarSettings = !showTopbarSettings" :aria-expanded="showTopbarSettings.toString()" aria-controls="header-topbar-settings" class="flex w-full items-center justify-between gap-3 text-left text-sm font-semibold text-gray-800">
                     <span>Thanh thông tin Pharma <span class="ml-2 text-xs font-normal text-gray-500">Nội dung, liên hệ và hiển thị theo thiết bị</span></span>
@@ -174,6 +221,23 @@
             <div id="header-layout-tools" x-show="showLayoutTools" x-cloak class="mt-4">
 
         @if($editingTemplate === 'pharma')
+            <section class="mb-4 rounded-xl border border-blue-100 bg-blue-50/40 p-4" aria-label="Ẩn hiện thành phần thương hiệu">
+                <h4 class="mb-2 text-sm font-bold text-slate-800">Logo / Tên thương hiệu / Slogan — Ẩn/hiện độc lập</h4>
+                <p class="mb-3 text-xs text-slate-500">Tương thích layout brand hiện tại; thay đổi chỉ áp dụng sau khi lưu cấu hình thương hiệu ở tab Thông tin chung.</p>
+                <div class="grid gap-3 md:grid-cols-3">
+                    @foreach(['logo' => 'Logo', 'name' => 'Tên thương hiệu', 'slogan' => 'Slogan'] as $part => $partLabel)
+                        <label class="block text-xs font-semibold text-slate-700">{{ $partLabel }}
+                            <select wire:model="brandAppearance.visibility.{{ $part }}" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+                                <option value="both">Desktop + Mobile</option>
+                                <option value="desktop">Chỉ Desktop</option>
+                                <option value="mobile">Chỉ Mobile</option>
+                                <option value="hidden">Ẩn hoàn toàn</option>
+                            </select>
+                        </label>
+                    @endforeach
+                </div>
+                <button type="button" wire:click="saveBrandAppearance" class="mt-3 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white">Lưu ẩn/hiện thương hiệu</button>
+            </section>
             <div class="space-y-2" aria-label="Danh sách thành phần Header Pharma">
                 <p class="text-xs text-slate-500">Mỗi chức năng chỉ có một thành phần. Chọn thiết bị hiển thị và vị trí; Menu di động chỉ hỗ trợ Mobile.</p>
                 <p class="text-xs text-slate-500">Chọn trạng thái không tải lại giao diện. Nhấn <strong>Lưu bố cục</strong> để áp dụng và cập nhật bản xem trước.</p>
@@ -372,6 +436,26 @@
                         <option value="compact">Compact</option><option value="normal">Normal</option><option value="comfortable">Comfortable</option>
                     </select>
                 </label>
+                @if($editingTemplate === 'pharma')
+                    <div class="rounded-xl border border-blue-100 bg-blue-50/40 p-4 sm:col-span-2" aria-label="Khoảng cách Header đến Banner">
+                        <h4 class="text-sm font-bold text-slate-800">Khoảng cách Header → Banner</h4>
+                        <p class="mt-1 text-xs text-slate-500">Khoảng cách ngoài Header, không thay đổi chiều cao hoặc padding của logo và menu. Mặc định 0px.</p>
+                        <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                            <label class="block text-xs font-semibold text-slate-700">Desktop (0–120px)
+                                <input type="number" min="0" max="120" step="1" wire:model.live.debounce.300ms="presentation.banner_gap.desktop" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+                            </label>
+                            <label class="block text-xs font-semibold text-slate-700">Mobile (0–80px)
+                                <input type="number" min="0" max="80" step="1" wire:model.live.debounce.300ms="presentation.banner_gap.mobile" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+                            </label>
+                        </div>
+                        <div class="mt-3 overflow-hidden rounded-lg border border-slate-200 bg-white">
+                            <div class="bg-slate-100 px-3 py-2 text-center text-xs font-semibold text-slate-600">HEADER</div>
+                            <div class="bg-white" style="height:{{ max(0, min(120, (int) ($presentation['banner_gap']['desktop'] ?? 0))) }}px"></div>
+                            <div class="bg-emerald-100 px-3 py-2 text-center text-xs font-semibold text-emerald-800">BANNER</div>
+                        </div>
+                        <p class="mt-2 text-xs text-slate-500">Xem trước minh họa Desktop. Nhấn “Lưu bố cục” để xuất bản cả hai giá trị; Header Themes sẽ lưu theo snapshot Presentation.</p>
+                    </div>
+                @endif
                 <label class="flex items-center gap-3 rounded-lg border border-gray-200 px-4 py-3 text-sm font-medium text-gray-700"><input type="checkbox" wire:model.live="presentation.sticky" class="rounded border-gray-300 text-blue-600"> Sticky Header</label>
                 <label class="text-sm font-medium text-gray-700">Shadow
                     <select wire:model.live="presentation.shadow" class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100"><option value="none">None</option><option value="soft">Soft</option><option value="medium">Medium</option></select>

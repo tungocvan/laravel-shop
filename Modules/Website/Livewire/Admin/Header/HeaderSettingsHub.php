@@ -8,6 +8,7 @@ use Modules\System\Services\SettingsService;
 use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
 use Modules\Website\Services\HeaderComponentRegistry;
 use Modules\Website\Services\HeaderPresentationService;
+use Modules\Website\Services\PharmaBrandAppearanceService;
 
 class HeaderSettingsHub extends Component
 {
@@ -21,6 +22,7 @@ class HeaderSettingsHub extends Component
     public array $layoutThemes = [];
     public array $accountSettings = [];
     public array $topbarSettings = [];
+    public array $brandAppearance = [];
     public string $selectedTheme = '';
     public string $themeName = '';
 
@@ -77,6 +79,7 @@ class HeaderSettingsHub extends Component
         $this->themeName = '';
         $this->accountSettings = $this->normalizeAccountSettings($settingsService->get('website.pharma_header.account'));
         $this->topbarSettings = $this->normalizeTopbarSettings($settingsService->get('website.pharma_header.topbar'));
+        $this->brandAppearance = app(PharmaBrandAppearanceService::class)->resolve($settingsService->get('website.pharma_header.brand_appearance'));
         $this->resetErrorBag();
     }
 
@@ -132,6 +135,32 @@ class HeaderSettingsHub extends Component
         $this->topbarSettings = $this->normalizeTopbarSettings($this->topbarSettings);
         $settingsService->set('website.pharma_header.topbar', $this->topbarSettings, 'header', 'json');
         $this->dispatch('show-toast', [['type' => 'success', 'message' => 'Đã lưu Topbar Pharma.']]);
+    }
+
+    public function saveBrandAppearance(SettingsService $settingsService, PharmaBrandAppearanceService $service): void
+    {
+        $this->authorizeAdminPermission('website.settings.manage');
+        if ($this->editingTemplate !== 'pharma') {
+            return;
+        }
+        $this->brandAppearance = $service->resolve($this->brandAppearance);
+        $settingsService->set('website.pharma_header.brand_appearance', $this->brandAppearance, 'header', 'json');
+        $saved = $settingsService->get('website.pharma_header.brand_appearance');
+        if (! is_array($saved) || $service->resolve($saved) !== $this->brandAppearance) {
+            $this->addError('brandAppearance', 'Không thể xác nhận cấu hình thương hiệu đã lưu.');
+            return;
+        }
+        $this->resetErrorBag('brandAppearance');
+        $this->dispatch('show-toast', [['type' => 'success', 'message' => 'Đã lưu thương hiệu và slogan.']]);
+    }
+
+    public function resetBrandAppearance(PharmaBrandAppearanceService $service): void
+    {
+        $this->authorizeAdminPermission('website.settings.manage');
+        if ($this->editingTemplate !== 'pharma') {
+            return;
+        }
+        $this->brandAppearance = $service->resolve(null);
     }
 
     public function setTopbarDeviceVisibility(string $visibility): void
@@ -281,6 +310,7 @@ class HeaderSettingsHub extends Component
         $settingsService->updateMany([
             $key => $layout,
             $this->settingKey('presentation') => $presentation,
+            'website.pharma_header.brand_appearance' => app(PharmaBrandAppearanceService::class)->resolve($this->brandAppearance),
         ], 'header');
 
         // Verify actual storage read-back before reporting success.
@@ -401,6 +431,9 @@ class HeaderSettingsHub extends Component
 
         $this->loadBuilderLayout($this->safeLayout(is_array($theme['layout'] ?? null) ? $theme['layout'] : [], $registry));
         $this->presentation = $presentationService->resolve(is_array($theme['presentation'] ?? null) ? $theme['presentation'] : null);
+        if ($this->editingTemplate === 'pharma' && is_array($theme['brand_appearance'] ?? null)) {
+            $this->brandAppearance = app(PharmaBrandAppearanceService::class)->resolve($theme['brand_appearance']);
+        }
         $this->themeName = (string) ($theme['name'] ?? '');
         $this->resetErrorBag('theme');
         $this->dispatchThemeToast('Đã nạp theme vào Builder. Kiểm tra Preview rồi bấm Lưu bố cục để publish.');
@@ -488,6 +521,7 @@ class HeaderSettingsHub extends Component
             'name' => trim($name),
             'layout' => $this->safeLayout($this->builderSlots, $registry),
             'presentation' => $presentationService->resolve($this->presentation),
+            'brand_appearance' => $this->editingTemplate === 'pharma' ? app(PharmaBrandAppearanceService::class)->resolve($this->brandAppearance) : null,
             'updated_at' => now()->toIso8601String(),
         ];
     }
