@@ -51,6 +51,10 @@ class HeaderPresentationService
                 'topbar_background' => $this->color($colors['topbar_background'] ?? $input['topbar_background'] ?? '#111827', '#111827'),
                 'topbar_foreground' => $this->color($colors['topbar_foreground'] ?? $input['topbar_foreground'] ?? '#ffffff', '#ffffff'),
             ],
+            'banner_gap' => [
+                'desktop' => $this->clamp($input['banner_gap']['desktop'] ?? 0, [0, 120]),
+                'mobile' => $this->clamp($input['banner_gap']['mobile'] ?? 0, [0, 80]),
+            ],
             'menu_style' => [
                 'primary' => $this->menuStyle($input['menu_style']['primary'] ?? null, 20),
                 'mobile' => $this->menuStyle($input['menu_style']['mobile'] ?? null, 0),
