@@ -31,4 +31,16 @@ class PharmaProductCardBuilderTest extends TestCase
         $this->assertStringContainsString("'card_design' => app(", $controller);
         $this->assertStringContainsString("wire:model.live=\"pharmaProductSections.", $admin);
     }
+    public function test_responsive_grid_uses_css_breakpoints_without_inline_column_override(): void
+    {
+        $blade = file_get_contents(base_path('Modules/Website/resources/views/livewire/home/pharma-product-section.blade.php'));
+        $this->assertStringContainsString('grid-template-columns:repeat(var(--pharma-product-cols),minmax(0,1fr))', $blade);
+        $this->assertStringContainsString('[data-product-card-grid][data-mobile="1"]', $blade);
+        $this->assertStringContainsString('[data-product-card-grid][data-tablet="2"]', $blade);
+        $this->assertStringContainsString('[data-product-card-grid][data-desktop="4"]', $blade);
+        $this->assertStringNotContainsString('--pharma-product-cols:{{ $cardDesign', $blade);
+        $this->assertStringNotContainsString('attr(data-tablet', $blade);
+    }
+
+
 }

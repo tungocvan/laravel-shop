@@ -1,13 +1,23 @@
 <div>
     <style>
-        @media(min-width:640px){[data-product-card-grid]{--pharma-product-cols:attr(data-tablet number, 2)}}
-        @media(min-width:640px){[data-product-card-grid][data-tablet="1"]{--pharma-product-cols:1}[data-product-card-grid][data-tablet="2"]{--pharma-product-cols:2}[data-product-card-grid][data-tablet="3"]{--pharma-product-cols:3}}
-        @media(min-width:1024px){[data-product-card-grid][data-desktop="2"]{--pharma-product-cols:2}[data-product-card-grid][data-desktop="3"]{--pharma-product-cols:3}[data-product-card-grid][data-desktop="4"]{--pharma-product-cols:4}[data-product-card-grid][data-desktop="5"]{--pharma-product-cols:5}}
+        [data-product-card-grid][data-mobile="1"] { --pharma-product-cols: 1; }
+        [data-product-card-grid][data-mobile="2"] { --pharma-product-cols: 2; }
+        @media (min-width: 640px) {
+            [data-product-card-grid][data-tablet="1"] { --pharma-product-cols: 1; }
+            [data-product-card-grid][data-tablet="2"] { --pharma-product-cols: 2; }
+            [data-product-card-grid][data-tablet="3"] { --pharma-product-cols: 3; }
+        }
+        @media (min-width: 1024px) {
+            [data-product-card-grid][data-desktop="2"] { --pharma-product-cols: 2; }
+            [data-product-card-grid][data-desktop="3"] { --pharma-product-cols: 3; }
+            [data-product-card-grid][data-desktop="4"] { --pharma-product-cols: 4; }
+            [data-product-card-grid][data-desktop="5"] { --pharma-product-cols: 5; }
+        }
     </style>
     <p class="text-sm font-bold uppercase tracking-widest" style="color: {{ $primary }}">{{ $config['eyebrow'] }}</p>
     <h2 class="mt-2 text-3xl font-bold">{{ $config['title'] }}</h2>
     @php($cardDesign = app(\Modules\Website\Services\PharmaProductCardStyle::class)->normalize($config['card_design'] ?? []))
-    <div class="mt-8 grid" style="gap:{{ $cardDesign['gap'] }}px;grid-template-columns:repeat(var(--pharma-product-cols),minmax(0,1fr));--pharma-product-cols:{{ $cardDesign['mobile_columns'] }}" data-product-card-grid data-mobile="{{ $cardDesign['mobile_columns'] }}" data-tablet="{{ $cardDesign['tablet_columns'] }}" data-desktop="{{ $cardDesign['desktop_columns'] }}">
+    <div class="mt-8 grid" style="gap:{{ $cardDesign['gap'] }}px;grid-template-columns:repeat(var(--pharma-product-cols),minmax(0,1fr))" data-product-card-grid data-mobile="{{ $cardDesign['mobile_columns'] }}" data-tablet="{{ $cardDesign['tablet_columns'] }}" data-desktop="{{ $cardDesign['desktop_columns'] }}">
         @forelse($products as $product)
             <div wire:key="pharma-product-{{ $sectionKey }}-{{ $product->id }}">
                 @include('Website::partials.pharma-product-card', ['cardDesign' => $cardDesign, 'cardPreview' => false])
