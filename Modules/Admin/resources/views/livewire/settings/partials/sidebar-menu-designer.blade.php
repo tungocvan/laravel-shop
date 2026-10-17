@@ -24,9 +24,7 @@
                 </div>
                 <p class="mt-1 max-w-3xl text-sm leading-6 text-slate-500">Thiết kế Menu cha và SubMenu theo cùng mô hình Normal → Hover → Active. Mỗi màu có thể dùng preset hoặc mã HEX tùy chỉnh.</p>
             </div>
-            <button type="button" @click="advancedMenu = !advancedMenu" class="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">
-                <span x-text="advancedMenu ? 'Ẩn thiết lập nâng cao' : 'Thiết lập nâng cao'"></span>
-            </button>
+
         </div>
 
         <div class="mt-5 inline-flex rounded-xl bg-slate-100 p-1" role="tablist" aria-label="Loại menu">
@@ -86,7 +84,7 @@
                     </div>
                 </section>
 
-                <section x-show="advancedMenu" x-collapse class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <section class="rounded-xl border border-slate-200 bg-slate-50 p-4">
                     <h3 class="text-sm font-semibold text-slate-900">Layout &amp; Interaction</h3>
                     <p class="mt-1 text-xs text-slate-500">Chọn mật độ menu, sau đó tinh chỉnh khoảng cách và viền Active. Preview cập nhật trước khi Lưu Sidebar.</p>
                     <div class="mt-3 grid gap-2 sm:grid-cols-3">
@@ -138,7 +136,7 @@
                     <input type="hidden" wire:model="config.design.sidebar_menu.submenu.icon_color">
                 </section>
 
-                <section x-show="advancedMenu" x-collapse class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <section class="rounded-xl border border-slate-200 bg-slate-50 p-4">
                     <h3 class="text-sm font-semibold text-slate-900">Layout & Active Border</h3>
                     <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         <label class="text-xs font-semibold text-slate-700">Indent<select wire:model.live="config.design.sidebar_menu.submenu.indent" class="{{ $select }}">@foreach(['20','24','28','32','36'] as $v)<option value="{{ $v }}">{{ $v }} px</option>@endforeach</select></label>
