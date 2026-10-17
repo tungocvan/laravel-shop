@@ -53,10 +53,14 @@
 @endphp
 <style>
     .pharma-public { --pharma-primary: {{ $primary }}; --pharma-accent: {{ $accent }}; background: #f7fafc; color: #142238; }
-    .pharma-hero { padding-block: {{ $hero['mobile_padding'] }}px; }
+    .pharma-hero { padding-block: {{ $hero['mobile_padding'] }}px; min-height: {{ $hero['mobile_min_height'] }}px; }
+    .pharma-hero-inner { width: {{ $hero['mobile_width'] }}%; max-width: 100%; }
+    .pharma-hero-illustration { width: {{ $hero['mobile_illustration_size'] }}px; height: {{ $hero['mobile_illustration_size'] }}px; }
     .pharma-hero-title { font-family: {{ $hero['title_font'] }}; font-size: {{ $hero['mobile_title_size'] }}px; }
     @media (min-width: 768px) {
-        .pharma-hero { padding-block: {{ $hero['desktop_padding'] }}px; }
+        .pharma-hero { padding-block: {{ $hero['desktop_padding'] }}px; min-height: {{ $hero['desktop_min_height'] }}px; }
+        .pharma-hero-inner { width: 100%; max-width: {{ $hero['desktop_width'] }}px; }
+        .pharma-hero-illustration { width: {{ $hero['desktop_illustration_size'] }}px; height: {{ $hero['desktop_illustration_size'] }}px; }
         .pharma-hero-title { font-size: {{ $hero['desktop_title_size'] }}px; }
     }
     .pharma-public .pharma-button { background: var(--pharma-primary); color: white; }
@@ -82,7 +86,7 @@
                 <section class="{{ $responsiveClass }} pharma-hero relative overflow-hidden px-5 sm:px-8" style="color:{{ $hero['text_color'] }};background:linear-gradient(115deg, {{ $hero['background_start'] }} 0%, {{ $primary }} 62%, {{ $hero['background_end'] }} 100%)">
                     <div class="pointer-events-none absolute -right-24 -top-40 h-96 w-96 rounded-full border border-white/10"></div>
                     <div class="pointer-events-none absolute -bottom-52 right-1/4 h-96 w-96 rounded-full border border-white/10"></div>
-                    <div class="relative mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-12">
+                    <div class="pharma-hero-inner relative mx-auto grid items-center gap-12 lg:grid-cols-12">
                         <div class="lg:col-span-7">
                             @if($hero['show_badge'] && $hero['badge'] !== '')
                             <p class="inline-flex rounded-full border border-white/30 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-widest">{{ $hero['badge'] }}</p>
@@ -100,16 +104,20 @@
                                 @endif
                             </div>
                         </div>
-                        <div class="{{ $hero['show_illustration'] ? 'hidden lg:flex' : 'hidden' }} lg:col-span-5 lg:justify-center" aria-hidden="true">
-                            <div class="relative flex h-80 w-80 items-center justify-center rounded-[3rem] border border-white/20 bg-white/10 shadow-2xl backdrop-blur-sm">
+                        <div class="{{ $hero['show_illustration'] && $hero['illustration_type'] !== 'none' ? 'hidden lg:flex' : 'hidden' }} lg:col-span-5 lg:justify-center" aria-hidden="true">
+                            <div class="pharma-hero-illustration relative flex items-center justify-center rounded-[3rem] border border-white/20 bg-white/10 shadow-2xl backdrop-blur-sm">
                                 <div class="absolute -left-7 top-12 h-20 w-20 rounded-2xl border border-white/20 bg-white/10"></div>
                                 <div class="absolute -bottom-6 right-3 h-24 w-24 rounded-2xl border border-white/20 bg-white/10"></div>
+                                @if($hero['illustration_type'] === 'image' && $hero['illustration_image'] !== '')
+                                    <img src="{{ asset('storage/'.$hero['illustration_image']) }}" alt="" class="h-full w-full rounded-[3rem] object-contain p-3">
+                                @else
                                 <svg viewBox="0 0 240 240" fill="none" class="h-56 w-56 text-white" xmlns="http://www.w3.org/2000/svg">
                                     <rect x="51" y="31" width="138" height="178" rx="35" stroke="currentColor" stroke-width="5" opacity=".8"/>
                                     <rect x="75" y="56" width="90" height="128" rx="24" stroke="currentColor" stroke-width="2" opacity=".35"/>
                                     <path d="M120 83v74M83 120h74" stroke="currentColor" stroke-width="14" stroke-linecap="round"/>
                                     <circle cx="166" cy="72" r="7" fill="currentColor" opacity=".5"/>
                                 </svg>
+                                @endif
                             </div>
                         </div>
                     </div>
