@@ -115,9 +115,10 @@ class ProductController extends Controller
             ->with(['categories' => fn ($cat) => $cat->where('type', 'medicine'),
                 'pharmaLink.medicine']);
         if (! $authenticated) {
-            $query->select(['id', 'title', 'slug', 'image', 'short_description', 'description', 'created_at']);
+            $query->select(['id', 'title', 'slug', 'image', 'gallery', 'short_description', 'description', 'created_at']);
         }
         $product = $query->firstOrFail();
+        $galleryImages = app(\Modules\Website\Services\PharmaProductGalleryService::class)->images($product);
 
         $relatedQuery = Product::query()->active()->whereKeyNot($product->id)
             ->whereHas('pharmaLink')
@@ -129,6 +130,7 @@ class ProductController extends Controller
         }
         return view('Website::products.show-pharma', [
             'product' => $product,
+            'galleryImages' => $galleryImages,
             'related' => $relatedQuery->limit(4)->get(),
             'authenticated' => $authenticated,
         ]);
