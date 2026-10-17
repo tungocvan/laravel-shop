@@ -4,7 +4,7 @@ Dùng prompt này khi mở chat mới để chẩn đoán Production Docker củ
 
 > **Cách dùng:** copy toàn bộ khối prompt bên dưới sang chat mới, sau đó điền phần **INCIDENT HIỆN TẠI**. Các tài liệu trong repository là nguồn chuẩn; nếu tài liệu thay đổi thì nội dung tài liệu mới được ưu tiên hơn prompt này.
 
-> **TNV baseline:** Khi xử lý sự cố của TNV, đọc `docs/production-tnv.md` trước. Hồ sơ này là snapshot lịch sử, không bảo đảm trạng thái hiện tại. Ưu tiên kiểm tra route/source/tests/log liên quan trước khi yêu cầu khảo sát Docker; mọi thao tác thay đổi production vẫn cần xác minh điều kiện hiện tại và phê duyệt riêng.
+> **Project dispatch:** Với `/opt/projects/tnv` hoặc TNV Production, đọc `docs/production-tnv.md` **trước khi đề xuất lệnh chẩn đoán**; chỉ dùng các facts có ngày như snapshot lịch sử. Không áp dụng hồ sơ TNV cho NTD hay project khác. Nếu đã có đủ source, route, test và log, không yêu cầu lặp lại Docker discovery. Mọi lệnh `php artisan ...` trên TNV Production phải đi qua helper `./run-docker-artisan.sh` từ HOST `/opt/projects/tnv`. Thao tác thay đổi production cần phê duyệt riêng; giữ nguyên các guardrails hiện hành.
 
 ## Prompt
 
