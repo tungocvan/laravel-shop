@@ -34,6 +34,9 @@
     $categoryLimit = in_array((int) ($categoryDisplay['limit'] ?? 8), [4, 8, 12, 16, 20, 24], true) ? (int) ($categoryDisplay['limit'] ?? 8) : 8;
     $categoryColumns = in_array((int) ($categoryDisplay['columns'] ?? 4), [2, 3, 4], true) ? (int) ($categoryDisplay['columns'] ?? 4) : 4;
     $categoryCardStyle = in_array($categoryDisplay['card_style'] ?? '', ['clinical', 'compact'], true) ? $categoryDisplay['card_style'] : 'clinical';
+    $categoryDesignService = app(\Modules\Website\Services\PharmaCategoryCardStyle::class);
+    $categoryDesignEnabled = isset($categoryDisplay['card_design']) && is_array($categoryDisplay['card_design']);
+    $categoryDesign = $categoryDesignService->normalize($categoryDisplay['card_design'] ?? []);
     $selectedCategoryIds = array_values(array_unique(array_filter(array_map('intval', (array) ($categoryDisplay['selected_ids'] ?? [])))));
     $categoryQuery = \Modules\Category\Models\Category::query()->ofType('medicine')->active()
         ->withCount(['products as storefront_products_count' => fn ($query) => $query->active()->whereHas('pharmaLink')]);
@@ -59,6 +62,17 @@
     .pharma-public .pharma-card:hover { transform: translateY(-3px); box-shadow: 0 16px 32px rgba(20,34,56,.09); }
     @media (max-width: 767px) { .pharma-desktop-only { display: none !important; } }
     @media (min-width: 768px) { .pharma-mobile-only { display: none !important; } }
+
+    .pharma-category-card-custom { min-height:var(--category-card-height);padding:var(--category-card-padding);gap:var(--category-card-gap);border-radius:var(--category-card-radius);font-size:var(--category-card-font);background:var(--category-card-bg);color:var(--category-card-text);border-color:var(--category-card-border); }
+    .pharma-category-card-custom:hover { border-color:var(--category-card-accent); }
+    .pharma-category-card-custom .pharma-category-card-name { font-size:inherit;color:inherit; }
+    .pharma-category-card-custom .pharma-category-card-icon { color:var(--category-card-accent); }
+    .pharma-category-card-custom .pharma-category-card-count { color:var(--category-card-accent); }
+    .pharma-category-card-custom .pharma-category-card-arrow { color:var(--category-card-accent); }
+    .pharma-category-card-custom[data-preset="soft"] { box-shadow:0 3px 16px rgba(15,23,42,.05); }
+    .pharma-category-card-custom[data-preset="minimal"] { box-shadow:none; }
+    @media(max-width:639px){.pharma-category-grid-custom[data-mobile-columns="2"]{grid-template-columns:repeat(2,minmax(0,1fr));}}
+    @media(min-width:640px) and (max-width:1023px){.pharma-category-grid-custom[data-tablet-columns="1"]{grid-template-columns:minmax(0,1fr)}.pharma-category-grid-custom[data-tablet-columns="3"]{grid-template-columns:repeat(3,minmax(0,1fr))}}
 </style>
 <div class="pharma-public">
     @foreach($order as $section)
@@ -105,19 +119,23 @@
                             <p class="mt-3 text-base leading-7 text-slate-600">{{ $categoryDescription }}</p>
                         @endif
                     </div>
-                    <div class="mt-8 grid gap-4 sm:grid-cols-2 {{ $categoryColumns === 2 ? 'lg:grid-cols-2' : ($categoryColumns === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-4') }}">
+                    <div class="mt-8 grid gap-4 sm:grid-cols-2 {{ $categoryDesignEnabled ? 'pharma-category-grid-custom' : '' }} {{ $categoryColumns === 2 ? 'lg:grid-cols-2' : ($categoryColumns === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-4') }}" @if($categoryDesignEnabled) data-mobile-columns="{{ $categoryDesign['mobile_columns'] }}" data-tablet-columns="{{ $categoryDesign['tablet_columns'] }}" @endif>
                         @forelse($categories as $category)
-                            <a href="{{ route('product.list', ['category' => $category->slug]) }}" class="pharma-card group flex items-center gap-4 rounded-2xl border border-slate-200 bg-white {{ $categoryCardStyle === 'compact' ? 'min-h-24 p-5' : 'min-h-32 p-6' }} shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" style="outline-color: {{ $primary }}">
-                                @if($categoryCardStyle === 'clinical')
-                                    <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700" aria-hidden="true">
+                            <a href="{{ route('product.list', ['category' => $category->slug]) }}" class="pharma-card group flex items-center gap-4 rounded-2xl border border-slate-200 bg-white {{ $categoryDesignEnabled ? 'pharma-category-card-custom' : '' }} {{ $categoryCardStyle === 'compact' ? 'min-h-24 p-5' : 'min-h-32 p-6' }} shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" style="outline-color: {{ $primary }};{{ $categoryDesignEnabled ? $categoryDesignService->css($categoryDesign) : '' }}" @if($categoryDesignEnabled) data-preset="{{ $categoryDesign['preset'] }}" @endif>
+                                @if($categoryDesignEnabled ? $categoryDesign['show_icon'] : $categoryCardStyle === 'clinical')
+                                    <span class="pharma-category-card-icon flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700" aria-hidden="true">
                                         <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
                                             <rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/>
                                         </svg>
                                     </span>
                                 @endif
-                                <span class="min-w-0 flex-1 text-sm font-semibold leading-6 text-slate-900">{{ $category->name }}</span>
-                                <span class="shrink-0 rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800" aria-label="{{ $category->storefront_products_count }} sản phẩm">{{ $category->storefront_products_count }} SP</span>
-                                <svg class="h-5 w-5 shrink-0 text-emerald-700 transition-transform group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+                                <span class="pharma-category-card-name min-w-0 flex-1 text-sm font-semibold leading-6 text-slate-900">{{ $category->name }}</span>
+                                @if(!$categoryDesignEnabled || $categoryDesign['show_count'])
+                                <span class="pharma-category-card-count shrink-0 rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800" aria-label="{{ $category->storefront_products_count }} sản phẩm">{{ $category->storefront_products_count }} SP</span>
+                                @endif
+                                @if(!$categoryDesignEnabled || $categoryDesign['show_arrow'])
+                                <svg class="pharma-category-card-arrow h-5 w-5 shrink-0 text-emerald-700 transition-transform group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+                                @endif
                             </a>
                         @empty
                             <p class="text-slate-600">Chưa có danh mục được công bố.</p>

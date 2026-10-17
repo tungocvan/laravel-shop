@@ -15,6 +15,7 @@ use Modules\Website\Services\HomepageContentService;
 use Modules\Website\Services\HomepageContentWriteService;
 use Modules\Website\Services\HomepagePresentationService;
 use Modules\Website\Services\HomepageSectionRegistry;
+use Modules\Website\Services\PharmaCategoryCardStyle;
 
 class HomeSettings extends Component
 {
@@ -31,6 +32,8 @@ class HomeSettings extends Component
     public ?string $editingPharmaBlogSection = null;
     public ?string $editingPharmaProductSection = null;
     public bool $editingPharmaCategories = false;
+    public array $pharmaCategoryCard = [];
+    public bool $pharmaCategoryCardEnabled = false;
     public bool $pharmaOnlyCategoriesWithProducts = true;
     public bool $editingPharmaProductFilters = false;
     public array $pharmaProductFilters = [];
@@ -97,6 +100,8 @@ class HomeSettings extends Component
             'card_style' => 'clinical',
             'selected_ids' => [],
         ], (array) $settings->get('website.pharma_homepage.categories', []));
+        $this->pharmaCategoryCardEnabled = isset($this->pharmaCategoryDisplay['card_design']);
+        $this->pharmaCategoryCard = app(PharmaCategoryCardStyle::class)->normalize($this->pharmaCategoryDisplay['card_design'] ?? []);
         $this->pharmaBlogSections = (array) $settings->get('website.pharma_homepage.blog_sections', []);
         $this->pharmaBlogSections = array_replace(['blog' => $this->defaultPharmaBlogSection()], $this->pharmaBlogSections);
         $this->pharmaProductSections = (array) $settings->get('website.pharma_homepage.product_sections', []);
@@ -252,6 +257,20 @@ class HomeSettings extends Component
         }
         [$ids[$index], $ids[$target]] = [$ids[$target], $ids[$index]];
         $this->pharmaCategoryDisplay['selected_ids'] = $ids;
+    }
+
+    public function closePharmaSectionEditor(): void
+    {
+        $this->editingPharmaCategories = false;
+        $this->editingPharmaProductSection = null;
+        $this->editingPharmaBlogSection = null;
+    }
+
+    public function resetPharmaCategoryCard(): void
+    {
+        $this->authorizeAdminPermission('website.home.manage');
+        $this->pharmaCategoryCard = app(PharmaCategoryCardStyle::class)->defaults();
+        $this->pharmaCategoryCardEnabled = false;
     }
 
     public function savePharmaCategories(SettingsService $settings): void

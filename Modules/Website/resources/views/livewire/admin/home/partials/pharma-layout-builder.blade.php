@@ -40,7 +40,7 @@ foreach($pharmaProductSections as $key => $config) {
                             @endif
                         @endif
                         @if($sectionKey === 'categories')
-                            <button type="button" wire:click="$toggle('editingPharmaCategories')" class="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-100">Thiết lập</button>
+                            <button type="button" wire:click="$set('editingPharmaCategories', true)" class="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-100">Thiết lập</button>
                         @endif
                         <button type="button" wire:click="movePharmaSection('{{ $sectionKey }}', 'up')" class="rounded-lg border border-gray-300 px-3 py-2 text-sm" aria-label="Đưa lên">↑</button>
                         <button type="button" wire:click="movePharmaSection('{{ $sectionKey }}', 'down')" class="rounded-lg border border-gray-300 px-3 py-2 text-sm" aria-label="Đưa xuống">↓</button>
@@ -57,6 +57,52 @@ foreach($pharmaProductSections as $key => $config) {
         @endforeach
     </div>
 
+    <article class="mt-5 rounded-xl border border-emerald-200 bg-emerald-50/30 p-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <h3 class="font-semibold text-gray-900">Trang danh mục sản phẩm — /product</h3>
+                <p class="mt-1 text-sm text-gray-500">Thiết lập bộ lọc tra cứu trên trang danh mục Pharma; không ảnh hưởng template Default.</p>
+            </div>
+            <button type="button" wire:click="$toggle('editingPharmaProductFilters')" class="rounded-lg border border-emerald-300 bg-white px-3 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-50">Thiết lập</button>
+        </div>
+        @if($editingPharmaProductFilters)
+            <div class="mt-4 space-y-3 border-t border-emerald-100 pt-4" wire:key="pharma-product-filters">
+                <p class="text-sm font-semibold text-gray-700">Ẩn / hiện bộ lọc tra cứu</p>
+                @foreach(['category' => 'Nhóm dược phẩm', 'supplier' => 'Nhà cung cấp', 'product_type' => 'Loại sản phẩm', 'circular_group' => 'Nhóm thuốc theo thông tư'] as $key => $label)
+                    <label class="flex cursor-pointer items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800">
+                        <span>{{ $label }}</span>
+                        <input type="checkbox" wire:model="pharmaProductFilters.{{ $key }}" class="h-5 w-5 rounded border-gray-300 text-emerald-700">
+                    </label>
+                @endforeach
+                <div class="flex flex-wrap items-center justify-end gap-2">
+                    <a href="{{ route('product.list') }}" target="_blank" class="mr-auto text-sm font-semibold text-emerald-700">Xem trang sản phẩm ↗</a>
+                    <button type="button" wire:click="$set('editingPharmaProductFilters', false)" class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm">Đóng</button>
+                    <button type="button" wire:click="savePharmaProductFilters" wire:loading.attr="disabled" class="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">Lưu bộ lọc</button>
+                </div>
+            </div>
+        @endif
+    </article>
+    @if(auth('admin')->user()?->hasPermissionTo('website.settings.manage', 'admin'))
+        <article class="mt-5 rounded-xl border border-emerald-200 bg-emerald-50/30 p-4">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h3 class="font-semibold text-gray-900">Đặt hàng nhanh Pharma — nguồn bảng giá</h3>
+                    <p class="mt-1 text-sm text-gray-500">Bật/tắt đặt hàng nhanh và chọn bảng giá từ Pharma. Cấu hình được lưu riêng, không ảnh hưởng template Default.</p>
+                </div>
+                <a href="{{ route('admin.website.pharma-quick-order.index') }}" class="inline-flex items-center justify-center rounded-lg border border-emerald-300 bg-white px-3 py-2 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50 active:scale-[0.985]">Thiết lập</a>
+            </div>
+        </article>
+    @endif
+    <p class="mt-4 text-xs text-gray-500">Cấu hình Pharma được lưu riêng. Thay đổi hiển thị sau khi lưu và tải lại Website.</p>
+
+    @if($editingPharmaCategories || $editingPharmaProductSection || $editingPharmaBlogSection)
+        <div class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 p-0 sm:p-4" role="presentation">
+            <section role="dialog" aria-modal="true" aria-label="Thiết lập section Homepage Pharma" class="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white shadow-2xl sm:h-auto sm:max-h-[90dvh] sm:rounded-2xl">
+                <header class="flex shrink-0 items-center justify-between gap-3 border-b border-gray-200 px-5 py-4">
+                    <div><h2 class="text-lg font-bold text-gray-900">Thiết lập Section Homepage Pharma</h2><p class="text-xs text-gray-500">Cấu hình riêng cho Website Pharma</p></div>
+                    <button type="button" wire:click="closePharmaSectionEditor" aria-label="Đóng cửa sổ thiết lập" class="rounded-lg border border-gray-300 px-3 py-2 text-sm">✕</button>
+                </header>
+                <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4 pb-[calc(20px+env(safe-area-inset-bottom,0px))]">
     @if($editingPharmaProductSection && isset($pharmaProductSections[$editingPharmaProductSection]))
         @php($sectionKey = $editingPharmaProductSection)
         <div class="mt-5 rounded-xl border border-emerald-200 bg-emerald-50/40 p-5" wire:key="product-section-editor-{{ $sectionKey }}">
@@ -139,7 +185,7 @@ foreach($pharmaProductSections as $key => $config) {
         </div>
     @endif
     @if($editingPharmaCategories)
-        <div class="mt-5 rounded-xl border border-emerald-200 bg-emerald-50/40 p-5" wire:key="pharma-category-settings">
+        <div class="space-y-5" wire:key="pharma-category-settings">
             <h3 class="text-base font-bold text-gray-900">Thiết lập UI danh mục dược phẩm</h3>
             <p class="mt-1 text-sm text-gray-600">Chỉ áp dụng cho Homepage Pharma; không thay đổi dữ liệu danh mục và template Default.</p>
             <div class="mt-4 grid gap-4 md:grid-cols-2">
@@ -211,47 +257,55 @@ foreach($pharmaProductSections as $key => $config) {
                 @endif
                 @error('pharmaCategoryDisplay.selected_ids') <span class="text-xs text-red-600">{{ $message }}</span> @enderror
             </div>
+
+            <div class="mt-5 rounded-xl border border-gray-200 bg-white p-4">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div><h4 class="font-semibold text-gray-900">Giao diện Card danh mục</h4><p class="text-xs text-gray-500">Không bật tùy chỉnh: giữ nguyên giao diện cũ.</p></div>
+                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model.live="pharmaCategoryCardEnabled" class="rounded border-gray-300"> Tùy chỉnh Card</label>
+                </div>
+                @if($pharmaCategoryCardEnabled)
+                <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <label class="text-sm font-medium">Preset
+                        <select wire:model.live="pharmaCategoryCard.preset" class="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2">
+                            @foreach(['clinical'=>'Clinical','compact'=>'Compact','soft'=>'Soft','minimal'=>'Minimal'] as $value=>$label)<option value="{{ $value }}">{{ $label }}</option>@endforeach
+                        </select>
+                    </label>
+                    @foreach(['font_size'=>['Font size',11,20],'radius'=>['Bo góc',0,32],'padding'=>['Padding',8,32],'min_height'=>['Chiều cao tối thiểu',80,180],'gap'=>['Khoảng cách',0,32],'mobile_columns'=>['Số cột Mobile',1,2],'tablet_columns'=>['Số cột Tablet',1,3]] as $key=>$field)
+                        <label class="text-sm font-medium">{{ $field[0] }} ({{ $key === 'mobile_columns' || $key === 'tablet_columns' ? 'cột' : 'px' }})
+                            <input type="number" min="{{ $field[1] }}" max="{{ $field[2] }}" wire:model.live.debounce.300ms="pharmaCategoryCard.{{ $key }}" class="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2">
+                        </label>
+                    @endforeach
+                    @foreach(['accent'=>'Màu chủ đạo','background'=>'Nền Card','text_color'=>'Màu chữ','border_color'=>'Màu viền'] as $key=>$label)
+                        <label class="text-sm font-medium">{{ $label }}<input type="color" wire:model.live="pharmaCategoryCard.{{ $key }}" class="mt-1 block h-10 w-full rounded-lg border border-gray-300 bg-white p-1"></label>
+                    @endforeach
+                </div>
+                <div class="mt-4 flex flex-wrap gap-4">
+                    @foreach(['show_icon'=>'Hiện icon','show_count'=>'Hiện số SP','show_arrow'=>'Hiện mũi tên'] as $key=>$label)
+                        <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model.live="pharmaCategoryCard.{{ $key }}" class="rounded border-gray-300"> {{ $label }}</label>
+                    @endforeach
+                </div>
+                @php($preview = app(\Modules\Website\Services\PharmaCategoryCardStyle::class)->normalize($pharmaCategoryCard))
+                <div class="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                    <p class="mb-3 text-xs font-semibold uppercase text-gray-500">Xem trước · Card danh mục</p>
+                    <div class="pharma-category-card-preview" style="{{ app(\Modules\Website\Services\PharmaCategoryCardStyle::class)->css($preview) }}">
+                        @if($preview['show_icon'])<span class="font-bold" style="color:var(--category-card-accent)">⊞</span>@endif
+                        <span class="min-w-0 flex-1 font-semibold">Kháng sinh – Kháng khuẩn</span>
+                        @if($preview['show_count'])<span class="rounded-full border px-2 py-1 text-xs" style="color:var(--category-card-accent)">6 SP</span>@endif
+                        @if($preview['show_arrow'])<span style="color:var(--category-card-accent)">→</span>@endif
+                    </div>
+                </div>
+                @endif
+                <button type="button" wire:click="resetPharmaCategoryCard" class="mt-3 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm">Khôi phục Card mặc định</button>
+            </div>
             <div class="mt-4 flex justify-end gap-2">
                 <button type="button" wire:click="$set('editingPharmaCategories', false)" class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm">Đóng</button>
                 <button type="button" wire:click="savePharmaCategories" wire:loading.attr="disabled" class="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">Lưu thiết lập danh mục</button>
             </div>
         </div>
     @endif
-    <article class="mt-5 rounded-xl border border-emerald-200 bg-emerald-50/30 p-4">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-            <div>
-                <h3 class="font-semibold text-gray-900">Trang danh mục sản phẩm — /product</h3>
-                <p class="mt-1 text-sm text-gray-500">Thiết lập bộ lọc tra cứu trên trang danh mục Pharma; không ảnh hưởng template Default.</p>
-            </div>
-            <button type="button" wire:click="$toggle('editingPharmaProductFilters')" class="rounded-lg border border-emerald-300 bg-white px-3 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-50">Thiết lập</button>
+
+                </div>
+            </section>
         </div>
-        @if($editingPharmaProductFilters)
-            <div class="mt-4 space-y-3 border-t border-emerald-100 pt-4" wire:key="pharma-product-filters">
-                <p class="text-sm font-semibold text-gray-700">Ẩn / hiện bộ lọc tra cứu</p>
-                @foreach(['category' => 'Nhóm dược phẩm', 'supplier' => 'Nhà cung cấp', 'product_type' => 'Loại sản phẩm', 'circular_group' => 'Nhóm thuốc theo thông tư'] as $key => $label)
-                    <label class="flex cursor-pointer items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800">
-                        <span>{{ $label }}</span>
-                        <input type="checkbox" wire:model="pharmaProductFilters.{{ $key }}" class="h-5 w-5 rounded border-gray-300 text-emerald-700">
-                    </label>
-                @endforeach
-                <div class="flex flex-wrap items-center justify-end gap-2">
-                    <a href="{{ route('product.list') }}" target="_blank" class="mr-auto text-sm font-semibold text-emerald-700">Xem trang sản phẩm ↗</a>
-                    <button type="button" wire:click="$set('editingPharmaProductFilters', false)" class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm">Đóng</button>
-                    <button type="button" wire:click="savePharmaProductFilters" wire:loading.attr="disabled" class="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">Lưu bộ lọc</button>
-                </div>
-            </div>
-        @endif
-    </article>
-    @if(auth('admin')->user()?->hasPermissionTo('website.settings.manage', 'admin'))
-        <article class="mt-5 rounded-xl border border-emerald-200 bg-emerald-50/30 p-4">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                    <h3 class="font-semibold text-gray-900">Đặt hàng nhanh Pharma — nguồn bảng giá</h3>
-                    <p class="mt-1 text-sm text-gray-500">Bật/tắt đặt hàng nhanh và chọn bảng giá từ Pharma. Cấu hình được lưu riêng, không ảnh hưởng template Default.</p>
-                </div>
-                <a href="{{ route('admin.website.pharma-quick-order.index') }}" class="inline-flex items-center justify-center rounded-lg border border-emerald-300 bg-white px-3 py-2 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50 active:scale-[0.985]">Thiết lập</a>
-            </div>
-        </article>
     @endif
-    <p class="mt-4 text-xs text-gray-500">Cấu hình Pharma được lưu riêng. Thay đổi hiển thị sau khi lưu và tải lại Website.</p>
 </section>
