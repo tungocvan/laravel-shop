@@ -92,6 +92,7 @@
                     </div>
 
                     @endif
+                    @if($bottomBarEnabled)
                     <div class="mt-5 grid grid-cols-2 gap-4 border-t pt-4" style="border-color: {{ $border }};">
                         @foreach(['desktop.bottom.left', 'desktop.bottom.right'] as $slotKey)
                             <div class="rounded-md border border-dashed p-3" style="border-color: {{ $border }};">
@@ -106,6 +107,7 @@
                             </div>
                         @endforeach
                     </div>
+                    @endif
                 </div>
 
                 <div x-show="previewDevice === 'mobile'" class="space-y-3 p-4">
@@ -129,6 +131,7 @@
                     @endforelse
 
                     @endif
+                    @if($bottomBarEnabled)
                     <div class="border-t pt-3" style="border-color: {{ $border }};">
                         <div class="mb-2 text-[10px] uppercase tracking-wide" style="color: {{ $muted }};">Mobile Bottom</div>
                         <div class="space-y-2">
@@ -139,6 +142,7 @@
                             @endforelse
                         </div>
                     </div>
+                    @endif
                 </div>
             </div>
         </div>
