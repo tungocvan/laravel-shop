@@ -61,7 +61,9 @@ class ClientPwaFoundationTest extends TestCase
         $appInstall = file_get_contents(base_path('Modules/Website/resources/views/components/footer/app-install.blade.php'));
         $installer = file_get_contents(base_path('Modules/Website/resources/views/partials/pwa-installer.blade.php'));
 
-        $this->assertStringContainsString('Website::components.footer.slot', $footer);
+        $sharedFooter = file_get_contents(base_path('Modules/Website/resources/views/partials/footer-shared.blade.php'));
+        $this->assertStringContainsString('Website::partials.footer-shared', $footer);
+        $this->assertStringContainsString('Website::components.footer.slot', $sharedFooter);
         $this->assertStringContainsString('Website::partials.pwa-installer', $appInstall);
         $this->assertStringContainsString('beforeinstallprompt', $installer);
         $this->assertStringContainsString('navigator.standalone', $installer);
