@@ -372,7 +372,11 @@
         </section>
 
         @if($editingTemplate === 'pharma')
-            <section class="rounded-xl border border-emerald-200 bg-white p-4" aria-label="Thiết lập Account Dropdown Pharma">
+            <section id="header-actions-panel" class="rounded-xl border border-emerald-200 bg-white p-4" aria-label="Hành động Header Pharma">
+                <div class="mb-4 border-b border-emerald-100 pb-3">
+                    <h4 class="text-base font-bold text-slate-900">Hành động Header</h4>
+                    <p class="mt-1 text-xs text-slate-600">Quản lý hành động tài khoản của Header Pharma ngay trong Bố cục Header. Wishlist và Giỏ hàng thuộc cấu hình Header Default, không áp dụng cho Pharma.</p>
+                </div>
                 <button type="button" @click="showAccountSettings = !showAccountSettings" :aria-expanded="showAccountSettings.toString()" aria-controls="header-account-settings" class="flex w-full items-center justify-between gap-3 text-left text-sm font-semibold text-gray-800">
                     <span>Tài khoản & đăng nhập <span class="ml-2 text-xs font-normal text-gray-500">Kiểu hiển thị và các liên kết tài khoản</span></span>
                     <span x-text="showAccountSettings ? 'Thu gọn −' : 'Cấu hình +'"></span>
