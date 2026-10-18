@@ -30,8 +30,11 @@ class HeaderStudioWorkspaceContractTest extends TestCase
 
         $this->assertStringContainsString("'show_desktop' => (bool) (\$values['show_desktop'] ?? true)", $hub);
         $this->assertStringContainsString("'show_mobile' => (bool) (\$values['show_mobile'] ?? false)", $hub);
-        $this->assertStringContainsString('wire:model="topbarSettings.show_mobile"', $editor);
-        $this->assertStringContainsString('wire:model="topbarSettings.show_desktop"', $editor);
+        $this->assertStringContainsString('wire:change="setTopbarDeviceVisibility($event.target.value)"', $editor);
+        $this->assertStringContainsString('value="both"', $editor);
+        $this->assertStringContainsString('value="desktop"', $editor);
+        $this->assertStringContainsString('value="mobile"', $editor);
+        $this->assertStringContainsString('value="hidden"', $editor);
         $this->assertStringContainsString('id="header-account-settings"', $editor);
         $this->assertStringContainsString('id="header-topbar-settings"', $editor);
         $this->assertStringContainsString('id="header-appearance-settings"', $editor);
@@ -50,7 +53,7 @@ class HeaderStudioWorkspaceContractTest extends TestCase
         $this->assertStringContainsString('role="dialog" aria-modal="true"', $frontend);
         $this->assertStringContainsString('x-transition:enter-start="translate-x-full"', $frontend);
         $this->assertStringContainsString('aria-label="Đóng menu"', $frontend);
-        $this->assertStringContainsString('@keydown.escape.window="menuOpen = false"', $frontend);
+        $this->assertStringContainsString('@keydown.escape.window="menuOpen = false; quickOrderLoginPrompt = false"', $frontend);
         $this->assertStringContainsString('class="hidden text-xs font-medium sm:block"', $frontend);
         $this->assertStringContainsString('lg:ml-0 lg:flex', $frontend);
         $drawer = substr($frontend, strpos($frontend, '<aside id="pharma-mobile-menu"'));
@@ -84,7 +87,7 @@ class HeaderStudioWorkspaceContractTest extends TestCase
         $header = file_get_contents(base_path('Modules/Website/resources/views/partials/pharma/header.blade.php'));
         $account = file_get_contents(base_path('Modules/Website/resources/views/partials/pharma/mobile-account-links.blade.php'));
 
-        $this->assertStringContainsString('FlexBiz - về trang chủ', $header);
+        $this->assertStringContainsString('aria-label="{{ $companyName }} - về trang chủ"', $header);
         $this->assertStringContainsString('overflow-hidden bg-white text-slate-900 shadow-2xl', $header);
         $this->assertStringContainsString('min-h-0 flex-1 overflow-y-auto overscroll-contain', $header);
         $this->assertStringContainsString('safe-area-inset-bottom', $header);
@@ -102,7 +105,7 @@ class HeaderStudioWorkspaceContractTest extends TestCase
         $drawer = substr($header, strpos($header, '<aside id="pharma-mobile-menu"'), strpos($header, '</aside>') - strpos($header, '<aside id="pharma-mobile-menu"'));
 
         $this->assertStringContainsString('aria-label="Điều hướng Pharma trên di động"', $drawer);
-        $this->assertStringContainsString('{{ $itemTitle }}</a>', $drawer);
+        $this->assertStringContainsString('{{ $itemTitle }}</span>', $drawer);
         $this->assertStringNotContainsString('m9 18 6-6-6-6', $drawer);
         $this->assertStringNotContainsString('mobile.search', $drawer);
         $this->assertStringNotContainsString('role="search"', $drawer);
