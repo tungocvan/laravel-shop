@@ -473,6 +473,38 @@ class HeaderSettingsHub extends Component
         $this->dispatchThemeToast('Đã nạp mẫu '.$preset['name'].' vào Preview. Chọn Lưu thành theme mới để lưu mẫu, hoặc Lưu bố cục để xuất bản.');
     }
 
+    /** Activate a built-in profile directly, reusing its saved snapshot when present. */
+    public function activateStarterTheme(
+        string $profile,
+        SettingsService $settingsService,
+        HeaderComponentRegistry $registry,
+        HeaderPresentationService $presentationService
+    ): void {
+        $this->authorizeAdminPermission('website.settings.manage');
+        if ($this->editingTemplate !== 'pharma' || ! in_array($profile, ['pharma-classic', 'flexbiz-modern'], true)) {
+            return;
+        }
+
+        foreach ($this->layoutThemes as $slug => $theme) {
+            if (is_array($theme) && ($theme['starter_profile'] ?? '') === $profile) {
+                $this->selectedTheme = (string) $slug;
+                $this->publishTheme($settingsService, $registry, $presentationService);
+                return;
+            }
+        }
+
+        if (count($this->layoutThemes) >= self::MAX_THEMES) {
+            $this->addError('theme', 'Thư viện đã đủ 20 profile. Hãy giải phóng một vị trí trước khi kích hoạt mẫu mới.');
+            return;
+        }
+
+        $this->previewStarterTheme($profile, $presentationService);
+        $this->saveTheme($settingsService, $registry, $presentationService);
+        if ($this->selectedTheme !== '') {
+            $this->publishTheme($settingsService, $registry, $presentationService);
+        }
+    }
+
     public function applyTheme(HeaderComponentRegistry $registry, HeaderPresentationService $presentationService): void
     {
         $this->authorizeAdminPermission('website.settings.manage');
