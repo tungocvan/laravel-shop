@@ -13,8 +13,8 @@ class FooterProfileStudioV2ContractTest extends TestCase
         $source = file_get_contents(base_path('Modules/Website/Livewire/Admin/Footer/FooterSettingsHub.php'));
         $this->assertStringContainsString('private const THEME_VERSION = 2;', $source);
         $this->assertStringContainsString("settingKey('active_theme')", $source);
-        $this->assertStringContainsString("'columns' => ['source' => $this->columnsSource", $source);
-        $this->assertStringContainsString("'social_links' => ['source' => $this->socialLinksSource", $source);
+        $this->assertStringContainsString("'columns' => ['source' => \$this->columnsSource", $source);
+        $this->assertStringContainsString("'social_links' => ['source' => \$this->socialLinksSource", $source);
         $this->assertStringContainsString("'content' => \$this->profileContent", $source);
         $this->assertStringContainsString('public function publishTheme(', $source);
         $this->assertStringContainsString('Không thể xóa profile đang kích hoạt', $source);
