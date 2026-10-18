@@ -22,7 +22,7 @@ class FooterProfileResolver
         $published = $this->settings->get($prefix.'published_profile');
         $profile = is_array($published) ? $published : (is_array($profiles) ? ($profiles[$active] ?? null) : null);
         if (! is_array($profile)) {
-            return ['settings' => $footerSettings, 'columns' => $columns, 'social_links' => $socialLinks];
+            return ['settings' => $footerSettings, 'columns' => $columns, 'social_links' => $socialLinks, 'profile_columns_active' => false];
         }
 
         $content = is_array($profile['content'] ?? null) ? $profile['content'] : [];
@@ -42,8 +42,11 @@ class FooterProfileResolver
         $profileColumnsActive = is_array($columnDefinition) && ($columnDefinition['source'] ?? 'global') === 'profile';
         if (is_array($columnDefinition) && ($columnDefinition['source'] ?? 'global') === 'profile') {
             $items = is_array($columnDefinition['items'] ?? null) ? $columnDefinition['items'] : [];
+            // Preserve the existing footer menus when a profile column has no
+            // explicit links. Do not copy or mutate the legacy database rows.
+            $legacyMenuColumns = $columns->values();
             $columns = collect(array_slice($items, 0, 6))->filter(fn ($item) => is_array($item) && ($item['enabled'] ?? true))
-                ->map(function ($item) {
+                ->map(function ($item, $index) use ($legacyMenuColumns) {
                     $links = collect(array_slice(is_array($item['items'] ?? null) ? $item['items'] : [], 0, 12))
                         ->filter(fn ($link) => is_array($link) && ($link['type'] ?? '') === 'link' && filled($link['label'] ?? '') && filled($link['url'] ?? ''))
                         ->map(fn ($link) => (object) [
@@ -51,6 +54,16 @@ class FooterProfileResolver
                             'url' => (string) $link['url'],
                             'new_tab' => (bool) ($link['new_tab'] ?? false),
                         ]);
+                    if (($item['module'] ?? 'menu-links') === 'menu-links' && $links->isEmpty()) {
+                        $match = $legacyMenuColumns->first(fn ($legacy) => mb_strtolower(trim((string) ($legacy->title ?? ''))) === mb_strtolower(trim((string) ($item['title'] ?? ''))));
+                        if ($match !== null) {
+                            $links = collect($match->links ?? [])->map(fn ($link) => (object) [
+                                'label' => (string) ($link->label ?? ''),
+                                'url' => (string) ($link->url ?? '#'),
+                                'new_tab' => (bool) ($link->new_tab ?? false),
+                            ]);
+                        }
+                    }
                     return (object) [
                         'title' => (string) ($item['title'] ?? ''),
                         'module' => in_array($item['module'] ?? 'menu-links', ['brand', 'contact', 'menu-links', 'social-links', 'app-install', 'custom'], true) ? $item['module'] : 'menu-links',
