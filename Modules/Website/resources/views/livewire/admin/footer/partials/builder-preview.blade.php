@@ -39,9 +39,9 @@
         </div>
     </div>
 
-    <div class="overflow-x-auto rounded-xl border border-gray-200 bg-gray-200/60 p-4">
+    <div class="overflow-hidden rounded-xl border border-gray-200 bg-gray-200/60 p-3">
         <div class="mx-auto transition-all duration-200"
-            :class="previewDevice === 'desktop' ? 'w-full min-w-[560px]' : 'w-[390px]'">
+            :class="previewDevice === 'desktop' ? 'w-full min-w-0' : 'w-full max-w-[390px]'">
             <div class="overflow-hidden rounded-lg shadow-sm"
                 style="background: {{ $background }}; color: {{ $foreground }}; border: 1px solid {{ $border }};">
                 @if($previewPresentation['accent'] ?? true)
