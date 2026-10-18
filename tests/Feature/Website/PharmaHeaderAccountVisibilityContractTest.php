@@ -31,8 +31,8 @@ class PharmaHeaderAccountVisibilityContractTest extends TestCase
         $this->assertStringContainsString("'flexbiz-modern'", $hub);
         $this->assertStringContainsString("'inherit_colors' => false", $hub);
         $this->assertStringNotContainsString('persistThemes(', substr($hub, strpos($hub, 'public function previewStarterTheme('), strpos($hub, 'public function applyTheme(') - strpos($hub, 'public function previewStarterTheme(')));
-        $this->assertStringContainsString("previewStarterTheme('pharma-classic')", $library);
-        $this->assertStringContainsString("previewStarterTheme('flexbiz-modern')", $library);
+        $this->assertStringContainsString("activateStarterTheme('pharma-classic')", $library);
+        $this->assertStringContainsString("activateStarterTheme('flexbiz-modern')", $library);
         $this->assertStringContainsString('loadBuilderLayout($this->defaultLayout())', $hub);
         $this->assertStringContainsString("'account_settings' =>", $hub);
         $this->assertStringContainsString("'topbar_settings' =>", $hub);
@@ -80,6 +80,16 @@ class PharmaHeaderAccountVisibilityContractTest extends TestCase
         $this->assertStringContainsString('wire:click="activateSelectedTheme"', $library);
         $this->assertStringNotContainsString('wire:click="publishTheme"', $library);
         $this->assertStringNotContainsString('wire:click="saveAccountSettings"', $admin);
+    }
+
+    public function test_builtin_header_profiles_activate_and_reuse_saved_snapshots(): void
+    {
+        $hub = file_get_contents(base_path('Modules/Website/Livewire/Admin/Header/HeaderSettingsHub.php'));
+        $library = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/header/partials/theme-manager.blade.php'));
+
+        $this->assertStringContainsString('function activateStarterTheme(', $hub);
+        $this->assertStringContainsString("['starter_profile'] ?? ''", $hub);
+        $this->assertStringContainsString('wire:click="activateStarterTheme(', $library);
     }
 
 }
