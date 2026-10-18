@@ -102,4 +102,18 @@ class PharmaHeaderAccountVisibilityContractTest extends TestCase
         $this->assertStringContainsString("'presentation' => \$presentationService->resolve(\$this->presentation)", $hub);
     }
 
+    public function test_active_pharma_profile_blocks_direct_legacy_header_writes(): void
+    {
+        $hub = file_get_contents(base_path('Modules/Website/Livewire/Admin/Header/HeaderSettingsHub.php'));
+        $admin = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/header/header-settings-hub.blade.php'));
+
+        foreach (['saveTopbarSettings', 'saveBrandAppearance', 'savePharmaBuilder', 'saveMenuAppearance', 'saveBuilder'] as $method) {
+            $start = strpos($hub, 'public function '.$method.'(');
+            $this->assertNotFalse($start, $method);
+            $section = substr($hub, $start, 1800);
+            $this->assertStringContainsString("\$this->activeTheme !== ''", $section, $method);
+        }
+        $this->assertStringContainsString("@disabled(\$editingTemplate === 'pharma' && \$activeTheme !== '')", $admin);
+    }
+
 }
