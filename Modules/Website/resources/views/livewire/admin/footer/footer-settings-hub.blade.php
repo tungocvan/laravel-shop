@@ -1,4 +1,4 @@
-<div class="space-y-6" x-data="{ builderDevice: 'desktop', previewDevice: 'desktop', drag: null, footerPanel: 'layout' }">
+<div class="space-y-6" x-data="{ builderDevice: 'desktop', previewDevice: 'desktop', drag: null, studioPanel: 'layout' }">
     <section class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <label for="footer-editing-template" class="mb-2 block text-sm font-semibold text-gray-900">Template đang quản trị</label>
         <select id="footer-editing-template" wire:model.live="editingTemplate" class="w-full max-w-md rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm">
@@ -8,13 +8,30 @@
         <p class="mt-2 text-xs text-slate-500">Đang xuất bản: <strong>{{ $publishedTemplate === 'pharma' ? 'Pharma' : 'Default' }}</strong>. Chọn workspace chỉ thay đổi phần đang quản trị, không thay đổi template đang xuất bản.</p>
     </section>
 
-    <nav class="flex flex-wrap gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm" aria-label="Các bước cấu hình Footer">
-        @foreach(['layout' => '1. Bố cục', 'preview' => '2. Xem trước', 'style' => '3. Giao diện'] as $panel => $label)
-            <button type="button" @click="footerPanel = '{{ $panel }}'" :class="footerPanel === '{{ $panel }}' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'" class="rounded-lg px-4 py-2.5 text-sm font-semibold">{{ $label }}</button>
-        @endforeach
-    </nav>
-
-    <section x-show="footerPanel === 'layout'" x-cloak class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div class="mb-4 rounded-xl border border-blue-100 bg-blue-50 p-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <h2 class="text-lg font-bold text-slate-900">Footer Studio</h2>
+                <p class="mt-1 text-sm text-slate-600">Chỉnh sửa bản nháp bên trái, theo dõi Preview cố định bên phải. Lưu profile rồi mới kích hoạt để xuất bản.</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <button type="button" @click="studioPanel = 'profile'" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold">Quản lý profile</button>
+                <button type="button" wire:click="updateTheme" @disabled(!$selectedTheme) class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">Cập nhật profile</button>
+                <button type="button" wire:click="publishTheme" wire:confirm="Kích hoạt profile đã lưu và xuất bản lên website?" @disabled(!$selectedTheme) class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">Xuất bản website</button>
+            </div>
+        </div>
+    </div>
+    <div class="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,55fr)_minmax(0,45fr)] xl:items-start">
+        <div class="min-w-0 space-y-5">
+            <nav class="flex flex-wrap gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm" aria-label="Các nhóm thiết lập Footer">
+                @foreach(['layout' => 'Bố cục', 'content' => 'Nội dung', 'style' => 'Giao diện', 'profile' => 'Profile'] as $panel => $label)
+                    <button type="button" @click="studioPanel = '{{ $panel }}'" :class="studioPanel === '{{ $panel }}' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'" class="rounded-lg px-4 py-2 text-sm font-semibold">{{ $label }}</button>
+                @endforeach
+            </nav>
+            <div x-show="studioPanel === 'profile'" x-cloak>
+                @include('Website::livewire.admin.footer.partials.theme-manager')
+            </div>
+    <section x-show="studioPanel === 'layout'" x-cloak class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
         <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
                 <h3 class="font-semibold text-slate-900">Thiết kế cột Footer</h3>
@@ -75,18 +92,18 @@
             @endforeach
         </div>
         <div class="mt-4 flex justify-end">
-            <button type="button" wire:click="saveFooterColumns" wire:loading.attr="disabled" wire:target="saveFooterColumns" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Lưu bản nháp cột</button>
+            <button type="button" wire:click="saveFooterColumns" wire:loading.attr="disabled" wire:target="saveFooterColumns" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Cập nhật profile</button>
         </div>
     </section>
 
-    <div x-show="footerPanel === 'layout'" x-cloak class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <div x-show="studioPanel === 'layout'" x-cloak class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
             <h2 class="text-xl font-bold text-gray-900">Bố cục Footer</h2>
             <p class="mt-1 text-sm text-gray-500">Bật/tắt, kéo thả, sắp xếp và theo dõi Footer riêng cho Desktop / Mobile.</p>
         </div>
         <div class="flex gap-2">
             <button type="button" wire:click="resetBuilder" class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Khôi phục mặc định</button>
-            <button type="button" wire:click="saveBuilder" wire:loading.attr="disabled" wire:target="saveBuilder" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">Lưu bố cục</button>
+            <button type="button" wire:click="updateTheme" wire:loading.attr="disabled" wire:target="updateTheme" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">Cập nhật profile</button>
         </div>
     </div>
 
@@ -94,7 +111,7 @@
         <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ $message }}</div>
     @enderror
 
-    <div x-show="footerPanel === 'layout'" x-cloak class="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+    <div x-show="studioPanel === 'layout'" x-cloak class="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div>
             <div class="font-semibold text-gray-900">Bộ lọc thiết bị</div>
             <p class="text-sm text-gray-500">Chỉ hiển thị các vùng của thiết bị đang chỉnh. Overlay dùng chung luôn hiển thị.</p>
@@ -105,7 +122,7 @@
         </div>
     </div>
 
-    <div x-show="footerPanel === 'layout'" x-cloak class="grid gap-6 xl:grid-cols-2">
+    <div x-show="studioPanel === 'layout'" x-cloak class="grid gap-6 xl:grid-cols-2">
         @foreach($builderSlotNames as $slot => $slotLabel)
             @php
                 $isDesktopSlot = str_starts_with($slot, 'desktop.');
@@ -178,10 +195,10 @@
         @endforeach
     </div>
 
-    <section x-show="footerPanel === 'style' || footerPanel === 'preview'" x-cloak class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <section x-show="studioPanel === 'style' || studioPanel === 'style'" x-cloak class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
         <div class="mb-4">
             <h3 class="font-semibold text-slate-900">Thư viện giao diện Footer</h3>
-            <p class="mt-1 text-sm text-slate-500">5 mẫu có sẵn, không phụ thuộc danh sách theme cá nhân đã lưu. Chọn mẫu để đổi màu Footer. Theme đã lưu riêng vẫn nằm trong phần quản lý bên dưới. Chỉ áp dụng lên Website sau khi bấm Lưu giao diện.</p>
+            <p class="mt-1 text-sm text-slate-500">5 mẫu có sẵn, không phụ thuộc danh sách theme cá nhân đã lưu. Chọn mẫu để đổi màu Footer. Theme đã lưu riêng vẫn nằm trong phần quản lý bên dưới. Chỉ áp dụng lên Website sau khi bấm Cập nhật profile.</p>
         </div>
         <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             @foreach($this->footerThemePresets() as $presetKey => $preset)
@@ -204,15 +221,7 @@
         </div>
     </section>
 
-    <section x-show="footerPanel === 'preview'" x-cloak>
-        <div class="mb-4 rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-slate-700">Xem trước Footer trên Desktop và Mobile trước khi lưu bố cục.</div>
-        @include('Website::livewire.admin.footer.partials.builder-preview')
-        <div class="mt-4 flex justify-end">
-            <button type="button" wire:click="saveBuilder" wire:loading.attr="disabled" wire:target="saveBuilder" class="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">Lưu bố cục & giao diện</button>
-        </div>
-    </section>
-
-    <section x-show="footerPanel === 'style'" x-cloak class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+    <section x-show="studioPanel === 'style'" x-cloak class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h3 class="font-semibold text-gray-900">Presentation</h3>
@@ -248,7 +257,7 @@
             <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <div class="text-sm font-semibold text-slate-900">Màu nền Footer</div>
-                    <p class="mt-1 text-xs text-slate-500">Bỏ chọn “Kế thừa màu Global Theme” để dùng màu nền tùy chỉnh. Lưu bố cục để áp dụng lên Website.</p>
+                    <p class="mt-1 text-xs text-slate-500">Bỏ chọn “Kế thừa màu Global Theme” để dùng màu nền tùy chỉnh. Cập nhật profile để áp dụng lên Website.</p>
                 </div>
                 <div class="flex items-center gap-2">
                     <input type="color" aria-label="Chọn màu nền Footer" wire:model.live="presentation.colors.background" @disabled($presentation['inherit_colors'] ?? true) class="h-10 w-14 rounded-lg border border-slate-300 bg-white p-1 disabled:cursor-not-allowed disabled:opacity-50">
@@ -265,7 +274,13 @@
             </div>
         @endif
         <div class="mt-5 flex justify-end">
-            <button type="button" wire:click="saveBuilder" wire:loading.attr="disabled" wire:target="saveBuilder" class="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">Lưu giao diện</button>
+            <button type="button" wire:click="updateTheme" wire:loading.attr="disabled" wire:target="updateTheme" class="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">Cập nhật profile</button>
         </div>
     </section>
+        </div>
+        <aside class="min-w-0 xl:sticky xl:top-4 xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto" aria-label="Live Footer Preview">
+            <div class="mb-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-slate-700">Live Preview luôn hiển thị · Thay đổi bản nháp không tự động xuất bản.</div>
+            @include('Website::livewire.admin.footer.partials.builder-preview')
+        </aside>
+    </div>
 </div>
