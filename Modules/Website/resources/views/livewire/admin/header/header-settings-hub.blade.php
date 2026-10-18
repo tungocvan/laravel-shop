@@ -387,7 +387,7 @@
                     <p class="mt-1 text-xs text-gray-600">Component độc lập với Menu điều hướng. Tổng quan tài khoản và Đăng xuất là mục bắt buộc; các mục khác chỉ hiện khi route khả dụng và người dùng có quyền.</p>
                 </div>
                 <label class="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-900"><input type="checkbox" wire:model="accountSettings.enabled" class="h-4 w-4 rounded border-gray-300"> Hiển thị Tài khoản trên Header Pharma (Desktop và Mobile)</label>
-                <p class="text-xs text-gray-500">Tắt để ẩn nút tài khoản trên desktop và các hành động tài khoản trong mobile drawer. Lưu Account Dropdown để áp dụng.</p>
+                <p class="text-xs text-gray-500">Tắt để ẩn tài khoản khi profile này được áp dụng. Nhấn Cập nhật tham số profile trong Thư viện mẫu Header để lưu trạng thái riêng của profile.</p>
                 <div class="grid gap-4 md:grid-cols-2">
                     <label class="block text-sm font-medium text-gray-700">Kiểu hiển thị
                         <select wire:model="accountSettings.style" class="mt-1 w-full rounded-lg border-gray-300 bg-white text-sm">
@@ -406,7 +406,6 @@
                 </div>
                 <div class="flex items-center justify-between gap-3 border-t border-emerald-100 pt-3">
                     <span class="text-xs text-gray-600">Desktop và Mobile: góc phải · Đăng xuất dùng POST + CSRF.</span>
-                    <button type="button" wire:click="saveAccountSettings" class="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Lưu Account Dropdown</button>
                 </div>
                 </div>
             </section>
