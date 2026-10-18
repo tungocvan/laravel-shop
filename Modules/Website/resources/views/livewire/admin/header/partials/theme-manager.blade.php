@@ -8,6 +8,24 @@
         <span class="self-start rounded-full bg-white px-3 py-1 text-xs font-semibold text-violet-700 ring-1 ring-violet-200">{{ count($layoutThemes) }}/20 themes</span>
     </div>
 
+    @if($editingTemplate === 'pharma')
+        <div class="mt-4 grid gap-3 md:grid-cols-2" aria-label="Mẫu Header có sẵn">
+            <div class="rounded-xl border border-emerald-200 bg-white p-4">
+                <div class="mb-2 h-2 rounded-full bg-emerald-700"></div>
+                <h4 class="text-sm font-bold text-slate-900">Pharma Classic</h4>
+                <p class="mt-1 text-xs text-slate-500">Xanh dược phẩm, bố cục cân đối, menu rõ ràng.</p>
+                <button type="button" wire:click="previewStarterTheme('pharma-classic')" class="mt-3 rounded-lg border border-emerald-600 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-50">Thử mẫu Pharma Classic</button>
+            </div>
+            <div class="rounded-xl border border-blue-200 bg-white p-4">
+                <div class="mb-2 h-2 rounded-full bg-blue-700"></div>
+                <h4 class="text-sm font-bold text-slate-900">FlexBiz Modern</h4>
+                <p class="mt-1 text-xs text-slate-500">Xanh công nghệ, nội dung rộng, điểm nhấn hiện đại.</p>
+                <button type="button" wire:click="previewStarterTheme('flexbiz-modern')" class="mt-3 rounded-lg border border-blue-600 px-3 py-2 text-xs font-semibold text-blue-800 hover:bg-blue-50">Thử mẫu FlexBiz Modern</button>
+            </div>
+        </div>
+        <p class="mt-2 text-xs text-violet-700">Thử mẫu chỉ cập nhật Builder/Preview, không đổi menu, tài khoản hoặc website đang xuất bản. Có thể lưu thành theme mới bằng biểu mẫu bên dưới.</p>
+    @endif
+
     @error('theme')<div class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ $message }}</div>@enderror
     @error('themeName')<div class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ $message }}</div>@enderror
 
