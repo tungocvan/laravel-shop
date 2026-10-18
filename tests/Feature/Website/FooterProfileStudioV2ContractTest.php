@@ -52,4 +52,19 @@ class FooterProfileStudioV2ContractTest extends TestCase
         $this->assertStringContainsString('wire:model="socialLinksSource"', $manager);
     }
 
+    #[Test]
+    public function profile_editor_supports_duplicate_and_immutable_published_snapshot(): void
+    {
+        $component = file_get_contents(base_path('Modules/Website/Livewire/Admin/Footer/FooterSettingsHub.php'));
+        $resolver = file_get_contents(base_path('Modules/Website/Services/FooterProfileResolver.php'));
+        $view = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/footer/partials/theme-manager.blade.php'));
+
+        $this->assertStringContainsString('public function duplicateTheme(', $component);
+        $this->assertStringContainsString("settingKey('published_profile')", $component);
+        $this->assertStringContainsString("get(\$prefix.'published_profile')", $resolver);
+        $this->assertStringContainsString('wire:click="duplicateTheme"', $view);
+        $this->assertStringContainsString('profileContent.{{ $group }}.source', $view);
+        $this->assertStringContainsString('profileContent.{{ $group }}.overrides.{{ $field }}', $view);
+    }
+
 }
