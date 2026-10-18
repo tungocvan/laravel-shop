@@ -185,15 +185,22 @@ class FooterSettingsHub extends Component
         $this->authorizeAdminPermission('website.footer.manage');
         $sample = [
             'desktop.bottom.left' => ['copyright', 'social-links'],
-            'desktop.bottom.right' => ['legal-links', 'trust-badges'],
+            'desktop.bottom.right' => ['trust-badges'],
         ];
+        $validated = [];
         foreach ($sample as $slot => $types) {
             $existing = collect($this->builderSlots[$slot] ?? [])->keyBy('type');
-            $this->builderSlots[$slot] = [];
+            $validated[$slot] = [];
             foreach ($types as $type) {
-                $registry->resolve($type, $slot);
-                $this->builderSlots[$slot][] = $existing->get($type, ['type' => $type, 'enabled' => true]);
+                // Keep the action safe if a module's allowed slots change later.
+                if (! in_array($slot, (array) ($registry->get($type)['allowed_slots'] ?? []), true)) {
+                    continue;
+                }
+                $validated[$slot][] = $existing->get($type, ['type' => $type, 'enabled' => true]);
             }
+        }
+        foreach ($validated as $slot => $items) {
+            $this->builderSlots[$slot] = $items;
         }
         $this->bottomBarEnabled = true;
         $this->profileDirty = true;
