@@ -54,7 +54,8 @@ class HeaderStudioWorkspaceContractTest extends TestCase
         $this->assertStringContainsString('x-transition:enter-start="translate-x-full"', $frontend);
         $this->assertStringContainsString('aria-label="Đóng menu"', $frontend);
         $this->assertStringContainsString('@keydown.escape.window="menuOpen = false; quickOrderLoginPrompt = false"', $frontend);
-        $this->assertStringContainsString('class="hidden text-xs font-medium sm:block"', $frontend);
+        $this->assertStringContainsString('aria-label="Mở menu điều hướng"', $frontend);
+        $this->assertStringContainsString('h-11 w-11 shrink-0', $frontend);
         $this->assertStringContainsString('lg:ml-0 lg:flex', $frontend);
         $drawer = substr($frontend, strpos($frontend, '<aside id="pharma-mobile-menu"'));
         $this->assertStringNotContainsString('aria-label="Tìm sản phẩm"', $drawer);
@@ -93,7 +94,8 @@ class HeaderStudioWorkspaceContractTest extends TestCase
         $this->assertStringContainsString('safe-area-inset-bottom', $header);
         $this->assertStringContainsString('Khám phá', $header);
         $this->assertStringContainsString('aria-label="Liên kết tài khoản"', $account);
-        $this->assertStringContainsString('grid grid-cols-2 gap-2', $account);
+        $this->assertStringContainsString('aria-label="Liên kết tài khoản"', $account);
+        $this->assertStringContainsString('flex min-h-12 items-center gap-3', $account);
         $this->assertStringContainsString('Đơn hàng của tôi', $account);
         $this->assertStringContainsString('Thông tin cá nhân', $account);
         $this->assertStringContainsString('Đăng xuất', $header);
