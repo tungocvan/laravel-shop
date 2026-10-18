@@ -35,4 +35,21 @@ class FooterProfileStudioV2ContractTest extends TestCase
         $this->assertStringContainsString('wire:click="publishTheme"', $view);
         $this->assertStringContainsString('Active profile:', $view);
     }
+    #[Test]
+    public function public_footer_uses_profile_resolver_with_safe_global_fallback(): void
+    {
+        $provider = file_get_contents(base_path('Modules/Website/Providers/WebsiteServiceProvider.php'));
+        $resolver = file_get_contents(base_path('Modules/Website/Services/FooterProfileResolver.php'));
+        $manager = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/footer/partials/theme-manager.blade.php'));
+
+        $this->assertStringContainsString('FooterProfileResolver::class', $provider);
+        $this->assertStringContainsString("'footerColumns'=>\$profileData['columns']", $provider);
+        $this->assertStringContainsString("'socialLinks'=>\$profileData['social_links']", $provider);
+        $this->assertStringContainsString("'footerSettings'=>\$profileData['settings']", $provider);
+        $this->assertStringContainsString("if (\$active === '')", $resolver);
+        $this->assertStringContainsString("'source'] ?? 'global'", $resolver);
+        $this->assertStringContainsString('wire:model="columnsSource"', $manager);
+        $this->assertStringContainsString('wire:model="socialLinksSource"', $manager);
+    }
+
 }
