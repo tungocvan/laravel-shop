@@ -103,15 +103,14 @@ class HeaderSettingsHub extends Component
         ];
     }
 
+    /** Account edits belong to the profile snapshot, never to the live Header directly. */
     public function saveAccountSettings(SettingsService $settingsService): void
     {
         $this->authorizeAdminPermission('website.settings.manage');
         if ($this->editingTemplate !== 'pharma') {
             return;
         }
-        $this->accountSettings = $this->normalizeAccountSettings($this->accountSettings);
-        $settingsService->set('website.pharma_header.account', $this->accountSettings, 'header', 'json');
-        $this->dispatch('show-toast', [['type' => 'success', 'message' => 'Đã lưu Account Dropdown Pharma.']]);
+        $this->addError('theme', 'Hãy dùng Cập nhật tham số profile để lưu Account Dropdown.');
     }
 
     private function normalizeTopbarSettings(mixed $saved): array
@@ -535,7 +534,15 @@ class HeaderSettingsHub extends Component
             $this->settingKey('active_theme') => $this->selectedTheme,
         ], 'header');
         $this->activeTheme = $this->selectedTheme;
-        $this->dispatchThemeToast('Đã áp dụng profile Header lên website.');
+        $this->dispatchThemeToast('Đã nạp và áp dụng profile Header lên website.');
+    }
+
+    public function activateSelectedTheme(
+        SettingsService $settingsService,
+        HeaderComponentRegistry $registry,
+        HeaderPresentationService $presentationService
+    ): void {
+        $this->publishTheme($settingsService, $registry, $presentationService);
     }
 
     public function updateTheme(
