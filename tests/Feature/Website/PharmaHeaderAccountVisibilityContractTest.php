@@ -57,4 +57,17 @@ class PharmaHeaderAccountVisibilityContractTest extends TestCase
         $this->assertStringContainsString('Cập nhật tham số profile', $library);
     }
 
+    public function test_starter_origin_and_active_only_profile_updates_are_visible(): void
+    {
+        $hub = file_get_contents(base_path('Modules/Website/Livewire/Admin/Header/HeaderSettingsHub.php'));
+        $library = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/header/partials/theme-manager.blade.php'));
+
+        $this->assertStringContainsString("'starter_profile' =>", $hub);
+        $this->assertStringContainsString('public string $starterProfile', $hub);
+        $this->assertStringContainsString('activeTheme !== $this->selectedTheme', $hub);
+        $this->assertStringContainsString('Đang áp dụng qua', $library);
+        $this->assertStringContainsString('Đang xem trước', $library);
+        $this->assertStringContainsString("activeTheme !== \$selectedTheme", $library);
+    }
+
 }
