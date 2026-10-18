@@ -24,6 +24,8 @@ class FooterSettingsHub extends Component
     public string $activeTheme = '';
     public array $profileContent = [];
     public array $profileSocialLinks = [];
+    public string $columnsSource = 'global';
+    public string $socialLinksSource = 'global';
     public string $themeName = '';
 
     private const THEME_VERSION = 2;
@@ -470,6 +472,8 @@ class FooterSettingsHub extends Component
         $this->footerColumns = $this->normalizeFooterColumns((array) data_get($theme, 'columns.items', $this->footerColumns));
         $this->profileContent = (array) ($theme['content'] ?? $this->profileContent);
         $this->profileSocialLinks = (array) data_get($theme, 'social_links.items', $this->profileSocialLinks);
+        $this->columnsSource = data_get($theme, 'columns.source') === 'profile' ? 'profile' : 'global';
+        $this->socialLinksSource = data_get($theme, 'social_links.source') === 'profile' ? 'profile' : 'global';
         $this->resetErrorBag('theme');
         $this->dispatchThemeToast('Đã nạp theme vào Builder. Kiểm tra Preview rồi bấm Lưu bố cục để publish.');
     }
@@ -567,8 +571,8 @@ class FooterSettingsHub extends Component
             'name' => trim($name),
             'layout' => $this->safeLayout($this->builderSlots, $registry),
             'presentation' => $presentationService->resolve($this->presentation),
-            'columns' => ['source' => 'profile', 'items' => $this->normalizeFooterColumns($this->footerColumns)],
-            'social_links' => ['source' => 'global', 'items' => $this->profileSocialLinks],
+            'columns' => ['source' => $this->columnsSource, 'items' => $this->normalizeFooterColumns($this->footerColumns)],
+            'social_links' => ['source' => $this->socialLinksSource, 'items' => $this->profileSocialLinks],
             'content' => $this->profileContent,
             'updated_at' => now()->toIso8601String(),
         ];
@@ -584,6 +588,8 @@ class FooterSettingsHub extends Component
             'pharma' => $this->pharmaContent,
         ];
         $this->profileSocialLinks = [];
+        $this->columnsSource = 'global';
+        $this->socialLinksSource = 'global';
     }
 
     public function publishTheme(
