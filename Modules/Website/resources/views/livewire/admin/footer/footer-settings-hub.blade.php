@@ -137,6 +137,14 @@
             <span class="hidden rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold group-open:inline">Thu gọn ⌃</span>
         </summary>
         <div class="mt-4 border-t border-slate-100 pt-4">
+            <div class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <label class="inline-flex cursor-pointer items-center gap-2 text-sm font-semibold text-slate-800">
+                    <input type="checkbox" wire:model.live="bottomBarEnabled" class="rounded border-slate-300">
+                    Hiển thị toàn bộ Bottom Bar
+                </label>
+                <button type="button" wire:click="loadBottomBarSample" wire:confirm="Nạp bố cục mẫu cho Bottom Left và Bottom Right? Thứ tự module hiện tại sẽ được thay thế trong bản nháp." class="rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-semibold text-blue-700">Nạp bố cục mẫu</button>
+            </div>
+            <div @class(['opacity-50' => ! $bottomBarEnabled])>
         <div class="mb-4">
             <h3 class="font-semibold text-slate-900">Thanh cuối Footer · Bottom Bar</h3>
             <p class="mt-1 text-sm text-slate-500">Thiết kế hai vùng cuối Footer ngay tại đây. Bật/tắt và thay đổi thứ tự sẽ cập nhật Responsive Preview; chỉ xuất bản khi kích hoạt theme.</p>
@@ -178,6 +186,7 @@
             <input id="footer-bottom-copyright" type="text" maxlength="250" wire:model.live.debounce.350ms="profileContent.legal.overrides.copyright" placeholder="Để trống để kế thừa Copyright hiện tại" class="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
             <p class="mt-2 text-xs text-slate-500">Legal Links và Trust / Payment Badges tiếp tục kế thừa dữ liệu đang có. Để sửa danh sách liên kết pháp lý hoặc ảnh chứng nhận, dùng công cụ nội dung Footer hiện tại; không tạo dữ liệu trùng lặp.</p>
         </div>
+            </div>
         </div>
     </details>
 
