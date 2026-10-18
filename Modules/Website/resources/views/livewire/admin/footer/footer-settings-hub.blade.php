@@ -40,7 +40,7 @@
         </div>
         <div class="mt-4 space-y-3">
             @foreach($footerColumns as $index => $column)
-                <details wire:key="footer-column-editor-{{ $index }}" class="group rounded-lg border border-slate-200 bg-white p-3">
+                <details wire:ignore.self wire:key="footer-column-editor-{{ $index }}" class="group rounded-lg border border-slate-200 bg-white p-3">
                     <summary class="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-1 py-2 [&::-webkit-details-marker]:hidden">
                         <span class="min-w-0">
                             <span class="block truncate text-sm font-semibold text-slate-800">{{ $column['title'] ?? 'Cột Footer' }}</span>
@@ -130,7 +130,7 @@
         </div>
     </section>
 
-    <details x-show="studioPanel === 'layout'" x-cloak class="group rounded-xl border border-slate-200 bg-white p-5 shadow-sm" aria-label="Thiết kế thanh cuối Footer">
+    <details wire:ignore.self x-show="studioPanel === 'layout'" x-cloak class="group rounded-xl border border-slate-200 bg-white p-5 shadow-sm" aria-label="Thiết kế thanh cuối Footer">
         <summary class="flex cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
             <span><span class="block font-semibold text-slate-900">Thanh cuối Footer · Bottom Bar</span><span class="mt-1 block text-xs text-slate-500">Copyright · Legal Links · Trust Badges · Mạng xã hội</span></span>
             <span class="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold group-open:hidden">Thiết lập ⌄</span>
