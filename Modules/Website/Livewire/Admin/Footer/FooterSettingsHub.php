@@ -61,6 +61,21 @@ class FooterSettingsHub extends Component
         $this->layoutThemes = is_array($savedThemes) ? $savedThemes : [];
         $this->activeTheme = (string) $settingsService->get($this->settingKey('active_theme'), '');
         $this->loadProfileSources($settingsService);
+        $this->loadActiveProfileDraft();
+    }
+
+    private function loadActiveProfileDraft(): void
+    {
+        if ($this->activeTheme === '' || ! isset($this->layoutThemes[$this->activeTheme])) {
+            return;
+        }
+        $profile = $this->layoutThemes[$this->activeTheme];
+        $this->selectedTheme = $this->activeTheme;
+        $this->themeName = (string) ($profile['name'] ?? '');
+        $this->columnsSource = data_get($profile, 'columns.source') === 'profile' ? 'profile' : 'global';
+        if ($this->columnsSource === 'profile') {
+            $this->footerColumns = $this->normalizeFooterColumns((array) data_get($profile, 'columns.items', []));
+        }
     }
 
     private function loadPharmaContent(SettingsService $settingsService): void
@@ -102,6 +117,7 @@ class FooterSettingsHub extends Component
         $this->loadProfileSources($settings);
         $this->selectedTheme = '';
         $this->themeName = '';
+        $this->loadActiveProfileDraft();
     }
 
     private function settingKey(string $suffix): string
@@ -337,13 +353,13 @@ class FooterSettingsHub extends Component
     private function normalizeFooterColumns(array $columns): array
     {
         $normalized = [];
-        foreach (array_slice($columns, 0, 6) as $column) {
+        foreach (array_slice($columns, 0, 6) as $columnIndex => $column) {
             if (! is_array($column)) {
                 continue;
             }
             $normalized[] = [
                 'title' => mb_substr(trim((string) ($column['title'] ?? '')), 0, 80),
-                'module' => in_array($column['module'] ?? 'menu-links', ['brand', 'contact', 'menu-links', 'social-links', 'app-install', 'custom'], true) ? $column['module'] : 'menu-links',
+                'module' => in_array($column['module'] ?? null, ['brand', 'contact', 'menu-links', 'social-links', 'app-install', 'custom'], true) ? $column['module'] : (['brand', 'menu-links', 'menu-links', 'app-install'][$columnIndex] ?? 'menu-links'),
                 'desktop' => (bool) ($column['desktop'] ?? true),
                 'mobile' => (bool) ($column['mobile'] ?? true),
                 'width' => in_array((int) ($column['width'] ?? 3), [2, 3, 4, 6, 12], true) ? (int) $column['width'] : 3,
@@ -352,10 +368,10 @@ class FooterSettingsHub extends Component
             ];
         }
         return $normalized ?: [
-            ['title' => 'Thương hiệu & liên hệ', 'width' => 4, 'enabled' => true],
-            ['title' => 'Liên kết', 'width' => 3, 'enabled' => true],
-            ['title' => 'Hỗ trợ', 'width' => 3, 'enabled' => true],
-            ['title' => 'Ứng dụng', 'width' => 2, 'enabled' => true],
+            ['title' => 'Thương hiệu & liên hệ', 'module' => 'brand', 'width' => 4, 'enabled' => true],
+            ['title' => 'Liên kết', 'module' => 'menu-links', 'width' => 3, 'enabled' => true],
+            ['title' => 'Hỗ trợ', 'module' => 'menu-links', 'width' => 3, 'enabled' => true],
+            ['title' => 'Ứng dụng', 'module' => 'app-install', 'width' => 2, 'enabled' => true],
         ];
     }
 
