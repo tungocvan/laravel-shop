@@ -129,6 +129,10 @@ class FooterSettingsHub extends Component
         if ($this->editingTemplate !== 'pharma') {
             return;
         }
+        if ($this->activeTheme !== '') {
+            $this->addError('theme', 'Nội dung Pharma đang thuộc profile active. Hãy cập nhật và kích hoạt profile thay vì lưu trực tiếp.');
+            return;
+        }
         $this->validate([
             'pharmaContent.description' => ['nullable', 'string', 'max:1000'],
             'pharmaContent.links_title' => ['required', 'string', 'max:100'],
@@ -314,6 +318,10 @@ class FooterSettingsHub extends Component
     public function saveFooterColumns(SettingsService $settings): void
     {
         $this->authorizeAdminPermission('website.footer.manage');
+        if ($this->activeTheme !== '') {
+            $this->addError('theme', 'Hãy lưu cột vào profile rồi kích hoạt; không xuất bản riêng khi có active profile.');
+            return;
+        }
         $this->footerColumns = $this->normalizeFooterColumns($this->footerColumns);
         $settings->set($this->settingKey('columns'), $this->footerColumns, 'footer', 'json');
         $this->dispatch('show-toast', [['type' => 'success', 'message' => 'Đã lưu bản nháp cấu trúc cột Footer.']]);
