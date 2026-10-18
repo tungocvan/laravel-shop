@@ -25,6 +25,7 @@ class HeaderSettingsHub extends Component
     public array $brandAppearance = [];
     public string $selectedTheme = '';
     public string $activeTheme = '';
+    public string $starterProfile = '';
     public string $themeName = '';
 
     private const THEME_VERSION = 2;
@@ -77,6 +78,7 @@ class HeaderSettingsHub extends Component
         $savedThemes = $settingsService->get($this->settingKey('layout_themes'), []);
         $this->layoutThemes = is_array($savedThemes) ? $savedThemes : [];
         $this->selectedTheme = '';
+        $this->starterProfile = '';
         $active = $settingsService->get($this->settingKey('active_theme'), '');
         $this->activeTheme = is_string($active) && isset($this->layoutThemes[$active]) ? $active : '';
         $this->themeName = '';
@@ -466,6 +468,7 @@ class HeaderSettingsHub extends Component
         $this->loadBuilderLayout($this->defaultLayout());
         $this->normalizePharmaBuilder();
         $this->selectedTheme = '';
+        $this->starterProfile = $profile;
         $this->themeName = $preset['name'];
         $this->resetErrorBag('theme');
         $this->dispatchThemeToast('Đã nạp mẫu '.$preset['name'].' vào Preview. Chọn Lưu thành theme mới để lưu mẫu, hoặc Lưu bố cục để xuất bản.');
@@ -494,6 +497,7 @@ class HeaderSettingsHub extends Component
             $this->brandAppearance = app(PharmaBrandAppearanceService::class)->resolve($theme['brand_appearance']);
         }
         $this->themeName = (string) ($theme['name'] ?? '');
+        $this->starterProfile = is_string($theme['starter_profile'] ?? null) ? $theme['starter_profile'] : '';
         $this->resetErrorBag('theme');
         $this->dispatchThemeToast('Đã nạp theme vào Builder. Lưu bố cục, Tài khoản, Topbar và Thương hiệu riêng để xuất bản các thay đổi.');
     }
@@ -598,6 +602,7 @@ class HeaderSettingsHub extends Component
 
         $this->selectedTheme = $slug;
         $this->themeName = (string) ($this->layoutThemes[$slug]['name'] ?? '');
+        $this->starterProfile = is_string($this->layoutThemes[$slug]['starter_profile'] ?? null) ? $this->layoutThemes[$slug]['starter_profile'] : '';
         $this->resetErrorBag('theme');
     }
 
@@ -621,6 +626,7 @@ class HeaderSettingsHub extends Component
     {
         return [
             'version' => self::THEME_VERSION,
+            'starter_profile' => $this->editingTemplate === 'pharma' ? $this->starterProfile : '',
             'name' => trim($name),
             'layout' => $this->safeLayout($this->builderSlots, $registry),
             'presentation' => $presentationService->resolve($this->presentation),
