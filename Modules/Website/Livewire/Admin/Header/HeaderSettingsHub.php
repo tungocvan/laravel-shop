@@ -130,6 +130,10 @@ class HeaderSettingsHub extends Component
     public function saveTopbarSettings(SettingsService $settingsService): void
     {
         $this->authorizeAdminPermission('website.settings.manage');
+        if ($this->editingTemplate === 'pharma' && $this->activeTheme !== '') {
+            $this->addError('theme', 'Header Pharma đang quản lý bằng profile. Hãy dùng Cập nhật tham số profile rồi kích hoạt profile để xuất bản.');
+            return;
+        }
         if ($this->editingTemplate !== 'pharma') {
             return;
         }
@@ -145,6 +149,10 @@ class HeaderSettingsHub extends Component
     public function saveBrandAppearance(SettingsService $settingsService, PharmaBrandAppearanceService $service): void
     {
         $this->authorizeAdminPermission('website.settings.manage');
+        if ($this->editingTemplate === 'pharma' && $this->activeTheme !== '') {
+            $this->addError('theme', 'Header Pharma đang quản lý bằng profile. Hãy dùng Cập nhật tham số profile rồi kích hoạt profile để xuất bản.');
+            return;
+        }
         if ($this->editingTemplate !== 'pharma') {
             return;
         }
@@ -279,6 +287,10 @@ class HeaderSettingsHub extends Component
         HeaderPresentationService $presentationService
     ): void {
         $this->authorizeAdminPermission('website.settings.manage');
+        if ($this->editingTemplate === 'pharma' && $this->activeTheme !== '') {
+            $this->addError('theme', 'Header Pharma đang quản lý bằng profile. Hãy dùng Cập nhật tham số profile rồi kích hoạt profile để xuất bản.');
+            return;
+        }
         if ($this->editingTemplate !== 'pharma') {
             return;
         }
@@ -337,6 +349,10 @@ class HeaderSettingsHub extends Component
     public function saveMenuAppearance(SettingsService $settingsService, HeaderPresentationService $presentationService): void
     {
         $this->authorizeAdminPermission('website.settings.manage');
+        if ($this->editingTemplate === 'pharma' && $this->activeTheme !== '') {
+            $this->addError('theme', 'Header Pharma đang quản lý bằng profile. Hãy dùng Cập nhật tham số profile rồi kích hoạt profile để xuất bản.');
+            return;
+        }
         if ($this->editingTemplate !== 'pharma') {
             return;
         }
@@ -371,6 +387,10 @@ class HeaderSettingsHub extends Component
         HeaderPresentationService $presentationService
     ): void {
         $this->authorizeAdminPermission('website.settings.manage');
+        if ($this->editingTemplate === 'pharma' && $this->activeTheme !== '') {
+            $this->addError('theme', 'Header Pharma đang quản lý bằng profile. Hãy dùng Cập nhật tham số profile rồi kích hoạt profile để xuất bản.');
+            return;
+        }
         if ($this->editingTemplate === 'pharma') {
             $this->normalizePharmaBuilder();
         }
