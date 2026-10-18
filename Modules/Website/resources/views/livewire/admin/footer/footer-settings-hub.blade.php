@@ -120,6 +120,42 @@
         </div>
     </section>
 
+    <section x-show="studioPanel === 'layout'" x-cloak class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm" aria-label="Thiết kế thanh cuối Footer">
+        <div class="mb-4">
+            <h3 class="font-semibold text-slate-900">Thanh cuối Footer · Bottom Bar</h3>
+            <p class="mt-1 text-sm text-slate-500">Thiết kế hai vùng cuối Footer ngay tại đây. Bật/tắt và thay đổi thứ tự sẽ cập nhật Responsive Preview; chỉ xuất bản khi kích hoạt theme.</p>
+        </div>
+        <div class="grid gap-4 lg:grid-cols-2">
+            @foreach(['desktop.bottom.left' => 'Bottom Left · Bên trái', 'desktop.bottom.right' => 'Bottom Right · Bên phải'] as $bottomSlot => $bottomLabel)
+                <div class="min-w-0 rounded-lg border border-slate-200 bg-slate-50 p-3" wire:key="bottom-editor-{{ $bottomSlot }}">
+                    <h4 class="mb-3 text-sm font-semibold text-slate-800">{{ $bottomLabel }}</h4>
+                    <div class="space-y-2">
+                        @forelse(($builderSlots[$bottomSlot] ?? []) as $bottomIndex => $bottomItem)
+                            <div class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white p-3" wire:key="bottom-item-{{ $bottomSlot }}-{{ $bottomIndex }}">
+                                <div class="min-w-0">
+                                    <div class="text-sm font-medium text-slate-800">{{ $footerComponents[$bottomItem['type'] ?? '']['label'] ?? ($bottomItem['type'] ?? 'Module') }}</div>
+                                    <div class="text-xs text-slate-500">{{ $bottomItem['type'] ?? '' }}</div>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <button type="button" wire:click="toggleComponent('{{ $bottomSlot }}', {{ $bottomIndex }})" class="rounded border border-slate-300 px-2 py-1 text-xs" aria-label="Bật hoặc tắt module">{{ ($bottomItem['enabled'] ?? true) ? 'Đang bật' : 'Đang tắt' }}</button>
+                                    <button type="button" wire:click="moveComponentUp('{{ $bottomSlot }}', {{ $bottomIndex }})" @disabled($bottomIndex === 0) class="rounded border border-slate-300 px-2 py-1 disabled:opacity-30" aria-label="Đưa module lên">↑</button>
+                                    <button type="button" wire:click="moveComponentDown('{{ $bottomSlot }}', {{ $bottomIndex }})" @disabled($bottomIndex === count($builderSlots[$bottomSlot]) - 1) class="rounded border border-slate-300 px-2 py-1 disabled:opacity-30" aria-label="Đưa module xuống">↓</button>
+                                </div>
+                            </div>
+                        @empty
+                            <p class="text-xs text-slate-500">Vùng này chưa có module.</p>
+                        @endforelse
+                    </div>
+                </div>
+            @endforeach
+        </div>
+        <div class="mt-4 rounded-lg border border-slate-200 p-3">
+            <label class="block text-sm font-medium text-slate-700" for="footer-bottom-copyright">Nội dung Copyright (tùy chỉnh theo theme)</label>
+            <input id="footer-bottom-copyright" type="text" maxlength="250" wire:model.live.debounce.350ms="profileContent.legal.overrides.copyright" placeholder="Để trống để kế thừa Copyright hiện tại" class="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+            <p class="mt-2 text-xs text-slate-500">Legal Links và Trust / Payment Badges tiếp tục kế thừa dữ liệu đang có. Để sửa danh sách liên kết pháp lý hoặc ảnh chứng nhận, dùng công cụ nội dung Footer hiện tại; không tạo dữ liệu trùng lặp.</p>
+        </div>
+    </section>
+
     <details x-show="studioPanel === 'layout' && @js($columnsSource !== 'profile')" x-cloak class="rounded-xl border border-slate-200 bg-white p-4">
         <summary class="cursor-pointer font-semibold text-slate-800">Bố cục Legacy · Chỉ dùng khi chưa chọn cột Profile</summary>
         <div class="mt-4 space-y-4">
