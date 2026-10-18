@@ -138,8 +138,8 @@
                                 </div>
                                 <div class="flex items-center gap-1">
                                     <button type="button" wire:click="toggleComponent('{{ $bottomSlot }}', {{ $bottomIndex }})" class="rounded border border-slate-300 px-2 py-1 text-xs" aria-label="Bật hoặc tắt module">{{ ($bottomItem['enabled'] ?? true) ? 'Đang bật' : 'Đang tắt' }}</button>
-                                    <button type="button" wire:click="moveComponentUp('{{ $bottomSlot }}', {{ $bottomIndex }})" @disabled($bottomIndex === 0) class="rounded border border-slate-300 px-2 py-1 disabled:opacity-30" aria-label="Đưa module lên">↑</button>
-                                    <button type="button" wire:click="moveComponentDown('{{ $bottomSlot }}', {{ $bottomIndex }})" @disabled($bottomIndex === count($builderSlots[$bottomSlot]) - 1) class="rounded border border-slate-300 px-2 py-1 disabled:opacity-30" aria-label="Đưa module xuống">↓</button>
+                                    <button type="button" wire:click="moveUp('{{ $bottomSlot }}', {{ $bottomIndex }})" @disabled($bottomIndex === 0) class="rounded border border-slate-300 px-2 py-1 disabled:opacity-30" aria-label="Đưa module lên">↑</button>
+                                    <button type="button" wire:click="moveDown('{{ $bottomSlot }}', {{ $bottomIndex }})" @disabled($bottomIndex === count($builderSlots[$bottomSlot]) - 1) class="rounded border border-slate-300 px-2 py-1 disabled:opacity-30" aria-label="Đưa module xuống">↓</button>
                                 </div>
                             </div>
                         @empty
