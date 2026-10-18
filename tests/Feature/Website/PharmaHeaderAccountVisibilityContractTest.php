@@ -33,6 +33,13 @@ class PharmaHeaderAccountVisibilityContractTest extends TestCase
         $this->assertStringNotContainsString('persistThemes(', substr($hub, strpos($hub, 'public function previewStarterTheme('), strpos($hub, 'public function applyTheme(') - strpos($hub, 'public function previewStarterTheme(')));
         $this->assertStringContainsString("previewStarterTheme('pharma-classic')", $library);
         $this->assertStringContainsString("previewStarterTheme('flexbiz-modern')", $library);
+        $this->assertStringContainsString('loadBuilderLayout($this->defaultLayout())', $hub);
+        $this->assertStringContainsString("'account_settings' =>", $hub);
+        $this->assertStringContainsString("'topbar_settings' =>", $hub);
+        $this->assertStringContainsString("normalizeAccountSettings(\$theme['account_settings'])", $hub);
+        $this->assertStringContainsString("normalizeTopbarSettings(\$theme['topbar_settings'])", $hub);
+        $this->assertStringContainsString('normalizePharmaBuilder();', $hub);
+
     }
 
 }
