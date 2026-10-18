@@ -15,7 +15,7 @@ class FooterProfileResolver
     {
         $active = (string) $this->settings->get($prefix.'active_theme', '');
         if ($active === '') {
-            return ['settings' => $footerSettings, 'columns' => $columns, 'social_links' => $socialLinks];
+            return ['settings' => $footerSettings, 'columns' => $columns, 'social_links' => $socialLinks, 'profile_columns_active' => false];
         }
 
         $profiles = $this->settings->get($prefix.'layout_themes', []);
@@ -39,6 +39,7 @@ class FooterProfileResolver
         }
 
         $columnDefinition = $profile['columns'] ?? [];
+        $profileColumnsActive = is_array($columnDefinition) && ($columnDefinition['source'] ?? 'global') === 'profile';
         if (is_array($columnDefinition) && ($columnDefinition['source'] ?? 'global') === 'profile') {
             $items = is_array($columnDefinition['items'] ?? null) ? $columnDefinition['items'] : [];
             $columns = collect(array_slice($items, 0, 6))->filter(fn ($item) => is_array($item) && ($item['enabled'] ?? true))
@@ -73,6 +74,6 @@ class FooterProfileResolver
                 ])->values();
         }
 
-        return ['settings' => $footerSettings, 'columns' => $columns, 'social_links' => $socialLinks];
+        return ['settings' => $footerSettings, 'columns' => $columns, 'social_links' => $socialLinks, 'profile_columns_active' => $profileColumnsActive];
     }
 }
