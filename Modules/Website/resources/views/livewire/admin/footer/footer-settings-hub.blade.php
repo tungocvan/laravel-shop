@@ -24,24 +24,24 @@
     <div class="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,55fr)_minmax(0,45fr)] xl:items-start">
         <div class="min-w-0 space-y-5">
             <nav class="flex flex-wrap gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm" aria-label="Các nhóm thiết lập Footer">
-                @foreach(['layout' => 'Bố cục & Cột', 'content' => 'Nội dung', 'style' => 'Giao diện', 'profile' => 'Profile'] as $panel => $label)
+                @foreach(['layout' => 'Thiết kế', 'style' => 'Giao diện', 'profile' => 'Thư viện theme'] as $panel => $label)
                     <button type="button" @click="studioPanel = '{{ $panel }}'" :class="studioPanel === '{{ $panel }}' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'" class="rounded-lg px-4 py-2 text-sm font-semibold">{{ $label }}</button>
                 @endforeach
             </nav>
-            <div x-show="studioPanel === 'profile' || studioPanel === 'content'" x-cloak>
+            <div x-show="studioPanel === 'profile'" x-cloak>
                 @include('Website::livewire.admin.footer.partials.theme-manager')
             </div>
     <section x-show="studioPanel === 'layout'" x-cloak class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
         <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
-                <h3 class="font-semibold text-slate-900">Cột Footer & Module</h3>
+                <h3 class="font-semibold text-slate-900">Thiết kế Footer · Cột & Module</h3>
                 <p class="mt-1 text-sm text-slate-500">Chỉnh sửa cột và module, theo dõi trực tiếp trong Preview. Lưu profile trước khi xuất bản.</p>
             </div>
             <button type="button" wire:click="addFooterColumn" @disabled(count($footerColumns) >= 6) class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 disabled:opacity-40">+ Thêm cột</button>
         </div>
         <div class="mt-4 space-y-3">
             @foreach($footerColumns as $index => $column)
-                <div wire:key="footer-column-editor-{{ $index }}" class="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 md:grid-cols-2 md:items-end">
+                <div wire:key="footer-column-editor-{{ $index }}" class="grid gap-3 rounded-lg border border-slate-200 bg-white p-3 md:grid-cols-2 md:items-end">
                     <label class="text-sm font-medium text-slate-700">Tên cột
                         <input type="text" maxlength="80" wire:model.live.debounce.350ms="footerColumns.{{ $index }}.title" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
                     </label>
@@ -105,8 +105,8 @@
         </div>
     </section>
 
-    <details x-show="studioPanel === 'layout'" x-cloak class="rounded-xl border border-slate-200 bg-white p-4">
-        <summary class="cursor-pointer font-semibold text-slate-800">Bố cục nâng cao · Vùng Desktop/Mobile &amp; Component</summary>
+    <details x-show="studioPanel === 'layout' && @js($columnsSource !== 'profile')" x-cloak class="rounded-xl border border-slate-200 bg-white p-4">
+        <summary class="cursor-pointer font-semibold text-slate-800">Bố cục Legacy · Chỉ dùng khi chưa chọn cột Profile</summary>
         <div class="mt-4 space-y-4">
     <div x-show="studioPanel === 'layout'" x-cloak class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
