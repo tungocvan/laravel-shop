@@ -28,7 +28,7 @@
                     <button type="button" @click="studioPanel = '{{ $panel }}'" :class="studioPanel === '{{ $panel }}' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'" class="rounded-lg px-4 py-2 text-sm font-semibold">{{ $label }}</button>
                 @endforeach
             </nav>
-            <div x-show="studioPanel === 'profile'" x-cloak>
+            <div x-show="studioPanel === 'profile' || studioPanel === 'content'" x-cloak>
                 @include('Website::livewire.admin.footer.partials.theme-manager')
             </div>
     <section x-show="studioPanel === 'layout'" x-cloak class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -92,7 +92,7 @@
             @endforeach
         </div>
         <div class="mt-4 flex justify-end">
-            <button type="button" wire:click="saveFooterColumns" wire:loading.attr="disabled" wire:target="saveFooterColumns" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Cập nhật profile</button>
+            <button type="button" wire:click="updateTheme" wire:loading.attr="disabled" wire:target="updateTheme" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Cập nhật profile</button>
         </div>
     </section>
 
