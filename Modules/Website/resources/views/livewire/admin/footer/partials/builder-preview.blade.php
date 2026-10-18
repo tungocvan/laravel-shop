@@ -152,4 +152,19 @@
             @endforeach
         </div>
     @endif
+    <div class="mt-4 space-y-2 border-t border-slate-200 pt-4" aria-label="Thao tác lưu Footer Theme">
+        <div class="text-xs font-semibold text-slate-700">
+            Theme đang chỉnh sửa: {{ $selectedTheme !== '' ? ($layoutThemes[$selectedTheme]['name'] ?? $selectedTheme) : 'Chưa chọn theme' }}
+        </div>
+        <p class="text-xs text-slate-500">Cập nhật chỉ lưu bản nháp. Lưu &amp; Kích hoạt sẽ xuất bản toàn bộ thay đổi đang xem trước.</p>
+        @error('theme') <p class="text-xs text-red-600" role="alert">{{ $message }}</p> @enderror
+        <button type="button" wire:click="updateTheme" wire:loading.attr="disabled" wire:target="updateTheme,saveAndPublishTheme" @disabled(!$selectedTheme)
+            class="w-full rounded-lg border border-blue-300 bg-white px-4 py-2.5 text-sm font-semibold text-blue-700 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-40">
+            Cập nhật tham số vào theme hiện tại
+        </button>
+        <button type="button" wire:click="saveAndPublishTheme" wire:confirm="Lưu toàn bộ thay đổi hiện tại và kích hoạt theme này trên website?" wire:loading.attr="disabled" wire:target="updateTheme,saveAndPublishTheme" @disabled(!$selectedTheme)
+            class="w-full rounded-lg bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-40">
+            Lưu &amp; Kích hoạt theme hiện tại
+        </button>
+    </div>
 </section>
