@@ -155,7 +155,9 @@
                 </div>
             @endforeach
             <div class="ml-auto hidden min-w-0 shrink-0 items-center justify-end lg:ml-0 lg:flex">
-                @include('Website::partials.pharma.account-dropdown', ['accountConfig' => $accountConfig])
+                @if(($accountConfig['enabled'] ?? true))
+                    @include('Website::partials.pharma.account-dropdown', ['accountConfig' => $accountConfig])
+                @endif
             </div>
             @foreach($headerLayout['mobile.search'] ?? [] as $mobileSearch)
                 @if(($mobileSearch['type'] ?? null) === 'search')
@@ -224,7 +226,9 @@
                             </div>
                         </div>
                         <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-white">
-                            @include('Website::partials.pharma.mobile-account-links', ['accountConfig' => $accountConfig])
+                            @if(($accountConfig['enabled'] ?? true))
+                                @include('Website::partials.pharma.mobile-account-links', ['accountConfig' => $accountConfig])
+                            @endif
                             <nav aria-label="Điều hướng Pharma trên di động" class="px-4 pb-6 pt-4" style="font-family:{{ $mobileMenuStyle['font_family'] }};font-size:{{ $mobileMenuStyle['font_size'] }}px;font-weight:{{ $mobileMenuStyle['font_weight'] }};color:{{ $mobileMenuStyle['text_color'] }};">
                                 <div class="mb-2 px-2 text-[10px] font-extrabold uppercase tracking-[0.14em] text-slate-500">Khám phá</div>
                                 <div class="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-100 bg-white">
