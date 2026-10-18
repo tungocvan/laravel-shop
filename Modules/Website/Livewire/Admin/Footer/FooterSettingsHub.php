@@ -30,6 +30,7 @@ class FooterSettingsHub extends Component
     public string $columnsSource = 'global';
     public string $socialLinksSource = 'global';
     public bool $profileDirty = false;
+    public bool $bottomBarEnabled = true;
     public string $themeName = '';
 
     private const THEME_VERSION = 2;
@@ -76,6 +77,7 @@ class FooterSettingsHub extends Component
         $profile = $this->layoutThemes[$this->activeTheme];
         $this->selectedTheme = $this->activeTheme;
         $this->themeName = (string) ($profile['name'] ?? '');
+        $this->bottomBarEnabled = (bool) ($profile['bottom_bar_enabled'] ?? true);
         $this->columnsSource = data_get($profile, 'columns.source') === 'profile' ? 'profile' : 'global';
         if ($this->columnsSource === 'profile') {
             $this->footerColumns = $this->normalizeFooterColumns((array) data_get($profile, 'columns.items', []));
@@ -176,6 +178,26 @@ class FooterSettingsHub extends Component
         $settingsService->set('website.pharma_footer.content', $content, 'footer', 'json');
         $this->pharmaContent = $content;
         $this->dispatch('show-toast', [['type' => 'success', 'message' => 'Đã lưu Footer Pharma.']]);
+    }
+
+    public function loadBottomBarSample(FooterComponentRegistry $registry): void
+    {
+        $this->authorizeAdminPermission('website.footer.manage');
+        $sample = [
+            'desktop.bottom.left' => ['copyright', 'social-links'],
+            'desktop.bottom.right' => ['legal-links', 'trust-badges'],
+        ];
+        foreach ($sample as $slot => $types) {
+            $existing = collect($this->builderSlots[$slot] ?? [])->keyBy('type');
+            $this->builderSlots[$slot] = [];
+            foreach ($types as $type) {
+                $registry->resolve($type, $slot);
+                $this->builderSlots[$slot][] = $existing->get($type, ['type' => $type, 'enabled' => true]);
+            }
+        }
+        $this->bottomBarEnabled = true;
+        $this->profileDirty = true;
+        $this->dispatchThemeToast('Đã nạp bố cục Bottom Bar mẫu vào bản nháp. Nội dung liên kết và mạng xã hội được kế thừa từ cấu hình hiện tại.');
     }
 
     public function addBottomModule(string $slot, string $type, FooterComponentRegistry $registry): void
@@ -603,6 +625,7 @@ class FooterSettingsHub extends Component
         $this->loadBuilderLayout($safeLayout);
         $this->presentation = $presentationService->resolve(is_array($theme['presentation'] ?? null) ? $theme['presentation'] : null);
         $this->themeName = (string) ($theme['name'] ?? '');
+        $this->bottomBarEnabled = (bool) ($theme['bottom_bar_enabled'] ?? true);
         $this->footerColumns = $this->normalizeFooterColumns((array) data_get($theme, 'columns.items', $this->footerColumns));
         $this->profileContent = array_replace_recursive($this->profileContent, (array) ($theme['content'] ?? []));
         $this->profileSocialLinks = (array) data_get($theme, 'social_links.items', $this->profileSocialLinks);
@@ -705,6 +728,7 @@ class FooterSettingsHub extends Component
         return [
             'version' => self::THEME_VERSION,
             'name' => trim($name),
+            'bottom_bar_enabled' => $this->bottomBarEnabled,
             'layout' => $this->safeLayout($this->builderSlots, $registry),
             'presentation' => $presentationService->resolve($this->presentation),
             'columns' => ['source' => $this->columnsSource, 'items' => $this->normalizeFooterColumns($this->footerColumns)],
