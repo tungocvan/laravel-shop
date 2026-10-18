@@ -121,6 +121,7 @@
                             </div>
                         @endforeach
                     </div>
+                </div>
                 </details>
             @endforeach
         </div>
