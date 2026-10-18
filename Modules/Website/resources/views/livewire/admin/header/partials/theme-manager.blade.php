@@ -15,17 +15,17 @@
                 <h4 class="text-sm font-bold text-slate-900">Pharma Classic</h4>
                 @if($activeTheme && ($layoutThemes[$activeTheme]['starter_profile'] ?? '') === 'pharma-classic')<p class="mt-1 text-xs font-bold text-emerald-700">● Đang áp dụng qua {{ $layoutThemes[$activeTheme]['name'] ?? $activeTheme }}</p>@elseif($starterProfile === 'pharma-classic')<p class="mt-1 text-xs font-semibold text-slate-600">Đang xem trước</p>@endif
                 <p class="mt-1 text-xs text-slate-500">Xanh dược phẩm, bố cục cân đối, menu rõ ràng.</p>
-                <button type="button" wire:click="previewStarterTheme('pharma-classic')" class="mt-3 rounded-lg border border-emerald-600 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-50">Thử mẫu Pharma Classic</button>
+                <button type="button" wire:click="activateStarterTheme('pharma-classic')" wire:confirm="Kích hoạt Pharma Classic và áp dụng ngay lên website?" class="mt-3 rounded-lg border border-emerald-600 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-50">Kích hoạt Pharma Classic</button>
             </div>
             <div class="rounded-xl border border-blue-200 bg-white p-4">
                 <div class="mb-2 h-2 rounded-full bg-blue-700"></div>
                 <h4 class="text-sm font-bold text-slate-900">FlexBiz Modern</h4>
                 @if($activeTheme && ($layoutThemes[$activeTheme]['starter_profile'] ?? '') === 'flexbiz-modern')<p class="mt-1 text-xs font-bold text-blue-700">● Đang áp dụng qua {{ $layoutThemes[$activeTheme]['name'] ?? $activeTheme }}</p>@elseif($starterProfile === 'flexbiz-modern')<p class="mt-1 text-xs font-semibold text-slate-600">Đang xem trước</p>@endif
                 <p class="mt-1 text-xs text-slate-500">Xanh công nghệ, nội dung rộng, điểm nhấn hiện đại.</p>
-                <button type="button" wire:click="previewStarterTheme('flexbiz-modern')" class="mt-3 rounded-lg border border-blue-600 px-3 py-2 text-xs font-semibold text-blue-800 hover:bg-blue-50">Thử mẫu FlexBiz Modern</button>
+                <button type="button" wire:click="activateStarterTheme('flexbiz-modern')" wire:confirm="Kích hoạt FlexBiz Modern và áp dụng ngay lên website?" class="mt-3 rounded-lg border border-blue-600 px-3 py-2 text-xs font-semibold text-blue-800 hover:bg-blue-50">Kích hoạt FlexBiz Modern</button>
             </div>
         </div>
-        <p class="mt-2 text-xs text-violet-700">Thử mẫu chỉ cập nhật Builder/Preview, không đổi website đang xuất bản. Có thể lưu thành theme mới bằng biểu mẫu bên dưới.</p>
+        <p class="mt-2 text-xs text-violet-700">Kích hoạt mẫu sẽ nạp profile đã lưu (nếu có) và áp dụng ngay lên website. Profile mới được lưu vào thư viện trước khi áp dụng.</p>
     @endif
 
     @error('theme')<div class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ $message }}</div>@enderror
