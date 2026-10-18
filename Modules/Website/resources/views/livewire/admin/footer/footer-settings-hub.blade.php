@@ -40,7 +40,16 @@
         </div>
         <div class="mt-4 space-y-3">
             @foreach($footerColumns as $index => $column)
-                <div wire:key="footer-column-editor-{{ $index }}" class="grid gap-3 rounded-lg border border-slate-200 bg-white p-3 md:grid-cols-2 md:items-end">
+                <details wire:key="footer-column-editor-{{ $index }}" class="group rounded-lg border border-slate-200 bg-white p-3">
+                    <summary class="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-1 py-2 [&::-webkit-details-marker]:hidden">
+                        <span class="min-w-0">
+                            <span class="block truncate text-sm font-semibold text-slate-800">{{ $column['title'] ?? 'Cột Footer' }}</span>
+                            <span class="block text-xs text-slate-500">{{ $column['module'] ?? 'menu-links' }} · {{ $column['width'] ?? 3 }}/12 · {{ ($column['enabled'] ?? true) ? 'Đang hiển thị' : 'Đã tắt' }}</span>
+                        </span>
+                        <span class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 group-open:hidden">Thiết lập <span aria-hidden="true">⌄</span></span>
+                        <span class="hidden rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 group-open:inline">Thu gọn <span aria-hidden="true">⌃</span></span>
+                    </summary>
+                    <div class="mt-3 grid gap-3 border-t border-slate-100 pt-3 md:grid-cols-2 md:items-end">
                     <label class="text-sm font-medium text-slate-700">Tên cột
                         <input type="text" maxlength="80" wire:model.live.debounce.350ms="footerColumns.{{ $index }}.title" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
                     </label>
@@ -66,7 +75,7 @@
                         <button type="button" wire:click="moveFooterColumn({{ $index }}, 1)" @disabled($index === count($footerColumns) - 1) class="rounded border px-2 py-1 disabled:opacity-30" aria-label="Đưa cột xuống">↓</button>
                         <button type="button" wire:click="removeFooterColumn({{ $index }})" @disabled(count($footerColumns) <= 1) class="rounded border border-red-200 px-2 py-1 text-red-700 disabled:opacity-30">Xóa</button>
                     </div>
-                </div>
+                    </div>
                 @if(($column['module'] ?? '') === 'menu-links')
                     <div class="mt-3 rounded-lg border border-blue-200 bg-blue-50/50 p-3">
                         <label for="footer-import-slug-{{ $index }}" class="mb-1 block text-xs font-semibold text-slate-700">Nạp liên kết từ cột đã tạo (slug)</label>
@@ -112,7 +121,7 @@
                             </div>
                         @endforeach
                     </div>
-                </div>
+                </details>
             @endforeach
         </div>
         <div class="mt-4 flex justify-end">
@@ -120,7 +129,13 @@
         </div>
     </section>
 
-    <section x-show="studioPanel === 'layout'" x-cloak class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm" aria-label="Thiết kế thanh cuối Footer">
+    <details x-show="studioPanel === 'layout'" x-cloak class="group rounded-xl border border-slate-200 bg-white p-5 shadow-sm" aria-label="Thiết kế thanh cuối Footer">
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
+            <span><span class="block font-semibold text-slate-900">Thanh cuối Footer · Bottom Bar</span><span class="mt-1 block text-xs text-slate-500">Copyright · Legal Links · Trust Badges · Mạng xã hội</span></span>
+            <span class="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold group-open:hidden">Thiết lập ⌄</span>
+            <span class="hidden rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold group-open:inline">Thu gọn ⌃</span>
+        </summary>
+        <div class="mt-4 border-t border-slate-100 pt-4">
         <div class="mb-4">
             <h3 class="font-semibold text-slate-900">Thanh cuối Footer · Bottom Bar</h3>
             <p class="mt-1 text-sm text-slate-500">Thiết kế hai vùng cuối Footer ngay tại đây. Bật/tắt và thay đổi thứ tự sẽ cập nhật Responsive Preview; chỉ xuất bản khi kích hoạt theme.</p>
@@ -154,7 +169,8 @@
             <input id="footer-bottom-copyright" type="text" maxlength="250" wire:model.live.debounce.350ms="profileContent.legal.overrides.copyright" placeholder="Để trống để kế thừa Copyright hiện tại" class="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
             <p class="mt-2 text-xs text-slate-500">Legal Links và Trust / Payment Badges tiếp tục kế thừa dữ liệu đang có. Để sửa danh sách liên kết pháp lý hoặc ảnh chứng nhận, dùng công cụ nội dung Footer hiện tại; không tạo dữ liệu trùng lặp.</p>
         </div>
-    </section>
+        </div>
+    </details>
 
     <details x-show="studioPanel === 'layout' && @js($columnsSource !== 'profile')" x-cloak class="rounded-xl border border-slate-200 bg-white p-4">
         <summary class="cursor-pointer font-semibold text-slate-800">Bố cục Legacy · Chỉ dùng khi chưa chọn cột Profile</summary>
