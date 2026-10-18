@@ -260,7 +260,7 @@ class FooterSettingsHub extends Component
         if (count($this->footerColumns) >= 6) {
             return;
         }
-        $this->footerColumns[] = ['title' => 'Cột mới', 'width' => 3, 'enabled' => true, 'items' => []];
+        $this->footerColumns[] = ['title' => 'Cột mới', 'module' => 'custom', 'width' => 3, 'enabled' => true, 'desktop' => true, 'mobile' => true, 'items' => []];
     }
 
     public function removeFooterColumn(int $index): void
@@ -316,6 +316,12 @@ class FooterSettingsHub extends Component
             [$this->footerColumns[$index]['items'][$target], $this->footerColumns[$index]['items'][$itemIndex]];
     }
 
+    public function updatedFooterColumns(): void
+    {
+        // Column edits are profile-owned. Global columns remain untouched.
+        $this->columnsSource = 'profile';
+    }
+
     public function saveFooterColumns(SettingsService $settings): void
     {
         $this->authorizeAdminPermission('website.footer.manage');
@@ -337,6 +343,9 @@ class FooterSettingsHub extends Component
             }
             $normalized[] = [
                 'title' => mb_substr(trim((string) ($column['title'] ?? '')), 0, 80),
+                'module' => in_array($column['module'] ?? 'menu-links', ['brand', 'contact', 'menu-links', 'social-links', 'app-install', 'custom'], true) ? $column['module'] : 'menu-links',
+                'desktop' => (bool) ($column['desktop'] ?? true),
+                'mobile' => (bool) ($column['mobile'] ?? true),
                 'width' => in_array((int) ($column['width'] ?? 3), [2, 3, 4, 6, 12], true) ? (int) $column['width'] : 3,
                 'enabled' => (bool) ($column['enabled'] ?? true),
                 'items' => $this->normalizeFooterColumnItems($column['items'] ?? []),
@@ -501,6 +510,7 @@ class FooterSettingsHub extends Component
         $name = trim($this->themeName) !== '' ? trim($this->themeName) : (string) ($theme['name'] ?? 'Footer Theme');
         $this->themeName = $name;
         $this->validateThemeName();
+        $this->columnsSource = 'profile';
         $this->layoutThemes[$this->selectedTheme] = $this->themeSnapshot($name, $registry, $presentationService);
         $this->persistThemes($settingsService);
         $this->dispatchThemeToast('Đã cập nhật bản lưu profile; website chưa thay đổi.');
