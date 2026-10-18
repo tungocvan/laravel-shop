@@ -42,4 +42,19 @@ class PharmaHeaderAccountVisibilityContractTest extends TestCase
 
     }
 
+    public function test_active_theme_publish_includes_account_and_marks_active_profile(): void
+    {
+        $hub = file_get_contents(base_path('Modules/Website/Livewire/Admin/Header/HeaderSettingsHub.php'));
+        $library = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/header/partials/theme-manager.blade.php'));
+
+        $this->assertStringContainsString('public function publishTheme(', $hub);
+        $this->assertStringContainsString("'website.pharma_header.account' => \$this->accountSettings", $hub);
+        $this->assertStringContainsString("'website.pharma_header.topbar' => \$this->topbarSettings", $hub);
+        $this->assertStringContainsString("\$this->settingKey('active_theme') => \$this->selectedTheme", $hub);
+        $this->assertStringContainsString('public string $activeTheme', $hub);
+        $this->assertStringContainsString('wire:click="publishTheme"', $library);
+        $this->assertStringContainsString('Đang áp dụng trên website', $library);
+        $this->assertStringContainsString('Cập nhật tham số profile', $library);
+    }
+
 }
