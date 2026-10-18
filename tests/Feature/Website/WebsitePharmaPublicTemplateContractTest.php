@@ -37,7 +37,9 @@ class WebsitePharmaPublicTemplateContractTest extends TestCase
         $this->assertStringContainsString('PharmaProductSection::class', $renderer);
         $this->assertStringContainsString("whereHas('pharmaLink')", $loader);
         $this->assertStringContainsString("route('product.list', ['category' => \$category->slug])", $renderer);
-        $this->assertStringContainsString("route('product.detail', \$product->slug)", $cards);
+        $cardPartial = file_get_contents(base_path('Modules/Website/resources/views/partials/pharma-product-card.blade.php'));
+        $this->assertStringContainsString('Website::partials.pharma-product-card', $cards);
+        $this->assertStringContainsString("route('product.detail', \$product->slug)", $cardPartial);
         $this->assertStringNotContainsString('Flash Sale', $renderer);
     }
 }
