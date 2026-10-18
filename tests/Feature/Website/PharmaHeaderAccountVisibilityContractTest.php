@@ -53,7 +53,7 @@ class PharmaHeaderAccountVisibilityContractTest extends TestCase
         $this->assertStringContainsString("\$this->settingKey('active_theme') => \$this->selectedTheme", $hub);
         $this->assertStringContainsString('public string $activeTheme', $hub);
         $this->assertStringContainsString('wire:click="activateSelectedTheme"', $library);
-        $this->assertStringContainsString('Đang áp dụng trên website', $library);
+        $this->assertStringContainsString('Profile website đang sử dụng', $library);
         $this->assertStringContainsString('Cập nhật tham số profile', $library);
     }
 
