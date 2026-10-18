@@ -15,6 +15,21 @@
         <div class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ $message }}</div>
     @enderror
 
+    <div class="mt-4 grid gap-3 md:grid-cols-2">
+        <label class="block text-sm font-medium text-slate-700">Nguồn cột liên kết
+            <select wire:model="columnsSource" class="mt-1 w-full rounded-lg border-slate-300 text-sm">
+                <option value="global">Kế thừa cột Footer hiện tại (an toàn)</option>
+                <option value="profile">Sử dụng cột từ bản nháp profile</option>
+            </select>
+        </label>
+        <label class="block text-sm font-medium text-slate-700">Nguồn mạng xã hội
+            <select wire:model="socialLinksSource" class="mt-1 w-full rounded-lg border-slate-300 text-sm">
+                <option value="global">Kế thừa liên kết mạng xã hội hiện tại</option>
+                <option value="profile">Sử dụng danh sách riêng của profile</option>
+            </select>
+        </label>
+    </div>
+    <p class="mt-2 text-xs text-amber-700">Chọn nguồn profile chỉ khi đã chuẩn bị dữ liệu riêng. Chọn Global để không thay đổi các liên kết đang xuất bản.</p>
     <div class="mt-4 grid gap-4 xl:grid-cols-[1.2fr_1fr]">
         <div class="rounded-lg border border-violet-100 bg-white p-4">
             <label class="block text-sm font-semibold text-gray-700">Theme đã lưu</label>
