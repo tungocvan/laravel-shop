@@ -16,7 +16,7 @@ class PharmaHeaderAccountVisibilityContractTest extends TestCase
         $this->assertStringContainsString("wire:model=\"accountSettings.enabled\"", $admin);
         $this->assertStringContainsString('id="header-actions-panel"', $admin);
         $this->assertStringContainsString('Hành động Header', $admin);
-        $this->assertStringContainsString("saveAccountSettings", $admin);
+        $this->assertStringNotContainsString('wire:click="saveAccountSettings"', $admin);
         $this->assertSame(2, substr_count($frontend, "@if((\$accountConfig['enabled'] ?? true))"));
         $this->assertStringContainsString("Website::partials.pharma.account-dropdown", $frontend);
         $this->assertStringContainsString("Website::partials.pharma.mobile-account-links", $frontend);
@@ -52,7 +52,7 @@ class PharmaHeaderAccountVisibilityContractTest extends TestCase
         $this->assertStringContainsString("'website.pharma_header.topbar' => \$this->topbarSettings", $hub);
         $this->assertStringContainsString("\$this->settingKey('active_theme') => \$this->selectedTheme", $hub);
         $this->assertStringContainsString('public string $activeTheme', $hub);
-        $this->assertStringContainsString('wire:click="publishTheme"', $library);
+        $this->assertStringContainsString('wire:click="activateSelectedTheme"', $library);
         $this->assertStringContainsString('Đang áp dụng trên website', $library);
         $this->assertStringContainsString('Cập nhật tham số profile', $library);
     }
@@ -68,6 +68,18 @@ class PharmaHeaderAccountVisibilityContractTest extends TestCase
         $this->assertStringContainsString('Đang áp dụng qua', $library);
         $this->assertStringContainsString('Đang xem trước', $library);
         $this->assertStringContainsString("activeTheme !== \$selectedTheme", $library);
+    }
+
+    public function test_theme_activation_is_one_action_and_account_is_profile_only(): void
+    {
+        $hub = file_get_contents(base_path('Modules/Website/Livewire/Admin/Header/HeaderSettingsHub.php'));
+        $library = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/header/partials/theme-manager.blade.php'));
+        $admin = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/header/header-settings-hub.blade.php'));
+
+        $this->assertStringContainsString('function activateSelectedTheme(', $hub);
+        $this->assertStringContainsString('wire:click="activateSelectedTheme"', $library);
+        $this->assertStringNotContainsString('wire:click="publishTheme"', $library);
+        $this->assertStringNotContainsString('wire:click="saveAccountSettings"', $admin);
     }
 
 }
