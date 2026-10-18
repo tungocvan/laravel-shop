@@ -10,7 +10,7 @@ class FooterStudioBottomVisibilityContractTest extends TestCase
     {
         $hub = file_get_contents(base_path('Modules/Website/Livewire/Admin/Footer/FooterSettingsHub.php'));
         $this->assertStringContainsString('public bool $bottomBarEnabled = true;', $hub);
-        $this->assertStringContainsString("'bottom_bar_enabled' => $this->bottomBarEnabled", $hub);
+        $this->assertStringContainsString("'bottom_bar_enabled' => " . '$this->bottomBarEnabled', $hub);
         $this->assertStringContainsString('public function loadBottomBarSample(', $hub);
 
         $provider = file_get_contents(base_path('Modules/Website/Providers/WebsiteServiceProvider.php'));
@@ -28,7 +28,7 @@ class FooterStudioBottomVisibilityContractTest extends TestCase
         $hub = file_get_contents(base_path('Modules/Website/Livewire/Admin/Footer/FooterSettingsHub.php'));
         $this->assertStringContainsString("'desktop.bottom.left' => ['copyright', 'social-links']", $hub);
         $this->assertStringContainsString("'desktop.bottom.right' => ['trust-badges']", $hub);
-        $this->assertStringContainsString("($registry->get($type)['allowed_slots'] ?? [])", $hub);
+        $this->assertStringContainsString('($registry->get($type)[\'allowed_slots\'] ?? [])', $hub);
         $this->assertStringNotContainsString("'desktop.bottom.right' => ['legal-links', 'trust-badges']", $hub);
     }
 
