@@ -1,7 +1,10 @@
 {{-- Profile columns are authoritative only when the published snapshot opts into profile source. --}}
 @switch($column->module ?? 'menu-links')
     @case('brand')
-        @include('Website::components.footer.brand')
+        <div class="space-y-5">
+            @include('Website::components.footer.brand')
+            @include('Website::components.footer.contact')
+        </div>
         @break
     @case('contact')
         @include('Website::components.footer.contact')
