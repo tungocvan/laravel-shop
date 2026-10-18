@@ -24,7 +24,7 @@
     <div class="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,55fr)_minmax(0,45fr)] xl:items-start">
         <div class="min-w-0 space-y-5">
             <nav class="flex flex-wrap gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm" aria-label="Các nhóm thiết lập Footer">
-                @foreach(['layout' => 'Bố cục', 'content' => 'Nội dung', 'style' => 'Giao diện', 'profile' => 'Profile'] as $panel => $label)
+                @foreach(['layout' => 'Bố cục & Cột', 'content' => 'Nội dung', 'style' => 'Giao diện', 'profile' => 'Profile'] as $panel => $label)
                     <button type="button" @click="studioPanel = '{{ $panel }}'" :class="studioPanel === '{{ $panel }}' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'" class="rounded-lg px-4 py-2 text-sm font-semibold">{{ $label }}</button>
                 @endforeach
             </nav>
@@ -34,26 +34,35 @@
     <section x-show="studioPanel === 'layout'" x-cloak class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
         <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
-                <h3 class="font-semibold text-slate-900">Thiết kế cột Footer</h3>
-                <p class="mt-1 text-sm text-slate-500">Giai đoạn 1: tạo bản nháp số cột, thứ tự, độ rộng và ẩn/hiện. Chưa áp dụng ra Footer công khai.</p>
+                <h3 class="font-semibold text-slate-900">Cột Footer & Module</h3>
+                <p class="mt-1 text-sm text-slate-500">Chỉnh sửa cột và module, theo dõi trực tiếp trong Preview. Lưu profile trước khi xuất bản.</p>
             </div>
             <button type="button" wire:click="addFooterColumn" @disabled(count($footerColumns) >= 6) class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 disabled:opacity-40">+ Thêm cột</button>
         </div>
         <div class="mt-4 space-y-3">
             @foreach($footerColumns as $index => $column)
-                <div wire:key="footer-column-editor-{{ $index }}" class="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 md:grid-cols-[minmax(0,1fr)_150px_auto] md:items-end">
+                <div wire:key="footer-column-editor-{{ $index }}" class="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 md:grid-cols-2 md:items-end">
                     <label class="text-sm font-medium text-slate-700">Tên cột
-                        <input type="text" maxlength="80" wire:model="footerColumns.{{ $index }}.title" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
+                        <input type="text" maxlength="80" wire:model.live.debounce.350ms="footerColumns.{{ $index }}.title" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
+                    </label>
+                    <label class="text-sm font-medium text-slate-700">Module
+                        <select wire:model.live="footerColumns.{{ $index }}.module" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2">
+                            @foreach(['brand' => 'Thương hiệu', 'contact' => 'Liên hệ', 'menu-links' => 'Liên kết', 'social-links' => 'Mạng xã hội', 'app-install' => 'Ứng dụng', 'custom' => 'Tùy chỉnh'] as $module => $label)
+                                <option value="{{ $module }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
                     </label>
                     <label class="text-sm font-medium text-slate-700">Độ rộng / 12
-                        <select wire:model="footerColumns.{{ $index }}.width" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
+                        <select wire:model.live.debounce.350ms="footerColumns.{{ $index }}.width" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
                             @foreach([2,3,4,6,12] as $width)
                                 <option value="{{ $width }}">{{ $width }}/12</option>
                             @endforeach
                         </select>
                     </label>
                     <div class="flex flex-wrap items-center gap-2">
-                        <label class="inline-flex items-center gap-1 text-sm"><input type="checkbox" wire:model="footerColumns.{{ $index }}.enabled"> Hiện</label>
+                        <label class="inline-flex items-center gap-1 text-sm"><input type="checkbox" wire:model.live="footerColumns.{{ $index }}.enabled"> Hiện</label>
+                        <label class="inline-flex items-center gap-1 text-xs"><input type="checkbox" wire:model.live="footerColumns.{{ $index }}.desktop"> Desktop</label>
+                        <label class="inline-flex items-center gap-1 text-xs"><input type="checkbox" wire:model.live="footerColumns.{{ $index }}.mobile"> Mobile</label>
                         <button type="button" wire:click="moveFooterColumn({{ $index }}, -1)" @disabled($index === 0) class="rounded border px-2 py-1 disabled:opacity-30" aria-label="Đưa cột lên">↑</button>
                         <button type="button" wire:click="moveFooterColumn({{ $index }}, 1)" @disabled($index === count($footerColumns) - 1) class="rounded border px-2 py-1 disabled:opacity-30" aria-label="Đưa cột xuống">↓</button>
                         <button type="button" wire:click="removeFooterColumn({{ $index }})" @disabled(count($footerColumns) <= 1) class="rounded border border-red-200 px-2 py-1 text-red-700 disabled:opacity-30">Xóa</button>
@@ -71,11 +80,11 @@
                         @foreach(($column['items'] ?? []) as $itemIndex => $item)
                             <div wire:key="footer-column-item-{{ $index }}-{{ $itemIndex }}" class="grid gap-2 rounded-lg bg-slate-50 p-2 sm:grid-cols-[1fr_1fr_auto] sm:items-center">
                                 <label class="text-xs text-slate-600">{{ $item['type'] === 'link' ? 'Tên liên kết' : 'Văn bản' }}
-                                    <input type="text" maxlength="250" wire:model="footerColumns.{{ $index }}.items.{{ $itemIndex }}.label" class="mt-1 w-full rounded border border-slate-300 px-2 py-1.5">
+                                    <input type="text" maxlength="250" wire:model.live.debounce.350ms="footerColumns.{{ $index }}.items.{{ $itemIndex }}.label" class="mt-1 w-full rounded border border-slate-300 px-2 py-1.5">
                                 </label>
                                 @if($item['type'] === 'link')
                                     <label class="text-xs text-slate-600">URL (https:// hoặc /)
-                                        <input type="text" maxlength="2048" wire:model="footerColumns.{{ $index }}.items.{{ $itemIndex }}.url" class="mt-1 w-full rounded border border-slate-300 px-2 py-1.5">
+                                        <input type="text" maxlength="2048" wire:model.live.debounce.350ms="footerColumns.{{ $index }}.items.{{ $itemIndex }}.url" class="mt-1 w-full rounded border border-slate-300 px-2 py-1.5">
                                     </label>
                                 @else
                                     <span class="text-xs text-slate-400">Đoạn văn bản</span>
@@ -96,6 +105,9 @@
         </div>
     </section>
 
+    <details x-show="studioPanel === 'layout'" x-cloak class="rounded-xl border border-slate-200 bg-white p-4">
+        <summary class="cursor-pointer font-semibold text-slate-800">Bố cục nâng cao · Vùng Desktop/Mobile &amp; Component</summary>
+        <div class="mt-4 space-y-4">
     <div x-show="studioPanel === 'layout'" x-cloak class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
             <h2 class="text-xl font-bold text-gray-900">Bố cục Footer</h2>
@@ -221,6 +233,8 @@
         </div>
     </section>
 
+        </div>
+    </details>
     <section x-show="studioPanel === 'style'" x-cloak class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
