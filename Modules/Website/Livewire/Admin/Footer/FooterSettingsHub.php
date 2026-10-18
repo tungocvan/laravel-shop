@@ -370,6 +370,10 @@ class FooterSettingsHub extends Component
     ): void {
         $this->authorizeAdminPermission('website.footer.manage');
 
+        if ($this->activeTheme !== '') {
+            $this->addError('theme', 'Footer đang dùng profile. Hãy cập nhật profile rồi kích hoạt để xuất bản.');
+            return;
+        }
         $layout = $this->safeLayout($this->builderSlots, $registry);
         $presentation = $presentationService->resolve($this->presentation);
 
