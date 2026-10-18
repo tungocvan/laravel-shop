@@ -57,7 +57,7 @@
             @endif
             <div class="mt-4 flex flex-wrap gap-2">
                 <button type="button" wire:click="activateSelectedTheme" wire:confirm="Nạp và áp dụng toàn bộ profile này lên website?" @disabled(!$selectedTheme) class="rounded-lg bg-violet-600 px-3 py-2 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-40">Nạp &amp; áp dụng lên website</button>
-                <button type="button" wire:click="updateTheme" @disabled(!$selectedTheme || ($editingTemplate === 'pharma' && $activeTheme !== $selectedTheme)) class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-40">Cập nhật tham số profile</button>
+                <button type="button" x-on:click="$wire.updateTheme(pharmaVisibilityOverrides).then(() => { pharmaVisibilityOverrides = {}; })" @disabled(!$selectedTheme || ($editingTemplate === 'pharma' && $activeTheme !== $selectedTheme)) class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-40">Cập nhật tham số profile</button>
                 <button type="button" wire:click="deleteTheme" wire:confirm="Xóa Header theme này?" @disabled(!$selectedTheme) class="rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-40">Xóa</button>
             </div>
         </div>
