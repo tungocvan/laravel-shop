@@ -3,21 +3,50 @@
     <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
             <h3 class="font-bold text-gray-900">Header Layout Themes</h3>
-            <p class="mt-1 text-sm text-gray-500">Lưu snapshot bố cục + presentation. Nạp theme chỉ thay đổi Builder/Preview; frontend chỉ đổi sau khi bấm <strong>Lưu bố cục</strong>.</p>
+            <p class="mt-1 text-sm text-gray-500">Theme lưu bố cục, presentation, tài khoản, Topbar và thương hiệu. Nạp để chỉnh sửa; chỉ nút <strong>Áp dụng lên website</strong> mới xuất bản toàn bộ profile.</p>
         </div>
         <span class="self-start rounded-full bg-white px-3 py-1 text-xs font-semibold text-violet-700 ring-1 ring-violet-200">{{ count($layoutThemes) }}/20 themes</span>
     </div>
+
+    @if($editingTemplate === 'pharma')
+        <div class="mt-4 grid gap-3 md:grid-cols-2" aria-label="Mẫu Header có sẵn">
+            <div class="rounded-xl border border-emerald-200 bg-white p-4">
+                <div class="mb-2 h-2 rounded-full bg-emerald-700"></div>
+                <h4 class="text-sm font-bold text-slate-900">Pharma Classic</h4>
+                @if($activeTheme && ($layoutThemes[$activeTheme]['starter_profile'] ?? '') === 'pharma-classic')<p class="mt-1 text-xs font-bold text-emerald-700">● Đang áp dụng qua {{ $layoutThemes[$activeTheme]['name'] ?? $activeTheme }}</p>@elseif($starterProfile === 'pharma-classic')<p class="mt-1 text-xs font-semibold text-slate-600">Đang xem trước</p>@endif
+                <p class="mt-1 text-xs text-slate-500">Xanh dược phẩm, bố cục cân đối, menu rõ ràng.</p>
+                <button type="button" wire:click="activateStarterTheme('pharma-classic')" wire:confirm="Kích hoạt Pharma Classic và áp dụng ngay lên website?" class="mt-3 rounded-lg border border-emerald-600 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-50">Kích hoạt Pharma Classic</button>
+            </div>
+            <div class="rounded-xl border border-blue-200 bg-white p-4">
+                <div class="mb-2 h-2 rounded-full bg-blue-700"></div>
+                <h4 class="text-sm font-bold text-slate-900">FlexBiz Modern</h4>
+                @if($activeTheme && ($layoutThemes[$activeTheme]['starter_profile'] ?? '') === 'flexbiz-modern')<p class="mt-1 text-xs font-bold text-blue-700">● Đang áp dụng qua {{ $layoutThemes[$activeTheme]['name'] ?? $activeTheme }}</p>@elseif($starterProfile === 'flexbiz-modern')<p class="mt-1 text-xs font-semibold text-slate-600">Đang xem trước</p>@endif
+                <p class="mt-1 text-xs text-slate-500">Xanh công nghệ, nội dung rộng, điểm nhấn hiện đại.</p>
+                <button type="button" wire:click="activateStarterTheme('flexbiz-modern')" wire:confirm="Kích hoạt FlexBiz Modern và áp dụng ngay lên website?" class="mt-3 rounded-lg border border-blue-600 px-3 py-2 text-xs font-semibold text-blue-800 hover:bg-blue-50">Kích hoạt FlexBiz Modern</button>
+            </div>
+        </div>
+        <p class="mt-2 text-xs text-violet-700">Kích hoạt mẫu sẽ nạp profile đã lưu (nếu có) và áp dụng ngay lên website. Profile mới được lưu vào thư viện trước khi áp dụng.</p>
+    @endif
 
     @error('theme')<div class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ $message }}</div>@enderror
     @error('themeName')<div class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ $message }}</div>@enderror
 
     <div class="mt-4 grid gap-4 xl:grid-cols-[1.2fr_1fr]">
         <div class="rounded-lg border border-violet-100 bg-white p-4">
+            @if($activeTheme && isset($layoutThemes[$activeTheme]))
+                <div class="mb-4 rounded-xl border-2 border-emerald-500 bg-emerald-50 p-3" role="status" aria-label="Profile Header đang áp dụng">
+                    <span class="text-xs font-bold uppercase tracking-wide text-emerald-800">● Profile website đang sử dụng (khác với mẫu đang xem trước)</span>
+                    <p class="mt-1 font-bold text-emerald-950">{{ $layoutThemes[$activeTheme]['name'] ?? $activeTheme }}</p>
+                    <button type="button" wire:click="selectTheme(@js($activeTheme))" class="mt-2 rounded-lg border border-emerald-600 px-3 py-1.5 text-xs font-semibold text-emerald-800">Chọn profile này để cập nhật</button>
+                </div>
+            @else
+                <p class="mb-4 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">Chưa có profile nào được đánh dấu đang áp dụng. Header hiện sử dụng cấu hình đã lưu trực tiếp.</p>
+            @endif
             <label class="block text-sm font-semibold text-gray-700">Theme đã lưu</label>
             <select wire:change="selectTheme($event.target.value)" class="{{ $fieldClass }}">
                 <option value="">Chọn Header theme...</option>
                 @foreach($layoutThemes as $slug => $theme)
-                    <option value="{{ $slug }}" @selected($selectedTheme === $slug)>{{ $theme['name'] ?? $slug }}</option>
+                    <option value="{{ $slug }}" @selected($selectedTheme === $slug)>{{ $theme['name'] ?? $slug }}{{ $activeTheme === $slug ? ' · ĐANG ÁP DỤNG' : '' }}</option>
                 @endforeach
             </select>
             @if($selectedTheme && isset($layoutThemes[$selectedTheme]))
@@ -27,8 +56,8 @@
                 </div>
             @endif
             <div class="mt-4 flex flex-wrap gap-2">
-                <button type="button" wire:click="applyTheme" @disabled(!$selectedTheme) class="rounded-lg bg-violet-600 px-3 py-2 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-40">Nạp / Áp dụng</button>
-                <button type="button" wire:click="updateTheme" @disabled(!$selectedTheme) class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-40">Cập nhật theme</button>
+                <button type="button" wire:click="activateSelectedTheme" wire:confirm="Nạp và áp dụng toàn bộ profile này lên website?" @disabled(!$selectedTheme) class="rounded-lg bg-violet-600 px-3 py-2 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-40">Nạp &amp; áp dụng lên website</button>
+                <button type="button" x-on:click="$wire.updateTheme(pharmaVisibilityOverrides).then(() => { pharmaVisibilityOverrides = {}; })" @disabled(!$selectedTheme || ($editingTemplate === 'pharma' && $activeTheme !== $selectedTheme)) class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-40">Cập nhật tham số profile</button>
                 <button type="button" wire:click="deleteTheme" wire:confirm="Xóa Header theme này?" @disabled(!$selectedTheme) class="rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-40">Xóa</button>
             </div>
         </div>
@@ -36,7 +65,7 @@
         <div class="rounded-lg border border-violet-100 bg-white p-4">
             <label class="block text-sm font-semibold text-gray-700">Tên theme</label>
             <input type="text" wire:model="themeName" maxlength="60" placeholder="Ví dụ: Shop Header Standard" class="{{ $fieldClass }}">
-            <p class="mt-2 text-xs text-gray-400">Theme không lưu menu content, hotline, email, brand name/logo hoặc script.</p>
+            <p class="mt-2 text-xs text-gray-400">Profile lưu bố cục, giao diện, trạng thái tài khoản, Topbar và thiết lập thương hiệu. Nội dung menu, hotline/email và logo được quản lý riêng.</p>
             <div class="mt-4 flex flex-wrap gap-2">
                 <button type="button" wire:click="saveTheme" class="rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700">Lưu thành theme mới</button>
                 <button type="button" wire:click="renameTheme" @disabled(!$selectedTheme) class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-40">Đổi tên theme</button>

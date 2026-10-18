@@ -64,7 +64,7 @@
                 @error('brandAppearance')<p class="mt-3 text-sm text-red-700">{{ $message }}</p>@enderror
                 <div class="mt-4 flex justify-end gap-2 border-t border-slate-100 pt-4">
                     <button type="button" wire:click="resetBrandAppearance" class="rounded-lg border border-slate-300 px-4 py-2 text-sm">Khôi phục mặc định</button>
-                    <button type="button" wire:click="saveBrandAppearance" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Lưu thương hiệu & Slogan</button>
+                    <button type="button" wire:click="saveBrandAppearance" @disabled($editingTemplate === 'pharma' && $activeTheme !== '') class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Lưu thương hiệu & Slogan</button>
                 </div>
             </section>
         @endif
@@ -98,7 +98,7 @@
                 <div class="flex flex-wrap items-center gap-5">
                     <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model="topbarSettings.show_hotline" class="rounded border-gray-300"> Hiện hotline</label>
                     <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model="topbarSettings.show_email" class="rounded border-gray-300"> Hiện email</label>
-                    <button type="button" wire:click="saveTopbarSettings" class="ml-auto rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white">Lưu Topbar Pharma</button>
+                    <button type="button" wire:click="saveTopbarSettings" @disabled($editingTemplate === 'pharma' && $activeTheme !== '') class="ml-auto rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white">Lưu Topbar Pharma</button>
                 </div>
                 <p class="text-xs text-slate-500">Hotline, Email hỗ trợ, Link Trợ giúp và Link Theo dõi đơn hàng được lưu bằng nút “Lưu thông tin Header” ở phần Thông tin chung. Nút “Lưu Topbar Pharma” chỉ lưu nội dung bên trái và tùy chọn hiển thị.</p>
                 </div>
@@ -176,7 +176,7 @@
                 @error('menuAppearance')<p class="mt-3 text-sm text-red-700">{{ $message }}</p>@enderror
                 <div class="mt-5 flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-4">
                     <button type="button" wire:click="resetMenuAppearance" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Khôi phục mặc định</button>
-                    <button type="button" wire:click="saveMenuAppearance" wire:loading.attr="disabled" wire:target="saveMenuAppearance" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Lưu thiết lập Menu</button>
+                    <button type="button" wire:click="saveMenuAppearance" @disabled($editingTemplate === 'pharma' && $activeTheme !== '') wire:loading.attr="disabled" wire:target="saveMenuAppearance" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Lưu thiết lập Menu</button>
                 </div>
             </section>
         @endif
@@ -192,7 +192,7 @@
             <div class="flex gap-2">
                 <button type="button" wire:click="resetBuilder" class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Khôi phục mặc định</button>
                 @if($editingTemplate === 'pharma')
-                    <button type="button" @click="$wire.savePharmaBuilder(pharmaVisibilityOverrides).then(() => { pharmaVisibilityOverrides = {}; })" wire:loading.attr="disabled" wire:target="savePharmaBuilder" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">Lưu bố cục</button>
+                    <button type="button" @click="$wire.savePharmaBuilder(pharmaVisibilityOverrides).then(() => { pharmaVisibilityOverrides = {}; })" wire:loading.attr="disabled" wire:target="savePharmaBuilder" @disabled($editingTemplate === 'pharma' && $activeTheme !== '') class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">Lưu bố cục</button>
                 @else
                     <button type="button" wire:click="saveBuilder" wire:loading.attr="disabled" wire:target="saveBuilder" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">Lưu bố cục</button>
                 @endif
@@ -236,11 +236,11 @@
                         </label>
                     @endforeach
                 </div>
-                <button type="button" wire:click="saveBrandAppearance" class="mt-3 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white">Lưu ẩn/hiện thương hiệu</button>
+                <button type="button" wire:click="saveBrandAppearance" @disabled($editingTemplate === 'pharma' && $activeTheme !== '') class="mt-3 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white">Lưu ẩn/hiện thương hiệu</button>
             </section>
             <div class="space-y-2" aria-label="Danh sách thành phần Header Pharma">
                 <p class="text-xs text-slate-500">Mỗi chức năng chỉ có một thành phần. Chọn thiết bị hiển thị và vị trí; Menu di động chỉ hỗ trợ Mobile.</p>
-                <p class="text-xs text-slate-500">Chọn trạng thái không tải lại giao diện. Nhấn <strong>Lưu bố cục</strong> để áp dụng và cập nhật bản xem trước.</p>
+                <p class="text-xs text-slate-500">Chọn trạng thái không tải lại giao diện. Khi đang dùng profile, nhấn <strong>Cập nhật tham số profile</strong> để lưu rồi kích hoạt profile để xuất bản.</p>
                 @foreach($builderSlotNames as $slotKey => $slotLabel)
                     @foreach($builderSlots[$slotKey] ?? [] as $index => $item)
                         @php
@@ -372,7 +372,11 @@
         </section>
 
         @if($editingTemplate === 'pharma')
-            <section class="rounded-xl border border-emerald-200 bg-white p-4" aria-label="Thiết lập Account Dropdown Pharma">
+            <section id="header-actions-panel" class="rounded-xl border border-emerald-200 bg-white p-4" aria-label="Hành động Header Pharma">
+                <div class="mb-4 border-b border-emerald-100 pb-3">
+                    <h4 class="text-base font-bold text-slate-900">Hành động Header</h4>
+                    <p class="mt-1 text-xs text-slate-600">Quản lý hành động tài khoản của Header Pharma ngay trong Bố cục Header. Wishlist và Giỏ hàng thuộc cấu hình Header Default, không áp dụng cho Pharma.</p>
+                </div>
                 <button type="button" @click="showAccountSettings = !showAccountSettings" :aria-expanded="showAccountSettings.toString()" aria-controls="header-account-settings" class="flex w-full items-center justify-between gap-3 text-left text-sm font-semibold text-gray-800">
                     <span>Tài khoản & đăng nhập <span class="ml-2 text-xs font-normal text-gray-500">Kiểu hiển thị và các liên kết tài khoản</span></span>
                     <span x-text="showAccountSettings ? 'Thu gọn −' : 'Cấu hình +'"></span>
@@ -382,6 +386,8 @@
                     <h4 class="text-base font-bold text-gray-900">Account Dropdown · Góc phải Header</h4>
                     <p class="mt-1 text-xs text-gray-600">Component độc lập với Menu điều hướng. Tổng quan tài khoản và Đăng xuất là mục bắt buộc; các mục khác chỉ hiện khi route khả dụng và người dùng có quyền.</p>
                 </div>
+                <label class="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-900"><input type="checkbox" wire:model="accountSettings.enabled" class="h-4 w-4 rounded border-gray-300"> Hiển thị Tài khoản trên Header Pharma (Desktop và Mobile)</label>
+                <p class="text-xs text-gray-500">Tắt để ẩn tài khoản khi profile này được áp dụng. Nhấn Cập nhật tham số profile trong Thư viện mẫu Header để lưu trạng thái riêng của profile.</p>
                 <div class="grid gap-4 md:grid-cols-2">
                     <label class="block text-sm font-medium text-gray-700">Kiểu hiển thị
                         <select wire:model="accountSettings.style" class="mt-1 w-full rounded-lg border-gray-300 bg-white text-sm">
@@ -400,7 +406,6 @@
                 </div>
                 <div class="flex items-center justify-between gap-3 border-t border-emerald-100 pt-3">
                     <span class="text-xs text-gray-600">Desktop và Mobile: góc phải · Đăng xuất dùng POST + CSRF.</span>
-                    <button type="button" wire:click="saveAccountSettings" class="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Lưu Account Dropdown</button>
                 </div>
                 </div>
             </section>
@@ -453,7 +458,7 @@
                             <div class="bg-white" style="height:{{ max(0, min(120, (int) ($presentation['banner_gap']['desktop'] ?? 0))) }}px"></div>
                             <div class="bg-emerald-100 px-3 py-2 text-center text-xs font-semibold text-emerald-800">BANNER</div>
                         </div>
-                        <p class="mt-2 text-xs text-slate-500">Xem trước minh họa Desktop. Nhấn “Lưu bố cục” để xuất bản cả hai giá trị; Header Themes sẽ lưu theo snapshot Presentation.</p>
+                        <p class="mt-2 text-xs text-slate-500">Xem trước minh họa Desktop. Khi dùng profile, nhấn “Cập nhật tham số profile” rồi kích hoạt để xuất bản.</p>
                     </div>
                 @endif
                 <label class="flex items-center gap-3 rounded-lg border border-gray-200 px-4 py-3 text-sm font-medium text-gray-700"><input type="checkbox" wire:model.live="presentation.sticky" class="rounded border-gray-300 text-blue-600"> Sticky Header</label>
