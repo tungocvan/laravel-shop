@@ -26,7 +26,7 @@ class HeaderSettingsHub extends Component
     public string $selectedTheme = '';
     public string $themeName = '';
 
-    private const THEME_VERSION = 1;
+    private const THEME_VERSION = 2;
     private const MAX_THEMES = 20;
 
     private const BUILDER_SLOTS = [
@@ -459,6 +459,9 @@ class HeaderSettingsHub extends Component
             $this->presentation,
             ['mode' => 'basic', 'inherit_colors' => false, 'container' => $preset['container'], 'size' => $preset['size'], 'shadow' => $preset['shadow'], 'colors' => $preset['colors'], 'menu_style' => $preset['menu_style']]
         ));
+        // Starter profiles include an explicit canonical layout, not only colors.
+        $this->loadBuilderLayout($this->defaultLayout());
+        $this->normalizePharmaBuilder();
         $this->selectedTheme = '';
         $this->themeName = $preset['name'];
         $this->resetErrorBag('theme');
@@ -475,12 +478,21 @@ class HeaderSettingsHub extends Component
 
         $this->loadBuilderLayout($this->safeLayout(is_array($theme['layout'] ?? null) ? $theme['layout'] : [], $registry));
         $this->presentation = $presentationService->resolve(is_array($theme['presentation'] ?? null) ? $theme['presentation'] : null);
+        if ($this->editingTemplate === 'pharma') {
+            $this->normalizePharmaBuilder();
+        }
+        if ($this->editingTemplate === 'pharma' && is_array($theme['account_settings'] ?? null)) {
+            $this->accountSettings = $this->normalizeAccountSettings($theme['account_settings']);
+        }
+        if ($this->editingTemplate === 'pharma' && is_array($theme['topbar_settings'] ?? null)) {
+            $this->topbarSettings = $this->normalizeTopbarSettings($theme['topbar_settings']);
+        }
         if ($this->editingTemplate === 'pharma' && is_array($theme['brand_appearance'] ?? null)) {
             $this->brandAppearance = app(PharmaBrandAppearanceService::class)->resolve($theme['brand_appearance']);
         }
         $this->themeName = (string) ($theme['name'] ?? '');
         $this->resetErrorBag('theme');
-        $this->dispatchThemeToast('Đã nạp theme vào Builder. Kiểm tra Preview rồi bấm Lưu bố cục để publish.');
+        $this->dispatchThemeToast('Đã nạp theme vào Builder. Lưu bố cục, Tài khoản, Topbar và Thương hiệu riêng để xuất bản các thay đổi.');
     }
 
     public function updateTheme(
@@ -566,6 +578,8 @@ class HeaderSettingsHub extends Component
             'layout' => $this->safeLayout($this->builderSlots, $registry),
             'presentation' => $presentationService->resolve($this->presentation),
             'brand_appearance' => $this->editingTemplate === 'pharma' ? app(PharmaBrandAppearanceService::class)->resolve($this->brandAppearance) : null,
+            'account_settings' => $this->editingTemplate === 'pharma' ? $this->normalizeAccountSettings($this->accountSettings) : null,
+            'topbar_settings' => $this->editingTemplate === 'pharma' ? $this->normalizeTopbarSettings($this->topbarSettings) : null,
             'updated_at' => now()->toIso8601String(),
         ];
     }
