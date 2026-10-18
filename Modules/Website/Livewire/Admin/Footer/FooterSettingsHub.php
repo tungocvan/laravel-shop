@@ -8,6 +8,7 @@ use Modules\System\Services\SettingsService;
 use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
 use Modules\Website\Services\FooterComponentRegistry;
 use Modules\Website\Services\FooterPresentationService;
+use Modules\Website\Models\FooterColumn;
 
 class FooterSettingsHub extends Component
 {
@@ -18,6 +19,8 @@ class FooterSettingsHub extends Component
     public array $pharmaContent = [];
     public array $builderSlots = [];
     public array $footerColumns = [];
+    public array $legacyFooterColumnOptions = [];
+    public array $selectedLegacyFooterSlugs = [];
     public array $presentation = [];
     public array $layoutThemes = [];
     public string $selectedTheme = '';
@@ -53,6 +56,7 @@ class FooterSettingsHub extends Component
         $rawLayout = is_array($savedLayout) ? $savedLayout : (array) config('website.footer.layout', []);
         $this->loadBuilderLayout($rawLayout);
         $this->loadFooterColumns($settingsService);
+        $this->loadLegacyFooterColumnOptions();
 
         $savedPresentation = $settingsService->get($this->settingKey('presentation'));
         $this->presentation = $presentationService->resolve(is_array($savedPresentation) ? $savedPresentation : null);
@@ -109,6 +113,7 @@ class FooterSettingsHub extends Component
         $layout = $settings->get($this->settingKey('layout'));
         $this->loadBuilderLayout(is_array($layout) ? $layout : (array) config('website.footer.layout', []));
         $this->loadFooterColumns($settings);
+        $this->loadLegacyFooterColumnOptions();
         $savedPresentation = $settings->get($this->settingKey('presentation'));
         $this->presentation = $presentationService->resolve(is_array($savedPresentation) ? $savedPresentation : null);
         $themes = $settings->get($this->settingKey('layout_themes'), []);
@@ -297,6 +302,63 @@ class FooterSettingsHub extends Component
         }
         [$this->footerColumns[$index], $this->footerColumns[$target]] =
             [$this->footerColumns[$target], $this->footerColumns[$index]];
+    }
+
+    private function loadLegacyFooterColumnOptions(): void
+    {
+        $this->legacyFooterColumnOptions = FooterColumn::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get(['slug', 'title'])
+            ->filter(fn ($column) => filled($column->slug))
+            ->map(fn ($column) => ['slug' => (string) $column->slug, 'title' => (string) $column->title])
+            ->values()->all();
+        $this->selectedLegacyFooterSlugs = [];
+    }
+
+    public function importLegacyFooterColumn(int $index): void
+    {
+        $this->authorizeAdminPermission('website.footer.manage');
+
+        if (! isset($this->footerColumns[$index]) || ($this->footerColumns[$index]['module'] ?? '') !== 'menu-links') {
+            return;
+        }
+
+        $slug = trim((string) ($this->selectedLegacyFooterSlugs[$index] ?? ''));
+        if ($slug === '') {
+            $this->addError('legacyColumn.'.$index, 'Vui lòng chọn một slug cột liên kết.');
+            return;
+        }
+
+        $source = FooterColumn::query()
+            ->where('slug', $slug)
+            ->where('is_active', true)
+            ->with(['links' => fn ($query) => $query->where('is_active', true)->orderBy('sort_order')])
+            ->first();
+
+        if ($source === null) {
+            $this->addError('legacyColumn.'.$index, 'Không tìm thấy cột liên kết đang hoạt động.');
+            return;
+        }
+
+        $links = $source->links->take(12)->map(fn ($link) => [
+            'type' => 'link',
+            'label' => (string) $link->label,
+            'url' => (string) $link->url,
+            'new_tab' => (bool) $link->new_tab,
+        ])->all();
+
+        if ($links === []) {
+            $this->addError('legacyColumn.'.$index, 'Cột nguồn chưa có liên kết đang hoạt động.');
+            return;
+        }
+
+        // Explicit import replaces only this draft column. It does not change the
+        // legacy database, the saved theme, or the published website.
+        $this->footerColumns[$index]['items'] = array_values($links);
+        $this->columnsSource = 'profile';
+        $this->resetErrorBag('legacyColumn.'.$index);
+        $this->dispatch('show-toast', [['type' => 'success', 'message' => 'Đã nạp '.count($links).' liên kết từ '.$source->title.' vào bản nháp.']]);
     }
 
     public function addFooterColumnItem(int $index, string $type): void
