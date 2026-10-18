@@ -21,9 +21,12 @@ class FooterSettingsHub extends Component
     public array $presentation = [];
     public array $layoutThemes = [];
     public string $selectedTheme = '';
+    public string $activeTheme = '';
+    public array $profileContent = [];
+    public array $profileSocialLinks = [];
     public string $themeName = '';
 
-    private const THEME_VERSION = 1;
+    private const THEME_VERSION = 2;
     private const MAX_THEMES = 20;
 
     private const BUILDER_SLOTS = [
@@ -53,6 +56,8 @@ class FooterSettingsHub extends Component
 
         $savedThemes = $settingsService->get($this->settingKey('layout_themes'), []);
         $this->layoutThemes = is_array($savedThemes) ? $savedThemes : [];
+        $this->activeTheme = (string) $settingsService->get($this->settingKey('active_theme'), '');
+        $this->loadProfileSources($settingsService);
     }
 
     private function loadPharmaContent(SettingsService $settingsService): void
@@ -90,6 +95,8 @@ class FooterSettingsHub extends Component
         $this->presentation = $presentationService->resolve(is_array($savedPresentation) ? $savedPresentation : null);
         $themes = $settings->get($this->settingKey('layout_themes'), []);
         $this->layoutThemes = is_array($themes) ? $themes : [];
+        $this->activeTheme = (string) $settings->get($this->settingKey('active_theme'), '');
+        $this->loadProfileSources($settings);
         $this->selectedTheme = '';
         $this->themeName = '';
     }
@@ -456,6 +463,9 @@ class FooterSettingsHub extends Component
         $this->loadBuilderLayout($safeLayout);
         $this->presentation = $presentationService->resolve(is_array($theme['presentation'] ?? null) ? $theme['presentation'] : null);
         $this->themeName = (string) ($theme['name'] ?? '');
+        $this->footerColumns = $this->normalizeFooterColumns((array) data_get($theme, 'columns.items', $this->footerColumns));
+        $this->profileContent = (array) ($theme['content'] ?? $this->profileContent);
+        $this->profileSocialLinks = (array) data_get($theme, 'social_links.items', $this->profileSocialLinks);
         $this->resetErrorBag('theme');
         $this->dispatchThemeToast('Đã nạp theme vào Builder. Kiểm tra Preview rồi bấm Lưu bố cục để publish.');
     }
@@ -502,6 +512,10 @@ class FooterSettingsHub extends Component
             return;
         }
 
+        if ($this->selectedTheme === $this->activeTheme) {
+            $this->addError('theme', 'Không thể xóa profile đang kích hoạt. Hãy kích hoạt profile khác trước.');
+            return;
+        }
         unset($this->layoutThemes[$this->selectedTheme]);
         $this->selectedTheme = '';
         $this->themeName = '';
@@ -549,8 +563,55 @@ class FooterSettingsHub extends Component
             'name' => trim($name),
             'layout' => $this->safeLayout($this->builderSlots, $registry),
             'presentation' => $presentationService->resolve($this->presentation),
+            'columns' => ['source' => 'profile', 'items' => $this->normalizeFooterColumns($this->footerColumns)],
+            'social_links' => ['source' => 'global', 'items' => $this->profileSocialLinks],
+            'content' => $this->profileContent,
             'updated_at' => now()->toIso8601String(),
         ];
+    }
+
+    private function loadProfileSources(SettingsService $settings): void
+    {
+        $this->profileContent = [
+            'brand' => ['source' => 'global', 'overrides' => []],
+            'contact' => ['source' => 'global', 'overrides' => []],
+            'legal' => ['source' => 'global', 'overrides' => []],
+            'app_install' => ['source' => 'global', 'overrides' => []],
+            'pharma' => $this->pharmaContent,
+        ];
+        $this->profileSocialLinks = [];
+    }
+
+    public function publishTheme(
+        SettingsService $settingsService,
+        FooterComponentRegistry $registry,
+        FooterPresentationService $presentationService
+    ): void {
+        $this->authorizeAdminPermission('website.footer.manage');
+        $theme = $this->selectedThemeData();
+        if ($theme === null) {
+            return;
+        }
+
+        $layout = $this->safeLayout((array) ($theme['layout'] ?? []), $registry);
+        $presentation = $presentationService->resolve(
+            is_array($theme['presentation'] ?? null) ? $theme['presentation'] : null
+        );
+        $updates = [
+            $this->settingKey('layout') => $layout,
+            $this->settingKey('presentation') => $presentation,
+            $this->settingKey('active_theme') => $this->selectedTheme,
+        ];
+        // Profile-only data is published to scoped keys. Existing global DB
+        // columns, social links and legacy footer content remain untouched.
+        $updates[$this->settingKey('profile_content')] = (array) ($theme['content'] ?? []);
+        $updates[$this->settingKey('profile_columns')] = (array) ($theme['columns'] ?? []);
+        $updates[$this->settingKey('profile_social_links')] = (array) ($theme['social_links'] ?? []);
+        $settingsService->updateMany($updates, 'footer');
+        $this->activeTheme = $this->selectedTheme;
+        $this->loadBuilderLayout($layout);
+        $this->presentation = $presentation;
+        $this->dispatchThemeToast('Đã kích hoạt Footer profile và xuất bản cấu hình.');
     }
 
     private function safeLayout(array $source, FooterComponentRegistry $registry): array
