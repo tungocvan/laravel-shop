@@ -27,7 +27,7 @@
     <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <h3 class="font-bold text-gray-900">Responsive Preview</h3>
-            <p class="text-sm text-gray-500">Preview dùng state hiện tại của Builder, kể cả thay đổi chưa bấm Lưu.</p>
+            <p class="text-sm text-gray-500">Xem cột, module và bố cục từ bản nháp hiện tại, kể cả thay đổi chưa lưu.</p>
         </div>
         <div class="inline-flex rounded-lg bg-white p-1 shadow-sm ring-1 ring-gray-200">
             <button type="button" @click="previewDevice = 'desktop'"
@@ -57,6 +57,19 @@
                         </div>
                     @endif
 
+                    <div class="mb-4 grid grid-cols-12 gap-2" aria-label="Các cột Footer Desktop">
+                        @foreach($footerColumns as $column)
+                            @if(($column['enabled'] ?? true) && ($column['desktop'] ?? true))
+                                <div class="min-w-0 rounded border p-2" style="grid-column: span {{ (int) ($column['width'] ?? 3) }} / span {{ (int) ($column['width'] ?? 3) }}; border-color: {{ $border }};">
+                                    <div class="text-xs font-semibold" style="color: {{ $heading }};">{{ $column['title'] ?? '' }}</div>
+                                    <div class="mt-1 text-[10px]" style="color: {{ $muted }};">{{ $column['module'] ?? 'menu-links' }}</div>
+                                    @foreach(array_slice($column['items'] ?? [], 0, 3) as $columnItem)
+                                        <div class="mt-1 truncate text-[10px]" style="color: {{ $foreground }};">{{ $columnItem['label'] ?? '' }}</div>
+                                    @endforeach
+                                </div>
+                            @endif
+                        @endforeach
+                    </div>
                     <div class="grid grid-cols-12 gap-4">
                         @foreach([
                             'desktop.main.brand' => 'col-span-4',
@@ -93,6 +106,16 @@
                 </div>
 
                 <div x-show="previewDevice === 'mobile'" class="space-y-3 p-4">
+                    <div class="space-y-2" aria-label="Các cột Footer Mobile">
+                        @foreach($footerColumns as $column)
+                            @if(($column['enabled'] ?? true) && ($column['mobile'] ?? true))
+                                <div class="rounded border p-2" style="border-color: {{ $border }};">
+                                    <div class="text-xs font-semibold" style="color: {{ $heading }};">{{ $column['title'] ?? '' }}</div>
+                                    <div class="text-[10px]" style="color: {{ $muted }};">{{ $column['module'] ?? 'menu-links' }}</div>
+                                </div>
+                            @endif
+                        @endforeach
+                    </div>
                     <div class="text-[10px] uppercase tracking-wide" style="color: {{ $muted }};">Mobile Main</div>
                     @forelse($slotItems['mobile.main'] ?? [] as $item)
                         <div class="rounded-md px-3 py-3 text-xs font-semibold" style="color: {{ $heading }}; border: 1px solid {{ $border }};">{{ $componentLabel($item) }}</div>
