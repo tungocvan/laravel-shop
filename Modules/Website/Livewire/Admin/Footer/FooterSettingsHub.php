@@ -178,6 +178,36 @@ class FooterSettingsHub extends Component
         $this->dispatch('show-toast', [['type' => 'success', 'message' => 'Đã lưu Footer Pharma.']]);
     }
 
+    public function addBottomModule(string $slot, string $type, FooterComponentRegistry $registry): void
+    {
+        $this->authorizeAdminPermission('website.footer.manage');
+        if (! in_array($slot, ['desktop.bottom.left', 'desktop.bottom.right'], true)
+            || ! in_array($type, ['copyright', 'legal-links', 'trust-badges', 'social-links'], true)) {
+            return;
+        }
+        try {
+            $registry->resolve($type, $slot);
+        } catch (\InvalidArgumentException) {
+            return;
+        }
+        $items = $this->builderSlots[$slot] ?? [];
+        if (count($items) >= 6 || collect($items)->contains(fn ($item) => ($item['type'] ?? '') === $type)) {
+            return;
+        }
+        $this->builderSlots[$slot][] = ['type' => $type, 'enabled' => true];
+        $this->profileDirty = true;
+    }
+
+    public function removeBottomModule(string $slot, int $index): void
+    {
+        $this->authorizeAdminPermission('website.footer.manage');
+        if (! in_array($slot, ['desktop.bottom.left', 'desktop.bottom.right'], true) || ! $this->hasItem($slot, $index)) {
+            return;
+        }
+        array_splice($this->builderSlots[$slot], $index, 1);
+        $this->profileDirty = true;
+    }
+
     public function toggleComponent(string $slot, int $index): void
     {
         $this->authorizeAdminPermission('website.footer.manage');
