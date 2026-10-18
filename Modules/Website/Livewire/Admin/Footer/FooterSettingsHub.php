@@ -394,6 +394,14 @@ class FooterSettingsHub extends Component
             [$this->footerColumns[$index]['items'][$target], $this->footerColumns[$index]['items'][$itemIndex]];
     }
 
+    public function updatedProfileContent($value, string $key): void
+    {
+        if ($key === 'legal.overrides.copyright') {
+            $this->profileContent['legal']['source'] = 'profile';
+            $this->profileDirty = true;
+        }
+    }
+
     public function updatedFooterColumns(): void
     {
         // Column edits are profile-owned. Global columns remain untouched.
