@@ -14,10 +14,9 @@
                 <h2 class="text-lg font-bold text-slate-900">Footer Studio</h2>
                 <p class="mt-1 text-sm text-slate-600">Chỉnh sửa bản nháp bên trái, theo dõi Preview cố định bên phải. Lưu profile rồi mới kích hoạt để xuất bản.</p>
             </div>
-            <div class="flex flex-wrap gap-2">
-                <button type="button" @click="studioPanel = 'profile'" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold">Quản lý profile</button>
-                <button type="button" wire:click="updateTheme" @disabled(!$selectedTheme) class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">Cập nhật profile</button>
-                <button type="button" wire:click="publishTheme" wire:confirm="Kích hoạt profile đã lưu và xuất bản lên website?" @disabled(!$selectedTheme) class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">Xuất bản website</button>
+            <div class="text-xs font-medium text-slate-600">
+                Theme: {{ $selectedTheme !== '' ? ($layoutThemes[$selectedTheme]['name'] ?? $selectedTheme) : 'Chưa chọn' }}
+                · Active: {{ $activeTheme !== '' ? ($layoutThemes[$activeTheme]['name'] ?? $activeTheme) : 'Legacy' }}
             </div>
         </div>
     </div>
