@@ -24,6 +24,7 @@ class HeaderSettingsHub extends Component
     public array $topbarSettings = [];
     public array $brandAppearance = [];
     public string $selectedTheme = '';
+    public string $activeTheme = '';
     public string $themeName = '';
 
     private const THEME_VERSION = 2;
@@ -76,6 +77,8 @@ class HeaderSettingsHub extends Component
         $savedThemes = $settingsService->get($this->settingKey('layout_themes'), []);
         $this->layoutThemes = is_array($savedThemes) ? $savedThemes : [];
         $this->selectedTheme = '';
+        $active = $settingsService->get($this->settingKey('active_theme'), '');
+        $this->activeTheme = is_string($active) && isset($this->layoutThemes[$active]) ? $active : '';
         $this->themeName = '';
         $this->accountSettings = $this->normalizeAccountSettings($settingsService->get('website.pharma_header.account'));
         $this->topbarSettings = $this->normalizeTopbarSettings($settingsService->get('website.pharma_header.topbar'));
@@ -495,6 +498,42 @@ class HeaderSettingsHub extends Component
         $this->dispatchThemeToast('Đã nạp theme vào Builder. Lưu bố cục, Tài khoản, Topbar và Thương hiệu riêng để xuất bản các thay đổi.');
     }
 
+    /** Explicitly publish every profile-owned Pharma Header setting as one operation. */
+    public function publishTheme(
+        SettingsService $settingsService,
+        HeaderComponentRegistry $registry,
+        HeaderPresentationService $presentationService
+    ): void {
+        $this->authorizeAdminPermission('website.settings.manage');
+        if ($this->editingTemplate !== 'pharma') {
+            return;
+        }
+        $theme = $this->selectedThemeData();
+        if ($theme === null) {
+            return;
+        }
+
+        $this->loadBuilderLayout($this->safeLayout(is_array($theme['layout'] ?? null) ? $theme['layout'] : [], $registry));
+        $this->normalizePharmaBuilder();
+        $this->presentation = $presentationService->resolve(is_array($theme['presentation'] ?? null) ? $theme['presentation'] : null);
+        $this->accountSettings = $this->normalizeAccountSettings($theme['account_settings'] ?? []);
+        $this->topbarSettings = $this->normalizeTopbarSettings($theme['topbar_settings'] ?? []);
+        if (is_array($theme['brand_appearance'] ?? null)) {
+            $this->brandAppearance = app(PharmaBrandAppearanceService::class)->resolve($theme['brand_appearance']);
+        }
+
+        $settingsService->updateMany([
+            $this->settingKey('layout') => $this->safeLayout($this->builderSlots, $registry),
+            $this->settingKey('presentation') => $this->presentation,
+            'website.pharma_header.account' => $this->accountSettings,
+            'website.pharma_header.topbar' => $this->topbarSettings,
+            'website.pharma_header.brand_appearance' => $this->brandAppearance,
+            $this->settingKey('active_theme') => $this->selectedTheme,
+        ], 'header');
+        $this->activeTheme = $this->selectedTheme;
+        $this->dispatchThemeToast('Đã áp dụng profile Header lên website.');
+    }
+
     public function updateTheme(
         SettingsService $settingsService,
         HeaderComponentRegistry $registry,
@@ -537,6 +576,10 @@ class HeaderSettingsHub extends Component
         }
 
         unset($this->layoutThemes[$this->selectedTheme]);
+        if ($this->activeTheme === $this->selectedTheme) {
+            $this->activeTheme = '';
+            $settingsService->set($this->settingKey('active_theme'), '', 'header', 'string');
+        }
         $this->selectedTheme = '';
         $this->themeName = '';
         $this->persistThemes($settingsService);
