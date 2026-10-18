@@ -37,10 +37,15 @@
         style="max-width: {{ $footerContainer ? (int) $footerContainer.'px' : '100%' }}; padding-top: var(--footer-padding-top); padding-bottom: var(--footer-padding-bottom);">
         @if($footerProfileColumnsActive ?? false)
             {{-- Published profile columns own the primary layout. Legacy slots must not render in parallel. --}}
-            <div class="hidden md:grid grid-cols-12" style="gap: var(--footer-column-gap); margin-bottom: var(--footer-section-gap);">
+            @php
+                $desktopProfileColumns = $footerColumns->filter(fn ($column) => $column->desktop ?? true)->values();
+                $desktopWidths = $desktopProfileColumns->map(fn ($column) => ($column->module ?? '') === 'app-install' ? max(4, (int) ($column->width ?? 3)) : max(2, (int) ($column->width ?? 3)));
+                $desktopTemplate = $desktopWidths->map(fn ($width) => 'minmax(0, '.$width.'fr)')->implode(' ');
+            @endphp
+            <div class="hidden md:grid" style="grid-template-columns: {{ $desktopTemplate ?: 'minmax(0, 1fr)' }}; gap: clamp(16px, 2vw, var(--footer-column-gap)); margin-bottom: var(--footer-section-gap);">
                 @foreach($footerColumns as $column)
                     @if($column->desktop ?? true)
-                        <div class="min-w-0 space-y-4" style="grid-column: span {{ max(2, min(12, (int) ($column->width ?? 3))) }} / span {{ max(2, min(12, (int) ($column->width ?? 3))) }};">
+                        <div class="min-w-0 space-y-4" style="min-width: 0;">
                             @include('Website::components.footer.profile-column', ['column' => $column])
                         </div>
                     @endif
