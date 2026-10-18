@@ -26,6 +26,7 @@ class FooterSettingsHub extends Component
     public array $profileSocialLinks = [];
     public string $columnsSource = 'global';
     public string $socialLinksSource = 'global';
+    public bool $profileDirty = false;
     public string $themeName = '';
 
     private const THEME_VERSION = 2;
@@ -478,12 +479,12 @@ class FooterSettingsHub extends Component
         $this->presentation = $presentationService->resolve(is_array($theme['presentation'] ?? null) ? $theme['presentation'] : null);
         $this->themeName = (string) ($theme['name'] ?? '');
         $this->footerColumns = $this->normalizeFooterColumns((array) data_get($theme, 'columns.items', $this->footerColumns));
-        $this->profileContent = (array) ($theme['content'] ?? $this->profileContent);
+        $this->profileContent = array_replace_recursive($this->profileContent, (array) ($theme['content'] ?? []));
         $this->profileSocialLinks = (array) data_get($theme, 'social_links.items', $this->profileSocialLinks);
         $this->columnsSource = data_get($theme, 'columns.source') === 'profile' ? 'profile' : 'global';
         $this->socialLinksSource = data_get($theme, 'social_links.source') === 'profile' ? 'profile' : 'global';
         $this->resetErrorBag('theme');
-        $this->dispatchThemeToast('Đã nạp theme vào Builder. Kiểm tra Preview rồi bấm Lưu bố cục để publish.');
+        $this->dispatchThemeToast('Đã nạp profile vào bản nháp. Chọn Cập nhật profile để lưu, rồi Kích hoạt để xuất bản.');
     }
 
     public function updateTheme(
@@ -502,7 +503,7 @@ class FooterSettingsHub extends Component
         $this->validateThemeName();
         $this->layoutThemes[$this->selectedTheme] = $this->themeSnapshot($name, $registry, $presentationService);
         $this->persistThemes($settingsService);
-        $this->dispatchThemeToast('Đã cập nhật Footer theme.');
+        $this->dispatchThemeToast('Đã cập nhật bản lưu profile; website chưa thay đổi.');
     }
 
     public function renameTheme(SettingsService $settingsService): void
@@ -541,6 +542,7 @@ class FooterSettingsHub extends Component
 
     public function selectTheme(string $slug): void
     {
+        $this->authorizeAdminPermission('website.footer.manage');
         if (! isset($this->layoutThemes[$slug])) {
             return;
         }
@@ -600,6 +602,36 @@ class FooterSettingsHub extends Component
         $this->socialLinksSource = 'global';
     }
 
+    public function duplicateTheme(
+        SettingsService $settingsService
+    ): void {
+        $this->authorizeAdminPermission('website.footer.manage');
+        $theme = $this->selectedThemeData();
+        if ($theme === null) {
+            return;
+        }
+        if (count($this->layoutThemes) >= self::MAX_THEMES) {
+            $this->addError('theme', 'Đã đạt giới hạn số profile.');
+            return;
+        }
+        $name = trim((string) ($theme['name'] ?? 'Footer Profile')).' - Bản sao';
+        $baseSlug = Str::slug($name) ?: 'footer-copy';
+        $slug = $baseSlug;
+        $suffix = 2;
+        while (isset($this->layoutThemes[$slug])) {
+            $slug = $baseSlug.'-'.$suffix++;
+        }
+        $copy = $theme;
+        $copy['name'] = $name;
+        $copy['version'] = self::THEME_VERSION;
+        $copy['updated_at'] = now()->toIso8601String();
+        $this->layoutThemes[$slug] = $copy;
+        $this->selectedTheme = $slug;
+        $this->themeName = $name;
+        $this->persistThemes($settingsService);
+        $this->dispatchThemeToast('Đã nhân bản profile. Profile mới chưa kích hoạt.');
+    }
+
     public function publishTheme(
         SettingsService $settingsService,
         FooterComponentRegistry $registry,
@@ -625,6 +657,8 @@ class FooterSettingsHub extends Component
         $updates[$this->settingKey('profile_content')] = (array) ($theme['content'] ?? []);
         $updates[$this->settingKey('profile_columns')] = (array) ($theme['columns'] ?? []);
         $updates[$this->settingKey('profile_social_links')] = (array) ($theme['social_links'] ?? []);
+        // Preserve the exact published snapshot even if a profile draft is edited later.
+        $updates[$this->settingKey('published_profile')] = $theme;
         $settingsService->updateMany($updates, 'footer');
         $this->activeTheme = $this->selectedTheme;
         $this->loadBuilderLayout($layout);
