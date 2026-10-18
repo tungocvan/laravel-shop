@@ -658,6 +658,50 @@ class FooterSettingsHub extends Component
         $this->dispatchThemeToast('Đã nhân bản profile. Profile mới chưa kích hoạt.');
     }
 
+    /**
+     * Save the current editor draft and activate that exact snapshot in one
+     * settings write. Never publish the previously saved version by accident.
+     */
+    public function saveAndPublishTheme(
+        SettingsService $settingsService,
+        FooterComponentRegistry $registry,
+        FooterPresentationService $presentationService
+    ): void {
+        $this->authorizeAdminPermission('website.footer.manage');
+        $theme = $this->selectedThemeData();
+        if ($theme === null) {
+            return;
+        }
+
+        $this->themeName = trim($this->themeName) !== ''
+            ? trim($this->themeName)
+            : (string) ($theme['name'] ?? 'Footer Theme');
+        $this->validateThemeName();
+        $this->columnsSource = 'profile';
+
+        $snapshot = $this->themeSnapshot($this->themeName, $registry, $presentationService);
+        $layout = $this->safeLayout((array) $snapshot['layout'], $registry);
+        $presentation = $presentationService->resolve((array) $snapshot['presentation']);
+        $themes = $this->layoutThemes;
+        $themes[$this->selectedTheme] = $snapshot;
+
+        $settingsService->updateMany([
+            $this->settingKey('layout_themes') => $themes,
+            $this->settingKey('layout') => $layout,
+            $this->settingKey('presentation') => $presentation,
+            $this->settingKey('active_theme') => $this->selectedTheme,
+            $this->settingKey('profile_content') => $snapshot['content'],
+            $this->settingKey('profile_columns') => $snapshot['columns'],
+            $this->settingKey('profile_social_links') => $snapshot['social_links'],
+            $this->settingKey('published_profile') => $snapshot,
+        ], 'footer');
+
+        $this->layoutThemes = $themes;
+        $this->activeTheme = $this->selectedTheme;
+        $this->resetErrorBag('theme');
+        $this->dispatchThemeToast('Đã lưu bản nháp mới nhất và kích hoạt Footer theme.');
+    }
+
     public function publishTheme(
         SettingsService $settingsService,
         FooterComponentRegistry $registry,
