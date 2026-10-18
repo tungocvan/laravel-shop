@@ -544,6 +544,10 @@ class HeaderSettingsHub extends Component
         if ($theme === null) {
             return;
         }
+        if ($this->editingTemplate === 'pharma' && $this->activeTheme !== $this->selectedTheme) {
+            $this->addError('theme', 'Chỉ có thể cập nhật tham số profile đang áp dụng. Hãy kích hoạt profile trước.');
+            return;
+        }
 
         $name = trim($this->themeName) !== '' ? trim($this->themeName) : (string) ($theme['name'] ?? 'Header Theme');
         $this->themeName = $name;
