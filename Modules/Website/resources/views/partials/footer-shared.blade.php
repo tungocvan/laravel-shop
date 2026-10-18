@@ -66,11 +66,13 @@
         </div>
         <div class="md:hidden space-y-8" style="margin-bottom: var(--footer-section-gap);">@include('Website::components.footer.slot', ['slot' => 'mobile.main'])</div>
         @endif
+        @if($footerBottomBarEnabled ?? true)
         <div class="hidden md:flex items-center justify-between gap-6 pt-8" style="border-top: 1px solid var(--footer-border);">
             <div class="text-xs text-center md:text-left" style="color: var(--footer-muted);">@include('Website::components.footer.slot', ['slot' => 'desktop.bottom.left'])</div>
             @include('Website::components.footer.slot', ['slot' => 'desktop.bottom.right'])
         </div>
         <div class="md:hidden flex flex-col items-center gap-6 pt-8 text-xs text-center" style="border-top: 1px solid var(--footer-border); color: var(--footer-muted);">@include('Website::components.footer.slot', ['slot' => 'mobile.bottom'])</div>
+        @endif
     </div>
 </footer>
 
