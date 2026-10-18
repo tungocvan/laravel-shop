@@ -422,6 +422,49 @@ class HeaderSettingsHub extends Component
         $this->dispatchThemeToast('Đã lưu Header theme mới.');
     }
 
+    /** Preview-only starter profiles; never persist or publish without an explicit save. */
+    public function previewStarterTheme(string $profile, HeaderPresentationService $presentationService): void
+    {
+        $this->authorizeAdminPermission('website.settings.manage');
+        if ($this->editingTemplate !== 'pharma') {
+            return;
+        }
+
+        $presets = [
+            'pharma-classic' => [
+                'name' => 'Pharma Classic',
+                'container' => 'standard',
+                'size' => 'normal',
+                'shadow' => 'soft',
+                'colors' => ['background' => '#ffffff', 'foreground' => '#0f172a', 'accent' => '#047857', 'border' => '#d1fae5', 'topbar_background' => '#064e3b', 'topbar_foreground' => '#ffffff'],
+                'menu_style' => ['primary' => ['font_size' => 14, 'font_weight' => '600', 'item_gap' => 20, 'hover_effect' => 'underline']],
+            ],
+            'flexbiz-modern' => [
+                'name' => 'FlexBiz Modern',
+                'container' => 'wide',
+                'size' => 'comfortable',
+                'shadow' => 'medium',
+                'colors' => ['background' => '#ffffff', 'foreground' => '#0f172a', 'accent' => '#2563eb', 'border' => '#dbeafe', 'topbar_background' => '#1e3a8a', 'topbar_foreground' => '#ffffff'],
+                'menu_style' => ['primary' => ['font_size' => 14, 'font_weight' => '700', 'item_gap' => 24, 'hover_effect' => 'color']],
+            ],
+        ];
+
+        if (! isset($presets[$profile])) {
+            $this->addError('theme', 'Mẫu Header không hợp lệ.');
+            return;
+        }
+
+        $preset = $presets[$profile];
+        $this->presentation = $presentationService->resolve(array_replace_recursive(
+            $this->presentation,
+            ['mode' => 'basic', 'inherit_colors' => false, 'container' => $preset['container'], 'size' => $preset['size'], 'shadow' => $preset['shadow'], 'colors' => $preset['colors'], 'menu_style' => $preset['menu_style']]
+        ));
+        $this->selectedTheme = '';
+        $this->themeName = $preset['name'];
+        $this->resetErrorBag('theme');
+        $this->dispatchThemeToast('Đã nạp mẫu '.$preset['name'].' vào Preview. Chọn Lưu thành theme mới để lưu mẫu, hoặc Lưu bố cục để xuất bản.');
+    }
+
     public function applyTheme(HeaderComponentRegistry $registry, HeaderPresentationService $presentationService): void
     {
         $this->authorizeAdminPermission('website.settings.manage');
