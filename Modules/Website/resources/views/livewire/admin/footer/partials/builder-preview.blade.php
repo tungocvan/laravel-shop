@@ -23,8 +23,6 @@
     $componentLabel = static fn (array $item): string => $footerComponents[$item['type'] ?? '']['label'] ?? ($item['type'] ?? 'Unknown');
 @endphp
 
-@include('Website::livewire.admin.footer.partials.theme-manager')
-
 <section class="rounded-xl border border-gray-200 bg-gray-50 p-4" aria-label="Responsive Footer Preview">
     <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -43,7 +41,7 @@
 
     <div class="overflow-x-auto rounded-xl border border-gray-200 bg-gray-200/60 p-4">
         <div class="mx-auto transition-all duration-200"
-            :class="previewDevice === 'desktop' ? 'w-full min-w-[900px]' : 'w-[390px]'">
+            :class="previewDevice === 'desktop' ? 'w-full min-w-[560px]' : 'w-[390px]'">
             <div class="overflow-hidden rounded-lg shadow-sm"
                 style="background: {{ $background }}; color: {{ $foreground }}; border: 1px solid {{ $border }};">
                 @if($previewPresentation['accent'] ?? true)
