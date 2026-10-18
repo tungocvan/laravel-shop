@@ -50,7 +50,14 @@ class FooterProfileResolver
                             'url' => (string) $link['url'],
                             'new_tab' => (bool) ($link['new_tab'] ?? false),
                         ]);
-                    return (object) ['title' => (string) ($item['title'] ?? ''), 'links' => $links];
+                    return (object) [
+                        'title' => (string) ($item['title'] ?? ''),
+                        'module' => in_array($item['module'] ?? 'menu-links', ['brand', 'contact', 'menu-links', 'social-links', 'app-install', 'custom'], true) ? $item['module'] : 'menu-links',
+                        'width' => (int) ($item['width'] ?? 3),
+                        'desktop' => (bool) ($item['desktop'] ?? true),
+                        'mobile' => (bool) ($item['mobile'] ?? true),
+                        'links' => $links,
+                    ];
                 })->values();
         }
 
