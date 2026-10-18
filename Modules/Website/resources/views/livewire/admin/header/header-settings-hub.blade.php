@@ -64,7 +64,7 @@
                 @error('brandAppearance')<p class="mt-3 text-sm text-red-700">{{ $message }}</p>@enderror
                 <div class="mt-4 flex justify-end gap-2 border-t border-slate-100 pt-4">
                     <button type="button" wire:click="resetBrandAppearance" class="rounded-lg border border-slate-300 px-4 py-2 text-sm">Khôi phục mặc định</button>
-                    <button type="button" wire:click="saveBrandAppearance" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Lưu thương hiệu & Slogan</button>
+                    <button type="button" wire:click="saveBrandAppearance" @disabled($editingTemplate === 'pharma' && $activeTheme !== '') class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Lưu thương hiệu & Slogan</button>
                 </div>
             </section>
         @endif
@@ -98,7 +98,7 @@
                 <div class="flex flex-wrap items-center gap-5">
                     <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model="topbarSettings.show_hotline" class="rounded border-gray-300"> Hiện hotline</label>
                     <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model="topbarSettings.show_email" class="rounded border-gray-300"> Hiện email</label>
-                    <button type="button" wire:click="saveTopbarSettings" class="ml-auto rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white">Lưu Topbar Pharma</button>
+                    <button type="button" wire:click="saveTopbarSettings" @disabled($editingTemplate === 'pharma' && $activeTheme !== '') class="ml-auto rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white">Lưu Topbar Pharma</button>
                 </div>
                 <p class="text-xs text-slate-500">Hotline, Email hỗ trợ, Link Trợ giúp và Link Theo dõi đơn hàng được lưu bằng nút “Lưu thông tin Header” ở phần Thông tin chung. Nút “Lưu Topbar Pharma” chỉ lưu nội dung bên trái và tùy chọn hiển thị.</p>
                 </div>
@@ -176,7 +176,7 @@
                 @error('menuAppearance')<p class="mt-3 text-sm text-red-700">{{ $message }}</p>@enderror
                 <div class="mt-5 flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-4">
                     <button type="button" wire:click="resetMenuAppearance" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Khôi phục mặc định</button>
-                    <button type="button" wire:click="saveMenuAppearance" wire:loading.attr="disabled" wire:target="saveMenuAppearance" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Lưu thiết lập Menu</button>
+                    <button type="button" wire:click="saveMenuAppearance" @disabled($editingTemplate === 'pharma' && $activeTheme !== '') wire:loading.attr="disabled" wire:target="saveMenuAppearance" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Lưu thiết lập Menu</button>
                 </div>
             </section>
         @endif
@@ -192,7 +192,7 @@
             <div class="flex gap-2">
                 <button type="button" wire:click="resetBuilder" class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Khôi phục mặc định</button>
                 @if($editingTemplate === 'pharma')
-                    <button type="button" @click="$wire.savePharmaBuilder(pharmaVisibilityOverrides).then(() => { pharmaVisibilityOverrides = {}; })" wire:loading.attr="disabled" wire:target="savePharmaBuilder" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">Lưu bố cục</button>
+                    <button type="button" @click="$wire.savePharmaBuilder(pharmaVisibilityOverrides).then(() => { pharmaVisibilityOverrides = {}; })" wire:loading.attr="disabled" wire:target="savePharmaBuilder" @disabled($editingTemplate === 'pharma' && $activeTheme !== '') class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">Lưu bố cục</button>
                 @else
                     <button type="button" wire:click="saveBuilder" wire:loading.attr="disabled" wire:target="saveBuilder" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">Lưu bố cục</button>
                 @endif
@@ -236,11 +236,11 @@
                         </label>
                     @endforeach
                 </div>
-                <button type="button" wire:click="saveBrandAppearance" class="mt-3 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white">Lưu ẩn/hiện thương hiệu</button>
+                <button type="button" wire:click="saveBrandAppearance" @disabled($editingTemplate === 'pharma' && $activeTheme !== '') class="mt-3 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white">Lưu ẩn/hiện thương hiệu</button>
             </section>
             <div class="space-y-2" aria-label="Danh sách thành phần Header Pharma">
                 <p class="text-xs text-slate-500">Mỗi chức năng chỉ có một thành phần. Chọn thiết bị hiển thị và vị trí; Menu di động chỉ hỗ trợ Mobile.</p>
-                <p class="text-xs text-slate-500">Chọn trạng thái không tải lại giao diện. Nhấn <strong>Lưu bố cục</strong> để áp dụng và cập nhật bản xem trước.</p>
+                <p class="text-xs text-slate-500">Chọn trạng thái không tải lại giao diện. Khi đang dùng profile, nhấn <strong>Cập nhật tham số profile</strong> để lưu rồi kích hoạt profile để xuất bản.</p>
                 @foreach($builderSlotNames as $slotKey => $slotLabel)
                     @foreach($builderSlots[$slotKey] ?? [] as $index => $item)
                         @php
@@ -458,7 +458,7 @@
                             <div class="bg-white" style="height:{{ max(0, min(120, (int) ($presentation['banner_gap']['desktop'] ?? 0))) }}px"></div>
                             <div class="bg-emerald-100 px-3 py-2 text-center text-xs font-semibold text-emerald-800">BANNER</div>
                         </div>
-                        <p class="mt-2 text-xs text-slate-500">Xem trước minh họa Desktop. Nhấn “Lưu bố cục” để xuất bản cả hai giá trị; Header Themes sẽ lưu theo snapshot Presentation.</p>
+                        <p class="mt-2 text-xs text-slate-500">Xem trước minh họa Desktop. Khi dùng profile, nhấn “Cập nhật tham số profile” rồi kích hoạt để xuất bản.</p>
                     </div>
                 @endif
                 <label class="flex items-center gap-3 rounded-lg border border-gray-200 px-4 py-3 text-sm font-medium text-gray-700"><input type="checkbox" wire:model.live="presentation.sticky" class="rounded border-gray-300 text-blue-600"> Sticky Header</label>
