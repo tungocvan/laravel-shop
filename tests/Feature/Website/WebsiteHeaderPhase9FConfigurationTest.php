@@ -75,8 +75,8 @@ class WebsiteHeaderPhase9FConfigurationTest extends TestCase
         $this->assertStringContainsString('chỉ nút', $themeView);
 
         $applyStart = strpos($component, 'public function applyTheme(');
-        $updateStart = strpos($component, 'public function updateTheme(');
-        $applyMethod = substr($component, $applyStart, $updateStart - $applyStart);
+        $publishStart = strpos($component, 'public function publishTheme(', $applyStart);
+        $applyMethod = substr($component, $applyStart, $publishStart - $applyStart);
         $this->assertStringContainsString('loadBuilderLayout', $applyMethod);
         $this->assertStringNotContainsString('updateMany', $applyMethod);
         $this->assertStringNotContainsString("'header.layout' =>", $applyMethod);
