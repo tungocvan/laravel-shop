@@ -14,6 +14,8 @@ class PharmaHeaderAccountVisibilityContractTest extends TestCase
 
         $this->assertStringContainsString("'enabled' => (bool) (\$values['enabled'] ?? true)", $hub);
         $this->assertStringContainsString("wire:model=\"accountSettings.enabled\"", $admin);
+        $this->assertStringContainsString('id="header-actions-panel"', $admin);
+        $this->assertStringContainsString('Hành động Header', $admin);
         $this->assertStringContainsString("saveAccountSettings", $admin);
         $this->assertSame(2, substr_count($frontend, "@if((\$accountConfig['enabled'] ?? true))"));
         $this->assertStringContainsString("Website::partials.pharma.account-dropdown", $frontend);
