@@ -2,8 +2,9 @@
     <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
             <h3 class="font-bold text-gray-900">Footer Layout Themes</h3>
-            <p class="mt-1 text-sm text-gray-500">Lưu nhiều snapshot của bố cục + presentation. Áp dụng theme chỉ nạp vào Builder; frontend chỉ thay đổi sau khi bấm <strong>Lưu bố cục</strong>.</p>
+            <p class="mt-1 text-sm text-gray-500">Lưu snapshot profile v2. Nạp profile chỉ thay đổi bản nháp; chỉ Kích hoạt mới xuất bản lên Website.</p>
         </div>
+        <div class="text-xs font-semibold text-emerald-700">Active profile: {{ $activeTheme !== '' ? ($layoutThemes[$activeTheme]['name'] ?? $activeTheme) : 'Legacy (chưa kích hoạt profile)' }}</div>
         <span class="self-start rounded-full bg-white px-3 py-1 text-xs font-semibold text-violet-700 ring-1 ring-violet-200">{{ count($layoutThemes) }}/20 themes</span>
     </div>
 
@@ -20,7 +21,7 @@
             <select wire:change="selectTheme($event.target.value)" class="mt-2 w-full rounded-lg border-gray-300 text-sm">
                 <option value="">Chọn Footer theme...</option>
                 @foreach($layoutThemes as $slug => $theme)
-                    <option value="{{ $slug }}" @selected($selectedTheme === $slug)>{{ $theme['name'] ?? $slug }}</option>
+                    <option value="{{ $slug }}" @selected($selectedTheme === $slug)>{{ $theme['name'] ?? $slug }}{{ $activeTheme === $slug ? ' — Đang kích hoạt' : '' }}</option>
                 @endforeach
             </select>
 
@@ -34,7 +35,8 @@
             @endif
 
             <div class="mt-4 flex flex-wrap gap-2">
-                <button type="button" wire:click="applyTheme" @disabled(!$selectedTheme) class="rounded-lg bg-violet-600 px-3 py-2 text-sm font-semibold text-white hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-40">Nạp / Áp dụng</button>
+                <button type="button" wire:click="applyTheme" @disabled(!$selectedTheme) class="rounded-lg bg-violet-600 px-3 py-2 text-sm font-semibold text-white hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-40">Nạp vào trình chỉnh sửa</button>
+                <button type="button" wire:click="publishTheme" wire:confirm="Kích hoạt profile này và áp dụng lên website?" @disabled(!$selectedTheme) class="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-40">Kích hoạt / Áp dụng website</button>
                 <button type="button" wire:click="updateTheme" @disabled(!$selectedTheme) class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40">Cập nhật theme</button>
                 <button type="button" wire:click="deleteTheme" wire:confirm="Xóa Footer theme này?" @disabled(!$selectedTheme) class="rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40">Xóa</button>
             </div>
