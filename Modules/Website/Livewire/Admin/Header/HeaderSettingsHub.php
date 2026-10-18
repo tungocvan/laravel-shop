@@ -578,6 +578,7 @@ class HeaderSettingsHub extends Component
     }
 
     public function updateTheme(
+        array $visibilityOverrides,
         SettingsService $settingsService,
         HeaderComponentRegistry $registry,
         HeaderPresentationService $presentationService
@@ -590,6 +591,28 @@ class HeaderSettingsHub extends Component
         if ($this->editingTemplate === 'pharma' && $this->activeTheme !== $this->selectedTheme) {
             $this->addError('theme', 'Chỉ có thể cập nhật tham số profile đang áp dụng. Hãy kích hoạt profile trước.');
             return;
+        }
+
+        // Advanced layout visibility controls are Alpine-owned until submitted.
+        // Apply them to the profile snapshot, not to the live Header settings.
+        if ($this->editingTemplate === 'pharma') {
+            foreach ($this->builderSlots as &$items) {
+                foreach ($items as &$item) {
+                    $type = $item['type'] ?? '';
+                    $visibility = $visibilityOverrides[$type] ?? null;
+                    if (! is_string($visibility) || ! in_array($visibility, ['both', 'desktop', 'mobile', 'hidden'], true)) {
+                        continue;
+                    }
+                    if ($type === 'mobile-menu') {
+                        $visibility = $visibility === 'hidden' ? 'hidden' : 'mobile';
+                    }
+                    $item['enabled'] = $visibility !== 'hidden';
+                    $item['config'] = is_array($item['config'] ?? null) ? $item['config'] : [];
+                    $item['config']['visibility'] = $visibility;
+                }
+                unset($item);
+            }
+            unset($items);
         }
 
         $name = trim($this->themeName) !== '' ? trim($this->themeName) : (string) ($theme['name'] ?? 'Header Theme');
