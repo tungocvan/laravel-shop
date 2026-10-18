@@ -92,4 +92,14 @@ class PharmaHeaderAccountVisibilityContractTest extends TestCase
         $this->assertStringContainsString('wire:click="activateStarterTheme(', $library);
     }
 
+    public function test_advanced_layout_overrides_are_included_in_active_profile_snapshot(): void
+    {
+        $hub = file_get_contents(base_path('Modules/Website/Livewire/Admin/Header/HeaderSettingsHub.php'));
+        $library = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/header/partials/theme-manager.blade.php'));
+
+        $this->assertStringContainsString('array $visibilityOverrides,', $hub);
+        $this->assertStringContainsString('x-on:click="$wire.updateTheme(pharmaVisibilityOverrides)', $library);
+        $this->assertStringContainsString("'presentation' => \$presentationService->resolve(\$this->presentation)", $hub);
+    }
+
 }
