@@ -35,7 +35,7 @@
         <div class="rounded-lg border border-violet-100 bg-white p-4">
             @if($activeTheme && isset($layoutThemes[$activeTheme]))
                 <div class="mb-4 rounded-xl border-2 border-emerald-500 bg-emerald-50 p-3" role="status" aria-label="Profile Header đang áp dụng">
-                    <span class="text-xs font-bold uppercase tracking-wide text-emerald-800">● Đang áp dụng trên website</span>
+                    <span class="text-xs font-bold uppercase tracking-wide text-emerald-800">● Profile website đang sử dụng (khác với mẫu đang xem trước)</span>
                     <p class="mt-1 font-bold text-emerald-950">{{ $layoutThemes[$activeTheme]['name'] ?? $activeTheme }}</p>
                     <button type="button" wire:click="selectTheme(@js($activeTheme))" class="mt-2 rounded-lg border border-emerald-600 px-3 py-1.5 text-xs font-semibold text-emerald-800">Chọn profile này để cập nhật</button>
                 </div>
@@ -56,10 +56,7 @@
                 </div>
             @endif
             <div class="mt-4 flex flex-wrap gap-2">
-                <button type="button" wire:click="applyTheme" @disabled(!$selectedTheme) class="rounded-lg bg-violet-600 px-3 py-2 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-40">Nạp / Áp dụng</button>
-                @if($editingTemplate === 'pharma')
-                    <button type="button" wire:click="publishTheme" wire:confirm="Áp dụng toàn bộ bố cục, tài khoản, Topbar và giao diện của profile này lên website?" @disabled(!$selectedTheme) class="rounded-lg bg-emerald-700 px-3 py-2 text-sm font-semibold text-white disabled:opacity-40">Áp dụng lên website</button>
-                @endif
+                <button type="button" wire:click="activateSelectedTheme" wire:confirm="Nạp và áp dụng toàn bộ profile này lên website?" @disabled(!$selectedTheme) class="rounded-lg bg-violet-600 px-3 py-2 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-40">Nạp &amp; áp dụng lên website</button>
                 <button type="button" wire:click="updateTheme" @disabled(!$selectedTheme || ($editingTemplate === 'pharma' && $activeTheme !== $selectedTheme)) class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-40">Cập nhật tham số profile</button>
                 <button type="button" wire:click="deleteTheme" wire:confirm="Xóa Header theme này?" @disabled(!$selectedTheme) class="rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-40">Xóa</button>
             </div>
