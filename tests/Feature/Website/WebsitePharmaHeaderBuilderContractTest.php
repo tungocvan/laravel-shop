@@ -80,7 +80,8 @@ class WebsitePharmaHeaderBuilderContractTest extends TestCase
         $this->assertStringContainsString("editingTemplate !== 'pharma'", $builder);
 
         $view = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/header/header-settings-hub.blade.php'));
-        $this->assertStringContainsString('wire:click="saveAccountSettings"', $view);
+        $this->assertStringContainsString('wire:model.live="accountSettings.enabled"', $view);
+        $this->assertStringNotContainsString('wire:click="saveAccountSettings"', $view);
     }
 
     #[Test]
