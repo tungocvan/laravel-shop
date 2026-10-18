@@ -56,7 +56,7 @@ class WebsiteHeaderPhase9FConfigurationTest extends TestCase
         $themeView = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/header/partials/theme-manager.blade.php'));
 
         $this->assertStringContainsString("\$this->settingKey('layout_themes')", $component);
-        $this->assertStringContainsString('THEME_VERSION = 1', $component);
+        $this->assertStringContainsString('THEME_VERSION = 2', $component);
         $this->assertStringContainsString('MAX_THEMES = 20', $component);
         $this->assertStringContainsString('saveTheme(', $component);
         $this->assertStringContainsString('applyTheme(', $component);
@@ -70,12 +70,13 @@ class WebsiteHeaderPhase9FConfigurationTest extends TestCase
 
         $this->assertStringContainsString('partials.theme-manager', $view);
         $this->assertStringContainsString('Header Layout Themes', $themeView);
-        $this->assertStringContainsString('wire:click="applyTheme"', $themeView);
-        $this->assertStringContainsString('frontend chỉ đổi sau khi bấm', $themeView);
+        $this->assertStringContainsString('wire:click="activateSelectedTheme"', $themeView);
+        $this->assertStringContainsString('wire:click="activateStarterTheme(', $themeView);
+        $this->assertStringContainsString('chỉ nút', $themeView);
 
         $applyStart = strpos($component, 'public function applyTheme(');
-        $updateStart = strpos($component, 'public function updateTheme(');
-        $applyMethod = substr($component, $applyStart, $updateStart - $applyStart);
+        $publishStart = strpos($component, 'public function publishTheme(', $applyStart);
+        $applyMethod = substr($component, $applyStart, $publishStart - $applyStart);
         $this->assertStringContainsString('loadBuilderLayout', $applyMethod);
         $this->assertStringNotContainsString('updateMany', $applyMethod);
         $this->assertStringNotContainsString("'header.layout' =>", $applyMethod);
