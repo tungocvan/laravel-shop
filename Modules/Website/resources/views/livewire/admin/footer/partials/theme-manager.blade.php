@@ -30,6 +30,34 @@
         </label>
     </div>
     <p class="mt-2 text-xs text-amber-700">Chọn nguồn profile chỉ khi đã chuẩn bị dữ liệu riêng. Chọn Global để không thay đổi các liên kết đang xuất bản.</p>
+    <details class="mt-4 rounded-lg border border-slate-200 bg-white p-4">
+        <summary class="cursor-pointer text-sm font-semibold text-slate-800">Nội dung riêng theo profile · Brand / Contact / Legal / App</summary>
+        <p class="mt-2 text-xs text-slate-500">Chọn Profile để ghi đè nội dung toàn cục; chọn Global để kế thừa. Sau khi chỉnh sửa, nhấn Cập nhật theme rồi Kích hoạt.</p>
+        <div class="mt-4 grid gap-4 md:grid-cols-2">
+            @foreach ([
+                'brand' => ['Tên thương hiệu' => 'brand_name', 'Mô tả' => 'description', 'Đường dẫn logo' => 'logo'],
+                'contact' => ['Địa chỉ' => 'address', 'Email' => 'email', 'Số điện thoại' => 'phone'],
+                'legal' => ['Bản quyền' => 'copyright'],
+                'app_install' => ['Tiêu đề ứng dụng' => 'app_title', 'Mô tả ứng dụng' => 'app_description', 'Tiêu đề nút' => 'app_button_title', 'Phụ đề nút' => 'app_button_subtitle', 'App Store URL' => 'appstore', 'Google Play URL' => 'playstore'],
+            ] as $group => $fields)
+                <div class="rounded-lg border border-slate-100 p-3">
+                    <label class="block text-sm font-semibold text-slate-700">{{ ucfirst(str_replace('_', ' ', $group)) }}
+                        <select wire:model.live="profileContent.{{ $group }}.source" class="mt-1 w-full rounded-lg border-slate-300 text-sm">
+                            <option value="global">Global</option>
+                            <option value="profile">Profile</option>
+                        </select>
+                    </label>
+                    @if(data_get($profileContent, $group.'.source', 'global') === 'profile')
+                        @foreach($fields as $label => $field)
+                            <label class="mt-3 block text-xs font-medium text-slate-600">{{ $label }}
+                                <input type="text" wire:model="profileContent.{{ $group }}.overrides.{{ $field }}" maxlength="1000" class="mt-1 w-full rounded-lg border-slate-300 text-sm">
+                            </label>
+                        @endforeach
+                    @endif
+                </div>
+            @endforeach
+        </div>
+    </details>
     <div class="mt-4 grid gap-4 xl:grid-cols-[1.2fr_1fr]">
         <div class="rounded-lg border border-violet-100 bg-white p-4">
             <label class="block text-sm font-semibold text-gray-700">Theme đã lưu</label>
@@ -60,10 +88,11 @@
         <div class="rounded-lg border border-violet-100 bg-white p-4">
             <label class="block text-sm font-semibold text-gray-700">Tên theme</label>
             <input type="text" wire:model="themeName" maxlength="60" placeholder="Ví dụ: Shop Footer Standard" class="mt-2 w-full rounded-lg border-gray-300 text-sm">
-            <p class="mt-2 text-xs text-gray-400">Theme chỉ lưu layout và presentation; không lưu menu links, social links, contact, copyright hay logo Brand.</p>
+            <p class="mt-2 text-xs text-gray-400">Profile v2 lưu bố cục, giao diện và nội dung theo từng nhóm. Các mục chọn Global tiếp tục kế thừa cấu hình hiện tại.</p>
 
             <div class="mt-4 flex flex-wrap gap-2">
                 <button type="button" wire:click="saveTheme" class="rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700">Lưu thành theme mới</button>
+                <button type="button" wire:click="duplicateTheme" @disabled(!$selectedTheme) class="rounded-lg border border-blue-300 bg-white px-3 py-2 text-sm font-semibold text-blue-700 disabled:opacity-40">Nhân bản profile</button>
                 <button type="button" wire:click="renameTheme" @disabled(!$selectedTheme) class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40">Đổi tên theme</button>
             </div>
         </div>
