@@ -144,6 +144,13 @@
             @foreach(['desktop.bottom.left' => 'Bottom Left · Bên trái', 'desktop.bottom.right' => 'Bottom Right · Bên phải'] as $bottomSlot => $bottomLabel)
                 <div class="min-w-0 rounded-lg border border-slate-200 bg-slate-50 p-3" wire:key="bottom-editor-{{ $bottomSlot }}">
                     <h4 class="mb-3 text-sm font-semibold text-slate-800">{{ $bottomLabel }}</h4>
+                    <div class="mb-3 flex flex-wrap gap-2">
+                        @foreach(['copyright' => 'Copyright', 'legal-links' => 'Pháp lý', 'trust-badges' => 'Chứng nhận', 'social-links' => 'Mạng xã hội'] as $bottomType => $bottomTypeLabel)
+                            @if(!collect($builderSlots[$bottomSlot] ?? [])->contains(fn ($item) => ($item['type'] ?? '') === $bottomType))
+                                <button type="button" wire:click="addBottomModule('{{ $bottomSlot }}', '{{ $bottomType }}')" class="rounded-lg border border-blue-200 bg-white px-2.5 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-50">+ {{ $bottomTypeLabel }}</button>
+                            @endif
+                        @endforeach
+                    </div>
                     <div class="space-y-2">
                         @forelse(($builderSlots[$bottomSlot] ?? []) as $bottomIndex => $bottomItem)
                             <div class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white p-3" wire:key="bottom-item-{{ $bottomSlot }}-{{ $bottomIndex }}">
@@ -155,6 +162,7 @@
                                     <button type="button" wire:click="toggleComponent('{{ $bottomSlot }}', {{ $bottomIndex }})" class="rounded border border-slate-300 px-2 py-1 text-xs" aria-label="Bật hoặc tắt module">{{ ($bottomItem['enabled'] ?? true) ? 'Đang bật' : 'Đang tắt' }}</button>
                                     <button type="button" wire:click="moveUp('{{ $bottomSlot }}', {{ $bottomIndex }})" @disabled($bottomIndex === 0) class="rounded border border-slate-300 px-2 py-1 disabled:opacity-30" aria-label="Đưa module lên">↑</button>
                                     <button type="button" wire:click="moveDown('{{ $bottomSlot }}', {{ $bottomIndex }})" @disabled($bottomIndex === count($builderSlots[$bottomSlot]) - 1) class="rounded border border-slate-300 px-2 py-1 disabled:opacity-30" aria-label="Đưa module xuống">↓</button>
+                                    <button type="button" wire:click="removeBottomModule('{{ $bottomSlot }}', {{ $bottomIndex }})" wire:confirm="Xóa module khỏi vùng Bottom này trong bản nháp?" class="rounded border border-red-200 px-2 py-1 text-xs text-red-700" aria-label="Xóa module khỏi vùng">Xóa</button>
                                 </div>
                             </div>
                         @empty
