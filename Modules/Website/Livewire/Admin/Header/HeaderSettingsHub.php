@@ -85,9 +85,10 @@ class HeaderSettingsHub extends Component
 
     private function normalizeAccountSettings(mixed $saved): array
     {
-        $defaults = ['style' => 'avatar_name', 'show_name' => true, 'show_orders' => true, 'show_admin' => true, 'show_profile' => true, 'show_password' => true];
+        $defaults = ['enabled' => true, 'style' => 'avatar_name', 'show_name' => true, 'show_orders' => true, 'show_admin' => true, 'show_profile' => true, 'show_password' => true];
         $values = is_array($saved) ? $saved : [];
         return [
+            'enabled' => (bool) ($values['enabled'] ?? true),
             'style' => in_array($values['style'] ?? null, ['avatar_name', 'avatar', 'button'], true) ? $values['style'] : $defaults['style'],
             'show_name' => (bool) ($values['show_name'] ?? true),
             'show_orders' => (bool) ($values['show_orders'] ?? true),
