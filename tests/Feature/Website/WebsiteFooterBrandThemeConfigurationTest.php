@@ -45,8 +45,8 @@ class WebsiteFooterBrandThemeConfigurationTest extends TestCase
         $this->assertStringContainsString("'layout' => \$this->safeLayout", $component);
         $this->assertStringContainsString("'presentation' => \$presentationService->resolve", $component);
         $this->assertStringNotContainsString("'view' =>", $component);
-        $this->assertStringContainsString("'columns' => ['source' => 'profile'", $component);
-        $this->assertStringContainsString("'social_links' => ['source' => 'global'", $component);
+        $this->assertStringContainsString("'columns' => ['source' => $this->columnsSource", $component);
+        $this->assertStringContainsString("'social_links' => ['source' => $this->socialLinksSource", $component);
         $this->assertStringNotContainsString("'footer.brand_logo'", $component);
 
         $this->assertStringContainsString('Footer Layout Themes', $themeView);
