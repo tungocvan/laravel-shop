@@ -57,6 +57,7 @@
                         </div>
                     @endif
 
+                    @if($columnsSource === 'profile')
                     <div class="mb-4 grid grid-cols-12 gap-2" aria-label="Các cột Footer Desktop">
                         @foreach($footerColumns as $column)
                             @if(($column['enabled'] ?? true) && ($column['desktop'] ?? true))
@@ -70,6 +71,7 @@
                             @endif
                         @endforeach
                     </div>
+                    @else
                     <div class="grid grid-cols-12 gap-4">
                         @foreach([
                             'desktop.main.brand' => 'col-span-4',
@@ -89,6 +91,7 @@
                         @endforeach
                     </div>
 
+                    @endif
                     <div class="mt-5 grid grid-cols-2 gap-4 border-t pt-4" style="border-color: {{ $border }};">
                         @foreach(['desktop.bottom.left', 'desktop.bottom.right'] as $slotKey)
                             <div class="rounded-md border border-dashed p-3" style="border-color: {{ $border }};">
@@ -106,6 +109,7 @@
                 </div>
 
                 <div x-show="previewDevice === 'mobile'" class="space-y-3 p-4">
+                    @if($columnsSource === 'profile')
                     <div class="space-y-2" aria-label="Các cột Footer Mobile">
                         @foreach($footerColumns as $column)
                             @if(($column['enabled'] ?? true) && ($column['mobile'] ?? true))
@@ -116,6 +120,7 @@
                             @endif
                         @endforeach
                     </div>
+                    @else
                     <div class="text-[10px] uppercase tracking-wide" style="color: {{ $muted }};">Mobile Main</div>
                     @forelse($slotItems['mobile.main'] ?? [] as $item)
                         <div class="rounded-md px-3 py-3 text-xs font-semibold" style="color: {{ $heading }}; border: 1px solid {{ $border }};">{{ $componentLabel($item) }}</div>
@@ -123,6 +128,7 @@
                         <div class="text-xs" style="color: {{ $muted }};">Mobile Main trống</div>
                     @endforelse
 
+                    @endif
                     <div class="border-t pt-3" style="border-color: {{ $border }};">
                         <div class="mb-2 text-[10px] uppercase tracking-wide" style="color: {{ $muted }};">Mobile Bottom</div>
                         <div class="space-y-2">
