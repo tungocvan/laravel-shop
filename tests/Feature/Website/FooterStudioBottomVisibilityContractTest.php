@@ -23,6 +23,15 @@ class FooterStudioBottomVisibilityContractTest extends TestCase
         $this->assertGreaterThanOrEqual(2, substr_count($preview, '@if($bottomBarEnabled)'));
     }
 
+    public function test_sample_modules_only_use_registry_allowed_slots(): void
+    {
+        $hub = file_get_contents(base_path('Modules/Website/Livewire/Admin/Footer/FooterSettingsHub.php'));
+        $this->assertStringContainsString("'desktop.bottom.left' => ['copyright', 'social-links']", $hub);
+        $this->assertStringContainsString("'desktop.bottom.right' => ['trust-badges']", $hub);
+        $this->assertStringContainsString("($registry->get($type)['allowed_slots'] ?? [])", $hub);
+        $this->assertStringNotContainsString("'desktop.bottom.right' => ['legal-links', 'trust-badges']", $hub);
+    }
+
     public function test_studio_has_sample_action_and_collapsible_sections_preserve_self(): void
     {
         $view = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/footer/footer-settings-hub.blade.php'));
