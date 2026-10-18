@@ -19,7 +19,8 @@ class FooterProfileResolver
         }
 
         $profiles = $this->settings->get($prefix.'layout_themes', []);
-        $profile = is_array($profiles) ? ($profiles[$active] ?? null) : null;
+        $published = $this->settings->get($prefix.'published_profile');
+        $profile = is_array($published) ? $published : (is_array($profiles) ? ($profiles[$active] ?? null) : null);
         if (! is_array($profile)) {
             return ['settings' => $footerSettings, 'columns' => $columns, 'social_links' => $socialLinks];
         }
