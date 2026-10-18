@@ -98,7 +98,7 @@
                                 <div class="mb-2 text-[10px] uppercase tracking-wide" style="color: {{ $muted }};">{{ $builderSlotNames[$slotKey] }}</div>
                                 <div class="flex flex-wrap gap-2">
                                     @forelse($slotItems[$slotKey] ?? [] as $item)
-                                        <span class="rounded px-2 py-1 text-xs" style="color: {{ $heading }}; border: 1px solid {{ $border }};">{{ $componentLabel($item) }}</span>
+                                        <span class="rounded px-2 py-1 text-xs" style="color: {{ $heading }}; border: 1px solid {{ $border }};">{{ ($item['type'] ?? '') === 'copyright' && filled(data_get($profileContent, 'legal.overrides.copyright')) ? data_get($profileContent, 'legal.overrides.copyright') : $componentLabel($item) }}</span>
                                     @empty
                                         <span class="text-xs" style="color: {{ $muted }};">Slot trống</span>
                                     @endforelse
