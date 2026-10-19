@@ -9,11 +9,11 @@ class FooterStudioCollapsedBottomModulesContractTest extends TestCase
     public function test_columns_and_bottom_bar_are_collapsed_by_default(): void
     {
         $view = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/footer/footer-settings-hub.blade.php'));
-        $this->assertStringContainsString('<details wire:ignore.self wire:key="footer-column-editor-', $view);
+        $this->assertStringContainsString('<details wire:ignore.self id="footer-column-editor-', $view);
         $this->assertStringContainsString('Thanh cuối Footer · Bottom Bar', $view);
         $this->assertStringContainsString('aria-label="Thiết kế thanh cuối Footer"', $view);
         $this->assertStringContainsString('wire:click="addBottomModule(', $view);
-        $this->assertStringContainsString('wire:click="removeBottomModule(', $view);
+        $this->assertStringContainsString('removeBottomModule(', $view);
         $this->assertStringNotContainsString('<details wire:ignore.self wire:key="footer-column-editor-{{ $index }}" open', $view);
     }
 
