@@ -116,7 +116,7 @@
                 <div x-show="previewDevice === 'mobile'" class="space-y-3 p-4">
                     @if($columnsSource === 'profile')
                     <div class="space-y-2" aria-label="Các cột Footer Mobile">
-                        @foreach($footerColumns as $column)
+                        @foreach($footerColumns as $columnIndex => $column)
                             @if(($column['enabled'] ?? true) && ($column['mobile'] ?? true))
                                 <button type="button" @click="selectFooterColumn({{ $columnIndex }})" :aria-pressed="selectedFooterColumn === {{ $columnIndex }} ? 'true' : 'false'" :class="selectedFooterColumn === {{ $columnIndex }} ? 'ring-2 ring-blue-400' : ''" class="w-full rounded border p-2 text-left transition hover:ring-2 hover:ring-blue-300" aria-label="Chỉnh sửa cột {{ $column['title'] ?? 'Footer' }}" style="border-color: {{ $border }};">
                                     <div class="text-xs font-semibold" style="color: {{ $heading }};">{{ $column['title'] ?? '' }}</div>
