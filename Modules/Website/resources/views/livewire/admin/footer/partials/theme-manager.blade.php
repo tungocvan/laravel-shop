@@ -1,4 +1,4 @@
-<section class="rounded-xl border border-violet-200 bg-violet-50/40 p-4 shadow-sm">
+<section id="footer-theme-manager" class="rounded-xl border border-violet-200 bg-violet-50/40 p-4 shadow-sm">
     <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
             <h3 class="font-bold text-gray-900">Footer Layout Themes</h3>
