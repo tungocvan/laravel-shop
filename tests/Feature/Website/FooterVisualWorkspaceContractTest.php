@@ -142,4 +142,17 @@ class FooterVisualWorkspaceContractTest extends TestCase
         $this->assertStringContainsString("asset('storage/'.\$path)", $badges);
         $this->assertStringContainsString('max-w-24 object-contain', $badges);
     }
+    public function test_footer_bottom_separator_and_store_buttons_polish(): void
+    {
+        $shared = file_get_contents(base_path('Modules/Website/resources/views/partials/footer-shared.blade.php'));
+        $install = file_get_contents(base_path('Modules/Website/resources/views/components/footer/app-install.blade.php'));
+
+        $this->assertSame(2, substr_count($shared, 'border-top: 1px solid rgba(255, 255, 255, 0.18)'));
+        $this->assertStringContainsString("!empty(\$footerSettings['appstore'])", $install);
+        $this->assertStringContainsString("!empty(\$footerSettings['playstore'])", $install);
+        $this->assertStringContainsString('min-h-12 min-w-[142px]', $install);
+        $this->assertStringContainsString('Download on the', $install);
+        $this->assertStringContainsString('Get it on', $install);
+        $this->assertStringContainsString('focus-visible:outline', $install);
+    }
 }
