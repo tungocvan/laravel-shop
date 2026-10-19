@@ -21,13 +21,14 @@ class WebsiteFooterBuilderConfigurationTest extends TestCase
     public function test_builder_exposes_toggle_reorder_slot_move_save_reset_and_drag_controls(): void
     {
         $view = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/footer/footer-settings-hub.blade.php'));
+        $preview = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/footer/partials/builder-preview.blade.php'));
 
         $this->assertStringContainsString('toggleDraftComponent(', $view);
         $this->assertStringContainsString('moveDraftComponent(', $view);
         $this->assertStringContainsString('moveDraftComponent(', $view);
         $this->assertStringContainsString('moveComponent(', $view);
         $this->assertStringContainsString('moveComponentByDrag(', $view);
-        $this->assertStringContainsString('saveAndPublishThemeFromDraft(JSON.stringify(builderSlotsDraft))', $view);
+        $this->assertStringContainsString('saveAndPublishThemeFromDraft(JSON.stringify(builderSlotsDraft))', $preview);
         $this->assertStringContainsString('wire:click="resetBuilder"', $view);
         $this->assertStringContainsString('presentation.mode', $view);
         $this->assertStringContainsString('presentation.custom.{{ $field }}', $view);
