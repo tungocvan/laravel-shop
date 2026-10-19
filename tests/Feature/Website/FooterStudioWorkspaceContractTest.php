@@ -19,7 +19,7 @@ class FooterStudioWorkspaceContractTest extends TestCase
         $this->assertStringContainsString('xl:sticky xl:top-4', $studio);
         $this->assertStringContainsString("partials.builder-preview", $studio);
         $this->assertStringNotContainsString("partials.theme-manager", $preview);
-        $this->assertStringContainsString('updateThemeFromDraft(JSON.stringify(builderSlotsDraft))', $studio);
+        $this->assertStringContainsString('updateThemeFromDraft(JSON.stringify(builderSlotsDraft))', $preview);
         $this->assertStringContainsString('saveAndPublishThemeFromDraft(JSON.stringify(builderSlotsDraft))', $preview);
     }
 }
