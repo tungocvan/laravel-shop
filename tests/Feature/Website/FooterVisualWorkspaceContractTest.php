@@ -78,8 +78,8 @@ class FooterVisualWorkspaceContractTest extends TestCase
         $preview = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/footer/partials/builder-preview.blade.php'));
         $component = file_get_contents(base_path('Modules/Website/Livewire/Admin/Footer/FooterSettingsHub.php'));
 
-        $this->assertStringContainsString('updateThemeFromDraft(builderSlotsDraft)', $preview);
-        $this->assertStringContainsString('saveAndPublishThemeFromDraft(builderSlotsDraft)', $preview);
+        $this->assertStringContainsString('updateThemeFromDraft(JSON.stringify(builderSlotsDraft))', $preview);
+        $this->assertStringContainsString('saveAndPublishThemeFromDraft(JSON.stringify(builderSlotsDraft))', $preview);
         $this->assertStringContainsString('function updateThemeFromDraft(', $component);
         $this->assertStringContainsString('function saveAndPublishThemeFromDraft(', $component);
         $this->assertStringContainsString('loadBuilderLayout($this->safeLayout($draft, $registry))', $component);
@@ -94,6 +94,15 @@ class FooterVisualWorkspaceContractTest extends TestCase
         $this->assertStringContainsString('moveDraftComponent(@js($bottomSlot), index, -1)', $view);
         $this->assertStringContainsString('moveDraftComponent(@js($bottomSlot), index, 1)', $view);
         $this->assertStringContainsString('builderSlotsDraft[@js($slotKey)]', $preview);
-        $this->assertStringContainsString('saveAndPublishThemeFromDraft(builderSlotsDraft)', $preview);
+        $this->assertStringContainsString('saveAndPublishThemeFromDraft(JSON.stringify(builderSlotsDraft))', $preview);
+    }
+    public function test_draft_is_serialized_before_livewire_save(): void
+    {
+        $preview = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/footer/partials/builder-preview.blade.php'));
+        $component = file_get_contents(base_path('Modules/Website/Livewire/Admin/Footer/FooterSettingsHub.php'));
+
+        $this->assertStringContainsString('updateThemeFromDraft(JSON.stringify(builderSlotsDraft))', $preview);
+        $this->assertStringContainsString('saveAndPublishThemeFromDraft(JSON.stringify(builderSlotsDraft))', $preview);
+        $this->assertStringContainsString('json_decode($draftJson, true, 512, JSON_THROW_ON_ERROR)', $component);
     }
 }
