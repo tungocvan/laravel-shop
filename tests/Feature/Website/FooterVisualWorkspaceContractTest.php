@@ -70,7 +70,7 @@ class FooterVisualWorkspaceContractTest extends TestCase
     {
         $preview = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/footer/partials/builder-preview.blade.php'));
 
-        $this->assertStringContainsString('@forelse(($builderSlots[$slotKey] ?? []) as $itemIndex => $item)', $preview);
+        $this->assertStringContainsString('x-for="item in (builderSlotsDraft[@js($slotKey)] || [])"', $preview);
         $this->assertStringNotContainsString('@forelse($slotItems[$slotKey] ?? [] as $item)', $preview);
     }
     public function test_save_and_publish_send_current_preview_draft_in_one_request(): void
@@ -104,5 +104,13 @@ class FooterVisualWorkspaceContractTest extends TestCase
         $this->assertStringContainsString('updateThemeFromDraft(JSON.stringify(builderSlotsDraft))', $preview);
         $this->assertStringContainsString('saveAndPublishThemeFromDraft(JSON.stringify(builderSlotsDraft))', $preview);
         $this->assertStringContainsString('json_decode($draftJson, true, 512, JSON_THROW_ON_ERROR)', $component);
+    }
+    public function test_bottom_bar_has_no_duplicate_livewire_reorder_editor(): void
+    {
+        $view = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/footer/footer-settings-hub.blade.php'));
+
+        $this->assertStringContainsString("@if(in_array(\$slot, ['desktop.bottom.left', 'desktop.bottom.right'], true))", $view);
+        $this->assertStringContainsString('Thứ tự và trạng thái Bottom Bar được chỉnh trực tiếp', $view);
+        $this->assertStringContainsString('moveDraftComponent(@js($bottomSlot), index, -1)', $view);
     }
 }
