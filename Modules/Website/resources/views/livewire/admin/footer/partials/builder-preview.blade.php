@@ -26,13 +26,16 @@
 <section class="rounded-xl border border-gray-200 bg-gray-50 p-4" aria-label="Responsive Footer Preview">
     <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-            <h3 class="font-bold text-gray-900">Responsive Preview</h3>
-            <p class="text-sm text-gray-500">Xem cột, module và bố cục từ bản nháp hiện tại, kể cả thay đổi chưa lưu.</p>
+            <h3 class="font-bold text-gray-900">Xem trước Footer</h3>
+            <p class="text-sm text-gray-500">Xem nội dung bản nháp theo kích thước màn hình. Thay đổi chưa lưu không ảnh hưởng website.</p>
         </div>
         <div class="inline-flex rounded-lg bg-white p-1 shadow-sm ring-1 ring-gray-200">
             <button type="button" @click="previewDevice = 'desktop'"
                 :class="previewDevice === 'desktop' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'"
                 class="rounded-md px-3 py-1.5 text-xs font-semibold">Desktop</button>
+            <button type="button" @click="previewDevice = 'tablet'"
+                :class="previewDevice === 'tablet' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'"
+                class="rounded-md px-3 py-1.5 text-xs font-semibold">Tablet</button>
             <button type="button" @click="previewDevice = 'mobile'"
                 :class="previewDevice === 'mobile' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'"
                 class="rounded-md px-3 py-1.5 text-xs font-semibold">Mobile</button>
@@ -41,14 +44,14 @@
 
     <div class="overflow-hidden rounded-xl border border-gray-200 bg-gray-200/60 p-3">
         <div class="mx-auto transition-all duration-200"
-            :class="previewDevice === 'desktop' ? 'w-full min-w-0' : 'w-full max-w-[390px]'">
+            :class="previewDevice === 'desktop' ? 'w-full min-w-0' : (previewDevice === 'tablet' ? 'w-full max-w-[768px]' : 'w-full max-w-[390px]')">
             <div class="overflow-hidden rounded-lg shadow-sm"
                 style="background: {{ $background }}; color: {{ $foreground }}; border: 1px solid {{ $border }};">
                 @if($previewPresentation['accent'] ?? true)
                     <div class="h-1" style="background: linear-gradient(90deg, {{ $accent }}, #8b5cf6, #ec4899);"></div>
                 @endif
 
-                <div x-show="previewDevice === 'desktop'" class="p-5">
+                <div x-show="previewDevice !== 'mobile'" class="p-5">
                     @if(!empty($slotItems['desktop.top']))
                         <div class="mb-4 rounded-md border border-dashed p-2" style="border-color: {{ $border }};">
                             @foreach($slotItems['desktop.top'] as $item)
@@ -64,7 +67,7 @@
                                 <div class="min-w-0 rounded border p-2" style="grid-column: span {{ (int) ($column['width'] ?? 3) }} / span {{ (int) ($column['width'] ?? 3) }}; border-color: {{ $border }};">
                                     <div class="text-xs font-semibold" style="color: {{ $heading }};">{{ $column['title'] ?? '' }}</div>
                                     <div class="mt-1 text-[10px]" style="color: {{ $muted }};">{{ $column['module'] ?? 'menu-links' }}</div>
-                                    @foreach(array_slice($column['items'] ?? [], 0, 3) as $columnItem)
+                                    @foreach(array_slice($column['items'] ?? [], 0, 8) as $columnItem)
                                         <div class="mt-1 truncate text-[10px]" style="color: {{ $foreground }};">{{ $columnItem['label'] ?? '' }}</div>
                                     @endforeach
                                 </div>
@@ -117,7 +120,9 @@
                             @if(($column['enabled'] ?? true) && ($column['mobile'] ?? true))
                                 <div class="rounded border p-2" style="border-color: {{ $border }};">
                                     <div class="text-xs font-semibold" style="color: {{ $heading }};">{{ $column['title'] ?? '' }}</div>
-                                    <div class="text-[10px]" style="color: {{ $muted }};">{{ $column['module'] ?? 'menu-links' }}</div>
+                                    @foreach(array_slice($column['items'] ?? [], 0, 8) as $columnItem)
+                                    <div class="mt-1 text-xs break-words" style="color: {{ $foreground }};">{{ $columnItem['label'] ?? '' }}</div>
+                                @endforeach
                                 </div>
                             @endif
                         @endforeach
