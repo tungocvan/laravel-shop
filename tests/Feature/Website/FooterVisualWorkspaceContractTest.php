@@ -130,4 +130,16 @@ class FooterVisualWorkspaceContractTest extends TestCase
         $this->assertStringContainsString('gap-x-3 gap-y-1.5', $legal);
         $this->assertStringContainsString('max-w-24 object-contain', $badges);
     }
+    public function test_frontend_footer_final_polish_uses_theme_accent_and_normalized_badges(): void
+    {
+        $shared = file_get_contents(base_path('Modules/Website/resources/views/partials/footer-shared.blade.php'));
+        $badges = file_get_contents(base_path('Modules/Website/resources/views/components/footer/trust-badges.blade.php'));
+
+        $this->assertStringContainsString('background: var(--footer-accent)', $shared);
+        $this->assertStringNotContainsString('from-blue-500 via-purple-500 to-pink-500', $shared);
+        $this->assertStringContainsString('space-y-2 text-xs leading-relaxed text-left', $shared);
+        $this->assertStringContainsString("str_starts_with(\$path, 'storage/')", $badges);
+        $this->assertStringContainsString("asset('storage/'.\$path)", $badges);
+        $this->assertStringContainsString('max-w-24 object-contain', $badges);
+    }
 }
