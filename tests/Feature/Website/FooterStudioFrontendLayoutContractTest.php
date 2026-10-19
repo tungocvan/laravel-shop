@@ -13,7 +13,7 @@ class FooterStudioFrontendLayoutContractTest extends TestCase
         $this->assertStringContainsString("=== 'app-install' ? max(4,", $footer);
         $this->assertStringContainsString('grid-template-columns:', $footer);
         $this->assertStringContainsString('minmax(0, ', $footer);
-        $this->assertStringContainsString('md:hidden space-y-8', $footer);
+        $this->assertStringContainsString('md:hidden space-y-7', $footer);
     }
 
     public function test_brand_profile_includes_contact_and_empty_menus_can_inherit_legacy_links(): void

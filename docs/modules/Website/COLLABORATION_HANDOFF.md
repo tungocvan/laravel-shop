@@ -247,3 +247,13 @@ A future Website change must begin from a newly stated objective and must not tr
 - Fix undefined `$globalListIds` in `PharmaQuickOrderController::store()` by using eligible `$listIds` for exact variant/package filters.
 - Added `tests/Feature/Website/PharmaQuickOrderDefaultsContractTest.php`.
 - Tests: pending local DELL Test 1 and Website regression Test 2; UI smoke pending. No PR/merge until PASS.
+
+## Footer Studio regression contract closeout (2026-10-19)
+
+- Branch: `fix/footer-regression-contracts-after-314`, based on `main` after PR #314 (merge commit `bb5a110f5`).
+- Scope: align nine Website Footer contract tests with the accepted Footer Studio Alpine draft interactions, current responsive layout, and save/publish buttons in the `builder-preview.blade.php` partial. No production PHP, Blade, frontend, database or settings changes.
+- Root cause: old string assertions expected removed Livewire button markup, prior layout classes, and save actions in the parent view rather than the preview partial.
+- Tests: initial Website regression after #314: 280 passed, 9 failed; first repair batch: 17 passed, 3 failed; after second repair batch, user reports Website module regression **289 passed (37,983 assertions), 48.02s**. Focused tests in the final combined command were not separately reported in the latest message; do not invent a count.
+- UI smoke: user confirmed TEST + UI PASS for Footer Studio/Admin and public Footer before PR #314; no source/UI changes in this test-only follow-up. Post-fix UI rerun not independently reported.
+- Known issues: no runtime issue demonstrated by these string-assertion failures. Existing unrelated local untracked `.env.backup-before-ngrok-session` and `public/hot.pharma-mobile` must remain untouched.
+- Next: review test-only PR, verify Git clean for tracked files and applicable checks, obtain user authorization before merging into main; no full-project regression required for this Website-only contract correction.

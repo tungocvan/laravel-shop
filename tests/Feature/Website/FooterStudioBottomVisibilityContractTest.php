@@ -37,7 +37,7 @@ class FooterStudioBottomVisibilityContractTest extends TestCase
         $view = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/footer/footer-settings-hub.blade.php'));
         $this->assertStringContainsString('wire:click="loadBottomBarSample"', $view);
         $this->assertStringContainsString('wire:model.live="bottomBarEnabled"', $view);
-        $this->assertStringContainsString('<details wire:ignore.self wire:key="footer-column-editor-', $view);
+        $this->assertStringContainsString('<details wire:ignore.self id="footer-column-editor-', $view);
         $this->assertStringContainsString('<details wire:ignore.self x-show="studioPanel', $view);
     }
 }
