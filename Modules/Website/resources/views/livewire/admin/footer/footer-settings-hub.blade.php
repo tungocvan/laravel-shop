@@ -1,4 +1,4 @@
-<div class="space-y-6" x-data="{ builderDevice: 'desktop', previewDevice: 'desktop', drag: null, studioPanel: 'layout', legacyToolsOpen: false }">
+<div class="space-y-6" x-data="{ builderDevice: 'desktop', previewDevice: 'desktop', drag: null, studioPanel: 'layout', legacyToolsOpen: false, selectedFooterColumn: null, selectedFooterSlot: null, selectFooterColumn(index) { this.studioPanel = 'layout'; this.selectedFooterColumn = index; this.selectedFooterSlot = null; this.$nextTick(() => { const editor = document.getElementById('footer-column-editor-' + index); if (editor) { editor.open = true; editor.scrollIntoView({ behavior: 'smooth', block: 'center' }); editor.querySelector('summary')?.focus({ preventScroll: true }); } }); }, selectFooterSlot(slot) { this.studioPanel = 'layout'; this.selectedFooterSlot = slot; this.selectedFooterColumn = null; this.builderDevice = slot.startsWith('mobile.') ? 'mobile' : 'desktop'; this.$nextTick(() => { const legacy = document.getElementById('footer-legacy-layout'); if (legacy) legacy.open = true; this.$nextTick(() => { const editor = document.getElementById('footer-slot-' + slot.replaceAll('.', '-')); if (editor) { editor.scrollIntoView({ behavior: 'smooth', block: 'center' }); editor.focus({ preventScroll: true }); } }); }); } }">
     <section class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <label for="footer-editing-template" class="mb-2 block text-sm font-semibold text-gray-900">Template đang quản trị</label>
         <select id="footer-editing-template" wire:model.live="editingTemplate" class="w-full max-w-md rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm">
@@ -40,7 +40,7 @@
         </div>
         <div class="mt-4 space-y-3">
             @foreach($footerColumns as $index => $column)
-                <details wire:ignore.self wire:key="footer-column-editor-{{ $index }}" class="group rounded-lg border border-slate-200 bg-white p-3">
+                <details wire:ignore.self id="footer-column-editor-{{ $index }}" wire:key="footer-column-editor-{{ $index }}" :class="selectedFooterColumn === {{ $index }} ? 'ring-2 ring-blue-500 border-blue-500' : ''" class="group rounded-lg border border-slate-200 bg-white p-3">
                     <summary class="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-1 py-2 [&::-webkit-details-marker]:hidden">
                         <span class="min-w-0">
                             <span class="block truncate text-sm font-semibold text-slate-800">{{ $column['title'] ?? 'Cột Footer' }}</span>
@@ -190,7 +190,7 @@
         </div>
     </details>
 
-    <details x-show="studioPanel === 'layout' && @js($columnsSource !== 'profile')" x-cloak class="rounded-xl border border-slate-200 bg-white p-4">
+    <details id="footer-legacy-layout" x-show="studioPanel === 'layout' && @js($columnsSource !== 'profile')" x-cloak class="rounded-xl border border-slate-200 bg-white p-4">
         <summary class="cursor-pointer font-semibold text-slate-800">Bố cục Legacy · Chỉ dùng khi chưa chọn cột Profile</summary>
         <div class="mt-4 space-y-4">
     <div x-show="studioPanel === 'layout'" x-cloak class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -226,7 +226,7 @@
                 $isMobileSlot = str_starts_with($slot, 'mobile.');
                 $isSharedSlot = $slot === 'overlay';
             @endphp
-            <section class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition"
+            <section id="footer-slot-{{ str_replace('.', '-', $slot) }}" tabindex="-1" class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition"
                 x-show="{{ $isSharedSlot ? 'true' : ($isDesktopSlot ? "builderDevice === 'desktop'" : "builderDevice === 'mobile'") }}"
                 x-cloak
                 :class="drag ? 'border-blue-200' : ''"
