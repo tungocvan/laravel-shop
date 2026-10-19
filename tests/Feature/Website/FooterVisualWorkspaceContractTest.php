@@ -84,4 +84,15 @@ class FooterVisualWorkspaceContractTest extends TestCase
         $this->assertStringContainsString('function saveAndPublishThemeFromDraft(', $component);
         $this->assertStringContainsString('loadBuilderLayout($this->safeLayout($draft, $registry))', $component);
     }
+    public function test_bottom_bar_reorder_updates_local_draft_and_preview_without_livewire_move(): void
+    {
+        $view = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/footer/footer-settings-hub.blade.php'));
+        $preview = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/footer/partials/builder-preview.blade.php'));
+
+        $this->assertStringContainsString('moveDraftComponent(slot, index, delta)', $view);
+        $this->assertStringContainsString('moveDraftComponent(@js($bottomSlot), index, -1)', $view);
+        $this->assertStringContainsString('moveDraftComponent(@js($bottomSlot), index, 1)', $view);
+        $this->assertStringContainsString('builderSlotsDraft[@js($slotKey)]', $preview);
+        $this->assertStringContainsString('saveAndPublishThemeFromDraft(builderSlotsDraft)', $preview);
+    }
 }
