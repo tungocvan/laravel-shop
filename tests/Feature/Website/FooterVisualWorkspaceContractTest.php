@@ -110,7 +110,9 @@ class FooterVisualWorkspaceContractTest extends TestCase
         $view = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/footer/footer-settings-hub.blade.php'));
 
         $this->assertStringContainsString("@if(in_array(\$slot, ['desktop.bottom.left', 'desktop.bottom.right'], true))", $view);
-        $this->assertStringContainsString('Thứ tự và trạng thái Bottom Bar được chỉnh trực tiếp', $view);
+        $this->assertStringContainsString('x-for="(item, index) in (builderSlotsDraft[@js($slot)] || [])"', $view);
+        $this->assertStringContainsString('moveDraftComponent(@js($slot), index, -1)', $view);
+        $this->assertStringContainsString('wire:ignore', $view);
         $this->assertStringContainsString('moveDraftComponent(@js($bottomSlot), index, -1)', $view);
     }
 }
