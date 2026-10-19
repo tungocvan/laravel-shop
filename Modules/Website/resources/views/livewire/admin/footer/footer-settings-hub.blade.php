@@ -239,6 +239,9 @@
                 </div>
 
                 <div class="space-y-3">
+                    @if(in_array($slot, ['desktop.bottom.left', 'desktop.bottom.right'], true))
+                        <p class="text-xs text-slate-500">Thứ tự và trạng thái Bottom Bar được chỉnh trực tiếp ở mục Desktop · Bottom phía trên. Nhấn Cập nhật tham số để lưu.</p>
+                    @else
                     @foreach($builderSlots[$slot] ?? [] as $index => $item)
                         @php
                             $type = $item['type'] ?? '';
@@ -274,6 +277,7 @@
                                                 <option value="{{ $targetSlot }}">{{ $builderSlotNames[$targetSlot] ?? $targetSlot }}</option>
                                             @endif
                                         @endforeach
+                    @endif
                                     </select>
                                 </div>
                             @endif
