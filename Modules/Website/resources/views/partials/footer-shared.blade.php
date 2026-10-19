@@ -67,7 +67,7 @@
         <div class="md:hidden space-y-7" style="margin-bottom: 28px;">@include('Website::components.footer.slot', ['slot' => 'mobile.main'])</div>
         @endif
         @if($footerBottomBarEnabled ?? true)
-        <div class="hidden md:flex items-start justify-between gap-x-8 gap-y-4 pt-5" style="border-top: 1px solid var(--footer-border);">
+        <div class="hidden md:flex items-start justify-between gap-x-8 gap-y-4 pt-5" style="border-top: 1px solid rgba(255, 255, 255, 0.18);">
             <div class="min-w-0 flex-1 space-y-2 text-xs leading-relaxed text-left" style="color: var(--footer-muted);">@include('Website::components.footer.slot', ['slot' => 'desktop.bottom.left'])</div>
             <div class="flex shrink-0 items-center justify-end">@include('Website::components.footer.slot', ['slot' => 'desktop.bottom.right'])</div>
         </div>
