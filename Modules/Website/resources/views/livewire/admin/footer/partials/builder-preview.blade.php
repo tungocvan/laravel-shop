@@ -167,6 +167,13 @@
         </div>
         <p class="text-xs text-slate-500">Cập nhật chỉ lưu bản nháp. Lưu &amp; Kích hoạt sẽ xuất bản toàn bộ thay đổi đang xem trước.</p>
         @error('theme') <p class="text-xs text-red-600" role="alert">{{ $message }}</p> @enderror
+        @if($selectedTheme === '' || !isset($layoutThemes[$selectedTheme]))
+            <div class="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900" role="status">
+                <p class="font-semibold">Chưa có theme được chọn nên chưa thể cập nhật hoặc kích hoạt.</p>
+                <p class="mt-1 text-xs">Mở Mẫu thiết kế để chọn theme đã lưu, hoặc nhập tên và lưu thành theme mới. Footer công khai vẫn giữ nguyên cho đến khi bạn kích hoạt.</p>
+                <button type="button" @click="studioPanel = 'profile'; $nextTick(() => document.getElementById('footer-theme-manager')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))" class="mt-3 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700">Chọn hoặc tạo theme để lưu</button>
+            </div>
+        @endif
         <button type="button" wire:click="updateTheme" wire:loading.attr="disabled" wire:target="updateTheme,saveAndPublishTheme" @disabled(!$selectedTheme)
             class="w-full rounded-lg border border-blue-300 bg-white px-4 py-2.5 text-sm font-semibold text-blue-700 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-40">
             Cập nhật tham số vào theme hiện tại
