@@ -52,10 +52,10 @@
                 @endif
 
                 <div x-show="previewDevice !== 'mobile'" class="p-5">
-                    @if(!empty($slotItems['desktop.top']))
+                    @if(!empty($builderSlots['desktop.top']))
                         <div class="mb-4 rounded-md border border-dashed p-2" style="border-color: {{ $border }};">
-                            @foreach($slotItems['desktop.top'] as $item)
-                                <span class="mr-2 inline-flex rounded px-2 py-1 text-xs font-semibold" style="color: {{ $heading }}; border: 1px solid {{ $border }};">{{ $componentLabel($item) }}</span>
+                            @foreach(($builderSlots['desktop.top'] ?? []) as $itemIndex => $item)
+                                <span x-show="isComponentVisible('desktop.top', {{ $itemIndex }})" class="mr-2 inline-flex rounded px-2 py-1 text-xs font-semibold" style="color: {{ $heading }}; border: 1px solid {{ $border }};">{{ $componentLabel($item) }}</span>
                             @endforeach
                         </div>
                     @endif
@@ -84,8 +84,8 @@
                             <div class="{{ $span }} min-h-28 rounded-md border border-dashed p-3" style="border-color: {{ $border }};">
                                 <div class="mb-2 text-[10px] uppercase tracking-wide" style="color: {{ $muted }};">{{ $builderSlotNames[$slotKey] }}</div>
                                 <div class="space-y-2">
-                                    @forelse($slotItems[$slotKey] ?? [] as $item)
-                                        <button type="button" @click="selectFooterSlot(@js($slotKey))" class="block w-full rounded px-2 py-2 text-left text-xs font-semibold hover:ring-2 hover:ring-blue-300" style="color: {{ $heading }}; border: 1px solid {{ $border }};">{{ $componentLabel($item) }}</button>
+                                    @forelse(($builderSlots[$slotKey] ?? []) as $itemIndex => $item)
+                                        <button type="button" x-show="isComponentVisible(@js($slotKey), {{ $itemIndex }})" @click="selectFooterSlot(@js($slotKey))" class="block w-full rounded px-2 py-2 text-left text-xs font-semibold hover:ring-2 hover:ring-blue-300" style="color: {{ $heading }}; border: 1px solid {{ $border }};">{{ $componentLabel($item) }}</button>
                                     @empty
                                         <div class="text-xs" style="color: {{ $muted }};">Slot trống</div>
                                     @endforelse
@@ -102,7 +102,7 @@
                                 <div class="mb-2 text-[10px] uppercase tracking-wide" style="color: {{ $muted }};">{{ $builderSlotNames[$slotKey] }}</div>
                                 <div class="flex flex-wrap gap-2">
                                     @forelse($slotItems[$slotKey] ?? [] as $item)
-                                        <button type="button" @click="selectFooterSlot(@js($slotKey))" class="rounded px-2 py-1 text-left text-xs hover:ring-2 hover:ring-blue-300" style="color: {{ $heading }}; border: 1px solid {{ $border }};">{{ ($item['type'] ?? '') === 'copyright' && filled(data_get($profileContent, 'legal.overrides.copyright')) ? data_get($profileContent, 'legal.overrides.copyright') : $componentLabel($item) }}</button>
+                                        <button type="button" x-show="isComponentVisible(@js($slotKey), {{ $itemIndex }})" @click="selectFooterSlot(@js($slotKey))" class="rounded px-2 py-1 text-left text-xs hover:ring-2 hover:ring-blue-300" style="color: {{ $heading }}; border: 1px solid {{ $border }};">{{ ($item['type'] ?? '') === 'copyright' && filled(data_get($profileContent, 'legal.overrides.copyright')) ? data_get($profileContent, 'legal.overrides.copyright') : $componentLabel($item) }}</button>
                                     @empty
                                         <span class="text-xs" style="color: {{ $muted }};">Slot trống</span>
                                     @endforelse
@@ -129,8 +129,8 @@
                     </div>
                     @else
                     <div class="text-[10px] uppercase tracking-wide" style="color: {{ $muted }};">Mobile Main</div>
-                    @forelse($slotItems['mobile.main'] ?? [] as $item)
-                        <button type="button" @click="selectFooterSlot('mobile.main')" class="w-full rounded-md px-3 py-3 text-left text-xs font-semibold hover:ring-2 hover:ring-blue-300" style="color: {{ $heading }}; border: 1px solid {{ $border }};">{{ $componentLabel($item) }}</button>
+                    @forelse(($builderSlots['mobile.main'] ?? []) as $itemIndex => $item)
+                        <button type="button" x-show="isComponentVisible('mobile.main', {{ $itemIndex }})" @click="selectFooterSlot('mobile.main')" class="w-full rounded-md px-3 py-3 text-left text-xs font-semibold hover:ring-2 hover:ring-blue-300" style="color: {{ $heading }}; border: 1px solid {{ $border }};">{{ $componentLabel($item) }}</button>
                     @empty
                         <div class="text-xs" style="color: {{ $muted }};">Mobile Main trống</div>
                     @endforelse
@@ -140,8 +140,8 @@
                     <div class="border-t pt-3" style="border-color: {{ $border }};">
                         <div class="mb-2 text-[10px] uppercase tracking-wide" style="color: {{ $muted }};">Mobile Bottom</div>
                         <div class="space-y-2">
-                            @forelse($slotItems['mobile.bottom'] ?? [] as $item)
-                                <button type="button" @click="selectFooterSlot('mobile.bottom')" class="w-full rounded-md px-3 py-2 text-left text-xs hover:ring-2 hover:ring-blue-300" style="color: {{ $heading }}; border: 1px solid {{ $border }};">{{ $componentLabel($item) }}</button>
+                            @forelse(($builderSlots['mobile.bottom'] ?? []) as $itemIndex => $item)
+                                <button type="button" x-show="isComponentVisible('mobile.bottom', {{ $itemIndex }})" @click="selectFooterSlot('mobile.bottom')" class="w-full rounded-md px-3 py-2 text-left text-xs hover:ring-2 hover:ring-blue-300" style="color: {{ $heading }}; border: 1px solid {{ $border }};">{{ $componentLabel($item) }}</button>
                             @empty
                                 <div class="text-xs" style="color: {{ $muted }};">Mobile Bottom trống</div>
                             @endforelse
