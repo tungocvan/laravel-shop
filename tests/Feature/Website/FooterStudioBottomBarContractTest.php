@@ -12,9 +12,9 @@ class FooterStudioBottomBarContractTest extends TestCase
         $this->assertStringContainsString('Thanh cuối Footer · Bottom Bar', $view);
         $this->assertStringContainsString("'desktop.bottom.left' =>", $view);
         $this->assertStringContainsString("'desktop.bottom.right' =>", $view);
-        $this->assertStringContainsString('wire:click="toggleComponent(', $view);
-        $this->assertStringContainsString('wire:click="moveUp(', $view);
-        $this->assertStringContainsString('wire:click="moveDown(', $view);
+        $this->assertStringContainsString('toggleDraftComponent(@js($slot), index)', $view);
+        $this->assertStringContainsString('moveDraftComponent(@js($slot), index, -1)', $view);
+        $this->assertStringContainsString('moveDraftComponent(@js($slot), index, 1)', $view);
         $this->assertStringContainsString('profileContent.legal.overrides.copyright', $view);
     }
 
