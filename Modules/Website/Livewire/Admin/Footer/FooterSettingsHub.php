@@ -798,23 +798,31 @@ class FooterSettingsHub extends Component
      * Deferred client-side toggles must not rely on a separate hydration cycle.
      */
     public function updateThemeFromDraft(
-        array $draft,
+        string $draftJson,
         SettingsService $settingsService,
         FooterComponentRegistry $registry,
         FooterPresentationService $presentationService
     ): void {
         $this->authorizeAdminPermission('website.footer.manage');
+        $draft = json_decode($draftJson, true, 512, JSON_THROW_ON_ERROR);
+        if (! is_array($draft)) {
+            throw new \\InvalidArgumentException('Invalid Footer draft.');
+        }
         $this->loadBuilderLayout($this->safeLayout($draft, $registry));
         $this->updateTheme($settingsService, $registry, $presentationService);
     }
 
     public function saveAndPublishThemeFromDraft(
-        array $draft,
+        string $draftJson,
         SettingsService $settingsService,
         FooterComponentRegistry $registry,
         FooterPresentationService $presentationService
     ): void {
         $this->authorizeAdminPermission('website.footer.manage');
+        $draft = json_decode($draftJson, true, 512, JSON_THROW_ON_ERROR);
+        if (! is_array($draft)) {
+            throw new \\InvalidArgumentException('Invalid Footer draft.');
+        }
         $this->loadBuilderLayout($this->safeLayout($draft, $registry));
         $this->saveAndPublishTheme($settingsService, $registry, $presentationService);
     }
