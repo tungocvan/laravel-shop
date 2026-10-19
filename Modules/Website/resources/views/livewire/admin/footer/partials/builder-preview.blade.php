@@ -174,11 +174,11 @@
                 <button type="button" @click="studioPanel = 'profile'; $nextTick(() => document.getElementById('footer-theme-manager')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))" class="mt-3 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700">Chọn hoặc tạo theme để lưu</button>
             </div>
         @endif
-        <button type="button" wire:click="updateTheme" wire:loading.attr="disabled" wire:target="updateTheme,saveAndPublishTheme" @disabled(!$selectedTheme)
+        <button type="button" @click="$wire.updateThemeFromDraft(builderSlotsDraft)" wire:loading.attr="disabled" wire:target="updateThemeFromDraft,saveAndPublishThemeFromDraft" @disabled(!$selectedTheme)
             class="w-full rounded-lg border border-blue-300 bg-white px-4 py-2.5 text-sm font-semibold text-blue-700 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-40">
             Cập nhật tham số vào theme hiện tại
         </button>
-        <button type="button" wire:click="saveAndPublishTheme" wire:confirm="Lưu toàn bộ thay đổi hiện tại và kích hoạt theme này trên website?" wire:loading.attr="disabled" wire:target="updateTheme,saveAndPublishTheme" @disabled(!$selectedTheme)
+        <button type="button" @click="if (window.confirm('Lưu toàn bộ thay đổi hiện tại và kích hoạt theme này trên website?')) $wire.saveAndPublishThemeFromDraft(builderSlotsDraft)" wire:loading.attr="disabled" wire:target="updateThemeFromDraft,saveAndPublishThemeFromDraft" @disabled(!$selectedTheme)
             class="w-full rounded-lg bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-40">
             Lưu &amp; Kích hoạt theme hiện tại
         </button>
