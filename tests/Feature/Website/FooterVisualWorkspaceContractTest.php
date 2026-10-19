@@ -55,4 +55,15 @@ class FooterVisualWorkspaceContractTest extends TestCase
         $this->assertStringContainsString("isComponentVisible('mobile.bottom', {{ \$itemIndex }})", $preview);
     }
 
+    public function test_publish_controls_explain_when_theme_is_not_selected(): void
+    {
+        $preview = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/footer/partials/builder-preview.blade.php'));
+        $manager = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/footer/partials/theme-manager.blade.php'));
+
+        $this->assertStringContainsString("isset(\$layoutThemes[\$selectedTheme])", $preview);
+        $this->assertStringContainsString('Chọn hoặc tạo theme để lưu', $preview);
+        $this->assertStringContainsString("studioPanel = 'profile'", $preview);
+        $this->assertStringContainsString('id="footer-theme-manager"', $manager);
+        $this->assertStringContainsString('@disabled(!$selectedTheme)', $preview);
+    }
 }
