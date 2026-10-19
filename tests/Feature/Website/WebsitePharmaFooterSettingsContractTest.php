@@ -24,7 +24,7 @@ class WebsitePharmaFooterSettingsContractTest extends TestCase
         $this->assertStringContainsString('Template đang quản trị', $editor);
         $this->assertStringContainsString('wire:model.live="editingTemplate"', $editor);
         $this->assertStringNotContainsString('Thiết lập Footer Pharma', $editor);
-        $this->assertStringContainsString('saveBuilder', $editor);
+        $this->assertStringContainsString('saveAndPublishThemeFromDraft', $editor);
 
         $composer = file_get_contents(base_path('Modules/Website/Providers/WebsiteServiceProvider.php'));
         $this->assertStringContainsString("'Website::partials.pharma.footer'", $composer);
