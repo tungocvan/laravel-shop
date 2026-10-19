@@ -8,6 +8,7 @@ use Modules\System\Services\SettingsService;
 use Modules\Website\Livewire\Concerns\AuthorizesAdminPermissions;
 use Modules\Website\Services\FooterComponentRegistry;
 use Modules\Website\Services\FooterPresentationService;
+use Modules\Website\Models\FooterColumn;
 
 class FooterSettingsHub extends Component
 {
@@ -18,12 +19,21 @@ class FooterSettingsHub extends Component
     public array $pharmaContent = [];
     public array $builderSlots = [];
     public array $footerColumns = [];
+    public array $legacyFooterColumnOptions = [];
+    public array $selectedLegacyFooterSlugs = [];
     public array $presentation = [];
     public array $layoutThemes = [];
     public string $selectedTheme = '';
+    public string $activeTheme = '';
+    public array $profileContent = [];
+    public array $profileSocialLinks = [];
+    public string $columnsSource = 'global';
+    public string $socialLinksSource = 'global';
+    public bool $profileDirty = false;
+    public bool $bottomBarEnabled = true;
     public string $themeName = '';
 
-    private const THEME_VERSION = 1;
+    private const THEME_VERSION = 2;
     private const MAX_THEMES = 20;
 
     private const BUILDER_SLOTS = [
@@ -47,12 +57,31 @@ class FooterSettingsHub extends Component
         $rawLayout = is_array($savedLayout) ? $savedLayout : (array) config('website.footer.layout', []);
         $this->loadBuilderLayout($rawLayout);
         $this->loadFooterColumns($settingsService);
+        $this->loadLegacyFooterColumnOptions();
 
         $savedPresentation = $settingsService->get($this->settingKey('presentation'));
         $this->presentation = $presentationService->resolve(is_array($savedPresentation) ? $savedPresentation : null);
 
         $savedThemes = $settingsService->get($this->settingKey('layout_themes'), []);
         $this->layoutThemes = is_array($savedThemes) ? $savedThemes : [];
+        $this->activeTheme = (string) $settingsService->get($this->settingKey('active_theme'), '');
+        $this->loadProfileSources($settingsService);
+        $this->loadActiveProfileDraft();
+    }
+
+    private function loadActiveProfileDraft(): void
+    {
+        if ($this->activeTheme === '' || ! isset($this->layoutThemes[$this->activeTheme])) {
+            return;
+        }
+        $profile = $this->layoutThemes[$this->activeTheme];
+        $this->selectedTheme = $this->activeTheme;
+        $this->themeName = (string) ($profile['name'] ?? '');
+        $this->bottomBarEnabled = (bool) ($profile['bottom_bar_enabled'] ?? true);
+        $this->columnsSource = data_get($profile, 'columns.source') === 'profile' ? 'profile' : 'global';
+        if ($this->columnsSource === 'profile') {
+            $this->footerColumns = $this->normalizeFooterColumns((array) data_get($profile, 'columns.items', []));
+        }
     }
 
     private function loadPharmaContent(SettingsService $settingsService): void
@@ -86,12 +115,16 @@ class FooterSettingsHub extends Component
         $layout = $settings->get($this->settingKey('layout'));
         $this->loadBuilderLayout(is_array($layout) ? $layout : (array) config('website.footer.layout', []));
         $this->loadFooterColumns($settings);
+        $this->loadLegacyFooterColumnOptions();
         $savedPresentation = $settings->get($this->settingKey('presentation'));
         $this->presentation = $presentationService->resolve(is_array($savedPresentation) ? $savedPresentation : null);
         $themes = $settings->get($this->settingKey('layout_themes'), []);
         $this->layoutThemes = is_array($themes) ? $themes : [];
+        $this->activeTheme = (string) $settings->get($this->settingKey('active_theme'), '');
+        $this->loadProfileSources($settings);
         $this->selectedTheme = '';
         $this->themeName = '';
+        $this->loadActiveProfileDraft();
     }
 
     private function settingKey(string $suffix): string
@@ -120,6 +153,10 @@ class FooterSettingsHub extends Component
         if ($this->editingTemplate !== 'pharma') {
             return;
         }
+        if ($this->activeTheme !== '') {
+            $this->addError('theme', 'Nội dung Pharma đang thuộc profile active. Hãy cập nhật và kích hoạt profile thay vì lưu trực tiếp.');
+            return;
+        }
         $this->validate([
             'pharmaContent.description' => ['nullable', 'string', 'max:1000'],
             'pharmaContent.links_title' => ['required', 'string', 'max:100'],
@@ -141,6 +178,63 @@ class FooterSettingsHub extends Component
         $settingsService->set('website.pharma_footer.content', $content, 'footer', 'json');
         $this->pharmaContent = $content;
         $this->dispatch('show-toast', [['type' => 'success', 'message' => 'Đã lưu Footer Pharma.']]);
+    }
+
+    public function loadBottomBarSample(FooterComponentRegistry $registry): void
+    {
+        $this->authorizeAdminPermission('website.footer.manage');
+        $sample = [
+            'desktop.bottom.left' => ['copyright', 'social-links'],
+            'desktop.bottom.right' => ['trust-badges'],
+        ];
+        $validated = [];
+        foreach ($sample as $slot => $types) {
+            $existing = collect($this->builderSlots[$slot] ?? [])->keyBy('type');
+            $validated[$slot] = [];
+            foreach ($types as $type) {
+                // Keep the action safe if a module's allowed slots change later.
+                if (! in_array($slot, (array) ($registry->get($type)['allowed_slots'] ?? []), true)) {
+                    continue;
+                }
+                $validated[$slot][] = $existing->get($type, ['type' => $type, 'enabled' => true]);
+            }
+        }
+        foreach ($validated as $slot => $items) {
+            $this->builderSlots[$slot] = $items;
+        }
+        $this->bottomBarEnabled = true;
+        $this->profileDirty = true;
+        $this->dispatchThemeToast('Đã nạp bố cục Bottom Bar mẫu vào bản nháp. Nội dung liên kết và mạng xã hội được kế thừa từ cấu hình hiện tại.');
+    }
+
+    public function addBottomModule(string $slot, string $type, FooterComponentRegistry $registry): void
+    {
+        $this->authorizeAdminPermission('website.footer.manage');
+        if (! in_array($slot, ['desktop.bottom.left', 'desktop.bottom.right'], true)
+            || ! in_array($type, ['copyright', 'legal-links', 'trust-badges', 'social-links'], true)) {
+            return;
+        }
+        try {
+            $registry->resolve($type, $slot);
+        } catch (\InvalidArgumentException) {
+            return;
+        }
+        $items = $this->builderSlots[$slot] ?? [];
+        if (count($items) >= 6 || collect($items)->contains(fn ($item) => ($item['type'] ?? '') === $type)) {
+            return;
+        }
+        $this->builderSlots[$slot][] = ['type' => $type, 'enabled' => true];
+        $this->profileDirty = true;
+    }
+
+    public function removeBottomModule(string $slot, int $index): void
+    {
+        $this->authorizeAdminPermission('website.footer.manage');
+        if (! in_array($slot, ['desktop.bottom.left', 'desktop.bottom.right'], true) || ! $this->hasItem($slot, $index)) {
+            return;
+        }
+        array_splice($this->builderSlots[$slot], $index, 1);
+        $this->profileDirty = true;
     }
 
     public function toggleComponent(string $slot, int $index): void
@@ -246,7 +340,7 @@ class FooterSettingsHub extends Component
         if (count($this->footerColumns) >= 6) {
             return;
         }
-        $this->footerColumns[] = ['title' => 'Cột mới', 'width' => 3, 'enabled' => true, 'items' => []];
+        $this->footerColumns[] = ['title' => 'Cột mới', 'module' => 'custom', 'width' => 3, 'enabled' => true, 'desktop' => true, 'mobile' => true, 'items' => []];
     }
 
     public function removeFooterColumn(int $index): void
@@ -267,6 +361,63 @@ class FooterSettingsHub extends Component
         }
         [$this->footerColumns[$index], $this->footerColumns[$target]] =
             [$this->footerColumns[$target], $this->footerColumns[$index]];
+    }
+
+    private function loadLegacyFooterColumnOptions(): void
+    {
+        $this->legacyFooterColumnOptions = FooterColumn::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get(['slug', 'title'])
+            ->filter(fn ($column) => filled($column->slug))
+            ->map(fn ($column) => ['slug' => (string) $column->slug, 'title' => (string) $column->title])
+            ->values()->all();
+        $this->selectedLegacyFooterSlugs = [];
+    }
+
+    public function importLegacyFooterColumn(int $index): void
+    {
+        $this->authorizeAdminPermission('website.footer.manage');
+
+        if (! isset($this->footerColumns[$index]) || ($this->footerColumns[$index]['module'] ?? '') !== 'menu-links') {
+            return;
+        }
+
+        $slug = trim((string) ($this->selectedLegacyFooterSlugs[$index] ?? ''));
+        if ($slug === '') {
+            $this->addError('legacyColumn.'.$index, 'Vui lòng chọn một slug cột liên kết.');
+            return;
+        }
+
+        $source = FooterColumn::query()
+            ->where('slug', $slug)
+            ->where('is_active', true)
+            ->with(['links' => fn ($query) => $query->where('is_active', true)->orderBy('sort_order')])
+            ->first();
+
+        if ($source === null) {
+            $this->addError('legacyColumn.'.$index, 'Không tìm thấy cột liên kết đang hoạt động.');
+            return;
+        }
+
+        $links = $source->links->take(12)->map(fn ($link) => [
+            'type' => 'link',
+            'label' => (string) $link->label,
+            'url' => (string) $link->url,
+            'new_tab' => (bool) $link->new_tab,
+        ])->all();
+
+        if ($links === []) {
+            $this->addError('legacyColumn.'.$index, 'Cột nguồn chưa có liên kết đang hoạt động.');
+            return;
+        }
+
+        // Explicit import replaces only this draft column. It does not change the
+        // legacy database, the saved theme, or the published website.
+        $this->footerColumns[$index]['items'] = array_values($links);
+        $this->columnsSource = 'profile';
+        $this->resetErrorBag('legacyColumn.'.$index);
+        $this->dispatch('show-toast', [['type' => 'success', 'message' => 'Đã nạp '.count($links).' liên kết từ '.$source->title.' vào bản nháp.']]);
     }
 
     public function addFooterColumnItem(int $index, string $type): void
@@ -302,9 +453,27 @@ class FooterSettingsHub extends Component
             [$this->footerColumns[$index]['items'][$target], $this->footerColumns[$index]['items'][$itemIndex]];
     }
 
+    public function updatedProfileContent($value, string $key): void
+    {
+        if ($key === 'legal.overrides.copyright') {
+            $this->profileContent['legal']['source'] = 'profile';
+            $this->profileDirty = true;
+        }
+    }
+
+    public function updatedFooterColumns(): void
+    {
+        // Column edits are profile-owned. Global columns remain untouched.
+        $this->columnsSource = 'profile';
+    }
+
     public function saveFooterColumns(SettingsService $settings): void
     {
         $this->authorizeAdminPermission('website.footer.manage');
+        if ($this->activeTheme !== '') {
+            $this->addError('theme', 'Hãy lưu cột vào profile rồi kích hoạt; không xuất bản riêng khi có active profile.');
+            return;
+        }
         $this->footerColumns = $this->normalizeFooterColumns($this->footerColumns);
         $settings->set($this->settingKey('columns'), $this->footerColumns, 'footer', 'json');
         $this->dispatch('show-toast', [['type' => 'success', 'message' => 'Đã lưu bản nháp cấu trúc cột Footer.']]);
@@ -313,22 +482,25 @@ class FooterSettingsHub extends Component
     private function normalizeFooterColumns(array $columns): array
     {
         $normalized = [];
-        foreach (array_slice($columns, 0, 6) as $column) {
+        foreach (array_slice($columns, 0, 6) as $columnIndex => $column) {
             if (! is_array($column)) {
                 continue;
             }
             $normalized[] = [
                 'title' => mb_substr(trim((string) ($column['title'] ?? '')), 0, 80),
+                'module' => in_array($column['module'] ?? null, ['brand', 'contact', 'menu-links', 'social-links', 'app-install', 'custom'], true) ? $column['module'] : (['brand', 'menu-links', 'menu-links', 'app-install'][$columnIndex] ?? 'menu-links'),
+                'desktop' => (bool) ($column['desktop'] ?? true),
+                'mobile' => (bool) ($column['mobile'] ?? true),
                 'width' => in_array((int) ($column['width'] ?? 3), [2, 3, 4, 6, 12], true) ? (int) $column['width'] : 3,
                 'enabled' => (bool) ($column['enabled'] ?? true),
                 'items' => $this->normalizeFooterColumnItems($column['items'] ?? []),
             ];
         }
         return $normalized ?: [
-            ['title' => 'Thương hiệu & liên hệ', 'width' => 4, 'enabled' => true],
-            ['title' => 'Liên kết', 'width' => 3, 'enabled' => true],
-            ['title' => 'Hỗ trợ', 'width' => 3, 'enabled' => true],
-            ['title' => 'Ứng dụng', 'width' => 2, 'enabled' => true],
+            ['title' => 'Thương hiệu & liên hệ', 'module' => 'brand', 'width' => 4, 'enabled' => true],
+            ['title' => 'Liên kết', 'module' => 'menu-links', 'width' => 3, 'enabled' => true],
+            ['title' => 'Hỗ trợ', 'module' => 'menu-links', 'width' => 3, 'enabled' => true],
+            ['title' => 'Ứng dụng', 'module' => 'app-install', 'width' => 2, 'enabled' => true],
         ];
     }
 
@@ -363,6 +535,10 @@ class FooterSettingsHub extends Component
     ): void {
         $this->authorizeAdminPermission('website.footer.manage');
 
+        if ($this->activeTheme !== '') {
+            $this->addError('theme', 'Footer đang dùng profile. Hãy cập nhật profile rồi kích hoạt để xuất bản.');
+            return;
+        }
         $layout = $this->safeLayout($this->builderSlots, $registry);
         $presentation = $presentationService->resolve($this->presentation);
 
@@ -456,8 +632,14 @@ class FooterSettingsHub extends Component
         $this->loadBuilderLayout($safeLayout);
         $this->presentation = $presentationService->resolve(is_array($theme['presentation'] ?? null) ? $theme['presentation'] : null);
         $this->themeName = (string) ($theme['name'] ?? '');
+        $this->bottomBarEnabled = (bool) ($theme['bottom_bar_enabled'] ?? true);
+        $this->footerColumns = $this->normalizeFooterColumns((array) data_get($theme, 'columns.items', $this->footerColumns));
+        $this->profileContent = array_replace_recursive($this->profileContent, (array) ($theme['content'] ?? []));
+        $this->profileSocialLinks = (array) data_get($theme, 'social_links.items', $this->profileSocialLinks);
+        $this->columnsSource = data_get($theme, 'columns.source') === 'profile' ? 'profile' : 'global';
+        $this->socialLinksSource = data_get($theme, 'social_links.source') === 'profile' ? 'profile' : 'global';
         $this->resetErrorBag('theme');
-        $this->dispatchThemeToast('Đã nạp theme vào Builder. Kiểm tra Preview rồi bấm Lưu bố cục để publish.');
+        $this->dispatchThemeToast('Đã nạp profile vào bản nháp. Chọn Cập nhật profile để lưu, rồi Kích hoạt để xuất bản.');
     }
 
     public function updateTheme(
@@ -474,9 +656,10 @@ class FooterSettingsHub extends Component
         $name = trim($this->themeName) !== '' ? trim($this->themeName) : (string) ($theme['name'] ?? 'Footer Theme');
         $this->themeName = $name;
         $this->validateThemeName();
+        $this->columnsSource = 'profile';
         $this->layoutThemes[$this->selectedTheme] = $this->themeSnapshot($name, $registry, $presentationService);
         $this->persistThemes($settingsService);
-        $this->dispatchThemeToast('Đã cập nhật Footer theme.');
+        $this->dispatchThemeToast('Đã cập nhật bản lưu profile; website chưa thay đổi.');
     }
 
     public function renameTheme(SettingsService $settingsService): void
@@ -502,6 +685,10 @@ class FooterSettingsHub extends Component
             return;
         }
 
+        if ($this->selectedTheme === $this->activeTheme) {
+            $this->addError('theme', 'Không thể xóa profile đang kích hoạt. Hãy kích hoạt profile khác trước.');
+            return;
+        }
         unset($this->layoutThemes[$this->selectedTheme]);
         $this->selectedTheme = '';
         $this->themeName = '';
@@ -511,6 +698,7 @@ class FooterSettingsHub extends Component
 
     public function selectTheme(string $slug): void
     {
+        $this->authorizeAdminPermission('website.footer.manage');
         if (! isset($this->layoutThemes[$slug])) {
             return;
         }
@@ -547,10 +735,136 @@ class FooterSettingsHub extends Component
         return [
             'version' => self::THEME_VERSION,
             'name' => trim($name),
+            'bottom_bar_enabled' => $this->bottomBarEnabled,
             'layout' => $this->safeLayout($this->builderSlots, $registry),
             'presentation' => $presentationService->resolve($this->presentation),
+            'columns' => ['source' => $this->columnsSource, 'items' => $this->normalizeFooterColumns($this->footerColumns)],
+            'social_links' => ['source' => $this->socialLinksSource, 'items' => $this->profileSocialLinks],
+            'content' => $this->profileContent,
             'updated_at' => now()->toIso8601String(),
         ];
+    }
+
+    private function loadProfileSources(SettingsService $settings): void
+    {
+        $this->profileContent = [
+            'brand' => ['source' => 'global', 'overrides' => []],
+            'contact' => ['source' => 'global', 'overrides' => []],
+            'legal' => ['source' => 'global', 'overrides' => []],
+            'app_install' => ['source' => 'global', 'overrides' => []],
+            'pharma' => $this->pharmaContent,
+        ];
+        $this->profileSocialLinks = [];
+        $this->columnsSource = 'global';
+        $this->socialLinksSource = 'global';
+    }
+
+    public function duplicateTheme(
+        SettingsService $settingsService
+    ): void {
+        $this->authorizeAdminPermission('website.footer.manage');
+        $theme = $this->selectedThemeData();
+        if ($theme === null) {
+            return;
+        }
+        if (count($this->layoutThemes) >= self::MAX_THEMES) {
+            $this->addError('theme', 'Đã đạt giới hạn số profile.');
+            return;
+        }
+        $name = trim((string) ($theme['name'] ?? 'Footer Profile')).' - Bản sao';
+        $baseSlug = Str::slug($name) ?: 'footer-copy';
+        $slug = $baseSlug;
+        $suffix = 2;
+        while (isset($this->layoutThemes[$slug])) {
+            $slug = $baseSlug.'-'.$suffix++;
+        }
+        $copy = $theme;
+        $copy['name'] = $name;
+        $copy['version'] = self::THEME_VERSION;
+        $copy['updated_at'] = now()->toIso8601String();
+        $this->layoutThemes[$slug] = $copy;
+        $this->selectedTheme = $slug;
+        $this->themeName = $name;
+        $this->persistThemes($settingsService);
+        $this->dispatchThemeToast('Đã nhân bản profile. Profile mới chưa kích hoạt.');
+    }
+
+    /**
+     * Save the current editor draft and activate that exact snapshot in one
+     * settings write. Never publish the previously saved version by accident.
+     */
+    public function saveAndPublishTheme(
+        SettingsService $settingsService,
+        FooterComponentRegistry $registry,
+        FooterPresentationService $presentationService
+    ): void {
+        $this->authorizeAdminPermission('website.footer.manage');
+        $theme = $this->selectedThemeData();
+        if ($theme === null) {
+            return;
+        }
+
+        $this->themeName = trim($this->themeName) !== ''
+            ? trim($this->themeName)
+            : (string) ($theme['name'] ?? 'Footer Theme');
+        $this->validateThemeName();
+        $this->columnsSource = 'profile';
+
+        $snapshot = $this->themeSnapshot($this->themeName, $registry, $presentationService);
+        $layout = $this->safeLayout((array) $snapshot['layout'], $registry);
+        $presentation = $presentationService->resolve((array) $snapshot['presentation']);
+        $themes = $this->layoutThemes;
+        $themes[$this->selectedTheme] = $snapshot;
+
+        $settingsService->updateMany([
+            $this->settingKey('layout_themes') => $themes,
+            $this->settingKey('layout') => $layout,
+            $this->settingKey('presentation') => $presentation,
+            $this->settingKey('active_theme') => $this->selectedTheme,
+            $this->settingKey('profile_content') => $snapshot['content'],
+            $this->settingKey('profile_columns') => $snapshot['columns'],
+            $this->settingKey('profile_social_links') => $snapshot['social_links'],
+            $this->settingKey('published_profile') => $snapshot,
+        ], 'footer');
+
+        $this->layoutThemes = $themes;
+        $this->activeTheme = $this->selectedTheme;
+        $this->resetErrorBag('theme');
+        $this->dispatchThemeToast('Đã lưu bản nháp mới nhất và kích hoạt Footer theme.');
+    }
+
+    public function publishTheme(
+        SettingsService $settingsService,
+        FooterComponentRegistry $registry,
+        FooterPresentationService $presentationService
+    ): void {
+        $this->authorizeAdminPermission('website.footer.manage');
+        $theme = $this->selectedThemeData();
+        if ($theme === null) {
+            return;
+        }
+
+        $layout = $this->safeLayout((array) ($theme['layout'] ?? []), $registry);
+        $presentation = $presentationService->resolve(
+            is_array($theme['presentation'] ?? null) ? $theme['presentation'] : null
+        );
+        $updates = [
+            $this->settingKey('layout') => $layout,
+            $this->settingKey('presentation') => $presentation,
+            $this->settingKey('active_theme') => $this->selectedTheme,
+        ];
+        // Profile-only data is published to scoped keys. Existing global DB
+        // columns, social links and legacy footer content remain untouched.
+        $updates[$this->settingKey('profile_content')] = (array) ($theme['content'] ?? []);
+        $updates[$this->settingKey('profile_columns')] = (array) ($theme['columns'] ?? []);
+        $updates[$this->settingKey('profile_social_links')] = (array) ($theme['social_links'] ?? []);
+        // Preserve the exact published snapshot even if a profile draft is edited later.
+        $updates[$this->settingKey('published_profile')] = $theme;
+        $settingsService->updateMany($updates, 'footer');
+        $this->activeTheme = $this->selectedTheme;
+        $this->loadBuilderLayout($layout);
+        $this->presentation = $presentation;
+        $this->dispatchThemeToast('Đã kích hoạt Footer profile và xuất bản cấu hình.');
     }
 
     private function safeLayout(array $source, FooterComponentRegistry $registry): array

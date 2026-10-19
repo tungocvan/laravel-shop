@@ -2,8 +2,9 @@
     <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
             <h3 class="font-bold text-gray-900">Footer Layout Themes</h3>
-            <p class="mt-1 text-sm text-gray-500">Lưu nhiều snapshot của bố cục + presentation. Áp dụng theme chỉ nạp vào Builder; frontend chỉ thay đổi sau khi bấm <strong>Lưu bố cục</strong>.</p>
+            <p class="mt-1 text-sm text-gray-500">Lưu snapshot profile v2. Nạp profile chỉ thay đổi bản nháp; chỉ Kích hoạt mới xuất bản lên Website.</p>
         </div>
+        <div class="text-xs font-semibold text-emerald-700">Active profile: {{ $activeTheme !== '' ? ($layoutThemes[$activeTheme]['name'] ?? $activeTheme) : 'Legacy (chưa kích hoạt profile)' }}</div>
         <span class="self-start rounded-full bg-white px-3 py-1 text-xs font-semibold text-violet-700 ring-1 ring-violet-200">{{ count($layoutThemes) }}/20 themes</span>
     </div>
 
@@ -14,13 +15,56 @@
         <div class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ $message }}</div>
     @enderror
 
+    <div class="mt-4 grid gap-3 md:grid-cols-2">
+        <label class="block text-sm font-medium text-slate-700">Nguồn cột liên kết
+            <select wire:model="columnsSource" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 text-sm">
+                <option value="global">Kế thừa cột Footer hiện tại (an toàn)</option>
+                <option value="profile">Sử dụng cột từ bản nháp profile</option>
+            </select>
+        </label>
+        <label class="block text-sm font-medium text-slate-700">Nguồn mạng xã hội
+            <select wire:model="socialLinksSource" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 text-sm">
+                <option value="global">Kế thừa liên kết mạng xã hội hiện tại</option>
+                <option value="profile">Sử dụng danh sách riêng của profile</option>
+            </select>
+        </label>
+    </div>
+    <p class="mt-2 text-xs text-amber-700">Chọn nguồn profile chỉ khi đã chuẩn bị dữ liệu riêng. Chọn Global để không thay đổi các liên kết đang xuất bản.</p>
+    <details class="mt-4 rounded-lg border border-slate-200 bg-white p-4">
+        <summary class="cursor-pointer text-sm font-semibold text-slate-800">Nội dung riêng theo profile · Brand / Contact / Legal / App</summary>
+        <p class="mt-2 text-xs text-slate-500">Chọn Profile để ghi đè nội dung toàn cục; chọn Global để kế thừa. Sau khi chỉnh sửa, nhấn Cập nhật theme rồi Kích hoạt.</p>
+        <div class="mt-4 grid gap-4 md:grid-cols-2">
+            @foreach ([
+                'brand' => ['Tên thương hiệu' => 'brand_name', 'Mô tả' => 'description', 'Đường dẫn logo' => 'logo'],
+                'contact' => ['Địa chỉ' => 'address', 'Email' => 'email', 'Số điện thoại' => 'phone'],
+                'legal' => ['Bản quyền' => 'copyright'],
+                'app_install' => ['Tiêu đề ứng dụng' => 'app_title', 'Mô tả ứng dụng' => 'app_description', 'Tiêu đề nút' => 'app_button_title', 'Phụ đề nút' => 'app_button_subtitle', 'App Store URL' => 'appstore', 'Google Play URL' => 'playstore'],
+            ] as $group => $fields)
+                <div class="rounded-lg border border-slate-100 p-3">
+                    <label class="block text-sm font-semibold text-slate-700">{{ ucfirst(str_replace('_', ' ', $group)) }}
+                        <select wire:model.live="profileContent.{{ $group }}.source" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 text-sm">
+                            <option value="global">Global</option>
+                            <option value="profile">Profile</option>
+                        </select>
+                    </label>
+                    @if(data_get($profileContent, $group.'.source', 'global') === 'profile')
+                        @foreach($fields as $label => $field)
+                            <label class="mt-3 block text-xs font-medium text-slate-600">{{ $label }}
+                                <input type="text" wire:model="profileContent.{{ $group }}.overrides.{{ $field }}" maxlength="1000" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 text-sm">
+                            </label>
+                        @endforeach
+                    @endif
+                </div>
+            @endforeach
+        </div>
+    </details>
     <div class="mt-4 grid gap-4 xl:grid-cols-[1.2fr_1fr]">
         <div class="rounded-lg border border-violet-100 bg-white p-4">
             <label class="block text-sm font-semibold text-gray-700">Theme đã lưu</label>
-            <select wire:change="selectTheme($event.target.value)" class="mt-2 w-full rounded-lg border-gray-300 text-sm">
+            <select wire:change="selectTheme($event.target.value)" class="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 text-sm">
                 <option value="">Chọn Footer theme...</option>
                 @foreach($layoutThemes as $slug => $theme)
-                    <option value="{{ $slug }}" @selected($selectedTheme === $slug)>{{ $theme['name'] ?? $slug }}</option>
+                    <option value="{{ $slug }}" @selected($selectedTheme === $slug)>{{ $theme['name'] ?? $slug }}{{ $activeTheme === $slug ? ' — Đang kích hoạt' : '' }}</option>
                 @endforeach
             </select>
 
@@ -34,7 +78,8 @@
             @endif
 
             <div class="mt-4 flex flex-wrap gap-2">
-                <button type="button" wire:click="applyTheme" @disabled(!$selectedTheme) class="rounded-lg bg-violet-600 px-3 py-2 text-sm font-semibold text-white hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-40">Nạp / Áp dụng</button>
+                <button type="button" wire:click="applyTheme" @disabled(!$selectedTheme) class="rounded-lg bg-violet-600 px-3 py-2 text-sm font-semibold text-white hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-40">Nạp vào trình chỉnh sửa</button>
+                <button type="button" wire:click="publishTheme" wire:confirm="Kích hoạt profile này và áp dụng lên website?" @disabled(!$selectedTheme) class="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-40">Kích hoạt / Áp dụng website</button>
                 <button type="button" wire:click="updateTheme" @disabled(!$selectedTheme) class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40">Cập nhật theme</button>
                 <button type="button" wire:click="deleteTheme" wire:confirm="Xóa Footer theme này?" @disabled(!$selectedTheme) class="rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40">Xóa</button>
             </div>
@@ -42,11 +87,12 @@
 
         <div class="rounded-lg border border-violet-100 bg-white p-4">
             <label class="block text-sm font-semibold text-gray-700">Tên theme</label>
-            <input type="text" wire:model="themeName" maxlength="60" placeholder="Ví dụ: Shop Footer Standard" class="mt-2 w-full rounded-lg border-gray-300 text-sm">
-            <p class="mt-2 text-xs text-gray-400">Theme chỉ lưu layout và presentation; không lưu menu links, social links, contact, copyright hay logo Brand.</p>
+            <input type="text" wire:model="themeName" maxlength="60" placeholder="Ví dụ: Shop Footer Standard" class="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 text-sm">
+            <p class="mt-2 text-xs text-gray-400">Profile v2 lưu bố cục, giao diện và nội dung theo từng nhóm. Các mục chọn Global tiếp tục kế thừa cấu hình hiện tại.</p>
 
             <div class="mt-4 flex flex-wrap gap-2">
                 <button type="button" wire:click="saveTheme" class="rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700">Lưu thành theme mới</button>
+                <button type="button" wire:click="duplicateTheme" @disabled(!$selectedTheme) class="rounded-lg border border-blue-300 bg-white px-3 py-2 text-sm font-semibold text-blue-700 disabled:opacity-40">Nhân bản profile</button>
                 <button type="button" wire:click="renameTheme" @disabled(!$selectedTheme) class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40">Đổi tên theme</button>
             </div>
         </div>

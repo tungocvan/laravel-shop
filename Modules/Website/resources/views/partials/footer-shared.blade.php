@@ -35,17 +35,44 @@
 
     <div class="mx-auto px-4"
         style="max-width: {{ $footerContainer ? (int) $footerContainer.'px' : '100%' }}; padding-top: var(--footer-padding-top); padding-bottom: var(--footer-padding-bottom);">
+        @if($footerProfileColumnsActive ?? false)
+            {{-- Published profile columns own the primary layout. Legacy slots must not render in parallel. --}}
+            @php
+                $desktopProfileColumns = $footerColumns->filter(fn ($column) => $column->desktop ?? true)->values();
+                $desktopWidths = $desktopProfileColumns->map(fn ($column) => ($column->module ?? '') === 'app-install' ? max(4, (int) ($column->width ?? 3)) : max(2, (int) ($column->width ?? 3)));
+                $desktopTemplate = $desktopWidths->map(fn ($width) => 'minmax(0, '.$width.'fr)')->implode(' ');
+            @endphp
+            <div class="hidden md:grid" style="grid-template-columns: {{ $desktopTemplate ?: 'minmax(0, 1fr)' }}; gap: clamp(16px, 2vw, var(--footer-column-gap)); margin-bottom: var(--footer-section-gap);">
+                @foreach($footerColumns as $column)
+                    @if($column->desktop ?? true)
+                        <div class="min-w-0 space-y-4" style="min-width: 0;">
+                            @include('Website::components.footer.profile-column', ['column' => $column])
+                        </div>
+                    @endif
+                @endforeach
+            </div>
+            <div class="md:hidden space-y-8" style="margin-bottom: var(--footer-section-gap);">
+                @foreach($footerColumns as $column)
+                    @if($column->mobile ?? true)
+                        <div class="space-y-4">@include('Website::components.footer.profile-column', ['column' => $column])</div>
+                    @endif
+                @endforeach
+            </div>
+        @else
         <div class="hidden md:grid md:grid-cols-2 lg:grid-cols-12" style="gap: var(--footer-column-gap); margin-bottom: var(--footer-section-gap);">
             <div class="lg:col-span-4 space-y-6">@include('Website::components.footer.slot', ['slot' => 'desktop.main.brand'])</div>
             @include('Website::components.footer.slot', ['slot' => 'desktop.main.columns'])
             <div class="lg:col-span-3 space-y-6">@include('Website::components.footer.slot', ['slot' => 'desktop.main.extra'])</div>
         </div>
         <div class="md:hidden space-y-8" style="margin-bottom: var(--footer-section-gap);">@include('Website::components.footer.slot', ['slot' => 'mobile.main'])</div>
+        @endif
+        @if($footerBottomBarEnabled ?? true)
         <div class="hidden md:flex items-center justify-between gap-6 pt-8" style="border-top: 1px solid var(--footer-border);">
             <div class="text-xs text-center md:text-left" style="color: var(--footer-muted);">@include('Website::components.footer.slot', ['slot' => 'desktop.bottom.left'])</div>
             @include('Website::components.footer.slot', ['slot' => 'desktop.bottom.right'])
         </div>
         <div class="md:hidden flex flex-col items-center gap-6 pt-8 text-xs text-center" style="border-top: 1px solid var(--footer-border); color: var(--footer-muted);">@include('Website::components.footer.slot', ['slot' => 'mobile.bottom'])</div>
+        @endif
     </div>
 </footer>
 

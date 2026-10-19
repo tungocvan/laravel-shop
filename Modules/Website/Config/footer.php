@@ -130,13 +130,13 @@ return [
         'social-links' => [
             'label' => 'Social Links',
             'view' => 'Website::components.footer.social-links',
-            'allowed_slots' => ['desktop.main.extra', 'mobile.main'],
+            'allowed_slots' => ['desktop.main.extra', 'mobile.main', 'desktop.bottom.left', 'desktop.bottom.right', 'mobile.bottom'],
             'default_config' => [],
         ],
         'copyright' => [
             'label' => 'Copyright',
             'view' => 'Website::components.footer.copyright',
-            'allowed_slots' => ['desktop.bottom.left', 'mobile.bottom'],
+            'allowed_slots' => ['desktop.bottom.left', 'desktop.bottom.right', 'mobile.bottom'],
             'default_config' => [],
         ],
         'legal-links' => [
@@ -148,7 +148,7 @@ return [
         'trust-badges' => [
             'label' => 'Trust / Payment Badges',
             'view' => 'Website::components.footer.trust-badges',
-            'allowed_slots' => ['desktop.bottom.right', 'mobile.bottom'],
+            'allowed_slots' => ['desktop.bottom.left', 'desktop.bottom.right', 'mobile.bottom'],
             'default_config' => [],
         ],
         'back-to-top' => [

@@ -8,9 +8,9 @@
 
 @section('content')
     @php($isPharmaPublished = app(\Modules\System\Services\SettingsService::class)->get('website.public_template', 'default') === 'pharma')
-    <div class="max-w-7xl mx-auto py-6" x-data="{ activeTab: 'builder', showLegacy: false }">
+    <div class="w-full max-w-none px-3 py-4 lg:px-5 lg:py-6" x-data="{ activeTab: 'builder', showLegacy: false }">
         <div class="flex justify-between items-center mb-6">
-            <div><h1 class="text-2xl font-bold text-gray-900">Quản trị Footer Website</h1><p class="mt-1 text-sm text-gray-500">Template đang xuất bản: {{ $isPharmaPublished ? 'Pharma' : 'Default' }}. Chọn template cần quản trị trong tab Bố cục Footer.</p></div>
+            <div><h1 class="text-2xl font-bold text-gray-900">Footer Studio</h1><p class="mt-1 text-sm text-gray-500">Template đang xuất bản: {{ $isPharmaPublished ? 'Pharma' : 'Default' }}. Chọn template cần quản trị trong tab Bố cục Footer.</p></div>
         </div>
 
         <div class="mb-5 rounded-xl border border-blue-100 bg-blue-50 p-4">

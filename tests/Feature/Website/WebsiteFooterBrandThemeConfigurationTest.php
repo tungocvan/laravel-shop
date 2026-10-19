@@ -29,13 +29,13 @@ class WebsiteFooterBrandThemeConfigurationTest extends TestCase
         $this->assertStringContainsString("'logo'=>\$footerBrandLogo ?: \$settings->get('site_logo')", $provider);
     }
 
-    public function test_footer_layout_themes_snapshot_only_layout_and_presentation(): void
+    public function test_footer_layout_themes_snapshot_v2_preserves_legacy_global_sources(): void
     {
         $component = file_get_contents(base_path('Modules/Website/Livewire/Admin/Footer/FooterSettingsHub.php'));
         $themeView = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/footer/partials/theme-manager.blade.php'));
 
         $this->assertStringContainsString("\$this->settingKey('layout_themes')", $component);
-        $this->assertStringContainsString('THEME_VERSION = 1', $component);
+        $this->assertStringContainsString('THEME_VERSION = 2', $component);
         $this->assertStringContainsString('MAX_THEMES = 20', $component);
         $this->assertStringContainsString('saveTheme(', $component);
         $this->assertStringContainsString('applyTheme(', $component);
@@ -45,8 +45,8 @@ class WebsiteFooterBrandThemeConfigurationTest extends TestCase
         $this->assertStringContainsString("'layout' => \$this->safeLayout", $component);
         $this->assertStringContainsString("'presentation' => \$presentationService->resolve", $component);
         $this->assertStringNotContainsString("'view' =>", $component);
-        $this->assertStringNotContainsString("'footerColumns'", $component);
-        $this->assertStringNotContainsString("'socialLinks'", $component);
+        $this->assertStringContainsString("'columns' => ['source' => \$this->columnsSource", $component);
+        $this->assertStringContainsString("'social_links' => ['source' => \$this->socialLinksSource", $component);
         $this->assertStringNotContainsString("'footer.brand_logo'", $component);
 
         $this->assertStringContainsString('Footer Layout Themes', $themeView);
@@ -55,10 +55,11 @@ class WebsiteFooterBrandThemeConfigurationTest extends TestCase
         $this->assertStringContainsString('wire:click="updateTheme"', $themeView);
         $this->assertStringContainsString('wire:click="renameTheme"', $themeView);
         $this->assertStringContainsString('wire:click="deleteTheme"', $themeView);
-        $this->assertStringContainsString('frontend chỉ thay đổi sau khi bấm', $themeView);
+        $this->assertStringContainsString('wire:click="publishTheme"', $themeView);
+        $this->assertStringContainsString('Active profile:', $themeView);
     }
 
-    public function test_theme_apply_is_preview_first_and_publish_stays_in_save_builder(): void
+    public function test_theme_apply_is_preview_first_and_publish_requires_activation(): void
     {
         $component = file_get_contents(base_path('Modules/Website/Livewire/Admin/Footer/FooterSettingsHub.php'));
 
