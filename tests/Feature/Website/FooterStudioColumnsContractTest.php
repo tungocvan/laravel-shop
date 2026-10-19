@@ -9,7 +9,7 @@ class FooterStudioColumnsContractTest extends TestCase
     public function test_columns_and_advanced_layout_share_one_studio_panel(): void
     {
         $view = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/footer/footer-settings-hub.blade.php'));
-        $this->assertStringContainsString("'layout' => 'Thiết kế'", $view);
+        $this->assertStringContainsString("'layout' => 'Bố cục & Nội dung'", $view);
         $this->assertStringContainsString('Bố cục Legacy', $view);
         $this->assertStringContainsString('footerColumns.{{ $index }}.module', $view);
         $this->assertStringContainsString('footerColumns.{{ $index }}.desktop', $view);
