@@ -190,7 +190,7 @@
         </div>
     </details>
 
-    <details id="footer-legacy-layout" x-show="studioPanel === 'layout' && @js($columnsSource !== 'profile')" x-cloak class="rounded-xl border border-slate-200 bg-white p-4">
+    <details id="footer-legacy-layout" x-show="studioPanel === 'layout' && (@js($columnsSource !== 'profile') || selectedFooterSlot !== null)" x-cloak class="rounded-xl border border-slate-200 bg-white p-4">
         <summary class="cursor-pointer font-semibold text-slate-800">Bố cục Legacy · Chỉ dùng khi chưa chọn cột Profile</summary>
         <div class="mt-4 space-y-4">
     <div x-show="studioPanel === 'layout'" x-cloak class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
