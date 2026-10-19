@@ -115,4 +115,19 @@ class FooterVisualWorkspaceContractTest extends TestCase
         $this->assertStringContainsString('wire:ignore', $view);
         $this->assertStringContainsString('moveDraftComponent(@js($bottomSlot), index, -1)', $view);
     }
+    public function test_frontend_footer_polish_keeps_published_profile_and_slots(): void
+    {
+        $shared = file_get_contents(base_path('Modules/Website/resources/views/partials/footer-shared.blade.php'));
+        $columns = file_get_contents(base_path('Modules/Website/resources/views/components/footer/profile-column.blade.php'));
+        $legal = file_get_contents(base_path('Modules/Website/resources/views/components/footer/legal-links.blade.php'));
+        $badges = file_get_contents(base_path('Modules/Website/resources/views/components/footer/trust-badges.blade.php'));
+
+        $this->assertStringContainsString('footerProfileColumnsActive', $shared);
+        $this->assertStringContainsString("'desktop.bottom.left'", $shared);
+        $this->assertStringContainsString("'desktop.bottom.right'", $shared);
+        $this->assertStringContainsString('margin-bottom: clamp(24px, 3vw, 44px)', $shared);
+        $this->assertStringContainsString('space-y-2.5 text-sm leading-6', $columns);
+        $this->assertStringContainsString('gap-x-3 gap-y-1.5', $legal);
+        $this->assertStringContainsString('max-w-24 object-contain', $badges);
+    }
 }
