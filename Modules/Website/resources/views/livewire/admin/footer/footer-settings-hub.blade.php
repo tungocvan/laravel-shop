@@ -1,4 +1,4 @@
-<div class="space-y-6" x-data="{ builderDevice: 'desktop', previewDevice: 'desktop', drag: null, studioPanel: 'layout' }">
+<div class="space-y-6" x-data="{ builderDevice: 'desktop', previewDevice: 'desktop', drag: null, studioPanel: 'layout', legacyToolsOpen: false, componentVisibility: @js(collect($builderSlots)->map(fn ($items) => collect($items)->map(fn ($item) => (bool) ($item['enabled'] ?? true))->all())->all()), builderSlotsDraft: @js($builderSlots), isComponentVisible(slot, index) { return this.componentVisibility?.[slot]?.[index] !== false; }, toggleDraftComponent(slot, index) { if (!this.componentVisibility[slot] || typeof this.componentVisibility[slot][index] === 'undefined') return; const next = !this.isComponentVisible(slot, index); this.componentVisibility[slot][index] = next; this.builderSlotsDraft[slot][index].enabled = next;  }, moveDraftComponent(slot, index, delta) { const items = this.builderSlotsDraft?.[slot]; const target = index + delta; if (!Array.isArray(items) || target < 0 || target >= items.length) return; const reordered = [...items]; [reordered[index], reordered[target]] = [reordered[target], reordered[index]]; this.builderSlotsDraft = { ...this.builderSlotsDraft, [slot]: reordered }; this.componentVisibility = { ...this.componentVisibility, [slot]: reordered.map(item => item.enabled !== false) }; }, draftComponentIndex(slot, type) { return (this.builderSlotsDraft?.[slot] || []).findIndex(item => item.type === type); }, selectedFooterColumn: null, selectedFooterSlot: null, selectFooterColumn(index) { this.studioPanel = 'layout'; this.selectedFooterColumn = index; this.selectedFooterSlot = null; this.$nextTick(() => { const editor = document.getElementById('footer-column-editor-' + index); if (editor) { editor.open = true; editor.scrollIntoView({ behavior: 'smooth', block: 'center' }); editor.querySelector('summary')?.focus({ preventScroll: true }); } }); }, selectFooterSlot(slot) { this.studioPanel = 'layout'; this.selectedFooterSlot = slot; this.selectedFooterColumn = null; this.builderDevice = slot.startsWith('mobile.') ? 'mobile' : 'desktop'; this.$nextTick(() => { const legacy = document.getElementById('footer-legacy-layout'); if (legacy) legacy.open = true; this.$nextTick(() => { const editor = document.getElementById('footer-slot-' + slot.replaceAll('.', '-')); if (editor) { editor.scrollIntoView({ behavior: 'smooth', block: 'center' }); editor.focus({ preventScroll: true }); } }); }); } }">
     <section class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <label for="footer-editing-template" class="mb-2 block text-sm font-semibold text-gray-900">Template đang quản trị</label>
         <select id="footer-editing-template" wire:model.live="editingTemplate" class="w-full max-w-md rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm">
@@ -12,7 +12,7 @@
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
                 <h2 class="text-lg font-bold text-slate-900">Footer Studio</h2>
-                <p class="mt-1 text-sm text-slate-600">Chỉnh sửa bản nháp bên trái, theo dõi Preview cố định bên phải. Lưu profile rồi mới kích hoạt để xuất bản.</p>
+                <p class="mt-1 text-sm text-slate-600">Xem Footer ở bên trái, chỉnh sửa bố cục và nội dung ở bên phải, rồi kiểm tra trước khi xuất bản.</p>
             </div>
             <div class="text-xs font-medium text-slate-600">
                 Theme: {{ $selectedTheme !== '' ? ($layoutThemes[$selectedTheme]['name'] ?? $selectedTheme) : 'Chưa chọn' }}
@@ -20,10 +20,10 @@
             </div>
         </div>
     </div>
-    <div class="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,55fr)_minmax(0,45fr)] xl:items-start">
-        <div class="min-w-0 space-y-5">
+    <div class="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,60fr)_minmax(340px,40fr)] xl:items-start">
+        <div class="min-w-0 space-y-5 xl:order-2">
             <nav class="flex flex-wrap gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm" aria-label="Các nhóm thiết lập Footer">
-                @foreach(['layout' => 'Thiết kế', 'style' => 'Giao diện', 'profile' => 'Thư viện theme'] as $panel => $label)
+                @foreach(['layout' => 'Bố cục & Nội dung', 'style' => 'Giao diện', 'profile' => 'Mẫu thiết kế'] as $panel => $label)
                     <button type="button" @click="studioPanel = '{{ $panel }}'" :class="studioPanel === '{{ $panel }}' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'" class="rounded-lg px-4 py-2 text-sm font-semibold">{{ $label }}</button>
                 @endforeach
             </nav>
@@ -40,7 +40,7 @@
         </div>
         <div class="mt-4 space-y-3">
             @foreach($footerColumns as $index => $column)
-                <details wire:ignore.self wire:key="footer-column-editor-{{ $index }}" class="group rounded-lg border border-slate-200 bg-white p-3">
+                <details wire:ignore.self id="footer-column-editor-{{ $index }}" wire:key="footer-column-editor-{{ $index }}" :class="selectedFooterColumn === {{ $index }} ? 'ring-2 ring-blue-500 border-blue-500' : ''" class="group rounded-lg border border-slate-200 bg-white p-3">
                     <summary class="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-1 py-2 [&::-webkit-details-marker]:hidden">
                         <span class="min-w-0">
                             <span class="block truncate text-sm font-semibold text-slate-800">{{ $column['title'] ?? 'Cột Footer' }}</span>
@@ -161,22 +161,21 @@
                         @endforeach
                     </div>
                     <div class="space-y-2">
-                        @forelse(($builderSlots[$bottomSlot] ?? []) as $bottomIndex => $bottomItem)
-                            <div class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white p-3" wire:key="bottom-item-{{ $bottomSlot }}-{{ $bottomIndex }}">
+                        <template x-for="(item, index) in (builderSlotsDraft[@js($bottomSlot)] || [])" :key="item.type">
+                            <div class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white p-3">
                                 <div class="min-w-0">
-                                    <div class="text-sm font-medium text-slate-800">{{ $footerComponents[$bottomItem['type'] ?? '']['label'] ?? ($bottomItem['type'] ?? 'Module') }}</div>
-                                    <div class="text-xs text-slate-500">{{ $bottomItem['type'] ?? '' }}</div>
+                                    <div class="text-sm font-medium text-slate-800" x-text="({ 'copyright': 'Copyright', 'legal-links': 'Legal Links', 'trust-badges': 'Trust / Payment Badges', 'social-links': 'Social Links' })[item.type] || item.type"></div>
+                                    <div class="text-xs text-slate-500" x-text="item.type"></div>
                                 </div>
                                 <div class="flex items-center gap-1">
-                                    <button type="button" wire:click="toggleComponent('{{ $bottomSlot }}', {{ $bottomIndex }})" class="rounded border border-slate-300 px-2 py-1 text-xs" aria-label="Bật hoặc tắt module">{{ ($bottomItem['enabled'] ?? true) ? 'Đang bật' : 'Đang tắt' }}</button>
-                                    <button type="button" wire:click="moveUp('{{ $bottomSlot }}', {{ $bottomIndex }})" @disabled($bottomIndex === 0) class="rounded border border-slate-300 px-2 py-1 disabled:opacity-30" aria-label="Đưa module lên">↑</button>
-                                    <button type="button" wire:click="moveDown('{{ $bottomSlot }}', {{ $bottomIndex }})" @disabled($bottomIndex === count($builderSlots[$bottomSlot]) - 1) class="rounded border border-slate-300 px-2 py-1 disabled:opacity-30" aria-label="Đưa module xuống">↓</button>
-                                    <button type="button" wire:click="removeBottomModule('{{ $bottomSlot }}', {{ $bottomIndex }})" wire:confirm="Xóa module khỏi vùng Bottom này trong bản nháp?" class="rounded border border-red-200 px-2 py-1 text-xs text-red-700" aria-label="Xóa module khỏi vùng">Xóa</button>
+                                    <button type="button" @click="toggleDraftComponent(@js($bottomSlot), index)" :aria-pressed="item.enabled !== false" x-text="item.enabled !== false ? 'Đang bật' : 'Đang tắt'" class="rounded border border-slate-300 px-2 py-1 text-xs" aria-label="Bật hoặc tắt module"></button>
+                                    <button type="button" @click="moveDraftComponent(@js($bottomSlot), index, -1)" :disabled="index === 0" class="rounded border border-slate-300 px-2 py-1 disabled:opacity-30" aria-label="Đưa module lên">↑</button>
+                                    <button type="button" @click="moveDraftComponent(@js($bottomSlot), index, 1)" :disabled="index === builderSlotsDraft[@js($bottomSlot)].length - 1" class="rounded border border-slate-300 px-2 py-1 disabled:opacity-30" aria-label="Đưa module xuống">↓</button>
+                                    <button type="button" @click="$wire.removeBottomModule(@js($bottomSlot), index)" class="rounded border border-red-200 px-2 py-1 text-xs text-red-700" aria-label="Xóa module khỏi vùng">Xóa</button>
                                 </div>
                             </div>
-                        @empty
-                            <p class="text-xs text-slate-500">Vùng này chưa có module.</p>
-                        @endforelse
+                        </template>
+                        <p x-show="!(builderSlotsDraft[@js($bottomSlot)] || []).length" class="text-xs text-slate-500">Vùng này chưa có module.</p>
                     </div>
                 </div>
             @endforeach
@@ -190,7 +189,7 @@
         </div>
     </details>
 
-    <details x-show="studioPanel === 'layout' && @js($columnsSource !== 'profile')" x-cloak class="rounded-xl border border-slate-200 bg-white p-4">
+    <details id="footer-legacy-layout" x-show="studioPanel === 'layout' && (@js($columnsSource !== 'profile') || selectedFooterSlot !== null)" x-cloak class="rounded-xl border border-slate-200 bg-white p-4">
         <summary class="cursor-pointer font-semibold text-slate-800">Bố cục Legacy · Chỉ dùng khi chưa chọn cột Profile</summary>
         <div class="mt-4 space-y-4">
     <div x-show="studioPanel === 'layout'" x-cloak class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -226,7 +225,7 @@
                 $isMobileSlot = str_starts_with($slot, 'mobile.');
                 $isSharedSlot = $slot === 'overlay';
             @endphp
-            <section class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition"
+            <section id="footer-slot-{{ str_replace('.', '-', $slot) }}" tabindex="-1" class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition"
                 x-show="{{ $isSharedSlot ? 'true' : ($isDesktopSlot ? "builderDevice === 'desktop'" : "builderDevice === 'mobile'") }}"
                 x-cloak
                 :class="drag ? 'border-blue-200' : ''"
@@ -240,6 +239,24 @@
                 </div>
 
                 <div class="space-y-3">
+                    @if(in_array($slot, ['desktop.bottom.left', 'desktop.bottom.right'], true))
+                        <div class="space-y-2" wire:ignore>
+                            <template x-for="(item, index) in (builderSlotsDraft[@js($slot)] || [])" :key="item.type">
+                                <div class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white p-3">
+                                    <div class="min-w-0">
+                                        <div class="text-sm font-medium text-slate-800" x-text="({ 'copyright': 'Copyright', 'legal-links': 'Legal Links', 'trust-badges': 'Trust / Payment Badges', 'social-links': 'Social Links' })[item.type] || item.type"></div>
+                                        <div class="text-xs text-slate-500" x-text="item.type"></div>
+                                    </div>
+                                    <div class="flex items-center gap-1">
+                                        <button type="button" @click="toggleDraftComponent(@js($slot), index)" :aria-pressed="item.enabled !== false" x-text="item.enabled !== false ? 'Đang bật' : 'Đang tắt'" class="rounded border border-slate-300 px-2 py-1 text-xs"></button>
+                                        <button type="button" @click="moveDraftComponent(@js($slot), index, -1)" :disabled="index === 0" class="rounded border border-slate-300 px-2 py-1 disabled:opacity-30" aria-label="Đưa module lên">↑</button>
+                                        <button type="button" @click="moveDraftComponent(@js($slot), index, 1)" :disabled="index === (builderSlotsDraft[@js($slot)] || []).length - 1" class="rounded border border-slate-300 px-2 py-1 disabled:opacity-30" aria-label="Đưa module xuống">↓</button>
+                                    </div>
+                                </div>
+                            </template>
+                            <p x-show="!(builderSlotsDraft[@js($slot)] || []).length" class="text-xs text-slate-500">Vùng này chưa có module.</p>
+                        </div>
+                    @else
                     @foreach($builderSlots[$slot] ?? [] as $index => $item)
                         @php
                             $type = $item['type'] ?? '';
@@ -260,7 +277,7 @@
                                     <div class="font-medium text-gray-900">{{ $definition['label'] ?? $type }}</div>
                                     <div class="text-xs text-gray-500">{{ $type }}</div>
                                 </div>
-                                <button type="button" wire:click="toggleComponent('{{ $slot }}', {{ $index }})" class="rounded-full px-3 py-1 text-xs font-semibold {{ $enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600' }}">{{ $enabled ? 'Đang bật' : 'Đang tắt' }}</button>
+                                <button type="button" @click="toggleDraftComponent(@js($slot), {{ $index }})" :aria-pressed="isComponentVisible(@js($slot), {{ $index }})" x-text="isComponentVisible(@js($slot), {{ $index }}) ? 'Đang bật' : 'Đang tắt'" :class="isComponentVisible(@js($slot), {{ $index }}) ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'" class="rounded-full px-3 py-1 text-xs font-semibold"></button>
                                 <button type="button" wire:click="moveUp('{{ $slot }}', {{ $index }})" @disabled($index === 0) class="rounded border border-gray-300 px-2 py-1 text-xs text-gray-700 disabled:opacity-30">↑</button>
                                 <button type="button" wire:click="moveDown('{{ $slot }}', {{ $index }})" @disabled($index === count($builderSlots[$slot] ?? []) - 1) class="rounded border border-gray-300 px-2 py-1 text-xs text-gray-700 disabled:opacity-30">↓</button>
                             </div>
@@ -280,13 +297,16 @@
                             @endif
                         </div>
                     @endforeach
+                    @endif
 
+                    @if(!in_array($slot, ['desktop.bottom.left', 'desktop.bottom.right'], true))
                     <div @dragover.prevent="$event.dataTransfer.dropEffect = 'move'"
                         @drop.prevent="if (drag) { $wire.moveComponentByDrag(drag.slot, drag.index, '{{ $slot }}', {{ count($builderSlots[$slot] ?? []) }}); drag = null }"
                         class="rounded-lg border border-dashed border-gray-300 px-4 py-4 text-center text-xs text-gray-400 transition"
                         :class="drag ? 'border-blue-400 bg-blue-50 text-blue-600' : ''">
                         {{ empty($builderSlots[$slot] ?? []) ? 'Vùng trống · thả component vào đây' : 'Thả vào cuối vùng' }}
                     </div>
+                    @endif
                 </div>
             </section>
         @endforeach
@@ -377,8 +397,8 @@
         </div>
     </section>
         </div>
-        <aside class="min-w-0 xl:sticky xl:top-4 xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto" aria-label="Live Footer Preview">
-            <div class="mb-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-slate-700">Live Preview luôn hiển thị · Thay đổi bản nháp không tự động xuất bản.</div>
+        <aside class="min-w-0 xl:order-1 xl:sticky xl:top-4 xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto" aria-label="Live Footer Preview">
+            <div class="mb-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-slate-700">Bản xem trước nội dung · Thay đổi bản nháp không tự động xuất bản.</div>
             @include('Website::livewire.admin.footer.partials.builder-preview')
         </aside>
     </div>

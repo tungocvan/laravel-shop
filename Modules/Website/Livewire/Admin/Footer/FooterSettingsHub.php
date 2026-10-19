@@ -793,6 +793,40 @@ class FooterSettingsHub extends Component
      * Save the current editor draft and activate that exact snapshot in one
      * settings write. Never publish the previously saved version by accident.
      */
+    /**
+     * Persist the Alpine preview draft in the same Livewire request as the save.
+     * Deferred client-side toggles must not rely on a separate hydration cycle.
+     */
+    public function updateThemeFromDraft(
+        string $draftJson,
+        SettingsService $settingsService,
+        FooterComponentRegistry $registry,
+        FooterPresentationService $presentationService
+    ): void {
+        $this->authorizeAdminPermission('website.footer.manage');
+        $draft = json_decode($draftJson, true, 512, JSON_THROW_ON_ERROR);
+        if (! is_array($draft)) {
+            throw new \InvalidArgumentException('Invalid Footer draft.');
+        }
+        $this->loadBuilderLayout($this->safeLayout($draft, $registry));
+        $this->updateTheme($settingsService, $registry, $presentationService);
+    }
+
+    public function saveAndPublishThemeFromDraft(
+        string $draftJson,
+        SettingsService $settingsService,
+        FooterComponentRegistry $registry,
+        FooterPresentationService $presentationService
+    ): void {
+        $this->authorizeAdminPermission('website.footer.manage');
+        $draft = json_decode($draftJson, true, 512, JSON_THROW_ON_ERROR);
+        if (! is_array($draft)) {
+            throw new \InvalidArgumentException('Invalid Footer draft.');
+        }
+        $this->loadBuilderLayout($this->safeLayout($draft, $registry));
+        $this->saveAndPublishTheme($settingsService, $registry, $presentationService);
+    }
+
     public function saveAndPublishTheme(
         SettingsService $settingsService,
         FooterComponentRegistry $registry,

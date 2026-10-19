@@ -26,13 +26,16 @@
 <section class="rounded-xl border border-gray-200 bg-gray-50 p-4" aria-label="Responsive Footer Preview">
     <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-            <h3 class="font-bold text-gray-900">Responsive Preview</h3>
-            <p class="text-sm text-gray-500">Xem cột, module và bố cục từ bản nháp hiện tại, kể cả thay đổi chưa lưu.</p>
+            <h3 class="font-bold text-gray-900">Xem trước Footer</h3>
+            <p class="text-sm text-gray-500">Xem nội dung bản nháp theo kích thước màn hình. Thay đổi chưa lưu không ảnh hưởng website.</p>
         </div>
         <div class="inline-flex rounded-lg bg-white p-1 shadow-sm ring-1 ring-gray-200">
             <button type="button" @click="previewDevice = 'desktop'"
                 :class="previewDevice === 'desktop' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'"
                 class="rounded-md px-3 py-1.5 text-xs font-semibold">Desktop</button>
+            <button type="button" @click="previewDevice = 'tablet'"
+                :class="previewDevice === 'tablet' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'"
+                class="rounded-md px-3 py-1.5 text-xs font-semibold">Tablet</button>
             <button type="button" @click="previewDevice = 'mobile'"
                 :class="previewDevice === 'mobile' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'"
                 class="rounded-md px-3 py-1.5 text-xs font-semibold">Mobile</button>
@@ -41,33 +44,33 @@
 
     <div class="overflow-hidden rounded-xl border border-gray-200 bg-gray-200/60 p-3">
         <div class="mx-auto transition-all duration-200"
-            :class="previewDevice === 'desktop' ? 'w-full min-w-0' : 'w-full max-w-[390px]'">
+            :class="previewDevice === 'desktop' ? 'w-full min-w-0' : (previewDevice === 'tablet' ? 'w-full max-w-[768px]' : 'w-full max-w-[390px]')">
             <div class="overflow-hidden rounded-lg shadow-sm"
                 style="background: {{ $background }}; color: {{ $foreground }}; border: 1px solid {{ $border }};">
                 @if($previewPresentation['accent'] ?? true)
                     <div class="h-1" style="background: linear-gradient(90deg, {{ $accent }}, #8b5cf6, #ec4899);"></div>
                 @endif
 
-                <div x-show="previewDevice === 'desktop'" class="p-5">
-                    @if(!empty($slotItems['desktop.top']))
+                <div x-show="previewDevice !== 'mobile'" class="p-5">
+                    @if(!empty($builderSlots['desktop.top']))
                         <div class="mb-4 rounded-md border border-dashed p-2" style="border-color: {{ $border }};">
-                            @foreach($slotItems['desktop.top'] as $item)
-                                <span class="mr-2 inline-flex rounded px-2 py-1 text-xs font-semibold" style="color: {{ $heading }}; border: 1px solid {{ $border }};">{{ $componentLabel($item) }}</span>
+                            @foreach(($builderSlots['desktop.top'] ?? []) as $itemIndex => $item)
+                                <span x-show="isComponentVisible('desktop.top', {{ $itemIndex }})" class="mr-2 inline-flex rounded px-2 py-1 text-xs font-semibold" style="color: {{ $heading }}; border: 1px solid {{ $border }};">{{ $componentLabel($item) }}</span>
                             @endforeach
                         </div>
                     @endif
 
                     @if($columnsSource === 'profile')
                     <div class="mb-4 grid grid-cols-12 gap-2" aria-label="Các cột Footer Desktop">
-                        @foreach($footerColumns as $column)
+                        @foreach($footerColumns as $columnIndex => $column)
                             @if(($column['enabled'] ?? true) && ($column['desktop'] ?? true))
-                                <div class="min-w-0 rounded border p-2" style="grid-column: span {{ (int) ($column['width'] ?? 3) }} / span {{ (int) ($column['width'] ?? 3) }}; border-color: {{ $border }};">
+                                <button type="button" @click="selectFooterColumn({{ $columnIndex }})" :aria-pressed="selectedFooterColumn === {{ $columnIndex }} ? 'true' : 'false'" :class="selectedFooterColumn === {{ $columnIndex }} ? 'ring-2 ring-blue-400' : ''" class="min-w-0 rounded border p-2 text-left transition hover:ring-2 hover:ring-blue-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-400" aria-label="Chỉnh sửa cột {{ $column['title'] ?? 'Footer' }}" style="grid-column: span {{ (int) ($column['width'] ?? 3) }} / span {{ (int) ($column['width'] ?? 3) }}; border-color: {{ $border }};">
                                     <div class="text-xs font-semibold" style="color: {{ $heading }};">{{ $column['title'] ?? '' }}</div>
                                     <div class="mt-1 text-[10px]" style="color: {{ $muted }};">{{ $column['module'] ?? 'menu-links' }}</div>
-                                    @foreach(array_slice($column['items'] ?? [], 0, 3) as $columnItem)
+                                    @foreach(array_slice($column['items'] ?? [], 0, 8) as $columnItem)
                                         <div class="mt-1 truncate text-[10px]" style="color: {{ $foreground }};">{{ $columnItem['label'] ?? '' }}</div>
                                     @endforeach
-                                </div>
+                                </button>
                             @endif
                         @endforeach
                     </div>
@@ -81,8 +84,8 @@
                             <div class="{{ $span }} min-h-28 rounded-md border border-dashed p-3" style="border-color: {{ $border }};">
                                 <div class="mb-2 text-[10px] uppercase tracking-wide" style="color: {{ $muted }};">{{ $builderSlotNames[$slotKey] }}</div>
                                 <div class="space-y-2">
-                                    @forelse($slotItems[$slotKey] ?? [] as $item)
-                                        <div class="rounded px-2 py-2 text-xs font-semibold" style="color: {{ $heading }}; border: 1px solid {{ $border }};">{{ $componentLabel($item) }}</div>
+                                    @forelse(($builderSlots[$slotKey] ?? []) as $itemIndex => $item)
+                                        <button type="button" x-show="isComponentVisible(@js($slotKey), {{ $itemIndex }})" @click="selectFooterSlot(@js($slotKey))" class="block w-full rounded px-2 py-2 text-left text-xs font-semibold hover:ring-2 hover:ring-blue-300" style="color: {{ $heading }}; border: 1px solid {{ $border }};">{{ $componentLabel($item) }}</button>
                                     @empty
                                         <div class="text-xs" style="color: {{ $muted }};">Slot trống</div>
                                     @endforelse
@@ -98,11 +101,10 @@
                             <div class="rounded-md border border-dashed p-3" style="border-color: {{ $border }};">
                                 <div class="mb-2 text-[10px] uppercase tracking-wide" style="color: {{ $muted }};">{{ $builderSlotNames[$slotKey] }}</div>
                                 <div class="flex flex-wrap gap-2">
-                                    @forelse($slotItems[$slotKey] ?? [] as $item)
-                                        <span class="rounded px-2 py-1 text-xs" style="color: {{ $heading }}; border: 1px solid {{ $border }};">{{ ($item['type'] ?? '') === 'copyright' && filled(data_get($profileContent, 'legal.overrides.copyright')) ? data_get($profileContent, 'legal.overrides.copyright') : $componentLabel($item) }}</span>
-                                    @empty
-                                        <span class="text-xs" style="color: {{ $muted }};">Slot trống</span>
-                                    @endforelse
+                                    <template x-for="item in (builderSlotsDraft[@js($slotKey)] || [])" :key="item.type">
+                                        <button type="button" x-show="item.enabled !== false" @click="selectFooterSlot(@js($slotKey))" class="rounded px-2 py-1 text-left text-xs hover:ring-2 hover:ring-blue-300" style="color: {{ $heading }}; border: 1px solid {{ $border }};" x-text="item.type === 'copyright' ? @js(filled(data_get($profileContent, 'legal.overrides.copyright')) ? data_get($profileContent, 'legal.overrides.copyright') : 'Copyright') : ({ 'legal-links': 'Legal Links', 'trust-badges': 'Trust / Payment Badges', 'social-links': 'Social Links' })[item.type] || item.type"></button>
+                                    </template>
+                                    <span x-show="!(builderSlotsDraft[@js($slotKey)] || []).length" class="text-xs" style="color: {{ $muted }};">Slot trống</span>
                                 </div>
                             </div>
                         @endforeach
@@ -113,19 +115,21 @@
                 <div x-show="previewDevice === 'mobile'" class="space-y-3 p-4">
                     @if($columnsSource === 'profile')
                     <div class="space-y-2" aria-label="Các cột Footer Mobile">
-                        @foreach($footerColumns as $column)
+                        @foreach($footerColumns as $columnIndex => $column)
                             @if(($column['enabled'] ?? true) && ($column['mobile'] ?? true))
-                                <div class="rounded border p-2" style="border-color: {{ $border }};">
+                                <button type="button" @click="selectFooterColumn({{ $columnIndex }})" :aria-pressed="selectedFooterColumn === {{ $columnIndex }} ? 'true' : 'false'" :class="selectedFooterColumn === {{ $columnIndex }} ? 'ring-2 ring-blue-400' : ''" class="w-full rounded border p-2 text-left transition hover:ring-2 hover:ring-blue-300" aria-label="Chỉnh sửa cột {{ $column['title'] ?? 'Footer' }}" style="border-color: {{ $border }};">
                                     <div class="text-xs font-semibold" style="color: {{ $heading }};">{{ $column['title'] ?? '' }}</div>
-                                    <div class="text-[10px]" style="color: {{ $muted }};">{{ $column['module'] ?? 'menu-links' }}</div>
-                                </div>
+                                    @foreach(array_slice($column['items'] ?? [], 0, 8) as $columnItem)
+                                    <div class="mt-1 text-xs break-words" style="color: {{ $foreground }};">{{ $columnItem['label'] ?? '' }}</div>
+                                @endforeach
+                                </button>
                             @endif
                         @endforeach
                     </div>
                     @else
                     <div class="text-[10px] uppercase tracking-wide" style="color: {{ $muted }};">Mobile Main</div>
-                    @forelse($slotItems['mobile.main'] ?? [] as $item)
-                        <div class="rounded-md px-3 py-3 text-xs font-semibold" style="color: {{ $heading }}; border: 1px solid {{ $border }};">{{ $componentLabel($item) }}</div>
+                    @forelse(($builderSlots['mobile.main'] ?? []) as $itemIndex => $item)
+                        <button type="button" x-show="isComponentVisible('mobile.main', {{ $itemIndex }})" @click="selectFooterSlot('mobile.main')" class="w-full rounded-md px-3 py-3 text-left text-xs font-semibold hover:ring-2 hover:ring-blue-300" style="color: {{ $heading }}; border: 1px solid {{ $border }};">{{ $componentLabel($item) }}</button>
                     @empty
                         <div class="text-xs" style="color: {{ $muted }};">Mobile Main trống</div>
                     @endforelse
@@ -135,8 +139,8 @@
                     <div class="border-t pt-3" style="border-color: {{ $border }};">
                         <div class="mb-2 text-[10px] uppercase tracking-wide" style="color: {{ $muted }};">Mobile Bottom</div>
                         <div class="space-y-2">
-                            @forelse($slotItems['mobile.bottom'] ?? [] as $item)
-                                <div class="rounded-md px-3 py-2 text-xs" style="color: {{ $heading }}; border: 1px solid {{ $border }};">{{ $componentLabel($item) }}</div>
+                            @forelse(($builderSlots['mobile.bottom'] ?? []) as $itemIndex => $item)
+                                <button type="button" x-show="isComponentVisible('mobile.bottom', {{ $itemIndex }})" @click="selectFooterSlot('mobile.bottom')" class="w-full rounded-md px-3 py-2 text-left text-xs hover:ring-2 hover:ring-blue-300" style="color: {{ $heading }}; border: 1px solid {{ $border }};">{{ $componentLabel($item) }}</button>
                             @empty
                                 <div class="text-xs" style="color: {{ $muted }};">Mobile Bottom trống</div>
                             @endforelse
@@ -162,11 +166,18 @@
         </div>
         <p class="text-xs text-slate-500">Cập nhật chỉ lưu bản nháp. Lưu &amp; Kích hoạt sẽ xuất bản toàn bộ thay đổi đang xem trước.</p>
         @error('theme') <p class="text-xs text-red-600" role="alert">{{ $message }}</p> @enderror
-        <button type="button" wire:click="updateTheme" wire:loading.attr="disabled" wire:target="updateTheme,saveAndPublishTheme" @disabled(!$selectedTheme)
+        @if($selectedTheme === '' || !isset($layoutThemes[$selectedTheme]))
+            <div class="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900" role="status">
+                <p class="font-semibold">Chưa có theme được chọn nên chưa thể cập nhật hoặc kích hoạt.</p>
+                <p class="mt-1 text-xs">Mở Mẫu thiết kế để chọn theme đã lưu, hoặc nhập tên và lưu thành theme mới. Footer công khai vẫn giữ nguyên cho đến khi bạn kích hoạt.</p>
+                <button type="button" @click="studioPanel = 'profile'; $nextTick(() => document.getElementById('footer-theme-manager')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))" class="mt-3 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700">Chọn hoặc tạo theme để lưu</button>
+            </div>
+        @endif
+        <button type="button" @click="$wire.updateThemeFromDraft(JSON.stringify(builderSlotsDraft))" wire:loading.attr="disabled" wire:target="updateThemeFromDraft,saveAndPublishThemeFromDraft" @disabled(!$selectedTheme)
             class="w-full rounded-lg border border-blue-300 bg-white px-4 py-2.5 text-sm font-semibold text-blue-700 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-40">
             Cập nhật tham số vào theme hiện tại
         </button>
-        <button type="button" wire:click="saveAndPublishTheme" wire:confirm="Lưu toàn bộ thay đổi hiện tại và kích hoạt theme này trên website?" wire:loading.attr="disabled" wire:target="updateTheme,saveAndPublishTheme" @disabled(!$selectedTheme)
+        <button type="button" @click="if (window.confirm('Lưu toàn bộ thay đổi hiện tại và kích hoạt theme này trên website?')) $wire.saveAndPublishThemeFromDraft(JSON.stringify(builderSlotsDraft))" wire:loading.attr="disabled" wire:target="updateThemeFromDraft,saveAndPublishThemeFromDraft" @disabled(!$selectedTheme)
             class="w-full rounded-lg bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-40">
             Lưu &amp; Kích hoạt theme hiện tại
         </button>
