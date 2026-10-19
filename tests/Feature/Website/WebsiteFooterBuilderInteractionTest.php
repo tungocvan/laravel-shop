@@ -16,7 +16,7 @@ class WebsiteFooterBuilderInteractionTest extends TestCase
         $this->assertStringContainsString("builderDevice = 'mobile'", $view);
         $this->assertStringContainsString('draggable="true"', $view);
         $this->assertStringContainsString('moveComponentByDrag', $view);
-        $this->assertStringContainsString('Responsive Preview', $preview);
+        $this->assertStringContainsString('Responsive Footer Preview', $preview);
         $this->assertStringContainsString("previewDevice = 'desktop'", $preview);
         $this->assertStringContainsString("previewDevice = 'mobile'", $preview);
         $this->assertStringContainsString('builderSlots', $preview);
