@@ -73,4 +73,15 @@ class FooterVisualWorkspaceContractTest extends TestCase
         $this->assertStringContainsString('@forelse(($builderSlots[$slotKey] ?? []) as $itemIndex => $item)', $preview);
         $this->assertStringNotContainsString('@forelse($slotItems[$slotKey] ?? [] as $item)', $preview);
     }
+    public function test_save_and_publish_send_current_preview_draft_in_one_request(): void
+    {
+        $preview = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/footer/partials/builder-preview.blade.php'));
+        $component = file_get_contents(base_path('Modules/Website/Livewire/Admin/Footer/FooterSettingsHub.php'));
+
+        $this->assertStringContainsString('updateThemeFromDraft(builderSlotsDraft)', $preview);
+        $this->assertStringContainsString('saveAndPublishThemeFromDraft(builderSlotsDraft)', $preview);
+        $this->assertStringContainsString('function updateThemeFromDraft(', $component);
+        $this->assertStringContainsString('function saveAndPublishThemeFromDraft(', $component);
+        $this->assertStringContainsString('loadBuilderLayout($this->safeLayout($draft, $registry))', $component);
+    }
 }
