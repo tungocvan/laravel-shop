@@ -12,7 +12,7 @@
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
                 <h2 class="text-lg font-bold text-slate-900">Footer Studio</h2>
-                <p class="mt-1 text-sm text-slate-600">Chọn thành phần trong bản xem trước, chỉnh sửa ở bảng bên phải và kiểm tra trước khi xuất bản.</p>
+                <p class="mt-1 text-sm text-slate-600">Xem Footer ở bên trái, chỉnh sửa bố cục và nội dung ở bên phải, rồi kiểm tra trước khi xuất bản.</p>
             </div>
             <div class="text-xs font-medium text-slate-600">
                 Theme: {{ $selectedTheme !== '' ? ($layoutThemes[$selectedTheme]['name'] ?? $selectedTheme) : 'Chưa chọn' }}
@@ -378,7 +378,7 @@
     </section>
         </div>
         <aside class="min-w-0 xl:order-1 xl:sticky xl:top-4 xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto" aria-label="Live Footer Preview">
-            <div class="mb-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-slate-700">Bản xem trước trực quan · Nhấp vào cột để mở phần chỉnh sửa tương ứng. Thay đổi bản nháp không tự động xuất bản.</div>
+            <div class="mb-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-slate-700">Bản xem trước nội dung · Thay đổi bản nháp không tự động xuất bản.</div>
             @include('Website::livewire.admin.footer.partials.builder-preview')
         </aside>
     </div>
