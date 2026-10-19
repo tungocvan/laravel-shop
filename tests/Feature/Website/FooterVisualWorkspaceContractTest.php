@@ -66,4 +66,11 @@ class FooterVisualWorkspaceContractTest extends TestCase
         $this->assertStringContainsString('id="footer-theme-manager"', $manager);
         $this->assertStringContainsString('@disabled(!$selectedTheme)', $preview);
     }
+    public function test_bottom_bar_preview_declares_item_index_used_by_visibility_binding(): void
+    {
+        $preview = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/footer/partials/builder-preview.blade.php'));
+
+        $this->assertStringContainsString('@forelse(($builderSlots[$slotKey] ?? []) as $itemIndex => $item)', $preview);
+        $this->assertStringNotContainsString('@forelse($slotItems[$slotKey] ?? [] as $item)', $preview);
+    }
 }
