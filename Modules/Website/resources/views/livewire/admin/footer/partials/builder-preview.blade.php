@@ -62,15 +62,15 @@
 
                     @if($columnsSource === 'profile')
                     <div class="mb-4 grid grid-cols-12 gap-2" aria-label="Các cột Footer Desktop">
-                        @foreach($footerColumns as $column)
+                        @foreach($footerColumns as $columnIndex => $column)
                             @if(($column['enabled'] ?? true) && ($column['desktop'] ?? true))
-                                <div class="min-w-0 rounded border p-2" style="grid-column: span {{ (int) ($column['width'] ?? 3) }} / span {{ (int) ($column['width'] ?? 3) }}; border-color: {{ $border }};">
+                                <button type="button" @click="selectFooterColumn({{ $columnIndex }})" :aria-pressed="selectedFooterColumn === {{ $columnIndex }} ? 'true' : 'false'" :class="selectedFooterColumn === {{ $columnIndex }} ? 'ring-2 ring-blue-400' : ''" class="min-w-0 rounded border p-2 text-left transition hover:ring-2 hover:ring-blue-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-400" aria-label="Chỉnh sửa cột {{ $column['title'] ?? 'Footer' }}" style="grid-column: span {{ (int) ($column['width'] ?? 3) }} / span {{ (int) ($column['width'] ?? 3) }}; border-color: {{ $border }};">
                                     <div class="text-xs font-semibold" style="color: {{ $heading }};">{{ $column['title'] ?? '' }}</div>
                                     <div class="mt-1 text-[10px]" style="color: {{ $muted }};">{{ $column['module'] ?? 'menu-links' }}</div>
                                     @foreach(array_slice($column['items'] ?? [], 0, 8) as $columnItem)
                                         <div class="mt-1 truncate text-[10px]" style="color: {{ $foreground }};">{{ $columnItem['label'] ?? '' }}</div>
                                     @endforeach
-                                </div>
+                                </button>
                             @endif
                         @endforeach
                     </div>
@@ -85,7 +85,7 @@
                                 <div class="mb-2 text-[10px] uppercase tracking-wide" style="color: {{ $muted }};">{{ $builderSlotNames[$slotKey] }}</div>
                                 <div class="space-y-2">
                                     @forelse($slotItems[$slotKey] ?? [] as $item)
-                                        <div class="rounded px-2 py-2 text-xs font-semibold" style="color: {{ $heading }}; border: 1px solid {{ $border }};">{{ $componentLabel($item) }}</div>
+                                        <button type="button" @click="selectFooterSlot(@js($slotKey))" class="block w-full rounded px-2 py-2 text-left text-xs font-semibold hover:ring-2 hover:ring-blue-300" style="color: {{ $heading }}; border: 1px solid {{ $border }};">{{ $componentLabel($item) }}</button>
                                     @empty
                                         <div class="text-xs" style="color: {{ $muted }};">Slot trống</div>
                                     @endforelse
@@ -102,7 +102,7 @@
                                 <div class="mb-2 text-[10px] uppercase tracking-wide" style="color: {{ $muted }};">{{ $builderSlotNames[$slotKey] }}</div>
                                 <div class="flex flex-wrap gap-2">
                                     @forelse($slotItems[$slotKey] ?? [] as $item)
-                                        <span class="rounded px-2 py-1 text-xs" style="color: {{ $heading }}; border: 1px solid {{ $border }};">{{ ($item['type'] ?? '') === 'copyright' && filled(data_get($profileContent, 'legal.overrides.copyright')) ? data_get($profileContent, 'legal.overrides.copyright') : $componentLabel($item) }}</span>
+                                        <button type="button" @click="selectFooterSlot(@js($slotKey))" class="rounded px-2 py-1 text-left text-xs hover:ring-2 hover:ring-blue-300" style="color: {{ $heading }}; border: 1px solid {{ $border }};">{{ ($item['type'] ?? '') === 'copyright' && filled(data_get($profileContent, 'legal.overrides.copyright')) ? data_get($profileContent, 'legal.overrides.copyright') : $componentLabel($item) }}</button>
                                     @empty
                                         <span class="text-xs" style="color: {{ $muted }};">Slot trống</span>
                                     @endforelse
@@ -118,19 +118,19 @@
                     <div class="space-y-2" aria-label="Các cột Footer Mobile">
                         @foreach($footerColumns as $column)
                             @if(($column['enabled'] ?? true) && ($column['mobile'] ?? true))
-                                <div class="rounded border p-2" style="border-color: {{ $border }};">
+                                <button type="button" @click="selectFooterColumn({{ $columnIndex }})" :aria-pressed="selectedFooterColumn === {{ $columnIndex }} ? 'true' : 'false'" :class="selectedFooterColumn === {{ $columnIndex }} ? 'ring-2 ring-blue-400' : ''" class="w-full rounded border p-2 text-left transition hover:ring-2 hover:ring-blue-300" aria-label="Chỉnh sửa cột {{ $column['title'] ?? 'Footer' }}" style="border-color: {{ $border }};">
                                     <div class="text-xs font-semibold" style="color: {{ $heading }};">{{ $column['title'] ?? '' }}</div>
                                     @foreach(array_slice($column['items'] ?? [], 0, 8) as $columnItem)
                                     <div class="mt-1 text-xs break-words" style="color: {{ $foreground }};">{{ $columnItem['label'] ?? '' }}</div>
                                 @endforeach
-                                </div>
+                                </button>
                             @endif
                         @endforeach
                     </div>
                     @else
                     <div class="text-[10px] uppercase tracking-wide" style="color: {{ $muted }};">Mobile Main</div>
                     @forelse($slotItems['mobile.main'] ?? [] as $item)
-                        <div class="rounded-md px-3 py-3 text-xs font-semibold" style="color: {{ $heading }}; border: 1px solid {{ $border }};">{{ $componentLabel($item) }}</div>
+                        <button type="button" @click="selectFooterSlot('mobile.main')" class="w-full rounded-md px-3 py-3 text-left text-xs font-semibold hover:ring-2 hover:ring-blue-300" style="color: {{ $heading }}; border: 1px solid {{ $border }};">{{ $componentLabel($item) }}</button>
                     @empty
                         <div class="text-xs" style="color: {{ $muted }};">Mobile Main trống</div>
                     @endforelse
@@ -141,7 +141,7 @@
                         <div class="mb-2 text-[10px] uppercase tracking-wide" style="color: {{ $muted }};">Mobile Bottom</div>
                         <div class="space-y-2">
                             @forelse($slotItems['mobile.bottom'] ?? [] as $item)
-                                <div class="rounded-md px-3 py-2 text-xs" style="color: {{ $heading }}; border: 1px solid {{ $border }};">{{ $componentLabel($item) }}</div>
+                                <button type="button" @click="selectFooterSlot('mobile.bottom')" class="w-full rounded-md px-3 py-2 text-left text-xs hover:ring-2 hover:ring-blue-300" style="color: {{ $heading }}; border: 1px solid {{ $border }};">{{ $componentLabel($item) }}</button>
                             @empty
                                 <div class="text-xs" style="color: {{ $muted }};">Mobile Bottom trống</div>
                             @endforelse
