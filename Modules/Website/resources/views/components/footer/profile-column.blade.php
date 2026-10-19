@@ -1,7 +1,7 @@
 {{-- Profile columns are authoritative only when the published snapshot opts into profile source. --}}
 @switch($column->module ?? 'menu-links')
     @case('brand')
-        <div class="space-y-5">
+        <div class="space-y-4">
             @include('Website::components.footer.brand')
             @include('Website::components.footer.contact')
         </div>
@@ -17,10 +17,10 @@
         @break
     @default
         @if(filled($column->title ?? ''))
-            <h3 class="mb-4 text-lg font-bold" style="color: var(--footer-heading);">{{ $column->title }}</h3>
+            <h3 class="mb-3 text-base font-bold tracking-wide" style="color: var(--footer-heading);">{{ $column->title }}</h3>
         @endif
         @if(($column->links ?? collect())->isNotEmpty())
-            <ul class="space-y-3 text-sm">
+            <ul class="space-y-2.5 text-sm leading-6">
                 @foreach($column->links as $link)
                     <li><a href="{{ $link->url }}" target="{{ $link->new_tab ? '_blank' : '_self' }}" @if($link->new_tab) rel="noopener noreferrer" @endif class="hover:underline" style="color: var(--footer-foreground);">{{ $link->label }}</a></li>
                 @endforeach
