@@ -804,7 +804,7 @@ class FooterSettingsHub extends Component
         FooterPresentationService $presentationService
     ): void {
         $this->authorizeAdminPermission('website.footer.manage');
-        $this->builderSlots = $this->safeLayout($draft, $registry);
+        $this->loadBuilderLayout($this->safeLayout($draft, $registry));
         $this->updateTheme($settingsService, $registry, $presentationService);
     }
 
@@ -815,7 +815,7 @@ class FooterSettingsHub extends Component
         FooterPresentationService $presentationService
     ): void {
         $this->authorizeAdminPermission('website.footer.manage');
-        $this->builderSlots = $this->safeLayout($draft, $registry);
+        $this->loadBuilderLayout($this->safeLayout($draft, $registry));
         $this->saveAndPublishTheme($settingsService, $registry, $presentationService);
     }
 
