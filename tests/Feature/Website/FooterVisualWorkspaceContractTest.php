@@ -42,4 +42,17 @@ class FooterVisualWorkspaceContractTest extends TestCase
         $this->assertStringContainsString('@foreach($footerColumns as $columnIndex => $column)', $preview);
     }
 
+    public function test_module_visibility_is_deferred_and_preview_uses_the_same_draft(): void
+    {
+        $view = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/footer/footer-settings-hub.blade.php'));
+        $preview = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/footer/partials/builder-preview.blade.php'));
+
+        $this->assertStringContainsString("this.\$wire.set('builderSlots', this.builderSlotsDraft, false)", $view);
+        $this->assertStringContainsString('toggleDraftComponent(@js($bottomSlot)', $view);
+        $this->assertStringContainsString('toggleDraftComponent(@js($slot)', $view);
+        $this->assertStringNotContainsString('wire:click="toggleComponent(', $view);
+        $this->assertStringContainsString("isComponentVisible(@js(\$slotKey), {{ \$itemIndex }})", $preview);
+        $this->assertStringContainsString("isComponentVisible('mobile.bottom', {{ \$itemIndex }})", $preview);
+    }
+
 }
