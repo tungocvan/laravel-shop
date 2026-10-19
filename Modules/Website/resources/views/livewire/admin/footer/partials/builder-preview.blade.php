@@ -101,7 +101,7 @@
                             <div class="rounded-md border border-dashed p-3" style="border-color: {{ $border }};">
                                 <div class="mb-2 text-[10px] uppercase tracking-wide" style="color: {{ $muted }};">{{ $builderSlotNames[$slotKey] }}</div>
                                 <div class="flex flex-wrap gap-2">
-                                    @forelse($slotItems[$slotKey] ?? [] as $item)
+                                    @forelse(($builderSlots[$slotKey] ?? []) as $itemIndex => $item)
                                         <button type="button" x-show="isComponentVisible(@js($slotKey), {{ $itemIndex }})" @click="selectFooterSlot(@js($slotKey))" class="rounded px-2 py-1 text-left text-xs hover:ring-2 hover:ring-blue-300" style="color: {{ $heading }}; border: 1px solid {{ $border }};">{{ ($item['type'] ?? '') === 'copyright' && filled(data_get($profileContent, 'legal.overrides.copyright')) ? data_get($profileContent, 'legal.overrides.copyright') : $componentLabel($item) }}</button>
                                     @empty
                                         <span class="text-xs" style="color: {{ $muted }};">Slot trống</span>
