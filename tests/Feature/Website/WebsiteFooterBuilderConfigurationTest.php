@@ -22,12 +22,12 @@ class WebsiteFooterBuilderConfigurationTest extends TestCase
     {
         $view = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/footer/footer-settings-hub.blade.php'));
 
-        $this->assertStringContainsString('toggleComponent(', $view);
-        $this->assertStringContainsString('moveUp(', $view);
-        $this->assertStringContainsString('moveDown(', $view);
+        $this->assertStringContainsString('toggleDraftComponent(', $view);
+        $this->assertStringContainsString('moveDraftComponent(', $view);
+        $this->assertStringContainsString('moveDraftComponent(', $view);
         $this->assertStringContainsString('moveComponent(', $view);
         $this->assertStringContainsString('moveComponentByDrag(', $view);
-        $this->assertStringContainsString('wire:click="saveBuilder"', $view);
+        $this->assertStringContainsString('saveAndPublishThemeFromDraft(JSON.stringify(builderSlotsDraft))', $view);
         $this->assertStringContainsString('wire:click="resetBuilder"', $view);
         $this->assertStringContainsString('presentation.mode', $view);
         $this->assertStringContainsString('presentation.custom.{{ $field }}', $view);
