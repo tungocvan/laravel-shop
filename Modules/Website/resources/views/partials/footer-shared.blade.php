@@ -28,7 +28,7 @@
         border-top: {{ ($footerPresentation['border'] ?? true) ? '1px solid var(--footer-border)' : '0' }};
     ">
     @if($footerPresentation['accent'] ?? true)
-        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
+        <div class="absolute top-0 left-0 right-0 h-[2px]" style="background: var(--footer-accent);"></div>
     @endif
 
     @include('Website::components.footer.slot', ['slot' => 'desktop.top'])
@@ -67,11 +67,11 @@
         <div class="md:hidden space-y-7" style="margin-bottom: 28px;">@include('Website::components.footer.slot', ['slot' => 'mobile.main'])</div>
         @endif
         @if($footerBottomBarEnabled ?? true)
-        <div class="hidden md:flex items-center justify-between gap-x-8 gap-y-4 pt-5" style="border-top: 1px solid var(--footer-border);">
-            <div class="min-w-0 flex-1 text-xs leading-relaxed text-left" style="color: var(--footer-muted);">@include('Website::components.footer.slot', ['slot' => 'desktop.bottom.left'])</div>
+        <div class="hidden md:flex items-start justify-between gap-x-8 gap-y-4 pt-5" style="border-top: 1px solid var(--footer-border);">
+            <div class="min-w-0 flex-1 space-y-2 text-xs leading-relaxed text-left" style="color: var(--footer-muted);">@include('Website::components.footer.slot', ['slot' => 'desktop.bottom.left'])</div>
             <div class="flex shrink-0 items-center justify-end">@include('Website::components.footer.slot', ['slot' => 'desktop.bottom.right'])</div>
         </div>
-        <div class="md:hidden flex flex-col items-center gap-4 pt-5 text-xs text-center" style="border-top: 1px solid var(--footer-border); color: var(--footer-muted);">@include('Website::components.footer.slot', ['slot' => 'mobile.bottom'])</div>
+        <div class="md:hidden flex flex-col items-center gap-4 pt-5 text-xs leading-5 text-center" style="border-top: 1px solid var(--footer-border); color: var(--footer-muted);">@include('Website::components.footer.slot', ['slot' => 'mobile.bottom'])</div>
         @endif
     </div>
 </footer>
