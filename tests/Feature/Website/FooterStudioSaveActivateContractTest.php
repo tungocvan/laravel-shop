@@ -11,12 +11,12 @@ class FooterStudioSaveActivateContractTest extends TestCase
         $studio = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/footer/footer-settings-hub.blade.php'));
         $preview = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/footer/partials/builder-preview.blade.php'));
 
-        $this->assertStringContainsString("'layout' => 'Thiết kế'", $studio);
-        $this->assertStringContainsString("'profile' => 'Thư viện theme'", $studio);
+        $this->assertStringContainsString("studioPanel: 'layout'", $studio);
+        $this->assertStringContainsString("studioPanel === 'profile'", $studio);
         $this->assertStringContainsString('xl:sticky xl:top-4', $studio);
         $this->assertStringContainsString('Cập nhật tham số vào theme hiện tại', $preview);
-        $this->assertStringContainsString('wire:click="updateTheme"', $preview);
-        $this->assertStringContainsString('wire:click="saveAndPublishTheme"', $preview);
+        $this->assertStringContainsString('updateThemeFromDraft(JSON.stringify(builderSlotsDraft))', $preview);
+        $this->assertStringContainsString('saveAndPublishThemeFromDraft(JSON.stringify(builderSlotsDraft))', $preview);
         $this->assertStringContainsString('Lưu &amp; Kích hoạt theme hiện tại', $preview);
         $this->assertStringContainsString('@disabled(!$selectedTheme)', $preview);
     }
