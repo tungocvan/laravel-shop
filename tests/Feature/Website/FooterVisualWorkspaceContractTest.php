@@ -47,7 +47,7 @@ class FooterVisualWorkspaceContractTest extends TestCase
         $view = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/footer/footer-settings-hub.blade.php'));
         $preview = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/footer/partials/builder-preview.blade.php'));
 
-        $this->assertStringContainsString("this.\$wire.set('builderSlots', this.builderSlotsDraft, false)", $view);
+        $this->assertStringNotContainsString("this.\$wire.set('builderSlots', this.builderSlotsDraft, false)", $view);
         $this->assertStringContainsString('toggleDraftComponent(@js($bottomSlot)', $view);
         $this->assertStringContainsString('toggleDraftComponent(@js($slot)', $view);
         $this->assertStringNotContainsString('wire:click="toggleComponent(', $view);
@@ -90,6 +90,7 @@ class FooterVisualWorkspaceContractTest extends TestCase
         $preview = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/footer/partials/builder-preview.blade.php'));
 
         $this->assertStringContainsString('moveDraftComponent(slot, index, delta)', $view);
+        $this->assertStringContainsString('this.builderSlotsDraft = { ...this.builderSlotsDraft, [slot]: reordered }', $view);
         $this->assertStringContainsString('moveDraftComponent(@js($bottomSlot), index, -1)', $view);
         $this->assertStringContainsString('moveDraftComponent(@js($bottomSlot), index, 1)', $view);
         $this->assertStringContainsString('builderSlotsDraft[@js($slotKey)]', $preview);
