@@ -277,12 +277,12 @@
                                                 <option value="{{ $targetSlot }}">{{ $builderSlotNames[$targetSlot] ?? $targetSlot }}</option>
                                             @endif
                                         @endforeach
-                    @endif
                                     </select>
                                 </div>
                             @endif
                         </div>
                     @endforeach
+                    @endif
 
                     <div @dragover.prevent="$event.dataTransfer.dropEffect = 'move'"
                         @drop.prevent="if (drag) { $wire.moveComponentByDrag(drag.slot, drag.index, '{{ $slot }}', {{ count($builderSlots[$slot] ?? []) }}); drag = null }"
