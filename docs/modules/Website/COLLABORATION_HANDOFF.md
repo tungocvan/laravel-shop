@@ -1,5 +1,19 @@
 # Website Collaboration Handoff
 
+## Latest Website status checkpoint — 2026-10-19 (documentation-only)
+
+**Current entry point:** [WEBSITE_STATUS_2026-10-19.md](WEBSITE_STATUS_2026-10-19.md). Baseline `main` at `2cf929cd2` (PR #315); this dated snapshot does not replace a fresh source/runtime audit.
+
+- **UI PASS:** user-confirmed for the currently reviewed Website UI.
+- **Quick Order focused tests PASS:** 12 tests / 73 assertions (reported local run).
+- **Latest reported Website regression FAIL:** 309 tests / 38,138 assertions / 3 failures, all in `FooterSettingsUxContractTest`; exit code 1. This later result must not be silently replaced by the historical 289-test PASS recorded below for the PR #315 repair.
+- **Impacted regression:** not run after failure. **Production:** not checked in this documentation task.
+- Preserve existing untracked `.env.backup-before-ngrok-session` and `public/hot.pharma-mobile`.
+- **Next:** read the snapshot and current `MODULE.md` / `PHARMA_QUICK_ORDER_V1.md`, audit actual source before any fixes; keep UI behavior intact. No code or production change is authorized by this documentation update.
+
+The historical checkpoints below are preserved as recorded at their respective dates. In particular, old "pending PR" labels are historical and should not be treated as the current GitHub branch/merge status without checking GitHub.
+
+
 ## Current status
 
 The approved Website Major/Clean Module Refactor remains **CLOSED** for the previously authorized scope.
