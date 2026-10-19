@@ -1,4 +1,4 @@
-<div class="space-y-6" x-data="{ builderDevice: 'desktop', previewDevice: 'desktop', drag: null, studioPanel: 'layout' }">
+<div class="space-y-6" x-data="{ builderDevice: 'desktop', previewDevice: 'desktop', drag: null, studioPanel: 'layout', legacyToolsOpen: false }">
     <section class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <label for="footer-editing-template" class="mb-2 block text-sm font-semibold text-gray-900">Template đang quản trị</label>
         <select id="footer-editing-template" wire:model.live="editingTemplate" class="w-full max-w-md rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm">
@@ -12,7 +12,7 @@
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
                 <h2 class="text-lg font-bold text-slate-900">Footer Studio</h2>
-                <p class="mt-1 text-sm text-slate-600">Chỉnh sửa bản nháp bên trái, theo dõi Preview cố định bên phải. Lưu profile rồi mới kích hoạt để xuất bản.</p>
+                <p class="mt-1 text-sm text-slate-600">Chọn thành phần trong bản xem trước, chỉnh sửa ở bảng bên phải và kiểm tra trước khi xuất bản.</p>
             </div>
             <div class="text-xs font-medium text-slate-600">
                 Theme: {{ $selectedTheme !== '' ? ($layoutThemes[$selectedTheme]['name'] ?? $selectedTheme) : 'Chưa chọn' }}
@@ -20,10 +20,10 @@
             </div>
         </div>
     </div>
-    <div class="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,55fr)_minmax(0,45fr)] xl:items-start">
-        <div class="min-w-0 space-y-5">
+    <div class="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,60fr)_minmax(340px,40fr)] xl:items-start">
+        <div class="min-w-0 space-y-5 xl:order-2">
             <nav class="flex flex-wrap gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm" aria-label="Các nhóm thiết lập Footer">
-                @foreach(['layout' => 'Thiết kế', 'style' => 'Giao diện', 'profile' => 'Thư viện theme'] as $panel => $label)
+                @foreach(['layout' => 'Bố cục & Nội dung', 'style' => 'Giao diện', 'profile' => 'Mẫu thiết kế'] as $panel => $label)
                     <button type="button" @click="studioPanel = '{{ $panel }}'" :class="studioPanel === '{{ $panel }}' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'" class="rounded-lg px-4 py-2 text-sm font-semibold">{{ $label }}</button>
                 @endforeach
             </nav>
@@ -377,8 +377,8 @@
         </div>
     </section>
         </div>
-        <aside class="min-w-0 xl:sticky xl:top-4 xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto" aria-label="Live Footer Preview">
-            <div class="mb-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-slate-700">Live Preview luôn hiển thị · Thay đổi bản nháp không tự động xuất bản.</div>
+        <aside class="min-w-0 xl:order-1 xl:sticky xl:top-4 xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto" aria-label="Live Footer Preview">
+            <div class="mb-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-slate-700">Bản xem trước trực quan · Nhấp vào cột để mở phần chỉnh sửa tương ứng. Thay đổi bản nháp không tự động xuất bản.</div>
             @include('Website::livewire.admin.footer.partials.builder-preview')
         </aside>
     </div>
