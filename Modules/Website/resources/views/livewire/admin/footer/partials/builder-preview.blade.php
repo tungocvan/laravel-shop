@@ -101,11 +101,10 @@
                             <div class="rounded-md border border-dashed p-3" style="border-color: {{ $border }};">
                                 <div class="mb-2 text-[10px] uppercase tracking-wide" style="color: {{ $muted }};">{{ $builderSlotNames[$slotKey] }}</div>
                                 <div class="flex flex-wrap gap-2">
-                                    @forelse(($builderSlots[$slotKey] ?? []) as $itemIndex => $item)
-                                        <button type="button" x-show="isComponentVisible(@js($slotKey), {{ $itemIndex }})" @click="selectFooterSlot(@js($slotKey))" class="rounded px-2 py-1 text-left text-xs hover:ring-2 hover:ring-blue-300" style="color: {{ $heading }}; border: 1px solid {{ $border }};">{{ ($item['type'] ?? '') === 'copyright' && filled(data_get($profileContent, 'legal.overrides.copyright')) ? data_get($profileContent, 'legal.overrides.copyright') : $componentLabel($item) }}</button>
-                                    @empty
-                                        <span class="text-xs" style="color: {{ $muted }};">Slot trống</span>
-                                    @endforelse
+                                    <template x-for="item in (builderSlotsDraft[@js($slotKey)] || [])" :key="item.type">
+                                        <button type="button" x-show="item.enabled !== false" @click="selectFooterSlot(@js($slotKey))" class="rounded px-2 py-1 text-left text-xs hover:ring-2 hover:ring-blue-300" style="color: {{ $heading }}; border: 1px solid {{ $border }};" x-text="item.type === 'copyright' ? @js(filled(data_get($profileContent, 'legal.overrides.copyright')) ? data_get($profileContent, 'legal.overrides.copyright') : 'Copyright') : ({ 'legal-links': 'Legal Links', 'trust-badges': 'Trust / Payment Badges', 'social-links': 'Social Links' })[item.type] || item.type"></button>
+                                    </template>
+                                    <span x-show="!(builderSlotsDraft[@js($slotKey)] || []).length" class="text-xs" style="color: {{ $muted }};">Slot trống</span>
                                 </div>
                             </div>
                         @endforeach
