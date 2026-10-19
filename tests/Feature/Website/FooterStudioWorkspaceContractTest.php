@@ -15,11 +15,11 @@ class FooterStudioWorkspaceContractTest extends TestCase
         $this->assertStringContainsString('max-w-none', $page);
         $this->assertStringContainsString('studioPanel', $studio);
         $this->assertStringContainsString("studioPanel === 'profile'", $studio);
-        $this->assertStringContainsString('xl:grid-cols-[minmax(0,55fr)_minmax(0,45fr)]', $studio);
+        $this->assertStringContainsString('xl:grid-cols-[minmax(0,60fr)_minmax(340px,40fr)]', $studio);
         $this->assertStringContainsString('xl:sticky xl:top-4', $studio);
         $this->assertStringContainsString("partials.builder-preview", $studio);
         $this->assertStringNotContainsString("partials.theme-manager", $preview);
-        $this->assertStringContainsString('wire:click="updateTheme"', $studio);
-        $this->assertStringContainsString('wire:click="saveAndPublishTheme"', $preview);
+        $this->assertStringContainsString('updateThemeFromDraft(JSON.stringify(builderSlotsDraft))', $studio);
+        $this->assertStringContainsString('saveAndPublishThemeFromDraft(JSON.stringify(builderSlotsDraft))', $preview);
     }
 }
