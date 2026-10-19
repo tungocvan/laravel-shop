@@ -27,4 +27,19 @@ class FooterVisualWorkspaceContractTest extends TestCase
         $this->assertStringContainsString("array_slice(\$column['items'] ?? [], 0, 8)", $preview);
         $this->assertStringContainsString('saveAndPublishTheme', $preview);
     }
+    public function test_preview_selection_opens_matching_column_and_legacy_slot_editors(): void
+    {
+        $view = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/footer/footer-settings-hub.blade.php'));
+        $preview = file_get_contents(base_path('Modules/Website/resources/views/livewire/admin/footer/partials/builder-preview.blade.php'));
+
+        $this->assertStringContainsString('selectFooterColumn(index)', $view);
+        $this->assertStringContainsString('selectFooterSlot(slot)', $view);
+        $this->assertStringContainsString('footer-column-editor-{{ $index }}', $view);
+        $this->assertStringContainsString('footer-slot-{{ str_replace', $view);
+        $this->assertStringContainsString('selectFooterColumn({{ $columnIndex }})', $preview);
+        $this->assertStringContainsString('selectFooterSlot(@js($slotKey))', $preview);
+        $this->assertStringContainsString('selectFooterSlot(\'mobile.main\')', $preview);
+        $this->assertStringContainsString('@foreach($footerColumns as $columnIndex => $column)', $preview);
+    }
+
 }
