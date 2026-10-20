@@ -1,3 +1,13 @@
+## Batch B partial checkpoint — Bridge consumer interface (2026-10-20)
+
+- Added server-only `AdvancedConfigService::serverCredentials()` for DB-backed URL + decrypted secret; empty secret remains unconfigured and must fail closed. No Livewire property exposes the secret.
+- Updated focused contract test. Existing `RealtimeManager` health uses DB-backed URL; browser public URL remains separate.
+- Repository-wide caller search was inconclusive (GitHub code search returned no indexed matches even for known files); **do not claim all consumers migrated**. Operator should supply a read-only `rg` inventory before further cross-module changes.
+- Do not remove `NODEJS_SERVER_URL`, `BRIDGE_SECRET_KEY`, `NODEJS_SERVER_PORT`, `VITE_SOCKET_PUBLIC_URL`, `REALTIME_*`, `SOCKET_*`, or Queue environment variables yet. No production changes.
+- Pending focused and impacted tests and UI confirmation; no TEST PASS claim for this batch.
+
+---
+
 ## Pending Test/UI Checkpoint — Advanced Runtime & Bridge database configuration (2026-10-20)
 
 - Advanced tab NodeJS URL and encrypted Bridge Secret now use database settings, with read-error defaults: local http://127.0.0.1:6001 and production http://socket:6001. Existing settings take precedence.
