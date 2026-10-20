@@ -1,3 +1,12 @@
+## Batch C — NodeJS bridge environment ownership (2026-10-20)
+
+- Verified `compose.yaml` socket service loads `env_file: .env`, and `socket/server.js` requires `process.env.BRIDGE_SECRET_KEY` at startup and checks `x-bridge-secret` on requests.
+- Kept `BRIDGE_SECRET_KEY=` in both `.env.example` and `.env.docker.example`; added comments documenting NodeJS runtime ownership, DB secret parity and no plaintext secret commits.
+- No changes to actual `.env`, `compose.yaml`, NodeJS code, runtime containers or production. No automatic secret synchronization.
+- Previous operator-confirmed 259-test regression and UI PASS predate this documentation-only batch; new checkpoint verification pending.
+
+---
+
 ## PR readiness review checkpoint — 2026-10-20
 
 - Operator confirmed Batch B focused/module regression: **259 passed, 1,652 assertions**, and explicitly confirmed Chat/UI PASS. These are operator-reported results; no CI result independently claimed.
