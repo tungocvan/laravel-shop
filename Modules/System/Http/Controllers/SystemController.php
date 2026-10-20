@@ -29,14 +29,7 @@ class SystemController extends Controller
         }
 
         // Environment access must not implicitly grant runtime operations.
-        $environmentTabs = $canViewEnv ? [
-            ['id' => 'env-database', 'label' => 'Database', 'component' => 'system.settings.database-config', 'enabled' => true],
-            ['id' => 'env-mail', 'label' => 'Email', 'component' => 'system.settings.mail-config', 'enabled' => true],
-            ['id' => 'env-advanced', 'label' => 'Runtime & Bridge', 'component' => 'system.settings.advanced-config', 'enabled' => true],
-            ['id' => 'env-payment', 'label' => 'Thanh toán', 'component' => 'system.settings.momo-config', 'enabled' => true],
-            ['id' => 'env-storage', 'label' => 'Storage / Cloud', 'component' => 'system.settings.storage-config', 'enabled' => true],
-            ['id' => 'env-social', 'label' => 'Web & Analytics', 'component' => 'system.settings.social-config', 'enabled' => true],
-        ] : [];
+        $environmentTabs = $canViewEnv ? EnvConfigController::tabs() : [];
 
         $tabs = collect(array_merge($runtimeTabs, $environmentTabs))
             ->filter(fn ($tab) => $tab['enabled'] ?? true)
