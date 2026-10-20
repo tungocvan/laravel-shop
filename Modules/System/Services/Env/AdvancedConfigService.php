@@ -71,6 +71,18 @@ class AdvancedConfigService
         ];
     }
 
+    /**
+     * Server-side credential for bridge clients. Never expose in Livewire public properties.
+     * Empty means unconfigured; callers must fail closed rather than use an env fallback.
+     */
+    public function serverCredentials(): array
+    {
+        return [
+            'url' => $this->serverUrl(),
+            'secret' => $this->bridgeSecret(),
+        ];
+    }
+
     public function serverUrl(): string
     {
         return $this->read('nodejs.server_url', $this->defaultNodeUrl());
