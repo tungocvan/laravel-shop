@@ -109,6 +109,18 @@ class MuasamcongModuleTest extends TestCase
     }
 
 
+    public function test_transitional_url_validator_rejects_unsafe_urls(): void
+    {
+        $validator = app(\\Modules\\Muasamcong\\Services\\MuasamcongUrlValidator::class);
+
+        $this->assertTrue($validator->isApproved('https://muasamcong.mpi.gov.vn/'));
+        $this->assertTrue($validator->isApproved('https://muasamcong.mof.gov.vn/o/search_prc'));
+        $this->assertFalse($validator->isApproved('http://muasamcong.mof.gov.vn/'));
+        $this->assertFalse($validator->isApproved('https://muasamcong.mof.gov.vn.evil.example/'));
+        $this->assertFalse($validator->isApproved('https://user:password@muasamcong.mof.gov.vn/'));
+        $this->assertFalse($validator->isApproved('https://muasamcong.mof.gov.vn:8443/'));
+    }
+
     public function test_pricing_uses_mof_endpoint_and_matching_origin_without_changing_legacy_hsmt_origin(): void
     {
         config([
