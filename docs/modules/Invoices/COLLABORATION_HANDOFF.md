@@ -271,3 +271,5 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - Added `invoices:gdt-settings-import --dry-run` for non-overwriting legacy import; no values printed.
 - Rollout and rollback: `docs/modules/Invoices/GDT_SETTINGS_MIGRATION_CHECKPOINT.md`.
 - **Gate:** Local focused tests NOT RUN, module regression NOT RUN, impacted tests NOT RUN, UI NOT VERIFIED. Do not merge or deploy. Database migration/import and .env cleanup require a separate approval checkpoint.
+
+- Follow-up commit: preserve password when Livewire nullable password field is absent; four advanced GDT tuning defaults no longer read GDT_* env variables. Await fresh focused/module tests after pulling.
