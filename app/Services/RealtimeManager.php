@@ -5,6 +5,7 @@ namespace App\Services;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Modules\System\Models\Setting;
+use Modules\System\Services\Env\AdvancedConfigService;
 use Throwable;
 
 final class RealtimeManager
@@ -70,7 +71,7 @@ final class RealtimeManager
         // The internal NodeJS URL is a safe browser fallback only in local development.
         // Production must continue using its explicitly configured public endpoint.
         if ($publicUrl === '' && app()->environment('local')) {
-            $localUrl = trim((string) config('services.nodejs.url', ''));
+            $localUrl = trim((string) app(AdvancedConfigService::class)->serverUrl());
             $host = parse_url($localUrl, PHP_URL_HOST);
 
             if (in_array($host, ['127.0.0.1', 'localhost', '::1'], true)) {
@@ -87,6 +88,6 @@ final class RealtimeManager
     private function healthUrl(): string
     {
         return (string) (config('realtime.health_url')
-            ?: rtrim((string) config('services.nodejs.url'), '/').'/health');
+            ?: rtrim(app(AdvancedConfigService::class)->serverUrl(), '/').'/health');
     }
 }
