@@ -104,7 +104,7 @@ class GdtLogin extends Component
             'GDT_TOKEN_CACHE_KEY' => $validated['gdtConfig']['cache_key'],
         ];
 
-        if ($validated['gdtConfig']['password'] !== '') {
+        if (($validated['gdtConfig']['password'] ?? '') !== '') {
             $values['GDT_API_PASSWORD'] = $validated['gdtConfig']['password'];
         }
 
