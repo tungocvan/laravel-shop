@@ -1,5 +1,42 @@
 # Muasamcong Module — Collaboration Handoff
 
+## 2026-10-20 — Smart Pricing MPI → MOF migration (local acceptance passed)
+
+- Branch: `fix/muasamcong-pricing-mof-domain-20261020`; based on main `c4e0a5ff09c4637cac9bd3c1d85e1635d73b7c5d`.
+- WSL upstream diagnosis: legacy MPI pricing POST returned 302 with Location pointing to MOF; equivalent MOF pricing POST returned HTTP 200 and JSON content type. Full response-schema contract is covered by module tests; actual medicine search was confirmed working in the development UI.
+- Pricing endpoint and pricing referer defaults now use MOF. Pricing requests derive the Origin from the approved endpoint host, while legacy contractor/HSMT calls retain their configured MPI Origin.
+- Transitional strict URL validator accepts only HTTPS MPI/MOF hosts without embedded credentials or non-443 ports. Existing non-pricing service guards remain unchanged; their endpoints are **not** migrated.
+- Config manager's approved-host notice updated. Existing .env overrides are **not** overwritten by code changes; deployment/operator must review effective pricing endpoint/referer before acceptance.
+- Tests added for MOF request headers, disallowed host and no redirect-following.
+- Gates: focused tests **21 PASS / 78 assertions**; module regression **74 PASS / 614 assertions**; runtime configuration **PASS**; UI medicine search **PASS (user-confirmed)**; `git diff origin/main...HEAD --check` **PASS**; PR/merge/deploy **NOT DONE**.
+- No production environment, database, queue, or stored KQLCNT/canonical award data modified.
+
+
+### Incident runbook — Pricing search HTTP 302 (2026-10-20)
+
+**Symptom:** Admin medicine-award pricing search at `/admin/muasamcong` returns `Cổng Mua sắm công trả về lỗi HTTP 302.`
+
+**Confirmed cause:** The former `https://muasamcong.mpi.gov.vn/o/egp-portal-personal-page/services/smart/search_prc` redirected (302) to the same path on `muasamcong.mof.gov.vn`. The service intentionally disables HTTP redirects; following arbitrary redirects is **not** an acceptable fix. Direct POST to the MOF endpoint returned HTTP 200 JSON in development diagnosis.
+
+**Two-layer configuration trap:** Updating source defaults alone is insufficient when `MUASAMCONG_PRICING_ENDPOINT` and `MUASAMCONG_PRICING_REFERER` already exist in `.env`; environment values override the defaults. In this incident, both were defined and `bootstrap/cache/config.php` was absent. The user explicitly updated only those two values in the local development `.env`, backed up as `.env.backup-muasamcong-mof`, and verified the effective runtime values. `MUASAMCONG_ORIGIN` deliberately remains on MPI for legacy contractor/HSMT calls; the pricing request uses the approved endpoint host as its own Origin.
+
+**Fast diagnosis (read-only, development):**
+1. Confirm whether 302 is returned by the upstream and inspect the `Location` header; do not blindly follow redirects or trust arbitrary hosts.
+2. Check effective Laravel config without exposing secrets:
+   `php artisan tinker --execute='$keys=["muasamcong.origin","muasamcong.endpoints.pricing","muasamcong.referers.pricing"]; foreach($keys as $key){echo $key." = ".config($key).PHP_EOL;}'`
+3. Check whether the two `MUASAMCONG_PRICING_*` keys are **defined** in `.env` (do not print all `.env` values) and whether `bootstrap/cache/config.php` exists. Do not clear caches without verifying the need.
+4. For this incident the expected effective values are:
+   - `muasamcong.origin = https://muasamcong.mpi.gov.vn`
+   - `muasamcong.endpoints.pricing = https://muasamcong.mof.gov.vn/o/egp-portal-personal-page/services/smart/search_prc`
+   - `muasamcong.referers.pricing = https://muasamcong.mof.gov.vn/web/guest/profile-info?menu=bid-pricing`
+5. Reproduce via Admin medicine search; verify results and user-confirmed UI acceptance. A successful status alone does not prove schema correctness.
+
+**Safety and scope:** Strict allowlist permits only HTTPS MPI/MOF hosts, no URL credentials and no non-443 port; `allow_redirects=false`, production TLS verification enabled. Do not migrate other endpoints without their own upstream verification. Never print token/cookie, overwrite untracked files, or edit Production settings as part of diagnosis. For Production, first read the latest `docs/PRODUCTION_DEBUG_PROMPT.md` from `main` and obtain explicit authorization before any mutation.
+
+**Validation recorded:** Focused 21 PASS (78 assertions); module regression 74 PASS (614 assertions); development runtime MPI origin + MOF pricing endpoint/referer confirmed; development UI medicine lookup PASS confirmed by user; diff whitespace check PASS; tracked working tree clean. Untracked `.env.backup-before-ngrok-session`, `.env.backup-muasamcong-mof` and `public/hot.pharma-mobile` preserved. No production validation or deployment claimed.
+
+**Rollback:** In development, if MOF stops working, first re-diagnose upstream behavior. Restore only the two changed pricing environment values from the restricted local backup if rollback is approved, then verify effective config and UI; avoid restoring the entire `.env` if unrelated settings have since changed. Do not re-enable redirects as a workaround.
+
 - Last updated: 2026-09-04
 - Repository: `tungocvan/laravel-shop`
 - Stable branch: `main`

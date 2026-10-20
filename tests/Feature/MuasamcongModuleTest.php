@@ -108,6 +108,71 @@ class MuasamcongModuleTest extends TestCase
         Http::assertNothingSent();
     }
 
+
+    public function test_transitional_url_validator_rejects_unsafe_urls(): void
+    {
+        $validator = app(\Modules\Muasamcong\Services\MuasamcongUrlValidator::class);
+
+        $this->assertTrue($validator->isApproved('https://muasamcong.mpi.gov.vn/'));
+        $this->assertTrue($validator->isApproved('https://muasamcong.mof.gov.vn/o/search_prc'));
+        $this->assertFalse($validator->isApproved('http://muasamcong.mof.gov.vn/'));
+        $this->assertFalse($validator->isApproved('https://muasamcong.mof.gov.vn.evil.example/'));
+        $this->assertFalse($validator->isApproved('https://user:password@muasamcong.mof.gov.vn/'));
+        $this->assertFalse($validator->isApproved('https://muasamcong.mof.gov.vn:8443/'));
+    }
+
+    public function test_pricing_uses_mof_endpoint_and_matching_origin_without_changing_legacy_hsmt_origin(): void
+    {
+        config([
+            'muasamcong.origin' => 'https://muasamcong.mpi.gov.vn',
+            'muasamcong.endpoints.pricing' => 'https://muasamcong.mof.gov.vn/o/egp-portal-personal-page/services/smart/search_prc',
+            'muasamcong.referers.pricing' => 'https://muasamcong.mof.gov.vn/web/guest/profile-info?menu=bid-pricing',
+        ]);
+
+        Http::fake(['*' => Http::response(['page' => ['totalElements' => 0, 'content' => []]], 200)]);
+
+        $result = app(MuaSamCongService::class)->searchPricing('paracetamol');
+
+        $this->assertTrue($result['success']);
+        Http::assertSent(function (ClientRequest $request): bool {
+            return str_starts_with($request->url(), 'https://muasamcong.mof.gov.vn/')
+                && $request->hasHeader('Origin', 'https://muasamcong.mof.gov.vn')
+                && $request->hasHeader('Referer', 'https://muasamcong.mof.gov.vn/web/guest/profile-info?menu=bid-pricing');
+        });
+        $this->assertSame('https://muasamcong.mpi.gov.vn', config('muasamcong.origin'));
+    }
+
+    public function test_pricing_rejects_untrusted_domain_without_sending_request(): void
+    {
+        config([
+            'muasamcong.endpoints.pricing' => 'https://muasamcong.mof.gov.vn.evil.example/search_prc',
+            'muasamcong.referers.pricing' => 'https://muasamcong.mof.gov.vn/',
+        ]);
+
+        Http::fake();
+        $result = app(MuaSamCongService::class)->searchPricing('paracetamol');
+
+        $this->assertFalse($result['success']);
+        $this->assertSame(500, $result['status']);
+        Http::assertNothingSent();
+    }
+
+    public function test_pricing_does_not_follow_upstream_redirect(): void
+    {
+        config([
+            'muasamcong.endpoints.pricing' => 'https://muasamcong.mof.gov.vn/o/egp-portal-personal-page/services/smart/search_prc',
+            'muasamcong.referers.pricing' => 'https://muasamcong.mof.gov.vn/',
+        ]);
+
+        Http::fake(['*' => Http::response('', 302, ['Location' => 'https://untrusted.example/'])]);
+
+        $result = app(MuaSamCongService::class)->searchPricing('paracetamol');
+
+        $this->assertFalse($result['success']);
+        $this->assertSame(302, $result['status']);
+        Http::assertSentCount(1);
+    }
+
     public function test_pricing_company_search_expands_filters_and_deduplicates_results(): void
     {
         Http::fake([

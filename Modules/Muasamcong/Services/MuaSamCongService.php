@@ -306,7 +306,10 @@ class MuaSamCongService
             (string) config('muasamcong.endpoints.pricing'),
             $this->pricingPayload($keyword, $matchType, $pageNumber, $matchFields, $filters),
             false,
-            (string) config('muasamcong.referers.pricing')
+            (string) config('muasamcong.referers.pricing'),
+            null,
+            null,
+            true
         );
     }
 
@@ -408,9 +411,12 @@ class MuaSamCongService
         bool $requiresToken,
         string $referer,
         ?string $tokenOverride = null,
-        ?string $cookieOverride = null
+        ?string $cookieOverride = null,
+        bool $pricing = false
     ): array {
-        $origin = (string) config('muasamcong.origin');
+        $origin = $pricing
+            ? 'https://'.(string) parse_url($url, PHP_URL_HOST)
+            : (string) config('muasamcong.origin');
 
         if (! $this->isApprovedUrl($url)
             || ! $this->isApprovedUrl($referer)
@@ -572,15 +578,7 @@ class MuaSamCongService
 
     private function isApprovedUrl(string $url): bool
     {
-        $parts = parse_url($url);
-        $allowedHost = (string) config('muasamcong.allowed_host', 'muasamcong.mpi.gov.vn');
-
-        return is_array($parts)
-            && ($parts['scheme'] ?? null) === 'https'
-            && strcasecmp((string) ($parts['host'] ?? ''), $allowedHost) === 0
-            && ! isset($parts['user'])
-            && ! isset($parts['pass'])
-            && (! isset($parts['port']) || (int) $parts['port'] === 443);
+        return app(MuasamcongUrlValidator::class)->isApproved($url);
     }
 
     private function error(string $message, int $status = 0): array

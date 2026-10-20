@@ -36,10 +36,10 @@ class MuasamcongConfigService
         'MUASAMCONG_USER_AGENT' => 'Mozilla/5.0 (compatible; Laravel Muasamcong Module)',
         'MUASAMCONG_SMART_TOKEN' => '',
         'MUASAMCONG_SESSION_COOKIE' => '',
-        'MUASAMCONG_PRICING_ENDPOINT' => 'https://muasamcong.mpi.gov.vn/o/egp-portal-personal-page/services/smart/search_prc',
+        'MUASAMCONG_PRICING_ENDPOINT' => 'https://muasamcong.mof.gov.vn/o/egp-portal-personal-page/services/smart/search_prc',
         'MUASAMCONG_CONTRACTOR_ENDPOINT' => 'https://muasamcong.mpi.gov.vn/o/egp-portal-contractor-selection-v2/services/smart/search',
         'MUASAMCONG_PORTAL_REFERER' => 'https://muasamcong.mpi.gov.vn/',
-        'MUASAMCONG_PRICING_REFERER' => 'https://muasamcong.mpi.gov.vn/web/guest/profile-info?menu=bid-pricing',
+        'MUASAMCONG_PRICING_REFERER' => 'https://muasamcong.mof.gov.vn/web/guest/profile-info?menu=bid-pricing',
         'MUASAMCONG_PAGE_SIZE' => '20',
     ];
 
@@ -168,16 +168,8 @@ class MuasamcongConfigService
 
     private function assertApprovedUrl(string $key, string $url): void
     {
-        $parts = parse_url($url);
-        $allowedHost = (string) config('muasamcong.allowed_host', 'muasamcong.mpi.gov.vn');
-
-        if (! is_array($parts)
-            || ($parts['scheme'] ?? null) !== 'https'
-            || strcasecmp((string) ($parts['host'] ?? ''), $allowedHost) !== 0
-            || isset($parts['user'])
-            || isset($parts['pass'])
-            || (isset($parts['port']) && (int) $parts['port'] !== 443)) {
-            throw new RuntimeException("Giá trị {$key} phải dùng HTTPS và host {$allowedHost}.");
+        if (! app(MuasamcongUrlValidator::class)->isApproved($url)) {
+            throw new RuntimeException("Giá trị {$key} phải dùng HTTPS và host Mua sắm công được phê duyệt.");
         }
     }
 

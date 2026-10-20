@@ -12,7 +12,7 @@
     @endif
 
     <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-        Chỉ host <strong>muasamcong.mpi.gov.vn</strong> được phép sử dụng cho origin, endpoint và referer. Token/cookie hiện có không được tải xuống trình duyệt. Trong production, xác minh SSL luôn được bật.
+        Chỉ hai host <strong>muasamcong.mpi.gov.vn</strong> và <strong>muasamcong.mof.gov.vn</strong> được phép sử dụng cho origin, endpoint và referer. Token/cookie hiện có không được tải xuống trình duyệt. Trong production, xác minh SSL luôn được bật.
     </div>
 
     <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
