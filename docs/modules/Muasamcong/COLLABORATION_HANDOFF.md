@@ -1,5 +1,14 @@
 # Muasamcong Module — Collaboration Handoff
 
+## 2026-10-20 — Config UI diagnostics split (pending WSL gates)
+
+- Root cause: `ConfigManager::testToken()` invokes `MuaSamCongService::testSmartToken()` which uses `muasamcong.endpoints.contractor_search` on MPI, **not** Smart Pricing on MOF. The observed HTTP 302 from the token check does not prove the pricing endpoint is broken or that the contractor endpoint should be migrated.
+- New UI actions: independent Smart Pricing check using **active server configuration** (read-only); explicitly named contractor-token check with 302 guidance; form-only MOF pricing endpoint/referer restoration requiring explicit Save.
+- Configuration status warning for non-MOF pricing form fields. No automatic redirect, SSL bypass, Production .env mutation or non-pricing endpoint migration.
+- .env reduction audit: existing module config still reads origin, TLS, timeout, user agent, tokens/cookies, endpoint/referer overrides, paging, and other contractor/KQLCNT endpoint keys. No existing .env key was deleted: deleting active overrides without verifying every runtime and deployment consumer is unsafe. Future optional-key cleanup requires separate usage audit and compatibility plan. Never automatically delete user .env lines.
+- Gates: focused tests PENDING WSL, module regression PENDING, UI PENDING user confirmation, PR/merge/deploy NOT DONE.
+
+
 ## 2026-10-20 — Smart Pricing MPI → MOF migration (local acceptance passed)
 
 - Branch: `fix/muasamcong-pricing-mof-domain-20261020`; based on main `c4e0a5ff09c4637cac9bd3c1d85e1635d73b7c5d`.
