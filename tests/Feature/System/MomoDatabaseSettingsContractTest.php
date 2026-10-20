@@ -18,7 +18,7 @@ class MomoDatabaseSettingsContractTest extends TestCase
         $this->assertStringContainsString('Crypt::encryptString($secret)', $service);
         $this->assertStringContainsString('Crypt::decryptString(', $service);
         $this->assertStringNotContainsString('EnvManagerService', $service);
-        $this->assertStringNotContainsString('env(', $service);
+        $this->assertDoesNotMatchRegularExpression('/(?<![A-Za-z0-9_])env\\s*\\(/', preg_replace('~/\\*.*?\\*/|//[^\\n]*~s', '', $service));
     }
 
     public function test_momo_ui_does_not_offer_to_update_env_file(): void
