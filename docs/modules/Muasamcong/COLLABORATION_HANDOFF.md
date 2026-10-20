@@ -1,3 +1,9 @@
+## 2026-10-20 — Legacy .env cleanup audit (WSL checkpoint pending)
+
+- User-confirmed gates from preceding checkpoint: focused 4 PASS / 12 assertions, module regression 84 PASS / 642 assertions, imported 9 settings with existing contractor override preserved, 10/10 effective DB configuration matches, Smart Pricing/contractor/Personal Session UI PASS.
+- Added read-only `php artisan muasamcong:audit-env-cleanup`: inspects 11 allowlisted env keys without printing values; reports ABSENT, CANDIDATE or BLOCKED based on DB row/decrypt/runtime match. Never modifies .env or DB; candidate is **not** deletion approval.
+- Before actual .env cleanup: audit all external readers/config cache/worker reload implications and verify safe rollback. No removal of .env keys, no Production changes, no merge. Focused tests for new audit command and subsequent module regression pending WSL.
+
 ## 2026-10-20 — Legacy .env settings import command (awaiting WSL checkpoint)
 
 - Added `php artisan muasamcong:import-env-settings --dry-run` and explicit write command `php artisan muasamcong:import-env-settings`. In Production, writing also requires `--force` **and separate approved Production procedure**; never execute Production import based only on this handoff.
