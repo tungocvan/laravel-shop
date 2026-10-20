@@ -1,5 +1,5 @@
 @extends('Admin::layouts.master')
-@section('title', 'System Center')
+@section('title', 'System Operations · System Center')
 @section('content')
 <div class="container mx-auto px-4 py-6" x-data="{
     activeTab: @js($activeTab),
@@ -19,7 +19,7 @@
         <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
                 <p class="text-xs font-semibold uppercase tracking-widest text-indigo-600">System Center</p>
-                <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-950">Vận hành & Cấu hình hệ thống</h1>
+                <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-950">System Operations · Vận hành & Cấu hình hệ thống</h1>
                 <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
                     Một workspace cho các tác vụ runtime và cấu hình hạ tầng, với quyền truy cập độc lập theo chức năng.
                 </p>
