@@ -1,3 +1,14 @@
+## Batch B Chat consumer cutover — pending test checkpoint (2026-10-20)
+
+- Read-only `git grep` inventory from operator identified three Laravel Chat HTTP broadcast call sites using legacy `services.nodejs.url` and `services.nodejs.bridge_secret`.
+- Updated `Modules/Chat/Services/ChatService.php` and both paths in `InternalChatService.php` to consume `AdvancedConfigService::serverCredentials()`; preserved existing HTTP request payload, endpoint, headers and timeouts. Missing DB secret skips the HTTP call with a non-sensitive warning.
+- Added `tests/Feature/Chat/ChatBridgeDatabaseSettingsTest.php` for URL/header behavior and missing-secret guard. Focused tests, Chat/System/Realtime regression and UI are **pending** for this commit.
+- **Operational compatibility gate:** `socket/server.js` still requires `process.env.BRIDGE_SECRET_KEY` at startup. Laravel database secret must match Node process secret; changing the Laravel DB secret alone can cause HTTP 401. No automatic secret synchronization, restart or production changes.
+- `config/broadcasting.php` still declares a boot-time socket.io host and may have separate callers; no removal of env variables or config keys until usage and Node-side integration are verified.
+- Operator's `menu-prompt.sh` has local tracked modifications; do not overwrite/reset it.
+
+---
+
 ## Batch B partial checkpoint — Bridge consumer interface (2026-10-20)
 
 - Added server-only `AdvancedConfigService::serverCredentials()` for DB-backed URL + decrypted secret; empty secret remains unconfigured and must fail closed. No Livewire property exposes the secret.
