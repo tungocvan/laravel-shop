@@ -1,5 +1,13 @@
 # Muasamcong Module — Collaboration Handoff
 
+### 2026-10-20 — Module-owned DB settings implementation (awaiting WSL tests)
+
+- Added migration `2026_10_20_140000_create_muasamcong_settings_table.php` and `MuasamcongSettingsRepository`: allowlisted keys, encrypted token/cookie values, atomic DB save, config overlay at module provider boot; existing `config/muasamcong.php` and old environment values remain fallback until safely migrated.
+- ConfigManager save now targets database rather than writing `.env` or clearing config cache. Removed the environment-doctor panel from the config screen; retained underlying legacy service/tests for compatibility pending later deprecation. No `.env` deletion performed.
+- Admin UI keeps separate MOF pricing check and contractor token check, and MOF default fill action does not save automatically.
+- **Migration is required before DB settings save**. Existing effective config is still loaded if settings table is absent. Existing environment keys are not removed automatically. Never apply migrations to Production without reading `docs/PRODUCTION_DEBUG_PROMPT.md` from main and explicit user approval.
+- Focused tests **PENDING WSL**, module regression **PENDING**, UI **PENDING user confirmation**; PR/merge/deploy **NOT DONE**. Check DB config behavior, module-off boot behavior, and regression before PR.
+
 ## 2026-10-20 — Config UI diagnostics split (pending WSL gates)
 
 - Root cause: `ConfigManager::testToken()` invokes `MuaSamCongService::testSmartToken()` which uses `muasamcong.endpoints.contractor_search` on MPI, **not** Smart Pricing on MOF. The observed HTTP 302 from the token check does not prove the pricing endpoint is broken or that the contractor endpoint should be migrated.
