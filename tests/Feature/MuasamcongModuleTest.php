@@ -111,7 +111,7 @@ class MuasamcongModuleTest extends TestCase
 
     public function test_transitional_url_validator_rejects_unsafe_urls(): void
     {
-        $validator = app(\\Modules\\Muasamcong\\Services\\MuasamcongUrlValidator::class);
+        $validator = app(\Modules\Muasamcong\Services\MuasamcongUrlValidator::class);
 
         $this->assertTrue($validator->isApproved('https://muasamcong.mpi.gov.vn/'));
         $this->assertTrue($validator->isApproved('https://muasamcong.mof.gov.vn/o/search_prc'));
