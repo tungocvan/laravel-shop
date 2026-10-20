@@ -1,3 +1,13 @@
+## Batch E — consumer inventory gate and focused-test confirmation (2026-10-20)
+
+- Operator confirmed Batch D focused contract test: **3 passed, 18 assertions, 1.10 seconds**; `git diff --check` clean. Only local `M menu-prompt.sh` remains; do not modify it.
+- GitHub code search returned no indexed results even for known configuration literals; this is **not evidence of absent consumers**. Obtain a full local tracked-file `git grep` inventory before removing legacy MoMo/NodeJS/broadcasting configuration.
+- Current GitHub compare reports branch ahead 67 / behind 0; PR #320 remains Draft. Mergeability status was inconsistent across checks and must be reviewed before requesting merge.
+- **Next checkpoint is read-only:** use `git grep -n -I -E 'MOMO_(ENDPOINT|PARTNER_CODE|ACCESS_KEY|SECRET_KEY)|momo\\.(endpoint|partner_code|access_key|secret_key)|services\\.nodejs|NODEJS_SERVER_URL|BRIDGE_SECRET_KEY|BROADCAST_CONNECTION|socket\\.io' -- ':!docs/**' ':!tests/**' ':!*.lock'` to enumerate tracked source consumers. Review findings before modifying runtime.
+- No code-runtime changes in this batch, no tests required for documentation-only update, no production changes and no merge authorized.
+
+---
+
 ## Batch D — NodeJS bridge runtime contract regression guard (2026-10-20)
 
 - Added a focused assertion to `AdvancedDatabaseSettingsContractTest` that protects `compose.yaml` socket `env_file: .env`, NodeJS `process.env.BRIDGE_SECRET_KEY` and `x-bridge-secret` usage, and `BRIDGE_SECRET_KEY=` presence in both example env files.
