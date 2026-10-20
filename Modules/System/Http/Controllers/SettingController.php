@@ -23,7 +23,7 @@ class SettingController extends Controller
             'Dữ liệu & Sao lưu' => [
                 ['label' => 'Database Manager', 'description' => 'Cơ sở dữ liệu, sao lưu và khôi phục có kiểm soát.', 'route' => 'admin.system.database.index', 'permission' => 'database.view', 'icon' => 'database'],
             ],
-            'Giao diện & Truy cập' => [
+            'Quản trị truy cập' => [
                 ['label' => 'Admin Layout', 'description' => 'Bố cục, header, sidebar, footer và điều hướng Admin.', 'route' => 'admin.layout', 'permission' => 'admin.layout.view', 'icon' => 'layout'],
                 ['label' => 'Giao diện & Đăng nhập', 'description' => 'Branding, đăng nhập và điều hướng sau đăng nhập.', 'route' => 'admin.system.settings.login-theme', 'permission' => 'system.settings.view', 'icon' => 'palette'],
             ],
