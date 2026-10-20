@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Services\RealtimeManager;
+use Modules\System\Services\Env\AdvancedConfigService;
 use Tests\TestCase;
 
 class RealtimeBrowserConfigTest extends TestCase
@@ -31,18 +32,18 @@ class RealtimeBrowserConfigTest extends TestCase
     {
         $originalEnvironment = app()->environment();
         $originalPublicUrl = config('services.nodejs.public_url');
-        $originalServerUrl = config('services.nodejs.url');
 
         try {
             app()->instance('env', $environment);
             config()->set('services.nodejs.public_url', $publicUrl);
-            config()->set('services.nodejs.url', $serverUrl);
+            $advanced = $this->mock(AdvancedConfigService::class);
+            $advanced->shouldReceive('serverUrl')->once()->andReturn($serverUrl);
 
             $this->assertSame($expected, app(RealtimeManager::class)->browserConfig()['url']);
         } finally {
             app()->instance('env', $originalEnvironment);
             config()->set('services.nodejs.public_url', $originalPublicUrl);
-            config()->set('services.nodejs.url', $originalServerUrl);
+            app()->forgetInstance(AdvancedConfigService::class);
         }
     }
 }
