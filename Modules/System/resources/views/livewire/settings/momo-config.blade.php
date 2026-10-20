@@ -13,6 +13,6 @@
 
     <div class="mt-10 flex gap-4">
         <button wire:click="testEndpoint" wire:loading.attr="disabled" wire:target="testEndpoint" @disabled(!$canUpdate) class="px-6 py-3 bg-gray-100 font-bold rounded-xl disabled:opacity-50">Test Connection</button>
-        <button wire:click="save" wire:confirm="Lưu thay đổi cấu hình MoMo vào .env?" wire:loading.attr="disabled" wire:target="save" @disabled(!$canUpdate) class="px-10 py-3 bg-pink-600 text-white font-bold rounded-xl disabled:opacity-50">Lưu cấu hình MoMo</button>
+        <button wire:click="save" wire:confirm="Lưu cấu hình MoMo vào cơ sở dữ liệu?" wire:loading.attr="disabled" wire:target="save" @disabled(!$canUpdate) class="px-10 py-3 bg-pink-600 text-white font-bold rounded-xl disabled:opacity-50">Lưu cấu hình MoMo</button>
     </div>
 </div>
