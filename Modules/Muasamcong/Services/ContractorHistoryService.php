@@ -112,24 +112,27 @@ class ContractorHistoryService
             throw new RuntimeException('Chưa cấu hình Personal Page Session.');
         }
 
+        $endpoint = $this->endpoint();
+        $origin = parse_url($endpoint, PHP_URL_SCHEME).'://'.parse_url($endpoint, PHP_URL_HOST);
+
         return Http::withHeaders([
             'Accept' => 'application/json, text/plain, */*',
             'Content-Type' => 'application/json',
-            'Origin' => config('muasamcong.origin'),
+            'Origin' => $origin,
             'Referer' => config('muasamcong.referers.contractor_joined_bids'),
             'User-Agent' => config('muasamcong.user_agent'),
             'Cookie' => $cookie,
         ])->timeout((int) config('muasamcong.timeout', 20))
-            ->withOptions(['verify' => (bool) config('muasamcong.verify_ssl', true)]);
+            ->withOptions([
+                'verify' => app()->environment('production') ? true : (bool) config('muasamcong.verify_ssl', true),
+                'allow_redirects' => false,
+            ]);
     }
 
     private function endpoint(): string
     {
         $endpoint = (string) config('muasamcong.endpoints.contractor_joined_bids');
-        $host = parse_url($endpoint, PHP_URL_HOST);
-        $scheme = parse_url($endpoint, PHP_URL_SCHEME);
-
-        if ($scheme !== 'https' || ! hash_equals((string) config('muasamcong.allowed_host'), (string) $host)) {
+        if (! app(MuasamcongUrlValidator::class)->isApproved($endpoint)) {
             throw new RuntimeException('Endpoint lịch sử nhà thầu không được phép.');
         }
 

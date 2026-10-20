@@ -15,6 +15,20 @@ use Tests\TestCase;
 
 class MuasamcongModuleTest extends TestCase
 {
+    public function test_config_displays_separate_pricing_and_contractor_token_checks(): void
+    {
+        Livewire::test(ConfigManager::class)
+            ->assertSee('Kiểm tra Smart Pricing')
+            ->assertSee('Kiểm tra token nhà thầu')
+            ->assertSee('Điền cấu hình MOF chuẩn');
+    }
+
+    public function test_config_pricing_actions_require_privileged_admin_capability(): void
+    {
+        Livewire::test(ConfigManager::class)->call('restorePricingDefaults')->assertForbidden();
+        Livewire::test(ConfigManager::class)->call('testPricing')->assertForbidden();
+    }
+
     public function test_config_ui_does_not_hydrate_token_or_cookie_into_livewire_state(): void
     {
         config([
@@ -319,6 +333,42 @@ class MuasamcongModuleTest extends TestCase
         $this->assertFalse($result['success']);
         $this->assertSame(503, $result['status']);
         $this->assertStringNotContainsString('https://', $result['message']);
+    }
+
+    public function test_hsmt_posts_to_mof_default_without_following_redirects(): void
+    {
+        config([
+            'muasamcong.smart_token' => 'temporary-test-token',
+            'muasamcong.endpoints.contractor_search' => 'https://muasamcong.mof.gov.vn/o/egp-portal-contractor-selection-v2/services/smart/search',
+        ]);
+
+        Http::fake(['*' => Http::response(['page' => ['totalElements' => 0, 'content' => []]], 200)]);
+
+        $result = app(MuaSamCongService::class)
+            ->searchHsmt('thuốc', '2026-10-01', '2026-10-20');
+
+        $this->assertTrue($result['success']);
+        Http::assertSent(function (ClientRequest $request): bool {
+            return str_starts_with($request->url(), 'https://muasamcong.mof.gov.vn/o/egp-portal-contractor-selection-v2/services/smart/search')
+                && $request->method() === 'POST';
+        });
+    }
+
+    public function test_hsmt_mof_http_400_is_reported_without_exposing_request_details(): void
+    {
+        config([
+            'muasamcong.smart_token' => 'temporary-test-token',
+            'muasamcong.endpoints.contractor_search' => 'https://muasamcong.mof.gov.vn/o/egp-portal-contractor-selection-v2/services/smart/search',
+        ]);
+
+        Http::fake(['*' => Http::response(['message' => 'invalid request'], 400)]);
+
+        $result = app(MuaSamCongService::class)
+            ->searchHsmt('thuốc', '2026-10-01', '2026-10-20');
+
+        $this->assertFalse($result['success']);
+        $this->assertSame(400, $result['status']);
+        $this->assertStringNotContainsString('temporary-test-token', $result['message']);
     }
 
     public function test_hsmt_without_smart_token_returns_a_safe_error(): void

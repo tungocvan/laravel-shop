@@ -22,7 +22,7 @@ start "" "%CHROME%" ^
   --remote-debugging-port=%PORT% ^
   --remote-allow-origins=http://127.0.0.1:%PORT% ^
   --user-data-dir="%PROFILE%" ^
-  "https://muasamcong.mpi.gov.vn/web/guest/profile-info"
+  "https://muasamcong.mof.gov.vn/web/guest/profile-info"
 
 echo.
 echo ============================================================

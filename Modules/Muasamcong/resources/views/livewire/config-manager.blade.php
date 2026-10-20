@@ -56,6 +56,22 @@
                 </span>
             </label>
 
+            @if (strtolower((string) parse_url((string) $form['pricing_endpoint'], PHP_URL_HOST)) !== 'muasamcong.mof.gov.vn'
+                || strtolower((string) parse_url((string) $form['pricing_referer'], PHP_URL_HOST)) !== 'muasamcong.mof.gov.vn')
+                <div role="alert" class="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 md:col-span-2">
+                    Cấu hình Smart Pricing chưa sử dụng đầy đủ host MOF. Endpoint MPI cũ có thể trả HTTP 302. Hãy kiểm tra trước khi lưu.
+                </div>
+            @endif
+            <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 md:col-span-2">
+                <div>
+                    <p class="text-sm font-semibold text-indigo-900">Kết nối Smart Pricing (MOF)</p>
+                    <p class="text-xs text-indigo-800">Kiểm tra sử dụng cấu hình hiện đang hoạt động trên server, không sử dụng thay đổi chưa lưu trong biểu mẫu.</p>
+                </div>
+                <button type="button" wire:click="restorePricingDefaults"
+                    class="min-h-11 rounded-xl border border-indigo-300 bg-white px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-100">
+                    Điền cấu hình MOF chuẩn
+                </button>
+            </div>
             <div class="md:col-span-2">
                 <label for="msc-pricing-endpoint" class="text-sm font-medium text-gray-700">MUASAMCONG_PRICING_ENDPOINT</label>
                 <input id="msc-pricing-endpoint" type="url" wire:model="form.pricing_endpoint" autocomplete="off"
@@ -108,6 +124,12 @@
                 @error('form.session_cookie') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
             </div>
 
+            @if ($pricingTestMessage !== '')
+                <div role="status" class="rounded-xl border px-4 py-3 text-sm md:col-span-2 {{ $pricingTestStatus === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : ($pricingTestStatus === 'error' ? 'border-red-200 bg-red-50 text-red-700' : 'border-indigo-200 bg-indigo-50 text-indigo-700') }}">
+                    {{ $pricingTestMessage }}
+                </div>
+            @endif
+
             @if ($tokenTestMessage !== '')
                 <div role="status"
                     class="rounded-xl border px-4 py-3 text-sm md:col-span-2 {{ $tokenTestStatus === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-red-200 bg-red-50 text-red-700' }}">
@@ -116,10 +138,15 @@
             @endif
 
             <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end md:col-span-2">
+                <button type="button" wire:click="testPricing" wire:loading.attr="disabled" wire:target="testPricing,save"
+                    class="inline-flex min-h-11 items-center justify-center rounded-xl border border-emerald-200 bg-white px-5 py-3 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-50">
+                    <span wire:loading.remove wire:target="testPricing">Kiểm tra Smart Pricing</span>
+                    <span wire:loading wire:target="testPricing">Đang kiểm tra…</span>
+                </button>
                 <button type="button" wire:click="testToken" wire:loading.attr="disabled"
                     wire:target="testToken,save"
                     class="inline-flex min-h-11 items-center justify-center rounded-xl border border-indigo-200 bg-white px-5 py-3 text-sm font-semibold text-indigo-700 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-50">
-                    <span wire:loading.remove wire:target="testToken">Kiểm tra token</span>
+                    <span wire:loading.remove wire:target="testToken">Kiểm tra token nhà thầu</span>
                     <span wire:loading wire:target="testToken">Đang kiểm tra…</span>
                 </button>
 

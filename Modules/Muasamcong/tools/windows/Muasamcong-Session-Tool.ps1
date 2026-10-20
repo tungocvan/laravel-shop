@@ -6,8 +6,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $ProfilePath = Join-Path $env:LOCALAPPDATA 'Muasamcong-CDP-Profile'
-$PortalUrl = 'https://muasamcong.mpi.gov.vn/web/guest/profile-info?p_p_id=egpportalpersonalpage_WAR_egpportalpersonalpage&p_p_lifecycle=0&p_p_state=normal&p_p_mode=view&_egpportalpersonalpage_WAR_egpportalpersonalpage_render=personalUrl&menu=tender-pakage-list'
-$CookieUrl = 'https://muasamcong.mpi.gov.vn/o/egp-portal-personal-page/services/get-list-notify-contractor-join'
+$PortalUrl = 'https://muasamcong.mof.gov.vn/web/guest/profile-info?p_p_id=egpportalpersonalpage_WAR_egpportalpersonalpage&p_p_lifecycle=0&p_p_state=normal&p_p_mode=view&_egpportalpersonalpage_WAR_egpportalpersonalpage_render=personalUrl&menu=tender-pakage-list'
+$CookieUrl = 'https://muasamcong.mof.gov.vn/o/egp-portal-personal-page/services/get-list-notify-contractor-join'
 
 function Get-ChromePath {
     $candidates = @(

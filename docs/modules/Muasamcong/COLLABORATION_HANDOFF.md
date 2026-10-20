@@ -1,4 +1,55 @@
+## 2026-10-20 — Contractor history MOF Origin regression (awaiting local tests)
+
+- Runtime check confirmed contractor_joined_bids endpoint and Referer resolve to muasamcong.mof.gov.vn, while global origin remains muasamcong.mpi.gov.vn. Route `/admin/muasamcong/contractors/history/{contractorSearch}` loads saved search; fresh search calls ContractorHistoryService.
+- ContractorHistoryService now derives the request-specific Origin from the validated history endpoint; global origin remains unchanged for other consumers. Existing history test now asserts MOF URL, Origin, Referer even when global origin is MPI.
+- Previous cleanup post-check: 10/10 DB overrides match effective config; focused cleanup tests 3 PASS / 12 assertions; user confirmed UI PASS. New code tests NOT YET RUN: focused, module regression and impacted regression pending user local execution. No PR merge or Production changes.
+
+## 2026-10-20 — Development .env cleanup verified (runtime recheck pending)
+
+- User reported module regression 85 PASS / 645 assertions; cleanup-focused tests 3 PASS / 12 assertions; manual UI PASS.
+- On local development, user backed up .env to .env.backup-before-muasamcong-cleanup (600, www-data:www-data), removed 10 migrated MUASAMCONG_* entries, and verified 10 ABSENT through read-only audit. MUASAMCONG_SESSION_COOKIE remains BLOCKED and was not removed.
+- .env remains 640 and www-data:www-data. Tracked working tree clean; untracked backups and public/hot.pharma-mobile intentionally retained. No Production changes.
+- Gate pending: independently verify all 10 DB overrides still match effective config after cleanup; only then review PR. No merge or deploy authorized.
+
+## 2026-10-20 — Legacy .env cleanup audit (WSL checkpoint pending)
+
+- User-confirmed gates from preceding checkpoint: focused 4 PASS / 12 assertions, module regression 84 PASS / 642 assertions, imported 9 settings with existing contractor override preserved, 10/10 effective DB configuration matches, Smart Pricing/contractor/Personal Session UI PASS.
+- Added read-only `php artisan muasamcong:audit-env-cleanup`: inspects 11 allowlisted env keys without printing values; reports ABSENT, CANDIDATE or BLOCKED based on DB row/decrypt/runtime match. Never modifies .env or DB; candidate is **not** deletion approval.
+- Before actual .env cleanup: audit all external readers/config cache/worker reload implications and verify safe rollback. No removal of .env keys, no Production changes, no merge. Focused tests for new audit command and subsequent module regression pending WSL.
+
+## 2026-10-20 — Legacy .env settings import command (awaiting WSL checkpoint)
+
+- Added `php artisan muasamcong:import-env-settings --dry-run` and explicit write command `php artisan muasamcong:import-env-settings`. In Production, writing also requires `--force` **and separate approved Production procedure**; never execute Production import based only on this handoff.
+- Reads local `.env` without modifying it, allowlists the 11 legacy `MUASAMCONG_*` keys, skips absent/empty keys and keys already in `muasamcong_settings`, validates approved HTTPS host and numeric bounds, encrypts `smart_token` and `session_cookie` via existing repository, and never prints values/secrets.
+- Does not overwrite the already saved `contractor_endpoint` MOF DB override. Any invalid candidate aborts before write. Dry-run performs no DB writes. Existing `.env` remains untouched pending effective-config verification and explicit manual cleanup.
+- Focused tests added: `tests/Feature/Muasamcong/ImportLegacySettingsTest.php`. **No WSL execution recorded yet**. Next checkpoint: pull, lint, focused tests, then module regression only after focused PASS. Inspect dry-run output before permitting any write. UI Session Tool acceptance remains PASS per user; no new UI modifications.
+
+## 2026-10-20 — Windows Personal Page Session Tool: MOF migration and UI acceptance
+
+- Branch: `feat/muasamcong-config-diagnostics-20261020`. Updated `Modules/Muasamcong/tools/windows/Muasamcong-Session-Tool.ps1` to use MOF for both Personal Page portal URL and cookie-scoping API URL; updated `Open-Muasamcong-Chrome.bat` to open MOF. ZIP download route remains `/admin/muasamcong/session-tool/windows`; no route or server-side cookie import contract changed.
+- Root cause of Windows failure: script previously filtered CDP cookies for MPI host, excluding MOF `JSESSIONID` after portal migration. Script still requires JSESSIONID; no weakening of cookie validation or Chrome CDP security.
+- User Windows menu 1 confirmed: **12 applicable cookies, 1 JSESSIONID**. User subsequently explicitly confirmed **UI PASS** for Windows Session workflow. Do not conflate user UI acceptance with independent Production deployment validation.
+- Updated module Windows README with download instructions, menu 1–4, token handling, troubleshooting, security and rollback guidance. No cookies, tokens, or private update URLs recorded in Git.
+- Pending gates: focused/module regression following latest script/docs commits not independently recorded; tracked-tree check, PR review and merge still pending. No Production deployment or .env deletion authorized. Separate approved work: safe `MUASAMCONG_*` .env → DB import command with dry-run/no override overwrite, not implemented in this checkpoint.
+
 # Muasamcong Module — Collaboration Handoff
+
+### 2026-10-20 — Module-owned DB settings implementation (awaiting WSL tests)
+
+- Added migration `2026_10_20_140000_create_muasamcong_settings_table.php` and `MuasamcongSettingsRepository`: allowlisted keys, encrypted token/cookie values, atomic DB save, config overlay at module provider boot; existing `config/muasamcong.php` and old environment values remain fallback until safely migrated.
+- ConfigManager save now targets database rather than writing `.env` or clearing config cache. Removed the environment-doctor panel from the config screen; retained underlying legacy service/tests for compatibility pending later deprecation. No `.env` deletion performed.
+- Admin UI keeps separate MOF pricing check and contractor token check, and MOF default fill action does not save automatically.
+- **Migration is required before DB settings save**. Existing effective config is still loaded if settings table is absent. Existing environment keys are not removed automatically. Never apply migrations to Production without reading `docs/PRODUCTION_DEBUG_PROMPT.md` from main and explicit user approval.
+- Focused tests **PENDING WSL**, module regression **PENDING**, UI **PENDING user confirmation**; PR/merge/deploy **NOT DONE**. Check DB config behavior, module-off boot behavior, and regression before PR.
+
+## 2026-10-20 — Config UI diagnostics split (pending WSL gates)
+
+- Root cause: `ConfigManager::testToken()` invokes `MuaSamCongService::testSmartToken()` which uses `muasamcong.endpoints.contractor_search` on MPI, **not** Smart Pricing on MOF. The observed HTTP 302 from the token check does not prove the pricing endpoint is broken or that the contractor endpoint should be migrated.
+- New UI actions: independent Smart Pricing check using **active server configuration** (read-only); explicitly named contractor-token check with 302 guidance; form-only MOF pricing endpoint/referer restoration requiring explicit Save.
+- Configuration status warning for non-MOF pricing form fields. No automatic redirect, SSL bypass, Production .env mutation or non-pricing endpoint migration.
+- .env reduction audit: existing module config still reads origin, TLS, timeout, user agent, tokens/cookies, endpoint/referer overrides, paging, and other contractor/KQLCNT endpoint keys. No existing .env key was deleted: deleting active overrides without verifying every runtime and deployment consumer is unsafe. Future optional-key cleanup requires separate usage audit and compatibility plan. Never automatically delete user .env lines.
+- Gates: focused tests PENDING WSL, module regression PENDING, UI PENDING user confirmation, PR/merge/deploy NOT DONE.
+
 
 ## 2026-10-20 — Smart Pricing MPI → MOF migration (local acceptance passed)
 

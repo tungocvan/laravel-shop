@@ -12,10 +12,14 @@ class ContractorHistoryTest extends TestCase
     {
         config()->set('muasamcong.session_cookie', 'JSESSIONID=test');
         config()->set('muasamcong.verify_ssl', true);
-        config()->set('muasamcong.endpoints.contractor_joined_bids', 'https://muasamcong.mpi.gov.vn/o/egp-portal-personal-page/services/get-list-notify-contractor-join');
-        config()->set('muasamcong.referers.contractor_joined_bids', 'https://muasamcong.mpi.gov.vn/web/guest/profile-info?menu=tender-pakage-list');
+        config()->set('muasamcong.endpoints.contractor_joined_bids', 'https://muasamcong.mof.gov.vn/o/egp-portal-personal-page/services/get-list-notify-contractor-join');
+        config()->set('muasamcong.referers.contractor_joined_bids', 'https://muasamcong.mof.gov.vn/web/guest/profile-info?menu=tender-pakage-list');
+        config()->set('muasamcong.origin', 'https://muasamcong.mpi.gov.vn');
 
         Http::fake(function ($request) {
+            $this->assertSame('muasamcong.mof.gov.vn', parse_url($request->url(), PHP_URL_HOST));
+            $this->assertSame('https://muasamcong.mof.gov.vn', $request->header('Origin')[0] ?? null);
+            $this->assertStringStartsWith('https://muasamcong.mof.gov.vn/', $request->header('Referer')[0] ?? '');
             $payload = $request->data();
             $page = $payload['pageNumber'];
 
