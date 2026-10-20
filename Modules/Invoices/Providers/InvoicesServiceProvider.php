@@ -7,6 +7,7 @@ use Illuminate\Support\ServiceProvider;
 use Modules\Invoices\Console\Commands\BackupInvoiceFilesCommand;
 use Modules\Invoices\Console\Commands\DiagnoseGdtAuthenticationCommand;
 use Modules\Invoices\Console\Commands\RecoverGdtDuplicatesCommand;
+use Modules\Invoices\Console\Commands\ImportLegacyGdtSettingsCommand;
 use Modules\Invoices\Services\GdtConfigService;
 use Throwable;
 
@@ -33,6 +34,7 @@ class InvoicesServiceProvider extends ServiceProvider
                 BackupInvoiceFilesCommand::class,
                 DiagnoseGdtAuthenticationCommand::class,
                 RecoverGdtDuplicatesCommand::class,
+                ImportLegacyGdtSettingsCommand::class,
             ]);
 
             $this->publishes([
