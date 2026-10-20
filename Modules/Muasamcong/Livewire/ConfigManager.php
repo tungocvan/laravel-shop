@@ -128,7 +128,7 @@ class ConfigManager extends Component
             'page_size' => (string) $validated['form']['page_size'],
         ];
 
-        $validator = app(\\Modules\\Muasamcong\\Services\\MuasamcongUrlValidator::class);
+        $validator = app(\Modules\Muasamcong\Services\MuasamcongUrlValidator::class);
         foreach (['origin', 'pricing_endpoint', 'contractor_endpoint', 'portal_referer', 'pricing_referer'] as $key) {
             if (! $validator->isApproved($values[$key])) {
                 $this->addError('form.'.$key, 'Chỉ chấp nhận HTTPS và host Mua sắm công được phê duyệt.');
