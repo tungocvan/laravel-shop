@@ -1,3 +1,13 @@
+## Batch D — NodeJS bridge runtime contract regression guard (2026-10-20)
+
+- Added a focused assertion to `AdvancedDatabaseSettingsContractTest` that protects `compose.yaml` socket `env_file: .env`, NodeJS `process.env.BRIDGE_SECRET_KEY` and `x-bridge-secret` usage, and `BRIDGE_SECRET_KEY=` presence in both example env files.
+- This is a regression guard for current architecture, not a migration to Docker Secrets. No runtime source, real `.env`, or production changes.
+- Operator's prior `git grep` was limited to PHP globs and cannot prove repository-wide absence of consumers; continue read-only inventory before deleting legacy config.
+- PR #320 remains Draft and unmerged; GitHub reported mergeable at audit time. Run **only** `AdvancedDatabaseSettingsContractTest` as the focused checkpoint; broader regression reserved for impacted changes or pre-merge review.
+- Focused TEST PASS pending operator execution. Unrelated local `menu-prompt.sh` modification must remain untouched.
+
+---
+
 ## PR #320 read-only compatibility review — 2026-10-20
 
 - Inspected `config/broadcasting.php`: legacy `socket.io` connection still uses `env('NODEJS_SERVER_URL')` with historical fallback; do not delete it without verifying broadcast driver registration and all consumers.
