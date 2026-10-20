@@ -2,6 +2,10 @@
 
 Bộ công cụ này giảm thao tác copy Cookie thủ công khi Personal Page Session hết hạn.
 
+## Endpoint portal hiện tại
+
+Windows helper mở Personal Page trên `https://muasamcong.mof.gov.vn` và chỉ lấy cookie áp dụng cho API Personal Page trên cùng host MOF. Nếu SSO chuyển sang trang đăng nhập, người dùng cần đăng nhập thủ công trước khi thử làm mới session. Tool không tự chuyển cookie MPI sang MOF.
+
 ## Cơ chế
 
 Mua sắm công có nhiều lớp session. Cookie Keycloak/SSO có thể còn hiệu lực trong khi portal `JSESSIONID` dùng cho Personal Page API đã hết hạn. Vì vậy có trường hợp API lịch sử nhà thầu báo hết session nhưng khi mở lại Mua sắm công, trình duyệt vào thẳng mà không cần nhập lại tài khoản.
