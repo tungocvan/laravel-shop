@@ -113,6 +113,16 @@
             </div>
         </header>
 
+        @if (($dashboard->capabilities['settings_view'] ?? false))
+            <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+                <div>
+                    <p class="text-sm font-semibold text-slate-900">Danh mục quản trị</p>
+                    <p class="mt-1 text-xs text-slate-500">Mở System Administration Hub để xem toàn bộ chức năng theo quyền.</p>
+                </div>
+                <a href="{{ route('admin.system.settings.index') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">Mở System Hub →</a>
+            </div>
+        @endif
+
         <section aria-labelledby="system-summary-heading">
             <h2 id="system-summary-heading" class="sr-only">Tóm tắt hệ thống</h2>
             <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -147,8 +157,8 @@
             </div>
         </section>
 
-        <div class="grid gap-8 xl:grid-cols-[minmax(0,1fr)_320px]">
-            <div class="space-y-8">
+        <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+            <div class="space-y-6">
                 @foreach (['Vận hành', 'Dữ liệu & Khôi phục', 'Cấu hình hạ tầng', 'Quản trị truy cập', 'Công cụ kỹ thuật'] as $category)
                     @php $items = $workspaceGroups->get($category, collect()); @endphp
                     @continue($items->isEmpty())
@@ -158,10 +168,10 @@
                             <h2 id="workspace-{{ \Illuminate\Support\Str::slug($category) }}" class="text-lg font-semibold text-slate-900">{{ $category }}</h2>
                             <p class="mt-1 text-sm leading-6 text-slate-500">{{ $categoryDescriptions[$category] ?? '' }}</p>
                         </div>
-                        <div class="grid gap-4 md:grid-cols-2">
+                        <div class="grid gap-3 md:grid-cols-2">
                             @foreach ($items as $workspace)
                                 <a href="{{ $workspaceUrls[$workspace['code']] }}"
-                                   class="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-indigo-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                                   class="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-indigo-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
                                     <div class="flex items-start justify-between gap-4">
                                         <div>
                                             <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">{{ $workspace['category'] }}</p>
@@ -178,12 +188,12 @@
             </div>
 
             <aside class="min-w-0" aria-labelledby="system-status-heading">
-                <div class="sticky top-4">
+                <div class="xl:sticky xl:top-4">
                     <div class="mb-4">
                         <h2 id="system-status-heading" class="text-lg font-semibold text-slate-900">Subsystem health</h2>
                         <p class="mt-1 text-sm text-slate-500">Read-only, sanitized.</p>
                     </div>
-                    <div class="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div class="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-2 xl:grid-cols-1">
                         @foreach ($dashboard->subsystems as $code => $subsystem)
                             @continue(! $subsystem['visible'])
                             <article class="rounded-xl bg-slate-50 p-4">
