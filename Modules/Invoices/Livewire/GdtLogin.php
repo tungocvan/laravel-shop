@@ -3,7 +3,6 @@
 namespace Modules\Invoices\Livewire;
 
 use Illuminate\Contracts\View\View;
-use Illuminate\Support\Facades\Artisan;
 use Livewire\Component;
 use Modules\Invoices\Services\GdtApiService;
 use Modules\Invoices\Services\GdtConfigService;
@@ -41,14 +40,6 @@ class GdtLogin extends Component
     public function mount(GdtConfigService $configService): void
     {
         $this->authorizePermission('invoices-configure');
-
-        try {
-            if ($configService->ensureDefaults()) {
-                Artisan::call('config:clear');
-            }
-        } catch (Throwable) {
-            session()->flash('error', 'Không thể tự động bổ sung các biến GDT_* vào file .env.');
-        }
 
         $this->gdtConfig = [
             'base_url' => (string) config('invoices.gdt.base_url'),
@@ -120,9 +111,8 @@ class GdtLogin extends Component
         try {
             $configService->update($values);
             $this->service->forgetToken();
-            Artisan::call('config:clear');
         } catch (Throwable) {
-            session()->flash('error', 'Không thể lưu cấu hình GDT. Vui lòng kiểm tra quyền ghi file .env.');
+            session()->flash('error', 'Không thể lưu cấu hình GDT vào database. Vui lòng kiểm tra migration và kết nối database.');
 
             return;
         }
