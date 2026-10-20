@@ -20,6 +20,13 @@ class SystemController extends Controller
         $registry = app(ComponentRegistry::class);
 
         $runtimeTabs = $canManage ? $configService->getTabs() : [];
+        if ($canViewEnv) {
+            // Show shared Mail/Database forms once, in Environment & Integrations.
+            $runtimeTabs = array_values(array_filter(
+                $runtimeTabs,
+                fn (array $tab): bool => ! in_array($tab['id'] ?? null, ['mail', 'database'], true)
+            ));
+        }
 
         // Environment access must not implicitly grant runtime operations.
         $environmentTabs = $canViewEnv ? [
