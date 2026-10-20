@@ -260,3 +260,16 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - Targeted Pint completed; the only local changes reported were import ordering in `Modules/Invoices/routes/web.php` and quote normalization in `InvoicePartnerSyncDashboardContractTest.php`. Those exact formatting changes are committed to this branch.
 - No additional regression run is required for the formatting-only synchronization.
 - Feature scope is ready for PR/merge closeout.
+
+
+## 2026-10-20 — GDT database-owned settings (implementation checkpoint)
+
+- Branch: `feat/invoices-gdt-db-settings-20261020`, based on `eab2def58`.
+- Added module-owned `invoice_gdt_settings` migration and DB-backed `GdtConfigService`; encrypted GDT password, no .env writes.
+- Provider hydrates `invoices.gdt.*` for existing API, invoice, PDF and recovery consumers; legacy config remains a transitional fallback until separately approved cleanup.
+- Admin GdtLogin save no longer runs `config:clear` or modifies .env.
+- Added `invoices:gdt-settings-import --dry-run` for non-overwriting legacy import; no values printed.
+- Rollout and rollback: `docs/modules/Invoices/GDT_SETTINGS_MIGRATION_CHECKPOINT.md`.
+- **Gate:** Local focused tests NOT RUN, module regression NOT RUN, impacted tests NOT RUN, UI NOT VERIFIED. Do not merge or deploy. Database migration/import and .env cleanup require a separate approval checkpoint.
+
+- Follow-up commit: preserve password when Livewire nullable password field is absent; four advanced GDT tuning defaults no longer read GDT_* env variables. Await fresh focused/module tests after pulling.

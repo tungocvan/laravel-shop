@@ -2,104 +2,80 @@
 
 namespace Modules\Invoices\Services;
 
-use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 
 class GdtConfigService
 {
-    private const ENV_KEYS = [
-        'GDT_API_BASE_URL',
-        'GDT_API_USERNAME',
-        'GDT_API_PASSWORD',
-        'GDT_API_VERIFY_SSL',
-        'GDT_API_TIMEOUT',
-        'GDT_TOKEN_TTL',
-        'GDT_TOKEN_CACHE_KEY',
-    ];
-
-    private const DEFAULTS = [
-        'GDT_API_BASE_URL' => 'https://hoadondientu.gdt.gov.vn/api',
-        'GDT_API_USERNAME' => '',
-        'GDT_API_PASSWORD' => '',
-        'GDT_API_VERIFY_SSL' => 'true',
-        'GDT_API_TIMEOUT' => '15',
-        'GDT_TOKEN_TTL' => '36000',
-        'GDT_TOKEN_CACHE_KEY' => 'gdt_token',
+    public const KEYS = [
+        'GDT_API_BASE_URL' => 'base_url',
+        'GDT_API_USERNAME' => 'username',
+        'GDT_API_PASSWORD' => 'password',
+        'GDT_API_VERIFY_SSL' => 'verify_ssl',
+        'GDT_API_TIMEOUT' => 'timeout',
+        'GDT_TOKEN_TTL' => 'token_ttl',
+        'GDT_TOKEN_CACHE_KEY' => 'cache_key',
     ];
 
     public function ensureDefaults(): bool
     {
-        $envPath = base_path('.env');
+        return false;
+    }
 
-        if (! File::isFile($envPath) || ! File::isWritable($envPath)) {
-            throw new RuntimeException('File .env không tồn tại hoặc không có quyền ghi.');
+    public function hydrate(): void
+    {
+        if (! Schema::hasTable('invoice_gdt_settings')) {
+            return;
         }
 
-        $content = (string) File::get($envPath);
-        $missing = array_filter(
-            self::DEFAULTS,
-            fn (string $value, string $key): bool => preg_match(
-                '/^'.preg_quote($key, '/').'\\s*=/m',
-                $content
-            ) !== 1,
-            ARRAY_FILTER_USE_BOTH
-        );
+        foreach (DB::table('invoice_gdt_settings')->get(['key', 'value']) as $row) {
+            if (! isset(self::KEYS[$row->key])) {
+                continue;
+            }
 
-        if ($missing === []) {
-            return false;
+            $value = $row->key === 'GDT_API_PASSWORD'
+                ? Crypt::decryptString($row->value)
+                : $row->value;
+
+            if ($row->key === 'GDT_API_VERIFY_SSL') {
+                $value = $value === 'true';
+            } elseif (in_array($row->key, ['GDT_API_TIMEOUT', 'GDT_TOKEN_TTL'], true)) {
+                $value = (int) $value;
+            }
+
+            config()->set('invoices.gdt.'.self::KEYS[$row->key], $value);
         }
-
-        $this->update($missing);
-
-        return true;
     }
 
     public function update(array $values): void
     {
-        $envPath = base_path('.env');
-
-        if (! File::isFile($envPath) || ! File::isWritable($envPath)) {
-            throw new RuntimeException('File .env không tồn tại hoặc không có quyền ghi.');
+        if (! Schema::hasTable('invoice_gdt_settings')) {
+            throw new RuntimeException('Chưa có bảng invoice_gdt_settings.');
         }
 
-        $content = (string) File::get($envPath);
+        if (array_diff(array_keys($values), array_keys(self::KEYS))) {
+            throw new RuntimeException('Khóa cấu hình GDT không hợp lệ.');
+        }
 
-        foreach (self::ENV_KEYS as $key) {
-            if (! array_key_exists($key, $values)) {
-                continue;
+        DB::transaction(function () use ($values): void {
+            foreach ($values as $key => $value) {
+                $value = (string) $value;
+                if (str_contains($value, "\n") || str_contains($value, "\r")) {
+                    throw new RuntimeException('Giá trị cấu hình GDT không hợp lệ.');
+                }
+
+                DB::table('invoice_gdt_settings')->updateOrInsert(
+                    ['key' => $key],
+                    [
+                        'value' => $key === 'GDT_API_PASSWORD' ? Crypt::encryptString($value) : $value,
+                        'updated_at' => now(),
+                    ]
+                );
             }
+        });
 
-            $value = (string) $values[$key];
-
-            if (str_contains($value, "\n") || str_contains($value, "\r")) {
-                throw new RuntimeException("Giá trị {$key} không hợp lệ.");
-            }
-
-            $line = $key.'='.$this->quote($value);
-            $pattern = '/^'.preg_quote($key, '/').'\\s*=.*$/m';
-
-            if (preg_match($pattern, $content) === 1) {
-                $content = (string) preg_replace($pattern, $line, $content, 1);
-            } else {
-                $content = rtrim($content).PHP_EOL.$line.PHP_EOL;
-            }
-        }
-
-        if (File::put($envPath, $content, true) === false) {
-            throw new RuntimeException('Không thể cập nhật file .env.');
-        }
-    }
-
-    private function quote(string $value): string
-    {
-        if ($value === '') {
-            return '';
-        }
-
-        if (preg_match('/\\s|#|"|=/', $value) === 1) {
-            return '"'.addcslashes($value, '\\"').'"';
-        }
-
-        return $value;
+        $this->hydrate();
     }
 }
