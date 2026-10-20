@@ -15,6 +15,40 @@ use Tests\TestCase;
 
 class MuasamcongModuleTest extends TestCase
 {
+    public function test_config_displays_separate_pricing_and_contractor_token_checks(): void
+    {
+        Livewire::test(ConfigManager::class)
+            ->assertSee('Kiểm tra Smart Pricing')
+            ->assertSee('Kiểm tra token nhà thầu')
+            ->assertSee('Điền cấu hình MOF chuẩn');
+    }
+
+    public function test_config_pricing_default_restore_only_updates_form_without_writing_env(): void
+    {
+        Artisan::spy();
+
+        Livewire::test(ConfigManager::class)
+            ->set('form.pricing_endpoint', 'https://muasamcong.mpi.gov.vn/old')
+            ->set('form.pricing_referer', 'https://muasamcong.mpi.gov.vn/old')
+            ->call('restorePricingDefaults')
+            ->assertSet('form.pricing_endpoint', 'https://muasamcong.mof.gov.vn/o/egp-portal-personal-page/services/smart/search_prc')
+            ->assertSet('form.pricing_referer', 'https://muasamcong.mof.gov.vn/web/guest/profile-info?menu=bid-pricing');
+
+        Artisan::shouldNotHaveReceived('call');
+    }
+
+    public function test_pricing_diagnostic_checks_active_pricing_api_not_contractor_api(): void
+    {
+        config(['muasamcong.endpoints.pricing' => 'https://muasamcong.mof.gov.vn/o/egp-portal-personal-page/services/smart/search_prc']);
+        Http::fake(['*' => Http::response(['page' => ['totalElements' => 0, 'content' => []]], 200)]);
+
+        Livewire::test(ConfigManager::class)
+            ->call('testPricing')
+            ->assertSet('pricingTestStatus', 'success');
+
+        Http::assertSent(fn (ClientRequest $request): bool => str_contains($request->url(), 'muasamcong.mof.gov.vn'));
+    }
+
     public function test_config_ui_does_not_hydrate_token_or_cookie_into_livewire_state(): void
     {
         config([
