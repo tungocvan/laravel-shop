@@ -42,6 +42,10 @@ class ConfigManager extends Component
 
     public string $personalSessionCookie = '';
 
+    public string $pricingTestStatus = '';
+
+    public string $pricingTestMessage = '';
+
     public string $tokenTestStatus = '';
 
     public string $tokenTestMessage = '';
@@ -233,6 +237,35 @@ class ConfigManager extends Component
         $this->runPersonalSessionVerification($history, $personalSessions, true);
     }
 
+    public function restorePricingDefaults(): void
+    {
+        $this->authorizeManageConfig();
+
+        $this->form['pricing_endpoint'] = 'https://muasamcong.mof.gov.vn/o/egp-portal-personal-page/services/smart/search_prc';
+        $this->form['pricing_referer'] = 'https://muasamcong.mof.gov.vn/web/guest/profile-info?menu=bid-pricing';
+        $this->pricingTestStatus = '';
+        $this->pricingTestMessage = 'Đã điền giá trị MOF chuẩn vào biểu mẫu. Chưa lưu cấu hình; hãy kiểm tra và bấm Lưu cấu hình khi sẵn sàng.';
+    }
+
+    public function testPricing(MuaSamCongService $service): void
+    {
+        $this->authorizeManageConfig();
+        $this->pricingTestStatus = '';
+        $this->pricingTestMessage = '';
+
+        $result = $service->searchPricing('paracetamol');
+
+        if ($result['success'] ?? false) {
+            $this->pricingTestStatus = 'success';
+            $this->pricingTestMessage = 'Smart Pricing phản hồi hợp lệ từ cấu hình đang hoạt động trên server.';
+
+            return;
+        }
+
+        $this->pricingTestStatus = 'error';
+        $this->pricingTestMessage = 'Kiểm tra Smart Pricing thất bại: '.($result['message'] ?? 'Không có phản hồi hợp lệ.');
+    }
+
     public function testToken(MuaSamCongService $service): void
     {
         $this->authorizeManageConfig();
@@ -259,7 +292,7 @@ class ConfigManager extends Component
         }
 
         $this->tokenTestStatus = 'error';
-        $this->tokenTestMessage = $result['message'] ?? 'Token không hợp lệ hoặc đã hết hạn.';
+        $this->tokenTestMessage = 'Kiểm tra token qua API tìm kiếm nhà thầu ('.(string) parse_url((string) config('muasamcong.endpoints.contractor_search'), PHP_URL_HOST).') thất bại: '.($result['message'] ?? 'Không có phản hồi hợp lệ.').' Đây không phải kiểm tra Smart Pricing.';
     }
 
     public function render(): View
