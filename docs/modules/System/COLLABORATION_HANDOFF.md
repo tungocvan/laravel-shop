@@ -1,3 +1,15 @@
+## PR #320 read-only compatibility review — 2026-10-20
+
+- Inspected `config/broadcasting.php`: legacy `socket.io` connection still uses `env('NODEJS_SERVER_URL')` with historical fallback; do not delete it without verifying broadcast driver registration and all consumers.
+- Inspected `config/services.php`: legacy `services.nodejs.url` and `services.nodejs.bridge_secret` remain env-backed. Chat's three direct HTTP consumers have been migrated, but repository-wide caller proof is still required before removing config keys.
+- Inspected `config/realtime.php` and `RealtimeManager`: runtime allow/default/health settings remain env-backed; health uses DB-backed server URL only when explicit `SOCKET_HEALTH_URL` is absent. Browser URL stays `VITE_SOCKET_PUBLIC_URL` (local loopback fallback only).
+- Inspected `MomoConfigService`: database credentials are encrypted and exposed server-side through `credentials()`; no evidence yet that all payment execution consumers use this service. Do not remove MoMo env keys or declare payment runtime cutover complete without call-site proof.
+- **Architecture boundary:** `Modules/System/MODULE.md` identifies System as shell/operations, not owner of business-domain configuration. MoMo payment execution remains with its canonical business owner; System may provide admin configuration UI only if the ownership contract is explicit. Review this before merge.
+- Operator confirmed **259 tests passed (1,652 assertions)** after Batch C, duration 17.80 seconds. Previous UI PASS applies to earlier UI changes; Batch C is documentation-only.
+- PR #320 is Draft. This review adds documentation only; no source runtime mutation, merge or production operation. Open gates: payment caller inventory, socket.io driver consumers, NodeJS secret parity, and PR mergeability checks.
+
+---
+
 ## Batch C — NodeJS bridge environment ownership (2026-10-20)
 
 - Verified `compose.yaml` socket service loads `env_file: .env`, and `socket/server.js` requires `process.env.BRIDGE_SECRET_KEY` at startup and checks `x-bridge-secret` on requests.
