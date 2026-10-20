@@ -3,12 +3,12 @@
 namespace Modules\Muasamcong\Livewire;
 
 use Illuminate\Contracts\View\View;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Component;
 use Modules\Muasamcong\Services\ContractorHistoryService;
 use Modules\Muasamcong\Services\MuasamcongConfigService;
+use Modules\Muasamcong\Services\MuasamcongSettingsRepository;
 use Modules\Muasamcong\Services\MuaSamCongService;
 use Modules\Muasamcong\Services\PersonalSessionService;
 use Modules\Muasamcong\Services\SessionImportTokenService;
@@ -92,43 +92,9 @@ class ConfigManager extends Component
         $this->loadEnvironmentStatus($configService);
     }
 
-    public function repairEnvironment(MuasamcongConfigService $configService): void
+    public function save(MuasamcongSettingsRepository $settings): void
     {
         $this->authorizeManageConfig();
-
-        if ($configService->isDockerRuntime()) {
-            $this->loadEnvironmentStatus($configService);
-            session()->flash('error', 'Đang chạy trong Docker. Không sửa .env bên trong container; hãy cập nhật .env ở host rồi rebuild/redeploy.');
-
-            return;
-        }
-
-        try {
-            $added = $configService->ensureDefaults();
-
-            if ($added !== []) {
-                Artisan::call('config:clear');
-                session()->flash('success', 'Đã bổ sung '.count($added).' biến MUASAMCONG_* còn thiếu vào .env bằng giá trị mặc định.');
-            } else {
-                session()->flash('success', 'Các biến MUASAMCONG_* trong .env đã đầy đủ.');
-            }
-        } catch (Throwable) {
-            session()->flash('error', 'Không thể kiểm tra/bổ sung .env. Vui lòng kiểm tra file và quyền đọc/ghi.');
-        }
-
-        $this->loadEnvironmentStatus($configService);
-    }
-
-    public function save(MuasamcongConfigService $configService): void
-    {
-        $this->authorizeManageConfig();
-
-        if ($configService->isDockerRuntime()) {
-            $this->loadEnvironmentStatus($configService);
-            session()->flash('error', 'Docker runtime không lưu .env trong container. Hãy cập nhật .env ở host và rebuild/redeploy Docker.');
-
-            return;
-        }
 
         $validated = $this->validate([
             'form.origin' => ['required', 'url:https', 'max:500'],
@@ -151,37 +117,42 @@ class ConfigManager extends Component
         }
 
         $values = [
-            'MUASAMCONG_ORIGIN' => rtrim($validated['form']['origin'], '/'),
-            'MUASAMCONG_VERIFY_SSL' => $validated['form']['verify_ssl'] ? 'true' : 'false',
-            'MUASAMCONG_TIMEOUT' => (string) $validated['form']['timeout'],
-            'MUASAMCONG_USER_AGENT' => $validated['form']['user_agent'],
-            'MUASAMCONG_PRICING_ENDPOINT' => $validated['form']['pricing_endpoint'],
-            'MUASAMCONG_CONTRACTOR_ENDPOINT' => $validated['form']['contractor_endpoint'],
-            'MUASAMCONG_PORTAL_REFERER' => $validated['form']['portal_referer'],
-            'MUASAMCONG_PRICING_REFERER' => $validated['form']['pricing_referer'],
-            'MUASAMCONG_PAGE_SIZE' => (string) $validated['form']['page_size'],
+            'origin' => rtrim($validated['form']['origin'], '/'),
+            'verify_ssl' => $validated['form']['verify_ssl'] ? 'true' : 'false',
+            'timeout' => (string) $validated['form']['timeout'],
+            'user_agent' => $validated['form']['user_agent'],
+            'pricing_endpoint' => $validated['form']['pricing_endpoint'],
+            'contractor_endpoint' => $validated['form']['contractor_endpoint'],
+            'portal_referer' => $validated['form']['portal_referer'],
+            'pricing_referer' => $validated['form']['pricing_referer'],
+            'page_size' => (string) $validated['form']['page_size'],
         ];
 
-        if ($validated['form']['smart_token'] !== '') {
-            $values['MUASAMCONG_SMART_TOKEN'] = $validated['form']['smart_token'];
+        $validator = app(\\Modules\\Muasamcong\\Services\\MuasamcongUrlValidator::class);
+        foreach (['origin', 'pricing_endpoint', 'contractor_endpoint', 'portal_referer', 'pricing_referer'] as $key) {
+            if (! $validator->isApproved($values[$key])) {
+                $this->addError('form.'.$key, 'Chỉ chấp nhận HTTPS và host Mua sắm công được phê duyệt.');
+                return;
+            }
         }
 
-        if ($validated['form']['session_cookie'] !== '') {
-            $values['MUASAMCONG_SESSION_COOKIE'] = $validated['form']['session_cookie'];
+        foreach (['smart_token', 'session_cookie'] as $secret) {
+            if ($validated['form'][$secret] !== '') {
+                $values[$secret] = $validated['form'][$secret];
+            }
         }
 
         try {
-            $configService->update($values);
-            Artisan::call('config:clear');
-        } catch (Throwable) {
-            session()->flash('error', 'Không thể lưu cấu hình Mua sắm công. Vui lòng kiểm tra dữ liệu và quyền ghi file .env.');
-
+            $settings->save($values);
+        } catch (Throwable $e) {
+            report($e);
+            session()->flash('error', 'Không thể lưu cấu hình vào database. Kiểm tra migration và kết nối database.');
             return;
         }
 
         $this->form['smart_token'] = '';
         $this->form['session_cookie'] = '';
-        session()->flash('success', 'Đã cập nhật cấu hình Mua sắm công.');
+        session()->flash('success', 'Đã lưu cấu hình Mua sắm công vào database.');
         $this->redirectRoute('muasamcong.config');
     }
 
