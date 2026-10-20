@@ -1,3 +1,16 @@
+## Pending Test/UI Checkpoint — Unified System Center (2026-10-20)
+
+- Branch: `feat/system-unified-operations-env-20261020`; base `main@5e666f44e`.
+- Consolidated `/admin/system` runtime and environment presentation into a single responsive Admin workspace, reusing existing Livewire configuration components and `EnvManager`.
+- `/admin/system/settings/env?tab=<legacy>` remains an authorized compatibility entry and redirects to `/admin/system?tab=env-<legacy>`.
+- Separate access: `system.manage` for runtime tabs; `system.env.view` for environment tabs; `system.env.update` remains enforced in mutation components. Users with both permissions see Mail/Database only in Environment to avoid duplicate forms.
+- No environment, database, cloud, queue, or production configuration was modified. Existing config persistence and operation services remain unchanged.
+- Pending: focused route contract test, System module regression, Pint, route:list inspection, real desktop/iPhone UI smoke and permission checks. No TEST PASS or UI PASS claimed.
+- Deferred: lazy-mount optimization; current Alpine x-show still mounts the rendered Livewire tab components, matching legacy behavior.
+- Rollback: revert feature branch changes before merge, or revert the merge commit after approval; the compatibility route remains in place.
+
+---
+
 ## Pending UI Gate — Full Database SQL Upload (2026-10-15)
 
 - Base checkpoint: `main @ aca3d8a7f`. Feature branch: `feat/system-database-upload-sql-restore`.
