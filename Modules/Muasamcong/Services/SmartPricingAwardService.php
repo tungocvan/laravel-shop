@@ -183,12 +183,7 @@ class SmartPricingAwardService
     private function endpoint(): string
     {
         $endpoint = (string) config('muasamcong.endpoints.pricing');
-        $parts = parse_url($endpoint);
-        $allowedHost = (string) config('muasamcong.allowed_host', 'muasamcong.mpi.gov.vn');
-
-        if (! is_array($parts)
-            || ($parts['scheme'] ?? null) !== 'https'
-            || strcasecmp((string) ($parts['host'] ?? ''), $allowedHost) !== 0) {
+        if (! app(MuasamcongUrlValidator::class)->isApproved($endpoint)) {
             throw new RuntimeException('Endpoint Smart Pricing không được phép.');
         }
 
