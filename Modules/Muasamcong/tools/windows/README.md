@@ -19,7 +19,8 @@ Không tự động nhập username/password, không vượt CAPTCHA/OTP và kh�
 - Windows có Google Chrome.
 - Truy cập được website Laravel/VPS bằng HTTPS.
 - Đã chạy migration Module Muasamcong.
-- Tải ZIP từ `/admin/muasamcong/config`.
+- Tải ZIP mới nhất tại `/admin/muasamcong/session-tool/windows` (có thể truy cập từ `/admin/muasamcong/config`).
+- Sau khi cập nhật source trên môi trường phục vụ Laravel, tải lại ZIP và giải nén vào thư mục mới để tránh dùng script MPI cũ.
 
 Chrome riêng dùng profile:
 
@@ -104,3 +105,25 @@ Tạo link mới trên Config -> menu 2 -> dán link
 ```
 
 Nếu SSO còn hạn, thường không cần nhập lại tài khoản. Nếu SSO hết, menu 3 để đăng nhập lại rồi chạy menu 2.
+
+## Quy trình vận hành đã nghiệm thu trên Windows (2026-10-20)
+
+1. Tải ZIP từ `/admin/muasamcong/session-tool/windows`, giải nén, chạy `Muasamcong-Session-Tool.bat`.
+2. Chọn menu **3** nếu cần mở Chrome profile riêng trên MOF và đăng nhập thủ công; không nhập thông tin đăng nhập vào tool.
+3. Chọn menu **1** để kiểm tra cookie cục bộ. Kết quả thực tế do người dùng xác nhận: **12 cookie áp dụng, 1 JSESSIONID**; CDP/cookie detection PASS. Việc không đọc được expiry của `KEYCLOAK_IDENTITY` không tự chứng minh session lỗi.
+4. Tại `/admin/muasamcong/config` tạo **link cập nhật Windows mới** (token một lần), chọn menu **2** và dán link vào tool. Chỉ coi cập nhật thành công khi server xác minh Personal Page API và UI xác nhận.
+5. Menu **4** gửi cookie đang có lên server, không mở/làm mới portal; vẫn cần link cập nhật mới.
+
+**Nghiệm thu:** Người dùng xác nhận **UI PASS** sau khi chuyển Windows helper sang MOF. Đây là xác nhận thao tác trên môi trường người dùng, không đồng nghĩa đã deploy Production hoặc chạy lại mọi automated test sau thay đổi script.
+
+### Xử lý sự cố
+
+- `Chua co JSESSIONID Personal Page`: xác nhận đang dùng ZIP MOF mới, Chrome profile riêng đã đăng nhập tại `muasamcong.mof.gov.vn`; chạy menu 3 rồi menu 1. Không bỏ điều kiện kiểm tra `JSESSIONID` để né lỗi.
+- Menu 1 thấy `JSESSIONID` nhưng menu 2 lỗi: cookie tồn tại không chứng minh API chấp nhận; kiểm tra kết quả server và cấu hình endpoint Personal Page, không in cookie/token.
+- Chrome hiển thị trang đăng nhập: hoàn tất đăng nhập/CAPTCHA/OTP thủ công rồi tạo link cập nhật mới.
+- Link hết hạn hoặc đã sử dụng: tạo link một lần mới, không tái sử dụng link cũ và không chia sẻ phần token sau dấu `#`.
+- Tránh mở nhiều Chrome CDP cùng cổng `127.0.0.1:9222`; không chuyển CDP sang interface mạng công cộng.
+
+### Phạm vi thay đổi và rollback
+
+Bản MOF đổi `$PortalUrl`, `$CookieUrl` trong `Muasamcong-Session-Tool.ps1` và URL mở Chrome trong `Open-Muasamcong-Chrome.bat`. Không đổi endpoint cập nhật HTTPS của Laravel, cách lấy cookie CDP, điều kiện JSESSIONID hay mã hóa lưu trữ server. Nếu upstream MOF thay đổi, audit endpoint và cookie trước khi chỉnh script; rollback bằng commit Git đã biết và nghiệm thu lại, không tự động khôi phục MPI vì endpoint MPI có thể redirect.
