@@ -1,3 +1,12 @@
+## Pending Test/UI Gate — Realtime Socket.IO relocated to NodeJS Bridge (2026-10-20)
+
+- On `feat/system-unified-operations-env-20261020`, move the visible Realtime / Socket.IO control from `?tab=queues` into the NodeJS Server Bridge section of `?tab=env-advanced`.
+- Reuse the existing `x-realtime-control` view and `SystemRealtimeControlService` via dedicated `RealtimeBridgeControl` Livewire component. Mutations remain protected by `system.modules.update`; viewing the Environment tab remains governed by `system.env.view`.
+- Queue operations, workers, failed jobs and bridge environment save/ping behavior are unchanged. Legacy QueueManager realtime methods are retained temporarily for compatibility; only the visible control is relocated.
+- Added focused placement/permission contract tests. Pending local focused + System regression and desktop/mobile UI acceptance. No TEST PASS/UI PASS claimed. No production runtime changes.
+
+---
+
 ## Pending Test/UI Checkpoint — Unified System Center (2026-10-20)
 
 - Branch: `feat/system-unified-operations-env-20261020`; base `main@5e666f44e`.
