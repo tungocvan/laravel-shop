@@ -39,6 +39,10 @@ return [
         'scheduler_enabled' => filter_var(env('FACEBOOK_SCHEDULER_ENABLED', false), FILTER_VALIDATE_BOOL),
     ],
 
+    // Legacy boot-time NodeJS configuration. Server-side Chat HTTP broadcasts use
+    // Modules\System\Services\Env\AdvancedConfigService (database-backed).
+    // Keep these keys until all other callers are proven migrated; the socket
+    // process still requires BRIDGE_SECRET_KEY in its own runtime environment.
     'nodejs' => [
         'url' => env('NODEJS_SERVER_URL', 'https://flexbiz.nodejs.tk'),
         'public_url' => env('VITE_SOCKET_PUBLIC_URL'),
