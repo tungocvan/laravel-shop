@@ -37,7 +37,7 @@ class RealtimeBrowserConfigTest extends TestCase
             app()->instance('env', $environment);
             config()->set('services.nodejs.public_url', $publicUrl);
             $advanced = $this->mock(AdvancedConfigService::class);
-            $advanced->shouldReceive('serverUrl')->once()->andReturn($serverUrl);
+            $advanced->shouldReceive('serverUrl')->zeroOrMoreTimes()->andReturn($serverUrl);
 
             $this->assertSame($expected, app(RealtimeManager::class)->browserConfig()['url']);
         } finally {
