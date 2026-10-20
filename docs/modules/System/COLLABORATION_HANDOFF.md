@@ -1,3 +1,12 @@
+## PR #320 final-review blocker — 2026-10-20
+
+- GitHub PR metadata reports **71 commits, 38 changed files, Draft, mergeable=false** at review time. A prior compare reported feature ahead of main and behind 0; these observations alone do not establish the cause of the mergeability failure.
+- Do not mark Ready for Review or merge until the GitHub conflict/check reason is established. No automatic rebasing, force push or production changes.
+- Operator confirmed Batch D focused test **3 passed, 18 assertions**, and Batch F `php -l` on `config/services.php` and `config/broadcasting.php` PASS; documentation/comment-only batches do not require full regression.
+- Next operator checkpoint: fast-forward pull, inspect PR checks/conflicts on GitHub, and report results; no PHPUnit needed for this handoff-only commit. Preserve local `M menu-prompt.sh`.
+
+---
+
 ## Batch F — scoped legacy configuration boundary review (2026-10-20)
 
 - Operator approved reviewing only `config/services.php` and `config/broadcasting.php` in this batch.
