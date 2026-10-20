@@ -115,7 +115,7 @@ final class SystemDashboardService
                 'permission' => 'manage',
                 'code' => 'queue',
                 'label' => 'Queue Manager',
-                'description' => 'Theo dõi worker, pending/failed jobs, probe health và Realtime runtime.',
+                'description' => 'Theo dõi worker, pending/failed jobs và probe health; Realtime thuộc NodeJS Bridge.',
                 'category' => 'Vận hành',
             ],
             [
