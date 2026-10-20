@@ -1,3 +1,13 @@
+## Pending Test/UI Checkpoint — Advanced Runtime & Bridge database configuration (2026-10-20)
+
+- Advanced tab NodeJS URL and encrypted Bridge Secret now use database settings, with read-error defaults: local http://127.0.0.1:6001 and production http://socket:6001. Existing settings take precedence.
+- Queue driver remains the actual boot-time config('queue.default') and is read-only in UI; DB writes must not imply changing active queue workers.
+- RealtimeManager internal health URL uses database-backed NodeJS URL; browser public socket URL remains separately configured and never exposes Docker hostname by default.
+- **Deferred consumer migration**: other NodeJS bridge clients, external Node process, Vite public URL and boot-time config/services.php references may still consume .env. Do not remove env variables until a repository-wide caller audit and runtime tests are complete.
+- No production edits, restart, config cache clear, or migration. Pending focused test, System/Realtime regression, UI PASS and external bridge consumer cutover. No TEST PASS claimed.
+
+---
+
 ## Pending Test/UI Checkpoint — MoMo database-backed configuration (2026-10-20)
 
 - Approved change: `env-payment` no longer reads/writes `.env`; `MomoConfigService` uses `SettingsService` and database group `momo` with encrypted secrets and guarded read defaults.
