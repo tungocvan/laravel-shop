@@ -27,4 +27,20 @@ class AdvancedDatabaseSettingsContractTest extends TestCase
         $this->assertStringContainsString('Lưu cấu hình NodeJS Bridge vào cơ sở dữ liệu?', $view);
         $this->assertStringNotContainsString('vào .env?', $view);
     }
+
+    public function test_node_bridge_secret_remains_a_nodejs_runtime_requirement(): void
+    {
+        $compose = file_get_contents(base_path('compose.yaml'));
+        $socket = file_get_contents(base_path('socket/server.js'));
+        $localExample = file_get_contents(base_path('.env.example'));
+        $dockerExample = file_get_contents(base_path('.env.docker.example'));
+
+        $this->assertMatchesRegularExpression('/(?m)^  socket:\\s*$/', $compose);
+        $this->assertMatchesRegularExpression('/(?m)^    env_file: \\.env\\s*$/', $compose);
+        $this->assertStringContainsString('process.env.BRIDGE_SECRET_KEY', $socket);
+        $this->assertStringContainsString('req.headers["x-bridge-secret"]', $socket);
+        $this->assertMatchesRegularExpression('/(?m)^BRIDGE_SECRET_KEY=/', $localExample);
+        $this->assertMatchesRegularExpression('/(?m)^BRIDGE_SECRET_KEY=/', $dockerExample);
+    }
+
 }
