@@ -1,3 +1,13 @@
+## Pending Test/UI Checkpoint — MoMo database-backed configuration (2026-10-20)
+
+- Approved change: `env-payment` no longer reads/writes `.env`; `MomoConfigService` uses `SettingsService` and database group `momo` with encrypted secrets and guarded read defaults.
+- Missing database settings yield safe UI defaults (test MoMo endpoint and blank partner/secrets). Unreadable secrets return empty and are logged without secret contents. Missing secrets must not be used to execute payments.
+- UI confirmation now says database. No automatic migration/deletion of legacy `MOMO_*` environment values, no production database edits or deploy.
+- **Consumer cutover gate remains open**: audit all payment call sites and any config/services.php env references before production use; do not claim payment integration has migrated. Existing external consumers may still read environment values until separately migrated.
+- Pending: focused `MomoDatabaseSettingsContractTest`, module regression, live settings persistence and secret preservation test with test database, Pint, UI acceptance; no TEST PASS claim. Rollback via reverting feature commits (settings rows can remain; no destructive cleanup).
+
+---
+
 ## Pending Test/UI Checkpoint — Dashboard compact UI and return navigation (2026-10-20)
 
 - Approved UI slice on `feat/system-unified-operations-env-20261020`: compact Dashboard workspace cards and spacing, add permission-scoped entry to System Administration Hub, make subsystem status grid responsive, retain all warnings/metrics.
