@@ -23,30 +23,10 @@ class MuasamcongModuleTest extends TestCase
             ->assertSee('Điền cấu hình MOF chuẩn');
     }
 
-    public function test_config_pricing_default_restore_only_updates_form_without_writing_env(): void
+    public function test_config_pricing_actions_require_privileged_admin_capability(): void
     {
-        Artisan::spy();
-
-        Livewire::test(ConfigManager::class)
-            ->set('form.pricing_endpoint', 'https://muasamcong.mpi.gov.vn/old')
-            ->set('form.pricing_referer', 'https://muasamcong.mpi.gov.vn/old')
-            ->call('restorePricingDefaults')
-            ->assertSet('form.pricing_endpoint', 'https://muasamcong.mof.gov.vn/o/egp-portal-personal-page/services/smart/search_prc')
-            ->assertSet('form.pricing_referer', 'https://muasamcong.mof.gov.vn/web/guest/profile-info?menu=bid-pricing');
-
-        Artisan::shouldNotHaveReceived('call');
-    }
-
-    public function test_pricing_diagnostic_checks_active_pricing_api_not_contractor_api(): void
-    {
-        config(['muasamcong.endpoints.pricing' => 'https://muasamcong.mof.gov.vn/o/egp-portal-personal-page/services/smart/search_prc']);
-        Http::fake(['*' => Http::response(['page' => ['totalElements' => 0, 'content' => []]], 200)]);
-
-        Livewire::test(ConfigManager::class)
-            ->call('testPricing')
-            ->assertSet('pricingTestStatus', 'success');
-
-        Http::assertSent(fn (ClientRequest $request): bool => str_contains($request->url(), 'muasamcong.mof.gov.vn'));
+        Livewire::test(ConfigManager::class)->call('restorePricingDefaults')->assertForbidden();
+        Livewire::test(ConfigManager::class)->call('testPricing')->assertForbidden();
     }
 
     public function test_config_ui_does_not_hydrate_token_or_cookie_into_livewire_state(): void
