@@ -18,7 +18,7 @@ return [
 
     'endpoints' => [
         'pricing' => env('MUASAMCONG_PRICING_ENDPOINT', 'https://muasamcong.mof.gov.vn/o/egp-portal-personal-page/services/smart/search_prc'),
-        'contractor_search' => env('MUASAMCONG_CONTRACTOR_ENDPOINT', 'https://muasamcong.mpi.gov.vn/o/egp-portal-contractor-selection-v2/services/smart/search'),
+        'contractor_search' => env('MUASAMCONG_CONTRACTOR_ENDPOINT', 'https://muasamcong.mof.gov.vn/o/egp-portal-contractor-selection-v2/services/smart/search'),
         'contractor_joined_bids' => env('MUASAMCONG_CONTRACTOR_JOINED_BIDS_ENDPOINT', 'https://muasamcong.mpi.gov.vn/o/egp-portal-personal-page/services/get-list-notify-contractor-join'),
         'kqlcnt_tbmt_detail' => env('MUASAMCONG_KQLCNT_TBMT_ENDPOINT', 'https://muasamcong.mpi.gov.vn/o/egp-portal-contractor-selection-v2/services/lcnt_tbmt_ttc_ldt'),
         'kqlcnt_contracts' => env('MUASAMCONG_KQLCNT_CONTRACT_ENDPOINT', 'https://muasamcong.mpi.gov.vn/o/egp-portal-contractor-selection-v2/services/econsign/contract-info/list-contract-for-po'),
