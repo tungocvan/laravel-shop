@@ -1,3 +1,13 @@
+## Batch F — scoped legacy configuration boundary review (2026-10-20)
+
+- Operator approved reviewing only `config/services.php` and `config/broadcasting.php` in this batch.
+- Added comments in `config/services.php` documenting legacy boot-time NodeJS keys and DB-backed Chat HTTP consumers; no key removal or behavior change.
+- Added comments in `config/broadcasting.php` documenting the boot-time custom `socket.io` driver compatibility gate; no host/default/driver change.
+- Runtime behavior is unchanged. No focused PHPUnit required for comments-only PHP edits; perform `php -l` on the two changed files and `git diff --check` after pull.
+- No changes to real `.env`, Docker, NodeJS, payment consumers or production. PR #320 remains Draft, unmerged; unrelated local `menu-prompt.sh` must remain untouched.
+
+---
+
 ## Batch E — consumer inventory gate and focused-test confirmation (2026-10-20)
 
 - Operator confirmed Batch D focused contract test: **3 passed, 18 assertions, 1.10 seconds**; `git diff --check` clean. Only local `M menu-prompt.sh` remains; do not modify it.
