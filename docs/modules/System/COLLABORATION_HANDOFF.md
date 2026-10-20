@@ -1,3 +1,14 @@
+## Pending Test/UI Checkpoint — Dashboard compact UI and return navigation (2026-10-20)
+
+- Approved UI slice on `feat/system-unified-operations-env-20261020`: compact Dashboard workspace cards and spacing, add permission-scoped entry to System Administration Hub, make subsystem status grid responsive, retain all warnings/metrics.
+- System workspaces already using `System::partials.dashboard-return-link` remain unchanged; removed duplicate standalone dashboard link from login-theme. Admin Layout overview and sections receive optional, permission-scoped dashboard return links without requiring System Blade views (Admin retains layout ownership).
+- Queue workspace description now excludes Socket.IO control and points Realtime ownership to NodeJS Bridge.
+- No changes to runtime mutations, queues, backups, database, environment, service restart or production. Deferred: deeper Dashboard vs Hub catalog deduplication and cross-module shared navigation component until separate architecture review.
+- Pending gates: focused `SystemDashboardNavigationContractTest`, existing System dashboard contracts, System regression, impacted Admin tests, Pint changed PHP files, responsive desktop/mobile UI acceptance. TEST PASS and UI PASS not claimed.
+- Rollback: revert the feature branch UI/controller changes; no persistence migration required.
+
+---
+
 ## Pending Test/UI Checkpoint — System Administration Hub (2026-10-20)
 
 - Approved architecture: `/admin/system/settings` becomes the permission-filtered System Administration Hub; `/admin/system` remains the detailed runtime/environment workspace.
