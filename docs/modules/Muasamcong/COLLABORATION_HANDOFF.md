@@ -1,3 +1,9 @@
+## 2026-10-20 — Contractor history MOF Origin regression (awaiting local tests)
+
+- Runtime check confirmed contractor_joined_bids endpoint and Referer resolve to muasamcong.mof.gov.vn, while global origin remains muasamcong.mpi.gov.vn. Route `/admin/muasamcong/contractors/history/{contractorSearch}` loads saved search; fresh search calls ContractorHistoryService.
+- ContractorHistoryService now derives the request-specific Origin from the validated history endpoint; global origin remains unchanged for other consumers. Existing history test now asserts MOF URL, Origin, Referer even when global origin is MPI.
+- Previous cleanup post-check: 10/10 DB overrides match effective config; focused cleanup tests 3 PASS / 12 assertions; user confirmed UI PASS. New code tests NOT YET RUN: focused, module regression and impacted regression pending user local execution. No PR merge or Production changes.
+
 ## 2026-10-20 — Development .env cleanup verified (runtime recheck pending)
 
 - User reported module regression 85 PASS / 645 assertions; cleanup-focused tests 3 PASS / 12 assertions; manual UI PASS.
