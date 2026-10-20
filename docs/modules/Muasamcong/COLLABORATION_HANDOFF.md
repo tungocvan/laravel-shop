@@ -1,3 +1,11 @@
+## 2026-10-20 — Windows Personal Page Session Tool: MOF migration and UI acceptance
+
+- Branch: `feat/muasamcong-config-diagnostics-20261020`. Updated `Modules/Muasamcong/tools/windows/Muasamcong-Session-Tool.ps1` to use MOF for both Personal Page portal URL and cookie-scoping API URL; updated `Open-Muasamcong-Chrome.bat` to open MOF. ZIP download route remains `/admin/muasamcong/session-tool/windows`; no route or server-side cookie import contract changed.
+- Root cause of Windows failure: script previously filtered CDP cookies for MPI host, excluding MOF `JSESSIONID` after portal migration. Script still requires JSESSIONID; no weakening of cookie validation or Chrome CDP security.
+- User Windows menu 1 confirmed: **12 applicable cookies, 1 JSESSIONID**. User subsequently explicitly confirmed **UI PASS** for Windows Session workflow. Do not conflate user UI acceptance with independent Production deployment validation.
+- Updated module Windows README with download instructions, menu 1–4, token handling, troubleshooting, security and rollback guidance. No cookies, tokens, or private update URLs recorded in Git.
+- Pending gates: focused/module regression following latest script/docs commits not independently recorded; tracked-tree check, PR review and merge still pending. No Production deployment or .env deletion authorized. Separate approved work: safe `MUASAMCONG_*` .env → DB import command with dry-run/no override overwrite, not implemented in this checkpoint.
+
 # Muasamcong Module — Collaboration Handoff
 
 ### 2026-10-20 — Module-owned DB settings implementation (awaiting WSL tests)
