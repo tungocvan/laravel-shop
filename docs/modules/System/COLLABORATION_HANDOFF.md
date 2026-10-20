@@ -1,3 +1,14 @@
+## PR readiness review checkpoint — 2026-10-20
+
+- Operator confirmed Batch B focused/module regression: **259 passed, 1,652 assertions**, and explicitly confirmed Chat/UI PASS. These are operator-reported results; no CI result independently claimed.
+- GitHub compare `main...feat/system-unified-operations-env-20261020`: **ahead 60, behind 0, 34 changed files** at review time. The scope includes Admin layout, System routes/UI, MoMo settings, Realtime and Chat, so treat this as a cross-module PR requiring explicit review.
+- PR #317, #318 and #319 were merged on 2026-10-20. No PR for this feature branch was found in the searched results.
+- Remaining release blockers: verify Laravel DB Bridge Secret matches the running NodeJS `BRIDGE_SECRET_KEY` without exposing values; verify MoMo payment consumers have migrated before deleting legacy env keys; review `config/broadcasting.php` and legacy `config/services.php` consumers; validate non-standard queue drivers and document compatibility. Do not claim production readiness or remove environment variables.
+- Local operator reported tracked `menu-prompt.sh` modification. Do not reset, overwrite or delete it. Require clean tracked working tree (or safely isolated unrelated local change) before merge gate.
+- This handoff-only checkpoint does not change runtime code. No merge/deploy authorized.
+
+---
+
 ## Batch B Chat consumer cutover — pending test checkpoint (2026-10-20)
 
 - Read-only `git grep` inventory from operator identified three Laravel Chat HTTP broadcast call sites using legacy `services.nodejs.url` and `services.nodejs.bridge_secret`.
