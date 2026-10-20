@@ -14,6 +14,8 @@ class AdvancedDatabaseSettingsContractTest extends TestCase
         $this->assertStringContainsString('http://socket:6001', $source);
         $this->assertStringContainsString('Crypt::encryptString($secret)', $source);
         $this->assertStringContainsString('Crypt::decryptString(', $source);
+        $this->assertStringContainsString('public function serverCredentials(): array', $source);
+        $this->assertStringContainsString("'secret' => \$this->bridgeSecret()", $source);
         $this->assertStringContainsString("updateMany(\$values, 'runtime')", $source);
         $this->assertStringNotContainsString('EnvManagerService', $source);
     }
