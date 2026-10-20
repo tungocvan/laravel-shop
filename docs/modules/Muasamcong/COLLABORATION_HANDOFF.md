@@ -1,5 +1,17 @@
 # Muasamcong Module — Collaboration Handoff
 
+## 2026-10-20 — Smart Pricing MPI → MOF migration (pending local acceptance)
+
+- Branch: `fix/muasamcong-pricing-mof-domain-20261020`; based on main `c4e0a5ff09c4637cac9bd3c1d85e1635d73b7c5d`.
+- WSL upstream diagnosis: legacy MPI pricing POST returned 302 with Location pointing to MOF; equivalent MOF pricing POST returned HTTP 200 and JSON content type. Full JSON schema and UI still require verification.
+- Pricing endpoint and pricing referer defaults now use MOF. Pricing requests derive the Origin from the approved endpoint host, while legacy contractor/HSMT calls retain their configured MPI Origin.
+- Transitional strict URL validator accepts only HTTPS MPI/MOF hosts without embedded credentials or non-443 ports. Existing non-pricing service guards remain unchanged; their endpoints are **not** migrated.
+- Config manager's approved-host notice updated. Existing .env overrides are **not** overwritten by code changes; deployment/operator must review effective pricing endpoint/referer before acceptance.
+- Tests added for MOF request headers, disallowed host and no redirect-following.
+- Gates: focused tests **PENDING WSL**; module regression **PENDING**; UI **PENDING user confirmation**; PR/merge/deploy **NOT DONE**.
+- No production environment, database, queue, or stored KQLCNT/canonical award data modified.
+
+
 - Last updated: 2026-09-04
 - Repository: `tungocvan/laravel-shop`
 - Stable branch: `main`
