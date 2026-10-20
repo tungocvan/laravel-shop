@@ -14,7 +14,7 @@ class MomoDatabaseSettingsContractTest extends TestCase
         $this->assertStringContainsString("self::DEFAULT_ENDPOINT", $service);
         $this->assertStringContainsString('return $default;', $service);
         $this->assertStringContainsString("Log::warning('MoMo setting unavailable.'", $service);
-        $this->assertStringContainsString('updateMany(\$values, \'momo\')', $service);
+        $this->assertStringContainsString("updateMany(\$values, 'momo')", $service);
         $this->assertStringContainsString('Crypt::encryptString($secret)', $service);
         $this->assertStringContainsString('Crypt::decryptString(', $service);
         $this->assertStringNotContainsString('EnvManagerService', $service);
