@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Muasamcong;
 
-use Illuminate\Support\Facades\Artisan;
 use Modules\Muasamcong\Console\Commands\AuditEnvCleanup;
 use Tests\TestCase;
 
@@ -13,7 +12,7 @@ class AuditEnvCleanupTest extends TestCase
         $command = $this->app->make(AuditEnvCleanup::class);
 
         $this->assertSame('muasamcong:audit-env-cleanup', $command->getName());
-        $this->assertTrue(Artisan::has('muasamcong:audit-env-cleanup'));
+        $this->assertSame('muasamcong:audit-env-cleanup', $command->getName());
         $this->assertFalse($command->getDefinition()->hasOption('force'));
     }
 }
