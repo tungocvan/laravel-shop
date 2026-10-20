@@ -1,3 +1,14 @@
+## Pending Test/UI Checkpoint — System Administration Hub (2026-10-20)
+
+- Approved architecture: `/admin/system/settings` becomes the permission-filtered System Administration Hub; `/admin/system` remains the detailed runtime/environment workspace.
+- Route-first audit verified `admin.layout` is owned by Admin and protected by `admin.layout.view`; System links to it without rehoming Admin UI logic.
+- Cards link to existing System Center, Database, Modules, Admin Layout, Artisan, Scripts, Environment and Login/Branding routes. Each card is filtered by its destination's view permission; destination middleware remains authoritative.
+- Scope: `SettingController::index`, settings index Blade, focused contract test, handoff. KEEP existing routes/services; DEFER shared workspace catalog extraction; QUARANTINE dangerous command, database and environment mutations; DELETE none.
+- Pending: focused `SystemAdministrationHubContractTest` and `SystemDashboardInformationArchitectureContractTest`, System regression, Admin layout/route impacted smoke, Pint and responsive desktop/mobile UI acceptance. No TEST PASS or UI PASS claimed. No production changes or merge.
+- Rollback: revert the hub presentation/controller commits; original routes and business components are untouched.
+
+---
+
 ## Pending Test/UI Gate — Realtime Socket.IO relocated to NodeJS Bridge (2026-10-20)
 
 - On `feat/system-unified-operations-env-20261020`, move the visible Realtime / Socket.IO control from `?tab=queues` into the NodeJS Server Bridge section of `?tab=env-advanced`.
