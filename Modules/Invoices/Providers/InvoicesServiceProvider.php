@@ -7,6 +7,8 @@ use Illuminate\Support\ServiceProvider;
 use Modules\Invoices\Console\Commands\BackupInvoiceFilesCommand;
 use Modules\Invoices\Console\Commands\DiagnoseGdtAuthenticationCommand;
 use Modules\Invoices\Console\Commands\RecoverGdtDuplicatesCommand;
+use Modules\Invoices\Services\GdtConfigService;
+use Throwable;
 
 class InvoicesServiceProvider extends ServiceProvider
 {
@@ -17,6 +19,13 @@ class InvoicesServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Database overrides are optional until the module migration has run.
+        try {
+            $this->app->make(GdtConfigService::class)->hydrate();
+        } catch (Throwable $exception) {
+            report($exception);
+        }
+
         $modulePath = dirname(__DIR__);
 
         if ($this->app->runningInConsole()) {
