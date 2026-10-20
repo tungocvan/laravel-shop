@@ -1,3 +1,10 @@
+## 2026-10-20 — Legacy .env settings import command (awaiting WSL checkpoint)
+
+- Added `php artisan muasamcong:import-env-settings --dry-run` and explicit write command `php artisan muasamcong:import-env-settings`. In Production, writing also requires `--force` **and separate approved Production procedure**; never execute Production import based only on this handoff.
+- Reads local `.env` without modifying it, allowlists the 11 legacy `MUASAMCONG_*` keys, skips absent/empty keys and keys already in `muasamcong_settings`, validates approved HTTPS host and numeric bounds, encrypts `smart_token` and `session_cookie` via existing repository, and never prints values/secrets.
+- Does not overwrite the already saved `contractor_endpoint` MOF DB override. Any invalid candidate aborts before write. Dry-run performs no DB writes. Existing `.env` remains untouched pending effective-config verification and explicit manual cleanup.
+- Focused tests added: `tests/Feature/Muasamcong/ImportLegacySettingsTest.php`. **No WSL execution recorded yet**. Next checkpoint: pull, lint, focused tests, then module regression only after focused PASS. Inspect dry-run output before permitting any write. UI Session Tool acceptance remains PASS per user; no new UI modifications.
+
 ## 2026-10-20 — Windows Personal Page Session Tool: MOF migration and UI acceptance
 
 - Branch: `feat/muasamcong-config-diagnostics-20261020`. Updated `Modules/Muasamcong/tools/windows/Muasamcong-Session-Tool.ps1` to use MOF for both Personal Page portal URL and cookie-scoping API URL; updated `Open-Muasamcong-Chrome.bat` to open MOF. ZIP download route remains `/admin/muasamcong/session-tool/windows`; no route or server-side cookie import contract changed.
