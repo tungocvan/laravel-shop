@@ -3,6 +3,9 @@
 @section('title', $title.' - Giao diện Admin')
 
 @section('content')
+    <div class="mb-4">
+        @include('System::partials.dashboard-return-link')
+    </div>
     <x-admin::page-header
         :title="$title"
         eyebrow="Thiết lập giao diện"
