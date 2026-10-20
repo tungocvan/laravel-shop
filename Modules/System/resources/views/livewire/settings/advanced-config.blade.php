@@ -26,6 +26,10 @@
                 <div><label class="block text-sm font-semibold mb-1">NodeJS URL</label><input type="url" wire:model="form.NODEJS_SERVER_URL" @disabled(!$canUpdate) class="w-full px-4 py-2 rounded-lg border">@error('form.NODEJS_SERVER_URL')<p class="text-xs text-red-600">{{ $message }}</p>@enderror</div>
                 <div><label class="block text-sm font-semibold mb-1">Bridge Secret Key</label><input type="password" wire:model="form.BRIDGE_SECRET_KEY" placeholder="Để trống để giữ secret hiện tại" @disabled(!$canUpdate) class="w-full px-4 py-2 rounded-lg border">@error('form.BRIDGE_SECRET_KEY')<p class="text-xs text-red-600">{{ $message }}</p>@enderror</div>
             </div>
+            <div class="mt-6 border-t border-gray-100 pt-6">
+                <p class="mb-3 text-sm text-gray-500">Trạng thái Socket.IO và bật/tắt realtime độc lập với cấu hình kết nối NodeJS.</p>
+                @livewire('system.settings.realtime-bridge-control')
+            </div>
             <button wire:click="checkNode" wire:loading.attr="disabled" wire:target="checkNode" @disabled(!$canUpdate) class="mt-4 px-4 py-2 bg-gray-100 text-xs font-bold rounded disabled:opacity-50">{{ $nodeStatus === 'online' ? '✅ NODEJS ONLINE' : ($nodeStatus === 'offline' ? '❌ NODEJS OFFLINE' : 'KIỂM TRA KẾT NỐI NODEJS') }}</button>
         </section>
     </div>
