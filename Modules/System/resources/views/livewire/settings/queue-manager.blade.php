@@ -231,14 +231,6 @@
         </div>
     </section>
 
-    <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-        <div class="mb-4">
-            <h3 class="text-base font-bold text-slate-900">Realtime / Socket.IO</h3>
-            <p class="mt-1 text-sm text-slate-500">Quản lý feature switch realtime độc lập với queue worker và công cụ quản lý tiến trình của môi trường triển khai.</p>
-        </div>
-        <x-realtime-control :enabled="$realtimeEnabled" :status="$realtimeStatus" :can-update="$canUpdateRealtime" />
-    </section>
-
     @if ($failedQueue !== null)
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4" wire:keydown.escape.window="closeFailedJobs">
             <div class="max-h-[88vh] w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-2xl" wire:click.stop>
