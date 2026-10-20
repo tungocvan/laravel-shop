@@ -14,7 +14,7 @@ Route::middleware(['web', 'auth:admin'])->prefix('admin')->name('admin.')->group
 
     Route::prefix('/system')->name('system.')->group(function () {
         Route::get('/dashboard', SystemDashboardController::class)->middleware('permission:system.manage,admin')->name('dashboard');
-        Route::get('/', [SystemController::class, 'index'])->middleware('permission:system.manage,admin')->name('index');
+        Route::get('/', [SystemController::class, 'index'])->middleware('permission:system.manage|system.env.view,admin')->name('index');
         Route::get('/modules', [SettingController::class, 'modules'])->middleware('permission:system.modules.view,admin')->name('modules');
         Route::get('/artisan', [SettingController::class, 'artisan'])->middleware('permission:system.commands.run,admin')->name('artisan');
         Route::get('/scripts', [SettingController::class, 'scripts'])->middleware('permission:system.commands.run,admin')->name('scripts');

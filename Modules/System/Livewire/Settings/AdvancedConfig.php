@@ -14,7 +14,7 @@ class AdvancedConfig extends Component
 
     public array $form = [
         'QUEUE_CONNECTION' => 'database',
-        'NODEJS_SERVER_URL' => 'http://127.0.0.1:3000',
+        'NODEJS_SERVER_URL' => 'http://127.0.0.1:6001',
         'BRIDGE_SECRET_KEY' => '',
     ];
 
@@ -91,7 +91,7 @@ class AdvancedConfig extends Component
 
         try {
             if (!$config->save($this->form)) {
-                throw new \RuntimeException('Environment update failed.');
+                throw new \RuntimeException('Database settings update failed.');
             }
             $this->form['BRIDGE_SECRET_KEY'] = '';
             $this->dispatch('notify', type: 'success', message: 'Cấu hình Hệ thống đã được cập nhật!');

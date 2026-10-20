@@ -1,40 +1,65 @@
 @extends('Admin::layouts.master')
-@section('title', 'Cấu hình hệ thống')
+@section('title', 'System Administration Hub')
 @section('content')
-    <div class="space-y-6">
-        @include('System::partials.dashboard-return-link')
+<div class="mx-auto max-w-7xl space-y-6 px-1 py-2 sm:px-3">
+    @include('System::partials.dashboard-return-link')
 
-        <header class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-indigo-600">Configuration Hub</p>
-            <h1 class="mt-2 text-2xl font-bold text-slate-950">Cấu hình hệ thống</h1>
-            <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-                Các nhóm cấu hình trùng lặp đã được gom về đúng workspace sở hữu. Themes, hình ảnh và cấu hình chung không còn là tab riêng của System.
-            </p>
-        </header>
+    <header class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+        <p class="text-xs font-bold uppercase tracking-[0.14em] text-indigo-600">System Administration Hub</p>
+        <h1 class="mt-2 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">Trung tâm quản trị hệ thống</h1>
+        <p class="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
+            Truy cập nhanh các workspace vận hành, dữ liệu, modules, giao diện và công cụ kỹ thuật.
+            Mỗi chức năng vẫn do module sở hữu quản lý và kiểm soát quyền truy cập riêng.
+        </p>
+        <p class="mt-2 text-xs text-slate-500">
+            Themes, hình ảnh và cấu hình chung không còn là tab riêng của System.
+        </p>
+    </header>
 
-        <div class="grid gap-4 lg:grid-cols-2">
-            <a href="{{ route('admin.system.settings.login-theme') }}"
-               class="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-indigo-300 hover:shadow-md">
-                <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Quản trị truy cập</p>
-                <h2 class="mt-2 text-lg font-bold text-slate-950 group-hover:text-indigo-700">Giao diện & Đăng nhập</h2>
-                <p class="mt-2 text-sm leading-6 text-slate-600">Branding đăng nhập, logo/ảnh nền, landing page Admin và điều hướng mặc định.</p>
-                <span class="mt-4 inline-flex text-sm font-semibold text-indigo-700">Mở workspace →</span>
-            </a>
-
-            @if ((bool) auth('admin')->user()?->can('system.env.view'))
-                <a href="{{ route('admin.system.settings.env') }}"
-                   class="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-indigo-300 hover:shadow-md">
-                    <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Cấu hình hạ tầng</p>
-                    <h2 class="mt-2 text-lg font-bold text-slate-950 group-hover:text-indigo-700">Môi trường & Tích hợp</h2>
-                    <p class="mt-2 text-sm leading-6 text-slate-600">Database, Email, Runtime & Bridge, Storage / Cloud, Web & Analytics và thanh toán.</p>
-                    <span class="mt-4 inline-flex text-sm font-semibold text-indigo-700">Mở workspace →</span>
-                </a>
-            @endif
+    @forelse($groups as $group => $workspaces)
+        <section aria-label="{{ $group }}" class="space-y-3">
+            <div class="flex items-center gap-3">
+                <h2 class="text-base font-bold text-slate-900 sm:text-lg">{{ $group }}</h2>
+                <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-500">{{ count($workspaces) }}</span>
+            </div>
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                @foreach($workspaces as $workspace)
+                    <a href="{{ route($workspace['route'], $workspace['params'] ?? []) }}"
+                       class="group flex min-h-36 flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-indigo-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0">
+                                <h3 class="text-base font-semibold text-slate-950 transition group-hover:text-indigo-700">{{ $workspace['label'] }}</h3>
+                                <p class="mt-2 text-sm leading-6 text-slate-600">{{ $workspace['description'] }}</p>
+                            </div>
+                            <span aria-hidden="true" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-indigo-600">
+                                @switch($workspace['icon'])
+                                    @case('database') <i class="fas fa-database"></i> @break
+                                    @case('blocks') <i class="fas fa-cubes"></i> @break
+                                    @case('layout') <i class="fas fa-columns"></i> @break
+                                    @case('terminal') <i class="fas fa-terminal"></i> @break
+                                    @case('code') <i class="fas fa-code"></i> @break
+                                    @case('palette') <i class="fas fa-palette"></i> @break
+                                    @case('settings') <i class="fas fa-sliders-h"></i> @break
+                                    @default <i class="fas fa-server"></i>
+                                @endswitch
+                            </span>
+                        </div>
+                        <span class="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-indigo-700">
+                            Mở workspace <span aria-hidden="true">→</span>
+                        </span>
+                    </a>
+                @endforeach
+            </div>
+        </section>
+    @empty
+        <div class="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-600">
+            Không có workspace khả dụng với quyền hiện tại.
         </div>
+    @endforelse
 
-        <div class="rounded-2xl border border-blue-200 bg-blue-50 p-5 text-sm leading-6 text-blue-900">
-            <span class="font-semibold">Ownership mới:</span>
-            Runtime/Bridge và Web/Analytics nằm trong Môi trường & Tích hợp; giao diện và điều hướng đăng nhập nằm trong Giao diện & Đăng nhập. Các component legacy chưa bị xóa trong phase này để tránh làm mất dữ liệu hoặc phá caller cũ.
-        </div>
-    </div>
+    <p class="text-xs leading-5 text-slate-500">
+        System Hub chỉ điều hướng đến chức năng hiện hữu. Admin Layout vẫn thuộc module Admin;
+        các thao tác database, script và cấu hình môi trường tiếp tục được bảo vệ tại route và component đích.
+    </p>
+</div>
 @endsection

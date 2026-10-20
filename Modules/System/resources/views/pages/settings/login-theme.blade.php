@@ -19,10 +19,7 @@
                 <h1 class="mt-1 text-2xl font-bold text-gray-900">Giao diện & Đăng nhập</h1>
                 <p class="mt-1 max-w-3xl text-sm text-gray-500">Một workspace duy nhất cho branding đăng nhập, trải nghiệm xác thực và điều hướng mặc định sau đăng nhập.</p>
             </div>
-            <a href="{{ route('admin.system.dashboard') }}"
-               class="inline-flex h-10 items-center justify-center rounded-xl border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">
-                Dashboard hệ thống
-            </a>
+
         </div>
 
         @if(session('success'))

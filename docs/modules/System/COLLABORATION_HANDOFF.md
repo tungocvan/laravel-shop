@@ -1,3 +1,159 @@
+## PR #320 final-review blocker — 2026-10-20
+
+- GitHub PR metadata reports **71 commits, 38 changed files, Draft, mergeable=false** at review time. A prior compare reported feature ahead of main and behind 0; these observations alone do not establish the cause of the mergeability failure.
+- Do not mark Ready for Review or merge until the GitHub conflict/check reason is established. No automatic rebasing, force push or production changes.
+- Operator confirmed Batch D focused test **3 passed, 18 assertions**, and Batch F `php -l` on `config/services.php` and `config/broadcasting.php` PASS; documentation/comment-only batches do not require full regression.
+- Next operator checkpoint: fast-forward pull, inspect PR checks/conflicts on GitHub, and report results; no PHPUnit needed for this handoff-only commit. Preserve local `M menu-prompt.sh`.
+
+---
+
+## Batch F — scoped legacy configuration boundary review (2026-10-20)
+
+- Operator approved reviewing only `config/services.php` and `config/broadcasting.php` in this batch.
+- Added comments in `config/services.php` documenting legacy boot-time NodeJS keys and DB-backed Chat HTTP consumers; no key removal or behavior change.
+- Added comments in `config/broadcasting.php` documenting the boot-time custom `socket.io` driver compatibility gate; no host/default/driver change.
+- Runtime behavior is unchanged. No focused PHPUnit required for comments-only PHP edits; perform `php -l` on the two changed files and `git diff --check` after pull.
+- No changes to real `.env`, Docker, NodeJS, payment consumers or production. PR #320 remains Draft, unmerged; unrelated local `menu-prompt.sh` must remain untouched.
+
+---
+
+## Batch E — consumer inventory gate and focused-test confirmation (2026-10-20)
+
+- Operator confirmed Batch D focused contract test: **3 passed, 18 assertions, 1.10 seconds**; `git diff --check` clean. Only local `M menu-prompt.sh` remains; do not modify it.
+- GitHub code search returned no indexed results even for known configuration literals; this is **not evidence of absent consumers**. Obtain a full local tracked-file `git grep` inventory before removing legacy MoMo/NodeJS/broadcasting configuration.
+- Current GitHub compare reports branch ahead 67 / behind 0; PR #320 remains Draft. Mergeability status was inconsistent across checks and must be reviewed before requesting merge.
+- **Next checkpoint is read-only:** use `git grep -n -I -E 'MOMO_(ENDPOINT|PARTNER_CODE|ACCESS_KEY|SECRET_KEY)|momo\\.(endpoint|partner_code|access_key|secret_key)|services\\.nodejs|NODEJS_SERVER_URL|BRIDGE_SECRET_KEY|BROADCAST_CONNECTION|socket\\.io' -- ':!docs/**' ':!tests/**' ':!*.lock'` to enumerate tracked source consumers. Review findings before modifying runtime.
+- No code-runtime changes in this batch, no tests required for documentation-only update, no production changes and no merge authorized.
+
+---
+
+## Batch D — NodeJS bridge runtime contract regression guard (2026-10-20)
+
+- Added a focused assertion to `AdvancedDatabaseSettingsContractTest` that protects `compose.yaml` socket `env_file: .env`, NodeJS `process.env.BRIDGE_SECRET_KEY` and `x-bridge-secret` usage, and `BRIDGE_SECRET_KEY=` presence in both example env files.
+- This is a regression guard for current architecture, not a migration to Docker Secrets. No runtime source, real `.env`, or production changes.
+- Operator's prior `git grep` was limited to PHP globs and cannot prove repository-wide absence of consumers; continue read-only inventory before deleting legacy config.
+- PR #320 remains Draft and unmerged; GitHub reported mergeable at audit time. Run **only** `AdvancedDatabaseSettingsContractTest` as the focused checkpoint; broader regression reserved for impacted changes or pre-merge review.
+- Focused TEST PASS pending operator execution. Unrelated local `menu-prompt.sh` modification must remain untouched.
+
+---
+
+## PR #320 read-only compatibility review — 2026-10-20
+
+- Inspected `config/broadcasting.php`: legacy `socket.io` connection still uses `env('NODEJS_SERVER_URL')` with historical fallback; do not delete it without verifying broadcast driver registration and all consumers.
+- Inspected `config/services.php`: legacy `services.nodejs.url` and `services.nodejs.bridge_secret` remain env-backed. Chat's three direct HTTP consumers have been migrated, but repository-wide caller proof is still required before removing config keys.
+- Inspected `config/realtime.php` and `RealtimeManager`: runtime allow/default/health settings remain env-backed; health uses DB-backed server URL only when explicit `SOCKET_HEALTH_URL` is absent. Browser URL stays `VITE_SOCKET_PUBLIC_URL` (local loopback fallback only).
+- Inspected `MomoConfigService`: database credentials are encrypted and exposed server-side through `credentials()`; no evidence yet that all payment execution consumers use this service. Do not remove MoMo env keys or declare payment runtime cutover complete without call-site proof.
+- **Architecture boundary:** `Modules/System/MODULE.md` identifies System as shell/operations, not owner of business-domain configuration. MoMo payment execution remains with its canonical business owner; System may provide admin configuration UI only if the ownership contract is explicit. Review this before merge.
+- Operator confirmed **259 tests passed (1,652 assertions)** after Batch C, duration 17.80 seconds. Previous UI PASS applies to earlier UI changes; Batch C is documentation-only.
+- PR #320 is Draft. This review adds documentation only; no source runtime mutation, merge or production operation. Open gates: payment caller inventory, socket.io driver consumers, NodeJS secret parity, and PR mergeability checks.
+
+---
+
+## Batch C — NodeJS bridge environment ownership (2026-10-20)
+
+- Verified `compose.yaml` socket service loads `env_file: .env`, and `socket/server.js` requires `process.env.BRIDGE_SECRET_KEY` at startup and checks `x-bridge-secret` on requests.
+- Kept `BRIDGE_SECRET_KEY=` in both `.env.example` and `.env.docker.example`; added comments documenting NodeJS runtime ownership, DB secret parity and no plaintext secret commits.
+- No changes to actual `.env`, `compose.yaml`, NodeJS code, runtime containers or production. No automatic secret synchronization.
+- Previous operator-confirmed 259-test regression and UI PASS predate this documentation-only batch; new checkpoint verification pending.
+
+---
+
+## PR readiness review checkpoint — 2026-10-20
+
+- Operator confirmed Batch B focused/module regression: **259 passed, 1,652 assertions**, and explicitly confirmed Chat/UI PASS. These are operator-reported results; no CI result independently claimed.
+- GitHub compare `main...feat/system-unified-operations-env-20261020`: **ahead 60, behind 0, 34 changed files** at review time. The scope includes Admin layout, System routes/UI, MoMo settings, Realtime and Chat, so treat this as a cross-module PR requiring explicit review.
+- PR #317, #318 and #319 were merged on 2026-10-20. No PR for this feature branch was found in the searched results.
+- Remaining release blockers: verify Laravel DB Bridge Secret matches the running NodeJS `BRIDGE_SECRET_KEY` without exposing values; verify MoMo payment consumers have migrated before deleting legacy env keys; review `config/broadcasting.php` and legacy `config/services.php` consumers; validate non-standard queue drivers and document compatibility. Do not claim production readiness or remove environment variables.
+- Local operator reported tracked `menu-prompt.sh` modification. Do not reset, overwrite or delete it. Require clean tracked working tree (or safely isolated unrelated local change) before merge gate.
+- This handoff-only checkpoint does not change runtime code. No merge/deploy authorized.
+
+---
+
+## Batch B Chat consumer cutover — pending test checkpoint (2026-10-20)
+
+- Read-only `git grep` inventory from operator identified three Laravel Chat HTTP broadcast call sites using legacy `services.nodejs.url` and `services.nodejs.bridge_secret`.
+- Updated `Modules/Chat/Services/ChatService.php` and both paths in `InternalChatService.php` to consume `AdvancedConfigService::serverCredentials()`; preserved existing HTTP request payload, endpoint, headers and timeouts. Missing DB secret skips the HTTP call with a non-sensitive warning.
+- Added `tests/Feature/Chat/ChatBridgeDatabaseSettingsTest.php` for URL/header behavior and missing-secret guard. Focused tests, Chat/System/Realtime regression and UI are **pending** for this commit.
+- **Operational compatibility gate:** `socket/server.js` still requires `process.env.BRIDGE_SECRET_KEY` at startup. Laravel database secret must match Node process secret; changing the Laravel DB secret alone can cause HTTP 401. No automatic secret synchronization, restart or production changes.
+- `config/broadcasting.php` still declares a boot-time socket.io host and may have separate callers; no removal of env variables or config keys until usage and Node-side integration are verified.
+- Operator's `menu-prompt.sh` has local tracked modifications; do not overwrite/reset it.
+
+---
+
+## Batch B partial checkpoint — Bridge consumer interface (2026-10-20)
+
+- Added server-only `AdvancedConfigService::serverCredentials()` for DB-backed URL + decrypted secret; empty secret remains unconfigured and must fail closed. No Livewire property exposes the secret.
+- Updated focused contract test. Existing `RealtimeManager` health uses DB-backed URL; browser public URL remains separate.
+- Repository-wide caller search was inconclusive (GitHub code search returned no indexed matches even for known files); **do not claim all consumers migrated**. Operator should supply a read-only `rg` inventory before further cross-module changes.
+- Do not remove `NODEJS_SERVER_URL`, `BRIDGE_SECRET_KEY`, `NODEJS_SERVER_PORT`, `VITE_SOCKET_PUBLIC_URL`, `REALTIME_*`, `SOCKET_*`, or Queue environment variables yet. No production changes.
+- Pending focused and impacted tests and UI confirmation; no TEST PASS claim for this batch.
+
+---
+
+## Pending Test/UI Checkpoint — Advanced Runtime & Bridge database configuration (2026-10-20)
+
+- Advanced tab NodeJS URL and encrypted Bridge Secret now use database settings, with read-error defaults: local http://127.0.0.1:6001 and production http://socket:6001. Existing settings take precedence.
+- Queue driver remains the actual boot-time config('queue.default') and is read-only in UI; DB writes must not imply changing active queue workers.
+- RealtimeManager internal health URL uses database-backed NodeJS URL; browser public socket URL remains separately configured and never exposes Docker hostname by default.
+- **Deferred consumer migration**: other NodeJS bridge clients, external Node process, Vite public URL and boot-time config/services.php references may still consume .env. Do not remove env variables until a repository-wide caller audit and runtime tests are complete.
+- No production edits, restart, config cache clear, or migration. Pending focused test, System/Realtime regression, UI PASS and external bridge consumer cutover. No TEST PASS claimed.
+
+---
+
+## Pending Test/UI Checkpoint — MoMo database-backed configuration (2026-10-20)
+
+- Approved change: `env-payment` no longer reads/writes `.env`; `MomoConfigService` uses `SettingsService` and database group `momo` with encrypted secrets and guarded read defaults.
+- Missing database settings yield safe UI defaults (test MoMo endpoint and blank partner/secrets). Unreadable secrets return empty and are logged without secret contents. Missing secrets must not be used to execute payments.
+- UI confirmation now says database. No automatic migration/deletion of legacy `MOMO_*` environment values, no production database edits or deploy.
+- **Consumer cutover gate remains open**: audit all payment call sites and any config/services.php env references before production use; do not claim payment integration has migrated. Existing external consumers may still read environment values until separately migrated.
+- Pending: focused `MomoDatabaseSettingsContractTest`, module regression, live settings persistence and secret preservation test with test database, Pint, UI acceptance; no TEST PASS claim. Rollback via reverting feature commits (settings rows can remain; no destructive cleanup).
+
+---
+
+## Pending Test/UI Checkpoint — Dashboard compact UI and return navigation (2026-10-20)
+
+- Approved UI slice on `feat/system-unified-operations-env-20261020`: compact Dashboard workspace cards and spacing, add permission-scoped entry to System Administration Hub, make subsystem status grid responsive, retain all warnings/metrics.
+- System workspaces already using `System::partials.dashboard-return-link` remain unchanged; removed duplicate standalone dashboard link from login-theme. Admin Layout overview and sections receive optional, permission-scoped dashboard return links without requiring System Blade views (Admin retains layout ownership).
+- Queue workspace description now excludes Socket.IO control and points Realtime ownership to NodeJS Bridge.
+- No changes to runtime mutations, queues, backups, database, environment, service restart or production. Deferred: deeper Dashboard vs Hub catalog deduplication and cross-module shared navigation component until separate architecture review.
+- Pending gates: focused `SystemDashboardNavigationContractTest`, existing System dashboard contracts, System regression, impacted Admin tests, Pint changed PHP files, responsive desktop/mobile UI acceptance. TEST PASS and UI PASS not claimed.
+- Rollback: revert the feature branch UI/controller changes; no persistence migration required.
+
+---
+
+## Pending Test/UI Checkpoint — System Administration Hub (2026-10-20)
+
+- Approved architecture: `/admin/system/settings` becomes the permission-filtered System Administration Hub; `/admin/system` remains the detailed runtime/environment workspace.
+- Route-first audit verified `admin.layout` is owned by Admin and protected by `admin.layout.view`; System links to it without rehoming Admin UI logic.
+- Cards link to existing System Center, Database, Modules, Admin Layout, Artisan, Scripts, Environment and Login/Branding routes. Each card is filtered by its destination's view permission; destination middleware remains authoritative.
+- Scope: `SettingController::index`, settings index Blade, focused contract test, handoff. KEEP existing routes/services; DEFER shared workspace catalog extraction; QUARANTINE dangerous command, database and environment mutations; DELETE none.
+- Pending: focused `SystemAdministrationHubContractTest` and `SystemDashboardInformationArchitectureContractTest`, System regression, Admin layout/route impacted smoke, Pint and responsive desktop/mobile UI acceptance. No TEST PASS or UI PASS claimed. No production changes or merge.
+- Rollback: revert the hub presentation/controller commits; original routes and business components are untouched.
+
+---
+
+## Pending Test/UI Gate — Realtime Socket.IO relocated to NodeJS Bridge (2026-10-20)
+
+- On `feat/system-unified-operations-env-20261020`, move the visible Realtime / Socket.IO control from `?tab=queues` into the NodeJS Server Bridge section of `?tab=env-advanced`.
+- Reuse the existing `x-realtime-control` view and `SystemRealtimeControlService` via dedicated `RealtimeBridgeControl` Livewire component. Mutations remain protected by `system.modules.update`; viewing the Environment tab remains governed by `system.env.view`.
+- Queue operations, workers, failed jobs and bridge environment save/ping behavior are unchanged. Legacy QueueManager realtime methods are retained temporarily for compatibility; only the visible control is relocated.
+- Added focused placement/permission contract tests. Pending local focused + System regression and desktop/mobile UI acceptance. No TEST PASS/UI PASS claimed. No production runtime changes.
+
+---
+
+## Pending Test/UI Checkpoint — Unified System Center (2026-10-20)
+
+- Branch: `feat/system-unified-operations-env-20261020`; base `main@5e666f44e`.
+- Consolidated `/admin/system` runtime and environment presentation into a single responsive Admin workspace, reusing existing Livewire configuration components and `EnvManager`.
+- `/admin/system/settings/env?tab=<legacy>` remains an authorized compatibility entry and redirects to `/admin/system?tab=env-<legacy>`.
+- Separate access: `system.manage` for runtime tabs; `system.env.view` for environment tabs; `system.env.update` remains enforced in mutation components. Users with both permissions see Mail/Database only in Environment to avoid duplicate forms.
+- No environment, database, cloud, queue, or production configuration was modified. Existing config persistence and operation services remain unchanged.
+- Pending: focused route contract test, System module regression, Pint, route:list inspection, real desktop/iPhone UI smoke and permission checks. No TEST PASS or UI PASS claimed.
+- Deferred: lazy-mount optimization; current Alpine x-show still mounts the rendered Livewire tab components, matching legacy behavior.
+- Rollback: revert feature branch changes before merge, or revert the merge commit after approval; the compatibility route remains in place.
+
+---
+
 ## Pending UI Gate — Full Database SQL Upload (2026-10-15)
 
 - Base checkpoint: `main @ aca3d8a7f`. Feature branch: `feat/system-database-upload-sql-restore`.

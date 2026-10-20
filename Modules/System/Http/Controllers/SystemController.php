@@ -11,11 +11,27 @@ class SystemController extends Controller
 {
     public function index(Request $request, SystemConfigService $configService)
     {
-        $this->authorizePermission('system.manage');
+        $user = auth('admin')->user() ?: auth()->user();
+        $canManage = (bool) $user?->can('system.manage');
+        $canViewEnv = (bool) $user?->can('system.env.view');
+
+        abort_unless($canManage || $canViewEnv, 403);
 
         $registry = app(ComponentRegistry::class);
 
-        $tabs = collect($configService->getTabs())
+        $runtimeTabs = $canManage ? $configService->getTabs() : [];
+        if ($canViewEnv) {
+            // Show shared Mail/Database forms once, in Environment & Integrations.
+            $runtimeTabs = array_values(array_filter(
+                $runtimeTabs,
+                fn (array $tab): bool => ! in_array($tab['id'] ?? null, ['mail', 'database'], true)
+            ));
+        }
+
+        // Environment access must not implicitly grant runtime operations.
+        $environmentTabs = $canViewEnv ? EnvConfigController::tabs() : [];
+
+        $tabs = collect(array_merge($runtimeTabs, $environmentTabs))
             ->filter(fn ($tab) => $tab['enabled'] ?? true)
             ->map(function ($tab) use ($registry) {
                 $component = $tab['component'] ?? null;
@@ -33,13 +49,6 @@ class SystemController extends Controller
             ? $requestedTab
             : (string) data_get($tabs->first(), 'id', '');
 
-        return view('System::system', compact('tabs', 'activeTab'));
-    }
-
-    private function authorizePermission(string $permission): void
-    {
-        $user = auth('admin')->user() ?: auth()->user();
-
-        abort_unless($user?->can($permission), 403);
+        return view('System::system', compact('tabs', 'activeTab', 'canManage', 'canViewEnv'));
     }
 }

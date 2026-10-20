@@ -60,7 +60,7 @@ class MomoConfig extends Component
 
         try {
             if (!$service->save($this->form)) {
-                throw new \RuntimeException('Environment update failed.');
+                throw new \RuntimeException('Database settings update failed.');
             }
             $this->form['MOMO_ACCESS_KEY'] = '';
             $this->form['MOMO_SECRET_KEY'] = '';

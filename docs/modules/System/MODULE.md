@@ -252,3 +252,16 @@ Update this file in the same PR whenever changing System responsibility, ownersh
 **Reason:** Admin authentication must not depend on Website availability. Operators can still opt into `/` while it exists without transferring root-route ownership into System.
 
 **Impact:** `AdminLoginRedirectService` validates both Admin routes and the optional root route, defaults and falls back to `admin.dashboard`, and never creates a hard Website dependency.
+
+
+### 2026-10-20 — Unified System Center presentation
+
+- `/admin/system` is the unified runtime and environment workspace. Runtime tab access requires `system.manage`; environment tab access requires `system.env.view`. Both are evaluated server-side before Livewire components are mounted.
+- `/admin/system/settings/env` is a compatibility route with `system.env.view` and redirects legacy tab IDs to `/admin/system?tab=env-...`. The former separate Environment Blade shell is no longer the canonical entry point.
+- Environment configuration services, Livewire forms, snapshot mutation authorization and settings persistence remain owned by System and unchanged. The Admin module retains global shell/navigation ownership.
+
+### MoMo database configuration (2026-10-20)
+
+- System owns the MoMo configuration form and persistence via `MomoConfigService` → `SettingsService` → `settings` group `momo`. The UI no longer reads or writes `MOMO_*` in `.env`.
+- Endpoint defaults to `https://test-payment.momo.vn`; other missing values default to empty. Secrets are encrypted with Laravel Crypt before persistence and must never be rendered back into the form. Empty secrets are **not valid payment credentials**.
+- Payment-domain consumers must use the server-side `MomoConfigService::credentials()` API and explicitly reject incomplete credentials; no silent `.env` fallback. Consumer migration and production key provisioning require separate audit/acceptance before live payment cutover.

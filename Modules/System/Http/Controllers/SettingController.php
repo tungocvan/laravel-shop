@@ -13,7 +13,38 @@ class SettingController extends Controller
 {
     public function index()
     {
-        return view('System::pages.settings.index');
+        $user = auth('admin')->user();
+
+        $groups = [
+            'Vận hành hệ thống' => [
+                ['label' => 'System Center', 'description' => 'Runtime Operations, Queue Manager và trạng thái vận hành.', 'route' => 'admin.system.index', 'permission' => 'system.manage', 'icon' => 'activity'],
+                ['label' => 'Quản lý Modules', 'description' => 'Trạng thái, dependency và quản trị vòng đời modules.', 'route' => 'admin.system.modules', 'permission' => 'system.modules.view', 'icon' => 'blocks'],
+            ],
+            'Dữ liệu & Sao lưu' => [
+                ['label' => 'Database Manager', 'description' => 'Cơ sở dữ liệu, sao lưu và khôi phục có kiểm soát.', 'route' => 'admin.system.database.index', 'permission' => 'database.view', 'icon' => 'database'],
+            ],
+            'Quản trị truy cập' => [
+                ['label' => 'Admin Layout', 'description' => 'Bố cục, header, sidebar, footer và điều hướng Admin.', 'route' => 'admin.layout', 'permission' => 'admin.layout.view', 'icon' => 'layout'],
+                ['label' => 'Giao diện & Đăng nhập', 'description' => 'Branding, đăng nhập và điều hướng sau đăng nhập.', 'route' => 'admin.system.settings.login-theme', 'permission' => 'system.settings.view', 'icon' => 'palette'],
+            ],
+            'Công cụ kỹ thuật' => [
+                ['label' => 'Artisan Console', 'description' => 'Lệnh Artisan được giới hạn bởi hệ thống.', 'route' => 'admin.system.artisan', 'permission' => 'system.commands.run', 'icon' => 'terminal'],
+                ['label' => 'Scripts Manager', 'description' => 'Registry script vận hành được kiểm soát.', 'route' => 'admin.system.scripts', 'permission' => 'system.commands.run', 'icon' => 'code'],
+            ],
+            'Môi trường & Tích hợp' => [
+                ['label' => 'Environment & Integrations', 'description' => 'Database connection, Email, NodeJS Bridge, Cloud, Web và thanh toán.', 'route' => 'admin.system.index', 'params' => ['tab' => 'env-database'], 'permission' => 'system.env.view', 'icon' => 'settings'],
+            ],
+        ];
+
+        $groups = collect($groups)
+            ->map(fn (array $items) => collect($items)
+                ->filter(fn (array $item): bool => (bool) $user?->can($item['permission']))
+                ->values()
+                ->all())
+            ->filter(fn (array $items): bool => $items !== [])
+            ->all();
+
+        return view('System::pages.settings.index', compact('groups'));
     }
 
     public function loginTheme(
