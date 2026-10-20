@@ -10,7 +10,7 @@
     }
 }">
     <nav class="mb-4 flex text-sm text-slate-500" aria-label="Breadcrumb">
-        <a href="{{ route('admin.system.dashboard') }}" class="transition hover:text-indigo-600">Dashboard hệ thống</a>
+        <span>Dashboard hệ thống</span>
         <span class="mx-2">/</span>
         <span class="font-semibold text-slate-800">System Center</span>
     </nav>
