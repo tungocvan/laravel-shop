@@ -1,3 +1,10 @@
+## 2026-10-20 — Development .env cleanup verified (runtime recheck pending)
+
+- User reported module regression 85 PASS / 645 assertions; cleanup-focused tests 3 PASS / 12 assertions; manual UI PASS.
+- On local development, user backed up .env to .env.backup-before-muasamcong-cleanup (600, www-data:www-data), removed 10 migrated MUASAMCONG_* entries, and verified 10 ABSENT through read-only audit. MUASAMCONG_SESSION_COOKIE remains BLOCKED and was not removed.
+- .env remains 640 and www-data:www-data. Tracked working tree clean; untracked backups and public/hot.pharma-mobile intentionally retained. No Production changes.
+- Gate pending: independently verify all 10 DB overrides still match effective config after cleanup; only then review PR. No merge or deploy authorized.
+
 ## 2026-10-20 — Legacy .env cleanup audit (WSL checkpoint pending)
 
 - User-confirmed gates from preceding checkpoint: focused 4 PASS / 12 assertions, module regression 84 PASS / 642 assertions, imported 9 settings with existing contractor override preserved, 10/10 effective DB configuration matches, Smart Pricing/contractor/Personal Session UI PASS.
