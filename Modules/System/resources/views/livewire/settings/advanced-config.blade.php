@@ -8,8 +8,8 @@
     <div class="space-y-8">
         <section>
             <h4 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Hàng đợi (Queue)</h4>
-            <div class="max-w-md space-y-4">
-                <select wire:model="form.QUEUE_CONNECTION" @disabled(!$canUpdate) class="w-full px-4 py-2 rounded-lg border border-gray-300">
+            <div class="max-w-md space-y-4"><p class="text-xs text-amber-700">Queue driver là cấu hình khởi động của worker; chỉ hiển thị tại đây, không thay đổi bằng lưu database.</p>
+                <select wire:model="form.QUEUE_CONNECTION" disabled class="w-full px-4 py-2 rounded-lg border border-gray-300">
                     <option value="sync">Sync</option><option value="database">Database</option><option value="redis">Redis</option>
                 </select>
                 @error('form.QUEUE_CONNECTION')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
@@ -35,6 +35,6 @@
     </div>
 
     <div class="mt-8 pt-6 border-t">
-        <button wire:click="save" wire:confirm="Lưu thay đổi Queue/NodeJS vào .env?" wire:loading.attr="disabled" wire:target="save" @disabled(!$canUpdate) class="px-8 py-2.5 bg-primary text-white font-bold rounded-lg disabled:opacity-50">LƯU CẤU HÌNH HỆ THỐNG</button>
+        <button wire:click="save" wire:confirm="Lưu cấu hình NodeJS Bridge vào cơ sở dữ liệu?" wire:loading.attr="disabled" wire:target="save" @disabled(!$canUpdate) class="px-8 py-2.5 bg-primary text-white font-bold rounded-lg disabled:opacity-50">LƯU CẤU HÌNH HỆ THỐNG</button>
     </div>
 </div>
