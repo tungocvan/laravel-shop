@@ -54,7 +54,8 @@ class ChatBridgeDatabaseSettingsTest extends TestCase
 
     private function assertBroadcastUsesDatabaseCredentials(object $service): void
     {
-        $this->mock(RealtimeManager::class)->shouldReceive('enabled')->once()->andReturn(true);
+        config()->set('realtime.allowed', true);
+        config()->set('realtime.default_enabled', true);
         $this->mock(AdvancedConfigService::class)->shouldReceive('serverCredentials')
             ->once()->andReturn(['url' => 'http://127.0.0.1:6001', 'secret' => 'database-secret']);
         Http::fake(['http://127.0.0.1:6001/broadcast' => Http::response(['success' => true])]);
