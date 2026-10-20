@@ -112,10 +112,13 @@ class ContractorHistoryService
             throw new RuntimeException('Chưa cấu hình Personal Page Session.');
         }
 
+        $endpoint = $this->endpoint();
+        $origin = parse_url($endpoint, PHP_URL_SCHEME).'://'.parse_url($endpoint, PHP_URL_HOST);
+
         return Http::withHeaders([
             'Accept' => 'application/json, text/plain, */*',
             'Content-Type' => 'application/json',
-            'Origin' => config('muasamcong.origin'),
+            'Origin' => $origin,
             'Referer' => config('muasamcong.referers.contractor_joined_bids'),
             'User-Agent' => config('muasamcong.user_agent'),
             'Cookie' => $cookie,
