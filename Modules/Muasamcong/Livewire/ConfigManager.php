@@ -293,6 +293,9 @@ class ConfigManager extends Component
 
         $this->tokenTestStatus = 'error';
         $this->tokenTestMessage = 'Kiểm tra token qua API tìm kiếm nhà thầu ('.(string) parse_url((string) config('muasamcong.endpoints.contractor_search'), PHP_URL_HOST).') thất bại: '.($result['message'] ?? 'Không có phản hồi hợp lệ.').' Đây không phải kiểm tra Smart Pricing.';
+        if ((int) ($result['status'] ?? 0) === 302) {
+            $this->tokenTestMessage .= ' API nhà thầu đang chuyển hướng. Cần xác minh endpoint đích trước khi cập nhật; không bật tự động theo redirect.';
+        }
     }
 
     public function render(): View
