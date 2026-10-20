@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Chat;
 
-use App\Services\RealtimeManager;
 use Illuminate\Support\Facades\Http;
 use Modules\Chat\Services\ChatService;
 use Modules\Chat\Services\InternalChatService;
@@ -37,7 +36,8 @@ class ChatBridgeDatabaseSettingsTest extends TestCase
 
     public function test_chat_skips_http_when_database_bridge_secret_is_missing(): void
     {
-        $this->mock(RealtimeManager::class)->shouldReceive('enabled')->once()->andReturn(true);
+        config()->set('realtime.allowed', true);
+        config()->set('realtime.default_enabled', true);
         $this->mock(AdvancedConfigService::class)->shouldReceive('serverCredentials')
             ->once()->andReturn(['url' => 'http://127.0.0.1:6001', 'secret' => '']);
         Http::fake();
