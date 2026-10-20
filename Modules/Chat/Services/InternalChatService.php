@@ -3,6 +3,7 @@
 namespace Modules\Chat\Services;
 
 use App\Services\RealtimeManager;
+use Modules\System\Services\Env\AdvancedConfigService;
 use Modules\Chat\Models\InternalMessage;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
@@ -71,10 +72,15 @@ class InternalChatService
 
         try {
 
-            $url = rtrim((string) config('services.nodejs.url'), '/') . '/broadcast';
+            $credentials = app(AdvancedConfigService::class)->serverCredentials();
+            if (trim($credentials['secret']) === '') {
+                Log::warning('Node bridge secret is not configured; broadcast skipped.');
+                return;
+            }
+            $url = rtrim($credentials['url'], '/').'/broadcast';
 
             $response = Http::withHeaders([
-                'X-Bridge-Secret' => config('services.nodejs.bridge_secret'),
+                'X-Bridge-Secret' => $credentials['secret'],
                 'Content-Type' => 'application/json',
             ])
                 ->timeout(5)
@@ -96,10 +102,15 @@ class InternalChatService
 
         try {
 
-            $url = rtrim((string) config('services.nodejs.url'), '/') . '/broadcast';
+            $credentials = app(AdvancedConfigService::class)->serverCredentials();
+            if (trim($credentials['secret']) === '') {
+                Log::warning('Node bridge secret is not configured; broadcast skipped.');
+                return;
+            }
+            $url = rtrim($credentials['url'], '/').'/broadcast';
 
             $response = Http::withHeaders([
-                'X-Bridge-Secret' => config('services.nodejs.bridge_secret'),
+                'X-Bridge-Secret' => $credentials['secret'],
                 'Content-Type' => 'application/json',
             ])
                 ->timeout(5)
