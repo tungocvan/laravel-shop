@@ -19,7 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
-    ->withCommands([\Modules\Pharma\Console\Commands\BackfillPharmaProducts::class])
+    ->withCommands([\Modules\Pharma\Console\Commands\BackfillPharmaProducts::class, \Modules\Muasamcong\Console\Commands\ImportLegacySettings::class])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(
             at: '*',
