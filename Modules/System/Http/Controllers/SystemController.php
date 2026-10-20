@@ -11,11 +11,27 @@ class SystemController extends Controller
 {
     public function index(Request $request, SystemConfigService $configService)
     {
-        $this->authorizePermission('system.manage');
+        $user = auth('admin')->user() ?: auth()->user();
+        $canManage = (bool) $user?->can('system.manage');
+        $canViewEnv = (bool) $user?->can('system.env.view');
+
+        abort_unless($canManage || $canViewEnv, 403);
 
         $registry = app(ComponentRegistry::class);
 
-        $tabs = collect($configService->getTabs())
+        $runtimeTabs = $canManage ? $configService->getTabs() : [];
+
+        // Environment access must not implicitly grant runtime operations.
+        $environmentTabs = $canViewEnv ? [
+            ['id' => 'env-database', 'label' => 'Database', 'component' => 'system.settings.database-config', 'enabled' => true],
+            ['id' => 'env-mail', 'label' => 'Email', 'component' => 'system.settings.mail-config', 'enabled' => true],
+            ['id' => 'env-advanced', 'label' => 'Runtime & Bridge', 'component' => 'system.settings.advanced-config', 'enabled' => true],
+            ['id' => 'env-payment', 'label' => 'Thanh toán', 'component' => 'system.settings.momo-config', 'enabled' => true],
+            ['id' => 'env-storage', 'label' => 'Storage / Cloud', 'component' => 'system.settings.storage-config', 'enabled' => true],
+            ['id' => 'env-social', 'label' => 'Web & Analytics', 'component' => 'system.settings.social-config', 'enabled' => true],
+        ] : [];
+
+        $tabs = collect(array_merge($runtimeTabs, $environmentTabs))
             ->filter(fn ($tab) => $tab['enabled'] ?? true)
             ->map(function ($tab) use ($registry) {
                 $component = $tab['component'] ?? null;
@@ -33,13 +49,6 @@ class SystemController extends Controller
             ? $requestedTab
             : (string) data_get($tabs->first(), 'id', '');
 
-        return view('System::system', compact('tabs', 'activeTab'));
-    }
-
-    private function authorizePermission(string $permission): void
-    {
-        $user = auth('admin')->user() ?: auth()->user();
-
-        abort_unless($user?->can($permission), 403);
+        return view('System::system', compact('tabs', 'activeTab', 'canManage', 'canViewEnv'));
     }
 }
