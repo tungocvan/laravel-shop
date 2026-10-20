@@ -12,7 +12,7 @@ class AuditEnvCleanupTest extends TestCase
         $command = $this->app->make(AuditEnvCleanup::class);
 
         $this->assertSame('muasamcong:audit-env-cleanup', $command->getName());
-        $this->assertSame('muasamcong:audit-env-cleanup', $command->getName());
+        $this->assertSame('muasamcong:audit-env-cleanup', \Illuminate\Support\Facades\Artisan::all()['muasamcong:audit-env-cleanup']->getName());
         $this->assertFalse($command->getDefinition()->hasOption('force'));
     }
 }
