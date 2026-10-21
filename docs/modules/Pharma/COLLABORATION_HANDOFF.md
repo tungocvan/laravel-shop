@@ -582,3 +582,9 @@ Do not reinterpret this checkpoint as an Admin Commission Center rewrite. Client
 - New endpoints: GET status requires view permission; POST enqueue/review require `sync_pharma_official_facilities`. Queue worker must be running for asynchronous completion. Do not run a queue worker or migration on production without separate approval.
 - Focused tests: `tests/Feature/Pharma/OfficialFacilityRegionContractTest.php`, `tests/Feature/Pharma/OfficialSourceLegalLookupContractTest.php`, `tests/Feature/Partner/DoanhNghiepLookupServiceTest.php`.
 - Tests NOT RUN; UI NOT VERIFIED; module regression deferred until pre-merge gate; no PR, merge, or deploy.
+
+
+## 2026-10-21 — Partner gateway integration (pending tests)
+
+- `LookupOfficialSourceLegalJob` now depends on Partner-owned `BusinessRegistryLookupGateway`, not a hardcoded source provider. Name-only BHXH lookup requires configured Doanhnghiep.vn API key; VietQR supports exact tax code only. Cache reduces repeat quota usage.
+- No automatic canonical Partner sync, no BHXH overwrite, no production migration or queue restart authorized. Tests and UI not yet verified.
