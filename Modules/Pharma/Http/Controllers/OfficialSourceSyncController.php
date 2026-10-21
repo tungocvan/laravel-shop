@@ -30,38 +30,17 @@ class OfficialSourceSyncController extends Controller
 
     public function index(Request $request, BhxhProvinceCatalog $provinceCatalog): View
     {
-        $search = trim((string) $request->string('search'));
-        $source = trim((string) $request->string('source'));
-        $businessRegion = trim((string) $request->string('business_region'));
-        $province = trim((string) $request->string('province'));
-        $partition = trim((string) $request->string('partition'));
-        $status = trim((string) $request->string('status'));
-        $facilityType = trim((string) $request->string('facility_type'));
         $regions = $provinceCatalog->regions();
+        $businessRegion = trim((string) $request->string('business_region'));
         $regionLabel = $regions[$businessRegion] ?? null;
+        $province = trim((string) $request->string('province'));
         $regionProvinceNames = $regionLabel === null
             ? []
             : array_values($provinceCatalog->provincesByRegion()[$regionLabel] ?? []);
 
-        $query = OfficialSourceFacility::query()
-            ->when(isset(self::FACILITY_NAME_TYPES[$facilityType]), fn ($builder) => $builder->where('facility_name', 'like', '%'.self::FACILITY_NAME_TYPES[$facilityType].'%'))
-            ->when($source !== '', fn ($builder) => $builder->where('source', $source))
-            ->when($regionLabel !== null, fn ($builder) => $builder->whereIn('province_name', $regionProvinceNames))
-            ->when($province !== '', fn ($builder) => $builder->where('province_name', $province))
-            ->when($partition !== '', fn ($builder) => $builder->where('source_province_code', $partition))
-            ->when(in_array($status, ['active', 'stale'], true), fn ($builder) => $builder->where('is_active', $status === 'active'))
-            ->when($search !== '', function ($builder) use ($search): void {
-                $like = '%'.$search.'%';
-                $builder->where(function ($nested) use ($like): void {
-                    $nested->where('external_id', 'like', $like)
-                        ->orWhere('facility_name', 'like', $like)
-                        ->orWhere('province_name', 'like', $like)
-                        ->orWhere('source_province_code', 'like', $like)
-                        ->orWhere('district_name', 'like', $like)
-                        ->orWhere('source_district_code', 'like', $like);
-                });
-            })
-            ->orderBy('province_name')
+        $query = OfficialSourceFacility::query();
+        $this->applyFilters($query, $request, $provinceCatalog);
+        $query->orderBy('province_name')
             ->orderBy('source_province_code')
             ->orderBy('facility_name');
 
@@ -212,10 +191,12 @@ class OfficialSourceSyncController extends Controller
         $province = trim((string) $request->string('province'));
         $partition = trim((string) $request->string('partition'));
         $status = trim((string) $request->string('status'));
+        $facilityType = trim((string) $request->string('facility_type'));
         $regionLabel = $provinceCatalog->regions()[$businessRegion] ?? null;
         $regionProvinceNames = $regionLabel === null ? [] : array_values($provinceCatalog->provincesByRegion()[$regionLabel] ?? []);
 
         $query
+            ->when(isset(self::FACILITY_NAME_TYPES[$facilityType]), fn ($builder) => $builder->where('facility_name', 'like', self::FACILITY_NAME_TYPES[$facilityType].'%'))
             ->when($source !== '', fn ($builder) => $builder->where('source', $source))
             ->when($regionLabel !== null, fn ($builder) => $builder->whereIn('province_name', $regionProvinceNames))
             ->when($province !== '', fn ($builder) => $builder->where('province_name', $province))
