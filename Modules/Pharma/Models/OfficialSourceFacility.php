@@ -4,6 +4,7 @@ namespace Modules\Pharma\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class OfficialSourceFacility extends Model
 {
@@ -22,6 +23,11 @@ class OfficialSourceFacility extends Model
             'last_seen_at' => 'datetime',
             'last_synced_at' => 'datetime',
         ];
+    }
+
+    public function legalLookup(): HasOne
+    {
+        return $this->hasOne(OfficialSourceLegalLookup::class, 'facility_id');
     }
 
     public function lastSyncBatch(): BelongsTo
