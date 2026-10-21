@@ -11,7 +11,6 @@ use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Concerns\ToArray;
 use Modules\Pharma\Models\OfficialSourceFacility;
 use Modules\Pharma\Models\OfficialSourceLegalLookup;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class OfficialSourceLegalImportController extends Controller
 {
@@ -54,8 +53,11 @@ class OfficialSourceLegalImportController extends Controller
                 $reason = 'Thiếu hoặc trùng mã CSKCB trong file';
             }
             $seen[$code] = true;
-            if (! preg_match('/^[0-9]{10}(?:[0-9]{3})?$/', $tax) || $address === '' || $name === '') {
-                $reason ??= 'Thiếu tên/địa chỉ hoặc MST không hợp lệ (10/13 chữ số)';
+            if ($tax === '' || $address === '') {
+                $reason ??= 'Thiếu MST hoặc địa chỉ';
+            }
+            if ($tax !== '' && ! preg_match('/^[0-9-]+$/', $tax)) {
+                $reason ??= 'MST chứa ký tự không hợp lệ';
             }
             if (mb_strlen($address) > 1000 || mb_strlen($name) > 255) {
                 $reason ??= 'Dữ liệu quá dài';
@@ -65,8 +67,6 @@ class OfficialSourceLegalImportController extends Controller
                 ->where('source', 'bhxh')->where('external_id', $code)->first() : null;
             if (! $facility) {
                 $reason ??= 'Không tìm thấy mã CSKCB BHXH';
-            } elseif (Str::lower(preg_replace('/\s+/u', ' ', trim($facility->facility_name))) !== Str::lower(preg_replace('/\s+/u', ' ', $name))) {
-                $reason ??= 'Tên cơ sở không khớp dữ liệu BHXH';
             } elseif ($facility->legalLookup?->status === 'reviewed') {
                 $reason ??= 'Đã xác nhận trước đó, không tự ghi đè';
             }
@@ -109,22 +109,22 @@ class OfficialSourceLegalImportController extends Controller
 
                 $lookup ??= new OfficialSourceLegalLookup(['facility_id' => $facility->id]);
                 $lookup->fill([
-                    'status' => 'reviewed',
+                    'status' => 'imported',
                     'query_name' => $facility->facility_name,
                     'candidates' => [[
                         'tax_code' => $item['tax_code'],
                         'name' => $facility->facility_name,
                         'address' => $item['address'],
                         'source' => 'excel_import',
-                        'source_label' => 'Excel import (người dùng xác nhận)',
+                        'source_label' => 'Excel import (chưa đối chiếu)',
                     ]],
                     'candidate_count' => 1,
                     'selected_tax_code' => $item['tax_code'],
                     'requested_by' => auth('admin')->id(),
-                    'reviewed_by' => auth('admin')->id(),
+                    'reviewed_by' => null,
                     'requested_at' => now(),
                     'completed_at' => now(),
-                    'reviewed_at' => now(),
+                    'reviewed_at' => null,
                     'error_message' => null,
                 ]);
                 $lookup->save();
@@ -135,6 +135,6 @@ class OfficialSourceLegalImportController extends Controller
         });
 
         $request->session()->forget(self::SESSION_KEY);
-        return response()->json(['message' => 'Đã lưu dữ liệu pháp lý được xác nhận tại Pharma, không thay đổi BHXH hoặc Partner.', ...$result]);
+        return response()->json(['message' => 'Đã nhập dữ liệu Excel chưa đối chiếu tại Pharma; không thay đổi BHXH hoặc Partner.', ...$result]);
     }
 }
