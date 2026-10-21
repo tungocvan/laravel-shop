@@ -19,40 +19,28 @@ use Modules\Pharma\Services\OfficialFacilityImport\OfficialFacilityNormalizer;
 
 class OfficialSourceSyncController extends Controller
 {
+    private const FACILITY_NAME_TYPES = [
+        'hospital' => 'Bệnh viện',
+        'medical_center' => 'Trung tâm y tế',
+        'clinic' => 'Phòng khám',
+        'health_station' => 'Trạm y tế',
+    ];
+
     public const BHXH_SNAPSHOT_SESSION = 'pharma.official_facilities.bhxh.last_snapshot';
 
     public function index(Request $request, BhxhProvinceCatalog $provinceCatalog): View
     {
-        $search = trim((string) $request->string('search'));
-        $source = trim((string) $request->string('source'));
-        $businessRegion = trim((string) $request->string('business_region'));
-        $province = trim((string) $request->string('province'));
-        $partition = trim((string) $request->string('partition'));
-        $status = trim((string) $request->string('status'));
         $regions = $provinceCatalog->regions();
+        $businessRegion = trim((string) $request->string('business_region'));
         $regionLabel = $regions[$businessRegion] ?? null;
+        $province = trim((string) $request->string('province'));
         $regionProvinceNames = $regionLabel === null
             ? []
             : array_values($provinceCatalog->provincesByRegion()[$regionLabel] ?? []);
 
-        $query = OfficialSourceFacility::query()
-            ->when($source !== '', fn ($builder) => $builder->where('source', $source))
-            ->when($regionLabel !== null, fn ($builder) => $builder->whereIn('province_name', $regionProvinceNames))
-            ->when($province !== '', fn ($builder) => $builder->where('province_name', $province))
-            ->when($partition !== '', fn ($builder) => $builder->where('source_province_code', $partition))
-            ->when(in_array($status, ['active', 'stale'], true), fn ($builder) => $builder->where('is_active', $status === 'active'))
-            ->when($search !== '', function ($builder) use ($search): void {
-                $like = '%'.$search.'%';
-                $builder->where(function ($nested) use ($like): void {
-                    $nested->where('external_id', 'like', $like)
-                        ->orWhere('facility_name', 'like', $like)
-                        ->orWhere('province_name', 'like', $like)
-                        ->orWhere('source_province_code', 'like', $like)
-                        ->orWhere('district_name', 'like', $like)
-                        ->orWhere('source_district_code', 'like', $like);
-                });
-            })
-            ->orderBy('province_name')
+        $query = OfficialSourceFacility::query();
+        $this->applyFilters($query, $request, $provinceCatalog);
+        $query->orderBy('province_name')
             ->orderBy('source_province_code')
             ->orderBy('facility_name');
 
@@ -73,7 +61,7 @@ class OfficialSourceSyncController extends Controller
             ->get();
 
         return view('Pharma::pages.official-facilities.source', [
-            'facilities' => $query->paginate($this->perPage($request))->withQueryString(),
+            'facilities' => $query->with('legalLookup')->paginate($this->perPage($request))->withQueryString(),
             'batches' => OfficialSourceSyncBatch::query()->latest('id')->limit(20)->get(),
             'businessRegions' => $regions,
             'provinceRegions' => OfficialSourceFacility::query()
@@ -92,6 +80,7 @@ class OfficialSourceSyncController extends Controller
                 ->pluck('province_name'),
             'partitionOptions' => $partitionOptions,
             'partitionLabels' => $partitionLabels,
+            'facilityNameTypes' => self::FACILITY_NAME_TYPES,
         ]);
     }
 
@@ -106,6 +95,7 @@ class OfficialSourceSyncController extends Controller
             'province' => ['nullable', 'string', 'max:255'],
             'partition' => ['nullable', 'string', 'max:50'],
             'status' => ['nullable', 'string', 'max:20'],
+            'facility_type' => ['nullable', 'string', 'in:hospital,medical_center,clinic,health_station'],
         ]);
 
         $selectedIds = array_values(array_filter((array) ($validated['selected_ids'] ?? [])));
@@ -117,7 +107,7 @@ class OfficialSourceSyncController extends Controller
             $this->applyFilters($query, $request, $provinceCatalog);
         }
 
-        $facilities = $query->orderBy('province_name')->orderBy('facility_name')->get();
+        $facilities = $query->with('legalLookup')->orderBy('province_name')->orderBy('facility_name')->get();
         if ($facilities->isEmpty()) {
             return response('Không có cơ sở phù hợp để export.', 422);
         }
@@ -201,10 +191,12 @@ class OfficialSourceSyncController extends Controller
         $province = trim((string) $request->string('province'));
         $partition = trim((string) $request->string('partition'));
         $status = trim((string) $request->string('status'));
+        $facilityType = trim((string) $request->string('facility_type'));
         $regionLabel = $provinceCatalog->regions()[$businessRegion] ?? null;
         $regionProvinceNames = $regionLabel === null ? [] : array_values($provinceCatalog->provincesByRegion()[$regionLabel] ?? []);
 
         $query
+            ->when(isset(self::FACILITY_NAME_TYPES[$facilityType]), fn ($builder) => $builder->where('facility_name', 'like', self::FACILITY_NAME_TYPES[$facilityType].'%'))
             ->when($source !== '', fn ($builder) => $builder->where('source', $source))
             ->when($regionLabel !== null, fn ($builder) => $builder->whereIn('province_name', $regionProvinceNames))
             ->when($province !== '', fn ($builder) => $builder->where('province_name', $province))

@@ -137,3 +137,16 @@ Still deferred:
 - source arbitration when multiple external sources disagree;
 - removal of tax-code uniqueness;
 - promotion of every source-only field into Partner master columns.
+
+
+## 2026-10-21 — Business registry gateway (pending tests)
+
+- `BusinessRegistryLookupGateway` routes name search to authenticated Doanhnghiep.vn, exact 10/13-digit tax code to VietQR. Both are cache-backed; no automatic fallback from a failed name lookup to tax-only API.
+- Doanhnghiep.vn API key comes from `config('services.doanhnghiep.api_key')` / `DOANHNGHIEP_API_KEY`; secrets must never be committed or printed. A missing/invalid key is a controlled failure. Documentation: https://doanhnghiep.vn/api/docs.
+- VietQR: https://api.vietqr.io/v2/business/{taxCode}, documented retirement 2027-03-01; temporary provider only, exact MST verification required. No bulk crawling or Partner master writes.
+- Focused tests: `tests/Feature/Partner/DoanhNghiepLookupServiceTest.php` and `tests/Feature/Partner/BusinessRegistryLookupGatewayTest.php`. Not yet run.
+
+## 2026-10-21 — MSTCongTy integration correction
+
+- User UI confirmed Partner MSTCongTy name search returns candidates. Pharma gateway now reuses `MultiSourceBusinessLookupService::search(..., MstCongTyProvider::SOURCE)` for names; Doanhnghiep.vn remains an optional authenticated provider in Partner, not a mandatory name lookup dependency. VietQR remains MST-only. Provider failures are surfaced rather than cached as empty matches.
+- New focused tests are pending local execution; UI Pharma is not yet confirmed PASS.

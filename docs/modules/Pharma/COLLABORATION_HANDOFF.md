@@ -560,3 +560,92 @@ Do not reinterpret this checkpoint as an Admin Commission Center rewrite. Client
 - Commission browser behavior moved from inline Blade JavaScript to the existing ClientPortal native interaction asset.
 - No `Modules/Pharma` production code, commission formula, ledger scope, export semantics, lifecycle, permission, route or schema changes are part of this batch.
 - Existing Pharma service/domain contracts remain canonical and must not be altered to complete this UI technical-debt closeout.
+
+
+## Checkpoint 2026-10-21 — Official Source full-width workspace / Partners lookup entry
+
+- Branch: `feat/pharma-source-wide-business-lookup-20261021` (base `e3d615851`).
+- `source.blade.php` opts into Admin shell's canonical `@section('admin_container', 'full')` rather than changing global sidebar width; source table has bounded horizontal scrolling for narrow viewports.
+- Added an explicit navigation action to the existing `admin.partners.lookup` route on each source row. **This is navigation only**: no tax-code/name autofill, API invocation, matching, legal verification, or persistence is claimed. BHXH source fields remain unchanged.
+- Pending: audit actual Partners business-lookup controller/services/API contracts before building cross-module enrichment; do not assume name-search support or automatically link legal entities.
+- Test status: NOT RUN (requires local checkpoint). UI acceptance: NOT VERIFIED. No PR/merge/deploy.
+- Focused test: `php artisan test --filter=OfficialSource` (confirm available test names and output). Then Pharma module regression only after focused PASS; Partners impacted regression if cross-module integration is implemented.
+
+
+## Checkpoint 2026-10-21 — Per-row queued legal lookup (pending local tests/UI)
+
+- Branch: `feat/pharma-source-wide-business-lookup-20261021`.
+- Source page now queues one facility-name lookup via `LookupOfficialSourceLegalJob` and displays status/candidates in an inline modal; no navigation to Partner lookup.
+- Reuses `Modules/Partner/Services/DoanhNghiepLookupService`; at most 10 candidate results; errors and empty results are persisted. Existing BHXH source records and canonical Partner records are never overwritten.
+- New `pharma_official_source_legal_lookups` table stores facility ID, query snapshot, candidate JSON, status, review selection, reviewer and timestamps. New migration is additive and has NOT been run.
+- Reviewer confirms a tax-code candidate in Pharma only. This is **not** canonical Partner synchronization; any future Partner link/upsert needs a separate approved flow.
+- New endpoints: GET status requires view permission; POST enqueue/review require `sync_pharma_official_facilities`. Queue worker must be running for asynchronous completion. Do not run a queue worker or migration on production without separate approval.
+- Focused tests: `tests/Feature/Pharma/OfficialFacilityRegionContractTest.php`, `tests/Feature/Pharma/OfficialSourceLegalLookupContractTest.php`, `tests/Feature/Partner/DoanhNghiepLookupServiceTest.php`.
+- Tests NOT RUN; UI NOT VERIFIED; module regression deferred until pre-merge gate; no PR, merge, or deploy.
+
+
+## 2026-10-21 — Partner gateway integration (pending tests)
+
+- `LookupOfficialSourceLegalJob` now depends on Partner-owned `BusinessRegistryLookupGateway`, not a hardcoded source provider. Name-only BHXH lookup requires configured Doanhnghiep.vn API key; VietQR supports exact tax code only. Cache reduces repeat quota usage.
+- No automatic canonical Partner sync, no BHXH overwrite, no production migration or queue restart authorized. Tests and UI not yet verified.
+
+## 2026-10-21 — MSTCongTy integration correction
+
+- User UI confirmed Partner MSTCongTy name search returns candidates. Pharma gateway now reuses `MultiSourceBusinessLookupService::search(..., MstCongTyProvider::SOURCE)` for names; Doanhnghiep.vn remains an optional authenticated provider in Partner, not a mandatory name lookup dependency. VietQR remains MST-only. Provider failures are surfaced rather than cached as empty matches.
+- New focused tests are pending local execution; UI Pharma is not yet confirmed PASS.
+
+
+## 2026-10-21 — Reviewed legal identity Excel export
+
+- Source Excel now includes confirmed tax code and legal address via eager-loaded legalLookup and confirmedCandidate(). Unreviewed candidates are excluded from these columns. Source BHXH fields remain unchanged.
+- Focused test updated in OfficialFacilityRegionContractTest.php; local test and exported workbook UI verification pending. No migration or deployment.
+
+
+## 2026-10-21 — Facility name category filter (pending tests)
+
+- Source list supports `facility_type` choices hospital/Bệnh viện, medical_center/Trung tâm y tế, clinic/Phòng khám, health_station/Trạm y tế. Matches substring in `facility_name` with SQL LIKE; does not mutate or assign a canonical category. Filters combine with existing search/region/status and persist in export form.
+- No migration or queue changes. Focused tests and UI pending operator confirmation. No PR/merge/deploy.
+
+
+## 2026-10-21 — Source filter compact desktop layout
+
+- Responsive filter form: 9 compact columns on xl desktop (search, facility type, region, source, province, BHXH partition, status, page size, reset), 2 columns on tablet and stacked on mobile. No filter behavior changes. UI confirmation pending; no deploy/merge.
+
+
+## 2026-10-21 — Prefix filter and Excel parity
+
+- Facility type filter now matches facility_name starting with the selected category phrase (`LIKE 'Bệnh viện%'`, etc.) instead of substring. Both index and unselected Excel export call shared `applyFilters`; explicit selected IDs still take precedence over filters.
+- Focused tests and Excel/UI verification pending; no database or queue changes, no merge/deploy.
+
+
+## 2026-10-21 — Legal identity Excel import (pending focused tests/UI)
+
+- New separate Pharma legal import routes preview/confirm with import permission; existing BHXH source Excel importer untouched. Preview parses header columns `Mã CSKCB`, `Tên cơ sở khám chữa bệnh`, `Mã số thuế đã xác nhận`, `Địa chỉ pháp lý đã xác nhận`, max 500 rows/5 MB; validates BHXH source/external ID, exact normalized name, tax code and address, duplicate IDs and previously reviewed/running records. Preview is session-bound with 30 minute expiry and explicit confirmation.
+- Confirm uses DB transaction, row locks, rechecks source/name/status, stores reviewed legal snapshot with `source=excel_import`; never writes BHXH mirror or Partner. No new migration or queue worker required. Original uploaded workbook is not imported automatically.
+- Focused test: `tests/Feature/Pharma/OfficialSourceLegalImportContractTest.php`; PHP lint and UI verification pending. No PR/merge/deploy.
+
+
+## 2026-10-21 — Excel import without legal verification
+
+- User requested import first, external registry verification only on manual lookup. Preview no longer rejects 8/9-digit tax values solely due to lost leading zero in Excel or mismatched facility name; still requires BHXH CSKCB match, nonempty tax/address, safe tax characters, duplicate checks. Imported record status is `imported` (unverified), distinct from `reviewed`.
+- Existing reviewed legal results remain protected; lookup preserves imported snapshot when retrieving registry candidates. Original BHXH and Partner untouched. Focused tests/UI pending. Do not claim legal verification from Excel.
+
+
+## 2026-10-21 — Legal Excel import template
+
+- Added GET legal-import/template under import permission, with Excel download and 4 exact headers matching preview import. A/C columns are Excel text for CSKCB/tax codes. Modal includes download link. No database/queue changes.
+- User reported UI PASS for prior import flow, not yet for this new template. Focused test/lint and template download UI pending. No merge/deploy.
+
+
+## 2026-10-21 — Pre-merge audit checkpoint (regression pending)
+
+- GitHub compare against latest observed main `e3d615851`: feature ahead 69, behind 0; 22 files changed, including Pharma, Partner gateway, tests, migration, and services config. No new branch or worktree.
+- User explicitly confirmed focused TEST PASS and UI PASS for legal import template. This does not imply module/impacted regression PASS.
+- Read-only audit: legal Excel import uses separate preview/confirm and stores `imported` (unverified) candidate; manual registry lookup uses Partner gateway. Existing reviewed entries protected against Excel overwrite. No PR/merge/deploy authorized.
+- Next gates: local tracked tree clean; PHP lint; focused Pharma/Partner tests; Pharma module regression and Partner impacted regression; `git diff --check`; UI regression only if UI code changes further; PR review. Do not assert PASS before operator output.
+
+
+## 2026-10-21 — PR #321 security review fix
+
+- Draft PR #321 reviewed; discovered that imported Excel candidates were retained in registry results and could be selected in review, improperly upgrading unverified Excel data. Backend review now explicitly rejects candidates whose source is `excel_import`; Excel import/display/export remain unchanged.
+- Focused contract guard added. This is a new code change after prior operator TEST/UI PASS, so rerun focused and impacted tests before merging. PR remains draft, no merge/deploy.

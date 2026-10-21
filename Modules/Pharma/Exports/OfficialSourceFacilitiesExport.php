@@ -34,6 +34,8 @@ class OfficialSourceFacilitiesExport implements FromCollection, ShouldAutoSize, 
             'Mã địa bàn BHXH',
             'Trạng thái',
             'Lần đồng bộ cuối',
+            'Mã số thuế đã xác nhận',
+            'Địa chỉ pháp lý đã xác nhận',
             'Source Province Code',
             'Source District Code',
         ];
@@ -41,7 +43,10 @@ class OfficialSourceFacilitiesExport implements FromCollection, ShouldAutoSize, 
 
     public function collection(): Collection
     {
-        return $this->facilities->map(fn ($facility): array => [
+        return $this->facilities->map(function ($facility): array {
+            $confirmedLegal = $facility->legalLookup?->confirmedCandidate();
+
+            return [
             (string) $facility->source,
             (string) $facility->external_id,
             strtoupper((string) $facility->source),
@@ -55,9 +60,12 @@ class OfficialSourceFacilitiesExport implements FromCollection, ShouldAutoSize, 
             (string) ($facility->source_district_code ?? ''),
             $facility->is_active ? 'ACTIVE' : 'STALE',
             optional($facility->last_synced_at)->format('d/m/Y H:i') ?? '',
+            (string) ($confirmedLegal['tax_code'] ?? ''),
+            (string) ($confirmedLegal['address'] ?? ''),
             (string) $facility->source_province_code,
             (string) ($facility->source_district_code ?? ''),
-        ]);
+            ];
+        });
     }
 
     public function styles(Worksheet $sheet): array

@@ -8,6 +8,12 @@ use Tests\TestCase;
 
 class DoanhNghiepLookupServiceTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        config()->set('services.doanhnghiep.api_key', 'test-key');
+    }
+
     public function test_search_maps_registry_candidates_without_writing_local_data(): void
     {
         Http::fake([
@@ -28,7 +34,7 @@ class DoanhNghiepLookupServiceTest extends TestCase
         $this->assertSame('Công Ty TNHH Inafo Việt Nam', $results[0]['name']);
         $this->assertSame('doanhnghiep_vn', $results[0]['source']);
 
-        Http::assertSent(fn ($request) => str_contains($request->url(), '/api/v1/search'));
+        Http::assertSent(fn ($request) => str_contains($request->url(), '/api/v1/search') && $request->hasHeader('x-api-key', 'test-key'));
     }
 
     public function test_detail_maps_partner_review_fields(): void
@@ -68,5 +74,29 @@ class DoanhNghiepLookupServiceTest extends TestCase
         $this->expectExceptionMessage('giới hạn tần suất');
 
         app(DoanhNghiepLookupService::class)->search('INAFO');
+    }
+    public function test_missing_key_stops_before_http_request(): void
+    {
+        config()->set('services.doanhnghiep.api_key', null);
+        Http::fake();
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Chưa cấu hình API key');
+
+        try {
+            app(DoanhNghiepLookupService::class)->search('Bệnh viện');
+        } finally {
+            Http::assertNothingSent();
+        }
+    }
+
+    public function test_unauthorized_key_is_explained(): void
+    {
+        Http::fake(['https://doanhnghiep.vn/api/v1/search*' => Http::response([], 401)]);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('API key doanhnghiep.vn không hợp lệ');
+
+        app(DoanhNghiepLookupService::class)->search('Bệnh viện');
     }
 }

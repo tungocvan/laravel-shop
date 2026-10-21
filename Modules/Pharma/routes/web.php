@@ -10,6 +10,8 @@ use Modules\Pharma\Http\Controllers\MedicineExcelController;
 use Modules\Pharma\Http\Controllers\OfficialFacilityImportController;
 use Modules\Pharma\Http\Controllers\OfficialFacilityImportTemplateController;
 use Modules\Pharma\Http\Controllers\OfficialSourceSyncController;
+use Modules\Pharma\Http\Controllers\OfficialSourceLegalLookupController;
+use Modules\Pharma\Http\Controllers\OfficialSourceLegalImportController;
 use Modules\Pharma\Http\Controllers\PharmaController;
 use Modules\Pharma\Http\Controllers\PharmaDashboardController;
 use Modules\Pharma\Http\Controllers\PriceListController;
@@ -22,6 +24,7 @@ Route::prefix('admin/pharma')->name('admin.pharma.')->middleware(['web', 'auth:a
         Route::get('/official-facilities/import', [OfficialFacilityImportController::class, 'index'])->name('official-facilities.index');
         Route::get('/official-facilities/import/template', OfficialFacilityImportTemplateController::class)->name('official-facilities.template');
         Route::get('/official-facilities/source', [OfficialSourceSyncController::class, 'index'])->name('official-facilities.source.index');
+        Route::get('/official-facilities/source/{facility}/legal-lookup', [OfficialSourceLegalLookupController::class, 'show'])->name('official-facilities.source.legal-lookup.show');
         Route::post('/official-facilities/source/export', [OfficialSourceSyncController::class, 'export'])->name('official-facilities.source.export');
         Route::post('/official-facilities/source/import', [OfficialSourceSyncController::class, 'import'])->middleware('can:import_pharma_official_facilities')->name('official-facilities.source.import');
         Route::get('/official-facilities/source/sync/{batch}', [OfficialSourceSyncController::class, 'status'])->name('official-facilities.source.sync-status');
@@ -32,7 +35,15 @@ Route::prefix('admin/pharma')->name('admin.pharma.')->middleware(['web', 'auth:a
         Route::post('/official-facilities/bhxh/lookup', [BhxhOfficialFacilityLookupController::class, 'lookup'])->name('official-facilities.bhxh.lookup');
     });
 
+    Route::middleware('can:import_pharma_official_facilities')->group(function () {
+        Route::get('/official-facilities/source/legal-import/template', [OfficialSourceLegalImportController::class, 'template'])->name('official-facilities.source.legal-import.template');
+        Route::post('/official-facilities/source/legal-import/preview', [OfficialSourceLegalImportController::class, 'preview'])->name('official-facilities.source.legal-import.preview');
+        Route::post('/official-facilities/source/legal-import/confirm', [OfficialSourceLegalImportController::class, 'confirm'])->name('official-facilities.source.legal-import.confirm');
+    });
+
     Route::middleware('can:sync_pharma_official_facilities')->group(function () {
+        Route::post('/official-facilities/source/{facility}/legal-lookup', [OfficialSourceLegalLookupController::class, 'store'])->name('official-facilities.source.legal-lookup.store');
+        Route::post('/official-facilities/source/{facility}/legal-lookup/review', [OfficialSourceLegalLookupController::class, 'review'])->name('official-facilities.source.legal-lookup.review');
         Route::post('/official-facilities/source/sync', [OfficialSourceSyncController::class, 'store'])->name('official-facilities.source.sync');
     });
 

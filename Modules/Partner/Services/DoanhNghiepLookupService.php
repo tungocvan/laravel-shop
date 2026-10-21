@@ -36,6 +36,10 @@ class DoanhNghiepLookupService implements BusinessRegistryProvider
             'limit' => 10,
         ]);
 
+        if ($response->status() === 401) {
+            throw new RuntimeException('API key doanhnghiep.vn không hợp lệ hoặc hết quyền truy cập.');
+        }
+
         if ($response->status() === 429) {
             throw new RuntimeException('Nguồn doanhnghiep.vn đang giới hạn tần suất tra cứu.');
         }
@@ -121,11 +125,17 @@ class DoanhNghiepLookupService implements BusinessRegistryProvider
 
     private function http(): PendingRequest
     {
+        $key = trim((string) config('services.doanhnghiep.api_key', ''));
+        if ($key === '') {
+            throw new RuntimeException('Chưa cấu hình API key doanhnghiep.vn. Vui lòng liên hệ quản trị viên.');
+        }
+
         return Http::acceptJson()
             ->timeout(15)
             ->retry(2, 250, throw: false)
             ->withHeaders([
                 'User-Agent' => 'laravel-shop-partner-registry/1.0',
+                'x-api-key' => $key,
             ]);
     }
 
