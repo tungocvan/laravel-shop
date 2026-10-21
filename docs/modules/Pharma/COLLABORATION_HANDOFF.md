@@ -623,3 +623,9 @@ Do not reinterpret this checkpoint as an Admin Commission Center rewrite. Client
 - New separate Pharma legal import routes preview/confirm with import permission; existing BHXH source Excel importer untouched. Preview parses header columns `Mã CSKCB`, `Tên cơ sở khám chữa bệnh`, `Mã số thuế đã xác nhận`, `Địa chỉ pháp lý đã xác nhận`, max 500 rows/5 MB; validates BHXH source/external ID, exact normalized name, tax code and address, duplicate IDs and previously reviewed/running records. Preview is session-bound with 30 minute expiry and explicit confirmation.
 - Confirm uses DB transaction, row locks, rechecks source/name/status, stores reviewed legal snapshot with `source=excel_import`; never writes BHXH mirror or Partner. No new migration or queue worker required. Original uploaded workbook is not imported automatically.
 - Focused test: `tests/Feature/Pharma/OfficialSourceLegalImportContractTest.php`; PHP lint and UI verification pending. No PR/merge/deploy.
+
+
+## 2026-10-21 — Excel import without legal verification
+
+- User requested import first, external registry verification only on manual lookup. Preview no longer rejects 8/9-digit tax values solely due to lost leading zero in Excel or mismatched facility name; still requires BHXH CSKCB match, nonempty tax/address, safe tax characters, duplicate checks. Imported record status is `imported` (unverified), distinct from `reviewed`.
+- Existing reviewed legal results remain protected; lookup preserves imported snapshot when retrieving registry candidates. Original BHXH and Partner untouched. Focused tests/UI pending. Do not claim legal verification from Excel.
