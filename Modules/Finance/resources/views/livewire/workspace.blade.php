@@ -1,4 +1,4 @@
-<div class="space-y-6">
+<div class="space-y-5">
     @if(session()->has('finance_success'))
         <div role="status" class="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">{{ session('finance_success') }}</div>
     @endif
@@ -6,6 +6,11 @@
         <div role="alert" class="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">{{ $errors->first() }}</div>
     @endif
 
+    <nav aria-label="Không gian Finance" class="flex flex-wrap gap-2 border-b border-slate-200 pb-3">
+        <button type="button" wire:click="$set('workspaceTab', 'compose')" class="min-h-11 rounded-xl px-4 text-sm font-semibold {{ $workspaceTab === 'compose' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700' }}">Lập phiếu</button>
+        <button type="button" wire:click="$set('workspaceTab', 'ledger')" class="min-h-11 rounded-xl px-4 text-sm font-semibold {{ $workspaceTab === 'ledger' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700' }}">Sổ giao dịch</button>
+    </nav>
+    @if($workspaceTab === 'compose')
     <div class="grid gap-5 xl:grid-cols-3">
         <section class="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 xl:col-span-2">
             <h2 class="text-lg font-bold text-slate-900">1. Chọn chứng từ đã ghi sổ</h2>
@@ -31,16 +36,35 @@
                 @endforelse
             </div>
             @if($balance)
-                <div class="grid gap-3 rounded-xl bg-slate-50 p-4 sm:grid-cols-3">
-                    <div><p class="text-xs text-slate-500">Tổng giá trị</p><p class="font-bold">{{ $balance['total'] }} VND</p></div>
-                    <div><p class="text-xs text-slate-500">Đã thu/chi</p><p class="font-bold">{{ $balance['paid'] }} VND</p></div>
-                    <div><p class="text-xs text-slate-500">Còn lại</p><p class="font-bold text-indigo-700">{{ $balance['remaining'] }} VND</p></div>
+                <div class="rounded-xl border border-indigo-100 bg-indigo-50 p-4">
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-wide text-indigo-700">Thông tin chứng từ nguồn</p>
+                            <p class="mt-1 text-base font-bold text-slate-900">{{ $balance['document_code'] }}</p>
+                            <p class="mt-1 text-sm text-slate-700">{{ $balance['direction'] === 'payable' ? 'Đơn vị / cá nhân nhận thanh toán' : 'Đơn vị / cá nhân thanh toán' }}</p>
+                            <p class="font-semibold text-slate-900">{{ $balance['counterparty'] ?: 'Chưa có thông tin đối tượng trên chứng từ' }}</p>
+                        </div>
+                        <span class="rounded-lg bg-white px-3 py-1 text-xs font-semibold text-indigo-700">{{ $balance['direction'] === 'payable' ? 'PHIẾU CHI' : 'PHIẾU THU' }}</span>
+                    </div>
                 </div>
+                <div class="grid gap-3 rounded-xl bg-slate-50 p-4 sm:grid-cols-3">
+                    <div><p class="text-xs text-slate-500">Tổng giá trị</p><p class="font-bold">{{ number_format((float) $balance['total'], 0, ',', '.') }} ₫</p></div>
+                    <div><p class="text-xs text-slate-500">Đã thu/chi</p><p class="font-bold">{{ number_format((float) $balance['paid'], 0, ',', '.') }} ₫</p></div>
+                    <div><p class="text-xs text-slate-500">Còn lại</p><p class="font-bold text-indigo-700">{{ number_format((float) $balance['remaining'], 0, ',', '.') }} ₫</p></div>
+                </div>
+                @if($balance['remaining'] === '0.00')
+                    <p role="status" class="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">Chứng từ đã thanh toán đủ. Không thể lập thêm phiếu thu/chi.</p>
+                @endif
             @endif
         </section>
 
         <section class="space-y-4 rounded-2xl border border-slate-200 bg-white p-4">
             <h2 class="text-lg font-bold text-slate-900">2. Lập phiếu nháp</h2>
+            <div class="rounded-xl bg-slate-50 p-3 text-sm text-slate-700">
+                <p class="text-xs font-medium text-slate-500">Ngày lập phiếu dự kiến</p>
+                <p class="font-semibold">{{ now()->format('d/m/Y') }}</p>
+                <p class="mt-1 text-xs text-slate-500">Ngày ghi nhận hiện theo ngày hệ thống; tùy chỉnh ngày hạch toán sẽ bổ sung ở batch 5E.</p>
+            </div>
             @can('finance.voucher.create')
                 <form wire:submit="createDraft" class="space-y-3">
                     <label class="block text-sm font-medium text-slate-700">Tài khoản thu/chi
@@ -51,10 +75,22 @@
                             @endforeach
                         </select>
                     </label>
+                    @if($selectedAccount)
+                        <div class="rounded-xl border border-slate-200 p-3 text-sm">
+                            <p class="font-semibold text-slate-800">{{ $selectedAccount->kind === 'cash' ? 'Thanh toán tiền mặt' : 'Thanh toán qua ngân hàng' }}</p>
+                            <p class="mt-1 text-slate-600">{{ $selectedAccount->name }} · {{ $selectedAccount->code }}</p>
+                            @if($selectedAccount->kind === 'cash')
+                                <p class="mt-1 text-xs text-slate-500">Hạch toán qua quỹ tiền mặt; không sử dụng thông tin chuyển khoản.</p>
+                            @else
+                                <p class="mt-1 text-xs text-slate-500">Thông tin ngân hàng, số tài khoản và chủ tài khoản sẽ được bổ sung ở batch 5D.</p>
+                            @endif
+                        </div>
+                    @endif
                     <label class="block text-sm font-medium text-slate-700">Số tiền thanh toán (VND)
-                        <input wire:model="amount" inputmode="decimal" required class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 p-2">
+                        <input wire:model="amount" inputmode="decimal" required aria-describedby="finance-amount-help" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 p-2 text-right font-semibold tabular-nums">
+                        <span id="finance-amount-help" class="mt-1 block text-xs font-normal text-slate-500">Nhập số không có dấu phân cách (ví dụ 15750000). Giá trị hiển thị phía trên đã được định dạng.</span>
                     </label>
-                    <button type="submit" wire:loading.attr="disabled" class="min-h-11 w-full rounded-xl bg-indigo-600 px-4 py-2 font-semibold text-white disabled:opacity-50">Tạo phiếu nháp</button>
+                    <button type="submit" wire:loading.attr="disabled" @disabled(!$balance || $balance['remaining'] === '0.00') class="min-h-11 w-full rounded-xl bg-indigo-600 px-4 py-2 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">Tạo phiếu nháp</button>
                 </form>
             @endcan
             @can('finance.account.manage')
@@ -71,14 +107,15 @@
         </section>
     </div>
 
+    @endif
     <section class="rounded-2xl border border-slate-200 bg-white p-4">
-        <h2 class="mb-3 text-lg font-bold text-slate-900">3. Phiếu thu/chi gần đây</h2>
+        <h2 class="mb-3 text-lg font-bold text-slate-900">{{ $workspaceTab === 'ledger' ? 'Sổ giao dịch gần đây' : '3. Phiếu thu/chi gần đây' }}</h2>
         <div class="space-y-3">
             @forelse($vouchers as $voucher)
                 <div wire:key="voucher-{{ $voucher->id }}" class="flex flex-col gap-3 rounded-xl border border-slate-200 p-3 sm:flex-row sm:items-center sm:justify-between">
                     <div class="text-sm">
                         <p class="font-bold text-slate-900">{{ $voucher->number }}</p>
-                        <p class="text-slate-600">{{ $voucher->direction === 'receipt' ? 'Thu' : 'Chi' }} · {{ $voucher->amount }} {{ $voucher->currency }} · {{ $voucher->status }}</p>
+                        <p class="text-slate-600">{{ $voucher->direction === 'receipt' ? 'Thu' : 'Chi' }} · {{ number_format((float) $voucher->amount, 0, ',', '.') }} ₫ · {{ $voucher->status === 'draft' ? 'Nháp' : ($voucher->status === 'posted' ? 'Đã ghi sổ' : 'Đã hoàn tác') }} · {{ \Illuminate\Support\Carbon::parse($voucher->voucher_date)->format('d/m/Y') }}</p>
                     </div>
                     <div class="flex flex-wrap gap-2">
                         @if($voucher->status === 'draft')
