@@ -610,3 +610,9 @@ Do not reinterpret this checkpoint as an Admin Commission Center rewrite. Client
 ## 2026-10-21 — Source filter compact desktop layout
 
 - Responsive filter form: 9 compact columns on xl desktop (search, facility type, region, source, province, BHXH partition, status, page size, reset), 2 columns on tablet and stacked on mobile. No filter behavior changes. UI confirmation pending; no deploy/merge.
+
+
+## 2026-10-21 — Prefix filter and Excel parity
+
+- Facility type filter now matches facility_name starting with the selected category phrase (`LIKE 'Bệnh viện%'`, etc.) instead of substring. Both index and unselected Excel export call shared `applyFilters`; explicit selected IDs still take precedence over filters.
+- Focused tests and Excel/UI verification pending; no database or queue changes, no merge/deploy.
