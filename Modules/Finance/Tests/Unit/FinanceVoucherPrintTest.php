@@ -38,6 +38,9 @@ final class FinanceVoucherPrintTest extends TestCase
         $this->assertStringContainsString('BẢN NHÁP', $view);
         $this->assertStringContainsString('ĐÃ HOÀN TÁC', $view);
         $this->assertStringContainsString('window.print()', $view);
+        $this->assertStringContainsString("font-family: 'DejaVu Sans'", $view);
+        $this->assertStringContainsString('.pdf-export .paper { width: auto; min-height: 0; padding: 0;', $view);
+        $this->assertStringContainsString('.signatures > div { display: table-cell;', $view);
         $this->assertStringContainsString('admin.finance.vouchers.print', $ledger);
     }
 }
