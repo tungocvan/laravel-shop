@@ -8,7 +8,7 @@ use RuntimeException;
 class BusinessRegistryLookupGateway
 {
     public function __construct(
-        private readonly DoanhNghiepLookupService $doanhNghiep,
+        private readonly MultiSourceBusinessLookupService $multiSource,
         private readonly VietQrTaxLookupService $vietQr,
     ) {}
 
@@ -26,11 +26,14 @@ class BusinessRegistryLookupGateway
             });
         }
 
-        if (! config('services.doanhnghiep.api_key')) {
-            throw new RuntimeException('Tra cứu theo tên cần API key doanhnghiep.vn. VietQR chỉ hỗ trợ mã số thuế.');
-        }
+        return Cache::remember('partner:registry:mstcongty:'.hash('sha256', mb_strtolower($query)), now()->addDays(1),
+            function () use ($query): array {
+                $result = $this->multiSource->search($query, MstCongTyProvider::SOURCE);
+                if ($result['errors'] !== []) {
+                    throw new RuntimeException((string) ($result['errors'][MstCongTyProvider::SOURCE] ?? 'MSTCongTy hiện không khả dụng.'));
+                }
 
-        return Cache::remember('partner:registry:doanhnghiep:'.hash('sha256', mb_strtolower($query)), now()->addDays(1),
-            fn (): array => $this->doanhNghiep->search($query));
+                return $result['items'];
+            });
     }
 }
