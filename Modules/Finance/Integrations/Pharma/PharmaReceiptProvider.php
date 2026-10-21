@@ -48,7 +48,7 @@ final class PharmaReceiptProvider implements FinancialDocumentProvider
 
         // Calculation stays in SQL DECIMAL; never convert monetary values to PHP floats.
         $total = (clone $items)->selectRaw(
-            'ROUND(SUM(quantity * invoice_unit_price_ex_vat * (1 + vat_rate / 100)), 2) AS total'
+            'ROUND(SUM(quantity * invoice_unit_price_ex_vat * (1 + vat_rate / 100.0)), 2) AS total'
         )->value('total');
 
         if ($total === null || ! preg_match('/^\d+(?:\.\d{1,2})?$/', (string) $total)) {
