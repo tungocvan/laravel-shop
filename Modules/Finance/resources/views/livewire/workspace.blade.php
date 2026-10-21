@@ -202,9 +202,10 @@
         </header>
         @can('finance.voucher.create')
         <form wire:submit="{{ $editingManualVoucherId ? 'saveManualDraft' : 'createManualDraft' }}" class="space-y-6 p-4 sm:p-6">
-            <div class="grid gap-2 sm:grid-cols-2" role="group" aria-label="Loại phiếu">
-                <button type="button" wire:click="$set('manualDirection', 'receipt')" @disabled($editingManualVoucherId !== null) class="min-h-12 rounded-xl border px-4 text-left text-sm font-semibold disabled:opacity-60 {{ $manualDirection === 'receipt' ? 'border-emerald-500 bg-emerald-50 text-emerald-800' : 'border-gray-300 bg-white text-slate-700' }}">↙ Phiếu thu · Tiền vào</button>
-                <button type="button" wire:click="$set('manualDirection', 'payment')" @disabled($editingManualVoucherId !== null) class="min-h-12 rounded-xl border px-4 text-left text-sm font-semibold disabled:opacity-60 {{ $manualDirection === 'payment' ? 'border-rose-500 bg-rose-50 text-rose-800' : 'border-gray-300 bg-white text-slate-700' }}">↗ Phiếu chi · Tiền ra</button>
+            <div class="flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold {{ $manualDirection === 'receipt' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-rose-200 bg-rose-50 text-rose-800' }}">
+                <span aria-hidden="true">{{ $manualDirection === 'receipt' ? '↙' : '↗' }}</span>
+                {{ $manualDirection === 'receipt' ? 'Nghiệp vụ thu tiền' : 'Nghiệp vụ chi tiền' }}
+                <span class="ml-auto text-xs font-normal">Chọn loại phiếu khác tại Quay lại nghiệp vụ</span>
             </div>
             <fieldset class="space-y-4">
                 <legend class="mb-3 text-base font-bold text-slate-900">01. Thông tin chứng từ</legend>
@@ -218,7 +219,7 @@
                             @foreach($manualCategories as $category)
                                 <option value="{{ $category->code }}">{{ $category->name }}</option>
                             @endforeach
-                        </select>/select>
+                        </select>
                         @error('manualCategory') <span class="mt-1 block text-xs text-rose-600">{{ $message }}</span> @enderror
                     </label>
                     @can('finance.voucher.create')
