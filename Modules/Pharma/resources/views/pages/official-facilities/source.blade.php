@@ -99,7 +99,7 @@
                 <input type="hidden" name="partition" value="{{ request('partition') }}">
                 <input type="hidden" name="status" value="{{ request('status') }}">
             <div class="w-full overflow-x-auto rounded-xl border border-slate-200">
-                <table class="min-w-[1250px] w-full divide-y divide-slate-200 text-sm">
+                <table class="min-w-[1450px] w-full divide-y divide-slate-200 text-sm">
                     <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
                         <tr>
                             <th class="w-12 px-4 py-3"><input type="checkbox" data-select-page aria-label="Chọn tất cả cơ sở trên trang hiện tại" class="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"></th>
@@ -111,12 +111,15 @@
                             <th class="px-4 py-3">Vùng nguồn BHXH</th>
                             <th class="px-4 py-3">Trạng thái</th>
                             <th class="px-4 py-3">Lần đồng bộ cuối</th>
+                            <th class="px-4 py-3">Mã số thuế đã xác nhận</th>
+                            <th class="px-4 py-3">Địa chỉ pháp lý đã xác nhận</th>
                             <th class="px-4 py-3">Tra cứu doanh nghiệp</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 bg-white">
                         @forelse ($facilities as $facility)
                             <tr>
+                                @php($confirmedLegal = $facility->legalLookup?->confirmedCandidate())
                                 <td class="px-4 py-3"><input type="checkbox" name="selected_ids[]" value="{{ $facility->id }}" data-row-select aria-label="Chọn {{ $facility->facility_name }}" class="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"></td>
                                 <td class="px-4 py-3 font-semibold text-slate-700">{{ strtoupper($facility->source) }}</td>
                                 <td class="px-4 py-3 font-mono text-slate-800">{{ $facility->external_id }}</td>
@@ -129,6 +132,8 @@
                                 </td>
                                 <td class="px-4 py-3"><span class="rounded-full border px-2 py-1 text-xs font-semibold {{ $facility->is_active ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700' }}">{{ $facility->is_active ? 'ACTIVE' : 'STALE' }}</span></td>
                                 <td class="px-4 py-3 text-slate-600">{{ optional($facility->last_synced_at)->format('d/m/Y H:i') ?: '—' }}</td>
+                                <td class="px-4 py-3 font-mono text-slate-700" data-legal-tax="{{ $facility->id }}">{{ $confirmedLegal['tax_code'] ?? '—' }}</td>
+                                <td class="max-w-xs px-4 py-3 text-slate-600" data-legal-address="{{ $facility->id }}">{{ $confirmedLegal['address'] ?: '—' }}</td>
                                 <td class="px-4 py-3">
                                     <div class="flex min-w-36 flex-col items-start gap-2" data-legal-row="{{ $facility->id }}">
                                         <span data-legal-status class="text-xs text-slate-500">{{ ['queued' => 'Chờ queue', 'running' => 'Đang tra cứu', 'ready' => 'Có ứng viên', 'empty' => 'Không tìm thấy', 'failed' => 'Lỗi tra cứu', 'reviewed' => 'Đã xác nhận'][$facility->legalLookup?->status ?? ''] ?? 'Chưa tra cứu' }}</span>
@@ -138,7 +143,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="10" class="px-4 py-10 text-center text-slate-500">Không có dữ liệu phù hợp bộ lọc hiện tại.</td></tr>
+                            <tr><td colspan="12" class="px-4 py-10 text-center text-slate-500">Không có dữ liệu phù hợp bộ lọc hiện tại.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -286,6 +291,14 @@
                 row.querySelector('[data-legal-status]').textContent = lookup ? (legalLabels[lookup.status] || lookup.status) : 'Chưa tra cứu';
                 row.querySelector('[data-legal-view]').hidden = !lookup;
                 button.disabled = ['queued', 'running'].includes(lookup?.status);
+                const confirmed = lookup?.status === 'reviewed'
+                    ? (lookup.candidates || []).find((candidate) => candidate.tax_code === lookup.selected_tax_code)
+                    : null;
+                const facilityId = row.dataset.legalRow;
+                const taxCell = document.querySelector('[data-legal-tax="' + facilityId + '"]');
+                const addressCell = document.querySelector('[data-legal-address="' + facilityId + '"]');
+                if (taxCell) taxCell.textContent = confirmed?.tax_code || '—';
+                if (addressCell) addressCell.textContent = confirmed?.address || '—';
             };
             const renderLegal = (lookup) => {
                 legalMessage.textContent = lookup ? (legalLabels[lookup.status] || lookup.status) + (lookup.error_message ? ': ' + lookup.error_message : '') : 'Chưa có kết quả.';
