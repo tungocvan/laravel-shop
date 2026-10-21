@@ -27,6 +27,13 @@
                     data-live-search
                 />
 
+                <select name="facility_type" autocomplete="off" data-live-filter aria-label="Loại cơ sở theo tên" class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm lg:col-span-2">
+                    <option value="">Tất cả loại cơ sở</option>
+                    @foreach ($facilityNameTypes as $typeKey => $typeLabel)
+                        <option value="{{ $typeKey }}" @selected(request('facility_type') === $typeKey)>{{ $typeLabel }}</option>
+                    @endforeach
+                </select>
+
                 <select name="business_region" autocomplete="off" data-live-filter class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm lg:col-span-2">
                     <option value="">Tất cả vùng miền</option>
                     @foreach ($businessRegions as $regionKey => $regionName)
@@ -67,7 +74,7 @@
                     @endforeach
                 </select>
 
-                @if (request()->hasAny(['search', 'business_region', 'source', 'province', 'partition', 'status', 'per_page']))
+                @if (request()->hasAny(['search', 'facility_type', 'business_region', 'source', 'province', 'partition', 'status', 'per_page']))
                     <div class="flex min-h-11 items-center justify-end lg:col-span-1">
                         <a href="{{ route('admin.pharma.official-facilities.source.index') }}" class="whitespace-nowrap text-sm font-semibold text-slate-500 hover:text-sky-700">Xóa bộ lọc</a>
                     </div>
@@ -93,6 +100,7 @@
             <form id="official-source-export-form" method="POST" action="{{ route('admin.pharma.official-facilities.source.export') }}">
                 @csrf
                 <input type="hidden" name="search" value="{{ request('search') }}">
+                <input type="hidden" name="facility_type" value="{{ request('facility_type') }}">
                 <input type="hidden" name="business_region" value="{{ request('business_region') }}">
                 <input type="hidden" name="source" value="{{ request('source') }}">
                 <input type="hidden" name="province" value="{{ request('province') }}">
