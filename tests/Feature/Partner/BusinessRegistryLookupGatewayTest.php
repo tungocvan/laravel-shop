@@ -28,30 +28,27 @@ class BusinessRegistryLookupGatewayTest extends TestCase
         Http::assertSentCount(1);
     }
 
-    public function test_name_requires_configured_provider_and_never_calls_vietqr(): void
+    public function test_name_uses_existing_mstcongty_provider_and_caches_result(): void
     {
-        Http::fake();
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Tra cứu theo tên cần API key');
-
-        try {
-            app(BusinessRegistryLookupGateway::class)->search('Bệnh viện Cần Thơ');
-        } finally {
-            Http::assertNothingSent();
-        }
-    }
-
-    public function test_name_uses_authenticated_doanhnghiep_and_cache(): void
-    {
-        config()->set('services.doanhnghiep.api_key', 'fake-test-key');
-        Http::fake(['https://doanhnghiep.vn/api/v1/search*' => Http::response([
-            'items' => [['mst' => '0314492345', 'name_vi' => 'Công ty mẫu']],
-        ])]);
+        Http::fake(['https://mstcongty.com/tim-kiem*' => Http::response(
+            '<a href="/1800553823-cong-ty-co-phan-benh-vien"><h3>Công ty Cổ phần Bệnh viện</h3>'.
+            '<span>MST: 1800553823</span><span>Cần Thơ</span><span>Đang hoạt động</span></a>'
+        )]);
 
         $gateway = app(BusinessRegistryLookupGateway::class);
-        $this->assertSame('doanhnghiep_vn', $gateway->search('Công ty mẫu')[0]['source']);
-        $this->assertCount(1, $gateway->search('Công ty mẫu'));
+        $this->assertSame('mstcongty', $gateway->search('Bệnh viện Hoàn Mỹ Cửu Long')[0]['source']);
+        $this->assertSame('1800553823', $gateway->search('Bệnh viện Hoàn Mỹ Cửu Long')[0]['tax_code']);
         Http::assertSentCount(1);
+    }
+
+    public function test_name_provider_failure_does_not_cache_empty_results(): void
+    {
+        Http::fake(['https://mstcongty.com/tim-kiem*' => Http::response('Service unavailable', 503)]);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('MSTCongTy trả về HTTP 503');
+
+        app(BusinessRegistryLookupGateway::class)->search('Bệnh viện Cần Thơ');
     }
 
     public function test_vietqr_rejects_mismatched_tax_code(): void
