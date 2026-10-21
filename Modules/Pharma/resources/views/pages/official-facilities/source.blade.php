@@ -129,7 +129,13 @@
                                 </td>
                                 <td class="px-4 py-3"><span class="rounded-full border px-2 py-1 text-xs font-semibold {{ $facility->is_active ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700' }}">{{ $facility->is_active ? 'ACTIVE' : 'STALE' }}</span></td>
                                 <td class="px-4 py-3 text-slate-600">{{ optional($facility->last_synced_at)->format('d/m/Y H:i') ?: '—' }}</td>
-                                <td class="px-4 py-3"><a href="{{ route('admin.partners.lookup') }}" class="inline-flex min-h-9 items-center rounded-lg border border-indigo-200 bg-white px-3 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-50" title="Mở công cụ tra cứu doanh nghiệp trong Partners; chưa tự động xác minh liên kết">Tra cứu pháp lý ↗</a></td>
+                                <td class="px-4 py-3">
+                                    <div class="flex min-w-36 flex-col items-start gap-2" data-legal-row="{{ $facility->id }}">
+                                        <span data-legal-status class="text-xs text-slate-500">{{ ['queued' => 'Chờ queue', 'running' => 'Đang tra cứu', 'ready' => 'Có ứng viên', 'empty' => 'Không tìm thấy', 'failed' => 'Lỗi tra cứu', 'reviewed' => 'Đã xác nhận'][$facility->legalLookup?->status ?? ''] ?? 'Chưa tra cứu' }}</span>
+                                        <button type="button" data-legal-lookup data-url="{{ route('admin.pharma.official-facilities.source.legal-lookup.store', $facility) }}" data-show-url="{{ route('admin.pharma.official-facilities.source.legal-lookup.show', $facility) }}" data-review-url="{{ route('admin.pharma.official-facilities.source.legal-lookup.review', $facility) }}" class="inline-flex min-h-9 items-center rounded-lg border border-indigo-200 bg-white px-3 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-50 disabled:opacity-50" @disabled(in_array($facility->legalLookup?->status, ['queued', 'running']))>Tra cứu & đối chiếu</button>
+                                        <button type="button" data-legal-view class="text-xs font-semibold text-sky-700 hover:underline" @if (!$facility->legalLookup) hidden @endif>Xem kết quả</button>
+                                    </div>
+                                </td>
                             </tr>
                         @empty
                             <tr><td colspan="10" class="px-4 py-10 text-center text-slate-500">Không có dữ liệu phù hợp bộ lọc hiện tại.</td></tr>
@@ -181,6 +187,18 @@
                 </nav>
             @endif
         </section>
+
+        <div data-legal-modal class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/40 p-4" role="dialog" aria-modal="true" aria-label="Kết quả tra cứu pháp lý">
+            <div class="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-5 shadow-xl">
+                <div class="flex items-center justify-between gap-3">
+                    <h2 class="text-lg font-semibold">Kết quả tra cứu pháp lý</h2>
+                    <button type="button" data-legal-close class="rounded-lg border px-3 py-2">Đóng</button>
+                </div>
+                <p class="mt-2 text-sm text-slate-600" data-legal-message>Đang tải...</p>
+                <div class="mt-4 space-y-3" data-legal-results></div>
+                <p class="mt-3 text-xs text-amber-700">Xác nhận chỉ lưu ứng viên đã chọn tại Pharma, chưa tạo hoặc cập nhật hồ sơ Partner.</p>
+            </div>
+        </div>
 
         @can('import_pharma_official_facilities')
             <div data-import-modal class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/40 p-4">
@@ -255,6 +273,96 @@
             });
             rowSelections.forEach((checkbox) => checkbox.addEventListener('change', refreshSelection));
             refreshSelection();
+
+            const legalModal = document.querySelector('[data-legal-modal]');
+            const legalMessage = document.querySelector('[data-legal-message]');
+            const legalResults = document.querySelector('[data-legal-results]');
+            const legalLabels = { queued: 'Chờ queue', running: 'Đang tra cứu', ready: 'Có ứng viên', empty: 'Không tìm thấy', failed: 'Lỗi tra cứu', reviewed: 'Đã xác nhận' };
+            const csrf = document.querySelector('meta[name="csrf-token"]')?.content || document.querySelector('#official-source-export-form input[name="_token"]')?.value;
+            let activeLegalButton = null;
+            const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
+            const updateLegalRow = (button, lookup) => {
+                const row = button.closest('[data-legal-row]');
+                row.querySelector('[data-legal-status]').textContent = lookup ? (legalLabels[lookup.status] || lookup.status) : 'Chưa tra cứu';
+                row.querySelector('[data-legal-view]').hidden = !lookup;
+                button.disabled = ['queued', 'running'].includes(lookup?.status);
+            };
+            const renderLegal = (lookup) => {
+                legalMessage.textContent = lookup ? (legalLabels[lookup.status] || lookup.status) + (lookup.error_message ? ': ' + lookup.error_message : '') : 'Chưa có kết quả.';
+                legalResults.replaceChildren();
+                if (!lookup || !['ready', 'reviewed'].includes(lookup.status)) return;
+                (lookup.candidates || []).forEach((candidate) => {
+                    const item = document.createElement('div');
+                    item.className = 'rounded-xl border border-slate-200 p-3 text-sm';
+                    item.innerHTML = '<div class="font-semibold text-slate-900">' + escapeHtml(candidate.name) + '</div>' +
+                        '<div class="mt-1 text-slate-600">MST: ' + escapeHtml(candidate.tax_code) + ' · ' + escapeHtml(candidate.address || 'Chưa có địa chỉ') + '</div>' +
+                        '<div class="mt-1 text-xs text-slate-500">Nguồn: ' + escapeHtml(candidate.source_label || candidate.source) + '</div>';
+                    if (lookup.status === 'ready') {
+                        const confirm = document.createElement('button');
+                        confirm.type = 'button';
+                        confirm.className = 'mt-3 rounded-lg border border-sky-300 px-3 py-2 font-semibold text-sky-700 disabled:opacity-50';
+                        confirm.textContent = 'Xác nhận ứng viên này';
+                        confirm.addEventListener('click', async () => {
+                            if (!window.confirm('Xác nhận ứng viên MST ' + candidate.tax_code + '? Chưa ghi vào Partner.')) return;
+                            confirm.disabled = true;
+                            try {
+                                const response = await fetch(activeLegalButton.dataset.reviewUrl, {
+                                    method: 'POST', headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
+                                    body: JSON.stringify({ tax_code: candidate.tax_code })
+                                });
+                                const data = await response.json();
+                                if (!response.ok) throw new Error(data.message || 'Không thể xác nhận.');
+                                renderLegal(data.lookup);
+                                updateLegalRow(activeLegalButton, data.lookup);
+                            } catch (error) { legalMessage.textContent = error.message; confirm.disabled = false; }
+                        });
+                        item.appendChild(confirm);
+                    } else if (lookup.selected_tax_code === candidate.tax_code) {
+                        const selected = document.createElement('div');
+                        selected.className = 'mt-2 font-semibold text-emerald-700';
+                        selected.textContent = 'Đã xác nhận';
+                        item.appendChild(selected);
+                    }
+                    legalResults.appendChild(item);
+                });
+            };
+            const pollLegal = async (button, showModal = false) => {
+                try {
+                    const response = await fetch(button.dataset.showUrl, { headers: { 'Accept': 'application/json' } });
+                    if (!response.ok) throw new Error('Không thể tải trạng thái tra cứu.');
+                    const data = await response.json();
+                    updateLegalRow(button, data.lookup);
+                    if (showModal && activeLegalButton === button) renderLegal(data.lookup);
+                    if (['queued', 'running'].includes(data.lookup?.status)) window.setTimeout(() => pollLegal(button, legalModal.classList.contains('flex') && activeLegalButton === button), 3000);
+                } catch (error) { if (showModal) legalMessage.textContent = error.message; button.disabled = false; }
+            };
+            document.querySelectorAll('[data-legal-lookup]').forEach((button) => {
+                button.addEventListener('click', async () => {
+                    button.disabled = true;
+                    try {
+                        const response = await fetch(button.dataset.url, { method: 'POST', headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf } });
+                        const data = await response.json();
+                        if (!response.ok) throw new Error(data.message || 'Không thể đưa vào queue.');
+                        updateLegalRow(button, data.lookup);
+                        activeLegalButton = button;
+                        legalModal.classList.remove('hidden');
+                        legalModal.classList.add('flex');
+                        renderLegal(data.lookup);
+                        pollLegal(button, true);
+                    } catch (error) { button.disabled = false; window.alert(error.message); }
+                });
+            });
+            document.querySelectorAll('[data-legal-view]').forEach((button) => button.addEventListener('click', () => {
+                activeLegalButton = button.closest('[data-legal-row]').querySelector('[data-legal-lookup]');
+                legalModal.classList.remove('hidden');
+                legalModal.classList.add('flex');
+                pollLegal(activeLegalButton, true);
+            }));
+            document.querySelector('[data-legal-close]')?.addEventListener('click', () => {
+                legalModal.classList.add('hidden');
+                legalModal.classList.remove('flex');
+            });
+            document.querySelectorAll('[data-legal-lookup]:disabled').forEach((button) => pollLegal(button));
 
             const importModal = document.querySelector('[data-import-modal]');
             const importForm = document.querySelector('[data-import-form]');
