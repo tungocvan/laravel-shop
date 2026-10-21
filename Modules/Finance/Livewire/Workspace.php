@@ -32,15 +32,18 @@ final class Workspace extends Component
 
     public function selectDocument(string $id): void
     {
+        $this->editingVoucherId = null;
         $this->documentId = $id;
         $this->loadBalance();
     }
 
     public function updatedKind(): void
     {
+        $this->editingVoucherId = null;
         $this->documentId = '';
         $this->balance = null;
         $this->amount = '';
+        $this->amountDisplay = '';
     }
 
     public function loadBalance(): void
