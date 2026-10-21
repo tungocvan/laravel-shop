@@ -31,6 +31,19 @@ final class FinanceWorkspaceContractTest extends TestCase
         $this->assertStringNotContainsString("\$this->balance = app(FinanceWorkflowService::class)", $component);
     }
 
+    public function test_workspace_exposes_counterparty_without_serializing_snapshot(): void
+    {
+        $component = file_get_contents(dirname(__DIR__, 2).'/Livewire/Workspace.php');
+        $view = file_get_contents(dirname(__DIR__, 2).'/resources/views/livewire/workspace.blade.php');
+
+        $this->assertStringContainsString("'counterparty' => \$outstanding['snapshot']->counterparty", $component);
+        $this->assertStringContainsString("'document_code' => \$outstanding['snapshot']->documentCode", $component);
+        $this->assertStringContainsString("['counterparty']", $view);
+        $this->assertStringContainsString("number_format(", $view);
+        $this->assertStringContainsString("['remaining'] === '0.00'", $view);
+        $this->assertStringContainsString("workspaceTab", $view);
+    }
+
     public function test_workspace_uses_existing_finance_services(): void
     {
         $component = file_get_contents(dirname(__DIR__, 2).'/Livewire/Workspace.php');
