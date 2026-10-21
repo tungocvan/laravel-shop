@@ -6,6 +6,14 @@ use Tests\TestCase;
 
 class OfficialSourceLegalLookupContractTest extends TestCase
 {
+    public function test_excel_import_candidate_cannot_be_reviewed_as_registry_result(): void
+    {
+        $controller = file_get_contents(base_path('Modules/Pharma/Http/Controllers/OfficialSourceLegalLookupController.php'));
+
+        $this->assertStringContainsString("!== 'excel_import'", $controller);
+        $this->assertStringContainsString('Chỉ xác nhận ứng viên tra cứu từ nguồn doanh nghiệp', $controller);
+    }
+
     public function test_lookup_uses_queue_and_partner_service_without_mutating_bhxh_or_partner(): void
     {
         $controller = file_get_contents(base_path('Modules/Pharma/Http/Controllers/OfficialSourceLegalLookupController.php'));
