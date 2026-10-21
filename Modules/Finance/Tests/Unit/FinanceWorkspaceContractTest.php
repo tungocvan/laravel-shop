@@ -122,6 +122,20 @@ final class FinanceWorkspaceContractTest extends TestCase
         $this->assertStringContainsString("openManual('payment')", $view);
     }
 
+    public function test_ledger_filters_query_before_limit_and_category_labels_are_localized(): void
+    {
+        $component = file_get_contents(dirname(__DIR__, 2).'/Livewire/Workspace.php');
+        $view = file_get_contents(dirname(__DIR__, 2).'/resources/views/livewire/workspace.blade.php');
+        foreach (['ledgerDirection', 'ledgerDateFrom', 'ledgerDateTo', 'ledgerCounterparty', 'ledgerCategory', 'ledgerStatus', 'resetLedgerFilters'] as $field) {
+            $this->assertStringContainsString($field, $component);
+            $this->assertStringContainsString($field, $view);
+        }
+        $this->assertStringContainsString("c.name as manual_category_name", $component);
+        $this->assertStringContainsString('manual_category_name', $view);
+        $this->assertStringContainsString("->orderByDesc('v.id')->limit(30)->get()", $component);
+        $this->assertStringContainsString('Tìm người nộp / nhận tiền', $view);
+    }
+
     public function test_workspace_uses_existing_finance_services(): void
     {
         $component = file_get_contents(dirname(__DIR__, 2).'/Livewire/Workspace.php');
