@@ -67,11 +67,50 @@ class OfficialFacilityRegionContractTest extends TestCase
         $this->assertStringContainsString('min-w-[1450px] w-full', $view);
         $this->assertStringContainsString("route('admin.pharma.official-facilities.source.legal-lookup.store', \$facility)", $view);
         $this->assertStringContainsString('Tra cứu & đối chiếu', $view);
-        $this->assertStringContainsString('colspan="10"', $view);
+        $this->assertStringContainsString('colspan="12"', $view);
         $this->assertStringContainsString('data-legal-results', $view);
         $this->assertStringContainsString('data-legal-status', $view);
         $this->assertStringContainsString('{{ $provinceRegions[$facility->province_name] ?? \'—\' }}', $view);
     }
+    public function test_source_excel_includes_only_reviewed_legal_identity_columns(): void
+    {
+        $export = new \\Modules\\Pharma\\Exports\\OfficialSourceFacilitiesExport(
+            collect([
+                (object) [
+                    'source' => 'bhxh', 'external_id' => '92088', 'facility_name' => 'Bệnh viện Hoàn Mỹ Cửu Long',
+                    'province_name' => 'Thành phố Cần Thơ', 'source_province_code' => '92TTT',
+                    'district_name' => null, 'source_district_code' => null,
+                    'is_active' => true, 'last_synced_at' => null,
+                    'legalLookup' => new \\Modules\\Pharma\\Models\\OfficialSourceLegalLookup([
+                        'status' => 'reviewed',
+                        'selected_tax_code' => '1800553823',
+                        'candidates' => [['tax_code' => '1800553823', 'address' => 'Cần Thơ']],
+                    ]),
+                ],
+                (object) [
+                    'source' => 'bhxh', 'external_id' => '92089', 'facility_name' => 'Chưa xác nhận',
+                    'province_name' => 'Thành phố Cần Thơ', 'source_province_code' => '92TTT',
+                    'district_name' => null, 'source_district_code' => null,
+                    'is_active' => true, 'last_synced_at' => null,
+                    'legalLookup' => new \\Modules\\Pharma\\Models\\OfficialSourceLegalLookup([
+                        'status' => 'ready',
+                        'candidates' => [['tax_code' => '1800553823', 'address' => 'Cần Thơ']],
+                    ]),
+                ],
+            ]),
+            app(BhxhProvinceCatalog::class),
+            []
+        );
+
+        $this->assertContains('Mã số thuế đã xác nhận', $export->headings());
+        $this->assertContains('Địa chỉ pháp lý đã xác nhận', $export->headings());
+        $rows = $export->collection()->values();
+        $this->assertSame('1800553823', $rows[0][13]);
+        $this->assertSame('Cần Thơ', $rows[0][14]);
+        $this->assertSame('', $rows[1][13]);
+        $this->assertSame('', $rows[1][14]);
+    }
+
     public function test_source_workbook_import_reads_only_export_data_sheet_and_skips_helper_sheets(): void
     {
         $import = file_get_contents(base_path('Modules/Pharma/Imports/OfficialSourceFacilitiesImport.php'));
