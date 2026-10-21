@@ -40,10 +40,12 @@
     </style>
 </head>
 <body>
+    @unless($pdfMode)
     <nav class="toolbar" aria-label="Thao tác in">
         <a href="{{ route('admin.finance.index') }}">← Sổ chứng từ</a>
         <div><a href="{{ route('admin.finance.vouchers.pdf', ['voucher' => $voucher->id]) }}">Tải PDF</a> <button type="button" onclick="window.print()">In phiếu {{ $printSettings['paper'] }}</button></div>
     </nav>
+    @endunless
     <main class="paper">
         @if($voucher->status === 'draft')
             <div class="stamp">BẢN NHÁP</div>
