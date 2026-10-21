@@ -39,8 +39,16 @@ final class Workspace extends Component
         if ($this->documentId === '') {
             return;
         }
-        $this->balance = app(FinanceWorkflowService::class)
+        $outstanding = app(FinanceWorkflowService::class)
             ->outstanding('Pharma', $this->kind, $this->documentId);
+
+        // Livewire public state must contain only serializable primitives.
+        // FinancialDocumentSnapshot stays inside the service boundary.
+        $this->balance = [
+            'total' => $outstanding['total'],
+            'paid' => $outstanding['paid'],
+            'remaining' => $outstanding['remaining'],
+        ];
         $this->amount = $this->balance['remaining'];
     }
 
