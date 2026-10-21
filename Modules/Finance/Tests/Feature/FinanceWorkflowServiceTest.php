@@ -64,6 +64,29 @@ final class FinanceWorkflowServiceTest extends TestCase
         $this->workflow->createDraft('Pharma', 'inventory_issue', (string) random_int(100000, 999999), $account, '251.00', 'PT-'.uniqid());
     }
 
+    public function test_drafts_reserve_balance_and_release_it_when_cancelled(): void
+    {
+        $account = $this->workflow->createAccount('CASH-'.uniqid(), 'Cash', 'cash');
+        $source = (string) random_int(100000, 999999);
+        $first = $this->workflow->createDraft('Pharma', 'inventory_issue', $source, $account, '200.00', 'PT-'.uniqid());
+        $balance = $this->workflow->outstanding('Pharma', 'inventory_issue', $source);
+        $this->assertSame('200.00', $balance['reserved']);
+        $this->assertSame('50.00', $balance['available']);
+
+        try {
+            $this->workflow->createDraft('Pharma', 'inventory_issue', $source, $account, '51.00', 'PT-'.uniqid());
+            $this->fail('Expected over-reservation to be rejected.');
+        } catch (ValidationException $exception) {
+            $this->assertNotEmpty($exception->errors());
+        }
+
+        $this->workflow->updateDraft($first, $account, '100.00');
+        $this->assertSame('150.00', $this->workflow->outstanding('Pharma', 'inventory_issue', $source)['available']);
+        $this->workflow->cancelDraft($first);
+        $this->assertDatabaseHas('finance_vouchers', ['id' => $first, 'status' => 'cancelled']);
+        $this->assertSame('250.00', $this->workflow->outstanding('Pharma', 'inventory_issue', $source)['available']);
+    }
+
     public function test_account_rejects_unknown_kind(): void
     {
         $this->expectException(ValidationException::class);
