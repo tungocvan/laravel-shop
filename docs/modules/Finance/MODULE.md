@@ -23,3 +23,7 @@ Both posted Pharma inventory receipts and posted inventory issues may be selecte
 ## Draft voucher workflow (checkpoint 5A)
 
 FinanceWorkflowService provides a backend-only first slice for creating VND cash/bank accounts, resolving source total/paid/remaining, and creating a draft receipt/payment voucher with one source allocation. The direction comes from the provider snapshot, never client input. Posted allocations determine paid amounts; draft allocations do not consume the outstanding balance. VoucherPostingService remains the sole posting/reversal owner. No HTTP routes or UI were added in this slice. This is not a production-ready accounting workflow; multi-source selection, UI authorization, cancellation of drafts and operational account management remain future work.
+
+## Admin workspace checkpoint 5B
+
+Route `GET /admin/finance` (`admin.finance.index`) uses `auth:admin` and `finance.view` permission. Livewire component `finance.workspace` selects posted Pharma receipt/issue by code, displays Finance outstanding balances, creates cash/bank accounts and draft vouchers, and delegates posting/reversal to Finance services. Granular permissions are checked in component actions. Mobile-first Blade uses the canonical `Admin::layouts.master`. This UI is not yet manually accepted; no production rollout is authorized. Draft voucher cancellation, ledger reports, multi-source allocations and account editing are not implemented.
