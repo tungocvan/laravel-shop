@@ -5,11 +5,14 @@ namespace Modules\Finance\Http\Controllers;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
+use Illuminate\Http\Response;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Modules\Finance\Services\FinancePrintSettings;
 use Modules\Finance\Support\VietnameseMoney;
 
 final class FinanceVoucherPrintController extends Controller
 {
-    public function __invoke(int $voucher): View
+    public function __invoke(int $voucher, FinancePrintSettings $settings): View
     {
         $document = DB::table('finance_vouchers as v')
             ->join('finance_accounts as account', 'account.id', '=', 'v.account_id')
@@ -33,6 +36,17 @@ final class FinanceVoucherPrintController extends Controller
         return view('Finance::vouchers.print-a5', [
             'voucher' => $document,
             'amountInWords' => VietnameseMoney::spell((string) $document->amount),
+            'printSettings' => $settings->get(),
         ]);
     }
+    public function pdf(int $voucher, FinancePrintSettings $settings): Response
+    {
+        $view = $this->__invoke($voucher, $settings);
+        $options = $settings->get();
+        $pdf = Pdf::loadHTML($view->render())
+            ->setPaper(strtolower($options['paper']), $options['orientation']);
+        $filename = preg_replace('/[^A-Za-z0-9_-]/', '_', (string) $view->getData()['voucher']->number);
+        return $pdf->download('finance-'.$filename.'.pdf');
+    }
+
 }
