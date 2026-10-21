@@ -9,12 +9,18 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Concerns\ToArray;
+use Modules\Pharma\Exports\OfficialSourceLegalImportTemplateExport;
 use Modules\Pharma\Models\OfficialSourceFacility;
 use Modules\Pharma\Models\OfficialSourceLegalLookup;
 
 class OfficialSourceLegalImportController extends Controller
 {
     private const SESSION_KEY = 'pharma.official_source.legal_import_preview';
+
+    public function template(): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        return Excel::download(new OfficialSourceLegalImportTemplateExport(), 'pharma-legal-import-template.xlsx');
+    }
 
     public function preview(Request $request): JsonResponse
     {
