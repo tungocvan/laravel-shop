@@ -629,3 +629,9 @@ Do not reinterpret this checkpoint as an Admin Commission Center rewrite. Client
 
 - User requested import first, external registry verification only on manual lookup. Preview no longer rejects 8/9-digit tax values solely due to lost leading zero in Excel or mismatched facility name; still requires BHXH CSKCB match, nonempty tax/address, safe tax characters, duplicate checks. Imported record status is `imported` (unverified), distinct from `reviewed`.
 - Existing reviewed legal results remain protected; lookup preserves imported snapshot when retrieving registry candidates. Original BHXH and Partner untouched. Focused tests/UI pending. Do not claim legal verification from Excel.
+
+
+## 2026-10-21 — Legal Excel import template
+
+- Added GET legal-import/template under import permission, with Excel download and 4 exact headers matching preview import. A/C columns are Excel text for CSKCB/tax codes. Modal includes download link. No database/queue changes.
+- User reported UI PASS for prior import flow, not yet for this new template. Focused test/lint and template download UI pending. No merge/deploy.
