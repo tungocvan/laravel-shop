@@ -65,9 +65,10 @@ class OfficialSourceLegalLookupController extends Controller
 
         $found = collect($lookup->candidates ?? [])->contains(
             fn ($candidate) => ($candidate['tax_code'] ?? null) === $data['tax_code']
+                && ($candidate['source'] ?? null) !== 'excel_import'
         );
         if (! $found) {
-            return response()->json(['message' => 'Mã số thuế không thuộc danh sách ứng viên.'], 422);
+            return response()->json(['message' => 'Chỉ xác nhận ứng viên tra cứu từ nguồn doanh nghiệp, không xác nhận trực tiếp dữ liệu Excel.'], 422);
         }
 
         $lookup->update([
