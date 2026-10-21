@@ -73,7 +73,7 @@ class OfficialSourceSyncController extends Controller
             ->get();
 
         return view('Pharma::pages.official-facilities.source', [
-            'facilities' => $query->paginate($this->perPage($request))->withQueryString(),
+            'facilities' => $query->with('legalLookup')->paginate($this->perPage($request))->withQueryString(),
             'batches' => OfficialSourceSyncBatch::query()->latest('id')->limit(20)->get(),
             'businessRegions' => $regions,
             'provinceRegions' => OfficialSourceFacility::query()
