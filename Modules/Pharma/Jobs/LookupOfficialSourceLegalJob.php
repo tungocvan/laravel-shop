@@ -33,7 +33,7 @@ class LookupOfficialSourceLegalJob implements ShouldQueue
             $candidates = array_slice($service->search($lookup->query_name), 0, 10);
             $lookup->update([
                 'status' => $candidates === [] ? 'empty' : 'ready',
-                'candidates' => $candidates,
+                'candidates' => array_merge(array_values(array_filter($lookup->candidates ?? [], static fn (array $item): bool => ($item['source'] ?? '') === 'excel_import')), $candidates),
                 'candidate_count' => count($candidates),
                 'completed_at' => now(),
             ]);
