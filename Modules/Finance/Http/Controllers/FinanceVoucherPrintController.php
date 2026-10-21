@@ -37,13 +37,14 @@ final class FinanceVoucherPrintController extends Controller
             'voucher' => $document,
             'amountInWords' => VietnameseMoney::spell((string) $document->amount),
             'printSettings' => $settings->get(),
+            'pdfMode' => false,
         ]);
     }
     public function pdf(int $voucher, FinancePrintSettings $settings): Response
     {
         $view = $this->__invoke($voucher, $settings);
         $options = $settings->get();
-        $pdf = Pdf::loadHTML($view->render())
+        $pdf = Pdf::loadHTML($view->with('pdfMode', true)->render())
             ->setPaper(strtolower($options['paper']), $options['orientation']);
         $filename = preg_replace('/[^A-Za-z0-9_-]/', '_', (string) $view->getData()['voucher']->number);
         return $pdf->download('finance-'.$filename.'.pdf');
