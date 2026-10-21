@@ -15,6 +15,7 @@
             <button type="button" wire:click="$toggle('showAccounts')" class="min-h-10 rounded-lg border border-slate-300 px-4 text-sm font-semibold text-slate-700">⚙ Tài khoản thu/chi</button>
         @endcan
     </div>
+    @can('finance.account.manage')
     @if($showAccounts)
         <section class="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
             <div class="flex items-center justify-between gap-3"><h2 class="font-bold text-slate-900">Tài khoản thu/chi</h2><button type="button" wire:click="$set('showAccounts', false)" class="min-h-10 rounded-lg px-3 text-sm text-slate-600">Đóng</button></div>
@@ -70,6 +71,7 @@
 
         </section>
     @endif
+    @endcan
     @if($workspaceTab === 'compose')
     @if($composeMode === 'home')
         <section class="space-y-5 rounded-2xl border border-slate-200 bg-white p-4 sm:p-6">
