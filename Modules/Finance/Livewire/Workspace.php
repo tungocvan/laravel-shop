@@ -97,6 +97,18 @@ final class Workspace extends Component
     public ?array $balance = null;
     public string $workspaceTab = 'compose';
     public bool $showHistory = false;
+    public string $ledgerDirection = '';
+    public string $ledgerDateFrom = '';
+    public string $ledgerDateTo = '';
+    public string $ledgerCounterparty = '';
+    public string $ledgerCategory = '';
+    public string $ledgerStatus = '';
+
+    public function resetLedgerFilters(): void
+    {
+        $this->reset('ledgerDirection', 'ledgerDateFrom', 'ledgerDateTo', 'ledgerCounterparty', 'ledgerCategory', 'ledgerStatus');
+    }
+
     public ?int $editingVoucherId = null;
 
     public function selectDocument(string $id): void
@@ -379,14 +391,43 @@ final class Workspace extends Component
         abort_unless(auth('admin')->user()?->can('finance.view'), 403);
 
         $accounts = DB::table('finance_accounts')->orderBy('code')->get();
+        $ledgerFilters = validator([
+            'direction' => $this->ledgerDirection,
+            'from' => $this->ledgerDateFrom,
+            'to' => $this->ledgerDateTo,
+            'status' => $this->ledgerStatus,
+            'category' => $this->ledgerCategory,
+        ], [
+            'direction' => 'nullable|in:receipt,payment',
+            'from' => 'nullable|date_format:Y-m-d',
+            'to' => 'nullable|date_format:Y-m-d|after_or_equal:from',
+            'status' => 'nullable|in:draft,posted,reversed,cancelled',
+            'category' => 'nullable|string|max:60',
+        ])->validate();
         $vouchers = DB::table('finance_vouchers as v')
             ->leftJoin('finance_allocations as a', 'a.voucher_id', '=', 'v.id')
             ->leftJoin('finance_source_documents as s', 's.id', '=', 'a.source_document_id')
+            ->leftJoin('finance_manual_categories as c', function ($join) {
+                $join->on('c.code', '=', 'v.manual_category')->on('c.direction', '=', 'v.direction');
+            })
             ->when(! $this->showHistory, fn ($query) => $query->whereNotIn('v.status', ['reversed', 'cancelled']))
-            ->select('v.*', 's.source_document_code', 's.counterparty as source_counterparty')
+            ->when($ledgerFilters['direction'] !== '', fn ($query) => $query->where('v.direction', $ledgerFilters['direction']))
+            ->when($ledgerFilters['from'] !== '', fn ($query) => $query->whereDate('v.voucher_date', '>=', $ledgerFilters['from']))
+            ->when($ledgerFilters['to'] !== '', fn ($query) => $query->whereDate('v.voucher_date', '<=', $ledgerFilters['to']))
+            ->when($ledgerFilters['status'] !== '', fn ($query) => $query->where('v.status', $ledgerFilters['status']))
+            ->when($ledgerFilters['category'] !== '', fn ($query) => $query->where('v.manual_category', $ledgerFilters['category']))
+            ->when(trim($this->ledgerCounterparty) !== '', function ($query) {
+                $term = '%'.addcslashes(trim($this->ledgerCounterparty), '%_\\').'%';
+                $query->where(function ($q) use ($term) {
+                    $q->where('v.counterparty', 'like', $term)
+                        ->orWhere('s.counterparty', 'like', $term);
+                });
+            })
+            ->select('v.*', 's.source_document_code', 's.counterparty as source_counterparty', 'c.name as manual_category_name')
             ->orderByDesc('v.id')->limit(30)->get();
         $selectedAccount = $accounts->firstWhere('id', (int) $this->accountId);
         $manualCategories = app(ManualCategoryService::class)->active($this->manualDirection);
+        $ledgerCategories = DB::table('finance_manual_categories')->orderBy('name')->get(['code', 'name', 'direction']);
 
         $documents = collect();
         if ((bool) config('modules.registry.Pharma.enabled', false)
@@ -398,6 +439,6 @@ final class Workspace extends Component
                 ->orderByDesc('id')->limit(30)->get(['id', 'number']);
         }
 
-        return view('Finance::livewire.workspace', compact('accounts', 'vouchers', 'documents', 'selectedAccount', 'manualCategories'));
+        return view('Finance::livewire.workspace', compact('accounts', 'vouchers', 'documents', 'selectedAccount', 'manualCategories', 'ledgerCategories'));
     }
 }
