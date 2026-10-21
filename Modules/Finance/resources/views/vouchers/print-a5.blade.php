@@ -7,6 +7,7 @@
     <style>
         @page { size: {{ $printSettings['paper'] }} {{ $printSettings['orientation'] }}; margin: {{ $printSettings['margin_mm'] }}mm; }
         * { box-sizing: border-box; }
+        html, body, div, span, strong, small, h1, p, main { font-family: 'DejaVu Sans', sans-serif !important; }
         body { margin: 0; background: #eef1f5; color: #111827; font: {{ $printSettings['font_size'] }}pt/1.45 'DejaVu Sans', sans-serif; }
         .toolbar { display: flex; justify-content: space-between; align-items: center; max-width: {{ $printSettings['paper'] === 'A5' ? '148mm' : '210mm' }}; margin: 12px auto; gap: 12px; }
         .toolbar button, .toolbar a { border: 1px solid #cbd5e1; background: white; color: #111827; border-radius: 6px; padding: 9px 14px; font: inherit; text-decoration: none; cursor: pointer; }
@@ -30,7 +31,10 @@
         .stamp { position: absolute; top: 36%; left: 12%; right: 12%; text-align: center; transform: rotate(-25deg); font-size: 35px; font-weight: 800; letter-spacing: 2px; color: rgba(160, 55, 55, .15); pointer-events: none; }
         .footer { margin-top: 18px; font-size: 9px; color: #64748b; }
         .pdf-export .paper { width: auto; min-height: 0; padding: 0; margin: 0; box-shadow: none; }
-        .pdf-export .line { display: block; }
+        .pdf-export .line { display: block; margin: 6px 0; }
+        .pdf-export .head { display: table; width: 100%; }
+        .pdf-export .head > div { display: table-cell; width: 50%; vertical-align: top; }
+        .pdf-export .signatures, .pdf-export .amount { page-break-inside: avoid; }
         @media print {
             html, body { width: auto; background: white; margin: 0; }
             .toolbar { display: none !important; }
