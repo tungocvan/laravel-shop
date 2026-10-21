@@ -69,8 +69,9 @@ final class FinanceWorkspaceContractTest extends TestCase
         foreach (['createManualDraft', 'saveManualDraft', 'editManualDraft', 'validateManualCategory'] as $method) {
             $this->assertStringContainsString('function '.$method.'(', $component);
         }
-        $this->assertStringContainsString("composeMode = 'source'", $component);
-        $this->assertStringContainsString("composeMode', 'manual'", $view);
+        $this->assertStringContainsString("composeMode = 'home'", $component);
+        $this->assertStringContainsString("openManual('receipt')", $view);
+        $this->assertStringContainsString("openManual('payment')", $view);
         $this->assertStringContainsString('wire:model="manualDate"', $view);
         $this->assertStringContainsString('wire:model="manualCounterparty"', $view);
         $this->assertStringContainsString('wire:model="manualDescription"', $view);
@@ -91,6 +92,23 @@ final class FinanceWorkspaceContractTest extends TestCase
         $this->assertStringContainsString('@error(\'manualCounterparty\')', $view);
         $this->assertStringContainsString('@can(\'finance.voucher.post\')', $view);
         $this->assertStringContainsString('@can(\'finance.voucher.reverse\')', $view);
+    }
+
+    public function test_navigation_and_configurable_categories_have_separate_management_actions(): void
+    {
+        $component = file_get_contents(dirname(__DIR__, 2).'/Livewire/Workspace.php');
+        $view = file_get_contents(dirname(__DIR__, 2).'/resources/views/livewire/workspace.blade.php');
+        $service = file_get_contents(dirname(__DIR__, 2).'/Services/ManualCategoryService.php');
+        $migration = file_get_contents(dirname(__DIR__, 2).'/database/migrations/2026_10_21_000004_create_finance_manual_categories.php');
+
+        foreach (['openManual', 'openSource', 'addManualCategory', 'ManualCategoryService::class', 'showAccounts'] as $value) {
+            $this->assertStringContainsString($value, $component);
+        }
+        foreach (['Tài khoản thu/chi', 'Thêm tài khoản', 'openSource(\'Pharma\')', 'addManualCategory', 'manualCategories', 'showCategoryForm'] as $value) {
+            $this->assertStringContainsString($value, $view);
+        }
+        $this->assertStringContainsString('finance_manual_categories', $service);
+        $this->assertStringContainsString("unique(['direction', 'code'])", $migration);
     }
 
     public function test_workspace_uses_existing_finance_services(): void
