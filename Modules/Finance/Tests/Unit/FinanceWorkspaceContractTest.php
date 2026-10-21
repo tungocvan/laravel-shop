@@ -61,6 +61,24 @@ final class FinanceWorkspaceContractTest extends TestCase
         $this->assertStringContainsString("string('bank_name')->nullable()", $migration);
     }
 
+    public function test_manual_workspace_has_separate_mode_and_permission_checked_actions(): void
+    {
+        $component = file_get_contents(dirname(__DIR__, 2).'/Livewire/Workspace.php');
+        $view = file_get_contents(dirname(__DIR__, 2).'/resources/views/livewire/workspace.blade.php');
+
+        foreach (['createManualDraft', 'saveManualDraft', 'editManualDraft', 'validateManualCategory'] as $method) {
+            $this->assertStringContainsString('function '.$method.'(', $component);
+        }
+        $this->assertStringContainsString("composeMode = 'source'", $component);
+        $this->assertStringContainsString("composeMode', 'manual'", $view);
+        $this->assertStringContainsString('wire:model="manualDate"', $view);
+        $this->assertStringContainsString('wire:model="manualCounterparty"', $view);
+        $this->assertStringContainsString('wire:model="manualDescription"', $view);
+        $this->assertStringContainsString('wire:model.live.debounce.300ms="amountDisplay"', $view);
+        $this->assertStringContainsString('editManualDraft', $view);
+        $this->assertStringContainsString('source_counterparty', $view);
+    }
+
     public function test_workspace_uses_existing_finance_services(): void
     {
         $component = file_get_contents(dirname(__DIR__, 2).'/Livewire/Workspace.php');
