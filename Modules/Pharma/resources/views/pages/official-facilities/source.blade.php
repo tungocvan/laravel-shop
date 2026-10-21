@@ -147,7 +147,7 @@
                                 <td class="max-w-xs px-4 py-3 text-slate-600" data-legal-address="{{ $facility->id }}">{{ ($confirmedLegal['address'] ?? null) ?: '—' }}</td>
                                 <td class="px-4 py-3">
                                     <div class="flex min-w-36 flex-col items-start gap-2" data-legal-row="{{ $facility->id }}">
-                                        <span data-legal-status class="text-xs text-slate-500">{{ ['queued' => 'Chờ queue', 'running' => 'Đang tra cứu', 'ready' => 'Có ứng viên', 'empty' => 'Không tìm thấy', 'failed' => 'Lỗi tra cứu', 'reviewed' => 'Đã xác nhận'][$facility->legalLookup?->status ?? ''] ?? 'Chưa tra cứu' }}</span>
+                                        <span data-legal-status class="text-xs text-slate-500">{{ ['queued' => 'Chờ queue', 'running' => 'Đang tra cứu', 'ready' => 'Có ứng viên', 'empty' => 'Không tìm thấy', 'failed' => 'Lỗi tra cứu', 'reviewed' => 'Đã xác nhận', 'imported' => 'Đã nhập Excel (chưa đối chiếu)'][$facility->legalLookup?->status ?? ''] ?? 'Chưa tra cứu' }}</span>
                                         <button type="button" data-legal-lookup data-url="{{ route('admin.pharma.official-facilities.source.legal-lookup.store', $facility) }}" data-show-url="{{ route('admin.pharma.official-facilities.source.legal-lookup.show', $facility) }}" data-review-url="{{ route('admin.pharma.official-facilities.source.legal-lookup.review', $facility) }}" class="inline-flex min-h-9 items-center rounded-lg border border-indigo-200 bg-white px-3 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-50 disabled:opacity-50" @disabled(in_array($facility->legalLookup?->status, ['queued', 'running']))>Tra cứu & đối chiếu</button>
                                         <button type="button" data-legal-view class="text-xs font-semibold text-sky-700 hover:underline" @if (!$facility->legalLookup) hidden @endif>Xem kết quả</button>
                                     </div>
@@ -208,7 +208,7 @@
             <div data-legal-import-modal class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/40 p-4" role="dialog" aria-modal="true" aria-label="Import thông tin pháp lý">
                 <div class="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
                     <div class="flex items-center justify-between gap-3"><h2 class="text-lg font-semibold">Import MST và địa chỉ pháp lý</h2><button type="button" data-legal-import-close class="rounded-lg border px-3 py-2">Đóng</button></div>
-                    <p class="mt-2 text-sm text-slate-600">File cần các cột: Mã CSKCB, Tên cơ sở khám chữa bệnh, Mã số thuế đã xác nhận, Địa chỉ pháp lý đã xác nhận. Chỉ lưu tại Pharma sau khi xác nhận, không sửa BHXH/Partner.</p>
+                    <p class="mt-2 text-sm text-slate-600">File cần các cột: Mã CSKCB, Tên cơ sở khám chữa bệnh, Mã số thuế đã xác nhận, Địa chỉ pháp lý đã xác nhận. Chỉ nhập dữ liệu Excel chưa đối chiếu tại Pharma, không sửa BHXH/Partner.</p>
                     <form data-legal-import-form class="mt-4 flex flex-wrap gap-3" enctype="multipart/form-data">
                         @csrf
                         <input type="file" name="file" required accept=".xlsx,.xls" class="min-w-0 flex-1 rounded-lg border p-2 text-sm">
@@ -216,7 +216,7 @@
                     </form>
                     <p data-legal-import-message class="mt-3 text-sm text-slate-700" role="status"></p>
                     <div class="mt-3 max-h-72 overflow-auto"><table class="w-full text-left text-xs"><thead><tr class="border-b"><th class="p-2">Dòng</th><th class="p-2">Mã CSKCB</th><th class="p-2">Tên cơ sở</th><th class="p-2">MST</th><th class="p-2">Kết quả</th></tr></thead><tbody data-legal-import-rows></tbody></table></div>
-                    <button type="button" data-legal-import-confirm disabled class="mt-4 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">Xác nhận import các dòng hợp lệ</button>
+                    <button type="button" data-legal-import-confirm disabled class="mt-4 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">Nhập các dòng hợp lệ (chưa đối chiếu)</button>
                 </div>
             </div>
         @endcan
@@ -331,7 +331,7 @@
             const renderLegal = (lookup) => {
                 legalMessage.textContent = lookup ? (legalLabels[lookup.status] || lookup.status) + (lookup.error_message ? ': ' + lookup.error_message : '') : 'Chưa có kết quả.';
                 legalResults.replaceChildren();
-                if (!lookup || !['ready', 'reviewed'].includes(lookup.status)) return;
+                if (!lookup || !['ready', 'reviewed', 'imported'].includes(lookup.status)) return;
                 (lookup.candidates || []).forEach((candidate) => {
                     const item = document.createElement('div');
                     item.className = 'rounded-xl border border-slate-200 p-3 text-sm';
