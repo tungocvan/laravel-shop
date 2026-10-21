@@ -79,6 +79,20 @@ final class FinanceWorkspaceContractTest extends TestCase
         $this->assertStringContainsString('source_counterparty', $view);
     }
 
+    public function test_accounting_layout_keeps_manual_actions_and_ledger_audit_controls(): void
+    {
+        $view = file_get_contents(dirname(__DIR__, 2).'/resources/views/livewire/workspace.blade.php');
+
+        foreach (['PHIẾU THU', 'PHIẾU CHI', 'Thông tin chứng từ', 'Thanh toán', 'Sổ chứng từ thu / chi', 'wire:submit=', 'saveManualDraft', 'createManualDraft', 'wire:confirm=', 'showHistory', 'source_document_code', 'number_format('] as $required) {
+            $this->assertStringContainsString($required, $view);
+        }
+        $this->assertStringContainsString('<table', $view);
+        $this->assertStringContainsString('overflow-x-auto', $view);
+        $this->assertStringContainsString('@error(\'manualCounterparty\')', $view);
+        $this->assertStringContainsString('@can(\'finance.voucher.post\')', $view);
+        $this->assertStringContainsString('@can(\'finance.voucher.reverse\')', $view);
+    }
+
     public function test_workspace_uses_existing_finance_services(): void
     {
         $component = file_get_contents(dirname(__DIR__, 2).'/Livewire/Workspace.php');
