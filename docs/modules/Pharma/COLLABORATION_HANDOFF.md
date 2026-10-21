@@ -599,3 +599,9 @@ Do not reinterpret this checkpoint as an Admin Commission Center rewrite. Client
 
 - Source Excel now includes confirmed tax code and legal address via eager-loaded legalLookup and confirmedCandidate(). Unreviewed candidates are excluded from these columns. Source BHXH fields remain unchanged.
 - Focused test updated in OfficialFacilityRegionContractTest.php; local test and exported workbook UI verification pending. No migration or deployment.
+
+
+## 2026-10-21 — Facility name category filter (pending tests)
+
+- Source list supports `facility_type` choices hospital/Bệnh viện, medical_center/Trung tâm y tế, clinic/Phòng khám, health_station/Trạm y tế. Matches substring in `facility_name` with SQL LIKE; does not mutate or assign a canonical category. Filters combine with existing search/region/status and persist in export form.
+- No migration or queue changes. Focused tests and UI pending operator confirmation. No PR/merge/deploy.
