@@ -44,6 +44,23 @@ final class FinanceWorkspaceContractTest extends TestCase
         $this->assertStringContainsString("workspaceTab", $view);
     }
 
+    public function test_bank_first_account_form_and_money_input_contract(): void
+    {
+        $component = file_get_contents(dirname(__DIR__, 2).'/Livewire/Workspace.php');
+        $view = file_get_contents(dirname(__DIR__, 2).'/resources/views/livewire/workspace.blade.php');
+        $service = file_get_contents(dirname(__DIR__, 2).'/Services/FinanceWorkflowService.php');
+        $migration = file_get_contents(dirname(__DIR__, 2).'/database/migrations/2026_10_21_000002_add_account_details_to_finance_accounts.php');
+
+        $this->assertStringContainsString("accountKind = 'bank'", $component);
+        $this->assertStringContainsString('updatedAmountDisplay', $component);
+        $this->assertStringContainsString('createDetailedAccount', $component);
+        $this->assertStringContainsString('createDetailedAccount', $service);
+        $this->assertStringContainsString('amountDisplay', $view);
+        $this->assertStringContainsString('bankAccountNumber', $view);
+        $this->assertStringContainsString('cashCustodian', $view);
+        $this->assertStringContainsString("string('bank_name')->nullable()", $migration);
+    }
+
     public function test_workspace_uses_existing_finance_services(): void
     {
         $component = file_get_contents(dirname(__DIR__, 2).'/Livewire/Workspace.php');
