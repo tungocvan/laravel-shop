@@ -20,5 +20,8 @@ final class FinanceServiceProvider extends ServiceProvider
 
         $this->app->make(FinancialDocumentRegistry::class)
             ->register($this->app->make(\Modules\Finance\Integrations\Pharma\PharmaReceiptProvider::class));
+
+        $this->app->make(FinancialDocumentRegistry::class)
+            ->register($this->app->make(\Modules\Finance\Integrations\Pharma\PharmaIssueProvider::class));
     }
 }
