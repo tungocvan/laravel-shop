@@ -117,7 +117,7 @@ class OfficialSourceSyncController extends Controller
             $this->applyFilters($query, $request, $provinceCatalog);
         }
 
-        $facilities = $query->orderBy('province_name')->orderBy('facility_name')->get();
+        $facilities = $query->with('legalLookup')->orderBy('province_name')->orderBy('facility_name')->get();
         if ($facilities->isEmpty()) {
             return response('Không có cơ sở phù hợp để export.', 422);
         }
