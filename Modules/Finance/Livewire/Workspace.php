@@ -19,6 +19,7 @@ final class Workspace extends Component
     public string $accountName = '';
     public string $accountKind = 'cash';
     public ?array $balance = null;
+    public string $workspaceTab = 'compose';
 
     public function selectDocument(string $id): void
     {
@@ -48,8 +49,11 @@ final class Workspace extends Component
             'total' => $outstanding['total'],
             'paid' => $outstanding['paid'],
             'remaining' => $outstanding['remaining'],
+            'document_code' => $outstanding['snapshot']->documentCode,
+            'counterparty' => $outstanding['snapshot']->counterparty,
+            'direction' => $outstanding['snapshot']->direction,
         ];
-        $this->amount = $this->balance['remaining'];
+        $this->amount = $this->balance['remaining'] === '0.00' ? '' : $this->balance['remaining'];
     }
 
     public function createAccount(): void
@@ -77,6 +81,10 @@ final class Workspace extends Component
             'accountId' => 'required|integer|min:1',
             'amount' => 'required|regex:/^\d{1,15}(?:\.\d{1,2})?$/',
         ]);
+        $this->loadBalance();
+        if (! $this->balance || $this->balance['remaining'] === '0.00') {
+            throw ValidationException::withMessages(['amount' => 'Chứng từ đã thanh toán đủ.']);
+        }
         $number = 'FIN-'.now()->format('YmdHis').'-'.strtoupper(bin2hex(random_bytes(4)));
         app(FinanceWorkflowService::class)->createDraft(
             'Pharma', $this->kind, $this->documentId, (int) $this->accountId,
@@ -112,6 +120,7 @@ final class Workspace extends Component
 
         $accounts = DB::table('finance_accounts')->orderBy('code')->get();
         $vouchers = DB::table('finance_vouchers')->orderByDesc('id')->limit(30)->get();
+        $selectedAccount = $accounts->firstWhere('id', (int) $this->accountId);
 
         $documents = collect();
         if ((bool) config('modules.registry.Pharma.enabled', false)
@@ -123,6 +132,6 @@ final class Workspace extends Component
                 ->orderByDesc('id')->limit(30)->get(['id', 'number']);
         }
 
-        return view('Finance::livewire.workspace', compact('accounts', 'vouchers', 'documents'));
+        return view('Finance::livewire.workspace', compact('accounts', 'vouchers', 'documents', 'selectedAccount'));
     }
 }
