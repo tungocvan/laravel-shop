@@ -17,7 +17,14 @@ final class Workspace extends Component
     public string $amount = '';
     public string $accountCode = '';
     public string $accountName = '';
-    public string $accountKind = 'cash';
+    public string $accountKind = 'bank';
+    public string $bankName = '';
+    public string $bankAccountNumber = '';
+    public string $bankAccountHolder = '';
+    public string $cashCustodian = '';
+    public string $cashLocation = '';
+    public bool $showAccountForm = false;
+    public string $amountDisplay = '';
     public ?array $balance = null;
     public string $workspaceTab = 'compose';
 
@@ -54,6 +61,7 @@ final class Workspace extends Component
             'direction' => $outstanding['snapshot']->direction,
         ];
         $this->amount = $this->balance['remaining'] === '0.00' ? '' : $this->balance['remaining'];
+        $this->amountDisplay = $this->formatVnd($this->amount);
     }
 
     public function createAccount(): void
@@ -64,12 +72,55 @@ final class Workspace extends Component
             'accountName' => 'required|string|max:255',
             'accountKind' => 'required|in:cash,bank',
         ]);
-        $id = app(FinanceWorkflowService::class)->createAccount(
-            $this->accountCode, $this->accountName, $this->accountKind
+        $this->validate($this->accountKind === 'bank' ? [
+            'bankName' => 'required|string|max:255',
+            'bankAccountNumber' => 'required|string|max:100',
+            'bankAccountHolder' => 'required|string|max:255',
+        ] : [
+            'cashCustodian' => 'required|string|max:255',
+            'cashLocation' => 'required|string|max:255',
+        ]);
+        $id = app(FinanceWorkflowService::class)->createDetailedAccount(
+            $this->accountCode, $this->accountName, $this->accountKind,
+            [
+                'bank_name' => $this->bankName,
+                'bank_account_number' => $this->bankAccountNumber,
+                'bank_account_holder' => $this->bankAccountHolder,
+                'cash_custodian' => $this->cashCustodian,
+                'cash_location' => $this->cashLocation,
+            ]
         );
         $this->accountId = (string) $id;
-        $this->reset('accountCode', 'accountName');
+        $this->reset('accountCode', 'accountName', 'bankName', 'bankAccountNumber', 'bankAccountHolder', 'cashCustodian', 'cashLocation');
+        $this->showAccountForm = false;
         session()->flash('finance_success', 'Đã tạo tài khoản thu/chi.');
+    }
+
+    public function updatedAmountDisplay(string $value): void
+    {
+        $value = trim($value);
+        if ($value !== '' && ! preg_match('/^\\d[\\d., ]*$/', $value)) {
+            $this->addError('amountDisplay', 'Số tiền chỉ được chứa chữ số và dấu phân cách.');
+            return;
+        }
+        // VND input: commas/spaces/dots are thousands separators; no fractional VND in this UI.
+        $digits = preg_replace('/[^0-9]/', '', $value);
+        if ($digits === '' || strlen($digits) > 15) {
+            $this->amount = '';
+            $this->amountDisplay = '';
+            return;
+        }
+        $this->amount = ltrim($digits, '0') ?: '0';
+        $this->amountDisplay = $this->formatVnd($this->amount);
+    }
+
+    private function formatVnd(string $amount): string
+    {
+        if ($amount === '') {
+            return '';
+        }
+        $whole = explode('.', $amount, 2)[0];
+        return number_format((int) $whole, 0, ',', '.');
     }
 
     public function createDraft(): void
@@ -84,6 +135,7 @@ final class Workspace extends Component
         $enteredAmount = $this->amount;
         $this->loadBalance();
         $this->amount = $enteredAmount;
+        $this->amountDisplay = $this->formatVnd($enteredAmount);
         if (! $this->balance || $this->balance['remaining'] === '0.00') {
             throw ValidationException::withMessages(['amount' => 'Chứng từ đã thanh toán đủ.']);
         }
