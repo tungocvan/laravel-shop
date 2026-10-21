@@ -7,7 +7,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Modules\Partner\Services\DoanhNghiepLookupService;
+use Modules\Partner\Services\BusinessRegistryLookupGateway;
 use Modules\Pharma\Models\OfficialSourceLegalLookup;
 use Throwable;
 
@@ -20,7 +20,7 @@ class LookupOfficialSourceLegalJob implements ShouldQueue
 
     public function __construct(public readonly int $lookupId) {}
 
-    public function handle(DoanhNghiepLookupService $service): void
+    public function handle(BusinessRegistryLookupGateway $service): void
     {
         $lookup = OfficialSourceLegalLookup::query()->find($this->lookupId);
         if (! $lookup || $lookup->status !== 'queued') {
