@@ -28,7 +28,7 @@ final readonly class FinancialDocumentSnapshot
             throw new InvalidArgumentException('Invalid currency.');
         }
 
-        if (! preg_match('/^\d{1,16}(?:\.\d{1,2})?$/', $amount) || (float) $amount <= 0) {
+        if (! preg_match('/^\d{1,16}(?:\.\d{1,2})?$/', $amount) || ! preg_match('/[1-9]/', $amount)) {
             throw new InvalidArgumentException('Invalid monetary amount.');
         }
     }
