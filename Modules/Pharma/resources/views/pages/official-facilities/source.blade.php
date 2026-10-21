@@ -119,7 +119,9 @@
                     <tbody class="divide-y divide-slate-100 bg-white">
                         @forelse ($facilities as $facility)
                             <tr>
-                                @php($confirmedLegal = $facility->legalLookup?->confirmedCandidate())
+                                @php
+                                    $confirmedLegal = $facility->legalLookup?->confirmedCandidate();
+                                @endphp
                                 <td class="px-4 py-3"><input type="checkbox" name="selected_ids[]" value="{{ $facility->id }}" data-row-select aria-label="Chọn {{ $facility->facility_name }}" class="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"></td>
                                 <td class="px-4 py-3 font-semibold text-slate-700">{{ strtoupper($facility->source) }}</td>
                                 <td class="px-4 py-3 font-mono text-slate-800">{{ $facility->external_id }}</td>
