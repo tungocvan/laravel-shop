@@ -6,12 +6,51 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Modules\Finance\Services\FinanceWorkflowService;
+use Modules\Finance\Services\ManualCategoryService;
 use Modules\Finance\Services\VoucherPostingService;
 
 final class Workspace extends Component
 {
     public string $kind = 'inventory_receipt';
-    public string $composeMode = 'source';
+    public string $composeMode = 'home';
+    public bool $showAccounts = false;
+    public bool $showCategoryForm = false;
+    public string $categoryName = '';
+
+    public function openManual(string $direction): void
+    {
+        abort_unless(auth('admin')->user()?->can('finance.voucher.create'), 403);
+        if (! in_array($direction, ['receipt', 'payment'], true)) {
+            abort(422);
+        }
+        $this->editingManualVoucherId = null;
+        $this->editingVoucherId = null;
+        $this->manualDirection = $direction;
+        $this->manualCategory = $direction === 'receipt' ? 'deposit' : 'hospitality';
+        $this->composeMode = 'manual';
+        $this->workspaceTab = 'compose';
+        $this->amount = '';
+        $this->amountDisplay = '';
+    }
+
+    public function openSource(string $module): void
+    {
+        if ($module !== 'Pharma') {
+            abort(422);
+        }
+        $this->composeMode = 'source';
+        $this->workspaceTab = 'compose';
+    }
+
+    public function addManualCategory(): void
+    {
+        abort_unless(auth('admin')->user()?->can('finance.voucher.create'), 403);
+        $this->validate(['categoryName' => 'required|string|max:120']);
+        $this->manualCategory = app(ManualCategoryService::class)->create($this->manualDirection, $this->categoryName);
+        $this->categoryName = '';
+        $this->showCategoryForm = false;
+        session()->flash('finance_success', 'Đã thêm nghiệp vụ thu/chi.');
+    }
     public string $manualDirection = 'receipt';
     public string $manualCategory = 'deposit';
     public string $manualCounterparty = '';
@@ -161,7 +200,7 @@ final class Workspace extends Component
     {
         return [
             'manualDirection' => 'required|in:receipt,payment',
-            'manualCategory' => 'required|in:deposit,advance,advance_refund,hospitality,other_receipt,other_payment',
+            'manualCategory' => 'required|string|max:60',
             'manualCounterparty' => 'required|string|max:255',
             'manualDescription' => 'required|string|max:5000',
             'manualReference' => 'nullable|string|max:100',
@@ -173,12 +212,7 @@ final class Workspace extends Component
 
     private function validateManualCategory(): void
     {
-        $allowed = $this->manualDirection === 'receipt'
-            ? ['deposit', 'advance_refund', 'other_receipt']
-            : ['hospitality', 'advance', 'other_payment'];
-        if (! in_array($this->manualCategory, $allowed, true)) {
-            throw ValidationException::withMessages(['manualCategory' => 'Loại nghiệp vụ không phù hợp phiếu thu/chi.']);
-        }
+        app(ManualCategoryService::class)->assertActive($this->manualDirection, $this->manualCategory);
     }
 
     public function createManualDraft(): void
@@ -348,6 +382,7 @@ final class Workspace extends Component
             ->select('v.*', 's.source_document_code', 's.counterparty as source_counterparty')
             ->orderByDesc('v.id')->limit(30)->get();
         $selectedAccount = $accounts->firstWhere('id', (int) $this->accountId);
+        $manualCategories = app(ManualCategoryService::class)->active($this->manualDirection);
 
         $documents = collect();
         if ((bool) config('modules.registry.Pharma.enabled', false)
@@ -359,6 +394,6 @@ final class Workspace extends Component
                 ->orderByDesc('id')->limit(30)->get(['id', 'number']);
         }
 
-        return view('Finance::livewire.workspace', compact('accounts', 'vouchers', 'documents', 'selectedAccount'));
+        return view('Finance::livewire.workspace', compact('accounts', 'vouchers', 'documents', 'selectedAccount', 'manualCategories'));
     }
 }
