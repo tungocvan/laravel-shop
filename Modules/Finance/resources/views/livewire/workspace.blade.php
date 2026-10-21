@@ -296,6 +296,48 @@
                 Bao gồm phiếu hoàn tác / đã hủy
             </label>
         </header>
+        @if($workspaceTab === 'ledger')
+        <div class="grid gap-3 border-b border-slate-200 bg-slate-50/70 p-4 sm:grid-cols-2 lg:grid-cols-3">
+            <label class="block text-xs font-semibold text-slate-700">Loại phiếu
+                <select wire:model.live="ledgerDirection" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
+                    <option value="">Tất cả thu / chi</option>
+                    <option value="receipt">Phiếu thu</option>
+                    <option value="payment">Phiếu chi</option>
+                </select>
+            </label>
+            <label class="block text-xs font-semibold text-slate-700">Từ ngày
+                <input type="date" wire:model.live="ledgerDateFrom" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
+            </label>
+            <label class="block text-xs font-semibold text-slate-700">Đến ngày
+                <input type="date" wire:model.live="ledgerDateTo" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
+            </label>
+            <label class="block text-xs font-semibold text-slate-700">Đối tượng
+                <input wire:model.live.debounce.400ms="ledgerCounterparty" placeholder="Tìm người nộp / nhận tiền" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
+            </label>
+            <label class="block text-xs font-semibold text-slate-700">Nghiệp vụ
+                <select wire:model.live="ledgerCategory" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
+                    <option value="">Tất cả nghiệp vụ</option>
+                    @foreach($ledgerCategories->filter(fn ($category) => $ledgerDirection === '' || $category->direction === $ledgerDirection) as $category)
+                        <option value="{{ $category->code }}">{{ $category->name }}</option>
+                    @endforeach
+                </select>
+            </label>
+            <label class="block text-xs font-semibold text-slate-700">Trạng thái
+                <select wire:model.live="ledgerStatus" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
+                    <option value="">Tất cả trạng thái đang hiển thị</option>
+                    <option value="draft">Nháp</option>
+                    <option value="posted">Đã ghi sổ</option>
+                    @if($showHistory)
+                        <option value="reversed">Đã hoàn tác</option>
+                        <option value="cancelled">Đã hủy nháp</option>
+                    @endif
+                </select>
+            </label>
+            <div class="sm:col-span-2 lg:col-span-3">
+                <button type="button" wire:click="resetLedgerFilters" class="min-h-10 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700">Xóa bộ lọc</button>
+            </div>
+        </div>
+        @endif
         <div class="overflow-x-auto">
             <table class="w-full min-w-[820px] divide-y divide-slate-200 text-left text-sm">
                 <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
@@ -319,7 +361,7 @@
                             <td class="max-w-[260px] px-4 py-4">
                                 <p class="font-medium text-slate-800">{{ $voucher->origin === 'manual' ? ($voucher->counterparty ?: 'Chưa có đối tượng') : ($voucher->source_counterparty ?: 'Chưa có đối tượng thanh toán') }}</p>
                                 @if($voucher->origin === 'manual')
-                                    <p class="mt-1 break-words text-xs text-slate-500">{{ $voucher->manual_category }} · {{ $voucher->description }}</p>
+                                    <p class="mt-1 break-words text-xs text-slate-500">{{ $voucher->manual_category_name ?: $voucher->manual_category }} · {{ $voucher->description }}</p>
                                 @endif
                             </td>
                             <td class="whitespace-nowrap px-4 py-4 text-right font-bold tabular-nums {{ $voucher->direction === 'receipt' ? 'text-emerald-700' : 'text-rose-700' }}">
@@ -354,6 +396,6 @@
                 </tbody>
             </table>
         </div>
-        <p class="border-t border-slate-100 px-4 py-3 text-xs text-slate-500">Hiển thị tối đa 30 chứng từ gần nhất. Các bộ lọc nâng cao sẽ bổ sung trong giai đoạn Sổ chứng từ.</p>
+        <p class="border-t border-slate-100 px-4 py-3 text-xs text-slate-500">Hiển thị tối đa 30 chứng từ phù hợp gần nhất. Bộ lọc áp dụng trên toàn bộ dữ liệu trước khi giới hạn kết quả.</p>
     </section>
 </div>
