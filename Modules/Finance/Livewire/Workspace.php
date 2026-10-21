@@ -27,6 +27,8 @@ final class Workspace extends Component
     public string $amountDisplay = '';
     public ?array $balance = null;
     public string $workspaceTab = 'compose';
+    public bool $showHistory = false;
+    public ?int $editingVoucherId = null;
 
     public function selectDocument(string $id): void
     {
@@ -55,12 +57,14 @@ final class Workspace extends Component
         $this->balance = [
             'total' => $outstanding['total'],
             'paid' => $outstanding['paid'],
+            'reserved' => $outstanding['reserved'],
+            'available' => $outstanding['available'],
             'remaining' => $outstanding['remaining'],
             'document_code' => $outstanding['snapshot']->documentCode,
             'counterparty' => $outstanding['snapshot']->counterparty,
             'direction' => $outstanding['snapshot']->direction,
         ];
-        $this->amount = $this->balance['remaining'] === '0.00' ? '' : $this->balance['remaining'];
+        $this->amount = $this->balance['available'] === '0.00' ? '' : $this->balance['available'];
         $this->amountDisplay = $this->formatVnd($this->amount);
     }
 
@@ -136,7 +140,7 @@ final class Workspace extends Component
         $this->loadBalance();
         $this->amount = $enteredAmount;
         $this->amountDisplay = $this->formatVnd($enteredAmount);
-        if (! $this->balance || $this->balance['remaining'] === '0.00') {
+        if (! $this->balance || $this->balance['available'] === '0.00') {
             throw ValidationException::withMessages(['amount' => 'Chứng từ đã thanh toán đủ.']);
         }
         $number = 'FIN-'.now()->format('YmdHis').'-'.strtoupper(bin2hex(random_bytes(4)));
@@ -146,6 +150,52 @@ final class Workspace extends Component
         );
         $this->loadBalance();
         session()->flash('finance_success', 'Đã tạo phiếu nháp. Kiểm tra và ghi sổ khi sẵn sàng.');
+    }
+
+    public function editDraft(int $voucherId): void
+    {
+        abort_unless(auth('admin')->user()?->can('finance.voucher.create'), 403);
+        $voucher = DB::table('finance_vouchers')->where('id', $voucherId)->where('status', 'draft')->first();
+        $source = DB::table('finance_allocations as a')
+            ->join('finance_source_documents as s', 's.id', '=', 'a.source_document_id')
+            ->where('a.voucher_id', $voucherId)->first(['s.source_module', 's.source_type', 's.source_document_id']);
+        if (! $voucher || ! $source || $source->source_module !== 'Pharma') {
+            throw ValidationException::withMessages(['voucher' => 'Draft is not editable here.']);
+        }
+        $this->kind = $source->source_type;
+        $this->documentId = (string) $source->source_document_id;
+        $this->accountId = (string) $voucher->account_id;
+        $this->editingVoucherId = $voucherId;
+        $this->workspaceTab = 'compose';
+        $this->loadBalance();
+        $this->amount = (string) $voucher->amount;
+        $this->amountDisplay = $this->formatVnd($this->amount);
+    }
+
+    public function saveDraft(): void
+    {
+        abort_unless(auth('admin')->user()?->can('finance.voucher.create'), 403);
+        if ($this->editingVoucherId === null) {
+            throw ValidationException::withMessages(['voucher' => 'Select a draft to edit.']);
+        }
+        $this->validate(['accountId' => 'required|integer|min:1', 'amount' => 'required|numeric|gt:0']);
+        app(FinanceWorkflowService::class)->updateDraft($this->editingVoucherId, (int) $this->accountId, $this->amount);
+        $this->editingVoucherId = null;
+        $this->loadBalance();
+        session()->flash('finance_success', 'Đã cập nhật phiếu nháp.');
+    }
+
+    public function cancelDraft(int $voucherId): void
+    {
+        abort_unless(auth('admin')->user()?->can('finance.voucher.create'), 403);
+        app(FinanceWorkflowService::class)->cancelDraft($voucherId);
+        if ($this->editingVoucherId === $voucherId) {
+            $this->editingVoucherId = null;
+        }
+        if ($this->documentId !== '') {
+            $this->loadBalance();
+        }
+        session()->flash('finance_success', 'Đã hủy phiếu nháp, giải phóng hạn mức.');
     }
 
     public function post(int $voucherId): void
@@ -173,7 +223,12 @@ final class Workspace extends Component
         abort_unless(auth('admin')->user()?->can('finance.view'), 403);
 
         $accounts = DB::table('finance_accounts')->orderBy('code')->get();
-        $vouchers = DB::table('finance_vouchers')->orderByDesc('id')->limit(30)->get();
+        $vouchers = DB::table('finance_vouchers as v')
+            ->leftJoin('finance_allocations as a', 'a.voucher_id', '=', 'v.id')
+            ->leftJoin('finance_source_documents as s', 's.id', '=', 'a.source_document_id')
+            ->when(! $this->showHistory, fn ($query) => $query->whereNotIn('v.status', ['reversed', 'cancelled']))
+            ->select('v.*', 's.source_document_code', 's.counterparty')
+            ->orderByDesc('v.id')->limit(30)->get();
         $selectedAccount = $accounts->firstWhere('id', (int) $this->accountId);
 
         $documents = collect();
