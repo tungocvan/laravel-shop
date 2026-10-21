@@ -11,3 +11,7 @@ Current implementation is a foundation only. No posting, UI, Pharma adapter, Req
 ## Posting service
 
 VoucherPostingService posts existing draft vouchers with source allocations only after the provider validates each source and the snapshot matches. It locks voucher, account, allocations and source rows, checks outstanding amount against posted allocations, currency and direction, then inserts a signed ledger entry and marks posted in one transaction. Reversal appends the opposite ledger entry and marks reversed. No UI or direct manual posting endpoint is exposed in this batch.
+
+## Optional Pharma integration
+
+When Finance and Pharma are enabled, FinanceServiceProvider registers PharmaReceiptProvider for `Pharma:inventory_receipt`. It resolves only posted inventory receipts with invoice number, invoice date and complete positive invoice unit prices. It calculates a VND payable snapshot with VAT from receipt items using SQL DECIMAL and does not change Pharma records. The invoice-backed rule is provisional and requires business/UI acceptance before financial use. Generic inventory issues are intentionally excluded; Request remains deferred. Provider resolution fails closed when Pharma is disabled.
