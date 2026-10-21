@@ -29,14 +29,14 @@ final class PharmaReceiptProvider implements FinancialDocumentProvider
             throw ValidationException::withMessages(['source' => 'Invalid Pharma receipt identifier.']);
         }
 
-        $receipt = DB::table('pharma_inventory_receipts')->where('id', $documentId)->first();
+        $receipt = DB::table('pharma_inventory_receipts')->where('id', $documentId)->lockForUpdate()->first();
 
         if (! $receipt || $receipt->status !== 'posted'
             || empty($receipt->invoice_number) || empty($receipt->invoice_date)) {
             throw ValidationException::withMessages(['source' => 'Receipt must be posted and have an invoice reference.']);
         }
 
-        $items = DB::table('pharma_inventory_receipt_items')->where('receipt_id', $receipt->id);
+        $items = DB::table('pharma_inventory_receipt_items')->where('receipt_id', $receipt->id)->lockForUpdate();
         if (! (clone $items)->exists()
             || (clone $items)->where(function ($query): void {
                 $query->whereNull('invoice_unit_price_ex_vat')
