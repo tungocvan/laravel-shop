@@ -68,7 +68,7 @@
             @can('finance.voucher.create')
                 <form wire:submit="createDraft" class="space-y-3">
                     <label class="block text-sm font-medium text-slate-700">Tài khoản thu/chi
-                        <select wire:model="accountId" required class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 p-2">
+                        <select wire:model.live="accountId" required class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 p-2">
                             <option value="">Chọn tài khoản</option>
                             @foreach($accounts->where('is_active', true) as $account)
                                 <option value="{{ $account->id }}">{{ $account->code }} — {{ $account->name }}</option>
@@ -80,29 +80,57 @@
                             <p class="font-semibold text-slate-800">{{ $selectedAccount->kind === 'cash' ? 'Thanh toán tiền mặt' : 'Thanh toán qua ngân hàng' }}</p>
                             <p class="mt-1 text-slate-600">{{ $selectedAccount->name }} · {{ $selectedAccount->code }}</p>
                             @if($selectedAccount->kind === 'cash')
-                                <p class="mt-1 text-xs text-slate-500">Hạch toán qua quỹ tiền mặt; không sử dụng thông tin chuyển khoản.</p>
+                                <p class="mt-1 text-xs text-slate-500">Thủ quỹ: {{ $selectedAccount->cash_custodian ?: "Chưa cập nhật" }} · Địa điểm: {{ $selectedAccount->cash_location ?: "Chưa cập nhật" }}</p>
                             @else
-                                <p class="mt-1 text-xs text-slate-500">Thông tin ngân hàng, số tài khoản và chủ tài khoản sẽ được bổ sung ở batch 5D.</p>
+                                <p class="mt-1 text-xs text-slate-500">Ngân hàng: {{ $selectedAccount->bank_name ?: "Chưa cập nhật" }} · STK: {{ $selectedAccount->bank_account_number ?: "Chưa cập nhật" }} · Chủ TK: {{ $selectedAccount->bank_account_holder ?: "Chưa cập nhật" }}</p>
                             @endif
                         </div>
                     @endif
                     <label class="block text-sm font-medium text-slate-700">Số tiền thanh toán (VND)
-                        <input wire:model="amount" inputmode="decimal" required aria-describedby="finance-amount-help" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 p-2 text-right font-semibold tabular-nums">
-                        <span id="finance-amount-help" class="mt-1 block text-xs font-normal text-slate-500">Nhập số không có dấu phân cách (ví dụ 15750000). Giá trị hiển thị phía trên đã được định dạng.</span>
+                        <input wire:model.live.debounce.300ms="amountDisplay" inputmode="numeric" required aria-describedby="finance-amount-help" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 p-2 text-right font-semibold tabular-nums">
+                        <span id="finance-amount-help" class="mt-1 block text-xs font-normal text-slate-500">Nhập số tiền VND, tự động phân cách hàng nghìn. Cho phép thanh toán một phần.</span>
                     </label>
                     <button type="submit" wire:loading.attr="disabled" @disabled(!$balance || $balance['remaining'] === '0.00') class="min-h-11 w-full rounded-xl bg-indigo-600 px-4 py-2 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">Tạo phiếu nháp</button>
                 </form>
             @endcan
             @can('finance.account.manage')
-                <details class="border-t border-slate-200 pt-4">
-                    <summary class="cursor-pointer text-sm font-semibold text-indigo-700">+ Tạo tài khoản tiền mặt / ngân hàng</summary>
-                    <form wire:submit="createAccount" class="mt-3 space-y-3">
-                        <input wire:model="accountCode" required maxlength="40" placeholder="Mã tài khoản" class="min-h-11 w-full rounded-lg border border-slate-300 p-2">
-                        <input wire:model="accountName" required maxlength="255" placeholder="Tên tài khoản" class="min-h-11 w-full rounded-lg border border-slate-300 p-2">
-                        <select wire:model="accountKind" class="min-h-11 w-full rounded-lg border border-slate-300 p-2"><option value="cash">Tiền mặt</option><option value="bank">Ngân hàng</option></select>
-                        <button type="submit" class="min-h-11 w-full rounded-xl border border-indigo-500 px-4 py-2 font-semibold text-indigo-700">Lưu tài khoản</button>
-                    </form>
-                </details>
+                <div class="border-t border-slate-200 pt-4">
+                    <button type="button" wire:click="$toggle('showAccountForm')" class="min-h-11 w-full rounded-lg border border-indigo-200 px-3 text-left text-sm font-semibold text-indigo-700">+ Tạo tài khoản thu/chi {{ $showAccountForm ? '▴' : '▾' }}</button>
+                    @if($showAccountForm)
+                        <form wire:submit="createAccount" class="mt-3 space-y-3 rounded-xl bg-slate-50 p-3">
+                            <p class="text-sm font-semibold text-slate-900">Hồ sơ tài khoản thu/chi</p>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button type="button" wire:click="$set('accountKind', 'bank')" class="min-h-11 rounded-lg border px-2 text-sm font-semibold {{ $accountKind === 'bank' ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300 bg-white text-slate-700' }}">Ngân hàng</button>
+                                <button type="button" wire:click="$set('accountKind', 'cash')" class="min-h-11 rounded-lg border px-2 text-sm font-semibold {{ $accountKind === 'cash' ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300 bg-white text-slate-700' }}">Tiền mặt</button>
+                            </div>
+                            <label class="block text-xs font-semibold text-slate-600">Mã tài khoản
+                                <input wire:model="accountCode" required maxlength="40" placeholder="VD: NH-TCB" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white p-2">
+                            </label>
+                            <label class="block text-xs font-semibold text-slate-600">Tên tài khoản
+                                <input wire:model="accountName" required maxlength="255" placeholder="Tên tài khoản nội bộ" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white p-2">
+                            </label>
+                            @if($accountKind === 'bank')
+                                <label class="block text-xs font-semibold text-slate-600">Ngân hàng
+                                    <input wire:model="bankName" required maxlength="255" placeholder="VD: Techcombank" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white p-2">
+                                </label>
+                                <label class="block text-xs font-semibold text-slate-600">Số tài khoản ngân hàng
+                                    <input wire:model="bankAccountNumber" required maxlength="100" placeholder="Số tài khoản" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white p-2">
+                                </label>
+                                <label class="block text-xs font-semibold text-slate-600">Chủ tài khoản
+                                    <input wire:model="bankAccountHolder" required maxlength="255" placeholder="Tên cá nhân / tổ chức" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white p-2">
+                                </label>
+                            @else
+                                <label class="block text-xs font-semibold text-slate-600">Người phụ trách quỹ
+                                    <input wire:model="cashCustodian" required maxlength="255" placeholder="Họ tên thủ quỹ" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white p-2">
+                                </label>
+                                <label class="block text-xs font-semibold text-slate-600">Địa điểm quản lý quỹ
+                                    <input wire:model="cashLocation" required maxlength="255" placeholder="VD: Văn phòng chính" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white p-2">
+                                </label>
+                            @endif
+                            <button type="submit" wire:loading.attr="disabled" class="min-h-11 w-full rounded-xl bg-indigo-600 px-4 font-semibold text-white disabled:opacity-50">Lưu tài khoản</button>
+                        </form>
+                    @endif
+                </div>
             @endcan
         </section>
     </div>
