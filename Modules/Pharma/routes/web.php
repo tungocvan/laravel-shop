@@ -36,6 +36,7 @@ Route::prefix('admin/pharma')->name('admin.pharma.')->middleware(['web', 'auth:a
     });
 
     Route::middleware('can:import_pharma_official_facilities')->group(function () {
+        Route::get('/official-facilities/source/legal-import/template', [OfficialSourceLegalImportController::class, 'template'])->name('official-facilities.source.legal-import.template');
         Route::post('/official-facilities/source/legal-import/preview', [OfficialSourceLegalImportController::class, 'preview'])->name('official-facilities.source.legal-import.preview');
         Route::post('/official-facilities/source/legal-import/confirm', [OfficialSourceLegalImportController::class, 'confirm'])->name('official-facilities.source.legal-import.confirm');
     });
