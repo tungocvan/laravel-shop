@@ -236,42 +236,75 @@
     </section>
     @endif
     @endif
-    <section class="rounded-2xl border border-slate-200 bg-white p-4">
-        <h2 class="mb-3 text-lg font-bold text-slate-900">{{ $workspaceTab === 'ledger' ? 'Sổ giao dịch gần đây' : '3. Phiếu thu/chi gần đây' }}</h2>
-        <label class="mb-3 flex min-h-11 items-center gap-2 text-sm text-slate-700">
-            <input type="checkbox" wire:model.live="showHistory" class="h-4 w-4 rounded border-slate-300"> Hiển thị cả phiếu đã hoàn tác / hủy nháp
-        </label>
-        <div class="space-y-3">
-            @forelse($vouchers as $voucher)
-                <div wire:key="voucher-{{ $voucher->id }}" class="flex flex-col gap-3 rounded-xl border border-slate-200 p-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div class="text-sm">
-                        <p class="font-bold text-slate-900">{{ $voucher->number }}</p>
-                        <p class="mt-1 text-sm text-indigo-700">Chứng từ nguồn: <strong>{{ $voucher->origin === 'manual' ? 'Thu / chi thủ công' : ($voucher->source_document_code ?: 'Chưa xác định') }}</strong></p>
-                        <p class="text-xs text-slate-500">{{ $voucher->origin === 'manual' ? ($voucher->counterparty ?: 'Chưa có đối tượng') : ($voucher->source_counterparty ?: 'Chưa có đối tượng thanh toán') }}</p>
-                        @if($voucher->origin === 'manual')
-                            <p class="text-xs text-slate-500">{{ $voucher->manual_category }} · {{ $voucher->description }}</p>
-                        @endif
-                        <p class="text-slate-600">{{ $voucher->direction === 'receipt' ? 'Thu' : 'Chi' }} · {{ number_format((float) $voucher->amount, 0, ',', '.') }} ₫ · {{ $voucher->status === 'draft' ? 'Nháp' : ($voucher->status === 'posted' ? 'Đã ghi sổ' : ($voucher->status === 'cancelled' ? 'Đã hủy nháp' : 'Đã hoàn tác')) }} · {{ \Illuminate\Support\Carbon::parse($voucher->voucher_date)->format('d/m/Y') }}</p>
-                    </div>
-                    <div class="flex flex-wrap gap-2">
-                        @if($voucher->status === 'draft')
-                            @can('finance.voucher.create')
-                                <button type="button" wire:click="{{ $voucher->origin === 'manual' ? 'editManualDraft' : 'editDraft' }}({{ $voucher->id }})" class="min-h-11 rounded-lg border border-indigo-300 px-3 py-2 text-sm font-semibold text-indigo-700">Sửa nháp</button>
-                                <button type="button" wire:click="cancelDraft({{ $voucher->id }})" wire:confirm="Hủy phiếu nháp này? Hạn mức sẽ được giải phóng." class="min-h-11 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700">Hủy nháp</button>
-                            @endcan
-                            @can('finance.voucher.post')
-                                <button type="button" wire:click="post({{ $voucher->id }})" wire:confirm="Xác nhận ghi sổ phiếu này?" class="min-h-11 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white">Ghi sổ</button>
-                            @endcan
-                        @elseif($voucher->status === 'posted')
-                            @can('finance.voucher.reverse')
-                                <button type="button" wire:click="reverse({{ $voucher->id }})" wire:confirm="Xác nhận hoàn tác phiếu này?" class="min-h-11 rounded-lg border border-rose-300 px-3 py-2 text-sm font-semibold text-rose-700">Hoàn tác</button>
-                            @endcan
-                        @endif
-                    </div>
-                </div>
-            @empty
-                <p class="text-sm text-slate-500">Chưa có phiếu thu/chi.</p>
-            @endforelse
+    <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <header class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-4 sm:px-6">
+            <div>
+                <h2 class="text-lg font-bold text-slate-900">{{ $workspaceTab === 'ledger' ? 'Sổ chứng từ thu / chi' : 'Chứng từ gần đây' }}</h2>
+                <p class="mt-1 text-xs text-slate-500">Theo dõi phiếu nháp, phiếu đã ghi sổ và lịch sử hoàn tác.</p>
+            </div>
+            <label class="flex min-h-11 items-center gap-2 text-sm text-slate-700">
+                <input type="checkbox" wire:model.live="showHistory" class="h-4 w-4 rounded border-slate-300">
+                Bao gồm phiếu hoàn tác / đã hủy
+            </label>
+        </header>
+        <div class="overflow-x-auto">
+            <table class="w-full min-w-[820px] divide-y divide-slate-200 text-left text-sm">
+                <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                    <tr>
+                        <th scope="col" class="px-4 py-3">Số phiếu / Nguồn</th>
+                        <th scope="col" class="px-4 py-3">Ngày</th>
+                        <th scope="col" class="px-4 py-3">Đối tượng / Nội dung</th>
+                        <th scope="col" class="px-4 py-3 text-right">Số tiền</th>
+                        <th scope="col" class="px-4 py-3">Trạng thái</th>
+                        <th scope="col" class="px-4 py-3 text-right">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @forelse($vouchers as $voucher)
+                        <tr wire:key="voucher-{{ $voucher->id }}" class="align-top hover:bg-slate-50">
+                            <td class="px-4 py-4">
+                                <p class="font-semibold text-slate-900">{{ $voucher->number }}</p>
+                                <p class="mt-1 text-xs text-indigo-700">{{ $voucher->origin === 'manual' ? 'Thủ công' : ($voucher->source_document_code ?: 'Chưa xác định nguồn') }}</p>
+                            </td>
+                            <td class="whitespace-nowrap px-4 py-4 text-slate-600">{{ \Illuminate\Support\Carbon::parse($voucher->voucher_date)->format('d/m/Y') }}</td>
+                            <td class="max-w-[260px] px-4 py-4">
+                                <p class="font-medium text-slate-800">{{ $voucher->origin === 'manual' ? ($voucher->counterparty ?: 'Chưa có đối tượng') : ($voucher->source_counterparty ?: 'Chưa có đối tượng thanh toán') }}</p>
+                                @if($voucher->origin === 'manual')
+                                    <p class="mt-1 break-words text-xs text-slate-500">{{ $voucher->manual_category }} · {{ $voucher->description }}</p>
+                                @endif
+                            </td>
+                            <td class="whitespace-nowrap px-4 py-4 text-right font-bold tabular-nums {{ $voucher->direction === 'receipt' ? 'text-emerald-700' : 'text-rose-700' }}">
+                                {{ $voucher->direction === 'receipt' ? '+' : '−' }}{{ number_format((float) $voucher->amount, 0, ',', '.') }} ₫
+                            </td>
+                            <td class="px-4 py-4">
+                                <span class="inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold {{ $voucher->status === 'posted' ? 'bg-emerald-50 text-emerald-700' : ($voucher->status === 'draft' ? 'bg-amber-50 text-amber-800' : 'bg-slate-100 text-slate-600') }}">
+                                    {{ $voucher->status === 'draft' ? 'Nháp' : ($voucher->status === 'posted' ? 'Đã ghi sổ' : ($voucher->status === 'cancelled' ? 'Đã hủy nháp' : 'Đã hoàn tác')) }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="flex flex-wrap justify-end gap-2">
+                                    @if($voucher->status === 'draft')
+                                        @can('finance.voucher.create')
+                                            <button type="button" wire:click="{{ $voucher->origin === 'manual' ? 'editManualDraft' : 'editDraft' }}({{ $voucher->id }})" class="min-h-10 rounded-lg border border-indigo-200 px-3 text-xs font-semibold text-indigo-700 hover:bg-indigo-50">Sửa</button>
+                                            <button type="button" wire:click="cancelDraft({{ $voucher->id }})" wire:confirm="Hủy phiếu nháp này?" class="min-h-10 rounded-lg border border-slate-300 px-3 text-xs font-semibold text-slate-700">Hủy</button>
+                                        @endcan
+                                        @can('finance.voucher.post')
+                                            <button type="button" wire:click="post({{ $voucher->id }})" wire:confirm="Xác nhận ghi sổ phiếu này?" class="min-h-10 rounded-lg bg-emerald-600 px-3 text-xs font-semibold text-white">Ghi sổ</button>
+                                        @endcan
+                                    @elseif($voucher->status === 'posted')
+                                        @can('finance.voucher.reverse')
+                                            <button type="button" wire:click="reverse({{ $voucher->id }})" wire:confirm="Xác nhận hoàn tác phiếu này?" class="min-h-10 rounded-lg border border-rose-300 px-3 text-xs font-semibold text-rose-700">Hoàn tác</button>
+                                        @endcan
+                                    @endif
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="6" class="px-4 py-10 text-center text-sm text-slate-500">Chưa có chứng từ thu / chi phù hợp.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
+        <p class="border-t border-slate-100 px-4 py-3 text-xs text-slate-500">Hiển thị tối đa 30 chứng từ gần nhất. Các bộ lọc nâng cao sẽ bổ sung trong giai đoạn Sổ chứng từ.</p>
     </section>
 </div>
