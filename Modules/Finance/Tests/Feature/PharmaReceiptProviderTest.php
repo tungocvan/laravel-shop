@@ -28,6 +28,7 @@ final class PharmaReceiptProviderTest extends TestCase
             $table->unsignedBigInteger('receipt_id');
             $table->decimal('quantity', 15, 3);
             $table->decimal('invoice_unit_price_ex_vat', 18, 4)->nullable();
+            $table->decimal('unit_price_ex_vat', 18, 4)->default(0);
             $table->decimal('vat_rate', 5, 2);
         });
 
@@ -58,11 +59,16 @@ final class PharmaReceiptProviderTest extends TestCase
         (new PharmaReceiptProvider)->resolveForPosting((string) $id);
     }
 
-    public function test_posted_receipt_without_invoice_is_rejected(): void
+    public function test_posted_receipt_without_invoice_uses_base_price(): void
     {
         $id = $this->receipt('posted', null);
-        $this->expectException(ValidationException::class);
-        (new PharmaReceiptProvider)->resolveForPosting((string) $id);
+        DB::table('pharma_inventory_receipt_items')->insert([
+            'receipt_id' => $id, 'quantity' => '2.000',
+            'unit_price_ex_vat' => '100.0000', 'vat_rate' => '10.00',
+        ]);
+        $snapshot = (new PharmaReceiptProvider)->resolveForPosting((string) $id);
+        $this->assertSame('payable', $snapshot->direction);
+        $this->assertSame(220, (int) $snapshot->amount);
     }
 
     public function test_disabled_pharma_fails_closed(): void
@@ -77,7 +83,7 @@ final class PharmaReceiptProviderTest extends TestCase
         $id = $this->receipt('posted', 'INV-03');
         DB::table('pharma_inventory_receipt_items')->insert([
             'receipt_id' => $id, 'quantity' => '1.000',
-            'invoice_unit_price_ex_vat' => null, 'vat_rate' => '10.00',
+            'invoice_unit_price_ex_vat' => null, 'unit_price_ex_vat' => '0.0000', 'vat_rate' => '10.00',
         ]);
         $this->expectException(ValidationException::class);
         (new PharmaReceiptProvider)->resolveForPosting((string) $id);
