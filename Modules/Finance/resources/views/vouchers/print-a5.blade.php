@@ -7,42 +7,46 @@
     <style>
         @page { size: {{ $printSettings['paper'] }} {{ $printSettings['orientation'] }}; margin: {{ $printSettings['margin_mm'] }}mm; }
         * { box-sizing: border-box; }
-        html, body, div, span, strong, small, h1, p, main { font-family: 'DejaVu Sans', sans-serif !important; }
-        body { margin: 0; background: #eef1f5; color: #111827; font: {{ $printSettings['font_size'] }}pt/1.45 'DejaVu Sans', sans-serif; }
+        html, body, div, span, strong, small, h1, p, main, table, td { font-family: 'DejaVu Sans', sans-serif !important; }
+        html, body { margin: 0; padding: 0; }
+        body { background: #eef1f5; color: #111827; font-size: {{ $printSettings['font_size'] }}pt; line-height: 1.35; }
         .toolbar { display: flex; justify-content: space-between; align-items: center; max-width: {{ $printSettings['paper'] === 'A5' ? '148mm' : '210mm' }}; margin: 12px auto; gap: 12px; }
         .toolbar button, .toolbar a { border: 1px solid #cbd5e1; background: white; color: #111827; border-radius: 6px; padding: 9px 14px; font: inherit; text-decoration: none; cursor: pointer; }
         .paper { position: relative; width: {{ $printSettings['paper'] === 'A5' ? '148mm' : '210mm' }}; min-height: {{ $printSettings['paper'] === 'A5' ? '210mm' : '297mm' }}; padding: {{ $printSettings['margin_mm'] }}mm; margin: auto; background: #fff; box-shadow: 0 4px 25px #0001; }
-        .head { display: flex; justify-content: space-between; gap: 10px; }
-        .head small { display: block; color: #475569; }
-        h1 { text-align: center; font-size: 19px; letter-spacing: .06em; margin: 17px 0 2px; }
+        .head { display: table; width: 100%; table-layout: fixed; }
+        .head > div { display: table-cell; width: 50%; vertical-align: top; }
+        .head small { display: block; color: #475569; font-size: 8pt; }
+        .meta { text-align: right; font-size: 8pt; overflow-wrap: anywhere; }
+        h1 { text-align: center; font-size: 17pt; letter-spacing: .03em; margin: 13px 0 3px; }
         .center { text-align: center; }
         .muted { color: #64748b; }
-        .meta { text-align: right; font-size: 10px; }
-        .line { display: flex; gap: 7px; margin: 9px 0; }
-        .line .label { flex: 0 0 auto; color: #475569; }
-        .line .value { flex: 1; min-width: 0; overflow-wrap: anywhere; border-bottom: 1px dotted #cbd5e1; font-weight: 600; }
-        .amount { border: 1px solid #cbd5e1; padding: 9px; margin: 15px 0 8px; border-radius: 5px; }
-        .amount strong { font-size: 16px; }
-        .signatures { display: table; table-layout: fixed; width: 100%; gap: 6px; margin-top: 26px; text-align: center; }
-        .signatures > div { display: table-cell; width: 33.33%; vertical-align: top; }
-        .signatures strong { display: block; }
-        .signatures small { display: block; color: #64748b; }
-        .signature-space { height: 45px; }
-        .stamp { position: absolute; top: 36%; left: 12%; right: 12%; text-align: center; transform: rotate(-25deg); font-size: 35px; font-weight: 800; letter-spacing: 2px; color: rgba(160, 55, 55, .15); pointer-events: none; }
-        .footer { margin-top: 18px; font-size: 9px; color: #64748b; }
-        .pdf-export .paper { width: auto; min-height: 0; padding: 0; margin: 0; box-shadow: none; }
-        .pdf-export .line { display: block; margin: 6px 0; }
-        .pdf-export .head { display: table; width: 100%; }
-        .pdf-export .head > div { display: table-cell; width: 50%; vertical-align: top; }
-        .pdf-export .signatures, .pdf-export .amount { page-break-inside: avoid; }
+        .details { margin-top: 13px; }
+        .line { display: table; table-layout: fixed; width: 100%; margin: 0 0 7px; }
+        .line .label { display: table-cell; width: 32%; vertical-align: top; color: #475569; }
+        .line .value { display: table-cell; width: 68%; vertical-align: top; overflow-wrap: break-word; word-wrap: break-word; border-bottom: 1px dotted #cbd5e1; font-weight: 600; }
+        .amount { border: 1px solid #cbd5e1; padding: 9px; margin: 12px 0 8px; border-radius: 4px; page-break-inside: avoid; }
+        .amount strong { font-size: 13pt; }
+        .signatures { display: table; table-layout: fixed; width: 100%; margin-top: 16px; text-align: center; page-break-inside: avoid; }
+        .signatures > div { display: table-cell; width: 33.33%; vertical-align: top; padding: 0 3px; }
+        .signatures strong { display: block; font-size: 8pt; }
+        .signatures small { display: block; color: #64748b; font-size: 7pt; }
+        .signature-space { height: 35px; }
+        .stamp { position: absolute; top: 32%; left: 8%; right: 8%; text-align: center; transform: rotate(-25deg); font-size: 25pt; font-weight: 800; color: rgba(160,55,55,.16); }
+        .footer { margin-top: 10px; font-size: 7pt; color: #64748b; }
+        .pdf-export { background: white; }
+        .pdf-export .paper { position: static; width: auto; min-height: 0; padding: 0; margin: 0; box-shadow: none; }
+        .pdf-export .head, .pdf-export .line, .pdf-export .signatures { display: table; }
+        .pdf-export .signatures > div { display: table-cell; }
+        .pdf-export .amount, .pdf-export .signatures { page-break-inside: avoid; }
         @media print {
-            html, body { width: auto; background: white; margin: 0; }
+            html, body { background: white; margin: 0; padding: 0; }
             .toolbar { display: none !important; }
             .paper { width: auto; min-height: 0; padding: 0; margin: 0; box-shadow: none; }
+            .amount, .signatures { page-break-inside: avoid; }
         }
         @media screen and (max-width: 560px) {
             .toolbar { padding: 0 12px; }
-            .paper { width: 100%; min-height: 0; padding: 20px 15px; }
+            .screen-preview .paper { width: 100%; min-height: 0; padding: 16px 12px; }
         }
     </style>
 </head>
@@ -73,7 +77,7 @@
         </div>
         <h1>{{ $voucher->direction === 'receipt' ? 'PHIẾU THU' : 'PHIẾU CHI' }}</h1>
         <div class="center muted">Ngày {{ \Illuminate\Support\Carbon::parse($voucher->voucher_date)->format('d/m/Y') }}</div>
-        <div style="margin-top: 22px">
+        <div class="details">
             <div class="line"><span class="label">{{ $voucher->direction === 'receipt' ? 'Người nộp tiền:' : 'Người nhận tiền:' }}</span><span class="value">{{ $voucher->origin === 'manual' ? $voucher->counterparty : $voucher->source_counterparty }}</span></div>
             <div class="line"><span class="label">Nội dung:</span><span class="value">{{ $voucher->origin === 'manual' ? $voucher->description : 'Thanh toán chứng từ '.$voucher->source_document_code }}</span></div>
             @if($voucher->origin === 'manual')
