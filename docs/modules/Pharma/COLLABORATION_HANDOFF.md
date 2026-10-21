@@ -605,3 +605,8 @@ Do not reinterpret this checkpoint as an Admin Commission Center rewrite. Client
 
 - Source list supports `facility_type` choices hospital/Bệnh viện, medical_center/Trung tâm y tế, clinic/Phòng khám, health_station/Trạm y tế. Matches substring in `facility_name` with SQL LIKE; does not mutate or assign a canonical category. Filters combine with existing search/region/status and persist in export form.
 - No migration or queue changes. Focused tests and UI pending operator confirmation. No PR/merge/deploy.
+
+
+## 2026-10-21 — Source filter compact desktop layout
+
+- Responsive filter form: 9 compact columns on xl desktop (search, facility type, region, source, province, BHXH partition, status, page size, reset), 2 columns on tablet and stacked on mobile. No filter behavior changes. UI confirmation pending; no deploy/merge.
