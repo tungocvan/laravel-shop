@@ -19,6 +19,13 @@ use Modules\Pharma\Services\OfficialFacilityImport\OfficialFacilityNormalizer;
 
 class OfficialSourceSyncController extends Controller
 {
+    private const FACILITY_NAME_TYPES = [
+        'hospital' => 'Bệnh viện',
+        'medical_center' => 'Trung tâm y tế',
+        'clinic' => 'Phòng khám',
+        'health_station' => 'Trạm y tế',
+    ];
+
     public const BHXH_SNAPSHOT_SESSION = 'pharma.official_facilities.bhxh.last_snapshot';
 
     public function index(Request $request, BhxhProvinceCatalog $provinceCatalog): View
@@ -29,6 +36,7 @@ class OfficialSourceSyncController extends Controller
         $province = trim((string) $request->string('province'));
         $partition = trim((string) $request->string('partition'));
         $status = trim((string) $request->string('status'));
+        $facilityType = trim((string) $request->string('facility_type'));
         $regions = $provinceCatalog->regions();
         $regionLabel = $regions[$businessRegion] ?? null;
         $regionProvinceNames = $regionLabel === null
@@ -36,6 +44,7 @@ class OfficialSourceSyncController extends Controller
             : array_values($provinceCatalog->provincesByRegion()[$regionLabel] ?? []);
 
         $query = OfficialSourceFacility::query()
+            ->when(isset(self::FACILITY_NAME_TYPES[$facilityType]), fn ($builder) => $builder->where('facility_name', 'like', '%'.self::FACILITY_NAME_TYPES[$facilityType].'%'))
             ->when($source !== '', fn ($builder) => $builder->where('source', $source))
             ->when($regionLabel !== null, fn ($builder) => $builder->whereIn('province_name', $regionProvinceNames))
             ->when($province !== '', fn ($builder) => $builder->where('province_name', $province))
@@ -92,6 +101,7 @@ class OfficialSourceSyncController extends Controller
                 ->pluck('province_name'),
             'partitionOptions' => $partitionOptions,
             'partitionLabels' => $partitionLabels,
+            'facilityNameTypes' => self::FACILITY_NAME_TYPES,
         ]);
     }
 
@@ -106,6 +116,7 @@ class OfficialSourceSyncController extends Controller
             'province' => ['nullable', 'string', 'max:255'],
             'partition' => ['nullable', 'string', 'max:50'],
             'status' => ['nullable', 'string', 'max:20'],
+            'facility_type' => ['nullable', 'string', 'in:hospital,medical_center,clinic,health_station'],
         ]);
 
         $selectedIds = array_values(array_filter((array) ($validated['selected_ids'] ?? [])));
