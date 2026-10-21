@@ -635,3 +635,11 @@ Do not reinterpret this checkpoint as an Admin Commission Center rewrite. Client
 
 - Added GET legal-import/template under import permission, with Excel download and 4 exact headers matching preview import. A/C columns are Excel text for CSKCB/tax codes. Modal includes download link. No database/queue changes.
 - User reported UI PASS for prior import flow, not yet for this new template. Focused test/lint and template download UI pending. No merge/deploy.
+
+
+## 2026-10-21 — Pre-merge audit checkpoint (regression pending)
+
+- GitHub compare against latest observed main `e3d615851`: feature ahead 69, behind 0; 22 files changed, including Pharma, Partner gateway, tests, migration, and services config. No new branch or worktree.
+- User explicitly confirmed focused TEST PASS and UI PASS for legal import template. This does not imply module/impacted regression PASS.
+- Read-only audit: legal Excel import uses separate preview/confirm and stores `imported` (unverified) candidate; manual registry lookup uses Partner gateway. Existing reviewed entries protected against Excel overwrite. No PR/merge/deploy authorized.
+- Next gates: local tracked tree clean; PHP lint; focused Pharma/Partner tests; Pharma module regression and Partner impacted regression; `git diff --check`; UI regression only if UI code changes further; PR review. Do not assert PASS before operator output.
