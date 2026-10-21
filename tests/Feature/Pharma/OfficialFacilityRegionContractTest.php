@@ -54,6 +54,12 @@ class OfficialFacilityRegionContractTest extends TestCase
         $this->assertStringContainsString('<x-search', $view);
         $this->assertStringContainsString('name="business_region"', $view);
         $this->assertStringContainsString('data-select-page', $view);
+        $this->assertStringContainsString('name="facility_type"', $view);
+        $this->assertStringContainsString('Tất cả loại cơ sở', $view);
+        $this->assertStringContainsString("'facility_type' => ['nullable', 'string', 'in:hospital,medical_center,clinic,health_station']", $controller);
+        foreach (['Bệnh viện', 'Trung tâm y tế', 'Phòng khám', 'Trạm y tế'] as $label) {
+            $this->assertStringContainsString("'".$label."'", $controller);
+        }
         $this->assertStringContainsString('name="selected_ids[]"', $view);
         $this->assertStringContainsString('Xuất Excel', $view);
         $this->assertStringContainsString('Import Excel', $view);
