@@ -9,3 +9,5 @@ Base main: 1913a5a98d3fbc9dbfde405d58bdf835334012c6.
 Implemented: disabled-by-default manifest, financial document provider interface, snapshot, registry and unit tests.
 
 Pending: tests, migration, posting workflow, Pharma integration, UI and PR. No merge or production action.
+
+Batch 2: VoucherPostingService added with transactional source revalidation, amount checks, allocation total checks, ledger posting and append-only reversal. Added feature tests for partial payment, overpayment, reversal and missing provider. TEST PENDING on Admin. UI not required yet. Pharma adapter not implemented; Request deferred.
