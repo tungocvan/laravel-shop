@@ -588,3 +588,8 @@ Do not reinterpret this checkpoint as an Admin Commission Center rewrite. Client
 
 - `LookupOfficialSourceLegalJob` now depends on Partner-owned `BusinessRegistryLookupGateway`, not a hardcoded source provider. Name-only BHXH lookup requires configured Doanhnghiep.vn API key; VietQR supports exact tax code only. Cache reduces repeat quota usage.
 - No automatic canonical Partner sync, no BHXH overwrite, no production migration or queue restart authorized. Tests and UI not yet verified.
+
+## 2026-10-21 — MSTCongTy integration correction
+
+- User UI confirmed Partner MSTCongTy name search returns candidates. Pharma gateway now reuses `MultiSourceBusinessLookupService::search(..., MstCongTyProvider::SOURCE)` for names; Doanhnghiep.vn remains an optional authenticated provider in Partner, not a mandatory name lookup dependency. VietQR remains MST-only. Provider failures are surfaced rather than cached as empty matches.
+- New focused tests are pending local execution; UI Pharma is not yet confirmed PASS.
