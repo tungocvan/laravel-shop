@@ -78,6 +78,16 @@ class OfficialFacilityRegionContractTest extends TestCase
         $this->assertStringContainsString('data-legal-status', $view);
         $this->assertStringContainsString('{{ $provinceRegions[$facility->province_name] ?? \'—\' }}', $view);
     }
+    public function test_source_list_and_excel_share_prefix_facility_type_filter(): void
+    {
+        $controller = file_get_contents(base_path('Modules/Pharma/Http/Controllers/OfficialSourceSyncController.php'));
+
+        $this->assertSame(2, substr_count($controller, '$this->applyFilters($query, $request, $provinceCatalog);'));
+        $this->assertStringContainsString("self::FACILITY_NAME_TYPES[\$facilityType].'%'", $controller);
+        $this->assertStringNotContainsString("'%'.self::FACILITY_NAME_TYPES[\$facilityType].'%'", $controller);
+        $this->assertStringContainsString('if ($selectedIds !== [])', $controller);
+    }
+
     public function test_source_excel_includes_only_reviewed_legal_identity_columns(): void
     {
         $export = new \Modules\Pharma\Exports\OfficialSourceFacilitiesExport(
