@@ -149,22 +149,35 @@
     </div>
 
     @else
-    <section class="rounded-2xl border border-slate-200 bg-white p-4">
-        <div class="mb-4">
-            <h2 class="text-lg font-bold text-slate-900">Lập phiếu thu / chi thủ công</h2>
-            <p class="mt-1 text-sm text-slate-500">Phiếu độc lập, không tự cấn trừ công nợ Pharma, tạm ứng hoặc đặt cọc.</p>
-        </div>
+    <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <header class="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 bg-slate-50 px-4 py-5 sm:px-6">
+            <div class="space-y-1">
+                <p class="text-xs font-semibold uppercase tracking-wider text-indigo-700">Chứng từ kế toán · Thu / chi thủ công</p>
+                <h2 class="text-2xl font-bold tracking-tight text-slate-900">{{ $manualDirection === 'receipt' ? 'PHIẾU THU' : 'PHIẾU CHI' }}</h2>
+                <p class="text-sm text-slate-600">Lập chứng từ, kiểm tra thông tin và lưu nháp trước khi ghi sổ.</p>
+            </div>
+            <div class="text-right">
+                <span class="inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">BẢN NHÁP</span>
+                <p class="mt-2 text-xs text-slate-500">{{ $editingManualVoucherId ? 'Đang sửa phiếu #'.$editingManualVoucherId : 'Số phiếu cấp tự động khi lưu' }}</p>
+            </div>
+        </header>
         @can('finance.voucher.create')
-            <form wire:submit="{{ $editingManualVoucherId ? 'saveManualDraft' : 'createManualDraft' }}" class="grid gap-4 lg:grid-cols-2">
-                <div class="space-y-3">
-                    <div class="grid grid-cols-2 gap-2">
-                        <button type="button" wire:click="$set('manualDirection', 'receipt')" @disabled($editingManualVoucherId !== null) class="min-h-11 rounded-lg border px-3 font-semibold {{ $manualDirection === 'receipt' ? 'border-emerald-600 bg-emerald-50 text-emerald-800' : 'border-slate-200' }}">Phiếu thu</button>
-                        <button type="button" wire:click="$set('manualDirection', 'payment')" @disabled($editingManualVoucherId !== null) class="min-h-11 rounded-lg border px-3 font-semibold {{ $manualDirection === 'payment' ? 'border-rose-600 bg-rose-50 text-rose-800' : 'border-slate-200' }}">Phiếu chi</button>
-                    </div>
-                    <label class="block text-sm font-medium text-slate-700">Loại nghiệp vụ
-                        <select wire:model="manualCategory" required class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 p-2">
+        <form wire:submit="{{ $editingManualVoucherId ? 'saveManualDraft' : 'createManualDraft' }}" class="space-y-6 p-4 sm:p-6">
+            <div class="grid gap-2 sm:grid-cols-2" role="group" aria-label="Loại phiếu">
+                <button type="button" wire:click="$set('manualDirection', 'receipt')" @disabled($editingManualVoucherId !== null) class="min-h-12 rounded-xl border px-4 text-left text-sm font-semibold disabled:opacity-60 {{ $manualDirection === 'receipt' ? 'border-emerald-500 bg-emerald-50 text-emerald-800' : 'border-gray-300 bg-white text-slate-700' }}">↙ Phiếu thu · Tiền vào</button>
+                <button type="button" wire:click="$set('manualDirection', 'payment')" @disabled($editingManualVoucherId !== null) class="min-h-12 rounded-xl border px-4 text-left text-sm font-semibold disabled:opacity-60 {{ $manualDirection === 'payment' ? 'border-rose-500 bg-rose-50 text-rose-800' : 'border-gray-300 bg-white text-slate-700' }}">↗ Phiếu chi · Tiền ra</button>
+            </div>
+            <fieldset class="space-y-4">
+                <legend class="mb-3 text-base font-bold text-slate-900">01. Thông tin chứng từ</legend>
+                <div class="grid gap-4 md:grid-cols-2">
+                    <label class="block text-sm font-medium text-slate-700">Ngày chứng từ <span class="text-rose-600">*</span>
+                        <input type="date" wire:model="manualDate" required class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                        @error('manualDate') <span class="mt-1 block text-xs text-rose-600">{{ $message }}</span> @enderror
+                    </label>
+                    <label class="block text-sm font-medium text-slate-700">Nghiệp vụ <span class="text-rose-600">*</span>
+                        <select wire:model="manualCategory" required class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
                             @if($manualDirection === 'receipt')
-                                <option value="deposit">Thu đặt cọc</option>
+                                <option value="deposit">Thu tiền đặt cọc</option>
                                 <option value="advance_refund">Thu hoàn ứng</option>
                                 <option value="other_receipt">Thu khác</option>
                             @else
@@ -173,42 +186,52 @@
                                 <option value="other_payment">Chi khác</option>
                             @endif
                         </select>
+                        @error('manualCategory') <span class="mt-1 block text-xs text-rose-600">{{ $message }}</span> @enderror
                     </label>
-                    <label class="block text-sm font-medium text-slate-700">{{ $manualDirection === 'receipt' ? 'Người / tổ chức nộp tiền' : 'Người / tổ chức nhận tiền' }}
-                        <input wire:model="manualCounterparty" maxlength="255" required class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 p-2" placeholder="Tên cá nhân hoặc tổ chức">
+                    <label class="block text-sm font-medium text-slate-700 md:col-span-2">{{ $manualDirection === 'receipt' ? 'Người / đơn vị nộp tiền' : 'Người / đơn vị nhận tiền' }} <span class="text-rose-600">*</span>
+                        <input wire:model="manualCounterparty" maxlength="255" required placeholder="Họ tên hoặc tên đơn vị" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                        @error('manualCounterparty') <span class="mt-1 block text-xs text-rose-600">{{ $message }}</span> @enderror
                     </label>
-                    <label class="block text-sm font-medium text-slate-700">Lý do thu / chi
-                        <textarea wire:model="manualDescription" required rows="3" maxlength="5000" class="mt-1 w-full rounded-lg border border-slate-300 p-2" placeholder="Diễn giải nội dung giao dịch"></textarea>
+                    <label class="block text-sm font-medium text-slate-700 md:col-span-2">Lý do {{ $manualDirection === 'receipt' ? 'thu' : 'chi' }} <span class="text-rose-600">*</span>
+                        <textarea wire:model="manualDescription" required rows="3" maxlength="5000" placeholder="Nội dung chứng từ, mục đích thanh toán" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"></textarea>
+                        @error('manualDescription') <span class="mt-1 block text-xs text-rose-600">{{ $message }}</span> @enderror
                     </label>
-                    <label class="block text-sm font-medium text-slate-700">Số tham chiếu (không bắt buộc)
-                        <input wire:model="manualReference" maxlength="100" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 p-2" placeholder="Mã hồ sơ / tham chiếu">
+                    <label class="block text-sm font-medium text-slate-700 md:col-span-2">Số tham chiếu <span class="font-normal text-slate-400">(nếu có)</span>
+                        <input wire:model="manualReference" maxlength="100" placeholder="Mã hồ sơ / đề nghị thanh toán" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                        @error('manualReference') <span class="mt-1 block text-xs text-rose-600">{{ $message }}</span> @enderror
                     </label>
                 </div>
-                <div class="space-y-3">
-                    <label class="block text-sm font-medium text-slate-700">Ngày chứng từ
-                        <input type="date" wire:model="manualDate" required class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 p-2">
-                    </label>
-                    <label class="block text-sm font-medium text-slate-700">Tài khoản thu / chi
-                        <select wire:model.live="accountId" required class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 p-2">
-                            <option value="">Chọn tài khoản</option>
+            </fieldset>
+            <div class="border-t border-slate-200"></div>
+            <fieldset class="space-y-4">
+                <legend class="mb-3 text-base font-bold text-slate-900">02. Thanh toán</legend>
+                <div class="grid gap-4 md:grid-cols-2">
+                    <label class="block text-sm font-medium text-slate-700">Tài khoản nhận / xuất tiền <span class="text-rose-600">*</span>
+                        <select wire:model.live="accountId" required class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                            <option value="">Chọn tài khoản thanh toán</option>
                             @foreach($accounts->where('is_active', true)->sortBy(fn ($account) => $account->kind === 'bank' ? 0 : 1) as $account)
-                                <option value="{{ $account->id }}">{{ $account->kind === 'bank' ? 'Ngân hàng' : 'Tiền mặt' }} · {{ $account->code }} — {{ $account->name }}</option>
+                                <option value="{{ $account->id }}">{{ $account->kind === 'bank' ? '🏦 Ngân hàng' : 'Tiền mặt' }} · {{ $account->code }} — {{ $account->name }}</option>
                             @endforeach
                         </select>
+                        @error('accountId') <span class="mt-1 block text-xs text-rose-600">{{ $message }}</span> @enderror
+                        @if($selectedAccount)
+                            <span class="mt-2 block rounded-lg bg-slate-50 p-3 text-xs text-slate-600">{{ $selectedAccount->kind === 'bank' ? 'Ngân hàng: '.($selectedAccount->bank_name ?: 'Chưa cập nhật') : 'Quỹ tiền mặt: '.($selectedAccount->cash_custodian ?: 'Chưa cập nhật') }}</span>
+                        @endif
                     </label>
-                    @if($selectedAccount)
-                        <div class="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
-                            {{ $selectedAccount->kind === 'bank' ? 'Ngân hàng: '.($selectedAccount->bank_name ?: 'Chưa cập nhật') : 'Quỹ tiền mặt: '.($selectedAccount->cash_custodian ?: 'Chưa cập nhật thủ quỹ') }}
-                        </div>
-                    @endif
-                    <label class="block text-sm font-medium text-slate-700">Số tiền (VND)
-                        <input wire:model.live.debounce.300ms="amountDisplay" inputmode="numeric" required class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 p-2 text-right font-semibold tabular-nums" placeholder="0">
-                        <span class="mt-1 block text-xs text-slate-500">Tự định dạng dấu phân cách hàng nghìn; chỉ ghi sổ khi kiểm tra xong.</span>
+                    <label class="block text-sm font-medium text-slate-700">Số tiền {{ $manualDirection === 'receipt' ? 'thu' : 'chi' }} (VND) <span class="text-rose-600">*</span>
+                        <input wire:model.live.debounce.300ms="amountDisplay" inputmode="numeric" required placeholder="0" class="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100 text-right text-lg font-bold tabular-nums">
+                        @error('amount') <span class="mt-1 block text-xs text-rose-600">{{ $message }}</span> @enderror
+                        @error('amountDisplay') <span class="mt-1 block text-xs text-rose-600">{{ $message }}</span> @enderror
+                        <span class="mt-1 block text-xs text-slate-500">Đơn vị: đồng · Tự động phân cách hàng nghìn</span>
                     </label>
-                    <div class="rounded-xl bg-amber-50 p-3 text-xs text-amber-900">Tạm ứng và đặt cọc hiện chỉ được ghi nhận dòng tiền, chưa theo dõi tất toán.</div>
-                    <button type="submit" wire:loading.attr="disabled" class="min-h-11 w-full rounded-xl bg-indigo-600 px-4 font-semibold text-white disabled:opacity-50">{{ $editingManualVoucherId ? 'Lưu thay đổi nháp' : 'Tạo phiếu nháp thủ công' }}</button>
                 </div>
-            </form>
+                <p class="rounded-xl border border-amber-100 bg-amber-50 p-3 text-xs text-amber-900">Phiếu đặt cọc / tạm ứng ghi nhận dòng tiền, chưa tự động theo dõi tất toán hoặc cấn trừ.</p>
+            </fieldset>
+            <footer class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-5">
+                <p class="text-xs text-slate-500">Lưu nháp không phát sinh bút toán. Ghi sổ thực hiện tại Sổ giao dịch.</p>
+                <button type="submit" wire:loading.attr="disabled" wire:target="createManualDraft,saveManualDraft" class="min-h-11 w-full rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50 sm:w-auto">{{ $editingManualVoucherId ? 'Lưu thay đổi phiếu nháp' : 'Lưu phiếu nháp' }}</button>
+            </footer>
+        </form>
         @endcan
     </section>
     @endif
