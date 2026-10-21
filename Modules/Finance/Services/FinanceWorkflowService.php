@@ -178,6 +178,91 @@ final class FinanceWorkflowService
         }, 3);
     }
 
+    /**
+     * Manual cash movements have no source allocation. They are not automatic
+     * settlements of advances, deposits or Pharma documents.
+     */
+    public function createManualDraft(
+        string $direction,
+        string $category,
+        string $counterparty,
+        string $description,
+        int $accountId,
+        string $amount,
+        string $number,
+        string $voucherDate,
+        ?int $actorId = null,
+        ?string $referenceNumber = null,
+    ): int {
+        return DB::transaction(function () use ($direction, $category, $counterparty, $description, $accountId, $amount, $number, $voucherDate, $actorId, $referenceNumber): int {
+            $this->validateManualFields($direction, $category, $counterparty, $description, $amount, $number, $voucherDate, $referenceNumber);
+            $account = DB::table('finance_accounts')->where('id', $accountId)->lockForUpdate()->first();
+            if (! $account || ! $account->is_active || $account->currency !== 'VND') {
+                throw ValidationException::withMessages(['account' => 'Active VND account is required.']);
+            }
+            return DB::table('finance_vouchers')->insertGetId([
+                'number' => trim($number), 'direction' => $direction, 'origin' => 'manual',
+                'manual_category' => trim($category), 'counterparty' => trim($counterparty),
+                'description' => trim($description), 'reference_number' => $referenceNumber === null ? null : trim($referenceNumber),
+                'status' => 'draft', 'account_id' => $accountId, 'currency' => 'VND',
+                'amount' => $amount, 'voucher_date' => $voucherDate, 'created_by' => $actorId,
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+        }, 3);
+    }
+
+    public function updateManualDraft(
+        int $voucherId,
+        int $accountId,
+        string $amount,
+        string $category,
+        string $counterparty,
+        string $description,
+        string $voucherDate,
+        ?string $referenceNumber = null,
+    ): void {
+        DB::transaction(function () use ($voucherId, $accountId, $amount, $category, $counterparty, $description, $voucherDate, $referenceNumber): void {
+            $voucher = DB::table('finance_vouchers')->where('id', $voucherId)->lockForUpdate()->first();
+            if (! $voucher || $voucher->status !== 'draft' || $voucher->origin !== 'manual') {
+                throw ValidationException::withMessages(['voucher' => 'Only manual draft vouchers can be edited here.']);
+            }
+            $this->validateManualFields($voucher->direction, $category, $counterparty, $description, $amount, $voucher->number, $voucherDate, $referenceNumber);
+            $account = DB::table('finance_accounts')->where('id', $accountId)->lockForUpdate()->first();
+            if (! $account || ! $account->is_active || $account->currency !== $voucher->currency) {
+                throw ValidationException::withMessages(['account' => 'Active matching account required.']);
+            }
+            if (DB::table('finance_allocations')->where('voucher_id', $voucherId)->exists()) {
+                throw ValidationException::withMessages(['voucher' => 'Manual vouchers cannot have source allocations.']);
+            }
+            DB::table('finance_vouchers')->where('id', $voucherId)->update([
+                'account_id' => $accountId, 'amount' => $amount,
+                'manual_category' => trim($category), 'counterparty' => trim($counterparty),
+                'description' => trim($description), 'voucher_date' => $voucherDate,
+                'reference_number' => $referenceNumber === null ? null : trim($referenceNumber),
+                'updated_at' => now(),
+            ]);
+        }, 3);
+    }
+
+    private function validateManualFields(
+        string $direction, string $category, string $counterparty, string $description,
+        string $amount, string $number, string $voucherDate, ?string $referenceNumber
+    ): void {
+        if (! in_array($direction, ['receipt', 'payment'], true)) {
+            throw ValidationException::withMessages(['direction' => 'Invalid manual voucher direction.']);
+        }
+        if (trim($category) === '' || mb_strlen(trim($category)) > 60
+            || trim($counterparty) === '' || mb_strlen(trim($counterparty)) > 255
+            || trim($description) === '' || mb_strlen(trim($description)) > 5000
+            || trim($number) === '' || strlen(trim($number)) > 50
+            || ($referenceNumber !== null && mb_strlen(trim($referenceNumber)) > 100)
+            || ! preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $voucherDate)
+            || ! checkdate((int) substr($voucherDate, 5, 2), (int) substr($voucherDate, 8, 2), (int) substr($voucherDate, 0, 4))
+            || $this->cents($amount) <= 0) {
+            throw ValidationException::withMessages(['voucher' => 'Invalid manual voucher details.']);
+        }
+    }
+
     private function reservedCents(int $sourceId, ?int $exceptVoucherId = null): int
     {
         return DB::table('finance_allocations as a')
@@ -201,7 +286,7 @@ final class FinanceWorkflowService
                 throw ValidationException::withMessages(['account' => 'Active matching account required.']);
             }
             $allocations = DB::table('finance_allocations')->where('voucher_id', $voucherId)->lockForUpdate()->get();
-            if ($allocations->count() !== 1) {
+            if ($voucher->origin === 'manual' || $allocations->count() !== 1) {
                 throw ValidationException::withMessages(['voucher' => 'Only single-source drafts can be edited.']);
             }
             $allocation = $allocations->first();
