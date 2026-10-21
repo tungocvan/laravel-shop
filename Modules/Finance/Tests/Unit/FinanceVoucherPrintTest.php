@@ -29,7 +29,12 @@ final class FinanceVoucherPrintTest extends TestCase
         $this->assertStringContainsString("abort_if(\$document === null, 404)", $controller);
         $this->assertStringNotContainsString('->update(', $controller);
         $this->assertStringNotContainsString('->insert(', $controller);
-        $this->assertStringContainsString('@page { size: A5 portrait;', $view);
+        $this->assertStringContainsString("@page { size: {{ \\$printSettings['paper'] }}", $view);
+        $this->assertStringContainsString('show_signatures', $view);
+        $this->assertStringContainsString('admin.finance.vouchers.pdf', $view);
+        $this->assertStringContainsString("->name('vouchers.pdf')", $routes);
+        $this->assertStringContainsString("->name('print.settings.update')", $routes);
+        $this->assertStringContainsString('permission:finance.account.manage,admin', $routes);
         $this->assertStringContainsString('BẢN NHÁP', $view);
         $this->assertStringContainsString('ĐÃ HOÀN TÁC', $view);
         $this->assertStringContainsString('window.print()', $view);
