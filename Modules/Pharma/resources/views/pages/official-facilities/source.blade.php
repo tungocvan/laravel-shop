@@ -209,6 +209,7 @@
                 <div class="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
                     <div class="flex items-center justify-between gap-3"><h2 class="text-lg font-semibold">Import MST và địa chỉ pháp lý</h2><button type="button" data-legal-import-close class="rounded-lg border px-3 py-2">Đóng</button></div>
                     <p class="mt-2 text-sm text-slate-600">File cần các cột: Mã CSKCB, Tên cơ sở khám chữa bệnh, Mã số thuế đã xác nhận, Địa chỉ pháp lý đã xác nhận. Chỉ nhập dữ liệu Excel chưa đối chiếu tại Pharma, không sửa BHXH/Partner.</p>
+                    <a href="{{ route('admin.pharma.official-facilities.source.legal-import.template') }}" class="mt-3 inline-flex items-center rounded-lg border border-sky-200 px-3 py-2 text-sm font-semibold text-sky-700 hover:bg-sky-50">Tải file Excel mẫu (.xlsx)</a>
                     <form data-legal-import-form class="mt-4 flex flex-wrap gap-3" enctype="multipart/form-data">
                         @csrf
                         <input type="file" name="file" required accept=".xlsx,.xls" class="min-w-0 flex-1 rounded-lg border p-2 text-sm">
