@@ -11,6 +11,7 @@ use Modules\Pharma\Http\Controllers\OfficialFacilityImportController;
 use Modules\Pharma\Http\Controllers\OfficialFacilityImportTemplateController;
 use Modules\Pharma\Http\Controllers\OfficialSourceSyncController;
 use Modules\Pharma\Http\Controllers\OfficialSourceLegalLookupController;
+use Modules\Pharma\Http\Controllers\OfficialSourceLegalImportController;
 use Modules\Pharma\Http\Controllers\PharmaController;
 use Modules\Pharma\Http\Controllers\PharmaDashboardController;
 use Modules\Pharma\Http\Controllers\PriceListController;
@@ -32,6 +33,11 @@ Route::prefix('admin/pharma')->name('admin.pharma.')->middleware(['web', 'auth:a
         Route::get('/official-facilities/bhxh/districts', [BhxhOfficialFacilityLookupController::class, 'districts'])->name('official-facilities.bhxh.districts');
         Route::get('/official-facilities/bhxh/cached', [BhxhOfficialFacilityLookupController::class, 'cached'])->name('official-facilities.bhxh.cached');
         Route::post('/official-facilities/bhxh/lookup', [BhxhOfficialFacilityLookupController::class, 'lookup'])->name('official-facilities.bhxh.lookup');
+    });
+
+    Route::middleware('can:import_pharma_official_facilities')->group(function () {
+        Route::post('/official-facilities/source/legal-import/preview', [OfficialSourceLegalImportController::class, 'preview'])->name('official-facilities.source.legal-import.preview');
+        Route::post('/official-facilities/source/legal-import/confirm', [OfficialSourceLegalImportController::class, 'confirm'])->name('official-facilities.source.legal-import.confirm');
     });
 
     Route::middleware('can:sync_pharma_official_facilities')->group(function () {
