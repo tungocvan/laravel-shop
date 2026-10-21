@@ -171,10 +171,21 @@ final class Workspace extends Component
         ];
     }
 
+    private function validateManualCategory(): void
+    {
+        $allowed = $this->manualDirection === 'receipt'
+            ? ['deposit', 'advance_refund', 'other_receipt']
+            : ['hospitality', 'advance', 'other_payment'];
+        if (! in_array($this->manualCategory, $allowed, true)) {
+            throw ValidationException::withMessages(['manualCategory' => 'Loại nghiệp vụ không phù hợp phiếu thu/chi.']);
+        }
+    }
+
     public function createManualDraft(): void
     {
         abort_unless(auth('admin')->user()?->can('finance.voucher.create'), 403);
         $this->validate($this->manualRules());
+        $this->validateManualCategory();
         if ($this->editingManualVoucherId !== null) {
             throw ValidationException::withMessages(['voucher' => 'Save or cancel the current edit first.']);
         }
@@ -193,6 +204,7 @@ final class Workspace extends Component
     {
         abort_unless(auth('admin')->user()?->can('finance.voucher.create'), 403);
         $this->validate($this->manualRules());
+        $this->validateManualCategory();
         if ($this->editingManualVoucherId === null) {
             throw ValidationException::withMessages(['voucher' => 'No manual draft selected.']);
         }
@@ -222,7 +234,7 @@ final class Workspace extends Component
         $this->manualCounterparty = (string) $voucher->counterparty;
         $this->manualDescription = (string) $voucher->description;
         $this->manualReference = (string) $voucher->reference_number;
-        $this->manualDate = (string) $voucher->voucher_date;
+        $this->manualDate = substr((string) $voucher->voucher_date, 0, 10);
         $this->accountId = (string) $voucher->account_id;
         $this->amount = (string) $voucher->amount;
         $this->amountDisplay = $this->formatVnd($this->amount);
