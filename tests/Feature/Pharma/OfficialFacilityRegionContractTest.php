@@ -65,9 +65,11 @@ class OfficialFacilityRegionContractTest extends TestCase
         $this->assertStringContainsString('border-slate-200 bg-white', $view);
         $this->assertStringContainsString("@section('admin_container', 'full')", $view);
         $this->assertStringContainsString('min-w-[1250px] w-full', $view);
-        $this->assertStringContainsString("route('admin.partners.lookup')", $view);
-        $this->assertStringContainsString('Tra cứu pháp lý', $view);
+        $this->assertStringContainsString("route('admin.pharma.official-facilities.source.legal-lookup.store', $facility)", $view);
+        $this->assertStringContainsString('Tra cứu & đối chiếu', $view);
         $this->assertStringContainsString('colspan="10"', $view);
+        $this->assertStringContainsString('data-legal-results', $view);
+        $this->assertStringContainsString('data-legal-status', $view);
         $this->assertStringContainsString('{{ $provinceRegions[$facility->province_name] ?? \'—\' }}', $view);
     }
     public function test_source_workbook_import_reads_only_export_data_sheet_and_skips_helper_sheets(): void
