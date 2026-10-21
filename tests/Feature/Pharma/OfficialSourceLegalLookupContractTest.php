@@ -15,7 +15,7 @@ class OfficialSourceLegalLookupContractTest extends TestCase
 
         $this->assertStringContainsString('LookupOfficialSourceLegalJob::dispatch(', $controller);
         $this->assertStringContainsString('->afterCommit()', $controller);
-        $this->assertStringContainsString('DoanhNghiepLookupService $service', $job);
+        $this->assertStringContainsString('BusinessRegistryLookupGateway $service', $job);
         $this->assertStringContainsString('->search($lookup->query_name)', $job);
         $this->assertStringContainsString("'status' => 'reviewed'", $controller);
         $this->assertStringContainsString('selected_tax_code', $controller);
