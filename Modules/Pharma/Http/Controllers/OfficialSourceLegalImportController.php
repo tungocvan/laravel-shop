@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
+use Maatwebsite\Excel\Concerns\ToArray;
 use Modules\Pharma\Models\OfficialSourceFacility;
 use Modules\Pharma\Models\OfficialSourceLegalLookup;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -19,7 +20,9 @@ class OfficialSourceLegalImportController extends Controller
     public function preview(Request $request): JsonResponse
     {
         $request->validate(['file' => ['required', 'file', 'mimes:xlsx,xls', 'max:5120']]);
-        $sheets = Excel::toArray(new \stdClass, $request->file('file'));
+        $sheets = Excel::toArray(new class implements ToArray {
+            public function array(array $array): void {}
+        }, $request->file('file'));
         $rows = $sheets[0] ?? [];
         $headings = array_map(fn ($value) => trim((string) $value), array_shift($rows) ?? []);
         $required = ['Mã CSKCB', 'Tên cơ sở khám chữa bệnh', 'Mã số thuế đã xác nhận', 'Địa chỉ pháp lý đã xác nhận'];
