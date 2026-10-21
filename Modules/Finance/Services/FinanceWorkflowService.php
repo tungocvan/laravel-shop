@@ -286,7 +286,7 @@ final class FinanceWorkflowService
                 throw ValidationException::withMessages(['account' => 'Active matching account required.']);
             }
             $allocations = DB::table('finance_allocations')->where('voucher_id', $voucherId)->lockForUpdate()->get();
-            if ($voucher->origin === 'manual' || $allocations->count() !== 1) {
+            if (($voucher->origin ?? 'source') === 'manual' || $allocations->count() !== 1) {
                 throw ValidationException::withMessages(['voucher' => 'Only single-source drafts can be edited.']);
             }
             $allocation = $allocations->first();
