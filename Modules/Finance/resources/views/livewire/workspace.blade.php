@@ -375,6 +375,7 @@
                             <td class="px-4 py-3">
                                 <div class="flex flex-wrap justify-end gap-2">
                                     <a href="{{ route('admin.finance.vouchers.print', ['voucher' => $voucher->id]) }}" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-10 items-center rounded-lg border border-slate-300 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50" aria-label="In phiếu {{ $voucher->number }}">In A5</a>
+                                    <a href="{{ route('admin.finance.vouchers.pdf', ['voucher' => $voucher->id]) }}" class="inline-flex min-h-10 items-center rounded-lg border border-indigo-200 px-3 text-xs font-semibold text-indigo-700 hover:bg-indigo-50">PDF</a>
                                     @if($voucher->status === 'draft')
                                         @can('finance.voucher.create')
                                             <button type="button" wire:click="{{ $voucher->origin === 'manual' ? 'editManualDraft' : 'editDraft' }}({{ $voucher->id }})" class="min-h-10 rounded-lg border border-indigo-200 px-3 text-xs font-semibold text-indigo-700 hover:bg-indigo-50">Sửa</button>
