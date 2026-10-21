@@ -137,3 +137,11 @@ Still deferred:
 - source arbitration when multiple external sources disagree;
 - removal of tax-code uniqueness;
 - promotion of every source-only field into Partner master columns.
+
+
+## 2026-10-21 — Business registry gateway (pending tests)
+
+- `BusinessRegistryLookupGateway` routes name search to authenticated Doanhnghiep.vn, exact 10/13-digit tax code to VietQR. Both are cache-backed; no automatic fallback from a failed name lookup to tax-only API.
+- Doanhnghiep.vn API key comes from `config('services.doanhnghiep.api_key')` / `DOANHNGHIEP_API_KEY`; secrets must never be committed or printed. A missing/invalid key is a controlled failure. Documentation: https://doanhnghiep.vn/api/docs.
+- VietQR: https://api.vietqr.io/v2/business/{taxCode}, documented retirement 2027-03-01; temporary provider only, exact MST verification required. No bulk crawling or Partner master writes.
+- Focused tests: `tests/Feature/Partner/DoanhNghiepLookupServiceTest.php` and `tests/Feature/Partner/BusinessRegistryLookupGatewayTest.php`. Not yet run.
