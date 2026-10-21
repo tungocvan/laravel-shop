@@ -18,42 +18,42 @@
         </header>
 
         <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <form method="GET" action="{{ route('admin.pharma.official-facilities.source.index') }}" autocomplete="off" data-live-filter-form class="grid gap-3 lg:grid-cols-12">
+            <form method="GET" action="{{ route('admin.pharma.official-facilities.source.index') }}" autocomplete="off" data-live-filter-form class="grid gap-2 md:grid-cols-2 xl:grid-cols-[minmax(160px,2fr)_minmax(145px,1.5fr)_minmax(125px,1.2fr)_minmax(105px,.85fr)_minmax(155px,1.6fr)_minmax(165px,1.7fr)_minmax(120px,1fr)_minmax(95px,.75fr)_auto] xl:items-center">
                 <x-search
                     name="search"
                     value="{{ request('search') }}"
                     placeholder="Tìm mã, tên cơ sở..."
-                    class="lg:col-span-2"
+                    class="min-w-0 w-full"
                     data-live-search
                 />
 
-                <select name="facility_type" autocomplete="off" data-live-filter aria-label="Loại cơ sở theo tên" class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm lg:col-span-2">
+                <select name="facility_type" autocomplete="off" data-live-filter aria-label="Loại cơ sở theo tên" class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm min-w-0 w-full">
                     <option value="">Tất cả loại cơ sở</option>
                     @foreach ($facilityNameTypes as $typeKey => $typeLabel)
                         <option value="{{ $typeKey }}" @selected(request('facility_type') === $typeKey)>{{ $typeLabel }}</option>
                     @endforeach
                 </select>
 
-                <select name="business_region" autocomplete="off" data-live-filter class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm lg:col-span-2">
+                <select name="business_region" autocomplete="off" data-live-filter class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm min-w-0 w-full">
                     <option value="">Tất cả vùng miền</option>
                     @foreach ($businessRegions as $regionKey => $regionName)
                         <option value="{{ $regionKey }}" @selected(request('business_region') === $regionKey)>{{ $regionName }}</option>
                     @endforeach
                 </select>
 
-                <select name="source" autocomplete="off" data-live-filter class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm lg:col-span-1">
+                <select name="source" autocomplete="off" data-live-filter class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm min-w-0 w-full">
                     <option value="">Tất cả nguồn</option>
                     <option value="bhxh" @selected(request('source') === 'bhxh')>BHXH</option>
                 </select>
 
-                <select name="province" autocomplete="off" data-live-filter class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm lg:col-span-2">
+                <select name="province" autocomplete="off" data-live-filter class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm min-w-0 w-full">
                     <option value="">Tất cả tỉnh/thành</option>
                     @foreach ($provinceOptions as $provinceName)
                         <option value="{{ $provinceName }}" @selected(request('province') === $provinceName)>{{ $provinceName }}</option>
                     @endforeach
                 </select>
 
-                <select name="partition" autocomplete="off" data-live-filter class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm lg:col-span-2">
+                <select name="partition" autocomplete="off" data-live-filter class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm min-w-0 w-full">
                     <option value="">Tất cả vùng nguồn BHXH</option>
                     @foreach ($partitionOptions as $partition)
                         <option value="{{ $partition->source_province_code }}" @selected(request('partition') === $partition->source_province_code)>
@@ -62,20 +62,20 @@
                     @endforeach
                 </select>
 
-                <select name="status" autocomplete="off" data-live-filter class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm lg:col-span-1">
+                <select name="status" autocomplete="off" data-live-filter class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm min-w-0 w-full">
                     <option value="">Tất cả trạng thái</option>
                     <option value="active" @selected(request('status') === 'active')>Active</option>
                     <option value="stale" @selected(request('status') === 'stale')>Stale</option>
                 </select>
 
-                <select name="per_page" autocomplete="off" data-live-filter class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm lg:col-span-1">
+                <select name="per_page" autocomplete="off" data-live-filter class="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm min-w-0 w-full">
                     @foreach ([10, 25, 50, 100] as $size)
                         <option value="{{ $size }}" @selected((int) request('per_page', 25) === $size)>{{ $size }} / trang</option>
                     @endforeach
                 </select>
 
                 @if (request()->hasAny(['search', 'facility_type', 'business_region', 'source', 'province', 'partition', 'status', 'per_page']))
-                    <div class="flex min-h-11 items-center justify-end lg:col-span-1">
+                    <div class="flex min-h-11 items-center justify-end whitespace-nowrap">
                         <a href="{{ route('admin.pharma.official-facilities.source.index') }}" class="whitespace-nowrap text-sm font-semibold text-slate-500 hover:text-sky-700">Xóa bộ lọc</a>
                     </div>
                 @endif
