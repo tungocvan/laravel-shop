@@ -32,23 +32,31 @@ final class PharmaReceiptProvider implements FinancialDocumentProvider
         $receipt = DB::table('pharma_inventory_receipts')->where('id', $documentId)->lockForUpdate()->first();
 
         if (! $receipt || $receipt->status !== 'posted'
-            || empty($receipt->invoice_number) || empty($receipt->invoice_date)) {
-            throw ValidationException::withMessages(['source' => 'Receipt must be posted and have an invoice reference.']);
+            ) {
+            throw ValidationException::withMessages(['source' => 'Only posted Pharma receipts are eligible.']);
         }
 
         $items = DB::table('pharma_inventory_receipt_items')->where('receipt_id', $receipt->id)->lockForUpdate();
         if (! (clone $items)->exists()
             || (clone $items)->where(function ($query): void {
-                $query->whereNull('invoice_unit_price_ex_vat')
-                    ->orWhere('invoice_unit_price_ex_vat', '<=', 0)
+                $query->where(function ($prices): void {
+                        $prices->whereNotNull('invoice_unit_price_ex_vat')
+                            ->where('invoice_unit_price_ex_vat', '<=', 0);
+                    })
+                    ->orWhere(function ($prices): void {
+                        $prices->whereNull('invoice_unit_price_ex_vat')
+                            ->where(function ($fallback): void {
+                                $fallback->whereNull('unit_price_ex_vat')->orWhere('unit_price_ex_vat', '<=', 0);
+                            });
+                    })
                     ->orWhere('quantity', '<=', 0);
             })->exists()) {
-            throw ValidationException::withMessages(['source' => 'Receipt invoice prices and quantities must be complete.']);
+            throw ValidationException::withMessages(['source' => 'Receipt prices and quantities must be positive.']);
         }
 
         // Calculation stays in SQL DECIMAL; never convert monetary values to PHP floats.
         $total = (clone $items)->selectRaw(
-            'ROUND(SUM(quantity * invoice_unit_price_ex_vat * (1 + vat_rate / 100.0)), 2) AS total'
+            'ROUND(SUM(quantity * COALESCE(invoice_unit_price_ex_vat, unit_price_ex_vat) * (1 + vat_rate / 100.0)), 2) AS total'
         )->value('total');
 
         if ($total === null || ! preg_match('/^\d+(?:\.\d{1,2})?$/', (string) $total)) {
