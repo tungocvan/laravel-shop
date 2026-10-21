@@ -39,7 +39,7 @@ final class VoucherPostingService
             $allocations = DB::table('finance_allocations')
                 ->where('voucher_id', $voucherId)->orderBy('source_document_id')->lockForUpdate()->get();
 
-            if ($voucher->origin === 'manual') {
+            if (($voucher->origin ?? 'source') === 'manual') {
                 if ($allocations->isNotEmpty()) {
                     throw ValidationException::withMessages(['allocations' => 'Manual vouchers cannot settle source documents.']);
                 }
@@ -48,7 +48,7 @@ final class VoucherPostingService
                     || trim((string) $voucher->description) === '') {
                     throw ValidationException::withMessages(['voucher' => 'Manual voucher details are required.']);
                 }
-            } elseif ($voucher->origin !== 'source' || $allocations->isEmpty()) {
+            } elseif (($voucher->origin ?? 'source') !== 'source' || $allocations->isEmpty()) {
                 throw ValidationException::withMessages(['allocations' => 'Source vouchers require allocations.']);
             }
 
@@ -85,7 +85,7 @@ final class VoucherPostingService
                 $sum += $allocated;
             }
 
-            if ($voucher->origin === 'source' && $sum !== $amount) {
+            if (($voucher->origin ?? 'source') === 'source' && $sum !== $amount) {
                 throw ValidationException::withMessages(['amount' => 'Voucher total must equal allocations.']);
             }
 
