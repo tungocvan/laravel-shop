@@ -133,7 +133,7 @@
                                 <td class="px-4 py-3"><span class="rounded-full border px-2 py-1 text-xs font-semibold {{ $facility->is_active ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700' }}">{{ $facility->is_active ? 'ACTIVE' : 'STALE' }}</span></td>
                                 <td class="px-4 py-3 text-slate-600">{{ optional($facility->last_synced_at)->format('d/m/Y H:i') ?: '—' }}</td>
                                 <td class="px-4 py-3 font-mono text-slate-700" data-legal-tax="{{ $facility->id }}">{{ $confirmedLegal['tax_code'] ?? '—' }}</td>
-                                <td class="max-w-xs px-4 py-3 text-slate-600" data-legal-address="{{ $facility->id }}">{{ $confirmedLegal['address'] ?: '—' }}</td>
+                                <td class="max-w-xs px-4 py-3 text-slate-600" data-legal-address="{{ $facility->id }}">{{ ($confirmedLegal['address'] ?? null) ?: '—' }}</td>
                                 <td class="px-4 py-3">
                                     <div class="flex min-w-36 flex-col items-start gap-2" data-legal-row="{{ $facility->id }}">
                                         <span data-legal-status class="text-xs text-slate-500">{{ ['queued' => 'Chờ queue', 'running' => 'Đang tra cứu', 'ready' => 'Có ứng viên', 'empty' => 'Không tìm thấy', 'failed' => 'Lỗi tra cứu', 'reviewed' => 'Đã xác nhận'][$facility->legalLookup?->status ?? ''] ?? 'Chưa tra cứu' }}</span>
