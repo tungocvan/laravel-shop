@@ -50,10 +50,14 @@
                 <div class="grid gap-3 rounded-xl bg-slate-50 p-4 sm:grid-cols-3">
                     <div><p class="text-xs text-slate-500">Tổng giá trị</p><p class="font-bold">{{ number_format((float) $balance['total'], 0, ',', '.') }} ₫</p></div>
                     <div><p class="text-xs text-slate-500">Đã thu/chi</p><p class="font-bold">{{ number_format((float) $balance['paid'], 0, ',', '.') }} ₫</p></div>
-                    <div><p class="text-xs text-slate-500">Còn lại</p><p class="font-bold text-indigo-700">{{ number_format((float) $balance['remaining'], 0, ',', '.') }} ₫</p></div>
+                    <div><p class="text-xs text-slate-500">Công nợ còn lại</p><p class="font-bold text-indigo-700">{{ number_format((float) $balance['remaining'], 0, ',', '.') }} ₫</p></div>
                 </div>
-                @if($balance['remaining'] === '0.00')
-                    <p role="status" class="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">Chứng từ đã thanh toán đủ. Không thể lập thêm phiếu thu/chi.</p>
+                <div class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                    Phiếu nháp đang giữ: <strong>{{ number_format((float) $balance['reserved'], 0, ',', '.') }} ₫</strong>
+                    · Có thể lập thêm: <strong>{{ number_format((float) $balance['available'], 0, ',', '.') }} ₫</strong>
+                </div>
+                @if($balance['available'] === '0.00')
+                    <p role="status" class="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">Chứng từ đã thanh toán đủ hoặc số dư đã được giữ bởi phiếu nháp. Không thể lập thêm phiếu.</p>
                 @endif
             @endif
         </section>
@@ -90,7 +94,11 @@
                         <input wire:model.live.debounce.300ms="amountDisplay" inputmode="numeric" required aria-describedby="finance-amount-help" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 p-2 text-right font-semibold tabular-nums">
                         <span id="finance-amount-help" class="mt-1 block text-xs font-normal text-slate-500">Nhập số tiền VND, tự động phân cách hàng nghìn. Cho phép thanh toán một phần.</span>
                     </label>
-                    <button type="submit" wire:loading.attr="disabled" @disabled(!$balance || $balance['remaining'] === '0.00') class="min-h-11 w-full rounded-xl bg-indigo-600 px-4 py-2 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">Tạo phiếu nháp</button>
+                    @if($editingVoucherId)
+                        <p class="rounded-lg bg-indigo-50 p-2 text-sm font-semibold text-indigo-800">Đang sửa phiếu nháp #{{ $editingVoucherId }}</p>
+                        <button type="button" wire:click="saveDraft" class="min-h-11 w-full rounded-xl bg-indigo-600 px-4 py-2 font-semibold text-white">Lưu thay đổi phiếu nháp</button>
+                    @endif
+                    <button type="submit" @disabled($editingVoucherId !== null) wire:loading.attr="disabled" @disabled(!$balance || ($balance['available'] === '0.00' && !$editingVoucherId)) class="min-h-11 w-full rounded-xl bg-indigo-600 px-4 py-2 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">Tạo phiếu nháp</button>
                 </form>
             @endcan
             @can('finance.account.manage')
@@ -138,15 +146,24 @@
     @endif
     <section class="rounded-2xl border border-slate-200 bg-white p-4">
         <h2 class="mb-3 text-lg font-bold text-slate-900">{{ $workspaceTab === 'ledger' ? 'Sổ giao dịch gần đây' : '3. Phiếu thu/chi gần đây' }}</h2>
+        <label class="mb-3 flex min-h-11 items-center gap-2 text-sm text-slate-700">
+            <input type="checkbox" wire:model.live="showHistory" class="h-4 w-4 rounded border-slate-300"> Hiển thị cả phiếu đã hoàn tác / hủy nháp
+        </label>
         <div class="space-y-3">
             @forelse($vouchers as $voucher)
                 <div wire:key="voucher-{{ $voucher->id }}" class="flex flex-col gap-3 rounded-xl border border-slate-200 p-3 sm:flex-row sm:items-center sm:justify-between">
                     <div class="text-sm">
                         <p class="font-bold text-slate-900">{{ $voucher->number }}</p>
-                        <p class="text-slate-600">{{ $voucher->direction === 'receipt' ? 'Thu' : 'Chi' }} · {{ number_format((float) $voucher->amount, 0, ',', '.') }} ₫ · {{ $voucher->status === 'draft' ? 'Nháp' : ($voucher->status === 'posted' ? 'Đã ghi sổ' : 'Đã hoàn tác') }} · {{ \Illuminate\Support\Carbon::parse($voucher->voucher_date)->format('d/m/Y') }}</p>
+                        <p class="mt-1 text-sm text-indigo-700">Chứng từ nguồn: <strong>{{ $voucher->source_document_code ?: 'Chưa xác định' }}</strong></p>
+                        <p class="text-xs text-slate-500">{{ $voucher->counterparty ?: 'Chưa có đối tượng thanh toán' }}</p>
+                        <p class="text-slate-600">{{ $voucher->direction === 'receipt' ? 'Thu' : 'Chi' }} · {{ number_format((float) $voucher->amount, 0, ',', '.') }} ₫ · {{ $voucher->status === 'draft' ? 'Nháp' : ($voucher->status === 'posted' ? 'Đã ghi sổ' : ($voucher->status === 'cancelled' ? 'Đã hủy nháp' : 'Đã hoàn tác')) }} · {{ \Illuminate\Support\Carbon::parse($voucher->voucher_date)->format('d/m/Y') }}</p>
                     </div>
                     <div class="flex flex-wrap gap-2">
                         @if($voucher->status === 'draft')
+                            @can('finance.voucher.create')
+                                <button type="button" wire:click="editDraft({{ $voucher->id }})" class="min-h-11 rounded-lg border border-indigo-300 px-3 py-2 text-sm font-semibold text-indigo-700">Sửa nháp</button>
+                                <button type="button" wire:click="cancelDraft({{ $voucher->id }})" wire:confirm="Hủy phiếu nháp này? Hạn mức sẽ được giải phóng." class="min-h-11 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700">Hủy nháp</button>
+                            @endcan
                             @can('finance.voucher.post')
                                 <button type="button" wire:click="post({{ $voucher->id }})" wire:confirm="Xác nhận ghi sổ phiếu này?" class="min-h-11 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white">Ghi sổ</button>
                             @endcan
