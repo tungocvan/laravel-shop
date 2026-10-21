@@ -570,3 +570,15 @@ Do not reinterpret this checkpoint as an Admin Commission Center rewrite. Client
 - Pending: audit actual Partners business-lookup controller/services/API contracts before building cross-module enrichment; do not assume name-search support or automatically link legal entities.
 - Test status: NOT RUN (requires local checkpoint). UI acceptance: NOT VERIFIED. No PR/merge/deploy.
 - Focused test: `php artisan test --filter=OfficialSource` (confirm available test names and output). Then Pharma module regression only after focused PASS; Partners impacted regression if cross-module integration is implemented.
+
+
+## Checkpoint 2026-10-21 — Per-row queued legal lookup (pending local tests/UI)
+
+- Branch: `feat/pharma-source-wide-business-lookup-20261021`.
+- Source page now queues one facility-name lookup via `LookupOfficialSourceLegalJob` and displays status/candidates in an inline modal; no navigation to Partner lookup.
+- Reuses `Modules/Partner/Services/DoanhNghiepLookupService`; at most 10 candidate results; errors and empty results are persisted. Existing BHXH source records and canonical Partner records are never overwritten.
+- New `pharma_official_source_legal_lookups` table stores facility ID, query snapshot, candidate JSON, status, review selection, reviewer and timestamps. New migration is additive and has NOT been run.
+- Reviewer confirms a tax-code candidate in Pharma only. This is **not** canonical Partner synchronization; any future Partner link/upsert needs a separate approved flow.
+- New endpoints: GET status requires view permission; POST enqueue/review require `sync_pharma_official_facilities`. Queue worker must be running for asynchronous completion. Do not run a queue worker or migration on production without separate approval.
+- Focused tests: `tests/Feature/Pharma/OfficialFacilityRegionContractTest.php`, `tests/Feature/Pharma/OfficialSourceLegalLookupContractTest.php`, `tests/Feature/Partner/DoanhNghiepLookupServiceTest.php`.
+- Tests NOT RUN; UI NOT VERIFIED; module regression deferred until pre-merge gate; no PR, merge, or deploy.
