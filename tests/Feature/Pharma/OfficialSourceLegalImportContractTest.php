@@ -25,7 +25,7 @@ class OfficialSourceLegalImportContractTest extends TestCase
         $this->assertStringContainsString('hash_equals(', $controller);
         $this->assertStringContainsString('lockForUpdate()', $controller);
         $this->assertStringContainsString("'source', 'bhxh'", $controller);
-        $this->assertStringContainsString("'external_id', $code", $controller);
+        $this->assertStringContainsString("'external_id', \$code", $controller);
         $this->assertStringContainsString("['reviewed', 'queued', 'running']", $controller);
         $this->assertStringContainsString("'source' => 'excel_import'", $controller);
         $this->assertStringContainsString("session()->forget(self::SESSION_KEY)", $controller);
