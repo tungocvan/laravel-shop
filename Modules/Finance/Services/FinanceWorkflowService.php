@@ -77,7 +77,10 @@ final class FinanceWorkflowService
                 ->sum(fn ($row): int => $this->cents((string) $row->amount)) : 0;
 
             $total = $this->cents($snapshot->amount);
+            $reserved = $source ? $this->reservedCents((int) $source->id) : 0;
             return [
+                'reserved' => $this->decimal($reserved),
+                'available' => $this->decimal(max(0, $total - $paid - $reserved)),
                 'snapshot' => $snapshot,
                 'total' => $this->decimal($total),
                 'paid' => $this->decimal($paid),
@@ -155,7 +158,7 @@ final class FinanceWorkflowService
                 ->select('a.amount')->get()
                 ->sum(fn ($row): int => $this->cents((string) $row->amount));
 
-            if ($allocated > $total - $paid) {
+            if ($allocated > $total - $paid - $this->reservedCents((int) $sourceId)) {
                 throw ValidationException::withMessages(['amount' => 'Amount exceeds outstanding balance.']);
             }
 
@@ -172,6 +175,76 @@ final class FinanceWorkflowService
                 'amount' => $amount, 'created_at' => now(), 'updated_at' => now(),
             ]);
             return $voucherId;
+        }, 3);
+    }
+
+    private function reservedCents(int $sourceId, ?int $exceptVoucherId = null): int
+    {
+        return DB::table('finance_allocations as a')
+            ->join('finance_vouchers as v', 'v.id', '=', 'a.voucher_id')
+            ->where('a.source_document_id', $sourceId)
+            ->where('v.status', 'draft')
+            ->when($exceptVoucherId !== null, fn ($query) => $query->where('v.id', '!=', $exceptVoucherId))
+            ->select('a.amount')->get()
+            ->sum(fn ($row): int => $this->cents((string) $row->amount));
+    }
+
+    public function updateDraft(int $voucherId, int $accountId, string $amount): void
+    {
+        DB::transaction(function () use ($voucherId, $accountId, $amount): void {
+            $voucher = DB::table('finance_vouchers')->where('id', $voucherId)->lockForUpdate()->first();
+            if (! $voucher || $voucher->status !== 'draft') {
+                throw ValidationException::withMessages(['voucher' => 'Only draft vouchers can be edited.']);
+            }
+            $account = DB::table('finance_accounts')->where('id', $accountId)->lockForUpdate()->first();
+            if (! $account || ! $account->is_active || $account->currency !== $voucher->currency) {
+                throw ValidationException::withMessages(['account' => 'Active matching account required.']);
+            }
+            $allocations = DB::table('finance_allocations')->where('voucher_id', $voucherId)->lockForUpdate()->get();
+            if ($allocations->count() !== 1) {
+                throw ValidationException::withMessages(['voucher' => 'Only single-source drafts can be edited.']);
+            }
+            $allocation = $allocations->first();
+            $source = DB::table('finance_source_documents')->where('id', $allocation->source_document_id)->lockForUpdate()->first();
+            if (! $source) {
+                throw ValidationException::withMessages(['source' => 'Source unavailable.']);
+            }
+            $snapshot = $this->providers->resolve($source->source_module, $source->source_type)
+                ->resolveForPosting((string) $source->source_document_id);
+            if ($snapshot->documentCode !== $source->source_document_code
+                || $snapshot->direction !== $source->direction
+                || $snapshot->currency !== $source->currency
+                || $this->cents($snapshot->amount) !== $this->cents((string) $source->original_amount)) {
+                throw ValidationException::withMessages(['source' => 'Source document has changed.']);
+            }
+            $allocated = $this->cents($amount);
+            $paid = DB::table('finance_allocations as a')
+                ->join('finance_vouchers as v', 'v.id', '=', 'a.voucher_id')
+                ->where('a.source_document_id', $source->id)->where('v.status', 'posted')
+                ->select('a.amount')->get()
+                ->sum(fn ($row): int => $this->cents((string) $row->amount));
+            if ($allocated <= 0 || $allocated > $this->cents($snapshot->amount) - $paid - $this->reservedCents((int) $source->id, $voucherId)) {
+                throw ValidationException::withMessages(['amount' => 'Draft exceeds unreserved outstanding balance.']);
+            }
+            DB::table('finance_vouchers')->where('id', $voucherId)->update([
+                'account_id' => $accountId, 'amount' => $amount, 'updated_at' => now(),
+            ]);
+            DB::table('finance_allocations')->where('id', $allocation->id)->update([
+                'amount' => $amount, 'updated_at' => now(),
+            ]);
+        }, 3);
+    }
+
+    public function cancelDraft(int $voucherId): void
+    {
+        DB::transaction(function () use ($voucherId): void {
+            $voucher = DB::table('finance_vouchers')->where('id', $voucherId)->lockForUpdate()->first();
+            if (! $voucher || $voucher->status !== 'draft') {
+                throw ValidationException::withMessages(['voucher' => 'Only draft vouchers can be cancelled.']);
+            }
+            DB::table('finance_vouchers')->where('id', $voucherId)->update([
+                'status' => 'cancelled', 'updated_at' => now(),
+            ]);
         }, 3);
     }
 
