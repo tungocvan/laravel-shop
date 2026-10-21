@@ -616,3 +616,10 @@ Do not reinterpret this checkpoint as an Admin Commission Center rewrite. Client
 
 - Facility type filter now matches facility_name starting with the selected category phrase (`LIKE 'Bệnh viện%'`, etc.) instead of substring. Both index and unselected Excel export call shared `applyFilters`; explicit selected IDs still take precedence over filters.
 - Focused tests and Excel/UI verification pending; no database or queue changes, no merge/deploy.
+
+
+## 2026-10-21 — Legal identity Excel import (pending focused tests/UI)
+
+- New separate Pharma legal import routes preview/confirm with import permission; existing BHXH source Excel importer untouched. Preview parses header columns `Mã CSKCB`, `Tên cơ sở khám chữa bệnh`, `Mã số thuế đã xác nhận`, `Địa chỉ pháp lý đã xác nhận`, max 500 rows/5 MB; validates BHXH source/external ID, exact normalized name, tax code and address, duplicate IDs and previously reviewed/running records. Preview is session-bound with 30 minute expiry and explicit confirmation.
+- Confirm uses DB transaction, row locks, rechecks source/name/status, stores reviewed legal snapshot with `source=excel_import`; never writes BHXH mirror or Partner. No new migration or queue worker required. Original uploaded workbook is not imported automatically.
+- Focused test: `tests/Feature/Pharma/OfficialSourceLegalImportContractTest.php`; PHP lint and UI verification pending. No PR/merge/deploy.
