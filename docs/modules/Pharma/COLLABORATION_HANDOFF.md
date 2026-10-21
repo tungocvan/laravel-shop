@@ -643,3 +643,9 @@ Do not reinterpret this checkpoint as an Admin Commission Center rewrite. Client
 - User explicitly confirmed focused TEST PASS and UI PASS for legal import template. This does not imply module/impacted regression PASS.
 - Read-only audit: legal Excel import uses separate preview/confirm and stores `imported` (unverified) candidate; manual registry lookup uses Partner gateway. Existing reviewed entries protected against Excel overwrite. No PR/merge/deploy authorized.
 - Next gates: local tracked tree clean; PHP lint; focused Pharma/Partner tests; Pharma module regression and Partner impacted regression; `git diff --check`; UI regression only if UI code changes further; PR review. Do not assert PASS before operator output.
+
+
+## 2026-10-21 — PR #321 security review fix
+
+- Draft PR #321 reviewed; discovered that imported Excel candidates were retained in registry results and could be selected in review, improperly upgrading unverified Excel data. Backend review now explicitly rejects candidates whose source is `excel_import`; Excel import/display/export remain unchanged.
+- Focused contract guard added. This is a new code change after prior operator TEST/UI PASS, so rerun focused and impacted tests before merging. PR remains draft, no merge/deploy.
