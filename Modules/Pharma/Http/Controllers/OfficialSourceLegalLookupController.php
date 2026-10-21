@@ -24,9 +24,9 @@ class OfficialSourceLegalLookupController extends Controller
             $lookup->fill([
                 'status' => 'queued',
                 'query_name' => $facility->facility_name,
-                'candidates' => null,
+                'candidates' => $lookup->confirmedCandidate() ? [$lookup->confirmedCandidate()] : null,
                 'candidate_count' => 0,
-                'selected_tax_code' => null,
+                'selected_tax_code' => $lookup->confirmedCandidate()['tax_code'] ?? null,
                 'requested_by' => auth('admin')->id(),
                 'reviewed_by' => null,
                 'requested_at' => now(),
