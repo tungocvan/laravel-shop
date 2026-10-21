@@ -92,6 +92,7 @@
                     <div class="text-sm font-semibold text-slate-700">{{ number_format($facilities->total()) }} cơ sở</div>
                     <button type="submit" form="official-source-export-form" data-export-selected class="inline-flex min-h-10 items-center justify-center rounded-xl border border-sky-200 bg-white px-4 py-2 text-sm font-semibold text-sky-700 hover:bg-sky-50">Xuất Excel</button>
                     @can('import_pharma_official_facilities')
+                        <button type="button" data-legal-import-open class="rounded-xl border border-emerald-300 px-4 py-2 text-sm font-semibold text-emerald-700">Import thông tin pháp lý</button>
                         <button type="button" data-import-open class="inline-flex min-h-10 items-center justify-center rounded-xl border border-indigo-200 bg-white px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50">Import Excel</button>
                     @endcan
                 </div>
@@ -202,6 +203,23 @@
                 </nav>
             @endif
         </section>
+
+        @can('import_pharma_official_facilities')
+            <div data-legal-import-modal class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/40 p-4" role="dialog" aria-modal="true" aria-label="Import thông tin pháp lý">
+                <div class="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
+                    <div class="flex items-center justify-between gap-3"><h2 class="text-lg font-semibold">Import MST và địa chỉ pháp lý</h2><button type="button" data-legal-import-close class="rounded-lg border px-3 py-2">Đóng</button></div>
+                    <p class="mt-2 text-sm text-slate-600">File cần các cột: Mã CSKCB, Tên cơ sở khám chữa bệnh, Mã số thuế đã xác nhận, Địa chỉ pháp lý đã xác nhận. Chỉ lưu tại Pharma sau khi xác nhận, không sửa BHXH/Partner.</p>
+                    <form data-legal-import-form class="mt-4 flex flex-wrap gap-3" enctype="multipart/form-data">
+                        @csrf
+                        <input type="file" name="file" required accept=".xlsx,.xls" class="min-w-0 flex-1 rounded-lg border p-2 text-sm">
+                        <button type="submit" class="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white">Xem trước</button>
+                    </form>
+                    <p data-legal-import-message class="mt-3 text-sm text-slate-700" role="status"></p>
+                    <div class="mt-3 max-h-72 overflow-auto"><table class="w-full text-left text-xs"><thead><tr class="border-b"><th class="p-2">Dòng</th><th class="p-2">Mã CSKCB</th><th class="p-2">Tên cơ sở</th><th class="p-2">MST</th><th class="p-2">Kết quả</th></tr></thead><tbody data-legal-import-rows></tbody></table></div>
+                    <button type="button" data-legal-import-confirm disabled class="mt-4 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">Xác nhận import các dòng hợp lệ</button>
+                </div>
+            </div>
+        @endcan
 
         <div data-legal-modal class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/40 p-4" role="dialog" aria-modal="true" aria-label="Kết quả tra cứu pháp lý">
             <div class="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-5 shadow-xl">
@@ -386,6 +404,63 @@
                 legalModal.classList.remove('flex');
             });
             document.querySelectorAll('[data-legal-lookup]:disabled').forEach((button) => pollLegal(button));
+
+            const legalImportModal = document.querySelector('[data-legal-import-modal]');
+            const legalImportForm = document.querySelector('[data-legal-import-form]');
+            const legalImportMessage = document.querySelector('[data-legal-import-message]');
+            const legalImportRows = document.querySelector('[data-legal-import-rows]');
+            const legalImportConfirm = document.querySelector('[data-legal-import-confirm]');
+            let legalImportToken = null;
+            document.querySelector('[data-legal-import-open]')?.addEventListener('click', () => {
+                legalImportModal.classList.remove('hidden');
+                legalImportModal.classList.add('flex');
+            });
+            document.querySelector('[data-legal-import-close]')?.addEventListener('click', () => {
+                legalImportModal.classList.add('hidden');
+                legalImportModal.classList.remove('flex');
+            });
+            legalImportForm?.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                legalImportToken = null;
+                legalImportConfirm.disabled = true;
+                legalImportRows.replaceChildren();
+                legalImportMessage.textContent = 'Đang đối chiếu dữ liệu...';
+                try {
+                    const response = await fetch("{{ route('admin.pharma.official-facilities.source.legal-import.preview') }}", {
+                        method: 'POST', headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf }, body: new FormData(legalImportForm),
+                    });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.message || 'Không thể xem trước file.');
+                    legalImportToken = data.token;
+                    legalImportMessage.textContent = 'Tổng ' + data.total + ' · Hợp lệ ' + data.ready + ' · Bỏ qua ' + data.skipped + '.';
+                    (data.rows || []).forEach((row) => {
+                        const tr = document.createElement('tr');
+                        [row.row, row.code, row.name, row.tax_code, row.reason || 'Sẵn sàng'].forEach((value) => {
+                            const td = document.createElement('td');
+                            td.className = 'border-b p-2';
+                            td.textContent = value ?? '';
+                            tr.appendChild(td);
+                        });
+                        legalImportRows.appendChild(tr);
+                    });
+                    legalImportConfirm.disabled = data.ready === 0;
+                } catch (error) { legalImportMessage.textContent = error.message; }
+            });
+            legalImportConfirm?.addEventListener('click', async () => {
+                if (!legalImportToken || !window.confirm('Lưu các dòng hợp lệ tại Pharma? Không ghi vào Partner.')) return;
+                legalImportConfirm.disabled = true;
+                try {
+                    const response = await fetch("{{ route('admin.pharma.official-facilities.source.legal-import.confirm') }}", {
+                        method: 'POST', headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
+                        body: JSON.stringify({ token: legalImportToken }),
+                    });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.message || 'Không thể xác nhận import.');
+                    legalImportMessage.textContent = data.message + ' Đã lưu ' + data.updated + ' · Bỏ qua ' + data.skipped + '.';
+                    legalImportToken = null;
+                    window.setTimeout(() => window.location.reload(), 1600);
+                } catch (error) { legalImportMessage.textContent = error.message; legalImportConfirm.disabled = false; }
+            });
 
             const importModal = document.querySelector('[data-import-modal]');
             const importForm = document.querySelector('[data-import-form]');
