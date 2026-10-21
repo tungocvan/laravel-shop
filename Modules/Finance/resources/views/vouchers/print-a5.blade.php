@@ -22,12 +22,15 @@
         .line .value { flex: 1; min-width: 0; overflow-wrap: anywhere; border-bottom: 1px dotted #cbd5e1; font-weight: 600; }
         .amount { border: 1px solid #cbd5e1; padding: 9px; margin: 15px 0 8px; border-radius: 5px; }
         .amount strong { font-size: 16px; }
-        .signatures { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 26px; text-align: center; }
+        .signatures { display: table; table-layout: fixed; width: 100%; gap: 6px; margin-top: 26px; text-align: center; }
+        .signatures > div { display: table-cell; width: 33.33%; vertical-align: top; }
         .signatures strong { display: block; }
         .signatures small { display: block; color: #64748b; }
         .signature-space { height: 45px; }
         .stamp { position: absolute; top: 36%; left: 12%; right: 12%; text-align: center; transform: rotate(-25deg); font-size: 35px; font-weight: 800; letter-spacing: 2px; color: rgba(160, 55, 55, .15); pointer-events: none; }
         .footer { margin-top: 18px; font-size: 9px; color: #64748b; }
+        .pdf-export .paper { width: auto; min-height: 0; padding: 0; margin: 0; box-shadow: none; }
+        .pdf-export .line { display: block; }
         @media print {
             html, body { width: auto; background: white; margin: 0; }
             .toolbar { display: none !important; }
@@ -39,7 +42,7 @@
         }
     </style>
 </head>
-<body>
+<body class="{{ $pdfMode ? 'pdf-export' : 'screen-preview' }}">
     @unless($pdfMode)
     <nav class="toolbar" aria-label="Thao tác in">
         <a href="{{ route('admin.finance.index') }}">← Sổ chứng từ</a>
