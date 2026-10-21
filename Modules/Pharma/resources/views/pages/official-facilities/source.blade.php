@@ -1,9 +1,10 @@
 @extends('Admin::layouts.master')
 
 @section('title', 'Kho dữ liệu cơ sở KCB nguồn')
+@section('admin_container', 'full')
 
 @section('content')
-    <div class="space-y-6">
+    <div class="w-full min-w-0 space-y-6">
         <header class="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
                 <p class="text-xs font-semibold uppercase tracking-wide text-sky-600">Pharma / Official Source Mirror</p>
@@ -97,8 +98,8 @@
                 <input type="hidden" name="province" value="{{ request('province') }}">
                 <input type="hidden" name="partition" value="{{ request('partition') }}">
                 <input type="hidden" name="status" value="{{ request('status') }}">
-            <div class="overflow-x-auto rounded-xl border border-slate-200">
-                <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <div class="w-full overflow-x-auto rounded-xl border border-slate-200">
+                <table class="min-w-[1250px] w-full divide-y divide-slate-200 text-sm">
                     <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
                         <tr>
                             <th class="w-12 px-4 py-3"><input type="checkbox" data-select-page aria-label="Chọn tất cả cơ sở trên trang hiện tại" class="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"></th>
@@ -110,6 +111,7 @@
                             <th class="px-4 py-3">Vùng nguồn BHXH</th>
                             <th class="px-4 py-3">Trạng thái</th>
                             <th class="px-4 py-3">Lần đồng bộ cuối</th>
+                            <th class="px-4 py-3">Tra cứu doanh nghiệp</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 bg-white">
@@ -127,9 +129,10 @@
                                 </td>
                                 <td class="px-4 py-3"><span class="rounded-full border px-2 py-1 text-xs font-semibold {{ $facility->is_active ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700' }}">{{ $facility->is_active ? 'ACTIVE' : 'STALE' }}</span></td>
                                 <td class="px-4 py-3 text-slate-600">{{ optional($facility->last_synced_at)->format('d/m/Y H:i') ?: '—' }}</td>
+                                <td class="px-4 py-3"><a href="{{ route('admin.partners.lookup') }}" class="inline-flex min-h-9 items-center rounded-lg border border-indigo-200 bg-white px-3 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-50" title="Mở công cụ tra cứu doanh nghiệp trong Partners; chưa tự động xác minh liên kết">Tra cứu pháp lý ↗</a></td>
                             </tr>
                         @empty
-                            <tr><td colspan="9" class="px-4 py-10 text-center text-slate-500">Không có dữ liệu phù hợp bộ lọc hiện tại.</td></tr>
+                            <tr><td colspan="10" class="px-4 py-10 text-center text-slate-500">Không có dữ liệu phù hợp bộ lọc hiện tại.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
