@@ -74,14 +74,14 @@ class OfficialFacilityRegionContractTest extends TestCase
     }
     public function test_source_excel_includes_only_reviewed_legal_identity_columns(): void
     {
-        $export = new \Modules\Pharma\Exports\\OfficialSourceFacilitiesExport(
+        $export = new \Modules\Pharma\Exports\OfficialSourceFacilitiesExport(
             collect([
                 (object) [
                     'source' => 'bhxh', 'external_id' => '92088', 'facility_name' => 'Bệnh viện Hoàn Mỹ Cửu Long',
                     'province_name' => 'Thành phố Cần Thơ', 'source_province_code' => '92TTT',
                     'district_name' => null, 'source_district_code' => null,
                     'is_active' => true, 'last_synced_at' => null,
-                    'legalLookup' => new \Modules\Pharma\Models\\OfficialSourceLegalLookup([
+                    'legalLookup' => new \Modules\Pharma\Models\OfficialSourceLegalLookup([
                         'status' => 'reviewed',
                         'selected_tax_code' => '1800553823',
                         'candidates' => [['tax_code' => '1800553823', 'address' => 'Cần Thơ']],
@@ -92,7 +92,7 @@ class OfficialFacilityRegionContractTest extends TestCase
                     'province_name' => 'Thành phố Cần Thơ', 'source_province_code' => '92TTT',
                     'district_name' => null, 'source_district_code' => null,
                     'is_active' => true, 'last_synced_at' => null,
-                    'legalLookup' => new \Modules\Pharma\Models\\OfficialSourceLegalLookup([
+                    'legalLookup' => new \Modules\Pharma\Models\OfficialSourceLegalLookup([
                         'status' => 'ready',
                         'candidates' => [['tax_code' => '1800553823', 'address' => 'Cần Thơ']],
                     ]),
