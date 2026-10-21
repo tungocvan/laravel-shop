@@ -40,7 +40,7 @@ final class FinanceWorkspaceContractTest extends TestCase
         $this->assertStringContainsString("'document_code' => \$outstanding['snapshot']->documentCode", $component);
         $this->assertStringContainsString("['counterparty']", $view);
         $this->assertStringContainsString("number_format(", $view);
-        $this->assertStringContainsString("['remaining'] === '0.00'", $view);
+        $this->assertStringContainsString("['available'] === '0.00'", $view);
         $this->assertStringContainsString("workspaceTab", $view);
     }
 
