@@ -593,3 +593,9 @@ Do not reinterpret this checkpoint as an Admin Commission Center rewrite. Client
 
 - User UI confirmed Partner MSTCongTy name search returns candidates. Pharma gateway now reuses `MultiSourceBusinessLookupService::search(..., MstCongTyProvider::SOURCE)` for names; Doanhnghiep.vn remains an optional authenticated provider in Partner, not a mandatory name lookup dependency. VietQR remains MST-only. Provider failures are surfaced rather than cached as empty matches.
 - New focused tests are pending local execution; UI Pharma is not yet confirmed PASS.
+
+
+## 2026-10-21 — Reviewed legal identity Excel export
+
+- Source Excel now includes confirmed tax code and legal address via eager-loaded legalLookup and confirmedCandidate(). Unreviewed candidates are excluded from these columns. Source BHXH fields remain unchanged.
+- Focused test updated in OfficialFacilityRegionContractTest.php; local test and exported workbook UI verification pending. No migration or deployment.
