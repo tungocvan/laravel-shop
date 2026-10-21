@@ -11,6 +11,11 @@
         <button type="button" wire:click="$set('workspaceTab', 'ledger')" class="min-h-11 rounded-xl px-4 text-sm font-semibold {{ $workspaceTab === 'ledger' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700' }}">Sổ giao dịch</button>
     </nav>
     @if($workspaceTab === 'compose')
+    <div class="grid gap-2 sm:grid-cols-2" role="group" aria-label="Phương thức lập phiếu">
+        <button type="button" wire:click="$set('composeMode', 'source')" class="min-h-11 rounded-xl border px-4 text-left text-sm font-semibold {{ $composeMode === 'source' ? 'border-indigo-600 bg-indigo-50 text-indigo-800' : 'border-slate-200 bg-white text-slate-700' }}">Theo chứng từ Pharma</button>
+        <button type="button" wire:click="$set('composeMode', 'manual')" class="min-h-11 rounded-xl border px-4 text-left text-sm font-semibold {{ $composeMode === 'manual' ? 'border-indigo-600 bg-indigo-50 text-indigo-800' : 'border-slate-200 bg-white text-slate-700' }}">Thu / chi thủ công</button>
+    </div>
+    @if($composeMode === 'source')
     <div class="grid gap-5 xl:grid-cols-3">
         <section class="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 xl:col-span-2">
             <h2 class="text-lg font-bold text-slate-900">1. Chọn chứng từ đã ghi sổ</h2>
@@ -143,6 +148,70 @@
         </section>
     </div>
 
+    @else
+    <section class="rounded-2xl border border-slate-200 bg-white p-4">
+        <div class="mb-4">
+            <h2 class="text-lg font-bold text-slate-900">Lập phiếu thu / chi thủ công</h2>
+            <p class="mt-1 text-sm text-slate-500">Phiếu độc lập, không tự cấn trừ công nợ Pharma, tạm ứng hoặc đặt cọc.</p>
+        </div>
+        @can('finance.voucher.create')
+            <form wire:submit="{{ $editingManualVoucherId ? 'saveManualDraft' : 'createManualDraft' }}" class="grid gap-4 lg:grid-cols-2">
+                <div class="space-y-3">
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" wire:click="$set('manualDirection', 'receipt')" @disabled($editingManualVoucherId !== null) class="min-h-11 rounded-lg border px-3 font-semibold {{ $manualDirection === 'receipt' ? 'border-emerald-600 bg-emerald-50 text-emerald-800' : 'border-slate-200' }}">Phiếu thu</button>
+                        <button type="button" wire:click="$set('manualDirection', 'payment')" @disabled($editingManualVoucherId !== null) class="min-h-11 rounded-lg border px-3 font-semibold {{ $manualDirection === 'payment' ? 'border-rose-600 bg-rose-50 text-rose-800' : 'border-slate-200' }}">Phiếu chi</button>
+                    </div>
+                    <label class="block text-sm font-medium text-slate-700">Loại nghiệp vụ
+                        <select wire:model="manualCategory" required class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 p-2">
+                            @if($manualDirection === 'receipt')
+                                <option value="deposit">Thu đặt cọc</option>
+                                <option value="advance_refund">Thu hoàn ứng</option>
+                                <option value="other_receipt">Thu khác</option>
+                            @else
+                                <option value="hospitality">Chi tiếp khách</option>
+                                <option value="advance">Chi tạm ứng</option>
+                                <option value="other_payment">Chi khác</option>
+                            @endif
+                        </select>
+                    </label>
+                    <label class="block text-sm font-medium text-slate-700">{{ $manualDirection === 'receipt' ? 'Người / tổ chức nộp tiền' : 'Người / tổ chức nhận tiền' }}
+                        <input wire:model="manualCounterparty" maxlength="255" required class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 p-2" placeholder="Tên cá nhân hoặc tổ chức">
+                    </label>
+                    <label class="block text-sm font-medium text-slate-700">Lý do thu / chi
+                        <textarea wire:model="manualDescription" required rows="3" maxlength="5000" class="mt-1 w-full rounded-lg border border-slate-300 p-2" placeholder="Diễn giải nội dung giao dịch"></textarea>
+                    </label>
+                    <label class="block text-sm font-medium text-slate-700">Số tham chiếu (không bắt buộc)
+                        <input wire:model="manualReference" maxlength="100" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 p-2" placeholder="Mã hồ sơ / tham chiếu">
+                    </label>
+                </div>
+                <div class="space-y-3">
+                    <label class="block text-sm font-medium text-slate-700">Ngày chứng từ
+                        <input type="date" wire:model="manualDate" required class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 p-2">
+                    </label>
+                    <label class="block text-sm font-medium text-slate-700">Tài khoản thu / chi
+                        <select wire:model.live="accountId" required class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 p-2">
+                            <option value="">Chọn tài khoản</option>
+                            @foreach($accounts->where('is_active', true)->sortBy(fn ($account) => $account->kind === 'bank' ? 0 : 1) as $account)
+                                <option value="{{ $account->id }}">{{ $account->kind === 'bank' ? 'Ngân hàng' : 'Tiền mặt' }} · {{ $account->code }} — {{ $account->name }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                    @if($selectedAccount)
+                        <div class="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
+                            {{ $selectedAccount->kind === 'bank' ? 'Ngân hàng: '.($selectedAccount->bank_name ?: 'Chưa cập nhật') : 'Quỹ tiền mặt: '.($selectedAccount->cash_custodian ?: 'Chưa cập nhật thủ quỹ') }}
+                        </div>
+                    @endif
+                    <label class="block text-sm font-medium text-slate-700">Số tiền (VND)
+                        <input wire:model.live.debounce.300ms="amountDisplay" inputmode="numeric" required class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 p-2 text-right font-semibold tabular-nums" placeholder="0">
+                        <span class="mt-1 block text-xs text-slate-500">Tự định dạng dấu phân cách hàng nghìn; chỉ ghi sổ khi kiểm tra xong.</span>
+                    </label>
+                    <div class="rounded-xl bg-amber-50 p-3 text-xs text-amber-900">Tạm ứng và đặt cọc hiện chỉ được ghi nhận dòng tiền, chưa theo dõi tất toán.</div>
+                    <button type="submit" wire:loading.attr="disabled" class="min-h-11 w-full rounded-xl bg-indigo-600 px-4 font-semibold text-white disabled:opacity-50">{{ $editingManualVoucherId ? 'Lưu thay đổi nháp' : 'Tạo phiếu nháp thủ công' }}</button>
+                </div>
+            </form>
+        @endcan
+    </section>
+    @endif
     @endif
     <section class="rounded-2xl border border-slate-200 bg-white p-4">
         <h2 class="mb-3 text-lg font-bold text-slate-900">{{ $workspaceTab === 'ledger' ? 'Sổ giao dịch gần đây' : '3. Phiếu thu/chi gần đây' }}</h2>
@@ -154,14 +223,17 @@
                 <div wire:key="voucher-{{ $voucher->id }}" class="flex flex-col gap-3 rounded-xl border border-slate-200 p-3 sm:flex-row sm:items-center sm:justify-between">
                     <div class="text-sm">
                         <p class="font-bold text-slate-900">{{ $voucher->number }}</p>
-                        <p class="mt-1 text-sm text-indigo-700">Chứng từ nguồn: <strong>{{ $voucher->source_document_code ?: 'Chưa xác định' }}</strong></p>
-                        <p class="text-xs text-slate-500">{{ $voucher->counterparty ?: 'Chưa có đối tượng thanh toán' }}</p>
+                        <p class="mt-1 text-sm text-indigo-700">Chứng từ nguồn: <strong>{{ $voucher->origin === 'manual' ? 'Thu / chi thủ công' : ($voucher->source_document_code ?: 'Chưa xác định') }}</strong></p>
+                        <p class="text-xs text-slate-500">{{ $voucher->origin === 'manual' ? ($voucher->counterparty ?: 'Chưa có đối tượng') : ($voucher->source_counterparty ?: 'Chưa có đối tượng thanh toán') }}</p>
+                        @if($voucher->origin === 'manual')
+                            <p class="text-xs text-slate-500">{{ $voucher->manual_category }} · {{ $voucher->description }}</p>
+                        @endif
                         <p class="text-slate-600">{{ $voucher->direction === 'receipt' ? 'Thu' : 'Chi' }} · {{ number_format((float) $voucher->amount, 0, ',', '.') }} ₫ · {{ $voucher->status === 'draft' ? 'Nháp' : ($voucher->status === 'posted' ? 'Đã ghi sổ' : ($voucher->status === 'cancelled' ? 'Đã hủy nháp' : 'Đã hoàn tác')) }} · {{ \Illuminate\Support\Carbon::parse($voucher->voucher_date)->format('d/m/Y') }}</p>
                     </div>
                     <div class="flex flex-wrap gap-2">
                         @if($voucher->status === 'draft')
                             @can('finance.voucher.create')
-                                <button type="button" wire:click="editDraft({{ $voucher->id }})" class="min-h-11 rounded-lg border border-indigo-300 px-3 py-2 text-sm font-semibold text-indigo-700">Sửa nháp</button>
+                                <button type="button" wire:click="{{ $voucher->origin === 'manual' ? 'editManualDraft' : 'editDraft' }}({{ $voucher->id }})" class="min-h-11 rounded-lg border border-indigo-300 px-3 py-2 text-sm font-semibold text-indigo-700">Sửa nháp</button>
                                 <button type="button" wire:click="cancelDraft({{ $voucher->id }})" wire:confirm="Hủy phiếu nháp này? Hạn mức sẽ được giải phóng." class="min-h-11 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700">Hủy nháp</button>
                             @endcan
                             @can('finance.voucher.post')
