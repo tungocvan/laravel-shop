@@ -111,6 +111,17 @@ final class FinanceWorkspaceContractTest extends TestCase
         $this->assertStringContainsString("unique(['direction', 'code'])", $migration);
     }
 
+    public function test_manual_editor_shows_only_selected_voucher_direction(): void
+    {
+        $view = file_get_contents(dirname(__DIR__, 2).'/resources/views/livewire/workspace.blade.php');
+        $this->assertStringContainsString('Nghiệp vụ thu tiền', $view);
+        $this->assertStringContainsString('Nghiệp vụ chi tiền', $view);
+        $this->assertStringNotContainsString('role="group" aria-label="Loại phiếu"', $view);
+        $this->assertStringNotContainsString('</select>/select>', $view);
+        $this->assertStringContainsString("openManual('receipt')", $view);
+        $this->assertStringContainsString("openManual('payment')", $view);
+    }
+
     public function test_workspace_uses_existing_finance_services(): void
     {
         $component = file_get_contents(dirname(__DIR__, 2).'/Livewire/Workspace.php');
