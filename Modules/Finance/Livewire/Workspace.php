@@ -81,7 +81,9 @@ final class Workspace extends Component
             'accountId' => 'required|integer|min:1',
             'amount' => 'required|regex:/^\d{1,15}(?:\.\d{1,2})?$/',
         ]);
+        $enteredAmount = $this->amount;
         $this->loadBalance();
+        $this->amount = $enteredAmount;
         if (! $this->balance || $this->balance['remaining'] === '0.00') {
             throw ValidationException::withMessages(['amount' => 'Chứng từ đã thanh toán đủ.']);
         }
