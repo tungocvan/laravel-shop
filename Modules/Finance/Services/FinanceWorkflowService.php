@@ -26,6 +26,42 @@ final class FinanceWorkflowService
         ]);
     }
 
+    /**
+     * Store account metadata in Finance only; never place bank details in source modules.
+     * Existing callers may continue creating accounts without optional metadata.
+     */
+    public function createDetailedAccount(string $code, string $name, string $kind, array $details = []): int
+    {
+        $allowed = ['bank_name', 'bank_account_number', 'bank_account_holder', 'cash_custodian', 'cash_location'];
+        if (array_diff(array_keys($details), $allowed)) {
+            throw ValidationException::withMessages(['account' => 'Unknown account metadata.']);
+        }
+        $isBank = $kind === 'bank';
+        $required = $isBank ? ['bank_name', 'bank_account_number', 'bank_account_holder'] : ['cash_custodian', 'cash_location'];
+        if (! in_array($kind, ['bank', 'cash'], true)) {
+            throw ValidationException::withMessages(['account' => 'Unsupported account type.']);
+        }
+        $metadata = [];
+        foreach ($allowed as $field) {
+            $value = trim((string) ($details[$field] ?? ''));
+            if (mb_strlen($value) > 255) {
+                throw ValidationException::withMessages([$field => 'Account metadata is too long.']);
+            }
+            if (in_array($field, $required, true) && $value === '') {
+                throw ValidationException::withMessages([$field => 'This field is required.']);
+            }
+            $metadata[$field] = $value === '' ? null : $value;
+        }
+        foreach ($isBank ? ['cash_custodian', 'cash_location'] : ['bank_name', 'bank_account_number', 'bank_account_holder'] as $unused) {
+            $metadata[$unused] = null;
+        }
+        return DB::transaction(function () use ($code, $name, $kind, $metadata): int {
+            $id = $this->createAccount($code, $name, $kind);
+            DB::table('finance_accounts')->where('id', $id)->update($metadata);
+            return $id;
+        });
+    }
+
     public function outstanding(string $module, string $type, string $documentId): array
     {
         return DB::transaction(function () use ($module, $type, $documentId): array {
