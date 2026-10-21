@@ -11,6 +11,32 @@ use Modules\Finance\Services\VoucherPostingService;
 final class Workspace extends Component
 {
     public string $kind = 'inventory_receipt';
+    public string $composeMode = 'source';
+    public string $manualDirection = 'receipt';
+    public string $manualCategory = 'deposit';
+    public string $manualCounterparty = '';
+    public string $manualDescription = '';
+    public string $manualReference = '';
+    public string $manualDate = '';
+    public ?int $editingManualVoucherId = null;
+
+    public function mount(): void
+    {
+        $this->manualDate = now()->toDateString();
+    }
+
+    public function updatedComposeMode(): void
+    {
+        $this->editingVoucherId = null;
+        $this->editingManualVoucherId = null;
+        $this->amount = '';
+        $this->amountDisplay = '';
+    }
+
+    public function updatedManualDirection(): void
+    {
+        $this->manualCategory = $this->manualDirection === 'receipt' ? 'deposit' : 'hospitality';
+    }
     public string $search = '';
     public string $documentId = '';
     public string $accountId = '';
@@ -33,6 +59,7 @@ final class Workspace extends Component
     public function selectDocument(string $id): void
     {
         $this->editingVoucherId = null;
+        $this->editingManualVoucherId = null;
         $this->documentId = $id;
         $this->loadBalance();
     }
@@ -130,6 +157,77 @@ final class Workspace extends Component
         return number_format((int) $whole, 0, ',', '.');
     }
 
+    private function manualRules(): array
+    {
+        return [
+            'manualDirection' => 'required|in:receipt,payment',
+            'manualCategory' => 'required|in:deposit,advance,advance_refund,hospitality,other_receipt,other_payment',
+            'manualCounterparty' => 'required|string|max:255',
+            'manualDescription' => 'required|string|max:5000',
+            'manualReference' => 'nullable|string|max:100',
+            'manualDate' => 'required|date_format:Y-m-d',
+            'accountId' => 'required|integer|min:1',
+            'amount' => 'required|regex:/^\\d{1,15}(?:\\.\\d{1,2})?$/',
+        ];
+    }
+
+    public function createManualDraft(): void
+    {
+        abort_unless(auth('admin')->user()?->can('finance.voucher.create'), 403);
+        $this->validate($this->manualRules());
+        if ($this->editingManualVoucherId !== null) {
+            throw ValidationException::withMessages(['voucher' => 'Save or cancel the current edit first.']);
+        }
+        $number = 'FIN-M-'.now()->format('YmdHis').'-'.strtoupper(bin2hex(random_bytes(4)));
+        app(FinanceWorkflowService::class)->createManualDraft(
+            $this->manualDirection, $this->manualCategory, $this->manualCounterparty,
+            $this->manualDescription, (int) $this->accountId, $this->amount,
+            $number, $this->manualDate, auth('admin')->id(), $this->manualReference ?: null
+        );
+        $this->amount = '';
+        $this->amountDisplay = '';
+        session()->flash('finance_success', 'Đã tạo phiếu thủ công ở trạng thái nháp.');
+    }
+
+    public function saveManualDraft(): void
+    {
+        abort_unless(auth('admin')->user()?->can('finance.voucher.create'), 403);
+        $this->validate($this->manualRules());
+        if ($this->editingManualVoucherId === null) {
+            throw ValidationException::withMessages(['voucher' => 'No manual draft selected.']);
+        }
+        app(FinanceWorkflowService::class)->updateManualDraft(
+            $this->editingManualVoucherId, (int) $this->accountId, $this->amount,
+            $this->manualCategory, $this->manualCounterparty, $this->manualDescription,
+            $this->manualDate, $this->manualReference ?: null
+        );
+        $this->editingManualVoucherId = null;
+        session()->flash('finance_success', 'Đã lưu thay đổi phiếu thủ công.');
+    }
+
+    public function editManualDraft(int $voucherId): void
+    {
+        abort_unless(auth('admin')->user()?->can('finance.voucher.create'), 403);
+        $voucher = DB::table('finance_vouchers')
+            ->where('id', $voucherId)->where('origin', 'manual')->where('status', 'draft')->first();
+        if (! $voucher) {
+            throw ValidationException::withMessages(['voucher' => 'Manual draft not found.']);
+        }
+        $this->composeMode = 'manual';
+        $this->workspaceTab = 'compose';
+        $this->editingVoucherId = null;
+        $this->editingManualVoucherId = $voucherId;
+        $this->manualDirection = $voucher->direction;
+        $this->manualCategory = (string) $voucher->manual_category;
+        $this->manualCounterparty = (string) $voucher->counterparty;
+        $this->manualDescription = (string) $voucher->description;
+        $this->manualReference = (string) $voucher->reference_number;
+        $this->manualDate = (string) $voucher->voucher_date;
+        $this->accountId = (string) $voucher->account_id;
+        $this->amount = (string) $voucher->amount;
+        $this->amountDisplay = $this->formatVnd($this->amount);
+    }
+
     public function createDraft(): void
     {
         abort_unless(auth('admin')->user()?->can('finance.voucher.create'), 403);
@@ -165,6 +263,8 @@ final class Workspace extends Component
         if (! $voucher || ! $source || $source->source_module !== 'Pharma') {
             throw ValidationException::withMessages(['voucher' => 'Draft is not editable here.']);
         }
+        $this->composeMode = 'source';
+        $this->editingManualVoucherId = null;
         $this->kind = $source->source_type;
         $this->documentId = (string) $source->source_document_id;
         $this->accountId = (string) $voucher->account_id;
@@ -192,6 +292,9 @@ final class Workspace extends Component
     {
         abort_unless(auth('admin')->user()?->can('finance.voucher.create'), 403);
         app(FinanceWorkflowService::class)->cancelDraft($voucherId);
+        if ($this->editingManualVoucherId === $voucherId) {
+            $this->editingManualVoucherId = null;
+        }
         if ($this->editingVoucherId === $voucherId) {
             $this->editingVoucherId = null;
         }
@@ -230,7 +333,7 @@ final class Workspace extends Component
             ->leftJoin('finance_allocations as a', 'a.voucher_id', '=', 'v.id')
             ->leftJoin('finance_source_documents as s', 's.id', '=', 'a.source_document_id')
             ->when(! $this->showHistory, fn ($query) => $query->whereNotIn('v.status', ['reversed', 'cancelled']))
-            ->select('v.*', 's.source_document_code', 's.counterparty')
+            ->select('v.*', 's.source_document_code', 's.counterparty as source_counterparty')
             ->orderByDesc('v.id')->limit(30)->get();
         $selectedAccount = $accounts->firstWhere('id', (int) $this->accountId);
 
