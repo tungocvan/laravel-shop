@@ -560,3 +560,13 @@ Do not reinterpret this checkpoint as an Admin Commission Center rewrite. Client
 - Commission browser behavior moved from inline Blade JavaScript to the existing ClientPortal native interaction asset.
 - No `Modules/Pharma` production code, commission formula, ledger scope, export semantics, lifecycle, permission, route or schema changes are part of this batch.
 - Existing Pharma service/domain contracts remain canonical and must not be altered to complete this UI technical-debt closeout.
+
+
+## Checkpoint 2026-10-21 — Official Source full-width workspace / Partners lookup entry
+
+- Branch: `feat/pharma-source-wide-business-lookup-20261021` (base `e3d615851`).
+- `source.blade.php` opts into Admin shell's canonical `@section('admin_container', 'full')` rather than changing global sidebar width; source table has bounded horizontal scrolling for narrow viewports.
+- Added an explicit navigation action to the existing `admin.partners.lookup` route on each source row. **This is navigation only**: no tax-code/name autofill, API invocation, matching, legal verification, or persistence is claimed. BHXH source fields remain unchanged.
+- Pending: audit actual Partners business-lookup controller/services/API contracts before building cross-module enrichment; do not assume name-search support or automatically link legal entities.
+- Test status: NOT RUN (requires local checkpoint). UI acceptance: NOT VERIFIED. No PR/merge/deploy.
+- Focused test: `php artisan test --filter=OfficialSource` (confirm available test names and output). Then Pharma module regression only after focused PASS; Partners impacted regression if cross-module integration is implemented.
