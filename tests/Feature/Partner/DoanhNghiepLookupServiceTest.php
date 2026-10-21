@@ -80,7 +80,7 @@ class DoanhNghiepLookupServiceTest extends TestCase
         config()->set('services.doanhnghiep.api_key', null);
         Http::fake();
 
-        $this->expectException(\\RuntimeException::class);
+        $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Chưa cấu hình API key');
 
         try {
@@ -94,7 +94,7 @@ class DoanhNghiepLookupServiceTest extends TestCase
     {
         Http::fake(['https://doanhnghiep.vn/api/v1/search*' => Http::response([], 401)]);
 
-        $this->expectException(\\RuntimeException::class);
+        $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('API key doanhnghiep.vn không hợp lệ');
 
         app(DoanhNghiepLookupService::class)->search('Bệnh viện');
