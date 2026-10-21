@@ -21,6 +21,16 @@ final class FinanceWorkspaceContractTest extends TestCase
         }
     }
 
+    public function test_livewire_balance_contains_only_serializable_scalar_fields(): void
+    {
+        $component = file_get_contents(dirname(__DIR__, 2).'/Livewire/Workspace.php');
+
+        $this->assertStringContainsString("'total' => \$outstanding['total']", $component);
+        $this->assertStringContainsString("'paid' => \$outstanding['paid']", $component);
+        $this->assertStringContainsString("'remaining' => \$outstanding['remaining']", $component);
+        $this->assertStringNotContainsString("\$this->balance = app(FinanceWorkflowService::class)", $component);
+    }
+
     public function test_workspace_uses_existing_finance_services(): void
     {
         $component = file_get_contents(dirname(__DIR__, 2).'/Livewire/Workspace.php');
