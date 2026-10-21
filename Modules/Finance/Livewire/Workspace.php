@@ -26,6 +26,7 @@ final class Workspace extends Component
         $this->editingManualVoucherId = null;
         $this->editingVoucherId = null;
         $this->manualDirection = $direction;
+        $this->showCategoryForm = false;
         $this->manualCategory = $direction === 'receipt' ? 'deposit' : 'hospitality';
         $this->composeMode = 'manual';
         $this->workspaceTab = 'compose';
@@ -35,9 +36,12 @@ final class Workspace extends Component
 
     public function openSource(string $module): void
     {
+        abort_unless(auth('admin')->user()?->can('finance.view'), 403);
         if ($module !== 'Pharma') {
             abort(422);
         }
+        $this->editingManualVoucherId = null;
+        $this->editingVoucherId = null;
         $this->composeMode = 'source';
         $this->workspaceTab = 'compose';
     }
