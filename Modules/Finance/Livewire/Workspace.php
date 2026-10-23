@@ -13,6 +13,16 @@ use Modules\Finance\Services\VoucherPostingService;
 
 final class Workspace extends Component
 {
+    public string $treasuryAccountId = '';
+
+    public function viewAccountLedger(int $accountId): void
+    {
+        abort_unless(auth('admin')->user()?->can('finance.view'), 403);
+        abort_unless(DB::table('finance_accounts')->where('id', $accountId)->exists(), 404);
+        $this->treasuryAccountId = (string) $accountId;
+        $this->workspaceTab = 'treasury';
+    }
+
     public ?int $editingAccountId = null;
     public string $openingAmountDisplay = '0';
     public string $transferAmountDisplay = '';
@@ -560,7 +570,16 @@ final class Workspace extends Component
         abort_unless(auth('admin')->user()?->can('finance.view'), 403);
 
         $accounts = DB::table('finance_accounts')->orderBy('code')->get();
-        $treasuryBalances = app(FinanceTreasuryService::class)->balances();
+        $treasuryService = app(FinanceTreasuryService::class);
+        $treasuryBalances = $treasuryService->balances();
+        $treasuryTotals = collect($treasuryBalances)->groupBy('currency')->map(fn ($group) => [
+            'cash' => $group->where('kind', 'cash')->sum(fn ($account) => (float) $account->balance),
+            'bank' => $group->where('kind', 'bank')->sum(fn ($account) => (float) $account->balance),
+            'total' => $group->sum(fn ($account) => (float) $account->balance),
+        ])->all();
+        $treasuryAccountLedger = $this->workspaceTab === 'treasury' && $this->treasuryAccountId !== ''
+            ? $treasuryService->accountLedger((int) $this->treasuryAccountId)
+            : null;
         $internalTransfers = DB::table('finance_internal_transfers as t')
             ->join('finance_accounts as a', 'a.id', '=', 't.from_account_id')
             ->join('finance_accounts as b', 'b.id', '=', 't.to_account_id')
@@ -628,6 +647,6 @@ final class Workspace extends Component
                 ->orderByDesc('id')->limit(30)->get(['id', 'number']);
         }
 
-        return view('Finance::livewire.workspace', compact('accounts', 'vouchers', 'documents', 'selectedAccount', 'manualCategories', 'ledgerCategories', 'reportTotals', 'reportRows', 'reportFilters', 'treasuryBalances', 'internalTransfers'));
+        return view('Finance::livewire.workspace', compact('accounts', 'vouchers', 'documents', 'selectedAccount', 'manualCategories', 'ledgerCategories', 'reportTotals', 'reportRows', 'reportFilters', 'treasuryBalances', 'treasuryTotals', 'treasuryAccountLedger', 'internalTransfers'));
     }
 }
