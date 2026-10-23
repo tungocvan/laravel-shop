@@ -286,6 +286,48 @@
     @endif
     @endif
     @endif
+    @if($workspaceTab === 'ledger')
+    <section class="space-y-4" aria-label="Dashboard sổ chứng từ thu chi">
+        <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            @foreach(['Tổng thu' => $reportTotals['receipts'], 'Tổng chi' => $reportTotals['payments'], 'Thu trừ chi' => $reportTotals['net'], 'Số chứng từ' => $reportTotals['voucher_count']] as $label => $value)
+                <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <p class="text-xs font-medium text-slate-500">{{ $label }}</p>
+                    <p class="mt-2 text-lg font-semibold tabular-nums text-slate-900">{{ $label === 'Số chứng từ' ? number_format((int) $value, 0, ',', '.') : number_format((float) $value, 0, ',', '.').' ₫' }}</p>
+                </div>
+            @endforeach
+        </div>
+        <div class="flex flex-wrap items-center justify-between gap-2">
+            <p class="text-xs text-slate-500">Số liệu dòng tiền theo sổ cái, loại trừ nháp và bút toán đã đảo. Bộ lọc phía dưới áp dụng cho Dashboard và xuất theo bộ lọc.</p>
+            <div class="flex flex-wrap gap-2">
+                <a href="{{ route('admin.finance.reports.vouchers.excel') }}" class="inline-flex min-h-10 items-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700">Xuất tất cả Excel</a>
+                <a href="{{ route('admin.finance.reports.vouchers.excel', array_filter($reportFilters, fn ($value) => $value !== '')) }}" class="inline-flex min-h-10 items-center rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white">Xuất Excel theo bộ lọc</a>
+            </div>
+        </div>
+        <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <table class="w-full min-w-[850px] text-left text-sm">
+                <thead class="bg-slate-50 text-xs uppercase text-slate-600"><tr>
+                    <th class="px-3 py-3">Ngày / Số chứng từ</th><th class="px-3 py-3">Đối tượng / Diễn giải</th>
+                    <th class="px-3 py-3">Tài khoản</th><th class="px-3 py-3 text-right">Thu (VND)</th>
+                    <th class="px-3 py-3 text-right">Chi (VND)</th>
+                </tr></thead>
+                <tbody class="divide-y divide-slate-100">
+                    @forelse($reportRows as $row)
+                        <tr>
+                            <td class="px-3 py-3">{{ \Illuminate\Support\Carbon::parse($row->voucher_date)->format('d/m/Y') }}<p class="text-xs text-slate-500">{{ $row->number }}</p></td>
+                            <td class="px-3 py-3">{{ $row->counterparty }}<p class="text-xs text-slate-500">{{ $row->description ?: ($row->source_document_code ?: $row->category_name) }}</p></td>
+                            <td class="px-3 py-3">{{ $row->account_code }}</td>
+                            <td class="px-3 py-3 text-right tabular-nums text-emerald-700">{{ (float) $row->signed_amount > 0 ? number_format((float) $row->signed_amount, 0, ',', '.') : '—' }}</td>
+                            <td class="px-3 py-3 text-right tabular-nums text-rose-700">{{ (float) $row->signed_amount < 0 ? number_format(abs((float) $row->signed_amount), 0, ',', '.') : '—' }}</td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="5" class="px-4 py-8 text-center text-slate-500">Chưa có chứng từ đã ghi sổ.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+            <p class="border-t border-slate-100 px-4 py-3 text-xs text-slate-500">Hiển thị tối đa 100 dòng. Xuất Excel không giới hạn theo số dòng hiển thị.</p>
+        </div>
+    </section>
+    @endif
     <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <header class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-4 sm:px-6">
             <div>
