@@ -357,23 +357,31 @@
     </section>
     @endif
     @if($workspaceTab === 'ledger')
-    <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" aria-label="Sổ chứng từ kế toán">
+    <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" aria-label="Sổ chứng từ kế toán" x-data="{ selected: [], allIds: @js($reportRows->pluck('id')->map(fn ($id) => (int) $id)->all()) }">
         <header class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4 sm:px-5">
             <div><h2 class="text-base font-bold text-slate-900">Chi tiết sổ chứng từ</h2><p class="mt-1 text-xs text-slate-500">Các dòng thu / chi đã ghi sổ trong phạm vi lọc.</p></div>
             <div class="flex flex-wrap gap-2">
                 <a href="{{ route('admin.finance.reports.vouchers.excel') }}" class="inline-flex min-h-10 items-center rounded-lg border border-slate-300 px-3 text-xs font-semibold text-slate-700">Xuất tất cả Excel</a>
-                <a href="{{ route('admin.finance.reports.vouchers.excel', array_filter($reportFilters, fn ($value) => $value !== '')) }}" class="inline-flex min-h-10 items-center rounded-lg bg-indigo-600 px-3 text-xs font-semibold text-white">Xuất Excel theo bộ lọc</a>
+                @if(collect($reportFilters)->contains(fn ($value) => $value !== ''))
+                    <a href="{{ route('admin.finance.reports.vouchers.excel', array_filter($reportFilters, fn ($value) => $value !== '')) }}" class="inline-flex min-h-10 items-center rounded-lg bg-indigo-600 px-3 text-xs font-semibold text-white">Xuất Excel theo bộ lọc</a>
+                @endif
+                <form method="GET" action="{{ route('admin.finance.reports.vouchers.excel') }}" x-ref="selectionExport" class="inline-flex">
+                    <template x-for="id in selected" :key="id"><input type="hidden" name="ids[]" :value="id"></template>
+                    <button type="submit" x-show="selected.length > 0" x-cloak class="min-h-10 rounded-lg bg-emerald-600 px-3 text-xs font-semibold text-white">Xuất đã chọn (<span x-text="selected.length"></span>)</button>
+                </form>
             </div>
         </header>
         <div class="overflow-x-auto">
             <table class="w-full min-w-[900px] text-left text-sm">
                 <thead class="bg-slate-50 text-xs uppercase text-slate-600"><tr>
+                    <th class="px-3 py-3"><input type="checkbox" aria-label="Chọn tất cả chứng từ đang hiển thị" :checked="allIds.length > 0 && selected.length === allIds.length" @change="selected = $event.target.checked ? [...allIds] : []" class="rounded border-slate-300"></th>
                     <th class="px-3 py-3">Ngày / Số phiếu</th><th class="px-3 py-3">Đối tượng / Nội dung</th><th class="px-3 py-3">Tài khoản</th>
                     <th class="px-3 py-3 text-right">Thu (VND)</th><th class="px-3 py-3 text-right">Chi (VND)</th><th class="px-3 py-3">Trạng thái</th>
                 </tr></thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse($reportRows as $row)
                         <tr>
+                            <td class="px-3 py-3"><input type="checkbox" aria-label="Chọn chứng từ {{ $row->number }}" :checked="selected.includes({{ (int) $row->id }})" @change="$event.target.checked ? selected.push({{ (int) $row->id }}) : selected = selected.filter(id => id !== {{ (int) $row->id }})" class="rounded border-slate-300"></td>
                             <td class="px-3 py-3">{{ \Illuminate\Support\Carbon::parse($row->voucher_date)->format('d/m/Y') }}<p class="text-xs text-slate-500">{{ $row->number }}</p></td>
                             <td class="px-3 py-3">{{ $row->counterparty }}<p class="text-xs text-slate-500">{{ $row->description ?: ($row->source_document_code ?: $row->category_name) }}</p></td>
                             <td class="px-3 py-3">{{ $row->account_name }}</td>
@@ -382,18 +390,18 @@
                             <td class="px-3 py-3 text-xs text-slate-600">Đã ghi sổ</td>
                         </tr>
                     @empty
-                        <tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">Chưa có chứng từ đã ghi sổ.</td></tr>
+                        <tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">Chưa có chứng từ đã ghi sổ.</td></tr>
                     @endforelse
                 </tbody>
                 <tfoot class="border-t-2 border-slate-200 bg-slate-50 font-semibold text-slate-900">
-                    <tr><td colspan="3" class="px-3 py-3">Tổng cộng (theo bộ lọc)</td>
+                    <tr><td colspan="4" class="px-3 py-3">Tổng cộng (theo bộ lọc)</td>
                         <td class="px-3 py-3 text-right tabular-nums">{{ number_format((float) $reportTotals['receipts'], 0, ',', '.') }}</td>
                         <td class="px-3 py-3 text-right tabular-nums">{{ number_format((float) $reportTotals['payments'], 0, ',', '.') }}</td><td></td>
                     </tr>
                 </tfoot>
             </table>
         </div>
-        <p class="border-t border-slate-100 px-4 py-3 text-xs text-slate-500">Hiển thị tối đa 100 dòng. Tổng cộng tính trên toàn bộ kết quả lọc, không chỉ 100 dòng đang hiển thị. Excel xuất toàn bộ dữ liệu phù hợp.</p>
+        <p class="border-t border-slate-100 px-4 py-3 text-xs text-slate-500">Checkbox chọn tất cả áp dụng cho 100 dòng đang hiển thị; xuất theo bộ lọc áp dụng toàn bộ dữ liệu. Tổng cộng tính trên toàn bộ kết quả lọc, không chỉ 100 dòng đang hiển thị. Excel xuất toàn bộ dữ liệu phù hợp.</p>
     </section>
     <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
         <div><h2 class="text-sm font-semibold text-slate-900">Quản lý phiếu nháp và hoàn tác</h2><p class="text-xs text-slate-500">Các thao tác ghi sổ, sửa, hủy và hoàn tác vẫn được giữ riêng khỏi báo cáo.</p></div>
