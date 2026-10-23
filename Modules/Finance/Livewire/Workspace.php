@@ -371,12 +371,25 @@ final class Workspace extends Component
     public function permanentlyDeleteUnposted(int $voucherId): void
     {
         $user = auth('admin')->user();
-        abort_unless($user && $user->hasAnyRole(['admin', 'Admin', 'Super Admin', 'super-admin']), 403);
+        abort_unless($user && $user->hasAnyRole(['admin', 'Admin', 'Super Admin', 'super-admin']) && $user->can('finance.voucher.force-delete'), 403);
         app(FinanceWorkflowService::class)->permanentlyDeleteUnposted($voucherId);
         if ($this->documentId !== '') {
             $this->loadBalance();
         }
         session()->flash('finance_success', 'Đã xóa vĩnh viễn chứng từ chưa từng ghi sổ.');
+    }
+
+    public function permanentlyDeleteDemoVoucher(int $voucherId): void
+    {
+        $user = auth('admin')->user();
+        abort_unless($user && $user->hasAnyRole(['admin', 'Admin', 'Super Admin', 'super-admin'])
+            && $user->can('finance.voucher.force-delete'), 403);
+        abort_if(app()->environment('production'), 403);
+        app(FinanceWorkflowService::class)->permanentlyDeleteDemoVoucher($voucherId);
+        if ($this->documentId !== '') {
+            $this->loadBalance();
+        }
+        session()->flash('finance_success', 'Đã xóa vĩnh viễn chứng từ demo.');
     }
 
     public function post(int $voucherId): void
