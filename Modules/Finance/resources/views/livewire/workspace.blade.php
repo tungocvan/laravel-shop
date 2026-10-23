@@ -497,25 +497,35 @@
                                 </span>
                             </td>
                             <td class="px-4 py-3">
-                                <div class="flex flex-wrap justify-end gap-2">
-                                    <a href="{{ route('admin.finance.vouchers.print', ['voucher' => $voucher->id]) }}" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-10 items-center rounded-lg border border-slate-300 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50" aria-label="In phiếu {{ $voucher->number }}">In A5</a>
-                                    <a href="{{ route('admin.finance.vouchers.pdf', ['voucher' => $voucher->id]) }}" class="inline-flex min-h-10 items-center rounded-lg border border-indigo-200 px-3 text-xs font-semibold text-indigo-700 hover:bg-indigo-50">PDF</a>
-                                    @if($voucher->status === 'draft')
-                                        @can('finance.voucher.create')
-                                            <button type="button" wire:click="{{ $voucher->origin === 'manual' ? 'editManualDraft' : 'editDraft' }}({{ $voucher->id }})" class="min-h-10 rounded-lg border border-indigo-200 px-3 text-xs font-semibold text-indigo-700 hover:bg-indigo-50">Sửa</button>
-                                            <button type="button" wire:click="cancelDraft({{ $voucher->id }})" wire:confirm="Xóa mềm phiếu nháp này? Phiếu vẫn được lưu trong lịch sử kiểm toán." class="min-h-10 rounded-lg border border-slate-300 px-3 text-xs font-semibold text-slate-700">Xóa nháp</button>
-                                        @endcan
-                                        @can('finance.voucher.post')
-                                            <button type="button" wire:click="post({{ $voucher->id }})" wire:confirm="Xác nhận ghi sổ phiếu này?" class="min-h-10 rounded-lg bg-emerald-600 px-3 text-xs font-semibold text-white">Ghi sổ</button>
-                                        @endcan
-                                    @elseif($voucher->status === 'posted')
-                                        @can('finance.voucher.reverse')
-                                            @can('finance.voucher.create')
-                                            <button type="button" wire:click="reverseToDraft({{ $voucher->id }})" wire:confirm="Hoàn tác phiếu đã ghi sổ và tạo bản nháp mới để sửa? Phiếu gốc và bút toán đảo vẫn lưu trong lịch sử." class="min-h-10 rounded-lg border border-amber-300 px-3 text-xs font-semibold text-amber-800">Hoàn tác → Nháp</button>
+                                <div x-data="{ open: false }" class="relative flex justify-end" @keydown.escape.window="open = false">
+                                    <button type="button" @click="open = !open" :aria-expanded="open.toString()" aria-label="Thao tác chứng từ {{ $voucher->number }}" class="min-h-10 rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50">Thao tác ▾</button>
+                                    <div x-cloak x-show="open" @click.outside="open = false" x-transition class="absolute right-0 top-full z-30 mt-1 w-52 rounded-xl border border-slate-200 bg-white p-1.5 text-left shadow-xl">
+                                        @if($voucher->status === 'posted')
+                                            <a href="{{ route('admin.finance.vouchers.print', ['voucher' => $voucher->id]) }}" target="_blank" rel="noopener noreferrer" class="block rounded-lg px-3 py-2 text-xs hover:bg-slate-50">In A5</a>
+                                            <a href="{{ route('admin.finance.vouchers.pdf', ['voucher' => $voucher->id]) }}" class="block rounded-lg px-3 py-2 text-xs hover:bg-slate-50">Xuất PDF</a>
+                                            @can('finance.voucher.reverse')
+                                                <div class="my-1 border-t border-slate-100"></div>
+                                                @can('finance.voucher.create')
+                                                    <button type="button" wire:click="reverseToDraft({{ $voucher->id }})" wire:confirm="Hoàn tác và tạo bản nháp mới? Lịch sử kế toán vẫn được giữ." class="block w-full rounded-lg px-3 py-2 text-left text-xs text-amber-700 hover:bg-amber-50">Hoàn tác → Nháp</button>
+                                                @endcan
+                                                <button type="button" wire:click="reverse({{ $voucher->id }})" wire:confirm="Xác nhận hoàn tác phiếu đã ghi sổ?" class="block w-full rounded-lg px-3 py-2 text-left text-xs text-rose-700 hover:bg-rose-50">Hoàn tác</button>
                                             @endcan
-                                            <button type="button" wire:click="reverse({{ $voucher->id }})" wire:confirm="Xác nhận hoàn tác phiếu này?" class="min-h-10 rounded-lg border border-rose-300 px-3 text-xs font-semibold text-rose-700">Hoàn tác</button>
-                                        @endcan
-                                    @endif
+                                        @elseif($voucher->status === 'draft')
+                                            @can('finance.voucher.create')
+                                                <button type="button" wire:click="{{ $voucher->origin === 'manual' ? 'editManualDraft' : 'editDraft' }}({{ $voucher->id }})" class="block w-full rounded-lg px-3 py-2 text-left text-xs hover:bg-slate-50">Sửa chứng từ</button>
+                                                <button type="button" wire:click="cancelDraft({{ $voucher->id }})" wire:confirm="Hủy nháp và giữ lịch sử?" class="block w-full rounded-lg px-3 py-2 text-left text-xs hover:bg-slate-50">Xóa mềm nháp</button>
+                                            @endcan
+                                            @can('finance.voucher.post')
+                                                <button type="button" wire:click="post({{ $voucher->id }})" wire:confirm="Xác nhận ghi sổ?" class="block w-full rounded-lg px-3 py-2 text-left text-xs text-emerald-700 hover:bg-emerald-50">Ghi sổ</button>
+                                            @endcan
+                                        @else
+                                            <span class="block px-3 py-2 text-xs text-slate-500">Chứng từ chỉ đọc · Lịch sử lưu trữ</span>
+                                        @endif
+                                        @if(in_array($voucher->status, ['draft', 'cancelled'], true) && auth('admin')->user()?->hasAnyRole(['admin', 'Admin', 'Super Admin', 'super-admin']))
+                                            <div class="my-1 border-t border-slate-100"></div>
+                                            <button type="button" wire:click="permanentlyDeleteUnposted({{ $voucher->id }})" wire:confirm="XÓA VĨNH VIỄN chứng từ này và các phân bổ? Không thể khôi phục. Chỉ áp dụng phiếu chưa từng ghi sổ." class="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-rose-700 hover:bg-rose-50">Xóa vĩnh viễn (Admin)</button>
+                                        @endif
+                                    </div>
                                 </div>
                             </td>
                         </tr>
