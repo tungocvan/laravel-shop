@@ -12,7 +12,7 @@ final class FinanceReverseToDraftContractTest extends TestCase
         $this->assertStringContainsString('public function reverseToDraft(', $service);
         $this->assertStringContainsString('$this->reverse($voucherId, $actorId);', $service);
         $this->assertStringContainsString("'status' => 'draft'", $service);
-        $this->assertStringContainsString("'voucher_id' => $newId", $service);
+        $this->assertStringContainsString("'voucher_id' => \$newId", $service);
         $this->assertStringContainsString("DB::transaction(function () use (\$voucherId, \$actorId): int", $service);
     }
 
