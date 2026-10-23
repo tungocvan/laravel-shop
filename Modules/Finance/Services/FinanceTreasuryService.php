@@ -29,6 +29,62 @@ final class FinanceTreasuryService
             ->orderBy('a.kind')->orderBy('a.code')->get()->all();
     }
 
+    /**
+     * Chronological account ledger: posted voucher entries (including reversals)
+     * and internal transfers. A transfer is one movement per participating account.
+     */
+    public function accountLedger(int $accountId, int $limit = 200): array
+    {
+        $account = DB::table('finance_accounts')->where('id', $accountId)->first();
+        if (! $account) {
+            throw ValidationException::withMessages(['account' => 'Account not found.']);
+        }
+
+        $entries = DB::table('finance_ledger_entries as e')
+            ->join('finance_vouchers as v', 'v.id', '=', 'e.voucher_id')
+            ->where('e.account_id', $accountId)
+            ->selectRaw('e.id, v.voucher_date as movement_date, v.number as reference, v.description, e.signed_amount as amount, \'voucher\' as source')
+            ->get()->all();
+
+        $outgoing = DB::table('finance_internal_transfers as t')
+            ->join('finance_accounts as a', 'a.id', '=', 't.to_account_id')
+            ->where('t.from_account_id', $accountId)
+            ->selectRaw('t.id, t.transfer_date as movement_date, t.number as reference, CONCAT(t.description, \' → \', a.name) as description, -t.amount as amount, \'transfer_out\' as source')
+            ->get()->all();
+
+        $incoming = DB::table('finance_internal_transfers as t')
+            ->join('finance_accounts as a', 'a.id', '=', 't.from_account_id')
+            ->where('t.to_account_id', $accountId)
+            ->selectRaw('t.id, t.transfer_date as movement_date, t.number as reference, CONCAT(a.name, \' → \', t.description) as description, t.amount as amount, \'transfer_in\' as source')
+            ->get()->all();
+
+        $rows = collect(array_merge($entries, $outgoing, $incoming))
+            ->sort(fn ($a, $b) => strcmp((string) $a->movement_date, (string) $b->movement_date)
+                ?: strcmp((string) $a->source, (string) $b->source)
+                ?: ($a->id <=> $b->id))->values();
+
+        $runningCents = $this->signedCents((string) $account->opening_balance);
+        $detailed = $rows->map(function ($row) use (&$runningCents) {
+            $runningCents += $this->signedCents((string) $row->amount);
+            $row->running_balance = number_format($runningCents / 100, 2, '.', '');
+            return $row;
+        });
+        return [
+            'account' => $account,
+            'opening_balance' => (string) $account->opening_balance,
+            'closing_balance' => number_format($runningCents / 100, 2, '.', ''),
+            'total_movements' => $detailed->count(),
+            'rows' => $detailed->reverse()->take(max(1, min(500, $limit)))->values()->all(),
+        ];
+    }
+
+    private function signedCents(string $value): int
+    {
+        $negative = str_starts_with($value, '-');
+        $digits = ltrim($value, '-');
+        return ($negative ? -1 : 1) * $this->cents($digits);
+    }
+
     public function setOpeningBalance(int $accountId, string $amount): void
     {
         $value = $this->validateAmount($amount, true);
