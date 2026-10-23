@@ -8,10 +8,12 @@
 
     <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3 sm:p-4">
         <nav aria-label="Không gian Finance" class="flex flex-wrap gap-2">
+            <button type="button" wire:click="$set('workspaceTab', 'overview')" class="min-h-10 rounded-lg px-4 text-sm font-semibold {{ $workspaceTab === 'overview' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700' }}">Tổng quan</button>
             <button type="button" wire:click="$set('workspaceTab', 'compose')" class="min-h-10 rounded-lg px-4 text-sm font-semibold {{ $workspaceTab === 'compose' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700' }}">Lập phiếu</button>
             <button type="button" wire:click="$set('workspaceTab', 'ledger')" class="min-h-10 rounded-lg px-4 text-sm font-semibold {{ $workspaceTab === 'ledger' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700' }}">Sổ chứng từ</button>
         </nav>
         @can('finance.account.manage')
+            <span class="hidden text-xs font-semibold text-slate-500 lg:inline">Cấu hình</span>
             <a href="{{ route('admin.finance.print.settings') }}" class="inline-flex min-h-10 items-center rounded-lg border border-slate-300 px-4 text-sm font-semibold text-slate-700">⚙ Mẫu PDF</a>
             <button type="button" wire:click="$toggle('showAccounts')" class="min-h-10 rounded-lg border border-slate-300 px-4 text-sm font-semibold text-slate-700">⚙ Tài khoản thu/chi</button>
         @endcan
@@ -286,8 +288,47 @@
     @endif
     @endif
     @endif
-    @if($workspaceTab === 'ledger')
-    <section class="space-y-4" aria-label="Dashboard sổ chứng từ thu chi">
+    @if(in_array($workspaceTab, ['overview', 'ledger'], true))
+    <div class="space-y-4">
+        <div class="flex flex-wrap items-end justify-between gap-3">
+            <div><p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Finance / Báo cáo</p>
+                <h1 class="mt-1 text-xl font-bold text-slate-900">{{ $workspaceTab === 'overview' ? 'Tổng quan thu / chi' : 'Sổ chứng từ thu / chi' }}</h1>
+                <p class="mt-1 text-sm text-slate-500">Dòng tiền đã ghi sổ, không bao gồm phiếu nháp và chứng từ đã hoàn tác.</p>
+            </div>
+            @can('finance.voucher.create')
+                <button type="button" wire:click="$set('workspaceTab', 'compose')" class="min-h-10 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white">+ Lập phiếu</button>
+            @endcan
+        </div>
+        <section class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5" aria-label="Bộ lọc báo cáo">
+            <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <h2 class="text-sm font-bold text-slate-900">Bộ lọc báo cáo</h2>
+                <button type="button" wire:click="resetLedgerFilters" class="min-h-10 rounded-lg border border-slate-300 px-3 text-xs font-semibold text-slate-700">Xóa bộ lọc</button>
+            </div>
+            <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <label class="text-xs font-semibold text-slate-700">Từ ngày
+                    <input type="date" wire:model.live="ledgerDateFrom" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
+                </label>
+                <label class="text-xs font-semibold text-slate-700">Đến ngày
+                    <input type="date" wire:model.live="ledgerDateTo" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
+                </label>
+                <label class="text-xs font-semibold text-slate-700">Loại phiếu
+                    <select wire:model.live="ledgerDirection" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
+                        <option value="">Tất cả thu / chi</option><option value="receipt">Phiếu thu</option><option value="payment">Phiếu chi</option>
+                    </select>
+                </label>
+                <label class="text-xs font-semibold text-slate-700">Đối tượng
+                    <input wire:model.live.debounce.400ms="ledgerCounterparty" placeholder="Người nộp / nhận tiền" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
+                </label>
+                <label class="text-xs font-semibold text-slate-700">Nghiệp vụ
+                    <select wire:model.live="ledgerCategory" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
+                        <option value="">Tất cả nghiệp vụ</option>
+                        @foreach($ledgerCategories->filter(fn ($category) => $ledgerDirection === '' || $category->direction === $ledgerDirection) as $category)
+                            <option value="{{ $category->code }}">{{ $category->name }}</option>
+                        @endforeach
+                    </select>
+                </label>
+            </div>
+        </section>
         <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
             @foreach(['Tổng thu' => $reportTotals['receipts'], 'Tổng chi' => $reportTotals['payments'], 'Thu trừ chi' => $reportTotals['net'], 'Số chứng từ' => $reportTotals['voucher_count']] as $label => $value)
                 <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -296,38 +337,70 @@
                 </div>
             @endforeach
         </div>
-        <div class="flex flex-wrap items-center justify-between gap-2">
-            <p class="text-xs text-slate-500">Số liệu dòng tiền theo sổ cái, loại trừ nháp và bút toán đã đảo. Bộ lọc phía dưới áp dụng cho Dashboard và xuất theo bộ lọc.</p>
-            <div class="flex flex-wrap gap-2">
-                <a href="{{ route('admin.finance.reports.vouchers.excel') }}" class="inline-flex min-h-10 items-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700">Xuất tất cả Excel</a>
-                <a href="{{ route('admin.finance.reports.vouchers.excel', array_filter($reportFilters, fn ($value) => $value !== '')) }}" class="inline-flex min-h-10 items-center rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white">Xuất Excel theo bộ lọc</a>
-            </div>
+    </div>
+    @endif
+    @if($workspaceTab === 'overview')
+    <section class="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6" aria-label="Tổng quan Finance">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div><h2 class="text-base font-bold text-slate-900">Tình hình dòng tiền</h2><p class="mt-1 text-xs text-slate-500">Tổng thu và tổng chi trong phạm vi bộ lọc hiện tại.</p></div>
+            <button type="button" wire:click="$set('workspaceTab', 'ledger')" class="min-h-10 rounded-lg border border-indigo-200 px-4 text-sm font-semibold text-indigo-700">Xem sổ chứng từ →</button>
         </div>
-        <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-            <table class="w-full min-w-[850px] text-left text-sm">
+        @php($maxFlow = max(1, (float) $reportTotals['receipts'], (float) $reportTotals['payments']))
+        <div class="mt-6 space-y-5">
+            @foreach(['Thu' => ['amount' => $reportTotals['receipts'], 'color' => 'bg-emerald-500'], 'Chi' => ['amount' => $reportTotals['payments'], 'color' => 'bg-rose-500']] as $flowLabel => $flow)
+                <div><div class="mb-2 flex justify-between text-sm"><span class="font-semibold text-slate-700">{{ $flowLabel }}</span><span class="tabular-nums text-slate-700">{{ number_format((float) $flow['amount'], 0, ',', '.') }} ₫</span></div>
+                    <div class="h-3 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full {{ $flow['color'] }}" style="width: {{ round((float) $flow['amount'] / $maxFlow * 100, 2) }}%"></div></div>
+                </div>
+            @endforeach
+        </div>
+        <p class="mt-6 text-xs text-slate-500">Thu − Chi là dòng tiền thuần, không phải lợi nhuận. Chọn Sổ chứng từ để đối chiếu từng giao dịch và xuất Excel.</p>
+    </section>
+    @endif
+    @if($workspaceTab === 'ledger')
+    <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" aria-label="Sổ chứng từ kế toán">
+        <header class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4 sm:px-5">
+            <div><h2 class="text-base font-bold text-slate-900">Chi tiết sổ chứng từ</h2><p class="mt-1 text-xs text-slate-500">Các dòng thu / chi đã ghi sổ trong phạm vi lọc.</p></div>
+            <div class="flex flex-wrap gap-2">
+                <a href="{{ route('admin.finance.reports.vouchers.excel') }}" class="inline-flex min-h-10 items-center rounded-lg border border-slate-300 px-3 text-xs font-semibold text-slate-700">Xuất tất cả Excel</a>
+                <a href="{{ route('admin.finance.reports.vouchers.excel', array_filter($reportFilters, fn ($value) => $value !== '')) }}" class="inline-flex min-h-10 items-center rounded-lg bg-indigo-600 px-3 text-xs font-semibold text-white">Xuất Excel theo bộ lọc</a>
+            </div>
+        </header>
+        <div class="overflow-x-auto">
+            <table class="w-full min-w-[900px] text-left text-sm">
                 <thead class="bg-slate-50 text-xs uppercase text-slate-600"><tr>
-                    <th class="px-3 py-3">Ngày / Số chứng từ</th><th class="px-3 py-3">Đối tượng / Diễn giải</th>
-                    <th class="px-3 py-3">Tài khoản</th><th class="px-3 py-3 text-right">Thu (VND)</th>
-                    <th class="px-3 py-3 text-right">Chi (VND)</th>
+                    <th class="px-3 py-3">Ngày / Số phiếu</th><th class="px-3 py-3">Đối tượng / Nội dung</th><th class="px-3 py-3">Tài khoản</th>
+                    <th class="px-3 py-3 text-right">Thu (VND)</th><th class="px-3 py-3 text-right">Chi (VND)</th><th class="px-3 py-3">Trạng thái</th>
                 </tr></thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse($reportRows as $row)
                         <tr>
                             <td class="px-3 py-3">{{ \Illuminate\Support\Carbon::parse($row->voucher_date)->format('d/m/Y') }}<p class="text-xs text-slate-500">{{ $row->number }}</p></td>
                             <td class="px-3 py-3">{{ $row->counterparty }}<p class="text-xs text-slate-500">{{ $row->description ?: ($row->source_document_code ?: $row->category_name) }}</p></td>
-                            <td class="px-3 py-3">{{ $row->account_code }}</td>
+                            <td class="px-3 py-3">{{ $row->account_name }}</td>
                             <td class="px-3 py-3 text-right tabular-nums text-emerald-700">{{ (float) $row->signed_amount > 0 ? number_format((float) $row->signed_amount, 0, ',', '.') : '—' }}</td>
                             <td class="px-3 py-3 text-right tabular-nums text-rose-700">{{ (float) $row->signed_amount < 0 ? number_format(abs((float) $row->signed_amount), 0, ',', '.') : '—' }}</td>
+                            <td class="px-3 py-3 text-xs text-slate-600">Đã ghi sổ</td>
                         </tr>
                     @empty
-                        <tr><td colspan="5" class="px-4 py-8 text-center text-slate-500">Chưa có chứng từ đã ghi sổ.</td></tr>
+                        <tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">Chưa có chứng từ đã ghi sổ.</td></tr>
                     @endforelse
                 </tbody>
+                <tfoot class="border-t-2 border-slate-200 bg-slate-50 font-semibold text-slate-900">
+                    <tr><td colspan="3" class="px-3 py-3">Tổng cộng (theo bộ lọc)</td>
+                        <td class="px-3 py-3 text-right tabular-nums">{{ number_format((float) $reportTotals['receipts'], 0, ',', '.') }}</td>
+                        <td class="px-3 py-3 text-right tabular-nums">{{ number_format((float) $reportTotals['payments'], 0, ',', '.') }}</td><td></td>
+                    </tr>
+                </tfoot>
             </table>
-            <p class="border-t border-slate-100 px-4 py-3 text-xs text-slate-500">Hiển thị tối đa 100 dòng. Xuất Excel không giới hạn theo số dòng hiển thị.</p>
         </div>
+        <p class="border-t border-slate-100 px-4 py-3 text-xs text-slate-500">Hiển thị tối đa 100 dòng. Tổng cộng tính trên toàn bộ kết quả lọc, không chỉ 100 dòng đang hiển thị. Excel xuất toàn bộ dữ liệu phù hợp.</p>
     </section>
+    <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+        <div><h2 class="text-sm font-semibold text-slate-900">Quản lý phiếu nháp và hoàn tác</h2><p class="text-xs text-slate-500">Các thao tác ghi sổ, sửa, hủy và hoàn tác vẫn được giữ riêng khỏi báo cáo.</p></div>
+        <button type="button" wire:click="$toggle('showVoucherOperations')" class="min-h-10 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700">{{ $showVoucherOperations ? 'Thu gọn' : 'Mở quản lý phiếu' }}</button>
+    </div>
     @endif
+    @if($workspaceTab === 'compose' || ($workspaceTab === 'ledger' && $showVoucherOperations))
     <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <header class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-4 sm:px-6">
             <div>
@@ -443,4 +516,5 @@
         </div>
         <p class="border-t border-slate-100 px-4 py-3 text-xs text-slate-500">Hiển thị tối đa 30 chứng từ phù hợp gần nhất. Bộ lọc áp dụng trên toàn bộ dữ liệu trước khi giới hạn kết quả.</p>
     </section>
+    @endif
 </div>
