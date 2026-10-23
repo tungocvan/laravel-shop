@@ -547,10 +547,10 @@
                 </select>
             </label>
             <label class="block text-xs font-semibold text-slate-700">Từ ngày
-                <input type="date" wire:model.live="ledgerDateFrom" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
+                <input type="date" wire:model="ledgerDateFrom" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
             </label>
             <label class="block text-xs font-semibold text-slate-700">Đến ngày
-                <input type="date" wire:model.live="ledgerDateTo" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
+                <input type="date" wire:model="ledgerDateTo" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
             </label>
             <label class="block text-xs font-semibold text-slate-700">Đối tượng
                 <input wire:model.live.debounce.400ms="ledgerCounterparty" placeholder="Tìm người nộp / nhận tiền" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
@@ -574,7 +574,11 @@
                     @endif
                 </select>
             </label>
-            <div class="sm:col-span-2 lg:col-span-3">
+            <div class="sm:col-span-2 lg:col-span-3 flex flex-wrap items-center gap-2">
+                <button type="button" wire:click="applyReportDates" class="min-h-10 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white">Áp dụng ngày</button>
+                <span class="text-xs text-slate-500">Đang xem: {{ $appliedLedgerDateFrom }} → {{ $appliedLedgerDateTo }}</span>
+                @error('ledgerDateFrom') <span class="text-xs text-rose-700">{{ $message }}</span> @enderror
+                @error('ledgerDateTo') <span class="text-xs text-rose-700">{{ $message }}</span> @enderror
                 <button type="button" wire:click="resetLedgerFilters" class="min-h-10 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700">Xóa bộ lọc</button>
             </div>
         </div>
