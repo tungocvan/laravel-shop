@@ -503,7 +503,7 @@
                                     @if($voucher->status === 'draft')
                                         @can('finance.voucher.create')
                                             <button type="button" wire:click="{{ $voucher->origin === 'manual' ? 'editManualDraft' : 'editDraft' }}({{ $voucher->id }})" class="min-h-10 rounded-lg border border-indigo-200 px-3 text-xs font-semibold text-indigo-700 hover:bg-indigo-50">Sửa</button>
-                                            <button type="button" wire:click="cancelDraft({{ $voucher->id }})" wire:confirm="Hủy phiếu nháp này?" class="min-h-10 rounded-lg border border-slate-300 px-3 text-xs font-semibold text-slate-700">Hủy</button>
+                                            <button type="button" wire:click="cancelDraft({{ $voucher->id }})" wire:confirm="Xóa mềm phiếu nháp này? Phiếu vẫn được lưu trong lịch sử kiểm toán." class="min-h-10 rounded-lg border border-slate-300 px-3 text-xs font-semibold text-slate-700">Xóa nháp</button>
                                         @endcan
                                         @can('finance.voucher.post')
                                             <button type="button" wire:click="post({{ $voucher->id }})" wire:confirm="Xác nhận ghi sổ phiếu này?" class="min-h-10 rounded-lg bg-emerald-600 px-3 text-xs font-semibold text-white">Ghi sổ</button>
