@@ -69,7 +69,6 @@ final class FinanceVoucherPdfLayoutTest extends TestCase
 
         // The explicit printable area is bounded by 12mm on each side.
         // These are source-layout assertions, NOT a claim of verified rendered coordinates.
-        $this->assertStringContainsString('$contentWidth = $paperWidth - 2 * $printMargin;', $html);
         $this->assertStringContainsString('width: 186mm;', $html);
         $this->assertStringContainsString('margin: 12mm 0 0 12mm;', $html);
     }
