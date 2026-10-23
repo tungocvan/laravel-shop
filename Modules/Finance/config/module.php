@@ -13,6 +13,7 @@ return [
         'finance.voucher.create',
         'finance.voucher.post',
         'finance.voucher.reverse',
+        'finance.voucher.force-delete',
         'finance.report.view',
     ],
     'tables' => [
