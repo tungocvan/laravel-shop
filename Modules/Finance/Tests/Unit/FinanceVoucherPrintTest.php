@@ -64,7 +64,7 @@ final class FinanceVoucherPrintTest extends TestCase
         $this->assertStringContainsString('.amount { border: 0; padding: 0;', $view);
         $this->assertStringContainsString('Bằng chữ: {{ $amountInWords }}', $view);
         $this->assertStringNotContainsString('<strong>{{ $amountInWords }}</strong>', $view);
-        $this->assertStringContainsString('font-size: 14pt;', $view);
+        $this->assertStringContainsString("font-size: {{ \$printSettings['title_font_size'] }}pt;", $view);
         $this->assertStringContainsString('font-weight: 400;', $view);
     }
 }
