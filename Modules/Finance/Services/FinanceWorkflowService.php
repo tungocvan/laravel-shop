@@ -333,6 +333,25 @@ final class FinanceWorkflowService
         }, 3);
     }
 
+    /**
+     * Destructive cleanup is restricted to vouchers never posted to the ledger.
+     * Caller must separately enforce the privileged administrator role.
+     */
+    public function permanentlyDeleteUnposted(int $voucherId): void
+    {
+        DB::transaction(function () use ($voucherId): void {
+            $voucher = DB::table('finance_vouchers')->where('id', $voucherId)->lockForUpdate()->first();
+            if (! $voucher || ! in_array($voucher->status, ['draft', 'cancelled'], true)
+                || $voucher->posted_at !== null || $voucher->reversed_at !== null
+                || DB::table('finance_ledger_entries')->where('voucher_id', $voucherId)->exists()) {
+                throw ValidationException::withMessages(['voucher' => 'Only never-posted drafts may be permanently deleted.']);
+            }
+
+            DB::table('finance_allocations')->where('voucher_id', $voucherId)->delete();
+            DB::table('finance_vouchers')->where('id', $voucherId)->delete();
+        }, 3);
+    }
+
     private function cents(string $amount): int
     {
         if (! preg_match('/^\d{1,15}(?:\.\d{1,2})?$/', $amount)) {
