@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\Finance\Http\Controllers\FinanceWorkspaceController;
 use Modules\Finance\Http\Controllers\FinanceVoucherPrintController;
 use Modules\Finance\Http\Controllers\FinancePrintSettingsController;
+use Modules\Finance\Http\Controllers\FinanceReportExportController;
 
 Route::middleware(['web', 'auth:admin'])
     ->prefix('admin/finance')
@@ -12,6 +13,9 @@ Route::middleware(['web', 'auth:admin'])
         Route::get('/', FinanceWorkspaceController::class)
             ->middleware('permission:finance.view,admin')
             ->name('index');
+        Route::get('/reports/vouchers.xlsx', FinanceReportExportController::class)
+            ->middleware('permission:finance.view,admin')
+            ->name('reports.vouchers.excel');
         Route::get('/vouchers/{voucher}/print', FinanceVoucherPrintController::class)
             ->whereNumber('voucher')
             ->middleware('permission:finance.view,admin')
