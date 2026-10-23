@@ -40,6 +40,7 @@ final class FinanceReportService
                 $join->on('c.code', '=', 'v.manual_category')->on('c.direction', '=', 'v.direction');
             })
             ->whereIn('v.status', ['posted', 'reversed'])
+            ->where('ledger.net_amount', '<>', 0)
             ->when(! empty($filters['from']), fn ($q) => $q->whereDate('v.voucher_date', '>=', $filters['from']))
             ->when(! empty($filters['to']), fn ($q) => $q->whereDate('v.voucher_date', '<=', $filters['to']))
             ->when(! empty($filters['direction']), fn ($q) => $q->where('v.direction', $filters['direction']))
