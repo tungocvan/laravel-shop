@@ -5,7 +5,7 @@
 </head><body><main>
 <a class="link" href="{{ route('admin.finance.index') }}">← Quay lại Finance</a>
 <h1>Cấu hình mẫu phiếu thu / chi</h1>
-<p>Thiết lập áp dụng cho cả bản xem trước, bản in và PDF tải về. Mặc định A5 dọc.</p>
+<p>Thiết lập áp dụng cho cả bản xem trước, bản in và PDF tải về. Khổ giấy, nội dung và chữ ký áp dụng cho PDF được tạo sau khi lưu.</p>
 @if(session('finance_success'))<p class="ok" role="status">{{ session('finance_success') }}</p>@endif
 @if($errors->any())<div class="errors" role="alert">{{ implode(' · ', $errors->all()) }}</div>@endif
 <form method="post" action="{{ route('admin.finance.print.settings.update') }}">@csrf
@@ -18,9 +18,19 @@
 <label>Cỡ chữ (pt)<input type="number" min="9" max="14" name="font_size" required value="{{ old('font_size', $settings['font_size']) }}"></label>
 <label>Chữ ký người lập<input name="signature_creator" required maxlength="80" value="{{ old('signature_creator', $settings['signature_creator']) }}"></label>
 <label>Chữ ký người duyệt<input name="signature_approver" required maxlength="80" value="{{ old('signature_approver', $settings['signature_approver']) }}"></label>
+<label>Họ tên người lập<input name="creator_full_name" maxlength="120" value="{{ old('creator_full_name', $settings['creator_full_name']) }}"></label>
+<label>Họ tên người duyệt<input name="approver_full_name" maxlength="120" value="{{ old('approver_full_name', $settings['approver_full_name']) }}"></label>
+<label>Cỡ chữ tiêu đề (pt)<input type="number" min="12" max="18" name="title_font_size" required value="{{ old('title_font_size', $settings['title_font_size']) }}"></label>
+<label>Giãn dòng<input type="number" step="0.05" min="1.1" max="1.6" name="line_height" required value="{{ old('line_height', $settings['line_height']) }}"></label>
 </div>
 <p><label><input type="checkbox" name="show_reference" value="1" @checked(old('show_reference', $settings['show_reference']))>Hiện mã tham chiếu</label></p>
 <p><label><input type="checkbox" name="show_bank" value="1" @checked(old('show_bank', $settings['show_bank']))>Hiện thông tin ngân hàng</label></p>
 <p><label><input type="checkbox" name="show_signatures" value="1" @checked(old('show_signatures', $settings['show_signatures']))>Hiện khu vực chữ ký</label></p>
+<p><label><input type="checkbox" name="show_creator_name" value="1" @checked(old('show_creator_name', $settings['show_creator_name']))>Hiện họ tên người lập phiếu</label></p>
+<p><label><input type="checkbox" name="show_approver_name" value="1" @checked(old('show_approver_name', $settings['show_approver_name']))>Hiện họ tên người duyệt / thủ quỹ</label></p>
+<p><label><input type="checkbox" name="show_voucher_number" value="1" @checked(old('show_voucher_number', $settings['show_voucher_number']))>Hiện số chứng từ</label></p>
+<p><label><input type="checkbox" name="show_status" value="1" @checked(old('show_status', $settings['show_status']))>Hiện trạng thái</label></p>
+<p><label><input type="checkbox" name="show_category" value="1" @checked(old('show_category', $settings['show_category']))>Hiện nghiệp vụ thủ công</label></p>
+<p><label><input type="checkbox" name="show_amount_words" value="1" @checked(old('show_amount_words', $settings['show_amount_words']))>Hiện số tiền bằng chữ</label></p>
 <div class="actions"><button type="submit">Lưu cấu hình</button><a class="link" href="{{ route('admin.finance.index') }}">Hủy</a></div>
 </form></main></body></html>
