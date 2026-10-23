@@ -25,6 +25,10 @@ final class FinancePrintSettingsContractTest extends TestCase
         $this->assertStringContainsString('permission:finance.account.manage,admin', $routes);
         $this->assertStringContainsString('@csrf', $settingsView);
         $this->assertStringContainsString('name="paper"', $settingsView);
+        $this->assertStringContainsString('Hiển thị chi tiết ngân hàng bổ sung', $settingsView);
+        $this->assertStringContainsString('không ẩn dòng Tài khoản thu/chi chính', $settingsView);
+        $this->assertStringContainsString('Hiển thị loại nghiệp vụ trên phiếu thủ công', $settingsView);
+        $this->assertStringContainsString('Không áp dụng cho phiếu thu/chi tự động', $settingsView);
     }
     public function test_v2_print_controls_are_wired_from_form_to_pdf(): void
     {
