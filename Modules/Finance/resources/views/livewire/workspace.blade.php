@@ -513,7 +513,7 @@
                                         @elseif($voucher->status === 'draft')
                                             @can('finance.voucher.create')
                                                 <button type="button" wire:click="{{ $voucher->origin === 'manual' ? 'editManualDraft' : 'editDraft' }}({{ $voucher->id }})" class="block w-full rounded-lg px-3 py-2 text-left text-xs hover:bg-slate-50">Sửa chứng từ</button>
-                                                <button type="button" wire:click="cancelDraft({{ $voucher->id }})" wire:confirm="Hủy nháp và giữ lịch sử?" class="block w-full rounded-lg px-3 py-2 text-left text-xs hover:bg-slate-50">Xóa mềm nháp</button>
+                                                <button type="button" wire:click="cancelDraft({{ $voucher->id }})" wire:confirm="Hủy nháp và giữ lịch sử?" class="block w-full rounded-lg px-3 py-2 text-left text-xs hover:bg-slate-50">Xóa chứng từ</button>
                                             @endcan
                                             @can('finance.voucher.post')
                                                 <button type="button" wire:click="post({{ $voucher->id }})" wire:confirm="Xác nhận ghi sổ?" class="block w-full rounded-lg px-3 py-2 text-left text-xs text-emerald-700 hover:bg-emerald-50">Ghi sổ</button>
@@ -521,9 +521,12 @@
                                         @else
                                             <span class="block px-3 py-2 text-xs text-slate-500">Chứng từ chỉ đọc · Lịch sử lưu trữ</span>
                                         @endif
-                                        @if(in_array($voucher->status, ['draft', 'cancelled'], true) && auth('admin')->user()?->hasAnyRole(['admin', 'Admin', 'Super Admin', 'super-admin']))
+                                        @if(in_array($voucher->status, ['draft', 'cancelled', 'reversed'], true)
+                                            && auth('admin')->user()?->hasAnyRole(['admin', 'Admin', 'Super Admin', 'super-admin'])
+                                            && auth('admin')->user()?->can('finance.voucher.force-delete')
+                                            && ($voucher->status !== 'reversed' || ! app()->environment('production')))
                                             <div class="my-1 border-t border-slate-100"></div>
-                                            <button type="button" wire:click="permanentlyDeleteUnposted({{ $voucher->id }})" wire:confirm="XÓA VĨNH VIỄN chứng từ này và các phân bổ? Không thể khôi phục. Chỉ áp dụng phiếu chưa từng ghi sổ." class="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-rose-700 hover:bg-rose-50">Xóa vĩnh viễn (Admin)</button>
+                                            <button type="button" wire:click="{{ $voucher->status === 'reversed' ? 'permanentlyDeleteDemoVoucher' : 'permanentlyDeleteUnposted' }}({{ $voucher->id }})" wire:confirm="XÓA VĨNH VIỄN chứng từ? Không thể khôi phục. Chỉ sử dụng cho dữ liệu demo; chứng từ đã hoàn tác sẽ xóa cả cặp bút toán đảo." class="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-rose-700 hover:bg-rose-50">Xóa vĩnh viễn (Admin)</button>
                                         @endif
                                     </div>
                                 </div>
