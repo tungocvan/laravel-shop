@@ -75,7 +75,7 @@
     @endif
 
     @can('finance.account.manage')
-    @if($showAccounts)
+    @if($showAccounts && $workspaceTab === 'treasury')
         <section class="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
             <div class="flex items-center justify-between gap-3"><h2 class="font-bold text-slate-900">Tài khoản thu/chi</h2><button type="button" wire:click="$set('showAccounts', false)" class="min-h-10 rounded-lg px-3 text-sm text-slate-600">Đóng</button></div>
             <div class="grid gap-2 sm:grid-cols-2">
@@ -93,7 +93,7 @@
                 <div class="border-t border-slate-200 pt-4">
                     <button type="button" wire:click="openCreateAccount" class="min-h-11 w-full rounded-lg border border-indigo-200 px-3 text-left text-sm font-semibold text-indigo-700">+ Thêm tài khoản</button>
                     @if($showAccountForm)
-                        <form wire:submit="createAccount" class="mt-3 space-y-3 rounded-xl bg-slate-50 p-3">
+                        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" role="dialog" aria-modal="true" aria-label="Hồ sơ tài khoản"><div class="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white p-4 shadow-xl"><div class="mb-2 flex justify-end"><button type="button" wire:click="$set('showAccountForm', false)" aria-label="Đóng" class="rounded-lg border px-3 py-1.5">✕ Đóng</button></div><form wire:submit="createAccount" class="mt-3 space-y-3 rounded-xl bg-slate-50 p-3">
                             <p class="text-sm font-semibold text-slate-900">{{ $editingAccountId ? 'Sửa thông tin tài khoản' : 'Thêm tài khoản' }}</p>
                             <div class="grid grid-cols-2 gap-2">
                                 <button type="button" @if($editingAccountId !== null) disabled @endif wire:click="$set('accountKind', 'bank')" class="min-h-11 rounded-lg border px-2 text-sm font-semibold {{ $accountKind === 'bank' ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300 bg-white text-slate-700' }}">Ngân hàng</button>
@@ -124,7 +124,7 @@
                                 </label>
                             @endif
                             <button type="submit" wire:loading.attr="disabled" class="min-h-11 w-full rounded-xl bg-indigo-600 px-4 font-semibold text-white disabled:opacity-50">{{ $editingAccountId ? 'Cập nhật tài khoản' : 'Lưu tài khoản' }}</button>
-                        </form>
+                        </form></div></div>
                     @endif
                 </div>
             @endcan
