@@ -2,17 +2,24 @@
 <html lang="vi">
 <head>
     <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $voucher->direction === 'receipt' ? 'Phiếu thu' : 'Phiếu chi' }} — {{ $voucher->number }}</title>
     <style>
+        @php
+            $landscape = $printSettings['orientation'] === 'landscape';
+            $paperWidth = $printSettings['paper'] === 'A5' ? ($landscape ? 210 : 148) : ($landscape ? 297 : 210);
+            $paperHeight = $printSettings['paper'] === 'A5' ? ($landscape ? 148 : 210) : ($landscape ? 210 : 297);
+        @endphp
         @page { size: {{ $printSettings['paper'] }} {{ $printSettings['orientation'] }}; margin: {{ $printSettings['margin_mm'] }}mm; }
         * { box-sizing: border-box; }
-        html, body, div, span, strong, small, h1, p, main, table, td { font-family: 'DejaVu Sans', sans-serif !important; }
+        html, body, div, span, strong, small, h1, p, main, table, td { font-family: 'DejaVu Sans', 'DejaVuSans', sans-serif !important; }
+        strong, b, h1 { font-weight: 700; }
         html, body { margin: 0; padding: 0; }
         body { background: #eef1f5; color: #111827; font-size: {{ $printSettings['font_size'] }}pt; line-height: 1.35; }
-        .toolbar { display: flex; justify-content: space-between; align-items: center; max-width: {{ $printSettings['paper'] === 'A5' ? '148mm' : '210mm' }}; margin: 12px auto; gap: 12px; }
+        .toolbar { display: flex; justify-content: space-between; align-items: center; max-width: {{ $paperWidth }}mm; margin: 12px auto; gap: 12px; }
         .toolbar button, .toolbar a { border: 1px solid #cbd5e1; background: white; color: #111827; border-radius: 6px; padding: 9px 14px; font: inherit; text-decoration: none; cursor: pointer; }
-        .paper { position: relative; width: {{ $printSettings['paper'] === 'A5' ? '148mm' : '210mm' }}; min-height: {{ $printSettings['paper'] === 'A5' ? '210mm' : '297mm' }}; padding: {{ $printSettings['margin_mm'] }}mm; margin: auto; background: #fff; box-shadow: 0 4px 25px #0001; }
+        .paper { position: relative; width: {{ $paperWidth }}mm; min-height: {{ $paperHeight }}mm; padding: {{ $printSettings['margin_mm'] }}mm; margin: auto; background: #fff; box-shadow: 0 4px 25px #0001; }
         .head { display: table; width: 100%; table-layout: fixed; }
         .head > div { display: table-cell; width: 50%; vertical-align: top; }
         .head small { display: block; color: #475569; font-size: 8pt; }
@@ -46,7 +53,7 @@
         }
         @media screen and (max-width: 560px) {
             .toolbar { padding: 0 12px; }
-            .screen-preview .paper { width: 100%; min-height: 0; padding: 16px 12px; }
+            .screen-preview .paper { max-width: 100%; min-height: {{ $paperHeight }}mm; padding: {{ $printSettings['margin_mm'] }}mm; }
         }
     </style>
 </head>
