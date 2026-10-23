@@ -22,6 +22,6 @@ final class FinanceVoucherSelectionContractTest extends TestCase
         $this->assertStringContainsString('Chọn tất cả chứng từ đang hiển thị', $view);
         $this->assertStringContainsString('Xuất đã chọn', $view);
         $this->assertStringContainsString('Xuất Excel theo bộ lọc', $view);
-        $this->assertStringContainsString('Xóa nháp', $view);
+        $this->assertStringContainsString('Xóa mềm nháp', $view);
     }
 }
