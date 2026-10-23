@@ -24,14 +24,54 @@
             <div class="flex flex-wrap items-center justify-between gap-2"><h2 class="text-lg font-bold text-slate-900">Quỹ & Ngân hàng</h2><div class="flex flex-wrap gap-2">@can('finance.account.manage')<button type="button" @click="opening = true" class="rounded-lg border px-3 py-2 text-sm">Số dư đầu kỳ</button><button type="button" wire:click="openCreateAccount" class="rounded-lg border px-3 py-2 text-sm">+ Tài khoản</button>@endcan @can('finance.voucher.post')<button type="button" @click="transfer = true" class="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white">Chuyển tiền</button>@endcan</div></div>
             <p class="text-xs text-slate-500">Số dư = đầu kỳ + bút toán thu/chi đã ghi sổ + chuyển tiền nội bộ. Chuyển tiền nội bộ không tính vào doanh thu hoặc chi phí.</p>
             <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                @foreach($treasuryTotals as $currency => $total)
+                    <div class="rounded-xl border border-indigo-100 bg-indigo-50/50 p-3">
+                        <p class="text-xs font-semibold text-slate-600">Tổng tiền hiện có · {{ $currency }}</p>
+                        <p class="mt-1 text-xl font-bold tabular-nums {{ $total['total'] < 0 ? 'text-rose-700' : 'text-indigo-700' }}">{{ number_format($total['total'], 0, ',', '.') }} {{ $currency }}</p>
+                        <p class="mt-1 text-xs text-slate-500">Tiền mặt: {{ number_format($total['cash'], 0, ',', '.') }} · Ngân hàng: {{ number_format($total['bank'], 0, ',', '.') }}</p>
+                    </div>
+                @endforeach
+            </div>
+            <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 @foreach($treasuryBalances as $accountBalance)
                     <div class="rounded-xl border border-slate-200 p-3" wire:key="treasury-{{ $accountBalance->id }}">
                         <p class="text-xs font-semibold text-slate-500">{{ $accountBalance->kind === 'cash' ? 'Tiền mặt' : 'Ngân hàng' }} · {{ $accountBalance->code }}</p>
                         <p class="mt-1 text-sm font-semibold text-slate-900">{{ $accountBalance->name }}</p>
                         <p class="mt-2 text-xl font-bold tabular-nums {{ (float) $accountBalance->balance < 0 ? 'text-rose-700' : 'text-indigo-700' }}">{{ number_format((float) $accountBalance->balance, 0, ',', '.') }} {{ $accountBalance->currency }}</p>
+                        @if((float) $accountBalance->balance < 0)
+                            <p class="mt-1 text-xs font-semibold text-rose-700">Cảnh báo: số dư âm — kiểm tra số dư đầu kỳ và chứng từ.</p>
+                        @endif
+                        <button type="button" wire:click="viewAccountLedger({{ $accountBalance->id }})" class="mt-2 min-h-9 rounded-lg border border-indigo-200 px-3 text-xs font-semibold text-indigo-700">Xem sổ tài khoản →</button>
                     </div>
                 @endforeach
             </div>
+            @if($treasuryAccountLedger)
+                <section class="rounded-xl border border-slate-200 p-3 sm:p-4" aria-label="Sổ chi tiết tài khoản">
+                    <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+                        <div><h3 class="text-sm font-bold text-slate-900">Sổ chi tiết: {{ $treasuryAccountLedger['account']->name }}</h3><p class="text-xs text-slate-500">Số dư đầu kỳ: {{ number_format((float) $treasuryAccountLedger['opening_balance'], 0, ',', '.') }} {{ $treasuryAccountLedger['account']->currency }} · {{ $treasuryAccountLedger['total_movements'] }} phát sinh</p></div>
+                        <button type="button" wire:click="$set('treasuryAccountId', '')" class="rounded-lg border px-3 py-2 text-xs">Đóng sổ</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full text-left text-xs sm:text-sm">
+                            <thead><tr class="border-b text-slate-600"><th class="p-2">Ngày</th><th class="p-2">Chứng từ</th><th class="p-2">Nội dung</th><th class="p-2 text-right">Phát sinh</th><th class="p-2 text-right">Số dư</th></tr></thead>
+                            <tbody>
+                                @forelse($treasuryAccountLedger['rows'] as $movement)
+                                    <tr class="border-b border-slate-100" wire:key="account-movement-{{ $movement->source }}-{{ $movement->id }}">
+                                        <td class="whitespace-nowrap p-2">{{ $movement->movement_date }}</td>
+                                        <td class="whitespace-nowrap p-2">{{ $movement->reference }}</td>
+                                        <td class="p-2">{{ $movement->description }}</td>
+                                        <td class="whitespace-nowrap p-2 text-right tabular-nums {{ (float) $movement->amount < 0 ? 'text-rose-700' : 'text-emerald-700' }}">{{ number_format((float) $movement->amount, 0, ',', '.') }}</td>
+                                        <td class="whitespace-nowrap p-2 text-right tabular-nums">{{ number_format((float) $movement->running_balance, 0, ',', '.') }}</td>
+                                    </tr>
+                                @empty
+                                    <tr><td colspan="5" class="p-4 text-center text-slate-500">Chưa có phát sinh.</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="mt-2 text-xs text-slate-500">Hiển thị tối đa 200 phát sinh mới nhất; số dư chạy được tính trên toàn bộ lịch sử. Chuyển tiền nội bộ không phải thu/chi kinh doanh.</p>
+                </section>
+            @endif
             @can('finance.account.manage')
                 <div x-show="opening" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" role="dialog" aria-modal="true" aria-label="Thiết lập số dư đầu kỳ"><div class="w-full max-w-xl rounded-2xl bg-white p-5 shadow-xl"><div class="mb-3 flex justify-between"><h3 class="font-bold">Thiết lập số dư đầu kỳ</h3><button type="button" @click="opening = false" aria-label="Đóng">✕</button></div><form wire:submit="saveOpeningBalance" class="grid gap-3 rounded-xl bg-slate-50 p-3 sm:grid-cols-4">
                     <div class="sm:col-span-4 text-sm font-bold">Thiết lập số dư đầu kỳ (chỉ trước phát sinh đầu tiên)</div>
@@ -395,6 +435,17 @@
             @endforeach
         </div>
     </div>
+    @endif
+    @if($workspaceTab === 'overview')
+    <section class="rounded-2xl border border-slate-200 bg-white p-4" aria-label="Số dư tiền hiện có">
+        <div class="mb-3"><h2 class="text-base font-bold text-slate-900">Tiền mặt & tiền gửi hiện có</h2><p class="text-xs text-slate-500">Số dư lũy kế đến hiện tại, không phụ thuộc bộ lọc thu/chi. Các loại tiền tệ không được cộng chung.</p></div>
+        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            @foreach($treasuryTotals as $currency => $total)
+                <div class="rounded-xl bg-slate-50 p-3"><p class="text-xs text-slate-500">Tổng số dư · {{ $currency }}</p><p class="mt-1 text-xl font-bold tabular-nums {{ $total['total'] < 0 ? 'text-rose-700' : 'text-slate-900' }}">{{ number_format($total['total'], 0, ',', '.') }} {{ $currency }}</p><p class="mt-1 text-xs text-slate-500">Tiền mặt {{ number_format($total['cash'], 0, ',', '.') }} · Ngân hàng {{ number_format($total['bank'], 0, ',', '.') }}</p></div>
+            @endforeach
+        </div>
+        <button type="button" wire:click="$set('workspaceTab', 'treasury')" class="mt-3 rounded-lg border border-indigo-200 px-3 py-2 text-xs font-semibold text-indigo-700">Xem sổ quỹ & ngân hàng →</button>
+    </section>
     @endif
     @if($workspaceTab === 'overview')
     <section class="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6" aria-label="Tổng quan Finance">
