@@ -48,5 +48,13 @@ final class FinanceVoucherPrintTest extends TestCase
         $this->assertStringContainsString('.signature-space { height: 35px;', $view);
         $this->assertStringContainsString('.pdf-export .amount, .pdf-export .signatures { page-break-inside: avoid;', $view);
         $this->assertStringContainsString('<div class="details">', $view);
+        $this->assertStringContainsString("printSettings['orientation'] === 'landscape'", $view);
+        $this->assertStringContainsString('$paperWidth', $view);
+        $this->assertStringContainsString('$paperHeight', $view);
+        $this->assertStringContainsString('max-width: {{ $paperWidth }}mm;', $view);
+        $this->assertStringContainsString('width: {{ $paperWidth }}mm; min-height: {{ $paperHeight }}mm;', $view);
+        $this->assertStringContainsString("'defaultFont' => 'DejaVu Sans'", $controller);
+        $this->assertStringContainsString("'isRemoteEnabled' => false", $controller);
+        $this->assertStringContainsString('charset=utf-8', $view);
     }
 }
