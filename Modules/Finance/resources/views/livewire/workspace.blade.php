@@ -397,32 +397,41 @@
             @endcan
         </div>
         <section class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5" aria-label="Bộ lọc báo cáo">
-            <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <h2 class="text-sm font-bold text-slate-900">Bộ lọc báo cáo</h2>
-                <button type="button" wire:click="resetLedgerFilters" class="min-h-10 rounded-lg border border-slate-300 px-3 text-xs font-semibold text-slate-700">Xóa bộ lọc</button>
+            <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <div><h2 class="text-sm font-bold text-slate-900">Bộ lọc báo cáo</h2><p class="mt-1 text-xs text-slate-500">Chọn khoảng thời gian rồi nhấn Áp dụng. Các điều kiện khác được lọc tự động.</p></div>
+                <button type="button" wire:click="resetLedgerFilters" class="min-h-10 rounded-lg border border-slate-300 px-3 text-xs font-semibold text-slate-700">Đặt lại bộ lọc</button>
             </div>
-            <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                <label class="text-xs font-semibold text-slate-700">Từ ngày
-                    <input type="date" wire:model.live="ledgerDateFrom" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
-                </label>
-                <label class="text-xs font-semibold text-slate-700">Đến ngày
-                    <input type="date" wire:model.live="ledgerDateTo" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
-                </label>
-                <label class="text-xs font-semibold text-slate-700">Loại phiếu
+            <form wire:submit="applyReportDates" class="rounded-xl border border-indigo-100 bg-indigo-50/40 p-3 sm:p-4">
+                <div class="mb-2 text-xs font-bold text-slate-700">Khoảng thời gian</div>
+                <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
+                    <label class="block text-xs font-semibold text-slate-700">Từ ngày
+                        <input type="date" wire:model="ledgerDateFrom" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm" required>
+                        @error('ledgerDateFrom') <span class="mt-1 block text-xs text-rose-700">{{ $message }}</span> @enderror
+                    </label>
+                    <label class="block text-xs font-semibold text-slate-700">Đến ngày
+                        <input type="date" wire:model="ledgerDateTo" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm" required>
+                        @error('ledgerDateTo') <span class="mt-1 block text-xs text-rose-700">{{ $message }}</span> @enderror
+                    </label>
+                    <button type="submit" wire:loading.attr="disabled" wire:target="applyReportDates" class="min-h-11 rounded-lg bg-indigo-600 px-5 text-sm font-semibold text-white disabled:opacity-60">Áp dụng</button>
+                </div>
+                <p class="mt-2 text-xs text-slate-500">Đang xem: {{ $appliedLedgerDateFrom }} → {{ $appliedLedgerDateTo }}</p>
+            </form>
+            <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <label class="block text-xs font-semibold text-slate-700">Loại phiếu
                     <select wire:model.live="ledgerDirection" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
                         <option value="">Tất cả thu / chi</option><option value="receipt">Phiếu thu</option><option value="payment">Phiếu chi</option>
                     </select>
                 </label>
-                <label class="text-xs font-semibold text-slate-700">Đối tượng
-                    <input wire:model.live.debounce.400ms="ledgerCounterparty" placeholder="Người nộp / nhận tiền" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
-                </label>
-                <label class="text-xs font-semibold text-slate-700">Nghiệp vụ
+                <label class="block text-xs font-semibold text-slate-700">Nghiệp vụ
                     <select wire:model.live="ledgerCategory" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
                         <option value="">Tất cả nghiệp vụ</option>
                         @foreach($ledgerCategories->filter(fn ($category) => $ledgerDirection === '' || $category->direction === $ledgerDirection) as $category)
                             <option value="{{ $category->code }}">{{ $category->name }}</option>
                         @endforeach
                     </select>
+                </label>
+                <label class="block text-xs font-semibold text-slate-700">Đối tượng
+                    <input wire:model.live.debounce.400ms="ledgerCounterparty" placeholder="Người nộp / nhận tiền" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
                 </label>
             </div>
         </section>
