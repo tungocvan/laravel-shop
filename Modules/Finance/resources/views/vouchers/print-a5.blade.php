@@ -18,7 +18,7 @@
         html, body, div, span, strong, small, h1, p, main, table, td { font-family: 'DejaVu Sans', 'DejaVuSans', sans-serif !important; }
         strong, b, h1 { font-weight: 700; }
         html, body { margin: 0; padding: 0; }
-        body { background: #eef1f5; color: #111827; font-size: 9pt; line-height: 1.25; }
+        body { background: #eef1f5; color: #111827; font-size: {{ $printSettings['font_size'] }}pt; line-height: {{ $printSettings['line_height'] }}; }
         .toolbar { display: flex; justify-content: space-between; align-items: center; max-width: {{ $paperWidth }}mm; margin: 12px auto; gap: 12px; }
         .toolbar button, .toolbar a { border: 1px solid #cbd5e1; background: white; color: #111827; border-radius: 6px; padding: 9px 14px; font: inherit; text-decoration: none; cursor: pointer; }
         .paper { position: relative; width: {{ $paperWidth }}mm; min-height: {{ $paperHeight }}mm; padding: {{ $printMargin }}mm; margin: auto; background: #fff; box-shadow: 0 4px 25px #0001; }
@@ -26,15 +26,15 @@
         .head > div { display: table-cell; width: 50%; max-width: 50%; vertical-align: top; overflow-wrap: anywhere; word-wrap: break-word; }
         .head small { display: block; color: #475569; font-size: 7.5pt; }
         .meta { text-align: right; font-size: 7.5pt; overflow-wrap: anywhere; word-wrap: break-word; padding-left: 5mm; }
-        h1 { text-align: center; font-size: 14pt; letter-spacing: .02em; margin: 9px 0 2px; }
+        h1 { text-align: center; font-size: {{ $printSettings['title_font_size'] }}pt; letter-spacing: .02em; margin: 9px 0 2px; }
         .center { text-align: center; }
         .muted { color: #64748b; }
         .details { margin-top: 10px; }
         .line { display: table; table-layout: fixed; width: 100%; margin: 0 0 4px; }
         .line .label { display: table-cell; width: 29%; vertical-align: top; color: #475569; }
         .line .value { display: table-cell; width: 71%; vertical-align: top; overflow-wrap: break-word; word-wrap: break-word; font-weight: 400; }
-        .amount { border: 0; padding: 0; margin: 7px 0 0; font-size: 9pt; page-break-inside: avoid; }
-        .amount strong { font-size: 10pt; font-weight: 600; }
+        .amount { border: 0; padding: 0; margin: 7px 0 0; font-size: {{ $printSettings['font_size'] }}pt; page-break-inside: avoid; }
+        .amount strong { font-size: {{ $printSettings['font_size'] + 1 }}pt; font-weight: 600; }
         .signatures { display: table; table-layout: fixed; width: 100%; margin-top: 12px; text-align: center; page-break-inside: avoid; }
         .signatures > div { display: table-cell; width: 33.33%; vertical-align: top; padding: 0 3px; }
         .signatures strong { display: block; font-size: 8pt; }
@@ -80,16 +80,16 @@
                 <small>{{ $printSettings['subtitle'] }}</small>
             </div>
             <div class="meta">
-                Số: {{ $voucher->number }}<br>
-                Trạng thái: {{ match($voucher->status) { 'posted' => 'Đã ghi sổ', 'draft' => 'Bản nháp', 'reversed' => 'Đã hoàn tác', 'cancelled' => 'Đã hủy', default => 'Không xác định' } }}
+                @if($printSettings['show_voucher_number'])Số: {{ $voucher->number }}@endif
+                @if($printSettings['show_status'])<br>Trạng thái: {{ match($voucher->status) { 'posted' => 'Đã ghi sổ', 'draft' => 'Bản nháp', 'reversed' => 'Đã hoàn tác', 'cancelled' => 'Đã hủy', default => 'Không xác định' } }}@endif
             </div>
         </div>
         <h1>{{ $voucher->direction === 'receipt' ? 'PHIẾU THU' : 'PHIẾU CHI' }}</h1>
-        <div class="center muted">Ngày {{ \Illuminate\Support\Carbon::parse($voucher->voucher_date)->format('d/m/Y') }}</div>
+        <div class="center muted">Ngày {{ \Illuminate\Support\Carbon::parse($voucher->voucher_date)->format('d') }} tháng {{ \Illuminate\Support\Carbon::parse($voucher->voucher_date)->format('m') }} năm {{ \Illuminate\Support\Carbon::parse($voucher->voucher_date)->format('Y') }}</div>
         <div class="details">
             <div class="line"><span class="label">{{ $voucher->direction === 'receipt' ? 'Người nộp tiền:' : 'Người nhận tiền:' }}</span><span class="value">{{ $voucher->origin === 'manual' ? $voucher->counterparty : $voucher->source_counterparty }}</span></div>
             <div class="line"><span class="label">Nội dung:</span><span class="value">{{ $voucher->origin === 'manual' ? $voucher->description : 'Thanh toán chứng từ '.$voucher->source_document_code }}</span></div>
-            @if($voucher->origin === 'manual')
+            @if($voucher->origin === 'manual' && $printSettings['show_category'])
                 <div class="line"><span class="label">Nghiệp vụ:</span><span class="value">{{ $voucher->category_name ?: $voucher->manual_category }}</span></div>
             @endif
             <div class="line"><span class="label">Tài khoản:</span><span class="value">{{ $voucher->account_name }} ({{ $voucher->account_code }})</span></div>
@@ -103,16 +103,15 @@
         </div>
         <div class="amount">
             <div>Số tiền: <strong>{{ number_format((float) $voucher->amount, 0, ',', '.') }} {{ $voucher->currency }}</strong></div>
-            <div style="margin-top: 4px">Bằng chữ: {{ $amountInWords }}</div>
+            @if($printSettings['show_amount_words'])<div style="margin-top: 4px">Bằng chữ: {{ $amountInWords }}</div>@endif
         </div>
         @if($printSettings['show_signatures'])
         <div class="signatures">
-            <div><strong>{{ $printSettings['signature_creator'] }}</strong><small>(Ký, ghi rõ họ tên)</small><div class="signature-space"></div></div>
+            <div><strong>{{ $printSettings['signature_creator'] }}</strong><small>(Ký, ghi rõ họ tên)</small><div class="signature-space"></div>@if($printSettings['show_creator_name'] && filled($printSettings['creator_full_name']))<div>{{ $printSettings['creator_full_name'] }}</div>@endif</div>
             <div><strong>{{ $voucher->direction === 'receipt' ? 'Người nộp tiền' : 'Người nhận tiền' }}</strong><small>(Ký, ghi rõ họ tên)</small><div class="signature-space"></div></div>
-            <div><strong>{{ $voucher->account_kind === 'cash' ? 'Thủ quỹ' : $printSettings['signature_approver'] }}</strong><small>(Ký, ghi rõ họ tên)</small><div class="signature-space"></div></div>
+            <div><strong>{{ $printSettings['signature_approver'] }}</strong><small>(Ký, ghi rõ họ tên)</small><div class="signature-space"></div>@if($printSettings['show_approver_name'] && filled($printSettings['approver_full_name']))<div>{{ $printSettings['approver_full_name'] }}</div>@endif</div>
         </div>
         @endif
-        <p class="footer">Mẫu chứng từ nội bộ · {{ $printSettings['paper'] }} {{ $printSettings['orientation'] === 'portrait' ? 'dọc' : 'ngang' }}</p>
     </main>
 </body>
 </html>
