@@ -48,7 +48,7 @@ final class FinancePrintSettingsContractTest extends TestCase
         $this->assertStringContainsString("format('d') }} tháng", $pdf);
         $this->assertStringContainsString("format('m') }} năm", $pdf);
         $this->assertStringNotContainsString('<p class="footer">Mẫu chứng từ nội bộ', $pdf);
-        $this->assertStringContainsString("array_replace((require dirname(__DIR__, 3)", $pdf);
+        $this->assertStringContainsString("array_replace((require base_path('Modules/Finance/config/print.php')", $pdf);
     }
 
 }
