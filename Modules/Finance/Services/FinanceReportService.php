@@ -18,6 +18,8 @@ final class FinanceReportService
             'origin' => 'nullable|in:manual,source',
             'category' => 'nullable|string|max:60',
             'counterparty' => 'nullable|string|max:255',
+            'ids' => 'nullable|array|max:500',
+            'ids.*' => 'required|integer|min:1|distinct',
         ])->validate();
     }
 
@@ -41,6 +43,7 @@ final class FinanceReportService
             })
             ->whereIn('v.status', ['posted', 'reversed'])
             ->where('ledger.net_amount', '<>', 0)
+            ->when(! empty($filters['ids']), fn ($q) => $q->whereIn('v.id', $filters['ids']))
             ->when(! empty($filters['from']), fn ($q) => $q->whereDate('v.voucher_date', '>=', $filters['from']))
             ->when(! empty($filters['to']), fn ($q) => $q->whereDate('v.voucher_date', '<=', $filters['to']))
             ->when(! empty($filters['direction']), fn ($q) => $q->where('v.direction', $filters['direction']))
