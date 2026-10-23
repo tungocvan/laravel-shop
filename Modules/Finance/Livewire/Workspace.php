@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Modules\Finance\Services\FinanceWorkflowService;
+use Modules\Finance\Services\FinanceReportService;
 use Modules\Finance\Services\ManualCategoryService;
 use Modules\Finance\Services\VoucherPostingService;
 
@@ -425,6 +426,18 @@ final class Workspace extends Component
             })
             ->select('v.*', 's.source_document_code', 's.counterparty as source_counterparty', 'c.name as manual_category_name')
             ->orderByDesc('v.id')->limit(30)->get();
+        $reportService = app(FinanceReportService::class);
+        $reportFilters = [
+            'from' => $this->ledgerDateFrom,
+            'to' => $this->ledgerDateTo,
+            'direction' => $this->ledgerDirection,
+            'category' => $this->ledgerCategory,
+            'counterparty' => $this->ledgerCounterparty,
+        ];
+        $reportTotals = $reportService->totals($reportFilters);
+        $reportRows = $this->workspaceTab === 'ledger'
+            ? $reportService->query($reportFilters)->orderByDesc('v.voucher_date')->orderByDesc('v.id')->limit(100)->get()
+            : collect();
         $selectedAccount = $accounts->firstWhere('id', (int) $this->accountId);
         $manualCategories = app(ManualCategoryService::class)->active($this->manualDirection);
         $ledgerCategories = DB::table('finance_manual_categories')->orderBy('name')->get(['code', 'name', 'direction']);
@@ -439,6 +452,6 @@ final class Workspace extends Component
                 ->orderByDesc('id')->limit(30)->get(['id', 'number']);
         }
 
-        return view('Finance::livewire.workspace', compact('accounts', 'vouchers', 'documents', 'selectedAccount', 'manualCategories', 'ledgerCategories'));
+        return view('Finance::livewire.workspace', compact('accounts', 'vouchers', 'documents', 'selectedAccount', 'manualCategories', 'ledgerCategories', 'reportTotals', 'reportRows', 'reportFilters'));
     }
 }
