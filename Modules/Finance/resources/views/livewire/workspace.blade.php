@@ -510,6 +510,9 @@
                                         @endcan
                                     @elseif($voucher->status === 'posted')
                                         @can('finance.voucher.reverse')
+                                            @can('finance.voucher.create')
+                                            <button type="button" wire:click="reverseToDraft({{ $voucher->id }})" wire:confirm="Hoàn tác phiếu đã ghi sổ và tạo bản nháp mới để sửa? Phiếu gốc và bút toán đảo vẫn lưu trong lịch sử." class="min-h-10 rounded-lg border border-amber-300 px-3 text-xs font-semibold text-amber-800">Hoàn tác → Nháp</button>
+                                            @endcan
                                             <button type="button" wire:click="reverse({{ $voucher->id }})" wire:confirm="Xác nhận hoàn tác phiếu này?" class="min-h-10 rounded-lg border border-rose-300 px-3 text-xs font-semibold text-rose-700">Hoàn tác</button>
                                         @endcan
                                     @endif
