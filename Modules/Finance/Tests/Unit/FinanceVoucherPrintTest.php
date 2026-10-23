@@ -45,7 +45,7 @@ final class FinanceVoucherPrintTest extends TestCase
         $this->assertStringContainsString('.line { display: table; table-layout: fixed;', $view);
         $this->assertStringContainsString('.line .value { display: table-cell;', $view);
         $this->assertStringContainsString('.signatures { display: table;', $view);
-        $this->assertStringContainsString('.signature-space { height: 28px;', $view);
+        $this->assertStringContainsString('.signature-space { height: 68px;', $view);
         $this->assertStringContainsString('.pdf-export .signatures > div { display: table-cell;', $view);
         $this->assertStringContainsString('<div class="details">', $view);
         $this->assertStringContainsString("printSettings['orientation'] === 'landscape'", $view);
@@ -66,5 +66,7 @@ final class FinanceVoucherPrintTest extends TestCase
         $this->assertStringNotContainsString('<strong>{{ $amountInWords }}</strong>', $view);
         $this->assertStringContainsString("font-size: {{ \$printSettings['title_font_size'] }}pt;", $view);
         $this->assertStringContainsString('font-weight: 400;', $view);
+        $this->assertStringContainsString('.line .value.counterparty { font-weight: 700; }', $view);
+        $this->assertStringContainsString('<span class="value counterparty">', $view);
     }
 }
