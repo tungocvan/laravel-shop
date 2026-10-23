@@ -45,6 +45,12 @@ final class FinanceVoucherPrintController extends Controller
         $view = $this->__invoke($voucher, $settings);
         $options = $settings->get();
         $pdf = Pdf::loadHTML($view->with('pdfMode', true)->render())
+            ->setOptions([
+                'defaultFont' => 'DejaVu Sans',
+                'isFontSubsettingEnabled' => false,
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled' => false,
+            ])
             ->setPaper(strtolower($options['paper']), $options['orientation']);
         $filename = preg_replace('/[^A-Za-z0-9_-]/', '_', (string) $view->getData()['voucher']->number);
         return $pdf->download('finance-'.$filename.'.pdf');
