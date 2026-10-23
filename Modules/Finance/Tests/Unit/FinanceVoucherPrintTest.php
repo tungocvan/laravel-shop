@@ -39,7 +39,7 @@ final class FinanceVoucherPrintTest extends TestCase
         $this->assertStringContainsString('ĐÃ HOÀN TÁC', $view);
         $this->assertStringContainsString('window.print()', $view);
         $this->assertStringContainsString("font-family: 'DejaVu Sans'", $view);
-        $this->assertStringContainsString('.pdf-export .paper { position: static; width: 100%; min-height: 0; padding: 0;', $view);
+        $this->assertStringContainsString('.pdf-export .paper { position: static; width: {{ $contentWidth }}mm; min-height: 0; padding: 0;', $view);
         $this->assertStringContainsString('.signatures > div { display: table-cell;', $view);
         $this->assertStringContainsString('admin.finance.vouchers.print', $ledger);
         $this->assertStringContainsString('.line { display: table; table-layout: fixed;', $view);
@@ -56,9 +56,11 @@ final class FinanceVoucherPrintTest extends TestCase
         $this->assertStringContainsString("'defaultFont' => 'DejaVu Sans'", $controller);
         $this->assertStringContainsString("'isRemoteEnabled' => false", $controller);
         $this->assertStringContainsString('charset=utf-8', $view);
-        $this->assertStringContainsString("max(10, (int) \$printSettings['margin_mm'])", $view);
-        $this->assertStringContainsString('margin: {{ $printMargin }}mm; }', $view);
+        $this->assertStringContainsString("max(12, (int) \$printSettings['margin_mm'])", $view);
+        $this->assertStringContainsString('@page { size: {{ $printSettings[\'paper\'] }} {{ $printSettings[\'orientation\'] }}; margin: 0; }', $view);
         $this->assertStringContainsString('padding: {{ $printMargin }}mm; margin: auto;', $view);
+        $this->assertStringContainsString('$contentWidth = $paperWidth - 2 * $printMargin;', $view);
+        $this->assertStringContainsString('margin: {{ $printMargin }}mm 0 0 {{ $printMargin }}mm;', $view);
         $this->assertStringContainsString('.amount { border: 0; padding: 0;', $view);
         $this->assertStringContainsString('Bằng chữ: {{ $amountInWords }}', $view);
         $this->assertStringNotContainsString('<strong>{{ $amountInWords }}</strong>', $view);
