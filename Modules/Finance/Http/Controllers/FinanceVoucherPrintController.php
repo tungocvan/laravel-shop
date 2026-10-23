@@ -30,7 +30,7 @@ final class FinanceVoucherPrintController extends Controller
                 'category.name as category_name')
             ->first();
 
-        abort_if($document === null, 404);
+        abort_if($document === null || $document->status !== 'posted', 404);
         abort_unless(in_array($document->direction, ['receipt', 'payment'], true), 404);
 
         return view('Finance::vouchers.print-a5', [
