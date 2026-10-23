@@ -138,6 +138,61 @@ final class VoucherPostingService
         }, 3);
     }
 
+    /**
+     * Reverse the posted voucher and create a distinct editable draft.
+     * The original ledger and reversal remain immutable for audit.
+     */
+    public function reverseToDraft(int $voucherId, ?int $actorId): int
+    {
+        return DB::transaction(function () use ($voucherId, $actorId): int {
+            $voucher = DB::table('finance_vouchers')->where('id', $voucherId)->lockForUpdate()->first();
+            if (! $voucher || $voucher->status !== 'posted') {
+                throw ValidationException::withMessages(['voucher' => 'Only posted vouchers can be returned to draft.']);
+            }
+
+            $allocations = DB::table('finance_allocations')
+                ->where('voucher_id', $voucherId)->orderBy('source_document_id')->get();
+            if ($voucher->origin === 'source' && $allocations->count() !== 1) {
+                throw ValidationException::withMessages(['voucher' => 'Only single-source vouchers can be returned to draft.']);
+            }
+            if ($voucher->origin === 'manual' && $allocations->isNotEmpty()) {
+                throw ValidationException::withMessages(['voucher' => 'Manual vouchers cannot have source allocations.']);
+            }
+
+            $this->reverse($voucherId, $actorId);
+
+            $newId = DB::table('finance_vouchers')->insertGetId([
+                'number' => 'FIN-R-'.now()->format('YmdHis').'-'.strtoupper(bin2hex(random_bytes(4))),
+                'direction' => $voucher->direction,
+                'status' => 'draft',
+                'account_id' => $voucher->account_id,
+                'currency' => $voucher->currency,
+                'amount' => $voucher->amount,
+                'voucher_date' => $voucher->voucher_date,
+                'origin' => $voucher->origin,
+                'manual_category' => $voucher->manual_category,
+                'counterparty' => $voucher->counterparty,
+                'description' => $voucher->description,
+                'reference_number' => $voucher->reference_number,
+                'created_by' => $actorId,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            foreach ($allocations as $allocation) {
+                DB::table('finance_allocations')->insert([
+                    'voucher_id' => $newId,
+                    'source_document_id' => $allocation->source_document_id,
+                    'amount' => $allocation->amount,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            return $newId;
+        }, 3);
+    }
+
     private function assertSourceMatches(object $source, FinancialDocumentSnapshot $snapshot, object $voucher): void
     {
         if ($snapshot->module !== $source->source_module
