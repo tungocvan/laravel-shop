@@ -404,7 +404,7 @@
     <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <header class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-4 sm:px-6">
             <div>
-                <h2 class="text-lg font-bold text-slate-900">{{ $workspaceTab === 'ledger' ? 'Sổ chứng từ thu / chi' : 'Chứng từ gần đây' }}</h2>
+                <h2 class="text-lg font-bold text-slate-900">{{ $workspaceTab === 'ledger' ? 'Quản lý chứng từ nghiệp vụ' : 'Chứng từ gần đây' }}</h2>
                 <p class="mt-1 text-xs text-slate-500">Theo dõi phiếu nháp, phiếu đã ghi sổ và lịch sử hoàn tác.</p>
             </div>
             <label class="flex min-h-11 items-center gap-2 text-sm text-slate-700">
