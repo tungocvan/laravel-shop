@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cấu hình mẫu in Finance</title>
-<style>body{font:15px/1.5 Arial,sans-serif;background:#f3f6fa;color:#172033;margin:0}main{max-width:850px;margin:30px auto;padding:24px;background:#fff;border:1px solid #dce2eb;border-radius:12px}h1{margin-top:0}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}label{display:block;font-weight:600;font-size:14px}input,select{display:block;width:100%;box-sizing:border-box;margin-top:5px;padding:11px;border:1px solid #bfc8d5;border-radius:7px;background:#fff}input[type=checkbox]{display:inline;width:auto;margin-right:8px}button,.link{display:inline-block;background:#4f46e5;color:white;padding:10px 16px;border:0;border-radius:7px;text-decoration:none;cursor:pointer}.link{background:#e9edf4;color:#172033}.actions{display:flex;gap:10px;margin-top:24px}.errors{color:#b91c1c}.ok{color:#047857}@media(max-width:650px){main{margin:0;border-radius:0;padding:16px}.grid{grid-template-columns:1fr}}</style>
+<style>body{font:15px/1.5 Arial,sans-serif;background:#f3f6fa;color:#172033;margin:0}main{max-width:850px;margin:30px auto;padding:24px;background:#fff;border:1px solid #dce2eb;border-radius:12px}h1{margin-top:0}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}label{display:block;font-weight:600;font-size:14px}input,select{display:block;width:100%;box-sizing:border-box;margin-top:5px;padding:11px;border:1px solid #bfc8d5;border-radius:7px;background:#fff}input[type=checkbox]{display:inline;width:auto;margin-right:8px}.setting-help{display:block;margin:3px 0 0 24px;color:#64748b;font-size:12px;font-weight:400;line-height:1.5}button,.link{display:inline-block;background:#4f46e5;color:white;padding:10px 16px;border:0;border-radius:7px;text-decoration:none;cursor:pointer}.link{background:#e9edf4;color:#172033}.actions{display:flex;gap:10px;margin-top:24px}.errors{color:#b91c1c}.ok{color:#047857}@media(max-width:650px){main{margin:0;border-radius:0;padding:16px}.grid{grid-template-columns:1fr}}</style>
 </head><body><main>
 <a class="link" href="{{ route('admin.finance.index') }}">← Quay lại Finance</a>
 <h1>Cấu hình mẫu phiếu thu / chi</h1>
@@ -24,13 +24,13 @@
 <label>Giãn dòng<input type="number" step="0.05" min="1.1" max="1.6" name="line_height" required value="{{ old('line_height', $settings['line_height']) }}"></label>
 </div>
 <p><label><input type="checkbox" name="show_reference" value="1" @checked(old('show_reference', $settings['show_reference']))>Hiện mã tham chiếu</label></p>
-<p><label><input type="checkbox" name="show_bank" value="1" @checked(old('show_bank', $settings['show_bank']))>Hiện thông tin ngân hàng</label></p>
+<p><label><input type="checkbox" name="show_bank" value="1" @checked(old('show_bank', $settings['show_bank']))>Hiển thị chi tiết ngân hàng bổ sung</label><small class="setting-help">Chỉ hiện dòng Ngân hàng và số tài khoản bổ sung khi phiếu sử dụng tài khoản ngân hàng; không ẩn dòng Tài khoản thu/chi chính.</small></p>
 <p><label><input type="checkbox" name="show_signatures" value="1" @checked(old('show_signatures', $settings['show_signatures']))>Hiện khu vực chữ ký</label></p>
 <p><label><input type="checkbox" name="show_creator_name" value="1" @checked(old('show_creator_name', $settings['show_creator_name']))>Hiện họ tên người lập phiếu</label></p>
 <p><label><input type="checkbox" name="show_approver_name" value="1" @checked(old('show_approver_name', $settings['show_approver_name']))>Hiện họ tên người duyệt / thủ quỹ</label></p>
 <p><label><input type="checkbox" name="show_voucher_number" value="1" @checked(old('show_voucher_number', $settings['show_voucher_number']))>Hiện số chứng từ</label></p>
 <p><label><input type="checkbox" name="show_status" value="1" @checked(old('show_status', $settings['show_status']))>Hiện trạng thái</label></p>
-<p><label><input type="checkbox" name="show_category" value="1" @checked(old('show_category', $settings['show_category']))>Hiện nghiệp vụ thủ công</label></p>
+<p><label><input type="checkbox" name="show_category" value="1" @checked(old('show_category', $settings['show_category']))>Hiển thị loại nghiệp vụ trên phiếu thủ công</label><small class="setting-help">Ví dụ: Thu tiền đặt cọc, Chi tiếp khách, Tạm ứng. Không áp dụng cho phiếu thu/chi tự động từ chứng từ Pharma.</small></p>
 <p><label><input type="checkbox" name="show_amount_words" value="1" @checked(old('show_amount_words', $settings['show_amount_words']))>Hiện số tiền bằng chữ</label></p>
 <div class="actions"><button type="submit">Lưu cấu hình</button><a class="link" href="{{ route('admin.finance.index') }}">Hủy</a></div>
 </form></main></body></html>
