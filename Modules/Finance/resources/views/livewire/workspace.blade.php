@@ -13,11 +13,7 @@
             <button type="button" wire:click="$set('workspaceTab', 'treasury')" class="min-h-10 rounded-lg px-4 text-sm font-semibold {{ $workspaceTab === 'treasury' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700' }}">Quỹ & Ngân hàng</button>
             <button type="button" wire:click="$set('workspaceTab', 'ledger')" class="min-h-10 rounded-lg px-4 text-sm font-semibold {{ $workspaceTab === 'ledger' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700' }}">Sổ chứng từ</button>
         </nav>
-        @can('finance.account.manage')
-            <span class="hidden text-xs font-semibold text-slate-500 lg:inline">Cấu hình</span>
-            <a href="{{ route('admin.finance.print.settings') }}" class="inline-flex min-h-10 items-center rounded-lg border border-slate-300 px-4 text-sm font-semibold text-slate-700">⚙ Mẫu PDF</a>
-            <button type="button" wire:click="$toggle('showAccounts')" class="min-h-10 rounded-lg border border-slate-300 px-4 text-sm font-semibold text-slate-700">⚙ Tài khoản thu/chi</button>
-        @endcan
+
     </div>
     @if($workspaceTab === 'treasury')
         <section class="space-y-4 rounded-xl border border-slate-200 bg-white p-4" x-data="{ panel: 'accounts', opening: false, transfer: false, history: false }" @finance-opening-saved.window="opening = false" @finance-transfer-saved.window="transfer = false">
@@ -175,7 +171,12 @@
     @if($workspaceTab === 'compose')
     @if($composeMode === 'home')
         <section class="space-y-5 rounded-2xl border border-slate-200 bg-white p-4 sm:p-6">
-            <div><h2 class="text-lg font-bold text-slate-900">Lập chứng từ thu / chi</h2><p class="mt-1 text-sm text-slate-500">Chọn nghiệp vụ cần thực hiện để bắt đầu.</p></div>
+            <div class="flex flex-wrap items-start justify-between gap-3">
+                <div><h2 class="text-lg font-bold text-slate-900">Lập chứng từ thu / chi</h2><p class="mt-1 text-sm text-slate-500">Chọn nghiệp vụ cần thực hiện để bắt đầu.</p></div>
+                @can('finance.account.manage')
+                    <a href="{{ route('admin.finance.print.settings') }}" class="inline-flex min-h-10 items-center rounded-lg border border-slate-300 px-4 text-sm font-semibold text-slate-700">⚙ Mẫu PDF</a>
+                @endcan
+            </div>
             @can('finance.voucher.create')
                 <div class="flex flex-wrap gap-2">
                     <button type="button" wire:click="openManual('receipt')" class="min-h-11 rounded-lg border border-emerald-300 bg-emerald-50 px-4 text-sm font-semibold text-emerald-800">+ Lập phiếu thu</button>
