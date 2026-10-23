@@ -37,7 +37,7 @@ final class FinanceTreasuryService
     {
         $account = DB::table('finance_accounts')->where('id', $accountId)->first();
         if (! $account) {
-            throw ValidationException::withMessages(['account' => 'Account not found.']);
+            throw ValidationException::withMessages(['account' => 'Không tìm thấy tài khoản thu/chi.']);
         }
 
         $entries = DB::table('finance_ledger_entries as e')
@@ -96,7 +96,7 @@ final class FinanceTreasuryService
             $hasActivity = DB::table('finance_ledger_entries')->where('account_id', $accountId)->exists()
                 || DB::table('finance_internal_transfers')->where('from_account_id', $accountId)->orWhere('to_account_id', $accountId)->exists();
             if ($hasActivity) {
-                throw ValidationException::withMessages(['account' => 'Opening balance is locked after the first transaction.']);
+                throw ValidationException::withMessages(['account' => 'Không thể thay đổi số dư đầu kỳ vì tài khoản đã có giao dịch thu, chi hoặc chuyển tiền. Vui lòng kiểm tra sổ tài khoản.']);
             }
             DB::table('finance_accounts')->where('id', $accountId)->update(['opening_balance' => $value, 'updated_at' => now()]);
         }, 3);
