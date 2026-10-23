@@ -352,6 +352,50 @@ final class FinanceWorkflowService
         }, 3);
     }
 
+    /**
+     * Demo-only destructive cleanup. Never available in production.
+     * Reversed vouchers must have a balanced posting/reversal pair.
+     */
+    public function permanentlyDeleteDemoVoucher(int $voucherId): void
+    {
+        if (app()->environment('production')) {
+            throw ValidationException::withMessages(['voucher' => 'Permanent deletion of reversed vouchers is disabled in production.']);
+        }
+
+        DB::transaction(function () use ($voucherId): void {
+            $voucher = DB::table('finance_vouchers')->where('id', $voucherId)->lockForUpdate()->first();
+            if (! $voucher || ! in_array($voucher->status, ['draft', 'cancelled', 'reversed'], true)) {
+                throw ValidationException::withMessages(['voucher' => 'Voucher cannot be permanently deleted.']);
+            }
+
+            $entries = DB::table('finance_ledger_entries')->where('voucher_id', $voucherId)->lockForUpdate()->get();
+            if ($voucher->status === 'reversed') {
+                if ($entries->count() !== 2 || $entries->pluck('entry_type')->sort()->values()->all() !== ['posting', 'reversal']
+                    || $entries->pluck('account_id')->unique()->count() !== 1
+                    || $entries->pluck('currency')->unique()->count() !== 1) {
+                    throw ValidationException::withMessages(['voucher' => 'Reversal ledger is incomplete; deletion denied.']);
+                }
+                $signedCents = $entries->sum(fn ($entry) => (int) round((float) $entry->signed_amount * 100));
+                if ($signedCents !== 0 || $voucher->reversed_at === null) {
+                    throw ValidationException::withMessages(['voucher' => 'Reversal ledger is not balanced; deletion denied.']);
+                }
+            } elseif ($entries->isNotEmpty() || $voucher->posted_at !== null || $voucher->reversed_at !== null) {
+                throw ValidationException::withMessages(['voucher' => 'Voucher has accounting history; deletion denied.']);
+            }
+
+            \Illuminate\Support\Facades\Log::warning('Finance demo voucher permanently deleted', [
+                'voucher_id' => $voucherId,
+                'voucher_number' => $voucher->number,
+                'voucher_status' => $voucher->status,
+                'actor_id' => auth('admin')->id(),
+                'environment' => app()->environment(),
+            ]);
+            DB::table('finance_ledger_entries')->where('voucher_id', $voucherId)->delete();
+            DB::table('finance_allocations')->where('voucher_id', $voucherId)->delete();
+            DB::table('finance_vouchers')->where('id', $voucherId)->delete();
+        }, 3);
+    }
+
     private function cents(string $amount): int
     {
         if (! preg_match('/^\d{1,15}(?:\.\d{1,2})?$/', $amount)) {
