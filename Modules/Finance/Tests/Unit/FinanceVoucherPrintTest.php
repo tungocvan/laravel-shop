@@ -26,7 +26,7 @@ final class FinanceVoucherPrintTest extends TestCase
         $this->assertStringContainsString("'auth:admin'", $routes);
         $this->assertStringContainsString("'permission:finance.view,admin'", $routes);
         $this->assertStringContainsString("->name('vouchers.print')", $routes);
-        $this->assertStringContainsString("abort_if(\$document === null, 404)", $controller);
+        $this->assertStringContainsString("abort_if(\$document === null || \$document->status !== 'posted', 404)", $controller);
         $this->assertStringNotContainsString('->update(', $controller);
         $this->assertStringNotContainsString('->insert(', $controller);
         $this->assertStringContainsString("@page { size: {{ \$printSettings['paper'] }}", $view);
