@@ -34,6 +34,16 @@ final class FinancePrintSettings
             'show_signatures' => 'required|boolean',
             'signature_creator' => 'required|string|max:80',
             'signature_approver' => 'required|string|max:80',
+            'creator_full_name' => 'nullable|string|max:120',
+            'approver_full_name' => 'nullable|string|max:120',
+            'show_creator_name' => 'required|boolean',
+            'show_approver_name' => 'required|boolean',
+            'show_status' => 'required|boolean',
+            'show_voucher_number' => 'required|boolean',
+            'show_category' => 'required|boolean',
+            'show_amount_words' => 'required|boolean',
+            'title_font_size' => 'required|integer|between:12,18',
+            'line_height' => 'required|numeric|between:1.1,1.6',
         ])->validate();
         if (! Schema::hasTable('finance_print_settings')) {
             throw ValidationException::withMessages(['settings' => 'Cần chạy migration Finance trước khi lưu cấu hình mẫu in.']);
