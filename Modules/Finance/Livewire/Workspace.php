@@ -178,6 +178,7 @@ final class Workspace extends Component
     {
         $this->manualDate = now()->toDateString();
         $this->transferDate = now()->toDateString();
+        $this->resetReportDateRange();
     }
 
     public function updatedComposeMode(): void
@@ -213,13 +214,42 @@ final class Workspace extends Component
     public string $ledgerDirection = '';
     public string $ledgerDateFrom = '';
     public string $ledgerDateTo = '';
+    public string $appliedLedgerDateFrom = '';
+    public string $appliedLedgerDateTo = '';
+
+    private function resetReportDateRange(): void
+    {
+        $this->ledgerDateFrom = now()->startOfMonth()->toDateString();
+        $this->ledgerDateTo = now()->toDateString();
+        $this->appliedLedgerDateFrom = $this->ledgerDateFrom;
+        $this->appliedLedgerDateTo = $this->ledgerDateTo;
+    }
+
+    public function applyReportDates(): void
+    {
+        abort_unless(auth('admin')->user()?->can('finance.view'), 403);
+        $dates = $this->validate([
+            'ledgerDateFrom' => 'required|date_format:Y-m-d',
+            'ledgerDateTo' => 'required|date_format:Y-m-d|after_or_equal:ledgerDateFrom',
+        ], [
+            'ledgerDateFrom.required' => 'Vui lòng chọn ngày bắt đầu.',
+            'ledgerDateTo.required' => 'Vui lòng chọn ngày kết thúc.',
+            'ledgerDateTo.after_or_equal' => 'Đến ngày phải bằng hoặc sau Từ ngày.',
+        ]);
+        $this->appliedLedgerDateFrom = $dates['ledgerDateFrom'];
+        $this->appliedLedgerDateTo = $dates['ledgerDateTo'];
+        $this->resetValidation();
+    }
+
     public string $ledgerCounterparty = '';
     public string $ledgerCategory = '';
     public string $ledgerStatus = '';
 
     public function resetLedgerFilters(): void
     {
-        $this->reset('ledgerDirection', 'ledgerDateFrom', 'ledgerDateTo', 'ledgerCounterparty', 'ledgerCategory', 'ledgerStatus');
+        $this->reset('ledgerDirection', 'ledgerCounterparty', 'ledgerCategory', 'ledgerStatus');
+        $this->resetReportDateRange();
+        $this->resetValidation();
     }
 
     public ?int $editingVoucherId = null;
@@ -587,8 +617,8 @@ final class Workspace extends Component
             ->orderByDesc('t.id')->limit(20)->get();
         $ledgerFilters = validator([
             'direction' => $this->ledgerDirection,
-            'from' => $this->ledgerDateFrom,
-            'to' => $this->ledgerDateTo,
+            'from' => $this->appliedLedgerDateFrom,
+            'to' => $this->appliedLedgerDateTo,
             'status' => $this->ledgerStatus,
             'category' => $this->ledgerCategory,
         ], [
