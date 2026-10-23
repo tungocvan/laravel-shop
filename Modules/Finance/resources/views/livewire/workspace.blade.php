@@ -20,31 +20,31 @@
         @endcan
     </div>
     @if($workspaceTab === 'treasury')
-        <section class="space-y-4 rounded-xl border border-slate-200 bg-white p-4">
-            <h2 class="text-lg font-bold text-slate-900">Số dư quỹ tiền mặt và ngân hàng</h2>
+        <section class="space-y-4 rounded-xl border border-slate-200 bg-white p-4" x-data="{ panel: 'accounts', opening: false, transfer: false, history: false }" @finance-opening-saved.window="opening = false" @finance-transfer-saved.window="transfer = false">
+            <div class="flex flex-wrap items-center justify-between gap-2"><h2 class="text-lg font-bold text-slate-900">Quỹ & Ngân hàng</h2><div class="flex flex-wrap gap-2">@can('finance.account.manage')<button type="button" @click="opening = true" class="rounded-lg border px-3 py-2 text-sm">Số dư đầu kỳ</button><button type="button" wire:click="openCreateAccount" class="rounded-lg border px-3 py-2 text-sm">+ Tài khoản</button>@endcan @can('finance.voucher.post')<button type="button" @click="transfer = true" class="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white">Chuyển tiền</button>@endcan</div></div>
             <p class="text-xs text-slate-500">Số dư = đầu kỳ + bút toán thu/chi đã ghi sổ + chuyển tiền nội bộ. Chuyển tiền nội bộ không tính vào doanh thu hoặc chi phí.</p>
             <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 @foreach($treasuryBalances as $accountBalance)
                     <div class="rounded-xl border border-slate-200 p-3" wire:key="treasury-{{ $accountBalance->id }}">
                         <p class="text-xs font-semibold text-slate-500">{{ $accountBalance->kind === 'cash' ? 'Tiền mặt' : 'Ngân hàng' }} · {{ $accountBalance->code }}</p>
                         <p class="mt-1 text-sm font-semibold text-slate-900">{{ $accountBalance->name }}</p>
-                        <p class="mt-2 text-xl font-bold tabular-nums text-indigo-700">{{ number_format((float) $accountBalance->balance, 0, ',', '.') }} {{ $accountBalance->currency }}</p>
+                        <p class="mt-2 text-xl font-bold tabular-nums {{ (float) $accountBalance->balance < 0 ? 'text-rose-700' : 'text-indigo-700' }}">{{ number_format((float) $accountBalance->balance, 0, ',', '.') }} {{ $accountBalance->currency }}</p>
                     </div>
                 @endforeach
             </div>
             @can('finance.account.manage')
-                <form wire:submit="saveOpeningBalance" class="grid gap-3 rounded-xl bg-slate-50 p-3 sm:grid-cols-4">
+                <div x-show="opening" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" role="dialog" aria-modal="true" aria-label="Thiết lập số dư đầu kỳ"><div class="w-full max-w-xl rounded-2xl bg-white p-5 shadow-xl"><div class="mb-3 flex justify-between"><h3 class="font-bold">Thiết lập số dư đầu kỳ</h3><button type="button" @click="opening = false" aria-label="Đóng">✕</button></div><form wire:submit="saveOpeningBalance" class="grid gap-3 rounded-xl bg-slate-50 p-3 sm:grid-cols-4">
                     <div class="sm:col-span-4 text-sm font-bold">Thiết lập số dư đầu kỳ (chỉ trước phát sinh đầu tiên)</div>
                     <select wire:model="openingAccount" class="min-h-10 rounded-lg border border-slate-300 px-3 sm:col-span-2" aria-label="Tài khoản số dư đầu kỳ">
                         <option value="">Chọn tài khoản</option>
                         @foreach($accounts as $account)<option value="{{ $account->id }}">{{ $account->code }} — {{ $account->name }}</option>@endforeach
                     </select>
-                    <input wire:model="openingAmount" inputmode="decimal" placeholder="Số dư đầu kỳ" class="min-h-10 rounded-lg border border-slate-300 px-3" />
-                    <button type="submit" class="min-h-10 rounded-lg bg-slate-800 px-3 text-sm font-semibold text-white">Lưu số dư</button>
-                </form>
+                    <input wire:model.live.debounce.400ms="openingAmountDisplay" inputmode="numeric" placeholder="0" class="min-h-10 rounded-lg border border-slate-300 px-3" />
+                    <button type="submit" wire:confirm="Xác nhận lưu số dư đầu kỳ cho tài khoản đã chọn?" class="min-h-10 rounded-lg bg-slate-800 px-3 text-sm font-semibold text-white">Lưu số dư</button>
+                </form></div></div>
             @endcan
             @can('finance.voucher.post')
-                <form wire:submit="saveInternalTransfer" class="grid gap-3 rounded-xl border border-indigo-100 bg-indigo-50/40 p-3 sm:grid-cols-2">
+                <div x-show="transfer" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" role="dialog" aria-modal="true" aria-label="Chuyển tiền nội bộ"><div class="w-full max-w-xl rounded-2xl bg-white p-5 shadow-xl"><div class="mb-3 flex justify-between"><h3 class="font-bold">Chuyển tiền nội bộ</h3><button type="button" @click="transfer = false" aria-label="Đóng">✕</button></div><form wire:submit="saveInternalTransfer" class="grid gap-3 rounded-xl border border-indigo-100 bg-indigo-50/40 p-3 sm:grid-cols-2">
                     <div class="sm:col-span-2 text-sm font-bold">Chuyển tiền nội bộ / Nộp tiền vào ngân hàng</div>
                     <select wire:model="transferFrom" class="min-h-10 rounded-lg border border-slate-300 px-3" aria-label="Tài khoản chuyển">
                         <option value="">Từ tài khoản</option>
@@ -54,14 +54,14 @@
                         <option value="">Đến tài khoản</option>
                         @foreach($accounts as $account) @if($account->is_active)<option value="{{ $account->id }}">{{ $account->name }} ({{ $account->code }})</option>@endif @endforeach
                     </select>
-                    <input wire:model="transferAmount" inputmode="decimal" placeholder="Số tiền, ví dụ 5000000.00" class="min-h-10 rounded-lg border border-slate-300 px-3" />
+                    <input wire:model.live.debounce.400ms="transferAmountDisplay" inputmode="numeric" placeholder="Số tiền, ví dụ 5000000.00" class="min-h-10 rounded-lg border border-slate-300 px-3" />
                     <input wire:model="transferDate" type="date" class="min-h-10 rounded-lg border border-slate-300 px-3" />
                     <input wire:model="transferDescription" placeholder="Nội dung chuyển tiền" class="min-h-10 rounded-lg border border-slate-300 px-3 sm:col-span-2" />
                     <button type="submit" wire:confirm="Xác nhận chuyển tiền nội bộ? Thao tác này ghi nhận ngay vào số dư hai tài khoản." class="min-h-10 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white sm:col-span-2">Xác nhận chuyển tiền</button>
-                </form>
+                </form></div></div>
             @endcan
-            <h3 class="text-sm font-bold">Lịch sử chuyển tiền gần đây</h3>
-            <div class="overflow-x-auto"><table class="min-w-full text-left text-sm">
+            <button type="button" @click="history = !history" :aria-expanded="history.toString()" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-left text-sm font-semibold">Lịch sử chuyển tiền gần đây ▾</button>
+            <div x-show="history" x-cloak class="overflow-x-auto"><table class="min-w-full text-left text-sm">
                 <thead><tr class="border-b border-slate-200 text-slate-500"><th class="p-2">Ngày / Mã</th><th class="p-2">Từ → Đến</th><th class="p-2 text-right">Số tiền</th></tr></thead>
                 <tbody>
                     @forelse($internalTransfers as $transfer)
@@ -83,6 +83,7 @@
                     <div class="rounded-lg border border-slate-200 p-3 text-sm">
                         <p class="font-semibold">{{ $account->name }} <span class="text-xs text-slate-500">({{ $account->code }})</span></p>
                         <p class="mt-1 text-xs text-slate-500">{{ $account->kind === 'bank' ? 'Ngân hàng' : 'Tiền mặt' }} · {{ $account->is_active ? 'Đang sử dụng' : 'Ngừng sử dụng' }}</p>
+                        <button type="button" wire:click="editAccount({{ $account->id }})" class="mt-2 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-indigo-700">Sửa thông tin</button>
                     </div>
                 @empty
                     <p class="text-sm text-slate-500">Chưa có tài khoản.</p>
@@ -90,16 +91,16 @@
             </div>
             @can('finance.account.manage')
                 <div class="border-t border-slate-200 pt-4">
-                    <button type="button" wire:click="$set('showAccountForm', true)" class="min-h-11 w-full rounded-lg border border-indigo-200 px-3 text-left text-sm font-semibold text-indigo-700">+ Thêm tài khoản</button>
+                    <button type="button" wire:click="openCreateAccount" class="min-h-11 w-full rounded-lg border border-indigo-200 px-3 text-left text-sm font-semibold text-indigo-700">+ Thêm tài khoản</button>
                     @if($showAccountForm)
                         <form wire:submit="createAccount" class="mt-3 space-y-3 rounded-xl bg-slate-50 p-3">
-                            <p class="text-sm font-semibold text-slate-900">Hồ sơ tài khoản thu/chi</p>
+                            <p class="text-sm font-semibold text-slate-900">{{ $editingAccountId ? 'Sửa thông tin tài khoản' : 'Thêm tài khoản' }}</p>
                             <div class="grid grid-cols-2 gap-2">
-                                <button type="button" wire:click="$set('accountKind', 'bank')" class="min-h-11 rounded-lg border px-2 text-sm font-semibold {{ $accountKind === 'bank' ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300 bg-white text-slate-700' }}">Ngân hàng</button>
-                                <button type="button" wire:click="$set('accountKind', 'cash')" class="min-h-11 rounded-lg border px-2 text-sm font-semibold {{ $accountKind === 'cash' ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300 bg-white text-slate-700' }}">Tiền mặt</button>
+                                <button type="button" @if($editingAccountId !== null) disabled @endif wire:click="$set('accountKind', 'bank')" class="min-h-11 rounded-lg border px-2 text-sm font-semibold {{ $accountKind === 'bank' ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300 bg-white text-slate-700' }}">Ngân hàng</button>
+                                <button type="button" @if($editingAccountId !== null) disabled @endif wire:click="$set('accountKind', 'cash')" class="min-h-11 rounded-lg border px-2 text-sm font-semibold {{ $accountKind === 'cash' ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300 bg-white text-slate-700' }}">Tiền mặt</button>
                             </div>
                             <label class="block text-xs font-semibold text-slate-600">Mã tài khoản
-                                <input wire:model="accountCode" required maxlength="40" placeholder="VD: NH-TCB" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white p-2">
+                                <input wire:model="accountCode" @if($editingAccountId !== null) readonly @endif required maxlength="40" placeholder="VD: NH-TCB" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white p-2">
                             </label>
                             <label class="block text-xs font-semibold text-slate-600">Tên tài khoản
                                 <input wire:model="accountName" required maxlength="255" placeholder="Tên tài khoản nội bộ" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white p-2">
@@ -122,7 +123,7 @@
                                     <input wire:model="cashLocation" required maxlength="255" placeholder="VD: Văn phòng chính" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white p-2">
                                 </label>
                             @endif
-                            <button type="submit" wire:loading.attr="disabled" class="min-h-11 w-full rounded-xl bg-indigo-600 px-4 font-semibold text-white disabled:opacity-50">Lưu tài khoản</button>
+                            <button type="submit" wire:loading.attr="disabled" class="min-h-11 w-full rounded-xl bg-indigo-600 px-4 font-semibold text-white disabled:opacity-50">{{ $editingAccountId ? 'Cập nhật tài khoản' : 'Lưu tài khoản' }}</button>
                         </form>
                     @endif
                 </div>
