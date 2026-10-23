@@ -64,12 +64,13 @@ final class FinanceReportService
         $summary = DB::query()->fromSub($this->query($filters), 'report')
             ->selectRaw('COALESCE(SUM(CASE WHEN signed_amount > 0 THEN signed_amount ELSE 0 END), 0) as receipts')
             ->selectRaw('COALESCE(SUM(CASE WHEN signed_amount < 0 THEN -signed_amount ELSE 0 END), 0) as payments')
+            ->selectRaw('COALESCE(SUM(signed_amount), 0) as net')
             ->selectRaw('COUNT(*) as voucher_count')->first();
 
         return [
             'receipts' => (string) $summary->receipts,
             'payments' => (string) $summary->payments,
-            'net' => bcsub((string) $summary->receipts, (string) $summary->payments, 2),
+            'net' => (string) $summary->net,
             'voucher_count' => (int) $summary->voucher_count,
         ];
     }
