@@ -22,6 +22,7 @@ final class FinancePrintSettings
 
     public function save(array $input): void
     {
+        $input = array_replace((require dirname(__DIR__).'/config/print.php')['defaults'], $input);
         $data = validator($input, [
             'organization' => 'required|string|max:150',
             'subtitle' => 'required|string|max:180',
