@@ -388,6 +388,18 @@ final class Workspace extends Component
         session()->flash('finance_success', 'Đã hoàn tác phiếu và lưu bút toán đảo.');
     }
 
+    public function reverseToDraft(int $voucherId): void
+    {
+        abort_unless(auth('admin')->user()?->can('finance.voucher.reverse')
+            && auth('admin')->user()?->can('finance.voucher.create'), 403);
+        $newId = app(VoucherPostingService::class)->reverseToDraft($voucherId, auth('admin')->id());
+        if ($this->documentId !== '') {
+            $this->loadBalance();
+        }
+        $this->showHistory = false;
+        session()->flash('finance_success', 'Đã hoàn tác phiếu cũ và tạo nháp mới #'.$newId.'. Hãy kiểm tra, sửa rồi ghi sổ lại.');
+    }
+
     public function render()
     {
         abort_unless(auth('admin')->user()?->can('finance.view'), 403);
