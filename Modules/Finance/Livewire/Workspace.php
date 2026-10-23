@@ -6,12 +6,51 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Modules\Finance\Services\FinanceWorkflowService;
+use Modules\Finance\Services\FinanceTreasuryService;
 use Modules\Finance\Services\FinanceReportService;
 use Modules\Finance\Services\ManualCategoryService;
 use Modules\Finance\Services\VoucherPostingService;
 
 final class Workspace extends Component
 {
+    public string $transferFrom = '';
+    public string $transferTo = '';
+    public string $transferAmount = '';
+    public string $transferDescription = '';
+    public string $transferDate = '';
+    public string $openingAccount = '';
+    public string $openingAmount = '';
+
+    public function saveOpeningBalance(): void
+    {
+        abort_unless(auth('admin')->user()?->can('finance.account.manage'), 403);
+        $data = $this->validate([
+            'openingAccount' => 'required|integer|min:1',
+            'openingAmount' => 'required|regex:/^\\d{1,15}(?:\\.\\d{1,2})?$/',
+        ]);
+        app(FinanceTreasuryService::class)->setOpeningBalance((int) $data['openingAccount'], $data['openingAmount']);
+        session()->flash('finance_success', 'Đã lưu số dư đầu kỳ.');
+    }
+
+    public function saveInternalTransfer(): void
+    {
+        abort_unless(auth('admin')->user()?->can('finance.voucher.post'), 403);
+        $data = $this->validate([
+            'transferFrom' => 'required|integer|min:1',
+            'transferTo' => 'required|integer|min:1|different:transferFrom',
+            'transferAmount' => 'required|regex:/^\\d{1,15}(?:\\.\\d{1,2})?$/',
+            'transferDate' => 'required|date_format:Y-m-d',
+            'transferDescription' => 'required|string|max:255',
+        ]);
+        app(FinanceTreasuryService::class)->transfer(
+            (int) $data['transferFrom'], (int) $data['transferTo'],
+            $data['transferAmount'], $data['transferDate'], $data['transferDescription'], auth('admin')->id()
+        );
+        $this->transferAmount = '';
+        $this->transferDescription = '';
+        session()->flash('finance_success', 'Đã ghi nhận chuyển tiền nội bộ (không tính vào thu/chi kinh doanh).');
+    }
+
     public string $kind = 'inventory_receipt';
     public string $composeMode = 'home';
     public bool $showAccounts = false;
@@ -67,6 +106,7 @@ final class Workspace extends Component
     public function mount(): void
     {
         $this->manualDate = now()->toDateString();
+        $this->transferDate = now()->toDateString();
     }
 
     public function updatedComposeMode(): void
@@ -429,6 +469,12 @@ final class Workspace extends Component
         abort_unless(auth('admin')->user()?->can('finance.view'), 403);
 
         $accounts = DB::table('finance_accounts')->orderBy('code')->get();
+        $treasuryBalances = app(FinanceTreasuryService::class)->balances();
+        $internalTransfers = DB::table('finance_internal_transfers as t')
+            ->join('finance_accounts as a', 'a.id', '=', 't.from_account_id')
+            ->join('finance_accounts as b', 'b.id', '=', 't.to_account_id')
+            ->select('t.*', 'a.name as from_name', 'b.name as to_name')
+            ->orderByDesc('t.id')->limit(20)->get();
         $ledgerFilters = validator([
             'direction' => $this->ledgerDirection,
             'from' => $this->ledgerDateFrom,
@@ -491,6 +537,6 @@ final class Workspace extends Component
                 ->orderByDesc('id')->limit(30)->get(['id', 'number']);
         }
 
-        return view('Finance::livewire.workspace', compact('accounts', 'vouchers', 'documents', 'selectedAccount', 'manualCategories', 'ledgerCategories', 'reportTotals', 'reportRows', 'reportFilters'));
+        return view('Finance::livewire.workspace', compact('accounts', 'vouchers', 'documents', 'selectedAccount', 'manualCategories', 'ledgerCategories', 'reportTotals', 'reportRows', 'reportFilters', 'treasuryBalances', 'internalTransfers'));
     }
 }
