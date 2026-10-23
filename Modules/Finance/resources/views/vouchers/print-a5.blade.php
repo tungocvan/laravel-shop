@@ -34,13 +34,14 @@
         .line { display: table; table-layout: fixed; width: 100%; margin: 0 0 4px; }
         .line .label { display: table-cell; width: 29%; vertical-align: top; color: #475569; }
         .line .value { display: table-cell; width: 71%; vertical-align: top; overflow-wrap: break-word; word-wrap: break-word; font-weight: 400; }
+        .line .value.counterparty { font-weight: 700; }
         .amount { border: 0; padding: 0; margin: 7px 0 0; font-size: {{ $printSettings['font_size'] }}pt; page-break-inside: avoid; }
         .amount strong { font-size: {{ $printSettings['font_size'] + 1 }}pt; font-weight: 600; }
         .signatures { display: table; table-layout: fixed; width: 100%; margin-top: 12px; text-align: center; page-break-inside: avoid; }
         .signatures > div { display: table-cell; width: 33.33%; vertical-align: top; padding: 0 3px; }
         .signatures strong { display: block; font-size: 8pt; }
         .signatures small { display: block; color: #64748b; font-size: 7pt; }
-        .signature-space { height: 28px; }
+        .signature-space { height: 68px; }
         .stamp { position: absolute; top: 32%; left: 8%; right: 8%; text-align: center; transform: rotate(-25deg); font-size: 25pt; font-weight: 800; color: rgba(160,55,55,.16); }
         .footer { margin-top: 10px; font-size: 7pt; color: #64748b; }
         .pdf-export { background: white; }
@@ -88,7 +89,7 @@
         <h1>{{ $voucher->direction === 'receipt' ? 'PHIẾU THU' : 'PHIẾU CHI' }}</h1>
         <div class="center muted">Ngày {{ \Illuminate\Support\Carbon::parse($voucher->voucher_date)->format('d') }} tháng {{ \Illuminate\Support\Carbon::parse($voucher->voucher_date)->format('m') }} năm {{ \Illuminate\Support\Carbon::parse($voucher->voucher_date)->format('Y') }}</div>
         <div class="details">
-            <div class="line"><span class="label">{{ $voucher->direction === 'receipt' ? 'Người nộp tiền:' : 'Người nhận tiền:' }}</span><span class="value">{{ $voucher->origin === 'manual' ? $voucher->counterparty : $voucher->source_counterparty }}</span></div>
+            <div class="line"><span class="label">{{ $voucher->direction === 'receipt' ? 'Người nộp tiền:' : 'Người nhận tiền:' }}</span><span class="value counterparty">{{ $voucher->origin === 'manual' ? $voucher->counterparty : $voucher->source_counterparty }}</span></div>
             <div class="line"><span class="label">Nội dung:</span><span class="value">{{ $voucher->origin === 'manual' ? $voucher->description : 'Thanh toán chứng từ '.$voucher->source_document_code }}</span></div>
             @if($voucher->origin === 'manual' && $printSettings['show_category'])
                 <div class="line"><span class="label">Nghiệp vụ:</span><span class="value">{{ $voucher->category_name ?: $voucher->manual_category }}</span></div>
