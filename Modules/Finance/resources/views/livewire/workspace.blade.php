@@ -10,6 +10,7 @@
         <nav aria-label="Không gian Finance" class="flex flex-wrap gap-2">
             <button type="button" wire:click="$set('workspaceTab', 'overview')" class="min-h-10 rounded-lg px-4 text-sm font-semibold {{ $workspaceTab === 'overview' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700' }}">Tổng quan</button>
             <button type="button" wire:click="$set('workspaceTab', 'compose')" class="min-h-10 rounded-lg px-4 text-sm font-semibold {{ $workspaceTab === 'compose' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700' }}">Lập phiếu</button>
+            <button type="button" wire:click="$set('workspaceTab', 'treasury')" class="min-h-10 rounded-lg px-4 text-sm font-semibold {{ $workspaceTab === 'treasury' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700' }}">Quỹ & Ngân hàng</button>
             <button type="button" wire:click="$set('workspaceTab', 'ledger')" class="min-h-10 rounded-lg px-4 text-sm font-semibold {{ $workspaceTab === 'ledger' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700' }}">Sổ chứng từ</button>
         </nav>
         @can('finance.account.manage')
@@ -18,6 +19,61 @@
             <button type="button" wire:click="$toggle('showAccounts')" class="min-h-10 rounded-lg border border-slate-300 px-4 text-sm font-semibold text-slate-700">⚙ Tài khoản thu/chi</button>
         @endcan
     </div>
+    @if($workspaceTab === 'treasury')
+        <section class="space-y-4 rounded-xl border border-slate-200 bg-white p-4">
+            <h2 class="text-lg font-bold text-slate-900">Số dư quỹ tiền mặt và ngân hàng</h2>
+            <p class="text-xs text-slate-500">Số dư = đầu kỳ + bút toán thu/chi đã ghi sổ + chuyển tiền nội bộ. Chuyển tiền nội bộ không tính vào doanh thu hoặc chi phí.</p>
+            <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                @foreach($treasuryBalances as $accountBalance)
+                    <div class="rounded-xl border border-slate-200 p-3" wire:key="treasury-{{ $accountBalance->id }}">
+                        <p class="text-xs font-semibold text-slate-500">{{ $accountBalance->kind === 'cash' ? 'Tiền mặt' : 'Ngân hàng' }} · {{ $accountBalance->code }}</p>
+                        <p class="mt-1 text-sm font-semibold text-slate-900">{{ $accountBalance->name }}</p>
+                        <p class="mt-2 text-xl font-bold tabular-nums text-indigo-700">{{ number_format((float) $accountBalance->balance, 0, ',', '.') }} {{ $accountBalance->currency }}</p>
+                    </div>
+                @endforeach
+            </div>
+            @can('finance.account.manage')
+                <form wire:submit="saveOpeningBalance" class="grid gap-3 rounded-xl bg-slate-50 p-3 sm:grid-cols-4">
+                    <div class="sm:col-span-4 text-sm font-bold">Thiết lập số dư đầu kỳ (chỉ trước phát sinh đầu tiên)</div>
+                    <select wire:model="openingAccount" class="min-h-10 rounded-lg border border-slate-300 px-3 sm:col-span-2" aria-label="Tài khoản số dư đầu kỳ">
+                        <option value="">Chọn tài khoản</option>
+                        @foreach($accounts as $account)<option value="{{ $account->id }}">{{ $account->code }} — {{ $account->name }}</option>@endforeach
+                    </select>
+                    <input wire:model="openingAmount" inputmode="decimal" placeholder="Số dư đầu kỳ" class="min-h-10 rounded-lg border border-slate-300 px-3" />
+                    <button type="submit" class="min-h-10 rounded-lg bg-slate-800 px-3 text-sm font-semibold text-white">Lưu số dư</button>
+                </form>
+            @endcan
+            @can('finance.voucher.post')
+                <form wire:submit="saveInternalTransfer" class="grid gap-3 rounded-xl border border-indigo-100 bg-indigo-50/40 p-3 sm:grid-cols-2">
+                    <div class="sm:col-span-2 text-sm font-bold">Chuyển tiền nội bộ / Nộp tiền vào ngân hàng</div>
+                    <select wire:model="transferFrom" class="min-h-10 rounded-lg border border-slate-300 px-3" aria-label="Tài khoản chuyển">
+                        <option value="">Từ tài khoản</option>
+                        @foreach($accounts as $account) @if($account->is_active)<option value="{{ $account->id }}">{{ $account->name }} ({{ $account->code }})</option>@endif @endforeach
+                    </select>
+                    <select wire:model="transferTo" class="min-h-10 rounded-lg border border-slate-300 px-3" aria-label="Tài khoản nhận">
+                        <option value="">Đến tài khoản</option>
+                        @foreach($accounts as $account) @if($account->is_active)<option value="{{ $account->id }}">{{ $account->name }} ({{ $account->code }})</option>@endif @endforeach
+                    </select>
+                    <input wire:model="transferAmount" inputmode="decimal" placeholder="Số tiền, ví dụ 5000000.00" class="min-h-10 rounded-lg border border-slate-300 px-3" />
+                    <input wire:model="transferDate" type="date" class="min-h-10 rounded-lg border border-slate-300 px-3" />
+                    <input wire:model="transferDescription" placeholder="Nội dung chuyển tiền" class="min-h-10 rounded-lg border border-slate-300 px-3 sm:col-span-2" />
+                    <button type="submit" wire:confirm="Xác nhận chuyển tiền nội bộ? Thao tác này ghi nhận ngay vào số dư hai tài khoản." class="min-h-10 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white sm:col-span-2">Xác nhận chuyển tiền</button>
+                </form>
+            @endcan
+            <h3 class="text-sm font-bold">Lịch sử chuyển tiền gần đây</h3>
+            <div class="overflow-x-auto"><table class="min-w-full text-left text-sm">
+                <thead><tr class="border-b border-slate-200 text-slate-500"><th class="p-2">Ngày / Mã</th><th class="p-2">Từ → Đến</th><th class="p-2 text-right">Số tiền</th></tr></thead>
+                <tbody>
+                    @forelse($internalTransfers as $transfer)
+                        <tr class="border-b border-slate-100"><td class="p-2">{{ $transfer->transfer_date }}<div class="text-xs text-slate-500">{{ $transfer->number }}</div></td><td class="p-2">{{ $transfer->from_name }} → {{ $transfer->to_name }}<div class="text-xs text-slate-500">{{ $transfer->description }}</div></td><td class="p-2 text-right tabular-nums">{{ number_format((float) $transfer->amount, 0, ',', '.') }}</td></tr>
+                    @empty
+                        <tr><td colspan="3" class="p-4 text-center text-slate-500">Chưa có chuyển tiền nội bộ.</td></tr>
+                    @endforelse
+                </tbody>
+            </table></div>
+        </section>
+    @endif
+
     @can('finance.account.manage')
     @if($showAccounts)
         <section class="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
