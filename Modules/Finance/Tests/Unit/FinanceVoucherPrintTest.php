@@ -39,7 +39,7 @@ final class FinanceVoucherPrintTest extends TestCase
         $this->assertStringContainsString('ĐÃ HOÀN TÁC', $view);
         $this->assertStringContainsString('window.print()', $view);
         $this->assertStringContainsString("font-family: 'DejaVu Sans'", $view);
-        $this->assertStringContainsString('.pdf-export .paper { position: static; width: auto; min-height: 0; padding: 0;', $view);
+        $this->assertStringContainsString('.pdf-export .paper { position: static; width: {{ $paperWidth }}mm; min-height: 0; padding: {{ $safeMargin }}mm;', $view);
         $this->assertStringContainsString('.signatures > div { display: table-cell;', $view);
         $this->assertStringContainsString('admin.finance.vouchers.print', $ledger);
         $this->assertStringContainsString('.line { display: table; table-layout: fixed;', $view);
@@ -56,5 +56,8 @@ final class FinanceVoucherPrintTest extends TestCase
         $this->assertStringContainsString("'defaultFont' => 'DejaVu Sans'", $controller);
         $this->assertStringContainsString("'isRemoteEnabled' => false", $controller);
         $this->assertStringContainsString('charset=utf-8', $view);
+        $this->assertStringContainsString("max(12, (int) \$printSettings['margin_mm'])", $view);
+        $this->assertStringContainsString('margin: 0; }', $view);
+        $this->assertStringContainsString('padding: {{ $safeMargin }}mm; margin: auto;', $view);
     }
 }
