@@ -7,7 +7,7 @@
     <title>{{ $voucher->direction === 'receipt' ? 'Phiếu thu' : 'Phiếu chi' }} — {{ $voucher->number }}</title>
     <style>
         @php
-            $printSettings = array_replace((require dirname(__DIR__, 3).'/config/print.php')['defaults'], $printSettings);
+            $printSettings = array_replace((require base_path('Modules/Finance/config/print.php'))['defaults'], $printSettings);
             $landscape = $printSettings['orientation'] === 'landscape';
             $paperWidth = $printSettings['paper'] === 'A5' ? ($landscape ? 210 : 148) : ($landscape ? 297 : 210);
             $paperHeight = $printSettings['paper'] === 'A5' ? ($landscape ? 148 : 210) : ($landscape ? 210 : 297);
