@@ -13,6 +13,62 @@ use Modules\Finance\Services\VoucherPostingService;
 
 final class Workspace extends Component
 {
+    public ?int $editingAccountId = null;
+    public string $openingAmountDisplay = '0';
+    public string $transferAmountDisplay = '';
+
+    public function updatedOpeningAmountDisplay(string $value): void
+    {
+        $this->openingAmount = $this->normalizeVndInput($value);
+        $this->openingAmountDisplay = $this->formatVnd($this->openingAmount);
+    }
+
+    public function updatedTransferAmountDisplay(string $value): void
+    {
+        $this->transferAmount = $this->normalizeVndInput($value);
+        $this->transferAmountDisplay = $this->formatVnd($this->transferAmount);
+    }
+
+    private function normalizeVndInput(string $value): string
+    {
+        if (! preg_match('/^[0-9., ]*$/', trim($value))) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['amount' => 'Chỉ nhập số tiền VND và dấu phân cách hàng nghìn.']);
+        }
+        $digits = preg_replace('/[^0-9]/', '', $value);
+        if (strlen($digits) > 15) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['amount' => 'Số tiền vượt giới hạn.']);
+        }
+        return ltrim($digits, '0') ?: '0';
+    }
+
+    public function editAccount(int $accountId): void
+    {
+        abort_unless(auth('admin')->user()?->can('finance.account.manage'), 403);
+        $account = DB::table('finance_accounts')->where('id', $accountId)->first();
+        abort_unless($account, 404);
+        $this->editingAccountId = $accountId;
+        $this->accountCode = $account->code;
+        $this->accountName = $account->name;
+        $this->accountKind = $account->kind;
+        $this->bankName = $account->bank_name ?? '';
+        $this->bankAccountNumber = $account->bank_account_number ?? '';
+        $this->bankAccountHolder = $account->bank_account_holder ?? '';
+        $this->cashCustodian = $account->cash_custodian ?? '';
+        $this->cashLocation = $account->cash_location ?? '';
+        $this->showAccounts = true;
+        $this->showAccountForm = true;
+    }
+
+    public function openCreateAccount(): void
+    {
+        abort_unless(auth('admin')->user()?->can('finance.account.manage'), 403);
+        $this->editingAccountId = null;
+        $this->reset('accountCode', 'accountName', 'bankName', 'bankAccountNumber', 'bankAccountHolder', 'cashCustodian', 'cashLocation');
+        $this->accountKind = 'bank';
+        $this->showAccounts = true;
+        $this->showAccountForm = true;
+    }
+
     public string $transferFrom = '';
     public string $transferTo = '';
     public string $transferAmount = '';
@@ -29,6 +85,9 @@ final class Workspace extends Component
             'openingAmount' => 'required|regex:/^\d{1,15}(?:\.\d{1,2})?$/',
         ]);
         app(FinanceTreasuryService::class)->setOpeningBalance((int) $data['openingAccount'], $data['openingAmount']);
+        $this->openingAmount = '0';
+        $this->openingAmountDisplay = '0';
+        $this->dispatch('finance-opening-saved');
         session()->flash('finance_success', 'Đã lưu số dư đầu kỳ.');
     }
 
@@ -47,6 +106,8 @@ final class Workspace extends Component
             $data['transferAmount'], $data['transferDate'], $data['transferDescription'], auth('admin')->id()
         );
         $this->transferAmount = '';
+        $this->transferAmountDisplay = '';
+        $this->dispatch('finance-transfer-saved');
         $this->transferDescription = '';
         session()->flash('finance_success', 'Đã ghi nhận chuyển tiền nội bộ (không tính vào thu/chi kinh doanh).');
     }
@@ -197,6 +258,10 @@ final class Workspace extends Component
 
     public function createAccount(): void
     {
+        if ($this->editingAccountId !== null) {
+            $this->updateAccount();
+            return;
+        }
         abort_unless(auth('admin')->user()?->can('finance.account.manage'), 403);
         $this->validate([
             'accountCode' => 'required|string|max:40',
@@ -225,6 +290,32 @@ final class Workspace extends Component
         $this->reset('accountCode', 'accountName', 'bankName', 'bankAccountNumber', 'bankAccountHolder', 'cashCustodian', 'cashLocation');
         $this->showAccountForm = false;
         session()->flash('finance_success', 'Đã tạo tài khoản thu/chi.');
+    }
+
+    public function updateAccount(): void
+    {
+        abort_unless(auth('admin')->user()?->can('finance.account.manage'), 403);
+        abort_unless($this->editingAccountId !== null, 422);
+        $this->validate(['accountName' => 'required|string|max:255']);
+        $this->validate($this->accountKind === 'bank' ? [
+            'bankName' => 'required|string|max:255',
+            'bankAccountNumber' => 'required|string|max:100',
+            'bankAccountHolder' => 'required|string|max:255',
+        ] : [
+            'cashCustodian' => 'required|string|max:255',
+            'cashLocation' => 'required|string|max:255',
+        ]);
+        app(FinanceWorkflowService::class)->updateDetailedAccount($this->editingAccountId, $this->accountName, [
+            'bank_name' => $this->bankName,
+            'bank_account_number' => $this->bankAccountNumber,
+            'bank_account_holder' => $this->bankAccountHolder,
+            'cash_custodian' => $this->cashCustodian,
+            'cash_location' => $this->cashLocation,
+        ]);
+        $this->editingAccountId = null;
+        $this->showAccountForm = false;
+        $this->dispatch('finance-account-saved');
+        session()->flash('finance_success', 'Đã cập nhật thông tin tài khoản.');
     }
 
     public function updatedAmountDisplay(string $value): void
