@@ -12,7 +12,7 @@ final class FinanceTreasuryUxContractTest extends TestCase
         $service = file_get_contents($base.'/Services/FinanceWorkflowService.php');
         $component = file_get_contents($base.'/Livewire/Workspace.php');
         $this->assertStringContainsString('function updateDetailedAccount(', $service);
-        $this->assertStringContainsString("where('id', $accountId)->lockForUpdate()", $service);
+        $this->assertStringContainsString("where('id', \$accountId)->lockForUpdate()", $service);
         $this->assertStringContainsString("can('finance.account.manage')", $component);
         $this->assertStringContainsString('function editAccount(', $component);
         $this->assertStringContainsString('function updateAccount(', $component);
