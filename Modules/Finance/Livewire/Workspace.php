@@ -26,7 +26,7 @@ final class Workspace extends Component
         abort_unless(auth('admin')->user()?->can('finance.account.manage'), 403);
         $data = $this->validate([
             'openingAccount' => 'required|integer|min:1',
-            'openingAmount' => 'required|regex:/^\\d{1,15}(?:\\.\\d{1,2})?$/',
+            'openingAmount' => 'required|regex:/^\d{1,15}(?:\.\d{1,2})?$/',
         ]);
         app(FinanceTreasuryService::class)->setOpeningBalance((int) $data['openingAccount'], $data['openingAmount']);
         session()->flash('finance_success', 'Đã lưu số dư đầu kỳ.');
@@ -38,7 +38,7 @@ final class Workspace extends Component
         $data = $this->validate([
             'transferFrom' => 'required|integer|min:1',
             'transferTo' => 'required|integer|min:1|different:transferFrom',
-            'transferAmount' => 'required|regex:/^\\d{1,15}(?:\\.\\d{1,2})?$/',
+            'transferAmount' => 'required|regex:/^\d{1,15}(?:\.\d{1,2})?$/',
             'transferDate' => 'required|date_format:Y-m-d',
             'transferDescription' => 'required|string|max:255',
         ]);
@@ -230,7 +230,7 @@ final class Workspace extends Component
     public function updatedAmountDisplay(string $value): void
     {
         $value = trim($value);
-        if ($value !== '' && ! preg_match('/^\\d[\\d., ]*$/', $value)) {
+        if ($value !== '' && ! preg_match('/^\d[\d., ]*$/', $value)) {
             $this->addError('amountDisplay', 'Số tiền chỉ được chứa chữ số và dấu phân cách.');
             return;
         }
@@ -264,7 +264,7 @@ final class Workspace extends Component
             'manualReference' => 'nullable|string|max:100',
             'manualDate' => 'required|date_format:Y-m-d',
             'accountId' => 'required|integer|min:1',
-            'amount' => 'required|regex:/^\\d{1,15}(?:\\.\\d{1,2})?$/',
+            'amount' => 'required|regex:/^\d{1,15}(?:\.\d{1,2})?$/',
         ];
     }
 
