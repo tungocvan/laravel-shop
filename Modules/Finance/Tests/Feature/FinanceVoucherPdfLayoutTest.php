@@ -64,12 +64,13 @@ final class FinanceVoucherPdfLayoutTest extends TestCase
         $main = $this->findFrameByTag($pdf->getDomPDF()->getTree()->get_root(), 'main');
         $this->assertNotNull($main, 'DomPDF must retain the printable voucher frame.');
         [$x, $y] = $main->get_position();
-        $width = $main->get_margin_width();
+        $borderBox = $main->get_border_box();
+        $right = $borderBox[0] + $borderBox[2];
         $pageWidth = $pdf->getDomPDF()->getCanvas()->get_width();
 
         $this->assertGreaterThanOrEqual(30.0, $x, 'Content must start at least ~10mm from the left edge.');
         $this->assertGreaterThanOrEqual(30.0, $y, 'Content must start at least ~10mm from the top edge.');
-        $this->assertLessThanOrEqual($pageWidth - 30.0, $x + $width, 'Content must stay within the right printable edge.');
+        $this->assertLessThanOrEqual($pageWidth - 30.0, $right, 'Content must stay within the right printable edge.');
     }
     private function findFrameByTag($frame, string $tag)
     {
