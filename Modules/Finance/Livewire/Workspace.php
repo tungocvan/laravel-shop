@@ -96,7 +96,8 @@ final class Workspace extends Component
     public bool $showAccountForm = false;
     public string $amountDisplay = '';
     public ?array $balance = null;
-    public string $workspaceTab = 'compose';
+    public string $workspaceTab = 'overview';
+    public bool $showVoucherOperations = false;
     public bool $showHistory = false;
     public string $ledgerDirection = '';
     public string $ledgerDateFrom = '';
@@ -434,7 +435,9 @@ final class Workspace extends Component
             'category' => $this->ledgerCategory,
             'counterparty' => $this->ledgerCounterparty,
         ];
-        $reportTotals = $reportService->totals($reportFilters);
+        $reportTotals = $this->workspaceTab === 'overview' || $this->workspaceTab === 'ledger'
+            ? $reportService->totals($reportFilters)
+            : ['receipts' => '0', 'payments' => '0', 'net' => '0', 'voucher_count' => 0];
         $reportRows = $this->workspaceTab === 'ledger'
             ? $reportService->query($reportFilters)->orderByDesc('v.voucher_date')->orderByDesc('v.id')->limit(100)->get()
             : collect();
