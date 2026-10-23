@@ -10,9 +10,10 @@
             $landscape = $printSettings['orientation'] === 'landscape';
             $paperWidth = $printSettings['paper'] === 'A5' ? ($landscape ? 210 : 148) : ($landscape ? 297 : 210);
             $paperHeight = $printSettings['paper'] === 'A5' ? ($landscape ? 148 : 210) : ($landscape ? 210 : 297);
-            $printMargin = max(10, (int) $printSettings['margin_mm']);
+            $printMargin = max(12, (int) $printSettings['margin_mm']);
+            $contentWidth = $paperWidth - 2 * $printMargin;
         @endphp
-        @page { size: {{ $printSettings['paper'] }} {{ $printSettings['orientation'] }}; margin: {{ $printMargin }}mm; }
+        @page { size: {{ $printSettings['paper'] }} {{ $printSettings['orientation'] }}; margin: 0; }
         * { box-sizing: border-box; }
         html, body, div, span, strong, small, h1, p, main, table, td { font-family: 'DejaVu Sans', 'DejaVuSans', sans-serif !important; }
         strong, b, h1 { font-weight: 700; }
@@ -22,9 +23,9 @@
         .toolbar button, .toolbar a { border: 1px solid #cbd5e1; background: white; color: #111827; border-radius: 6px; padding: 9px 14px; font: inherit; text-decoration: none; cursor: pointer; }
         .paper { position: relative; width: {{ $paperWidth }}mm; min-height: {{ $paperHeight }}mm; padding: {{ $printMargin }}mm; margin: auto; background: #fff; box-shadow: 0 4px 25px #0001; }
         .head { display: table; width: 100%; table-layout: fixed; }
-        .head > div { display: table-cell; width: 50%; vertical-align: top; overflow-wrap: anywhere; word-wrap: break-word; }
+        .head > div { display: table-cell; width: 50%; max-width: 50%; vertical-align: top; overflow-wrap: anywhere; word-wrap: break-word; }
         .head small { display: block; color: #475569; font-size: 7.5pt; }
-        .meta { text-align: right; font-size: 7.5pt; overflow-wrap: anywhere; word-wrap: break-word; }
+        .meta { text-align: right; font-size: 7.5pt; overflow-wrap: anywhere; word-wrap: break-word; padding-left: 5mm; }
         h1 { text-align: center; font-size: 14pt; letter-spacing: .02em; margin: 9px 0 2px; }
         .center { text-align: center; }
         .muted { color: #64748b; }
@@ -42,14 +43,14 @@
         .stamp { position: absolute; top: 32%; left: 8%; right: 8%; text-align: center; transform: rotate(-25deg); font-size: 25pt; font-weight: 800; color: rgba(160,55,55,.16); }
         .footer { margin-top: 10px; font-size: 7pt; color: #64748b; }
         .pdf-export { background: white; }
-        .pdf-export .paper { position: static; width: 100%; min-height: 0; padding: 0; margin: 0; box-shadow: none; }
+        .pdf-export .paper { position: static; width: {{ $contentWidth }}mm; min-height: 0; padding: 0; margin: {{ $printMargin }}mm 0 0 {{ $printMargin }}mm; box-shadow: none; }
         .pdf-export .head, .pdf-export .line, .pdf-export .signatures { display: table; }
         .pdf-export .signatures > div { display: table-cell; }
         .pdf-export .amount, .pdf-export .signatures { page-break-inside: avoid; }
         @media print {
             html, body { background: white; margin: 0; padding: 0; }
             .toolbar { display: none !important; }
-            .paper { width: 100%; min-height: 0; padding: 0; margin: 0; box-shadow: none; }
+            .paper { width: {{ $contentWidth }}mm; min-height: 0; padding: 0; margin: {{ $printMargin }}mm 0 0 {{ $printMargin }}mm; box-shadow: none; }
             .amount, .signatures { page-break-inside: avoid; }
         }
         @media screen and (max-width: 560px) {
