@@ -62,6 +62,36 @@ final class FinanceWorkflowService
         });
     }
 
+    public function updateDetailedAccount(int $accountId, string $name, array $details): void
+    {
+        $allowed = ['bank_name', 'bank_account_number', 'bank_account_holder', 'cash_custodian', 'cash_location'];
+        if (array_diff(array_keys($details), $allowed)) {
+            throw ValidationException::withMessages(['account' => 'Unknown account metadata.']);
+        }
+        DB::transaction(function () use ($accountId, $name, $details): void {
+            $account = DB::table('finance_accounts')->where('id', $accountId)->lockForUpdate()->first();
+            if (! $account) {
+                throw ValidationException::withMessages(['account' => 'Account not found.']);
+            }
+            if (trim($name) === '' || mb_strlen(trim($name)) > 255) {
+                throw ValidationException::withMessages(['accountName' => 'Invalid account name.']);
+            }
+            $required = $account->kind === 'bank'
+                ? ['bank_name', 'bank_account_number', 'bank_account_holder']
+                : ['cash_custodian', 'cash_location'];
+            $changes = ['name' => trim($name), 'updated_at' => now()];
+            foreach ($allowed as $key) {
+                $value = trim((string) ($details[$key] ?? ''));
+                if (mb_strlen($value) > ($key === 'bank_account_number' ? 100 : 255)
+                    || (in_array($key, $required, true) && $value === '')) {
+                    throw ValidationException::withMessages([$key => 'Invalid account detail.']);
+                }
+                $changes[$key] = in_array($key, $required, true) ? $value : null;
+            }
+            DB::table('finance_accounts')->where('id', $accountId)->update($changes);
+        }, 3);
+    }
+
     public function outstanding(string $module, string $type, string $documentId): array
     {
         return DB::transaction(function () use ($module, $type, $documentId): array {
