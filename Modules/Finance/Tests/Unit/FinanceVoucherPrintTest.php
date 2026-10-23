@@ -39,14 +39,14 @@ final class FinanceVoucherPrintTest extends TestCase
         $this->assertStringContainsString('ĐÃ HOÀN TÁC', $view);
         $this->assertStringContainsString('window.print()', $view);
         $this->assertStringContainsString("font-family: 'DejaVu Sans'", $view);
-        $this->assertStringContainsString('.pdf-export .paper { position: static; width: {{ $paperWidth }}mm; min-height: 0; padding: {{ $safeMargin }}mm;', $view);
+        $this->assertStringContainsString('.pdf-export .paper { position: static; width: 100%; min-height: 0; padding: 0;', $view);
         $this->assertStringContainsString('.signatures > div { display: table-cell;', $view);
         $this->assertStringContainsString('admin.finance.vouchers.print', $ledger);
         $this->assertStringContainsString('.line { display: table; table-layout: fixed;', $view);
         $this->assertStringContainsString('.line .value { display: table-cell;', $view);
         $this->assertStringContainsString('.signatures { display: table;', $view);
-        $this->assertStringContainsString('.signature-space { height: 35px;', $view);
-        $this->assertStringContainsString('.pdf-export .amount, .pdf-export .signatures { page-break-inside: avoid;', $view);
+        $this->assertStringContainsString('.signature-space { height: 28px;', $view);
+        $this->assertStringContainsString('.pdf-export .signatures > div { display: table-cell;', $view);
         $this->assertStringContainsString('<div class="details">', $view);
         $this->assertStringContainsString("printSettings['orientation'] === 'landscape'", $view);
         $this->assertStringContainsString('$paperWidth', $view);
@@ -56,8 +56,13 @@ final class FinanceVoucherPrintTest extends TestCase
         $this->assertStringContainsString("'defaultFont' => 'DejaVu Sans'", $controller);
         $this->assertStringContainsString("'isRemoteEnabled' => false", $controller);
         $this->assertStringContainsString('charset=utf-8', $view);
-        $this->assertStringContainsString("max(12, (int) \$printSettings['margin_mm'])", $view);
-        $this->assertStringContainsString('margin: 0; }', $view);
-        $this->assertStringContainsString('padding: {{ $safeMargin }}mm; margin: auto;', $view);
+        $this->assertStringContainsString("max(10, (int) \$printSettings['margin_mm'])", $view);
+        $this->assertStringContainsString('margin: {{ $printMargin }}mm; }', $view);
+        $this->assertStringContainsString('padding: {{ $printMargin }}mm; margin: auto;', $view);
+        $this->assertStringContainsString('.amount { border: 0; padding: 0;', $view);
+        $this->assertStringContainsString('Bằng chữ: {{ $amountInWords }}', $view);
+        $this->assertStringNotContainsString('<strong>{{ $amountInWords }}</strong>', $view);
+        $this->assertStringContainsString('font-size: 14pt;', $view);
+        $this->assertStringContainsString('font-weight: 400;', $view);
     }
 }
