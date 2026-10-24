@@ -77,3 +77,8 @@ Finance debt form uses shared `x-pwa-select-search` presentation and a Finance-l
 ### Checkpoint 4.4 — Shared search and money UI
 
 Existing global `<x-search>` retains its default search-input behavior. New `variant="select"` delegates to `resources/views/components/search-select.blade.php`, a reusable Alpine/Livewire dropdown with generic options, selected id, search model and select action. Finance supplies Partner-specific data and validates identity and role server-side; no Partner business logic is embedded in the shared component. Manual due date defaults to current application date + 30 days on opening the create form, remains editable. Debt detail displays whole VND; signed adjustment input groups thousands while sending raw signed digits to the existing Finance validation. Stored decimal precision is unchanged.
+
+
+### Checkpoint 5.2 — manual debt balance presentation
+
+Selected manual debt details show original amount, sum of all append-only signed adjustment events, and resulting adjusted principal. The total is computed using SQL DECIMAL arithmetic over **all** events, independently of the latest-100 event history display limit; values are formatted for VND without PHP float conversion. This is **not** an outstanding receivable/payable after cash settlement: voucher allocations, payments and reconciliation remain out of scope. The original debt amount and event records are unchanged. UI acceptance and tests are pending user execution.
