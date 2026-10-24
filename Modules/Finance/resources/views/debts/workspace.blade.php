@@ -51,14 +51,18 @@
                 <h1 class="mt-1 text-2xl font-bold text-slate-950">{{ $current[1] }}</h1>
                 <p class="mt-1 text-sm text-slate-600">{{ $current[2] }}</p>
             </header>
+            @if ($section === 'documents')
+                <livewire:finance.debt-workspace />
+            @else
             <section class="rounded-xl border border-amber-200 bg-amber-50 p-5" aria-label="Trạng thái triển khai">
                 <h2 class="text-base font-semibold text-amber-950">Không gian công nợ đang được xây dựng</h2>
                 <p class="mt-2 text-sm leading-6 text-amber-900">
-                    Đây là bước đầu thiết lập sidebar riêng và điều hướng. Chưa có dữ liệu công nợ được ghi nhận hoặc đồng bộ từ Invoices.
+                    Chưa có dữ liệu công nợ được đồng bộ từ Invoices. Công nợ thủ công được quản lý tại mục Chứng từ.
                     Các số dư, biểu đồ và báo cáo sẽ chỉ xuất hiện sau khi hợp đồng tích hợp hóa đơn và quy tắc ghi nhận công nợ được kiểm thử.
                 </p>
                 <p class="mt-2 text-sm text-amber-900">Thu/chi hiện tại vẫn do Finance quản lý; không tạo chứng từ hoặc thay đổi sổ quỹ từ màn hình này.</p>
             </section>
+            @endif
         </main>
     </div>
 </div>
