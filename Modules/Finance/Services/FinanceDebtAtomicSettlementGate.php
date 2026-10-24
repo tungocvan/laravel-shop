@@ -19,7 +19,7 @@ final class FinanceDebtAtomicSettlementGate
         // Validate outside transaction; the plan is not execution authority.
         (new FinanceDebtSettlementTransactionProtocol)->plan($debtId, $voucherId, $key, $operation);
 
-        DB::transaction(function () use ($debtId, $voucherId, $operation): void {
+        DB::transaction(function () use ($debtId, $voucherId, $operation, $key): void {
             // Deterministic lock order. A missing record fails closed.
             $debt = DB::table('finance_debt_obligations')->where('id', $debtId)->lockForUpdate()->first();
             if ($debt === null) {
@@ -50,7 +50,30 @@ final class FinanceDebtAtomicSettlementGate
                     ->where('source_document_id', $link['source_id'])
                     ->orderBy('id')->lockForUpdate()->get(['id']);
                 (new FinanceDebtSettlementSourceOwnership)->inspect($debtId, $voucherId);
-            }\n
+            }
+
+            // CP17: under the debt lock, inspect the idempotency scope without
+            // reserving it. The unique index remains the final duplicate guard
+            // for any future approved writer.
+            $duplicate = DB::table('finance_debt_idempotency_keys')
+                ->where('obligation_id', $debtId)
+                ->where('operation', $operation)
+                ->where('idempotency_key', $key)
+                ->exists();
+            if ($duplicate) {
+                throw ValidationException::withMessages(['settlement' => 'Duplicate settlement idempotency key.']);
+            }
+
+            // Lock existing mappings before reading any projected amount.
+            // These rows do NOT constitute a reliable outstanding balance,
+            // because absent/new mappings and reversal ownership are unresolved.
+            if (DB::getSchemaBuilder()->hasTable('finance_debt_settlement_mappings')) {
+                DB::table('finance_debt_settlement_mappings')
+                    ->where('obligation_id', $debtId)
+                    ->orderBy('id')->lockForUpdate()->get(['id']);
+            }
+            (new FinanceDebtBalanceReader)->forObligation($debtId);
+
             // Source identity and principal remain diagnostic only. Even if
             // inspection succeeds, the authoritative debt settlement mapping
             // and reversal ownership do not yet exist.
