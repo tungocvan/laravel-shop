@@ -3,15 +3,7 @@
     query: '',
     selectedLabel: '',
     init() {
-        this.$nextTick(() => {
-            this.sync();
-            const trigger = this.$el.querySelector('[data-pwa-select-search-trigger]');
-            const input = this.$el.querySelector('[data-pwa-select-search-input]');
-            trigger?.addEventListener('click', () => { this.open = !this.open; this.renderPanel(); if (this.open) input?.focus(); });
-            input?.addEventListener('input', (event) => { this.query = event.target.value; this.search(); });
-            this.$watch('open', () => this.renderPanel());
-            this.$watch('selectedLabel', () => this.renderPanel());
-        });
+        this.$nextTick(() => this.sync());
     },
     renderPanel() {
         const panel = this.$el.querySelector('[data-pwa-select-search-panel]');
@@ -35,8 +27,15 @@
     },
     search() {
         this.$wire.searchPartners(this.query);
+    },
+    handleClick(event) {
+        if (event.target.closest('[data-pwa-select-search-trigger]')) {
+            this.open = !this.open;
+            this.renderPanel();
+            if (this.open) this.$nextTick(() => this.$el.querySelector('[data-pwa-select-search-input]')?.focus());
+        }
     }
-}" x-on:keydown.escape.window="open = false" x-on:click.outside="open = false">
+}" x-on:keydown.escape.window="open = false; renderPanel()" x-on:click.outside="open = false; renderPanel()" x-on:click="handleClick($event)" x-on:input="if ($event.target.matches('[data-pwa-select-search-input]')) { query = $event.target.value; search() }">
     <label class="block font-medium">Đối tác ({{ $draftDirection === 'payable' ? 'Nhà cung cấp' : 'Khách hàng' }})</label>
     <x-pwa-select-search id="debt-partner-select" name="debt_partner_id" placeholder="Chọn khách hàng / nhà cung cấp" search-placeholder="Tìm theo tên hoặc mã số thuế" :selected="$partnerId">
         @foreach ($partnerOptions as $partner)
