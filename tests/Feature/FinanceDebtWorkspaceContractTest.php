@@ -28,6 +28,6 @@ final class FinanceDebtWorkspaceContractTest extends TestCase
         self::assertStringContainsString('lg:hidden', $view);
         self::assertStringContainsString('Chưa có dữ liệu công nợ', $view);
         self::assertStringContainsString('<livewire:finance.debt-workspace />', $view);
-        self::assertStringContainsString("$"+"section === 'documents'", $view);
+        self::assertStringContainsString('\$section === \'documents\'', $view);
     }
 }
