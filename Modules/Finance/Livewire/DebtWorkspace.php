@@ -5,6 +5,7 @@ namespace Modules\Finance\Livewire;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Livewire\Attributes\On;
 use Modules\Finance\Services\FinanceDebtService;
 use Modules\Finance\Services\PartnerDebtDraftService;
 use Modules\Partner\Models\Partner;
@@ -20,6 +21,7 @@ final class DebtWorkspace extends Component
     public string $reference = '';
     public string $draftDirection = 'receivable';
     public string $partnerSearch = '';
+    public array $partnerOptions = [];
     public string $partnerId = '';
     public string $amount = '';
     public string $dueOn = '';
@@ -49,12 +51,38 @@ final class DebtWorkspace extends Component
     {
         $this->authorizeMutation();
         $this->creating = true;
+        $this->loadPartnerOptions();
     }
 
     public function updatedDraftDirection(): void
     {
         $this->partnerId = '';
         $this->partnerSearch = '';
+        $this->loadPartnerOptions();
+    }
+
+    #[On('finance-debt-partner-search')]
+    public function searchPartners(string $search = ''): void
+    {
+        $this->authorizeMutation();
+        $this->partnerSearch = mb_substr(trim($search), 0, 100);
+        $this->loadPartnerOptions();
+    }
+
+    private function loadPartnerOptions(): void
+    {
+        $this->partnerOptions = [];
+        if (! config('modules.registry.Partner.enabled', false)) {
+            return;
+        }
+        $role = $this->draftDirection === 'payable' ? 'supplier' : 'customer';
+        $query = Partner::query()->where('status', 'active')->withPartnerType($role);
+        if ($this->partnerSearch !== '') {
+            $term = '%'.addcslashes($this->partnerSearch, '%_\\\\').'%';
+            $query->where(fn ($q) => $q->where('name', 'like', $term)->orWhere('tax_code', 'like', $term));
+        }
+        $this->partnerOptions = $query->orderBy('name')->limit(20)->get(['id', 'name', 'tax_code'])
+            ->map(fn ($p) => ['id' => (string) $p->id, 'label' => $p->name.($p->tax_code ? ' — '.$p->tax_code : '')])->all();
     }
 
     public function choosePartner(int $id): void
@@ -130,19 +158,7 @@ final class DebtWorkspace extends Component
         $selected = $this->selectedDebtId === null ? null : DB::table('finance_debt_obligations')->find($this->selectedDebtId);
         $events = $selected ? DB::table('finance_debt_events')->where('obligation_id', $selected->id)->orderByDesc('id')->limit(100)->get() : collect();
 
-        $partners = collect();
-        if ($this->creating && (bool) config('modules.registry.Partner.enabled', false)) {
-            $role = $this->draftDirection === 'payable' ? 'supplier' : 'customer';
-            $partnerQuery = Partner::query()->where('status', 'active')->withPartnerType($role);
-            if (trim($this->partnerSearch) !== '') {
-                $term = '%'.addcslashes(trim($this->partnerSearch), '%_\\\\').'%';
-                $partnerQuery->where(fn ($q) => $q->where('name', 'like', $term)->orWhere('tax_code', 'like', $term));
-            }
-            $partners = $partnerQuery->orderBy('name')->limit(20)->get(['id', 'name', 'tax_code']);
-        }
-
         return view('Finance::livewire.debt-workspace', [
-            'partners' => $partners,
             'debts' => $query->paginate(10),
             'selected' => $selected,
             'events' => $events,
