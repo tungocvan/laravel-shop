@@ -1,4 +1,4 @@
-<div class="space-y-2 text-sm" x-data="{
+<div wire:key="debt-partner-picker-{{ $draftDirection }}" class="space-y-2 text-sm" x-data="{
     open: false,
     query: '',
     selectedLabel: '',
