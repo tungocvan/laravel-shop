@@ -45,6 +45,15 @@ final class FinanceDebtLivewireAuthorizationTest extends TestCase
         Livewire::test(DebtWorkspace::class)->call('searchPartners', 'buyer')->assertForbidden();
     }
 
+    public function test_view_only_admin_cannot_trigger_partner_lookup_by_changing_direction(): void
+    {
+        $this->authenticateWithPermissions(true, false);
+
+        Livewire::test(DebtWorkspace::class)
+            ->set('draftDirection', 'payable')
+            ->assertForbidden();
+    }
+
     public function test_view_only_admin_cannot_confirm_or_adjust_even_with_selected_id(): void
     {
         $this->authenticateWithPermissions(true, false);
