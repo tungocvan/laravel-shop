@@ -79,6 +79,25 @@ final class FinanceDebtServiceTest extends TestCase
         }
     }
 
+    public function test_large_adjustments_reject_overflow_without_inserting_event(): void
+    {
+        $service = new FinanceDebtService;
+        $id = $service->createManualDraft('CN-OVERFLOW', 'receivable', 'Customer', '9999999999999999');
+        $service->confirmManualDraft($id, 1, '2026-10-24');
+
+        for ($i = 0; $i < 8; $i++) {
+            $service->adjustConfirmedDebt($id, '9999999999999999', '2026-10-25', 'Increase', 1);
+        }
+
+        $before = DB::table('finance_debt_events')->where('obligation_id', $id)->count();
+        try {
+            $service->adjustConfirmedDebt($id, '9999999999999999', '2026-10-25', 'Overflow', 1);
+            self::fail('Expected overflow rejection.');
+        } catch (ValidationException $e) {
+            self::assertSame($before, DB::table('finance_debt_events')->where('obligation_id', $id)->count());
+        }
+    }
+
     public function test_invalid_date_and_amount_are_rejected(): void
     {
         $this->expectException(ValidationException::class);
