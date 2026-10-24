@@ -138,3 +138,6 @@ User confirmed Finance regression: 61 passed / 392 assertions / 2 skipped (SQLit
 
 
 2026-10-24 Checkpoint 5.2: implemented Finance-only detail summary for original amount, all-events signed adjustment total and adjusted principal; event history now formats signed VND. SQL DECIMAL aggregation avoids truncating the summary to the latest 100 displayed events and avoids PHP float for summary/formatting. Added FinanceDebtBalanceDisplayTest. No schema changes, settlement or cash ledger writes. Focused/module regression and UI PASS pending user confirmation. PR #323 remains draft; no merge/deploy.
+
+
+2026-10-24 Checkpoint 5.2 test follow-up: user reported Finance regression 79 passed, 1 failed (463 assertions). Root cause: stale FinanceDebtSharedSearchAndMoneyContractTest expected legacy float-based number_format for selected amount, but Checkpoint 5.2 intentionally uses DebtWorkspace::formatVnd. Updated assertion to the new display contract; no business logic or schema changes. Focused tests and Finance regression require rerun; no TEST PASS or UI PASS asserted for this fix.
