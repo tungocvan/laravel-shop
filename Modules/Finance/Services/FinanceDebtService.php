@@ -102,13 +102,18 @@ final class FinanceDebtService
                 if ($eventCents > 0 && $total > PHP_INT_MAX - $eventCents) {
                     throw ValidationException::withMessages(['signed_amount' => 'Debt balance exceeds supported range.']);
                 }
+                if ($eventCents < 0 && $total < -$eventCents) {
+                    throw ValidationException::withMessages(['signed_amount' => 'Stored debt events would make balance negative.']);
+                }
                 $total += $eventCents;
             }
             $delta = $this->cents($amount);
             if ($delta > 0 && $total > PHP_INT_MAX - $delta) {
                 throw ValidationException::withMessages(['signed_amount' => 'Debt balance exceeds supported range.']);
             }
-            if ($total + $delta < 0) {
+            // Compare before addition so the validation never depends on a potentially
+            // overflowing intermediate integer (including the negative direction).
+            if ($delta < 0 && $total < -$delta) {
                 throw ValidationException::withMessages(['signed_amount' => 'Adjustment would make debt negative.']);
             }
 
