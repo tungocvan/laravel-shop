@@ -149,6 +149,20 @@ final class DebtWorkspace extends Component
         session()->flash('debt_notice', 'Đã ghi nhận điều chỉnh.');
     }
 
+    /**
+     * Display a persisted decimal without converting it to float.
+     * Keep fractional digits if legacy records contain non-whole VND.
+     */
+    public static function formatVnd(string $amount): string
+    {
+        $negative = str_starts_with($amount, '-');
+        $parts = explode('.', ltrim($amount, '-'), 2);
+        $integer = preg_replace('/\\B(?=(\\d{3})+(?!\\d))/', '.', $parts[0]);
+        $fraction = rtrim($parts[1] ?? '', '0');
+
+        return ($negative ? '−' : '').$integer.($fraction !== '' ? ','.$fraction : '').' ₫';
+    }
+
     public function render()
     {
         $this->authorizeView();
@@ -165,11 +179,25 @@ final class DebtWorkspace extends Component
         }
         $selected = $this->selectedDebtId === null ? null : DB::table('finance_debt_obligations')->find($this->selectedDebtId);
         $events = $selected ? DB::table('finance_debt_events')->where('obligation_id', $selected->id)->orderByDesc('id')->limit(100)->get() : collect();
+        // Aggregate ALL events, not only the 100 latest displayed in the history.
+        // SQL DECIMAL arithmetic preserves exact monetary values without PHP float rounding.
+        $adjustmentTotal = $selected
+            ? (string) DB::table('finance_debt_events')->where('obligation_id', $selected->id)
+                ->selectRaw('COALESCE(SUM(signed_amount), 0) AS total')->value('total')
+            : '0';
+        $currentBalance = $selected
+            ? (string) DB::table('finance_debt_obligations')
+                ->where('finance_debt_obligations.id', $selected->id)
+                ->selectRaw('(finance_debt_obligations.original_amount + (SELECT COALESCE(SUM(signed_amount), 0) FROM finance_debt_events WHERE obligation_id = finance_debt_obligations.id)) AS balance')
+                ->value('balance')
+            : '0';
 
         return view('Finance::livewire.debt-workspace', [
             'debts' => $query->paginate(10),
             'selected' => $selected,
             'events' => $events,
+            'adjustmentTotal' => $adjustmentTotal,
+            'currentBalance' => $currentBalance,
             'canManage' => (bool) auth('admin')->user()?->can('finance.debt.manage'),
         ]);
     }
