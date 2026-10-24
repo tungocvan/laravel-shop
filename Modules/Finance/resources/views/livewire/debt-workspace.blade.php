@@ -41,9 +41,9 @@
             <h3 class="font-semibold">Chi tiết: {{ $selected->reference_number }}</h3>
             <p class="text-sm">Đối tác: {{ $selected->counterparty_name }} · Trạng thái: {{ $selected->status }} · Số tiền gốc: {{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $selected->original_amount) }}</p>
             <div class="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-3" aria-label="Tổng hợp công nợ">
-                <div><p class="text-xs text-slate-600">Công nợ gốc</p><p class="mt-1 font-semibold tabular-nums text-slate-900">{{ \\Modules\\Finance\\Livewire\\DebtWorkspace::formatVnd((string) $selected->original_amount) }}</p></div>
-                <div><p class="text-xs text-slate-600">Tổng điều chỉnh</p><p class="mt-1 font-semibold tabular-nums text-slate-900">{{ \\Modules\\Finance\\Livewire\\DebtWorkspace::formatVnd($adjustmentTotal) }}</p></div>
-                <div><p class="text-xs text-slate-600">Số dư sau điều chỉnh</p><p class="mt-1 font-semibold tabular-nums text-indigo-800">{{ \\Modules\\Finance\\Livewire\\DebtWorkspace::formatVnd($currentBalance) }}</p></div>
+                <div><p class="text-xs text-slate-600">Công nợ gốc</p><p class="mt-1 font-semibold tabular-nums text-slate-900">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $selected->original_amount) }}</p></div>
+                <div><p class="text-xs text-slate-600">Tổng điều chỉnh</p><p class="mt-1 font-semibold tabular-nums text-slate-900">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd($adjustmentTotal) }}</p></div>
+                <div><p class="text-xs text-slate-600">Số dư sau điều chỉnh</p><p class="mt-1 font-semibold tabular-nums text-indigo-800">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd($currentBalance) }}</p></div>
             </div>
             <p class="text-xs text-slate-500">Số dư công nợ thủ công, chưa trừ thanh toán hoặc đối trừ.</p>
             @if ($canManage && $selected->status === 'draft' && $selected->source_module === null && $selected->source_type === null && $selected->source_document_id === null)
