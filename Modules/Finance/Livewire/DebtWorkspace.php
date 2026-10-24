@@ -177,6 +177,10 @@ final class DebtWorkspace extends Component
         if (in_array($this->status, ['draft', 'confirmed'], true)) {
             $query->where('status', $this->status);
         }
+        // Correlated aggregate is computed by SQL for the paginated rows only.
+        // No per-row queries and no float conversion of persisted DECIMAL values.
+        $query->select('finance_debt_obligations.*')
+            ->selectRaw('(finance_debt_obligations.original_amount + (SELECT COALESCE(SUM(signed_amount), 0) FROM finance_debt_events WHERE obligation_id = finance_debt_obligations.id)) AS adjusted_balance');
         $selected = $this->selectedDebtId === null ? null : DB::table('finance_debt_obligations')->find($this->selectedDebtId);
         $events = $selected ? DB::table('finance_debt_events')->where('obligation_id', $selected->id)->orderByDesc('id')->limit(100)->get() : collect();
         // Aggregate ALL events, not only the 100 latest displayed in the history.
