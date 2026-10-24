@@ -102,4 +102,36 @@ final class FinanceDebtAtomicSettlementGateTest extends TestCase
         $this->expectException(ValidationException::class);
         (new FinanceDebtAtomicSettlementGate)->execute($debt, 999999999, 'atomic-unique-005');
     }
+    public function test_failed_execution_does_not_modify_existing_reservation_or_voucher(): void
+    {
+        [$debt, $voucher] = $this->fixture();
+        DB::table('finance_debt_idempotency_keys')->insert([
+            'obligation_id' => $debt, 'operation' => 'post',
+            'idempotency_key' => 'existing-key-016',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        try {
+            (new FinanceDebtAtomicSettlementGate)->execute($debt, $voucher, 'new-key-016');
+            self::fail('Settlement unexpectedly executed.');
+        } catch (ValidationException $exception) {
+            self::assertSame(1, DB::table('finance_debt_idempotency_keys')->where('obligation_id', $debt)->count());
+            self::assertSame(0, DB::table('finance_debt_events')->where('obligation_id', $debt)->count());
+            self::assertSame('posted', DB::table('finance_vouchers')->where('id', $voucher)->value('status'));
+        }
+    }
+
+    public function test_repeated_execution_never_reserves_idempotency_key(): void
+    {
+        [$debt, $voucher] = $this->fixture();
+        foreach (['repeat-key-016', 'repeat-key-016'] as $key) {
+            try {
+                (new FinanceDebtAtomicSettlementGate)->execute($debt, $voucher, $key);
+                self::fail('Settlement unexpectedly executed.');
+            } catch (ValidationException $exception) {
+                self::assertSame(0, DB::table('finance_debt_idempotency_keys')->where('obligation_id', $debt)->count());
+            }
+        }
+    }
+
 }
