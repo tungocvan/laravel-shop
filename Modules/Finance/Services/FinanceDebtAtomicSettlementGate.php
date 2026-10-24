@@ -35,7 +35,23 @@ final class FinanceDebtAtomicSettlementGate
                 throw ValidationException::withMessages(['settlement' => 'Voucher lifecycle is incompatible with requested operation.']);
             }
 
-            // CP16: read source ownership under the same transaction boundary.\n            // Lock the exact linked source before reading its allocations.\n            // A missing source is not authority to settle; legacy manual debts\n            // still reach the unconditional fail-closed gate below.\n            $link = (new FinanceDebtSourceLinkReader)->forObligation($debtId);\n            if ($link !== null) {\n                $source = DB::table('finance_source_documents')\n                    ->where('id', $link['source_id'])->lockForUpdate()->first();\n                if ($source === null) {\n                    throw ValidationException::withMessages(['settlement' => 'Linked source is unavailable.']);\n                }\n                DB::table('finance_allocations')\n                    ->where('source_document_id', $link['source_id'])\n                    ->orderBy('id')->lockForUpdate()->get(['id']);\n                (new FinanceDebtSettlementSourceOwnership)->inspect($debtId, $voucherId);\n            }\n\n            // Source identity and principal remain diagnostic only. Even if
+            // CP16: read source ownership under the same transaction boundary.
+            // Lock the exact linked source before reading its allocations.
+            // A missing source is not authority to settle; legacy manual debts
+            // still reach the unconditional fail-closed gate below.
+            $link = (new FinanceDebtSourceLinkReader)->forObligation($debtId);
+            if ($link !== null) {
+                $source = DB::table('finance_source_documents')
+                    ->where('id', $link['source_id'])->lockForUpdate()->first();
+                if ($source === null) {
+                    throw ValidationException::withMessages(['settlement' => 'Linked source is unavailable.']);
+                }
+                DB::table('finance_allocations')
+                    ->where('source_document_id', $link['source_id'])
+                    ->orderBy('id')->lockForUpdate()->get(['id']);
+                (new FinanceDebtSettlementSourceOwnership)->inspect($debtId, $voucherId);
+            }\n
+            // Source identity and principal remain diagnostic only. Even if
             // inspection succeeds, the authoritative debt settlement mapping
             // and reversal ownership do not yet exist.
             (new FinanceDebtSettlementContract)->inspect($debtId);
