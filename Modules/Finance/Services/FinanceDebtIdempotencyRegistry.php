@@ -2,7 +2,6 @@
 
 namespace Modules\Finance\Services;
 
-use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -31,26 +30,15 @@ final class FinanceDebtIdempotencyRegistry
                 throw ValidationException::withMessages(['idempotency' => 'Duplicate idempotency key.']);
             }
 
-            try {
-                return DB::table('finance_debt_idempotency_keys')->insertGetId([
-                    'obligation_id' => $debtId,
-                    'operation' => $operation,
-                    'idempotency_key' => $key,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-            } catch (QueryException $exception) {
-                // Preserve FK and infrastructure errors. Only map an actual
-                // duplicate scope to a business validation error.
-                if (DB::table('finance_debt_idempotency_keys')
-                    ->where('obligation_id', $debtId)
-                    ->where('operation', $operation)
-                    ->where('idempotency_key', $key)
-                    ->exists()) {
-                    throw ValidationException::withMessages(['idempotency' => 'Duplicate idempotency key.']);
-                }
-                throw $exception;
-            }
+            // Do not catch unique-violation inside this transaction: on PostgreSQL
+            // the transaction becomes aborted. The database exception fails closed.
+            return DB::table('finance_debt_idempotency_keys')->insertGetId([
+                'obligation_id' => $debtId,
+                'operation' => $operation,
+                'idempotency_key' => $key,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
         });
     }
 }
