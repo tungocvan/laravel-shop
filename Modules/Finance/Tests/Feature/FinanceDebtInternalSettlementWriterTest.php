@@ -125,7 +125,7 @@ final class FinanceDebtInternalSettlementWriterTest extends TestCase
         $reversal = $writer->reverse($origin, $voucher, 'cp35-reverse-key-001', 12, 'Full reversal', fn () => true);
         self::assertSame($origin, (int) DB::table('finance_debt_settlement_mappings')->where('id', $reversal)->value('reverses_mapping_id'));
         self::assertSame(1, DB::table('finance_debt_allocation_ownerships')->where('mapping_id', $origin)->count());
-        self::assertSame('0.00', (new \\Modules\\Finance\\Services\\FinanceDebtSettlementBalanceInvariant)->inspect($debt)['net_mapped_amount']);
+        self::assertSame('0.00', (new \Modules\Finance\Services\FinanceDebtSettlementBalanceInvariant)->inspect($debt)['net_mapped_amount']);
         self::assertSame(2, DB::table('finance_debt_idempotency_keys')->where('obligation_id', $debt)->count());
     }
 
