@@ -514,3 +514,8 @@ Approved by user to Git Pull/Test. Added `FinanceDebtSettlementOwnershipAudit` (
 ## CP37 — Durable internal audit, TEST PENDING
 
 User approved CP37 to Git Pull/Test. Added migration `2026_10_24_000005_create_finance_debt_settlement_audit_events_table.php`; internal testing-only writer atomically inserts actor/reason/origin/token audit for post and reverse; diagnostic ownership audit reconciles these rows when schema exists. Updated focused writer test for audit contents, denied writes and transaction rollback. Documented in `PHASE2_DURABLE_AUDIT_CP37.md`. **Not complete:** two-connection actual-writer race test, production permission policy, immutable audit enforcement, manual debt, lifecycle integration. Public gate still fail-closed. Do not migrate production or start UI. Run focused and full Finance suite with isolated MySQL; assistant has not executed tests. Chưa đến CHECKPOINT TEST UI.
+
+
+## Demo UI Acceptance Checkpoint 01 — Git Pull/Test pending
+
+User explicitly redirected work to **Demo DELL WSL UI-first** and approved implementation to Git Pull/Test. Fixed mismatch between applied report date and totals/ledger/export, linked Finance header directly to functional debt `documents` screen, and marked six debt placeholder sections as `Đang xây dựng` with navigation back. Manual acceptance steps: `docs/modules/Finance/DEMO_UI_ACCEPTANCE_CHECKPOINT_01.md`. No browser or PHPUnit tests run by assistant; await user's Finance suite and UI observations. Do not automatically propose more backend checkpoints. No production deployment.
