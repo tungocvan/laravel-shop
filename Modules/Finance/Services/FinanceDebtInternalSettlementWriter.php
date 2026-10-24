@@ -95,10 +95,55 @@ final class FinanceDebtInternalSettlementWriter
         $debtId = (int) $origin->obligation_id;
         (new FinanceDebtSettlementTransactionProtocol)->plan($debtId, $reversalVoucherId, $key, 'reverse');
 
-        return DB::transaction(function () use ($originMappingId, $reversalVoucherId, $debtId): int {
-            // Implementation intentionally withheld until reversal lifecycle and
-            // allocation release ownership are approved and concurrency-tested.
-            $this->deny('Reversal writer not authorized.');
+        return DB::transaction(function () use ($originMappingId, $reversalVoucherId, $debtId, $key): int {
+            // Serialize with post() by locking the debt first. Keep ownership
+            // immutable as historical evidence, including after reversal.
+            $debt = DB::table('finance_debt_obligations')->where('id', $debtId)->lockForUpdate()->first();
+            $voucher = DB::table('finance_vouchers')->where('id', $reversalVoucherId)->lockForUpdate()->first();
+            $origin = DB::table('finance_debt_settlement_mappings')
+                ->where('id', $originMappingId)->lockForUpdate()->first();
+            if (! $debt || ! $voucher || ! $origin || $origin->operation !== 'post'
+                || (int) $origin->obligation_id !== $debtId) {
+                $this->deny('Original posting, debt or voucher is unavailable.');
+            }
+            // Existing treasury reversal changes the SAME voucher's lifecycle;
+            // a second arbitrary voucher must never reverse someone else's post.
+            if ((int) $origin->voucher_id !== $reversalVoucherId
+                || $voucher->status !== 'reversed' || $debt->status !== 'confirmed'
+                || $voucher->currency !== $debt->currency
+                || $voucher->direction !== ($debt->direction === 'receivable' ? 'receipt' : 'payment')) {
+                $this->deny('Reversal voucher or lifecycle does not match origin.');
+            }
+            $owner = DB::table('finance_debt_allocation_ownerships')
+                ->where('mapping_id', $originMappingId)->first();
+            if (! $owner || (int) $owner->obligation_id !== $debtId) {
+                $this->deny('Missing exact allocation ownership.');
+            }
+            $allocation = DB::table('finance_allocations')
+                ->where('id', $owner->allocation_id)->lockForUpdate()->first();
+            if (! $allocation || (int) $allocation->voucher_id !== $reversalVoucherId
+                || $this->cents((string) $allocation->amount) !== $this->cents((string) $origin->amount)) {
+                $this->deny('Origin allocation identity or amount changed.');
+            }
+            $link = (new FinanceDebtSourceLinkReader)->forObligation($debtId);
+            if (! $link || (int) $allocation->source_document_id !== $link['source_id']) {
+                $this->deny('Origin allocation source does not match debt.');
+            }
+            if (DB::table('finance_debt_settlement_mappings')
+                ->where('reverses_mapping_id', $originMappingId)->exists()) {
+                $this->deny('Original posting was already reversed.');
+            }
+            if ((new FinanceDebtSettlementBalanceInvariant)->inspect($debtId)['reason_code']
+                !== 'mapping_projection_only_not_authorized') {
+                $this->deny('Existing mapping balance is invalid.');
+            }
+            (new FinanceDebtIdempotencyRegistry)->reserve($debtId, 'reverse', $key);
+            return DB::table('finance_debt_settlement_mappings')->insertGetId([
+                'obligation_id' => $debtId, 'voucher_id' => $reversalVoucherId,
+                'operation' => 'reverse', 'amount' => $origin->amount,
+                'reverses_mapping_id' => $originMappingId,
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
         }, 3);
     }
 
