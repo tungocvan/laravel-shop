@@ -39,12 +39,18 @@
     @if ($selected)
         <section class="space-y-3 rounded-xl border border-slate-200 p-4" aria-label="Chi tiết công nợ">
             <h3 class="font-semibold">Chi tiết: {{ $selected->reference_number }}</h3>
-            <p class="text-sm">Đối tác: {{ $selected->counterparty_name }} · Trạng thái: {{ $selected->status }} · Số tiền gốc: {{ number_format((float) $selected->original_amount, 0, ',', '.') }} ₫</p>
+            <p class="text-sm">Đối tác: {{ $selected->counterparty_name }} · Trạng thái: {{ $selected->status }} · Số tiền gốc: {{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $selected->original_amount) }}</p>
+            <div class="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-3" aria-label="Tổng hợp công nợ">
+                <div><p class="text-xs text-slate-600">Công nợ gốc</p><p class="mt-1 font-semibold tabular-nums text-slate-900">{{ \\Modules\\Finance\\Livewire\\DebtWorkspace::formatVnd((string) $selected->original_amount) }}</p></div>
+                <div><p class="text-xs text-slate-600">Tổng điều chỉnh</p><p class="mt-1 font-semibold tabular-nums text-slate-900">{{ \\Modules\\Finance\\Livewire\\DebtWorkspace::formatVnd($adjustmentTotal) }}</p></div>
+                <div><p class="text-xs text-slate-600">Số dư sau điều chỉnh</p><p class="mt-1 font-semibold tabular-nums text-indigo-800">{{ \\Modules\\Finance\\Livewire\\DebtWorkspace::formatVnd($currentBalance) }}</p></div>
+            </div>
+            <p class="text-xs text-slate-500">Số dư công nợ thủ công, chưa trừ thanh toán hoặc đối trừ.</p>
             @if ($canManage && $selected->status === 'draft' && $selected->source_module === null && $selected->source_type === null && $selected->source_document_id === null)
                 <button wire:click="confirm" wire:confirm="Xác nhận công nợ thủ công này? Không thể xác nhận lại." wire:loading.attr="disabled" class="rounded-xl bg-indigo-700 px-4 py-2 text-sm font-semibold text-white">Xác nhận công nợ</button>
             @endif
             <h4 class="font-medium">Lịch sử điều chỉnh</h4>
-            <ul class="space-y-2 text-sm">@forelse ($events as $event)<li class="rounded-lg bg-slate-50 p-2">{{ $event->effective_on }} · {{ $event->signed_amount }} · {{ $event->reason }}</li>@empty<li class="text-slate-500">Chưa có điều chỉnh.</li>@endforelse</ul>
+            <ul class="space-y-2 text-sm">@forelse ($events as $event)<li class="rounded-lg bg-slate-50 p-2">{{ $event->effective_on }} · {{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $event->signed_amount) }} · {{ $event->reason }}</li>@empty<li class="text-slate-500">Chưa có điều chỉnh.</li>@endforelse</ul>
             @if ($canManage && $selected->status === 'confirmed' && $selected->source_module === null && $selected->source_type === null && $selected->source_document_id === null)
                 <form wire:submit="adjust" class="grid gap-3 border-t border-slate-200 pt-3 sm:grid-cols-3">
                     <label class="text-sm">Điều chỉnh (+/-)<input x-data="{ display: '' }" x-bind:value="display" x-on:input="let raw = $event.target.value; let sign = raw.trim().startsWith('-') ? '-' : ''; let digits = raw.replace(/[^0-9]/g, ''); display = sign + digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.'); $event.target.value = display; $wire.set('adjustment', sign + digits)" inputmode="numeric" placeholder="-500.000" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3" required></label>
