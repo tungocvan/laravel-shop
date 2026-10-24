@@ -114,3 +114,6 @@ User confirmed Finance regression: 61 passed / 392 assertions / 2 skipped (SQLit
 
 
 2026-10-24 Checkpoint 4.1: added nullable Finance obligation `partner_id` migration, PartnerDebtDraftService with canonical active/role verification and name/tax-code snapshot, Livewire bounded Partner lookup and role-sensitive selection, separate Blade picker partial, contract test. Existing debts are not backfilled or modified. Focused tests, Finance regression, impacted Partner tests and manual UI PASS pending user machine execution. Do not run migration on production without reviewing docs/PRODUCTION_DEBUG_PROMPT.md and explicit approval. No merge or deploy.
+
+
+2026-10-24 Checkpoint 4.2: user requested shared `x-select-search` Partner picker, thousands-separated VND entry, no fractional digits in list. Reused canonical shared component and its `options-wire` / `searchEvent` hooks, added bounded Livewire Partner search event, separated grouped display from raw amount, changed list-only number_format to zero decimals. Updated picker contract and added currency UI contract. No database or Partner master mutations, migration, production action or merge. Tests NOT RUN by assistant; focused Finance tests, Finance regression and user desktop/mobile UI confirmation pending. Shared component's TomSelect/Livewire dynamic updates require real browser verification.
