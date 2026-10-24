@@ -46,12 +46,13 @@ final class FinanceDebtSettlementSourceOwnership
                 } else {
                     // A multi-source voucher is valid treasury behavior; use only
                     // the allocation belonging to this exact source.
-                    $allocatedAmount = (string) $matching->first()->amount;
-                    $cents = $this->cents($allocatedAmount);
+                    $rawAmount = (string) $matching->first()->amount;
+                    $cents = $this->cents($rawAmount);
                     $voucherCents = $this->cents((string) $voucher->amount);
                     if ($cents === null || $voucherCents === null || $cents <= 0 || $cents > $voucherCents) {
                         $reason = 'invalid_allocation_amount';
                     } else {
+                        $allocatedAmount = intdiv($cents, 100).'.'.str_pad((string) ($cents % 100), 2, '0', STR_PAD_LEFT);
                         (new FinanceDebtSourceAllocationReader)->forObligation($debtId);
                         $reason = $allocations->count() > 1
                             ? 'multi_source_allocation_only_not_settlement'
