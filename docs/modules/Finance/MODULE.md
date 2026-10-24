@@ -57,3 +57,8 @@ FinanceDebtService owns manual debt drafts, confirmation and append-only adjustm
 ### Debt checkpoint 4 — manual debt UI
 
 Finance debt `documents` section mounts `finance.debt-workspace` Livewire component inside the existing Finance-owned sidebar and canonical Admin layout. The component lists Finance obligations with bounded pagination (10), keyword/direction/status filters, manual draft creation, selected-debt detail, explicit confirmation and append-only adjustment form. Mutations delegate to FinanceDebtService; `finance.view` is required to render/read, and the existing `finance.voucher.create` permission is provisionally reused for debt mutations pending dedicated debt permissions. This is a permission-boundary compromise requiring review before production enablement. No invoice-linked recognition, settlement, voucher posting, aging/reporting or automatic ledger entry. Database migration requires separate authorization; UI tests and manual acceptance pending.
+
+
+### Checkpoint 4.1 — Partner-linked manual debt
+
+Finance now uses canonical `Modules/Partner` data for manual debt creation. The UI searches active customers for receivables and active suppliers for payables (maximum 20 results). Finance stores a nullable `partner_id` alongside the existing immutable counterparty name and tax-code snapshot. Historical manual debts remain unlinked; no name-based auto matching. `PartnerDebtDraftService` checks module availability, active status and required role again inside a transaction before creating the draft. Partner master data is never mutated. Additive migration `2026_10_24_000002_add_partner_id_to_finance_debt_obligations.php` is pending environment-specific authorization. No production migration, posting or invoice recognition.
