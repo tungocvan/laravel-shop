@@ -346,3 +346,25 @@ $env:FINANCE_CP22_ALLOW_ISOLATED_DB = "yes"
 php artisan test Modules/Finance/Tests/Feature/FinanceDebtRealDatabaseContentionTest.php
 ```
 Use a real local test user and password; do not commit secrets. Report the focused test's actual PASS/SKIP/FAIL separately from the full regression result. On machines without a dedicated MySQL/PostgreSQL test DB, real concurrency remains NOT RUN. UI checkpoint not reached.
+
+ 
+## Phase 2 — CP23 local test database safety (2026-10-24)
+
+Added `FinanceDebtTestDatabaseGuard` and its focused tests. CP22 scratch-table contention harness now refuses to connect unless the opt-in is `yes`, driver is mysql/pgsql, DSN explicitly names localhost/127.0.0.1/::1 and a database matching `^[a-z][a-z0-9_]*_test$`. Rejects remote hosts, socket/extra DSN options, duplicate keys and production-like names. This is defense in depth, NOT a proof of production isolation: verify credentials and endpoint manually and use a disposable local DB. CP22 absent DSN remains SKIP (not PASS). No production, migration, PR, merge, settlement activation or UI.
+
+DELL test checkpoint:
+```
+git pull --ff-only
+php artisan test Modules/Finance/Tests/Feature/FinanceDebtTestDatabaseGuardTest.php Modules/Finance/Tests/Feature/FinanceDebtRealDatabaseContentionTest.php
+php artisan test Modules/Finance/Tests
+```
+
+Optional actual DB run, only after creating a dedicated local `finance_test` MySQL/PostgreSQL DB with a restricted test user:
+```powershell
+$env:FINANCE_CP22_TEST_DSN = "mysql:host=127.0.0.1;dbname=finance_test"
+$env:FINANCE_CP22_TEST_USER = "finance_test_user"
+$env:FINANCE_CP22_TEST_PASSWORD = "<local test password>"
+$env:FINANCE_CP22_ALLOW_ISOLATED_DB = "yes"
+php artisan test Modules/Finance/Tests/Feature/FinanceDebtRealDatabaseContentionTest.php
+```
+Do not commit credentials or point this test to any shared/production instance. Record PASS/FAIL/SKIP separately for real DB test and Finance regression. No actual real-DB contention has been observed in this checkpoint unless the optional run completes without SKIP.
