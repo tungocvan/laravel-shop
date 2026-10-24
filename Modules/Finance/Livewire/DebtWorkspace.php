@@ -7,6 +7,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\Attributes\On;
 use Modules\Finance\Services\FinanceDebtService;
+use Modules\Finance\Services\FinanceDebtBalanceReader;
 use Modules\Finance\Services\PartnerDebtDraftService;
 use Modules\Partner\Models\Partner;
 
@@ -184,18 +185,11 @@ final class DebtWorkspace extends Component
             ->selectRaw('(finance_debt_obligations.original_amount + (SELECT COALESCE(SUM(signed_amount), 0) FROM finance_debt_events WHERE obligation_id = finance_debt_obligations.id)) AS adjusted_balance');
         $selected = $this->selectedDebtId === null ? null : DB::table('finance_debt_obligations')->find($this->selectedDebtId);
         $events = $selected ? DB::table('finance_debt_events')->where('obligation_id', $selected->id)->orderByDesc('id')->limit(100)->get() : collect();
-        // Aggregate ALL events, not only the 100 latest displayed in the history.
-        // SQL DECIMAL arithmetic preserves exact monetary values without PHP float rounding.
-        $adjustmentTotal = $selected
-            ? (string) DB::table('finance_debt_events')->where('obligation_id', $selected->id)
-                ->selectRaw('COALESCE(SUM(signed_amount), 0) AS total')->value('total')
-            : '0';
-        $currentBalance = $selected
-            ? (string) DB::table('finance_debt_obligations')
-                ->where('finance_debt_obligations.id', $selected->id)
-                ->selectRaw('(finance_debt_obligations.original_amount + (SELECT COALESCE(SUM(signed_amount), 0) FROM finance_debt_events WHERE obligation_id = finance_debt_obligations.id)) AS balance')
-                ->value('balance')
-            : '0';
+        // A single read-only projection owns the exact-decimal principal calculation.
+        // It deliberately does not subtract payments or claim settlement.
+        $principal = $selected ? app(FinanceDebtBalanceReader::class)->forObligation((int) $selected->id) : null;
+        $adjustmentTotal = $principal['adjustment_total'] ?? '0';
+        $currentBalance = $principal['adjusted_principal'] ?? '0';
 
         return view('Finance::livewire.debt-workspace', [
             'debts' => $query->paginate(10),
