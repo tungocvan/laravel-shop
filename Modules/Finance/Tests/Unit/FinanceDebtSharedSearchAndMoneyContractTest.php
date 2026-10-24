@@ -25,7 +25,7 @@ final class FinanceDebtSharedSearchAndMoneyContractTest extends TestCase
         $component = file_get_contents($root.'/Modules/Finance/Livewire/DebtWorkspace.php');
         $view = file_get_contents($root.'/Modules/Finance/resources/views/livewire/debt-workspace.blade.php');
         self::assertStringContainsString('now()->addDays(30)->toDateString()', $component);
-        self::assertStringContainsString("number_format((float) \$selected->original_amount, 0", $view);
+        self::assertStringContainsString("DebtWorkspace::formatVnd((string) \$selected->original_amount)", $view);
         self::assertStringContainsString("wire.set('adjustment'", $view);
         self::assertStringContainsString('inputmode="numeric"', $view);
     }
