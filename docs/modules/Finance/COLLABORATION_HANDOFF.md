@@ -276,3 +276,12 @@ Added FinanceDebtSettlementMappingIntegrity read-only audit of existing mapping 
 ## Phase 2 — CP15 source ownership diagnostic (2026-10-24)
 
 Added FinanceDebtSettlementSourceOwnership, a read-only, fail-closed exact debt-source-voucher allocation inspector. It checks matching source identity, direction/currency, confirmed debt, posted voucher, positive allocation no greater than voucher, and calls existing source allocation projection for source-wide over-allocation checks. Multi-source vouchers use ONLY the allocation for the exact linked source, not the whole voucher amount. Returns eligible=false unconditionally and assertCanSettle always throws. Five focused tests added; assistant did not execute them. IMPORTANT: No concurrent write test, database race simulation, locking extension, authoritative settlement or reversal write was implemented in CP15; concurrency remains blocked by CP12 and requires separate database-specific validation. No production migration, PR, merge or UI. DELL: git pull --ff-only; php artisan test Modules/Finance/Tests/Feature/FinanceDebtSettlementSourceOwnershipTest.php; if PASS php artisan test Modules/Finance/Tests. UI gate not reached.
+
+
+## Phase 2 — CP16 atomic gate lock extension (2026-10-24)
+
+Extended FinanceDebtAtomicSettlementGate to acquire locks in debt -> voucher -> exact source -> source allocations order (ordered by allocation id), then read CP15 source ownership inside the transaction before the unconditional denial. Added two regression tests covering repeated denied attempts and preservation of existing idempotency keys. The gate still NEVER reserves new idempotency keys, creates mappings, changes vouchers or posts debt settlements. No production migration, PR, merge or UI.
+
+CRITICAL LIMITATION: SQLite lockForUpdate may be ineffective, and these tests do NOT prove cross-process race safety on MySQL/PostgreSQL. Atomic idempotency reservation with actual settlement writes, stable lock order across all writers, gap/range locks for new allocations, and real multi-connection contention tests remain future work. This CP16 is only a fail-closed lock-boundary foundation, not concurrent settlement activation.
+
+DELL: git pull --ff-only; php artisan test Modules/Finance/Tests/Feature/FinanceDebtAtomicSettlementGateTest.php; php artisan test Modules/Finance/Tests. UI gate not reached.
