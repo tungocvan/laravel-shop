@@ -211,3 +211,8 @@ Stop on any failure; return exact output. Manual UI acceptance deferred. No PR/m
 FinanceDebtSourceLinkReader resolves the exact (source_module, source_type, source_document_id) tuple between finance_debt_obligations and finance_source_documents without mutating either. Source-less manual debts return null, incomplete identity and ambiguous treasury matches fail closed, and unmatched identity returns null. Four tests cover manual, incomplete, missing debt, and unmatched identity. Matching identity is **not** settlement, proof of invoice eligibility, or posting authorization. Voucher/ledger and source lifecycle rules remain unchanged. No migrations, UI changes, PR or production actions.
 
 CP3 DELL gate: git pull --ff-only; php artisan test Modules/Finance/Tests/Feature/FinanceDebtSourceLinkReaderTest.php; then php artisan test Modules/Finance/Tests if focused tests pass. These tests have not been run by the assistant. UI acceptance remains deferred.
+
+
+### CP3 SQLite test fixture fix (2026-10-24)
+
+DELL reported CP3 focused test FAIL (1 failed, 3 passed): SQLite :memory: lacked finance_source_documents. Updated CP3 test setUp to initialize the existing 2026_10_21_000001_create_finance_foundation_tables.php migration in the test database when needed; no production migration or runtime schema changes. Added positive exact-match read-only test checking that no finance_allocations are inserted. CP3 tests must be rerun on DELL before any further implementation. Commands: git pull --ff-only; php artisan test Modules/Finance/Tests/Feature/FinanceDebtSourceLinkReaderTest.php; if PASS php artisan test Modules/Finance/Tests. Do not claim PASS before output.
