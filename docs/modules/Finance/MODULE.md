@@ -92,3 +92,8 @@ The Finance debt documents list retains original amount and adds adjusted princi
 ### Mobile debt list scroll (Checkpoint 6.2)
 
 The document table is a keyboard-focusable, labeled horizontal scroll region with a 960px minimum table width and nowrap cells on narrow viewports. It does not lock vertical touch scrolling, alter the global Admin shell or change debt calculations. The mobile horizontal-scroll hint is displayed only below `sm`. Actual vertical scrolling on device requires UI acceptance; if blocked, audit the Admin scroll container before any shared layout change.
+
+
+### Checkpoint 6.3 — Admin shell mobile scroll regression
+
+Mobile vertical scrolling is owned by shared Admin `#admin-main`, not by Finance. The Admin shell workspace is constrained to the shell viewport height (`h-full`) so the grid's `minmax(0,1fr)` main track can shrink and scroll when content exceeds the available height. The Finance table retains independent horizontal scrolling. This shared change requires Admin + Finance regression and actual mobile acceptance before merge.
