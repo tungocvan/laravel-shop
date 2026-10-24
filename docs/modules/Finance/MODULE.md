@@ -62,3 +62,8 @@ Finance debt `documents` section mounts `finance.debt-workspace` Livewire compon
 ### Checkpoint 4.1 — Partner-linked manual debt
 
 Finance now uses canonical `Modules/Partner` data for manual debt creation. The UI searches active customers for receivables and active suppliers for payables (maximum 20 results). Finance stores a nullable `partner_id` alongside the existing immutable counterparty name and tax-code snapshot. Historical manual debts remain unlinked; no name-based auto matching. `PartnerDebtDraftService` checks module availability, active status and required role again inside a transaction before creating the draft. Partner master data is never mutated. Additive migration `2026_10_24_000002_add_partner_id_to_finance_debt_obligations.php` is pending environment-specific authorization. No production migration, posting or invoice recognition.
+
+
+### Checkpoint 4.2 — Shared select and currency UI
+
+The Finance debt manual form reuses the existing shared `x-select-search` component with dynamic Partner options (bounded to 20) and server-side Partner eligibility validation. Whole-VND input is visually grouped by thousands in the browser and submitted to Finance as unformatted digits; original amount persists in the existing DECIMAL schema. The debt list displays zero decimal places without altering persisted values. Note: decimal-valued legacy debts remain unchanged in storage; list presentation is a display-only choice. UI browser acceptance is pending.
