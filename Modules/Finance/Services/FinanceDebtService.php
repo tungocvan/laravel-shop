@@ -120,7 +120,7 @@ final class FinanceDebtService
     private function normalizeAmount(string $amount, bool $signed = false): string
     {
         $amount = trim($amount);
-        $pattern = $signed ? '/^-?\\d{1,18}(?:\\.\\d{1,2})?$/' : '/^\\d{1,18}(?:\\.\\d{1,2})?$/';
+        $pattern = $signed ? '/^-?\\d{1,16}(?:\\.\\d{1,2})?$/' : '/^\\d{1,16}(?:\\.\\d{1,2})?$/';
         if (! preg_match($pattern, $amount) || $this->cents($amount) === 0) {
             throw ValidationException::withMessages(['amount' => 'Amount must be a nonzero decimal with up to two places.']);
         }
