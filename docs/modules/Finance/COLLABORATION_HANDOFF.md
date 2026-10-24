@@ -445,3 +445,10 @@ php artisan test Modules/Finance/Tests/Feature/FinanceDebtRealDatabaseContention
 php artisan test Modules/Finance/Tests
 ```
 **Report both** the isolated real DB smoke result (PASS/FAIL/SKIP) and full Finance regression. A SKIP remains NOT RUN. On errors do not change app `.env` or target production; send only sanitized error output, never passwords/DSN with secrets. No UI checkpoint yet.
+
+
+## CP27 — Real MySQL service-boundary contention (2026-10-24)
+
+Added `Modules/Finance/Tests/Feature/FinanceDebtServiceContentionTest.php`. Opt-in, MySQL/InnoDB only; reuses CP23/24 DSN authorization and server-selected database identity checks. The test refuses to run if either required Finance scratch table already exists, creates only two minimal temporary tables in the isolated `*_test` database, holds a debt row lock with independent PDO while calling the **actual** `FinanceDebtAtomicSettlementGate::execute()` through a temporarily redirected Laravel DB connection, asserts a genuine InnoDB lock timeout (1205), releases the lock, asserts draft voucher denial and unchanged rows, then drops only tables created by this test. It restores Laravel's default connection and never invokes settlement writes, migrations, production schema or UI. This tests one service lock boundary, **not** a simultaneous settlement-writer race, gap-lock coverage, deadlock freedom or settlement eligibility.
+
+DELL WSL Ubuntu: retain the same opt-in `FINANCE_CP22_TEST_DSN`, `FINANCE_CP22_TEST_USER`, `FINANCE_CP22_TEST_PASSWORD`, `FINANCE_CP22_ALLOW_ISOLATED_DB=yes` from CP26. Run focused `php artisan test Modules/Finance/Tests/Feature/FinanceDebtServiceContentionTest.php`; stop on failure. Only after focused PASS run `php artisan test Modules/Finance/Tests`. Expected optional real DB test skips if DSN not supplied; **a SKIP is not CP27 real DB PASS**. User must report both results. No UI test at this checkpoint. No PR, merge, production migration or settlement activation.
