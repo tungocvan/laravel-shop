@@ -368,3 +368,25 @@ $env:FINANCE_CP22_ALLOW_ISOLATED_DB = "yes"
 php artisan test Modules/Finance/Tests/Feature/FinanceDebtRealDatabaseContentionTest.php
 ```
 Do not commit credentials or point this test to any shared/production instance. Record PASS/FAIL/SKIP separately for real DB test and Finance regression. No actual real-DB contention has been observed in this checkpoint unless the optional run completes without SKIP.
+
+ 
+## Phase 2 — CP24 database execution readiness (2026-10-24)
+
+Added a server-selected database identity check on BOTH independent PDO connections, before CP22 creates any scratch table. The actual `SELECT DATABASE()` (MySQL) or `SELECT current_database()` (PostgreSQL) must equal the explicitly authorized local `*_test` DSN name. Added a focused mismatch test. This reduces accidental wrong-database writes but is not proof of server isolation (localhost can be proxied/tunneled); verify server manually. Existing CP22 test remains SKIP when no DSN is set. This checkpoint did not run real database contention and did not activate settlement.
+
+DELL checkpoint:
+```
+git pull --ff-only
+php artisan test Modules/Finance/Tests/Feature/FinanceDebtTestDatabaseGuardTest.php Modules/Finance/Tests/Feature/FinanceDebtRealDatabaseContentionTest.php
+php artisan test Modules/Finance/Tests
+```
+
+For optional real MySQL/PostgreSQL verification, provision a disposable local `finance_test` database and restricted user, then in PowerShell:
+```powershell
+$env:FINANCE_CP22_TEST_DSN = "mysql:host=127.0.0.1;dbname=finance_test"
+$env:FINANCE_CP22_TEST_USER = "finance_test_user"
+$env:FINANCE_CP22_TEST_PASSWORD = "<local test password>"
+$env:FINANCE_CP22_ALLOW_ISOLATED_DB = "yes"
+php artisan test Modules/Finance/Tests/Feature/FinanceDebtRealDatabaseContentionTest.php
+```
+Never use production/shared DB or commit credentials. Report PASS/FAIL/SKIP for the optional test separately; PASS would prove only this scratch-table smoke test, not the full settlement lifecycle or deadlock freedom. No production migrations, PR, merge, or UI.
