@@ -41,7 +41,7 @@ final class DebtWorkspace extends Component
 
     private function authorizeMutation(): int
     {
-        abort_unless(auth('admin')->user()?->can('finance.voucher.create'), 403);
+        abort_unless(auth('admin')->user()?->can('finance.debt.manage'), 403);
         $id = auth('admin')->id();
         abort_unless($id !== null, 403);
         return (int) $id;
@@ -170,7 +170,7 @@ final class DebtWorkspace extends Component
             'debts' => $query->paginate(10),
             'selected' => $selected,
             'events' => $events,
-            'canManage' => (bool) auth('admin')->user()?->can('finance.voucher.create'),
+            'canManage' => (bool) auth('admin')->user()?->can('finance.debt.manage'),
         ]);
     }
 }
