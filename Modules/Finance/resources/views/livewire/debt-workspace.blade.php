@@ -15,7 +15,7 @@
             <div class="grid gap-3 sm:grid-cols-2">
                 <label class="text-sm">Số chứng từ<input wire:model="reference" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3" required maxlength="100"></label>
                 <label class="text-sm">Loại<select wire:model="draftDirection" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"><option value="receivable">Phải thu</option><option value="payable">Phải trả</option></select></label>
-                <label class="text-sm">Đối tác<input wire:model="counterparty" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3" required maxlength="255"></label>
+                <label class="text-sm">Đối tác<input wire:model="partnerSearch" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3" required maxlength="255"></label>
                 <label class="text-sm">Số tiền VND<input wire:model="amount" inputmode="decimal" placeholder="1000000.00" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3" required></label>
                 <label class="text-sm">Hạn thanh toán<input wire:model="dueOn" type="date" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"></label>
             </div>
