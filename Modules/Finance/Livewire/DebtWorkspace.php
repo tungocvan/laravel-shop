@@ -51,6 +51,7 @@ final class DebtWorkspace extends Component
     {
         $this->authorizeMutation();
         $this->creating = true;
+        $this->dueOn = now()->addDays(30)->toDateString();
         $this->loadPartnerOptions();
     }
 
