@@ -14,6 +14,18 @@ final class InvoiceDebtCandidateReaderTest extends TestCase
 {
     use DatabaseTransactions;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        if (! Schema::hasTable('invoices')) {
+            (require base_path('Modules/Invoices/database/migrations/2025_11_21_045614_invoices.php'))->up();
+        }
+        if (! Schema::hasTable('finance_debt_obligations')) {
+            (require base_path('Modules/Finance/database/migrations/2026_10_24_000001_create_finance_debt_foundation_tables.php'))->up();
+        }
+    }
+
     public function test_candidate_identity_and_direction_are_explicit(): void
     {
         $candidate = new InvoiceDebtCandidate('15', 'HD0015', 'receivable', '150.00', '2026-10-24', 'Buyer', '123456789');
@@ -23,10 +35,6 @@ final class InvoiceDebtCandidateReaderTest extends TestCase
 
     public function test_invoice_candidate_is_read_only_and_does_not_create_finance_debt(): void
     {
-        if (! Schema::hasTable('invoices')) {
-            $this->markTestSkipped('Invoices migration is required for this integration test.');
-        }
-
         config()->set('modules.registry.Invoices.enabled', true);
         $id = DB::table('invoices')->insertGetId([
             'invoice_number' => 'FIN-DEBT-'.uniqid(),
@@ -43,19 +51,13 @@ final class InvoiceDebtCandidateReaderTest extends TestCase
         self::assertSame('receivable', $candidate->direction);
         self::assertSame('123456.00', $candidate->amount);
         self::assertSame((string) $id, $candidate->documentId);
-        if (Schema::hasTable('finance_debt_obligations')) {
-            self::assertSame(0, DB::table('finance_debt_obligations')
-                ->where('source_module', 'Invoices')
-                ->where('source_document_id', (string) $id)->count());
-        }
+        self::assertSame(0, DB::table('finance_debt_obligations')
+            ->where('source_module', 'Invoices')
+            ->where('source_document_id', (string) $id)->count());
     }
 
     public function test_purchase_invoice_maps_to_payable_and_disabled_module_fails_closed(): void
     {
-        if (! Schema::hasTable('invoices')) {
-            $this->markTestSkipped('Invoices migration is required for this integration test.');
-        }
-
         config()->set('modules.registry.Invoices.enabled', true);
         $id = DB::table('invoices')->insertGetId([
             'invoice_number' => 'FIN-PURCHASE-'.uniqid(),
