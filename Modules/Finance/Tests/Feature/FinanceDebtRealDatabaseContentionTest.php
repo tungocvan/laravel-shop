@@ -4,7 +4,6 @@ namespace Modules\Finance\Tests\Feature;
 
 use PDO;
 use PDOException;
-use PHPUnit\Framework\SkippedTestError;
 use Tests\TestCase;
 
 /**
@@ -20,7 +19,7 @@ final class FinanceDebtRealDatabaseContentionTest extends TestCase
     {
         $dsn = (string) getenv('FINANCE_CP22_TEST_DSN');
         if ($dsn === '') {
-            throw new SkippedTestError('CP22 real DB test NOT RUN: set FINANCE_CP22_TEST_DSN for isolated *_test database.');
+            $this->markTestSkipped('CP22 real DB test NOT RUN: set FINANCE_CP22_TEST_DSN for isolated *_test database.');
         }
         if (! preg_match('/^(mysql|pgsql):/', $dsn, $matches)
             || ! preg_match('/(?:^|;)dbname=([a-zA-Z0-9_]+)/', $dsn, $database)
