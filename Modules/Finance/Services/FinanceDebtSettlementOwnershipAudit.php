@@ -27,9 +27,23 @@ final class FinanceDebtSettlementOwnershipAudit
         if ($source === null) {
             return $this->result($debtId, 'manual_debt_link_unavailable', $mappings->count(), $owners->count());
         }
+        $auditEnabled = DB::getSchemaBuilder()->hasTable('finance_debt_settlement_audit_events');
         $postIds = [];
         $reversed = [];
         foreach ($mappings as $mapping) {
+            if ($auditEnabled) {
+                $audit = DB::table('finance_debt_settlement_audit_events')->where('mapping_id', $mapping->id)->first();
+                if (! $audit || (int) $audit->obligation_id !== $debtId
+                    || (int) $audit->voucher_id !== (int) $mapping->voucher_id
+                    || $audit->operation !== $mapping->operation
+                    || (int) $audit->actor_id <= 0 || trim((string) $audit->reason) === ''
+                    || trim((string) $audit->idempotency_key) === ''
+                    || ($mapping->operation === 'reverse'
+                        ? (int) $audit->origin_mapping_id !== (int) $mapping->reverses_mapping_id
+                        : $audit->origin_mapping_id !== null)) {
+                    return $this->result($debtId, 'mapping_audit_missing_or_mismatched', $mappings->count(), $owners->count());
+                }
+            }
             if ($mapping->operation === 'post') {
                 $postIds[(int) $mapping->id] = true;
                 $owner = $owners->get($mapping->id);
