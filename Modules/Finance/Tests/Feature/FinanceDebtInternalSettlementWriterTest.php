@@ -22,6 +22,7 @@ final class FinanceDebtInternalSettlementWriterTest extends TestCase
             ['finance_debt_idempotency_keys', '2026_10_24_000002_create_finance_debt_idempotency_keys_table.php'],
             ['finance_debt_settlement_mappings', '2026_10_24_000003_create_finance_debt_settlement_mappings_table.php'],
             ['finance_debt_allocation_ownerships', '2026_10_24_000004_create_finance_debt_allocation_ownerships_table.php'],
+            ['finance_debt_settlement_audit_events', '2026_10_24_000005_create_finance_debt_settlement_audit_events_table.php'],
         ] as [$table, $file]) {
             if (! Schema::hasTable($table)) {
                 (require base_path('Modules/Finance/database/migrations/'.$file))->up();
@@ -227,6 +228,37 @@ final class FinanceDebtInternalSettlementWriterTest extends TestCase
             self::assertSame(1, DB::table('finance_debt_settlement_mappings')->where('obligation_id', $debt)->count());
             self::assertSame(1, DB::table('finance_debt_idempotency_keys')->where('obligation_id', $debt)->count());
             self::assertSame(1, DB::table('finance_debt_allocation_ownerships')->where('obligation_id', $debt)->count());
+        }
+    }
+
+    public function test_cp37_audit_persists_actor_reason_origin_and_token_for_both_operations(): void
+    {
+        [$debt, $voucher, $allocation] = $this->fixture();
+        $writer = new FinanceDebtInternalSettlementWriter;
+        $origin = $writer->post($debt, $voucher, $allocation, 'cp37-post-key-001', 41, 'Verified payment', fn () => true);
+        DB::table('finance_vouchers')->where('id', $voucher)->update(['status' => 'reversed']);
+        $reversal = $writer->reverse($origin, $voucher, 'cp37-reverse-key-001', 42, 'Verified reversal', fn () => true);
+        $postAudit = DB::table('finance_debt_settlement_audit_events')->where('mapping_id', $origin)->first();
+        $reverseAudit = DB::table('finance_debt_settlement_audit_events')->where('mapping_id', $reversal)->first();
+        self::assertSame(41, (int) $postAudit->actor_id);
+        self::assertSame('Verified payment', $postAudit->reason);
+        self::assertNull($postAudit->origin_mapping_id);
+        self::assertSame(42, (int) $reverseAudit->actor_id);
+        self::assertSame('Verified reversal', $reverseAudit->reason);
+        self::assertSame($origin, (int) $reverseAudit->origin_mapping_id);
+        self::assertSame('cp37-reverse-key-001', $reverseAudit->idempotency_key);
+    }
+
+    public function test_cp37_failed_authorization_does_not_write_audit(): void
+    {
+        [$debt, $voucher, $allocation] = $this->fixture();
+        try {
+            (new FinanceDebtInternalSettlementWriter)->post(
+                $debt, $voucher, $allocation, 'cp37-post-key-002', 41, 'Unauthorized', fn () => false
+            );
+            self::fail('Expected authorization failure.');
+        } catch (ValidationException $exception) {
+            self::assertSame(0, DB::table('finance_debt_settlement_audit_events')->where('obligation_id', $debt)->count());
         }
     }
 
