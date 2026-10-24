@@ -141,3 +141,6 @@ User confirmed Finance regression: 61 passed / 392 assertions / 2 skipped (SQLit
 
 
 2026-10-24 Checkpoint 5.2 test follow-up: user reported Finance regression 79 passed, 1 failed (463 assertions). Root cause: stale FinanceDebtSharedSearchAndMoneyContractTest expected legacy float-based number_format for selected amount, but Checkpoint 5.2 intentionally uses DebtWorkspace::formatVnd. Updated assertion to the new display contract; no business logic or schema changes. Focused tests and Finance regression require rerun; no TEST PASS or UI PASS asserted for this fix.
+
+
+2026-10-24 Checkpoint 5.3: added `adjusted_balance` SQL DECIMAL projection to the paginated debt list (single query per page, no per-row event query), a new 'Số dư sau điều chỉnh' column beside original, and consistent exact VND formatter for list original. Updated stale FinanceDebtCurrencyUiContractTest and added FinanceDebtListBalanceContractTest; 8-column empty state adjusted. User reported previous Checkpoint 5.2 tests/UI PASS; new 5.3 focused/regression and real UI acceptance are PENDING. Draft PR #323 remains unmerged; no production action or schema change.
