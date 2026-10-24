@@ -98,6 +98,34 @@ final class FinanceDebtServiceTest extends TestCase
         }
     }
 
+
+    public function test_signed_adjustments_reach_exact_zero_and_reject_further_reduction(): void
+    {
+        $service = new FinanceDebtService;
+        $id = $service->createManualDraft('CN-EXACT-ZERO', 'payable', 'Supplier', '100');
+        $service->confirmManualDraft($id, 1, '2026-10-24');
+        $service->adjustConfirmedDebt($id, '-40', '2026-10-25', 'Reduction', 1);
+        $service->adjustConfirmedDebt($id, '15', '2026-10-25', 'Increase', 1);
+        $service->adjustConfirmedDebt($id, '-75', '2026-10-26', 'To zero', 1);
+        self::assertSame(3, DB::table('finance_debt_events')->where('obligation_id', $id)->count());
+        try {
+            $service->adjustConfirmedDebt($id, '-0.01', '2026-10-27', 'Below zero', 1);
+            self::fail('Expected negative balance rejection.');
+        } catch (ValidationException $exception) {
+            self::assertSame(3, DB::table('finance_debt_events')->where('obligation_id', $id)->count());
+        }
+    }
+
+    public function test_large_positive_and_negative_adjustments_do_not_overflow(): void
+    {
+        $service = new FinanceDebtService;
+        $id = $service->createManualDraft('CN-SIGNED-BOUNDARY', 'receivable', 'Customer', '9999999999999999');
+        $service->confirmManualDraft($id, 1, '2026-10-24');
+        $service->adjustConfirmedDebt($id, '9999999999999999', '2026-10-25', 'Increase', 1);
+        $service->adjustConfirmedDebt($id, '-9999999999999999', '2026-10-26', 'Decrease', 1);
+        self::assertSame(2, DB::table('finance_debt_events')->where('obligation_id', $id)->count());
+    }
+
     public function test_invalid_date_and_amount_are_rejected(): void
     {
         $this->expectException(ValidationException::class);
