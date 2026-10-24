@@ -104,7 +104,7 @@ final class FinanceDebtInternalSettlementWriter
 
     private function checkContext(int $actorId, string $reason, string $operation, callable $authorize): void
     {
-        if ($actorId <= 0 || trim($reason) === '' || strlen($reason) > 500
+        if (! app()->environment('testing') || $actorId <= 0 || trim($reason) === '' || strlen($reason) > 500
             || $authorize($actorId, $operation) !== true) {
             $this->deny('Explicit actor authorization and reason required.');
         }
