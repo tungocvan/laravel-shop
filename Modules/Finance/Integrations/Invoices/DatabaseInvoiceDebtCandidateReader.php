@@ -33,6 +33,10 @@ final class DatabaseInvoiceDebtCandidateReader implements InvoiceDebtCandidateRe
             throw ValidationException::withMessages(['invoice' => 'Invoice total must be positive.']);
         }
 
+        // Normalize database DECIMAL values without float conversion (SQLite may return 123456).
+        $parts = explode('.', $amount, 2);
+        $amount = $parts[0].'.'.str_pad($parts[1] ?? '', 2, '0');
+
         // The local invoice table does not establish commercial eligibility,
         // cancellation/replacement lifecycle, or whether the invoice was already paid.
         // Callers MUST NOT treat this candidate as a recognized obligation.
