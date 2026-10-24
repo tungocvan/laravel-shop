@@ -37,6 +37,11 @@ final class FinanceDebtFoundationMigrationTest extends TestCase
 
     public function test_partner_link_is_nullable_and_source_identity_index_exists(): void
     {
+        // The partner column belongs to the additive second migration. In test
+        // databases created from the first migration only, apply it explicitly.
+        if (! Schema::hasColumn('finance_debt_obligations', 'partner_id')) {
+            (require base_path('Modules/Finance/database/migrations/2026_10_24_000002_add_partner_id_to_finance_debt_obligations.php'))->up();
+        }
         self::assertTrue(Schema::hasColumn('finance_debt_obligations', 'partner_id'));
         $indexes = Schema::getIndexes('finance_debt_obligations');
         $names = array_column($indexes, 'name');
