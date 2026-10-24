@@ -60,6 +60,10 @@ final class DebtWorkspace extends Component
     public function choosePartner(int $id): void
     {
         $this->authorizeMutation();
+        $role = $this->draftDirection === 'payable' ? 'supplier' : 'customer';
+        abort_unless((bool) config('modules.registry.Partner.enabled', false), 422);
+        $partner = Partner::query()->whereKey($id)->where('status', 'active')->first();
+        abort_unless($partner && $partner->hasPartnerType($role), 422);
         $this->partnerId = (string) $id;
     }
 
