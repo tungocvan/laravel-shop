@@ -59,7 +59,7 @@ final class FinanceDebtDashboardUiTest extends TestCase
             ->assertSee('80')->assertDontSee('DASH-UI-B-');
         $screen->set('status', 'draft')->assertOk()->assertSee('DASH-UI-C-');
         self::assertSame('draft', DB::table('finance_debt_obligations')->where('id', $draft)->value('status'));
-        self::assertSame(0, DB::table('finance_debt_settlement_mappings')->where('obligation_id', $a)->count());
+        self::assertSame(1, DB::table('finance_debt_events')->where('obligation_id', $a)->count());
     }
 
     public function test_dashboard_is_denied_without_finance_view_permission(): void
