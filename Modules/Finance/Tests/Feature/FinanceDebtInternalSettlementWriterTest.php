@@ -209,6 +209,7 @@ final class FinanceDebtInternalSettlementWriterTest extends TestCase
             self::assertSame(0, DB::table('finance_debt_settlement_mappings')->where('obligation_id', $debt)->count());
             self::assertSame(0, DB::table('finance_debt_allocation_ownerships')->where('obligation_id', $debt)->count());
             self::assertSame(0, DB::table('finance_debt_idempotency_keys')->where('obligation_id', $debt)->count());
+            self::assertSame(0, DB::table('finance_debt_settlement_audit_events')->where('obligation_id', $debt)->count());
         }
     }
 
@@ -228,6 +229,7 @@ final class FinanceDebtInternalSettlementWriterTest extends TestCase
             self::assertSame(1, DB::table('finance_debt_settlement_mappings')->where('obligation_id', $debt)->count());
             self::assertSame(1, DB::table('finance_debt_idempotency_keys')->where('obligation_id', $debt)->count());
             self::assertSame(1, DB::table('finance_debt_allocation_ownerships')->where('obligation_id', $debt)->count());
+            self::assertSame(1, DB::table('finance_debt_settlement_audit_events')->where('obligation_id', $debt)->count());
         }
     }
 
