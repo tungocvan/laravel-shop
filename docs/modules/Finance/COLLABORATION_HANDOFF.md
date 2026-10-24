@@ -285,3 +285,10 @@ Extended FinanceDebtAtomicSettlementGate to acquire locks in debt -> voucher -> 
 CRITICAL LIMITATION: SQLite lockForUpdate may be ineffective, and these tests do NOT prove cross-process race safety on MySQL/PostgreSQL. Atomic idempotency reservation with actual settlement writes, stable lock order across all writers, gap/range locks for new allocations, and real multi-connection contention tests remain future work. This CP16 is only a fail-closed lock-boundary foundation, not concurrent settlement activation.
 
 DELL: git pull --ff-only; php artisan test Modules/Finance/Tests/Feature/FinanceDebtAtomicSettlementGateTest.php; php artisan test Modules/Finance/Tests. UI gate not reached.
+
+
+## Phase 2 — CP17 idempotency and principal read hardening (2026-10-24)
+
+Extended the fail-closed FinanceDebtAtomicSettlementGate to check an existing idempotency key scoped by obligation and operation inside its transaction, lock existing mapping rows in stable ID order when the table exists, and re-read adjusted principal after acquiring the debt lock. Added two tests for duplicate key and operation-scoped denial. Also corrected literal backslash-n escapes accidentally committed in CP16 gate source. The gate still ALWAYS throws, never reserves a new key, never posts a settlement, and never reverses one. No migrations, production changes, PR, merge or UI.
+
+LIMITATIONS: Locking existing rows does not lock missing/new rows; read-only principal is NOT remaining settlement balance; no actual concurrent multi-connection tests, no atomic key reservation with settlement writes, no reversal ownership race protection, and no proof of cross-service lock order. MySQL/PostgreSQL integration and locking semantics remain future acceptance requirements. Run on DELL: git pull --ff-only; php artisan test Modules/Finance/Tests/Feature/FinanceDebtAtomicSettlementGateTest.php; php artisan test Modules/Finance/Tests. UI gate not reached.
