@@ -87,3 +87,8 @@ Selected manual debt details show original amount, sum of all append-only signed
 ### Checkpoint 5.3 — paginated adjusted principal column
 
 The Finance debt documents list retains original amount and adds adjusted principal immediately beside it. A correlated SQL DECIMAL SUM subquery is projected onto the paginated obligations query, avoiding per-row queries/N+1 and PHP float precision loss. The list and detail use the same VND formatter. This represents principal after manual adjustments, **not** a settled/outstanding balance after payments. No schema changes, posting, settlement or cross-module writes.
+
+
+### Mobile debt list scroll (Checkpoint 6.2)
+
+The document table is a keyboard-focusable, labeled horizontal scroll region with a 960px minimum table width and nowrap cells on narrow viewports. It does not lock vertical touch scrolling, alter the global Admin shell or change debt calculations. The mobile horizontal-scroll hint is displayed only below `sm`. Actual vertical scrolling on device requires UI acceptance; if blocked, audit the Admin scroll container before any shared layout change.
