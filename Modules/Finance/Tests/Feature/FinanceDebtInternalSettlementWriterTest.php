@@ -70,7 +70,7 @@ final class FinanceDebtInternalSettlementWriterTest extends TestCase
             $debt, $voucher, $allocation, 'cp34-post-key-001', 11, 'Approved test', fn () => true
         );
         self::assertSame(1, DB::table('finance_debt_allocation_ownerships')->where('mapping_id', $id)->where('allocation_id', $allocation)->count());
-        self::assertSame('30.00', (string) DB::table('finance_debt_settlement_mappings')->where('id', $id)->value('amount'));
+        self::assertSame('30.00', number_format((float) DB::table('finance_debt_settlement_mappings')->where('id', $id)->value('amount'), 2, '.', ''));
         self::assertSame(1, DB::table('finance_debt_idempotency_keys')->where('obligation_id', $debt)->count());
         self::assertSame(0, DB::table('finance_debt_events')->where('obligation_id', $debt)->count());
     }
