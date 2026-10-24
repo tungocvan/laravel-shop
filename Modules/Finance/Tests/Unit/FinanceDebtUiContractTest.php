@@ -14,7 +14,7 @@ final class FinanceDebtUiContractTest extends TestCase
         $shell = file_get_contents($root.'/Modules/Finance/resources/views/debts/workspace.blade.php');
 
         self::assertStringContainsString("can('finance.view')", $component);
-        self::assertStringContainsString("can('finance.voucher.create')", $component);
+        self::assertStringContainsString("can('finance.debt.manage')", $component);
         self::assertStringContainsString('FinanceDebtService $service', $component);
         self::assertStringContainsString('->paginate(10)', $component);
         self::assertStringContainsString('->where(\'direction\'', $component);
