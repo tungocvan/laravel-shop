@@ -54,6 +54,13 @@ final class DebtWorkspace extends Component
         $this->loadPartnerOptions();
     }
 
+    public function updatedPartnerSearch(): void
+    {
+        $this->authorizeMutation();
+        $this->partnerSearch = mb_substr(trim($this->partnerSearch), 0, 100);
+        $this->loadPartnerOptions();
+    }
+
     public function updatedDraftDirection(): void
     {
         $this->partnerId = '';
