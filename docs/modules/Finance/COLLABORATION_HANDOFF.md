@@ -390,3 +390,16 @@ $env:FINANCE_CP22_ALLOW_ISOLATED_DB = "yes"
 php artisan test Modules/Finance/Tests/Feature/FinanceDebtRealDatabaseContentionTest.php
 ```
 Never use production/shared DB or commit credentials. Report PASS/FAIL/SKIP for the optional test separately; PASS would prove only this scratch-table smoke test, not the full settlement lifecycle or deadlock freedom. No production migrations, PR, merge, or UI.
+
+ 
+## Phase 2 — CP25 concurrency evidence report (2026-10-24)
+
+Added `FinanceDebtConcurrencyEvidence` and four focused tests. Missing/partial evidence yields `NOT_RUN_OR_INCOMPLETE`; complete self-reported scratch-table checks yield `REPORTED_PASS_UNVERIFIED` (not an independently verified PASS). Every result sets `settlement_eligible=false`, and assertCanSettle always denies. Report contains only driver, safe test DB name, required check names, reason and status; no DSN, credentials or passwords. CP22 optional real DB smoke test emits the sanitized report after all four assertions. No actual settlement, production, migrations, PR, merge or UI.
+
+DELL checkpoint:
+```
+git pull --ff-only
+php artisan test Modules/Finance/Tests/Feature/FinanceDebtConcurrencyEvidenceTest.php Modules/Finance/Tests/Feature/FinanceDebtRealDatabaseContentionTest.php
+php artisan test Modules/Finance/Tests
+```
+Without configured isolated local MySQL/PostgreSQL, CP22 remains SKIP. A passing regression with a skip is NOT real DB concurrency evidence. For actual smoke execution, use the CP24 PowerShell environment instructions and run CP22 focused test separately, reporting PASS/FAIL/SKIP. Even a real DB smoke PASS does not prove full settlement-service concurrency or authorize settlement.
