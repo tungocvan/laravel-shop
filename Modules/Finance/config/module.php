@@ -11,6 +11,7 @@ return [
         'finance.view',
         'finance.account.manage',
         'finance.voucher.create',
+        'finance.debt.manage',
         'finance.voucher.post',
         'finance.voucher.reverse',
         'finance.voucher.force-delete',

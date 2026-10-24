@@ -1,8 +1,17 @@
 @props([
     'placeholder' => 'Tìm kiếm...',
     'inputClass' => '',
+    'variant' => 'input',
+    'options' => [],
+    'selected' => '',
+    'searchModel' => null,
+    'selectAction' => null,
+    'searchPlaceholder' => 'Tìm kiếm...',
 ])
 
+@if ($variant === 'select')
+    @include('components.search-select')
+@else
 @php
     $listId = $attributes->get('list');
 @endphp
@@ -143,4 +152,6 @@
             });
         </script>
     @endonce
+@endif
+
 @endif

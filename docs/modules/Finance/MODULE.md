@@ -35,3 +35,65 @@ Finance owns manual receipt/payment vouchers independently of Pharma and Request
 ## Workspace navigation and manual categories (checkpoint 6B.2)
 
 The workspace defaults to compact receipt/payment actions, with Pharma under automatic document sources. Finance account management is accessible from the top toolbar, and account creation is shown only when requested. Manual transaction categories are Finance-owned data in finance_manual_categories (direction, code, name, is_active). Migration 000004 seeds default categories and allows additional direction-specific categories without hardcoded UI options. ManualCategoryService validates active category selection and creates unique custom codes. The UI's add-category action requires finance.voucher.create. No Request integration, category deletion, dashboard or printing in this checkpoint.
+
+
+## Debt workspace (2026-10-24, UI shell only)
+
+Finance owns the debt workspace under `/admin/finance/debts/{section?}` and retains the canonical `/admin/finance` treasury workspace. The debt sidebar is a Finance-owned navigation surface rendered within the canonical Admin shell, protected by `auth:admin` and `finance.view`. This checkpoint contains no receivable/payable persistence, invoice adapter, debt recognition, invoice settlement, aging calculations, or schema migrations. Invoices remains the canonical owner of invoice data. A future integration contract and data lifecycle audit are required before any debt values may be displayed or posted.
+
+
+## Debt foundation checkpoint 2 (2026-10-24)
+
+Finance owns `finance_debt_obligations` (debt lifecycle, source identity, due dates, counterparties) and append-only `finance_debt_events` (future adjustments). Migration `2026_10_24_000001_create_finance_debt_foundation_tables.php` is additive and must not be run on production without separate authorization. `source_module/source_type/source_document_id` is unique for source-backed obligations, while nullable identity permits independent manual debts. Draft is the default; this checkpoint deliberately does not expose a confirmation/posting service or mutate debt data.
+
+`InvoiceDebtCandidateReader` and `DatabaseInvoiceDebtCandidateReader` are a read-only, fail-closed discovery boundary for `Invoices` table records. `sold` maps to receivable, `purchase` to payable. This is **not** the existing `FinancialDocumentProvider` posting contract and is intentionally not registered for voucher posting. The current invoice schema alone cannot establish whether an invoice is active, canceled, replaced, adjusted, already settled or commercially eligible. A candidate must never be automatically converted to confirmed debt or used for payment without an approved lifecycle/eligibility and reconciliation contract. Existing `finance_allocations` remain the canonical cash settlement mechanism; no duplicate payment ledger is introduced. Finance can continue operating with Invoices disabled. No production operations or merge authorized.
+
+
+### Debt checkpoint 3 — guarded manual recognition
+
+FinanceDebtService owns manual debt drafts, confirmation and append-only adjustment events in finance_debt_obligations / finance_debt_events. Only source-less manual drafts can be confirmed; invoice-linked drafts are rejected until invoice cancellation/replacement and commercial eligibility can be verified. Confirmation requires an explicit actor ID and recognition date; no automatic confirmation, source mutation, voucher creation, allocation, or cash ledger posting occurs. Adjustments require a reason, effective date and actor; cannot reduce the current adjusted principal below zero. The service is backend-only and has no UI/API exposure or authorization adapter yet; callers must enforce permissions before invocation. Debt settlement and reconciliation are deferred.
+
+
+### Debt checkpoint 4 — manual debt UI
+
+Finance debt `documents` section mounts `finance.debt-workspace` Livewire component inside the existing Finance-owned sidebar and canonical Admin layout. The component lists Finance obligations with bounded pagination (10), keyword/direction/status filters, manual draft creation, selected-debt detail, explicit confirmation and append-only adjustment form. Mutations delegate to FinanceDebtService; `finance.view` is required to render/read, and the existing `finance.voucher.create` permission is provisionally reused for debt mutations pending dedicated debt permissions. This is a permission-boundary compromise requiring review before production enablement. No invoice-linked recognition, settlement, voucher posting, aging/reporting or automatic ledger entry. Database migration requires separate authorization; UI tests and manual acceptance pending.
+
+
+### Checkpoint 4.1 — Partner-linked manual debt
+
+Finance now uses canonical `Modules/Partner` data for manual debt creation. The UI searches active customers for receivables and active suppliers for payables (maximum 20 results). Finance stores a nullable `partner_id` alongside the existing immutable counterparty name and tax-code snapshot. Historical manual debts remain unlinked; no name-based auto matching. `PartnerDebtDraftService` checks module availability, active status and required role again inside a transaction before creating the draft. Partner master data is never mutated. Additive migration `2026_10_24_000002_add_partner_id_to_finance_debt_obligations.php` is pending environment-specific authorization. No production migration, posting or invoice recognition.
+
+
+### Checkpoint 4.2 — Shared select and currency UI
+
+The Finance debt manual form reuses the existing shared `x-select-search` component with dynamic Partner options (bounded to 20) and server-side Partner eligibility validation. Whole-VND input is visually grouped by thousands in the browser and submitted to Finance as unformatted digits; original amount persists in the existing DECIMAL schema. The debt list displays zero decimal places without altering persisted values. Note: decimal-valued legacy debts remain unchanged in storage; list presentation is a display-only choice. UI browser acceptance is pending.
+
+
+### Checkpoint 4.3 — Admin Partner PWA picker
+
+Finance debt form uses shared `x-pwa-select-search` presentation and a Finance-local Alpine/Livewire adapter for the Admin surface. The adapter controls the PWA search panel, forwards search text to the bounded Partner query, sets Livewire partnerId on selection and resets on direction switch. It does not change ClientPortal global JavaScript or Partner ownership. Real-browser behavior and keyboard/mobile accessibility remain UI acceptance gates; tests alone cannot establish UI PASS.
+
+
+### Checkpoint 4.4 — Shared search and money UI
+
+Existing global `<x-search>` retains its default search-input behavior. New `variant="select"` delegates to `resources/views/components/search-select.blade.php`, a reusable Alpine/Livewire dropdown with generic options, selected id, search model and select action. Finance supplies Partner-specific data and validates identity and role server-side; no Partner business logic is embedded in the shared component. Manual due date defaults to current application date + 30 days on opening the create form, remains editable. Debt detail displays whole VND; signed adjustment input groups thousands while sending raw signed digits to the existing Finance validation. Stored decimal precision is unchanged.
+
+
+### Checkpoint 5.2 — manual debt balance presentation
+
+Selected manual debt details show original amount, sum of all append-only signed adjustment events, and resulting adjusted principal. The total is computed using SQL DECIMAL arithmetic over **all** events, independently of the latest-100 event history display limit; values are formatted for VND without PHP float conversion. This is **not** an outstanding receivable/payable after cash settlement: voucher allocations, payments and reconciliation remain out of scope. The original debt amount and event records are unchanged. UI acceptance and tests are pending user execution.
+
+
+### Checkpoint 5.3 — paginated adjusted principal column
+
+The Finance debt documents list retains original amount and adds adjusted principal immediately beside it. A correlated SQL DECIMAL SUM subquery is projected onto the paginated obligations query, avoiding per-row queries/N+1 and PHP float precision loss. The list and detail use the same VND formatter. This represents principal after manual adjustments, **not** a settled/outstanding balance after payments. No schema changes, posting, settlement or cross-module writes.
+
+
+### Mobile debt list scroll (Checkpoint 6.2)
+
+The document table is a keyboard-focusable, labeled horizontal scroll region with a 960px minimum table width and nowrap cells on narrow viewports. It does not lock vertical touch scrolling, alter the global Admin shell or change debt calculations. The mobile horizontal-scroll hint is displayed only below `sm`. Actual vertical scrolling on device requires UI acceptance; if blocked, audit the Admin scroll container before any shared layout change.
+
+
+### Checkpoint 6.3 — Admin shell mobile scroll regression
+
+Mobile vertical scrolling is owned by shared Admin `#admin-main`, not by Finance. The Admin shell workspace is constrained to the shell viewport height (`h-full`) so the grid's `minmax(0,1fr)` main track can shrink and scroll when content exceeds the available height. The Finance table retains independent horizontal scrolling. This shared change requires Admin + Finance regression and actual mobile acceptance before merge.

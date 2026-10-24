@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\Finance\Http\Controllers\FinanceWorkspaceController;
+use Modules\Finance\Http\Controllers\DebtWorkspaceController;
 use Modules\Finance\Http\Controllers\FinanceVoucherPrintController;
 use Modules\Finance\Http\Controllers\FinancePrintSettingsController;
 use Modules\Finance\Http\Controllers\FinanceReportExportController;
@@ -13,6 +14,10 @@ Route::middleware(['web', 'auth:admin'])
         Route::get('/', FinanceWorkspaceController::class)
             ->middleware('permission:finance.view,admin')
             ->name('index');
+        Route::get('/debts/{section?}', DebtWorkspaceController::class)
+            ->whereIn('section', ['dashboard', 'partners', 'documents', 'ledger', 'summary', 'aging', 'settings'])
+            ->middleware('permission:finance.view,admin')
+            ->name('debts.index');
         Route::get('/reports/vouchers.xlsx', FinanceReportExportController::class)
             ->middleware('permission:finance.view,admin')
             ->name('reports.vouchers.excel');
