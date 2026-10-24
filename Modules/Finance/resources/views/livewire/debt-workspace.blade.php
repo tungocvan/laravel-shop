@@ -39,7 +39,7 @@
     @if ($selected)
         <section class="space-y-3 rounded-xl border border-slate-200 p-4" aria-label="Chi tiết công nợ">
             <h3 class="font-semibold">Chi tiết: {{ $selected->reference_number }}</h3>
-            <p class="text-sm">Đối tác: {{ $selected->counterparty_name }} · Trạng thái: {{ $selected->status }} · Số tiền gốc: {{ number_format((float) $selected->original_amount, 2, ',', '.') }} ₫</p>
+            <p class="text-sm">Đối tác: {{ $selected->counterparty_name }} · Trạng thái: {{ $selected->status }} · Số tiền gốc: {{ number_format((float) $selected->original_amount, 0, ',', '.') }} ₫</p>
             @if ($canManage && $selected->status === 'draft' && $selected->source_module === null && $selected->source_type === null && $selected->source_document_id === null)
                 <button wire:click="confirm" wire:confirm="Xác nhận công nợ thủ công này? Không thể xác nhận lại." wire:loading.attr="disabled" class="rounded-xl bg-indigo-700 px-4 py-2 text-sm font-semibold text-white">Xác nhận công nợ</button>
             @endif
