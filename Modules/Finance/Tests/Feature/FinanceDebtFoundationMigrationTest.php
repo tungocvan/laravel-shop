@@ -35,6 +35,34 @@ final class FinanceDebtFoundationMigrationTest extends TestCase
         self::assertSame('draft', DB::table('finance_debt_obligations')->where('id', $id)->value('status'));
     }
 
+    public function test_partner_link_is_nullable_and_source_identity_index_exists(): void
+    {
+        self::assertTrue(Schema::hasColumn('finance_debt_obligations', 'partner_id'));
+        $indexes = Schema::getIndexes('finance_debt_obligations');
+        $names = array_column($indexes, 'name');
+        self::assertContains('finance_debt_source_identity_unique', $names);
+
+        $id = $this->insertObligation(null);
+        self::assertNull(DB::table('finance_debt_obligations')->where('id', $id)->value('partner_id'));
+    }
+
+    public function test_source_identity_allows_distinct_source_types(): void
+    {
+        $this->insertObligation('SOURCE-42');
+        $id = DB::table('finance_debt_obligations')->insertGetId([
+            'source_module' => 'Invoices',
+            'source_type' => 'credit_note',
+            'source_document_id' => 'SOURCE-42',
+            'reference_number' => 'CREDIT-'.uniqid(),
+            'direction' => 'receivable',
+            'counterparty_name' => 'Test partner',
+            'original_amount' => '100.00',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        self::assertGreaterThan(0, $id);
+    }
+
     public function test_same_invoice_cannot_be_linked_twice(): void
     {
         $this->insertObligation('2001');
