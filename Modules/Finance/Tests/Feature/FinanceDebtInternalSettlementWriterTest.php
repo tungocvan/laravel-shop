@@ -164,4 +164,70 @@ final class FinanceDebtInternalSettlementWriterTest extends TestCase
         $this->expectException(ValidationException::class);
         (new FinanceDebtInternalSettlementWriter)->reverse(999999, 999999, 'cp34-reverse-key', 11, 'Reversal', fn () => true);
     }
+    public function test_cp36_ownership_audit_reconciles_post_and_full_reversal(): void
+    {
+        [$debt, $voucher, $allocation] = $this->fixture();
+        $writer = new FinanceDebtInternalSettlementWriter;
+        $audit = new \Modules\Finance\Services\FinanceDebtSettlementOwnershipAudit;
+        $origin = $writer->post($debt, $voucher, $allocation, 'cp36-post-key-001', 21, 'Authorized payment', fn () => true);
+        self::assertSame('ownership_reconciled_diagnostic_only', $audit->inspect($debt)['reason_code']);
+        DB::table('finance_vouchers')->where('id', $voucher)->update(['status' => 'reversed']);
+        $writer->reverse($origin, $voucher, 'cp36-reverse-key-001', 22, 'Authorized reversal', fn () => true);
+        $result = $audit->inspect($debt);
+        self::assertSame('ownership_reconciled_diagnostic_only', $result['reason_code']);
+        self::assertSame(2, $result['mapping_count']);
+        self::assertSame(1, $result['ownership_count']);
+        self::assertFalse($result['eligible']);
+    }
+
+    public function test_cp36_ownership_audit_detects_changed_allocation(): void
+    {
+        [$debt, $voucher, $allocation] = $this->fixture();
+        (new FinanceDebtInternalSettlementWriter)->post(
+            $debt, $voucher, $allocation, 'cp36-post-key-002', 21, 'Payment', fn () => true
+        );
+        DB::table('finance_allocations')->where('id', $allocation)->update(['amount' => '29.00']);
+        self::assertSame(
+            'allocation_ownership_mismatch',
+            (new \Modules\Finance\Services\FinanceDebtSettlementOwnershipAudit)->inspect($debt)['reason_code']
+        );
+    }
+
+    public function test_cp36_outer_transaction_failure_rolls_back_post_and_token(): void
+    {
+        [$debt, $voucher, $allocation] = $this->fixture();
+        try {
+            DB::transaction(function () use ($debt, $voucher, $allocation): void {
+                (new FinanceDebtInternalSettlementWriter)->post(
+                    $debt, $voucher, $allocation, 'cp36-post-key-003', 21, 'Rollback', fn () => true
+                );
+                throw new \RuntimeException('Injected failure after posting');
+            });
+            self::fail('Expected injected failure.');
+        } catch (\RuntimeException $exception) {
+            self::assertSame(0, DB::table('finance_debt_settlement_mappings')->where('obligation_id', $debt)->count());
+            self::assertSame(0, DB::table('finance_debt_allocation_ownerships')->where('obligation_id', $debt)->count());
+            self::assertSame(0, DB::table('finance_debt_idempotency_keys')->where('obligation_id', $debt)->count());
+        }
+    }
+
+    public function test_cp36_outer_transaction_failure_rolls_back_reversal_and_token(): void
+    {
+        [$debt, $voucher, $allocation] = $this->fixture();
+        $writer = new FinanceDebtInternalSettlementWriter;
+        $origin = $writer->post($debt, $voucher, $allocation, 'cp36-post-key-004', 21, 'Payment', fn () => true);
+        DB::table('finance_vouchers')->where('id', $voucher)->update(['status' => 'reversed']);
+        try {
+            DB::transaction(function () use ($writer, $origin, $voucher): void {
+                $writer->reverse($origin, $voucher, 'cp36-reverse-key-004', 22, 'Rollback', fn () => true);
+                throw new \RuntimeException('Injected failure after reversal');
+            });
+            self::fail('Expected injected failure.');
+        } catch (\RuntimeException $exception) {
+            self::assertSame(1, DB::table('finance_debt_settlement_mappings')->where('obligation_id', $debt)->count());
+            self::assertSame(1, DB::table('finance_debt_idempotency_keys')->where('obligation_id', $debt)->count());
+            self::assertSame(1, DB::table('finance_debt_allocation_ownerships')->where('obligation_id', $debt)->count());
+        }
+    }
+
 }
