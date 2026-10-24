@@ -509,3 +509,8 @@ User approved CP35 up to Git Pull/Test. Implemented testing-environment-only ful
 ## CP36 — Ownership reconciliation and rollback, TEST PENDING
 
 Approved by user to Git Pull/Test. Added `FinanceDebtSettlementOwnershipAudit` (read-only, eligible=false, post/allocation/source/actor ownership, reversal lifecycle, orphan detection, mapping balance diagnostics), four focused tests in `FinanceDebtInternalSettlementWriterTest` (reconciled post/reverse, allocation tamper, outer-transaction post rollback and reversal rollback), and `PHASE2_OWNERSHIP_AUDIT_CP36.md`. **Not yet implemented:** two-connection actual writer race tests, durable reversal actor audit, production permission integration. Existing writer testing-only; public gate still denies. No production migration or UI. Run focused and full Finance suite in DELL isolated MySQL; assistant has not run tests. Chưa đến CHECKPOINT TEST UI.
+
+
+## CP37 — Durable internal audit, TEST PENDING
+
+User approved CP37 to Git Pull/Test. Added migration `2026_10_24_000005_create_finance_debt_settlement_audit_events_table.php`; internal testing-only writer atomically inserts actor/reason/origin/token audit for post and reverse; diagnostic ownership audit reconciles these rows when schema exists. Updated focused writer test for audit contents, denied writes and transaction rollback. Documented in `PHASE2_DURABLE_AUDIT_CP37.md`. **Not complete:** two-connection actual-writer race test, production permission policy, immutable audit enforcement, manual debt, lifecycle integration. Public gate still fail-closed. Do not migrate production or start UI. Run focused and full Finance suite with isolated MySQL; assistant has not executed tests. Chưa đến CHECKPOINT TEST UI.
