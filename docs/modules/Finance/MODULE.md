@@ -35,3 +35,8 @@ Finance owns manual receipt/payment vouchers independently of Pharma and Request
 ## Workspace navigation and manual categories (checkpoint 6B.2)
 
 The workspace defaults to compact receipt/payment actions, with Pharma under automatic document sources. Finance account management is accessible from the top toolbar, and account creation is shown only when requested. Manual transaction categories are Finance-owned data in finance_manual_categories (direction, code, name, is_active). Migration 000004 seeds default categories and allows additional direction-specific categories without hardcoded UI options. ManualCategoryService validates active category selection and creates unique custom codes. The UI's add-category action requires finance.voucher.create. No Request integration, category deletion, dashboard or printing in this checkpoint.
+
+
+## Debt workspace (2026-10-24, UI shell only)
+
+Finance owns the debt workspace under `/admin/finance/debts/{section?}` and retains the canonical `/admin/finance` treasury workspace. The debt sidebar is a Finance-owned navigation surface rendered within the canonical Admin shell, protected by `auth:admin` and `finance.view`. This checkpoint contains no receivable/payable persistence, invoice adapter, debt recognition, invoice settlement, aging calculations, or schema migrations. Invoices remains the canonical owner of invoice data. A future integration contract and data lifecycle audit are required before any debt values may be displayed or posted.
