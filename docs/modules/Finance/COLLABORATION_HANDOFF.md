@@ -492,3 +492,10 @@ Focused: `php artisan test Modules/Finance/Tests/Feature/FinanceDebtMappingRecon
 ## CP33 — Exact allocation ownership boundary, TEST PENDING
 
 User approved CP33 backend implementation up to Git Pull/Test and prefers larger batches, but safety inspection found settlement mapping schema lacks allocation ID and unique ownership. Implemented read-only `FinanceDebtAllocationOwnership`, focused `FinanceDebtAllocationOwnershipBoundaryTest`, and `PHASE2_ALLOCATION_OWNERSHIP_CP33.md`. This is deliberately a reduced CP33 scope: no settlement/reversal writer, migration, production or UI change; atomic gate still denies. Must not claim CP33 atomic writer completed. Focused: `php artisan test Modules/Finance/Tests/Feature/FinanceDebtAllocationOwnershipBoundaryTest.php`; full Finance suite with MySQL opt-in, no SKIP. Fix CP33 only on failure. Chưa đến CHECKPOINT TEST UI.
+
+
+## CP34 — Isolated internal posting, TEST PENDING
+
+Approved by user through Git Pull/Test. Added additive migration `2026_10_24_000004_create_finance_debt_allocation_ownerships_table.php` (unique exact allocation ownership; **do not run on production**), `FinanceDebtInternalSettlementWriter` (testing-environment-only, explicit callback authorization, actor/reason, debt/voucher/allocation locks, post mapping + idempotency + ownership in transaction; reversal deliberately denies), `FinanceDebtInternalSettlementWriterTest` (five integration tests), and `PHASE2_INTERNAL_POSTING_CP34.md`. The existing public `FinanceDebtAtomicSettlementGate` remains unconditionally fail-closed. This is partial CP34; no real reversal, permission integration, manual debt, production activation or UI.
+
+Focused `php artisan test Modules/Finance/Tests/Feature/FinanceDebtInternalSettlementWriterTest.php`, then full `php artisan test Modules/Finance/Tests` with isolated MySQL opt-in, no SKIP. User runs DELL WSL; assistant has not executed tests. Fix CP34 only on FAIL. Chưa đến CHECKPOINT TEST UI.
