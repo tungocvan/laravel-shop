@@ -403,3 +403,45 @@ php artisan test Modules/Finance/Tests/Feature/FinanceDebtConcurrencyEvidenceTes
 php artisan test Modules/Finance/Tests
 ```
 Without configured isolated local MySQL/PostgreSQL, CP22 remains SKIP. A passing regression with a skip is NOT real DB concurrency evidence. For actual smoke execution, use the CP24 PowerShell environment instructions and run CP22 focused test separately, reporting PASS/FAIL/SKIP. Even a real DB smoke PASS does not prove full settlement-service concurrency or authorize settlement.
+
+ 
+## Phase 2 — CP26 MySQL/MariaDB real contention execution (2026-10-24)
+
+The CP22 smoke test now explicitly creates an InnoDB scratch table on MySQL/MariaDB, requires MySQL 8+ or MariaDB 10.3+ for NOWAIT, and only treats recognized lock-error codes as lock contention (not syntax/permission errors). It still only proves scratch-table lock, unique key, reversal uniqueness and rollback behavior; no actual Finance settlement writer is enabled. Actual real DB run is NOT claimed until the DELL output confirms no SKIP.
+
+**DELL / Windows PowerShell — first verify local MySQL/MariaDB**:
+```powershell
+mysql --version
+php -m | Select-String "pdo_mysql"
+```
+Confirm that port 3306 is a disposable **local instance**, not a tunnel, remote forwarding or shared/production server. If you cannot verify this, STOP; do not create the database.
+
+Log in to the verified local test server as an administrator (the following is run in the MySQL client, **not** in PowerShell):
+```sql
+CREATE DATABASE finance_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'finance_test_user'@'127.0.0.1' IDENTIFIED BY 'REPLACE_WITH_UNIQUE_LOCAL_TEST_PASSWORD';
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER ON finance_test.* TO 'finance_test_user'@'127.0.0.1';
+SHOW GRANTS FOR 'finance_test_user'@'127.0.0.1';
+```
+Do not run if `finance_test` already exists with unknown data; use a fresh disposable test instance. No migrations or production schema changes. Password above is a placeholder, not a real credential. Use a distinct test-only user and password. On installations using `localhost` instead of TCP 127.0.0.1, adapt account host deliberately; keep DSN host as 127.0.0.1 for TCP.
+
+**PowerShell in repository** (the password prompt is not echoed; session environment only):
+```powershell
+$env:FINANCE_CP22_TEST_DSN = "mysql:host=127.0.0.1;port=3306;dbname=finance_test"
+$env:FINANCE_CP22_TEST_USER = "finance_test_user"
+$secret = Read-Host "Local test DB password" -AsSecureString
+$env:FINANCE_CP22_TEST_PASSWORD = [System.Net.NetworkCredential]::new("", $secret).Password
+$env:FINANCE_CP22_ALLOW_ISOLATED_DB = "yes"
+php artisan test Modules/Finance/Tests/Feature/FinanceDebtRealDatabaseContentionTest.php
+```
+For compatibility with older PowerShell, `New-Object System.Net.NetworkCredential("", $secret)` may replace `::new`. Do not paste or commit the password. Clear after test:
+```powershell
+'FINANCE_CP22_TEST_DSN','FINANCE_CP22_TEST_USER','FINANCE_CP22_TEST_PASSWORD','FINANCE_CP22_ALLOW_ISOLATED_DB' | ForEach-Object { Remove-Item "Env:$_" -ErrorAction SilentlyContinue }
+```
+Run the normal checkpoint first:
+```
+git pull --ff-only
+php artisan test Modules/Finance/Tests/Feature/FinanceDebtRealDatabaseContentionTest.php
+php artisan test Modules/Finance/Tests
+```
+**Report both** the isolated real DB smoke result (PASS/FAIL/SKIP) and full Finance regression. A SKIP remains NOT RUN. On errors do not change app `.env` or target production; send only sanitized error output, never passwords/DSN with secrets. No UI checkpoint yet.
