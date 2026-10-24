@@ -504,3 +504,8 @@ Focused `php artisan test Modules/Finance/Tests/Feature/FinanceDebtInternalSettl
 ## CP35 — Internal full reversal, TEST PENDING
 
 User approved CP35 up to Git Pull/Test. Implemented testing-environment-only full reversal in `FinanceDebtInternalSettlementWriter::reverse`: debt-first lock, original voucher lifecycle must be reversed, exact ownership, immutable original mapping, no duplicate origin reversal, atomic reversal token+mapping, explicit actor/reason/callback. Added three tests in `FinanceDebtInternalSettlementWriterTest.php` and `PHASE2_REVERSAL_CP35.md`. Existing public atomic gate still always denies; no production migration/activation, permission policy, manual debt link, or actual two-connection writer concurrency proof. CP35 is not release ready. User to run focused writer test and full Finance suite with isolated MySQL opt-in; no test run by assistant. Chưa đến CHECKPOINT TEST UI.
+
+
+## CP36 — Ownership reconciliation and rollback, TEST PENDING
+
+Approved by user to Git Pull/Test. Added `FinanceDebtSettlementOwnershipAudit` (read-only, eligible=false, post/allocation/source/actor ownership, reversal lifecycle, orphan detection, mapping balance diagnostics), four focused tests in `FinanceDebtInternalSettlementWriterTest` (reconciled post/reverse, allocation tamper, outer-transaction post rollback and reversal rollback), and `PHASE2_OWNERSHIP_AUDIT_CP36.md`. **Not yet implemented:** two-connection actual writer race tests, durable reversal actor audit, production permission integration. Existing writer testing-only; public gate still denies. No production migration or UI. Run focused and full Finance suite in DELL isolated MySQL; assistant has not run tests. Chưa đến CHECKPOINT TEST UI.
