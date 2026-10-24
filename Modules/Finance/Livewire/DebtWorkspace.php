@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Modules\Finance\Services\FinanceDebtService;
+use Modules\Finance\Services\PartnerDebtDraftService;
+use Modules\Partner\Models\Partner;
 
 final class DebtWorkspace extends Component
 {
@@ -17,7 +19,8 @@ final class DebtWorkspace extends Component
     public bool $creating = false;
     public string $reference = '';
     public string $draftDirection = 'receivable';
-    public string $counterparty = '';
+    public string $partnerSearch = '';
+    public string $partnerId = '';
     public string $amount = '';
     public string $dueOn = '';
     public ?int $selectedDebtId = null;
@@ -48,18 +51,30 @@ final class DebtWorkspace extends Component
         $this->creating = true;
     }
 
-    public function create(FinanceDebtService $service): void
+    public function updatedDraftDirection(): void
+    {
+        $this->partnerId = '';
+        $this->partnerSearch = '';
+    }
+
+    public function choosePartner(int $id): void
+    {
+        $this->authorizeMutation();
+        $this->partnerId = (string) $id;
+    }
+
+    public function create(PartnerDebtDraftService $service): void
     {
         $actor = $this->authorizeMutation();
         $this->validate([
             'reference' => 'required|string|max:100',
             'draftDirection' => 'required|in:receivable,payable',
-            'counterparty' => 'required|string|max:255',
+            'partnerId' => 'required|integer|min:1',
             'amount' => ['required', 'regex:/^\\d{1,16}(?:\\.\\d{1,2})?$/'],
             'dueOn' => 'nullable|date_format:Y-m-d',
         ]);
-        $service->createManualDraft($this->reference, $this->draftDirection, $this->counterparty, $this->amount, $this->dueOn ?: null, $actor);
-        $this->reset('reference', 'counterparty', 'amount', 'dueOn', 'creating');
+        $service->create($this->reference, $this->draftDirection, (int) $this->partnerId, $this->amount, $this->dueOn ?: null, $actor);
+        $this->reset('reference', 'partnerId', 'partnerSearch', 'amount', 'dueOn', 'creating');
         $this->resetPage();
         session()->flash('debt_notice', 'Đã tạo công nợ nháp.');
     }
@@ -111,7 +126,19 @@ final class DebtWorkspace extends Component
         $selected = $this->selectedDebtId === null ? null : DB::table('finance_debt_obligations')->find($this->selectedDebtId);
         $events = $selected ? DB::table('finance_debt_events')->where('obligation_id', $selected->id)->orderByDesc('id')->limit(100)->get() : collect();
 
+        $partners = collect();
+        if ($this->creating && (bool) config('modules.registry.Partner.enabled', false)) {
+            $role = $this->draftDirection === 'payable' ? 'supplier' : 'customer';
+            $partnerQuery = Partner::query()->where('status', 'active')->withPartnerType($role);
+            if (trim($this->partnerSearch) !== '') {
+                $term = '%'.addcslashes(trim($this->partnerSearch), '%_\\\\').'%';
+                $partnerQuery->where(fn ($q) => $q->where('name', 'like', $term)->orWhere('tax_code', 'like', $term));
+            }
+            $partners = $partnerQuery->orderBy('name')->limit(20)->get(['id', 'name', 'tax_code']);
+        }
+
         return view('Finance::livewire.debt-workspace', [
+            'partners' => $partners,
             'debts' => $query->paginate(10),
             'selected' => $selected,
             'events' => $events,
