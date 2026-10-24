@@ -1,6 +1,7 @@
 @props([
     'placeholder' => 'Tìm kiếm...',
     'inputClass' => '',
+    'variant' => 'input',
 ])
 
 @php
