@@ -134,4 +134,44 @@ final class FinanceDebtAtomicSettlementGateTest extends TestCase
         }
     }
 
+    public function test_existing_same_scope_idempotency_key_is_rejected_without_writes(): void
+    {
+        [$debt, $voucher] = $this->fixture();
+        DB::table('finance_debt_idempotency_keys')->insert([
+            'obligation_id' => $debt,
+            'operation' => 'post',
+            'idempotency_key' => 'same-key-017',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        try {
+            (new FinanceDebtAtomicSettlementGate)->execute($debt, $voucher, 'same-key-017');
+            self::fail('Duplicate key unexpectedly executed.');
+        } catch (ValidationException $exception) {
+            self::assertSame(1, DB::table('finance_debt_idempotency_keys')->where('obligation_id', $debt)->count());
+            self::assertSame(0, DB::table('finance_debt_events')->where('obligation_id', $debt)->count());
+        }
+    }
+
+    public function test_operation_scope_does_not_enable_settlement(): void
+    {
+        [$debt, $voucher] = $this->fixture();
+        DB::table('finance_debt_idempotency_keys')->insert([
+            'obligation_id' => $debt,
+            'operation' => 'reverse',
+            'idempotency_key' => 'scope-key-017',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        try {
+            (new FinanceDebtAtomicSettlementGate)->execute($debt, $voucher, 'scope-key-017', 'post');
+            self::fail('Settlement unexpectedly executed.');
+        } catch (ValidationException $exception) {
+            self::assertSame(1, DB::table('finance_debt_idempotency_keys')->where('obligation_id', $debt)->count());
+            self::assertSame('posted', DB::table('finance_vouchers')->where('id', $voucher)->value('status'));
+        }
+    }
+
 }
