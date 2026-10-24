@@ -2,6 +2,11 @@
     'placeholder' => 'Tìm kiếm...',
     'inputClass' => '',
     'variant' => 'input',
+    'options' => [],
+    'selected' => '',
+    'searchModel' => null,
+    'selectAction' => null,
+    'searchPlaceholder' => 'Tìm kiếm...',
 ])
 
 @php
