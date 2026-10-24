@@ -16,7 +16,7 @@
                 <label class="text-sm">Số chứng từ<input wire:model="reference" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3" required maxlength="100"></label>
                 <label class="text-sm">Loại<select wire:model="draftDirection" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"><option value="receivable">Phải thu</option><option value="payable">Phải trả</option></select></label>
                 @include("Finance::livewire.partials.partner-picker")
-                <label class="text-sm">Số tiền VND<input wire:model="amount" inputmode="decimal" placeholder="1000000.00" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3" required></label>
+                <label class="text-sm">Số tiền VND<input x-data="{ display: '', format(v) { let digits = v.replace(/[^0-9]/g, ''); return digits.replace(/\\B(?=(\\d{3})+(?!\\d))/g, '.'); } }" x-bind:value="display" x-on:input="display = format($event.target.value); $event.target.value = display; $wire.set('amount', display.replace(/\\./g, ''))" inputmode="numeric" placeholder="1000000.00" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3" required></label>
                 <label class="text-sm">Hạn thanh toán<input wire:model="dueOn" type="date" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"></label>
             </div>
             @if ($errors->any()) <div role="alert" class="text-sm text-red-700">{{ $errors->first() }}</div> @endif
@@ -29,7 +29,7 @@
             <thead class="bg-slate-50"><tr><th class="p-3">Chứng từ</th><th class="p-3">Đối tác</th><th class="p-3">Loại</th><th class="p-3">Số tiền gốc</th><th class="p-3">Hạn</th><th class="p-3">Trạng thái</th><th class="p-3">Chi tiết</th></tr></thead>
             <tbody class="divide-y divide-slate-100">
                 @forelse ($debts as $debt)
-                    <tr><td class="p-3">{{ $debt->reference_number }}</td><td class="p-3">{{ $debt->counterparty_name }}</td><td class="p-3">{{ $debt->direction === 'receivable' ? 'Phải thu' : 'Phải trả' }}</td><td class="p-3 whitespace-nowrap">{{ number_format((float) $debt->original_amount, 2, ',', '.') }} ₫</td><td class="p-3">{{ $debt->due_on ?: '—' }}</td><td class="p-3">{{ $debt->status === 'draft' ? 'Nháp' : ($debt->status === 'confirmed' ? 'Đã xác nhận' : $debt->status) }}</td><td class="p-3"><button wire:click="selectDebt({{ $debt->id }})" class="font-semibold text-indigo-700 underline">Xem</button></td></tr>
+                    <tr><td class="p-3">{{ $debt->reference_number }}</td><td class="p-3">{{ $debt->counterparty_name }}</td><td class="p-3">{{ $debt->direction === 'receivable' ? 'Phải thu' : 'Phải trả' }}</td><td class="p-3 whitespace-nowrap">{{ number_format((float) $debt->original_amount, 0, ',', '.') }} ₫</td><td class="p-3">{{ $debt->due_on ?: '—' }}</td><td class="p-3">{{ $debt->status === 'draft' ? 'Nháp' : ($debt->status === 'confirmed' ? 'Đã xác nhận' : $debt->status) }}</td><td class="p-3"><button wire:click="selectDebt({{ $debt->id }})" class="font-semibold text-indigo-700 underline">Xem</button></td></tr>
                 @empty <tr><td colspan="7" class="p-6 text-center text-slate-500">Chưa có công nợ phù hợp.</td></tr>
                 @endforelse
             </tbody>
