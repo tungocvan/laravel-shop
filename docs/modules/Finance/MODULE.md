@@ -82,3 +82,8 @@ Existing global `<x-search>` retains its default search-input behavior. New `var
 ### Checkpoint 5.2 — manual debt balance presentation
 
 Selected manual debt details show original amount, sum of all append-only signed adjustment events, and resulting adjusted principal. The total is computed using SQL DECIMAL arithmetic over **all** events, independently of the latest-100 event history display limit; values are formatted for VND without PHP float conversion. This is **not** an outstanding receivable/payable after cash settlement: voucher allocations, payments and reconciliation remain out of scope. The original debt amount and event records are unchanged. UI acceptance and tests are pending user execution.
+
+
+### Checkpoint 5.3 — paginated adjusted principal column
+
+The Finance debt documents list retains original amount and adds adjusted principal immediately beside it. A correlated SQL DECIMAL SUM subquery is projected onto the paginated obligations query, avoiding per-row queries/N+1 and PHP float precision loss. The list and detail use the same VND formatter. This represents principal after manual adjustments, **not** a settled/outstanding balance after payments. No schema changes, posting, settlement or cross-module writes.
