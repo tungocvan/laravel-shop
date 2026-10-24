@@ -37,7 +37,7 @@ final class FinanceDebtMappingReconciliationTest extends TestCase
         ]);
     }
 
-    private function post(int $debt, string $amount): void
+    private function createPostMapping(int $debt, string $amount): void
     {
         $account = DB::table('finance_accounts')->insertGetId([
             'code' => 'CP32-'.uniqid(), 'name' => 'Cash', 'kind' => 'cash',
@@ -70,7 +70,7 @@ final class FinanceDebtMappingReconciliationTest extends TestCase
     public function test_partial_mapping_never_grants_settlement(): void
     {
         $debt = $this->debt();
-        $this->post($debt, '30.00');
+        $this->createPostMapping($debt, '30.00');
         $result = (new FinanceDebtMappingReconciliation)->inspect($debt);
         self::assertSame('30.00', $result['net_mapped_diagnostic']);
         self::assertSame('70.00', $result['remaining_diagnostic']);
@@ -80,8 +80,8 @@ final class FinanceDebtMappingReconciliationTest extends TestCase
     public function test_overpayment_suppresses_unreliable_balance(): void
     {
         $debt = $this->debt();
-        $this->post($debt, '70.00');
-        $this->post($debt, '70.00');
+        $this->createPostMapping($debt, '70.00');
+        $this->createPostMapping($debt, '70.00');
         $result = (new FinanceDebtMappingReconciliation)->inspect($debt);
         self::assertSame('negative_or_excessive_mapping_balance', $result['reason_code']);
         self::assertNull($result['remaining_diagnostic']);
