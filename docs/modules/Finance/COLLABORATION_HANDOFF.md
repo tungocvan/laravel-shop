@@ -322,3 +322,27 @@ Added FinanceDebtConcurrencyReadiness fail-closed driver/prerequisite inspector 
 Required separate real-database test plan (NOT executed): use isolated MySQL and PostgreSQL test databases and two independent DB connections/processes with barriers; race same debt+key, different keys on same debt, duplicate reversal origin, concurrent voucher post and debt gate, and rollback after injected failure. Assert unique constraints, isolation, lock waits/deadlocks, retry behavior and no partial ledger/mapping/idempotency writes. Avoid DatabaseTransactions wrapping both processes; ensure test cleanup. Gate stays disabled regardless of readiness report.
 
 DELL checkpoint: git pull --ff-only; php artisan test Modules/Finance/Tests/Feature/FinanceDebtConcurrencyReadinessTest.php; php artisan test Modules/Finance/Tests. Await two-tier PASS.
+
+ 
+## Phase 2 — CP22 isolated real-database contention harness (2026-10-24)
+
+Added opt-in `FinanceDebtRealDatabaseContentionTest.php` using two independent PDO connections, an isolated randomly named scratch table and explicit cleanup. Checks row-lock contention (NOWAIT), idempotency unique constraint, single-reversal-reference unique constraint and rollback visibility. This is a **database smoke test only**, not full settlement-service concurrency, cross-process racing or real production-schema validation. No settlement writes were enabled. No migrations, production access, PR, merge or UI.
+
+Safety guard: the DSN must use MySQL or PostgreSQL, specify a database name ending in `_test`, and `FINANCE_CP22_ALLOW_ISOLATED_DB=yes` must be set. Use only a disposable, dedicated local test DB with permissions to CREATE/DROP scratch tables. A missing DSN causes an explicit PHPUnit SKIP (NOT a real concurrency PASS). Never point at production.
+
+DELL regular two-tier checkpoint:
+```
+git pull --ff-only
+php artisan test Modules/Finance/Tests/Feature/FinanceDebtRealDatabaseContentionTest.php
+php artisan test Modules/Finance/Tests
+```
+
+For **real DB execution**, set `FINANCE_CP22_TEST_DSN`, `FINANCE_CP22_TEST_USER`, `FINANCE_CP22_TEST_PASSWORD`, `FINANCE_CP22_ALLOW_ISOLATED_DB=yes` in the terminal and rerun the focused test. Example PowerShell:
+```powershell
+$env:FINANCE_CP22_TEST_DSN = "mysql:host=127.0.0.1;dbname=finance_test"
+$env:FINANCE_CP22_TEST_USER = "finance_test_user"
+$env:FINANCE_CP22_TEST_PASSWORD = "<local test password>"
+$env:FINANCE_CP22_ALLOW_ISOLATED_DB = "yes"
+php artisan test Modules/Finance/Tests/Feature/FinanceDebtRealDatabaseContentionTest.php
+```
+Use a real local test user and password; do not commit secrets. Report the focused test's actual PASS/SKIP/FAIL separately from the full regression result. On machines without a dedicated MySQL/PostgreSQL test DB, real concurrency remains NOT RUN. UI checkpoint not reached.
