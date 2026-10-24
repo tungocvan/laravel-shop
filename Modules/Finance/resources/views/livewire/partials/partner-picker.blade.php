@@ -3,7 +3,23 @@
     query: '',
     selectedLabel: '',
     init() {
-        this.$nextTick(() => this.sync());
+        this.$nextTick(() => {
+            this.sync();
+            const trigger = this.$el.querySelector('[data-pwa-select-search-trigger]');
+            const input = this.$el.querySelector('[data-pwa-select-search-input]');
+            trigger?.addEventListener('click', () => { this.open = !this.open; this.renderPanel(); if (this.open) input?.focus(); });
+            input?.addEventListener('input', (event) => { this.query = event.target.value; this.search(); });
+            this.$watch('open', () => this.renderPanel());
+            this.$watch('selectedLabel', () => this.renderPanel());
+        });
+    },
+    renderPanel() {
+        const panel = this.$el.querySelector('[data-pwa-select-search-panel]');
+        const trigger = this.$el.querySelector('[data-pwa-select-search-trigger]');
+        const label = this.$el.querySelector('[data-pwa-select-search-label]');
+        if (panel) panel.classList.toggle('hidden', !this.open);
+        if (trigger) trigger.setAttribute('aria-expanded', this.open ? 'true' : 'false');
+        if (label) label.textContent = this.selectedLabel || 'Chọn khách hàng / nhà cung cấp';
     },
     sync() {
         const current = this.$wire.partnerId;
@@ -15,6 +31,7 @@
         this.selectedLabel = label;
         this.open = false;
         this.query = '';
+        this.renderPanel();
     },
     search() {
         this.$wire.searchPartners(this.query);
