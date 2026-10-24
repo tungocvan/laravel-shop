@@ -31,6 +31,15 @@ final class DebtWorkspace extends Component
     public string $adjustmentReason = '';
     public string $adjustmentDate = '';
 
+    public function mount(): void
+    {
+        $id = request()->query('debt');
+        if (is_scalar($id) && ctype_digit((string) $id) && (int) $id > 0
+            && DB::table('finance_debt_obligations')->where('id', (int) $id)->exists()) {
+            $this->selectedDebtId = (int) $id;
+        }
+    }
+
     public function updatedSearch(): void { $this->resetPage(); }
     public function updatedDirection(): void { $this->resetPage(); }
     public function updatedStatus(): void { $this->resetPage(); }
