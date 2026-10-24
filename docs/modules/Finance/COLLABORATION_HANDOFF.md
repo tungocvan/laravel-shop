@@ -204,3 +204,10 @@ CP2 Git pull/test gate:
 2. php artisan test Modules/Finance/Tests/Feature/FinanceDebtSettlementReadinessTest.php
 3. php artisan test Modules/Finance/Tests
 Stop on any failure; return exact output. Manual UI acceptance deferred. No PR/merge or production mutation.
+
+
+## Phase 2 — CP3 read-only source identity bridge (2026-10-24)
+
+FinanceDebtSourceLinkReader resolves the exact (source_module, source_type, source_document_id) tuple between finance_debt_obligations and finance_source_documents without mutating either. Source-less manual debts return null, incomplete identity and ambiguous treasury matches fail closed, and unmatched identity returns null. Four tests cover manual, incomplete, missing debt, and unmatched identity. Matching identity is **not** settlement, proof of invoice eligibility, or posting authorization. Voucher/ledger and source lifecycle rules remain unchanged. No migrations, UI changes, PR or production actions.
+
+CP3 DELL gate: git pull --ff-only; php artisan test Modules/Finance/Tests/Feature/FinanceDebtSourceLinkReaderTest.php; then php artisan test Modules/Finance/Tests if focused tests pass. These tests have not been run by the assistant. UI acceptance remains deferred.
