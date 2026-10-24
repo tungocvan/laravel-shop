@@ -16,9 +16,10 @@ final class FinanceDebtPartnerPickerContractTest extends TestCase
 
         self::assertStringContainsString('partner-picker', $view);
         self::assertStringNotContainsString('wire:model="counterparty"', $view);
-        self::assertStringContainsString('wire:model.live.debounce.350ms="partnerSearch"', $picker);
-        self::assertStringContainsString('wire:click="choosePartner(', $picker);
+        self::assertStringContainsString('<x-select-search', $picker);
+        self::assertStringContainsString('options-wire="partnerOptions"', $picker);
         self::assertStringContainsString('partnerId', $component);
+        self::assertStringContainsString('finance-debt-partner-search', $component);
         self::assertStringContainsString('withPartnerType($role)', $component);
         self::assertStringContainsString('->limit(20)', $component);
         self::assertStringContainsString("status !== 'active'", $service);
