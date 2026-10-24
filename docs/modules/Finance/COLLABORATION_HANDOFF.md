@@ -165,3 +165,16 @@ User confirmed Finance regression: 61 passed / 392 assertions / 2 skipped (SQLit
 
 
 2026-10-24 Checkpoint 8 user test report: User confirmed `test pass` after the Checkpoint 8 pull/test instructions. Exact per-command results (focused authorization, Finance/Admin/Partner regression, shared search contract) and local `git status --short` output were not provided, so do not independently certify each gate or tracked working tree clean. Prior UI PASS remains user-confirmed; Checkpoint 8 did not change UI/runtime. PR #323 remains Draft; verify remaining evidence and seek explicit merge authorization before merging. No production action.
+
+
+## Phase 2 — first security checkpoint (2026-10-24)
+
+Base: main at 47596c30280ed2c2a0031b3e3f07a3ba39d235cf (PR #323 merge). Branch: feat/finance-phase2-security-gate-20261024.
+
+Read-only source verification: FinanceDebtService handles manual-only draft/confirmation/append-only adjustments; DatabaseInvoiceDebtCandidateReader is discovery only; VoucherPostingService posts allocations against finance_source_documents, NOT finance_debt_obligations. Therefore adjusted principal is NOT settled/outstanding balance, and a debt settlement link cannot be assumed. No invoice recognition or settlement implementation is authorized by this checkpoint.
+
+Security gap: DebtWorkspace::updatedDraftDirection previously called loadPartnerOptions without authorizeMutation; Livewire public property update could trigger a Partner lookup by a view-only admin. Added authorization guard and a focused Livewire regression test. No schema, production, existing role assignments, posting or source-module changes.
+
+PENDING USER TEST: php artisan test Modules/Finance/Tests/Feature/FinanceDebtLivewireAuthorizationTest.php. Only after focused PASS, run php artisan test Modules/Finance/Tests. If focused FAIL, stop and return full output. UI smoke remains USER PENDING; this backend authorization fix does not establish Phase 2 UI PASS. No PR or merge approval implied.
+
+Phase 2 blockers before settlement: audit Invoices cancellation/replacement; map debt-to-voucher allocation ownership and accounting policy; confirm transaction/locking/idempotency; reconcile dedicated finance.debt.manage grants in real environments without changing them automatically. No production migration or module enablement.
