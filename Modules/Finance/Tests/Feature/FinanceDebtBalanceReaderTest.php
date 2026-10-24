@@ -47,10 +47,18 @@ final class FinanceDebtBalanceReaderTest extends TestCase
         }
 
         $result = (new FinanceDebtBalanceReader)->forObligation($id);
-        self::assertEquals(100.25, (float) $result['original_amount']);
-        self::assertEquals(-29.75, (float) $result['adjustment_total']);
-        self::assertEquals(70.50, (float) $result['adjusted_principal']);
+        self::assertSame(10025, $this->cents($result['original_amount']));
+        self::assertSame(-2975, $this->cents($result['adjustment_total']));
+        self::assertSame(7050, $this->cents($result['adjusted_principal']));
         self::assertSame(2, DB::table('finance_debt_events')->where('obligation_id', $id)->count());
+    }
+
+    private function cents(string $amount): int
+    {
+        $negative = str_starts_with($amount, '-');
+        [$whole, $fraction] = array_pad(explode('.', ltrim($amount, '-'), 2), 2, '');
+        $value = ((int) $whole * 100) + (int) str_pad($fraction, 2, '0');
+        return $negative ? -$value : $value;
     }
 
     public function test_missing_obligation_is_rejected(): void
