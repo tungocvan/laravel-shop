@@ -53,7 +53,7 @@ final class FinanceDebtRealDatabaseContentionTest extends TestCase
                 if (! preg_match('/^(\\d+)\\.(\\d+)/', $version, $parts)
                     || ($isMaria && ((int) $parts[1] < 10 || ((int) $parts[1] === 10 && (int) $parts[2] < 3)))
                     || (! $isMaria && (int) $parts[1] < 8)) {
-                    throw new \\RuntimeException('CP26 requires MySQL 8+ or MariaDB 10.3+ for NOWAIT locking.');
+                    throw new \RuntimeException('CP26 requires MySQL 8+ or MariaDB 10.3+ for NOWAIT locking.');
                 }
             }
         }
