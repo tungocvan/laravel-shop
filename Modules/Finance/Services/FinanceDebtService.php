@@ -98,9 +98,17 @@ final class FinanceDebtService
             $total = $this->cents((string) $debt->original_amount);
             $events = DB::table('finance_debt_events')->where('obligation_id', $debtId)->get(['signed_amount']);
             foreach ($events as $event) {
-                $total += $this->cents((string) $event->signed_amount);
+                $eventCents = $this->cents((string) $event->signed_amount);
+                if ($eventCents > 0 && $total > PHP_INT_MAX - $eventCents) {
+                    throw ValidationException::withMessages(['signed_amount' => 'Debt balance exceeds supported range.']);
+                }
+                $total += $eventCents;
             }
-            if ($total + $this->cents($amount) < 0) {
+            $delta = $this->cents($amount);
+            if ($delta > 0 && $total > PHP_INT_MAX - $delta) {
+                throw ValidationException::withMessages(['signed_amount' => 'Debt balance exceeds supported range.']);
+            }
+            if ($total + $delta < 0) {
                 throw ValidationException::withMessages(['signed_amount' => 'Adjustment would make debt negative.']);
             }
 
@@ -121,13 +129,23 @@ final class FinanceDebtService
     {
         $amount = trim($amount);
         $pattern = $signed ? '/^-?\\d{1,16}(?:\\.\\d{1,2})?$/' : '/^\\d{1,16}(?:\\.\\d{1,2})?$/';
-        if (! preg_match($pattern, $amount) || $this->cents($amount) === 0) {
+        // Decimal(20,2) can exceed signed PHP integer cents. Reject before integer conversion.
+        $integer = explode('.', ltrim($amount, '-'), 2)[0];
+        if (! preg_match($pattern, $amount) || strlen(ltrim($integer, '0')) > 16
+            || $this->isBeyondSafeCents($amount) || $this->cents($amount) === 0) {
             throw ValidationException::withMessages(['amount' => 'Amount must be a nonzero decimal with up to two places.']);
         }
         $negative = str_starts_with($amount, '-');
         $parts = explode('.', ltrim($amount, '-'), 2);
 
         return ($negative ? '-' : '').$parts[0].'.'.str_pad($parts[1] ?? '', 2, '0');
+    }
+
+    private function isBeyondSafeCents(string $amount): bool
+    {
+        $integer = ltrim(explode('.', ltrim($amount, '-'), 2)[0], '0');
+        // The integer part must be at most 16 digits, and below PHP_INT_MAX / 100.
+        return strlen($integer) > 16 || (strlen($integer) === 16 && strcmp($integer, '9223372036854775') > 0);
     }
 
     private function cents(string $amount): int
