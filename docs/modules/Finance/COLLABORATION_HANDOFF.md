@@ -178,3 +178,16 @@ Security gap: DebtWorkspace::updatedDraftDirection previously called loadPartner
 PENDING USER TEST: php artisan test Modules/Finance/Tests/Feature/FinanceDebtLivewireAuthorizationTest.php. Only after focused PASS, run php artisan test Modules/Finance/Tests. If focused FAIL, stop and return full output. UI smoke remains USER PENDING; this backend authorization fix does not establish Phase 2 UI PASS. No PR or merge approval implied.
 
 Phase 2 blockers before settlement: audit Invoices cancellation/replacement; map debt-to-voucher allocation ownership and accounting policy; confirm transaction/locking/idempotency; reconcile dedicated finance.debt.manage grants in real environments without changing them automatically. No production migration or module enablement.
+
+
+## Phase 2 — CP1 read-only principal projection (2026-10-24)
+
+Added FinanceDebtBalanceReader::forObligation() to centralize exact SQL DECIMAL aggregation of original amount + all signed debt events; wired selected DebtWorkspace detail to the reader. No voucher allocations are interpreted as settled debt. No schema change, source recognition, settlement write, module enablement or production mutation.
+
+Previous user-reported gate: Finance authorization 4 PASS / 13 assertions; Finance module 91 PASS / 509 assertions; shared workspace contracts 4 PASS / 25 assertions; Partner and Invoices integration suites reported PASS. These results predate CP1 code and must not be represented as CP1 test results.
+
+CP1 test gate on DELL, after git fetch/pull:
+1. php artisan test Modules/Finance/Tests/Feature/FinanceDebtBalanceReaderTest.php
+2. php artisan test Modules/Finance/Tests
+3. php artisan test tests/Feature/FinanceDebtWorkspaceContractTest.php tests/Feature/SharedSearchBackwardCompatibilityContractTest.php
+Stop on any failure and return complete output. UI acceptance is deferred until a later UI checkpoint. No PR/merge before user acceptance.
