@@ -16,6 +16,9 @@ final class FinanceDebtSourceLinkReaderTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        if (! Schema::hasTable('finance_source_documents')) {
+            (require base_path('Modules/Finance/database/migrations/2026_10_21_000001_create_finance_foundation_tables.php'))->up();
+        }
         if (! Schema::hasTable('finance_debt_obligations')) {
             (require base_path('Modules/Finance/database/migrations/2026_10_24_000001_create_finance_debt_foundation_tables.php'))->up();
         }
