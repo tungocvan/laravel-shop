@@ -313,3 +313,12 @@ Next technical prerequisite before actual settlement: reconcile lock order acros
 Changed ONLY the fail-closed FinanceDebtAtomicSettlementGate to acquire existing allocation rows before the linked source row, matching VoucherPostingService's allocation -> source order. Updated FinanceDebtLockOrderAudit and its regression tests; all audit results still deny settlement. Existing VoucherPostingService post/reverse and ledger behavior are untouched. This is partial harmonization, NOT deadlock elimination: the voucher service also locks account, other writers may differ, new allocations/phantom rows are not protected by existing-row locks, and no real MySQL/PostgreSQL concurrent sessions were tested. No settlement writes, production changes, migrations, PR, merge or UI.
 
 DELL checkpoint: git pull --ff-only; php artisan test Modules/Finance/Tests/Feature/FinanceDebtLockOrderAuditTest.php Modules/Finance/Tests/Feature/FinanceDebtAtomicSettlementGateTest.php Modules/Finance/Tests/Feature/VoucherPostingServiceTest.php; php artisan test Modules/Finance/Tests. Await two-tier PASS before next checkpoint.
+
+
+## Phase 2 — CP21 database concurrency readiness (2026-10-24)
+
+Added FinanceDebtConcurrencyReadiness fail-closed driver/prerequisite inspector and four focused tests: always deny settlement, assert denial, verify failed gate leaves ledger/idempotency/debt events/voucher untouched, and repeated failed attempts do not reserve keys. This is single-connection regression only; it does NOT simulate concurrent transactions. SQLite row locks are not proof of MySQL/PostgreSQL safety. No actual settlement writes, migrations, production changes, PR, merge or UI.
+
+Required separate real-database test plan (NOT executed): use isolated MySQL and PostgreSQL test databases and two independent DB connections/processes with barriers; race same debt+key, different keys on same debt, duplicate reversal origin, concurrent voucher post and debt gate, and rollback after injected failure. Assert unique constraints, isolation, lock waits/deadlocks, retry behavior and no partial ledger/mapping/idempotency writes. Avoid DatabaseTransactions wrapping both processes; ensure test cleanup. Gate stays disabled regardless of readiness report.
+
+DELL checkpoint: git pull --ff-only; php artisan test Modules/Finance/Tests/Feature/FinanceDebtConcurrencyReadinessTest.php; php artisan test Modules/Finance/Tests. Await two-tier PASS.
