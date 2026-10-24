@@ -67,3 +67,8 @@ Finance now uses canonical `Modules/Partner` data for manual debt creation. The 
 ### Checkpoint 4.2 — Shared select and currency UI
 
 The Finance debt manual form reuses the existing shared `x-select-search` component with dynamic Partner options (bounded to 20) and server-side Partner eligibility validation. Whole-VND input is visually grouped by thousands in the browser and submitted to Finance as unformatted digits; original amount persists in the existing DECIMAL schema. The debt list displays zero decimal places without altering persisted values. Note: decimal-valued legacy debts remain unchanged in storage; list presentation is a display-only choice. UI browser acceptance is pending.
+
+
+### Checkpoint 4.3 — Admin Partner PWA picker
+
+Finance debt form uses shared `x-pwa-select-search` presentation and a Finance-local Alpine/Livewire adapter for the Admin surface. The adapter controls the PWA search panel, forwards search text to the bounded Partner query, sets Livewire partnerId on selection and resets on direction switch. It does not change ClientPortal global JavaScript or Partner ownership. Real-browser behavior and keyboard/mobile accessibility remain UI acceptance gates; tests alone cannot establish UI PASS.
