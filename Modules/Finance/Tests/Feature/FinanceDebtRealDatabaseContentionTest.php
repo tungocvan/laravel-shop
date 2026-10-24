@@ -1,0 +1,105 @@
+<?php
+
+namespace Modules\Finance\Tests\Feature;
+
+use PDO;
+use PDOException;
+use PHPUnit\Framework\SkippedTestError;
+use Tests\TestCase;
+
+/**
+ * CP22 opt-in two-connection database contention smoke test.
+ * Uses isolated scratch tables, NEVER the application Finance tables.
+ *
+ * Run with FINANCE_CP22_TEST_DSN=mysql:host=127.0.0.1;dbname=finance_test
+ * (or pgsql:host=127.0.0.1;dbname=finance_test), plus USER and PASSWORD.
+ */
+final class FinanceDebtRealDatabaseContentionTest extends TestCase
+{
+    private function connections(): array
+    {
+        $dsn = (string) getenv('FINANCE_CP22_TEST_DSN');
+        if ($dsn === '') {
+            throw new SkippedTestError('CP22 real DB test NOT RUN: set FINANCE_CP22_TEST_DSN for isolated *_test database.');
+        }
+        if (! preg_match('/^(mysql|pgsql):/', $dsn, $matches)
+            || ! preg_match('/(?:^|;)dbname=([a-zA-Z0-9_]+)/', $dsn, $database)
+            || ! str_ends_with($database[1], '_test')
+            || getenv('FINANCE_CP22_ALLOW_ISOLATED_DB') !== 'yes') {
+            throw new \RuntimeException('CP22 refuses non-MySQL/PostgreSQL, non-*_test, or non-explicitly-authorized database.');
+        }
+
+        $options = [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_TIMEOUT => 3];
+        $user = (string) getenv('FINANCE_CP22_TEST_USER');
+        $password = (string) getenv('FINANCE_CP22_TEST_PASSWORD');
+        $first = new PDO($dsn, $user, $password, $options);
+        $second = new PDO($dsn, $user, $password, $options);
+        $this->assertNotSame($first, $second);
+        $this->assertSame($matches[1], $first->getAttribute(PDO::ATTR_DRIVER_NAME));
+        return [$first, $second, $matches[1]];
+    }
+
+    public function test_two_connections_lock_uniqueness_reversal_and_rollback(): void
+    {
+        [$a, $b, $driver] = $this->connections();
+        $table = 'cp22_'.bin2hex(random_bytes(6));
+        // Generated identifier is strictly hexadecimal with a fixed prefix.
+        $a->exec("CREATE TABLE {$table} (id INTEGER PRIMARY KEY, obligation_id INTEGER NOT NULL, operation VARCHAR(20) NOT NULL, idempotency_key VARCHAR(128) NOT NULL, reverses_mapping_id INTEGER NULL, UNIQUE (obligation_id, operation, idempotency_key), UNIQUE (reverses_mapping_id))");
+
+        try {
+            $a->exec("INSERT INTO {$table} (id, obligation_id, operation, idempotency_key) VALUES (1, 1, 'post', 'original')");
+            $a->beginTransaction();
+            $a->query("SELECT id FROM {$table} WHERE id = 1 FOR UPDATE")->fetchAll();
+            $b->beginTransaction();
+            try {
+                if ($driver === 'pgsql') {
+                    $b->exec("SET LOCAL lock_timeout = '500ms'");
+                } else {
+                    $b->exec('SET innodb_lock_wait_timeout = 1');
+                }
+                $blocked = false;
+                try {
+                    $b->query("SELECT id FROM {$table} WHERE id = 1 FOR UPDATE NOWAIT")->fetchAll();
+                } catch (PDOException $exception) {
+                    $blocked = true;
+                }
+                self::assertTrue($blocked, 'Second connection unexpectedly acquired locked row.');
+            } finally {
+                $b->rollBack();
+                $a->rollBack();
+            }
+
+            // Real unique indexes, exercised from two independent connections.
+            $b->exec("INSERT INTO {$table} (id, obligation_id, operation, idempotency_key) VALUES (2, 1, 'post', 'reserved')");
+            $duplicateRejected = false;
+            try {
+                $a->exec("INSERT INTO {$table} (id, obligation_id, operation, idempotency_key) VALUES (3, 1, 'post', 'reserved')");
+            } catch (PDOException $exception) {
+                $duplicateRejected = true;
+            }
+            self::assertTrue($duplicateRejected, 'Duplicate idempotency scope was accepted.');
+
+            $a->exec("INSERT INTO {$table} (id, obligation_id, operation, idempotency_key, reverses_mapping_id) VALUES (4, 1, 'reverse', 'reverse-a', 1)");
+            $doubleReverseRejected = false;
+            try {
+                $b->exec("INSERT INTO {$table} (id, obligation_id, operation, idempotency_key, reverses_mapping_id) VALUES (5, 1, 'reverse', 'reverse-b', 1)");
+            } catch (PDOException $exception) {
+                $doubleReverseRejected = true;
+            }
+            self::assertTrue($doubleReverseRejected, 'Duplicate reversal origin was accepted.');
+
+            $a->beginTransaction();
+            $a->exec("INSERT INTO {$table} (id, obligation_id, operation, idempotency_key) VALUES (6, 1, 'post', 'rollback')");
+            $a->rollBack();
+            self::assertSame(0, (int) $b->query("SELECT COUNT(*) FROM {$table} WHERE id = 6")->fetchColumn());
+        } finally {
+            if ($a->inTransaction()) {
+                $a->rollBack();
+            }
+            if ($b->inTransaction()) {
+                $b->rollBack();
+            }
+            $a->exec("DROP TABLE IF EXISTS {$table}");
+        }
+    }
+}
