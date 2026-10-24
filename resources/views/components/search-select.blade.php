@@ -7,7 +7,7 @@
         <input type="search" @if($searchModel) wire:model.live.debounce.350ms="{{ $searchModel }}" @endif placeholder="{{ $searchPlaceholder }}" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" aria-label="{{ $searchPlaceholder }}">
         <div role="listbox" class="mt-2 max-h-64 overflow-y-auto">
             @forelse($options as $option)
-                <button type="button" role="option" wire:key="search-option-{{ $option['id'] }}" @if($selectAction) wire:click="{{ $selectAction }}({{ (int) $option['id'] }})" @endif x-on:click="open = false" class="block w-full rounded-lg px-3 py-2 text-left hover:bg-indigo-50">{{ $option['label'] }}</button>
+                <button type="button" role="option" wire:key="search-option-{{ $option['id'] }}" @if($selectAction) wire:click="{{ $selectAction }}(@js($option['id']))" @endif x-on:click="open = false" class="block w-full rounded-lg px-3 py-2 text-left hover:bg-indigo-50">{{ $option['label'] }}</button>
             @empty
                 <p class="p-3 text-slate-500">Không có kết quả phù hợp.</p>
             @endforelse
