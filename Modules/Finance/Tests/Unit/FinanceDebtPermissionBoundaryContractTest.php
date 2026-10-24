@@ -20,7 +20,7 @@ final class FinanceDebtPermissionBoundaryContractTest extends TestCase
 
         foreach (['openCreate', 'choosePartner', 'create', 'confirm', 'adjust', 'searchPartners'] as $method) {
             self::assertMatchesRegularExpression(
-                '/public function '.preg_quote($method, '/').'\\([^)]*\\): void\\s*\\{\\s*\\$this->authorizeMutation\\(\\)/s',
+                '/public function '.preg_quote($method, '/').'\\([^)]*\\): void\\s*\\{\\s*(?:\\$actor\\s*=\\s*)?\\$this->authorizeMutation\\(\\)/s',
                 $component,
                 'Missing mutation authorization in '.$method
             );
