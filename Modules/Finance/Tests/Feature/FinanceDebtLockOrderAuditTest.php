@@ -17,7 +17,7 @@ final class FinanceDebtLockOrderAuditTest extends TestCase
 
     public function test_inverted_source_allocation_order_is_rejected(): void
     {
-        $result = (new FinanceDebtLockOrderAudit)->inspect(['voucher', 'allocation', 'source']);
+        $result = (new FinanceDebtLockOrderAudit)->inspect(['voucher', 'source', 'allocation']);
         self::assertSame('inverted_lock_order', $result['reason_code']);
     }
 
@@ -31,8 +31,15 @@ final class FinanceDebtLockOrderAuditTest extends TestCase
     {
         $result = (new FinanceDebtLockOrderAudit)->crossServiceAudit();
         self::assertFalse($result['eligible']);
-        self::assertSame('cross_service_source_allocation_order_conflict', $result['reason_code']);
+        self::assertSame('partial_lock_order_alignment_not_concurrency_proof', $result['reason_code']);
         self::assertTrue($result['requires_real_database_contention_tests']);
+    }
+
+    public function test_aligned_allocation_source_order_is_still_diagnostic(): void
+    {
+        $result = (new FinanceDebtLockOrderAudit)->inspect(['voucher', 'allocation', 'source']);
+        self::assertSame('sequence_only_not_concurrency_proof', $result['reason_code']);
+        self::assertFalse($result['eligible']);
     }
 
     public function test_no_audit_result_can_activate_settlement(): void
