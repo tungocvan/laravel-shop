@@ -14,6 +14,10 @@ final class AdminShellViewportScrollContractTest extends TestCase
         $master = file_get_contents($root.'/Modules/Admin/resources/views/layouts/master.blade.php');
 
         self::assertStringContainsString('height: 100dvh', $shell);
+        self::assertStringContainsString('height: 100%;', $shell);
+        self::assertStringContainsString('max-height: 100%;', $shell);
+        self::assertStringContainsString('[data-admin-shell-workspace] > #admin-main', $shell);
+        self::assertStringContainsString('-webkit-overflow-scrolling: touch;', $shell);
         self::assertStringContainsString('class="grid h-full min-h-0 min-w-0 overflow-hidden"', $shell);
         self::assertStringContainsString('grid-template-rows: auto minmax(0, 1fr) auto;', $shell);
         self::assertStringContainsString('id="admin-main"', $content);
