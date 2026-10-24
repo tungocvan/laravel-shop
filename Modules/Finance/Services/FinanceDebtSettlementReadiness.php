@@ -46,7 +46,6 @@ final class FinanceDebtSettlementReadiness
      */
     public function assertCanSettle(int $debtId): void
     {
-        $readiness = $this->inspect($debtId);
-        throw ValidationException::withMessages(['settlement' => $readiness['reason']]);
+        (new FinanceDebtSettlementContract)->assertCanSettle($debtId);
     }
 }
