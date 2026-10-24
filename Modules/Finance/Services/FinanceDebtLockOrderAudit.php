@@ -10,7 +10,7 @@ use Illuminate\Validation\ValidationException;
  */
 final class FinanceDebtLockOrderAudit
 {
-    public const SETTLEMENT = ['debt', 'voucher', 'source', 'allocation', 'mapping'];
+    public const SETTLEMENT = ['debt', 'voucher', 'allocation', 'source', 'mapping'];
     public const VOUCHER_POST = ['voucher', 'account', 'allocation', 'source'];
     public const VOUCHER_REVERSE = ['voucher', 'ledger'];
 
@@ -42,11 +42,12 @@ final class FinanceDebtLockOrderAudit
 
     public function crossServiceAudit(): array
     {
-        // Source and allocation acquisition is reversed across these services.
-        // This is a documented hazard, not an assertion that a deadlock occurred.
+        // CP20 aligns allocation -> source for both paths. Account and
+        // other writer lock orders, phantom rows and real DB contention
+        // remain unverified; therefore settlement stays fail-closed.
         return [
             'eligible' => false,
-            'reason_code' => 'cross_service_source_allocation_order_conflict',
+            'reason_code' => 'partial_lock_order_alignment_not_concurrency_proof',
             'settlement_order' => self::SETTLEMENT,
             'voucher_post_order' => self::VOUCHER_POST,
             'voucher_reverse_order' => self::VOUCHER_REVERSE,
