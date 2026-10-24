@@ -35,6 +35,16 @@ final class FinanceDebtRealDatabaseContentionTest extends TestCase
         $second = new PDO($dsn, $user, $password, $options);
         $this->assertNotSame($first, $second);
         $this->assertSame($driver, $first->getAttribute(PDO::ATTR_DRIVER_NAME));
+        // CP24: confirm the database actually selected by both connections.
+        $identitySql = $driver === 'mysql' ? 'SELECT DATABASE()' : 'SELECT current_database()';
+        $guard = new FinanceDebtTestDatabaseGuard;
+        foreach ([$first, $second] as $connection) {
+            $guard->assertConnectedDatabase(
+                $dsn,
+                (string) getenv('FINANCE_CP22_ALLOW_ISOLATED_DB'),
+                (string) $connection->query($identitySql)->fetchColumn()
+            );
+        }
         return [$first, $second, $driver];
     }
 
