@@ -5,6 +5,7 @@ namespace Modules\Finance\Tests\Feature;
 use PDO;
 use PDOException;
 use Tests\TestCase;
+use Modules\Finance\Services\FinanceDebtTestDatabaseGuard;
 
 /**
  * CP22 opt-in two-connection database contention smoke test.
@@ -21,12 +22,11 @@ final class FinanceDebtRealDatabaseContentionTest extends TestCase
         if ($dsn === '') {
             $this->markTestSkipped('CP22 real DB test NOT RUN: set FINANCE_CP22_TEST_DSN for isolated *_test database.');
         }
-        if (! preg_match('/^(mysql|pgsql):/', $dsn, $matches)
-            || ! preg_match('/(?:^|;)dbname=([a-zA-Z0-9_]+)/', $dsn, $database)
-            || ! str_ends_with($database[1], '_test')
-            || getenv('FINANCE_CP22_ALLOW_ISOLATED_DB') !== 'yes') {
-            throw new \RuntimeException('CP22 refuses non-MySQL/PostgreSQL, non-*_test, or non-explicitly-authorized database.');
-        }
+        (new FinanceDebtTestDatabaseGuard)->assertAllowed(
+            $dsn,
+            (string) getenv('FINANCE_CP22_ALLOW_ISOLATED_DB')
+        );
+        $driver = str_starts_with($dsn, 'mysql:') ? 'mysql' : 'pgsql';
 
         $options = [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_TIMEOUT => 3];
         $user = (string) getenv('FINANCE_CP22_TEST_USER');
@@ -34,8 +34,8 @@ final class FinanceDebtRealDatabaseContentionTest extends TestCase
         $first = new PDO($dsn, $user, $password, $options);
         $second = new PDO($dsn, $user, $password, $options);
         $this->assertNotSame($first, $second);
-        $this->assertSame($matches[1], $first->getAttribute(PDO::ATTR_DRIVER_NAME));
-        return [$first, $second, $matches[1]];
+        $this->assertSame($driver, $first->getAttribute(PDO::ATTR_DRIVER_NAME));
+        return [$first, $second, $driver];
     }
 
     public function test_two_connections_lock_uniqueness_reversal_and_rollback(): void
