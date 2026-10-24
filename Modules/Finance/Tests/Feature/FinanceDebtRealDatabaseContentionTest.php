@@ -6,6 +6,7 @@ use PDO;
 use PDOException;
 use Tests\TestCase;
 use Modules\Finance\Services\FinanceDebtTestDatabaseGuard;
+use Modules\Finance\Services\FinanceDebtConcurrencyEvidence;
 
 /**
  * CP22 opt-in two-connection database contention smoke test.
@@ -101,6 +102,22 @@ final class FinanceDebtRealDatabaseContentionTest extends TestCase
             $a->exec("INSERT INTO {$table} (id, obligation_id, operation, idempotency_key) VALUES (6, 1, 'post', 'rollback')");
             $a->rollBack();
             self::assertSame(0, (int) $b->query("SELECT COUNT(*) FROM {$table} WHERE id = 6")->fetchColumn());
+            // CP25: emit only a sanitized, explicitly unverified evidence summary.
+            $report = (new FinanceDebtConcurrencyEvidence)->inspect([
+                'driver' => $driver,
+                'database' => (string) $a->query($driver === 'mysql'
+                    ? 'SELECT DATABASE()' : 'SELECT current_database()')->fetchColumn(),
+                'independent_connections' => true,
+                'checks' => [
+                    'row_lock' => $blocked,
+                    'idempotency_unique' => $duplicateRejected,
+                    'reversal_unique' => $doubleReverseRejected,
+                    'rollback' => true,
+                ],
+            ]);
+            self::assertSame('REPORTED_PASS_UNVERIFIED', $report['status']);
+            self::assertFalse($report['settlement_eligible']);
+            fwrite(STDOUT, PHP_EOL.'CP25 evidence: '.json_encode($report, JSON_THROW_ON_ERROR).PHP_EOL);
         } finally {
             if ($a->inTransaction()) {
                 $a->rollBack();
