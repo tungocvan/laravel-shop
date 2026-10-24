@@ -46,6 +46,17 @@ final class FinanceDebtRealDatabaseContentionTest extends TestCase
                 (string) $connection->query($identitySql)->fetchColumn()
             );
         }
+        if ($driver === 'mysql') {
+            foreach ([$first, $second] as $connection) {
+                $version = (string) $connection->query('SELECT VERSION()')->fetchColumn();
+                $isMaria = stripos($version, 'mariadb') !== false;
+                if (! preg_match('/^(\\d+)\\.(\\d+)/', $version, $parts)
+                    || ($isMaria && ((int) $parts[1] < 10 || ((int) $parts[1] === 10 && (int) $parts[2] < 3)))
+                    || (! $isMaria && (int) $parts[1] < 8)) {
+                    throw new \\RuntimeException('CP26 requires MySQL 8+ or MariaDB 10.3+ for NOWAIT locking.');
+                }
+            }
+        }
         return [$first, $second, $driver];
     }
 
@@ -54,7 +65,7 @@ final class FinanceDebtRealDatabaseContentionTest extends TestCase
         [$a, $b, $driver] = $this->connections();
         $table = 'cp22_'.bin2hex(random_bytes(6));
         // Generated identifier is strictly hexadecimal with a fixed prefix.
-        $a->exec("CREATE TABLE {$table} (id INTEGER PRIMARY KEY, obligation_id INTEGER NOT NULL, operation VARCHAR(20) NOT NULL, idempotency_key VARCHAR(128) NOT NULL, reverses_mapping_id INTEGER NULL, UNIQUE (obligation_id, operation, idempotency_key), UNIQUE (reverses_mapping_id))");
+        $a->exec("CREATE TABLE {$table} (id INTEGER PRIMARY KEY, obligation_id INTEGER NOT NULL, operation VARCHAR(20) NOT NULL, idempotency_key VARCHAR(128) NOT NULL, reverses_mapping_id INTEGER NULL, UNIQUE (obligation_id, operation, idempotency_key), UNIQUE (reverses_mapping_id))".($driver === 'mysql' ? ' ENGINE=InnoDB' : ''));
 
         try {
             $a->exec("INSERT INTO {$table} (id, obligation_id, operation, idempotency_key) VALUES (1, 1, 'post', 'original')");
@@ -71,7 +82,15 @@ final class FinanceDebtRealDatabaseContentionTest extends TestCase
                 try {
                     $b->query("SELECT id FROM {$table} WHERE id = 1 FOR UPDATE NOWAIT")->fetchAll();
                 } catch (PDOException $exception) {
-                    $blocked = true;
+                    // A syntax error or missing privilege must NOT count as lock contention.
+                    $sqlState = (string) $exception->getCode();
+                    $vendorCode = (int) ($exception->errorInfo[1] ?? 0);
+                    $blocked = $driver === 'pgsql'
+                        ? in_array($sqlState, ['55P03', '57014'], true)
+                        : ($sqlState === 'HY000' && in_array($vendorCode, [3572, 1205], true));
+                    if (! $blocked) {
+                        throw $exception;
+                    }
                 }
                 self::assertTrue($blocked, 'Second connection unexpectedly acquired locked row.');
             } finally {
