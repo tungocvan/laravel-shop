@@ -191,3 +191,16 @@ CP1 test gate on DELL, after git fetch/pull:
 2. php artisan test Modules/Finance/Tests
 3. php artisan test tests/Feature/FinanceDebtWorkspaceContractTest.php tests/Feature/SharedSearchBackwardCompatibilityContractTest.php
 Stop on any failure and return complete output. UI acceptance is deferred until a later UI checkpoint. No PR/merge before user acceptance.
+
+
+## Phase 2 — CP2 settlement safety boundary (2026-10-24)
+
+Added FinanceDebtSettlementReadiness: a read-only, fail-closed inspection/guard for manual draft, confirmed manual and source-linked debt. It returns adjusted principal but never calls that value paid or outstanding. assertCanSettle() rejects every case until authoritative debt-to-voucher allocation, reversal, idempotency and invoice lifecycle rules are implemented and reviewed. No ledger write, migration, payment, posting, source-module change, or UI mutation. Five new feature tests cover draft, confirmed manual, source-linked, command guard, and missing identity.
+
+Previous DELL checkpoint CP1: Finance regression 93 PASS / 514 assertions and workspace/shared contracts 4 PASS / 25 assertions. These results predate CP2.
+
+CP2 Git pull/test gate:
+1. git pull --ff-only
+2. php artisan test Modules/Finance/Tests/Feature/FinanceDebtSettlementReadinessTest.php
+3. php artisan test Modules/Finance/Tests
+Stop on any failure; return exact output. Manual UI acceptance deferred. No PR/merge or production mutation.
