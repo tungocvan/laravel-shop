@@ -12,7 +12,7 @@ final class FinanceDebtCurrencyUiContractTest extends TestCase
         $view = file_get_contents($root.'/Modules/Finance/resources/views/livewire/debt-workspace.blade.php');
         self::assertStringContainsString("wire.set('amount'", $view);
         self::assertStringContainsString('inputmode="numeric"', $view);
-        self::assertStringContainsString("number_format((float) \$debt->original_amount, 0", $view);
+        self::assertStringContainsString("DebtWorkspace::formatVnd((string) \$debt->original_amount)", $view);
         self::assertStringContainsString('partner-picker', $view);
     }
 }
