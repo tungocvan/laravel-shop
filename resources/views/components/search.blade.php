@@ -9,6 +9,9 @@
     'searchPlaceholder' => 'Tìm kiếm...',
 ])
 
+@if ($variant === 'select')
+    @include('components.search-select')
+@else
 @php
     $listId = $attributes->get('list');
 @endphp
