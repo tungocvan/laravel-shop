@@ -9,6 +9,17 @@
 <style>
     [data-admin-shell-workspace] {
         min-width: 0;
+        /* Keep the nested main scroller within the viewport even if utility CSS is stale. */
+        height: 100%;
+        max-height: 100%;
+        min-height: 0;
+    }
+
+    [data-admin-shell-workspace] > #admin-main {
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior-y: contain;
+        -webkit-overflow-scrolling: touch;
     }
 
     @media (min-width: 1024px) {
