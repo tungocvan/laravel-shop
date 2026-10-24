@@ -651,8 +651,8 @@ final class Workspace extends Component
             ->orderByDesc('v.id')->limit(30)->get();
         $reportService = app(FinanceReportService::class);
         $reportFilters = [
-            'from' => $this->ledgerDateFrom,
-            'to' => $this->ledgerDateTo,
+            'from' => $this->appliedLedgerDateFrom,
+            'to' => $this->appliedLedgerDateTo,
             'direction' => $this->ledgerDirection,
             'category' => $this->ledgerCategory,
             'counterparty' => $this->ledgerCounterparty,
