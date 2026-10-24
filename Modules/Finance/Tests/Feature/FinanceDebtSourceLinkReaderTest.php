@@ -59,6 +59,29 @@ final class FinanceDebtSourceLinkReaderTest extends TestCase
         (new FinanceDebtSourceLinkReader)->forObligation(-1);
     }
 
+    public function test_exact_source_identity_resolves_without_writing_allocation(): void
+    {
+        $sourceId = 'exact-'.uniqid();
+        $id = $this->debt('Invoices', 'invoice', $sourceId);
+        $treasuryId = DB::table('finance_source_documents')->insertGetId([
+            'source_module' => 'Invoices',
+            'source_type' => 'invoice',
+            'source_document_id' => $sourceId,
+            'source_document_code' => 'INV-'.uniqid(),
+            'direction' => 'receivable',
+            'currency' => 'VND',
+            'original_amount' => '100.00',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $result = (new FinanceDebtSourceLinkReader)->forObligation($id);
+        self::assertSame($id, $result['debt_id']);
+        self::assertSame($treasuryId, $result['source_id']);
+        self::assertSame($sourceId, $result['source_document_id']);
+        self::assertSame(0, DB::table('finance_allocations')->where('source_document_id', $treasuryId)->count());
+    }
+
     public function test_unknown_source_does_not_create_link_or_allocation(): void
     {
         $id = $this->debt('Invoices', 'invoice', 'unknown-'.uniqid());
