@@ -116,6 +116,49 @@ final class FinanceDebtInternalSettlementWriterTest extends TestCase
         }
     }
 
+    public function test_full_reversal_preserves_origin_ownership_and_restores_diagnostic_balance(): void
+    {
+        [$debt, $voucher, $allocation] = $this->fixture();
+        $writer = new FinanceDebtInternalSettlementWriter;
+        $origin = $writer->post($debt, $voucher, $allocation, 'cp35-post-key-001', 11, 'Payment', fn () => true);
+        DB::table('finance_vouchers')->where('id', $voucher)->update(['status' => 'reversed']);
+        $reversal = $writer->reverse($origin, $voucher, 'cp35-reverse-key-001', 12, 'Full reversal', fn () => true);
+        self::assertSame($origin, (int) DB::table('finance_debt_settlement_mappings')->where('id', $reversal)->value('reverses_mapping_id'));
+        self::assertSame(1, DB::table('finance_debt_allocation_ownerships')->where('mapping_id', $origin)->count());
+        self::assertSame('0.00', (new \\Modules\\Finance\\Services\\FinanceDebtSettlementBalanceInvariant)->inspect($debt)['net_mapped_amount']);
+        self::assertSame(2, DB::table('finance_debt_idempotency_keys')->where('obligation_id', $debt)->count());
+    }
+
+    public function test_duplicate_reversal_rolls_back_second_token(): void
+    {
+        [$debt, $voucher, $allocation] = $this->fixture();
+        $writer = new FinanceDebtInternalSettlementWriter;
+        $origin = $writer->post($debt, $voucher, $allocation, 'cp35-post-key-002', 11, 'Payment', fn () => true);
+        DB::table('finance_vouchers')->where('id', $voucher)->update(['status' => 'reversed']);
+        $writer->reverse($origin, $voucher, 'cp35-reverse-key-002', 12, 'First reversal', fn () => true);
+        try {
+            $writer->reverse($origin, $voucher, 'cp35-reverse-key-003', 12, 'Second reversal', fn () => true);
+            self::fail('Duplicate reversal unexpectedly passed.');
+        } catch (ValidationException $exception) {
+            self::assertSame(2, DB::table('finance_debt_settlement_mappings')->where('obligation_id', $debt)->count());
+            self::assertSame(2, DB::table('finance_debt_idempotency_keys')->where('obligation_id', $debt)->count());
+        }
+    }
+
+    public function test_reversal_requires_original_voucher_to_be_reversed(): void
+    {
+        [$debt, $voucher, $allocation] = $this->fixture();
+        $writer = new FinanceDebtInternalSettlementWriter;
+        $origin = $writer->post($debt, $voucher, $allocation, 'cp35-post-key-003', 11, 'Payment', fn () => true);
+        try {
+            $writer->reverse($origin, $voucher, 'cp35-reverse-key-004', 12, 'Not reversed', fn () => true);
+            self::fail('Posted voucher reversal unexpectedly passed.');
+        } catch (ValidationException $exception) {
+            self::assertSame(1, DB::table('finance_debt_settlement_mappings')->where('obligation_id', $debt)->count());
+            self::assertSame(1, DB::table('finance_debt_idempotency_keys')->where('obligation_id', $debt)->count());
+        }
+    }
+
     public function test_reversal_is_not_activated(): void
     {
         $this->expectException(ValidationException::class);
