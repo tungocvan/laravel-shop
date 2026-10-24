@@ -44,6 +44,15 @@ final class FinanceDebtTestDatabaseGuard
         ];
     }
 
+    /** Verify the server-selected database before any scratch-table DDL. */
+    public function assertConnectedDatabase(string $dsn, string $authorization, string $actualDatabase): void
+    {
+        $result = $this->inspect($dsn, $authorization);
+        if (! $result['allowed'] || $actualDatabase !== ($result['database'] ?? null)) {
+            throw new \RuntimeException('CP24 database identity mismatch or unsafe test target.');
+        }
+    }
+
     public function assertAllowed(string $dsn, string $authorization): void
     {
         $result = $this->inspect($dsn, $authorization);
