@@ -31,7 +31,8 @@ final class FinanceDebtInternalSettlementWriter
             if (! $debt || ! $voucher || ! $allocation) {
                 $this->deny('Missing debt, voucher or allocation.');
             }
-            if (! DB::getSchemaBuilder()->hasTable('finance_debt_allocation_ownerships')) {
+            if (! DB::getSchemaBuilder()->hasTable('finance_debt_allocation_ownerships')
+                || ! DB::getSchemaBuilder()->hasTable('finance_debt_settlement_audit_events')) {
                 $this->deny('Allocation ownership schema is not installed.');
             }
             $link = (new FinanceDebtSourceLinkReader)->forObligation($debtId);
@@ -75,6 +76,7 @@ final class FinanceDebtInternalSettlementWriter
                 'mapping_id' => $mappingId, 'authorized_by' => $actorId,
                 'authorization_reason' => $reason, 'created_at' => now(), 'updated_at' => now(),
             ]);
+            $this->recordAudit($debtId, $mappingId, $voucherId, 'post', null, $actorId, $reason, $key);
             return $mappingId;
         }, 3);
     }
@@ -95,7 +97,7 @@ final class FinanceDebtInternalSettlementWriter
         $debtId = (int) $origin->obligation_id;
         (new FinanceDebtSettlementTransactionProtocol)->plan($debtId, $reversalVoucherId, $key, 'reverse');
 
-        return DB::transaction(function () use ($originMappingId, $reversalVoucherId, $debtId, $key): int {
+        return DB::transaction(function () use ($originMappingId, $reversalVoucherId, $debtId, $key, $actorId, $reason): int {
             // Serialize with post() by locking the debt first. Keep ownership
             // immutable as historical evidence, including after reversal.
             $debt = DB::table('finance_debt_obligations')->where('id', $debtId)->lockForUpdate()->first();
@@ -137,14 +139,30 @@ final class FinanceDebtInternalSettlementWriter
                 !== 'mapping_projection_only_not_authorized') {
                 $this->deny('Existing mapping balance is invalid.');
             }
+            if (! DB::getSchemaBuilder()->hasTable('finance_debt_settlement_audit_events')) {
+                $this->deny('Settlement audit schema is missing.');
+            }
             (new FinanceDebtIdempotencyRegistry)->reserve($debtId, 'reverse', $key);
-            return DB::table('finance_debt_settlement_mappings')->insertGetId([
+            $reversalId = DB::table('finance_debt_settlement_mappings')->insertGetId([
                 'obligation_id' => $debtId, 'voucher_id' => $reversalVoucherId,
                 'operation' => 'reverse', 'amount' => $origin->amount,
                 'reverses_mapping_id' => $originMappingId,
                 'created_at' => now(), 'updated_at' => now(),
             ]);
+            $this->recordAudit($debtId, $reversalId, $reversalVoucherId, 'reverse', $originMappingId, $actorId, $reason, $key);
+            return $reversalId;
         }, 3);
+    }
+
+    private function recordAudit(int $debtId, int $mappingId, int $voucherId, string $operation, ?int $originId, int $actorId, string $reason, string $key): void
+    {
+        DB::table('finance_debt_settlement_audit_events')->insert([
+            'obligation_id' => $debtId, 'mapping_id' => $mappingId,
+            'voucher_id' => $voucherId, 'operation' => $operation,
+            'origin_mapping_id' => $originId, 'actor_id' => $actorId,
+            'reason' => $reason, 'idempotency_key' => $key,
+            'occurred_at' => now(), 'created_at' => now(), 'updated_at' => now(),
+        ]);
     }
 
     private function checkContext(int $actorId, string $reason, string $operation, callable $authorize): void
