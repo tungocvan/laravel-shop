@@ -72,3 +72,8 @@ The Finance debt manual form reuses the existing shared `x-select-search` compon
 ### Checkpoint 4.3 — Admin Partner PWA picker
 
 Finance debt form uses shared `x-pwa-select-search` presentation and a Finance-local Alpine/Livewire adapter for the Admin surface. The adapter controls the PWA search panel, forwards search text to the bounded Partner query, sets Livewire partnerId on selection and resets on direction switch. It does not change ClientPortal global JavaScript or Partner ownership. Real-browser behavior and keyboard/mobile accessibility remain UI acceptance gates; tests alone cannot establish UI PASS.
+
+
+### Checkpoint 4.4 — Shared search and money UI
+
+Existing global `<x-search>` retains its default search-input behavior. New `variant="select"` delegates to `resources/views/components/search-select.blade.php`, a reusable Alpine/Livewire dropdown with generic options, selected id, search model and select action. Finance supplies Partner-specific data and validates identity and role server-side; no Partner business logic is embedded in the shared component. Manual due date defaults to current application date + 30 days on opening the create form, remains editable. Debt detail displays whole VND; signed adjustment input groups thousands while sending raw signed digits to the existing Finance validation. Stored decimal precision is unchanged.
