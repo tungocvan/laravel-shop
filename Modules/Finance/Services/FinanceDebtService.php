@@ -144,8 +144,8 @@ final class FinanceDebtService
     private function isBeyondSafeCents(string $amount): bool
     {
         $integer = ltrim(explode('.', ltrim($amount, '-'), 2)[0], '0');
-        // The integer part must be at most 16 digits, and below PHP_INT_MAX / 100.
-        return strlen($integer) > 16 || (strlen($integer) === 16 && strcmp($integer, '9223372036854775') > 0);
+        // Up to 16 integer digits times 100 fits in signed 64-bit PHP integers.
+        return strlen($integer) > 16;
     }
 
     private function cents(string $amount): int
