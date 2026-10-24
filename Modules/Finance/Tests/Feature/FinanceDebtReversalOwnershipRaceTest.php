@@ -92,7 +92,7 @@ final class FinanceDebtReversalOwnershipRaceTest extends TestCase
             ) ENGINE=InnoDB');
             $created[] = 'finance_debt_settlement_mappings';
             $pdo->exec('INSERT INTO finance_debt_obligations (id) VALUES (1)');
-            $pdo->exec("INSERT INTO finance_vouchers (id, status) VALUES (1, 'draft'), (2, 'reversed'), (3, 'reversed')");
+            $pdo->exec("INSERT INTO finance_vouchers (id, status) VALUES (1, 'draft'), (2, 'reversed'), (3, 'draft')");
             $pdo->exec("INSERT INTO finance_debt_settlement_mappings
                 (id, obligation_id, voucher_id, operation, amount, reverses_mapping_id)
                 VALUES (1, 1, 1, 'post', 30.00, NULL)");
@@ -133,7 +133,7 @@ final class FinanceDebtReversalOwnershipRaceTest extends TestCase
                 self::assertSame(1062, (int) ($exception->errorInfo[1] ?? 0));
             }
 
-            // The actual gate is still fail-closed even with a reversal mapping.
+            // The actual gate rejects an incompatible voucher lifecycle before any\n            // downstream service could mutate the artificial reversal mapping.
             try {
                 (new FinanceDebtAtomicSettlementGate)->execute(1, 3, 'cp29-reversal-gate', 'reverse');
                 self::fail('Settlement gate unexpectedly authorized reversal.');
