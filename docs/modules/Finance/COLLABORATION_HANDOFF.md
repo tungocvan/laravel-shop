@@ -519,3 +519,8 @@ User approved CP37 to Git Pull/Test. Added migration `2026_10_24_000005_create_f
 ## Demo UI Acceptance Checkpoint 01 — Git Pull/Test pending
 
 User explicitly redirected work to **Demo DELL WSL UI-first** and approved implementation to Git Pull/Test. Fixed mismatch between applied report date and totals/ledger/export, linked Finance header directly to functional debt `documents` screen, and marked six debt placeholder sections as `Đang xây dựng` with navigation back. Manual acceptance steps: `docs/modules/Finance/DEMO_UI_ACCEPTANCE_CHECKPOINT_01.md`. No browser or PHPUnit tests run by assistant; await user's Finance suite and UI observations. Do not automatically propose more backend checkpoints. No production deployment.
+
+
+## Demo UI Checkpoint 02 — Debt Dashboard, Git Pull/Test pending
+
+User confirmed Demo UI CP01 PASS (Finance regression and UI01–04), approved CP02. Added real read-only `DebtDashboard` Livewire and Blade with five principal KPIs, status/direction/partner/due-date filters, paginated 15-row list and detail deep links; activated dashboard section, updated unfinished menu labels, added read-only debt deep-link selection in `DebtWorkspace`, plus focused tests. No new migrations or production settlement. **Dashboard amounts are adjusted principal only, not paid/unpaid outstanding.** Acceptance instructions `DEMO_UI_ACCEPTANCE_CHECKPOINT_02.md`. Assistant did not run PHPUnit/browser; await user two-tier tests and browser UI. Do not start next feature without approval.
