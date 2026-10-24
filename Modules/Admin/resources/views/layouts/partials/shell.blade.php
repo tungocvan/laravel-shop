@@ -118,7 +118,7 @@
 
     <div
         data-admin-shell-workspace
-        class="grid min-h-0 min-w-0 overflow-hidden"
+        class="grid h-full min-h-0 min-w-0 overflow-hidden"
         style="grid-template-rows: auto minmax(0, 1fr) auto;"
         :data-admin-sidebar-fullscreen="(isDesktop && sidebarFullscreen && {{ $fullscreenToggleEnabled ? 'true' : 'false' }}) ? 'true' : 'false'"
     >
