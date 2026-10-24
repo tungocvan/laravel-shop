@@ -123,3 +123,6 @@ User confirmed Finance regression: 61 passed / 392 assertions / 2 skipped (SQLit
 
 
 2026-10-24 Checkpoint 4.3 UI fix attempt: user reports PWA picker trigger does not open in Admin. Replaced imperative event listeners attached during Alpine init with delegated Alpine click/input events on persistent Finance picker root; avoids binding before nested Blade component DOM is available and supports Livewire morph updates. Added contract assertions. Root cause remains a hypothesis until real browser acceptance; focused/Finance tests NOT RUN by assistant, UI NOT PASS. No ClientPortal shared code or database changes.
+
+
+2026-10-24 UI blocker after Checkpoint 4.3: screenshot shows raw Alpine attributes rendered as text, indicating malformed inline HTML attribute; picker cannot open. Replaced fragile inline JS and ClientPortal-dependent PWA component instance in Finance only with a small declarative Alpine dropdown and native Livewire `wire:model.live`/`wire:click` actions. Added `updatedPartnerSearch` to refresh bounded Partner options. Shared PWA component and ClientPortal files untouched. This is a scoped stability fallback, not full reuse of `x-pwa-select-search`; revisit shared component integration only after investigating its Admin lifecycle. Focused tests, Finance regression and user browser UI PASS pending. No database or production changes.
