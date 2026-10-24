@@ -105,3 +105,6 @@ User confirmed Finance regression: 61 passed / 392 assertions / 2 skipped (SQLit
 
 
 2026-10-24 checkpoint 2.1 focused test feedback: user ran tests and reported 1 failed / 5 passed (12 assertions). SQLite returned `123456` for DECIMAL invoice total, while candidate contract expects `123456.00`. Corrected DatabaseInvoiceDebtCandidateReader to normalize validated decimal strings to two places without floating-point conversion. No schema, UI, .env, production or voucher logic changes. Retest focused tests first, then Finance module regression; both pending. No merge/deploy.
+
+
+2026-10-24 Checkpoint 3 backend batch: added FinanceDebtService (manual draft, explicit confirmation, append-only signed adjustment) and FinanceDebtServiceTest. Confirmation rejects any source-linked debt including Invoices, pending verified lifecycle eligibility. No UI/routes, voucher posting, cash ledger, source module mutations, migration changes or production actions. Authorization must be enforced by future controller/Livewire entry point; service requires actor ID but does not perform policy checks itself. User reported checkpoint 2.1 regression 66 passed / 404 assertions / 1.79s. New batch tests NOT RUN by assistant; focused test then Finance regression pending. No merge/deploy.
