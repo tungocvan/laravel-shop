@@ -20,6 +20,21 @@ final class FinanceDebtTestDatabaseGuardTest extends TestCase
         }
     }
 
+    public function test_actual_database_identity_must_match_configured_test_database(): void
+    {
+        $guard = new FinanceDebtTestDatabaseGuard;
+        $dsn = 'mysql:host=127.0.0.1;dbname=finance_test';
+        $guard->assertConnectedDatabase($dsn, 'yes', 'finance_test');
+        foreach (['finance', 'other_test', ''] as $actual) {
+            try {
+                $guard->assertConnectedDatabase($dsn, 'yes', $actual);
+                self::fail('Mismatched database was accepted.');
+            } catch (\RuntimeException $exception) {
+                self::assertStringContainsString('identity mismatch', $exception->getMessage());
+            }
+        }
+    }
+
     public function test_remote_production_ambiguous_and_unauthorized_targets_are_blocked(): void
     {
         $guard = new FinanceDebtTestDatabaseGuard;
