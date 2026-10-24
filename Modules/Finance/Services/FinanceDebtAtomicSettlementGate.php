@@ -41,14 +41,16 @@ final class FinanceDebtAtomicSettlementGate
             // still reach the unconditional fail-closed gate below.
             $link = (new FinanceDebtSourceLinkReader)->forObligation($debtId);
             if ($link !== null) {
+                // CP20: match VoucherPostingService's allocation-before-source
+                // lock sequence. This is not a full cross-service deadlock proof.
+                DB::table('finance_allocations')
+                    ->where('source_document_id', $link['source_id'])
+                    ->orderBy('id')->lockForUpdate()->get(['id']);
                 $source = DB::table('finance_source_documents')
                     ->where('id', $link['source_id'])->lockForUpdate()->first();
                 if ($source === null) {
                     throw ValidationException::withMessages(['settlement' => 'Linked source is unavailable.']);
                 }
-                DB::table('finance_allocations')
-                    ->where('source_document_id', $link['source_id'])
-                    ->orderBy('id')->lockForUpdate()->get(['id']);
                 (new FinanceDebtSettlementSourceOwnership)->inspect($debtId, $voucherId);
             }
 
