@@ -58,7 +58,7 @@ final class InvoiceDebtRecognitionService
                 return null;
             }
             return $issued->addDays(90)->toDateString();
-        } catch (\\Throwable) {
+        } catch (\Throwable) {
             return null;
         }
     }
