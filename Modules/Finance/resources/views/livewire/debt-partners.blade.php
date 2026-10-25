@@ -6,7 +6,7 @@
         </div>
         <div class="grid gap-3 sm:grid-cols-3">
             <label class="text-sm">Tên hoặc mã số thuế
-                <input type="search" wire:model.live.debounce.400ms="search" maxlength="100" placeholder="Tìm đối tác..." class="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
+                <x-search wire:model.live.debounce.400ms="search" maxlength="100" placeholder="Tìm đối tác..." class="mt-1.5" input-class="min-h-11 rounded-xl border-slate-300 bg-white py-3 pr-4 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
             </label>
             <label class="text-sm">Loại công nợ
                 <select wire:model.live="direction" class="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
@@ -51,6 +51,6 @@
                 </tbody>
             </table>
         </div>
-        <div class="mt-4">{{ $partners->links() }}</div>
+        <div class="mt-4">@include('Finance::livewire.partials.debt-report-pagination', ['paginator' => $partners, 'pageName' => 'partnersPage', 'paginationLabel' => 'Phân trang partners công nợ'])</div>
     </section>
 </div>
