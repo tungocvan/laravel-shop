@@ -34,6 +34,8 @@ final class InvoiceDebtExplorer extends Component
     public bool $bulkReviewed = false;
     public string $bulkRecognizedOn = '';
     public string $bulkDueOn = '';
+    public array $bulkDueDates = [];
+    public bool $bulkResultsExpanded = true;
 
 
 
@@ -107,6 +109,7 @@ final class InvoiceDebtExplorer extends Component
         $this->bulkPreview = [];
         $this->bulkResults = [];
         $this->bulkReviewed = false;
+        $this->bulkDueDates = [];
     }
 
     public function toggleBulk(int $id): void
@@ -145,11 +148,14 @@ final class InvoiceDebtExplorer extends Component
         $this->bulkPreview = [];
         $this->bulkResults = [];
         $this->bulkReviewed = false;
+        $this->bulkDueDates = [];
         foreach ($ids as $id) {
             $data = $service->preview($id);
             $invoice = $data['invoice'];
+            $this->bulkDueDates[$id] = $service->defaultDueOn((string) $invoice->issued_date);
             $this->bulkPreview[] = [
                 'id' => $id,
+                'issued_on' => (string) $invoice->issued_date,
                 'reference' => (string) $invoice->symbol.'/'.(string) $invoice->invoice_number,
                 'partner' => (string) $invoice->name,
                 'amount' => (string) $invoice->total_amount,
@@ -177,7 +183,7 @@ final class InvoiceDebtExplorer extends Component
             }
             try {
                 $debtId = $service->confirm($id, $actorId, $this->bulkRecognizedOn,
-                    $this->bulkDueOn !== '' ? $this->bulkDueOn : null, true);
+                    $this->bulkDueDates[$id] ?? null, true);
                 $this->bulkResults[] = ['id' => $id, 'reference' => $row['reference'], 'status' => 'success', 'reason' => 'Đã ghi nhận công nợ #'.$debtId];
             } catch (\Illuminate\Validation\ValidationException $e) {
                 $this->bulkResults[] = ['id' => $id, 'reference' => $row['reference'], 'status' => 'skipped', 'reason' => implode(' ', $e->validator->errors()->all())];
@@ -188,7 +194,9 @@ final class InvoiceDebtExplorer extends Component
         }
         $this->bulkSelected = [];
         $this->bulkPreview = [];
+        $this->bulkDueDates = [];
         $this->bulkReviewed = false;
+        $this->bulkResultsExpanded = true;
     }
 
     public function openReview(int $invoiceId, InvoiceDebtRecognitionService $service): void
@@ -204,9 +212,10 @@ final class InvoiceDebtExplorer extends Component
             'tax_code' => (string) $invoice->tax_code,
             'amount' => (string) $invoice->total_amount,
             'direction' => $invoice->invoice_type === 'sold' ? 'Phải thu' : 'Phải trả',
+            'issued_on' => (string) $invoice->issued_date,
         ];
         $this->recognizedOn = now()->toDateString();
-        $this->dueOn = '';
+        $this->dueOn = $service->defaultDueOn((string) $invoice->issued_date);
         $this->reviewed = false;
         $this->resetErrorBag();
     }
@@ -237,6 +246,11 @@ final class InvoiceDebtExplorer extends Component
             && auth('admin')->user()?->can('finance.debt.manage'), 403);
         abort_unless(auth('admin')->id() !== null, 403);
         return (int) auth('admin')->id();
+    }
+
+    public function toggleBulkResults(): void
+    {
+        $this->bulkResultsExpanded = ! $this->bulkResultsExpanded;
     }
 
     public function updatedSearch(): void { $this->clearBulk(); $this->resetPage('invoicePage'); }
