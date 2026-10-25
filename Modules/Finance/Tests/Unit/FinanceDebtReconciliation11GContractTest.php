@@ -26,5 +26,14 @@ final class FinanceDebtReconciliation11GContractTest extends TestCase
         self::assertStringContainsString("'reconciliation' =>", $component);
         self::assertStringContainsString('Đối soát 11G', $view);
         self::assertStringContainsString('không phải báo cáo số dư đầu kỳ/cuối kỳ', $view);
+        $pagination = file_get_contents($root.'/resources/views/livewire/partials/debt-report-pagination.blade.php');
+        self::assertStringContainsString("'reconciliationPage'", $service);
+        self::assertStringContainsString("pageName' => 'reconciliationPage'", $view);
+        self::assertStringContainsString('Phân trang đối soát công nợ', $view);
+        self::assertStringContainsString('Trang', $pagination);
+        self::assertStringContainsString('Đầu', $pagination);
+        self::assertStringContainsString('Cuối', $pagination);
+        self::assertStringContainsString('aria-current="page"', $pagination);
+        self::assertStringContainsString('Cần đối soát', $view);
     }
 }
