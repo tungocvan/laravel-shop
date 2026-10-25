@@ -346,6 +346,7 @@ final class DebtWorkspace extends Component
 
         return view('Finance::livewire.debt-workspace', [
             'paymentEvidence' => $paymentReview === null ? null : app(FinanceDebtPaymentEvidenceReader::class)->forObligation($this->paymentReviewDebtId),
+            'selectedPaymentEvidence' => $selected === null ? null : app(FinanceDebtPaymentEvidenceReader::class)->forObligation((int) $selected->id),
             'paymentReview' => $paymentReview,
             'debts' => $query->paginate(10),
             'selected' => $selected,
