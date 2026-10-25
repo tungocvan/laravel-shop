@@ -114,6 +114,13 @@ final class VoucherPostingService
                 throw ValidationException::withMessages(['voucher' => 'Only a posted voucher may be reversed.']);
             }
 
+            // Debt-owned vouchers require an atomic debt reversal, not treasury-only reversal.
+            if (DB::table('finance_debt_settlement_mappings')->where('voucher_id', $voucherId)->exists()) {
+                throw ValidationException::withMessages([
+                    'voucher' => 'Phiếu thanh toán công nợ phải hoàn tác từ chi tiết công nợ.',
+                ]);
+            }
+
             $posting = DB::table('finance_ledger_entries')
                 ->where('voucher_id', $voucherId)->where('entry_type', 'posting')->first();
             if (! $posting) {
