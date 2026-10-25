@@ -25,3 +25,12 @@
 - UI34: 09A single-invoice review still works, pagination and date filters remain intact.
 
 No local WSL tests executed by assistant. Stop at Git Pull/Test until user PASS.
+
+## UI/UX refinement and 90-day due-date rule (Git Pull/Test pending)
+- Cleaner invoice source heading, compact selected count/amount/technical-readiness summary, shortened status labels and single-invoice action.
+- Bulk preview displays invoice issuance date and **editable per-invoice due date** defaulted to issue date + **90 calendar days** (not +3 months); single-invoice review defaults likewise.
+- No shared due date for the whole batch. Invalid or missing issuance date has no default and fails the source validation.
+- A historical invoice can have a due date earlier than the recognition date; this is valid for overdue aging.
+- Collapsible per-invoice results with success/skipped/failed counts and reasons.
+- Existing Finance obligations are not retroactively changed. No payments or legal invoice verification are automated.
+- Check PHP unit tests and UI30–34 again, plus UI35 per-invoice default due dates (12/10/2026 -> 10/01/2027; 11/10/2026 -> 09/01/2027), UI36 edit one due date only, UI37 historical overdue invoice, UI38 collapse/expand results.
