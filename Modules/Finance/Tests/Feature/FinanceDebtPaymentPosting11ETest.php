@@ -7,6 +7,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Auth;
+use Livewire\Livewire;
+use App\Models\User;
+use Modules\Finance\Livewire\DebtWorkspace;
 use Modules\Finance\Services\FinanceDebtPaymentPostingService;
 use Modules\Finance\Services\FinanceDebtPaymentEvidenceReader;
 use Tests\TestCase;
@@ -91,6 +95,30 @@ final class FinanceDebtPaymentPosting11ETest extends TestCase
         } catch (ValidationException $expected) {
             self::assertSame(2, DB::table('finance_debt_settlement_mappings')->where('obligation_id', $debt)->count());
         }
+    }
+
+    public function test_livewire_confirms_payment_only_with_manage_permission(): void
+    {
+        [$debt, $account] = $this->seedDebt();
+        $user = \Mockery::mock(User::class)->makePartial();
+        $user->id = 12345;
+        $user->shouldReceive('can')->with('finance.view')->andReturn(true);
+        $user->shouldReceive('can')->with('finance.debt.manage')->andReturn(true);
+        Auth::guard('admin')->setUser($user);
+
+        Livewire::test(DebtWorkspace::class)
+            ->call('setTab', 'debts')
+            ->call('openPaymentReview', $debt)
+            ->set('paymentAmount', '20.000.000')
+            ->set('paymentAccountId', (string) $account)
+            ->set('paymentReference', '11E-LIVEWIRE-REF')
+            ->set('paymentDate', '2026-10-25')
+            ->call('previewPayment')
+            ->assertSet('paymentPreviewed', true)
+            ->call('confirmPayment')
+            ->assertSet('paymentReviewDebtId', null);
+        self::assertSame(1, DB::table('finance_debt_settlement_mappings')->where('obligation_id', $debt)->count());
+        self::assertSame(1, DB::table('finance_ledger_entries')->count());
     }
 
     public function test_duplicate_reference_is_rejected_without_another_voucher(): void
