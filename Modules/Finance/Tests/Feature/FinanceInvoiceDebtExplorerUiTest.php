@@ -33,6 +33,7 @@ final class FinanceInvoiceDebtExplorerUiTest extends TestCase
         $user->id = 12345;
         $user->shouldReceive('can')->with('finance.view')->andReturn($finance);
         $user->shouldReceive('can')->with('invoices-list')->andReturn($invoices);
+        $user->shouldReceive('can')->with('finance.debt.manage')->andReturn(true);
         Auth::guard('admin')->setUser($user);
     }
 
@@ -94,6 +95,30 @@ final class FinanceInvoiceDebtExplorerUiTest extends TestCase
             ->set('invoiceType', 'purchase')
             ->assertDontSee('Trang 4 / 6')
             ->assertSee('Không tìm thấy hóa đơn phù hợp.');
+    }
+
+    public function test_invoice_review_panel_opens_for_selected_invoice(): void
+    {
+        $this->login(true, true);
+        $number = 'REVIEW-'.uniqid();
+        $id = DB::table('invoices')->insertGetId([
+            'invoice_number' => $number,
+            'symbol' => 'AA/26E',
+            'invoice_type' => 'purchase',
+            'name' => 'Supplier review',
+            'tax_code' => '0123456789',
+            'total_amount' => '120000.00',
+            'issued_date' => now()->toDateString(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        Livewire::test(InvoiceDebtExplorer::class)
+            ->set('search', $number)
+            ->call('openReview', $id)
+            ->assertSet('reviewInvoiceId', $id)
+            ->assertSee('Kiểm tra trước khi xác nhận công nợ')
+            ->assertSee('Supplier review')
+            ->assertSee('Phải trả');
     }
 
     public function test_invoice_catalog_requires_both_module_permissions(): void
