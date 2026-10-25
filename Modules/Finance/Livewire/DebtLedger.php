@@ -16,17 +16,17 @@ final class DebtLedger extends Component
     public string $dateFrom = '';
     public string $dateTo = '';
 
-    public function updatedSearch(): void { $this->resetPage(); }
-    public function updatedDirection(): void { $this->resetPage(); }
-    public function updatedStatus(): void { $this->resetPage(); }
-    public function updatedDateFrom(): void { $this->resetPage(); }
-    public function updatedDateTo(): void { $this->resetPage(); }
+    public function updatedSearch(): void { $this->resetPage('ledgerPage'); }
+    public function updatedDirection(): void { $this->resetPage('ledgerPage'); }
+    public function updatedStatus(): void { $this->resetPage('ledgerPage'); }
+    public function updatedDateFrom(): void { $this->resetPage('ledgerPage'); }
+    public function updatedDateTo(): void { $this->resetPage('ledgerPage'); }
 
     public function resetFilters(): void
     {
         $this->reset('search', 'direction', 'dateFrom', 'dateTo');
         $this->status = 'confirmed';
-        $this->resetPage();
+        $this->resetPage('ledgerPage');
     }
 
     public function render()
@@ -62,7 +62,7 @@ final class DebtLedger extends Component
                     ->orWhere('d.reference_number', 'like', $term));
             })
             ->orderByDesc('d.id')
-            ->paginate(15);
+            ->paginate(15, ['*'], 'ledgerPage');
 
         return view('Finance::livewire.debt-ledger', ['debts' => $debts]);
     }
