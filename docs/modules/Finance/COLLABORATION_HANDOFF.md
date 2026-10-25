@@ -569,3 +569,8 @@ User approved manual per-invoice confirmation first, bulk later. Added InvoiceDe
 ## Checkpoint 11G.2 — Period report, Git Pull/Test pending (2026-10-25)
 
 User confirmed 11G first gate: two-tier tests 285 passed, 4 skipped, 1120 assertions and manual UI PASS; approved next checkpoint. New branch `feat/finance-11g2-period-report-20261025` from the existing 11G feature branch (main ancestor 47596c302). Added read-only SQL DECIMAL period movement service, period tab and filters, contract test, and `CHECKPOINT_11G2_PERIOD_REPORT_GIT_PULL_TEST.md`. This is an operational provisional report, not a certified historical accounting ledger. Assistant did NOT run PHPUnit/UI; await user focused FinanceDebtPeriodReport11G2ContractTest then Finance regression, then manual UI. No main merge or production changes.
+
+
+## Checkpoint 11G.2 — UI pagination polish (2026-10-25), Git Pull/Test pending
+
+User supplied desktop screenshots: period report layout generally acceptable, but default Laravel pagination was English, dark, and cramped. With explicit user approval, replaced **only** 11G.2 period pagination with bounded Vietnamese Finance-style controls (first/previous/numbered/next/last), using named `periodPage` for Livewire navigation. Added horizontal-scroll hint, nowrap tabular monetary columns, compact status badges and focused contract assertions. No changes to 11G reconciliation or debt pagination, no business-service/data changes. Await focused `FinanceDebtPeriodReport11G2ContractTest.php`, Finance module regression, then user's manual UI PASS. Do not claim tests/UI PASS or merge/deploy before gate.
