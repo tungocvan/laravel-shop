@@ -52,15 +52,70 @@
             <span class="text-xs text-slate-600">Đang xem: {{ $appliedFrom }} đến {{ $appliedTo }} · Chọn năm/tháng chỉ cập nhật ngày dự kiến; bấm Áp dụng để lọc.</span>
         </div>
         @if($errors->any())<p role="alert" class="text-sm text-red-700">{{ $errors->first() }}</p>@endif
+
+        @if($canRecognize)
+            <div class="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
+                <strong>Đã chọn {{ count($bulkSelected) }} hóa đơn trên trang</strong>
+                <button type="button" wire:click="prepareBulk" @disabled(count($bulkSelected) === 0) class="rounded-lg bg-indigo-700 px-4 py-2 font-semibold text-white disabled:opacity-40">Xem trước xác nhận hàng loạt</button>
+                <span class="text-xs text-slate-600">Chỉ chọn tối đa 10 hóa đơn chưa liên kết trên trang hiện tại. Không tự động chọn các trang khác.</span>
+            </div>
+        @endif
+        @if($bulkPreview !== [])
+            <section class="space-y-3 rounded-lg border border-indigo-300 bg-indigo-50 p-4" aria-label="Xem trước xác nhận hàng loạt">
+                <h3 class="font-bold">Xem trước {{ count($bulkPreview) }} hóa đơn</h3>
+                <p class="text-sm text-amber-900">Kiểm tra kỹ chứng từ gốc, tình trạng hủy/thay thế/điều chỉnh và thanh toán. Kiểm tra kỹ thuật không thay thế việc kiểm tra nghiệp vụ.</p>
+                <div class="overflow-x-auto"><table class="w-full text-left text-sm">
+                    <thead><tr><th class="p-2">Hóa đơn</th><th class="p-2">Đối tác</th><th class="p-2">Tổng tiền</th><th class="p-2">Kết quả / lý do</th></tr></thead>
+                    <tbody>
+                        @foreach($bulkPreview as $item)
+                            <tr class="border-t border-slate-200" wire:key="bulk-preview-{{ $item['id'] }}">
+                                <td class="p-2">{{ $item['reference'] }}</td>
+                                <td class="p-2">{{ $item['partner'] }}</td>
+                                <td class="p-2 whitespace-nowrap">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd($item['amount']) }}</td>
+                                <td class="p-2">{{ $item['issues'] === [] ? 'Đạt kiểm tra kỹ thuật — chờ người xác nhận' : implode(' ', $item['issues']) }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table></div>
+                <div class="grid gap-3 sm:grid-cols-2">
+                    <label class="text-sm">Ngày ghi nhận <input type="date" wire:model="bulkRecognizedOn" class="mt-1 w-full rounded-lg border border-slate-300 p-2"></label>
+                    <label class="text-sm">Hạn thanh toán (tùy chọn) <input type="date" wire:model="bulkDueOn" class="mt-1 w-full rounded-lg border border-slate-300 p-2"></label>
+                </div>
+                <label class="flex items-start gap-2 text-sm"><input type="checkbox" wire:model.live="bulkReviewed" class="mt-1"><span>Tôi đã kiểm tra chứng từ gốc, trạng thái pháp lý và các khoản thanh toán liên quan của từng hóa đơn đủ điều kiện trong danh sách trên. Tôi hiểu hệ thống chưa trừ thanh toán.</span></label>
+                <button type="button" wire:click="confirmBulk" wire:loading.attr="disabled" wire:target="confirmBulk" @disabled(!$bulkReviewed) class="rounded-lg bg-indigo-700 px-4 py-2 font-semibold text-white disabled:opacity-40">Xác nhận hàng loạt</button>
+                <button type="button" wire:click="prepareBulk" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">Kiểm tra lại</button>
+            </section>
+        @endif
+        @if($bulkResults !== [])
+            <section class="space-y-2 rounded-lg border border-slate-200 p-3" aria-label="Kết quả xác nhận hàng loạt">
+                <h3 class="font-bold">Kết quả xử lý {{ count($bulkResults) }} hóa đơn</h3>
+                <p class="text-sm">Thành công: {{ count(array_filter($bulkResults, fn ($r) => $r['status'] === 'success')) }} · Bỏ qua: {{ count(array_filter($bulkResults, fn ($r) => $r['status'] === 'skipped')) }} · Lỗi: {{ count(array_filter($bulkResults, fn ($r) => $r['status'] === 'failed')) }}</p>
+                @foreach($bulkResults as $result)
+                    <p class="border-t border-slate-100 pt-2 text-sm" wire:key="bulk-result-{{ $result['id'] }}">
+                        <strong>{{ $result['reference'] }}</strong> · {{ $result['status'] === 'success' ? 'Thành công' : ($result['status'] === 'skipped' ? 'Bỏ qua' : 'Lỗi') }} — {{ $result['reason'] }}
+                    </p>
+                @endforeach
+            </section>
+        @endif
+        @error('bulk')<p role="alert" class="text-sm text-red-700">{{ $message }}</p>@enderror
         <div class="overflow-x-auto rounded-lg border border-slate-200" role="region" aria-label="Danh sách hóa đơn từ Invoices" tabindex="0">
             <table class="w-full min-w-[900px] text-left text-sm">
                 <thead class="border-b border-slate-200 bg-slate-50"><tr>
-                    <th class="p-3">Hóa đơn</th><th class="p-3">Ngày lập</th><th class="p-3">Đối tác</th>
+                    <th class="p-3">
+                        @if($canRecognize)
+                            <button type="button" wire:click="toggleBulkPage" class="rounded border border-slate-300 px-2 py-1 text-xs" title="Chọn hoặc bỏ chọn tất cả hóa đơn chưa liên kết trên trang">Chọn trang</button>
+                        @else — @endif
+                    </th><th class="p-3">Hóa đơn</th><th class="p-3">Ngày lập</th><th class="p-3">Đối tác</th>
                     <th class="p-3">Chiều</th><th class="p-3 text-right">Tổng tiền HĐ</th><th class="p-3">Đối chiếu Finance</th><th class="p-3">Thao tác</th>
                 </tr></thead>
                 <tbody>
                     @forelse($invoices as $invoice)
                         <tr class="border-b border-slate-100" wire:key="invoice-explorer-{{ $invoice->id }}">
+                            <td class="p-3">
+                                @if($canRecognize && (int) $invoice->linked_debt_count === 0)
+                                    <input type="checkbox" aria-label="Chọn hóa đơn {{ $invoice->invoice_number }}" wire:click="toggleBulk({{ $invoice->id }})" @checked(in_array((int) $invoice->id, $bulkSelected, true)) class="rounded border-slate-300">
+                                @else <span class="text-slate-400">—</span> @endif
+                            </td>
                             <td class="p-3"><span class="font-semibold">{{ $invoice->invoice_number ?: 'Chưa có số' }}</span><p class="text-xs text-slate-500">{{ $invoice->symbol ?: '—' }} · ID {{ $invoice->id }}</p></td>
                             <td class="p-3">{{ $invoice->issued_date ?: '—' }}</td>
                             <td class="p-3">{{ $invoice->name ?: '—' }}<p class="text-xs text-slate-500">{{ $invoice->tax_code ?: '—' }}</p></td>
@@ -82,7 +137,7 @@
                             </td>
                         </tr>
                         @if($reviewInvoiceId === (int) $invoice->id)
-                            <tr wire:key="invoice-review-{{ $invoice->id }}"><td colspan="7" class="p-3">
+                            <tr wire:key="invoice-review-{{ $invoice->id }}"><td colspan="8" class="p-3">
         @if($reviewInvoiceId !== null)
             <section class="space-y-3 rounded-lg border border-indigo-300 bg-indigo-50 p-4" aria-label="Xác nhận công nợ hóa đơn">
                 <div class="flex items-center justify-between gap-3">
