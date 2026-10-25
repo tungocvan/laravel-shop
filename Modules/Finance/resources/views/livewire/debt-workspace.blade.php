@@ -10,6 +10,7 @@
         <button type="button" role="tab" aria-selected="{{ $activeTab === 'invoices' ? 'true' : 'false' }}" wire:click="setTab('invoices')" class="min-h-10 rounded-lg px-4 py-2 text-sm font-semibold transition {{ $activeTab === 'invoices' ? 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200' : 'text-slate-600 hover:bg-white/70' }}">Hóa đơn nguồn</button>
         <button type="button" role="tab" aria-selected="{{ $activeTab === 'debts' ? 'true' : 'false' }}" wire:click="setTab('debts')" class="min-h-10 rounded-lg px-4 py-2 text-sm font-semibold transition {{ $activeTab === 'debts' ? 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200' : 'text-slate-600 hover:bg-white/70' }}">Công nợ đã ghi nhận</button>
         <button type="button" role="tab" aria-selected="{{ $activeTab === 'reconciliation' ? 'true' : 'false' }}" wire:click="setTab('reconciliation')" class="min-h-10 rounded-lg px-4 py-2 text-sm font-semibold {{ $activeTab === 'reconciliation' ? 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200' : 'text-slate-600 hover:bg-white/70' }}">Đối soát 11G</button>
+        <button type="button" role="tab" aria-selected="{{ $activeTab === 'period' ? 'true' : 'false' }}" wire:click="setTab('period')" class="min-h-10 rounded-lg px-4 py-2 text-sm font-semibold {{ $activeTab === 'period' ? 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200' : 'text-slate-600 hover:bg-white/70' }}">Theo kỳ 11G.2</button>
     </div>
     @if ($activeTab === 'invoices')
         <section role="tabpanel" aria-label="Hóa đơn nguồn">
@@ -17,6 +18,38 @@
                 <livewire:finance.invoice-debt-explorer />
             @else
                 <p class="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">Tra cứu hóa đơn yêu cầu đồng thời quyền finance.view và invoices-list.</p>
+            @endif
+        </section>
+    @elseif ($activeTab === 'period')
+        <section role="tabpanel" aria-label="Báo cáo công nợ theo kỳ 11G.2" class="space-y-4">
+            <h3 class="text-lg font-semibold text-slate-900">Biến động công nợ theo kỳ</h3>
+            <p class="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Báo cáo quản trị tham khảo, không phải sổ kế toán hoặc số dư đã kiểm toán. Ngày thanh toán lấy từ bút toán hiệu lực; hoàn tác theo ngày bút toán đảo. Dòng thiếu bằng chứng bị loại khỏi tổng tham khảo.</p>
+            <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <label class="text-sm font-medium">Từ ngày<input type="date" wire:model.live="periodFrom" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"></label>
+                <label class="text-sm font-medium">Đến ngày<input type="date" wire:model.live="periodTo" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"></label>
+                <label class="text-sm font-medium">Loại công nợ<select wire:model.live="reconcileDirection" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"><option value="">Tất cả</option><option value="receivable">Phải thu</option><option value="payable">Phải trả</option></select></label>
+                <label class="text-sm font-medium">Chứng từ / đối tác<input type="search" wire:model.live.debounce.350ms="reconcileSearch" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3"></label>
+            </div>
+            @error('period') <p role="alert" class="text-sm text-red-700">{{ $message }}</p> @enderror
+            @if (!$periodReport['ready'])
+                <p class="rounded-lg border border-amber-300 p-3 text-sm text-amber-800">Thiếu bảng dữ liệu: {{ $periodReport['missing'] }}</p>
+            @else
+                <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <div class="rounded-xl border p-3"><p class="text-xs text-slate-500">Số dư đầu kỳ (tham khảo)</p><strong>{{ self::formatVnd((string) $periodReport['totals']->opening_balance) }}</strong></div>
+                    <div class="rounded-xl border p-3"><p class="text-xs text-slate-500">Phát sinh gốc và điều chỉnh</p><strong>{{ self::formatVnd((string) $periodReport['totals']->principal_movement) }}</strong></div>
+                    <div class="rounded-xl border p-3"><p class="text-xs text-slate-500">Thanh toán ròng trong kỳ</p><strong>{{ self::formatVnd((string) $periodReport['totals']->payment_movement) }}</strong></div>
+                    <div class="rounded-xl border p-3"><p class="text-xs text-slate-500">Số dư cuối kỳ (tham khảo)</p><strong>{{ self::formatVnd((string) $periodReport['totals']->closing_balance) }}</strong></div>
+                </div>
+                <p class="text-sm text-slate-600">Cần kiểm tra: <strong>{{ $periodReport['totals']->review_count }}</strong> / {{ $periodReport['totals']->debt_count }} công nợ. Các số tổng chỉ cộng dòng không bị gắn cờ.</p>
+                <div class="overflow-x-auto rounded-xl border border-slate-200" role="region" aria-label="Bảng biến động công nợ" tabindex="0">
+                    <table class="w-full min-w-[1000px] text-left text-sm">
+                        <thead class="bg-slate-50"><tr><th class="p-3">Chứng từ</th><th class="p-3">Đối tác</th><th class="p-3">Loại</th><th class="p-3 text-right">Đầu kỳ</th><th class="p-3 text-right">Phát sinh</th><th class="p-3 text-right">Thanh toán ròng</th><th class="p-3 text-right">Cuối kỳ</th><th class="p-3">Tình trạng</th></tr></thead>
+                        <tbody>@forelse ($periodReport['rows'] as $item)
+                            <tr class="border-t"><td class="p-3">{{ $item->reference_number }}</td><td class="p-3">{{ $item->counterparty_name }}</td><td class="p-3">{{ $item->direction === 'receivable' ? 'Phải thu' : 'Phải trả' }}</td><td class="p-3 text-right">{{ self::formatVnd((string) $item->opening_balance) }}</td><td class="p-3 text-right">{{ self::formatVnd((string) $item->principal_movement) }}</td><td class="p-3 text-right">{{ self::formatVnd((string) $item->payment_movement) }}</td><td class="p-3 text-right">{{ self::formatVnd((string) $item->closing_balance) }}</td><td class="p-3">{{ $item->report_status === 'review' ? 'Cần đối soát' : 'Tham khảo' }}</td></tr>
+                        @empty <tr><td colspan="8" class="p-4 text-slate-500">Không có dữ liệu trong kỳ.</td></tr> @endforelse</tbody>
+                    </table>
+                </div>
+                {{ $periodReport['rows']->links() }}
             @endif
         </section>
     @elseif ($activeTab === 'reconciliation')
