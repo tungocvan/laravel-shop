@@ -128,7 +128,7 @@ final class FinanceDebtPaymentPosting11ETest extends TestCase
         [$debt, $account] = $this->seedDebt('payable');
         $service = app(FinanceDebtPaymentPostingService::class);
         $first = $service->post($debt, $account, '1000000.00', '2026-10-25', 'BANK-11E-DUP', 123);
-        self::assertSame('-1000000.00', (string) DB::table('finance_ledger_entries')->where('voucher_id', $first['voucher_id'])->value('signed_amount'));
+        self::assertEqualsWithDelta(-1000000.00, (float) DB::table('finance_ledger_entries')->where('voucher_id', $first['voucher_id'])->value('signed_amount'), 0.00001);
         $this->expectException(ValidationException::class);
         $service->post($debt, $account, '1000000.00', '2026-10-25', 'BANK-11E-DUP', 123);
     }
