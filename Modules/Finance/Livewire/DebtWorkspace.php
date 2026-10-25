@@ -7,6 +7,13 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\Attributes\On;
 use Modules\Finance\Services\FinanceDebtService;
+use Modules\Finance\Services\FinanceDebtBalanceReader;
+use Modules\Finance\Services\FinanceDebtPaymentReview;
+use Modules\Finance\Services\FinanceDebtPaymentPostingService;
+use Modules\Finance\Services\FinanceDebtPaymentReversalService;
+use Modules\Finance\Services\FinanceDebtPaymentEvidenceReader;
+use Modules\Finance\Services\FinanceDebtReconciliation11G;
+use Modules\Finance\Services\FinanceDebtPeriodReport11G2;
 use Modules\Finance\Services\PartnerDebtDraftService;
 use Modules\Partner\Models\Partner;
 
@@ -14,9 +21,15 @@ final class DebtWorkspace extends Component
 {
     use WithPagination;
 
+    public string $activeTab = 'invoices';
     public string $search = '';
     public string $direction = '';
     public string $status = '';
+    public string $paymentStatus = '';
+    public string $reconcileDirection = '';
+    public string $reconcileSearch = '';
+    public string $periodFrom = '';
+    public string $periodTo = '';
     public bool $creating = false;
     public string $reference = '';
     public string $draftDirection = 'receivable';
@@ -26,13 +39,44 @@ final class DebtWorkspace extends Component
     public string $amount = '';
     public string $dueOn = '';
     public ?int $selectedDebtId = null;
+    public ?int $paymentReviewDebtId = null;
+    public string $paymentAmount = '';
+    public string $paymentDate = '';
+    public string $paymentAccountId = '';
+    public string $paymentReference = '';
+    public bool $paymentPreviewed = false;
+    public string $reversalReason = '';
     public string $adjustment = '';
     public string $adjustmentReason = '';
     public string $adjustmentDate = '';
 
+    public function mount(): void
+    {
+        $this->periodFrom = now()->startOfMonth()->toDateString();
+        $this->periodTo = now()->toDateString();
+        $id = request()->query('debt');
+        if (is_scalar($id) && ctype_digit((string) $id) && (int) $id > 0
+            && DB::table('finance_debt_obligations')->where('id', (int) $id)->exists()) {
+            $this->selectedDebtId = (int) $id;
+            $this->activeTab = 'debts';
+        }
+    }
+
+    public function setTab(string $tab): void
+    {
+        $this->authorizeView();
+        abort_unless(in_array($tab, ['invoices', 'debts', 'reconciliation', 'period'], true), 422);
+        $this->activeTab = $tab;
+    }
+
     public function updatedSearch(): void { $this->resetPage(); }
     public function updatedDirection(): void { $this->resetPage(); }
     public function updatedStatus(): void { $this->resetPage(); }
+    public function updatedPaymentStatus(): void { $this->resetPage(); }
+    public function updatedReconcileDirection(): void { $this->resetPage('reconciliationPage'); $this->resetPage('periodPage'); }
+    public function updatedReconcileSearch(): void { $this->resetPage('reconciliationPage'); $this->resetPage('periodPage'); }
+    public function updatedPeriodFrom(): void { $this->resetPage('periodPage'); }
+    public function updatedPeriodTo(): void { $this->resetPage('periodPage'); }
 
     private function authorizeView(): void
     {
@@ -64,6 +108,7 @@ final class DebtWorkspace extends Component
 
     public function updatedDraftDirection(): void
     {
+        $this->authorizeMutation();
         $this->partnerId = '';
         $this->partnerSearch = '';
         $this->loadPartnerOptions();
@@ -124,6 +169,139 @@ final class DebtWorkspace extends Component
         $this->authorizeView();
         abort_unless(DB::table('finance_debt_obligations')->where('id', $id)->exists(), 404);
         $this->selectedDebtId = $id;
+        $this->reset('adjustment', 'adjustmentReason', 'adjustmentDate', 'reversalReason');
+    }
+
+    public function openPaymentReview(int $id): void
+    {
+        $this->authorizeView();
+        abort_unless(DB::table('finance_debt_obligations')->where('id', $id)->where('status', 'confirmed')->exists(), 404);
+        $this->paymentReviewDebtId = $id;
+        $this->reset('paymentAmount', 'paymentAccountId', 'paymentReference', 'paymentPreviewed');
+        $this->paymentDate = now()->toDateString();
+        $review = app(FinanceDebtPaymentReview::class)->inspect($id);
+        // This is adjusted principal, NOT verified unpaid balance.
+        $this->paymentAmount = $this->formatPaymentInput($review['remaining']);
+    }
+
+    private function formatPaymentInput(string $amount): string
+    {
+        $parts = explode('.', $amount, 2);
+        $integer = preg_replace('/\B(?=(\d{3})+(?!\d))/', '.', $parts[0]);
+        $fraction = rtrim($parts[1] ?? '', '0');
+
+        return $integer.($fraction !== '' ? ','.$fraction : '');
+    }
+
+    private function normalizePaymentInput(string $amount): string
+    {
+        $amount = trim($amount);
+        if (! preg_match('/^(?:\d{1,3}(?:\.\d{3})+|\d{1,15})(?:,\d{1,2})?$/D', $amount)) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'paymentAmount' => 'Chỉ nhập chữ số, ví dụ 40.000.000.',
+            ]);
+        }
+
+        // Normalize Vietnamese grouping and optional decimal comma.
+        return str_replace(',', '.', str_replace('.', '', $amount));
+    }
+
+    public function updatedPaymentAmount(): void
+    {
+        $this->paymentPreviewed = false;
+        $this->resetValidation('paymentAmount');
+        try {
+            $this->paymentAmount = $this->formatPaymentInput($this->normalizePaymentInput($this->paymentAmount));
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            // Keep malformed user input visible for correction; preview validates it.
+        }
+    }
+    public function updatedPaymentDate(): void { $this->paymentPreviewed = false; }
+    public function updatedPaymentAccountId(): void { $this->paymentPreviewed = false; }
+    public function updatedPaymentReference(): void { $this->paymentPreviewed = false; }
+
+    public function previewPayment(): void
+    {
+        $this->authorizeView();
+        abort_unless($this->paymentReviewDebtId !== null, 404);
+        $review = app(FinanceDebtPaymentReview::class)->inspect($this->paymentReviewDebtId);
+        $this->validate([
+            'paymentAmount' => ['required', 'string', 'max:30'],
+            'paymentDate' => ['required', 'date_format:Y-m-d'],
+            'paymentAccountId' => ['required', 'integer', 'min:1'],
+            'paymentReference' => ['required', 'string', 'max:100'],
+        ]);
+        abort_unless(collect($review['accounts'])->contains(fn ($a) => (string) $a['id'] === $this->paymentAccountId), 422);
+        $normalizedAmount = $this->normalizePaymentInput($this->paymentAmount);
+        $amount = $this->toPaymentCents($normalizedAmount);
+        $principal = $this->toPaymentCents($review['remaining']);
+        if ($amount <= 0 || $amount > $principal) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'paymentAmount' => 'Số tiền phải lớn hơn 0 và không vượt giá trị sau điều chỉnh.',
+            ]);
+        }
+        // Preview is never proof of an unpaid balance or authorization to post.
+        $this->paymentAmount = $this->formatPaymentInput($normalizedAmount);
+        $this->paymentPreviewed = true;
+    }
+
+    public function confirmPayment(FinanceDebtPaymentPostingService $service): void
+    {
+        $actor = $this->authorizeMutation();
+        abort_unless($this->paymentReviewDebtId !== null && $this->paymentPreviewed, 422);
+        // Re-run input checks and server-side debt review immediately before posting.
+        $this->previewPayment();
+        $review = app(FinanceDebtPaymentReview::class)->inspect($this->paymentReviewDebtId);
+        if (! $review['eligible']) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'payment' => implode(' ', $review['reasons']),
+            ]);
+        }
+        $result = $service->post(
+            $this->paymentReviewDebtId, (int) $this->paymentAccountId,
+            $this->normalizePaymentInput($this->paymentAmount), $this->paymentDate,
+            $this->paymentReference, $actor
+        );
+        $this->paymentPreviewed = false;
+        $this->paymentAmount = $this->formatPaymentInput($result['remaining']);
+        session()->flash('debt_notice', 'Đã ghi nhận thanh toán: '.$result['number']
+            .' · Còn nợ: '.self::formatVnd($result['remaining']));
+        $this->closePaymentReview();
+    }
+
+    private function toPaymentCents(string $value): int
+    {
+        if (! preg_match('/^\d{1,15}(?:\.\d{1,2})?$/D', $value)) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['paymentAmount' => 'Số tiền không hợp lệ.']);
+        }
+        [$whole, $fraction] = array_pad(explode('.', $value, 2), 2, '');
+        return ((int) $whole * 100) + (int) str_pad($fraction, 2, '0');
+    }
+
+    public function closePaymentReview(): void
+    {
+        $this->authorizeView();
+        $this->paymentReviewDebtId = null;
+        $this->reset('paymentAmount', 'paymentDate', 'paymentAccountId', 'paymentReference', 'paymentPreviewed');
+    }
+
+    public function reversePayment(int $voucherId, FinanceDebtPaymentReversalService $service): void
+    {
+        $actor = $this->authorizeMutation();
+        abort_unless($this->selectedDebtId !== null, 404);
+        $this->validate([
+            'reversalReason' => ['required', 'string', 'min:10', 'max:500'],
+        ]);
+        $result = $service->reverse($this->selectedDebtId, $voucherId, $this->reversalReason, $actor);
+        $this->reversalReason = '';
+        session()->flash('debt_notice', 'Đã hoàn tác phiếu '.$result['voucher_number']
+            .' · Còn phải thanh toán: '.self::formatVnd($result['remaining']));
+    }
+
+    public function closeDebt(): void
+    {
+        $this->authorizeView();
+        $this->selectedDebtId = null;
         $this->reset('adjustment', 'adjustmentReason', 'adjustmentDate');
     }
 
@@ -181,22 +359,50 @@ final class DebtWorkspace extends Component
         // No per-row queries and no float conversion of persisted DECIMAL values.
         $query->select('finance_debt_obligations.*')
             ->selectRaw('(finance_debt_obligations.original_amount + (SELECT COALESCE(SUM(signed_amount), 0) FROM finance_debt_events WHERE obligation_id = finance_debt_obligations.id)) AS adjusted_balance');
+        if (\Illuminate\Support\Facades\Schema::hasTable('finance_debt_settlement_mappings') && \Illuminate\Support\Facades\Schema::hasTable('finance_debt_allocation_ownerships')) {
+            $query->selectRaw("(SELECT COALESCE(SUM(m.amount), 0) FROM finance_debt_settlement_mappings m JOIN finance_debt_allocation_ownerships o ON o.mapping_id = m.id JOIN finance_vouchers v ON v.id = m.voucher_id WHERE m.obligation_id = finance_debt_obligations.id AND m.operation = 'post' AND v.status = 'posted') AS paid_amount");
+        }
+        if (in_array($this->paymentStatus, ['paid', 'partial', 'unpaid'], true)) {
+            if (\Illuminate\Support\Facades\Schema::hasTable('finance_debt_settlement_mappings')
+                && \Illuminate\Support\Facades\Schema::hasTable('finance_debt_allocation_ownerships')) {
+                // Filter on the same owned, posted voucher projection as the list.
+                // Keep this in SQL so pagination totals are accurate.
+                $paidSql = "(SELECT COALESCE(SUM(m.amount), 0) FROM finance_debt_settlement_mappings m JOIN finance_debt_allocation_ownerships o ON o.mapping_id = m.id JOIN finance_vouchers v ON v.id = m.voucher_id WHERE m.obligation_id = finance_debt_obligations.id AND m.operation = 'post' AND v.status = 'posted')";
+                $principalSql = "(finance_debt_obligations.original_amount + (SELECT COALESCE(SUM(signed_amount), 0) FROM finance_debt_events WHERE obligation_id = finance_debt_obligations.id))";
+                if ($this->paymentStatus === 'paid') {
+                    $query->where('finance_debt_obligations.status', 'confirmed')
+                        ->whereRaw($paidSql.' > 0 AND '.$paidSql.' >= '.$principalSql);
+                } elseif ($this->paymentStatus === 'partial') {
+                    $query->where('finance_debt_obligations.status', 'confirmed')
+                        ->whereRaw($paidSql.' > 0 AND '.$paidSql.' < '.$principalSql);
+                } else {
+                    $query->whereRaw($paidSql.' = 0');
+                }
+            } elseif ($this->paymentStatus !== 'unpaid') {
+                $query->whereRaw('1 = 0');
+            }
+        }
         $selected = $this->selectedDebtId === null ? null : DB::table('finance_debt_obligations')->find($this->selectedDebtId);
         $events = $selected ? DB::table('finance_debt_events')->where('obligation_id', $selected->id)->orderByDesc('id')->limit(100)->get() : collect();
-        // Aggregate ALL events, not only the 100 latest displayed in the history.
-        // SQL DECIMAL arithmetic preserves exact monetary values without PHP float rounding.
-        $adjustmentTotal = $selected
-            ? (string) DB::table('finance_debt_events')->where('obligation_id', $selected->id)
-                ->selectRaw('COALESCE(SUM(signed_amount), 0) AS total')->value('total')
-            : '0';
-        $currentBalance = $selected
-            ? (string) DB::table('finance_debt_obligations')
-                ->where('finance_debt_obligations.id', $selected->id)
-                ->selectRaw('(finance_debt_obligations.original_amount + (SELECT COALESCE(SUM(signed_amount), 0) FROM finance_debt_events WHERE obligation_id = finance_debt_obligations.id)) AS balance')
-                ->value('balance')
-            : '0';
+        // A single read-only projection owns the exact-decimal principal calculation.
+        // It deliberately does not subtract payments or claim settlement.
+        $principal = $selected ? app(FinanceDebtBalanceReader::class)->forObligation((int) $selected->id) : null;
+        $adjustmentTotal = $principal['adjustment_total'] ?? '0';
+        $currentBalance = $principal['adjusted_principal'] ?? '0';
+
+        $paymentReview = $this->paymentReviewDebtId === null ? null
+            : app(FinanceDebtPaymentReview::class)->inspect($this->paymentReviewDebtId);
 
         return view('Finance::livewire.debt-workspace', [
+            'paymentEvidence' => $paymentReview === null ? null : app(FinanceDebtPaymentEvidenceReader::class)->forObligation($this->paymentReviewDebtId),
+            'selectedPaymentEvidence' => $selected === null ? null : app(FinanceDebtPaymentEvidenceReader::class)->forObligation((int) $selected->id),
+            'paymentReview' => $paymentReview,
+            'periodReport' => $this->activeTab === 'period'
+                ? app(FinanceDebtPeriodReport11G2::class)->snapshot($this->periodFrom, $this->periodTo, $this->reconcileDirection, $this->reconcileSearch)
+                : null,
+            'reconciliation' => $this->activeTab === 'reconciliation'
+                ? app(FinanceDebtReconciliation11G::class)->snapshot($this->reconcileDirection, $this->reconcileSearch)
+                : null,
             'debts' => $query->paginate(10),
             'selected' => $selected,
             'events' => $events,

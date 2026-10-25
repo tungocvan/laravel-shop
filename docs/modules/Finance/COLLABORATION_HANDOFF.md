@@ -165,3 +165,441 @@ User confirmed Finance regression: 61 passed / 392 assertions / 2 skipped (SQLit
 
 
 2026-10-24 Checkpoint 8 user test report: User confirmed `test pass` after the Checkpoint 8 pull/test instructions. Exact per-command results (focused authorization, Finance/Admin/Partner regression, shared search contract) and local `git status --short` output were not provided, so do not independently certify each gate or tracked working tree clean. Prior UI PASS remains user-confirmed; Checkpoint 8 did not change UI/runtime. PR #323 remains Draft; verify remaining evidence and seek explicit merge authorization before merging. No production action.
+
+
+## Phase 2 — first security checkpoint (2026-10-24)
+
+Base: main at 47596c30280ed2c2a0031b3e3f07a3ba39d235cf (PR #323 merge). Branch: feat/finance-phase2-security-gate-20261024.
+
+Read-only source verification: FinanceDebtService handles manual-only draft/confirmation/append-only adjustments; DatabaseInvoiceDebtCandidateReader is discovery only; VoucherPostingService posts allocations against finance_source_documents, NOT finance_debt_obligations. Therefore adjusted principal is NOT settled/outstanding balance, and a debt settlement link cannot be assumed. No invoice recognition or settlement implementation is authorized by this checkpoint.
+
+Security gap: DebtWorkspace::updatedDraftDirection previously called loadPartnerOptions without authorizeMutation; Livewire public property update could trigger a Partner lookup by a view-only admin. Added authorization guard and a focused Livewire regression test. No schema, production, existing role assignments, posting or source-module changes.
+
+PENDING USER TEST: php artisan test Modules/Finance/Tests/Feature/FinanceDebtLivewireAuthorizationTest.php. Only after focused PASS, run php artisan test Modules/Finance/Tests. If focused FAIL, stop and return full output. UI smoke remains USER PENDING; this backend authorization fix does not establish Phase 2 UI PASS. No PR or merge approval implied.
+
+Phase 2 blockers before settlement: audit Invoices cancellation/replacement; map debt-to-voucher allocation ownership and accounting policy; confirm transaction/locking/idempotency; reconcile dedicated finance.debt.manage grants in real environments without changing them automatically. No production migration or module enablement.
+
+
+## Phase 2 — CP1 read-only principal projection (2026-10-24)
+
+Added FinanceDebtBalanceReader::forObligation() to centralize exact SQL DECIMAL aggregation of original amount + all signed debt events; wired selected DebtWorkspace detail to the reader. No voucher allocations are interpreted as settled debt. No schema change, source recognition, settlement write, module enablement or production mutation.
+
+Previous user-reported gate: Finance authorization 4 PASS / 13 assertions; Finance module 91 PASS / 509 assertions; shared workspace contracts 4 PASS / 25 assertions; Partner and Invoices integration suites reported PASS. These results predate CP1 code and must not be represented as CP1 test results.
+
+CP1 test gate on DELL, after git fetch/pull:
+1. php artisan test Modules/Finance/Tests/Feature/FinanceDebtBalanceReaderTest.php
+2. php artisan test Modules/Finance/Tests
+3. php artisan test tests/Feature/FinanceDebtWorkspaceContractTest.php tests/Feature/SharedSearchBackwardCompatibilityContractTest.php
+Stop on any failure and return complete output. UI acceptance is deferred until a later UI checkpoint. No PR/merge before user acceptance.
+
+
+## Phase 2 — CP2 settlement safety boundary (2026-10-24)
+
+Added FinanceDebtSettlementReadiness: a read-only, fail-closed inspection/guard for manual draft, confirmed manual and source-linked debt. It returns adjusted principal but never calls that value paid or outstanding. assertCanSettle() rejects every case until authoritative debt-to-voucher allocation, reversal, idempotency and invoice lifecycle rules are implemented and reviewed. No ledger write, migration, payment, posting, source-module change, or UI mutation. Five new feature tests cover draft, confirmed manual, source-linked, command guard, and missing identity.
+
+Previous DELL checkpoint CP1: Finance regression 93 PASS / 514 assertions and workspace/shared contracts 4 PASS / 25 assertions. These results predate CP2.
+
+CP2 Git pull/test gate:
+1. git pull --ff-only
+2. php artisan test Modules/Finance/Tests/Feature/FinanceDebtSettlementReadinessTest.php
+3. php artisan test Modules/Finance/Tests
+Stop on any failure; return exact output. Manual UI acceptance deferred. No PR/merge or production mutation.
+
+
+## Phase 2 — CP3 read-only source identity bridge (2026-10-24)
+
+FinanceDebtSourceLinkReader resolves the exact (source_module, source_type, source_document_id) tuple between finance_debt_obligations and finance_source_documents without mutating either. Source-less manual debts return null, incomplete identity and ambiguous treasury matches fail closed, and unmatched identity returns null. Four tests cover manual, incomplete, missing debt, and unmatched identity. Matching identity is **not** settlement, proof of invoice eligibility, or posting authorization. Voucher/ledger and source lifecycle rules remain unchanged. No migrations, UI changes, PR or production actions.
+
+CP3 DELL gate: git pull --ff-only; php artisan test Modules/Finance/Tests/Feature/FinanceDebtSourceLinkReaderTest.php; then php artisan test Modules/Finance/Tests if focused tests pass. These tests have not been run by the assistant. UI acceptance remains deferred.
+
+
+### CP3 SQLite test fixture fix (2026-10-24)
+
+DELL reported CP3 focused test FAIL (1 failed, 3 passed): SQLite :memory: lacked finance_source_documents. Updated CP3 test setUp to initialize the existing 2026_10_21_000001_create_finance_foundation_tables.php migration in the test database when needed; no production migration or runtime schema changes. Added positive exact-match read-only test checking that no finance_allocations are inserted. CP3 tests must be rerun on DELL before any further implementation. Commands: git pull --ff-only; php artisan test Modules/Finance/Tests/Feature/FinanceDebtSourceLinkReaderTest.php; if PASS php artisan test Modules/Finance/Tests. Do not claim PASS before output.
+
+
+## Phase 2 — CP4 read-only treasury allocation projection (2026-10-24)
+
+Added FinanceDebtSourceAllocationReader. It uses CP3 exact source identity, validates debt/source currency, direction and original amount, then reads finance_allocations joined to finance_vouchers. Only posted voucher allocations contribute to posted_amount; draft and reversed are counted separately but excluded from the sum. Unknown statuses, invalid amounts, mismatched voucher direction/currency, and posted allocations above source original amount fail closed. Manual debts return null. This is a treasury **source allocation** view only, NOT authoritative debt settlement or debt outstanding: debt adjustments, invoice lifecycle eligibility and explicit debt settlement ownership remain unresolved. No voucher posting, reversal, allocation creation, ledger writes, migration or UI changes. Four focused tests added. DELL gate: git pull --ff-only; php artisan test Modules/Finance/Tests/Feature/FinanceDebtSourceAllocationReaderTest.php; if PASS php artisan test Modules/Finance/Tests. Not run by assistant; no production/PR/merge.
+
+
+## Phase 2 — CP5 read-only reconciliation diagnostics (2026-10-24)
+
+FinanceDebtReconciliationReader composes CP1 adjusted principal and CP4 treasury posted-source allocation into a diagnostic-only record. Explicit statuses: unconfirmed_debt, no_treasury_source_link, treasury_exceeds_adjusted_principal, requires_settlement_contract. debt_settlement_confirmed is always false; there is no authoritative debt outstanding calculation or settlement mutation. Source allocation mismatches fail closed via CP4. Five feature tests cover posted vs draft, adjustment reducing principal below treasury allocation, manual debt, draft debt, and missing debt. No schema, UI, posting, reversal, production, PR or merge changes. CP5 tests NOT RUN by assistant. DELL checkpoint: git pull --ff-only; php artisan test Modules/Finance/Tests/Feature/FinanceDebtReconciliationReaderTest.php; if PASS php artisan test Modules/Finance/Tests. Manual UI acceptance deferred.
+
+
+## Phase 2 — CP6 settlement contract preflight (2026-10-24)
+
+Added FinanceDebtSettlementContract, a read-only fail-closed settlement preflight composing CP5 reconciliation. Returns eligible=false for all current cases with explicit reason codes (unconfirmed, missing authoritative allocation mapping, treasury over adjusted principal, source lifecycle/settlement contract missing). Exact source identity or zero treasury allocation does not authorize debt settlement. FinanceDebtSettlementReadiness::assertCanSettle now delegates to the CP6 contract guard; inspect's CP2 backward-compatible response is unchanged. Added five tests. No settlement writes, source invoice mutation, ledger changes, migrations, UI, PR or production actions. Focused tests NOT RUN by assistant. DELL: git pull --ff-only; php artisan test Modules/Finance/Tests/Feature/FinanceDebtSettlementContractTest.php Modules/Finance/Tests/Feature/FinanceDebtSettlementReadinessTest.php; if PASS php artisan test Modules/Finance/Tests. UI gate not reached.
+
+
+## Phase 2 — CP7 voucher mapping integrity inspection (2026-10-24)
+
+Added FinanceDebtVoucherMappingInspector (read-only) to examine a proposed debt/voucher pair using exact source identity, debt confirmation, voucher status/direction/currency, a single matching source allocation and the CP4 aggregate integrity guard. Draft and reversed vouchers never qualify as settlement; even posted exact source mapping returns eligible=false because authoritative debt settlement lifecycle and mapping ownership remain unapproved. assertCanMap always fails closed. Five focused tests cover posted, draft/reversed, missing allocation, manual debt, and command guard. No schema, ledger, posting, UI or production changes. DELL gate: git pull --ff-only; php artisan test Modules/Finance/Tests/Feature/FinanceDebtVoucherMappingInspectorTest.php; if PASS php artisan test Modules/Finance/Tests. Tests not run by assistant; no PR/merge; UI gate not reached.
+
+
+## Phase 2 — CP8 settlement lifecycle specification (2026-10-24)
+
+Added FinanceDebtSettlementLifecycle, a pure structural transition inspector: draft -> posted and posted -> reversed are only design candidates; duplicate, reversed -> posted, and unknown states are rejected. assertCanExecute always throws, including structurally valid transitions. No settlement rows or schema, no voucher mutation, no production operations. Before implementation of any write path, an authoritative debt-voucher allocation ownership schema, atomic transaction/locking, idempotency, principal and currency invariants, source lifecycle, and reversal linkage must be reviewed and approved. Added seven focused tests. Not run by assistant. DELL: git pull --ff-only; php artisan test Modules/Finance/Tests/Feature/FinanceDebtSettlementLifecycleTest.php; if PASS php artisan test Modules/Finance/Tests. UI acceptance deferred; no PR/merge.
+
+
+## Phase 2 — CP9 settlement integrity/idempotency specification (2026-10-24)
+
+Added FinanceDebtSettlementIntegrity, a pure, read-only preflight taking explicitly supplied principal, already-settled amount, proposed payment, and idempotency token plus an externally supplied duplicate flag. Rejects malformed tokens/amounts, duplicate flag, zero payments, overpayment and already-excessive settlement; exact remaining principal is only a structural candidate. It does NOT load authoritative settled amounts, reserve/store keys, lock rows, or execute settlement. assertCanExecute always throws. Nine focused tests added; not run by assistant. No migrations, production changes, UI, PR or merge. DELL checkpoint: git pull --ff-only; php artisan test Modules/Finance/Tests/Feature/FinanceDebtSettlementIntegrityTest.php; if PASS php artisan test Modules/Finance/Tests. UI gate not reached.
+
+
+## Phase 2 — CP10 transaction and idempotency safety specification (2026-10-24)
+
+Added FinanceDebtSettlementTransactionProtocol as a pure, fail-closed planning contract. It specifies deterministic lock order (debt, voucher, source, allocation), unique idempotency scope, transaction revalidation, append-only settlement/reversal, and all-or-nothing commit. Both post/reverse execution guards always throw. This is NOT an implemented DB lock, persistent idempotency registry, concurrency guarantee, or settlement write path. Eight focused tests cover plan shape, reversal, invalid IDs/key/operation, and blocked commands. No migration or production change. Tests not run by assistant. DELL: git pull --ff-only; php artisan test Modules/Finance/Tests/Feature/FinanceDebtSettlementTransactionProtocolTest.php; if PASS php artisan test Modules/Finance/Tests. UI gate not reached; no PR/merge.
+
+
+## Phase 2 — CP11 persistent idempotency foundation (2026-10-24)
+
+Added migration 2026_10_24_000002_create_finance_debt_idempotency_keys_table.php, with FK to debt obligations and UNIQUE(obligation_id, operation, idempotency_key). Added FinanceDebtIdempotencyRegistry::reserve(), using a DB transaction, duplicate pre-check and authoritative database unique constraint. A concurrent duplicate may throw a database unique violation; it must fail closed and not be swallowed. For future settlement, the caller MUST wrap reservation plus all authoritative settlement writes in the same outer DB transaction. Registry alone does not settle debt, does not authorize posting/reversal, does not implement row locks or replay response semantics. Added seven tests covering reservation, duplicate, operation/debt scoping, outer rollback, and invalid inputs; tests have not been run by assistant. No production migration executed, no UI, PR or merge. DELL: git pull --ff-only; php artisan test Modules/Finance/Tests/Feature/FinanceDebtIdempotencyRegistryTest.php; if PASS php artisan test Modules/Finance/Tests. UI gate not reached.
+
+
+## Phase 2 — CP12 atomic settlement fail-closed gate (2026-10-24)
+
+Added FinanceDebtAtomicSettlementGate::execute(), validating CP10 protocol inputs and opening DB::transaction with debt then voucher lockForUpdate, lifecycle status checks, and CP6 contract inspection. It ALWAYS throws ValidationException: no authoritative debt settlement mapping or reversal ownership exists. Crucially it does NOT call CP11 reserve(), does NOT write debt events, does NOT change voucher/ledger and does NOT activate settlement. Locking here is a boundary for future implementation, NOT a claim of production-ready concurrent settlement. Added six focused tests checking blocked post/reversal, no key reservation/events, draft, bad key/operation and missing voucher. Not run by assistant. No migrations, production operations, PR or merge. DELL: git pull --ff-only; php artisan test Modules/Finance/Tests/Feature/FinanceDebtAtomicSettlementGateTest.php; if PASS php artisan test Modules/Finance/Tests. UI gate not reached.
+
+
+## Phase 2 — CP13 authoritative mapping foundation (2026-10-24)
+
+Added migration 2026_10_24_000003_create_finance_debt_settlement_mappings_table.php: debt/voucher FKs, operation, amount, optional self-FK reversal origin, unique(debt,voucher,operation) and unique(reverses_mapping_id). These constraints alone do NOT prove voucher ownership, amount validity, cross-debt reversal consistency, or prevent mapping writes through other code; no mapping writer is exposed. Added FinanceDebtSettlementMappingReader read-only fail-closed inspector and six tests. Even structurally valid mapping never authorizes settlement. CP12 gate remains unchanged and always blocks. No production migrations, API/UI, PR or merge. Tests not run by assistant. DELL: git pull --ff-only; php artisan test Modules/Finance/Tests/Feature/FinanceDebtSettlementMappingReaderTest.php; if PASS php artisan test Modules/Finance/Tests. UI gate not reached.
+
+
+## Phase 2 — CP14 settlement mapping integrity audit (2026-10-24)
+
+Added FinanceDebtSettlementMappingIntegrity read-only audit of existing mapping IDs: confirmed debt, currency/direction, voucher lifecycle, integer-cents amount vs voucher/principal, aggregate net mapping amount, and reversal origin ownership/amount. Returns eligible=false unconditionally and assertCanExecute always throws. No settlement write path, no API/UI or migrations. This is structural auditing, NOT authoritative voucher-to-source ownership proof: the debt/source mapping, multi-source vouchers, reversal lifecycle and concurrent aggregate writes still need an approved contract. Added eight tests (not run by assistant). DELL: git pull --ff-only; php artisan test Modules/Finance/Tests/Feature/FinanceDebtSettlementMappingIntegrityTest.php; if PASS php artisan test Modules/Finance/Tests. No production change, PR or merge; UI gate not reached.
+
+
+## Phase 2 — CP15 source ownership diagnostic (2026-10-24)
+
+Added FinanceDebtSettlementSourceOwnership, a read-only, fail-closed exact debt-source-voucher allocation inspector. It checks matching source identity, direction/currency, confirmed debt, posted voucher, positive allocation no greater than voucher, and calls existing source allocation projection for source-wide over-allocation checks. Multi-source vouchers use ONLY the allocation for the exact linked source, not the whole voucher amount. Returns eligible=false unconditionally and assertCanSettle always throws. Five focused tests added; assistant did not execute them. IMPORTANT: No concurrent write test, database race simulation, locking extension, authoritative settlement or reversal write was implemented in CP15; concurrency remains blocked by CP12 and requires separate database-specific validation. No production migration, PR, merge or UI. DELL: git pull --ff-only; php artisan test Modules/Finance/Tests/Feature/FinanceDebtSettlementSourceOwnershipTest.php; if PASS php artisan test Modules/Finance/Tests. UI gate not reached.
+
+
+## Phase 2 — CP16 atomic gate lock extension (2026-10-24)
+
+Extended FinanceDebtAtomicSettlementGate to acquire locks in debt -> voucher -> exact source -> source allocations order (ordered by allocation id), then read CP15 source ownership inside the transaction before the unconditional denial. Added two regression tests covering repeated denied attempts and preservation of existing idempotency keys. The gate still NEVER reserves new idempotency keys, creates mappings, changes vouchers or posts debt settlements. No production migration, PR, merge or UI.
+
+CRITICAL LIMITATION: SQLite lockForUpdate may be ineffective, and these tests do NOT prove cross-process race safety on MySQL/PostgreSQL. Atomic idempotency reservation with actual settlement writes, stable lock order across all writers, gap/range locks for new allocations, and real multi-connection contention tests remain future work. This CP16 is only a fail-closed lock-boundary foundation, not concurrent settlement activation.
+
+DELL: git pull --ff-only; php artisan test Modules/Finance/Tests/Feature/FinanceDebtAtomicSettlementGateTest.php; php artisan test Modules/Finance/Tests. UI gate not reached.
+
+
+## Phase 2 — CP17 idempotency and principal read hardening (2026-10-24)
+
+Extended the fail-closed FinanceDebtAtomicSettlementGate to check an existing idempotency key scoped by obligation and operation inside its transaction, lock existing mapping rows in stable ID order when the table exists, and re-read adjusted principal after acquiring the debt lock. Added two tests for duplicate key and operation-scoped denial. Also corrected literal backslash-n escapes accidentally committed in CP16 gate source. The gate still ALWAYS throws, never reserves a new key, never posts a settlement, and never reverses one. No migrations, production changes, PR, merge or UI.
+
+LIMITATIONS: Locking existing rows does not lock missing/new rows; read-only principal is NOT remaining settlement balance; no actual concurrent multi-connection tests, no atomic key reservation with settlement writes, no reversal ownership race protection, and no proof of cross-service lock order. MySQL/PostgreSQL integration and locking semantics remain future acceptance requirements. Run on DELL: git pull --ff-only; php artisan test Modules/Finance/Tests/Feature/FinanceDebtAtomicSettlementGateTest.php; php artisan test Modules/Finance/Tests. UI gate not reached.
+
+
+## Phase 2 — CP18 settlement balance invariant (2026-10-24)
+
+Added read-only FinanceDebtSettlementBalanceInvariant with integer-cents mapping net projection, remaining diagnostic principal, rejection of missing/foreign/mismatched reversal origins, invalid mapping amounts and net above principal or below zero. It always returns eligible=false and assertCanSettle always throws. Added six focused tests. No settlement writer, migrations, production changes, PR, merge or UI. VoucherPostingService locks voucher -> account -> allocation -> source, whereas debt atomic gate locks debt -> voucher -> source -> allocations; this is a cross-service ordering concern and NOT certified deadlock-free. The mapping unique reversal index is the database duplicate guard, but actual concurrent reverse is not exercised. No MySQL/PostgreSQL multi-connection race testing; no gap locks or atomic settlement idempotency reservation. CP18 is diagnostic-only.
+
+DELL: git pull --ff-only; php artisan test Modules/Finance/Tests/Feature/FinanceDebtSettlementBalanceInvariantTest.php; php artisan test Modules/Finance/Tests. Await two-tier PASS before another checkpoint. UI gate not reached.
+
+
+## Phase 2 — CP19 cross-service lock-order audit (2026-10-24)
+
+Added FinanceDebtLockOrderAudit, an explicit fail-closed diagnostic contract, and five focused tests. Settlement declares debt -> voucher -> source -> allocation -> mapping; voucher posting currently acquires voucher -> account -> allocation -> source. The source/allocation inversion is a potential deadlock risk. The audit does not claim to enforce runtime lock order, prevent deadlocks or prove concurrency safety. Existing voucher posting/reversal behavior is unchanged to avoid an unreviewed regression; the settlement gate continues to reject every operation. No new migrations, settlement writes, production changes, PR, merge or UI.
+
+Next technical prerequisite before actual settlement: reconcile lock order across writers, test voucher post/reverse regression and MySQL/PostgreSQL multi-connection contention, verify database-specific gap locking and atomic idempotency. DELL checkpoint: git pull --ff-only; php artisan test Modules/Finance/Tests/Feature/FinanceDebtLockOrderAuditTest.php; php artisan test Modules/Finance/Tests. Await two-tier PASS.
+
+
+## Phase 2 — CP20 partial cross-service lock order harmonization (2026-10-24)
+
+Changed ONLY the fail-closed FinanceDebtAtomicSettlementGate to acquire existing allocation rows before the linked source row, matching VoucherPostingService's allocation -> source order. Updated FinanceDebtLockOrderAudit and its regression tests; all audit results still deny settlement. Existing VoucherPostingService post/reverse and ledger behavior are untouched. This is partial harmonization, NOT deadlock elimination: the voucher service also locks account, other writers may differ, new allocations/phantom rows are not protected by existing-row locks, and no real MySQL/PostgreSQL concurrent sessions were tested. No settlement writes, production changes, migrations, PR, merge or UI.
+
+DELL checkpoint: git pull --ff-only; php artisan test Modules/Finance/Tests/Feature/FinanceDebtLockOrderAuditTest.php Modules/Finance/Tests/Feature/FinanceDebtAtomicSettlementGateTest.php Modules/Finance/Tests/Feature/VoucherPostingServiceTest.php; php artisan test Modules/Finance/Tests. Await two-tier PASS before next checkpoint.
+
+
+## Phase 2 — CP21 database concurrency readiness (2026-10-24)
+
+Added FinanceDebtConcurrencyReadiness fail-closed driver/prerequisite inspector and four focused tests: always deny settlement, assert denial, verify failed gate leaves ledger/idempotency/debt events/voucher untouched, and repeated failed attempts do not reserve keys. This is single-connection regression only; it does NOT simulate concurrent transactions. SQLite row locks are not proof of MySQL/PostgreSQL safety. No actual settlement writes, migrations, production changes, PR, merge or UI.
+
+Required separate real-database test plan (NOT executed): use isolated MySQL and PostgreSQL test databases and two independent DB connections/processes with barriers; race same debt+key, different keys on same debt, duplicate reversal origin, concurrent voucher post and debt gate, and rollback after injected failure. Assert unique constraints, isolation, lock waits/deadlocks, retry behavior and no partial ledger/mapping/idempotency writes. Avoid DatabaseTransactions wrapping both processes; ensure test cleanup. Gate stays disabled regardless of readiness report.
+
+DELL checkpoint: git pull --ff-only; php artisan test Modules/Finance/Tests/Feature/FinanceDebtConcurrencyReadinessTest.php; php artisan test Modules/Finance/Tests. Await two-tier PASS.
+
+ 
+## Phase 2 — CP22 isolated real-database contention harness (2026-10-24)
+
+Added opt-in `FinanceDebtRealDatabaseContentionTest.php` using two independent PDO connections, an isolated randomly named scratch table and explicit cleanup. Checks row-lock contention (NOWAIT), idempotency unique constraint, single-reversal-reference unique constraint and rollback visibility. This is a **database smoke test only**, not full settlement-service concurrency, cross-process racing or real production-schema validation. No settlement writes were enabled. No migrations, production access, PR, merge or UI.
+
+Safety guard: the DSN must use MySQL or PostgreSQL, specify a database name ending in `_test`, and `FINANCE_CP22_ALLOW_ISOLATED_DB=yes` must be set. Use only a disposable, dedicated local test DB with permissions to CREATE/DROP scratch tables. A missing DSN causes an explicit PHPUnit SKIP (NOT a real concurrency PASS). Never point at production.
+
+DELL regular two-tier checkpoint:
+```
+git pull --ff-only
+php artisan test Modules/Finance/Tests/Feature/FinanceDebtRealDatabaseContentionTest.php
+php artisan test Modules/Finance/Tests
+```
+
+For **real DB execution**, set `FINANCE_CP22_TEST_DSN`, `FINANCE_CP22_TEST_USER`, `FINANCE_CP22_TEST_PASSWORD`, `FINANCE_CP22_ALLOW_ISOLATED_DB=yes` in the terminal and rerun the focused test. Example PowerShell:
+```powershell
+$env:FINANCE_CP22_TEST_DSN = "mysql:host=127.0.0.1;dbname=finance_test"
+$env:FINANCE_CP22_TEST_USER = "finance_test_user"
+$env:FINANCE_CP22_TEST_PASSWORD = "<local test password>"
+$env:FINANCE_CP22_ALLOW_ISOLATED_DB = "yes"
+php artisan test Modules/Finance/Tests/Feature/FinanceDebtRealDatabaseContentionTest.php
+```
+Use a real local test user and password; do not commit secrets. Report the focused test's actual PASS/SKIP/FAIL separately from the full regression result. On machines without a dedicated MySQL/PostgreSQL test DB, real concurrency remains NOT RUN. UI checkpoint not reached.
+
+ 
+## Phase 2 — CP23 local test database safety (2026-10-24)
+
+Added `FinanceDebtTestDatabaseGuard` and its focused tests. CP22 scratch-table contention harness now refuses to connect unless the opt-in is `yes`, driver is mysql/pgsql, DSN explicitly names localhost/127.0.0.1/::1 and a database matching `^[a-z][a-z0-9_]*_test$`. Rejects remote hosts, socket/extra DSN options, duplicate keys and production-like names. This is defense in depth, NOT a proof of production isolation: verify credentials and endpoint manually and use a disposable local DB. CP22 absent DSN remains SKIP (not PASS). No production, migration, PR, merge, settlement activation or UI.
+
+DELL test checkpoint:
+```
+git pull --ff-only
+php artisan test Modules/Finance/Tests/Feature/FinanceDebtTestDatabaseGuardTest.php Modules/Finance/Tests/Feature/FinanceDebtRealDatabaseContentionTest.php
+php artisan test Modules/Finance/Tests
+```
+
+Optional actual DB run, only after creating a dedicated local `finance_test` MySQL/PostgreSQL DB with a restricted test user:
+```powershell
+$env:FINANCE_CP22_TEST_DSN = "mysql:host=127.0.0.1;dbname=finance_test"
+$env:FINANCE_CP22_TEST_USER = "finance_test_user"
+$env:FINANCE_CP22_TEST_PASSWORD = "<local test password>"
+$env:FINANCE_CP22_ALLOW_ISOLATED_DB = "yes"
+php artisan test Modules/Finance/Tests/Feature/FinanceDebtRealDatabaseContentionTest.php
+```
+Do not commit credentials or point this test to any shared/production instance. Record PASS/FAIL/SKIP separately for real DB test and Finance regression. No actual real-DB contention has been observed in this checkpoint unless the optional run completes without SKIP.
+
+ 
+## Phase 2 — CP24 database execution readiness (2026-10-24)
+
+Added a server-selected database identity check on BOTH independent PDO connections, before CP22 creates any scratch table. The actual `SELECT DATABASE()` (MySQL) or `SELECT current_database()` (PostgreSQL) must equal the explicitly authorized local `*_test` DSN name. Added a focused mismatch test. This reduces accidental wrong-database writes but is not proof of server isolation (localhost can be proxied/tunneled); verify server manually. Existing CP22 test remains SKIP when no DSN is set. This checkpoint did not run real database contention and did not activate settlement.
+
+DELL checkpoint:
+```
+git pull --ff-only
+php artisan test Modules/Finance/Tests/Feature/FinanceDebtTestDatabaseGuardTest.php Modules/Finance/Tests/Feature/FinanceDebtRealDatabaseContentionTest.php
+php artisan test Modules/Finance/Tests
+```
+
+For optional real MySQL/PostgreSQL verification, provision a disposable local `finance_test` database and restricted user, then in PowerShell:
+```powershell
+$env:FINANCE_CP22_TEST_DSN = "mysql:host=127.0.0.1;dbname=finance_test"
+$env:FINANCE_CP22_TEST_USER = "finance_test_user"
+$env:FINANCE_CP22_TEST_PASSWORD = "<local test password>"
+$env:FINANCE_CP22_ALLOW_ISOLATED_DB = "yes"
+php artisan test Modules/Finance/Tests/Feature/FinanceDebtRealDatabaseContentionTest.php
+```
+Never use production/shared DB or commit credentials. Report PASS/FAIL/SKIP for the optional test separately; PASS would prove only this scratch-table smoke test, not the full settlement lifecycle or deadlock freedom. No production migrations, PR, merge, or UI.
+
+ 
+## Phase 2 — CP25 concurrency evidence report (2026-10-24)
+
+Added `FinanceDebtConcurrencyEvidence` and four focused tests. Missing/partial evidence yields `NOT_RUN_OR_INCOMPLETE`; complete self-reported scratch-table checks yield `REPORTED_PASS_UNVERIFIED` (not an independently verified PASS). Every result sets `settlement_eligible=false`, and assertCanSettle always denies. Report contains only driver, safe test DB name, required check names, reason and status; no DSN, credentials or passwords. CP22 optional real DB smoke test emits the sanitized report after all four assertions. No actual settlement, production, migrations, PR, merge or UI.
+
+DELL checkpoint:
+```
+git pull --ff-only
+php artisan test Modules/Finance/Tests/Feature/FinanceDebtConcurrencyEvidenceTest.php Modules/Finance/Tests/Feature/FinanceDebtRealDatabaseContentionTest.php
+php artisan test Modules/Finance/Tests
+```
+Without configured isolated local MySQL/PostgreSQL, CP22 remains SKIP. A passing regression with a skip is NOT real DB concurrency evidence. For actual smoke execution, use the CP24 PowerShell environment instructions and run CP22 focused test separately, reporting PASS/FAIL/SKIP. Even a real DB smoke PASS does not prove full settlement-service concurrency or authorize settlement.
+
+ 
+## Phase 2 — CP26 MySQL/MariaDB real contention execution (2026-10-24)
+
+The CP22 smoke test now explicitly creates an InnoDB scratch table on MySQL/MariaDB, requires MySQL 8+ or MariaDB 10.3+ for NOWAIT, and only treats recognized lock-error codes as lock contention (not syntax/permission errors). It still only proves scratch-table lock, unique key, reversal uniqueness and rollback behavior; no actual Finance settlement writer is enabled. Actual real DB run is NOT claimed until the DELL output confirms no SKIP.
+
+**DELL / Windows PowerShell — first verify local MySQL/MariaDB**:
+```powershell
+mysql --version
+php -m | Select-String "pdo_mysql"
+```
+Confirm that port 3306 is a disposable **local instance**, not a tunnel, remote forwarding or shared/production server. If you cannot verify this, STOP; do not create the database.
+
+Log in to the verified local test server as an administrator (the following is run in the MySQL client, **not** in PowerShell):
+```sql
+CREATE DATABASE finance_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'finance_test_user'@'127.0.0.1' IDENTIFIED BY 'REPLACE_WITH_UNIQUE_LOCAL_TEST_PASSWORD';
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER ON finance_test.* TO 'finance_test_user'@'127.0.0.1';
+SHOW GRANTS FOR 'finance_test_user'@'127.0.0.1';
+```
+Do not run if `finance_test` already exists with unknown data; use a fresh disposable test instance. No migrations or production schema changes. Password above is a placeholder, not a real credential. Use a distinct test-only user and password. On installations using `localhost` instead of TCP 127.0.0.1, adapt account host deliberately; keep DSN host as 127.0.0.1 for TCP.
+
+**PowerShell in repository** (the password prompt is not echoed; session environment only):
+```powershell
+$env:FINANCE_CP22_TEST_DSN = "mysql:host=127.0.0.1;port=3306;dbname=finance_test"
+$env:FINANCE_CP22_TEST_USER = "finance_test_user"
+$secret = Read-Host "Local test DB password" -AsSecureString
+$env:FINANCE_CP22_TEST_PASSWORD = [System.Net.NetworkCredential]::new("", $secret).Password
+$env:FINANCE_CP22_ALLOW_ISOLATED_DB = "yes"
+php artisan test Modules/Finance/Tests/Feature/FinanceDebtRealDatabaseContentionTest.php
+```
+For compatibility with older PowerShell, `New-Object System.Net.NetworkCredential("", $secret)` may replace `::new`. Do not paste or commit the password. Clear after test:
+```powershell
+'FINANCE_CP22_TEST_DSN','FINANCE_CP22_TEST_USER','FINANCE_CP22_TEST_PASSWORD','FINANCE_CP22_ALLOW_ISOLATED_DB' | ForEach-Object { Remove-Item "Env:$_" -ErrorAction SilentlyContinue }
+```
+Run the normal checkpoint first:
+```
+git pull --ff-only
+php artisan test Modules/Finance/Tests/Feature/FinanceDebtRealDatabaseContentionTest.php
+php artisan test Modules/Finance/Tests
+```
+**Report both** the isolated real DB smoke result (PASS/FAIL/SKIP) and full Finance regression. A SKIP remains NOT RUN. On errors do not change app `.env` or target production; send only sanitized error output, never passwords/DSN with secrets. No UI checkpoint yet.
+
+
+## CP27 — Real MySQL service-boundary contention (2026-10-24)
+
+Added `Modules/Finance/Tests/Feature/FinanceDebtServiceContentionTest.php`. Opt-in, MySQL/InnoDB only; reuses CP23/24 DSN authorization and server-selected database identity checks. The test refuses to run if either required Finance scratch table already exists, creates only two minimal temporary tables in the isolated `*_test` database, holds a debt row lock with independent PDO while calling the **actual** `FinanceDebtAtomicSettlementGate::execute()` through a temporarily redirected Laravel DB connection, asserts a genuine InnoDB lock timeout (1205), releases the lock, asserts draft voucher denial and unchanged rows, then drops only tables created by this test. It restores Laravel's default connection and never invokes settlement writes, migrations, production schema or UI. This tests one service lock boundary, **not** a simultaneous settlement-writer race, gap-lock coverage, deadlock freedom or settlement eligibility.
+
+DELL WSL Ubuntu: retain the same opt-in `FINANCE_CP22_TEST_DSN`, `FINANCE_CP22_TEST_USER`, `FINANCE_CP22_TEST_PASSWORD`, `FINANCE_CP22_ALLOW_ISOLATED_DB=yes` from CP26. Run focused `php artisan test Modules/Finance/Tests/Feature/FinanceDebtServiceContentionTest.php`; stop on failure. Only after focused PASS run `php artisan test Modules/Finance/Tests`. Expected optional real DB test skips if DSN not supplied; **a SKIP is not CP27 real DB PASS**. User must report both results. No UI test at this checkpoint. No PR, merge, production migration or settlement activation.
+
+
+## CP28 — Real MySQL idempotency service race (2026-10-24)
+
+Added `Modules/Finance/Tests/Feature/FinanceDebtIdempotencyServiceRaceTest.php`. This is an opt-in MySQL/InnoDB integration test using the existing CP23/24 isolated `*_test` guard and two independent connections. It refuses pre-existing Finance scratch table names, creates minimal debt and idempotency tables with a real unique index and FK, holds an uncommitted idempotency reservation on PDO connection A, calls the **actual** `FinanceDebtIdempotencyRegistry::reserve()` on Laravel connection B and requires MySQL lock timeout 1205. After A rolls back, the service must reserve once; a repeat must fail closed without additional rows. Scratch tables are dropped in reverse dependency order and Laravel's default connection is restored. The test does not run actual settlement, ledger, mappings, production migrations or UI. This is a deterministic interleaving, **not** proof of simultaneously committed settlement transactions, deadlock freedom, or full reversal race safety.
+
+On DELL WSL, set the same `FINANCE_CP22_TEST_DSN`, `FINANCE_CP22_TEST_USER`, `FINANCE_CP22_TEST_PASSWORD` and `FINANCE_CP22_ALLOW_ISOLATED_DB=yes` as CP26/27. Run focused `php artisan test Modules/Finance/Tests/Feature/FinanceDebtIdempotencyServiceRaceTest.php`; if PASS, run `php artisan test Modules/Finance/Tests`. Stop on FAIL/SKIP, send both outputs; a SKIP is not real database PASS. Unset credentials afterwards. No UI checkpoint, merge, PR, deploy or production migration.
+
+
+## CP29 — Reversal origin contention, test handoff (2026-10-24)
+
+Added `FinanceDebtReversalOwnershipRaceTest.php`: opt-in, isolated local MySQL/InnoDB only. CP23/24 guard verifies both PDO and Laravel selected DB; test refuses pre-existing Finance tables, creates minimal scratch tables, holds an uncommitted reversal mapping referencing one origin, requires independent Laravel insert to fail with InnoDB lock timeout 1205, rolls back and confirms no orphan reversal, commits one reversal and confirms a second origin reuse fails with duplicate-key error 1062. Calls the existing `FinanceDebtAtomicSettlementGate` with an incompatible draft voucher and confirms fail-closed lifecycle denial. No real reversal service writer exists yet: this tests database uniqueness and a service denial, **not** concurrent reversal service execution or settlement readiness. No production changes, migrations, PR, merge or UI work.
+
+On DELL WSL restore `FINANCE_CP22_TEST_DSN`, `FINANCE_CP22_TEST_USER`, `FINANCE_CP22_TEST_PASSWORD`, `FINANCE_CP22_ALLOW_ISOLATED_DB=yes`. Focused: `php artisan test Modules/Finance/Tests/Feature/FinanceDebtReversalOwnershipRaceTest.php`. If PASS run `php artisan test Modules/Finance/Tests`. Stop on FAIL/SKIP and send outputs; unset secrets afterwards. CP29 remains TEST PENDING until user confirms both layers. After CP29, perform a bounded remaining-scope review before proposing further CP numbers.
+
+
+## CP30 — Phase 2 closure audit (2026-10-24)
+
+Added `docs/modules/Finance/PHASE2_CLOSURE_AUDIT_CP30.md` with evidence-based remaining release gates and **provisional** CP31–CP35 plan. Added `FinanceDebtPhase2ClosureAuditTest.php` asserting the existing settlement plan/readiness remain fail-closed, the atomic gate retains its unconditional denial and no write calls, and the audit records the required gates. No runtime Finance logic, schema, production data, UI, PR, merge or deploy changed. Audit is deliberately limited to inspected services/migrations/tests and does not assert complete repository coverage.
+
+DELL WSL focused: `php artisan test Modules/Finance/Tests/Feature/FinanceDebtPhase2ClosureAuditTest.php`. If PASS, run `php artisan test Modules/Finance/Tests`. Restore CP26–29 isolated MySQL opt-in environment if real database tests are required to run without SKIP. CP30 remains TEST PENDING until user confirms both levels. Do not start CP31 without explicit approval. Chưa đến CHECKPOINT TEST UI.
+
+
+## CP31 — Proposed business contract acceptance, TEST PENDING (2026-10-24)
+
+User approved implementation of CP31 through Git Pull/Test, **not** approval of unresolved business policy. Added `docs/modules/Finance/PHASE2_BUSINESS_CONTRACT_CP31.md` with current behavior, proposed acceptance matrix, and seven unresolved owner decisions. Added `Modules/Finance/Tests/Feature/FinanceDebtBusinessContractAcceptanceTest.php` verifying partial/exact-remaining structural candidates, overpayment/duplicate rejection, post/reversal protocol fail-closed, required business contract headings and atomic gate denial. No runtime logic, migration, actual settlement, UI, PR, merge or deploy changes.
+
+DELL WSL: `git pull --ff-only origin feat/finance-phase2-security-gate-20261024`; focused `php artisan test Modules/Finance/Tests/Feature/FinanceDebtBusinessContractAcceptanceTest.php`; then full `php artisan test Modules/Finance/Tests` with the isolated MySQL `finance_test` opt-in variables from CP26–29 to prevent SKIP. Stop and repair CP31 only if FAIL. Await two PASS reports, then seek explicit business decisions before CP32. Chưa đến CHECKPOINT TEST UI.
+
+
+## CP32 — Read-only mapping reconciliation (2026-10-24; TEST PENDING)
+
+User approved design defaults: partial payment, multi-source vouchers, full reversal only, same currency, and separate manual-debt linkage. Added `FinanceDebtMappingReconciliation` (diagnostic-only, `eligible=false`, `authoritative=false`, no writer), `FinanceDebtMappingReconciliationTest` (empty/partial/overpaid/draft/denied cases), and `PHASE2_MAPPING_CP32.md` documenting deferred exact allocation ownership and manual-debt linkage. No migrations, real settlement, production/UI changes.
+
+Focused: `php artisan test Modules/Finance/Tests/Feature/FinanceDebtMappingReconciliationTest.php`; full: `php artisan test Modules/Finance/Tests` with local isolated MySQL opt-in so CP26–29 do not SKIP. User requested fewer repetitive test-only checkpoints: batch related safe backend work where practical, but never bypass required regression or authorization for financial writers, migrations, UI or deployment. Stop at Git Pull/Test. Chưa đến CHECKPOINT TEST UI.
+
+
+## CP33 — Exact allocation ownership boundary, TEST PENDING
+
+User approved CP33 backend implementation up to Git Pull/Test and prefers larger batches, but safety inspection found settlement mapping schema lacks allocation ID and unique ownership. Implemented read-only `FinanceDebtAllocationOwnership`, focused `FinanceDebtAllocationOwnershipBoundaryTest`, and `PHASE2_ALLOCATION_OWNERSHIP_CP33.md`. This is deliberately a reduced CP33 scope: no settlement/reversal writer, migration, production or UI change; atomic gate still denies. Must not claim CP33 atomic writer completed. Focused: `php artisan test Modules/Finance/Tests/Feature/FinanceDebtAllocationOwnershipBoundaryTest.php`; full Finance suite with MySQL opt-in, no SKIP. Fix CP33 only on failure. Chưa đến CHECKPOINT TEST UI.
+
+
+## CP34 — Isolated internal posting, TEST PENDING
+
+Approved by user through Git Pull/Test. Added additive migration `2026_10_24_000004_create_finance_debt_allocation_ownerships_table.php` (unique exact allocation ownership; **do not run on production**), `FinanceDebtInternalSettlementWriter` (testing-environment-only, explicit callback authorization, actor/reason, debt/voucher/allocation locks, post mapping + idempotency + ownership in transaction; reversal deliberately denies), `FinanceDebtInternalSettlementWriterTest` (five integration tests), and `PHASE2_INTERNAL_POSTING_CP34.md`. The existing public `FinanceDebtAtomicSettlementGate` remains unconditionally fail-closed. This is partial CP34; no real reversal, permission integration, manual debt, production activation or UI.
+
+Focused `php artisan test Modules/Finance/Tests/Feature/FinanceDebtInternalSettlementWriterTest.php`, then full `php artisan test Modules/Finance/Tests` with isolated MySQL opt-in, no SKIP. User runs DELL WSL; assistant has not executed tests. Fix CP34 only on FAIL. Chưa đến CHECKPOINT TEST UI.
+
+
+## CP35 — Internal full reversal, TEST PENDING
+
+User approved CP35 up to Git Pull/Test. Implemented testing-environment-only full reversal in `FinanceDebtInternalSettlementWriter::reverse`: debt-first lock, original voucher lifecycle must be reversed, exact ownership, immutable original mapping, no duplicate origin reversal, atomic reversal token+mapping, explicit actor/reason/callback. Added three tests in `FinanceDebtInternalSettlementWriterTest.php` and `PHASE2_REVERSAL_CP35.md`. Existing public atomic gate still always denies; no production migration/activation, permission policy, manual debt link, or actual two-connection writer concurrency proof. CP35 is not release ready. User to run focused writer test and full Finance suite with isolated MySQL opt-in; no test run by assistant. Chưa đến CHECKPOINT TEST UI.
+
+
+## CP36 — Ownership reconciliation and rollback, TEST PENDING
+
+Approved by user to Git Pull/Test. Added `FinanceDebtSettlementOwnershipAudit` (read-only, eligible=false, post/allocation/source/actor ownership, reversal lifecycle, orphan detection, mapping balance diagnostics), four focused tests in `FinanceDebtInternalSettlementWriterTest` (reconciled post/reverse, allocation tamper, outer-transaction post rollback and reversal rollback), and `PHASE2_OWNERSHIP_AUDIT_CP36.md`. **Not yet implemented:** two-connection actual writer race tests, durable reversal actor audit, production permission integration. Existing writer testing-only; public gate still denies. No production migration or UI. Run focused and full Finance suite in DELL isolated MySQL; assistant has not run tests. Chưa đến CHECKPOINT TEST UI.
+
+
+## CP37 — Durable internal audit, TEST PENDING
+
+User approved CP37 to Git Pull/Test. Added migration `2026_10_24_000005_create_finance_debt_settlement_audit_events_table.php`; internal testing-only writer atomically inserts actor/reason/origin/token audit for post and reverse; diagnostic ownership audit reconciles these rows when schema exists. Updated focused writer test for audit contents, denied writes and transaction rollback. Documented in `PHASE2_DURABLE_AUDIT_CP37.md`. **Not complete:** two-connection actual-writer race test, production permission policy, immutable audit enforcement, manual debt, lifecycle integration. Public gate still fail-closed. Do not migrate production or start UI. Run focused and full Finance suite with isolated MySQL; assistant has not executed tests. Chưa đến CHECKPOINT TEST UI.
+
+
+## Demo UI Acceptance Checkpoint 01 — Git Pull/Test pending
+
+User explicitly redirected work to **Demo DELL WSL UI-first** and approved implementation to Git Pull/Test. Fixed mismatch between applied report date and totals/ledger/export, linked Finance header directly to functional debt `documents` screen, and marked six debt placeholder sections as `Đang xây dựng` with navigation back. Manual acceptance steps: `docs/modules/Finance/DEMO_UI_ACCEPTANCE_CHECKPOINT_01.md`. No browser or PHPUnit tests run by assistant; await user's Finance suite and UI observations. Do not automatically propose more backend checkpoints. No production deployment.
+
+
+## Demo UI Checkpoint 02 — Debt Dashboard, Git Pull/Test pending
+
+User confirmed Demo UI CP01 PASS (Finance regression and UI01–04), approved CP02. Added real read-only `DebtDashboard` Livewire and Blade with five principal KPIs, status/direction/partner/due-date filters, paginated 15-row list and detail deep links; activated dashboard section, updated unfinished menu labels, added read-only debt deep-link selection in `DebtWorkspace`, plus focused tests. No new migrations or production settlement. **Dashboard amounts are adjusted principal only, not paid/unpaid outstanding.** Acceptance instructions `DEMO_UI_ACCEPTANCE_CHECKPOINT_02.md`. Assistant did not run PHPUnit/browser; await user two-tier tests and browser UI. Do not start next feature without approval.
+
+
+## Demo UI Checkpoint 03 — Partner Summary, Git Pull/Test pending
+
+User confirmed CP02 two-tier tests and bordered-input UI PASS; explicitly requested next UI. Implemented `DebtPartners` read-only partner aggregation grouped by stored name/tax/direction, with filters, totals, overdue principal, pagination and dashboard drill-down; activated partners menu; focused tests. No settlement/payment deduction, Partner directory synchronization or migrations. `DEMO_UI_ACCEPTANCE_CHECKPOINT_03.md` has test plan. Await user two-tier tests and browser review before new checkpoint.
+
+
+## Demo UI Checkpoint 04 — Debt Ledger, Git Pull/Test pending
+
+User confirmed CP03 focused tests, regression and UI08–10 PASS, then approved next UI. Added `DebtLedger` read-only Livewire and view at `/admin/finance/debts/ledger` with principal/adjustment detail, due-date filters, pagination, document deep links, and focused tests. Updated menu. No new migrations or settlement activation. Acceptance: `DEMO_UI_ACCEPTANCE_CHECKPOINT_04.md`. Assistant has not executed WSL tests or browser; await user's two-tier PASS/FAIL and UI review. Do not start next feature without approval.
+
+
+## Demo UI Checkpoint 05 — Debt Summary, Git Pull/Test pending
+
+User confirmed CP04 regression 243 passed, 4 skipped, 875 assertions, UI11–13 PASS and explicitly approved next UI. Added read-only `DebtSummary` with confirmed debt grouping, recognition cohort filters, SQL-decimal KPIs, original/adjustment/adjusted totals, navigation and focused tests. Explicitly NOT an accounting opening/closing balance or unpaid balance; no payment subtraction. Acceptance `DEMO_UI_ACCEPTANCE_CHECKPOINT_05.md`. Assistant has not run local WSL tests/browser. Stop at Git Pull/Test, wait for user PASS/FAIL and UI verification.
+
+
+## Demo UI Checkpoint 06 — Aging Report, Git Pull/Test pending
+
+User confirmed CP05 regression 245 passed, 4 skipped, 887 assertions and UI14–16 PASS, then approved CP06. Added read-only `DebtAging` with confirmed-principal aging buckets, filterable cards and detailed document links, focused tests, and activated menu. No actual unpaid balance, settlement deduction, migrations or production. Acceptance: `DEMO_UI_ACCEPTANCE_CHECKPOINT_06.md`. Assistant has not run local WSL tests/browser. Await two-tier test results and UI17–19 before further work.
+
+
+## Demo UI Checkpoint 07 — Settings overview, Git Pull/Test pending
+
+User confirmed CP06 regression 247 passed, 4 skipped, 914 assertions, UI17–19 PASS and approved CP07. Added DebtSettings read-only component and view, activated settings menu, corrected summary subtitle, and added focused tests. No mutable settings, invoice sync, settlement, or accounting balance calculations. See DEMO_UI_ACCEPTANCE_CHECKPOINT_07.md. Await WSL tests and browser UI20–22 before continuing.
+
+
+## Checkpoint 08A — Invoices source explorer, Git Pull/Test pending
+
+After CP07 PASS (249 passed, 4 skipped, 923 assertions; UI20–22 PASS), user requested priority integration of Modules/Invoices before UI polish. Inspected actual Invoices model, schema and routes. Added a read-only searchable invoice catalog in Finance Documents, showing sold/purchase totals and matching source identity, gated by both finance.view and invoices-list. No payment allocation contract was established; no settlement or invoice-to-debt auto posting implemented. Focused test and acceptance in DEMO_UI_ACCEPTANCE_CHECKPOINT_08A_INVOICES.md. Await WSL focused/regression tests and UI23–25. Do not start accounting write integration without new approval and validated source/payment lifecycle.
+
+
+## Checkpoint 08A repair — awaiting repeat Git Pull/Test
+
+User screenshot: 285-page pagination rendered an excessive row of page buttons. WSL regression: 5 failed, 4 skipped, 247 passed (920 assertions), SQLite no such table permissions from newly introduced invoices-list check inside DebtWorkspace Blade. Replaced default invoice pagination with compact window and First/Prev/Next/Last. Guarded parent invoice component mount behind Schema::hasTable('permissions') before Spatie can('invoices-list') to avoid isolated Finance test failures; child still requires both finance.view and invoices-list. Added pagination/reset test. No payment or accounting writes. Repeat focused test and full Finance suite; browser UI23–25. Do not proceed until PASS.
+
+
+## Checkpoint 09A — Git Pull/Test pending
+
+User approved manual per-invoice confirmation first, bulk later. Added InvoiceDebtRecognitionService with source uniqueness, validation, transaction, explicit human attestation; Livewire review panel/action; service tests and acceptance docs. No automatic invoice recognition, invoice writes, payment allocation or bulk confirmation. WSL tests and UI26–29 pending. The source schema does not provide complete authoritative cancellation/replacement/payment lifecycle; manual verification is essential.
+
+
+## Checkpoint 11G.2 — Period report, Git Pull/Test pending (2026-10-25)
+
+User confirmed 11G first gate: two-tier tests 285 passed, 4 skipped, 1120 assertions and manual UI PASS; approved next checkpoint. New branch `feat/finance-11g2-period-report-20261025` from the existing 11G feature branch (main ancestor 47596c302). Added read-only SQL DECIMAL period movement service, period tab and filters, contract test, and `CHECKPOINT_11G2_PERIOD_REPORT_GIT_PULL_TEST.md`. This is an operational provisional report, not a certified historical accounting ledger. Assistant did NOT run PHPUnit/UI; await user focused FinanceDebtPeriodReport11G2ContractTest then Finance regression, then manual UI. No main merge or production changes.
+
+
+## Checkpoint 11G.2 — UI pagination polish (2026-10-25), Git Pull/Test pending
+
+User supplied desktop screenshots: period report layout generally acceptable, but default Laravel pagination was English, dark, and cramped. With explicit user approval, replaced **only** 11G.2 period pagination with bounded Vietnamese Finance-style controls (first/previous/numbered/next/last), using named `periodPage` for Livewire navigation. Added horizontal-scroll hint, nowrap tabular monetary columns, compact status badges and focused contract assertions. No changes to 11G reconciliation or debt pagination, no business-service/data changes. Await focused `FinanceDebtPeriodReport11G2ContractTest.php`, Finance module regression, then user's manual UI PASS. Do not claim tests/UI PASS or merge/deploy before gate.
+
+
+## Checkpoint 11G / 11G.2 — Shared report UI polish, Git Pull/Test pending (2026-10-25)
+
+User screenshot showed 11G reconciliation still using default English/dark Laravel pagination and dense heavy table; explicitly approved coordinated UI refactor for both tabs. On existing `feat/finance-11g2-period-report-20261025`, added shared `livewire/partials/debt-report-pagination.blade.php`, used by both 11G (`reconciliationPage`) and 11G.2 (`periodPage`), Vietnamese bounded first/previous/pages/next/last navigation with active/disabled/focus states. Improved 11G KPI, filter surfaces, scrollable table, tabular monetary alignment and status badges; preserved report calculations, permissions, and read-only behavior. 11G service now uses a named paginator and shared filter callbacks reset both report pages. Updated focused 11G/11G.2 contract tests. **Automated tests not executed by assistant; UI NOT VERIFIED**. Next: git pull, run both focused tests, Finance regression, then manual desktop/mobile acceptance. No merge or production deploy.
+
+
+## Checkpoint 11G.2 — Visual parity with 11G (2026-10-25), Git Pull/Test pending
+
+User supplied screenshot of 11G.2 and requested matching the newly improved 11G UI. On `feat/finance-11g2-period-report-20261025`, updated **only** the 11G.2 panel of `Modules/Finance/resources/views/livewire/debt-workspace.blade.php`: matching report heading/read-only context, consistent filter card, KPI surfaces/typography, muted status summary, lighter table borders and row hover, nowrap monetary columns, mobile horizontal-scroll hint, semantic table headers and badges. Existing shared `debt-report-pagination` remains unchanged, named `periodPage` retained. No service, SQL, financial calculation, authorization, database or production changes. Added focused UI contract assertions to `FinanceDebtPeriodReport11G2ContractTest.php`. Assistant has not run tests or UI. Await local focused 11G.2 + 11G contract tests, Finance module regression, and user's manual desktop/mobile UI PASS; no merge/deploy.
+
+
+## Finance Summary UI Refactor — Git Pull/Test pending (2026-10-25)
+
+User approved Finance → Báo cáo → Tổng hợp UI cleanup after screenshot review. Created `feat/finance-summary-ui-refactor-20261025` from existing `feat/finance-11g2-period-report-20261025` (contains 11G/11G.2 work; `main` remains ancestor). Audited `DebtSummary.php`, `debt-summary.blade.php`, `FinanceDebtSummaryUiTest.php`, shared Finance `debt-report-pagination.blade.php`, workflow and Admin UI standard. Refactored only summary filters, KPI surfaces, explanatory scope notice, table density/typography, responsive horizontal scrolling, focusable details link and Vietnamese pagination by reusing existing Finance partial. Summary Livewire now uses named `summaryPage` for paginate/reset, avoiding cross-tab page collision. Added focused read-only `FinanceDebtSummaryUiContractTest.php`. Kept grouping/SQL/DECIMAL arithmetic, finance.view authorization, ledger destination, and no database writes unchanged. No PHP tests or manual UI were executed/verified by assistant. Next: pull branch, focused contract + feature test, Finance regression only after focused PASS, then manual UI PASS on desktop/mobile. No merge/deploy.
+
+
+## Finance shared x-search / white pagination (2026-10-25) — Git Pull/Test pending
+
+User reported dark English default pagination (Showing 1 to 15 of 38 results) and requested registered `<x-search>` for counterparty/tax ID filters, plus white pagination consistently across Finance. Audited `resources/views/components/search.blade.php`: `variant=input` passes Livewire wire:model attributes through to native input. Created feature branch `feat/finance-search-pagination-unify-20261025` from `feat/finance-summary-ui-refactor-20261025`, which itself descends from 11G.2 branch; `main` not changed. Replaced raw search inputs in Finance DebtSummary, DebtLedger, DebtPartners, DebtAging, DebtDashboard, DebtWorkspace (three inputs) and InvoiceDebtExplorer with `<x-search>` preserving debounce/model names. Replaced default `->links()` in DebtLedger, DebtPartners, DebtAging, DebtDashboard with existing Finance white Vietnamese pagination partial; named paginator/reset callbacks ledgerPage, partnersPage, agingPage, dashboardPage, while summaryPage already existed. No DB/business/authorization changes. Added `FinanceSharedSearchPaginationContractTest.php` contract coverage. Pending user local focused test (new contract plus relevant UI feature tests), Finance module regression only after focused PASS, then user manual desktop/mobile UI PASS. Assistant has not run tests or verified UI; do not merge/deploy.
+
+
+## PR #324 — Finance pre-merge regression triage (2026-10-25), checkpoint Git Pull/Test
+
+Scope: Finance-only closeout on existing feature branch; PR #324 remains Draft. GitHub comparison against main 47596c302 shows 390 commits ahead, zero behind, and all 138 changed files confined to Modules/Finance or docs/modules/Finance. No Pharma/Invoices/Request source modifications are part of this PR. No business logic, schema, authorization or UI behavior is changed in this checkpoint.
+
+User-reported focused acceptance: 18 passed (89 assertions), 1 skipped. Skipped FinanceDebtReversalOwnershipRaceTest CP29 is explicitly gated by FINANCE_CP22_TEST_DSN and FINANCE_CP22_ALLOW_ISOLATED_DB; do not call CP29 PASS, do not point it to an existing/development/production database, and do not activate the internal settlement/reversal writer. User previously confirmed Finance UI PASS. User-reported Pharma Unit regression: 254 passed, 1 failed (MedicineCategoryFoundationTest requires a medicine-categories route). Read-only main inspection confirms that the asserted route prefix is absent on main; local route:list also found no matching path. This is a separate pre-existing Pharma issue, not evidence that PR #324 changed Pharma; do not alter Pharma as part of Finance PR. Invoices and Request tests were not located by the limited local file search; do not claim their regression PASS. Full-project suite is NOT APPLICABLE by default to this Finance-scoped PR.
+
+Remaining gate: repeat Finance-focused contract tests after pulling this documentation checkpoint, then Finance module regression (only after focused PASS), review skips and failures, confirm UI PASS remains valid, confirm clean tracked tree and PR review readiness. The MySQL-isolated CP29 evidence remains outstanding and must be explicitly accepted as a limitation or completed safely before merge approval. No merge, deployment, production migration, or production configuration change is authorized by this checkpoint.
