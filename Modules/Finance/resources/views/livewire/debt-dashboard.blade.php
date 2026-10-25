@@ -6,23 +6,23 @@
         </div>
         <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
             <label class="text-sm">Loại công nợ
-                <select wire:model.live="direction" class="mt-1 w-full rounded-lg border-slate-300">
+                <select wire:model.live="direction" class="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm outline-none transition-colors focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
                     <option value="">Tất cả</option><option value="receivable">Phải thu</option><option value="payable">Phải trả</option>
                 </select>
             </label>
             <label class="text-sm">Trạng thái
-                <select wire:model.live="status" class="mt-1 w-full rounded-lg border-slate-300">
+                <select wire:model.live="status" class="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm outline-none transition-colors focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
                     <option value="confirmed">Đã xác nhận</option><option value="draft">Nháp</option><option value="">Tất cả</option>
                 </select>
             </label>
             <label class="text-sm">Đối tác hoặc mã
-                <input type="search" wire:model.live.debounce.400ms="search" maxlength="100" placeholder="Tìm công nợ..." class="mt-1 w-full rounded-lg border-slate-300">
+                <input type="search" wire:model.live.debounce.400ms="search" maxlength="100" placeholder="Tìm công nợ..." class="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm outline-none transition-colors focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
             </label>
             <label class="text-sm">Đến hạn từ
-                <input type="date" wire:model.live="dueFrom" class="mt-1 w-full rounded-lg border-slate-300">
+                <input type="date" wire:model.live="dueFrom" class="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm outline-none transition-colors focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
             </label>
             <label class="text-sm">Đến hạn đến
-                <input type="date" wire:model.live="dueTo" class="mt-1 w-full rounded-lg border-slate-300">
+                <input type="date" wire:model.live="dueTo" class="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm outline-none transition-colors focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
             </label>
         </div>
         @if($errors->any()) <p role="alert" class="mt-3 text-sm text-rose-700">{{ $errors->first() }}</p> @endif
