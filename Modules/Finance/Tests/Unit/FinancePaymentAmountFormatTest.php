@@ -24,6 +24,15 @@ final class FinancePaymentAmountFormatTest extends TestCase
         self::assertSame('1.500,5', $format->invoke($component, '1500.50'));
     }
 
+    public function test_amount_is_formatted_after_field_update(): void
+    {
+        $component = new DebtWorkspace;
+        $component->paymentAmount = '40824000';
+        $component->updatedPaymentAmount();
+        self::assertSame('40.824.000', $component->paymentAmount);
+        self::assertFalse($component->paymentPreviewed);
+    }
+
     public function test_invalid_grouping_is_rejected(): void
     {
         $component = new DebtWorkspace;
