@@ -13,6 +13,7 @@ final class FinancePaymentSourcePreflightContractTest extends TestCase
 
         self::assertStringContainsString("where('id', \$link['source_id'])", $review);
         self::assertStringContainsString("\$source->currency !== (string) \$debt->currency", $review);
+        self::assertStringContainsString("\$source->original_amount !== (string) \$debt->original_amount", $review);
         self::assertStringContainsString("\$source->direction !== (string) \$debt->direction", $review);
         self::assertStringContainsString("\$source->source_document_id !== (string) \$debt->source_document_id", $review);
         self::assertStringContainsString("'eligible' => false", $review);
