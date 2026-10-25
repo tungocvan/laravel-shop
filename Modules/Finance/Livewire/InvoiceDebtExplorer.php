@@ -144,6 +144,13 @@ final class InvoiceDebtExplorer extends Component
         $this->bulkReviewed = false;
     }
 
+    public function closeBulkPreview(): void
+    {
+        $this->authorizeRecognize();
+        $this->bulkPreview = [];
+        $this->bulkReviewed = false;
+    }
+
     public function prepareBulk(InvoiceDebtRecognitionService $service): void
     {
         $this->authorizeManage();
