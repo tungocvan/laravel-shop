@@ -33,6 +33,15 @@ final class FinancePaymentAmountFormatTest extends TestCase
         self::assertFalse($component->paymentPreviewed);
     }
 
+    public function test_payment_field_sanitizes_input_and_formats_thousands_in_browser(): void
+    {
+        $view = file_get_contents(dirname(__DIR__, 4).'/Modules/Finance/resources/views/livewire/debt-workspace.blade.php');
+        self::assertStringContainsString('inputmode="numeric" wire:model.blur="paymentAmount"', $view);
+        self::assertStringContainsString("replace(/[^0-9]/g, '')", $view);
+        self::assertStringContainsString('slice(0, 15)', $view);
+        self::assertStringContainsString('replace(/\\B(?=(\\d{3})+(?!\\d))/g', $view);
+    }
+
     public function test_invalid_grouping_is_rejected(): void
     {
         $component = new DebtWorkspace;
