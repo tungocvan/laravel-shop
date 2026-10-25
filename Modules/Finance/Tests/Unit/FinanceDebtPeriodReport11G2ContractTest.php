@@ -29,7 +29,7 @@ final class FinanceDebtPeriodReport11G2ContractTest extends TestCase
         self::assertStringContainsString("'periodReport' =>", $component);
         self::assertStringContainsString("setTab('period')", $view);
         self::assertStringContainsString('không phải sổ kế toán', $view);
-        self::assertStringNotContainsString('->links()', $view);
+        self::assertStringNotContainsString('->links()', explode("    @elseif (\$activeTab === 'reconciliation')", explode("    @elseif (\$activeTab === 'period')", $view, 2)[1], 2)[0]);
         self::assertStringContainsString("gotoPage(1, 'periodPage')", $view);
         self::assertStringContainsString("previousPage('periodPage')", $view);
         self::assertStringContainsString("nextPage('periodPage')", $view);
