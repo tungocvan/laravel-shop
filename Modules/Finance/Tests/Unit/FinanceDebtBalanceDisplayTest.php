@@ -25,7 +25,10 @@ final class FinanceDebtBalanceDisplayTest extends TestCase
         self::assertStringContainsString("'adjustmentTotal' =>", $component);
         self::assertStringContainsString("'currentBalance' =>", $component);
         self::assertStringContainsString('Số dư sau điều chỉnh', $view);
-        self::assertStringContainsString('chưa trừ thanh toán hoặc đối trừ', $view);
+        self::assertStringContainsString('Số dư sau điều chỉnh', $view);
+        self::assertStringContainsString("\$selectedPaymentEvidence['verified_paid']", $view);
+        self::assertStringContainsString("\$selectedPaymentEvidence['verified_outstanding']", $view);
+        self::assertStringContainsString('Lịch sử phiếu thanh toán', $view);
         self::assertStringContainsString('formatVnd((string) $event->signed_amount)', $view);
     }
 }
