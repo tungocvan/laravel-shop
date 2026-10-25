@@ -28,6 +28,14 @@ final class InvoiceDebtExplorer extends Component
     public string $dueOn = '';
     public bool $reviewed = false;
 
+    public array $bulkSelected = [];
+    public array $bulkPreview = [];
+    public array $bulkResults = [];
+    public bool $bulkReviewed = false;
+    public string $bulkRecognizedOn = '';
+    public string $bulkDueOn = '';
+
+
 
     public function mount(): void
     {
@@ -38,6 +46,7 @@ final class InvoiceDebtExplorer extends Component
         $this->dateTo = $today->toDateString();
         $this->appliedFrom = $this->dateFrom;
         $this->appliedTo = $this->dateTo;
+        $this->bulkRecognizedOn = $today->toDateString();
     }
 
     public function updatedYear(): void { $this->syncMonthDates(); }
