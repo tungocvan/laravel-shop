@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\DB;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Schema;
 use Livewire\Component;
+use Modules\Finance\Services\InvoiceDebtRecognitionService;
 use Livewire\WithPagination;
 
 final class InvoiceDebtExplorer extends Component
@@ -20,6 +21,13 @@ final class InvoiceDebtExplorer extends Component
     public string $dateTo = '';
     public string $appliedFrom = '';
     public string $appliedTo = '';
+    public ?int $reviewInvoiceId = null;
+    public array $reviewIssues = [];
+    public array $reviewDetails = [];
+    public string $recognizedOn = '';
+    public string $dueOn = '';
+    public bool $reviewed = false;
+
 
     public function mount(): void
     {
@@ -60,6 +68,54 @@ final class InvoiceDebtExplorer extends Component
         $this->resetPage('invoicePage');
     }
 
+
+    public function openReview(int $invoiceId, InvoiceDebtRecognitionService $service): void
+    {
+        $this->authorizeManage();
+        $preview = $service->preview($invoiceId);
+        $invoice = $preview['invoice'];
+        $this->reviewInvoiceId = $invoiceId;
+        $this->reviewIssues = $preview['issues'];
+        $this->reviewDetails = [
+            'reference' => (string) $invoice->symbol.'/'.(string) $invoice->invoice_number,
+            'name' => (string) $invoice->name,
+            'tax_code' => (string) $invoice->tax_code,
+            'amount' => (string) $invoice->total_amount,
+            'direction' => $invoice->invoice_type === 'sold' ? 'Phải thu' : 'Phải trả',
+        ];
+        $this->recognizedOn = now()->toDateString();
+        $this->dueOn = '';
+        $this->reviewed = false;
+        $this->resetErrorBag();
+    }
+
+    public function closeReview(): void
+    {
+        $this->reset('reviewInvoiceId', 'reviewIssues', 'reviewDetails', 'recognizedOn', 'dueOn', 'reviewed');
+        $this->resetErrorBag();
+    }
+
+    public function confirmReview(InvoiceDebtRecognitionService $service): void
+    {
+        $actorId = $this->authorizeManage();
+        if ($this->reviewInvoiceId === null) {
+            abort(404);
+        }
+        $debtId = $service->confirm($this->reviewInvoiceId, $actorId, $this->recognizedOn,
+            $this->dueOn !== '' ? $this->dueOn : null, $this->reviewed);
+        $this->closeReview();
+        $this->resetPage('invoicePage');
+        session()->flash('invoice_debt_notice', 'Đã xác nhận công nợ #'.$debtId.'. Chưa ghi nhận thanh toán.');
+    }
+
+    private function authorizeManage(): int
+    {
+        abort_unless(auth('admin')->user()?->can('finance.view')
+            && auth('admin')->user()?->can('invoices-list')
+            && auth('admin')->user()?->can('finance.debt.manage'), 403);
+        abort_unless(auth('admin')->id() !== null, 403);
+        return (int) auth('admin')->id();
+    }
 
     public function updatedSearch(): void { $this->resetPage(); }
     public function updatedInvoiceType(): void { $this->resetPage(); }
@@ -113,6 +169,7 @@ final class InvoiceDebtExplorer extends Component
         return view('Finance::livewire.invoice-debt-explorer', [
             'available' => $available,
             'invoices' => $invoices,
+            'canRecognize' => (bool) auth('admin')->user()?->can('finance.debt.manage'),
         ]);
     }
 }
