@@ -3,6 +3,7 @@
 namespace Modules\Finance\Livewire;
 
 use Illuminate\Support\Facades\DB;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Schema;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -13,6 +14,52 @@ final class InvoiceDebtExplorer extends Component
 
     public string $search = '';
     public string $invoiceType = '';
+    public string $year = '';
+    public string $month = '';
+    public string $dateFrom = '';
+    public string $dateTo = '';
+    public string $appliedFrom = '';
+    public string $appliedTo = '';
+
+    public function mount(): void
+    {
+        $today = CarbonImmutable::today();
+        $this->year = $today->format('Y');
+        $this->month = $today->format('m');
+        $this->dateFrom = $today->startOfMonth()->toDateString();
+        $this->dateTo = $today->toDateString();
+        $this->appliedFrom = $this->dateFrom;
+        $this->appliedTo = $this->dateTo;
+    }
+
+    public function updatedYear(): void { $this->syncMonthDates(); }
+    public function updatedMonth(): void { $this->syncMonthDates(); }
+
+    private function syncMonthDates(): void
+    {
+        if (! preg_match('/^\d{4}$/', $this->year) || ! preg_match('/^(0[1-9]|1[0-2])$/', $this->month)) {
+            return;
+        }
+        $first = CarbonImmutable::createFromFormat('!Y-m-d', $this->year.'-'.$this->month.'-01');
+        if (! $first) {
+            return;
+        }
+        $today = CarbonImmutable::today();
+        $this->dateFrom = $first->toDateString();
+        $this->dateTo = $first->isSameMonth($today) ? $today->toDateString() : $first->endOfMonth()->toDateString();
+    }
+
+    public function applyDates(): void
+    {
+        $dates = validator(['from' => $this->dateFrom, 'to' => $this->dateTo], [
+            'from' => 'required|date_format:Y-m-d',
+            'to' => 'required|date_format:Y-m-d|after_or_equal:from',
+        ])->validate();
+        $this->appliedFrom = $dates['from'];
+        $this->appliedTo = $dates['to'];
+        $this->resetPage('invoicePage');
+    }
+
 
     public function updatedSearch(): void { $this->resetPage(); }
     public function updatedInvoiceType(): void { $this->resetPage(); }
@@ -20,7 +67,8 @@ final class InvoiceDebtExplorer extends Component
     public function resetFilters(): void
     {
         $this->reset('search', 'invoiceType');
-        $this->resetPage();
+        $this->mount();
+        $this->resetPage('invoicePage');
     }
 
     public function render()
@@ -47,6 +95,8 @@ final class InvoiceDebtExplorer extends Component
                 ->selectRaw("(SELECT COUNT(*) FROM finance_debt_obligations d
                     WHERE d.source_module = 'Invoices' AND d.source_type = 'invoice'
                     AND d.source_document_id = i.id) AS linked_debt_count")
+                ->whereDate('i.issued_date', '>=', $this->appliedFrom)
+                ->whereDate('i.issued_date', '<=', $this->appliedTo)
                 ->when($filters['invoiceType'] !== '', fn ($q) => $q->where('i.invoice_type', $filters['invoiceType']))
                 ->when(trim($filters['search']) !== '', function ($q) use ($filters): void {
                     $term = '%'.addcslashes(trim($filters['search']), '%_\\').'%';
