@@ -8,6 +8,7 @@ use Livewire\WithPagination;
 use Livewire\Attributes\On;
 use Modules\Finance\Services\FinanceDebtService;
 use Modules\Finance\Services\FinanceDebtBalanceReader;
+use Modules\Finance\Services\FinanceDebtPaymentReview;
 use Modules\Finance\Services\PartnerDebtDraftService;
 use Modules\Partner\Models\Partner;
 
@@ -28,6 +29,7 @@ final class DebtWorkspace extends Component
     public string $amount = '';
     public string $dueOn = '';
     public ?int $selectedDebtId = null;
+    public ?int $paymentReviewDebtId = null;
     public string $adjustment = '';
     public string $adjustmentReason = '';
     public string $adjustmentDate = '';
@@ -147,6 +149,19 @@ final class DebtWorkspace extends Component
         $this->reset('adjustment', 'adjustmentReason', 'adjustmentDate');
     }
 
+    public function openPaymentReview(int $id): void
+    {
+        $this->authorizeView();
+        abort_unless(DB::table('finance_debt_obligations')->where('id', $id)->where('status', 'confirmed')->exists(), 404);
+        $this->paymentReviewDebtId = $id;
+    }
+
+    public function closePaymentReview(): void
+    {
+        $this->authorizeView();
+        $this->paymentReviewDebtId = null;
+    }
+
     public function closeDebt(): void
     {
         $this->authorizeView();
@@ -216,7 +231,11 @@ final class DebtWorkspace extends Component
         $adjustmentTotal = $principal['adjustment_total'] ?? '0';
         $currentBalance = $principal['adjusted_principal'] ?? '0';
 
+        $paymentReview = $this->paymentReviewDebtId === null ? null
+            : app(FinanceDebtPaymentReview::class)->inspect($this->paymentReviewDebtId);
+
         return view('Finance::livewire.debt-workspace', [
+            'paymentReview' => $paymentReview,
             'debts' => $query->paginate(10),
             'selected' => $selected,
             'events' => $events,
