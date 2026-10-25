@@ -25,7 +25,8 @@ final class InvoiceDebtExplorer extends Component
 
     public function render()
     {
-        abort_unless(auth('admin')->user()?->can('finance.view'), 403);
+        abort_unless(auth('admin')->user()?->can('finance.view')
+            && auth('admin')->user()?->can('invoices-list'), 403);
 
         $filters = validator([
             'search' => $this->search,
