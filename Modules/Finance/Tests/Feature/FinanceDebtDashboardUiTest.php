@@ -29,6 +29,7 @@ final class FinanceDebtDashboardUiTest extends TestCase
         $user = \Mockery::mock(User::class)->makePartial();
         $user->id = 12345;
         $user->shouldReceive('can')->with('finance.view')->andReturn($allowed);
+        $user->shouldReceive('can')->with('finance.debt.manage')->andReturn(false);
         Auth::guard('admin')->setUser($user);
     }
 
