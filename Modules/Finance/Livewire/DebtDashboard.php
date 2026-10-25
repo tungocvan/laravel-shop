@@ -33,17 +33,17 @@ final class DebtDashboard extends Component
         }
     }
 
-    public function updatedDirection(): void { $this->resetPage(); }
-    public function updatedStatus(): void { $this->resetPage(); }
-    public function updatedSearch(): void { $this->resetPage(); }
-    public function updatedDueFrom(): void { $this->resetPage(); }
-    public function updatedDueTo(): void { $this->resetPage(); }
+    public function updatedDirection(): void { $this->resetPage('dashboardPage'); }
+    public function updatedStatus(): void { $this->resetPage('dashboardPage'); }
+    public function updatedSearch(): void { $this->resetPage('dashboardPage'); }
+    public function updatedDueFrom(): void { $this->resetPage('dashboardPage'); }
+    public function updatedDueTo(): void { $this->resetPage('dashboardPage'); }
 
     public function resetFilters(): void
     {
         $this->reset('direction', 'search', 'dueFrom', 'dueTo');
         $this->status = 'confirmed';
-        $this->resetPage();
+        $this->resetPage('dashboardPage');
     }
 
     public function render()
@@ -109,7 +109,7 @@ final class DebtDashboard extends Component
 
         return view('Finance::livewire.debt-dashboard', [
             'debts' => $query->orderByRaw('CASE WHEN d.due_on IS NULL THEN 1 ELSE 0 END')
-                ->orderBy('d.due_on')->orderByDesc('d.id')->paginate(15),
+                ->orderBy('d.due_on')->orderByDesc('d.id')->paginate(15, ['*'], 'dashboardPage'),
             'totals' => $totals,
             'today' => now()->toDateString(),
             'invoiceInbox' => $invoiceInbox,
