@@ -88,6 +88,9 @@ final class FinanceDebtDashboardUiTest extends TestCase
         Livewire::withQueryParams(['debt' => (string) $id])
             ->test(DebtWorkspace::class)
             ->assertOk()
-            ->assertSet('selectedDebtId', $id);
+            ->assertSet('selectedDebtId', $id)
+            ->assertSee('aria-modal="true"', false)
+            ->call('closeDebt')
+            ->assertSet('selectedDebtId', null);
     }
 }
