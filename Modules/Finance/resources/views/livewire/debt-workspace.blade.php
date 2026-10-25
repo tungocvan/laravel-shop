@@ -50,61 +50,51 @@
                         @empty <tr><td colspan="8" class="p-4 text-slate-500">Không có dữ liệu trong kỳ.</td></tr> @endforelse</tbody>
                     </table>
                 </div>
-                @if ($periodReport['rows']->hasPages())
-                    @php
-                        $periodPage = $periodReport['rows']->currentPage();
-                        $periodLast = $periodReport['rows']->lastPage();
-                        $periodStart = max(1, min($periodPage - 2, max(1, $periodLast - 4)));
-                        $periodEnd = min($periodLast, $periodStart + 4);
-                    @endphp
-                    <nav class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm" aria-label="Phân trang báo cáo công nợ theo kỳ">
-                        <p class="text-slate-600">Trang {{ $periodPage }} / {{ $periodLast }} · {{ number_format($periodReport['rows']->total(), 0, ',', '.') }} công nợ</p>
-                        <div class="flex flex-wrap items-center gap-1.5">
-                            <button type="button" wire:click="gotoPage(1, 'periodPage')" @disabled($periodPage === 1) class="min-h-10 rounded-lg border border-slate-300 bg-white px-3 font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">Đầu</button>
-                            <button type="button" wire:click="previousPage('periodPage')" @disabled($periodPage === 1) aria-label="Trang trước" class="min-h-10 min-w-10 rounded-lg border border-slate-300 bg-white px-3 text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">‹</button>
-                            @if ($periodStart > 1)
-                                <button type="button" wire:click="gotoPage(1, 'periodPage')" class="min-h-10 min-w-10 rounded-lg border border-slate-300 bg-white px-3 text-slate-700 hover:bg-slate-50">1</button>
-                                @if ($periodStart > 2) <span class="px-1 text-slate-500" aria-hidden="true">…</span> @endif
-                            @endif
-                            @for ($pageNumber = $periodStart; $pageNumber <= $periodEnd; $pageNumber++)
-                                <button type="button" wire:click="gotoPage({{ $pageNumber }}, 'periodPage')" @if ($pageNumber === $periodPage) aria-current="page" @endif class="min-h-10 min-w-10 rounded-lg border px-3 font-semibold {{ $pageNumber === $periodPage ? 'border-indigo-700 bg-indigo-700 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50' }}">{{ $pageNumber }}</button>
-                            @endfor
-                            @if ($periodEnd < $periodLast)
-                                @if ($periodEnd < $periodLast - 1) <span class="px-1 text-slate-500" aria-hidden="true">…</span> @endif
-                                <button type="button" wire:click="gotoPage({{ $periodLast }}, 'periodPage')" class="min-h-10 min-w-10 rounded-lg border border-slate-300 bg-white px-3 text-slate-700 hover:bg-slate-50">{{ $periodLast }}</button>
-                            @endif
-                            <button type="button" wire:click="nextPage('periodPage')" @disabled($periodPage === $periodLast) aria-label="Trang sau" class="min-h-10 min-w-10 rounded-lg border border-slate-300 bg-white px-3 text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">›</button>
-                            <button type="button" wire:click="gotoPage({{ $periodLast }}, 'periodPage')" @disabled($periodPage === $periodLast) class="min-h-10 rounded-lg border border-slate-300 bg-white px-3 font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">Cuối</button>
-                        </div>
-                    </nav>
-                @endif
+                @include('Finance::livewire.partials.debt-report-pagination', ['paginator' => $periodReport['rows'], 'pageName' => 'periodPage', 'paginationLabel' => 'Phân trang báo cáo công nợ theo kỳ'])
             @endif
         </section>
     @elseif ($activeTab === 'reconciliation')
-        <section role="tabpanel" aria-label="Đối soát công nợ 11G" class="space-y-4">
-            <h3 class="text-lg font-semibold">Đối soát công nợ và phiếu thanh toán</h3>
-            <p class="text-sm text-slate-600">Ảnh chụp số dư lũy kế hiện tại của công nợ đã xác nhận. Chỉ số dư của dòng đối soát khớp được tính vào tổng đã xác minh. Đây không phải báo cáo số dư đầu kỳ/cuối kỳ hoặc báo cáo kế toán theo kỳ.</p>
-            <div class="grid gap-3 sm:grid-cols-2">
-                <label class="text-sm">Tìm công nợ / đối tác<input type="search" wire:model.live.debounce.350ms="reconcileSearch" class="mt-1 w-full rounded-lg border border-slate-300 p-2"></label>
-                <label class="text-sm">Loại công nợ<select wire:model.live="reconcileDirection" class="mt-1 w-full rounded-lg border border-slate-300 p-2"><option value="">Tất cả</option><option value="receivable">Phải thu</option><option value="payable">Phải trả</option></select></label>
+        <section role="tabpanel" aria-label="Đối soát công nợ 11G" class="space-y-5">
+            <div class="space-y-1"><h3 class="text-lg font-semibold text-slate-900">Đối soát công nợ và phiếu thanh toán</h3><p class="text-xs font-medium text-indigo-700">Đối soát chứng từ · Chỉ đọc</p></div>
+            <p class="rounded-xl border border-slate-200 bg-white p-3 text-sm leading-relaxed text-slate-600">Ảnh chụp số dư lũy kế hiện tại của công nợ đã xác nhận. Chỉ số dư của dòng đối soát khớp được tính vào tổng đã xác minh. Đây không phải báo cáo số dư đầu kỳ/cuối kỳ hoặc báo cáo kế toán theo kỳ.</p>
+            <div class="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-2">
+                <label class="block text-sm font-medium text-slate-700">Tìm công nợ / đối tác<input aria-label="Tìm công nợ đối soát" type="search" wire:model.live.debounce.350ms="reconcileSearch" class="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm focus:border-indigo-500 focus:ring-indigo-500"></label>
+                <label class="block text-sm font-medium text-slate-700">Loại công nợ<select wire:model.live="reconcileDirection" class="mt-1 w-full rounded-lg border border-slate-300 p-2"><option value="">Tất cả</option><option value="receivable">Phải thu</option><option value="payable">Phải trả</option></select></label>
             </div>
             @if (!$reconciliation['ready'])
                 <p class="rounded-lg border border-amber-300 p-3 text-sm text-amber-800">Chưa thể đối soát: thiếu bảng {{ $reconciliation['missing'] }}.</p>
             @else
                 <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <div class="rounded-lg border p-3"><p class="text-xs text-slate-500">Gốc phải thu sau điều chỉnh</p><strong>{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $reconciliation['totals']->receivable_principal) }}</strong></div>
-                    <div class="rounded-lg border p-3"><p class="text-xs text-slate-500">Gốc phải trả sau điều chỉnh</p><strong>{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $reconciliation['totals']->payable_principal) }}</strong></div>
-                    <div class="rounded-lg border p-3"><p class="text-xs text-slate-500">Còn phải thu đã đối soát</p><strong>{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $reconciliation['totals']->receivable_outstanding_verified) }}</strong></div>
-                    <div class="rounded-lg border p-3"><p class="text-xs text-slate-500">Còn phải trả đã đối soát</p><strong>{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $reconciliation['totals']->payable_outstanding_verified) }}</strong></div>
+                    <div class="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"><p class="text-xs text-slate-500">Gốc phải thu sau điều chỉnh</p><strong class="mt-1 block break-words text-base font-semibold tabular-nums text-slate-900">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $reconciliation['totals']->receivable_principal) }}</strong></div>
+                    <div class="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"><p class="text-xs text-slate-500">Gốc phải trả sau điều chỉnh</p><strong class="mt-1 block break-words text-base font-semibold tabular-nums text-slate-900">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $reconciliation['totals']->payable_principal) }}</strong></div>
+                    <div class="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"><p class="text-xs text-slate-500">Còn phải thu đã đối soát</p><strong class="mt-1 block break-words text-base font-semibold tabular-nums text-slate-900">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $reconciliation['totals']->receivable_outstanding_verified) }}</strong></div>
+                    <div class="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"><p class="text-xs text-slate-500">Còn phải trả đã đối soát</p><strong class="mt-1 block break-words text-base font-semibold tabular-nums text-slate-900">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $reconciliation['totals']->payable_outstanding_verified) }}</strong></div>
                 </div>
-                <p class="text-sm">Thanh toán ròng đã đối soát: <strong>{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $reconciliation['totals']->verified_net_payments) }}</strong> · Dòng cần kiểm tra: <strong>{{ $reconciliation['totals']->review_count }}</strong></p>
-                <div class="overflow-x-auto rounded-lg border"><table class="w-full min-w-[850px] text-left text-sm">
-                    <thead class="bg-slate-50"><tr><th class="p-2">Chứng từ</th><th class="p-2">Đối tác</th><th class="p-2">Loại</th><th class="p-2 text-right">Gốc điều chỉnh</th><th class="p-2 text-right">Thanh toán ròng</th><th class="p-2 text-right">Còn nợ (dự kiến)</th><th class="p-2">Đối soát</th></tr></thead>
-                    <tbody>@forelse ($reconciliation['rows'] as $item)
-                        <tr class="border-t"><td class="p-2">{{ $item->reference_number }}</td><td class="p-2">{{ $item->counterparty_name }}</td><td class="p-2">{{ $item->direction === 'receivable' ? 'Phải thu' : 'Phải trả' }}</td><td class="p-2 text-right">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $item->principal) }}</td><td class="p-2 text-right">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $item->net_mapped) }}</td><td class="p-2 text-right">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $item->outstanding) }}</td><td class="p-2">{{ $item->reconciliation_status === 'matched' ? 'Khớp' : 'Cần đối soát' }}</td></tr>
-                    @empty <tr><td colspan="7" class="p-3 text-slate-500">Không có công nợ phù hợp.</td></tr> @endforelse</tbody>
-                </table></div>
-                {{ $reconciliation['rows']->links() }}
+                <p class="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700">Thanh toán ròng đã đối soát: <strong class="mt-1 block break-words text-base font-semibold tabular-nums text-slate-900">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $reconciliation['totals']->verified_net_payments) }}</strong> · Dòng cần kiểm tra: <strong>{{ $reconciliation['totals']->review_count }}</strong></p>
+                <div class="max-w-full overflow-x-auto overscroll-x-contain rounded-xl border border-slate-200 bg-white" role="region" aria-label="Bảng đối soát công nợ" tabindex="0">
+                    <p class="px-4 pt-3 text-xs text-slate-500 sm:hidden">Vuốt ngang để xem các cột còn lại.</p>
+                    <table class="w-full min-w-[1050px] text-left text-sm">
+                        <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                            <tr><th scope="col" class="px-4 py-3">Chứng từ</th><th scope="col" class="px-4 py-3">Đối tác</th><th scope="col" class="px-4 py-3">Loại</th><th scope="col" class="whitespace-nowrap px-4 py-3 text-right">Gốc điều chỉnh</th><th scope="col" class="whitespace-nowrap px-4 py-3 text-right">Thanh toán ròng</th><th scope="col" class="whitespace-nowrap px-4 py-3 text-right">Còn nợ (dự kiến)</th><th scope="col" class="px-4 py-3">Đối soát</th></tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @forelse ($reconciliation['rows'] as $item)
+                                <tr class="transition hover:bg-slate-50/80">
+                                    <td class="whitespace-nowrap px-4 py-3 font-medium text-slate-900">{{ $item->reference_number }}</td>
+                                    <td class="min-w-[220px] px-4 py-3 text-slate-700">{{ $item->counterparty_name }}</td>
+                                    <td class="whitespace-nowrap px-4 py-3 text-slate-600">{{ $item->direction === 'receivable' ? 'Phải thu' : 'Phải trả' }}</td>
+                                    <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $item->principal) }}</td>
+                                    <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $item->net_mapped) }}</td>
+                                    <td class="whitespace-nowrap px-4 py-3 text-right font-medium tabular-nums">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $item->outstanding) }}</td>
+                                    <td class="px-4 py-3"><span class="inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold {{ $item->reconciliation_status === 'matched' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-amber-50 text-amber-800 ring-1 ring-amber-200' }}">{{ $item->reconciliation_status === 'matched' ? 'Khớp' : 'Cần đối soát' }}</span></td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">Không có công nợ phù hợp.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+                @include('Finance::livewire.partials.debt-report-pagination', ['paginator' => $reconciliation['rows'], 'pageName' => 'reconciliationPage', 'paginationLabel' => 'Phân trang đối soát công nợ'])
             @endif
         </section>
     @else
