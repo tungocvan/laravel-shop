@@ -185,8 +185,8 @@ final class DebtWorkspace extends Component
             ]);
         }
 
-        // Grouped Vietnamese VND input is integer-only.
-        return str_replace('.', '', $amount);
+        // Normalize Vietnamese grouping and optional decimal comma.
+        return str_replace(',', '.', str_replace('.', '', $amount));
     }
 
     public function updatedPaymentAmount(): void
