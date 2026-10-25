@@ -74,6 +74,7 @@
             </div>
         @endif
         @if($bulkPreview !== [])
+            @php($readyCount = count(array_filter($bulkPreview, fn ($row) => $row['issues'] === [])))
             <section class="space-y-4 rounded-xl border border-indigo-200 bg-white p-4 shadow-sm" aria-label="Xem trước xác nhận hàng loạt">
                 <div class="flex flex-wrap items-start justify-between gap-2">
                     <div><h3 class="text-base font-semibold text-slate-900">Xem trước ghi nhận công nợ</h3><p class="text-xs text-slate-500">{{ count($bulkPreview) }} hóa đơn · {{ $readyCount }} đạt kiểm tra kỹ thuật</p></div>
