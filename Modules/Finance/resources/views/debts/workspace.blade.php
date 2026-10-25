@@ -35,7 +35,7 @@
                                    @if ($section === $key) aria-current="page" @endif
                                    class="block rounded-lg px-3 py-2 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500 {{ $section === $key ? 'bg-orange-100 text-orange-900' : 'text-slate-700 hover:bg-slate-100' }}">
                                     {{ $item[1] }}
-                                    @if(!in_array($key, ['documents', 'dashboard', 'partners', 'ledger', 'summary'], true))
+                                    @if(!in_array($key, ['documents', 'dashboard', 'partners', 'ledger', 'summary', 'aging'], true))
                                         <span class="ml-1 text-xs font-normal text-amber-700">(Đang xây dựng)</span>
                                     @endif
                                 </a>
@@ -62,6 +62,8 @@
                 <livewire:finance.debt-ledger />
             @elseif ($section === 'summary')
                 <livewire:finance.debt-summary />
+            @elseif ($section === 'aging')
+                <livewire:finance.debt-aging />
             @elseif ($section === 'documents')
                 <livewire:finance.debt-workspace />
             @else
