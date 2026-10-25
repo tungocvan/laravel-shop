@@ -12,6 +12,8 @@ use Livewire\Livewire;
 use App\Models\User;
 use Modules\Finance\Livewire\DebtWorkspace;
 use Modules\Finance\Services\FinanceDebtPaymentPostingService;
+use Modules\Finance\Services\FinanceDebtPaymentReversalService;
+use Modules\Finance\Services\VoucherPostingService;
 use Modules\Finance\Services\FinanceDebtPaymentEvidenceReader;
 use Tests\TestCase;
 
@@ -121,6 +123,60 @@ final class FinanceDebtPaymentPosting11ETest extends TestCase
         self::assertSame(1, DB::table('finance_ledger_entries as l')
             ->join('finance_debt_settlement_mappings as m', 'm.voucher_id', '=', 'l.voucher_id')
             ->where('m.obligation_id', $debt)->count());
+    }
+
+    public function test_reversal_restores_balance_and_posts_opposite_ledger_entry(): void
+    {
+        [$debt, $account] = $this->seedDebt();
+        $posting = app(FinanceDebtPaymentPostingService::class);
+        $first = $posting->post($debt, $account, '20000000.00', '2026-10-25', '11F-REV-A', 123);
+        $second = $posting->post($debt, $account, '20824000.00', '2026-10-25', '11F-REV-B', 123);
+        $result = app(FinanceDebtPaymentReversalService::class)->reverse(
+            $debt, $first['voucher_id'], 'Khách hàng chuyển khoản nhầm', 123
+        );
+        self::assertSame('20000000.00', $result['remaining']);
+        self::assertSame('reversed', DB::table('finance_vouchers')->where('id', $first['voucher_id'])->value('status'));
+        self::assertSame(2, DB::table('finance_ledger_entries')->where('voucher_id', $first['voucher_id'])->count());
+        self::assertSame(1, DB::table('finance_debt_settlement_mappings')
+            ->where('voucher_id', $first['voucher_id'])->where('operation', 'reverse')->count());
+        self::assertSame('Thanh toán một phần', app(FinanceDebtPaymentEvidenceReader::class)->forObligation($debt)['payment_status']);
+        $replacement = $posting->post($debt, $account, '20000000.00', '2026-10-25', '11F-REV-C', 123);
+        self::assertSame('paid', $replacement['status']);
+        self::assertSame('0.00', $replacement['remaining']);
+        self::assertSame('posted', DB::table('finance_vouchers')->where('id', $second['voucher_id'])->value('status'));
+    }
+
+    public function test_reversal_cannot_be_repeated_and_requires_reason(): void
+    {
+        [$debt, $account] = $this->seedDebt();
+        $posted = app(FinanceDebtPaymentPostingService::class)->post(
+            $debt, $account, '1000000.00', '2026-10-25', '11F-DUP', 123
+        );
+        $reversal = app(FinanceDebtPaymentReversalService::class);
+        try {
+            $reversal->reverse($debt, $posted['voucher_id'], 'short', 123);
+            self::fail('Short reason must fail.');
+        } catch (ValidationException $expected) {
+            self::assertSame('posted', DB::table('finance_vouchers')->where('id', $posted['voucher_id'])->value('status'));
+        }
+        $reversal->reverse($debt, $posted['voucher_id'], 'Sai thông tin người nộp tiền', 123);
+        try {
+            $reversal->reverse($debt, $posted['voucher_id'], 'Thử hoàn tác phiếu lần thứ hai', 123);
+            self::fail('Second reversal must fail.');
+        } catch (ValidationException $expected) {
+            self::assertSame(1, DB::table('finance_ledger_entries')->where('voucher_id', $posted['voucher_id'])
+                ->where('entry_type', 'reversal')->count());
+        }
+    }
+
+    public function test_treasury_reversal_is_blocked_for_debt_owned_vouchers(): void
+    {
+        [$debt, $account] = $this->seedDebt();
+        $posted = app(FinanceDebtPaymentPostingService::class)->post(
+            $debt, $account, '1000000.00', '2026-10-25', '11F-GATE', 123
+        );
+        $this->expectException(ValidationException::class);
+        app(VoucherPostingService::class)->reverse($posted['voucher_id'], 123);
     }
 
     public function test_duplicate_reference_is_rejected_without_another_voucher(): void
