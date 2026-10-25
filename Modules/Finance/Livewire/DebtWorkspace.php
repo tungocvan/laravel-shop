@@ -22,6 +22,7 @@ final class DebtWorkspace extends Component
     public string $search = '';
     public string $direction = '';
     public string $status = '';
+    public string $paymentStatus = '';
     public bool $creating = false;
     public string $reference = '';
     public string $draftDirection = 'receivable';
@@ -61,6 +62,7 @@ final class DebtWorkspace extends Component
     public function updatedSearch(): void { $this->resetPage(); }
     public function updatedDirection(): void { $this->resetPage(); }
     public function updatedStatus(): void { $this->resetPage(); }
+    public function updatedPaymentStatus(): void { $this->resetPage(); }
 
     private function authorizeView(): void
     {
@@ -332,6 +334,26 @@ final class DebtWorkspace extends Component
             ->selectRaw('(finance_debt_obligations.original_amount + (SELECT COALESCE(SUM(signed_amount), 0) FROM finance_debt_events WHERE obligation_id = finance_debt_obligations.id)) AS adjusted_balance');
         if (\Illuminate\Support\Facades\Schema::hasTable('finance_debt_settlement_mappings') && \Illuminate\Support\Facades\Schema::hasTable('finance_debt_allocation_ownerships')) {
             $query->selectRaw("(SELECT COALESCE(SUM(m.amount), 0) FROM finance_debt_settlement_mappings m JOIN finance_debt_allocation_ownerships o ON o.mapping_id = m.id JOIN finance_vouchers v ON v.id = m.voucher_id WHERE m.obligation_id = finance_debt_obligations.id AND m.operation = 'post' AND v.status = 'posted') AS paid_amount");
+        }
+        if (in_array($this->paymentStatus, ['paid', 'partial', 'unpaid'], true)) {
+            if (\Illuminate\Support\Facades\Schema::hasTable('finance_debt_settlement_mappings')
+                && \Illuminate\Support\Facades\Schema::hasTable('finance_debt_allocation_ownerships')) {
+                // Filter on the same owned, posted voucher projection as the list.
+                // Keep this in SQL so pagination totals are accurate.
+                $paidSql = "(SELECT COALESCE(SUM(m.amount), 0) FROM finance_debt_settlement_mappings m JOIN finance_debt_allocation_ownerships o ON o.mapping_id = m.id JOIN finance_vouchers v ON v.id = m.voucher_id WHERE m.obligation_id = finance_debt_obligations.id AND m.operation = 'post' AND v.status = 'posted')";
+                $principalSql = "(finance_debt_obligations.original_amount + (SELECT COALESCE(SUM(signed_amount), 0) FROM finance_debt_events WHERE obligation_id = finance_debt_obligations.id))";
+                if ($this->paymentStatus === 'paid') {
+                    $query->where('finance_debt_obligations.status', 'confirmed')
+                        ->whereRaw($paidSql.' > 0 AND '.$paidSql.' >= '.$principalSql);
+                } elseif ($this->paymentStatus === 'partial') {
+                    $query->where('finance_debt_obligations.status', 'confirmed')
+                        ->whereRaw($paidSql.' > 0 AND '.$paidSql.' < '.$principalSql);
+                } else {
+                    $query->whereRaw($paidSql.' = 0');
+                }
+            } elseif ($this->paymentStatus !== 'unpaid') {
+                $query->whereRaw('1 = 0');
+            }
         }
         $selected = $this->selectedDebtId === null ? null : DB::table('finance_debt_obligations')->find($this->selectedDebtId);
         $events = $selected ? DB::table('finance_debt_events')->where('obligation_id', $selected->id)->orderByDesc('id')->limit(100)->get() : collect();
