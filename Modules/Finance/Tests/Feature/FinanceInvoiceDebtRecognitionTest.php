@@ -60,6 +60,7 @@ final class FinanceInvoiceDebtRecognitionTest extends TestCase
             ->assertSet('bulkSelected', [$bad, $good])
             ->call('prepareBulk')
             ->assertSee('Xem trước ghi nhận công nợ')
+            ->assertSee('aria-modal="true"', false)
             ->assertSee('Hóa đơn có dấu hiệu hủy/thay thế/điều chỉnh.')
             ->assertSet('bulkDueDates.'.$good, now()->addDays(90)->toDateString())
             ->set('bulkDueDates.'.$good, now()->addDays(100)->toDateString())
@@ -67,7 +68,9 @@ final class FinanceInvoiceDebtRecognitionTest extends TestCase
             ->call('confirmBulk')
             ->assertSee('Kết quả xác nhận 2 hóa đơn')
             ->assertSet('bulkResults.0.status', 'skipped')
-            ->assertSet('bulkResults.1.status', 'success');
+            ->assertSet('bulkResults.1.status', 'success')
+            ->call('closeBulkResults')
+            ->assertSet('bulkResults', []);
         self::assertSame(now()->addDays(100)->toDateString(), DB::table('finance_debt_obligations')->where('source_module', 'Invoices')->where('source_document_id', (string) $good)->value('due_on'));
         self::assertSame(1, DB::table('finance_debt_obligations')->where('source_module', 'Invoices')
             ->where('source_type', 'invoice')->where('source_document_id', (string) $good)->count());
