@@ -138,6 +138,13 @@ final class DebtWorkspace extends Component
         $this->reset('adjustment', 'adjustmentReason', 'adjustmentDate');
     }
 
+    public function closeDebt(): void
+    {
+        $this->authorizeView();
+        $this->selectedDebtId = null;
+        $this->reset('adjustment', 'adjustmentReason', 'adjustmentDate');
+    }
+
     public function confirm(FinanceDebtService $service): void
     {
         $actor = $this->authorizeMutation();
