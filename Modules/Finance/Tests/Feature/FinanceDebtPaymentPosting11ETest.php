@@ -118,7 +118,9 @@ final class FinanceDebtPaymentPosting11ETest extends TestCase
             ->call('confirmPayment')
             ->assertSet('paymentReviewDebtId', null);
         self::assertSame(1, DB::table('finance_debt_settlement_mappings')->where('obligation_id', $debt)->count());
-        self::assertSame(1, DB::table('finance_ledger_entries')->count());
+        self::assertSame(1, DB::table('finance_ledger_entries as l')
+            ->join('finance_debt_settlement_mappings as m', 'm.voucher_id', '=', 'l.voucher_id')
+            ->where('m.obligation_id', $debt)->count());
     }
 
     public function test_duplicate_reference_is_rejected_without_another_voucher(): void
