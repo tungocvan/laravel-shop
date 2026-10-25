@@ -31,6 +31,13 @@ final class FinanceDebtPaymentReview
         }
         if ($link === null) {
             $reasons[] = 'Chưa có liên kết chứng từ nguồn Finance được xác minh cho khoản công nợ này.';
+        } else {
+            $source = DB::table('finance_source_documents')->where('id', $link['source_id'])->first();
+            if ($source === null || (string) $source->currency !== (string) $debt->currency
+                || (string) $source->direction !== (string) $debt->direction
+                || (string) $source->source_document_id !== (string) $debt->source_document_id) {
+                $reasons[] = 'Chứng từ nguồn Finance không khớp định danh, loại công nợ hoặc tiền tệ.';
+            }
         }
         // An exact source match alone is insufficient: current production
         // voucher posting has no approved debt allocation command.
