@@ -47,6 +47,34 @@ final class FinanceDebtPaymentEvidenceReader
         ])->all();
 
         if ($mappings->isNotEmpty()) {
+            $all = DB::table('finance_debt_settlement_mappings as m')
+                ->leftJoin('finance_debt_allocation_ownerships as o', 'o.mapping_id', '=', 'm.id')
+                ->leftJoin('finance_vouchers as v', 'v.id', '=', 'm.voucher_id')
+                ->where('m.obligation_id', $debtId)
+                ->get(['m.id', 'm.operation', 'm.amount', 'm.reverses_mapping_id',
+                    'm.voucher_id', 'o.id as ownership_id', 'v.status']);
+            $verified = $all->every(function ($row) use ($debtId): bool {
+                if (! $row->status || ! in_array($row->status, ['posted', 'reversed'], true)) {
+                    return false;
+                }
+                if ($row->operation === 'post') {
+                    return $row->ownership_id !== null && $row->status === 'posted';
+                }
+                return $row->operation === 'reverse' && $row->status === 'reversed'
+                    && $row->reverses_mapping_id !== null;
+            });
+            $balance = (new FinanceDebtSettlementBalanceInvariant)->inspect($debtId);
+            if ($verified && $balance['reason_code'] === 'mapping_projection_only_not_authorized') {
+                $empty['verified_paid'] = $balance['net_mapped_amount'];
+                $empty['verified_outstanding'] = $balance['remaining_diagnostic_amount'];
+                $remaining = $balance['remaining_diagnostic_amount'];
+                $empty['payment_status'] = (float) $remaining <= 0
+                    ? 'Đã thanh toán' : 'Thanh toán một phần';
+                $empty['warning'] = 'Số dư được tính từ các phiếu đã ghi sổ và ánh xạ có quyền sở hữu.';
+                return $empty;
+            }
+        }
+        if ($mappings->isNotEmpty()) {
             $empty['warning'] = 'Có '.count($empty['rows']).' dòng ánh xạ thanh toán để đối chiếu; chưa đủ căn cứ xác nhận số tiền đã trả hoặc số dư còn lại.';
         }
         return $empty;
