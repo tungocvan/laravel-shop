@@ -564,3 +564,8 @@ User screenshot: 285-page pagination rendered an excessive row of page buttons. 
 ## Checkpoint 09A — Git Pull/Test pending
 
 User approved manual per-invoice confirmation first, bulk later. Added InvoiceDebtRecognitionService with source uniqueness, validation, transaction, explicit human attestation; Livewire review panel/action; service tests and acceptance docs. No automatic invoice recognition, invoice writes, payment allocation or bulk confirmation. WSL tests and UI26–29 pending. The source schema does not provide complete authoritative cancellation/replacement/payment lifecycle; manual verification is essential.
+
+
+## Checkpoint 11G.2 — Period report, Git Pull/Test pending (2026-10-25)
+
+User confirmed 11G first gate: two-tier tests 285 passed, 4 skipped, 1120 assertions and manual UI PASS; approved next checkpoint. New branch `feat/finance-11g2-period-report-20261025` from the existing 11G feature branch (main ancestor 47596c302). Added read-only SQL DECIMAL period movement service, period tab and filters, contract test, and `CHECKPOINT_11G2_PERIOD_REPORT_GIT_PULL_TEST.md`. This is an operational provisional report, not a certified historical accounting ledger. Assistant did NOT run PHPUnit/UI; await user focused FinanceDebtPeriodReport11G2ContractTest then Finance regression, then manual UI. No main merge or production changes.
