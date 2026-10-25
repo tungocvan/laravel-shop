@@ -54,15 +54,21 @@ final class FinanceDebtPaymentEvidenceReader
                 ->where('m.obligation_id', $debtId)
                 ->get(['m.id', 'm.operation', 'm.amount', 'm.reverses_mapping_id',
                     'm.voucher_id', 'o.id as ownership_id', 'v.status', 'l.id as ledger_id']);
-            $verified = $all->every(function ($row) use ($debtId): bool {
-                if (! $row->status || ! in_array($row->status, ['posted', 'reversed'], true)) {
-                    return false;
-                }
+            $posts = $all->where('operation', 'post')->keyBy('id');
+            $reversals = $all->where('operation', 'reverse')->keyBy('reverses_mapping_id');
+            $verified = $all->every(function ($row) use ($posts, $reversals): bool {
                 if ($row->operation === 'post') {
-                    return $row->ownership_id !== null && $row->ledger_id !== null && $row->status === 'posted';
+                    if ($row->ownership_id === null || $row->ledger_id === null) {
+                        return false;
+                    }
+                    return $row->status === (isset($reversals[$row->id]) ? 'reversed' : 'posted');
                 }
                 return $row->operation === 'reverse' && $row->status === 'reversed'
-                    && $row->reverses_mapping_id !== null;
+                    && $row->reverses_mapping_id !== null
+                    && isset($posts[$row->reverses_mapping_id])
+                    && (string) $posts[$row->reverses_mapping_id]->amount === (string) $row->amount
+                    && DB::table('finance_ledger_entries')->where('voucher_id', $row->voucher_id)
+                        ->where('entry_type', 'reversal')->exists();
             });
             $balance = (new FinanceDebtSettlementBalanceInvariant)->inspect($debtId);
             if ($verified && $balance['reason_code'] === 'mapping_projection_only_not_authorized') {
@@ -70,7 +76,7 @@ final class FinanceDebtPaymentEvidenceReader
                 $empty['verified_outstanding'] = $balance['remaining_diagnostic_amount'];
                 $remaining = $balance['remaining_diagnostic_amount'];
                 $empty['payment_status'] = (float) $remaining <= 0
-                    ? 'Đã thanh toán' : 'Thanh toán một phần';
+                    ? 'Đã thanh toán' : ((float) $balance['net_mapped_amount'] > 0 ? 'Thanh toán một phần' : 'Chưa thanh toán');
                 $empty['warning'] = 'Số dư được tính từ các phiếu đã ghi sổ và ánh xạ có quyền sở hữu.';
                 return $empty;
             }
