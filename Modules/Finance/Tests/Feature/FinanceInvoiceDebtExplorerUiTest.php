@@ -62,7 +62,7 @@ final class FinanceInvoiceDebtExplorerUiTest extends TestCase
 
         Livewire::test(InvoiceDebtExplorer::class)->set('search', $tag)->assertOk()
             ->assertSee($tag.'-S')->assertSee($tag.'-P')
-            ->assertSee('Đã có 1 bản ghi nguồn')->assertSee('120.000 ₫');
+            ->assertSee('Đã ghi nhận')->assertSee('120.000 ₫');
         Livewire::test(InvoiceDebtExplorer::class)->set('search', $tag)
             ->set('invoiceType', 'sold')->assertSee($tag.'-S')->assertDontSee($tag.'-P');
         self::assertSame(1, DB::table('finance_debt_obligations')->where('source_document_id', (string) $sold)->count());
@@ -116,6 +116,7 @@ final class FinanceInvoiceDebtExplorerUiTest extends TestCase
             ->set('search', $number)
             ->call('openReview', $id)
             ->assertSet('reviewInvoiceId', $id)
+            ->assertSet('dueOn', now()->addDays(90)->toDateString())
             ->assertSee('Kiểm tra trước khi xác nhận công nợ')
             ->assertSee('Supplier review')
             ->assertSee('Phải trả');
