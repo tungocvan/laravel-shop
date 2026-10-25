@@ -1,9 +1,14 @@
 <div class="space-y-4">
     @if (session()->has('debt_notice')) <div role="status" class="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">{{ session('debt_notice') }}</div> @endif
     <div class="flex flex-wrap items-end justify-between gap-3">
-        <div><h2 class="text-lg font-semibold text-slate-900">Danh sách công nợ</h2><p class="text-sm text-slate-600">Chỉ ghi nhận thủ công; chưa liên kết thanh toán hoặc hóa đơn.</p></div>
+        <div><h2 class="text-lg font-semibold text-slate-900">Danh sách công nợ</h2><p class="text-sm text-slate-600">Công nợ thủ công và tra cứu nguồn hóa đơn; chưa ghi nhận thanh toán hoặc đồng bộ công nợ tự động.</p></div>
         @if ($canManage) <button type="button" wire:click="openCreate" class="rounded-xl bg-indigo-700 px-4 py-2 text-sm font-semibold text-white">+ Tạo công nợ</button> @endif
     </div>
+    @if(auth('admin')->user()?->can('finance.view') && auth('admin')->user()?->can('invoices-list'))
+        <livewire:finance.invoice-debt-explorer />
+    @else
+        <p class="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">Tra cứu hóa đơn yêu cầu đồng thời quyền finance.view và invoices-list.</p>
+    @endif
     <div class="grid gap-3 sm:grid-cols-3">
         <label class="block text-sm font-medium">Tìm chứng từ / đối tác<input aria-label="Tìm công nợ" wire:model.live.debounce.350ms="search" type="search" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm"></label>
         <label class="block text-sm font-medium">Loại công nợ<select wire:model.live="direction" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm"><option value="">Tất cả</option><option value="receivable">Phải thu</option><option value="payable">Phải trả</option></select></label>
