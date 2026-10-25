@@ -191,7 +191,16 @@ final class DebtWorkspace extends Component
         return $amount;
     }
 
-    public function updatedPaymentAmount(): void { $this->paymentPreviewed = false; }
+    public function updatedPaymentAmount(): void
+    {
+        $this->paymentPreviewed = false;
+        $this->resetValidation('paymentAmount');
+        try {
+            $this->paymentAmount = $this->formatPaymentInput($this->normalizePaymentInput($this->paymentAmount));
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            // Keep malformed user input visible for correction; preview validates it.
+        }
+    }
     public function updatedPaymentDate(): void { $this->paymentPreviewed = false; }
     public function updatedPaymentAccountId(): void { $this->paymentPreviewed = false; }
     public function updatedPaymentReference(): void { $this->paymentPreviewed = false; }
