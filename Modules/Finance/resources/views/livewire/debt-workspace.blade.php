@@ -107,6 +107,22 @@
                         @foreach ($paymentReview['reasons'] as $reason)<li>{{ $reason }}</li>@endforeach
                     </ul>
                 </div>
+                <div class="space-y-3 rounded-xl border border-slate-200 p-4">
+                    <div><h4 class="text-sm font-semibold text-slate-900">Chuẩn bị chứng từ thanh toán</h4><p class="mt-1 text-xs text-slate-500">Chỉ xem trước thông tin. Chưa tạo phiếu, chưa ghi sổ và chưa trừ công nợ.</p></div>
+                    <div class="grid gap-3 sm:grid-cols-2">
+                        <label class="block text-sm"><span class="mb-1 block font-medium text-slate-700">Số tiền ({{ $paymentReview['currency'] }})</span><input type="text" inputmode="decimal" wire:model.live.debounce.400ms="paymentAmount" placeholder="Ví dụ: 1000000" class="min-h-10 w-full rounded-lg border border-slate-300 px-3"></label>
+                        <label class="block text-sm"><span class="mb-1 block font-medium text-slate-700">Ngày thanh toán</span><input type="date" wire:model.live="paymentDate" class="min-h-10 w-full rounded-lg border border-slate-300 px-3"></label>
+                        <label class="block text-sm"><span class="mb-1 block font-medium text-slate-700">Tài khoản thu/chi</span><select wire:model.live="paymentAccountId" class="min-h-10 w-full rounded-lg border border-slate-300 px-3"><option value="">Chọn tài khoản</option>@foreach($paymentReview['accounts'] as $account)<option value="{{ $account['id'] }}">{{ $account['code'] }} · {{ $account['name'] }}</option>@endforeach</select></label>
+                        <label class="block text-sm"><span class="mb-1 block font-medium text-slate-700">Số chứng từ / tham chiếu</span><input type="text" wire:model.live.debounce.400ms="paymentReference" maxlength="100" placeholder="Mã giao dịch ngân hàng..." class="min-h-10 w-full rounded-lg border border-slate-300 px-3"></label>
+                    </div>
+                    @foreach (['paymentAmount', 'paymentDate', 'paymentAccountId', 'paymentReference'] as $field)
+                        @error($field)<p class="text-xs text-rose-700">{{ $message }}</p>@enderror
+                    @endforeach
+                    <div class="flex flex-wrap items-center gap-3">
+                        <button type="button" wire:click="previewPayment" class="min-h-10 rounded-lg border border-indigo-200 bg-indigo-50 px-4 text-sm font-semibold text-indigo-700 hover:bg-indigo-100">Kiểm tra thông tin</button>
+                        @if($paymentPreviewed)<span class="text-sm font-medium text-emerald-700">Thông tin nhập hợp lệ. Chưa ghi nhận thanh toán.</span>@endif
+                    </div>
+                </div>
                 <p class="text-xs text-slate-500">Đây là bước kiểm tra điều kiện, không phải phiếu thu/chi và không thay đổi công nợ. Số tiền hiển thị chưa trừ thanh toán.</p>
                 <div class="flex justify-end gap-2 border-t border-slate-200 pt-3">
                     <button type="button" wire:click="closePaymentReview" class="min-h-10 rounded-lg border border-slate-300 px-4 text-sm font-medium hover:bg-slate-50">Quay lại</button>
