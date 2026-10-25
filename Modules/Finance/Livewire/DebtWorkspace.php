@@ -12,6 +12,7 @@ use Modules\Finance\Services\FinanceDebtPaymentReview;
 use Modules\Finance\Services\FinanceDebtPaymentPostingService;
 use Modules\Finance\Services\FinanceDebtPaymentReversalService;
 use Modules\Finance\Services\FinanceDebtPaymentEvidenceReader;
+use Modules\Finance\Services\FinanceDebtReconciliation11G;
 use Modules\Finance\Services\PartnerDebtDraftService;
 use Modules\Partner\Models\Partner;
 
@@ -24,6 +25,8 @@ final class DebtWorkspace extends Component
     public string $direction = '';
     public string $status = '';
     public string $paymentStatus = '';
+    public string $reconcileDirection = '';
+    public string $reconcileSearch = '';
     public bool $creating = false;
     public string $reference = '';
     public string $draftDirection = 'receivable';
@@ -57,7 +60,7 @@ final class DebtWorkspace extends Component
     public function setTab(string $tab): void
     {
         $this->authorizeView();
-        abort_unless(in_array($tab, ['invoices', 'debts'], true), 422);
+        abort_unless(in_array($tab, ['invoices', 'debts', 'reconciliation'], true), 422);
         $this->activeTab = $tab;
     }
 
@@ -65,6 +68,8 @@ final class DebtWorkspace extends Component
     public function updatedDirection(): void { $this->resetPage(); }
     public function updatedStatus(): void { $this->resetPage(); }
     public function updatedPaymentStatus(): void { $this->resetPage(); }
+    public function updatedReconcileDirection(): void { $this->resetPage(); }
+    public function updatedReconcileSearch(): void { $this->resetPage(); }
 
     private function authorizeView(): void
     {
@@ -385,6 +390,9 @@ final class DebtWorkspace extends Component
             'paymentEvidence' => $paymentReview === null ? null : app(FinanceDebtPaymentEvidenceReader::class)->forObligation($this->paymentReviewDebtId),
             'selectedPaymentEvidence' => $selected === null ? null : app(FinanceDebtPaymentEvidenceReader::class)->forObligation((int) $selected->id),
             'paymentReview' => $paymentReview,
+            'reconciliation' => $this->activeTab === 'reconciliation'
+                ? app(FinanceDebtReconciliation11G::class)->snapshot($this->reconcileDirection, $this->reconcileSearch)
+                : null,
             'debts' => $query->paginate(10),
             'selected' => $selected,
             'events' => $events,
