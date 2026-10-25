@@ -15,15 +15,15 @@ final class DebtSummary extends Component
     public string $dateFrom = '';
     public string $dateTo = '';
 
-    public function updatedSearch(): void { $this->resetPage(); }
-    public function updatedDirection(): void { $this->resetPage(); }
-    public function updatedDateFrom(): void { $this->resetPage(); }
-    public function updatedDateTo(): void { $this->resetPage(); }
+    public function updatedSearch(): void { $this->resetPage('summaryPage'); }
+    public function updatedDirection(): void { $this->resetPage('summaryPage'); }
+    public function updatedDateFrom(): void { $this->resetPage('summaryPage'); }
+    public function updatedDateTo(): void { $this->resetPage('summaryPage'); }
 
     public function resetFilters(): void
     {
         $this->reset('search', 'direction', 'dateFrom', 'dateTo');
-        $this->resetPage();
+        $this->resetPage('summaryPage');
     }
 
     public function render()
@@ -72,7 +72,7 @@ final class DebtSummary extends Component
             ->first();
 
         return view('Finance::livewire.debt-summary', [
-            'groups' => $groups->orderBy('counterparty_name')->orderBy('direction')->paginate(15),
+            'groups' => $groups->orderBy('counterparty_name')->orderBy('direction')->paginate(15, ['*'], 'summaryPage'),
             'totals' => $totals,
         ]);
     }
