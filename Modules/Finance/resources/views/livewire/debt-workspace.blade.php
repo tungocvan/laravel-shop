@@ -4,7 +4,7 @@
         <div><h2 class="text-lg font-semibold text-slate-900">Danh sách công nợ</h2><p class="text-sm text-slate-600">Công nợ thủ công và tra cứu nguồn hóa đơn; chưa ghi nhận thanh toán hoặc đồng bộ công nợ tự động.</p></div>
         @if ($canManage) <button type="button" wire:click="openCreate" class="rounded-xl bg-indigo-700 px-4 py-2 text-sm font-semibold text-white">+ Tạo công nợ</button> @endif
     </div>
-    @if(auth('admin')->user()?->can('finance.view') && auth('admin')->user()?->can('invoices-list'))
+    @if(\Illuminate\Support\Facades\Schema::hasTable('permissions') && auth('admin')->user()?->can('invoices-list'))
         <livewire:finance.invoice-debt-explorer />
     @else
         <p class="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">Tra cứu hóa đơn yêu cầu đồng thời quyền finance.view và invoices-list.</p>
