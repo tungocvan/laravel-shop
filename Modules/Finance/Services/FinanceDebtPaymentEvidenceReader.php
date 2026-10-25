@@ -39,6 +39,7 @@ final class FinanceDebtPaymentEvidenceReader
                 'v.status as voucher_status', 'v.voucher_date', 'ae.reason as audit_reason', 'ae.actor_id as audit_actor', 'ae.occurred_at as audit_time']);
         $empty['rows'] = $mappings->map(fn ($m) => [
             'id' => (int) $m->id,
+            'voucher_id' => (int) $m->voucher_id,
             'operation' => (string) $m->operation,
             'amount' => (string) $m->amount,
             'voucher_number' => (string) ($m->voucher_number ?? ''),
