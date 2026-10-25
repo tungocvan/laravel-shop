@@ -9,6 +9,7 @@ use Livewire\Attributes\On;
 use Modules\Finance\Services\FinanceDebtService;
 use Modules\Finance\Services\FinanceDebtBalanceReader;
 use Modules\Finance\Services\FinanceDebtPaymentReview;
+use Modules\Finance\Services\FinanceDebtPaymentEvidenceReader;
 use Modules\Finance\Services\PartnerDebtDraftService;
 use Modules\Partner\Models\Partner;
 
@@ -308,6 +309,7 @@ final class DebtWorkspace extends Component
             : app(FinanceDebtPaymentReview::class)->inspect($this->paymentReviewDebtId);
 
         return view('Finance::livewire.debt-workspace', [
+            'paymentEvidence' => $paymentReview === null ? null : app(FinanceDebtPaymentEvidenceReader::class)->forObligation($this->paymentReviewDebtId),
             'paymentReview' => $paymentReview,
             'debts' => $query->paginate(10),
             'selected' => $selected,
