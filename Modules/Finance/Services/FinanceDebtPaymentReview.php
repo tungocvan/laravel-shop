@@ -58,6 +58,22 @@ final class FinanceDebtPaymentReview
         } else {
             $reasons[] = 'Chưa có cấu trúc phân bổ công nợ.';
         }
+        if (Schema::hasTable('finance_debt_allocation_ownerships')
+            && Schema::hasTable('finance_debt_settlement_mappings')
+            && DB::table('finance_debt_settlement_mappings as m')
+                ->leftJoin('finance_debt_allocation_ownerships as o', 'o.mapping_id', '=', 'm.id')
+                ->where('m.obligation_id', $debtId)->whereNull('o.id')->exists()) {
+            $reasons[] = 'Có giao dịch phân bổ chưa xác minh quyền sở hữu.';
+        }
+        if ($link !== null && Schema::hasTable('finance_allocations')
+            && Schema::hasTable('finance_debt_allocation_ownerships')
+            && DB::table('finance_allocations as a')
+                ->join('finance_vouchers as v', 'v.id', '=', 'a.voucher_id')
+                ->leftJoin('finance_debt_allocation_ownerships as o', 'o.allocation_id', '=', 'a.id')
+                ->where('a.source_document_id', $link['source_id'])
+                ->where('v.status', 'posted')->whereNull('o.id')->exists()) {
+            $reasons[] = 'Có phiếu kho quỹ đã ghi sổ nhưng chưa liên kết công nợ.';
+        }
         if ((float) $remaining <= 0) {
             $reasons[] = 'Công nợ đã được thanh toán đủ.';
         }
