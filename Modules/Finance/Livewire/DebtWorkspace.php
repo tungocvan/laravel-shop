@@ -202,13 +202,14 @@ final class DebtWorkspace extends Component
         abort_unless($this->paymentReviewDebtId !== null, 404);
         $review = app(FinanceDebtPaymentReview::class)->inspect($this->paymentReviewDebtId);
         $this->validate([
-            'paymentAmount' => ['required', 'regex:/^\d{1,15}(?:\.\d{1,2})?$/'],
+            'paymentAmount' => ['required', 'string', 'max:30'],
             'paymentDate' => ['required', 'date_format:Y-m-d'],
             'paymentAccountId' => ['required', 'integer', 'min:1'],
             'paymentReference' => ['required', 'string', 'max:100'],
         ]);
         abort_unless(collect($review['accounts'])->contains(fn ($a) => (string) $a['id'] === $this->paymentAccountId), 422);
-        $amount = $this->toPaymentCents($this->normalizePaymentInput($this->paymentAmount));
+        $normalizedAmount = $this->normalizePaymentInput($this->paymentAmount);
+        $amount = $this->toPaymentCents($normalizedAmount);
         $principal = $this->toPaymentCents($review['principal']);
         if ($amount <= 0 || $amount > $principal) {
             throw \Illuminate\Validation\ValidationException::withMessages([
@@ -216,7 +217,7 @@ final class DebtWorkspace extends Component
             ]);
         }
         // Preview is never proof of an unpaid balance or authorization to post.
-        $this->paymentAmount = $this->formatPaymentInput($this->normalizePaymentInput($this->paymentAmount));
+        $this->paymentAmount = $this->formatPaymentInput($normalizedAmount);
         $this->paymentPreviewed = true;
     }
 
