@@ -101,26 +101,26 @@
                     <div><dt class="text-slate-500">Giá trị sau điều chỉnh</dt><dd class="mt-1 font-semibold tabular-nums">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd($paymentReview['principal']) }}</dd></div>
                     <div><dt class="text-slate-500">Chứng từ nguồn Finance</dt><dd class="mt-1 font-medium">{{ $paymentReview['source_linked'] ? 'Đã tìm thấy liên kết (chưa xác minh thanh toán)' : 'Chưa có liên kết' }}</dd></div>
                 </dl>
-                <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950" role="status">
-                    <p class="font-semibold">Chưa thể xác nhận đã thanh toán</p>
+                <div class="rounded-xl border {{ $paymentReview['eligible'] ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-amber-200 bg-amber-50 text-amber-950' }} p-4 text-sm" role="status">
+                    <p class="font-semibold">{{ $paymentReview['eligible'] ? 'Có thể xác nhận thanh toán' : 'Chưa thể xác nhận đã thanh toán' }}</p>
                     <ul class="mt-2 list-disc space-y-1 pl-5">
                         @foreach ($paymentReview['reasons'] as $reason)<li>{{ $reason }}</li>@endforeach
                     </ul>
                 </div>
                 <div class="space-y-3 rounded-xl border border-slate-200 p-4">
-                    <div><h4 class="text-sm font-semibold text-slate-900">Chuẩn bị chứng từ thanh toán</h4><p class="mt-1 text-xs text-slate-500">Chỉ xem trước thông tin. Chưa tạo phiếu, chưa ghi sổ và chưa trừ công nợ.</p></div>
+                    <div><h4 class="text-sm font-semibold text-slate-900">Chuẩn bị chứng từ thanh toán</h4><p class="mt-1 text-xs text-slate-500">Kiểm tra thông tin trước khi ghi sổ. Chỉ ghi nhận khi bạn bấm Xác nhận thanh toán.</p></div>
                     <div class="grid gap-3 sm:grid-cols-2">
-                        <label class="block text-sm"><span class="mb-1 block font-medium text-slate-700">Số tiền dự kiến ({{ $paymentReview['currency'] }})</span><input type="text" inputmode="numeric" wire:model.blur="paymentAmount" x-on:input="$el.value = $el.value.replace(/[^0-9]/g, '').slice(0, 15).replace(/\B(?=(\d{3})+(?!\d))/g, '.')" placeholder="Ví dụ: 540.000.000" class="min-h-10 w-full rounded-lg border border-slate-300 px-3"><span class="mt-1 block text-xs text-amber-700">Điền sẵn theo giá trị sau điều chỉnh; chưa xác minh số dư còn nợ thực tế.</span></label>
+                        <label class="block text-sm"><span class="mb-1 block font-medium text-slate-700">Số tiền dự kiến ({{ $paymentReview['currency'] }})</span><input type="text" inputmode="numeric" wire:model.blur="paymentAmount" x-on:input="$el.value = $el.value.replace(/[^0-9]/g, '').slice(0, 15).replace(/\B(?=(\d{3})+(?!\d))/g, '.')" placeholder="Ví dụ: 540.000.000" class="min-h-10 w-full rounded-lg border border-slate-300 px-3"><span class="mt-1 block text-xs text-amber-700">Điền sẵn theo số dư chưa phân bổ; hệ thống kiểm tra lại khi ghi sổ.</span></label>
                         <label class="block text-sm"><span class="mb-1 block font-medium text-slate-700">Ngày thanh toán</span><input type="date" wire:model.live="paymentDate" class="min-h-10 w-full rounded-lg border border-slate-300 px-3"></label>
                         <label class="block text-sm"><span class="mb-1 block font-medium text-slate-700">Tài khoản thu/chi</span><select wire:model.live="paymentAccountId" class="min-h-10 w-full rounded-lg border border-slate-300 px-3"><option value="">Chọn tài khoản</option>@foreach($paymentReview['accounts'] as $account)<option value="{{ $account['id'] }}">{{ $account['code'] }} · {{ $account['name'] }}</option>@endforeach</select></label>
                         <label class="block text-sm"><span class="mb-1 block font-medium text-slate-700">Số chứng từ / tham chiếu</span><input type="text" wire:model.live.debounce.400ms="paymentReference" maxlength="100" placeholder="Mã giao dịch ngân hàng..." class="min-h-10 w-full rounded-lg border border-slate-300 px-3"></label>
                     </div>
-                    @foreach (['paymentAmount', 'paymentDate', 'paymentAccountId', 'paymentReference'] as $field)
+                    @foreach (['paymentAmount', 'paymentDate', 'paymentAccountId', 'paymentReference', 'payment'] as $field)
                         @error($field)<p class="text-xs text-rose-700">{{ $message }}</p>@enderror
                     @endforeach
                     <div class="flex flex-wrap items-center gap-3">
                         <button type="button" wire:click="previewPayment" class="min-h-10 rounded-lg border border-indigo-200 bg-indigo-50 px-4 text-sm font-semibold text-indigo-700 hover:bg-indigo-100">Kiểm tra thông tin</button>
-                        @if($paymentPreviewed)<span class="text-sm font-medium text-emerald-700">Thông tin nhập hợp lệ. Chưa ghi nhận thanh toán.</span>@endif
+                        @if($paymentPreviewed)<span class="text-sm font-medium text-emerald-700">Thông tin nhập hợp lệ. Sẵn sàng kiểm tra điều kiện ghi sổ.</span>@endif
                     </div>
                 </div>
                 <section class="space-y-2 rounded-xl border border-slate-200 bg-white p-4" aria-label="Đối chiếu lịch sử thanh toán">
@@ -144,10 +144,14 @@
                         <p class="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">Chưa có ánh xạ thanh toán nào để đối chiếu.</p>
                     @endif
                 </section>
-                <p class="text-xs text-slate-500">Đây là bước kiểm tra điều kiện, không phải phiếu thu/chi và không thay đổi công nợ. Số tiền hiển thị chưa trừ thanh toán.</p>
+                <p class="text-xs text-slate-500">Phiếu thanh toán chỉ được tạo khi xác nhận; mỗi giao dịch có chứng từ và lịch sử kiểm toán.</p>
                 <div class="flex justify-end gap-2 border-t border-slate-200 pt-3">
                     <button type="button" wire:click="closePaymentReview" class="min-h-10 rounded-lg border border-slate-300 px-4 text-sm font-medium hover:bg-slate-50">Quay lại</button>
-                    <button type="button" disabled class="min-h-10 cursor-not-allowed rounded-lg bg-slate-200 px-4 text-sm font-semibold text-slate-500" aria-label="Xác nhận thanh toán chưa khả dụng">Xác nhận thanh toán</button>
+                    @if($paymentReview['eligible'] && $canManage)
+                        <button type="button" wire:click="confirmPayment" wire:loading.attr="disabled" wire:target="confirmPayment" @disabled(! $paymentPreviewed) class="min-h-10 rounded-lg bg-indigo-700 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">Xác nhận thanh toán</button>
+                    @else
+                        <button type="button" disabled class="min-h-10 cursor-not-allowed rounded-lg bg-slate-200 px-4 text-sm font-semibold text-slate-500" aria-label="Xác nhận thanh toán chưa khả dụng">Xác nhận thanh toán</button>
+                    @endif
                 </div>
             </section>
         </div>
