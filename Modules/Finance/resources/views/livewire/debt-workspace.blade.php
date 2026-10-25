@@ -51,7 +51,7 @@
             <thead class="bg-slate-50"><tr><th class="whitespace-nowrap p-3">Chứng từ</th><th class="p-3">Đối tác</th><th class="p-3">Loại</th><th class="p-3">Số tiền gốc</th><th class="p-3">Số dư sau điều chỉnh</th><th class="p-3">Hạn</th><th class="p-3">Trạng thái</th><th class="p-3">Chi tiết</th></tr></thead>
             <tbody class="divide-y divide-slate-100">
                 @forelse ($debts as $debt)
-                    <tr><td class="p-3 whitespace-nowrap">{{ $debt->reference_number }}</td><td class="p-3">{{ $debt->counterparty_name }}</td><td class="p-3">{{ $debt->direction === 'receivable' ? 'Phải thu' : 'Phải trả' }}</td><td class="p-3 whitespace-nowrap">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $debt->original_amount) }}</td><td class="p-3 whitespace-nowrap font-semibold tabular-nums text-indigo-800">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $debt->adjusted_balance) }}</td><td class="p-3">{{ $debt->due_on ?: '—' }}</td><td class="p-3">{{ $debt->status === 'draft' ? 'Nháp' : ($debt->status === 'confirmed' ? 'Đã xác nhận' : $debt->status) }}</td><td class="p-3"><button wire:click="selectDebt({{ $debt->id }})" class="inline-flex min-h-9 items-center justify-center whitespace-nowrap rounded-lg border border-indigo-200 bg-white px-3 py-2 text-xs font-semibold text-indigo-700 hover:border-indigo-300 hover:bg-indigo-50">Xem chi tiết</button></td></tr>
+                    <tr><td class="p-3 whitespace-nowrap">{{ $debt->reference_number }}</td><td class="p-3">{{ $debt->counterparty_name }}</td><td class="p-3">{{ $debt->direction === 'receivable' ? 'Phải thu' : 'Phải trả' }}</td><td class="p-3 whitespace-nowrap">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $debt->original_amount) }}</td><td class="p-3 whitespace-nowrap font-semibold tabular-nums text-indigo-800">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $debt->adjusted_balance) }}</td><td class="p-3">{{ $debt->due_on ?: '—' }}</td><td class="p-3">{{ $debt->status === 'draft' ? 'Nháp' : ($debt->status === 'confirmed' ? 'Đã xác nhận' : $debt->status) }}</td><td class="p-3"><button wire:click="selectDebt({{ $debt->id }})" class="inline-flex min-h-9 items-center justify-center whitespace-nowrap rounded-lg border border-indigo-200 bg-white px-3 py-2 text-xs font-semibold text-indigo-700 hover:border-indigo-300 hover:bg-indigo-50">Xem chi tiết</button>@if ($debt->status === 'confirmed') <button type="button" wire:click="openPaymentReview({{ $debt->id }})" class="mt-2 inline-flex min-h-9 items-center justify-center whitespace-nowrap rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50">Thanh toán</button>@endif</td></tr>
                 @empty <tr><td colspan="8" class="p-6 text-center text-slate-500">Chưa có công nợ phù hợp.</td></tr>
                 @endforelse
             </tbody>
@@ -86,6 +86,34 @@
         </nav>
     @endif
         </section>
+    @endif
+    @if ($paymentReview)
+        <div class="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/50 p-3 sm:p-6" role="presentation" wire:key="finance-payment-review-modal">
+            <section role="dialog" aria-modal="true" aria-label="Kiểm tra thanh toán công nợ" class="max-h-[92vh] w-full max-w-2xl space-y-4 overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl sm:p-6">
+                <div class="flex items-start justify-between gap-3 border-b border-slate-200 pb-3">
+                    <div><p class="text-xs font-semibold uppercase tracking-wide text-indigo-700">Finance / Thanh toán</p><h3 class="mt-1 text-lg font-semibold text-slate-900">Kiểm tra trước khi thanh toán</h3></div>
+                    <button type="button" wire:click="closePaymentReview" class="min-h-9 whitespace-nowrap rounded-lg border border-slate-300 px-3 text-sm text-slate-700 hover:bg-slate-50">Đóng ✕</button>
+                </div>
+                <dl class="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm sm:grid-cols-2">
+                    <div><dt class="text-slate-500">Chứng từ</dt><dd class="mt-1 font-semibold">{{ $paymentReview['reference'] }}</dd></div>
+                    <div><dt class="text-slate-500">Loại</dt><dd class="mt-1 font-semibold">{{ $paymentReview['direction'] === 'receivable' ? 'Phải thu · Phiếu thu' : 'Phải trả · Phiếu chi' }}</dd></div>
+                    <div class="sm:col-span-2"><dt class="text-slate-500">Đối tác</dt><dd class="mt-1 font-semibold">{{ $paymentReview['counterparty'] }}</dd></div>
+                    <div><dt class="text-slate-500">Giá trị sau điều chỉnh</dt><dd class="mt-1 font-semibold tabular-nums">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd($paymentReview['principal']) }}</dd></div>
+                    <div><dt class="text-slate-500">Chứng từ nguồn Finance</dt><dd class="mt-1 font-medium">{{ $paymentReview['source_linked'] ? 'Đã tìm thấy liên kết (chưa xác minh thanh toán)' : 'Chưa có liên kết' }}</dd></div>
+                </dl>
+                <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950" role="status">
+                    <p class="font-semibold">Chưa thể xác nhận đã thanh toán</p>
+                    <ul class="mt-2 list-disc space-y-1 pl-5">
+                        @foreach ($paymentReview['reasons'] as $reason)<li>{{ $reason }}</li>@endforeach
+                    </ul>
+                </div>
+                <p class="text-xs text-slate-500">Đây là bước kiểm tra điều kiện, không phải phiếu thu/chi và không thay đổi công nợ. Số tiền hiển thị chưa trừ thanh toán.</p>
+                <div class="flex justify-end gap-2 border-t border-slate-200 pt-3">
+                    <button type="button" wire:click="closePaymentReview" class="min-h-10 rounded-lg border border-slate-300 px-4 text-sm font-medium hover:bg-slate-50">Quay lại</button>
+                    <button type="button" disabled class="min-h-10 cursor-not-allowed rounded-lg bg-slate-200 px-4 text-sm font-semibold text-slate-500" aria-label="Xác nhận thanh toán chưa khả dụng">Xác nhận thanh toán</button>
+                </div>
+            </section>
+        </div>
     @endif
     @if ($selected)
         <div class="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/50 p-3 sm:p-6" role="presentation" wire:key="finance-detail-modal">
