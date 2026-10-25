@@ -524,3 +524,8 @@ User explicitly redirected work to **Demo DELL WSL UI-first** and approved imple
 ## Demo UI Checkpoint 02 — Debt Dashboard, Git Pull/Test pending
 
 User confirmed Demo UI CP01 PASS (Finance regression and UI01–04), approved CP02. Added real read-only `DebtDashboard` Livewire and Blade with five principal KPIs, status/direction/partner/due-date filters, paginated 15-row list and detail deep links; activated dashboard section, updated unfinished menu labels, added read-only debt deep-link selection in `DebtWorkspace`, plus focused tests. No new migrations or production settlement. **Dashboard amounts are adjusted principal only, not paid/unpaid outstanding.** Acceptance instructions `DEMO_UI_ACCEPTANCE_CHECKPOINT_02.md`. Assistant did not run PHPUnit/browser; await user two-tier tests and browser UI. Do not start next feature without approval.
+
+
+## Demo UI Checkpoint 03 — Partner Summary, Git Pull/Test pending
+
+User confirmed CP02 two-tier tests and bordered-input UI PASS; explicitly requested next UI. Implemented `DebtPartners` read-only partner aggregation grouped by stored name/tax/direction, with filters, totals, overdue principal, pagination and dashboard drill-down; activated partners menu; focused tests. No settlement/payment deduction, Partner directory synchronization or migrations. `DEMO_UI_ACCEPTANCE_CHECKPOINT_03.md` has test plan. Await user two-tier tests and browser review before new checkpoint.
