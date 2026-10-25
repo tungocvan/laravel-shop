@@ -59,7 +59,7 @@ final class FinanceInvoiceDebtRecognitionTest extends TestCase
             ->call('toggleBulkPage')
             ->assertSet('bulkSelected', [$bad, $good])
             ->call('prepareBulk')
-            ->assertSee('Xem trước 2 hóa đơn')
+            ->assertSee('Xem trước ghi nhận công nợ')
             ->assertSee('Hóa đơn có dấu hiệu hủy/thay thế/điều chỉnh.')
             ->set('bulkReviewed', true)
             ->call('confirmBulk')
