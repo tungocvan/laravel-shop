@@ -534,3 +534,8 @@ User confirmed CP02 two-tier tests and bordered-input UI PASS; explicitly reques
 ## Demo UI Checkpoint 04 — Debt Ledger, Git Pull/Test pending
 
 User confirmed CP03 focused tests, regression and UI08–10 PASS, then approved next UI. Added `DebtLedger` read-only Livewire and view at `/admin/finance/debts/ledger` with principal/adjustment detail, due-date filters, pagination, document deep links, and focused tests. Updated menu. No new migrations or settlement activation. Acceptance: `DEMO_UI_ACCEPTANCE_CHECKPOINT_04.md`. Assistant has not executed WSL tests or browser; await user's two-tier PASS/FAIL and UI review. Do not start next feature without approval.
+
+
+## Demo UI Checkpoint 05 — Debt Summary, Git Pull/Test pending
+
+User confirmed CP04 regression 243 passed, 4 skipped, 875 assertions, UI11–13 PASS and explicitly approved next UI. Added read-only `DebtSummary` with confirmed debt grouping, recognition cohort filters, SQL-decimal KPIs, original/adjustment/adjusted totals, navigation and focused tests. Explicitly NOT an accounting opening/closing balance or unpaid balance; no payment subtraction. Acceptance `DEMO_UI_ACCEPTANCE_CHECKPOINT_05.md`. Assistant has not run local WSL tests/browser. Stop at Git Pull/Test, wait for user PASS/FAIL and UI verification.
