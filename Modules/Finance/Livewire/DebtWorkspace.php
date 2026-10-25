@@ -9,6 +9,7 @@ use Livewire\Attributes\On;
 use Modules\Finance\Services\FinanceDebtService;
 use Modules\Finance\Services\FinanceDebtBalanceReader;
 use Modules\Finance\Services\FinanceDebtPaymentReview;
+use Modules\Finance\Services\FinanceDebtPaymentPostingService;
 use Modules\Finance\Services\FinanceDebtPaymentEvidenceReader;
 use Modules\Finance\Services\PartnerDebtDraftService;
 use Modules\Partner\Models\Partner;
@@ -164,7 +165,7 @@ final class DebtWorkspace extends Component
         $this->paymentDate = now()->toDateString();
         $review = app(FinanceDebtPaymentReview::class)->inspect($id);
         // This is adjusted principal, NOT verified unpaid balance.
-        $this->paymentAmount = $this->formatPaymentInput($review['principal']);
+        $this->paymentAmount = $this->formatPaymentInput($review['remaining']);
     }
 
     private function formatPaymentInput(string $amount): string
@@ -217,7 +218,7 @@ final class DebtWorkspace extends Component
         abort_unless(collect($review['accounts'])->contains(fn ($a) => (string) $a['id'] === $this->paymentAccountId), 422);
         $normalizedAmount = $this->normalizePaymentInput($this->paymentAmount);
         $amount = $this->toPaymentCents($normalizedAmount);
-        $principal = $this->toPaymentCents($review['principal']);
+        $principal = $this->toPaymentCents($review['remaining']);
         if ($amount <= 0 || $amount > $principal) {
             throw \Illuminate\Validation\ValidationException::withMessages([
                 'paymentAmount' => 'Số tiền phải lớn hơn 0 và không vượt giá trị sau điều chỉnh.',
@@ -226,6 +227,30 @@ final class DebtWorkspace extends Component
         // Preview is never proof of an unpaid balance or authorization to post.
         $this->paymentAmount = $this->formatPaymentInput($normalizedAmount);
         $this->paymentPreviewed = true;
+    }
+
+    public function confirmPayment(FinanceDebtPaymentPostingService $service): void
+    {
+        $actor = $this->authorizeMutation();
+        abort_unless($this->paymentReviewDebtId !== null && $this->paymentPreviewed, 422);
+        // Re-run input checks and server-side debt review immediately before posting.
+        $this->previewPayment();
+        $review = app(FinanceDebtPaymentReview::class)->inspect($this->paymentReviewDebtId);
+        if (! $review['eligible']) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'payment' => implode(' ', $review['reasons']),
+            ]);
+        }
+        $result = $service->post(
+            $this->paymentReviewDebtId, (int) $this->paymentAccountId,
+            $this->normalizePaymentInput($this->paymentAmount), $this->paymentDate,
+            $this->paymentReference, $actor
+        );
+        $this->paymentPreviewed = false;
+        $this->paymentAmount = $this->formatPaymentInput($result['remaining']);
+        session()->flash('debt_notice', 'Đã ghi nhận thanh toán: '.$result['number']
+            .' · Còn nợ: '.self::formatVnd($result['remaining']));
+        $this->closePaymentReview();
     }
 
     private function toPaymentCents(string $value): int
