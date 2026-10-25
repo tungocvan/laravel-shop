@@ -58,8 +58,11 @@ final class FinanceDebtPaymentPostingService
                 ->leftJoin('finance_debt_allocation_ownerships as o', 'o.mapping_id', '=', 'm.id')
                 ->leftJoin('finance_vouchers as v', 'v.id', '=', 'm.voucher_id')
                 ->where('m.obligation_id', $debtId)
-                ->where(fn ($q) => $q->whereNull('o.id')->orWhereNull('v.id')
-                    ->orWhereNotIn('v.status', ['posted', 'reversed']))
+                ->where(fn ($q) => $q->whereNull('v.id')
+                    ->orWhereNotIn('v.status', ['posted', 'reversed'])
+                    ->orWhere(fn ($owned) => $owned->where('m.operation', 'post')->whereNull('o.id'))
+                    ->orWhere(fn ($reversal) => $reversal->where('m.operation', 'reverse')
+                        ->whereNull('m.reverses_mapping_id')))
                 ->exists();
             if ($existing) {
                 $this->deny('Có lịch sử thanh toán chưa được xác minh.');
