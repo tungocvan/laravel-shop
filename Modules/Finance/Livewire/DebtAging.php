@@ -14,14 +14,14 @@ final class DebtAging extends Component
     public string $direction = '';
     public string $bucket = '';
 
-    public function updatedSearch(): void { $this->resetPage(); }
-    public function updatedDirection(): void { $this->resetPage(); }
-    public function updatedBucket(): void { $this->resetPage(); }
+    public function updatedSearch(): void { $this->resetPage('agingPage'); }
+    public function updatedDirection(): void { $this->resetPage('agingPage'); }
+    public function updatedBucket(): void { $this->resetPage('agingPage'); }
 
     public function resetFilters(): void
     {
         $this->reset('search', 'direction', 'bucket');
-        $this->resetPage();
+        $this->resetPage('agingPage');
     }
 
     public function render()
@@ -82,7 +82,7 @@ final class DebtAging extends Component
 
         return view('Finance::livewire.debt-aging', [
             'debts' => $filtered->orderByRaw('CASE WHEN due_on IS NULL THEN 1 ELSE 0 END')
-                ->orderBy('due_on')->orderByDesc('id')->paginate(15),
+                ->orderBy('due_on')->orderByDesc('id')->paginate(15, ['*'], 'agingPage'),
             'totals' => $totals,
             'today' => $todayDate,
         ]);
