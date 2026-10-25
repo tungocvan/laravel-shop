@@ -43,13 +43,13 @@ final class FinanceInvoiceDebtExplorerUiTest extends TestCase
         $sold = DB::table('invoices')->insertGetId([
             'invoice_number' => $tag.'-S', 'symbol' => 'AA/26E',
             'invoice_type' => 'sold', 'name' => $tag, 'tax_code' => '1234567890',
-            'total_amount' => '120000.00', 'issued_date' => '2026-10-20',
+            'total_amount' => '120000.00', 'issued_date' => '2026-10-25',
             'created_at' => now(), 'updated_at' => now(),
         ]);
         DB::table('invoices')->insert([
             'invoice_number' => $tag.'-P', 'invoice_type' => 'purchase',
             'name' => $tag, 'total_amount' => '80000.00',
-            'issued_date' => '2026-10-21', 'created_at' => now(), 'updated_at' => now(),
+            'issued_date' => '2026-10-25', 'created_at' => now(), 'updated_at' => now(),
         ]);
         DB::table('finance_debt_obligations')->insert([
             'source_module' => 'Invoices', 'source_type' => 'invoice',
@@ -78,7 +78,7 @@ final class FinanceInvoiceDebtExplorerUiTest extends TestCase
                 'invoice_type' => 'sold',
                 'name' => $tag,
                 'total_amount' => '100.00',
-                'issued_date' => '2026-10-20',
+                'issued_date' => '2026-10-25',
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
