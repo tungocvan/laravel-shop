@@ -1,14 +1,26 @@
 <div class="space-y-4">
     @if (session()->has('debt_notice')) <div role="status" class="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">{{ session('debt_notice') }}</div> @endif
-    <div class="flex flex-wrap items-end justify-between gap-3">
-        <div><h2 class="text-lg font-semibold text-slate-900">Danh sách công nợ</h2><p class="text-sm text-slate-600">Công nợ thủ công và tra cứu nguồn hóa đơn; chưa ghi nhận thanh toán hoặc đồng bộ công nợ tự động.</p></div>
-        @if ($canManage) <button type="button" wire:click="openCreate" class="rounded-xl bg-indigo-700 px-4 py-2 text-sm font-semibold text-white">+ Tạo công nợ</button> @endif
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <div><h2 class="text-xl font-semibold text-slate-900">Chứng từ công nợ</h2><p class="mt-1 text-sm text-slate-500">Tra cứu hóa đơn, ghi nhận công nợ và quản lý chứng từ đã xác nhận.</p></div>
+        @if ($activeTab === 'debts' && $canManage)
+            <button type="button" wire:click="openCreate" class="inline-flex min-h-10 items-center gap-2 whitespace-nowrap rounded-lg bg-indigo-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-800">+ Tạo công nợ</button>
+        @endif
     </div>
-    @if(\Illuminate\Support\Facades\Schema::hasTable('permissions') && auth('admin')->user()?->can('invoices-list'))
-        <livewire:finance.invoice-debt-explorer />
+    <div class="flex flex-wrap gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1.5" role="tablist" aria-label="Loại chứng từ">
+        <button type="button" role="tab" aria-selected="{{ $activeTab === 'invoices' ? 'true' : 'false' }}" wire:click="setTab('invoices')" class="min-h-10 rounded-lg px-4 py-2 text-sm font-semibold transition {{ $activeTab === 'invoices' ? 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200' : 'text-slate-600 hover:bg-white/70' }}">Hóa đơn nguồn</button>
+        <button type="button" role="tab" aria-selected="{{ $activeTab === 'debts' ? 'true' : 'false' }}" wire:click="setTab('debts')" class="min-h-10 rounded-lg px-4 py-2 text-sm font-semibold transition {{ $activeTab === 'debts' ? 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200' : 'text-slate-600 hover:bg-white/70' }}">Công nợ đã ghi nhận</button>
+    </div>
+    @if ($activeTab === 'invoices')
+        <section role="tabpanel" aria-label="Hóa đơn nguồn">
+            @if(\Illuminate\Support\Facades\Schema::hasTable('permissions') && auth('admin')->user()?->can('invoices-list'))
+                <livewire:finance.invoice-debt-explorer />
+            @else
+                <p class="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">Tra cứu hóa đơn yêu cầu đồng thời quyền finance.view và invoices-list.</p>
+            @endif
+        </section>
     @else
-        <p class="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">Tra cứu hóa đơn yêu cầu đồng thời quyền finance.view và invoices-list.</p>
-    @endif
+        <section role="tabpanel" aria-label="Công nợ đã ghi nhận" class="space-y-4">
+            <p class="text-xs text-slate-500">Giá trị sau điều chỉnh chưa trừ thanh toán. Chức năng xác nhận thanh toán sẽ được triển khai trong checkpoint nghiệp vụ riêng.</p>
     <div class="grid gap-3 sm:grid-cols-3">
         <label class="block text-sm font-medium">Tìm chứng từ / đối tác<input aria-label="Tìm công nợ" wire:model.live.debounce.350ms="search" type="search" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm"></label>
         <label class="block text-sm font-medium">Loại công nợ<select wire:model.live="direction" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm"><option value="">Tất cả</option><option value="receivable">Phải thu</option><option value="payable">Phải trả</option></select></label>
@@ -39,13 +51,42 @@
             <thead class="bg-slate-50"><tr><th class="whitespace-nowrap p-3">Chứng từ</th><th class="p-3">Đối tác</th><th class="p-3">Loại</th><th class="p-3">Số tiền gốc</th><th class="p-3">Số dư sau điều chỉnh</th><th class="p-3">Hạn</th><th class="p-3">Trạng thái</th><th class="p-3">Chi tiết</th></tr></thead>
             <tbody class="divide-y divide-slate-100">
                 @forelse ($debts as $debt)
-                    <tr><td class="p-3 whitespace-nowrap">{{ $debt->reference_number }}</td><td class="p-3">{{ $debt->counterparty_name }}</td><td class="p-3">{{ $debt->direction === 'receivable' ? 'Phải thu' : 'Phải trả' }}</td><td class="p-3 whitespace-nowrap">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $debt->original_amount) }}</td><td class="p-3 whitespace-nowrap font-semibold tabular-nums text-indigo-800">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $debt->adjusted_balance) }}</td><td class="p-3">{{ $debt->due_on ?: '—' }}</td><td class="p-3">{{ $debt->status === 'draft' ? 'Nháp' : ($debt->status === 'confirmed' ? 'Đã xác nhận' : $debt->status) }}</td><td class="p-3"><button wire:click="selectDebt({{ $debt->id }})" class="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-50">Chi tiết</button></td></tr>
+                    <tr><td class="p-3 whitespace-nowrap">{{ $debt->reference_number }}</td><td class="p-3">{{ $debt->counterparty_name }}</td><td class="p-3">{{ $debt->direction === 'receivable' ? 'Phải thu' : 'Phải trả' }}</td><td class="p-3 whitespace-nowrap">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $debt->original_amount) }}</td><td class="p-3 whitespace-nowrap font-semibold tabular-nums text-indigo-800">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $debt->adjusted_balance) }}</td><td class="p-3">{{ $debt->due_on ?: '—' }}</td><td class="p-3">{{ $debt->status === 'draft' ? 'Nháp' : ($debt->status === 'confirmed' ? 'Đã xác nhận' : $debt->status) }}</td><td class="p-3"><button wire:click="selectDebt({{ $debt->id }})" class="inline-flex min-h-9 items-center justify-center whitespace-nowrap rounded-lg border border-indigo-200 bg-white px-3 py-2 text-xs font-semibold text-indigo-700 hover:border-indigo-300 hover:bg-indigo-50">Xem chi tiết</button></td></tr>
                 @empty <tr><td colspan="8" class="p-6 text-center text-slate-500">Chưa có công nợ phù hợp.</td></tr>
                 @endforelse
             </tbody>
         </table>
     </div>
-    {{ $debts->links() }}
+    @if ($debts->hasPages())
+        @php
+            $debtPage = $debts->currentPage();
+            $debtLast = $debts->lastPage();
+            $debtStart = max(1, min($debtPage - 2, max(1, $debtLast - 4)));
+            $debtEnd = min($debtLast, $debtStart + 4);
+        @endphp
+        <nav class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm" aria-label="Phân trang công nợ">
+            <p class="text-slate-600">Trang {{ $debtPage }} / {{ $debtLast }} · {{ number_format($debts->total(), 0, ',', '.') }} công nợ</p>
+            <div class="flex flex-wrap items-center gap-1">
+                <button type="button" wire:click="gotoPage(1)" @disabled($debtPage === 1) class="min-h-9 rounded-lg border border-slate-300 px-3 disabled:opacity-40">Đầu</button>
+                <button type="button" wire:click="previousPage" @disabled($debtPage === 1) class="min-h-9 rounded-lg border border-slate-300 px-3 disabled:opacity-40" aria-label="Trang trước">‹</button>
+                @if($debtStart > 1)
+                    <button type="button" wire:click="gotoPage(1)" class="min-h-9 rounded-lg border border-slate-300 px-3">1</button>
+                    @if($debtStart > 2)<span class="px-1 text-slate-500">…</span>@endif
+                @endif
+                @for($n = $debtStart; $n <= $debtEnd; $n++)
+                    <button type="button" wire:click="gotoPage({{ $n }})" @if($n === $debtPage) aria-current="page" @endif class="min-h-9 min-w-9 rounded-lg border px-2 {{ $n === $debtPage ? 'border-indigo-700 bg-indigo-700 font-semibold text-white' : 'border-slate-300 text-slate-700 hover:bg-slate-50' }}">{{ $n }}</button>
+                @endfor
+                @if($debtEnd < $debtLast)
+                    @if($debtEnd < $debtLast - 1)<span class="px-1 text-slate-500">…</span>@endif
+                    <button type="button" wire:click="gotoPage({{ $debtLast }})" class="min-h-9 rounded-lg border border-slate-300 px-3">{{ $debtLast }}</button>
+                @endif
+                <button type="button" wire:click="nextPage" @disabled($debtPage === $debtLast) class="min-h-9 rounded-lg border border-slate-300 px-3 disabled:opacity-40" aria-label="Trang sau">›</button>
+                <button type="button" wire:click="gotoPage({{ $debtLast }})" @disabled($debtPage === $debtLast) class="min-h-9 rounded-lg border border-slate-300 px-3 disabled:opacity-40">Cuối</button>
+            </div>
+        </nav>
+    @endif
+        </section>
+    @endif
     @if ($selected)
         <div class="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/50 p-3 sm:p-6" role="presentation" wire:key="finance-detail-modal">
             <section role="dialog" aria-modal="true" aria-label="Chi tiết công nợ" class="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl sm:p-6 space-y-4">
