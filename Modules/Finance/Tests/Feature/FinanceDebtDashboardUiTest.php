@@ -63,6 +63,18 @@ final class FinanceDebtDashboardUiTest extends TestCase
         self::assertSame(1, DB::table('finance_debt_events')->where('obligation_id', $a)->count());
     }
 
+    public function test_dashboard_shows_separate_draft_workload_without_inflating_confirmed_principal(): void
+    {
+        $this->login();
+        $ref = 'DASH-INBOX-'.uniqid();
+        $this->debt($ref, 'payable', 'draft', '999.00', null);
+        Livewire::test(DebtDashboard::class)->assertOk()
+            ->assertSee('Việc cần xử lý')
+            ->assertSee('Hóa đơn chưa ghi nhận')
+            ->assertSee('Công nợ nháp')
+            ->assertDontSee($ref);
+    }
+
     public function test_dashboard_is_denied_without_finance_view_permission(): void
     {
         $this->login(false);
