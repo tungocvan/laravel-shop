@@ -20,6 +20,18 @@ final class DebtDashboard extends Component
     public string $dueFrom = '';
     public string $dueTo = '';
 
+    public function mount(): void
+    {
+        $search = request()->query('search');
+        $direction = request()->query('direction');
+        if (is_string($search)) {
+            $this->search = mb_substr(trim($search), 0, 100);
+        }
+        if (in_array($direction, ['receivable', 'payable'], true)) {
+            $this->direction = $direction;
+        }
+    }
+
     public function updatedDirection(): void { $this->resetPage(); }
     public function updatedStatus(): void { $this->resetPage(); }
     public function updatedSearch(): void { $this->resetPage(); }
