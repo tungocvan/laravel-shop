@@ -170,25 +170,23 @@ final class DebtWorkspace extends Component
     private function formatPaymentInput(string $amount): string
     {
         $parts = explode('.', $amount, 2);
-        $integer = preg_replace('/\\B(?=(\\d{3})+(?!\\d))/', '.', $parts[0]);
+        $integer = preg_replace('/\B(?=(\d{3})+(?!\d))/', '.', $parts[0]);
         $fraction = rtrim($parts[1] ?? '', '0');
+
         return $integer.($fraction !== '' ? ','.$fraction : '');
     }
 
     private function normalizePaymentInput(string $amount): string
     {
         $amount = trim($amount);
-        if (! preg_match('/^\\d{1,3}(?:\\.\\d{3})*(?:,\\d{1,2})?$|^\\d{1,15}(?:[.,]\\d{1,2})?$/D', $amount)) {
-            throw \Illuminate\Validation\ValidationException::withMessages(['paymentAmount' => 'Nhập số tiền hợp lệ, ví dụ 540.000.000 hoặc 1.500,50.']);
+        if (! preg_match('/^(?:\d{1,3}(?:\.\d{3})+|\d{1,15})(?:,\d{1,2})?$/D', $amount)) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'paymentAmount' => 'Chỉ nhập chữ số, ví dụ 40.000.000.',
+            ]);
         }
-        // Dot grouping and comma decimal are the Vietnamese display convention.
-        if (str_contains($amount, ',')) {
-            return str_replace(',', '.', str_replace('.', '', $amount));
-        }
-        if (preg_match('/^\\d{1,3}(?:\\.\\d{3})+$/D', $amount)) {
-            return str_replace('.', '', $amount);
-        }
-        return $amount;
+
+        // Grouped Vietnamese VND input is integer-only.
+        return str_replace('.', '', $amount);
     }
 
     public function updatedPaymentAmount(): void
