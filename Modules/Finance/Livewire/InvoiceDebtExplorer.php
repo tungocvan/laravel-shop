@@ -45,7 +45,7 @@ final class InvoiceDebtExplorer extends Component
                     'i.name', 'i.tax_code', 'i.total_amount')
                 ->selectRaw("(SELECT COUNT(*) FROM finance_debt_obligations d
                     WHERE d.source_module = 'Invoices' AND d.source_type = 'invoice'
-                    AND d.source_document_id = CAST(i.id AS CHAR)) AS linked_debt_count")
+                    AND d.source_document_id = i.id) AS linked_debt_count")
                 ->when($filters['invoiceType'] !== '', fn ($q) => $q->where('i.invoice_type', $filters['invoiceType']))
                 ->when(trim($filters['search']) !== '', function ($q) use ($filters): void {
                     $term = '%'.addcslashes(trim($filters['search']), '%_\\').'%';
