@@ -46,7 +46,7 @@ final class FinanceInvoiceDebtRecognitionTest extends TestCase
 
     public function test_bulk_selection_preview_and_individual_results(): void
     {
-        $user = Mockery::mock(\\Illuminate\\Contracts\\Auth\\Authenticatable::class);
+        $user = Mockery::mock(\Illuminate\Contracts\Auth\Authenticatable::class);
         $user->shouldReceive('can')->with('finance.view')->andReturn(true);
         $user->shouldReceive('can')->with('invoices-list')->andReturn(true);
         $user->shouldReceive('can')->with('finance.debt.manage')->andReturn(true);
