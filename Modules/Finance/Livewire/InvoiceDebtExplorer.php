@@ -15,6 +15,7 @@ final class InvoiceDebtExplorer extends Component
 
     public string $search = '';
     public string $invoiceType = '';
+    public string $reconciliationStatus = 'unrecorded';
     public string $year = '';
     public string $month = '';
     public string $dateFrom = '';
@@ -56,9 +57,12 @@ final class InvoiceDebtExplorer extends Component
 
     private function syncMonthDates(): void
     {
-        if (! preg_match('/^\d{4}$/', $this->year) || ! preg_match('/^(0[1-9]|1[0-2])$/', $this->month)) {
+        if ($this->year === '' || $this->month === '') {
+            $this->dateFrom = $this->year === '' ? '2020-01-01' : $this->year.'-01-01';
+            $this->dateTo = $this->year === '' ? CarbonImmutable::today()->toDateString() : $this->year.'-12-31';
             return;
         }
+        if (! preg_match('/^\d{4}$/', $this->year) || ! preg_match('/^(0[1-9]|1[0-2])$/', $this->month)) { return; }
         $first = CarbonImmutable::createFromFormat('!Y-m-d', $this->year.'-'.$this->month.'-01');
         if (! $first) {
             return;
@@ -84,13 +88,15 @@ final class InvoiceDebtExplorer extends Component
 
     private function selectablePageIds(): array
     {
-        $filters = validator(['search' => $this->search, 'type' => $this->invoiceType], [
-            'search' => 'nullable|string|max:100', 'type' => 'nullable|in:sold,purchase',
+        $filters = validator(['search' => $this->search, 'type' => $this->invoiceType, 'status' => $this->reconciliationStatus], [
+            'search' => 'nullable|string|max:100', 'type' => 'nullable|in:sold,purchase', 'status' => 'required|in:unrecorded,recorded,all',
         ])->validate();
         $term = '%'.addcslashes(trim($filters['search']), '%_\\').'%';
         $page = max(1, (int) $this->getPage('invoicePage'));
         $rows = DB::table('invoices as i')
             ->whereBetween('i.issued_date', [$this->appliedFrom, $this->appliedTo])
+            ->when($filters['status'] === 'unrecorded', fn ($q) => $q->whereNotExists(function ($sub) { $sub->selectRaw('1')->from('finance_debt_obligations as d')->where('d.source_module', 'Invoices')->where('d.source_type', 'invoice')->whereColumn('d.source_document_id', 'i.id'); }))
+            ->when($filters['status'] === 'recorded', fn ($q) => $q->whereExists(function ($sub) { $sub->selectRaw('1')->from('finance_debt_obligations as d')->where('d.source_module', 'Invoices')->where('d.source_type', 'invoice')->whereColumn('d.source_document_id', 'i.id'); }))
             ->when($filters['type'] !== '', fn ($q) => $q->where('i.invoice_type', $filters['type']))
             ->when(trim($filters['search']) !== '', fn ($q) => $q->where(fn ($sub) =>
                 $sub->where('i.invoice_number', 'like', $term)->orWhere('i.symbol', 'like', $term)
@@ -255,10 +261,12 @@ final class InvoiceDebtExplorer extends Component
 
     public function updatedSearch(): void { $this->clearBulk(); $this->resetPage('invoicePage'); }
     public function updatedInvoiceType(): void { $this->clearBulk(); $this->resetPage('invoicePage'); }
+    public function updatedReconciliationStatus(): void { $this->clearBulk(); $this->resetPage('invoicePage'); }
 
     public function resetFilters(): void
     {
         $this->reset('search', 'invoiceType');
+        $this->reconciliationStatus = 'unrecorded';
         $this->mount();
         $this->clearBulk();
         $this->resetPage('invoicePage');
@@ -272,9 +280,11 @@ final class InvoiceDebtExplorer extends Component
         $filters = validator([
             'search' => $this->search,
             'invoiceType' => $this->invoiceType,
+            'reconciliationStatus' => $this->reconciliationStatus,
         ], [
             'search' => 'nullable|string|max:100',
             'invoiceType' => 'nullable|in:sold,purchase',
+            'reconciliationStatus' => 'required|in:unrecorded,recorded,all',
         ])->validate();
 
         $available = (bool) config('modules.registry.Invoices.enabled', false)
@@ -290,6 +300,8 @@ final class InvoiceDebtExplorer extends Component
                     AND d.source_document_id = i.id) AS linked_debt_count")
                 ->whereDate('i.issued_date', '>=', $this->appliedFrom)
                 ->whereDate('i.issued_date', '<=', $this->appliedTo)
+                ->when($filters['reconciliationStatus'] === 'unrecorded', fn ($q) => $q->whereNotExists(function ($sub) { $sub->selectRaw('1')->from('finance_debt_obligations as d')->where('d.source_module', 'Invoices')->where('d.source_type', 'invoice')->whereColumn('d.source_document_id', 'i.id'); }))
+                ->when($filters['reconciliationStatus'] === 'recorded', fn ($q) => $q->whereExists(function ($sub) { $sub->selectRaw('1')->from('finance_debt_obligations as d')->where('d.source_module', 'Invoices')->where('d.source_type', 'invoice')->whereColumn('d.source_document_id', 'i.id'); }))
                 ->when($filters['invoiceType'] !== '', fn ($q) => $q->where('i.invoice_type', $filters['invoiceType']))
                 ->when(trim($filters['search']) !== '', function ($q) use ($filters): void {
                     $term = '%'.addcslashes(trim($filters['search']), '%_\\').'%';
