@@ -21,10 +21,11 @@
     @else
         <section role="tabpanel" aria-label="Công nợ đã ghi nhận" class="space-y-4">
             <p class="text-xs text-slate-500">Giá trị sau điều chỉnh là gốc công nợ; khoản đã thanh toán được theo dõi riêng theo chứng từ đã ghi sổ.</p>
-    <div class="grid gap-3 sm:grid-cols-3">
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <label class="block text-sm font-medium">Tìm chứng từ / đối tác<input aria-label="Tìm công nợ" wire:model.live.debounce.350ms="search" type="search" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm"></label>
         <label class="block text-sm font-medium">Loại công nợ<select wire:model.live="direction" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm"><option value="">Tất cả</option><option value="receivable">Phải thu</option><option value="payable">Phải trả</option></select></label>
         <label class="block text-sm font-medium">Trạng thái<select wire:model.live="status" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm"><option value="">Tất cả</option><option value="draft">Nháp</option><option value="confirmed">Đã xác nhận</option></select></label>
+        <label class="block text-sm font-medium">Thanh toán<select wire:model.live="paymentStatus" aria-label="Lọc trạng thái thanh toán" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm"><option value="">Tất cả</option><option value="unpaid">Chưa thanh toán</option><option value="partial">Thanh toán một phần</option><option value="paid">Đã thanh toán</option></select></label>
     </div>
     @if ($creating && $canManage)
         <div class="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/50 p-3 sm:p-6" role="presentation" wire:key="finance-create-modal">
