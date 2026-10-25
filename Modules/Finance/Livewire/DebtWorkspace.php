@@ -329,7 +329,10 @@ final class DebtWorkspace extends Component
         // Correlated aggregate is computed by SQL for the paginated rows only.
         // No per-row queries and no float conversion of persisted DECIMAL values.
         $query->select('finance_debt_obligations.*')
-            ->selectRaw('(finance_debt_obligations.original_amount + (SELECT COALESCE(SUM(signed_amount), 0) FROM finance_debt_events WHERE obligation_id = finance_debt_obligations.id)) AS adjusted_balance');
+            ->selectRaw('(finance_debt_obligations.original_amount + (SELECT COALESCE(SUM(signed_amount), 0) FROM finance_debt_events WHERE obligation_id = finance_debt_obligations.id)) AS adjusted_balance')
+        if (\Illuminate\Support\Facades\Schema::hasTable('finance_debt_settlement_mappings')) {
+            $query->selectRaw("(SELECT COALESCE(SUM(CASE WHEN operation = 'post' THEN amount ELSE -amount END), 0) FROM finance_debt_settlement_mappings WHERE obligation_id = finance_debt_obligations.id) AS paid_amount");
+        }
         $selected = $this->selectedDebtId === null ? null : DB::table('finance_debt_obligations')->find($this->selectedDebtId);
         $events = $selected ? DB::table('finance_debt_events')->where('obligation_id', $selected->id)->orderByDesc('id')->limit(100)->get() : collect();
         // A single read-only projection owns the exact-decimal principal calculation.
