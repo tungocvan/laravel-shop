@@ -67,6 +67,35 @@ final class FinanceInvoiceDebtExplorerUiTest extends TestCase
         self::assertSame(1, DB::table('finance_debt_obligations')->where('source_document_id', (string) $sold)->count());
     }
 
+    public function test_invoice_pagination_is_compact_and_filter_resets_invoice_page(): void
+    {
+        $this->login(true, true);
+        $tag = 'PAGING-'.uniqid();
+        $rows = [];
+        for ($n = 1; $n <= 55; $n++) {
+            $rows[] = [
+                'invoice_number' => $tag.'-'.$n,
+                'invoice_type' => 'sold',
+                'name' => $tag,
+                'total_amount' => '100.00',
+                'issued_date' => '2026-10-20',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+        DB::table('invoices')->insert($rows);
+
+        Livewire::test(InvoiceDebtExplorer::class)
+            ->set('search', $tag)
+            ->assertSee('Trang 1 / 6')
+            ->assertSee('Trang cuối')
+            ->call('gotoPage', 4, 'invoicePage')
+            ->assertSee('Trang 4 / 6')
+            ->set('invoiceType', 'purchase')
+            ->assertDontSee('Trang 4 / 6')
+            ->assertSee('Không tìm thấy hóa đơn phù hợp.');
+    }
+
     public function test_invoice_catalog_requires_both_module_permissions(): void
     {
         $this->login(true, false);
