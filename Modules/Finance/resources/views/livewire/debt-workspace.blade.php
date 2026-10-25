@@ -123,6 +123,27 @@
                         @if($paymentPreviewed)<span class="text-sm font-medium text-emerald-700">Thông tin nhập hợp lệ. Chưa ghi nhận thanh toán.</span>@endif
                     </div>
                 </div>
+                <section class="space-y-2 rounded-xl border border-slate-200 bg-white p-4" aria-label="Đối chiếu lịch sử thanh toán">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <h4 class="text-sm font-semibold text-slate-900">Đối chiếu lịch sử thanh toán</h4>
+                        <span class="rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800">{{ $paymentEvidence['payment_status'] }}</span>
+                    </div>
+                    <p class="text-xs text-amber-800">{{ $paymentEvidence['warning'] }}</p>
+                    @if ($paymentEvidence['rows'] !== [])
+                        <div class="overflow-x-auto rounded-lg border border-slate-200">
+                            <table class="w-full min-w-[520px] text-left text-xs">
+                                <thead class="bg-slate-50 text-slate-600"><tr><th class="px-3 py-2">Phiếu</th><th class="px-3 py-2">Ngày</th><th class="px-3 py-2">Loại ánh xạ</th><th class="px-3 py-2 text-right">Số tiền</th><th class="px-3 py-2">Trạng thái phiếu</th></tr></thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    @foreach($paymentEvidence['rows'] as $row)
+                                        <tr><td class="px-3 py-2">{{ $row['voucher_number'] ?: 'Không tìm thấy' }}</td><td class="px-3 py-2">{{ $row['voucher_date'] }}</td><td class="px-3 py-2">{{ $row['operation'] === 'reverse' ? 'Hoàn tác' : 'Ghi nhận' }}</td><td class="px-3 py-2 text-right tabular-nums">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd($row['amount']) }}</td><td class="px-3 py-2">{{ $row['voucher_status'] }}</td></tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <p class="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">Chưa có ánh xạ thanh toán nào để đối chiếu.</p>
+                    @endif
+                </section>
                 <p class="text-xs text-slate-500">Đây là bước kiểm tra điều kiện, không phải phiếu thu/chi và không thay đổi công nợ. Số tiền hiển thị chưa trừ thanh toán.</p>
                 <div class="flex justify-end gap-2 border-t border-slate-200 pt-3">
                     <button type="button" wire:click="closePaymentReview" class="min-h-10 rounded-lg border border-slate-300 px-4 text-sm font-medium hover:bg-slate-50">Quay lại</button>
