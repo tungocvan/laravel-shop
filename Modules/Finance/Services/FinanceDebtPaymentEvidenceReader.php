@@ -30,12 +30,13 @@ final class FinanceDebtPaymentEvidenceReader
 
         $mappings = DB::table('finance_debt_settlement_mappings as m')
             ->leftJoin('finance_vouchers as v', 'v.id', '=', 'm.voucher_id')
+            ->leftJoin('finance_debt_settlement_audit_events as ae', 'ae.mapping_id', '=', 'm.id')
             ->where('m.obligation_id', $debtId)
             ->orderByDesc('m.id')
             ->limit(100)
             ->get(['m.id', 'm.operation', 'm.amount', 'm.created_at', 'm.voucher_id',
                 'm.reverses_mapping_id', 'v.number as voucher_number',
-                'v.status as voucher_status', 'v.voucher_date']);
+                'v.status as voucher_status', 'v.voucher_date', 'ae.reason as audit_reason', 'ae.actor_id as audit_actor', 'ae.occurred_at as audit_time']);
         $empty['rows'] = $mappings->map(fn ($m) => [
             'id' => (int) $m->id,
             'operation' => (string) $m->operation,
@@ -43,6 +44,9 @@ final class FinanceDebtPaymentEvidenceReader
             'voucher_number' => (string) ($m->voucher_number ?? ''),
             'voucher_status' => (string) ($m->voucher_status ?? 'missing'),
             'voucher_date' => (string) ($m->voucher_date ?? ''),
+            'audit_reason' => (string) ($m->audit_reason ?? ''),
+            'audit_actor' => $m->audit_actor === null ? null : (int) $m->audit_actor,
+            'audit_time' => (string) ($m->audit_time ?? ''),
             'reverses_mapping_id' => $m->reverses_mapping_id === null ? null : (int) $m->reverses_mapping_id,
         ])->all();
 
