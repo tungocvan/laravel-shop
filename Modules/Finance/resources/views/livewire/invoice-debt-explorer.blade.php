@@ -214,10 +214,6 @@
                 @endif
                 @error('invoice')<p role="alert" class="text-sm text-red-700">{{ $message }}</p>@enderror
             </section>
-        @endif
-
-                            </td></tr>
-                
                 </div>
             </div>
         @endif
