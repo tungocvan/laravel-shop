@@ -554,3 +554,8 @@ User confirmed CP06 regression 247 passed, 4 skipped, 914 assertions, UI17–19 
 ## Checkpoint 08A — Invoices source explorer, Git Pull/Test pending
 
 After CP07 PASS (249 passed, 4 skipped, 923 assertions; UI20–22 PASS), user requested priority integration of Modules/Invoices before UI polish. Inspected actual Invoices model, schema and routes. Added a read-only searchable invoice catalog in Finance Documents, showing sold/purchase totals and matching source identity, gated by both finance.view and invoices-list. No payment allocation contract was established; no settlement or invoice-to-debt auto posting implemented. Focused test and acceptance in DEMO_UI_ACCEPTANCE_CHECKPOINT_08A_INVOICES.md. Await WSL focused/regression tests and UI23–25. Do not start accounting write integration without new approval and validated source/payment lifecycle.
+
+
+## Checkpoint 08A repair — awaiting repeat Git Pull/Test
+
+User screenshot: 285-page pagination rendered an excessive row of page buttons. WSL regression: 5 failed, 4 skipped, 247 passed (920 assertions), SQLite no such table permissions from newly introduced invoices-list check inside DebtWorkspace Blade. Replaced default invoice pagination with compact window and First/Prev/Next/Last. Guarded parent invoice component mount behind Schema::hasTable('permissions') before Spatie can('invoices-list') to avoid isolated Finance test failures; child still requires both finance.view and invoices-list. Added pagination/reset test. No payment or accounting writes. Repeat focused test and full Finance suite; browser UI23–25. Do not proceed until PASS.
