@@ -13,6 +13,7 @@ use Modules\Finance\Services\FinanceDebtPaymentPostingService;
 use Modules\Finance\Services\FinanceDebtPaymentReversalService;
 use Modules\Finance\Services\FinanceDebtPaymentEvidenceReader;
 use Modules\Finance\Services\FinanceDebtReconciliation11G;
+use Modules\Finance\Services\FinanceDebtPeriodReport11G2;
 use Modules\Finance\Services\PartnerDebtDraftService;
 use Modules\Partner\Models\Partner;
 
@@ -27,6 +28,8 @@ final class DebtWorkspace extends Component
     public string $paymentStatus = '';
     public string $reconcileDirection = '';
     public string $reconcileSearch = '';
+    public string $periodFrom = '';
+    public string $periodTo = '';
     public bool $creating = false;
     public string $reference = '';
     public string $draftDirection = 'receivable';
@@ -49,6 +52,8 @@ final class DebtWorkspace extends Component
 
     public function mount(): void
     {
+        $this->periodFrom = now()->startOfMonth()->toDateString();
+        $this->periodTo = now()->toDateString();
         $id = request()->query('debt');
         if (is_scalar($id) && ctype_digit((string) $id) && (int) $id > 0
             && DB::table('finance_debt_obligations')->where('id', (int) $id)->exists()) {
@@ -60,7 +65,7 @@ final class DebtWorkspace extends Component
     public function setTab(string $tab): void
     {
         $this->authorizeView();
-        abort_unless(in_array($tab, ['invoices', 'debts', 'reconciliation'], true), 422);
+        abort_unless(in_array($tab, ['invoices', 'debts', 'reconciliation', 'period'], true), 422);
         $this->activeTab = $tab;
     }
 
@@ -70,6 +75,8 @@ final class DebtWorkspace extends Component
     public function updatedPaymentStatus(): void { $this->resetPage(); }
     public function updatedReconcileDirection(): void { $this->resetPage(); }
     public function updatedReconcileSearch(): void { $this->resetPage(); }
+    public function updatedPeriodFrom(): void { $this->resetPage('periodPage'); }
+    public function updatedPeriodTo(): void { $this->resetPage('periodPage'); }
 
     private function authorizeView(): void
     {
@@ -390,6 +397,9 @@ final class DebtWorkspace extends Component
             'paymentEvidence' => $paymentReview === null ? null : app(FinanceDebtPaymentEvidenceReader::class)->forObligation($this->paymentReviewDebtId),
             'selectedPaymentEvidence' => $selected === null ? null : app(FinanceDebtPaymentEvidenceReader::class)->forObligation((int) $selected->id),
             'paymentReview' => $paymentReview,
+            'periodReport' => $this->activeTab === 'period'
+                ? app(FinanceDebtPeriodReport11G2::class)->snapshot($this->periodFrom, $this->periodTo, $this->reconcileDirection, $this->reconcileSearch)
+                : null,
             'reconciliation' => $this->activeTab === 'reconciliation'
                 ? app(FinanceDebtReconciliation11G::class)->snapshot($this->reconcileDirection, $this->reconcileSearch)
                 : null,
