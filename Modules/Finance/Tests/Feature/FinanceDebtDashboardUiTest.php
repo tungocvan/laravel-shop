@@ -94,4 +94,24 @@ final class FinanceDebtDashboardUiTest extends TestCase
             ->call('closeDebt')
             ->assertSet('selectedDebtId', null);
     }
+    public function test_confirmed_debt_payment_review_is_read_only_and_draft_is_not_payable(): void
+    {
+        $this->login();
+        $confirmed = $this->debt('PAY-REVIEW-'.uniqid(), 'payable', 'confirmed', '125000.00', null);
+        $draft = $this->debt('PAY-DRAFT-'.uniqid(), 'receivable', 'draft', '100.00', null);
+
+        $screen = Livewire::test(DebtWorkspace::class)->call('setTab', 'debts')
+            ->call('openPaymentReview', $confirmed)
+            ->assertSet('paymentReviewDebtId', $confirmed)
+            ->assertSee('Kiểm tra trước khi thanh toán')
+            ->assertSee('Chưa thể xác nhận đã thanh toán')
+            ->assertSee('aria-modal="true"', false)
+            ->call('closePaymentReview')
+            ->assertSet('paymentReviewDebtId', null);
+
+        $screen->call('openPaymentReview', $draft)->assertNotFound();
+        self::assertSame('confirmed', DB::table('finance_debt_obligations')->where('id', $confirmed)->value('status'));
+        self::assertSame(0, DB::table('finance_debt_events')->where('obligation_id', $confirmed)->count());
+    }
+
 }
