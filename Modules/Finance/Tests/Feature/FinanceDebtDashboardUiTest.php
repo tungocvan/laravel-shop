@@ -105,6 +105,8 @@ final class FinanceDebtDashboardUiTest extends TestCase
             ->assertSet('paymentReviewDebtId', $confirmed)
             ->assertSee('Kiểm tra trước khi thanh toán')
             ->assertSee('Chưa thể xác nhận đã thanh toán')
+            ->assertSee('Đối chiếu lịch sử thanh toán')
+            ->assertSee('Chưa xác minh thanh toán')
             ->assertSee('aria-modal="true"', false)
             ->call('closePaymentReview')
             ->assertSet('paymentReviewDebtId', null);
