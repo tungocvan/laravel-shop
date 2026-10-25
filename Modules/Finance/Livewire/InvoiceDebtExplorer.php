@@ -74,9 +74,122 @@ final class InvoiceDebtExplorer extends Component
         ])->validate();
         $this->appliedFrom = $dates['from'];
         $this->appliedTo = $dates['to'];
+        $this->clearBulk();
         $this->resetPage('invoicePage');
     }
 
+
+
+    private function selectablePageIds(): array
+    {
+        $filters = validator(['search' => $this->search, 'type' => $this->invoiceType], [
+            'search' => 'nullable|string|max:100', 'type' => 'nullable|in:sold,purchase',
+        ])->validate();
+        $term = '%'.addcslashes(trim($filters['search']), '%_\\').'%';
+        $page = max(1, (int) $this->getPage('invoicePage'));
+        $rows = DB::table('invoices as i')
+            ->whereBetween('i.issued_date', [$this->appliedFrom, $this->appliedTo])
+            ->when($filters['type'] !== '', fn ($q) => $q->where('i.invoice_type', $filters['type']))
+            ->when(trim($filters['search']) !== '', fn ($q) => $q->where(fn ($sub) =>
+                $sub->where('i.invoice_number', 'like', $term)->orWhere('i.symbol', 'like', $term)
+                    ->orWhere('i.name', 'like', $term)->orWhere('i.tax_code', 'like', $term)))
+            ->orderByDesc('i.issued_date')->orderByDesc('i.id')
+            ->forPage($page, 10)->pluck('i.id')->map(fn ($id) => (int) $id)->all();
+        $linked = DB::table('finance_debt_obligations')->where('source_module', 'Invoices')
+            ->where('source_type', 'invoice')->whereIn('source_document_id', array_map('strval', $rows))
+            ->pluck('source_document_id')->map(fn ($id) => (int) $id)->all();
+        return array_values(array_diff($rows, $linked));
+    }
+
+    private function clearBulk(): void
+    {
+        $this->bulkSelected = [];
+        $this->bulkPreview = [];
+        $this->bulkResults = [];
+        $this->bulkReviewed = false;
+    }
+
+    public function toggleBulk(int $id): void
+    {
+        $this->authorizeManage();
+        $this->bulkPreview = [];
+        $this->bulkResults = [];
+        $this->bulkReviewed = false;
+        if (! in_array($id, $this->selectablePageIds(), true)) {
+            return;
+        }
+        $this->bulkSelected = in_array($id, $this->bulkSelected, true)
+            ? array_values(array_diff($this->bulkSelected, [$id]))
+            : array_values(array_unique([...$this->bulkSelected, $id]));
+    }
+
+    public function toggleBulkPage(): void
+    {
+        $this->authorizeManage();
+        $ids = $this->selectablePageIds();
+        $all = $ids !== [] && count(array_intersect($ids, $this->bulkSelected)) === count($ids);
+        $this->bulkSelected = $all ? array_values(array_diff($this->bulkSelected, $ids))
+            : array_values(array_unique([...$this->bulkSelected, ...$ids]));
+        $this->bulkPreview = [];
+        $this->bulkResults = [];
+        $this->bulkReviewed = false;
+    }
+
+    public function prepareBulk(InvoiceDebtRecognitionService $service): void
+    {
+        $this->authorizeManage();
+        $ids = array_values(array_unique(array_map('intval', $this->bulkSelected)));
+        if ($ids === [] || count($ids) > 10 || count(array_intersect($ids, $this->selectablePageIds())) !== count($ids)) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['bulk' => 'Chỉ được chọn tối đa 10 hóa đơn chưa liên kết trên trang hiện tại.']);
+        }
+        $this->bulkPreview = [];
+        $this->bulkResults = [];
+        $this->bulkReviewed = false;
+        foreach ($ids as $id) {
+            $data = $service->preview($id);
+            $invoice = $data['invoice'];
+            $this->bulkPreview[] = [
+                'id' => $id,
+                'reference' => (string) $invoice->symbol.'/'.(string) $invoice->invoice_number,
+                'partner' => (string) $invoice->name,
+                'amount' => (string) $invoice->total_amount,
+                'issues' => $data['issues'],
+            ];
+        }
+    }
+
+    public function confirmBulk(InvoiceDebtRecognitionService $service): void
+    {
+        $actorId = $this->authorizeManage();
+        $ids = array_column($this->bulkPreview, 'id');
+        if (! $this->bulkReviewed || $ids === [] || count($ids) > 10
+            || count($ids) !== count(array_unique($ids))
+            || $ids !== array_values($this->bulkSelected)
+            || count(array_intersect($ids, $this->selectablePageIds())) !== count($ids)) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['bulk' => 'Danh sách thay đổi hoặc chưa xác nhận kiểm tra. Vui lòng xem trước lại.']);
+        }
+        $this->bulkResults = [];
+        foreach ($this->bulkPreview as $row) {
+            $id = (int) $row['id'];
+            if ($row['issues'] !== []) {
+                $this->bulkResults[] = ['id' => $id, 'reference' => $row['reference'], 'status' => 'skipped', 'reason' => implode(' ', $row['issues'])];
+                continue;
+            }
+            try {
+                $debtId = $service->confirm($id, $actorId, $this->bulkRecognizedOn,
+                    $this->bulkDueOn !== '' ? $this->bulkDueOn : null, true);
+                $this->bulkResults[] = ['id' => $id, 'reference' => $row['reference'], 'status' => 'success', 'reason' => 'Đã ghi nhận công nợ #'.$debtId];
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                $this->bulkResults[] = ['id' => $id, 'reference' => $row['reference'], 'status' => 'skipped', 'reason' => implode(' ', $e->validator->errors()->all())];
+            } catch (\Throwable $e) {
+                report($e);
+                $this->bulkResults[] = ['id' => $id, 'reference' => $row['reference'], 'status' => 'failed', 'reason' => 'Lỗi xử lý, kiểm tra nhật ký hệ thống.'];
+            }
+        }
+        $this->bulkSelected = [];
+        $this->bulkPreview = [];
+        $this->bulkReviewed = false;
+    }
 
     public function openReview(int $invoiceId, InvoiceDebtRecognitionService $service): void
     {
@@ -126,13 +239,14 @@ final class InvoiceDebtExplorer extends Component
         return (int) auth('admin')->id();
     }
 
-    public function updatedSearch(): void { $this->resetPage(); }
-    public function updatedInvoiceType(): void { $this->resetPage(); }
+    public function updatedSearch(): void { $this->clearBulk(); $this->resetPage('invoicePage'); }
+    public function updatedInvoiceType(): void { $this->clearBulk(); $this->resetPage('invoicePage'); }
 
     public function resetFilters(): void
     {
         $this->reset('search', 'invoiceType');
         $this->mount();
+        $this->clearBulk();
         $this->resetPage('invoicePage');
     }
 
