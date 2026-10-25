@@ -114,10 +114,12 @@
             </div>
         @endif
         @if($bulkResults !== [])
+            <div class="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/50 p-3 sm:p-6" role="presentation" wire:key="invoice-bulk-results-modal">
+                <div role="dialog" aria-modal="true" aria-label="Kết quả xác nhận hàng loạt" class="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-4 shadow-2xl sm:p-6">
             <section class="space-y-3 rounded-xl border border-slate-200 bg-white p-4" aria-label="Kết quả xác nhận hàng loạt">
                 <div class="flex flex-wrap items-center justify-between gap-2">
                     <h3 class="font-semibold">Kết quả xác nhận {{ count($bulkResults) }} hóa đơn</h3>
-                    <button type="button" wire:click="toggleBulkResults" class="rounded-lg border border-slate-300 px-3 py-2 text-xs">{{ $bulkResultsExpanded ? 'Thu gọn' : 'Xem chi tiết' }}</button>
+                    <div class="flex items-center gap-2"><button type="button" wire:click="toggleBulkResults" class="rounded-lg border border-slate-300 px-3 py-2 text-xs">{{ $bulkResultsExpanded ? 'Thu gọn' : 'Xem chi tiết' }}</button><button type="button" wire:click="closeBulkResults" class="rounded-lg border border-slate-300 px-3 py-2 text-xs" aria-label="Đóng kết quả hàng loạt">Đóng ✕</button></div>
                 </div>
                 <div class="grid grid-cols-3 gap-2 text-center text-sm">
                     <div class="rounded-lg bg-emerald-50 p-3"><strong class="block text-lg text-emerald-700">{{ collect($bulkResults)->where('status', 'success')->count() }}</strong><span>Thành công</span></div>
@@ -137,6 +139,8 @@
                     </table></div>
                 @endif
             </section>
+                </div>
+            </div>
         @endif
         @error('bulk')<p role="alert" class="text-sm text-rose-700">{{ $message }}</p>@enderror
         <div class="overflow-x-auto rounded-lg border border-slate-200" role="region" aria-label="Danh sách hóa đơn từ Invoices" tabindex="0">
