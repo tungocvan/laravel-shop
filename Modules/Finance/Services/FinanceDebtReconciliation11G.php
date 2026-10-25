@@ -31,6 +31,8 @@ final class FinanceDebtReconciliation11G
             ->selectRaw("(SELECT COUNT(*) FROM finance_debt_settlement_mappings m LEFT JOIN finance_vouchers v ON v.id=m.voucher_id LEFT JOIN finance_debt_allocation_ownerships o ON o.mapping_id=m.id WHERE m.obligation_id=d.id AND (v.id IS NULL OR v.status NOT IN ('posted','reversed') OR (m.operation='post' AND o.id IS NULL) OR (m.operation='reverse' AND (m.reverses_mapping_id IS NULL OR v.status <> 'reversed')))) AS suspect_mappings")
             ->selectRaw("(SELECT COUNT(*) FROM finance_debt_settlement_mappings m JOIN finance_vouchers v ON v.id=m.voucher_id WHERE m.obligation_id=d.id AND m.operation='post' AND v.status='reversed' AND NOT EXISTS (SELECT 1 FROM finance_debt_settlement_mappings r WHERE r.reverses_mapping_id=m.id AND r.operation='reverse')) AS missing_reversals")
             ->selectRaw("(SELECT COUNT(*) FROM finance_debt_settlement_mappings m JOIN finance_vouchers v ON v.id=m.voucher_id WHERE m.obligation_id=d.id AND m.operation='reverse' AND NOT EXISTS (SELECT 1 FROM finance_ledger_entries l WHERE l.voucher_id=v.id AND l.entry_type='reversal')) AS missing_reversal_ledgers")
+            ->selectRaw("(SELECT COUNT(*) FROM finance_debt_settlement_mappings m WHERE m.obligation_id=d.id AND m.operation='post' AND NOT EXISTS (SELECT 1 FROM finance_ledger_entries l WHERE l.voucher_id=m.voucher_id AND l.entry_type='posting')) AS missing_posting_ledgers")
+            ->selectRaw("(SELECT COUNT(*) FROM finance_debt_settlement_mappings m WHERE m.obligation_id=d.id AND m.operation='reverse' AND NOT EXISTS (SELECT 1 FROM finance_debt_settlement_mappings p WHERE p.id=m.reverses_mapping_id AND p.operation='post' AND p.obligation_id=d.id AND p.voucher_id=m.voucher_id AND p.amount=m.amount)) AS invalid_reversal_origins")
             ->when(in_array($direction, ['receivable', 'payable'], true), fn ($q) => $q->where('d.direction', $direction))
             ->when(trim($search) !== '', function ($q) use ($search): void {
                 $term = '%'.addcslashes(trim($search), '%_\\').'%';
@@ -41,7 +43,7 @@ final class FinanceDebtReconciliation11G
         $data = DB::query()->fromSub($query, 'x')
             ->select('x.*')
             ->selectRaw('(principal - net_mapped) AS outstanding')
-            ->selectRaw("(CASE WHEN suspect_mappings > 0 OR missing_reversals > 0 OR missing_reversal_ledgers > 0 OR net_mapped < 0 OR net_mapped > principal OR principal < 0 THEN 'review' ELSE 'matched' END) AS reconciliation_status");
+            ->selectRaw("(CASE WHEN suspect_mappings > 0 OR missing_reversals > 0 OR missing_reversal_ledgers > 0 OR missing_posting_ledgers > 0 OR invalid_reversal_origins > 0 OR net_mapped < 0 OR net_mapped > principal OR principal < 0 THEN 'review' ELSE 'matched' END) AS reconciliation_status");
 
         $totals = DB::query()->fromSub(clone $data, 'r')
             ->selectRaw('COUNT(*) AS debt_count')
