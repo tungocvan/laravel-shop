@@ -15,7 +15,9 @@
         <label class="block text-sm font-medium">Trạng thái<select wire:model.live="status" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm"><option value="">Tất cả</option><option value="draft">Nháp</option><option value="confirmed">Đã xác nhận</option></select></label>
     </div>
     @if ($creating && $canManage)
-        <form wire:submit="create" class="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+        <div class="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/50 p-3 sm:p-6" role="presentation" wire:key="finance-create-modal">
+            <div role="dialog" aria-modal="true" aria-label="Tạo công nợ thủ công" class="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl sm:p-6">
+        <form wire:submit="create" class="space-y-4">
             <h3 class="font-semibold">Tạo công nợ thủ công</h3>
             <div class="grid gap-3 sm:grid-cols-2">
                 <label class="text-sm">Số chứng từ<input wire:model="reference" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3" required maxlength="100"></label>
@@ -28,14 +30,16 @@
             <button wire:loading.attr="disabled" wire:target="create" type="submit" class="rounded-xl bg-indigo-700 px-4 py-2 text-sm font-semibold text-white">Lưu nháp</button>
             <button type="button" wire:click="$set('creating', false)" class="rounded-xl border border-slate-300 px-4 py-2 text-sm">Đóng</button>
         </form>
+            </div>
+        </div>
     @endif
     <div class="min-w-0 max-w-full overflow-x-auto overscroll-x-contain rounded-xl border border-slate-200" role="region" aria-label="Bảng danh sách công nợ, vuốt ngang để xem các cột" tabindex="0">
         <p class="px-3 pt-2 text-xs text-slate-500 sm:hidden">Vuốt ngang trong bảng để xem thêm cột.</p>
         <table class="w-full min-w-[960px] divide-y divide-slate-200 text-left text-sm">
-            <thead class="bg-slate-50"><tr><th class="whitespace-nowrap p-3">Chứng từ</th><th class="p-3">Đối tác</th><th class="p-3">Loại</th><th class="p-3">Số tiền gốc</th><th class="p-3">Số dư sau điều chỉnh</th><th class="p-3">Hạn</th><th class="p-3">Trạng thái</th><th class="p-3">Chi tiết</th></tr></thead>
+            <thead class="bg-slate-50"><tr><th class="whitespace-nowrap p-3">Chứng từ</th><th class="p-3">Đối tác</th><th class="p-3">Loại</th><th class="p-3">Số tiền gốc</th><th class="p-3">Giá trị sau điều chỉnh</th><th class="p-3">Hạn</th><th class="p-3">Trạng thái</th><th class="p-3">Chi tiết</th></tr></thead>
             <tbody class="divide-y divide-slate-100">
                 @forelse ($debts as $debt)
-                    <tr><td class="p-3 whitespace-nowrap">{{ $debt->reference_number }}</td><td class="p-3">{{ $debt->counterparty_name }}</td><td class="p-3">{{ $debt->direction === 'receivable' ? 'Phải thu' : 'Phải trả' }}</td><td class="p-3 whitespace-nowrap">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $debt->original_amount) }}</td><td class="p-3 whitespace-nowrap font-semibold tabular-nums text-indigo-800">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $debt->adjusted_balance) }}</td><td class="p-3">{{ $debt->due_on ?: '—' }}</td><td class="p-3">{{ $debt->status === 'draft' ? 'Nháp' : ($debt->status === 'confirmed' ? 'Đã xác nhận' : $debt->status) }}</td><td class="p-3"><button wire:click="selectDebt({{ $debt->id }})" class="font-semibold text-indigo-700 underline">Xem</button></td></tr>
+                    <tr><td class="p-3 whitespace-nowrap">{{ $debt->reference_number }}</td><td class="p-3">{{ $debt->counterparty_name }}</td><td class="p-3">{{ $debt->direction === 'receivable' ? 'Phải thu' : 'Phải trả' }}</td><td class="p-3 whitespace-nowrap">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $debt->original_amount) }}</td><td class="p-3 whitespace-nowrap font-semibold tabular-nums text-indigo-800">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $debt->adjusted_balance) }}</td><td class="p-3">{{ $debt->due_on ?: '—' }}</td><td class="p-3">{{ $debt->status === 'draft' ? 'Nháp' : ($debt->status === 'confirmed' ? 'Đã xác nhận' : $debt->status) }}</td><td class="p-3"><button wire:click="selectDebt({{ $debt->id }})" class="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-50">Chi tiết</button></td></tr>
                 @empty <tr><td colspan="8" class="p-6 text-center text-slate-500">Chưa có công nợ phù hợp.</td></tr>
                 @endforelse
             </tbody>
@@ -43,7 +47,9 @@
     </div>
     {{ $debts->links() }}
     @if ($selected)
-        <section class="space-y-3 rounded-xl border border-slate-200 p-4" aria-label="Chi tiết công nợ">
+        <div class="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/50 p-3 sm:p-6" role="presentation" wire:key="finance-detail-modal">
+            <section role="dialog" aria-modal="true" aria-label="Chi tiết công nợ" class="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl sm:p-6 space-y-4">
+            <div class="flex items-center justify-between gap-3 border-b border-slate-200 pb-3"><p class="text-xs font-semibold uppercase tracking-wide text-indigo-700">Finance / Công nợ</p><button type="button" wire:click="closeDebt" class="rounded-lg border border-slate-300 px-3 py-2 text-sm" aria-label="Đóng chi tiết công nợ">Đóng ✕</button></div>
             <h3 class="font-semibold">Chi tiết: {{ $selected->reference_number }}</h3>
             <p class="text-sm">Đối tác: {{ $selected->counterparty_name }} · Trạng thái: {{ $selected->status }} · Số tiền gốc: {{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $selected->original_amount) }}</p>
             <div class="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-3" aria-label="Tổng hợp công nợ">
@@ -66,6 +72,7 @@
                     <button wire:loading.attr="disabled" wire:target="adjust" type="submit" class="rounded-xl bg-indigo-700 px-4 py-2 text-sm font-semibold text-white">Ghi nhận điều chỉnh</button>
                 </form>
             @endif
-        </section>
+            </section>
+        </div>
     @endif
 </div>
