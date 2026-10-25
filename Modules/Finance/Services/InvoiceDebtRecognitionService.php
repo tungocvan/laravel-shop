@@ -3,6 +3,7 @@
 namespace Modules\Finance\Services;
 
 use Illuminate\Database\QueryException;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
@@ -46,10 +47,26 @@ final class InvoiceDebtRecognitionService
         return ['invoice' => $invoice, 'issues' => $issues];
     }
 
+    public function defaultDueOn(string $issuedOn): ?string
+    {
+        if (! preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $issuedOn)) {
+            return null;
+        }
+        try {
+            $issued = CarbonImmutable::createFromFormat('!Y-m-d', $issuedOn);
+            if (! $issued || $issued->format('Y-m-d') !== $issuedOn) {
+                return null;
+            }
+            return $issued->addDays(90)->toDateString();
+        } catch (\\Throwable) {
+            return null;
+        }
+    }
+
     public function confirm(int $invoiceId, int $actorId, string $recognizedOn, ?string $dueOn, bool $reviewed): int
     {
         if ($actorId <= 0 || ! $reviewed || ! $this->validDate($recognizedOn)
-            || ($dueOn !== null && (! $this->validDate($dueOn) || $dueOn < $recognizedOn))) {
+            || ($dueOn !== null && ! $this->validDate($dueOn))) {
             throw ValidationException::withMessages(['invoice' => 'Cần xác nhận kiểm tra hóa đơn và ngày ghi nhận/hạn thanh toán hợp lệ.']);
         }
         try {
