@@ -41,15 +41,43 @@
                     <div class="rounded-xl border p-3"><p class="text-xs text-slate-500">Số dư cuối kỳ (tham khảo)</p><strong>{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $periodReport['totals']->closing_balance) }}</strong></div>
                 </div>
                 <p class="text-sm text-slate-600">Cần kiểm tra: <strong>{{ $periodReport['totals']->review_count }}</strong> / {{ $periodReport['totals']->debt_count }} công nợ. Các số tổng chỉ cộng dòng không bị gắn cờ.</p>
-                <div class="overflow-x-auto rounded-xl border border-slate-200" role="region" aria-label="Bảng biến động công nợ" tabindex="0">
-                    <table class="w-full min-w-[1000px] text-left text-sm">
-                        <thead class="bg-slate-50"><tr><th class="p-3">Chứng từ</th><th class="p-3">Đối tác</th><th class="p-3">Loại</th><th class="p-3 text-right">Đầu kỳ</th><th class="p-3 text-right">Phát sinh</th><th class="p-3 text-right">Thanh toán ròng</th><th class="p-3 text-right">Cuối kỳ</th><th class="p-3">Tình trạng</th></tr></thead>
+                <div class="max-w-full overflow-x-auto overscroll-x-contain rounded-xl border border-slate-200" role="region" aria-label="Bảng biến động công nợ" tabindex="0">
+                    <p class="px-3 pt-2 text-xs text-slate-500 sm:hidden">Vuốt ngang để xem các cột còn lại.</p>
+                    <table class="w-full min-w-[1050px] text-left text-sm">
+                        <thead class="bg-slate-50"><tr><th class="p-3">Chứng từ</th><th class="p-3">Đối tác</th><th class="p-3">Loại</th><th class="whitespace-nowrap p-3 text-right">Đầu kỳ</th><th class="whitespace-nowrap p-3 text-right">Phát sinh</th><th class="whitespace-nowrap p-3 text-right">Thanh toán ròng</th><th class="whitespace-nowrap p-3 text-right">Cuối kỳ</th><th class="p-3">Tình trạng</th></tr></thead>
                         <tbody>@forelse ($periodReport['rows'] as $item)
-                            <tr class="border-t"><td class="p-3">{{ $item->reference_number }}</td><td class="p-3">{{ $item->counterparty_name }}</td><td class="p-3">{{ $item->direction === 'receivable' ? 'Phải thu' : 'Phải trả' }}</td><td class="p-3 text-right">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $item->opening_balance) }}</td><td class="p-3 text-right">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $item->principal_movement) }}</td><td class="p-3 text-right">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $item->payment_movement) }}</td><td class="p-3 text-right">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $item->closing_balance) }}</td><td class="p-3">{{ $item->report_status === 'review' ? 'Cần đối soát' : 'Tham khảo' }}</td></tr>
+                            <tr class="border-t"><td class="p-3">{{ $item->reference_number }}</td><td class="p-3">{{ $item->counterparty_name }}</td><td class="p-3">{{ $item->direction === 'receivable' ? 'Phải thu' : 'Phải trả' }}</td><td class="whitespace-nowrap p-3 text-right tabular-nums">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $item->opening_balance) }}</td><td class="whitespace-nowrap p-3 text-right tabular-nums">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $item->principal_movement) }}</td><td class="whitespace-nowrap p-3 text-right tabular-nums">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $item->payment_movement) }}</td><td class="whitespace-nowrap p-3 text-right tabular-nums">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $item->closing_balance) }}</td><td class="p-3"><span class="inline-flex whitespace-nowrap rounded-full px-2 py-1 text-xs font-medium {{ $item->report_status === 'review' ? 'bg-amber-50 text-amber-800 ring-1 ring-amber-200' : 'bg-slate-100 text-slate-700' }}">{{ $item->report_status === 'review' ? 'Cần đối soát' : 'Tham khảo' }}</span></td></tr>
                         @empty <tr><td colspan="8" class="p-4 text-slate-500">Không có dữ liệu trong kỳ.</td></tr> @endforelse</tbody>
                     </table>
                 </div>
-                {{ $periodReport['rows']->links() }}
+                @if ($periodReport['rows']->hasPages())
+                    @php
+                        $periodPage = $periodReport['rows']->currentPage();
+                        $periodLast = $periodReport['rows']->lastPage();
+                        $periodStart = max(1, min($periodPage - 2, max(1, $periodLast - 4)));
+                        $periodEnd = min($periodLast, $periodStart + 4);
+                    @endphp
+                    <nav class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm" aria-label="Phân trang báo cáo công nợ theo kỳ">
+                        <p class="text-slate-600">Trang {{ $periodPage }} / {{ $periodLast }} · {{ number_format($periodReport['rows']->total(), 0, ',', '.') }} công nợ</p>
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            <button type="button" wire:click="gotoPage(1, 'periodPage')" @disabled($periodPage === 1) class="min-h-10 rounded-lg border border-slate-300 bg-white px-3 font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">Đầu</button>
+                            <button type="button" wire:click="previousPage('periodPage')" @disabled($periodPage === 1) aria-label="Trang trước" class="min-h-10 min-w-10 rounded-lg border border-slate-300 bg-white px-3 text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">‹</button>
+                            @if ($periodStart > 1)
+                                <button type="button" wire:click="gotoPage(1, 'periodPage')" class="min-h-10 min-w-10 rounded-lg border border-slate-300 bg-white px-3 text-slate-700 hover:bg-slate-50">1</button>
+                                @if ($periodStart > 2) <span class="px-1 text-slate-500" aria-hidden="true">…</span> @endif
+                            @endif
+                            @for ($pageNumber = $periodStart; $pageNumber <= $periodEnd; $pageNumber++)
+                                <button type="button" wire:click="gotoPage({{ $pageNumber }}, 'periodPage')" @if ($pageNumber === $periodPage) aria-current="page" @endif class="min-h-10 min-w-10 rounded-lg border px-3 font-semibold {{ $pageNumber === $periodPage ? 'border-indigo-700 bg-indigo-700 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50' }}">{{ $pageNumber }}</button>
+                            @endfor
+                            @if ($periodEnd < $periodLast)
+                                @if ($periodEnd < $periodLast - 1) <span class="px-1 text-slate-500" aria-hidden="true">…</span> @endif
+                                <button type="button" wire:click="gotoPage({{ $periodLast }}, 'periodPage')" class="min-h-10 min-w-10 rounded-lg border border-slate-300 bg-white px-3 text-slate-700 hover:bg-slate-50">{{ $periodLast }}</button>
+                            @endif
+                            <button type="button" wire:click="nextPage('periodPage')" @disabled($periodPage === $periodLast) aria-label="Trang sau" class="min-h-10 min-w-10 rounded-lg border border-slate-300 bg-white px-3 text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">›</button>
+                            <button type="button" wire:click="gotoPage({{ $periodLast }}, 'periodPage')" @disabled($periodPage === $periodLast) class="min-h-10 rounded-lg border border-slate-300 bg-white px-3 font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">Cuối</button>
+                        </div>
+                    </nav>
+                @endif
             @endif
         </section>
     @elseif ($activeTab === 'reconciliation')
