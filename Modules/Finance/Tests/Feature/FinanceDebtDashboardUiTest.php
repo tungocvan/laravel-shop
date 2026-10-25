@@ -73,7 +73,9 @@ final class FinanceDebtDashboardUiTest extends TestCase
     {
         $this->login();
         $id = $this->debt('DASH-LINK-'.uniqid(), 'receivable', 'draft', '50.00', null);
-        $this->app['request']->query->set('debt', (string) $id);
-        Livewire::test(DebtWorkspace::class)->assertOk()->assertSet('selectedDebtId', $id);
+        Livewire::withQueryParams(['debt' => (string) $id])
+            ->test(DebtWorkspace::class)
+            ->assertOk()
+            ->assertSet('selectedDebtId', $id);
     }
 }
