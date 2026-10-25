@@ -29,20 +29,43 @@ final class FinanceDebtPaymentReview
         if ($debt->status !== 'confirmed') {
             $reasons[] = 'Công nợ chưa được xác nhận.';
         }
-        if ($link === null) {
-            $reasons[] = 'Chưa có liên kết chứng từ nguồn Finance được xác minh cho khoản công nợ này.';
+        $invoiceEligible = $debt->source_module === 'Invoices' && $debt->source_type === 'invoice'
+            && ctype_digit((string) $debt->source_document_id) && Schema::hasTable('invoices');
+        if (! $invoiceEligible) {
+            $reasons[] = '11E hiện hỗ trợ công nợ có hóa đơn nguồn Invoices; công nợ thủ công chưa được kích hoạt.';
         } else {
-            $source = DB::table('finance_source_documents')->where('id', $link['source_id'])->first();
-            if ($source === null || (string) $source->currency !== (string) $debt->currency
-                || (string) $source->direction !== (string) $debt->direction
-                || (string) $source->source_document_id !== (string) $debt->source_document_id
-                || (string) $source->original_amount !== (string) $debt->original_amount) {
-                $reasons[] = 'Chứng từ nguồn Finance không khớp định danh, số tiền gốc, loại công nợ hoặc tiền tệ.';
+            $invoice = DB::table('invoices')->where('id', (int) $debt->source_document_id)->first();
+            if (! $invoice || ($invoice->invoice_type === 'sold' ? 'receivable' : 'payable') !== $debt->direction
+                || (string) $invoice->total_amount !== (string) $debt->original_amount) {
+                $reasons[] = 'Hóa đơn nguồn không khớp công nợ.';
             }
         }
-        // An exact source match alone is insufficient: current production
-        // voucher posting has no approved debt allocation command.
-        $reasons[] = 'Chưa kích hoạt quy trình ghi sổ phiếu thu/chi và phân bổ công nợ nguyên tử trên môi trường thực tế.';
+        if ($link !== null) {
+            $source = DB::table('finance_source_documents')->where('id', $link['source_id'])->first();
+            if (! $source || $source->direction !== $debt->direction || $source->currency !== $debt->currency
+                || (string) $source->original_amount !== (string) $debt->original_amount) {
+                $reasons[] = 'Chứng từ Finance nguồn không khớp.';
+            }
+        }
+        $remaining = $principal;
+        if (Schema::hasTable('finance_debt_settlement_mappings')) {
+            $balance = (new FinanceDebtSettlementBalanceInvariant)->inspect($debtId);
+            if ($balance['reason_code'] !== 'mapping_projection_only_not_authorized') {
+                $reasons[] = 'Lịch sử thanh toán không nhất quán.';
+            } else {
+                $remaining = (string) $balance['remaining_diagnostic_amount'];
+            }
+        } else {
+            $reasons[] = 'Chưa có cấu trúc phân bổ công nợ.';
+        }
+        if ((float) $remaining <= 0) {
+            $reasons[] = 'Công nợ đã được thanh toán đủ.';
+        }
+        if (! Schema::hasTable('finance_debt_allocation_ownerships')
+            || ! Schema::hasTable('finance_debt_settlement_audit_events')
+            || ! Schema::hasTable('finance_debt_idempotency_keys')) {
+            $reasons[] = 'Chưa có cấu trúc kiểm soát thanh toán.';
+        }
 
         $accounts = Schema::hasTable('finance_accounts')
             ? DB::table('finance_accounts')->where('is_active', true)
@@ -63,7 +86,8 @@ final class FinanceDebtPaymentReview
             'currency' => (string) ($debt->currency ?: 'VND'),
             'principal' => $principal,
             'source_linked' => $link !== null,
-            'eligible' => false,
+            'remaining' => $remaining,
+            'eligible' => $reasons === [],
             'reasons' => $reasons,
             'accounts' => $accounts,
         ];
