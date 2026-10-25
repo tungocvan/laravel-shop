@@ -169,6 +169,28 @@ final class FinanceDebtPaymentPosting11ETest extends TestCase
         }
     }
 
+    public function test_livewire_reversal_restores_debt_and_records_reason(): void
+    {
+        [$debt, $account] = $this->seedDebt();
+        $posted = app(FinanceDebtPaymentPostingService::class)->post(
+            $debt, $account, '1000000.00', '2026-10-25', '11F-LIVE', 123
+        );
+        $user = \Mockery::mock(User::class)->makePartial();
+        $user->id = 12345;
+        $user->shouldReceive('can')->with('finance.view')->andReturn(true);
+        $user->shouldReceive('can')->with('finance.debt.manage')->andReturn(true);
+        Auth::guard('admin')->setUser($user);
+        Livewire::test(DebtWorkspace::class)
+            ->call('setTab', 'debts')
+            ->call('selectDebt', $debt)
+            ->set('reversalReason', 'Hoàn tác do nhập sai tài khoản')
+            ->call('reversePayment', $posted['voucher_id'])
+            ->assertSet('reversalReason', '');
+        self::assertSame('reversed', DB::table('finance_vouchers')->where('id', $posted['voucher_id'])->value('status'));
+        self::assertSame('40824000.00', app(FinanceDebtPaymentEvidenceReader::class)
+            ->forObligation($debt)['verified_outstanding']);
+    }
+
     public function test_treasury_reversal_is_blocked_for_debt_owned_vouchers(): void
     {
         [$debt, $account] = $this->seedDebt();
