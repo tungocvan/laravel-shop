@@ -54,10 +54,6 @@
         @if($errors->any())<p role="alert" class="text-sm text-red-700">{{ $errors->first() }}</p>@endif
 
         @if($canRecognize)
-            @php
-                $selectedAmount = collect($invoices->items())->filter(fn ($i) => in_array((int) $i->id, $bulkSelected, true))->sum(fn ($i) => (float) $i->total_amount);
-                $readyCount = count(array_filter($bulkPreview, fn ($r) => $r['issues'] === []));
-            @endphp
             <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 sm:p-4 space-y-3">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                     <div>
@@ -68,16 +64,15 @@
                 </div>
                 <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
                     <div class="rounded-lg border border-slate-200 bg-white p-3"><p class="text-xs text-slate-500">Đã chọn</p><p class="text-lg font-semibold tabular-nums">{{ count($bulkSelected) }} <span class="text-xs font-normal">hóa đơn</span></p></div>
-                    <div class="rounded-lg border border-slate-200 bg-white p-3"><p class="text-xs text-slate-500">Tổng giá trị chọn</p><p class="text-base font-semibold tabular-nums">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $selectedAmount) }}</p></div>
-                    <div class="col-span-2 rounded-lg border border-slate-200 bg-white p-3 sm:col-span-1"><p class="text-xs text-slate-500">Đạt kiểm tra kỹ thuật</p><p class="text-lg font-semibold tabular-nums">{{ count($bulkPreview) ? $readyCount.'/'.count($bulkPreview) : '—' }}</p></div>
+                    <div class="rounded-lg border border-slate-200 bg-white p-3"><p class="text-xs text-slate-500">Tổng giá trị chọn</p><p class="text-base font-semibold tabular-nums">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) collect($invoices->items())->filter(fn ($i) => in_array((int) $i->id, $bulkSelected, true))->sum(fn ($i) => (float) $i->total_amount)) }}</p></div>
+                    <div class="col-span-2 rounded-lg border border-slate-200 bg-white p-3 sm:col-span-1"><p class="text-xs text-slate-500">Đạt kiểm tra kỹ thuật</p><p class="text-lg font-semibold tabular-nums">{{ count($bulkPreview) ? collect($bulkPreview)->filter(fn ($row) => $row['issues'] === [])->count().'/'.count($bulkPreview) : '—' }}</p></div>
                 </div>
             </div>
         @endif
         @if($bulkPreview !== [])
-            @php($readyCount = count(array_filter($bulkPreview, fn ($row) => $row['issues'] === [])))
             <section class="space-y-4 rounded-xl border border-indigo-200 bg-white p-4 shadow-sm" aria-label="Xem trước xác nhận hàng loạt">
                 <div class="flex flex-wrap items-start justify-between gap-2">
-                    <div><h3 class="text-base font-semibold text-slate-900">Xem trước ghi nhận công nợ</h3><p class="text-xs text-slate-500">{{ count($bulkPreview) }} hóa đơn · {{ $readyCount }} đạt kiểm tra kỹ thuật</p></div>
+                    <div><h3 class="text-base font-semibold text-slate-900">Xem trước ghi nhận công nợ</h3><p class="text-xs text-slate-500">{{ count($bulkPreview) }} hóa đơn · {{ collect($bulkPreview)->filter(fn ($row) => $row['issues'] === [])->count() }} đạt kiểm tra kỹ thuật</p></div>
                     <button type="button" wire:click="prepareBulk" class="rounded-lg border border-slate-300 px-3 py-2 text-xs">Làm mới kiểm tra</button>
                 </div>
                 <div class="overflow-x-auto rounded-lg border border-slate-200">
@@ -101,7 +96,7 @@
                 <label class="flex items-start gap-2 text-sm"><input type="checkbox" wire:model.live="bulkReviewed" class="mt-1"><span>Tôi đã kiểm tra chứng từ gốc, trạng thái pháp lý và các khoản thanh toán liên quan của từng hóa đơn đủ điều kiện. Tôi hiểu hệ thống chưa tự động trừ thanh toán.</span></label>
                 <div class="flex flex-wrap items-center justify-end gap-2">
                     <button type="button" wire:click="prepareBulk" class="min-h-10 rounded-lg border border-slate-300 px-4 py-2 text-sm">Kiểm tra lại</button>
-                    <button type="button" wire:click="confirmBulk" wire:loading.attr="disabled" wire:target="confirmBulk" @disabled(!$bulkReviewed || $readyCount === 0) class="min-h-10 rounded-lg bg-indigo-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">Xác nhận {{ $readyCount }} hóa đơn đủ điều kiện</button>
+                    <button type="button" wire:click="confirmBulk" wire:loading.attr="disabled" wire:target="confirmBulk" @disabled(!$bulkReviewed || collect($bulkPreview)->filter(fn ($row) => $row['issues'] === [])->isEmpty()) class="min-h-10 rounded-lg bg-indigo-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">Xác nhận {{ collect($bulkPreview)->filter(fn ($row) => $row['issues'] === [])->count() }} hóa đơn đủ điều kiện</button>
                 </div>
             </section>
         @endif
@@ -210,30 +205,24 @@
             </table>
         </div>
                 @if($invoices->hasPages())
-            @php
-                $page = $invoices->currentPage();
-                $last = $invoices->lastPage();
-                $start = max(1, min($page - 2, $last - 4));
-                $end = min($last, max(5, $page + 2));
-            @endphp
             <nav class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-3 text-sm" aria-label="Phân trang hóa đơn">
-                <p class="text-slate-600">Trang {{ $page }} / {{ $last }} · {{ number_format($invoices->total(), 0, ',', '.') }} hóa đơn</p>
+                <p class="text-slate-600">Trang {{ $invoices->currentPage() }} / {{ $invoices->lastPage() }} · {{ number_format($invoices->total(), 0, ',', '.') }} hóa đơn</p>
                 <div class="flex flex-wrap items-center gap-1">
-                    <button type="button" wire:click="gotoPage(1, 'invoicePage')" @disabled($page === 1) class="min-h-9 rounded-lg border border-slate-300 px-2 disabled:opacity-40" aria-label="Trang đầu">Đầu</button>
-                    <button type="button" wire:click="previousPage('invoicePage')" @disabled($page === 1) class="min-h-9 rounded-lg border border-slate-300 px-2 disabled:opacity-40" aria-label="Trang trước">‹</button>
-                    @if($start > 1)
+                    <button type="button" wire:click="gotoPage(1, 'invoicePage')" @disabled($invoices->currentPage() === 1) class="min-h-9 rounded-lg border border-slate-300 px-2 disabled:opacity-40" aria-label="Trang đầu">Đầu</button>
+                    <button type="button" wire:click="previousPage('invoicePage')" @disabled($invoices->currentPage() === 1) class="min-h-9 rounded-lg border border-slate-300 px-2 disabled:opacity-40" aria-label="Trang trước">‹</button>
+                    @if(max(1, min($invoices->currentPage() - 2, $invoices->lastPage() - 4)) > 1)
                         <button type="button" wire:click="gotoPage(1, 'invoicePage')" class="min-h-9 rounded-lg border border-slate-300 px-3">1</button>
-                        @if($start > 2)<span class="px-1 text-slate-500" aria-hidden="true">…</span>@endif
+                        @if(max(1, min($invoices->currentPage() - 2, $invoices->lastPage() - 4)) > 2)<span class="px-1 text-slate-500" aria-hidden="true">…</span>@endif
                     @endif
-                    @for($n = $start; $n <= $end; $n++)
-                        <button type="button" wire:click="gotoPage({{ $n }}, 'invoicePage')" @if($n === $page) aria-current="page" @endif class="min-h-9 min-w-9 rounded-lg border px-2 {{ $n === $page ? 'border-indigo-700 bg-indigo-700 font-bold text-white' : 'border-slate-300 text-slate-700 hover:bg-slate-50' }}">{{ $n }}</button>
+                    @for($n = max(1, min($invoices->currentPage() - 2, $invoices->lastPage() - 4)); $n <= min($invoices->lastPage(), max(5, $invoices->currentPage() + 2)); $n++)
+                        <button type="button" wire:click="gotoPage({{ $n }}, 'invoicePage')" @if($n === $invoices->currentPage()) aria-current="page" @endif class="min-h-9 min-w-9 rounded-lg border px-2 {{ $n === $invoices->currentPage() ? 'border-indigo-700 bg-indigo-700 font-bold text-white' : 'border-slate-300 text-slate-700 hover:bg-slate-50' }}">{{ $n }}</button>
                     @endfor
-                    @if($end < $last)
-                        @if($end < $last - 1)<span class="px-1 text-slate-500" aria-hidden="true">…</span>@endif
-                        <button type="button" wire:click="gotoPage({{ $last }}, 'invoicePage')" class="min-h-9 rounded-lg border border-slate-300 px-3">{{ $last }}</button>
+                    @if(min($invoices->lastPage(), max(5, $invoices->currentPage() + 2)) < $invoices->lastPage())
+                        @if(min($invoices->lastPage(), max(5, $invoices->currentPage() + 2)) < $invoices->lastPage() - 1)<span class="px-1 text-slate-500" aria-hidden="true">…</span>@endif
+                        <button type="button" wire:click="gotoPage({{ $invoices->lastPage() }}, 'invoicePage')" class="min-h-9 rounded-lg border border-slate-300 px-3">{{ $invoices->lastPage() }}</button>
                     @endif
-                    <button type="button" wire:click="nextPage('invoicePage')" @disabled($page === $last) class="min-h-9 rounded-lg border border-slate-300 px-2 disabled:opacity-40" aria-label="Trang sau">›</button>
-                    <button type="button" wire:click="gotoPage({{ $last }}, 'invoicePage')" @disabled($page === $last) class="min-h-9 rounded-lg border border-slate-300 px-2 disabled:opacity-40" aria-label="Trang cuối">Cuối</button>
+                    <button type="button" wire:click="nextPage('invoicePage')" @disabled($invoices->currentPage() === $invoices->lastPage()) class="min-h-9 rounded-lg border border-slate-300 px-2 disabled:opacity-40" aria-label="Trang sau">›</button>
+                    <button type="button" wire:click="gotoPage({{ $invoices->lastPage() }}, 'invoicePage')" @disabled($invoices->currentPage() === $invoices->lastPage()) class="min-h-9 rounded-lg border border-slate-300 px-2 disabled:opacity-40" aria-label="Trang cuối">Cuối</button>
                 </div>
             </nav>
         @endif
