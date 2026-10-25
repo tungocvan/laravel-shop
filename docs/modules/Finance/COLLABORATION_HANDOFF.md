@@ -559,3 +559,8 @@ After CP07 PASS (249 passed, 4 skipped, 923 assertions; UI20–22 PASS), user re
 ## Checkpoint 08A repair — awaiting repeat Git Pull/Test
 
 User screenshot: 285-page pagination rendered an excessive row of page buttons. WSL regression: 5 failed, 4 skipped, 247 passed (920 assertions), SQLite no such table permissions from newly introduced invoices-list check inside DebtWorkspace Blade. Replaced default invoice pagination with compact window and First/Prev/Next/Last. Guarded parent invoice component mount behind Schema::hasTable('permissions') before Spatie can('invoices-list') to avoid isolated Finance test failures; child still requires both finance.view and invoices-list. Added pagination/reset test. No payment or accounting writes. Repeat focused test and full Finance suite; browser UI23–25. Do not proceed until PASS.
+
+
+## Checkpoint 09A — Git Pull/Test pending
+
+User approved manual per-invoice confirmation first, bulk later. Added InvoiceDebtRecognitionService with source uniqueness, validation, transaction, explicit human attestation; Livewire review panel/action; service tests and acceptance docs. No automatic invoice recognition, invoice writes, payment allocation or bulk confirmation. WSL tests and UI26–29 pending. The source schema does not provide complete authoritative cancellation/replacement/payment lifecycle; manual verification is essential.
