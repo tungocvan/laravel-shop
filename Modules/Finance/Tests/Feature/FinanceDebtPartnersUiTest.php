@@ -54,10 +54,10 @@ final class FinanceDebtPartnersUiTest extends TestCase
         ]);
 
         Livewire::test(DebtPartners::class)->set('search', $tag)
-            ->assertOk()->assertSee($tag)->assertSee('280')->assertDontSee('300');
+            ->assertOk()->assertSee($tag)->assertSee('280 ₫')->assertDontSee('300 ₫');
         Livewire::test(DebtPartners::class)->set('search', $tag)
             ->set('direction', 'payable')->set('status', 'draft')
-            ->assertOk()->assertSee('300');
+            ->assertOk()->assertSee('300 ₫')->assertDontSee('280 ₫');
         self::assertSame(1, DB::table('finance_debt_events')->where('obligation_id', $ids[0])->count());
     }
 
