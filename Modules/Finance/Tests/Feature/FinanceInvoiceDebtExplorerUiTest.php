@@ -60,10 +60,10 @@ final class FinanceInvoiceDebtExplorerUiTest extends TestCase
             'created_at' => now(), 'updated_at' => now(),
         ]);
 
-        Livewire::test(InvoiceDebtExplorer::class)->set('search', $tag)->assertOk()
+        Livewire::test(InvoiceDebtExplorer::class)->set('reconciliationStatus', 'all')->set('search', $tag)->assertOk()
             ->assertSee($tag.'-S')->assertSee($tag.'-P')
             ->assertSee('Đã ghi nhận')->assertSee('120.000 ₫');
-        Livewire::test(InvoiceDebtExplorer::class)->set('search', $tag)
+        Livewire::test(InvoiceDebtExplorer::class)->set('reconciliationStatus', 'all')->set('search', $tag)
             ->set('invoiceType', 'sold')->assertSee($tag.'-S')->assertDontSee($tag.'-P');
         self::assertSame(1, DB::table('finance_debt_obligations')->where('source_document_id', (string) $sold)->count());
     }
@@ -120,6 +120,53 @@ final class FinanceInvoiceDebtExplorerUiTest extends TestCase
             ->assertSee('Kiểm tra trước khi xác nhận công nợ')
             ->assertSee('Supplier review')
             ->assertSee('Phải trả');
+    }
+
+    public function test_default_status_is_unrecorded_and_all_status_shows_recorded(): void
+    {
+        $this->login(true, true);
+        $tag = 'STATUS-'.uniqid();
+        $recorded = DB::table('invoices')->insertGetId([
+            'invoice_number' => $tag.'-R', 'invoice_type' => 'purchase',
+            'name' => $tag, 'total_amount' => '100.00',
+            'issued_date' => now()->toDateString(), 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('invoices')->insert([
+            'invoice_number' => $tag.'-U', 'invoice_type' => 'purchase',
+            'name' => $tag, 'total_amount' => '200.00',
+            'issued_date' => now()->toDateString(), 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('finance_debt_obligations')->insert([
+            'source_module' => 'Invoices', 'source_type' => 'invoice',
+            'source_document_id' => (string) $recorded, 'reference_number' => $tag.'-R',
+            'direction' => 'payable', 'status' => 'draft', 'counterparty_name' => $tag,
+            'original_amount' => '100.00', 'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        Livewire::test(InvoiceDebtExplorer::class)
+            ->assertSet('reconciliationStatus', 'unrecorded')
+            ->set('search', $tag)
+            ->assertSee($tag.'-U')->assertDontSee($tag.'-R')
+            ->set('reconciliationStatus', 'recorded')
+            ->assertSee($tag.'-R')->assertDontSee($tag.'-U')
+            ->set('reconciliationStatus', 'all')
+            ->assertSee($tag.'-R')->assertSee($tag.'-U');
+    }
+
+    public function test_all_months_and_all_years_update_date_range_before_apply(): void
+    {
+        $this->login(true, true);
+        Livewire::test(InvoiceDebtExplorer::class)
+            ->set('month', '')
+            ->assertSet('dateFrom', now()->startOfYear()->toDateString())
+            ->assertSet('dateTo', now()->endOfYear()->toDateString())
+            ->call('applyDates')
+            ->assertSet('appliedFrom', now()->startOfYear()->toDateString())
+            ->set('year', '')
+            ->assertSet('dateFrom', '2020-01-01')
+            ->assertSet('dateTo', now()->toDateString())
+            ->call('applyDates')
+            ->assertSet('appliedFrom', '2020-01-01');
     }
 
     public function test_invoice_catalog_requires_both_module_permissions(): void
