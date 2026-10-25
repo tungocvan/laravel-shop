@@ -3,6 +3,7 @@
 namespace Modules\Finance\Livewire;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Modules\Finance\Livewire\DebtWorkspace;
@@ -85,11 +86,34 @@ final class DebtDashboard extends Component
             ->selectRaw("COALESCE(SUM(CASE WHEN status = 'confirmed' AND due_on = CURRENT_DATE AND adjusted_principal > 0 THEN adjusted_principal ELSE 0 END), 0) AS due_today")
             ->first();
 
+        // Operational inbox is separate from debt principal totals and independent of dashboard filters.
+        // Only count invoices if the source module is enabled and both source/Finance tables exist.
+        $invoiceInbox = null;
+        if (config('modules.registry.Invoices.enabled', false)
+            && Schema::hasTable('invoices')
+            && Schema::hasTable('finance_debt_obligations')
+            && Schema::hasTable('permissions')
+            && auth('admin')->user()?->can('invoices-list')) {
+            $invoiceInbox = DB::table('invoices as i')
+                ->whereNotExists(fn ($q) => $q->selectRaw('1')
+                    ->from('finance_debt_obligations as d')
+                    ->where('d.source_module', 'Invoices')
+                    ->where('d.source_type', 'invoice')
+                    ->whereColumn('d.source_document_id', 'i.id'))
+                ->selectRaw('COUNT(*) AS unrecorded_count')
+                ->selectRaw("COALESCE(SUM(CASE WHEN i.invoice_type = 'sold' THEN 1 ELSE 0 END), 0) AS sold_count")
+                ->selectRaw("COALESCE(SUM(CASE WHEN i.invoice_type = 'purchase' THEN 1 ELSE 0 END), 0) AS purchase_count")
+                ->first();
+        }
+        $draftCount = DB::table('finance_debt_obligations')->where('status', 'draft')->count();
+
         return view('Finance::livewire.debt-dashboard', [
             'debts' => $query->orderByRaw('CASE WHEN d.due_on IS NULL THEN 1 ELSE 0 END')
                 ->orderBy('d.due_on')->orderByDesc('d.id')->paginate(15),
             'totals' => $totals,
             'today' => now()->toDateString(),
+            'invoiceInbox' => $invoiceInbox,
+            'draftCount' => $draftCount,
         ]);
     }
 }
