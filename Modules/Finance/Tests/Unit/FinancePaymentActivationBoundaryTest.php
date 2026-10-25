@@ -18,10 +18,11 @@ final class FinancePaymentActivationBoundaryTest extends TestCase
         $gate = file_get_contents($root.'/Modules/Finance/Services/FinanceDebtAtomicSettlementGate.php');
         $writer = file_get_contents($root.'/Modules/Finance/Services/FinanceDebtInternalSettlementWriter.php');
 
-        self::assertStringContainsString('chưa trừ thanh toán', $view);
+        self::assertStringContainsString('Phiếu thanh toán chỉ được tạo khi xác nhận', $view);
         self::assertStringContainsString('Atomic settlement blocked:', $gate);
         self::assertStringContainsString('NOT exposed by a route/controller', $writer);
-        self::assertStringNotContainsString('wire:click="confirmPayment"', $view);
+        self::assertStringContainsString('wire:click="confirmPayment"', $view);
+        self::assertStringContainsString("\$paymentReview['eligible'] && \$canManage", $view);
     }
 
     public function test_existing_voucher_allocation_schema_must_be_reused_not_duplicated(): void
