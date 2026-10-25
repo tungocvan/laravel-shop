@@ -11,35 +11,6 @@
     @if(session()->has('invoice_debt_notice'))
         <p role="status" class="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">{{ session('invoice_debt_notice') }}</p>
     @endif
-    @if($reviewInvoiceId !== null)
-        <section class="space-y-3 rounded-lg border border-indigo-300 bg-indigo-50 p-4" aria-label="Xác nhận công nợ hóa đơn">
-            <div class="flex items-center justify-between gap-3">
-                <h3 class="font-bold text-slate-900">Kiểm tra trước khi xác nhận công nợ</h3>
-                <button type="button" wire:click="closeReview" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">Đóng</button>
-            </div>
-            <p class="text-sm text-slate-700">Hóa đơn: <strong>{{ $reviewDetails['reference'] ?? '' }}</strong> · {{ $reviewDetails['direction'] ?? '' }}</p>
-            <p class="text-sm text-slate-700">Đối tác: <strong>{{ $reviewDetails['name'] ?? '' }}</strong> · MST {{ $reviewDetails['tax_code'] ?? '' }}</p>
-            <p class="text-sm text-slate-700">Tổng tiền: <strong>{{ isset($reviewDetails['amount']) ? \Modules\Finance\Livewire\DebtWorkspace::formatVnd($reviewDetails['amount']) : '' }}</strong></p>
-            @if($reviewIssues !== [])
-                <div role="alert" class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-                    <strong>Không đủ điều kiện:</strong>
-                    @foreach($reviewIssues as $issue)<p>{{ $issue }}</p>@endforeach
-                </div>
-            @else
-                <p class="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Dữ liệu cơ bản đạt kiểm tra kỹ thuật, nhưng hệ thống chưa xác minh tự động trạng thái pháp lý, hóa đơn thay thế/điều chỉnh và lịch sử thanh toán. Người xác nhận phải kiểm tra chứng từ gốc và thanh toán thực tế trước khi tiếp tục.</p>
-                <div class="grid gap-3 sm:grid-cols-2">
-                    <label class="text-sm">Ngày ghi nhận <input type="date" wire:model="recognizedOn" class="mt-1 w-full rounded-lg border border-slate-300 p-2"></label>
-                    <label class="text-sm">Hạn thanh toán (tùy chọn) <input type="date" wire:model="dueOn" class="mt-1 w-full rounded-lg border border-slate-300 p-2"></label>
-                </div>
-                <label class="flex items-start gap-2 text-sm text-slate-800">
-                    <input type="checkbox" wire:model="reviewed" class="mt-1">
-                    <span>Tôi đã kiểm tra hóa đơn gốc, tình trạng hiệu lực/thay thế/điều chỉnh và các khoản thanh toán liên quan; đồng ý ghi nhận giá trị hóa đơn làm công nợ gốc. Tôi hiểu Finance chưa tự động trừ thanh toán.</span>
-                </label>
-                <button type="button" wire:click="confirmReview" wire:loading.attr="disabled" @disabled(!$reviewed) class="min-h-10 rounded-lg bg-indigo-700 px-4 py-2 font-semibold text-white disabled:opacity-50">Xác nhận ghi nhận công nợ</button>
-            @endif
-            @error('invoice')<p role="alert" class="text-sm text-red-700">{{ $message }}</p>@enderror
-        </section>
-    @endif
     @if(!$available)
         <p class="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Modules/Invoices chưa được bật hoặc bảng invoices chưa sẵn sàng. Không có dữ liệu hóa đơn để hiển thị.</p>
     @else
@@ -110,6 +81,40 @@
                                 @endif
                             </td>
                         </tr>
+                        @if($reviewInvoiceId === (int) $invoice->id)
+                            <tr wire:key="invoice-review-{{ $invoice->id }}"><td colspan="7" class="p-3">
+        @if($reviewInvoiceId !== null)
+            <section class="space-y-3 rounded-lg border border-indigo-300 bg-indigo-50 p-4" aria-label="Xác nhận công nợ hóa đơn">
+                <div class="flex items-center justify-between gap-3">
+                    <h3 class="font-bold text-slate-900">Kiểm tra trước khi xác nhận công nợ</h3>
+                    <button type="button" wire:click="closeReview" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">Đóng</button>
+                </div>
+                <p class="text-sm text-slate-700">Hóa đơn: <strong>{{ $reviewDetails['reference'] ?? '' }}</strong> · {{ $reviewDetails['direction'] ?? '' }}</p>
+                <p class="text-sm text-slate-700">Đối tác: <strong>{{ $reviewDetails['name'] ?? '' }}</strong> · MST {{ $reviewDetails['tax_code'] ?? '' }}</p>
+                <p class="text-sm text-slate-700">Tổng tiền: <strong>{{ isset($reviewDetails['amount']) ? \Modules\Finance\Livewire\DebtWorkspace::formatVnd($reviewDetails['amount']) : '' }}</strong></p>
+                @if($reviewIssues !== [])
+                    <div role="alert" class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                        <strong>Không đủ điều kiện:</strong>
+                        @foreach($reviewIssues as $issue)<p>{{ $issue }}</p>@endforeach
+                    </div>
+                @else
+                    <p class="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Dữ liệu cơ bản đạt kiểm tra kỹ thuật, nhưng hệ thống chưa xác minh tự động trạng thái pháp lý, hóa đơn thay thế/điều chỉnh và lịch sử thanh toán. Người xác nhận phải kiểm tra chứng từ gốc và thanh toán thực tế trước khi tiếp tục.</p>
+                    <div class="grid gap-3 sm:grid-cols-2">
+                        <label class="text-sm">Ngày ghi nhận <input type="date" wire:model="recognizedOn" class="mt-1 w-full rounded-lg border border-slate-300 p-2"></label>
+                        <label class="text-sm">Hạn thanh toán (tùy chọn) <input type="date" wire:model="dueOn" class="mt-1 w-full rounded-lg border border-slate-300 p-2"></label>
+                    </div>
+                    <label class="flex items-start gap-2 text-sm text-slate-800">
+                        <input type="checkbox" wire:model.live="reviewed" class="mt-1">
+                        <span>Tôi đã kiểm tra hóa đơn gốc, tình trạng hiệu lực/thay thế/điều chỉnh và các khoản thanh toán liên quan; đồng ý ghi nhận giá trị hóa đơn làm công nợ gốc. Tôi hiểu Finance chưa tự động trừ thanh toán.</span>
+                    </label>
+                    <button type="button" wire:click="confirmReview" wire:loading.attr="disabled" @disabled(!$reviewed) class="min-h-10 rounded-lg bg-indigo-700 px-4 py-2 font-semibold text-white disabled:opacity-50">Xác nhận ghi nhận công nợ</button>
+                @endif
+                @error('invoice')<p role="alert" class="text-sm text-red-700">{{ $message }}</p>@enderror
+            </section>
+        @endif
+
+                            </td></tr>
+                        @endif
                     @empty
                         <tr><td colspan="7" class="p-5 text-center text-slate-500">Không tìm thấy hóa đơn phù hợp.</td></tr>
                     @endforelse
