@@ -146,7 +146,7 @@ final class InvoiceDebtExplorer extends Component
 
     public function closeBulkPreview(): void
     {
-        $this->authorizeRecognize();
+        $this->authorizeManage();
         $this->bulkPreview = [];
         $this->bulkReviewed = false;
     }
