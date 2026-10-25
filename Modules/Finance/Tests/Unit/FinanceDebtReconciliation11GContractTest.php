@@ -20,7 +20,9 @@ final class FinanceDebtReconciliation11GContractTest extends TestCase
         self::assertStringContainsString('receivable_outstanding_verified', $service);
         self::assertStringContainsString('payable_outstanding_verified', $service);
         self::assertStringContainsString("'review' ELSE 'matched'", $service);
-        self::assertStringNotContainsString('DB::table(', preg_replace('/->(select|selectRaw|where|when|orderBy|paginate|first|count|join|leftJoin|fromSub)[\s\S]*/', '', $service));
+        self::assertStringNotContainsString('->insert(', $service);
+        self::assertStringNotContainsString('->update(', $service);
+        self::assertStringNotContainsString('->delete(', $service);
         self::assertStringContainsString("'reconciliation' =>", $component);
         self::assertStringContainsString('Đối soát 11G', $view);
         self::assertStringContainsString('không phải báo cáo số dư đầu kỳ/cuối kỳ', $view);
