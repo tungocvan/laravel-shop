@@ -174,7 +174,7 @@ final class DebtWorkspace extends Component
         abort_unless($this->paymentReviewDebtId !== null, 404);
         $review = app(FinanceDebtPaymentReview::class)->inspect($this->paymentReviewDebtId);
         $this->validate([
-            'paymentAmount' => ['required', 'regex:/^\\d{1,15}(?:\\.\\d{1,2})?$/'],
+            'paymentAmount' => ['required', 'regex:/^\d{1,15}(?:\.\d{1,2})?$/'],
             'paymentDate' => ['required', 'date_format:Y-m-d'],
             'paymentAccountId' => ['required', 'integer', 'min:1'],
             'paymentReference' => ['required', 'string', 'max:100'],
@@ -183,7 +183,7 @@ final class DebtWorkspace extends Component
         $amount = $this->toPaymentCents($this->paymentAmount);
         $principal = $this->toPaymentCents($review['principal']);
         if ($amount <= 0 || $amount > $principal) {
-            throw \\Illuminate\\Validation\\ValidationException::withMessages([
+            throw \Illuminate\Validation\ValidationException::withMessages([
                 'paymentAmount' => 'Số tiền phải lớn hơn 0 và không vượt giá trị sau điều chỉnh.',
             ]);
         }
@@ -193,8 +193,8 @@ final class DebtWorkspace extends Component
 
     private function toPaymentCents(string $value): int
     {
-        if (! preg_match('/^\\d{1,15}(?:\\.\\d{1,2})?$/D', $value)) {
-            throw \\Illuminate\\Validation\\ValidationException::withMessages(['paymentAmount' => 'Số tiền không hợp lệ.']);
+        if (! preg_match('/^\d{1,15}(?:\.\d{1,2})?$/D', $value)) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['paymentAmount' => 'Số tiền không hợp lệ.']);
         }
         [$whole, $fraction] = array_pad(explode('.', $value, 2), 2, '');
         return ((int) $whole * 100) + (int) str_pad($fraction, 2, '0');
