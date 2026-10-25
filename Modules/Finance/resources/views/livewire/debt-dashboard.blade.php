@@ -1,4 +1,32 @@
 <div class="space-y-5">
+    <section class="rounded-xl border border-slate-200 bg-white p-4" aria-label="Việc cần xử lý">
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <div><h2 class="font-semibold text-slate-900">Việc cần xử lý</h2><p class="text-xs text-slate-500">Hóa đơn nguồn chưa ghi nhận và công nợ nháp, không cộng vào số tiền đã xác nhận.</p></div>
+            <a class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-indigo-700" href="{{ route('admin.finance.debts.index', ['section' => 'documents']) }}">Mở Chứng từ</a>
+        </div>
+        <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <p class="text-xs text-slate-600">Hóa đơn chưa ghi nhận</p>
+                <p class="mt-1 text-2xl font-semibold tabular-nums">{{ $invoiceInbox ? number_format((int) $invoiceInbox->unrecorded_count, 0, ',', '.') : '—' }}</p>
+                <p class="mt-1 text-xs text-slate-500">{{ $invoiceInbox ? 'Cần kiểm tra và xác nhận' : 'Chưa thể truy cập dữ liệu Invoices' }}</p>
+            </div>
+            <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <p class="text-xs text-slate-600">Hóa đơn bán ra chưa ghi nhận</p>
+                <p class="mt-1 text-2xl font-semibold tabular-nums">{{ $invoiceInbox ? number_format((int) $invoiceInbox->sold_count, 0, ',', '.') : '—' }}</p>
+                <p class="mt-1 text-xs text-slate-500">Nguồn có thể phát sinh phải thu</p>
+            </div>
+            <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <p class="text-xs text-slate-600">Hóa đơn mua vào chưa ghi nhận</p>
+                <p class="mt-1 text-2xl font-semibold tabular-nums">{{ $invoiceInbox ? number_format((int) $invoiceInbox->purchase_count, 0, ',', '.') : '—' }}</p>
+                <p class="mt-1 text-xs text-slate-500">Nguồn có thể phát sinh phải trả</p>
+            </div>
+            <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <p class="text-xs text-slate-600">Công nợ nháp</p>
+                <p class="mt-1 text-2xl font-semibold tabular-nums">{{ number_format((int) $draftCount, 0, ',', '.') }}</p>
+                <p class="mt-1 text-xs text-slate-500">Chưa xác nhận</p>
+            </div>
+        </div>
+    </section>
     <section class="rounded-xl border border-slate-200 bg-white p-4" aria-label="Bộ lọc tổng quan công nợ">
         <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h2 class="font-semibold text-slate-900">Bộ lọc công nợ</h2>
