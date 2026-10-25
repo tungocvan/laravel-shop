@@ -4,7 +4,7 @@ namespace Modules\Finance\Tests\Unit;
 
 use Illuminate\Validation\ValidationException;
 use Modules\Finance\Livewire\DebtWorkspace;
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 
 final class FinancePaymentAmountFormatTest extends TestCase
 {
