@@ -50,15 +50,16 @@ final class FinanceDebtPaymentEvidenceReader
             $all = DB::table('finance_debt_settlement_mappings as m')
                 ->leftJoin('finance_debt_allocation_ownerships as o', 'o.mapping_id', '=', 'm.id')
                 ->leftJoin('finance_vouchers as v', 'v.id', '=', 'm.voucher_id')
+                ->leftJoin('finance_ledger_entries as l', function ($join) { $join->on('l.voucher_id', '=', 'v.id')->where('l.entry_type', '=', 'posting'); })
                 ->where('m.obligation_id', $debtId)
                 ->get(['m.id', 'm.operation', 'm.amount', 'm.reverses_mapping_id',
-                    'm.voucher_id', 'o.id as ownership_id', 'v.status']);
+                    'm.voucher_id', 'o.id as ownership_id', 'v.status', 'l.id as ledger_id']);
             $verified = $all->every(function ($row) use ($debtId): bool {
                 if (! $row->status || ! in_array($row->status, ['posted', 'reversed'], true)) {
                     return false;
                 }
                 if ($row->operation === 'post') {
-                    return $row->ownership_id !== null && $row->status === 'posted';
+                    return $row->ownership_id !== null && $row->ledger_id !== null && $row->status === 'posted';
                 }
                 return $row->operation === 'reverse' && $row->status === 'reversed'
                     && $row->reverses_mapping_id !== null;
