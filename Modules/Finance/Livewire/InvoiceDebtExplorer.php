@@ -169,7 +169,8 @@ final class InvoiceDebtExplorer extends Component
         return view('Finance::livewire.invoice-debt-explorer', [
             'available' => $available,
             'invoices' => $invoices,
-            'canRecognize' => (bool) auth('admin')->user()?->can('finance.debt.manage'),
+            'canRecognize' => Schema::hasTable('permissions')
+                && (bool) auth('admin')->user()?->can('finance.debt.manage'),
         ]);
     }
 }
