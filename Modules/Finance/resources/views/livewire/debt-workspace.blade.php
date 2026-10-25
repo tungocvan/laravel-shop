@@ -168,7 +168,28 @@
                 <div><p class="text-xs text-slate-600">Tổng điều chỉnh</p><p class="mt-1 font-semibold tabular-nums text-slate-900">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd($adjustmentTotal) }}</p></div>
                 <div><p class="text-xs text-slate-600">Số dư sau điều chỉnh</p><p class="mt-1 font-semibold tabular-nums text-indigo-800">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd($currentBalance) }}</p></div>
             </div>
-            <p class="text-xs text-slate-500">Số dư công nợ thủ công, chưa trừ thanh toán hoặc đối trừ.</p>
+            @if($selectedPaymentEvidence && $selectedPaymentEvidence['verified_paid'] !== null)
+            <div class="grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 sm:grid-cols-3" aria-label="Tình trạng thanh toán">
+                <div><p class="text-xs text-slate-600">Đã thanh toán</p><p class="mt-1 font-semibold tabular-nums">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd($selectedPaymentEvidence['verified_paid']) }}</p></div>
+                <div><p class="text-xs text-slate-600">Còn phải thanh toán</p><p class="mt-1 font-semibold tabular-nums">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd($selectedPaymentEvidence['verified_outstanding']) }}</p></div>
+                <div><p class="text-xs text-slate-600">Trạng thái</p><p class="mt-1 font-semibold">{{ $selectedPaymentEvidence['payment_status'] }}</p></div>
+            </div>
+            @else
+            <p class="text-xs text-amber-700">Số dư sau điều chỉnh chưa trừ thanh toán chưa xác minh.</p>
+            @endif
+            @if($selectedPaymentEvidence && $selectedPaymentEvidence['rows'] !== [])
+            <section class="space-y-2" aria-label="Lịch sử thanh toán công nợ">
+                <h4 class="text-sm font-semibold">Lịch sử phiếu thanh toán</h4>
+                <div class="overflow-x-auto rounded-lg border border-slate-200">
+                    <table class="w-full min-w-[500px] text-left text-xs">
+                        <thead class="bg-slate-50"><tr><th class="p-2">Số phiếu</th><th class="p-2">Ngày</th><th class="p-2">Nghiệp vụ</th><th class="p-2 text-right">Số tiền</th><th class="p-2">Trạng thái</th></tr></thead>
+                        <tbody>@foreach($selectedPaymentEvidence['rows'] as $row)
+                        <tr class="border-t border-slate-100"><td class="p-2">{{ $row['voucher_number'] }}</td><td class="p-2">{{ $row['voucher_date'] }}</td><td class="p-2">{{ $row['operation'] === 'post' ? 'Thanh toán' : 'Hoàn tác' }}</td><td class="p-2 text-right">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd($row['amount']) }}</td><td class="p-2">{{ $row['voucher_status'] }}</td></tr>
+                        @endforeach</tbody>
+                    </table>
+                </div>
+            </section>
+            @endif
             @if ($canManage && $selected->status === 'draft' && $selected->source_module === null && $selected->source_type === null && $selected->source_document_id === null)
                 <button wire:click="confirm" wire:confirm="Xác nhận công nợ thủ công này? Không thể xác nhận lại." wire:loading.attr="disabled" class="rounded-xl bg-indigo-700 px-4 py-2 text-sm font-semibold text-white">Xác nhận công nợ</button>
             @endif
