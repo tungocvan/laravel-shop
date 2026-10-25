@@ -62,7 +62,7 @@ final class FinanceDebtPaymentReview
             && Schema::hasTable('finance_debt_settlement_mappings')
             && DB::table('finance_debt_settlement_mappings as m')
                 ->leftJoin('finance_debt_allocation_ownerships as o', 'o.mapping_id', '=', 'm.id')
-                ->where('m.obligation_id', $debtId)->whereNull('o.id')->exists()) {
+                ->where('m.obligation_id', $debtId)->where('m.operation', 'post')->whereNull('o.id')->exists()) {
             $reasons[] = 'Có giao dịch phân bổ chưa xác minh quyền sở hữu.';
         }
         if ($link !== null && Schema::hasTable('finance_allocations')
