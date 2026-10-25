@@ -19,6 +19,6 @@ final class FinancePaymentPreparationContractTest extends TestCase
         self::assertStringContainsString('wire:click="previewPayment"', $view);
         self::assertStringContainsString('Xác nhận thanh toán', $view);
         self::assertStringContainsString('disabled class=', $view);
-        self::assertStringNotContainsString('public function confirmPayment(', $component);
+        self::assertStringContainsString('public function confirmPayment(', $component);
     }
 }
