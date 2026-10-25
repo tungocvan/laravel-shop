@@ -10,6 +10,7 @@ use Modules\Finance\Services\FinanceDebtService;
 use Modules\Finance\Services\FinanceDebtBalanceReader;
 use Modules\Finance\Services\FinanceDebtPaymentReview;
 use Modules\Finance\Services\FinanceDebtPaymentPostingService;
+use Modules\Finance\Services\FinanceDebtPaymentReversalService;
 use Modules\Finance\Services\FinanceDebtPaymentEvidenceReader;
 use Modules\Finance\Services\PartnerDebtDraftService;
 use Modules\Partner\Models\Partner;
@@ -38,6 +39,7 @@ final class DebtWorkspace extends Component
     public string $paymentAccountId = '';
     public string $paymentReference = '';
     public bool $paymentPreviewed = false;
+    public string $reversalReason = '';
     public string $adjustment = '';
     public string $adjustmentReason = '';
     public string $adjustmentDate = '';
@@ -155,7 +157,7 @@ final class DebtWorkspace extends Component
         $this->authorizeView();
         abort_unless(DB::table('finance_debt_obligations')->where('id', $id)->exists(), 404);
         $this->selectedDebtId = $id;
-        $this->reset('adjustment', 'adjustmentReason', 'adjustmentDate');
+        $this->reset('adjustment', 'adjustmentReason', 'adjustmentDate', 'reversalReason');
     }
 
     public function openPaymentReview(int $id): void
@@ -269,6 +271,19 @@ final class DebtWorkspace extends Component
         $this->authorizeView();
         $this->paymentReviewDebtId = null;
         $this->reset('paymentAmount', 'paymentDate', 'paymentAccountId', 'paymentReference', 'paymentPreviewed');
+    }
+
+    public function reversePayment(int $voucherId, FinanceDebtPaymentReversalService $service): void
+    {
+        $actor = $this->authorizeMutation();
+        abort_unless($this->selectedDebtId !== null, 404);
+        $this->validate([
+            'reversalReason' => ['required', 'string', 'min:10', 'max:500'],
+        ]);
+        $result = $service->reverse($this->selectedDebtId, $voucherId, $this->reversalReason, $actor);
+        $this->reversalReason = '';
+        session()->flash('debt_notice', 'Đã hoàn tác phiếu '.$result['voucher_number']
+            .' · Còn phải thanh toán: '.self::formatVnd($result['remaining']));
     }
 
     public function closeDebt(): void
