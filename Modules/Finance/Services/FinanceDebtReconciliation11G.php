@@ -55,7 +55,7 @@ final class FinanceDebtReconciliation11G
             ->selectRaw("COALESCE(SUM(CASE WHEN reconciliation_status='review' THEN 1 ELSE 0 END),0) AS review_count")
             ->first();
 
-        return ['ready' => true, 'missing' => null, 'rows' => $data->orderByDesc('id')->paginate(15),
+        return ['ready' => true, 'missing' => null, 'rows' => $data->orderByDesc('id')->paginate(15, ['*'], 'reconciliationPage'),
             'totals' => $totals];
     }
 }
