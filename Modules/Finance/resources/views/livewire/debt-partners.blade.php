@@ -23,7 +23,7 @@
         <p class="mt-3 text-xs text-amber-800">Chỉ tổng hợp công nợ đã ghi nhận trong Finance, chưa đồng bộ danh bạ đối tác hoặc hóa đơn. Nhóm theo tên + mã số thuế + loại công nợ; đối tác trùng tên nhưng thiếu mã số thuế có thể bị gộp. Giá trị là gốc sau điều chỉnh, <strong>chưa trừ thanh toán</strong>. Đơn vị VND.</p>
     </section>
     <section class="rounded-xl border border-slate-200 bg-white p-4" aria-label="Bảng tổng hợp đối tác">
-        <div class="mb-3 flex flex-wrap items-center justify-between-between gap-2">
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h2 class="font-semibold text-slate-900">Danh sách đối tác có công nợ</h2>
             <span class="text-xs text-slate-500">{{ $partners->total() }} nhóm</span>
         </div>
