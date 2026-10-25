@@ -529,3 +529,8 @@ User confirmed Demo UI CP01 PASS (Finance regression and UI01–04), approved CP
 ## Demo UI Checkpoint 03 — Partner Summary, Git Pull/Test pending
 
 User confirmed CP02 two-tier tests and bordered-input UI PASS; explicitly requested next UI. Implemented `DebtPartners` read-only partner aggregation grouped by stored name/tax/direction, with filters, totals, overdue principal, pagination and dashboard drill-down; activated partners menu; focused tests. No settlement/payment deduction, Partner directory synchronization or migrations. `DEMO_UI_ACCEPTANCE_CHECKPOINT_03.md` has test plan. Await user two-tier tests and browser review before new checkpoint.
+
+
+## Demo UI Checkpoint 04 — Debt Ledger, Git Pull/Test pending
+
+User confirmed CP03 focused tests, regression and UI08–10 PASS, then approved next UI. Added `DebtLedger` read-only Livewire and view at `/admin/finance/debts/ledger` with principal/adjustment detail, due-date filters, pagination, document deep links, and focused tests. Updated menu. No new migrations or settlement activation. Acceptance: `DEMO_UI_ACCEPTANCE_CHECKPOINT_04.md`. Assistant has not executed WSL tests or browser; await user's two-tier PASS/FAIL and UI review. Do not start next feature without approval.
