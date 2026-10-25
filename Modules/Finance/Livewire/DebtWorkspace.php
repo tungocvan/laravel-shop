@@ -73,8 +73,8 @@ final class DebtWorkspace extends Component
     public function updatedDirection(): void { $this->resetPage(); }
     public function updatedStatus(): void { $this->resetPage(); }
     public function updatedPaymentStatus(): void { $this->resetPage(); }
-    public function updatedReconcileDirection(): void { $this->resetPage(); }
-    public function updatedReconcileSearch(): void { $this->resetPage(); }
+    public function updatedReconcileDirection(): void { $this->resetPage('reconciliationPage'); $this->resetPage('periodPage'); }
+    public function updatedReconcileSearch(): void { $this->resetPage('reconciliationPage'); $this->resetPage('periodPage'); }
     public function updatedPeriodFrom(): void { $this->resetPage('periodPage'); }
     public function updatedPeriodTo(): void { $this->resetPage('periodPage'); }
 
