@@ -51,7 +51,34 @@
                 </tbody>
             </table>
         </div>
-        <div>{{ $invoices->links() }}</div>
+                @if($invoices->hasPages())
+            @php
+                $page = $invoices->currentPage();
+                $last = $invoices->lastPage();
+                $start = max(1, min($page - 2, $last - 4));
+                $end = min($last, max(5, $page + 2));
+            @endphp
+            <nav class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-3 text-sm" aria-label="Phân trang hóa đơn">
+                <p class="text-slate-600">Trang {{ $page }} / {{ $last }} · {{ number_format($invoices->total(), 0, ',', '.') }} hóa đơn</p>
+                <div class="flex flex-wrap items-center gap-1">
+                    <button type="button" wire:click="gotoPage(1, 'invoicePage')" @disabled($page === 1) class="min-h-9 rounded-lg border border-slate-300 px-2 disabled:opacity-40" aria-label="Trang đầu">Đầu</button>
+                    <button type="button" wire:click="previousPage('invoicePage')" @disabled($page === 1) class="min-h-9 rounded-lg border border-slate-300 px-2 disabled:opacity-40" aria-label="Trang trước">‹</button>
+                    @if($start > 1)
+                        <button type="button" wire:click="gotoPage(1, 'invoicePage')" class="min-h-9 rounded-lg border border-slate-300 px-3">1</button>
+                        @if($start > 2)<span class="px-1 text-slate-500" aria-hidden="true">…</span>@endif
+                    @endif
+                    @for($n = $start; $n <= $end; $n++)
+                        <button type="button" wire:click="gotoPage({{ $n }}, 'invoicePage')" @if($n === $page) aria-current="page" @endif class="min-h-9 min-w-9 rounded-lg border px-2 {{ $n === $page ? 'border-indigo-700 bg-indigo-700 font-bold text-white' : 'border-slate-300 text-slate-700 hover:bg-slate-50' }}">{{ $n }}</button>
+                    @endfor
+                    @if($end < $last)
+                        @if($end < $last - 1)<span class="px-1 text-slate-500" aria-hidden="true">…</span>@endif
+                        <button type="button" wire:click="gotoPage({{ $last }}, 'invoicePage')" class="min-h-9 rounded-lg border border-slate-300 px-3">{{ $last }}</button>
+                    @endif
+                    <button type="button" wire:click="nextPage('invoicePage')" @disabled($page === $last) class="min-h-9 rounded-lg border border-slate-300 px-2 disabled:opacity-40" aria-label="Trang sau">›</button>
+                    <button type="button" wire:click="gotoPage({{ $last }}, 'invoicePage')" @disabled($page === $last) class="min-h-9 rounded-lg border border-slate-300 px-2 disabled:opacity-40" aria-label="Trang cuối">Cuối</button>
+                </div>
+            </nav>
+        @endif
         <p class="text-xs text-amber-900">Tổng tiền hóa đơn không đồng nghĩa số dư chưa thanh toán. Trạng thái liên kết chỉ dựa trên định danh nguồn Invoices/invoice/ID trong Finance, không xác nhận đã thanh toán, đối trừ hoặc đủ điều kiện ghi nhận công nợ. Không tự động ghi dữ liệu.</p>
     @endif
 </section>
