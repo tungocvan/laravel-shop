@@ -539,3 +539,8 @@ User confirmed CP03 focused tests, regression and UI08–10 PASS, then approved 
 ## Demo UI Checkpoint 05 — Debt Summary, Git Pull/Test pending
 
 User confirmed CP04 regression 243 passed, 4 skipped, 875 assertions, UI11–13 PASS and explicitly approved next UI. Added read-only `DebtSummary` with confirmed debt grouping, recognition cohort filters, SQL-decimal KPIs, original/adjustment/adjusted totals, navigation and focused tests. Explicitly NOT an accounting opening/closing balance or unpaid balance; no payment subtraction. Acceptance `DEMO_UI_ACCEPTANCE_CHECKPOINT_05.md`. Assistant has not run local WSL tests/browser. Stop at Git Pull/Test, wait for user PASS/FAIL and UI verification.
+
+
+## Demo UI Checkpoint 06 — Aging Report, Git Pull/Test pending
+
+User confirmed CP05 regression 245 passed, 4 skipped, 887 assertions and UI14–16 PASS, then approved CP06. Added read-only `DebtAging` with confirmed-principal aging buckets, filterable cards and detailed document links, focused tests, and activated menu. No actual unpaid balance, settlement deduction, migrations or production. Acceptance: `DEMO_UI_ACCEPTANCE_CHECKPOINT_06.md`. Assistant has not run local WSL tests/browser. Await two-tier test results and UI17–19 before further work.
