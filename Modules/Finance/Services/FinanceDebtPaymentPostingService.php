@@ -91,6 +91,17 @@ final class FinanceDebtPaymentPostingService
             } else {
                 $sourceId = (int) $source->id;
             }
+            // A source already allocated by the treasury outside this debt's
+            // owned mappings cannot safely be allocated a second time.
+            $unowned = DB::table('finance_allocations as a')
+                ->join('finance_vouchers as v', 'v.id', '=', 'a.voucher_id')
+                ->leftJoin('finance_debt_allocation_ownerships as o', 'o.allocation_id', '=', 'a.id')
+                ->where('a.source_document_id', $sourceId)
+                ->where('v.status', 'posted')
+                ->whereNull('o.id')->exists();
+            if ($unowned) {
+                $this->deny('Hóa đơn đã có phân bổ kho quỹ chưa được liên kết công nợ; cần đối soát.');
+            }
             $number = 'FIN-D-'.now()->format('YmdHis').'-'.strtoupper(bin2hex(random_bytes(4)));
             $direction = $debt->direction === 'receivable' ? 'receipt' : 'payment';
             $voucherId = DB::table('finance_vouchers')->insertGetId([
