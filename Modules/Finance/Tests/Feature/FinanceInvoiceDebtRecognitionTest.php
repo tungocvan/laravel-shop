@@ -7,6 +7,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 use Modules\Finance\Services\InvoiceDebtRecognitionService;
+use Modules\Finance\Livewire\InvoiceDebtExplorer;
+use Livewire\Livewire;
+use Mockery;
 use Tests\TestCase;
 
 final class FinanceInvoiceDebtRecognitionTest extends TestCase
@@ -38,6 +41,35 @@ final class FinanceInvoiceDebtRecognitionTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ], $overrides));
+    }
+
+
+    public function test_bulk_selection_preview_and_individual_results(): void
+    {
+        $user = Mockery::mock();
+        $user->shouldReceive('can')->with('finance.view')->andReturn(true);
+        $user->shouldReceive('can')->with('invoices-list')->andReturn(true);
+        $user->shouldReceive('can')->with('finance.debt.manage')->andReturn(true);
+        $user->shouldReceive('getAuthIdentifier')->andReturn(7);
+        auth('admin')->setUser($user);
+
+        $good = $this->invoice();
+        $bad = $this->invoice(['type' => 'Hóa đơn thay thế']);
+        $screen = Livewire::test(InvoiceDebtExplorer::class)
+            ->call('toggleBulkPage')
+            ->assertSet('bulkSelected', [$bad, $good])
+            ->call('prepareBulk')
+            ->assertSee('Xem trước 2 hóa đơn')
+            ->assertSee('Hóa đơn có dấu hiệu hủy/thay thế/điều chỉnh.')
+            ->set('bulkReviewed', true)
+            ->call('confirmBulk')
+            ->assertSee('Kết quả xử lý 2 hóa đơn')
+            ->assertSee('Thành công: 1')
+            ->assertSee('Bỏ qua: 1');
+        self::assertSame(1, DB::table('finance_debt_obligations')->where('source_module', 'Invoices')
+            ->where('source_type', 'invoice')->where('source_document_id', (string) $good)->count());
+        self::assertSame(0, DB::table('finance_debt_obligations')->where('source_module', 'Invoices')
+            ->where('source_type', 'invoice')->where('source_document_id', (string) $bad)->count());
     }
 
     public function test_explicit_review_creates_exactly_one_confirmed_source_debt(): void
