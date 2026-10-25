@@ -66,7 +66,7 @@ final class FinanceDebtPaymentReversalService
             if ($balance['reason_code'] !== 'mapping_projection_only_not_authorized') {
                 $this->deny('Lịch sử công nợ không nhất quán.');
             }
-            $key = 'rev-'.$debtId.'-'.$voucherId;
+            $key = 'reverse-'.$debtId.'-'.$voucherId;
             (new FinanceDebtIdempotencyRegistry)->reserve($debtId, 'reverse', $key);
 
             $signed = (string) $posting->signed_amount;
