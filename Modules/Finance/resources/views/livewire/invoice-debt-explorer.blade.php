@@ -17,7 +17,7 @@
         <div class="space-y-3 rounded-lg border border-slate-200 bg-slate-50/50 p-3">
             <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 <label class="block text-sm xl:col-span-2">Tìm hóa đơn / đối tác / MST
-                    <input type="search" maxlength="100" wire:model.live.debounce.400ms="search" placeholder="Số hóa đơn, ký hiệu, tên đối tác, MST..." class="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+                    <x-search wire:model.live.debounce.400ms="search"  placeholder="Số hóa đơn, ký hiệu, tên đối tác, MST..." maxlength="100" class="mt-1.5" input-class="min-h-11 rounded-xl border-slate-300 bg-white py-3 pr-4 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
                 </label>
                 <label class="block text-sm">Chiều hóa đơn
                     <select wire:model.live="invoiceType" class="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
