@@ -178,7 +178,7 @@ final class DebtWorkspace extends Component
     {
         $amount = trim($amount);
         if (! preg_match('/^\\d{1,3}(?:\\.\\d{3})*(?:,\\d{1,2})?$|^\\d{1,15}(?:[.,]\\d{1,2})?$/D', $amount)) {
-            throw \\Illuminate\\Validation\\ValidationException::withMessages(['paymentAmount' => 'Nhập số tiền hợp lệ, ví dụ 540.000.000 hoặc 1.500,50.']);
+            throw \Illuminate\Validation\ValidationException::withMessages(['paymentAmount' => 'Nhập số tiền hợp lệ, ví dụ 540.000.000 hoặc 1.500,50.']);
         }
         // Dot grouping and comma decimal are the Vietnamese display convention.
         if (str_contains($amount, ',')) {
