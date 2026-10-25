@@ -115,7 +115,8 @@ final class VoucherPostingService
             }
 
             // Debt-owned vouchers require an atomic debt reversal, not treasury-only reversal.
-            if (DB::table('finance_debt_settlement_mappings')->where('voucher_id', $voucherId)->exists()) {
+            if (\Illuminate\Support\Facades\Schema::hasTable('finance_debt_settlement_mappings')
+                && DB::table('finance_debt_settlement_mappings')->where('voucher_id', $voucherId)->exists()) {
                 throw ValidationException::withMessages([
                     'voucher' => 'Phiếu thanh toán công nợ phải hoàn tác từ chi tiết công nợ.',
                 ]);
