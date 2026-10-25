@@ -215,7 +215,7 @@ final class InvoiceDebtExplorer extends Component
             'issued_on' => (string) $invoice->issued_date,
         ];
         $this->recognizedOn = now()->toDateString();
-        $this->dueOn = $service->defaultDueOn((string) $invoice->issued_date);
+        $this->dueOn = $service->defaultDueOn((string) $invoice->issued_date) ?? '';
         $this->reviewed = false;
         $this->resetErrorBag();
     }
