@@ -9,6 +9,7 @@
     <div class="flex flex-wrap gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1.5" role="tablist" aria-label="Loại chứng từ">
         <button type="button" role="tab" aria-selected="{{ $activeTab === 'invoices' ? 'true' : 'false' }}" wire:click="setTab('invoices')" class="min-h-10 rounded-lg px-4 py-2 text-sm font-semibold transition {{ $activeTab === 'invoices' ? 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200' : 'text-slate-600 hover:bg-white/70' }}">Hóa đơn nguồn</button>
         <button type="button" role="tab" aria-selected="{{ $activeTab === 'debts' ? 'true' : 'false' }}" wire:click="setTab('debts')" class="min-h-10 rounded-lg px-4 py-2 text-sm font-semibold transition {{ $activeTab === 'debts' ? 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200' : 'text-slate-600 hover:bg-white/70' }}">Công nợ đã ghi nhận</button>
+        <button type="button" role="tab" aria-selected="{{ $activeTab === 'reconciliation' ? 'true' : 'false' }}" wire:click="setTab('reconciliation')" class="min-h-10 rounded-lg px-4 py-2 text-sm font-semibold {{ $activeTab === 'reconciliation' ? 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200' : 'text-slate-600 hover:bg-white/70' }}">Đối soát 11G</button>
     </div>
     @if ($activeTab === 'invoices')
         <section role="tabpanel" aria-label="Hóa đơn nguồn">
@@ -16,6 +17,33 @@
                 <livewire:finance.invoice-debt-explorer />
             @else
                 <p class="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">Tra cứu hóa đơn yêu cầu đồng thời quyền finance.view và invoices-list.</p>
+            @endif
+        </section>
+    @elseif ($activeTab === 'reconciliation')
+        <section role="tabpanel" aria-label="Đối soát công nợ 11G" class="space-y-4">
+            <h3 class="text-lg font-semibold">Đối soát công nợ và phiếu thanh toán</h3>
+            <p class="text-sm text-slate-600">Ảnh chụp số dư lũy kế hiện tại của công nợ đã xác nhận. Chỉ số dư của dòng đối soát khớp được tính vào tổng đã xác minh. Đây không phải báo cáo số dư đầu kỳ/cuối kỳ hoặc báo cáo kế toán theo kỳ.</p>
+            <div class="grid gap-3 sm:grid-cols-2">
+                <label class="text-sm">Tìm công nợ / đối tác<input type="search" wire:model.live.debounce.350ms="reconcileSearch" class="mt-1 w-full rounded-lg border border-slate-300 p-2"></label>
+                <label class="text-sm">Loại công nợ<select wire:model.live="reconcileDirection" class="mt-1 w-full rounded-lg border border-slate-300 p-2"><option value="">Tất cả</option><option value="receivable">Phải thu</option><option value="payable">Phải trả</option></select></label>
+            </div>
+            @if (!$reconciliation['ready'])
+                <p class="rounded-lg border border-amber-300 p-3 text-sm text-amber-800">Chưa thể đối soát: thiếu bảng {{ $reconciliation['missing'] }}.</p>
+            @else
+                <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <div class="rounded-lg border p-3"><p class="text-xs text-slate-500">Gốc phải thu sau điều chỉnh</p><strong>{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $reconciliation['totals']->receivable_principal) }}</strong></div>
+                    <div class="rounded-lg border p-3"><p class="text-xs text-slate-500">Gốc phải trả sau điều chỉnh</p><strong>{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $reconciliation['totals']->payable_principal) }}</strong></div>
+                    <div class="rounded-lg border p-3"><p class="text-xs text-slate-500">Còn phải thu đã đối soát</p><strong>{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $reconciliation['totals']->receivable_outstanding_verified) }}</strong></div>
+                    <div class="rounded-lg border p-3"><p class="text-xs text-slate-500">Còn phải trả đã đối soát</p><strong>{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $reconciliation['totals']->payable_outstanding_verified) }}</strong></div>
+                </div>
+                <p class="text-sm">Thanh toán ròng đã đối soát: <strong>{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $reconciliation['totals']->verified_net_payments) }}</strong> · Dòng cần kiểm tra: <strong>{{ $reconciliation['totals']->review_count }}</strong></p>
+                <div class="overflow-x-auto rounded-lg border"><table class="w-full min-w-[850px] text-left text-sm">
+                    <thead class="bg-slate-50"><tr><th class="p-2">Chứng từ</th><th class="p-2">Đối tác</th><th class="p-2">Loại</th><th class="p-2 text-right">Gốc điều chỉnh</th><th class="p-2 text-right">Thanh toán ròng</th><th class="p-2 text-right">Còn nợ (dự kiến)</th><th class="p-2">Đối soát</th></tr></thead>
+                    <tbody>@forelse ($reconciliation['rows'] as $item)
+                        <tr class="border-t"><td class="p-2">{{ $item->reference_number }}</td><td class="p-2">{{ $item->counterparty_name }}</td><td class="p-2">{{ $item->direction === 'receivable' ? 'Phải thu' : 'Phải trả' }}</td><td class="p-2 text-right">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $item->principal) }}</td><td class="p-2 text-right">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $item->net_mapped) }}</td><td class="p-2 text-right">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd((string) $item->outstanding) }}</td><td class="p-2">{{ $item->reconciliation_status === 'matched' ? 'Khớp' : 'Cần đối soát' }}</td></tr>
+                    @empty <tr><td colspan="7" class="p-3 text-slate-500">Không có công nợ phù hợp.</td></tr> @endforelse</tbody>
+                </table></div>
+                {{ $reconciliation['rows']->links() }}
             @endif
         </section>
     @else
