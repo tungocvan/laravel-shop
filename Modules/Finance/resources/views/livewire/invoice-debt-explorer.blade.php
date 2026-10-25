@@ -21,7 +21,33 @@
                 </select>
             </label>
         </div>
-        <button type="button" wire:click="resetFilters" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">Đặt lại bộ lọc</button>
+        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <label class="block text-sm">Năm
+                <select wire:model.live="year" class="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+                    @for($y = (int) now()->year; $y >= 2020; $y--)
+                        <option value="{{ $y }}">{{ $y }}</option>
+                    @endfor
+                </select>
+            </label>
+            <label class="block text-sm">Tháng
+                <select wire:model.live="month" class="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+                    @for($m = 1; $m <= 12; $m++)
+                        <option value="{{ sprintf('%02d', $m) }}">Tháng {{ $m }}</option>
+                    @endfor
+                </select>
+            </label>
+            <label class="block text-sm">Từ ngày
+                <input type="date" wire:model="dateFrom" class="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+            </label>
+            <label class="block text-sm">Đến ngày
+                <input type="date" wire:model="dateTo" class="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+            </label>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+            <button type="button" wire:click="applyDates" class="min-h-10 rounded-lg bg-indigo-700 px-4 py-2 text-sm font-semibold text-white">Áp dụng</button>
+            <button type="button" wire:click="resetFilters" class="min-h-10 rounded-lg border border-slate-300 px-3 py-2 text-sm">Đặt lại bộ lọc</button>
+            <span class="text-xs text-slate-600">Đang xem: {{ $appliedFrom }} đến {{ $appliedTo }} · Chọn năm/tháng chỉ cập nhật ngày dự kiến; bấm Áp dụng để lọc.</span>
+        </div>
         @if($errors->any())<p role="alert" class="text-sm text-red-700">{{ $errors->first() }}</p>@endif
         <div class="overflow-x-auto rounded-lg border border-slate-200" role="region" aria-label="Danh sách hóa đơn từ Invoices" tabindex="0">
             <table class="w-full min-w-[900px] text-left text-sm">
