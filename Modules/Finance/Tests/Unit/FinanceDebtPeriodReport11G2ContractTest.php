@@ -29,5 +29,11 @@ final class FinanceDebtPeriodReport11G2ContractTest extends TestCase
         self::assertStringContainsString("'periodReport' =>", $component);
         self::assertStringContainsString("setTab('period')", $view);
         self::assertStringContainsString('không phải sổ kế toán', $view);
+        self::assertStringNotContainsString("$"+"periodReport['rows']->links()", $view);
+        self::assertStringContainsString("gotoPage(1, 'periodPage')", $view);
+        self::assertStringContainsString("previousPage('periodPage')", $view);
+        self::assertStringContainsString("nextPage('periodPage')", $view);
+        self::assertStringContainsString('Phân trang báo cáo công nợ theo kỳ', $view);
+        self::assertStringContainsString('Vuốt ngang để xem các cột còn lại.', $view);
     }
 }
