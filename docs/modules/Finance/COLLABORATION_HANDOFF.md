@@ -549,3 +549,8 @@ User confirmed CP05 regression 245 passed, 4 skipped, 887 assertions and UI14–
 ## Demo UI Checkpoint 07 — Settings overview, Git Pull/Test pending
 
 User confirmed CP06 regression 247 passed, 4 skipped, 914 assertions, UI17–19 PASS and approved CP07. Added DebtSettings read-only component and view, activated settings menu, corrected summary subtitle, and added focused tests. No mutable settings, invoice sync, settlement, or accounting balance calculations. See DEMO_UI_ACCEPTANCE_CHECKPOINT_07.md. Await WSL tests and browser UI20–22 before continuing.
+
+
+## Checkpoint 08A — Invoices source explorer, Git Pull/Test pending
+
+After CP07 PASS (249 passed, 4 skipped, 923 assertions; UI20–22 PASS), user requested priority integration of Modules/Invoices before UI polish. Inspected actual Invoices model, schema and routes. Added a read-only searchable invoice catalog in Finance Documents, showing sold/purchase totals and matching source identity, gated by both finance.view and invoices-list. No payment allocation contract was established; no settlement or invoice-to-debt auto posting implemented. Focused test and acceptance in DEMO_UI_ACCEPTANCE_CHECKPOINT_08A_INVOICES.md. Await WSL focused/regression tests and UI23–25. Do not start accounting write integration without new approval and validated source/payment lifecycle.
