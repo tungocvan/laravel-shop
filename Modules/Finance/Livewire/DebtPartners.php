@@ -14,16 +14,16 @@ final class DebtPartners extends Component
     public string $direction = '';
     public string $status = 'confirmed';
 
-    public function updatedSearch(): void { $this->resetPage(); }
-    public function updatedDirection(): void { $this->resetPage(); }
-    public function updatedStatus(): void { $this->resetPage(); }
+    public function updatedSearch(): void { $this->resetPage('partnersPage'); }
+    public function updatedDirection(): void { $this->resetPage('partnersPage'); }
+    public function updatedStatus(): void { $this->resetPage('partnersPage'); }
 
     public function resetFilters(): void
     {
         $this->search = '';
         $this->direction = '';
         $this->status = 'confirmed';
-        $this->resetPage();
+        $this->resetPage('partnersPage');
     }
 
     public function render()
@@ -54,7 +54,7 @@ final class DebtPartners extends Component
             ->selectRaw('COALESCE(SUM(adjusted_principal), 0) AS principal_total')
             ->selectRaw("COALESCE(SUM(CASE WHEN status = 'confirmed' AND due_on < CURRENT_DATE AND adjusted_principal > 0 THEN adjusted_principal ELSE 0 END), 0) AS overdue_total")
             ->groupBy('counterparty_name', 'counterparty_tax_code', 'direction')
-            ->orderBy('counterparty_name')->orderBy('direction')->paginate(15);
+            ->orderBy('counterparty_name')->orderBy('direction')->paginate(15, ['*'], 'partnersPage');
 
         return view('Finance::livewire.debt-partners', ['partners' => $partners]);
     }
