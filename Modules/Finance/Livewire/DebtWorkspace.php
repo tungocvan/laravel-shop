@@ -161,6 +161,33 @@ final class DebtWorkspace extends Component
         $this->paymentReviewDebtId = $id;
         $this->reset('paymentAmount', 'paymentAccountId', 'paymentReference', 'paymentPreviewed');
         $this->paymentDate = now()->toDateString();
+        $review = app(FinanceDebtPaymentReview::class)->inspect($id);
+        // This is adjusted principal, NOT verified unpaid balance.
+        $this->paymentAmount = $this->formatPaymentInput($review['principal']);
+    }
+
+    private function formatPaymentInput(string $amount): string
+    {
+        $parts = explode('.', $amount, 2);
+        $integer = preg_replace('/\\B(?=(\\d{3})+(?!\\d))/', '.', $parts[0]);
+        $fraction = rtrim($parts[1] ?? '', '0');
+        return $integer.($fraction !== '' ? ','.$fraction : '');
+    }
+
+    private function normalizePaymentInput(string $amount): string
+    {
+        $amount = trim($amount);
+        if (! preg_match('/^\\d{1,3}(?:\\.\\d{3})*(?:,\\d{1,2})?$|^\\d{1,15}(?:[.,]\\d{1,2})?$/D', $amount)) {
+            throw \\Illuminate\\Validation\\ValidationException::withMessages(['paymentAmount' => 'Nhập số tiền hợp lệ, ví dụ 540.000.000 hoặc 1.500,50.']);
+        }
+        // Dot grouping and comma decimal are the Vietnamese display convention.
+        if (str_contains($amount, ',')) {
+            return str_replace(',', '.', str_replace('.', '', $amount));
+        }
+        if (preg_match('/^\\d{1,3}(?:\\.\\d{3})+$/D', $amount)) {
+            return str_replace('.', '', $amount);
+        }
+        return $amount;
     }
 
     public function updatedPaymentAmount(): void { $this->paymentPreviewed = false; }
@@ -180,7 +207,7 @@ final class DebtWorkspace extends Component
             'paymentReference' => ['required', 'string', 'max:100'],
         ]);
         abort_unless(collect($review['accounts'])->contains(fn ($a) => (string) $a['id'] === $this->paymentAccountId), 422);
-        $amount = $this->toPaymentCents($this->paymentAmount);
+        $amount = $this->toPaymentCents($this->normalizePaymentInput($this->paymentAmount));
         $principal = $this->toPaymentCents($review['principal']);
         if ($amount <= 0 || $amount > $principal) {
             throw \Illuminate\Validation\ValidationException::withMessages([
@@ -188,6 +215,7 @@ final class DebtWorkspace extends Component
             ]);
         }
         // Preview is never proof of an unpaid balance or authorization to post.
+        $this->paymentAmount = $this->formatPaymentInput($this->normalizePaymentInput($this->paymentAmount));
         $this->paymentPreviewed = true;
     }
 
