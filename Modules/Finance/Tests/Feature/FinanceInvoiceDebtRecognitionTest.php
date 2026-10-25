@@ -63,13 +63,31 @@ final class FinanceInvoiceDebtRecognitionTest extends TestCase
             ->assertSee('Hóa đơn có dấu hiệu hủy/thay thế/điều chỉnh.')
             ->set('bulkReviewed', true)
             ->call('confirmBulk')
-            ->assertSee('Kết quả xử lý 2 hóa đơn')
-            ->assertSee('Thành công: 1')
-            ->assertSee('Bỏ qua: 1');
+            ->assertSee('Kết quả xác nhận 2 hóa đơn')
+            ->assertSet('bulkResults.0.status', 'skipped')
+            ->assertSet('bulkResults.1.status', 'success');
         self::assertSame(1, DB::table('finance_debt_obligations')->where('source_module', 'Invoices')
             ->where('source_type', 'invoice')->where('source_document_id', (string) $good)->count());
         self::assertSame(0, DB::table('finance_debt_obligations')->where('source_module', 'Invoices')
             ->where('source_type', 'invoice')->where('source_document_id', (string) $bad)->count());
+    }
+
+
+    public function test_default_due_date_is_90_calendar_days_including_leap_year(): void
+    {
+        $service = new InvoiceDebtRecognitionService;
+        self::assertSame('2027-01-10', $service->defaultDueOn('2026-10-12'));
+        self::assertSame('2024-03-31', $service->defaultDueOn('2024-01-01'));
+        self::assertSame('2024-05-30', $service->defaultDueOn('2024-03-01'));
+        self::assertNull($service->defaultDueOn('2026-02-30'));
+    }
+
+    public function test_invoice_due_date_can_precede_recognition_date_when_invoice_is_old(): void
+    {
+        $id = $this->invoice(['issued_date' => '2025-01-01']);
+        $due = (new InvoiceDebtRecognitionService)->defaultDueOn('2025-01-01');
+        $debtId = (new InvoiceDebtRecognitionService)->confirm($id, 7, '2026-10-25', $due, true);
+        self::assertSame($due, DB::table('finance_debt_obligations')->find($debtId)->due_on);
     }
 
     public function test_explicit_review_creates_exactly_one_confirmed_source_debt(): void
