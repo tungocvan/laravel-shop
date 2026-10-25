@@ -15,7 +15,7 @@ final class FinancePaymentAmountFormatTest extends TestCase
         $cents = new \ReflectionMethod($component, 'toPaymentCents');
         $format = new \ReflectionMethod($component, 'formatPaymentInput');
 
-        foreach (['40.824.000' => '40824000', '540.000.000' => '540000000',
+        foreach (['40.824.000' => '40824000', '40.000.000' => '40000000', '540.000.000' => '540000000',
             '1000000' => '1000000', '1.500,50' => '1500.50'] as $input => $expected) {
             self::assertSame($expected, $normalize->invoke($component, $input));
         }
