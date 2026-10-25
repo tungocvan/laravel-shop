@@ -60,6 +60,7 @@ final class FinanceDebtPeriodReport11G2
                 WHERE m.obligation_id=d.id AND m.operation=?
                 AND DATE(l.effective_at) $dateOperator ?
                 AND (SELECT COUNT(*) FROM finance_ledger_entries lx WHERE lx.voucher_id=m.voucher_id AND lx.entry_type=?)=1
+                AND (SELECT COUNT(*) FROM finance_debt_allocation_ownerships ox WHERE ox.mapping_id=o.mapping_id)=1
                 AND (m.operation='post' OR EXISTS
                     (SELECT 1 FROM finance_debt_settlement_mappings p WHERE p.id=m.reverses_mapping_id
                      AND p.obligation_id=m.obligation_id AND p.voucher_id=m.voucher_id AND p.amount=m.amount)))";
@@ -75,7 +76,14 @@ final class FinanceDebtPeriodReport11G2
             ->selectRaw("(SELECT COUNT(*) FROM finance_debt_settlement_mappings m
                 LEFT JOIN finance_debt_allocation_ownerships o ON o.mapping_id =
                     CASE WHEN m.operation='reverse' THEN m.reverses_mapping_id ELSE m.id END
-                WHERE m.obligation_id=d.id AND (o.id IS NULL OR NOT EXISTS
+                LEFT JOIN finance_vouchers v ON v.id=m.voucher_id
+                WHERE m.obligation_id=d.id AND (o.id IS NULL OR v.id IS NULL
+                    OR v.status NOT IN ('posted','reversed')
+                    OR (SELECT COUNT(*) FROM finance_debt_allocation_ownerships ox WHERE ox.mapping_id=o.mapping_id)<>1
+                    OR (m.operation='reverse' AND NOT EXISTS
+                        (SELECT 1 FROM finance_debt_settlement_mappings p WHERE p.id=m.reverses_mapping_id
+                        AND p.obligation_id=m.obligation_id AND p.voucher_id=m.voucher_id AND p.amount=m.amount))
+                    OR NOT EXISTS
                     (SELECT 1 FROM finance_ledger_entries l WHERE l.voucher_id=m.voucher_id
                     AND l.entry_type=CASE WHEN m.operation='post' THEN 'posting' ELSE 'reversal' END))) AS evidence_gaps");
 
