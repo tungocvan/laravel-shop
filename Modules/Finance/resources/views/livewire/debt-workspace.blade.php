@@ -181,11 +181,22 @@
             @if($selectedPaymentEvidence && $selectedPaymentEvidence['rows'] !== [])
             <section class="space-y-2" aria-label="Lịch sử thanh toán công nợ">
                 <h4 class="text-sm font-semibold">Lịch sử phiếu thanh toán</h4>
+                @if($canManage)
+                <label class="block text-xs font-medium">Lý do hoàn tác (ít nhất 10 ký tự)
+                    <textarea wire:model="reversalReason" maxlength="500" rows="2" class="mt-1 w-full rounded-lg border border-gray-300 p-2 text-sm" placeholder="Nhập lý do trước khi hoàn tác một phiếu đã ghi sổ"></textarea>
+                </label>
+                @error('reversalReason') <p class="text-xs text-red-700">{{ $message }}</p> @enderror
+                @error('reversal') <p class="text-xs text-red-700">{{ $message }}</p> @enderror
+                @endif
                 <div class="overflow-x-auto rounded-lg border border-slate-200">
                     <table class="w-full min-w-[500px] text-left text-xs">
-                        <thead class="bg-slate-50"><tr><th class="p-2">Số phiếu</th><th class="p-2">Ngày</th><th class="p-2">Nghiệp vụ</th><th class="p-2 text-right">Số tiền</th><th class="p-2">Trạng thái</th></tr></thead>
+                        <thead class="bg-slate-50"><tr><th class="p-2">Số phiếu</th><th class="p-2">Ngày</th><th class="p-2">Nghiệp vụ</th><th class="p-2 text-right">Số tiền</th><th class="p-2">Trạng thái</th><th class="p-2">Thao tác</th></tr></thead>
                         <tbody>@foreach($selectedPaymentEvidence['rows'] as $row)
-                        <tr class="border-t border-slate-100"><td class="p-2">{{ $row['voucher_number'] }}</td><td class="p-2">{{ $row['voucher_date'] }}</td><td class="p-2">{{ $row['operation'] === 'post' ? 'Thanh toán' : 'Hoàn tác' }}</td><td class="p-2 text-right">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd($row['amount']) }}</td><td class="p-2">{{ $row['voucher_status'] }}</td></tr>
+                        <tr class="border-t border-slate-100"><td class="p-2">{{ $row['voucher_number'] }}</td><td class="p-2">{{ $row['voucher_date'] }}</td><td class="p-2">{{ $row['operation'] === 'post' ? 'Thanh toán' : 'Hoàn tác' }}</td><td class="p-2 text-right">{{ \Modules\Finance\Livewire\DebtWorkspace::formatVnd($row['amount']) }}</td><td class="p-2">{{ $row['voucher_status'] }}</td><td class="p-2">
+                            @if($canManage && $row['operation'] === 'post' && $row['voucher_status'] === 'posted')
+                            <button type="button" wire:click="reversePayment({{ $row['voucher_id'] }})" wire:confirm="Hoàn tác phiếu {{ $row['voucher_number'] }}? Giao dịch sẽ ghi bút toán đảo và khôi phục công nợ. Hãy nhập lý do trước." wire:loading.attr="disabled" class="rounded-lg border border-red-300 px-2 py-1 font-semibold text-red-700">Hoàn tác</button>
+                            @else <span class="text-slate-400">—</span> @endif
+                        </td></tr>
                         @endforeach</tbody>
                     </table>
                 </div>
