@@ -30,6 +30,11 @@ final class DebtWorkspace extends Component
     public string $dueOn = '';
     public ?int $selectedDebtId = null;
     public ?int $paymentReviewDebtId = null;
+    public string $paymentAmount = '';
+    public string $paymentDate = '';
+    public string $paymentAccountId = '';
+    public string $paymentReference = '';
+    public bool $paymentPreviewed = false;
     public string $adjustment = '';
     public string $adjustmentReason = '';
     public string $adjustmentDate = '';
@@ -154,12 +159,52 @@ final class DebtWorkspace extends Component
         $this->authorizeView();
         abort_unless(DB::table('finance_debt_obligations')->where('id', $id)->where('status', 'confirmed')->exists(), 404);
         $this->paymentReviewDebtId = $id;
+        $this->reset('paymentAmount', 'paymentAccountId', 'paymentReference', 'paymentPreviewed');
+        $this->paymentDate = now()->toDateString();
+    }
+
+    public function updatedPaymentAmount(): void { $this->paymentPreviewed = false; }
+    public function updatedPaymentDate(): void { $this->paymentPreviewed = false; }
+    public function updatedPaymentAccountId(): void { $this->paymentPreviewed = false; }
+    public function updatedPaymentReference(): void { $this->paymentPreviewed = false; }
+
+    public function previewPayment(): void
+    {
+        $this->authorizeView();
+        abort_unless($this->paymentReviewDebtId !== null, 404);
+        $review = app(FinanceDebtPaymentReview::class)->inspect($this->paymentReviewDebtId);
+        $this->validate([
+            'paymentAmount' => ['required', 'regex:/^\\d{1,15}(?:\\.\\d{1,2})?$/'],
+            'paymentDate' => ['required', 'date_format:Y-m-d'],
+            'paymentAccountId' => ['required', 'integer', 'min:1'],
+            'paymentReference' => ['required', 'string', 'max:100'],
+        ]);
+        abort_unless(collect($review['accounts'])->contains(fn ($a) => (string) $a['id'] === $this->paymentAccountId), 422);
+        $amount = $this->toPaymentCents($this->paymentAmount);
+        $principal = $this->toPaymentCents($review['principal']);
+        if ($amount <= 0 || $amount > $principal) {
+            throw \\Illuminate\\Validation\\ValidationException::withMessages([
+                'paymentAmount' => 'Số tiền phải lớn hơn 0 và không vượt giá trị sau điều chỉnh.',
+            ]);
+        }
+        // Preview is never proof of an unpaid balance or authorization to post.
+        $this->paymentPreviewed = true;
+    }
+
+    private function toPaymentCents(string $value): int
+    {
+        if (! preg_match('/^\\d{1,15}(?:\\.\\d{1,2})?$/D', $value)) {
+            throw \\Illuminate\\Validation\\ValidationException::withMessages(['paymentAmount' => 'Số tiền không hợp lệ.']);
+        }
+        [$whole, $fraction] = array_pad(explode('.', $value, 2), 2, '');
+        return ((int) $whole * 100) + (int) str_pad($fraction, 2, '0');
     }
 
     public function closePaymentReview(): void
     {
         $this->authorizeView();
         $this->paymentReviewDebtId = null;
+        $this->reset('paymentAmount', 'paymentDate', 'paymentAccountId', 'paymentReference', 'paymentPreviewed');
     }
 
     public function closeDebt(): void
