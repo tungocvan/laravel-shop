@@ -144,6 +144,13 @@ final class InvoiceDebtExplorer extends Component
         $this->bulkReviewed = false;
     }
 
+    public function closeBulkResults(): void
+    {
+        $this->authorizeManage();
+        $this->bulkResults = [];
+        $this->bulkResultsExpanded = false;
+    }
+
     public function closeBulkPreview(): void
     {
         $this->authorizeManage();
