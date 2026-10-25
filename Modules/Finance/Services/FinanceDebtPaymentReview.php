@@ -35,8 +35,9 @@ final class FinanceDebtPaymentReview
             $source = DB::table('finance_source_documents')->where('id', $link['source_id'])->first();
             if ($source === null || (string) $source->currency !== (string) $debt->currency
                 || (string) $source->direction !== (string) $debt->direction
-                || (string) $source->source_document_id !== (string) $debt->source_document_id) {
-                $reasons[] = 'Chứng từ nguồn Finance không khớp định danh, loại công nợ hoặc tiền tệ.';
+                || (string) $source->source_document_id !== (string) $debt->source_document_id
+                || (string) $source->original_amount !== (string) $debt->original_amount) {
+                $reasons[] = 'Chứng từ nguồn Finance không khớp định danh, số tiền gốc, loại công nợ hoặc tiền tệ.';
             }
         }
         // An exact source match alone is insufficient: current production
