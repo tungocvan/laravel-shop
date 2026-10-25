@@ -15,6 +15,7 @@ final class DebtWorkspace extends Component
 {
     use WithPagination;
 
+    public string $activeTab = 'invoices';
     public string $search = '';
     public string $direction = '';
     public string $status = '';
@@ -37,7 +38,15 @@ final class DebtWorkspace extends Component
         if (is_scalar($id) && ctype_digit((string) $id) && (int) $id > 0
             && DB::table('finance_debt_obligations')->where('id', (int) $id)->exists()) {
             $this->selectedDebtId = (int) $id;
+            $this->activeTab = 'debts';
         }
+    }
+
+    public function setTab(string $tab): void
+    {
+        $this->authorizeView();
+        abort_unless(in_array($tab, ['invoices', 'debts'], true), 422);
+        $this->activeTab = $tab;
     }
 
     public function updatedSearch(): void { $this->resetPage(); }
