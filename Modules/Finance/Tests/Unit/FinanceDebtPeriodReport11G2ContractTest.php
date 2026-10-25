@@ -36,5 +36,14 @@ final class FinanceDebtPeriodReport11G2ContractTest extends TestCase
         self::assertStringContainsString('previousPage(', $pagination);
         self::assertStringContainsString('nextPage(', $pagination);
         self::assertStringContainsString('Vuốt ngang để xem các cột còn lại.', $view);
+        $periodPanel = explode("    @elseif (\$activeTab === 'reconciliation')", explode("    @elseif (\$activeTab === 'period')", $view, 2)[1], 2)[0];
+        self::assertStringContainsString('Báo cáo theo kỳ · Chỉ đọc', $periodPanel);
+        self::assertStringContainsString('bg-white p-4 shadow-sm', $periodPanel);
+        self::assertStringContainsString('divide-y divide-slate-100', $periodPanel);
+        self::assertStringContainsString('hover:bg-slate-50/80', $periodPanel);
+        self::assertStringContainsString('tabular-nums', $periodPanel);
+        self::assertStringContainsString('aria-label="Bảng biến động công nợ"', $periodPanel);
+        self::assertStringContainsString('Cần đối soát', $periodPanel);
+        self::assertStringContainsString("pageName' => 'periodPage'", $periodPanel);
     }
 }
