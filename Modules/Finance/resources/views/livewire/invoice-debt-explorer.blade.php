@@ -14,42 +14,51 @@
     @if(!$available)
         <p class="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Modules/Invoices chưa được bật hoặc bảng invoices chưa sẵn sàng. Không có dữ liệu hóa đơn để hiển thị.</p>
     @else
-        <div class="grid gap-3 sm:grid-cols-3">
-            <label class="block text-sm sm:col-span-2">Số hóa đơn / ký hiệu / đối tác / MST
-                <input type="search" maxlength="100" wire:model.live.debounce.400ms="search" placeholder="Tìm hóa đơn..." class="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
-            </label>
-            <label class="block text-sm">Chiều hóa đơn
-                <select wire:model.live="invoiceType" class="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
-                    <option value="">Tất cả</option><option value="sold">Bán ra</option><option value="purchase">Mua vào</option>
-                </select>
-            </label>
-        </div>
-        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <label class="block text-sm">Năm
-                <select wire:model.live="year" class="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
-                    @for($y = (int) now()->year; $y >= 2020; $y--)
-                        <option value="{{ $y }}">{{ $y }}</option>
-                    @endfor
-                </select>
-            </label>
-            <label class="block text-sm">Tháng
-                <select wire:model.live="month" class="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
-                    @for($m = 1; $m <= 12; $m++)
-                        <option value="{{ sprintf('%02d', $m) }}">Tháng {{ $m }}</option>
-                    @endfor
-                </select>
-            </label>
-            <label class="block text-sm">Từ ngày
-                <input type="date" wire:model="dateFrom" class="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
-            </label>
-            <label class="block text-sm">Đến ngày
-                <input type="date" wire:model="dateTo" class="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
-            </label>
-        </div>
-        <div class="flex flex-wrap items-center gap-3">
-            <button type="button" wire:click="applyDates" class="min-h-10 rounded-lg bg-indigo-700 px-4 py-2 text-sm font-semibold text-white">Áp dụng</button>
-            <button type="button" wire:click="resetFilters" class="min-h-10 rounded-lg border border-slate-300 px-3 py-2 text-sm">Đặt lại bộ lọc</button>
-            <span class="text-xs text-slate-600">Đang xem: {{ $appliedFrom }} đến {{ $appliedTo }} · Chọn năm/tháng chỉ cập nhật ngày dự kiến; bấm Áp dụng để lọc.</span>
+        <div class="space-y-3 rounded-lg border border-slate-200 bg-slate-50/50 p-3">
+            <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <label class="block text-sm xl:col-span-2">Tìm hóa đơn / đối tác / MST
+                    <input type="search" maxlength="100" wire:model.live.debounce.400ms="search" placeholder="Số hóa đơn, ký hiệu, tên đối tác, MST..." class="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+                </label>
+                <label class="block text-sm">Chiều hóa đơn
+                    <select wire:model.live="invoiceType" class="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+                        <option value="">Tất cả</option><option value="sold">Bán ra</option><option value="purchase">Mua vào</option>
+                    </select>
+                </label>
+                <label class="block text-sm">Trạng thái đối chiếu
+                    <select wire:model.live="reconciliationStatus" class="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+                        <option value="unrecorded">Chưa ghi nhận</option><option value="recorded">Đã ghi nhận</option><option value="all">Tất cả</option>
+                    </select>
+                </label>
+            </div>
+            <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <label class="block text-sm">Năm
+                    <select wire:model.live="year" class="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+                        <option value="">Tất cả năm</option>
+                        @for($y = (int) now()->year; $y >= 2020; $y--)
+                            <option value="{{ $y }}">{{ $y }}</option>
+                        @endfor
+                    </select>
+                </label>
+                <label class="block text-sm">Tháng
+                    <select wire:model.live="month" class="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+                        <option value="">Tất cả tháng</option>
+                        @for($m = 1; $m <= 12; $m++)
+                            <option value="{{ sprintf('%02d', $m) }}">Tháng {{ $m }}</option>
+                        @endfor
+                    </select>
+                </label>
+                <label class="block text-sm">Từ ngày
+                    <input type="date" wire:model="dateFrom" class="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+                </label>
+                <label class="block text-sm">Đến ngày
+                    <input type="date" wire:model="dateTo" class="mt-1 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+                </label>
+            </div>
+            <div class="flex flex-wrap items-center gap-2 border-t border-slate-200 pt-3">
+                <button type="button" wire:click="applyDates" class="min-h-10 rounded-lg bg-indigo-700 px-4 py-2 text-sm font-semibold text-white">Áp dụng khoảng ngày</button>
+                <button type="button" wire:click="resetFilters" class="min-h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">Đặt lại</button>
+                <span class="text-xs text-slate-600">Đang áp dụng: <strong>{{ $appliedFrom }} → {{ $appliedTo }}</strong>. Thay đổi năm/tháng cần bấm Áp dụng; tìm kiếm, chiều và trạng thái lọc trực tiếp.</span>
+            </div>
         </div>
         @if($errors->any())<p role="alert" class="text-sm text-red-700">{{ $errors->first() }}</p>@endif
 
@@ -131,7 +140,7 @@
                 <thead class="border-b border-slate-200 bg-slate-50"><tr>
                     <th class="p-3">
                         @if($canRecognize)
-                            <button type="button" wire:click="toggleBulkPage" class="rounded border border-slate-300 px-2 py-1 text-xs" title="Chọn hoặc bỏ chọn tất cả hóa đơn chưa liên kết trên trang">Chọn trang</button>
+                            <input type="checkbox" wire:click="toggleBulkPage" @checked(count($bulkSelected) > 0 && count($bulkSelected) === collect($invoices->items())->filter(fn ($i) => (int) $i->linked_debt_count === 0)->count()) aria-label="Chọn tất cả hóa đơn chưa ghi nhận trên trang" title="Chọn tất cả hóa đơn chưa ghi nhận trên trang" class="rounded border-slate-300">
                         @else — @endif
                     </th><th class="p-3">Hóa đơn</th><th class="p-3">Ngày lập</th><th class="p-3">Đối tác</th>
                     <th class="p-3">Chiều</th><th class="p-3 text-right">Tổng tiền HĐ</th><th class="p-3">Đối chiếu Finance</th><th class="p-3">Thao tác</th>
@@ -142,7 +151,7 @@
                             <td class="p-3">
                                 @if($canRecognize && (int) $invoice->linked_debt_count === 0)
                                     <input type="checkbox" aria-label="Chọn hóa đơn {{ $invoice->invoice_number }}" wire:click="toggleBulk({{ $invoice->id }})" @checked(in_array((int) $invoice->id, $bulkSelected, true)) class="rounded border-slate-300">
-                                @else <span class="text-slate-400">—</span> @endif
+                                @else <span class="font-semibold text-emerald-700" aria-label="Hóa đơn đã ghi nhận" title="Đã ghi nhận">✓</span> @endif
                             </td>
                             <td class="p-3"><span class="font-semibold">{{ $invoice->invoice_number ?: 'Chưa có số' }}</span><p class="text-xs text-slate-500">{{ $invoice->symbol ?: '—' }} · ID {{ $invoice->id }}</p></td>
                             <td class="p-3">{{ $invoice->issued_date ?: '—' }}</td>
