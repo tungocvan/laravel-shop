@@ -979,6 +979,40 @@ function renderSettings(){
   <div class="pbar" style="height:8px;margin:10px 0"><i style="width:${Math.min(100,size/5/1024/1024*100)}%;background:var(--accent)"></i></div>
   <span style="color:var(--muted)">${S.products.length} sản phẩm (${nImg} ảnh tải lên) · ${fmt(S.txns.length)} phiếu nhập xuất. ${ONLINE?'Dữ liệu tự lưu trên trình duyệt của máy này, đổi máy hoặc xóa lịch sử duyệt web sẽ mất, nên thỉnh thoảng bấm Tải về.':'Dữ liệu nằm ngay trong file <b>'+esc(FILE_NAME)+'</b> sau mỗi lần bấm Lưu.'} ${DIRTY&&!ONLINE?'<b style="color:#c26a00">Hiện có thay đổi chưa lưu vào file.</b>':''}</span>`}
 function backup(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:'application/json'}));a.download=`Sao_luu_kho_${TODAYS}.json`;a.click();toast('Đã tải file sao lưu')}
+async function backupToServerAndDownload(){
+  // Download first: server failure must never prevent a local copy.
+  backup();
+  const name=$('#backupDatasetName')?.value.trim();
+  const status=$('#backupServerStatus'),button=$('#backupServerBtn');
+  if(!name||name.length<2){status.textContent='Đã tải JSON về máy. Nhập tên bộ dữ liệu (ít nhất 2 ký tự) để lưu lên server.';return}
+  const code=prompt('Nhập mã quản trị để lưu bản sao JSON lên server (không lưu mã trên trình duyệt):');
+  if(!code){status.textContent='Đã tải JSON về máy. Chưa lưu lên server vì chưa nhập mã quản trị.';return}
+  button.disabled=true;
+  status.textContent='Đang lưu bản sao lên server…';
+  try{
+    const response=await fetch('/demo/quan-ly-xuat-nhap-ton/datasets',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Accept':'application/json',
+        'X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]')?.content||'',
+        'X-Demo-Backup-Code':code
+      },
+      body:JSON.stringify({name,data:S})
+    });
+    if(!response.ok){
+      const messages={403:'Mã quản trị không đúng.',413:'JSON vượt giới hạn dung lượng.',419:'Phiên làm việc đã hết hạn, hãy tải lại trang.',429:'Thao tác quá nhanh, vui lòng thử lại sau.',503:'Chưa cấu hình mã quản trị trên server.',409:'Thư viện đã đạt giới hạn lưu trữ.'};
+      throw new Error(messages[response.status]||'Server từ chối lưu dữ liệu (HTTP '+response.status+').');
+    }
+    const saved=await response.json();
+    status.textContent='Đã tải JSON về máy và lưu lên server: '+saved.name+' ('+saved.id+').';
+    toast('Đã sao lưu lên server và tải về máy');
+    await renderDemoLibrary();
+  }catch(error){
+    status.textContent='Đã tải JSON về máy, nhưng CHƯA lưu được lên server. '+error.message;
+    toast('Sao lưu server thất bại; file trên máy vẫn có thể dùng','err');
+  }finally{button.disabled=false}
+}
 $('#restoreFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const fr=new FileReader();fr.onload=()=>{try{const d=JSON.parse(fr.result);if(!valid(d))throw 0;
   if(!confirm(`Khôi phục ${d.products.length} sản phẩm và ${d.txns.length} phiếu? Dữ liệu hiện tại sẽ được thay thế.`))return;S=d;save();toast('Đã khôi phục JSON vào trình duyệt');rerender()}catch(_){toast('File sao lưu không hợp lệ','err')}};fr.readAsText(f);e.target.value=''};
 /* Read-only demo datasets: loaded into this browser only, never written back to server. */
