@@ -7,31 +7,33 @@ use Tests\TestCase;
 
 class StandaloneSalesDemoRouteTest extends TestCase
 {
-    public function test_demo_route_is_registered_outside_modules(): void
+    public function test_demo_uses_one_named_get_route_and_controller(): void
     {
         $route = Route::getRoutes()->getByName('demo.sales-employees');
 
         $this->assertNotNull($route);
         $this->assertSame('demo/doanh-so-nhan-vien', $route->uri());
         $this->assertContains('GET', $route->methods());
+        $this->assertSame(\App\Http\Controllers\Demo\SalesEmployeesController::class, $route->getControllerClass());
     }
 
-    public function test_demo_serves_original_html_with_browser_only_storage(): void
+    public function test_demo_renders_blade_sections_and_browser_storage_assets(): void
     {
-        $path = resource_path('demo/sales-employees.html');
-        $this->assertFileExists($path, 'Install the supplied demo HTML artifact before running this test.');
-
         $response = $this->get('/demo/doanh-so-nhan-vien');
 
         $response->assertOk();
-        $response->assertHeader('Content-Type', 'text/html; charset=UTF-8');
-        // response()->file() returns a streamed BinaryFileResponse. Laravel's
-        // assertSee() inspects getContent(), which is not the streamed file body.
-        // Verify the actual file bytes separately while asserting HTTP status/headers above.
-        $html = file_get_contents($path);
-        $this->assertIsString($html);
-        $this->assertStringContainsString('<title>Tổng Hợp Doanh Số Theo Nhân Viên</title>', $html);
-        $this->assertStringContainsString('localStorage', $html);
-        $this->assertStringNotContainsString('showSaveFilePicker', $html);
+        $response->assertSee('<title>Tổng Hợp Doanh Số Theo Nhân Viên</title>', false);
+        foreach (['dashboard', 'ban', 'tonghop', 'thang', 'sanpham', 'nv', 'sp', 'guide', 'settings'] as $page) {
+            $response->assertSee('id="page-'.$page.'"', false);
+        }
+        $response->assertSee('demo/sales-employees/css/app.css', false);
+        $response->assertSee('demo/sales-employees/js/app.js', false);
+        $response->assertSee('id="du-lieu"', false);
+
+        $this->assertFileExists(public_path('demo/sales-employees/css/app.css'));
+        $js = file_get_contents(public_path('demo/sales-employees/js/app.js'));
+        $this->assertIsString($js);
+        $this->assertStringContainsString('localStorage', $js);
+        $this->assertStringNotContainsString('showSaveFilePicker', $js);
     }
 }
