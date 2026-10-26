@@ -1,4 +1,13 @@
 <section class="page" id="page-settings">
+        <div class="card" style="padding:20px;margin-bottom:16px" id="demoLibrary">
+          <h4 style="font-size:16px;margin-bottom:6px">Thư viện dữ liệu Demo theo ngành nghề</h4>
+          <p style="color:var(--muted);font-size:13px;margin-bottom:12px">Chọn bộ dữ liệu mẫu có sẵn trên server. Mỗi khách hàng có thể thử nghiệm riêng trong trình duyệt, không làm thay đổi dữ liệu gốc.</p>
+          <div class="row2">
+            <div class="fg"><label class="f" for="demoDataset">Bộ dữ liệu</label><select class="inp" id="demoDataset"><option value="">Đang tải danh sách…</option></select></div>
+            <div class="fg" style="justify-content:flex-end"><label class="f">&nbsp;</label><button type="button" class="btn pri" id="loadDemoDataset" onclick="loadSelectedDemoDataset()">Nạp dữ liệu demo</button></div>
+          </div>
+          <p id="demoDatasetInfo" style="color:var(--muted);font-size:12px;margin-top:8px" role="status" aria-live="polite"></p>
+        </div>
         <div class="set-grid">
           <div class="card"><div class="set-ic" style="background:#e7eaf2;color:#1e1b4b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"></path><path d="M17 21v-8H7v8M7 3v5h8"></path></svg></div>
             <h4>Lưu vào file</h4><p>Ghi toàn bộ dữ liệu hiện tại vào chính file .html này. Lần sau mở file là thấy dữ liệu mới nhất. Phím tắt: Ctrl + S.</p><button class="btn save" onclick="saveToFile()">Lưu vào file</button> <button class="btn sm" onclick="forgetFile()" title="Chọn lại file để ghi đè">Chọn lại file</button></div>
