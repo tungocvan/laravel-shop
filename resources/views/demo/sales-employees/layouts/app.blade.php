@@ -6,7 +6,7 @@
 <title>Tổng Hợp Doanh Số Theo Nhân Viên</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{{ asset('demo/sales-employees/css/app.css') }}">
+<link rel="stylesheet" href="{{ asset('demo/sales-employees/css/app.css') }}?v={{ filemtime(public_path('demo/sales-employees/css/app.css')) }}">
 </head>
 @yield('content')
 </html>
