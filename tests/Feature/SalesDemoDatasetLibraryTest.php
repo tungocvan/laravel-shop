@@ -63,7 +63,7 @@ class SalesDemoDatasetLibraryTest extends TestCase
         $script = file_get_contents(public_path('demo/sales-employees/js/app.js'));
         $this->assertStringContainsString('renderSalesDemoLibrary()', $script);
         $this->assertStringContainsString('salesBackupModal', $script);
-        $this->assertStringContainsString("!==\'YES\'", $script);
+        $this->assertStringContainsString("!=='YES'", $script);
         $this->assertStringContainsString('X-Demo-Backup-Code', $script);
     }
 }
