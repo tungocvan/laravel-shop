@@ -7,10 +7,10 @@
 <title>Quản Lý Kho Xuất Nhập Tồn</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
-<link rel="stylesheet" href="{{ asset('demo/warehouse-inventory/css/app.css') }}">
+<link rel="stylesheet" href="{{ asset('demo/warehouse-inventory/css/app.css') }}?v={{ filemtime(public_path('demo/warehouse-inventory/css/app.css')) }}">
 </head>
 <body>
 @yield('content')
-<script src="{{ asset('demo/warehouse-inventory/js/app.js') }}"></script>
+<script src="{{ asset('demo/warehouse-inventory/js/app.js') }}?v={{ filemtime(public_path('demo/warehouse-inventory/js/app.js')) }}"></script>
 </body>
 </html>

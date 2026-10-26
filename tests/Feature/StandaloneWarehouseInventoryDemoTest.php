@@ -32,4 +32,26 @@ class StandaloneWarehouseInventoryDemoTest extends TestCase
         $this->assertStringContainsString('localStorage', $js);
         $this->assertStringContainsString('function saveToFile()', $js);
     }
+
+    public function test_warehouse_settings_offer_four_persisted_themes(): void
+    {
+        $response = $this->get('/demo/quan-ly-xuat-nhap-ton');
+        $response->assertOk()->assertSee('id="warehouseThemeSettings"', false);
+        foreach (['indigo', 'ruby', 'ocean', 'emerald'] as $theme) {
+            $response->assertSee('data-warehouse-theme-choice="'.$theme.'"', false);
+        }
+
+        $js = file_get_contents(public_path('demo/warehouse-inventory/js/app.js'));
+        $css = file_get_contents(public_path('demo/warehouse-inventory/css/app.css'));
+        $layout = file_get_contents(resource_path('views/demo/warehouse-inventory/layouts/app.blade.php'));
+        $this->assertStringContainsString('warehouse_inventory_theme_v1', $js);
+        $this->assertStringContainsString('localStorage.setItem(WAREHOUSE_THEME_KEY,theme)', $js);
+        $this->assertStringContainsString('applyWarehouseTheme(WAREHOUSE_SAVED_THEME)', $js);
+        $this->assertStringContainsString('data-warehouse-theme="ocean"', $css);
+        $this->assertStringContainsString('data-warehouse-theme="emerald"', $css);
+        $this->assertStringContainsString('data-warehouse-theme="ruby"', $css);
+        $this->assertStringContainsString('@media(max-width:420px)', $css);
+        $this->assertStringContainsString("filemtime(public_path('demo/warehouse-inventory/css/app.css'))", $layout);
+        $this->assertStringContainsString("filemtime(public_path('demo/warehouse-inventory/js/app.js'))", $layout);
+    }
 }

@@ -61,3 +61,13 @@ Implementation note: Save exports JSON; legacy offline HTML picker/buildHtml hel
 - After focused PASS, impacted regression: `php artisan test tests/Feature/StandaloneSalesDemoRouteTest.php`.
 - UI regression: modal YES invalid/cancel/Escape, missing/wrong code, authorized success, server unavailable, public local-only export, mobile responsive and console errors. Previous UI PASS does not cover this changed modal.
 - TEST and UI gates for this branch: pending actual results. No merge or deployment.
+
+## Warehouse Settings — four theme palettes (2026-10-26)
+
+- Feature branch: `feat/warehouse-demo-four-themes-20261026` from latest main. Warehouse Indigo remains default; Ruby, Ocean and Emerald are selectable in Settings.
+- Theme preferences are independent of warehouse business JSON, stored in `localStorage['warehouse_inventory_theme_v1']` for the current browser. Import/restore/reset JSON does not change the chosen theme.
+- Scoped CSS variables recolor sidebar, logo, navigation and primary actions; the first dashboard chart palette color follows the selected accent. Other semantic inventory colors remain unchanged.
+- Responsive selector: 4 columns desktop, 2 tablet, 1 narrow phone. CSS/JS assets use file modification timestamps for cache busting.
+- Focused test: `php artisan test tests/Feature/StandaloneWarehouseInventoryDemoTest.php`. Then impacted: `php artisan test tests/Feature/WarehouseDemoDatasetLibraryTest.php`.
+- Manual UI regression: select all 4 palettes, refresh, restore JSON, demo library load, sidebar, charts, desktop/tablet/iPhone and browser console. User confirmation required for UI PASS.
+- No module, database, environment, or production changes. PR/merge/deploy require separate approval.
