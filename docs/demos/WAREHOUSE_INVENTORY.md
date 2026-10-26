@@ -34,3 +34,18 @@ Implementation note: Save exports JSON; legacy offline HTML picker/buildHtml hel
 - UI gate: PENDING (verify desktop/tablet/iPhone, dataset list, selection, confirmation cancel, backup/import, persistence after refresh, browser console).
 - TEST gate: PENDING actual local execution.
 - No merge, deploy or production file changes authorized.
+
+## Named dual-destination server backup (2026-10-26)
+
+- Feature branch: `feat/warehouse-demo-server-backup-20261026` based on the dataset library branch.
+- Settings `Sao lưu dữ liệu`: downloads current browser JSON first, then prompts for operator code and POSTs a named dataset to the server. A failed POST never claims server success; local download remains available.
+- `POST /demo/quan-ly-xuat-nhap-ton/datasets` is throttled (5 requests/minute), CSRF-protected and requires a server-side secret supplied in `X-Demo-Backup-Code`.
+- Server config: `config/warehouse_demo.php` reads `WAREHOUSE_DEMO_BACKUP_CODE`; **unset or under 16 characters disables writes (HTTP 503)**. No secret is emitted in HTML or JS, and no code changes or .env edits are made automatically. Operator must approve and configure this value separately on the demo host before UI server-write testing.
+- JSON size limit: 10 MiB; library limit: 100 JSON files. Reject malformed product/transaction structures, missing product references and duplicate product IDs.
+- Storage: `Storage::disk('local')` under `demo-datasets/warehouse-inventory`; actual root is determined by `config('filesystems.disks.local.root')`, currently reported as `/var/www/laravel-shop/storage/app` on the Admin host.
+- File names are sanitized, unique and append timestamp + random suffix; no existing JSON is overwritten. The custom name is stored as `datasetName` inside the JSON and shown in the public read-only library.
+- Public GET list/load remains anonymous; users' localStorage edits never alter server JSON unless an operator explicitly authorizes a POST.
+- Focused tests: `php artisan test tests/Feature/WarehouseDemoDatasetLibraryTest.php tests/Feature/StandaloneWarehouseInventoryDemoTest.php`.
+- Impacted regression after focused PASS: `php artisan test tests/Feature/StandaloneSalesDemoRouteTest.php`.
+- UI gate: PENDING. Check download, canceled code prompt, wrong code, valid code, list refresh, selection, no accidental overwrites and console/network errors.
+- Test gate: PENDING actual local output. Do not merge/deploy until gates and approval.
