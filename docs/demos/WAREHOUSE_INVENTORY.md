@@ -49,3 +49,15 @@ Implementation note: Save exports JSON; legacy offline HTML picker/buildHtml hel
 - Impacted regression after focused PASS: `php artisan test tests/Feature/StandaloneSalesDemoRouteTest.php`.
 - UI gate: PENDING. Check download, canceled code prompt, wrong code, valid code, list refresh, selection, no accidental overwrites and console/network errors.
 - Test gate: PENDING actual local output. Do not merge/deploy until gates and approval.
+
+## YES confirmation modal and manager-only server write (2026-10-26)
+
+- Feature branch: `feat/warehouse-demo-confirm-modal-20261026`, based on the unmerged server-backup branch.
+- Settings server backup now opens an in-page modal. User must type exact `YES` and the operator-only backup code before a POST is made. Modal has Cancel and Escape behavior, and clears the code after submission.
+- `YES` is **confirmation only, not authentication**. Existing backend secret requirement (`WAREHOUSE_DEMO_BACKUP_CODE`, minimum 16 characters) remains unchanged. A 3-character code or an unprotected public POST is not implemented.
+- Visitors can still use the separate **Tải JSON về máy** button without authentication. The server-backup modal downloads a local JSON copy before attempting authorized POST, and reports any server error explicitly.
+- No Laravel administrator session is presumed or added. A future seamless manager-session workflow would require a separate authenticated admin entry point and approval.
+- Focused tests: `php artisan test tests/Feature/WarehouseDemoDatasetLibraryTest.php tests/Feature/StandaloneWarehouseInventoryDemoTest.php`.
+- After focused PASS, impacted regression: `php artisan test tests/Feature/StandaloneSalesDemoRouteTest.php`.
+- UI regression: modal YES invalid/cancel/Escape, missing/wrong code, authorized success, server unavailable, public local-only export, mobile responsive and console errors. Previous UI PASS does not cover this changed modal.
+- TEST and UI gates for this branch: pending actual results. No merge or deployment.
