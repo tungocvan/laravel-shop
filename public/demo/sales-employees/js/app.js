@@ -2,6 +2,32 @@
 /* Chụp mã gốc của trang TRƯỚC khi vẽ giao diện, để khi Lưu đè chỉ thay khối dữ liệu */
 const TEMPLATE=document.documentElement.outerHTML;
 const MAU={"chu":"#c62828","dam":"#9a1f1f","sang":"#da5b5b","nhat":"#fceeee","nhat2":"#eec8c8","sb":"#391313","sb0":"#260d0d","sb2":"#4b2020","sbtext":"#e4c8c8","sbmuted":"#be9393","heroT":"#f9dcdc","heroT2":"#eab8b8"};
+const SALES_THEME_STORAGE_KEY='sales_employees_theme_v1';
+const SALES_THEMES={
+  ruby:{label:'Đỏ Ruby',main:'#c62828',dark:'#391313',colors:{chu:'#c62828',dam:'#9a1f1f',sang:'#da5b5b',nhat:'#fceeee',nhat2:'#eec8c8',sb:'#391313',sb0:'#260d0d',sb2:'#4b2020',sbtext:'#e4c8c8',sbmuted:'#be9393',heroT:'#f9dcdc',heroT2:'#eab8b8'}},
+  ocean:{label:'Xanh Ocean',main:'#087e9b',dark:'#123b52',colors:{chu:'#087e9b',dam:'#07637c',sang:'#289eb6',nhat:'#e6f5f9',nhat2:'#c2e8f0',sb:'#123b52',sb0:'#0b2839',sb2:'#1c5067',sbtext:'#d7edf5',sbmuted:'#a6cbd9',heroT:'#e3f6fc',heroT2:'#bde5f0'}},
+  emerald:{label:'Xanh Emerald',main:'#16835d',dark:'#164537',colors:{chu:'#16835d',dam:'#116a4b',sang:'#2ca57b',nhat:'#e6f6ef',nhat2:'#c4e9d8',sb:'#164537',sb0:'#0d2e25',sb2:'#225846',sbtext:'#d8f2e6',sbmuted:'#acd4c1',heroT:'#e5f9ef',heroT2:'#c0e9d6'}},
+  indigo:{label:'Tím Indigo',main:'#6546c5',dark:'#29204f',colors:{chu:'#6546c5',dam:'#5034a6',sang:'#8166d6',nhat:'#f0ecff',nhat2:'#dbd2fa',sb:'#29204f',sb0:'#1c1738',sb2:'#392d65',sbtext:'#e8e0fc',sbmuted:'#c0b3e3',heroT:'#f0eaff',heroT2:'#d8c9fb'}}
+};
+let SALES_ACTIVE_THEME='ruby';
+function applySalesTheme(id,savePreference=false){
+  if(!Object.prototype.hasOwnProperty.call(SALES_THEMES,id))id='ruby';
+  SALES_ACTIVE_THEME=id;
+  const palette=SALES_THEMES[id];
+  document.documentElement.dataset.salesTheme=id;
+  Object.assign(MAU,palette.colors);
+  if(savePreference){try{localStorage.setItem(SALES_THEME_STORAGE_KEY,id)}catch(e){toast('Không thể ghi nhớ theme trong trình duyệt','err')}}
+  document.querySelectorAll('[data-sales-theme-choice]').forEach(button=>{
+    const active=button.dataset.salesThemeChoice===id;
+    button.setAttribute('aria-pressed',String(active));
+  });
+  if(savePreference&&typeof CUR!=='undefined'&&typeof APP!=='undefined'&&APP.pages[CUR])rerender();
+}
+function salesThemeChoices(){
+  return Object.entries(SALES_THEMES).map(([id,theme])=>
+    `<button type="button" class="sales-theme-choice" data-sales-theme-choice="${id}" aria-pressed="${id===SALES_ACTIVE_THEME}" onclick="applySalesTheme('${id}',true)" style="--swatch-main:${theme.main};--swatch-dark:${theme.dark}"><span class="sales-theme-swatch" aria-hidden="true"></span><span><strong>${theme.label}</strong><small>${id==='ruby'?'Mặc định':'Đổi màu giao diện'}</small></span></button>`
+  ).join('');
+}
 /* =========================================================
    TỔNG HỢP DOANH SỐ BÁN HÀNG THEO NHÂN VIÊN
    - nv: nhân viên + chỉ tiêu tháng · sp: sản phẩm · ban: nhật ký bán hàng
@@ -854,6 +880,10 @@ const co=()=>S.company||{};
 function renderSettings(){
   const el=$('#page-settings'),c=co(),size=JSON.stringify(S).length;
   el.innerHTML=`<div class="card" style="padding:20px;margin-bottom:16px">
+   <h4>Giao diện &amp; màu sắc</h4>
+   <p>Chọn một trong 4 theme. Màu được áp dụng ngay và lưu riêng trên trình duyệt, không ảnh hưởng dữ liệu doanh số.</p>
+   <div class="sales-theme-grid" role="group" aria-label="Chọn theme màu">${salesThemeChoices()}</div>
+  </div><div class="card" style="padding:20px;margin-bottom:16px">
    <h4>Thư viện dữ liệu Demo doanh số nhân viên</h4>
    <p>Dữ liệu mẫu trên server chỉ đọc. Mỗi khách hàng có dữ liệu riêng trong trình duyệt.</p>
    <div class="row2"><div class="fg"><label class="f" for="salesDemoDataset">Bộ dữ liệu</label><select class="inp" id="salesDemoDataset"><option value="">Đang tải…</option></select></div>
@@ -972,6 +1002,9 @@ function renderGuide(){const g=APP.guide;
    KHỞI ĐỘNG
    ========================================================= */
 function boot(){
+  let preferredTheme='ruby';
+  try{preferredTheme=localStorage.getItem(SALES_THEME_STORAGE_KEY)||'ruby'}catch(e){}
+  applySalesTheme(preferredTheme);
   const base=APP.valid(EMB)?EMB:APP.seed();
   let draft=null;try{draft=JSON.parse(localStorage.getItem(LS))}catch(e){}
   S=APP.valid(draft)?draft:base;SAVED_AT=S.savedAt||S.updated||0;
