@@ -41,5 +41,6 @@
 
 <!-- Dữ liệu mẫu mặc định. Dữ liệu người dùng được lưu trong localStorage. -->
 <script id="du-lieu" type="application/json">{}</script>
+<script src="{{ asset('demo/sales-employees/js/app.js') }}"></script>
 </body>
 @endsection
