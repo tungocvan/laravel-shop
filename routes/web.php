@@ -14,11 +14,15 @@ Route::get('/demo/doanh-so-nhan-vien', SalesEmployeesController::class)
 Route::get('/demo/quan-ly-xuat-nhap-ton', WarehouseInventoryController::class)
     ->name('demo.warehouse-inventory');
 
-// Public, read-only demo datasets; never accept server writes from visitors.
+// Public demo datasets are read-only. Server backups require an operator-only secret.
 Route::get('/demo/quan-ly-xuat-nhap-ton/datasets', [WarehouseDemoDatasetController::class, 'index'])
     ->name('demo.warehouse-inventory.datasets');
 Route::get('/demo/quan-ly-xuat-nhap-ton/datasets/{dataset}', [WarehouseDemoDatasetController::class, 'show'])
     ->name('demo.warehouse-inventory.datasets.show');
+
+Route::post('/demo/quan-ly-xuat-nhap-ton/datasets', [WarehouseDemoDatasetController::class, 'store'])
+    ->middleware('throttle:5,1')
+    ->name('demo.warehouse-inventory.datasets.store');
 
 Route::fallback(function (Request $request) {
     if ($request->path() === '/') {
