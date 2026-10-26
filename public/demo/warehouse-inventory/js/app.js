@@ -20,6 +20,25 @@ const hm=t=>{const d=new Date(t);return pad(d.getHours())+':'+pad(d.getMinutes()
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const TODAY=new Date(), TODAYS=ymd(TODAY);
 const PALETTE=['#4f46e5','#16a36a','#f0663a','#8b5cf6','#e6a100','#0ea5b7','#e0384a','#64748b'];
+const WAREHOUSE_THEME_KEY='warehouse_inventory_theme_v1';
+const WAREHOUSE_THEME_ACCENTS={indigo:'#4f46e5',ruby:'#c62828',ocean:'#087e9b',emerald:'#16835d'};
+let WAREHOUSE_ACTIVE_THEME='indigo';
+function applyWarehouseTheme(theme,persistPreference=false){
+  if(!Object.prototype.hasOwnProperty.call(WAREHOUSE_THEME_ACCENTS,theme))theme='indigo';
+  WAREHOUSE_ACTIVE_THEME=theme;
+  document.documentElement.dataset.warehouseTheme=theme;
+  PALETTE[0]=WAREHOUSE_THEME_ACCENTS[theme];
+  document.querySelectorAll('[data-warehouse-theme-choice]').forEach(button=>{
+    button.setAttribute('aria-pressed',String(button.dataset.warehouseThemeChoice===theme));
+  });
+  if(persistPreference){
+    try{localStorage.setItem(WAREHOUSE_THEME_KEY,theme)}catch(error){toast('Không thể ghi nhớ theme trong trình duyệt','err')}
+    rerender();
+  }
+}
+let WAREHOUSE_SAVED_THEME='indigo';
+try{WAREHOUSE_SAVED_THEME=localStorage.getItem(WAREHOUSE_THEME_KEY)||'indigo'}catch(error){}
+applyWarehouseTheme(WAREHOUSE_SAVED_THEME);
 
 /* =========================================================
    DỮ LIỆU
