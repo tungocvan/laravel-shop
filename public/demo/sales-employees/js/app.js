@@ -2,6 +2,32 @@
 /* Chụp mã gốc của trang TRƯỚC khi vẽ giao diện, để khi Lưu đè chỉ thay khối dữ liệu */
 const TEMPLATE=document.documentElement.outerHTML;
 const MAU={"chu":"#c62828","dam":"#9a1f1f","sang":"#da5b5b","nhat":"#fceeee","nhat2":"#eec8c8","sb":"#391313","sb0":"#260d0d","sb2":"#4b2020","sbtext":"#e4c8c8","sbmuted":"#be9393","heroT":"#f9dcdc","heroT2":"#eab8b8"};
+const SALES_THEME_STORAGE_KEY='sales_employees_theme_v1';
+const SALES_THEMES={
+  ruby:{label:'Đỏ Ruby',main:'#c62828',dark:'#391313',colors:{chu:'#c62828',dam:'#9a1f1f',sang:'#da5b5b',nhat:'#fceeee',nhat2:'#eec8c8',sb:'#391313',sb0:'#260d0d',sb2:'#4b2020',sbtext:'#e4c8c8',sbmuted:'#be9393',heroT:'#f9dcdc',heroT2:'#eab8b8'}},
+  ocean:{label:'Xanh Ocean',main:'#087e9b',dark:'#123b52',colors:{chu:'#087e9b',dam:'#07637c',sang:'#289eb6',nhat:'#e6f5f9',nhat2:'#c2e8f0',sb:'#123b52',sb0:'#0b2839',sb2:'#1c5067',sbtext:'#d7edf5',sbmuted:'#a6cbd9',heroT:'#e3f6fc',heroT2:'#bde5f0'}},
+  emerald:{label:'Xanh Emerald',main:'#16835d',dark:'#164537',colors:{chu:'#16835d',dam:'#116a4b',sang:'#2ca57b',nhat:'#e6f6ef',nhat2:'#c4e9d8',sb:'#164537',sb0:'#0d2e25',sb2:'#225846',sbtext:'#d8f2e6',sbmuted:'#acd4c1',heroT:'#e5f9ef',heroT2:'#c0e9d6'}},
+  indigo:{label:'Tím Indigo',main:'#6546c5',dark:'#29204f',colors:{chu:'#6546c5',dam:'#5034a6',sang:'#8166d6',nhat:'#f0ecff',nhat2:'#dbd2fa',sb:'#29204f',sb0:'#1c1738',sb2:'#392d65',sbtext:'#e8e0fc',sbmuted:'#c0b3e3',heroT:'#f0eaff',heroT2:'#d8c9fb'}}
+};
+let SALES_ACTIVE_THEME='ruby';
+function applySalesTheme(id,savePreference=false){
+  if(!Object.prototype.hasOwnProperty.call(SALES_THEMES,id))id='ruby';
+  SALES_ACTIVE_THEME=id;
+  const palette=SALES_THEMES[id];
+  document.documentElement.dataset.salesTheme=id;
+  Object.assign(MAU,palette.colors);
+  if(savePreference){try{localStorage.setItem(SALES_THEME_STORAGE_KEY,id)}catch(e){toast('Không thể ghi nhớ theme trong trình duyệt','err')}}
+  document.querySelectorAll('[data-sales-theme-choice]').forEach(button=>{
+    const active=button.dataset.salesThemeChoice===id;
+    button.setAttribute('aria-pressed',String(active));
+  });
+  if(savePreference&&typeof CUR!=='undefined'&&typeof APP!=='undefined'&&APP.pages[CUR])rerender();
+}
+function salesThemeChoices(){
+  return Object.entries(SALES_THEMES).map(([id,theme])=>
+    `<button type="button" class="sales-theme-choice" data-sales-theme-choice="${id}" aria-pressed="${id===SALES_ACTIVE_THEME}" onclick="applySalesTheme('${id}',true)" style="--swatch-main:${theme.main};--swatch-dark:${theme.dark}"><span class="sales-theme-swatch" aria-hidden="true"></span><span><strong>${theme.label}</strong><small>${id==='ruby'?'Mặc định':'Đổi màu giao diện'}</small></span></button>`
+  ).join('');
+}
 /* =========================================================
    TỔNG HỢP DOANH SỐ BÁN HÀNG THEO NHÂN VIÊN
    - nv: nhân viên + chỉ tiêu tháng · sp: sản phẩm · ban: nhật ký bán hàng
@@ -853,13 +879,36 @@ function impTemplate(k){const t=T(k),cols=t.cols.filter(c=>c.type!=='calc');
 const co=()=>S.company||{};
 function renderSettings(){
   const el=$('#page-settings'),c=co(),size=JSON.stringify(S).length;
-  el.innerHTML=`<div class="set-grid">
+  el.innerHTML=`<div class="card" style="padding:20px;margin-bottom:16px">
+   <h4>Giao diện &amp; màu sắc</h4>
+   <p>Chọn một trong 4 theme. Màu được áp dụng ngay và lưu riêng trên trình duyệt, không ảnh hưởng dữ liệu doanh số.</p>
+   <div class="sales-theme-grid" role="group" aria-label="Chọn theme màu">${salesThemeChoices()}</div>
+  </div><div class="card" style="padding:20px;margin-bottom:16px">
+   <h4>Thư viện dữ liệu Demo doanh số nhân viên</h4>
+   <p>Dữ liệu mẫu trên server chỉ đọc. Mỗi khách hàng có dữ liệu riêng trong trình duyệt.</p>
+   <div class="row2"><div class="fg"><label class="f" for="salesDemoDataset">Bộ dữ liệu</label><select class="inp" id="salesDemoDataset"><option value="">Đang tải…</option></select></div>
+   <div class="fg"><label class="f">&nbsp;</label><button class="btn pri" onclick="loadSalesDemoDataset()">Nạp dữ liệu Demo</button></div></div>
+   <p id="salesDemoLibraryStatus" role="status" aria-live="polite"></p>
+  </div><div class="set-grid">
    <div class="card"><div class="set-ic" style="background:#e9ebf1;color:var(--sb)">${IC.save}</div><h4>Lưu trên trình duyệt</h4><p>Dữ liệu demo được tự động lưu riêng trên trình duyệt này. Phím tắt Ctrl + S.</p><button class="btn save" onclick="saveToFile()">Lưu dữ liệu</button> <button class="btn sm" onclick="backup()">Tải JSON</button></div>
    <div class="card"><div class="set-ic" style="background:var(--chu-dao-nhat);color:var(--chu-dao)">${IC.xls}</div><h4>Xuất toàn bộ ra Excel</h4><p>Tải một file .xlsx, mỗi bảng dữ liệu và báo cáo là một sheet, có tiêu đề màu, số là số.</p><button class="btn pri" onclick="exportAll()">Xuất Excel</button></div>
-   <div class="card"><div class="set-ic" style="background:var(--inbg);color:var(--in)">${IC.dl}</div><h4>Sao lưu dữ liệu</h4><p>Tải toàn bộ dữ liệu về một file .json để cất giữ riêng, phòng khi file bị hỏng.</p><button class="btn" onclick="backup()">Tải file sao lưu</button></div>
+   <div class="card"><div class="set-ic" style="background:var(--inbg);color:var(--in)">${IC.dl}</div><h4>Sao lưu dữ liệu</h4><p>Tải JSON về máy và tạo bản mới trên server bằng mã quản trị.</p>
+   <label class="f" for="salesBackupName">Tên bộ dữ liệu</label><input class="inp" id="salesBackupName" maxlength="100" placeholder="Ví dụ: Doanh số chi nhánh 2026">
+   <button class="btn pri" style="margin-top:10px" onclick="openSalesBackupModal()">Sao lưu về máy và server</button>
+   <p id="salesBackupStatus" role="status" aria-live="polite"></p></div>
    <div class="card"><div class="set-ic" style="background:#e6f4fb;color:#0b7cad">${IC.up}</div><h4>Khôi phục dữ liệu</h4><p>Chọn file .json đã sao lưu. Dữ liệu hiện tại sẽ được thay bằng dữ liệu trong file.</p><label class="btn" style="cursor:pointer">Chọn file sao lưu<input type="file" id="restoreFile" accept=".json" hidden></label></div>
    <div class="card"><div class="set-ic" style="background:var(--warnbg);color:#b07a00">${IC.reset}</div><h4>Nạp lại dữ liệu mẫu</h4><p>Thay dữ liệu hiện tại bằng dữ liệu mẫu để xem thử các chức năng.</p><button class="btn" onclick="resetSample()">Nạp dữ liệu mẫu</button></div>
    <div class="card"><div class="set-ic" style="background:var(--dangerbg);color:var(--danger)">${IC.trash}</div><h4>Bắt đầu dùng thật</h4><p>${esc(APP.clearNote||'Xóa sạch dữ liệu mẫu để nhập dữ liệu thật của mình từ đầu.')}</p><button class="btn danger" onclick="clearAll()">Xóa dữ liệu mẫu</button></div>
+  </div>
+  <div id="salesBackupModal" role="dialog" aria-modal="true" aria-labelledby="salesBackupModalTitle" hidden style="position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);padding:16px;overflow:auto">
+   <div class="card" style="max-width:480px;margin:8vh auto;padding:22px;background:var(--bg,#fff)">
+    <h3 id="salesBackupModalTitle">Xác nhận sao lưu server</h3>
+    <p>Nhập YES để xác nhận và mã quản trị để lưu dữ liệu lên server.</p>
+    <label class="f" for="salesBackupYes">Nhập YES</label><input class="inp" id="salesBackupYes" autocomplete="off">
+    <label class="f" for="salesBackupCode">Mã quản trị</label><input class="inp" id="salesBackupCode" type="password" autocomplete="off">
+    <p id="salesBackupError" role="alert" style="color:var(--danger)"></p>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px"><button class="btn" onclick="closeSalesBackupModal()">Hủy</button><button class="btn pri" id="salesBackupSubmit" onclick="submitSalesBackup()">Xác nhận và sao lưu</button></div>
+   </div>
   </div>
   <div class="card" style="margin-top:16px;padding:20px"><h4 style="font-size:15px;margin-bottom:4px">Thông tin đơn vị</h4><p style="color:var(--muted);font-size:13px;margin-bottom:14px">Điền một lần, tên đơn vị sẽ hiện trên file Excel xuất ra và trên bản in.</p>
    <div class="row2"><div class="fg"><label class="f">Tên đơn vị / công ty</label><input class="inp" id="coName" value="${esc(c.name||'')}" placeholder="VD: Công ty TNHH Minh An"></div><div class="fg"><label class="f">${esc(APP.coExtra||'Bộ phận / Chi nhánh')}</label><input class="inp" id="coDept" value="${esc(c.dept||'')}"></div></div>
@@ -869,8 +918,74 @@ function renderSettings(){
   <div class="card" style="margin-top:16px;padding:18px"><b>Dung lượng dữ liệu:</b> ${fmt1(size/1024,1)} KB
    <div class="pbar" style="height:8px;margin:10px 0"><i style="width:${Math.min(100,size/4/1024/1024*100)}%;background:var(--chu-dao)"></i></div>
    <span style="color:var(--muted)">${Object.keys(APP.tables).map(k=>fmt(rowsOf(k).length)+' '+T(k).name.toLowerCase()).join(' · ')}. Dữ liệu demo lưu riêng trên trình duyệt này. Hãy tải JSON để sao lưu.</span></div>`;
+  renderSalesDemoLibrary();
   $('#restoreFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const fr=new FileReader();fr.onload=()=>{try{const d=JSON.parse(fr.result);if(!APP.valid(d))throw 0;
     if(!confirm('Khôi phục dữ liệu từ file sao lưu? Dữ liệu hiện tại sẽ được thay thế.'))return;S=d;save();toast('Đã khôi phục và lưu trên trình duyệt');rerender()}catch(_){toast('File sao lưu không hợp lệ','err')}};fr.readAsText(f);e.target.value=''}}
+
+const SALES_DATASET_URL='/demo/doanh-so-nhan-vien/datasets';
+let SALES_BACKUP_BUSY=false;
+async function renderSalesDemoLibrary(){
+  const select=$('#salesDemoDataset'),status=$('#salesDemoLibraryStatus');
+  if(!select)return;
+  try{
+    const res=await fetch(SALES_DATASET_URL,{headers:{Accept:'application/json'},cache:'no-store'});
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const payload=await res.json();
+    select.replaceChildren(new Option('Chọn bộ dữ liệu',''));
+    for(const item of payload.datasets||[])select.add(new Option(item.name+' ('+item.nv+' NV, '+item.sp+' SP, '+item.ban+' đơn)',item.id));
+    status.textContent=(payload.datasets||[]).length?'Chọn dữ liệu và nhấn Nạp. Dữ liệu trên server không thay đổi.':'Chưa có bộ dữ liệu trên server.';
+  }catch(e){status.textContent='Không tải được thư viện: '+e.message}
+}
+async function loadSalesDemoDataset(){
+  const id=$('#salesDemoDataset')?.value,status=$('#salesDemoLibraryStatus');
+  if(!id){status.textContent='Hãy chọn bộ dữ liệu.';return}
+  if(!confirm('Nạp bộ dữ liệu này? Dữ liệu hiện tại trên trình duyệt sẽ bị thay thế.'))return;
+  try{
+    const res=await fetch(SALES_DATASET_URL+'/'+encodeURIComponent(id),{cache:'no-store'});
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const next=await res.json();
+    if(!APP.valid(next))throw new Error('Dữ liệu không hợp lệ');
+    if(!persist(next))throw new Error('Bộ nhớ trình duyệt đã đầy');
+    S=next;
+    toast('Đã nạp dữ liệu Demo');
+    rerender();
+  }catch(e){status.textContent='Không thể nạp: '+e.message}
+}
+function openSalesBackupModal(){
+  const name=$('#salesBackupName')?.value.trim();
+  if(!name||name.length<2){$('#salesBackupStatus').textContent='Nhập tên bộ dữ liệu ít nhất 2 ký tự.';return}
+  $('#salesBackupYes').value='';$('#salesBackupCode').value='';$('#salesBackupError').textContent='';
+  $('#salesBackupModal').hidden=false;$('#salesBackupYes').focus();
+}
+function closeSalesBackupModal(){
+  if(SALES_BACKUP_BUSY)return;
+  $('#salesBackupCode').value='';$('#salesBackupModal').hidden=true;
+}
+async function submitSalesBackup(){
+  if(SALES_BACKUP_BUSY)return;
+  if($('#salesBackupYes').value.trim()!=='YES'){$('#salesBackupError').textContent='Vui lòng nhập chính xác YES.';return}
+  const code=$('#salesBackupCode').value,name=$('#salesBackupName').value.trim();
+  if(!code){$('#salesBackupError').textContent='Cần nhập mã quản trị.';return}
+  SALES_BACKUP_BUSY=true;$('#salesBackupSubmit').disabled=true;
+  backup();
+  $('#salesBackupStatus').textContent='Đã tải JSON về máy. Đang lưu server…';
+  try{
+    const res=await fetch(SALES_DATASET_URL,{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]')?.content||'','X-Demo-Backup-Code':code},body:JSON.stringify({name,data:S})});
+    if(!res.ok){
+      const messages={403:'Mã quản trị không đúng.',413:'JSON quá lớn.',419:'Phiên hết hạn, tải lại trang.',429:'Thao tác quá nhanh.',503:'Server chưa cấu hình mã quản trị.',409:'Thư viện đã đầy.'};
+      throw new Error(messages[res.status]||'HTTP '+res.status);
+    }
+    const saved=await res.json();
+    $('#salesBackupStatus').textContent='Đã tải JSON về máy và lưu server: '+saved.name;
+    $('#salesBackupModal').hidden=true;
+    toast('Sao lưu server thành công');
+    await renderSalesDemoLibrary();
+  }catch(e){
+    $('#salesBackupError').textContent=e.message;
+    $('#salesBackupStatus').textContent='Đã tải JSON về máy nhưng CHƯA lưu lên server: '+e.message;
+  }finally{$('#salesBackupCode').value='';SALES_BACKUP_BUSY=false;$('#salesBackupSubmit').disabled=false}
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#salesBackupModal')?.hidden)closeSalesBackupModal()});
 function saveCompany(){S.company={...co(),name:$('#coName').value.trim(),dept:$('#coDept').value.trim(),addr:$('#coAddr').value.trim(),phone:$('#coPhone').value.trim()};if(APP.saveExtra)APP.saveExtra();save();toast('Đã lưu thông tin đơn vị')}
 function backup(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:'application/json'}));a.download=`Sao luu ${APP.title} ${TODAYS}.json`;document.body.appendChild(a);a.click();setTimeout(()=>a.remove(),1000);toast('Đã tải file sao lưu')}
 function resetSample(){if(!confirm('Thay toàn bộ dữ liệu hiện tại bằng dữ liệu mẫu?'))return;const c=S.company;S=APP.seed();if(c)S.company=c;save();toast('Đã nạp dữ liệu mẫu');rerender()}
@@ -887,6 +1002,9 @@ function renderGuide(){const g=APP.guide;
    KHỞI ĐỘNG
    ========================================================= */
 function boot(){
+  let preferredTheme='ruby';
+  try{preferredTheme=localStorage.getItem(SALES_THEME_STORAGE_KEY)||'ruby'}catch(e){}
+  applySalesTheme(preferredTheme);
   const base=APP.valid(EMB)?EMB:APP.seed();
   let draft=null;try{draft=JSON.parse(localStorage.getItem(LS))}catch(e){}
   S=APP.valid(draft)?draft:base;SAVED_AT=S.savedAt||S.updated||0;
