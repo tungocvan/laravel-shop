@@ -40,6 +40,6 @@
 <div id="tip"></div>
 
 <!-- Dữ liệu mẫu mặc định. Dữ liệu người dùng được lưu trong localStorage. -->
-@yield('seed')
+<script id="du-lieu" type="application/json">{}</script>
 </body>
 @endsection
