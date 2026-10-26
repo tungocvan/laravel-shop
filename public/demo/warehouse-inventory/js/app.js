@@ -1,6 +1,6 @@
 
 /* Chụp lại mã gốc của trang TRƯỚC khi vẽ giao diện, để khi Lưu chỉ thay phần dữ liệu */
-const TEMPLATE=''; // Standalone HTML file generation disabled in Laravel Blade demo.
+// Standalone HTML file generation is not supported in this Blade demo.
 
 /* =========================================================
    TIỆN ÍCH
@@ -141,47 +141,14 @@ const idb=(mode,fn)=>new Promise((ok,no)=>{const rq=indexedDB.open('kho_xnt_file
 const idbGet=k=>idb('readonly',s=>s.get(k)).catch(()=>null);
 const idbSet=(k,v)=>idb('readwrite',s=>s.put(v,k)).catch(()=>null);
 
-function buildHtml(data){
-  const json=JSON.stringify(data).replace(/</g,'\\u003c');
-  const open='<script id="khoData" type="application/json">',close='</scr'+'ipt>';
-  const a=TEMPLATE.indexOf(open),b=TEMPLATE.indexOf(close,a);
-  return '<!DOCTYPE html>\n'+TEMPLATE.slice(0,a+open.length)+json+TEMPLATE.slice(b)}
-
-async function legacySaveToFile(){
-  const data={...S,savedAt:Date.now()};data.updated=Math.max(S.updated||0,data.savedAt);
-  const html=buildHtml(data);
-  if(ONLINE){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([html],{type:'text/html'}));a.download=FILE_NAME;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
-    SAVED_AT=data.savedAt;refreshSave();return toast('Đã tải file về máy. Mở file đó là có đủ dữ liệu, dùng được cả khi không có mạng.')}
-  if(!window.showSaveFilePicker)return downloadHtml(html,data);
-  try{
-    let h=FH;
-    if(!h){const kept=await idbGet(LS);if(kept&&kept.name===FILE_NAME)h=kept}
-    if(h){let p=await h.queryPermission({mode:'readwrite'});if(p!=='granted')p=await h.requestPermission({mode:'readwrite'});if(p!=='granted')h=null}
-    if(!h){if(!await askPick())return;
-      h=await showSaveFilePicker({suggestedName:FILE_NAME,startIn:'downloads',types:[{description:'Trang HTML',accept:{'text/html':['.html']}}]})}
-    const w=await h.createWritable();await w.write(html);await w.close();
-    FH=h;idbSet(LS,h);done(data);
-    toast(h.name===FILE_NAME?'Đã lưu vào file '+h.name:'Đã lưu vào file '+h.name+' (khác tên file đang mở)');
-  }catch(e){if(e&&e.name==='AbortError')return;console.error(e);downloadHtml(html,data)}
-}
-function done(data){S.updated=data.updated;S.savedAt=data.savedAt;SAVED_AT=data.savedAt;DIRTY=false;persist(S);refreshSave()}
-function downloadHtml(html,data){
-  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([html],{type:'text/html'}));a.download=FILE_NAME;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
-  done(data);toast('Trình duyệt này không cho ghi đè trực tiếp. Em đã tải bản mới về thư mục Tải xuống, thầy chép đè lên file cũ nhé.','err')}
-function askPick(){return new Promise(res=>{
-  openModal(`<div class="modal-h"><h3>Lưu lần đầu vào file</h3><button class="x" onclick="closeModal()">×</button></div>
-  <div class="modal-b"><p>Trình duyệt cần thầy chỉ đúng file để ghi đè <b>một lần duy nhất</b>:</p>
-  <ol><li>Bấm <b>Chọn file để ghi đè</b> bên dưới.</li><li>Tìm tới thư mục chứa file đang mở, chọn đúng file <b>${esc(FILE_NAME)}</b>.</li><li>Bấm <b>Save / Lưu</b>, rồi bấm <b>Yes / Có</b> khi được hỏi có thay file cũ không.</li><li>Nếu trình duyệt hỏi quyền chỉnh sửa, bấm <b>Allow / Cho phép</b>.</li></ol>
-  <p style="color:var(--muted)">Từ lần sau chỉ cần bấm Lưu hoặc Ctrl + S là xong.</p></div>
-  <div class="modal-f"><button class="btn" id="pkNo">Để sau</button><button class="btn pri" id="pkYes">Chọn file để ghi đè</button></div>`,'small');
-  $('#pkNo').onclick=()=>{closeModal();res(false)};$('#pkYes').onclick=()=>{closeModal();res(true)}})}
-async function forgetFile(){FH=null;await idbSet(LS,null);saveToFile()}
+// Blade demo uses browser storage; the Save button exports a JSON backup.
+function saveToFile(){backup();toast('Đã xuất bản sao lưu JSON.');}
+function forgetFile(){saveToFile();}
 function refreshSave(){
   const st=$('#saveSt'),bt=$('#saveBtn');
-  if(ONLINE){bt.lastChild.textContent='Tải về';bt.title='Tải file kèm toàn bộ dữ liệu về máy (Ctrl + S)';st.className='savest clean';
-    st.innerHTML='<b>Tự lưu trên trình duyệt</b>'+(SAVED_AT?'tải về lúc '+hm(SAVED_AT):'bấm Tải về để giữ file');return}
-  bt.classList.toggle('dirty',DIRTY);st.className='savest '+(DIRTY?'dirty':'clean');
-  st.innerHTML=DIRTY?'<b>Chưa lưu vào file</b>có thay đổi mới':SAVED_AT?'<b>Đã lưu vào file</b>lúc '+hm(SAVED_AT):'<b>Dữ liệu mẫu</b>chưa lưu lần nào'}
+  if(bt){bt.lastChild.textContent='Sao lưu JSON';bt.title='Xuất bản sao dữ liệu JSON (Ctrl + S)';bt.classList.remove('dirty');}
+  if(st){st.className='savest clean';st.innerHTML='<b>Tự lưu trên trình duyệt</b>Dùng Sao lưu JSON để lưu bản dự phòng';}
+}
 document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();saveToFile()}});
 window.addEventListener('beforeunload',e=>{if(DIRTY&&!ONLINE){e.preventDefault();e.returnValue=''}});
 
@@ -1025,6 +992,3 @@ $('#today').textContent=TODAY.toLocaleDateString('vi-VN',{weekday:'long',day:'2-
 refreshChrome();refreshSave();
 go((location.hash||'#dashboard').slice(1));
 if(FROM_DRAFT&&!ONLINE)setTimeout(()=>toast('Đang mở các thay đổi chưa lưu từ lần trước. Thầy bấm Lưu để ghi vào file nhé.','err'),600);
-
-// Blade demo: Lưu xuất bản sao JSON; dữ liệu chỉnh sửa luôn lưu ở localStorage.
-function saveToFile(){backup();toast('Đã xuất tệp sao lưu JSON.');}

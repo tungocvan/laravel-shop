@@ -16,3 +16,5 @@
 - TEST gate: NOT VERIFIED until local command output is supplied.
 - Rollback: revert this feature commit or PR before deployment; no schema changes.
 - Do not merge or deploy without explicit approval.
+
+Implementation note: Save exports JSON; legacy offline HTML picker/buildHtml helpers were removed from the active JavaScript.
