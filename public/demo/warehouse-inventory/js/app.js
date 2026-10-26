@@ -979,16 +979,44 @@ function renderSettings(){
   <div class="pbar" style="height:8px;margin:10px 0"><i style="width:${Math.min(100,size/5/1024/1024*100)}%;background:var(--accent)"></i></div>
   <span style="color:var(--muted)">${S.products.length} sản phẩm (${nImg} ảnh tải lên) · ${fmt(S.txns.length)} phiếu nhập xuất. ${ONLINE?'Dữ liệu tự lưu trên trình duyệt của máy này, đổi máy hoặc xóa lịch sử duyệt web sẽ mất, nên thỉnh thoảng bấm Tải về.':'Dữ liệu nằm ngay trong file <b>'+esc(FILE_NAME)+'</b> sau mỗi lần bấm Lưu.'} ${DIRTY&&!ONLINE?'<b style="color:#c26a00">Hiện có thay đổi chưa lưu vào file.</b>':''}</span>`}
 function backup(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:'application/json'}));a.download=`Sao_luu_kho_${TODAYS}.json`;a.click();toast('Đã tải file sao lưu')}
-async function backupToServerAndDownload(){
-  // Download first: server failure must never prevent a local copy.
-  backup();
+let DEMO_BACKUP_BUSY=false;
+function openDemoBackupModal(){
+  const name=$('#backupDatasetName')?.value.trim(),status=$('#backupServerStatus');
+  if(!name||name.length<2){status.textContent='Nhập tên bộ dữ liệu (ít nhất 2 ký tự) trước khi sao lưu.';return}
+  const modal=$('#demoBackupModal');
+  $('#demoBackupConfirm').value='';
+  $('#demoBackupAdminCode').value='';
+  $('#demoBackupModalError').textContent='';
+  modal.hidden=false;
+  $('#demoBackupConfirm').focus();
+}
+function closeDemoBackupModal(){
+  if(DEMO_BACKUP_BUSY)return;
+  const modal=$('#demoBackupModal');
+  modal.hidden=true;
+  $('#demoBackupAdminCode').value='';
+  $('#backupServerBtn')?.focus();
+}
+async function confirmDemoBackupModal(){
+  if(DEMO_BACKUP_BUSY)return;
+  const confirmText=$('#demoBackupConfirm').value.trim();
+  const code=$('#demoBackupAdminCode').value;
+  const error=$('#demoBackupModalError');
+  if(confirmText!=='YES'){error.textContent='Vui lòng nhập chính xác YES để xác nhận.';return}
+  if(!code){error.textContent='Cần mã quản trị để ghi dữ liệu lên server.';return}
+  await backupToServerAndDownload(code);
+}
+async function backupToServerAndDownload(code){
   const name=$('#backupDatasetName')?.value.trim();
-  const status=$('#backupServerStatus'),button=$('#backupServerBtn');
-  if(!name||name.length<2){status.textContent='Đã tải JSON về máy. Nhập tên bộ dữ liệu (ít nhất 2 ký tự) để lưu lên server.';return}
-  const code=prompt('Nhập mã quản trị để lưu bản sao JSON lên server (không lưu mã trên trình duyệt):');
-  if(!code){status.textContent='Đã tải JSON về máy. Chưa lưu lên server vì chưa nhập mã quản trị.';return}
+  const status=$('#backupServerStatus'),button=$('#backupServerBtn'),confirmButton=$('#demoBackupConfirmBtn');
+  if(!name||name.length<2){status.textContent='Tên bộ dữ liệu không hợp lệ.';return}
+  if(DEMO_BACKUP_BUSY)return;
+  DEMO_BACKUP_BUSY=true;
   button.disabled=true;
-  status.textContent='Đang lưu bản sao lên server…';
+  confirmButton.disabled=true;
+  status.textContent='Đang sao lưu…';
+  // Download first; server write requires manager authorization.
+  backup();
   try{
     const response=await fetch('/demo/quan-ly-xuat-nhap-ton/datasets',{
       method:'POST',
@@ -1007,12 +1035,22 @@ async function backupToServerAndDownload(){
     const saved=await response.json();
     status.textContent='Đã tải JSON về máy và lưu lên server: '+saved.name+' ('+saved.id+').';
     toast('Đã sao lưu lên server và tải về máy');
+    $('#demoBackupModal').hidden=true;
     await renderDemoLibrary();
   }catch(error){
     status.textContent='Đã tải JSON về máy, nhưng CHƯA lưu được lên server. '+error.message;
     toast('Sao lưu server thất bại; file trên máy vẫn có thể dùng','err');
-  }finally{button.disabled=false}
+    $('#demoBackupModalError').textContent=error.message;
+  }finally{
+    $('#demoBackupAdminCode').value='';
+    DEMO_BACKUP_BUSY=false;
+    button.disabled=false;
+    confirmButton.disabled=false;
+  }
 }
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&!$('#demoBackupModal')?.hidden)closeDemoBackupModal();
+});
 $('#restoreFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const fr=new FileReader();fr.onload=()=>{try{const d=JSON.parse(fr.result);if(!valid(d))throw 0;
   if(!confirm(`Khôi phục ${d.products.length} sản phẩm và ${d.txns.length} phiếu? Dữ liệu hiện tại sẽ được thay thế.`))return;S=d;save();toast('Đã khôi phục JSON vào trình duyệt');rerender()}catch(_){toast('File sao lưu không hợp lệ','err')}};fr.readAsText(f);e.target.value=''};
 /* Read-only demo datasets: loaded into this browser only, never written back to server. */
