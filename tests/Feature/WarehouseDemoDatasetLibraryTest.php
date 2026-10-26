@@ -37,9 +37,10 @@ class WarehouseDemoDatasetLibraryTest extends TestCase
         $this->getJson('/demo/quan-ly-xuat-nhap-ton/datasets/broken')->assertNotFound();
     }
 
-    public function test_path_traversal_and_writes_are_not_exposed(): void
+    public function test_path_traversal_and_unauthorized_writes_are_not_exposed(): void
     {
         Storage::fake('local');
+        config()->set('warehouse_demo.backup_code', null);
 
         $this->getJson('/demo/quan-ly-xuat-nhap-ton/datasets/invalid.json')->assertNotFound();
         $this->postJson('/demo/quan-ly-xuat-nhap-ton/datasets', ['products' => [], 'txns' => []])
