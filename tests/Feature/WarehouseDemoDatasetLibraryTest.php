@@ -43,7 +43,7 @@ class WarehouseDemoDatasetLibraryTest extends TestCase
 
         $this->getJson('/demo/quan-ly-xuat-nhap-ton/datasets/invalid.json')->assertNotFound();
         $this->postJson('/demo/quan-ly-xuat-nhap-ton/datasets', ['products' => [], 'txns' => []])
-            ->assertStatus(405);
+            ->assertNotFound();
     }
 
     public function test_settings_contains_dataset_selector_and_client_loader(): void
