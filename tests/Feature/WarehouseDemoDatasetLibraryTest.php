@@ -119,10 +119,17 @@ class WarehouseDemoDatasetLibraryTest extends TestCase
         $this->get('/demo/quan-ly-xuat-nhap-ton')
             ->assertOk()
             ->assertSee('id="demoDataset"', false)
-            ->assertSee('loadSelectedDemoDataset()', false);
+            ->assertSee('loadSelectedDemoDataset()', false)
+            ->assertSee('id="demoBackupModal"', false)
+            ->assertSee('id="demoBackupConfirm"', false)
+            ->assertSee('id="demoBackupAdminCode"', false)
+            ->assertSee('openDemoBackupModal()', false);
 
         $script = file_get_contents(public_path('demo/warehouse-inventory/js/app.js'));
         $this->assertStringContainsString('async function renderDemoLibrary()', $script);
         $this->assertStringContainsString('if(!persist(next))', $script);
+        $this->assertStringContainsString("confirmText!=='YES'", $script);
+        $this->assertStringContainsString('async function confirmDemoBackupModal()', $script);
+        $this->assertStringContainsString("'X-Demo-Backup-Code':code", $script);
     }
 }
