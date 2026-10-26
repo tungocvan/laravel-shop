@@ -25,8 +25,13 @@ class StandaloneSalesDemoRouteTest extends TestCase
 
         $response->assertOk();
         $response->assertHeader('Content-Type', 'text/html; charset=UTF-8');
-        $response->assertSee('Tổng Hợp Doanh Số Theo Nhân Viên', false);
-        $response->assertSee('localStorage', false);
-        $response->assertDontSee('showSaveFilePicker', false);
+        // response()->file() returns a streamed BinaryFileResponse. Laravel's
+        // assertSee() inspects getContent(), which is not the streamed file body.
+        // Verify the actual file bytes separately while asserting HTTP status/headers above.
+        $html = file_get_contents($path);
+        $this->assertIsString($html);
+        $this->assertStringContainsString('<title>Tổng Hợp Doanh Số Theo Nhân Viên</title>', $html);
+        $this->assertStringContainsString('localStorage', $html);
+        $this->assertStringNotContainsString('showSaveFilePicker', $html);
     }
 }
