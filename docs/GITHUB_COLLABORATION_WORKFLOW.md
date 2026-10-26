@@ -42,6 +42,16 @@ Mọi architectural refactor PR làm thay đổi responsibility, ownership/non-o
 
 Chi tiết route-first audit, `KEEP / REHOME / DELETE / QUARANTINE / DEFER`, contract-test gate, regression, debt handoff và closeout nằm trong hai tài liệu Refactor Module nêu trên và là quy tắc bắt buộc khi trigger này được kích hoạt.
 
+### HTML Demo → Laravel 12 Blade — entry point bắt buộc
+
+Khi người dùng gửi file HTML, URL HTML, link GitHub chứa HTML, hoặc yêu cầu chuyển HTML thành demo Laravel, phải đọc và áp dụng:
+
+```text
+docs/HTML_DEMO_BLADE_WORKFLOW.md
+```
+
+Chỉ tiếp nhận/audit read-only khi người dùng mới cung cấp link/file; không tự ý triển khai nếu chưa xác định mục tiêu và phê duyệt thay đổi lớn. Mặc định một demo độc lập có một GET route, Controller và layout Blade riêng, mỗi màn hình có Blade riêng, CSS/JS tách file; giữ nguyên localStorage và hành vi UI. Tuân thủ checkpoint Git Pull / Test, UI PASS do người dùng xác nhận, và không merge/deploy nếu chưa được phép.
+
 ## 1. Vai trò
 
 ChatGPT chịu trách nhiệm:
