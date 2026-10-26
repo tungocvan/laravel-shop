@@ -84,5 +84,9 @@ class SalesDemoDatasetLibraryTest extends TestCase
         $this->assertStringContainsString('data-sales-theme="emerald"', $css);
         $this->assertStringContainsString('data-sales-theme="indigo"', $css);
         $this->assertStringContainsString('@media(max-width:420px)', $css);
+        $layout = file_get_contents(resource_path('views/demo/sales-employees/layouts/app.blade.php'));
+        $view = file_get_contents(resource_path('views/demo/sales-employees/index.blade.php'));
+        $this->assertStringContainsString("filemtime(public_path('demo/sales-employees/css/app.css'))", $layout);
+        $this->assertStringContainsString("filemtime(public_path('demo/sales-employees/js/app.js'))", $view);
     }
 }
