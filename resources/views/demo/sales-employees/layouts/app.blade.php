@@ -8,5 +8,4 @@
 <link rel="stylesheet" href="{{ asset('demo/sales-employees/css/app.css') }}">
 </head>
 @yield('content')
-<script src="{{ asset('demo/sales-employees/js/app.js') }}"></script>
 </html>
