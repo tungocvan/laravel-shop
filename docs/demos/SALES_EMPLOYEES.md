@@ -46,3 +46,11 @@ No production deployment is authorized by this document.
 - Impacted after focused PASS: `php artisan test tests/Feature/WarehouseDemoDatasetLibraryTest.php tests/Feature/StandaloneWarehouseInventoryDemoTest.php`.
 - UI regression: desktop/tablet/iPhone, Settings, empty/listed datasets, load confirmation cancel/success, localStorage isolation, backup cancel/YES/wrong code/valid code, Excel, print, CRUD and console.
 - Gates: TEST pending actual local output, UI pending user confirmation. Do not merge or deploy without separate approval.
+
+## Settings theme selector (same feature branch)
+
+- Four palettes: Ruby (default), Ocean, Emerald, Indigo. Switch immediately in dynamically rendered Settings via accessible buttons.
+- CSS variables scoped under `:root[data-sales-theme]` control sidebar, primary actions and accent colors; `MAU` JS palette is synchronized for existing chart rendering.
+- User preference is stored separately at `localStorage['sales_employees_theme_v1']`, not inside exported/imported business JSON. Reload and dataset restoration preserve the selected theme.
+- Mobile-first selector: 4 columns desktop, 2 tablet, 1 on narrow phones. Test color contrast, charts, desktop/tablet/iPhone and refresh persistence manually.
+- No database, module, route or environment changes for theme selector. TEST and UI gates remain pending until user provides actual results.
