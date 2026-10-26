@@ -968,6 +968,7 @@ function exportHistory(){csv('Lich_su_nhap_xuat.csv',[['Ngày','Số phiếu','L
    ========================================================= */
 function renderSettings(){
   const ic=$('#imgCredit');if(ic)ic.title=SAMPLE.credits||'';
+  renderDemoLibrary();
   if(ONLINE){const c=$('.set-grid .card');c.querySelector('h4').textContent='Tải file về máy';
     c.querySelector('p').textContent='Bản online tự lưu dữ liệu trên trình duyệt của máy này. Bấm để tải file .html kèm toàn bộ dữ liệu về máy, mở bằng Chrome là dùng tiếp được, không cần mạng.';
     c.querySelector('.btn.save').textContent='Tải file về máy';const f=c.querySelector('.btn.sm');if(f)f.remove()}
@@ -980,6 +981,49 @@ function renderSettings(){
 function backup(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:'application/json'}));a.download=`Sao_luu_kho_${TODAYS}.json`;a.click();toast('Đã tải file sao lưu')}
 $('#restoreFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const fr=new FileReader();fr.onload=()=>{try{const d=JSON.parse(fr.result);if(!valid(d))throw 0;
   if(!confirm(`Khôi phục ${d.products.length} sản phẩm và ${d.txns.length} phiếu? Dữ liệu hiện tại sẽ được thay thế.`))return;S=d;save();toast('Khôi phục xong, thầy bấm Lưu để ghi vào file');rerender()}catch(_){toast('File sao lưu không hợp lệ','err')}};fr.readAsText(f);e.target.value=''};
+/* Read-only demo datasets: loaded into this browser only, never written back to server. */
+const DEMO_DATASETS_URL='/demo/quan-ly-xuat-nhap-ton/datasets';
+let DEMO_DATASETS=[];
+async function renderDemoLibrary(){
+  const select=$('#demoDataset'),info=$('#demoDatasetInfo');
+  if(!select)return;
+  try{
+    const response=await fetch(DEMO_DATASETS_URL,{headers:{Accept:'application/json'},cache:'no-store'});
+    if(!response.ok)throw new Error('HTTP '+response.status);
+    const payload=await response.json();
+    DEMO_DATASETS=Array.isArray(payload.datasets)?payload.datasets:[];
+    select.replaceChildren(new Option(DEMO_DATASETS.length?'-- Chọn ngành nghề --':'Chưa có bộ dữ liệu trên server',''));
+    for(const item of DEMO_DATASETS){
+      select.add(new Option(item.name+' ('+fmt(item.products)+' sản phẩm · '+fmt(item.txns)+' phiếu)',item.id));
+    }
+    info.textContent=DEMO_DATASETS.length?'Chọn bộ dữ liệu rồi nhấn Nạp dữ liệu demo.':'Chưa có dữ liệu mẫu. Người quản trị cần bổ sung JSON vào kho dữ liệu server.';
+  }catch(error){
+    select.replaceChildren(new Option('Không thể tải danh sách',''));
+    info.textContent='Không thể tải thư viện dữ liệu từ server. Vui lòng thử lại.';
+  }
+}
+async function loadSelectedDemoDataset(){
+  const select=$('#demoDataset'),info=$('#demoDatasetInfo'),button=$('#loadDemoDataset');
+  const id=select?.value;
+  if(!id||!DEMO_DATASETS.some(item=>item.id===id)){toast('Vui lòng chọn bộ dữ liệu demo','err');return}
+  const selected=DEMO_DATASETS.find(item=>item.id===id);
+  if(!confirm('Nạp bộ dữ liệu '+selected.name+'? Dữ liệu hiện tại trong trình duyệt sẽ bị thay thế. Hãy sao lưu JSON trước nếu cần.'))return;
+  button.disabled=true;
+  try{
+    const response=await fetch(DEMO_DATASETS_URL+'/'+encodeURIComponent(id),{headers:{Accept:'application/json'},cache:'no-store'});
+    if(!response.ok)throw new Error('HTTP '+response.status);
+    const data=await response.json();
+    if(!valid(data)||!data.products.every(p=>p&&typeof p.id==='string'&&typeof p.code==='string'&&typeof p.name==='string')||!data.txns.every(t=>t&&['in','out'].includes(t.type)&&Number(t.qty)>0))throw new Error('Invalid dataset');
+    const next={...data,updated:Date.now()};
+    if(!persist(next))throw new Error('Browser storage unavailable');
+    S=next;DIRTY=true;FROM_DRAFT=true;
+    toast('Đã nạp '+data.products.length+' sản phẩm và '+data.txns.length+' phiếu từ server');
+    rerender();
+  }catch(error){
+    info.textContent='Không thể nạp bộ dữ liệu. Dữ liệu hiện tại được giữ nguyên.';
+    toast('Nạp dữ liệu demo thất bại','err');
+  }finally{button.disabled=false}
+}
 function resetSample(){if(!confirm('Thay toàn bộ dữ liệu hiện tại bằng dữ liệu mẫu?'))return;S=seed();save();toast('Đã nạp dữ liệu mẫu');rerender()}
 function clearAll(){if(!confirm('Xóa SẠCH toàn bộ sản phẩm và phiếu nhập xuất? Nên sao lưu trước khi xóa.'))return;S={products:[],txns:[],ver:2};save();toast('Đã xóa toàn bộ dữ liệu');rerender()}
 
