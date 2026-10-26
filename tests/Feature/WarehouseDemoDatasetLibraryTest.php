@@ -43,7 +43,74 @@ class WarehouseDemoDatasetLibraryTest extends TestCase
 
         $this->getJson('/demo/quan-ly-xuat-nhap-ton/datasets/invalid.json')->assertNotFound();
         $this->postJson('/demo/quan-ly-xuat-nhap-ton/datasets', ['products' => [], 'txns' => []])
-            ->assertStatus(405);
+            ->assertStatus(503);
+    }
+
+    public function test_server_backup_is_disabled_by_default_and_requires_correct_code(): void
+    {
+        Storage::fake('local');
+        config()->set('warehouse_demo.backup_code', null);
+        $payload = $this->sampleBackupPayload();
+
+        $this->postJson('/demo/quan-ly-xuat-nhap-ton/datasets', $payload)
+            ->assertStatus(503);
+
+        config()->set('warehouse_demo.backup_code', 'correct-private-code-12345');
+        $this->withHeader('X-Demo-Backup-Code', 'wrong-code')
+            ->postJson('/demo/quan-ly-xuat-nhap-ton/datasets', $payload)
+            ->assertForbidden();
+
+        $this->assertSame([], Storage::disk('local')->files('demo-datasets/warehouse-inventory'));
+    }
+
+    public function test_authorized_backup_creates_new_named_json_and_is_listed(): void
+    {
+        Storage::fake('local');
+        config()->set('warehouse_demo.backup_code', 'correct-private-code-12345');
+
+        $response = $this->withHeader('X-Demo-Backup-Code', 'correct-private-code-12345')
+            ->postJson('/demo/quan-ly-xuat-nhap-ton/datasets', $this->sampleBackupPayload());
+
+        $response->assertCreated()
+            ->assertJsonPath('name', 'Kho điện thoại 2026')
+            ->assertJsonPath('products', 1)
+            ->assertJsonPath('txns', 1);
+
+        $id = $response->json('id');
+        $this->assertMatchesRegularExpression('/^[a-z0-9-]+$/', $id);
+        Storage::disk('local')->assertExists('demo-datasets/warehouse-inventory/'.$id.'.json');
+
+        $this->getJson('/demo/quan-ly-xuat-nhap-ton/datasets')
+            ->assertOk()->assertJsonPath('datasets.0.name', 'Kho điện thoại 2026');
+        $this->getJson('/demo/quan-ly-xuat-nhap-ton/datasets/'.$id)
+            ->assertOk()->assertJsonPath('products.0.name', 'Điện thoại mẫu');
+    }
+
+    public function test_invalid_backup_cannot_write_server_file(): void
+    {
+        Storage::fake('local');
+        config()->set('warehouse_demo.backup_code', 'correct-private-code-12345');
+
+        $payload = $this->sampleBackupPayload();
+        $payload['data']['txns'][0]['pid'] = 'missing-product';
+
+        $this->withHeader('X-Demo-Backup-Code', 'correct-private-code-12345')
+            ->postJson('/demo/quan-ly-xuat-nhap-ton/datasets', $payload)
+            ->assertUnprocessable();
+
+        $this->assertSame([], Storage::disk('local')->files('demo-datasets/warehouse-inventory'));
+    }
+
+    private function sampleBackupPayload(): array
+    {
+        return [
+            'name' => 'Kho điện thoại 2026',
+            'data' => [
+                'ver' => 2,
+                'products' => [['id' => 'p1', 'code' => 'SP001', 'name' => 'Điện thoại mẫu']],
+                'txns' => [['pid' => 'p1', 'type' => 'in', 'qty' => 10]],
+            ],
+        ];
     }
 
     public function test_settings_contains_dataset_selector_and_client_loader(): void
