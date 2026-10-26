@@ -310,3 +310,24 @@ tfoot td{font-weight:800;background:#f7f9fc;border-top:2px solid var(--line)}
 .grade{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap}
 .grade.g1{background:#f1ebff;color:#7c3aed}.grade.g2{background:var(--inbg);color:var(--in)}.grade.g3{background:var(--warnbg);color:#b07a00}.grade.g4{background:var(--dangerbg);color:var(--danger)}
 
+
+
+/* Sales demo theme selector: scoped palette overrides, no change to business data. */
+:root[data-sales-theme="ocean"]{
+  --chu-dao:#087e9b;--chu-dao-dam:#07637c;--chu-dao-sang:#289eb6;--chu-dao-nhat:#e6f5f9;--chu-dao-nhat2:#c2e8f0;--chu-dao-bong:rgba(8,126,155,.30);
+  --sb:#123b52;--sb0:#0b2839;--sb2:#1c5067;--sbtext:#d7edf5;--sbmuted:#a6cbd9;--hero-t:#e3f6fc;--hero-t2:#bde5f0}
+:root[data-sales-theme="emerald"]{
+  --chu-dao:#16835d;--chu-dao-dam:#116a4b;--chu-dao-sang:#2ca57b;--chu-dao-nhat:#e6f6ef;--chu-dao-nhat2:#c4e9d8;--chu-dao-bong:rgba(22,131,93,.30);
+  --sb:#164537;--sb0:#0d2e25;--sb2:#225846;--sbtext:#d8f2e6;--sbmuted:#acd4c1;--hero-t:#e5f9ef;--hero-t2:#c0e9d6}
+:root[data-sales-theme="indigo"]{
+  --chu-dao:#6546c5;--chu-dao-dam:#5034a6;--chu-dao-sang:#8166d6;--chu-dao-nhat:#f0ecff;--chu-dao-nhat2:#dbd2fa;--chu-dao-bong:rgba(101,70,197,.30);
+  --sb:#29204f;--sb0:#1c1738;--sb2:#392d65;--sbtext:#e8e0fc;--sbmuted:#c0b3e3;--hero-t:#f0eaff;--hero-t2:#d8c9fb}
+.sales-theme-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:14px}
+.sales-theme-choice{display:flex;align-items:center;gap:10px;text-align:left;background:var(--card);border:2px solid var(--line);border-radius:12px;padding:12px;cursor:pointer;min-height:76px}
+.sales-theme-choice[aria-pressed="true"]{border-color:var(--chu-dao);box-shadow:0 0 0 2px var(--chu-dao-nhat)}
+.sales-theme-choice:focus-visible{outline:3px solid var(--chu-dao);outline-offset:2px}
+.sales-theme-swatch{display:block;width:32px;height:40px;flex-shrink:0;border-radius:8px;background:linear-gradient(145deg,var(--swatch-main) 50%,var(--swatch-dark) 50%)}
+.sales-theme-choice strong{display:block;font-size:13px}
+.sales-theme-choice small{display:block;font-size:11px;color:var(--muted);margin-top:4px}
+@media(max-width:860px){.sales-theme-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:420px){.sales-theme-grid{grid-template-columns:1fr}}
