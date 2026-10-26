@@ -8,9 +8,9 @@
 - `localStorage` is synchronous and subject to browser quotas; for large datasets this is a limitation.
 - Fonts are loaded from Google Fonts as in the reference file.
 
-## Source artifact installation gate
+## Source artifact
 
-The reference HTML is a user-supplied ~147 KB attachment and cannot be uploaded through the available GitHub text-file connector in this batch. The prepared `sales-employees-demo.html` artifact must be copied to `resources/demo/sales-employees.html` and committed to this feature branch before PR/merge. Do **not** merge the route without the HTML artifact.
+The complete browser-only HTML is tracked in this feature branch at `resources/demo/sales-employees.html`. Do not deploy until the Laravel route test and manual UI comparison pass. The original user-provided HTML remains the visual and functional reference.
 
 ## Verification
 
