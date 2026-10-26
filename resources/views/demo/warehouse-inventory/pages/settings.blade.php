@@ -1,0 +1,22 @@
+<section class="page" id="page-settings">
+        <div class="set-grid">
+          <div class="card"><div class="set-ic" style="background:#e7eaf2;color:#1e1b4b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"></path><path d="M17 21v-8H7v8M7 3v5h8"></path></svg></div>
+            <h4>Lưu vào file</h4><p>Ghi toàn bộ dữ liệu hiện tại vào chính file .html này. Lần sau mở file là thấy dữ liệu mới nhất. Phím tắt: Ctrl + S.</p><button class="btn save" onclick="saveToFile()">Lưu vào file</button> <button class="btn sm" onclick="forgetFile()" title="Chọn lại file để ghi đè">Chọn lại file</button></div>
+          <div class="card"><div class="set-ic" style="background:var(--accent2);color:var(--accent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"></path></svg></div>
+            <h4>Sao lưu dữ liệu</h4><p>Tải toàn bộ sản phẩm, hình ảnh và phiếu nhập xuất về một file .json để cất giữ riêng.</p><button class="btn pri" onclick="backup()">Tải file sao lưu</button></div>
+          <div class="card"><div class="set-ic" style="background:var(--inbg);color:var(--in)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V9M7 14l5-5 5 5M4 3h16"></path></svg></div>
+            <h4>Khôi phục dữ liệu</h4><p>Chọn file .json đã sao lưu trước đó. Dữ liệu hiện tại sẽ được thay bằng dữ liệu trong file.</p><button class="btn" onclick="$('#restoreFile').click()">Chọn file sao lưu</button><input type="file" id="restoreFile" accept=".json" hidden=""></div>
+          <div class="card"><div class="set-ic" style="background:var(--warnbg);color:#b07a00"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 109-9 9.7 9.7 0 00-6.7 2.7L3 8"></path><path d="M3 3v5h5"></path></svg></div>
+            <h4>Nạp lại dữ liệu mẫu</h4><p>Xóa dữ liệu hiện tại, nạp 12 sản phẩm kèm ảnh thật và 12 tháng giao dịch mẫu để trình diễn.</p><button class="btn" onclick="resetSample()">Nạp dữ liệu mẫu</button><p id="imgCredit" style="font-size:11px;margin:10px 0 0;cursor:help">Nguồn ảnh mẫu (rê chuột để xem)</p></div>
+          <div class="card"><div class="set-ic" style="background:var(--dangerbg);color:var(--danger)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"></path></svg></div>
+            <h4>Bắt đầu kho trống</h4><p>Xóa sạch sản phẩm và giao dịch để nhập dữ liệu thật của mình từ đầu.</p><button class="btn danger" onclick="clearAll()">Xóa toàn bộ dữ liệu</button></div>
+        </div>
+        <div class="card" style="margin-top:16px;padding:20px">
+          <h4 style="font-size:15px;margin-bottom:4px">Thông tin in trên phiếu nhập / phiếu xuất</h4>
+          <p style="color:var(--muted);font-size:13px;margin-bottom:14px">Điền một lần, các phiếu in ra sẽ tự có tên đơn vị, địa chỉ và tên kho.</p>
+          <div class="row2"><div class="fg"><label class="f">Tên đơn vị / cửa hàng</label><input class="inp" id="coName" placeholder="VD: Công ty TNHH Minh An"></div><div class="fg"><label class="f">Điện thoại</label><input class="inp" id="coPhone"></div></div>
+          <div class="row2"><div class="fg"><label class="f">Địa chỉ</label><input class="inp" id="coAddr"></div><div class="fg"><label class="f">Tên kho (Nhập tại kho / Xuất tại kho)</label><input class="inp" id="coKho" placeholder="VD: Kho chính"></div></div>
+          <button class="btn pri" onclick="saveCompany()">Lưu thông tin</button>
+        </div>
+        <div class="card" style="margin-top:16px;padding:18px" id="storeInfo"></div>
+      </section>
