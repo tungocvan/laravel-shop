@@ -10,7 +10,7 @@
         </div>
         <div class="set-grid">
           <div class="card"><div class="set-ic" style="background:#e7eaf2;color:#1e1b4b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"></path><path d="M17 21v-8H7v8M7 3v5h8"></path></svg></div>
-            <h4>Lưu vào file</h4><p>Ghi toàn bộ dữ liệu hiện tại vào chính file .html này. Lần sau mở file là thấy dữ liệu mới nhất. Phím tắt: Ctrl + S.</p><button class="btn save" onclick="saveToFile()">Lưu vào file</button> <button class="btn sm" onclick="forgetFile()" title="Chọn lại file để ghi đè">Chọn lại file</button></div>
+            <h4>Sao lưu JSON về máy</h4><p>Dữ liệu demo tự lưu trong trình duyệt. Tải JSON về máy để lưu trữ hoặc chuyển sang máy khác (Ctrl + S).</p><button class="btn save" onclick="saveToFile()">Tải JSON về máy</button></div>
           <div class="card"><div class="set-ic" style="background:var(--accent2);color:var(--accent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"></path></svg></div>
             <h4>Sao lưu dữ liệu</h4><p>Tải toàn bộ sản phẩm, hình ảnh và phiếu nhập xuất về một file .json để cất giữ riêng.</p><button class="btn pri" onclick="backup()">Tải file sao lưu</button></div>
           <div class="card"><div class="set-ic" style="background:var(--inbg);color:var(--in)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V9M7 14l5-5 5 5M4 3h16"></path></svg></div>
