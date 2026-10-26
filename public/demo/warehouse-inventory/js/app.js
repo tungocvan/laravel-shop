@@ -970,8 +970,8 @@ function renderSettings(){
   const ic=$('#imgCredit');if(ic)ic.title=SAMPLE.credits||'';
   renderDemoLibrary();
   if(ONLINE){const c=$('.set-grid .card');c.querySelector('h4').textContent='Tải file về máy';
-    c.querySelector('p').textContent='Bản online tự lưu dữ liệu trên trình duyệt của máy này. Bấm để tải file .html kèm toàn bộ dữ liệu về máy, mở bằng Chrome là dùng tiếp được, không cần mạng.';
-    c.querySelector('.btn.save').textContent='Tải file về máy';const f=c.querySelector('.btn.sm');if(f)f.remove()}
+    c.querySelector('p').textContent='Dữ liệu tự lưu trong trình duyệt. Bấm để tải bản sao lưu JSON về máy (Ctrl + S).';
+    c.querySelector('.btn.save').textContent='Tải JSON về máy';const f=c.querySelector('.btn.sm');if(f)f.remove()}
   const co=S.company||{};$('#coName').value=co.name||'';$('#coPhone').value=co.phone||'';$('#coAddr').value=co.addr||'';$('#coKho').value=co.kho||'';
   const size=JSON.stringify(S).length;
   const nImg=S.products.filter(p=>p.img&&p.img.startsWith('data:image/jpeg')).length;
@@ -980,7 +980,7 @@ function renderSettings(){
   <span style="color:var(--muted)">${S.products.length} sản phẩm (${nImg} ảnh tải lên) · ${fmt(S.txns.length)} phiếu nhập xuất. ${ONLINE?'Dữ liệu tự lưu trên trình duyệt của máy này, đổi máy hoặc xóa lịch sử duyệt web sẽ mất, nên thỉnh thoảng bấm Tải về.':'Dữ liệu nằm ngay trong file <b>'+esc(FILE_NAME)+'</b> sau mỗi lần bấm Lưu.'} ${DIRTY&&!ONLINE?'<b style="color:#c26a00">Hiện có thay đổi chưa lưu vào file.</b>':''}</span>`}
 function backup(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:'application/json'}));a.download=`Sao_luu_kho_${TODAYS}.json`;a.click();toast('Đã tải file sao lưu')}
 $('#restoreFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const fr=new FileReader();fr.onload=()=>{try{const d=JSON.parse(fr.result);if(!valid(d))throw 0;
-  if(!confirm(`Khôi phục ${d.products.length} sản phẩm và ${d.txns.length} phiếu? Dữ liệu hiện tại sẽ được thay thế.`))return;S=d;save();toast('Khôi phục xong, thầy bấm Lưu để ghi vào file');rerender()}catch(_){toast('File sao lưu không hợp lệ','err')}};fr.readAsText(f);e.target.value=''};
+  if(!confirm(`Khôi phục ${d.products.length} sản phẩm và ${d.txns.length} phiếu? Dữ liệu hiện tại sẽ được thay thế.`))return;S=d;save();toast('Đã khôi phục JSON vào trình duyệt');rerender()}catch(_){toast('File sao lưu không hợp lệ','err')}};fr.readAsText(f);e.target.value=''};
 /* Read-only demo datasets: loaded into this browser only, never written back to server. */
 const DEMO_DATASETS_URL='/demo/quan-ly-xuat-nhap-ton/datasets';
 let DEMO_DATASETS=[];
