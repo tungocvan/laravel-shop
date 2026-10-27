@@ -1,12 +1,17 @@
 <?php
 
 use App\Http\Controllers\Demo\SalesEmployeesController;
+use App\Http\Controllers\Demo\DebtManagementController;
 use App\Http\Controllers\Demo\SalesDemoDatasetController;
 use App\Http\Controllers\Demo\WarehouseInventoryController;
 use App\Http\Controllers\Demo\WarehouseDemoDatasetController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Modules\System\Services\ApplicationRootRedirectService;
+
+// Standalone debt management demo (one GET route, browser-only persistence).
+Route::get('/demo/quan-ly-cong-no', DebtManagementController::class)
+    ->name('demo.debt-management');
 
 // Standalone demo: a single GET route, with browser-only persistence.
 Route::get('/demo/doanh-so-nhan-vien', SalesEmployeesController::class)
