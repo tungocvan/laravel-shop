@@ -297,3 +297,13 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
 #menu-edit-groups{max-height:55vh;overflow-y:auto}
 @media(max-width:800px){.menu-edit-item{grid-template-columns:24px 1fr 1fr}.menu-edit-item input[aria-label="Đường dẫn menu"]{grid-column:2 / -1}.menu-edit-item .btn{min-width:0}.menu-edit-head{flex-wrap:wrap}}
 @media(max-width:520px){.menu-edit-item{grid-template-columns:24px minmax(0,1fr)}.menu-edit-item input[aria-label="Đường dẫn menu"]{grid-column:2}.menu-edit-item .btn{grid-column:2}.menu-edit-head input{width:100%}}
+
+/* Sidebar header/footer and named server preset controls */
+.menu-edit-brand-footer{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:12px}
+.menu-edit-brand-footer .menu-edit-group{margin:0}
+.menu-edit-field{display:block;font-size:12px;font-weight:600;margin-bottom:10px}
+.menu-edit-field .inp{display:block;width:100%;margin-top:4px}
+.menu-preset-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+.menu-preset-row .inp{min-width:180px;flex:1}
+.sidebar .btn-save[hidden]{display:none!important}
+@media(max-width:700px){.menu-edit-brand-footer{grid-template-columns:1fr}.menu-preset-row>*{width:100%}}
