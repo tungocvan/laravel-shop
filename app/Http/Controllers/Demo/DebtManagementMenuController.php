@@ -7,10 +7,12 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 class DebtManagementMenuController extends Controller
 {
     private const PATH = 'demo-settings/debt-management/sidebar-menu.json';
+    private const PRESETS = 'demo-settings/debt-management/presets';
 
     public function show(): JsonResponse
     {
@@ -30,10 +32,7 @@ class DebtManagementMenuController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $secret = config('warehouse_demo.backup_code');
-        abort_unless(is_string($secret) && strlen($secret) >= 16, 503);
-        abort_unless(hash_equals($secret, (string) $request->header('X-Demo-Backup-Code', '')), 403);
-        abort_if(strlen($request->getContent()) > 65536, 413);
+        $this->authorizeWrite($request);
 
         $payload = Validator::make($request->all(), [
             'config' => ['required', 'array'],
@@ -48,6 +47,72 @@ class DebtManagementMenuController extends Controller
         }
 
         return response()->json(['saved' => true])->header('Cache-Control', 'no-store');
+    }
+
+    public function presets(): JsonResponse
+    {
+        $disk = Storage::disk('local');
+        $items = [];
+        foreach ($disk->files(self::PRESETS) as $path) {
+            $id = pathinfo($path, PATHINFO_FILENAME);
+            if (! preg_match('/^[a-z0-9-]{1,80}$/', $id) || ! Str::endsWith($path, '.json')) {
+                continue;
+            }
+            try {
+                $payload = json_decode($disk->get($path), true, 512, JSON_THROW_ON_ERROR);
+            } catch (\\JsonException $e) {
+                continue;
+            }
+            if (! is_array($payload) || ! $this->valid($payload['config'] ?? [])) {
+                continue;
+            }
+            $items[] = ['id' => $id, 'name' => $payload['name'] ?? $id];
+        }
+
+        return response()->json(['presets' => $items])->header('Cache-Control', 'no-store');
+    }
+
+    public function preset(string $preset): JsonResponse
+    {
+        abort_unless(preg_match('/^[a-z0-9-]{1,80}$/', $preset), 404);
+        $path = self::PRESETS.'/'.$preset.'.json';
+        $disk = Storage::disk('local');
+        abort_unless($disk->exists($path), 404);
+        try {
+            $payload = json_decode($disk->get($path), true, 512, JSON_THROW_ON_ERROR);
+        } catch (\\JsonException $e) {
+            abort(404);
+        }
+        abort_unless(is_array($payload) && $this->valid($payload['config'] ?? []), 404);
+
+        return response()->json(['config' => $payload['config'], 'name' => $payload['name'] ?? $preset])
+            ->header('Cache-Control', 'no-store');
+    }
+
+    public function savePreset(Request $request): JsonResponse
+    {
+        $this->authorizeWrite($request);
+        $validated = Validator::make($request->all(), [
+            'name' => ['required', 'string', 'min:2', 'max:100'],
+            'config' => ['required', 'array'],
+        ])->validate();
+        abort_unless($this->valid($validated['config']), 422);
+        $disk = Storage::disk('local');
+        abort_if(count($disk->files(self::PRESETS)) >= 100, 409);
+        $id = substr(Str::slug($validated['name']) ?: 'menu', 0, 40).'-'.Str::lower(Str::random(10));
+        $json = json_encode(['name' => $validated['name'], 'config' => $validated['config']], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        abort_if(strlen($json) > 65536, 413);
+        abort_unless($disk->put(self::PRESETS.'/'.$id.'.json', $json), 500);
+
+        return response()->json(['id' => $id, 'name' => $validated['name']], 201);
+    }
+
+    private function authorizeWrite(Request $request): void
+    {
+        $secret = config('warehouse_demo.backup_code');
+        abort_unless(is_string($secret) && strlen($secret) >= 16, 503);
+        abort_unless(hash_equals($secret, (string) $request->header('X-Demo-Backup-Code', '')), 403);
+        abort_if(strlen($request->getContent()) > 65536, 413);
     }
 
     private function valid(array $config): bool
