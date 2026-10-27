@@ -650,7 +650,7 @@ const Store = {
   status() {
     const el = $('#saveState'); if (!el) return;
     el.classList.toggle('dirty', Store.dirty);
-    el.querySelector('span').textContent = Store.dirty ? 'Có thay đổi chưa lưu vào file' : DB._meta.savedAt ? 'Đã lưu ' + new Date(DB._meta.savedAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : 'Đang dùng dữ liệu mẫu';
+    el.querySelector('span').textContent = Store.dirty ? 'Có thay đổi chưa lưu' : DB._meta.savedAt ? 'Đã lưu ' + new Date(DB._meta.savedAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : 'Đang dùng dữ liệu mẫu';
   },
   saved() {
     Store.dirty = false; Store.status();
@@ -695,7 +695,7 @@ const App = {
     $('#app').addEventListener('click', e => { const a = e.target.closest('[data-nav]'); if (a) { e.preventDefault(); App.go(a.dataset.nav); document.body.classList.remove('nav-open'); } });
     Store.status();
     const d = Store.draft();
-    if (d) $('#draftBox').innerHTML = `<div class="banner warn">${ic('alert')}<div class="grow"><b>Có dữ liệu chưa lưu vào file</b> từ lần làm việc trước (${new Date(d.at).toLocaleString('vi-VN')}).</div><button class="btn sm pri" data-act="draftUse">Khôi phục</button><button class="btn sm" data-act="draftDrop">Bỏ qua</button></div>`;
+    if (d) $('#draftBox').innerHTML = `<div class="banner warn">${ic('alert')}<div class="grow"><b>Có dữ liệu chưa lưu</b> từ lần làm việc trước (${new Date(d.at).toLocaleString('vi-VN')}).</div><button class="btn sm pri" data-act="draftUse">Khôi phục</button><button class="btn sm" data-act="draftDrop">Bỏ qua</button></div>`;
     else if (DB._meta.sample) $('#draftBox').innerHTML = `<div class="banner">${ic('alert')}<div class="grow">File đang có <b>dữ liệu mẫu</b> để xem thử. Khi dùng thật: vào <a data-nav="data" href="#">Dữ liệu & sao lưu</a> bấm "Xóa dữ liệu mẫu", rồi nhập dữ liệu của mình.</div><button class="ibtn" data-act="bannerClose">${ic('x')}</button></div>`;
     window.addEventListener('hashchange', () => { const h = location.hash.slice(1); if (h && h !== App.cur && App.views[h]) App.go(h); });
     const start = (location.hash || '').slice(1);
@@ -732,7 +732,7 @@ Object.assign(ACT, {
   navOpen: () => document.body.classList.add('nav-open'),
   navClose: () => document.body.classList.remove('nav-open'),
   bannerClose: (d, b) => b.closest('.banner').remove(),
-  draftUse: () => { const d = Store.draft(); if (d) { DB = d.data; App.cfg.migrate && App.cfg.migrate(DB); Store.dirty = true; Store.status(); $('#draftBox').innerHTML = ''; App.render(); toast('Đã khôi phục. Bấm "Lưu trong trình duyệt" để ghi hẳn vào file.', 'ok'); } },
+  draftUse: () => { const d = Store.draft(); if (d) { DB = d.data; App.cfg.migrate && App.cfg.migrate(DB); Store.dirty = true; Store.status(); $('#draftBox').innerHTML = ''; App.render(); toast('Đã khôi phục. Dữ liệu được lưu trong trình duyệt này.', 'ok'); } },
   draftDrop: () => { try { localStorage.removeItem(Store.key()); } catch (e) { } $('#draftBox').innerHTML = ''; }
 });
 
@@ -742,9 +742,7 @@ const DataScreen = {
   render(el) {
     const counts = (App.cfg.counts ? App.cfg.counts() : []).map(([k, v]) => `<div class="dl"><div><span>${k}</span><b>${F.money(v)}</b></div></div>`).join('');
     el.innerHTML = `<div class="grid cols-2">
-      ${card('Lưu dữ liệu trong trình duyệt', `<p class="muted" style="margin-top:0">Toàn bộ dữ liệu nằm ngay trong file <b>${esc(Store.fileName())}</b>. Bấm <b>Lưu trong trình duyệt</b> (hoặc Ctrl + S) để ghi đè dữ liệu mới lên file. Gửi file này cho người khác là gửi kèm cả dữ liệu.</p>
-        <ol class="small" style="padding-left:18px;line-height:1.8"><li>Lần đầu: chọn đúng file đang mở, bấm Save, chọn Replace.</li><li>Các lần sau: bấm Lưu là xong, không hỏi lại.</li><li>Nên mở bằng <b>Google Chrome</b> hoặc <b>Microsoft Edge</b> để ghi đè trực tiếp được.</li></ol>
-        <div class="row"><button class="btn pri" data-act="saveFile">${ic('save')} Lưu trong trình duyệt</button><button class="btn" data-act="saveAs">${ic('copy')} Tải JSON về máy</button></div>`)}
+      ${card('Lưu dữ liệu trong trình duyệt', `<p class="muted" style="margin-top:0">Dữ liệu được lưu riêng trên trình duyệt và thiết bị hiện tại. Nên tải bản sao lưu JSON định kỳ để tránh mất dữ liệu khi xóa bộ nhớ trình duyệt.</p><div class="row"><button class="btn pri" data-act="saveFile">${ic('save')} Lưu trong trình duyệt</button><button class="btn" data-act="saveAs">${ic('download')} Tải JSON về máy</button></div>`)}
       ${card('Tình trạng dữ liệu', `${counts}<p class="small muted">Lần lưu gần nhất: <b>${DB._meta.savedAt ? new Date(DB._meta.savedAt).toLocaleString('vi-VN') : 'chưa lưu'}</b></p>`)}
       ${card('Sao lưu & khôi phục', `<p class="muted" style="margin-top:0">Tải bản sao lưu dữ liệu (.json) để cất giữ, hoặc chuyển dữ liệu sang file mới hơn.</p><div class="row"><button class="btn" data-act="backup">${ic('download')} Tải bản sao lưu</button><label class="btn">${ic('upload')} Khôi phục từ bản sao lưu<input type="file" accept=".json,application/json" hidden id="restoreFile"></label></div>`)}
       ${card('Làm mới dữ liệu', `<p class="muted" style="margin-top:0">Xóa dữ liệu mẫu để bắt đầu nhập dữ liệu thật. Phần thông tin công ty và cài đặt được giữ lại.</p><div class="row"><button class="btn danger" data-act="wipe">${ic('trash')} Xóa dữ liệu mẫu / xóa hết</button><button class="btn" data-act="loadSample">${ic('refresh')} Nạp lại dữ liệu mẫu</button></div>`)}
@@ -752,7 +750,7 @@ const DataScreen = {
     $('#restoreFile').onchange = e => {
       const f = e.target.files[0]; if (!f) return;
       const r = new FileReader(); r.onload = async () => {
-        try { const d = JSON.parse(r.result); if (d._app && d._app !== App.cfg.id) throw new Error('Bản sao lưu của ứng dụng khác'); if (!(await Modal.confirm('Thay toàn bộ dữ liệu hiện tại bằng bản sao lưu này?', { ok: 'Khôi phục' }))) return; delete d._app; DB = d; DB._meta = DB._meta || {}; App.cfg.migrate && App.cfg.migrate(DB); App.changed(); toast('Đã khôi phục. Bấm "Lưu trong trình duyệt" để ghi vào file.', 'ok'); }
+        try { const d = JSON.parse(r.result); if (d._app && d._app !== App.cfg.id) throw new Error('Bản sao lưu của ứng dụng khác'); if (!(await Modal.confirm('Thay toàn bộ dữ liệu hiện tại bằng bản sao lưu này?', { ok: 'Khôi phục' }))) return; delete d._app; DB = d; DB._meta = DB._meta || {}; App.cfg.migrate && App.cfg.migrate(DB); App.changed(); toast('Đã khôi phục. Dữ liệu được lưu trong trình duyệt này.', 'ok'); }
         catch (err) { toast('File sao lưu không hợp lệ: ' + esc(err.message), 'err'); }
       }; r.readAsText(f);
     };
