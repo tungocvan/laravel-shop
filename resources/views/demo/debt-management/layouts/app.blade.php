@@ -15,6 +15,7 @@
 <body>
 @yield('content')
 <script src="{{ asset('demo-assets/quan-ly-cong-no/js/core.js') }}?v={{ filemtime(public_path('demo-assets/quan-ly-cong-no/js/core.js')) }}"></script>
+<script src="{{ asset('demo-assets/quan-ly-cong-no/js/menu-builder.js') }}?v={{ filemtime(public_path('demo-assets/quan-ly-cong-no/js/menu-builder.js')) }}"></script>
 <script src="{{ asset('demo-assets/quan-ly-cong-no/js/app.js') }}?v={{ filemtime(public_path('demo-assets/quan-ly-cong-no/js/app.js')) }}"></script>
 <script src="{{ asset('demo-assets/quan-ly-cong-no/js/server-datasets.js') }}?v={{ filemtime(public_path('demo-assets/quan-ly-cong-no/js/server-datasets.js')) }}"></script>
 </body>
