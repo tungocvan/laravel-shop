@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
+<meta name="csrf-token" content="{{ csrf_token() }}">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Quản lý công nợ - Phong Excel</title>
@@ -15,5 +16,6 @@
 @yield('content')
 <script src="{{ asset('demo-assets/quan-ly-cong-no/js/core.js') }}?v={{ filemtime(public_path('demo-assets/quan-ly-cong-no/js/core.js')) }}"></script>
 <script src="{{ asset('demo-assets/quan-ly-cong-no/js/app.js') }}?v={{ filemtime(public_path('demo-assets/quan-ly-cong-no/js/app.js')) }}"></script>
+<script src="{{ asset('demo-assets/quan-ly-cong-no/js/server-datasets.js') }}?v={{ filemtime(public_path('demo-assets/quan-ly-cong-no/js/server-datasets.js')) }}"></script>
 </body>
 </html>
