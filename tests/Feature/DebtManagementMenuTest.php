@@ -59,6 +59,38 @@ class DebtManagementMenuTest extends TestCase
         $this->getJson($url)->assertJsonPath('config.groups.0.items.1.label', 'Website');
     }
 
+
+    public function test_named_presets_can_be_saved_listed_and_loaded_without_changing_active_menu(): void
+    {
+        Storage::fake('local');
+        config()->set('warehouse_demo.backup_code', 'this-is-a-long-private-code');
+        $url = '/demo/quan-ly-cong-no/menu/presets';
+        $config = $this->menu();
+        $config['header'] = ['title' => 'Công nợ', 'subtitle' => 'Theo dõi', 'icon' => 'wallet', 'href' => '#dashboard'];
+        $config['footer'] = ['credit' => 'Demo', 'href' => 'https://example.com', 'showSave' => false];
+        $this->postJson($url, ['name' => 'Mẫu số 1', 'config' => $config])->assertForbidden();
+        $result = $this->postJson($url, ['name' => 'Mẫu số 1', 'config' => $config], [
+            'X-Demo-Backup-Code' => 'this-is-a-long-private-code',
+        ])->assertCreated()->json();
+        $this->getJson($url)->assertOk()->assertJsonCount(1, 'presets');
+        $this->getJson($url.'/'.$result['id'])->assertOk()
+            ->assertJsonPath('config.header.title', 'Công nợ')
+            ->assertJsonPath('config.footer.showSave', false);
+        $this->getJson('/demo/quan-ly-cong-no/menu')->assertJsonPath('config', null);
+        $this->getJson($url.'/../menu')->assertStatus(404);
+    }
+
+    public function test_rejects_invalid_header_footer_and_unsafe_links(): void
+    {
+        Storage::fake('local');
+        config()->set('warehouse_demo.backup_code', 'this-is-a-long-private-code');
+        $config = $this->menu();
+        $config['header'] = ['title' => 'Demo', 'subtitle' => '', 'icon' => 'wallet', 'href' => 'javascript:alert(1)'];
+        $this->postJson('/demo/quan-ly-cong-no/menu', ['config' => $config], [
+            'X-Demo-Backup-Code' => 'this-is-a-long-private-code',
+        ])->assertUnprocessable();
+    }
+
     public function test_rejects_oversized_menu(): void
     {
         Storage::fake('local');
