@@ -267,3 +267,19 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
   #print-root .no-print,#print-root .tbl-tools,#print-root .tbl-pager,#print-root td.act,#print-root th.act{display:none!important}
 }
 
+
+
+/* Debt demo themes: business colors remain semantic. */
+.debt-themes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:12px}
+.debt-theme{display:flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:8px;border:2px solid #e2e8f0;background:#fff;border-radius:10px;cursor:pointer;font-weight:600}
+.debt-theme[aria-pressed="true"]{border-color:var(--p);background:var(--p-50)}
+.debt-theme:focus-visible{outline:3px solid var(--p);outline-offset:2px}
+.debt-swatch{width:20px;height:20px;border-radius:50%;flex:none}
+.debt-server-card{margin-top:16px}
+.debt-server-card .row{flex-wrap:wrap}
+.debt-server-card select{min-width:200px;flex:1}
+#debt-server-message[data-status="error"],#debt-backup-error{color:#b42318}
+#debt-server-message[data-status="success"]{color:#067647}
+#debt-backup-name,#debt-backup-confirm,#debt-backup-code{width:100%;display:block;margin:5px 0 12px}
+@media(max-width:950px){.debt-themes{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.debt-themes{grid-template-columns:1fr}.debt-server-card .row>*{width:100%}}
