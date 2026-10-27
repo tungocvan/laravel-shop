@@ -38,6 +38,7 @@ class DebtManagementMenuController extends Controller
             'config' => ['required', 'array'],
         ])->validate()['config'];
 
+        $payload = $this->normalizeOptionalText($payload);
         if (! $this->valid($payload)) {
             return response()->json(['message' => 'Cấu hình menu không hợp lệ.'], 422);
         }
@@ -96,6 +97,7 @@ class DebtManagementMenuController extends Controller
             'name' => ['required', 'string', 'min:2', 'max:100'],
             'config' => ['required', 'array'],
         ])->validate();
+        $validated['config'] = $this->normalizeOptionalText($validated['config']);
         abort_unless($this->valid($validated['config']), 422);
         $disk = Storage::disk('local');
         abort_if(count($disk->files(self::PRESETS)) >= 100, 409);
@@ -113,6 +115,27 @@ class DebtManagementMenuController extends Controller
         abort_unless(is_string($secret) && strlen($secret) >= 16, 503);
         abort_unless(hash_equals($secret, (string) $request->header('X-Demo-Backup-Code', '')), 403);
         abort_if(strlen($request->getContent()) > 65536, 413);
+    }
+
+    /**
+     * Laravel's ConvertEmptyStringsToNull middleware converts optional blank
+     * form fields to null. Restore only known optional text fields, not IDs,
+     * icons or links in menu items.
+     */
+    private function normalizeOptionalText(array $config): array
+    {
+        foreach (['header' => ['subtitle', 'href'], 'footer' => ['credit', 'href']] as $section => $fields) {
+            if (! isset($config[$section]) || ! is_array($config[$section])) {
+                continue;
+            }
+            foreach ($fields as $field) {
+                if (array_key_exists($field, $config[$section]) && $config[$section][$field] === null) {
+                    $config[$section][$field] = '';
+                }
+            }
+        }
+
+        return $config;
     }
 
     private function safeHref(string $href): bool
