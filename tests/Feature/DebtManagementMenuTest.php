@@ -79,6 +79,28 @@ class DebtManagementMenuTest extends TestCase
         $this->getJson('/demo/quan-ly-cong-no/menu')->assertJsonPath('config', null);
     }
 
+    public function test_blank_optional_header_footer_fields_survive_request_middleware(): void
+    {
+        Storage::fake('local');
+        config()->set('warehouse_demo.backup_code', 'this-is-a-long-private-code');
+        $config = $this->menu();
+        $config['header'] = ['title' => 'Quản lý công nợ', 'subtitle' => '', 'icon' => 'receipt', 'href' => '#dashboard'];
+        $config['footer'] = ['credit' => 'Phong Excel Academy', 'href' => '', 'showSave' => true];
+        $headers = ['X-Demo-Backup-Code' => 'this-is-a-long-private-code'];
+
+        $this->postJson('/demo/quan-ly-cong-no/menu', ['config' => $config], $headers)
+            ->assertOk()->assertJsonPath('saved', true);
+        $this->getJson('/demo/quan-ly-cong-no/menu')
+            ->assertJsonPath('config.footer.href', '')
+            ->assertJsonPath('config.header.subtitle', '');
+
+        $this->postJson('/demo/quan-ly-cong-no/menu/presets', [
+            'name' => 'Menu_QuanLyCongNo',
+            'config' => $config,
+        ], $headers)->assertCreated();
+        $this->getJson('/demo/quan-ly-cong-no/menu/presets')->assertJsonCount(1, 'presets');
+    }
+
     public function test_rejects_invalid_header_footer_and_unsafe_links(): void
     {
         Storage::fake('local');
