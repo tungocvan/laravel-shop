@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Demo\SalesEmployeesController;
 use App\Http\Controllers\Demo\DebtManagementController;
+use App\Http\Controllers\Demo\DebtManagementDatasetController;
 use App\Http\Controllers\Demo\SalesDemoDatasetController;
 use App\Http\Controllers\Demo\WarehouseInventoryController;
 use App\Http\Controllers\Demo\WarehouseDemoDatasetController;
@@ -12,6 +13,10 @@ use Modules\System\Services\ApplicationRootRedirectService;
 // Standalone debt management demo (one GET route, browser-only persistence).
 Route::get('/demo/quan-ly-cong-no', DebtManagementController::class)
     ->name('demo.debt-management');
+
+Route::get('/demo/quan-ly-cong-no/datasets', [DebtManagementDatasetController::class, 'index'])->name('demo.debt-management.datasets');
+Route::get('/demo/quan-ly-cong-no/datasets/{dataset}', [DebtManagementDatasetController::class, 'show'])->name('demo.debt-management.datasets.show');
+Route::post('/demo/quan-ly-cong-no/datasets', [DebtManagementDatasetController::class, 'store'])->middleware('throttle:5,1')->name('demo.debt-management.datasets.store');
 
 // Standalone demo: a single GET route, with browser-only persistence.
 Route::get('/demo/doanh-so-nhan-vien', SalesEmployeesController::class)
