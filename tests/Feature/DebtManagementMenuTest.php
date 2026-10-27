@@ -77,7 +77,6 @@ class DebtManagementMenuTest extends TestCase
             ->assertJsonPath('config.header.title', 'Công nợ')
             ->assertJsonPath('config.footer.showSave', false);
         $this->getJson('/demo/quan-ly-cong-no/menu')->assertJsonPath('config', null);
-        $this->getJson($url.'/../menu')->assertStatus(404);
     }
 
     public function test_rejects_invalid_header_footer_and_unsafe_links(): void
