@@ -1,5 +1,39 @@
 
 const THEME = {"p":"#ea580c","d":"#c2410c","s50":"#fff7ed","s100":"#ffedd5","ink":"#2a1206","ink2":"#4a1f0b"};
+
+// Demo appearance is independent of business JSON.
+const DEBT_THEMES = {
+  original: { name: 'Cam nguyên bản', p: '#ea580c', d: '#c2410c', s50: '#fff7ed', s100: '#ffedd5', ink: '#2a1206', ink2: '#4a1f0b' },
+  ruby: { name: 'Ruby', p: '#c62828', d: '#a51e25', s50: '#fff1f2', s100: '#ffe4e6', ink: '#350d15', ink2: '#551525' },
+  ocean: { name: 'Ocean', p: '#087e9b', d: '#076782', s50: '#ecfeff', s100: '#cffafe', ink: '#082f49', ink2: '#164e63' },
+  emerald: { name: 'Emerald', p: '#16835d', d: '#106b4b', s50: '#ecfdf5', s100: '#d1fae5', ink: '#052e25', ink2: '#064e3b' },
+  indigo: { name: 'Indigo', p: '#4f46e5', d: '#4338ca', s50: '#eef2ff', s100: '#e0e7ff', ink: '#1e1b4b', ink2: '#312e81' }
+};
+const DEBT_THEME_KEY = 'debt_management_theme_v1';
+let debtTheme = 'original';
+function applyDebtTheme(name) {
+  const t = DEBT_THEMES[name] || DEBT_THEMES.original;
+  debtTheme = Object.hasOwn(DEBT_THEMES, name) ? name : 'original';
+  for (const [key, val] of Object.entries({ '--p': t.p, '--p-d': t.d, '--p-50': t.s50, '--p-100': t.s100, '--ink': t.ink, '--ink2': t.ink2 })) {
+    document.documentElement.style.setProperty(key, val);
+  }
+  THEME.p = t.p; THEME.d = t.d;
+  THEME.s50 = t.s50; THEME.s100 = t.s100;
+  THEME.ink = t.ink; THEME.ink2 = t.ink2;
+  PALETTE[0] = t.p;
+  try { localStorage.setItem(DEBT_THEME_KEY, debtTheme); } catch (e) {}
+}
+try { applyDebtTheme(localStorage.getItem(DEBT_THEME_KEY) || 'original'); } catch (e) { applyDebtTheme('original'); }
+function debtThemeSelector() {
+  return card('Giao diện · Màu sắc', `<p class="muted small">Chọn màu giao diện. Lựa chọn được lưu riêng, không ảnh hưởng dữ liệu công nợ.</p><div class="debt-themes">${Object.entries(DEBT_THEMES).map(([key, t]) => `<button type="button" class="debt-theme" data-debt-theme="${key}" aria-pressed="${debtTheme === key}"><span class="debt-swatch" style="background:${t.p}"></span>${esc(t.name)}</button>`).join('')}</div>`);
+}
+document.addEventListener('click', e => {
+  const button = e.target.closest('[data-debt-theme]');
+  if (!button) return;
+  applyDebtTheme(button.dataset.debtTheme);
+  document.querySelectorAll('[data-debt-theme]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.debtTheme === debtTheme)));
+});
+
 /* ==========================================================
    QUẢN LÝ CÔNG NỢ CHI TIẾT - Phong Excel
    Phải thu khách hàng, phải trả nhà cung cấp, tuổi nợ, đối chiếu
@@ -378,7 +412,7 @@ const vAge = {
 const vSet = {
   title: 'Cài đặt', icon: 'settings', desc: 'Thông tin công ty và quy định công nợ', print: false,
   render(el) {
-    el.innerHTML = `<div class="grid cols-2">${settingsCard('Thông tin công ty', COMPANY_FIELDS, DB.settings.company)}${settingsCard('Quy định công nợ', [{ key: 'hanNoMacDinh', label: 'Hạn nợ mặc định cho đối tác mới (ngày)', type: 'number', full: true }, { key: 'canhBao', label: 'Cảnh báo trước hạn (ngày)', type: 'number', full: true, hint: 'Dashboard liệt kê hóa đơn sắp đến hạn trong số ngày này' }], DB.settings)}</div>`;
+    el.innerHTML = `<div class="grid cols-2">${settingsCard('Thông tin công ty', COMPANY_FIELDS, DB.settings.company)}${settingsCard('Quy định công nợ', [{ key: 'hanNoMacDinh', label: 'Hạn nợ mặc định cho đối tác mới (ngày)', type: 'number', full: true }, { key: 'canhBao', label: 'Cảnh báo trước hạn (ngày)', type: 'number', full: true, hint: 'Dashboard liệt kê hóa đơn sắp đến hạn trong số ngày này' }], DB.settings)}${debtThemeSelector()}</div>`;
   }
 };
 
