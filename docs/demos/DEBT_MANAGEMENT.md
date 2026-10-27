@@ -42,3 +42,14 @@
 - After focused PASS, impacted tests: `php artisan test tests/Feature/DebtManagementDatasetLibraryTest.php tests/Feature/StandaloneSalesDemoRouteTest.php tests/Feature/StandaloneWarehouseInventoryDemoTest.php`.
 - UI gate: edit entry in Settings, reorder within/across groups, rename/icon/href, duplicate/delete/reset, JSON import/export, failed/wrong/valid admin code, refresh and second browser, external HTTPS link, invalid hash, mobile responsive, keyboard navigation, no JS console errors.
 - Pending focused and UI verification on this batch. No merge or deploy.
+
+## Sidebar header/footer and named JSON presets (2026-10-27)
+
+- Settings → Chỉnh sửa menu includes editable sidebar header (title, subtitle, icon, safe href) and footer (credit, safe href, show/hide Save button). Existing menu JSON version 1 without these sections remains valid; browser falls back to original header/footer.
+- Named server JSON preset library: GET `/demo/quan-ly-cong-no/menu/presets`, GET `.../presets/{preset}`, POST `.../presets`. Presets are separate from the active menu file; private local disk `demo-settings/debt-management/presets/{id}.json`.
+- Saving a named preset requires operator code + CSRF + throttle 5/min, max 64 KiB, max 100 presets, safe generated IDs. No overwrite/delete endpoint. Public listing/loading is intended only for non-sensitive demo menu metadata.
+- **Lưu file JSON** creates a named preset; **Nhập từ server** loads a selected preset into editor only; **Lưu lên server** applies the editor configuration as active sidebar (shared across devices). Import/export local JSON still supported.
+- Focused: `php artisan test tests/Feature/DebtManagementMenuTest.php tests/Feature/StandaloneDebtManagementDemoTest.php`.
+- After focused PASS, impacted regression: `php artisan test tests/Feature/DebtManagementDatasetLibraryTest.php tests/Feature/StandaloneSalesDemoRouteTest.php tests/Feature/StandaloneWarehouseInventoryDemoTest.php`.
+- UI checkpoint: header/footer edits, safe logo/footer links, save button visibility, named JSON save/list/import, active menu unchanged until explicit apply, browser refresh and second device, import/export compatibility, desktop/mobile and console errors.
+- No local tests executed by assistant; TEST/UI PASS pending user verification. No merge/deploy.
