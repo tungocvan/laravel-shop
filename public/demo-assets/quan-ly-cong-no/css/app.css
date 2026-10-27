@@ -283,3 +283,17 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
 #debt-backup-name,#debt-backup-confirm,#debt-backup-code{width:100%;display:block;margin:5px 0 12px}
 @media(max-width:950px){.debt-themes{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:520px){.debt-themes{grid-template-columns:1fr}.debt-server-card .row>*{width:100%}}
+
+
+/* Standalone sidebar menu editor */
+.menu-settings-entry{margin-top:16px}
+.menu-edit-group{border:1px solid #dce2ea;border-radius:12px;padding:12px;margin-bottom:12px;background:#fff}
+.menu-edit-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.menu-edit-head input{flex:1;min-width:0;font-weight:600}
+.menu-edit-item{display:grid;grid-template-columns:28px minmax(120px,1.1fr) minmax(85px,.65fr) minmax(150px,1.3fr) auto auto;gap:8px;align-items:center;padding:8px 0;border-top:1px solid #e7ebf0}
+.menu-edit-item .inp{min-width:0;width:100%}
+.menu-edit-grip{cursor:grab;user-select:none;text-align:center;font-size:18px;touch-action:none}
+#menu-edit-status[data-error="true"]{color:#b42318}
+#menu-edit-groups{max-height:55vh;overflow-y:auto}
+@media(max-width:800px){.menu-edit-item{grid-template-columns:24px 1fr 1fr}.menu-edit-item input[aria-label="Đường dẫn menu"]{grid-column:2 / -1}.menu-edit-item .btn{min-width:0}.menu-edit-head{flex-wrap:wrap}}
+@media(max-width:520px){.menu-edit-item{grid-template-columns:24px minmax(0,1fr)}.menu-edit-item input[aria-label="Đường dẫn menu"]{grid-column:2}.menu-edit-item .btn{grid-column:2}.menu-edit-head input{width:100%}}
