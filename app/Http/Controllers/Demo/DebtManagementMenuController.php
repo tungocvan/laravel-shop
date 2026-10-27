@@ -115,11 +115,42 @@ class DebtManagementMenuController extends Controller
         abort_if(strlen($request->getContent()) > 65536, 413);
     }
 
+    private function safeHref(string $href): bool
+    {
+        return $href === '' || (bool) preg_match('/^#[a-z0-9-]{1,64}$/', $href)
+            || (bool) preg_match('~^https://[a-z0-9][a-z0-9.-]+(?:/[^\\s]*)?$~i', $href);
+    }
+
     private function valid(array $config): bool
     {
         if (($config['version'] ?? null) !== 1 || ! isset($config['groups']) || ! is_array($config['groups'])
             || ! array_is_list($config['groups']) || count($config['groups']) > 20) {
             return false;
+        }
+        foreach (['header', 'footer'] as $section) {
+            if (! isset($config[$section])) {
+                continue; // Backward compatible with v1 menu JSON.
+            }
+            if (! is_array($config[$section])) {
+                return false;
+            }
+            $fields = $section === 'header'
+                ? ['title' => 100, 'subtitle' => 160, 'icon' => 48, 'href' => 250]
+                : ['credit' => 160, 'href' => 250];
+            foreach ($fields as $field => $limit) {
+                if (! isset($config[$section][$field]) || ! is_string($config[$section][$field])
+                    || mb_strlen($config[$section][$field]) > $limit) {
+                    return false;
+                }
+            }
+            if (! preg_match('/^[a-z0-9-]{1,48}$/', $config['header']['icon'] ?? 'menu')
+                || ! $this->safeHref($config[$section]['href'])) {
+                return false;
+            }
+            if ($section === 'footer' && (! isset($config['footer']['showSave'])
+                || ! is_bool($config['footer']['showSave']))) {
+                return false;
+            }
         }
         $ids = [];
         $count = 0;
