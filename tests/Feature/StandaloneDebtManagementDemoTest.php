@@ -12,7 +12,7 @@ class StandaloneDebtManagementDemoTest extends TestCase
         $this->assertNotNull($route);
         $this->assertSame(['GET', 'HEAD'], $route->methods());
         $this->assertSame('demo/quan-ly-cong-no', $route->uri());
-        $this->assertSame(\App\Http\Controllers\Demo\DebtManagementController::class, $route->getActionName());
+        $this->assertSame(\App\Http\Controllers\Demo\DebtManagementController::class, $route->getControllerClass());
     }
 
     public function test_demo_renders_mount_and_separate_assets(): void
