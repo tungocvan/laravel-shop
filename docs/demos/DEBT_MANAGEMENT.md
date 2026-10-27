@@ -27,3 +27,18 @@
 - Impacted after focused PASS: `php artisan test tests/Feature/SalesDemoDatasetLibraryTest.php tests/Feature/WarehouseDemoDatasetLibraryTest.php tests/Feature/StandaloneSalesDemoRouteTest.php tests/Feature/StandaloneWarehouseInventoryDemoTest.php`.
 - UI: server empty/list/load, cancel/confirm, YES/wrong/valid code, failed server backup vs local download, CRUD/JSON restore, four alternate themes + original, refresh, responsive, chart colors, browser console.
 - Previous UI PASS covered the earlier Blade-only version, not this updated feature batch. TEST/UI pending new output. No merge or deploy.
+
+## Sidebar Menu Builder (2026-10-27)
+
+- Entry point: `/demo/quan-ly-cong-no#caidat` → **Chỉnh sửa menu**. No header edit button.
+- Dynamic sidebar remains owned by the existing `App` renderer; `menu-builder.js` wraps `App.init` and the Settings view, preserving business routes and DOM event delegation.
+- Editor supports drag/drop items within/between groups (desktop HTML5 drag/drop), rename group, add item/group, edit label/icon/href, duplicate, delete, reset default, import/export JSON.
+- JSON schema: `{version:1,groups:[{title,items:[{id,label,icon,href}]}]}`. Unique IDs; hash routes or HTTPS external URLs only. Unknown internal hashes are disabled in sidebar; never execute arbitrary URL schemes.
+- GET `/demo/quan-ly-cong-no/menu`: read-only public shared configuration (null means original defaults).
+- POST `/demo/quan-ly-cong-no/menu`: operator-protected by existing `config('warehouse_demo.backup_code')` (min 16 chars), CSRF, throttle 5/min, max 64 KiB. Never place code in HTML/JS/localStorage/log. Server stores JSON on Laravel private local disk at `demo-settings/debt-management/sidebar-menu.json`; no database or .env edits.
+- Import validates locally and requires confirmation; import only edits the pending configuration. **Lưu lên server** applies globally to all browsers after operator authorization. Closing editor reloads server state, discarding unsaved edits. Export downloads current editor JSON.
+- Security: shared public GET exposes menu labels/hrefs; do not include sensitive internal links. Only trusted operators should write. Server save is not per-user.
+- Focused tests: `php artisan test tests/Feature/StandaloneDebtManagementDemoTest.php tests/Feature/DebtManagementMenuTest.php`.
+- After focused PASS, impacted tests: `php artisan test tests/Feature/DebtManagementDatasetLibraryTest.php tests/Feature/StandaloneSalesDemoRouteTest.php tests/Feature/StandaloneWarehouseInventoryDemoTest.php`.
+- UI gate: edit entry in Settings, reorder within/across groups, rename/icon/href, duplicate/delete/reset, JSON import/export, failed/wrong/valid admin code, refresh and second browser, external HTTPS link, invalid hash, mobile responsive, keyboard navigation, no JS console errors.
+- Pending focused and UI verification on this batch. No merge or deploy.
