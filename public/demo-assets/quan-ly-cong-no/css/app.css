@@ -290,7 +290,7 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
 .menu-edit-group{border:1px solid #dce2ea;border-radius:12px;padding:12px;margin-bottom:12px;background:#fff}
 .menu-edit-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
 .menu-edit-head input{flex:1;min-width:0;font-weight:600}
-.menu-edit-item{display:grid;grid-template-columns:28px minmax(120px,1.1fr) minmax(85px,.65fr) minmax(150px,1.3fr) auto auto;gap:8px;align-items:center;padding:8px 0;border-top:1px solid #e7ebf0}
+.menu-edit-item{display:grid;grid-template-columns:28px minmax(120px,1.1fr) minmax(85px,.65fr) minmax(150px,1.3fr) 38px 38px auto auto;gap:8px;align-items:center;padding:8px 0;border-top:1px solid #e7ebf0}
 .menu-edit-item .inp{min-width:0;width:100%}
 .menu-edit-grip{cursor:grab;user-select:none;text-align:center;font-size:18px;touch-action:none}
 #menu-edit-status[data-error="true"]{color:#b42318}
