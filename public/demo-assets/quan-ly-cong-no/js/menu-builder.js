@@ -127,7 +127,13 @@
         const remove = document.createElement('button');
         remove.className = 'btn sm danger'; remove.textContent = 'Xóa';
         remove.onclick = () => { group.items.splice(ii, 1); drawEditor(); };
-        line.append(grip, name, icon, href, duplicate, remove);
+        const up = document.createElement('button');
+        up.className = 'btn sm'; up.textContent = '↑'; up.title = 'Lên một vị trí';
+        up.onclick = () => { if (ii > 0) { [group.items[ii - 1], group.items[ii]] = [group.items[ii], group.items[ii - 1]]; drawEditor(); } };
+        const down = document.createElement('button');
+        down.className = 'btn sm'; down.textContent = '↓'; down.title = 'Xuống một vị trí';
+        down.onclick = () => { if (ii < group.items.length - 1) { [group.items[ii + 1], group.items[ii]] = [group.items[ii], group.items[ii + 1]]; drawEditor(); } };
+        line.append(grip, name, icon, href, up, down, duplicate, remove);
         list.appendChild(line);
       });
       section.append(head, list);
