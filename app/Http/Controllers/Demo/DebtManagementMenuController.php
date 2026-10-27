@@ -60,7 +60,7 @@ class DebtManagementMenuController extends Controller
             }
             try {
                 $payload = json_decode($disk->get($path), true, 512, JSON_THROW_ON_ERROR);
-            } catch (\\JsonException $e) {
+            } catch (\JsonException $e) {
                 continue;
             }
             if (! is_array($payload) || ! $this->valid($payload['config'] ?? [])) {
@@ -80,7 +80,7 @@ class DebtManagementMenuController extends Controller
         abort_unless($disk->exists($path), 404);
         try {
             $payload = json_decode($disk->get($path), true, 512, JSON_THROW_ON_ERROR);
-        } catch (\\JsonException $e) {
+        } catch (\JsonException $e) {
             abort(404);
         }
         abort_unless(is_array($payload) && $this->valid($payload['config'] ?? []), 404);
