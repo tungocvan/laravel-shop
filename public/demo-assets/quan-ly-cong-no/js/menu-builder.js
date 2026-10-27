@@ -4,6 +4,8 @@
   const url = '/demo/quan-ly-cong-no/menu';
   const fallback = () => ({
     version: 1,
+    header: { title: App.cfg.title, subtitle: App.cfg.tagline, icon: App.cfg.icon, href: '#dashboard' },
+    footer: { credit: 'Phong Excel Academy', href: '', showSave: true },
     groups: [...App.cfg.nav.map(g => ({
       title: g.group,
       items: g.items.map(id => ({ id, label: App.views[id].label || App.views[id].title, icon: App.views[id].icon, href: '#' + id }))
@@ -16,6 +18,13 @@
   const safeIcon = name => /^[a-z0-9-]{1,48}$/.test(name);
   const validate = value => {
     if (!value || value.version !== 1 || !Array.isArray(value.groups) || value.groups.length > 20) throw Error('Phiên bản hoặc nhóm menu không hợp lệ.');
+    for (const section of ['header', 'footer']) {
+      if (!value[section]) continue;
+      const fields = section === 'header' ? ['title','subtitle','icon','href'] : ['credit','href'];
+      if (fields.some(key => typeof value[section][key] !== 'string') || !safeHref(value[section].href) && value[section].href !== '') throw Error('Header/footer không hợp lệ.');
+      if (section === 'header' && (!safeIcon(value.header.icon) || value.header.title.length > 100 || value.header.subtitle.length > 160)) throw Error('Header không hợp lệ.');
+      if (section === 'footer' && (typeof value.footer.showSave !== 'boolean' || value.footer.credit.length > 160)) throw Error('Footer không hợp lệ.');
+    }
     const ids = new Set();
     let total = 0;
     for (const group of value.groups) {
@@ -33,6 +42,31 @@
   };
   function renderSidebar() {
     if (!config) return;
+    const header = config.header || fallback().header;
+    const footer = config.footer || fallback().footer;
+    const brand = document.querySelector('.sidebar .brand');
+    if (brand) {
+      const logo = brand.querySelector('.logo');
+      if (logo) logo.innerHTML = ic(header.icon);
+      const title = brand.querySelector('b');
+      if (title) title.textContent = header.title;
+      const subtitle = brand.querySelector('small');
+      if (subtitle) subtitle.textContent = header.subtitle;
+      brand.style.cursor = header.href ? 'pointer' : '';
+      brand.onclick = () => {
+        if (!header.href) return;
+        if (header.href.startsWith('#') && App.views[header.href.slice(1)]) App.go(header.href.slice(1));
+        else if (header.href.startsWith('https://')) window.open(header.href, '_blank', 'noopener,noreferrer');
+      };
+    }
+    const credit = document.querySelector('.sidebar .credit');
+    if (credit) {
+      credit.textContent = footer.credit;
+      credit.style.cursor = footer.href ? 'pointer' : '';
+      credit.onclick = () => { if (footer.href.startsWith('https://')) window.open(footer.href, '_blank', 'noopener,noreferrer'); else if (footer.href.startsWith('#') && App.views[footer.href.slice(1)]) App.go(footer.href.slice(1)); };
+    }
+    const save = document.querySelector('.sidebar .btn-save');
+    if (save) save.hidden = !footer.showSave;
     const nav = document.querySelector('.sidebar .nav');
     if (!nav) return;
     nav.replaceChildren();
@@ -140,18 +174,102 @@
       area.appendChild(section);
     });
   }
+  function drawHeaderFooter() {
+    const area = editor?.el.querySelector('#menu-brand-footer');
+    if (!area) return;
+    area.replaceChildren();
+    for (const [section, fields] of [
+      ['header', [['title','Tên ứng dụng'],['subtitle','Dòng mô tả'],['icon','Icon Lucide'],['href','Liên kết logo']]],
+      ['footer', [['credit','Dòng ghi chú'],['href','Liên kết footer']]]
+    ]) {
+      const card = document.createElement('fieldset');
+      card.className = 'menu-edit-group';
+      const legend = document.createElement('legend');
+      legend.textContent = section === 'header' ? 'Header sidebar' : 'Footer sidebar';
+      card.appendChild(legend);
+      config[section] ||= copy(fallback()[section]);
+      for (const [key, label] of fields) {
+        const wrapper = document.createElement('label');
+        wrapper.className = 'menu-edit-field';
+        wrapper.textContent = label;
+        const input = document.createElement('input');
+        input.className = 'inp'; input.value = config[section][key] || '';
+        input.maxLength = key === 'href' ? 250 : key === 'subtitle' || key === 'credit' ? 160 : 100;
+        input.oninput = () => { config[section][key] = input.value; };
+        wrapper.appendChild(input);
+        card.appendChild(wrapper);
+      }
+      if (section === 'footer') {
+        const label = document.createElement('label');
+        const box = document.createElement('input');
+        box.type = 'checkbox'; box.checked = config.footer.showSave;
+        box.onchange = () => { config.footer.showSave = box.checked; };
+        label.append(box, document.createTextNode(' Hiện nút lưu dữ liệu'));
+        card.appendChild(label);
+      }
+      area.appendChild(card);
+    }
+  }
+  async function refreshPresets() {
+    const select = editor?.el.querySelector('#menu-server-presets');
+    if (!select) return;
+    select.replaceChildren(new Option('Đang tải thư viện...', ''));
+    try {
+      const response = await fetch(url + '/presets', { cache: 'no-store', headers: { Accept: 'application/json' } });
+      if (!response.ok) throw Error('HTTP ' + response.status);
+      const payload = await response.json();
+      select.replaceChildren(new Option('Chọn file JSON trên server', ''));
+      for (const preset of payload.presets || []) select.add(new Option(preset.name, preset.id));
+      message('Đã cập nhật danh sách cấu hình trên server.');
+    } catch (e) { message('Không tải được thư viện: ' + e.message, true); }
+  }
+  async function importServerPreset() {
+    const id = editor?.el.querySelector('#menu-server-presets')?.value;
+    if (!id) return message('Chọn một file JSON trên server.', true);
+    try {
+      const response = await fetch(url + '/presets/' + encodeURIComponent(id), { cache: 'no-store' });
+      if (!response.ok) throw Error('HTTP ' + response.status);
+      const payload = await response.json();
+      const imported = validate(payload.config);
+      if (!await Modal.confirm('Nhập cấu hình từ server vào trình chỉnh sửa? Chưa áp dụng lên sidebar.', { ok: 'Nhập' })) return;
+      config = copy(imported);
+      drawHeaderFooter(); drawEditor();
+      message('Đã nhập cấu hình server. Nhấn Áp dụng để thay menu hiện hành.');
+    } catch (e) { message('Nhập server thất bại: ' + e.message, true); }
+  }
+  async function saveNamedPreset() {
+    try { validate(config); } catch (e) { return message(e.message, true); }
+    const name = editor?.el.querySelector('#menu-preset-name')?.value.trim();
+    if (!name || name.length < 2 || name.length > 100) return message('Nhập tên file 2–100 ký tự.', true);
+    const code = window.prompt('Nhập mã quản trị để lưu JSON mới trên server:');
+    if (!code) return;
+    try {
+      const response = await fetch(url + '/presets', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '', 'X-Demo-Backup-Code': code },
+        body: JSON.stringify({ name, config })
+      });
+      if (!response.ok) throw Error('HTTP ' + response.status);
+      await refreshPresets();
+      message('Đã lưu file JSON mới lên server. Chưa thay đổi menu đang áp dụng.');
+    } catch (e) { message('Không lưu được file: ' + e.message, true); }
+  }
   function openEditor() {
     config = copy(config || fallback());
     editor = Modal.open({
       title: 'Chỉnh sửa sidebar menu', width: 1060,
-      body: '<p class="muted">Kéo biểu tượng ☰ để đổi thứ tự, kể cả giữa các nhóm. Đường dẫn nội bộ dùng #dashboard, #doitac, #chungtu, #chitiet, #tonghop, #tuoino, #caidat hoặc #data. URL ngoài chỉ hỗ trợ HTTPS.</p><div id="menu-edit-groups"></div><p id="menu-edit-status" role="status"></p>',
+      body: '<div id="menu-brand-footer" class="menu-edit-brand-footer"></div><p class="muted">Kéo biểu tượng ☰ để đổi thứ tự, kể cả giữa các nhóm. Đường dẫn nội bộ dùng #dashboard, #doitac, #chungtu, #chitiet, #tonghop, #tuoino, #caidat hoặc #data. URL ngoài chỉ hỗ trợ HTTPS.</p><div id="menu-edit-groups"></div><section class="menu-edit-group"><b>Thư viện JSON trên server</b><p class="muted">Lưu thành file mới hoặc chọn file đã lưu để nhập vào bản chỉnh sửa.</p><div class="menu-preset-row"><input id="menu-preset-name" class="inp" placeholder="Tên file cấu hình mới" maxlength="100"><button class="btn" id="menu-save-preset">Lưu file JSON</button></div><div class="menu-preset-row"><select id="menu-server-presets" class="inp"></select><button class="btn" id="menu-refresh-presets">Làm mới</button><button class="btn" id="menu-import-server">Nhập từ server</button></div></section><p id="menu-edit-status" role="status"></p>',
       foot: '<button class="btn" id="menu-add-group">+ Nhóm</button><button class="btn" id="menu-reset">Mặc định</button><button class="btn" id="menu-export">Xuất JSON</button><label class="btn">Nhập JSON<input id="menu-import" type="file" accept=".json,application/json" hidden></label><button class="btn" id="menu-cancel">Đóng</button><button class="btn pri" id="menu-save">Lưu lên server</button>',
       onClose: () => { editor = null; loadMenu(); }
     });
-    drawEditor();
+    drawHeaderFooter(); drawEditor();
     const el = editor.el;
+    el.querySelector('#menu-save-preset').onclick = saveNamedPreset;
+    el.querySelector('#menu-refresh-presets').onclick = refreshPresets;
+    el.querySelector('#menu-import-server').onclick = importServerPreset;
+    refreshPresets();
     el.querySelector('#menu-add-group').onclick = () => { config.groups.push({ title: 'Nhóm mới', items: [] }); drawEditor(); };
-    el.querySelector('#menu-reset').onclick = async () => { if (await Modal.confirm('Khôi phục menu mặc định trong bản chỉnh sửa?', { ok: 'Khôi phục' })) { config = fallback(); drawEditor(); } };
+    el.querySelector('#menu-reset').onclick = async () => { if (await Modal.confirm('Khôi phục menu mặc định trong bản chỉnh sửa?', { ok: 'Khôi phục' })) { config = fallback(); drawHeaderFooter(); drawEditor(); } };
     el.querySelector('#menu-export').onclick = () => {
       try { validate(config); download(new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' }), 'cong-no-sidebar-menu.json'); }
       catch (e) { message(e.message, true); }
@@ -163,7 +281,7 @@
       try {
         const imported = validate(JSON.parse(await file.text()));
         if (await Modal.confirm('Thay bản menu đang chỉnh sửa bằng JSON nhập vào?', { ok: 'Nhập JSON' })) {
-          config = copy(imported); drawEditor(); message('Đã nhập JSON. Nhấn Lưu lên server để áp dụng cho mọi thiết bị.');
+          config = copy(imported); drawHeaderFooter(); drawEditor(); message('Đã nhập JSON. Nhấn Lưu lên server để áp dụng cho mọi thiết bị.');
         }
       } catch (err) { message('Không thể nhập JSON: ' + err.message, true); }
       e.target.value = '';
