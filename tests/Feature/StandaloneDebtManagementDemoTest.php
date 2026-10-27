@@ -22,8 +22,10 @@ class StandaloneDebtManagementDemoTest extends TestCase
             ->assertSee('id="app-data"', false)
             ->assertSee('/demo-assets/quan-ly-cong-no/css/app.css', false)
             ->assertSee('/demo-assets/quan-ly-cong-no/js/core.js', false)
-            ->assertSee('/demo-assets/quan-ly-cong-no/js/app.js', false);
-        foreach (['css/app.css', 'js/core.js', 'js/app.js'] as $file) {
+            ->assertSee('/demo-assets/quan-ly-cong-no/js/app.js', false)
+            ->assertSee('/demo-assets/quan-ly-cong-no/js/server-datasets.js', false)
+            ->assertSee('name="csrf-token"', false);
+        foreach (['css/app.css', 'js/core.js', 'js/app.js', 'js/server-datasets.js'] as $file) {
             $this->assertFileExists(public_path('demo-assets/quan-ly-cong-no/'.$file));
         }
     }
