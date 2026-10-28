@@ -34,3 +34,21 @@ Stop on any failure; do not mark TEST PASS without output. After focused PASS, r
 4. Only then create/review PR; never merge/deploy without explicit approval.
 
 Rollback: switch back to `main` (no migration or data changes). Existing server JSON files are not touched by branch creation.
+
+## Batch 2 — three-route editor consolidation (pending local verification)
+
+- Shared tabbed dialog now mounts on Debt Management through a compatibility bridge in the existing debt menu script; the legacy debt menu endpoint and browser key remain unchanged.
+- Sales and Warehouse use the same Menu / Header / Footer / JSON Library tabs and per-demo server paths.
+- Footer UI exposes only company credit and URL. Warehouse/Sales render a clickable footer link when configured; Debt retains its existing credit click handler and data contract, including the legacy `showSave` property for compatibility.
+- Debt bridge skips its former editor and sidebar initialization path while the shared editor is mounted, preventing two competing editors. Shared script loads after Debt's app initializer so its defaults use initialized `App.cfg`.
+- No production, database, or .env changes. UI verification for all three routes remains mandatory.
+
+### Focused checkpoint
+
+```bash
+node --check public/demo/shared/sidebar-menu/menu-builder.js
+node --check public/demo-assets/quan-ly-cong-no/js/menu-builder.js
+php artisan test tests/Feature/SharedDemoSidebarMenuTest.php
+```
+
+After focused PASS, run debt menu focused tests and relevant sales/warehouse route regressions. Test the debt settings entry, preserved legacy server presets, footer links, navigation, and mobile layouts manually. Do not mark UI PASS for Debt until user confirms.
