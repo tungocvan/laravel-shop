@@ -123,6 +123,28 @@
       <div class="count" id="count"></div>
       <div id="list"></div>
     </section>
+
+    <section id="page-settings" hidden>
+      <div class="hr-settings">
+        <div class="hr-settings-panel"><h3>Sidebar menu</h3><p>Chỉnh sửa nhóm, mục, header/footer và thư viện JSON riêng cho demo này.</p><button type="button" class="btn btn-primary" data-open-menu>Chỉnh sửa menu</button></div>
+        <div class="hr-settings-panel"><h3>Giao diện & màu sắc</h3><p>Chọn một trong bốn theme. Màu sắc lưu riêng trong trình duyệt.</p>
+          <div class="hr-theme-grid">
+            <button type="button" data-hr-theme-choice="ruby" onclick="hrSetTheme('ruby')"><i style="background:#C62828"></i><span><b>Đỏ Ruby</b><small>Màu đỏ đậm</small></span></button>
+            <button type="button" data-hr-theme-choice="ocean" onclick="hrSetTheme('ocean')"><i style="background:#087E9B"></i><span><b>Xanh Ocean</b><small>Đổi màu giao diện</small></span></button>
+            <button type="button" data-hr-theme-choice="emerald" onclick="hrSetTheme('emerald')"><i style="background:#16835D"></i><span><b>Xanh Emerald</b><small>Đổi màu giao diện</small></span></button>
+            <button type="button" data-hr-theme-choice="indigo" onclick="hrSetTheme('indigo')"><i style="background:#4F46E5"></i><span><b>Tím Indigo</b><small>Đổi màu giao diện</small></span></button>
+          </div>
+        </div>
+        <div class="hr-settings-panel"><h3>Thư viện dữ liệu Demo nhân sự</h3><p>Chỉ dùng dữ liệu mẫu trên server. Dữ liệu trình duyệt được lưu riêng.</p><p id="hrSettingsCount" aria-live="polite"></p><button type="button" class="btn btn-primary" onclick="openHrLibrary()">Mở thư viện JSON server</button></div>
+        <div class="hr-settings-grid">
+          <div class="hr-settings-panel"><h3>Lưu trên trình duyệt</h3><p>Dữ liệu tự động lưu vào localStorage.</p><button type="button" class="btn btn-light" onclick="save()">Lưu dữ liệu</button></div>
+          <div class="hr-settings-panel"><h3>Sao lưu dữ liệu</h3><p>Tải bản sao lưu JSON về máy.</p><button type="button" class="btn btn-primary" onclick="saveFile()">Tải JSON</button></div>
+          <div class="hr-settings-panel"><h3>Khôi phục dữ liệu</h3><p>Nhập JSON và xác nhận thay thế dữ liệu.</p><button type="button" class="btn btn-light" onclick="document.getElementById('hrImport').click()">Chọn file sao lưu</button></div>
+          <div class="hr-settings-panel"><h3>Nạp dữ liệu mẫu</h3><p>Khôi phục 14 hồ sơ nhân sự mẫu.</p><button type="button" class="btn btn-light" onclick="resetData()">Nạp dữ liệu mẫu</button></div>
+          <div class="hr-settings-panel"><h3>Xuất Excel</h3><p>Xuất CSV để mở bằng Excel.</p><button type="button" class="btn btn-light" onclick="exportCSV()">Xuất CSV</button></div>
+        </div>
+      </div>
+    </section>
   </div>
 </div>
 
