@@ -65,6 +65,21 @@ final class HumanResourcesDemoRouteTest extends TestCase
         $this->getJson('/demo/quan-ly-nhan-su/datasets')->assertOk()->assertJsonCount(1,'datasets');
     }
 
+    public function test_hr_menu_write_requires_operator_secret(): void
+    {
+        Storage::fake('local');
+        config()->set('warehouse_demo.backup_code', str_repeat('z', 24));
+        $this->postJson('/demo/quan-ly-nhan-su/menu', ['config'=>[]])->assertForbidden();
+    }
+
+    public function test_hr_assets_include_four_themes_and_json_import_export(): void
+    {
+        $js = file_get_contents(public_path('demo/quan-ly-nhan-su/js/app.js'));
+        foreach (['ruby','ocean','emerald','indigo','hrImportFile','hrStoreLibrary','hrSetTheme','hrRestore'] as $marker) {
+            $this->assertStringContainsString($marker, $js);
+        }
+    }
+
     public function test_shared_menu_api_has_hr_namespace(): void
     {
         Storage::fake('local');
