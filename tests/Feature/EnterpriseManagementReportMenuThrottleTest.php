@@ -7,26 +7,32 @@ use Tests\TestCase;
 
 class EnterpriseManagementReportMenuThrottleTest extends TestCase
 {
-    public function test_menu_write_routes_have_five_requests_per_minute_limit(): void
+    public function test_all_report_menu_write_routes_have_five_requests_per_minute_limit(): void
     {
         $routes = collect(app('router')->getRoutes()->getRoutes());
-        $paths = [
-            'demo/{demo}/menu',
-            'demo/bao-cao-quan-tri-doanh-nghiep/menu/presets',
-            'demo/bao-cao-quan-tri-doanh-nghiep/menu/presets/{preset}',
+
+        $expected = [
+            ['POST', 'demo/{demo}/menu'],
+            ['POST', 'demo/{demo}/menu/presets'],
+            ['PUT', 'demo/{demo}/menu/presets/{preset}'],
+            ['DELETE', 'demo/{demo}/menu/presets/{preset}'],
         ];
 
-        foreach ($paths as $path) {
+        foreach ($expected as [$method, $uri]) {
             $matches = $routes->filter(fn (Route $route) =>
-                $route->uri() === $path
-                && count(array_intersect(['POST', 'PUT', 'DELETE'], $route->methods())) > 0
-                && preg_match('/bao-cao-quan-tri-doanh-nghiep/', (string) ($route->wheres['demo'] ?? '')) === 1
+                $route->uri() === $uri
+                && in_array($method, $route->methods(), true)
+                && str_contains((string) ($route->wheres['demo'] ?? ''), 'bao-cao-quan-tri-doanh-nghiep')
             );
 
-            $this->assertNotEmpty($matches->all(), "Missing write route: {$path}");
+            $this->assertCount(1, $matches, "Expected one {$method} {$uri} route for enterprise report.");
 
             foreach ($matches as $route) {
-                $this->assertContains('throttle:5,1', $route->gatherMiddleware(), "Missing throttle on {$path}");
+                $this->assertContains(
+                    'throttle:5,1',
+                    $route->gatherMiddleware(),
+                    "Missing throttle on {$method} {$uri}"
+                );
             }
         }
     }
