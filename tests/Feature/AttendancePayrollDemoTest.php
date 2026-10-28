@@ -40,4 +40,15 @@ final class AttendancePayrollDemoTest extends TestCase
         $this->assertStringContainsString("views: { dashboard: vDash, nhanvien: vEmp, chamcong: vCham, bangluong: vLuong, thue: vThue, caidat: vSet }", $engine);
     }
 
+    public function test_sidebar_footer_hides_sample_status_and_manual_save_but_keeps_autosave(): void
+    {
+        $core = file_get_contents(public_path('demo-assets/cham-cong-tinh-luong/js/core.js'));
+        $this->assertIsString($core);
+        $this->assertStringNotContainsString('class="save-state" id="saveState"', $core);
+        $this->assertStringNotContainsString('class="btn-save" data-act="saveFile"', $core);
+        $this->assertStringContainsString('<div class="credit">Phong Excel Academy</div>', $core);
+        $this->assertStringContainsString('localStorage.setItem(Store.key()', $core);
+        $this->assertStringContainsString("const el = $('#saveState'); if (!el) return;", $core);
+    }
+
 }
