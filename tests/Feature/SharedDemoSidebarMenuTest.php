@@ -28,6 +28,13 @@ class SharedDemoSidebarMenuTest extends TestCase
         }
     }
 
+    public function test_warehouse_sidebar_has_company_footer_target(): void
+    {
+        $this->get('/demo/quan-ly-xuat-nhap-ton')->assertOk()
+            ->assertSee('class="sbfoot"', false)
+            ->assertSee('aria-label="Thông tin công ty"', false);
+    }
+
     public function test_debt_demo_mounts_shared_editor_without_replacing_legacy_api(): void
     {
         $this->get('/demo/quan-ly-cong-no')->assertOk()
