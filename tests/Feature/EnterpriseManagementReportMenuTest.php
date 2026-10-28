@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\RateLimiter;
 use Tests\TestCase;
 
 class EnterpriseManagementReportMenuTest extends TestCase
@@ -30,6 +31,9 @@ class EnterpriseManagementReportMenuTest extends TestCase
         parent::setUp();
         Storage::fake('local');
         config()->set('warehouse_demo.backup_code', self::SECRET);
+        // CRUD assertions are independent of the API rate-limit contract.
+        // Throttle is verified separately in its own test.
+        $this->withoutMiddleware(\Illuminate\Routing\Middleware\ThrottleRequests::class);
     }
 
     private function auth(): array
@@ -89,6 +93,17 @@ class EnterpriseManagementReportMenuTest extends TestCase
         $this->deleteJson(self::URL.'/presets/'.$id, [], $this->auth())->assertOk();
         $this->getJson(self::URL.'/presets')->assertJsonCount(0, 'presets');
         $this->getJson(self::URL)->assertJsonPath('config.header.title', 'Báo cáo quản trị');
+    }
+
+    public function test_menu_write_endpoints_remain_rate_limited(): void
+    {
+        // Restore the actual throttle middleware for this security contract.
+        $this->withMiddleware();
+        RateLimiter::clear('test-menu-throttle');
+        for ($i = 0; $i < 5; $i++) {
+            $this->postJson(self::URL, ['config' => $this->menu()], $this->auth())->assertOk();
+        }
+        $this->postJson(self::URL, ['config' => $this->menu()], $this->auth())->assertStatus(429);
     }
 
     public function test_invalid_preset_path_cannot_escape_private_folder(): void
