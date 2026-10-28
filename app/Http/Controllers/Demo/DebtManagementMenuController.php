@@ -147,6 +147,19 @@ class DebtManagementMenuController extends Controller
             ->header('Cache-Control', 'no-store');
     }
 
+    public function deletePreset(Request $request, string $preset): JsonResponse
+    {
+        $this->authorizeWrite($request);
+        abort_unless(preg_match('/^[a-z0-9-]{1,80}$/', $preset), 404);
+        $path = self::PRESETS.'/'.$preset.'.json';
+        $disk = Storage::disk('local');
+        abort_unless($disk->exists($path), 404);
+        abort_unless($disk->delete($path), 500);
+
+        return response()->json(['deleted' => true, 'id' => $preset])
+            ->header('Cache-Control', 'no-store');
+    }
+
     private function authorizeWrite(Request $request): void
     {
         $secret = config('warehouse_demo.backup_code');
