@@ -143,11 +143,12 @@ class SharedSidebarMenuController extends Controller
      */
     private function normalizeOptionalHrefs(array $config): array
     {
-        foreach (['header', 'footer'] as $section) {
-            if (isset($config[$section]) && is_array($config[$section])
-                && array_key_exists('href', $config[$section])
-                && $config[$section]['href'] === null) {
-                $config[$section]['href'] = '';
+        foreach (['header' => ['href', 'subtitle'], 'footer' => ['href', 'credit']] as $section => $fields) {
+            if (! isset($config[$section]) || ! is_array($config[$section])) continue;
+            foreach ($fields as $field) {
+                if (array_key_exists($field, $config[$section]) && $config[$section][$field] === null) {
+                    $config[$section][$field] = '';
+                }
             }
         }
 
