@@ -63,8 +63,7 @@
         a.textContent = item.label;
         if (existing) {
           a.dataset.page = page;
-          a.onclick = () => { if (typeof window.go === 'function') window.go(page); else existing.click(); };
-          // Keep native page activation behavior even if go() is lexically scoped.
+          // Original detached anchor retains the demo's own go() handler.
           a.onclick = () => existing.click();
         } else if (item.href.startsWith('https://')) {
           a.href = item.href; a.target = '_blank'; a.rel = 'noopener noreferrer';
@@ -129,7 +128,20 @@
     if(!r.ok)throw Error('Server từ chối (HTTP '+r.status+').');
     return r;
   }
-  root.addEventListener('click',e=>{if(!e.target.closest('[data-open-menu]'))return;working=clone(applied);render();refresh();dlg.showModal();});
+  document.addEventListener('click',e=>{if(!e.target.closest('[data-open-menu]'))return;working=clone(applied);render();refresh();dlg.showModal();});
+  const settings = document.querySelector('#page-settings');
+  if (settings) {
+    const mount = () => {
+      if (settings.querySelector('[data-open-menu]')) return;
+      const card = document.createElement('div');
+      card.className = 'shared-menu-entry';
+      card.innerHTML = '<h4>Sidebar menu</h4><p>Chỉnh sửa nhóm, mục, header/footer và thư viện JSON riêng cho demo này.</p><button type="button" class="btn pri" data-open-menu>Chỉnh sửa menu</button>';
+      settings.prepend(card);
+    };
+    const observer = new MutationObserver(() => mount());
+    observer.observe(settings, {childList:true});
+    mount();
+  }
   $('[data-close]').onclick=()=>dlg.close();
   $('[data-add-group]').onclick=()=>{working.groups.push({title:'Nhóm mới',items:[]});render();};
   $('[data-reset]').onclick=()=>{if(confirm('Khôi phục menu mặc định?')){working=clone(defaults);render();}};
