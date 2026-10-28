@@ -11,12 +11,12 @@
   const nav = document.querySelector('#nav');
   const sidebar = document.querySelector('#sb');
   if (debtMode ? !bridge : (!nav || !sidebar)) return;
-  const original = Array.from(nav.children);
-  const brand = sidebar.querySelector('.brand');
-  const footer = sidebar.querySelector('.sbfoot');
+  const original = nav ? Array.from(nav.children) : [];
+  const brand = sidebar?.querySelector('.brand');
+  const footer = sidebar?.querySelector('.sbfoot');
   const originalBrand = brand?.cloneNode(true);
   const originalFooter = footer?.textContent || '';
-  const known = new Map(Array.from(nav.querySelectorAll('a[data-page]')).map(a => [a.dataset.page, a]));
+  const known = new Map(Array.from(nav?.querySelectorAll('a[data-page]') || []).map(a => [a.dataset.page, a]));
   const defaultConfig = () => {
     const groups = [];
     for (const node of original) {
