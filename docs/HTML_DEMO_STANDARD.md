@@ -210,3 +210,13 @@ Kiểm tra focused + impacted tests, `git diff --check`, tracked tree sạch, ha
 - [ ] Không thao tác Production trái quy trình.
 
 **Audit → Plan → Approval → Implement → Pull/Test → Regression → UI PASS → PR → Approved Merge → Main Sync.**
+
+## Shared Sidebar Menu Builder — Refactor in progress (2026-10-28)
+
+- Shared Blade mount: `<x-demo.sidebar-menu-builder slug="doanh-so-nhan-vien" />` or `slug="quan-ly-xuat-nhap-ton"`.
+- Shared browser editor: `public/demo/shared/sidebar-menu/menu-builder.js` and `menu-builder.css`. It reads each demo's `#nav`, `#sb`, and `#page-settings` DOM as its adapter, without modifying business records.
+- Shared backend controller: `SharedSidebarMenuController`; API uses `/demo/{demo}/menu` and `/presets`, isolated local-disk directories and existing operator secret; GET public, POST/DELETE CSRF and throttled.
+- Browser localStorage key is namespaced by demo slug. Unknown hash targets are disabled and external URLs must be HTTPS.
+- Debt management currently retains its existing `DebtManagementMenuController` and `menu-builder.js` until its separate adapter migration and compatibility tests are completed. **Do not claim all three demos use one runtime component yet.**
+- Required checkpoint: focused tests `SharedDemoSidebarMenuTest.php` then impacted sales, warehouse and debt regression, followed by explicit UI PASS for all three demo routes.
+- Avoid deleting legacy debt assets/storage or changing server menu JSON without an explicit migration and rollback plan.
