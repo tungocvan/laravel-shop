@@ -14,6 +14,18 @@
 - JSON server private disk `storage/app/demo-datasets/attendance-payroll/`; GET list/show công khai theo chuẩn demo, POST cần mã quản trị `config('warehouse_demo.backup_code')` >=16 ký tự, CSRF, throttle 5/phút, giới hạn 10 MiB/100 file. Không thay đổi `.env`.
 - Sidebar menu sử dụng shared builder; demo này được thêm vào allowlist và bridge; có regression scope cho các demo dùng shared builder.
 
+## UI/UX iteration — Sidebar icons and unified settings
+
+- User reviewed screenshots comparing the HTML original and Blade demo, and approved restoring icons and merging the demo settings into the existing **Cài đặt** page.
+- Root cause: payroll-specific shared menu bridge created new anchors with only a text span, dropping SVG icons from the original `ic()` registry. The business engine and the generic menu builder were not responsible for icon generation.
+- The payroll bridge now renders safe whitelisted SVG icons using the original registry; aliases support `layout-dashboard`, `users-round`, `calendar-check`, `settings-2`, `database-backup`, `percent`.
+- The existing `App.views.caidat.render` runs first; an extra section adds 4 themes, sidebar editor, JSON import/export and server library. The separate `demo-settings` view and sidebar item were removed.
+- Default sidebar: Overview, Business, System with `Dữ liệu & sao lưu` and one `Cài đặt`. Existing saved menu presets are migrated in memory: legacy `demo-settings` is mapped to `caidat` and duplicate settings entries removed. Other custom items remain unchanged; server presets are not overwritten automatically.
+- The shared builder change is limited to the payroll slug; other demos retain their existing behavior.
+- Focused source contracts added to `tests/Feature/AttendancePayrollDemoTest.php`.
+- UI regression required: old saved menu, newly created menu, SVG icons, all original business settings and new theme/JSON controls in the same page; desktop/tablet/iPhone and no JS errors.
+- **TEST/UI PASS not claimed**; awaiting user execution.
+
 ## Checkpoint Git Pull/Test
 
 ```bash
