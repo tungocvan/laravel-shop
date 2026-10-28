@@ -406,3 +406,16 @@ td.amt{font-weight:700;text-align:right;white-space:nowrap}
 }
 /* Enterprise sidebar/theme editor */
 .enterprise-preferences{margin-bottom:16px}.enterprise-preferences>.card{padding:20px}.enterprise-preferences h4{margin:12px 0}.enterprise-themes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:14px 0}.enterprise-themes .btn[aria-pressed="true"]{outline:3px solid var(--chu-dao);outline-offset:2px}.enterprise-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:grid;place-items:center;padding:12px}.enterprise-editor{background:var(--card);border-radius:14px;width:min(850px,100%);max-height:94dvh;display:flex;flex-direction:column;padding:20px;gap:12px}.enterprise-editor-body{overflow:auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.enterprise-field{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:600;min-width:0}.enterprise-field .inp{width:100%}.enterprise-group{grid-column:1/-1;border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-wrap:wrap;gap:8px}.enterprise-group>.enterprise-field{width:100%}.enterprise-item{width:100%;padding:10px;background:var(--bg);border-radius:8px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.enterprise-item>.btn{width:max-content}.enterprise-editor-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}.sbfoot a{color:inherit;text-decoration:underline}@media(max-width:700px){.enterprise-themes{grid-template-columns:repeat(2,minmax(0,1fr))}.enterprise-editor-body{grid-template-columns:1fr}.enterprise-item{grid-template-columns:1fr}.enterprise-editor{padding:12px}}
+
+/* Shared-sidebar-compatible editor: scrollable body, persistent action bar, accessible presets. */
+.enterprise-editor-body{min-height:0;overscroll-behavior:contain}
+.enterprise-server-library{grid-column:1/-1;border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.enterprise-server-library h4{flex-basis:100%;margin:0}
+.enterprise-server-library select{flex:1 1 210px;min-width:0}
+.enterprise-grip{grid-column:1/-1;cursor:grab;justify-self:start;touch-action:manipulation}
+.enterprise-grip:active{cursor:grabbing}
+.enterprise-editor-actions{border-top:1px solid var(--line);padding-top:12px;flex-shrink:0}
+.enterprise-dialog{width:min(440px,100%);max-height:90dvh;overflow:auto}
+.enterprise-dialog .inp{width:100%}
+.enterprise-dialog p{overflow-wrap:anywhere}
+@media(max-width:700px){.enterprise-server-library{padding:10px}.enterprise-editor-actions .btn{flex:1 1 auto}.enterprise-editor{max-height:95dvh}}
