@@ -15,7 +15,7 @@ class EnterpriseManagementReportMenuTest extends TestCase
         return [
             'version' => 1,
             'header' => ['title' => 'Báo cáo quản trị', 'subtitle' => '', 'icon' => 'chart', 'href' => '#dashboard'],
-            'footer' => ['credit' => '', 'href' => ''],
+            'footer' => ['credit' => '', 'href' => '', 'showSave' => false],
             'groups' => [
                 ['title' => 'Tổng quan', 'items' => [
                     ['id' => 'dashboard', 'label' => 'Dashboard', 'icon' => 'dash', 'href' => '#dashboard'],
