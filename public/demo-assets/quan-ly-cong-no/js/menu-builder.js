@@ -295,7 +295,7 @@
     const id = editor?.el.querySelector('#menu-server-presets')?.value;
     if (!id) return message('Chọn một file JSON trên server.', true);
     try {
-      const response = await authorizedWrite('Xóa file JSON', code => fetch(url + '/presets/' + encodeURIComponent(id), { cache: 'no-store' });
+      const response = await fetch(url + '/presets/' + encodeURIComponent(id), { cache: 'no-store' });
       if (!response.ok) throw Error('HTTP ' + response.status);
       const payload = await response.json();
       const imported = validate(payload.config);
