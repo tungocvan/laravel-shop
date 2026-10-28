@@ -4,6 +4,7 @@ use App\Http\Controllers\Demo\SalesEmployeesController;
 use App\Http\Controllers\Demo\DebtManagementController;
 use App\Http\Controllers\Demo\DebtManagementDatasetController;
 use App\Http\Controllers\Demo\DebtManagementMenuController;
+use App\Http\Controllers\Demo\SharedSidebarMenuController;
 use App\Http\Controllers\Demo\SalesDemoDatasetController;
 use App\Http\Controllers\Demo\WarehouseInventoryController;
 use App\Http\Controllers\Demo\WarehouseDemoDatasetController;
@@ -48,6 +49,17 @@ Route::get('/demo/quan-ly-xuat-nhap-ton/datasets/{dataset}', [WarehouseDemoDatas
 Route::post('/demo/quan-ly-xuat-nhap-ton/datasets', [WarehouseDemoDatasetController::class, 'store'])
     ->middleware('throttle:5,1')
     ->name('demo.warehouse-inventory.datasets.store');
+
+
+// Shared sidebar configuration API; demo data and browser state remain isolated per slug.
+foreach (['sales-employees' => 'doanh-so-nhan-vien', 'warehouse-inventory' => 'quan-ly-xuat-nhap-ton'] as $slug => $segment) {
+    Route::get('/demo/'.$segment.'/menu', fn () => app(SharedSidebarMenuController::class)->show($slug));
+    Route::post('/demo/'.$segment.'/menu', fn (\Illuminate\Http\Request $request) => app(SharedSidebarMenuController::class)->store($request, $slug))->middleware('throttle:5,1');
+    Route::get('/demo/'.$segment.'/menu/presets', fn () => app(SharedSidebarMenuController::class)->index($slug));
+    Route::get('/demo/'.$segment.'/menu/presets/{preset}', fn (string $preset) => app(SharedSidebarMenuController::class)->preset($slug, $preset));
+    Route::post('/demo/'.$segment.'/menu/presets', fn (\Illuminate\Http\Request $request) => app(SharedSidebarMenuController::class)->savePreset($request, $slug))->middleware('throttle:5,1');
+    Route::delete('/demo/'.$segment.'/menu/presets/{preset}', fn (\Illuminate\Http\Request $request, string $preset) => app(SharedSidebarMenuController::class)->deletePreset($request, $slug, $preset))->middleware('throttle:5,1');
+}
 
 Route::fallback(function (Request $request) {
     if ($request->path() === '/') {
