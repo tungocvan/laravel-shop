@@ -140,8 +140,24 @@
                             @foreach($desktopMenu->isNotEmpty() ? $desktopMenu : $fallbackMenu as $item)
                                 @php($itemUrl = is_array($item) ? $item['url'] : $item->url)
                                 @php($itemTitle = is_array($item) ? $item['title'] : $item->title)
+                                @php($children = is_array($item) ? collect() : $item->children)
+                                @php($hasChildren = $children->isNotEmpty())
                                 @php($isActiveDesktopItem = $itemUrl && $itemUrl !== '#' && (url()->current() === $itemUrl || request()->fullUrl() === $itemUrl))
-                                <a href="{{ $itemUrl ?: '#' }}" @if($isActiveDesktopItem) aria-current="page" @endif class="transition-colors active:scale-[0.985] {{ $desktopMenuStyle['hover_effect'] === 'underline' ? 'hover:underline' : '' }} {{ $desktopMenuStyle['hover_effect'] === 'color' ? 'hover:!text-[var(--menu-hover-color)]' : '' }} {{ $desktopMenuStyle['hover_effect'] === 'background' ? 'hover:bg-[var(--menu-hover-color)] hover:!text-white' : '' }}" style="--menu-hover-color:{{ $desktopMenuStyle['hover_color'] }};border-radius:{{ $desktopMenuStyle['radius'] }}px;padding:4px 8px;{{ $isActiveDesktopItem ? 'color:'.$desktopMenuStyle['active_color'].';' : '' }}">{{ $itemTitle }}</a>
+                                <div class="relative group/pharma-menu flex items-center" @if($hasChildren) x-data="{ open: false }" @click.outside="open = false" @keydown.escape.window="open = false" @endif>
+                                    <a href="{{ $itemUrl ?: '#' }}" @if($isActiveDesktopItem) aria-current="page" @endif class="transition-colors active:scale-[0.985] {{ $desktopMenuStyle['hover_effect'] === 'underline' ? 'hover:underline' : '' }} {{ $desktopMenuStyle['hover_effect'] === 'color' ? 'hover:!text-[var(--menu-hover-color)]' : '' }} {{ $desktopMenuStyle['hover_effect'] === 'background' ? 'hover:bg-[var(--menu-hover-color)] hover:!text-white' : '' }}" style="--menu-hover-color:{{ $desktopMenuStyle['hover_color'] }};border-radius:{{ $desktopMenuStyle['radius'] }}px;padding:4px 8px;{{ $isActiveDesktopItem ? 'color:'.$desktopMenuStyle['active_color'].';' : '' }}">{{ $itemTitle }}</a>
+                                    @if($hasChildren)
+                                        <button type="button" @click="open = !open" :aria-expanded="open.toString()" aria-label="Mở menu con {{ $itemTitle }}" class="inline-flex min-h-9 min-w-8 items-center justify-center rounded-md hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" style="color:inherit">
+                                            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                                        </button>
+                                        <div x-show="open" x-cloak @mouseenter="open = true" @mouseleave="open = false" class="absolute left-0 top-full z-[80] min-w-56 pt-1" style="display:none">
+                                            <div class="rounded-xl border border-slate-200 bg-white py-2 shadow-xl">
+                                                @foreach($children as $child)
+                                                    <a href="{{ $child->url ?: '#' }}" target="{{ $child->target ?: '_self' }}" class="block px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 focus-visible:bg-emerald-50" @if($child->url && $child->url !== '#' && (url()->current() === $child->url || request()->fullUrl() === $child->url)) aria-current="page" @endif>{{ $child->title }}</a>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    @endif
+                                </div>
                             @endforeach
                         </nav>
                     @elseif($component['type'] === 'search')
@@ -235,13 +251,29 @@
                                     @foreach($mobileMenu->isNotEmpty() ? $mobileMenu : $fallbackMenu as $item)
                                         @php($itemUrl = is_array($item) ? $item['url'] : $item->url)
                                         @php($itemTitle = is_array($item) ? $item['title'] : $item->title)
+                                        @php($children = is_array($item) ? collect() : $item->children)
+                                        @php($hasChildren = $children->isNotEmpty())
                                         @php($isActiveMobileItem = $itemUrl && $itemUrl !== '#' && (url()->current() === $itemUrl || request()->fullUrl() === $itemUrl))
-                                        <a href="{{ $itemUrl ?: '#' }}" @if($isActiveMobileItem) aria-current="page" @endif class="group flex min-h-12 items-center px-4 py-3.5 leading-5 transition-colors active:scale-[0.985] motion-reduce:transform-none {{ $mobileMenuStyle['hover_effect'] === 'underline' ? 'hover:underline' : '' }} {{ $mobileMenuStyle['hover_effect'] === 'color' ? 'hover:!text-[var(--menu-hover-color)]' : '' }} {{ $mobileMenuStyle['hover_effect'] === 'background' ? 'hover:bg-[var(--menu-hover-color)] hover:!text-white' : '' }}" style="--menu-hover-color:{{ $mobileMenuStyle['hover_color'] }};font-size:inherit;font-weight:inherit;border-radius:{{ $mobileMenuStyle['radius'] }}px;margin-bottom:{{ $mobileMenuStyle['item_gap'] }}px;color:{{ $isActiveMobileItem ? $mobileMenuStyle['active_color'] : $mobileMenuStyle['text_color'] }};">
-                                            <span class="min-w-0 flex-1">{{ $itemTitle }}</span>
-                                            @if($isActiveMobileItem)
-                                                <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-600" aria-hidden="true"></span>
+                                        <div @if($hasChildren) x-data="{ expanded: false }" @endif>
+                                            <div class="flex items-center">
+                                                <a href="{{ $itemUrl ?: '#' }}" @if($isActiveMobileItem) aria-current="page" @endif class="group flex min-h-12 min-w-0 flex-1 items-center px-4 py-3.5 leading-5 transition-colors active:scale-[0.985] motion-reduce:transform-none {{ $mobileMenuStyle['hover_effect'] === 'underline' ? 'hover:underline' : '' }} {{ $mobileMenuStyle['hover_effect'] === 'color' ? 'hover:!text-[var(--menu-hover-color)]' : '' }} {{ $mobileMenuStyle['hover_effect'] === 'background' ? 'hover:bg-[var(--menu-hover-color)] hover:!text-white' : '' }}" style="--menu-hover-color:{{ $mobileMenuStyle['hover_color'] }};font-size:inherit;font-weight:inherit;border-radius:{{ $mobileMenuStyle['radius'] }}px;margin-bottom:{{ $mobileMenuStyle['item_gap'] }}px;color:{{ $isActiveMobileItem ? $mobileMenuStyle['active_color'] : $mobileMenuStyle['text_color'] }};">
+                                                    <span class="min-w-0 flex-1">{{ $itemTitle }}</span>
+                                                    @if($isActiveMobileItem)<span class="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-600" aria-hidden="true"></span>@endif
+                                                </a>
+                                                @if($hasChildren)
+                                                    <button type="button" @click="expanded = !expanded" :aria-expanded="expanded.toString()" aria-label="Mở menu con {{ $itemTitle }}" class="flex min-h-12 min-w-12 items-center justify-center focus-visible:outline focus-visible:outline-2">
+                                                        <svg class="h-4 w-4 transition-transform" :class="{ 'rotate-180': expanded }" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                                                    </button>
+                                                @endif
+                                            </div>
+                                            @if($hasChildren)
+                                                <div x-show="expanded" x-cloak class="border-l-2 border-emerald-200 bg-slate-50 pl-4" style="display:none">
+                                                    @foreach($children as $child)
+                                                        <a href="{{ $child->url ?: '#' }}" target="{{ $child->target ?: '_self' }}" class="block min-h-11 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-800" @if($child->url && $child->url !== '#' && (url()->current() === $child->url || request()->fullUrl() === $child->url)) aria-current="page" @endif>{{ $child->title }}</a>
+                                                    @endforeach
+                                                </div>
                                             @endif
-                                        </a>
+                                        </div>
                                     @endforeach
                                 </div>
                             </nav>
