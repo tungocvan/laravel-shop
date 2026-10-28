@@ -24,6 +24,11 @@
     });
     modal.el.querySelector('[data-ok]').onclick = () => modal.close();
   };
+  const showNotice = (title, detail) => {
+    const m = Modal.open({ title, width: 440, body: '<p data-notice></p>', foot: '<button class="btn pri" data-ok>Đã hiểu</button>' });
+    m.el.querySelector('[data-notice]').textContent = detail;
+    m.el.querySelector('[data-ok]').onclick = () => m.close();
+  };
   const safeHref = href => /^#[a-z0-9-]{1,64}$/.test(href) || /^https:\/\/[a-z0-9][a-z0-9.-]+(?:\/[^\s]*)?$/i.test(href);
   const safeIcon = name => /^[a-z0-9-]{1,48}$/.test(name);
   const validate = value => {
@@ -254,7 +259,7 @@
       if (!await Modal.confirm('Nhập cấu hình từ server vào trình chỉnh sửa? Chưa áp dụng lên sidebar.', { ok: 'Nhập' })) return;
       config = copy(imported);
       drawHeaderFooter(); drawEditor();
-      message('Đã nhập cấu hình server. Nhấn Áp dụng để thay menu hiện hành.');
+      showNotice('Nhập JSON thành công', 'Đã nhập từ server vào bản chỉnh sửa. Nhấn Cập nhật giao diện hoặc Lưu lên server để áp dụng.');
     } catch (e) { message('Nhập server thất bại: ' + e.message, true); }
   }
   async function saveNamedPreset() {
@@ -289,11 +294,12 @@
     drawHeaderFooter(); drawEditor();
     const el = editor.el;
     el.querySelector('#menu-save-preset').onclick = saveNamedPreset;
+    el.querySelector('#menu-server-presets').onchange = e => { if (e.target.value) el.querySelector('#menu-preset-name').value = e.target.selectedOptions[0].textContent; };
     el.querySelector('#menu-refresh-presets').onclick = refreshPresets;
     el.querySelector('#menu-import-server').onclick = importServerPreset;
     refreshPresets();
     el.querySelector('#menu-add-group').onclick = () => { config.groups.push({ title: 'Nhóm mới', items: [] }); drawEditor(); };
-    el.querySelector('#menu-reset').onclick = async () => { if (await Modal.confirm('Khôi phục menu mặc định trong bản chỉnh sửa?', { ok: 'Khôi phục' })) { config = fallback(); drawHeaderFooter(); drawEditor(); } };
+    el.querySelector('#menu-reset').onclick = async () => { if (await Modal.confirm('Khôi phục menu mặc định trong bản chỉnh sửa?', { ok: 'Khôi phục' })) { config = fallback(); drawHeaderFooter(); drawEditor(); showNotice('Khôi phục mặc định thành công', 'Đã khôi phục trong bản chỉnh sửa. Nhấn Cập nhật giao diện hoặc Lưu lên server để áp dụng.'); } };
     el.querySelector('#menu-export').onclick = () => {
       try { validate(config); download(new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' }), 'cong-no-sidebar-menu.json'); }
       catch (e) { message(e.message, true); }
@@ -305,7 +311,7 @@
       try {
         const imported = validate(JSON.parse(await file.text()));
         if (await Modal.confirm('Thay bản menu đang chỉnh sửa bằng JSON nhập vào?', { ok: 'Nhập JSON' })) {
-          config = copy(imported); drawHeaderFooter(); drawEditor(); message('Đã nhập JSON. Nhấn Lưu lên server để áp dụng cho mọi thiết bị.');
+          config = copy(imported); drawHeaderFooter(); drawEditor(); showNotice('Nhập JSON thành công', 'Đã nhập JSON vào bản chỉnh sửa. Nhấn Cập nhật giao diện hoặc Lưu lên server để áp dụng.');
         }
       } catch (err) { message('Không thể nhập JSON: ' + err.message, true); }
       e.target.value = '';
@@ -337,8 +343,8 @@
         localStorage.removeItem(localKey);
         appliedConfig = copy(config);
         renderSidebar();
-        message('Đã lưu JSON menu trên server.');
         editor.close();
+        showNotice('Lưu lên server thành công', 'Cấu hình sidebar hiện hành đã được lưu trên server.');
       } catch (e) { message('Lưu server thất bại: ' + e.message, true); }
       finally { button.disabled = false; }
     };
