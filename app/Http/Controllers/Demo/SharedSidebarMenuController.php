@@ -174,7 +174,7 @@ class SharedSidebarMenuController extends Controller
             if (! $this->validHref($config[$section]['href'], true)) return $section.'.href';
         }
         if (! preg_match('/^[a-z0-9_-]{1,48}$/', $config['header']['icon'])) return 'header.icon';
-        if (isset($config['footer']['showSave']) && ! is_bool($config['footer']['showSave'])) return 'footer.showSave';
+        if (! is_bool($config['footer']['showSave'] ?? null)) return 'footer.showSave';
 
         $ids = [];
         $count = 0;
