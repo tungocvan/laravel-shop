@@ -6,8 +6,8 @@
   const slug = root.dataset.demoMenu;
   const url = '/demo/' + slug + '/menu';
   const key = slug === 'quan-ly-cong-no' ? 'debt_management_sidebar_menu_v1' : 'shared_demo_sidebar_menu_v1_' + slug;
-  const debtMode = slug === 'quan-ly-cong-no' || slug === 'quan-ly-nhan-su';
-  const bridge = debtMode ? (slug === 'quan-ly-nhan-su' ? window.HrDemoMenuBridge : window.DebtDemoMenuBridge) : null;
+  const debtMode = slug === 'quan-ly-cong-no' || slug === 'quan-ly-nhan-su' || slug === 'cham-cong-tinh-luong';
+  const bridge = debtMode ? (slug === 'quan-ly-nhan-su' ? window.HrDemoMenuBridge : slug === 'cham-cong-tinh-luong' ? window.AttendancePayrollMenuBridge : window.DebtDemoMenuBridge) : null;
   const nav = document.querySelector('#nav');
   const sidebar = document.querySelector('#sb');
   if (debtMode ? !bridge : (!nav || !sidebar)) return;
@@ -32,6 +32,7 @@
     return {version:1, header:{title:brand?.querySelector('b')?.textContent || '',subtitle:brand?.querySelector('small')?.textContent || '',icon:'menu',href:'#dashboard'}, footer:{credit:originalFooter,href:'',showSave:false}, groups};
   };
   const clone = x => JSON.parse(JSON.stringify(x));
+  const migrate = config => slug === 'cham-cong-tinh-luong' ? bridge.normalize(clone(config)) : config;
   const defaults = debtMode ? bridge.defaults() : defaultConfig();
   let applied = clone(defaults), working = null;
   const validHref = (s, empty=false) => typeof s === 'string' && ((empty && !s) || /^#[a-z0-9-]{1,64}$/.test(s) || /^https:\/\/[a-z0-9][a-z0-9.-]+(?:\/[^\s]*)?$/i.test(s) && s.length <= 250);
@@ -54,6 +55,7 @@
     return c;
   }
   function apply(c) {
+    c = migrate(c);
     applied = clone(validate(c));
     if (debtMode) { bridge.apply(c); document.dispatchEvent(new CustomEvent('demo-menu:applied',{detail:{slug}})); return; }
     nav.replaceChildren();
@@ -187,10 +189,10 @@
   $('[data-preview]').onclick=()=>{try{validate(working);localStorage.setItem(key,JSON.stringify(working));apply(working);status('Đã cập nhật và lưu trong trình duyệt.');}catch(e){status(e.message);}};
   $('[data-save]').onclick=async()=>{try{validate(working);const r=await authorized('POST',url,{config:working});if(!r)return;localStorage.removeItem(key);apply(working);status('Đã lưu menu lên server.');}catch(e){status(e.message);}};
   $('[data-refresh]').onclick=refresh;
-  $('[data-load]').onclick=async()=>{try{const id=$('[data-presets]').value;if(!id)return;const r=await fetch(url+'/presets/'+encodeURIComponent(id));if(!r.ok)throw Error('HTTP '+r.status);const data=await r.json();validate(data.config);if(confirm('Thay bản chỉnh sửa bằng JSON trên server?')){working=clone(data.config);render();status('Đã nhập vào bản chỉnh sửa.');}}catch(e){status(e.message);}};
+  $('[data-load]').onclick=async()=>{try{const id=$('[data-presets]').value;if(!id)return;const r=await fetch(url+'/presets/'+encodeURIComponent(id));if(!r.ok)throw Error('HTTP '+r.status);const data=await r.json();validate(migrate(data.config));if(confirm('Thay bản chỉnh sửa bằng JSON trên server?')){working=migrate(data.config);render();status('Đã nhập vào bản chỉnh sửa.');}}catch(e){status(e.message);}};
   $('[data-store-preset]').onclick=async()=>{try{validate(working);const name=$('[data-name]').value.trim();if(!name)throw Error('Nhập tên file.');const r=await authorized('POST',url+'/presets',{name,config:working});if(r){await refresh();status('Đã lưu file JSON.');}}catch(e){status(e.message);}};
   $('[data-delete-preset]').onclick=async()=>{try{const id=$('[data-presets]').value;if(!id||!confirm('Xóa file JSON này?'))return;const r=await authorized('DELETE',url+'/presets/'+encodeURIComponent(id));if(r){await refresh();status('Đã xóa file.');}}catch(e){status(e.message);}};
   $('[data-export]').onclick=()=>{try{validate(working);const blob=new Blob([JSON.stringify(working,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=slug+'-menu.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}catch(e){status(e.message);}};
-  $('[data-import]').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{if(file.size>65536)throw Error('File quá 64 KiB.');const c=validate(JSON.parse(await file.text()));if(confirm('Nhập menu JSON?')){working=clone(c);render();}}catch(err){status(err.message);}e.target.value='';};
-  (async()=>{let c=defaults;try{const r=await fetch(url,{cache:'no-store'});if(r.ok){const data=await r.json();if(data.config)c=validate(data.config);}}catch{}try{const local=localStorage.getItem(key);if(local)c=validate(JSON.parse(local));}catch{}apply(c);})();
+  $('[data-import]').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{if(file.size>65536)throw Error('File quá 64 KiB.');const c=validate(migrate(JSON.parse(await file.text())));if(confirm('Nhập menu JSON?')){working=clone(c);render();}}catch(err){status(err.message);}e.target.value='';};
+  (async()=>{let c=defaults;try{const r=await fetch(url,{cache:'no-store'});if(r.ok){const data=await r.json();if(data.config)c=validate(migrate(data.config));}}catch{}try{const local=localStorage.getItem(key);if(local)c=validate(migrate(JSON.parse(local)));}catch{}apply(c);})();
 })();
