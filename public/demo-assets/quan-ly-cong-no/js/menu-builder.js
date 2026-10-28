@@ -266,17 +266,23 @@
     try { validate(config); } catch (e) { return message(e.message, true); }
     const name = editor?.el.querySelector('#menu-preset-name')?.value.trim();
     if (!name || name.length < 2 || name.length > 100) return message('Nhập tên file 2–100 ký tự.', true);
-    const code = window.prompt('Nhập mã quản trị để lưu JSON mới trên server:');
+    const selected = editor?.el.querySelector('#menu-server-presets');
+    const overwrite = !!selected?.value && selected.selectedOptions[0].textContent === name;
+    if (overwrite && !await Modal.confirm('Cập nhật file JSON "' + name + '"? Dữ liệu cũ của file này sẽ bị thay thế.', { ok: 'Cập nhật file' })) return;
+    const code = window.prompt('Nhập mã quản trị để lưu JSON trên server:');
     if (!code) return;
     try {
-      const response = await fetch(url + '/presets', {
-        method: 'POST', credentials: 'same-origin',
+      const response = await fetch(overwrite ? url + '/presets/' + encodeURIComponent(selected.value) : url + '/presets', {
+        method: overwrite ? 'PUT' : 'POST', credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '', 'X-Demo-Backup-Code': code },
-        body: JSON.stringify({ name, config })
+        body: JSON.stringify(overwrite ? { config } : { name, config })
       });
+      if (response.status === 409) return message('Tên file đã tồn tại. Chọn file cùng tên trong danh sách để xác nhận cập nhật.', true);
       if (!response.ok) throw Error('HTTP ' + response.status);
+      const result = await response.json();
       await refreshPresets();
-      message('Đã lưu file JSON mới lên server. Chưa thay đổi menu đang áp dụng.');
+      if (editor?.el.querySelector('#menu-server-presets')) editor.el.querySelector('#menu-server-presets').value = result.id;
+      showNotice(overwrite ? 'Cập nhật file thành công' : 'Lưu file thành công', 'Đã lưu cấu hình "' + name + '" trên server. Menu hiện hành chưa thay đổi.');
     } catch (e) { message('Không lưu được file: ' + e.message, true); }
   }
   function openEditor() {
