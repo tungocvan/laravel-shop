@@ -11,18 +11,18 @@ use Illuminate\Support\Str;
 
 class SharedSidebarMenuController extends Controller
 {
-    private const DEMOS = ['sales-employees', 'warehouse-inventory'];
+    private const DEMOS = ['doanh-so-nhan-vien' => 'sales-employees', 'quan-ly-xuat-nhap-ton' => 'warehouse-inventory'];
 
     private function path(string $demo): string
     {
-        abort_unless(in_array($demo, self::DEMOS, true), 404);
-        return 'demo-settings/'.$demo.'/sidebar-menu.json';
+        abort_unless(array_key_exists($demo, self::DEMOS), 404);
+        return 'demo-settings/'.self::DEMOS[$demo].'/sidebar-menu.json';
     }
 
     private function presets(string $demo): string
     {
         $this->path($demo);
-        return 'demo-settings/'.$demo.'/presets';
+        return 'demo-settings/'.self::DEMOS[$demo].'/presets';
     }
 
     public function show(string $demo): JsonResponse
