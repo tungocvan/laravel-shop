@@ -11,7 +11,7 @@ class EnterpriseManagementReportMenuThrottleTest extends TestCase
     {
         $routes = collect(app('router')->getRoutes()->getRoutes());
         $paths = [
-            'demo/bao-cao-quan-tri-doanh-nghiep/menu',
+            'demo/{demo}/menu',
             'demo/bao-cao-quan-tri-doanh-nghiep/menu/presets',
             'demo/bao-cao-quan-tri-doanh-nghiep/menu/presets/{preset}',
         ];
@@ -20,6 +20,7 @@ class EnterpriseManagementReportMenuThrottleTest extends TestCase
             $matches = $routes->filter(fn (Route $route) =>
                 $route->uri() === $path
                 && count(array_intersect(['POST', 'PUT', 'DELETE'], $route->methods())) > 0
+                && preg_match('/bao-cao-quan-tri-doanh-nghiep/', (string) ($route->wheres['demo'] ?? '')) === 1
             );
 
             $this->assertNotEmpty($matches->all(), "Missing write route: {$path}");
