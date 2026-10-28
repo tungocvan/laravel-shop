@@ -39,6 +39,19 @@ final class HumanResourcesDemoRouteTest extends TestCase
         $this->assertStringContainsString("goPage('settings')", $adapter);
     }
 
+    public function test_sidebar_palette_follows_all_four_themes(): void
+    {
+        $js = file_get_contents(public_path('demo-assets/quan-ly-nhan-su/js/app.js'));
+        $css = file_get_contents(public_path('demo-assets/quan-ly-nhan-su/css/app.css'));
+        foreach (['ruby','ocean','emerald','indigo'] as $theme) {
+            $this->assertStringContainsString($theme.':{primary:', $js);
+        }
+        foreach (['--side-end','--side-muted','--side-text','linear-gradient(180deg,var(--side),var(--side-end))'] as $token) {
+            $this->assertStringContainsString($token, $css);
+        }
+        $this->assertStringContainsString("root.setProperty('--side',theme.side)", $js);
+    }
+
     public function test_assets_exist(): void
     {
         foreach (['js/app.js','js/menu-adapter.js','css/app.css'] as $path) {
