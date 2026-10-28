@@ -123,8 +123,8 @@
       return config;
     },
     defaults() {
-      const groups = App.cfg.nav.map(group => ({title:group.group,items:group.items.map(id => ({id,label:App.views[id].label||App.views[id].title,icon:App.views[id].icon||'link',href:'#'+id}))}));
-      groups.push({title:'Hệ thống',items:[{id:'data',label:'Dữ liệu & sao lưu',icon:'database',href:'#data'}]});
+      const groups = App.cfg.nav.map(group => ({title:group.group,items:group.items.filter(id => id !== 'caidat').map(id => ({id,label:App.views[id].label||App.views[id].title,icon:App.views[id].icon||'link',href:'#'+id}))})).filter(group => group.items.length);
+      groups.push({title:'Hệ thống',items:[{id:'data',label:'Dữ liệu & sao lưu',icon:'database',href:'#data'},{id:'caidat',label:'Cài đặt',icon:'settings',href:'#caidat'}]});
       return {version:1,header:{title:App.cfg.title,subtitle:App.cfg.tagline,icon:'wallet',href:'#dashboard'},footer:{credit:'Phong Excel Academy',href:'',showSave:true},groups};
     },
     apply(config) {
