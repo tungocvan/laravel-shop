@@ -342,7 +342,7 @@
     const button = editor?.el.querySelector('#menu-delete-preset');
     if (button) button.disabled = true;
     try {
-      const response = await fetch(url + '/presets/' + encodeURIComponent(id), {
+      const response = await authorizedWrite('Xóa file JSON', code => fetch(url + '/presets/' + encodeURIComponent(id), {
         method: 'DELETE', credentials: 'same-origin',
         headers: { Accept: 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '', 'X-Demo-Backup-Code': code }
       }));
