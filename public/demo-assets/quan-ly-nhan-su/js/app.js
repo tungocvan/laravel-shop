@@ -91,7 +91,7 @@ function age(dob){ if(!dob) return ''; return Math.floor((Date.now() - new Date(
 /* ---------- Điều hướng ---------- */
 function goPage(p){
   page = p;
-  ['dashboard','analytics','employees'].forEach(x => $('page-' + x).hidden = p !== x);
+  ['dashboard','analytics','employees','settings'].forEach(x => $('page-' + x).hidden = p !== x);
   toggleSide(false);
   window.scrollTo(0,0);
   render();
@@ -125,6 +125,9 @@ function renderNav(){
   } else if(page === 'analytics'){
     $('pageTitle').textContent = 'Dashboard';
     $('pageSub').textContent = 'Phân tích số liệu nhân sự bằng biểu đồ';
+  } else if (page === 'settings') {
+    $('pageTitle').textContent = 'Cài đặt & dữ liệu';
+    $('pageSub').textContent = 'Giao diện, menu và sao lưu dữ liệu nhân sự';
   } else {
     $('pageTitle').textContent = d || s || 'Danh sách nhân viên';
     $('pageSub').textContent = d ? 'Nhân viên thuộc phòng ' + d : s ? 'Nhân viên có trạng thái: ' + s : 'Toàn bộ hồ sơ nhân viên';
@@ -303,6 +306,7 @@ function render(){
   renderNav();
   if(page === 'dashboard') renderDashboard();
   else if(page === 'analytics') renderAnalytics();
+  else if(page === 'settings') renderHrSettings();
   else renderList();
 }
 
@@ -499,6 +503,15 @@ async function hrStoreLibrary(){
   }catch(e){toast('Không thể lưu JSON: '+e.message);}
 }
 const HR_THEMES={ruby:'#C62828',ocean:'#087E9B',emerald:'#16835D',indigo:'#4F46E5'};
+function renderHrSettings(){
+  const current=document.documentElement.dataset.hrTheme || 'emerald';
+  document.querySelectorAll('[data-hr-theme-choice]').forEach(b=>{
+    const selected=b.dataset.hrThemeChoice===current;
+    b.classList.toggle('selected',selected);
+    b.setAttribute('aria-pressed',String(selected));
+  });
+  const count=$('hrSettingsCount'); if(count) count.textContent=data.length+' nhân viên đang lưu trong trình duyệt này';
+}
 function hrSetTheme(name){
   if(!Object.hasOwn(HR_THEMES,name))name='emerald';
   document.documentElement.style.setProperty('--primary',HR_THEMES[name]);
@@ -507,6 +520,7 @@ function hrSetTheme(name){
   document.documentElement.dataset.hrTheme=name;
   try{localStorage.setItem('qlns_theme_v1',name);}catch(e){}
   const select=$('hrTheme');if(select)select.value=name;
+  if(typeof page!=='undefined' && page==='settings')renderHrSettings();
 }
 document.addEventListener('keydown', ev => { if((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 's'){ ev.preventDefault(); saveFile(); } });
 
