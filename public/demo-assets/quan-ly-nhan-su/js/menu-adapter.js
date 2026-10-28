@@ -28,8 +28,10 @@ window.HrDemoMenuBridge = (() => {
   function apply(config) {
     nav.replaceChildren();
     for (const group of config.groups) {
+      const visibleItems=group.items.filter(item=>!['backup-json','library'].includes(item.id));
+      if(!visibleItems.length)continue;
       const h = document.createElement('div'); h.className='sec'; h.textContent=group.title; nav.append(h);
-      for (const item of group.items) {
+      for (const item of visibleItems) {
         const a = document.createElement('a'); a.className='item'; a.dataset.hrItem=item.id;
         const ic=document.createElement('span');ic.className='ic';ic.innerHTML=iconSvg(item.icon);a.append(ic,document.createTextNode(item.label));
         const page = item.href.startsWith('#') ? item.href.slice(1) : '';
