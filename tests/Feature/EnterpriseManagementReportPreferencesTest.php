@@ -37,4 +37,25 @@ class EnterpriseManagementReportPreferencesTest extends TestCase
         $this->assertStringContainsString('Lưu trong trình duyệt', $script);
         $this->assertStringNotContainsString('<h4>Lưu đè dữ liệu vào file</h4>', $script);
     }
+    public function test_sidebar_editor_has_shared_api_json_dragdrop_and_operator_modal(): void
+    {
+        $this->get('/demo/bao-cao-quan-tri-doanh-nghiep')->assertOk()
+            ->assertSee('name="csrf-token"', false);
+
+        $script = file_get_contents(public_path('demo-assets/bao-cao-quan-tri-doanh-nghiep/js/preferences.js'));
+        foreach ([
+            '/demo/bao-cao-quan-tri-doanh-nghiep/menu',
+            'application/x-enterprise-menu',
+            'Nhập JSON',
+            'Xuất JSON',
+            'Lưu lên server',
+            'Ghi đè preset',
+            'Xóa preset',
+            'X-Demo-Backup-Code',
+            'type=\'password\'',
+        ] as $token) {
+            $this->assertStringContainsString($token, $script);
+        }
+    }
+
 }
