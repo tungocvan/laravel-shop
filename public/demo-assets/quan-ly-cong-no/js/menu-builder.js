@@ -285,11 +285,32 @@
       showNotice(overwrite ? 'Cập nhật file thành công' : 'Lưu file thành công', 'Đã lưu cấu hình "' + name + '" trên server. Menu hiện hành chưa thay đổi.');
     } catch (e) { message('Không lưu được file: ' + e.message, true); }
   }
+  async function deleteSelectedPreset() {
+    const select = editor?.el.querySelector('#menu-server-presets');
+    const id = select?.value;
+    if (!id) return message('Chọn file JSON cần xóa.', true);
+    const name = select.selectedOptions[0].textContent;
+    if (!await Modal.confirm('Xóa vĩnh viễn file JSON "' + name + '" khỏi thư viện server? Sidebar đang áp dụng và dữ liệu công nợ không bị ảnh hưởng.', { ok: 'Xóa file' })) return;
+    const code = window.prompt('Nhập mã quản trị để xác nhận xóa file JSON:');
+    if (!code) return;
+    const button = editor?.el.querySelector('#menu-delete-preset');
+    if (button) button.disabled = true;
+    try {
+      const response = await fetch(url + '/presets/' + encodeURIComponent(id), {
+        method: 'DELETE', credentials: 'same-origin',
+        headers: { Accept: 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '', 'X-Demo-Backup-Code': code }
+      });
+      if (!response.ok) throw Error('HTTP ' + response.status);
+      await refreshPresets();
+      showNotice('Xóa file thành công', 'Đã xóa file "' + name + '" khỏi thư viện JSON trên server. Sidebar hiện hành không thay đổi.');
+    } catch (e) { message('Không xóa được file: ' + e.message, true); }
+    finally { if (button?.isConnected) button.disabled = false; }
+  }
   function openEditor() {
     config = copy(appliedConfig || config || fallback());
     editor = Modal.open({
       title: 'Chỉnh sửa sidebar menu', width: 1060,
-      body: '<div id="menu-brand-footer" class="menu-edit-brand-footer"></div><p class="muted">Kéo biểu tượng ☰ để đổi thứ tự, kể cả giữa các nhóm. Đường dẫn nội bộ dùng #dashboard, #doitac, #chungtu, #chitiet, #tonghop, #tuoino, #caidat hoặc #data. URL ngoài chỉ hỗ trợ HTTPS.</p><div id="menu-edit-groups"></div><section class="menu-edit-group"><b>Thư viện JSON trên server</b><p class="muted">Lưu thành file mới hoặc chọn file đã lưu để nhập vào bản chỉnh sửa.</p><div class="menu-preset-row"><input id="menu-preset-name" class="inp" placeholder="Tên file cấu hình mới" maxlength="100"><button class="btn" id="menu-save-preset">Lưu file JSON</button></div><div class="menu-preset-row"><select id="menu-server-presets" class="inp"></select><button class="btn" id="menu-refresh-presets">Làm mới</button><button class="btn" id="menu-import-server">Nhập từ server</button></div></section><p id="menu-edit-status" role="status"></p>',
+      body: '<div id="menu-brand-footer" class="menu-edit-brand-footer"></div><p class="muted">Kéo biểu tượng ☰ để đổi thứ tự, kể cả giữa các nhóm. Đường dẫn nội bộ dùng #dashboard, #doitac, #chungtu, #chitiet, #tonghop, #tuoino, #caidat hoặc #data. URL ngoài chỉ hỗ trợ HTTPS.</p><div id="menu-edit-groups"></div><section class="menu-edit-group"><b>Thư viện JSON trên server</b><p class="muted">Lưu thành file mới hoặc chọn file đã lưu để nhập vào bản chỉnh sửa.</p><div class="menu-preset-row"><input id="menu-preset-name" class="inp" placeholder="Tên file cấu hình mới" maxlength="100"><button class="btn" id="menu-save-preset">Lưu file JSON</button></div><div class="menu-preset-row"><select id="menu-server-presets" class="inp"></select><button class="btn" id="menu-refresh-presets">Làm mới</button><button class="btn" id="menu-import-server">Nhập từ server</button><button class="btn danger" id="menu-delete-preset">Xóa file</button></div></section><p id="menu-edit-status" role="status"></p>',
       foot: '<button class="btn" id="menu-add-group">+ Nhóm</button><button class="btn" id="menu-reset">Mặc định</button><button class="btn" id="menu-export">Xuất JSON</button><label class="btn">Nhập JSON<input id="menu-import" type="file" accept=".json,application/json" hidden></label><button class="btn" id="menu-cancel">Đóng</button><button class="btn pri" id="menu-preview">Cập nhật giao diện</button><button class="btn pri" id="menu-save">Lưu lên server</button>',
       onClose: () => {
         editor = null;
@@ -303,6 +324,7 @@
     el.querySelector('#menu-server-presets').onchange = e => { if (e.target.value) el.querySelector('#menu-preset-name').value = e.target.selectedOptions[0].textContent; };
     el.querySelector('#menu-refresh-presets').onclick = refreshPresets;
     el.querySelector('#menu-import-server').onclick = importServerPreset;
+    el.querySelector('#menu-delete-preset').onclick = deleteSelectedPreset;
     refreshPresets();
     el.querySelector('#menu-add-group').onclick = () => { config.groups.push({ title: 'Nhóm mới', items: [] }); drawEditor(); };
     el.querySelector('#menu-reset').onclick = async () => { if (await Modal.confirm('Khôi phục menu mặc định trong bản chỉnh sửa?', { ok: 'Khôi phục' })) { config = fallback(); drawHeaderFooter(); drawEditor(); showNotice('Khôi phục mặc định thành công', 'Đã khôi phục trong bản chỉnh sửa. Nhấn Cập nhật giao diện hoặc Lưu lên server để áp dụng.'); } };
