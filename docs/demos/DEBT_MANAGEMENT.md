@@ -70,3 +70,11 @@
 - Deletion is limited to the selected JSON preset on the private local disk; active sidebar config, browser override, business data, and other presets are untouched. No bulk delete.
 - Focused: `php artisan test tests/Feature/DebtManagementMenuTest.php tests/Feature/StandaloneDebtManagementDemoTest.php`. UI: save customized header/footer → import same preset → verify all fields; delete selected preset → verify absence and active menu unchanged; cancel delete; invalid code.
 - TEST PASS/UI PASS pending user; no merge or production deploy.
+
+## Sidebar menu UX refinement (2026-10-28)
+
+- All menu JSON server writes (save active menu, save/update preset, delete preset) use a compact password-type modal instead of `window.prompt`. HTTP 403 shows **Mã quản trị không chính xác** below the input; 503/419/429/422 and network errors have distinct inline messages. Secret input is cleared after submission and never persisted.
+- Sidebar footer **Lưu trong trình duyệt** button is removed from the rendered sidebar, as is its visibility checkbox in the editor. The legacy `footer.showSave` JSON property remains accepted for backwards compatibility, but no longer controls a visible button.
+- Importing a selected server JSON preset now confirms **Nhập & cập nhật**, applies the header/footer/menu immediately, persists a browser-local override across reloads, and displays a success modal. It does not overwrite the active server menu until **Lưu lên server**.
+- Focused regression: `php artisan test tests/Feature/DebtManagementMenuTest.php tests/Feature/StandaloneDebtManagementDemoTest.php`; browser UI: wrong secret stays in modal, retry correct secret, 429/503 messaging, cancel, footer button absent, import applies immediately and survives F5, older JSON still imports, mobile layout.
+- UI PASS previously reported by user was for the preceding build; this batch needs new UI verification. No TEST PASS asserted, no merge or deploy.
