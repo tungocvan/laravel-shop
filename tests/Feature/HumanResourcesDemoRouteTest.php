@@ -52,6 +52,20 @@ final class HumanResourcesDemoRouteTest extends TestCase
         $this->assertStringContainsString("root.setProperty('--side',theme.side)", $js);
     }
 
+    public function test_sidebar_uses_svg_icons_and_json_tools_remain_in_settings(): void
+    {
+        $html=$this->get('/demo/quan-ly-nhan-su')->assertOk()->getContent();
+        $this->assertStringContainsString('id="page-settings"', $html);
+        $this->assertStringContainsString('Cài đặt & dữ liệu', $html);
+        $this->assertStringNotContainsString('<div class="sec">Tiện ích</div>', $html);
+        $adapter=file_get_contents(public_path('demo-assets/quan-ly-nhan-su/js/menu-adapter.js'));
+        $this->assertStringContainsString('iconSvg(item.icon)', $adapter);
+        $this->assertStringContainsString("['backup-json','library']", $adapter);
+        $this->assertStringContainsString("nav.append(system)", $adapter);
+        $this->assertStringContainsString('openHrLibrary()', $html);
+        $this->assertStringContainsString('saveFile()', $html);
+    }
+
     public function test_assets_exist(): void
     {
         foreach (['js/app.js','js/menu-adapter.js','css/app.css'] as $path) {
