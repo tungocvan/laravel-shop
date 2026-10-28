@@ -709,41 +709,22 @@ const Store = {
   async guide() {
     let seen = false; try { seen = localStorage.getItem('px:guide') === '1'; } catch (e) { }
     if (seen) return true;
-    const ok = await Modal.confirm(`<p style="margin-top:0">Lần đầu lưu, cửa sổ chọn file sẽ hiện ra. Thầy/cô <b>chọn đúng file đang mở</b>:</p><p style="padding:10px 12px;background:var(--p-50);border-radius:10px;font-weight:600">${esc(Store.fileName())}</p><p>rồi bấm <b>Save / Lưu</b> và đồng ý <b>Replace / Thay thế</b>.</p><p class="muted small" style="margin-bottom:0">Từ lần sau, bấm "Lưu vào file" (hoặc Ctrl + S) là ghi đè ngay, không hỏi lại.</p>`, { title: 'Lưu dữ liệu vào chính file này', ok: 'Đã hiểu, chọn file' });
+    const ok = await Modal.confirm(`<p style="margin-top:0">Lần đầu lưu, cửa sổ chọn file sẽ hiện ra. Thầy/cô <b>chọn đúng file đang mở</b>:</p><p style="padding:10px 12px;background:var(--p-50);border-radius:10px;font-weight:600">${esc(Store.fileName())}</p><p>rồi bấm <b>Save / Lưu</b> và đồng ý <b>Replace / Thay thế</b>.</p><p class="muted small" style="margin-bottom:0">Từ lần sau, bấm "Lưu trình duyệt" (hoặc Ctrl + S) là ghi đè ngay, không hỏi lại.</p>`, { title: 'Lưu dữ liệu vào chính file này', ok: 'Đã hiểu, chọn file' });
     if (ok) try { localStorage.setItem('px:guide', '1'); } catch (e) { }
     return ok;
-  },  async save(pickNew = false) {
-    const name = Store.fileName();
-    if (window.showSaveFilePicker) {
-      try {
-        let h = pickNew ? null : Store.handle;
-        if (!h && !pickNew) h = await IDB.get(Store.key()).catch(() => null);
-        if (h) {
-          let p = await h.queryPermission({ mode: 'readwrite' });
-          if (p !== 'granted') p = await h.requestPermission({ mode: 'readwrite' });
-          if (p !== 'granted') h = null;
-        }
-        if (!h) {
-          if (!pickNew && !(await Store.guide())) return;
-          h = await window.showSaveFilePicker({ suggestedName: name, types: [{ description: 'Trang HTML', accept: { 'text/html': ['.html'] } }] });
-        }
-        const html = Store.serialize();
-        const w = await h.createWritable(); await w.write(new Blob([html], { type: 'text/html' })); await w.close();
-        Store.handle = h; IDB.set(Store.key(), h).catch(() => { });
-        Store.saved();
-        toast(`${ic('check')} Đã lưu đè dữ liệu vào file <b>${esc(h.name)}</b>`, 'ok');
-        if (h.name !== name && !pickNew) toast(`Lưu ý: file vừa ghi là "${esc(h.name)}", khác tên file đang mở "${esc(name)}".`, '', 6000);
-        return;
-      } catch (e) {
-        if (e && e.name === 'AbortError') return;
-        console.warn(e); Store.handle = null; IDB.del(Store.key()).catch(() => { });
-        toast('Không ghi trực tiếp được, chuyển sang tải file mới về.', 'err');
-      }
+  },  async save() {
+    Store.changed();
+    clearTimeout(Store.timer);
+    try {
+      localStorage.setItem(Store.key(), JSON.stringify({ at: new Date().toISOString(), data: DB }));
+      Store.dirty = false;
+      Store.status();
+      toast('Đã lưu dữ liệu trong trình duyệt. Dùng Sao lưu JSON để tải về máy.', 'ok');
+    } catch (e) {
+      toast('Không thể lưu vào trình duyệt. Hãy xuất JSON để sao lưu.', 'err');
     }
-    download(new Blob([Store.serialize()], { type: 'text/html' }), name);
-    Store.saved();
-    toast(`Đã tải file <b>${esc(name)}</b> có dữ liệu mới. Trình duyệt này không cho ghi đè trực tiếp, hãy dùng file vừa tải thay cho file cũ (nên dùng Chrome hoặc Edge).`, 'ok', 8000);
   },
+
   draft() { try { const d = JSON.parse(localStorage.getItem(Store.key()) || 'null'); if (d && d.data && (!DB._meta.savedAt || d.at > DB._meta.savedAt)) return d; } catch (e) { } return null; }
 };
 window.addEventListener('beforeunload', e => { if (Store.dirty) { e.preventDefault(); e.returnValue = ''; } });
@@ -759,7 +740,7 @@ const App = {
     App.views.data = App.views.data || DataScreen;
     const navHTML = cfg.nav.map(g => `<div class="nav-group">${g.group}</div>${g.items.map(id => { const v = App.views[id]; return `<a data-nav="${id}">${ic(v.icon)}<span>${v.label || v.title}</span></a>`; }).join('')}`).join('')
       + `<div class="nav-group">Hệ thống</div><a data-nav="data">${ic('database')}<span>Dữ liệu & sao lưu</span></a>`;
-    $('#app').innerHTML = `<div class="shell"><aside class="sidebar"><div class="brand"><div class="logo">${ic(cfg.icon)}</div><div><b>${cfg.title}</b><small>${cfg.tagline}</small></div></div><nav class="nav">${navHTML}</nav><div class="side-foot"><div class="save-state" id="saveState"><i></i><span></span></div><button class="btn-save" data-act="saveFile">${ic('save')} Lưu vào file</button><div class="credit">Phong Excel Academy</div></div></aside><div class="backdrop" data-act="navClose"></div><main class="main"><header class="topbar"><button class="ibtn menu-btn" data-act="navOpen">${ic('menu')}</button><div><h1 id="vTitle"></h1><p id="vDesc"></p></div><div class="top-actions" id="vTools"></div></header><section class="content"><div id="draftBox"></div><div id="view"></div></section></main></div>`;
+    $('#app').innerHTML = `<div class="shell"><aside class="sidebar"><div class="brand"><div class="logo">${ic(cfg.icon)}</div><div><b>${cfg.title}</b><small>${cfg.tagline}</small></div></div><nav class="nav">${navHTML}</nav><div class="side-foot"><div class="save-state" id="saveState"><i></i><span></span></div><button class="btn-save" data-act="saveFile">${ic('save')} Lưu trình duyệt</button><div class="credit">Phong Excel Academy</div></div></aside><div class="backdrop" data-act="navClose"></div><main class="main"><header class="topbar"><button class="ibtn menu-btn" data-act="navOpen">${ic('menu')}</button><div><h1 id="vTitle"></h1><p id="vDesc"></p></div><div class="top-actions" id="vTools"></div></header><section class="content"><div id="draftBox"></div><div id="view"></div></section></main></div>`;
     $('#app').addEventListener('click', e => { const a = e.target.closest('[data-nav]'); if (a) { e.preventDefault(); App.go(a.dataset.nav); document.body.classList.remove('nav-open'); } });
     Store.status();
     const d = Store.draft();
