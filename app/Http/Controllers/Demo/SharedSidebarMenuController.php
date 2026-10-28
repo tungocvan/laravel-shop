@@ -37,7 +37,7 @@ class SharedSidebarMenuController extends Controller
         $path = $this->path($demo);
         if ($error = $this->authorizeWrite($request)) return $error;
         $validated = Validator::make($request->all(), ['config' => ['required', 'array']])->validate();
-        if (! $this->validConfig($validated['config'])) return response()->json(['message' => 'Menu không hợp lệ.'], 422);
+        if ($reason = $this->configError($validated['config'])) return response()->json(['message' => 'Menu không hợp lệ.', 'field' => $reason], 422);
         $json = json_encode($validated['config'], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
         if (strlen($json) > 65536) return response()->json(['message' => 'JSON quá lớn.'], 413);
         Storage::disk('local')->put($path, $json);
@@ -77,7 +77,7 @@ class SharedSidebarMenuController extends Controller
             'name' => ['required', 'string', 'max:100'],
             'config' => ['required', 'array'],
         ])->validate();
-        if (! $this->validConfig($v['config'])) return response()->json(['message' => 'Menu không hợp lệ.'], 422);
+        if ($reason = $this->configError($v['config'])) return response()->json(['message' => 'Menu không hợp lệ.', 'field' => $reason], 422);
         $id = substr(Str::slug($v['name']) ?: 'menu', 0, 40).'-'.Str::lower(Str::random(10));
         $json = json_encode(['name' => $v['name'], 'config' => $v['config']], JSON_UNESCAPED_UNICODE);
         if (strlen($json) > 65536) return response()->json(['message' => 'JSON quá lớn.'], 413);
@@ -109,28 +109,41 @@ class SharedSidebarMenuController extends Controller
 
     private function validConfig(mixed $config): bool
     {
-        if (! is_array($config) || ($config['version'] ?? null) !== 1 || ! isset($config['groups']) || ! is_array($config['groups']) || count($config['groups']) > 20) return false;
+        return $this->configError($config) === null;
+    }
+
+    private function configError(mixed $config): ?string
+    {
+        if (! is_array($config)) return 'config';
+        if (($config['version'] ?? null) !== 1) return 'version';
+        if (! isset($config['groups']) || ! is_array($config['groups']) || count($config['groups']) > 20) return 'groups';
+
+        foreach (['header' => ['title', 'subtitle', 'icon', 'href'], 'footer' => ['credit', 'href']] as $section => $fields) {
+            if (! isset($config[$section]) || ! is_array($config[$section])) return $section;
+            foreach ($fields as $field) {
+                if (! is_string($config[$section][$field] ?? null) || strlen($config[$section][$field]) > 250) return $section.'.'.$field;
+            }
+            if (! $this->validHref($config[$section]['href'], true)) return $section.'.href';
+        }
+        if (! preg_match('/^[a-z0-9-]{1,48}$/', $config['header']['icon'])) return 'header.icon';
+        if (! is_bool($config['footer']['showSave'] ?? null)) return 'footer.showSave';
+
         $ids = [];
         $count = 0;
-        foreach (['header' => ['title', 'subtitle', 'icon', 'href'], 'footer' => ['credit', 'href']] as $section => $fields) {
-            if (! isset($config[$section]) || ! is_array($config[$section])) return false;
-            foreach ($fields as $field) if (! is_string($config[$section][$field] ?? null) || strlen($config[$section][$field]) > 250) return false;
-            if (! $this->validHref($config[$section]['href'], true)) return false;
-        }
-        if (! preg_match('/^[a-z0-9-]{1,48}$/', $config['header']['icon']) || ! is_bool($config['footer']['showSave'] ?? null)) return false;
-        foreach ($config['groups'] as $group) {
-            if (! is_array($group) || ! is_string($group['title'] ?? null) || mb_strlen($group['title']) > 60 || ! is_array($group['items'] ?? null)) return false;
-            foreach ($group['items'] as $item) {
-                if (++$count > 100 || ! is_array($item)) return false;
+        foreach ($config['groups'] as $gi => $group) {
+            if (! is_array($group) || ! is_string($group['title'] ?? null) || mb_strlen($group['title']) > 60 || ! is_array($group['items'] ?? null)) return 'groups.'.$gi;
+            foreach ($group['items'] as $ii => $item) {
+                $field = 'groups.'.$gi.'.items.'.$ii;
+                if (++$count > 100 || ! is_array($item)) return $field;
                 $id = $item['id'] ?? null;
-                if (! is_string($id) || ! preg_match('/^[a-z0-9-]{1,64}$/', $id) || isset($ids[$id])) return false;
+                if (! is_string($id) || ! preg_match('/^[a-z0-9-]{1,64}$/', $id) || isset($ids[$id])) return $field.'.id';
                 $ids[$id] = true;
-                if (! is_string($item['label'] ?? null) || trim($item['label']) === '' || mb_strlen($item['label']) > 80 ||
-                    ! is_string($item['icon'] ?? null) || ! preg_match('/^[a-z0-9-]{1,48}$/', $item['icon']) ||
-                    ! is_string($item['href'] ?? null) || ! $this->validHref($item['href'])) return false;
+                if (! is_string($item['label'] ?? null) || trim($item['label']) === '' || mb_strlen($item['label']) > 80) return $field.'.label';
+                if (! is_string($item['icon'] ?? null) || ! preg_match('/^[a-z0-9-]{1,48}$/', $item['icon'])) return $field.'.icon';
+                if (! is_string($item['href'] ?? null) || ! $this->validHref($item['href'])) return $field.'.href';
             }
         }
-        return true;
+        return null;
     }
 
     private function validHref(string $href, bool $empty = false): bool
