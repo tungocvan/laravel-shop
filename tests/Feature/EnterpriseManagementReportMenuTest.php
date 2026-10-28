@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\RateLimiter;
 use Tests\TestCase;
 
 class EnterpriseManagementReportMenuTest extends TestCase
@@ -99,7 +98,6 @@ class EnterpriseManagementReportMenuTest extends TestCase
     {
         // Restore the actual throttle middleware for this security contract.
         $this->withMiddleware();
-        RateLimiter::clear('test-menu-throttle');
         for ($i = 0; $i < 5; $i++) {
             $this->postJson(self::URL, ['config' => $this->menu()], $this->auth())->assertOk();
         }
