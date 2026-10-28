@@ -502,7 +502,12 @@ async function hrStoreLibrary(){
     $('hrBackupCode').value='';toast('Đã lưu JSON lên server');await hrRefreshLibrary();
   }catch(e){toast('Không thể lưu JSON: '+e.message);}
 }
-const HR_THEMES={ruby:'#C62828',ocean:'#087E9B',emerald:'#16835D',indigo:'#4F46E5'};
+const HR_THEMES={
+  ruby:{primary:'#c62828',light:'#fceeee',side:'#391313',sideEnd:'#260d0d',sideCard:'#4b2020',sideText:'#e4c8c8',sideMuted:'#be9393'},
+  ocean:{primary:'#087e9b',light:'#e6f5f9',side:'#123b52',sideEnd:'#0b2839',sideCard:'#1c5067',sideText:'#d7edf5',sideMuted:'#a6cbd9'},
+  emerald:{primary:'#16835d',light:'#e6f6ef',side:'#164537',sideEnd:'#0d2e25',sideCard:'#225846',sideText:'#d8f2e6',sideMuted:'#acd4c1'},
+  indigo:{primary:'#4f46e5',light:'#eef2ff',side:'#28235c',sideEnd:'#1a1740',sideCard:'#393273',sideText:'#e5e3ff',sideMuted:'#b5b0df'}
+};
 function renderHrSettings(){
   const current=document.documentElement.dataset.hrTheme || 'emerald';
   document.querySelectorAll('[data-hr-theme-choice]').forEach(b=>{
@@ -514,9 +519,16 @@ function renderHrSettings(){
 }
 function hrSetTheme(name){
   if(!Object.hasOwn(HR_THEMES,name))name='emerald';
-  document.documentElement.style.setProperty('--primary',HR_THEMES[name]);
-  document.documentElement.style.setProperty('--primary-2',HR_THEMES[name]);
-  document.documentElement.style.setProperty('--soft',name==='ruby'?'#fef2f2':name==='ocean'?'#ecfeff':name==='indigo'?'#eef2ff':'#ecfdf3');
+  const theme=HR_THEMES[name];
+  const root=document.documentElement.style;
+  root.setProperty('--primary',theme.primary);
+  root.setProperty('--primary-2',theme.primary);
+  root.setProperty('--soft',theme.light);
+  root.setProperty('--side',theme.side);
+  root.setProperty('--side-end',theme.sideEnd);
+  root.setProperty('--side-2',theme.sideCard);
+  root.setProperty('--side-text',theme.sideText);
+  root.setProperty('--side-muted',theme.sideMuted);
   document.documentElement.dataset.hrTheme=name;
   try{localStorage.setItem('qlns_theme_v1',name);}catch(e){}
   const select=$('hrTheme');if(select)select.value=name;
