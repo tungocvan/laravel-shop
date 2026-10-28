@@ -1,4 +1,5 @@
 <?php
+use App\Http\Controllers\Demo\EnterpriseManagementReportMenuController;
 use App\Http\Controllers\Demo\EnterpriseManagementReportController;
 
 
@@ -90,3 +91,14 @@ Route::fallback(function (Request $request) {
 
 Route::get('/demo/bao-cao-quan-tri-doanh-nghiep', EnterpriseManagementReportController::class)
     ->name('demo.enterprise-management-report');
+
+
+Route::prefix('/demo/bao-cao-quan-tri-doanh-nghiep/menu')->group(function () {
+    Route::get('/presets', [EnterpriseManagementReportMenuController::class, 'presets']);
+    Route::get('/presets/{preset}', [EnterpriseManagementReportMenuController::class, 'preset']);
+    Route::post('/presets', [EnterpriseManagementReportMenuController::class, 'savePreset'])->middleware('throttle:5,1');
+    Route::put('/presets/{preset}', [EnterpriseManagementReportMenuController::class, 'updatePreset'])->middleware('throttle:5,1');
+    Route::delete('/presets/{preset}', [EnterpriseManagementReportMenuController::class, 'deletePreset'])->middleware('throttle:5,1');
+    Route::get('/', [EnterpriseManagementReportMenuController::class, 'show']);
+    Route::post('/', [EnterpriseManagementReportMenuController::class, 'store'])->middleware('throttle:5,1');
+});
