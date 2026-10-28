@@ -51,15 +51,15 @@ Route::post('/demo/quan-ly-xuat-nhap-ton/datasets', [WarehouseDemoDatasetControl
     ->name('demo.warehouse-inventory.datasets.store');
 
 
-// Shared sidebar configuration API; demo data and browser state remain isolated per slug.
-foreach (['sales-employees' => 'doanh-so-nhan-vien', 'warehouse-inventory' => 'quan-ly-xuat-nhap-ton'] as $slug => $segment) {
-    Route::get('/demo/'.$segment.'/menu', fn () => app(SharedSidebarMenuController::class)->show($slug));
-    Route::post('/demo/'.$segment.'/menu', fn (\Illuminate\Http\Request $request) => app(SharedSidebarMenuController::class)->store($request, $slug))->middleware('throttle:5,1');
-    Route::get('/demo/'.$segment.'/menu/presets', fn () => app(SharedSidebarMenuController::class)->index($slug));
-    Route::get('/demo/'.$segment.'/menu/presets/{preset}', fn (string $preset) => app(SharedSidebarMenuController::class)->preset($slug, $preset));
-    Route::post('/demo/'.$segment.'/menu/presets', fn (\Illuminate\Http\Request $request) => app(SharedSidebarMenuController::class)->savePreset($request, $slug))->middleware('throttle:5,1');
-    Route::delete('/demo/'.$segment.'/menu/presets/{preset}', fn (\Illuminate\Http\Request $request, string $preset) => app(SharedSidebarMenuController::class)->deletePreset($request, $slug, $preset))->middleware('throttle:5,1');
-}
+// Route-cache-safe shared sidebar endpoints for two standalone demos.
+Route::prefix('/demo/{demo}/menu')->whereIn('demo', ['doanh-so-nhan-vien', 'quan-ly-xuat-nhap-ton'])->group(function () {
+    Route::get('/', [SharedSidebarMenuController::class, 'show']);
+    Route::post('/', [SharedSidebarMenuController::class, 'store'])->middleware('throttle:5,1');
+    Route::get('/presets', [SharedSidebarMenuController::class, 'index']);
+    Route::get('/presets/{preset}', [SharedSidebarMenuController::class, 'preset']);
+    Route::post('/presets', [SharedSidebarMenuController::class, 'savePreset'])->middleware('throttle:5,1');
+    Route::delete('/presets/{preset}', [SharedSidebarMenuController::class, 'deletePreset'])->middleware('throttle:5,1');
+});
 
 Route::fallback(function (Request $request) {
     if ($request->path() === '/') {
