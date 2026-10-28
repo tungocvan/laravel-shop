@@ -62,3 +62,11 @@
 - Editor close without clicking Update discards uncommitted editor changes, restoring the last applied configuration.
 - UI regression: update → success modal → close → reload; update → cancel further edits; failed server save preserves local state; successful server save clears override and persists after reload; separate browser shows server state only.
 - No TEST/UI PASS asserted for this change. No merge/deploy.
+
+## Sidebar JSON completeness and preset deletion (2026-10-28)
+
+- Sidebar preset JSON stores the complete `config` object including `header` (title, subtitle, icon, href), `footer` (credit, href, showSave), and `groups`. Older v1 presets may omit header/footer; the editor provides fallback values when loaded.
+- Settings → Sidebar menu → server JSON library: select a preset and click **Xóa file**. Confirmation modal and operator code are required before DELETE `/demo/quan-ly-cong-no/menu/presets/{preset}`. Success modal follows server confirmation.
+- Deletion is limited to the selected JSON preset on the private local disk; active sidebar config, browser override, business data, and other presets are untouched. No bulk delete.
+- Focused: `php artisan test tests/Feature/DebtManagementMenuTest.php tests/Feature/StandaloneDebtManagementDemoTest.php`. UI: save customized header/footer → import same preset → verify all fields; delete selected preset → verify absence and active menu unchanged; cancel delete; invalid code.
+- TEST PASS/UI PASS pending user; no merge or production deploy.
