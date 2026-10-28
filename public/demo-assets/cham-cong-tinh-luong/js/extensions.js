@@ -97,7 +97,6 @@
         event.target.value = '';
       };
       refreshDatasets();
-    }
   };
   App.views.caidat.render = function(el) {
     originalSettingsRender(el);
