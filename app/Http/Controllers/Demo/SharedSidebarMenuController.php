@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
 
 class SharedSidebarMenuController extends Controller
 {
-    private const DEMOS = ['doanh-so-nhan-vien' => 'sales-employees', 'quan-ly-xuat-nhap-ton' => 'warehouse-inventory', 'quan-ly-nhan-su' => 'human-resources', 'cham-cong-tinh-luong' => 'attendance-payroll'];
+    private const DEMOS = ['doanh-so-nhan-vien' => 'sales-employees', 'quan-ly-xuat-nhap-ton' => 'warehouse-inventory', 'quan-ly-nhan-su' => 'human-resources', 'cham-cong-tinh-luong' => 'attendance-payroll', 'bao-cao-quan-tri-doanh-nghiep' => 'enterprise-management-report'];
 
     private function path(string $demo): string
     {
@@ -36,6 +36,7 @@ class SharedSidebarMenuController extends Controller
     {
         $path = $this->path($demo);
         if ($error = $this->authorizeWrite($request)) return $error;
+        if (strlen($request->getContent()) > 65536) return response()->json(['message' => 'JSON quá lớn.'], 413);
         $validated = Validator::make($request->all(), ['config' => ['required', 'array']])->validate();
         $validated['config'] = $this->normalizeOptionalHrefs($validated['config']);
         if ($reason = $this->configError($validated['config'])) return response()->json(['message' => 'Menu không hợp lệ.', 'field' => $reason], 422);
@@ -84,9 +85,35 @@ class SharedSidebarMenuController extends Controller
         $json = json_encode(['name' => $v['name'], 'config' => $v['config']], JSON_UNESCAPED_UNICODE);
         if (strlen($json) > 65536) return response()->json(['message' => 'JSON quá lớn.'], 413);
         $disk = Storage::disk('local');
+        foreach ($disk->files($dir) as $existingPath) {
+            $existing = json_decode($disk->get($existingPath), true);
+            if (is_array($existing) && mb_strtolower(trim((string) ($existing['name'] ?? ''))) === mb_strtolower(trim($v['name']))) {
+                return response()->json(['message' => 'Tên cấu hình đã tồn tại. Hãy chọn file để ghi đè.', 'id' => pathinfo($existingPath, PATHINFO_FILENAME)], 409);
+            }
+        }
         if (count($disk->files($dir)) >= 100) return response()->json(['message' => 'Đã đạt giới hạn.'], 422);
         $disk->put($dir.'/'.$id.'.json', $json);
         return response()->json(['id' => $id], 201);
+    }
+
+    public function updatePreset(Request $request, string $demo, string $preset): JsonResponse
+    {
+        $dir = $this->presets($demo);
+        if ($error = $this->authorizeWrite($request)) return $error;
+        if (strlen($request->getContent()) > 65536) return response()->json(['message' => 'JSON quá lớn.'], 413);
+        abort_unless(preg_match('/^[a-z0-9-]{1,80}$/', $preset), 404);
+        $file = $dir.'/'.$preset.'.json';
+        $disk = Storage::disk('local');
+        abort_unless($disk->exists($file), 404);
+        $old = json_decode($disk->get($file), true);
+        abort_unless(is_array($old) && is_string($old['name'] ?? null), 409);
+        $validated = Validator::make($request->all(), ['config' => ['required', 'array']])->validate();
+        $config = $this->normalizeOptionalHrefs($validated['config']);
+        if ($reason = $this->configError($config)) return response()->json(['message' => 'Menu không hợp lệ.', 'field' => $reason], 422);
+        $json = json_encode(['name' => $old['name'], 'config' => $config], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if (strlen($json) > 65536) return response()->json(['message' => 'JSON quá lớn.'], 413);
+        abort_unless($disk->put($file, $json), 500);
+        return response()->json(['updated' => true, 'id' => $preset]);
     }
 
     public function deletePreset(Request $request, string $demo, string $preset): JsonResponse
@@ -145,8 +172,8 @@ class SharedSidebarMenuController extends Controller
             }
             if (! $this->validHref($config[$section]['href'], true)) return $section.'.href';
         }
-        if (! preg_match('/^[a-z0-9-]{1,48}$/', $config['header']['icon'])) return 'header.icon';
-        if (! is_bool($config['footer']['showSave'] ?? null)) return 'footer.showSave';
+        if (! preg_match('/^[a-z0-9_-]{1,48}$/', $config['header']['icon'])) return 'header.icon';
+        if (isset($config['footer']['showSave']) && ! is_bool($config['footer']['showSave'])) return 'footer.showSave';
 
         $ids = [];
         $count = 0;
@@ -156,10 +183,10 @@ class SharedSidebarMenuController extends Controller
                 $field = 'groups.'.$gi.'.items.'.$ii;
                 if (++$count > 100 || ! is_array($item)) return $field;
                 $id = $item['id'] ?? null;
-                if (! is_string($id) || ! preg_match('/^[a-z0-9-]{1,64}$/', $id) || isset($ids[$id])) return $field.'.id';
+                if (! is_string($id) || ! preg_match('/^[a-z0-9_-]{1,64}$/', $id) || isset($ids[$id])) return $field.'.id';
                 $ids[$id] = true;
                 if (! is_string($item['label'] ?? null) || trim($item['label']) === '' || mb_strlen($item['label']) > 80) return $field.'.label';
-                if (! is_string($item['icon'] ?? null) || ! preg_match('/^[a-z0-9-]{1,48}$/', $item['icon'])) return $field.'.icon';
+                if (! is_string($item['icon'] ?? null) || ! preg_match('/^[a-z0-9_-]{1,48}$/', $item['icon'])) return $field.'.icon';
                 if (! is_string($item['href'] ?? null) || ! $this->validHref($item['href'])) return $field.'.href';
             }
         }
@@ -168,7 +195,7 @@ class SharedSidebarMenuController extends Controller
 
     private function validHref(string $href, bool $empty = false): bool
     {
-        return ($empty && $href === '') || (bool) preg_match('/^#[a-z0-9-]{1,64}$/', $href) ||
+        return ($empty && $href === '') || (bool) preg_match('/^#[a-z0-9_-]{1,64}$/', $href) ||
             (strlen($href) <= 250 && (bool) preg_match('~^https://[a-z0-9][a-z0-9.-]+(?:/[^\\s]*)?$~i', $href));
     }
 }
