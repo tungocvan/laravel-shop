@@ -30,33 +30,6 @@
     m.el.querySelector('[data-ok]').onclick = () => m.close();
   };
   // No secret is persisted or echoed. All failures remain inside the modal.
-  function requestSecret(action) {
-    return new Promise(resolve => {
-      let completed = false;
-      const modal = Modal.open({
-        title: 'Xác thực lưu trên server', width: 420,
-        body: '<label class="menu-secret-label" for="menu-secret-input">Mã quản trị</label><div class="menu-secret-row"><input id="menu-secret-input" class="inp" type="password" autocomplete="off" spellcheck="false" placeholder="Nhập mã quản trị"><button type="button" class="btn sm" data-toggle-secret>Hiện</button></div><p class="menu-secret-error" data-secret-error role="alert" aria-live="polite"></p>',
-        foot: '<button type="button" class="btn" data-secret-cancel>Hủy</button><button type="button" class="btn pri" data-secret-submit>Xác nhận</button>',
-        onClose: () => { if (!completed) resolve(null); }
-      });
-      const input = modal.el.querySelector('#menu-secret-input');
-      const error = modal.el.querySelector('[data-secret-error]');
-      const submit = modal.el.querySelector('[data-secret-submit]');
-      const toggle = modal.el.querySelector('[data-toggle-secret]');
-      toggle.onclick = () => { input.type = input.type === 'password' ? 'text' : 'password'; toggle.textContent = input.type === 'password' ? 'Hiện' : 'Ẩn'; };
-      modal.el.querySelector('[data-secret-cancel]').onclick = () => modal.close();
-      input.addEventListener('keydown', e => { if (e.key === 'Enter') submit.click(); });
-      submit.onclick = () => {
-        if (!input.value) { error.textContent = 'Vui lòng nhập mã quản trị.'; input.focus(); return; }
-        completed = true;
-        const code = input.value;
-        input.value = '';
-        modal.close();
-        resolve(code);
-      };
-      input.focus();
-    });
-  }
   function writeError(response) {
     if (response.status === 403) return 'Mã quản trị không chính xác. Vui lòng thử lại.';
     if (response.status === 503) return 'Chức năng ghi server chưa được cấu hình hợp lệ. Liên hệ quản trị viên.';
@@ -94,7 +67,7 @@
           const response = await perform(code);
           if (!response.ok) {
             error.textContent = writeError(response);
-            if (response.status !== 403) { submit.disabled = true; return; }
+            if (response.status !== 403) { return; }
             input.focus();
             return;
           }
@@ -102,7 +75,7 @@
           modal.close();
           resolve(response);
         } catch (e) { error.textContent = 'Không kết nối được server. Vui lòng thử lại.'; }
-        finally { if (submit.isConnected && !finished && !submit.disabled) submit.disabled = false; if (submit.isConnected && !finished && error.textContent.startsWith('Mã quản trị')) submit.disabled = false; }
+        finally { if (submit.isConnected && !finished) submit.disabled = false; }
       };
       input.focus();
     });
