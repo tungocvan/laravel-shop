@@ -271,3 +271,13 @@ A future Website change must begin from a newly stated objective and must not tr
 - UI smoke: user confirmed TEST + UI PASS for Footer Studio/Admin and public Footer before PR #314; no source/UI changes in this test-only follow-up. Post-fix UI rerun not independently reported.
 - Known issues: no runtime issue demonstrated by these string-assertion failures. Existing unrelated local untracked `.env.backup-before-ngrok-session` and `public/hot.pharma-mobile` must remain untouched.
 - Next: review test-only PR, verify Git clean for tracked files and applicable checks, obtain user authorization before merging into main; no full-project regression required for this Website-only contract correction.
+
+## 2026-10-28 — Pharma header nested menu fix (pending local gates)
+
+- Branch: `fix/website-pharma-header-nested-menu-20261028` from main `55d90d4bb`.
+- Root cause: `Modules/Website/resources/views/partials/pharma/header.blade.php` rendered only top-level items although `HeaderMenuService::getMenuTreeByLocation()` already eager-loads active children. Admin menu editor showed two Demo children but public header did not.
+- Change: render nested children on desktop via hover/click keyboard-accessible toggle, on mobile via expandable toggle; preserve existing parent links, menu style, active flags and database/menu service ownership. No schema/config/env changes.
+- Focused test: `php artisan test tests/Feature/Website/PharmaHeaderMenuAppearanceContractTest.php`.
+- Regression after focused PASS: `php artisan test tests/Feature/Website/PharmaHeaderBuilderSavePersistenceContractTest.php tests/Feature/Website/WebsiteHeaderBuilderInteractionTest.php tests/Feature/Website/PharmaIphoneHeaderResponsiveContractTest.php`.
+- UI gate: user verifies desktop hover/click/keyboard, iPhone mobile drawer expansion, parent links, two Demo child destinations, existing navigation and no JS console errors. **Do not mark PASS until local results and user confirmation.**
+- Do not merge/deploy before user approval; leave existing untracked files untouched.
