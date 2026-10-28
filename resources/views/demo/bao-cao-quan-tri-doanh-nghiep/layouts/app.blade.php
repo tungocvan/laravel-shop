@@ -11,5 +11,6 @@
 <body>
     @yield('content')
     <script src="{{ asset('demo-assets/bao-cao-quan-tri-doanh-nghiep/js/app.js') }}" defer></script>
+    <script src="{{ asset('demo-assets/bao-cao-quan-tri-doanh-nghiep/js/preferences.js') }}" defer></script>
 </body>
 </html>
