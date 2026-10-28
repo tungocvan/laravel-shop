@@ -28,6 +28,16 @@ class SharedDemoSidebarMenuTest extends TestCase
         }
     }
 
+    public function test_debt_demo_mounts_shared_editor_without_replacing_legacy_api(): void
+    {
+        $this->get('/demo/quan-ly-cong-no')->assertOk()
+            ->assertSee('data-demo-menu="quan-ly-cong-no"', false)
+            ->assertSee('demo/shared/sidebar-menu/menu-builder.js')
+            ->assertSee('demo-assets/quan-ly-cong-no/js/menu-builder.js');
+
+        $this->getJson('/demo/quan-ly-cong-no/menu')->assertOk()->assertJsonStructure(['config']);
+    }
+
     public function test_each_demo_has_independent_menu_storage(): void
     {
         Storage::fake('local');
