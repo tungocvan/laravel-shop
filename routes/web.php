@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Demo\HumanResourcesController;
+use App\Http\Controllers\Demo\HumanResourcesDatasetController;
 use App\Http\Controllers\Demo\SalesEmployeesController;
 use App\Http\Controllers\Demo\DebtManagementController;
 use App\Http\Controllers\Demo\DebtManagementDatasetController;
@@ -11,6 +13,11 @@ use App\Http\Controllers\Demo\WarehouseDemoDatasetController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Modules\System\Services\ApplicationRootRedirectService;
+
+Route::get('/demo/quan-ly-nhan-su', HumanResourcesController::class)->name('demo.human-resources');
+Route::get('/demo/quan-ly-nhan-su/datasets', [HumanResourcesDatasetController::class, 'index'])->name('demo.human-resources.datasets');
+Route::get('/demo/quan-ly-nhan-su/datasets/{dataset}', [HumanResourcesDatasetController::class, 'show'])->name('demo.human-resources.datasets.show');
+Route::post('/demo/quan-ly-nhan-su/datasets', [HumanResourcesDatasetController::class, 'store'])->middleware('throttle:5,1')->name('demo.human-resources.datasets.store');
 
 // Standalone debt management demo (one GET route, browser-only persistence).
 Route::get('/demo/quan-ly-cong-no', DebtManagementController::class)
@@ -53,12 +60,12 @@ Route::post('/demo/quan-ly-xuat-nhap-ton/datasets', [WarehouseDemoDatasetControl
 
 // Route-cache-safe shared sidebar endpoints for two standalone demos.
 Route::prefix('/demo/{demo}/menu')->group(function () {
-    Route::get('/', [SharedSidebarMenuController::class, 'show'])->where('demo', 'doanh-so-nhan-vien|quan-ly-xuat-nhap-ton');
-    Route::post('/', [SharedSidebarMenuController::class, 'store'])->middleware('throttle:5,1')->where('demo', 'doanh-so-nhan-vien|quan-ly-xuat-nhap-ton');
-    Route::get('/presets', [SharedSidebarMenuController::class, 'index'])->where('demo', 'doanh-so-nhan-vien|quan-ly-xuat-nhap-ton');
-    Route::get('/presets/{preset}', [SharedSidebarMenuController::class, 'preset'])->where('demo', 'doanh-so-nhan-vien|quan-ly-xuat-nhap-ton');
-    Route::post('/presets', [SharedSidebarMenuController::class, 'savePreset'])->middleware('throttle:5,1')->where('demo', 'doanh-so-nhan-vien|quan-ly-xuat-nhap-ton');
-    Route::delete('/presets/{preset}', [SharedSidebarMenuController::class, 'deletePreset'])->middleware('throttle:5,1')->where('demo', 'doanh-so-nhan-vien|quan-ly-xuat-nhap-ton');
+    Route::get('/', [SharedSidebarMenuController::class, 'show'])->where('demo', 'doanh-so-nhan-vien|quan-ly-xuat-nhap-ton|quan-ly-nhan-su');
+    Route::post('/', [SharedSidebarMenuController::class, 'store'])->middleware('throttle:5,1')->where('demo', 'doanh-so-nhan-vien|quan-ly-xuat-nhap-ton|quan-ly-nhan-su');
+    Route::get('/presets', [SharedSidebarMenuController::class, 'index'])->where('demo', 'doanh-so-nhan-vien|quan-ly-xuat-nhap-ton|quan-ly-nhan-su');
+    Route::get('/presets/{preset}', [SharedSidebarMenuController::class, 'preset'])->where('demo', 'doanh-so-nhan-vien|quan-ly-xuat-nhap-ton|quan-ly-nhan-su');
+    Route::post('/presets', [SharedSidebarMenuController::class, 'savePreset'])->middleware('throttle:5,1')->where('demo', 'doanh-so-nhan-vien|quan-ly-xuat-nhap-ton|quan-ly-nhan-su');
+    Route::delete('/presets/{preset}', [SharedSidebarMenuController::class, 'deletePreset'])->middleware('throttle:5,1')->where('demo', 'doanh-so-nhan-vien|quan-ly-xuat-nhap-ton|quan-ly-nhan-su');
 });
 
 Route::fallback(function (Request $request) {

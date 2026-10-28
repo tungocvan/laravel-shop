@@ -19,6 +19,7 @@ Khi người dùng gửi file HTML, URL HTML, GitHub link chứa HTML, yêu cầ
 - Một GET route **chính** cho giao diện, Controller riêng, Blade layout riêng, pages và partials cho sidebar/header/modal.
 - Có thể có **API GET/POST phụ trợ** cho thư viện JSON server khi được phê duyệt; không coi API là route giao diện bổ sung.
 - CSS/JS tách riêng; bảo toàn DOM ID, CSS class, sự kiện, dữ liệu và hành vi gốc.
+- **Bắt buộc tránh trùng đường dẫn:** không tạo thư mục vật lý `public/demo/{demo-slug}/` khi có route giao diện `/demo/{demo-slug}`. Dùng `public/demo-assets/{demo-slug}/` hoặc đường dẫn asset đã được audit là không xung đột.
 - Không dùng database nếu không yêu cầu; localStorage giữ dữ liệu nghiệp vụ của từng trình duyệt.
 - Không ảnh hưởng Module/Demo khác; không tự ý thêm route hoặc ghi đè Demo hiện có.
 
@@ -32,10 +33,39 @@ resources/views/demo/{demo-slug}/
   layouts/app.blade.php
   pages/*.blade.php
   partials/*.blade.php
-public/demo/{demo-slug}/css/app.css
-public/demo/{demo-slug}/js/app.js
+public/demo-assets/{demo-slug}/css/app.css
+public/demo-assets/{demo-slug}/js/app.js
 docs/demos/{DEMO_NAME}.md
 ```
+
+### 2.1. Cảnh báo bắt buộc: Nginx 301 → 403 khi thư mục asset trùng route
+
+**Sự cố thực tế (2026-10-28, Quản lý nhân sự):**
+
+- Laravel có route `GET /demo/quan-ly-nhan-su`, nhưng source đồng thời tạo thư mục vật lý `public/demo/quan-ly-nhan-su/` để chứa CSS/JS.
+- Nginx ưu tiên xử lý thư mục thực tế: request **không có slash cuối** bị chuyển `301 Location: /demo/quan-ly-nhan-su/`; request **có slash cuối** nhận `403 Forbidden` vì thư mục không có index được phép truy cập. Request không tới Laravel Controller.
+- `php artisan route:list` vẫn hiển thị route chính xác; vì vậy **route tồn tại không chứng minh request đã vào Laravel**. Trang lỗi mang chữ ký `nginx/...` là manh mối cần đối chiếu bằng HTTP response và log.
+
+**Quy tắc phòng ngừa (áp dụng cho mọi standalone demo mới):**
+
+1. Trước khi tạo asset, đối chiếu `routes/web.php`, `public/demo/` và đường dẫn GET UI. Không đặt asset trong `public/demo/{demo-slug}/` nếu slug đó cũng là route.
+2. Mặc định đặt CSS/JS tại `public/demo-assets/{demo-slug}/css|js/`; tham chiếu bằng `asset('demo-assets/{demo-slug}/...')`. Khi dùng `filemtime(public_path(...))` để cache-bust, đường dẫn phải khớp file thật.
+3. Không tự ý đổi đường dẫn asset của demo cũ đang hoạt động; chỉ di chuyển khi đã audit và có regression.
+4. Khi phát hiện 301/403, **kiểm tra read-only trước**:
+
+   ```bash
+   php artisan route:list --path=demo/{demo-slug}
+   ls -ld public/demo/{demo-slug} public/demo-assets/{demo-slug} 2>&1
+   curl -sSI http://<local-host>/demo/{demo-slug}
+   curl -sSI http://<local-host>/demo/{demo-slug}/
+   ```
+
+   Thay `<local-host>` bằng domain môi trường kiểm thử thực tế. Không dùng lệnh này với dữ liệu nhạy cảm trong URL. Nếu cần xem log hoặc cấu hình Nginx của Production, **đọc `docs/PRODUCTION_DEBUG_PROMPT.md` trên main mới nhất trước**.
+5. Ưu tiên xử lý ở cấu trúc asset/route của feature branch; **không tự sửa Nginx**, restart/rebuild/deploy hoặc thay `.env` để chữa triệu chứng.
+6. Khi di chuyển file trên Git, Git chỉ loại bỏ **file tracked**. Thư mục cũ có thể còn do file **untracked**, nên `git pull` không bảo đảm thư mục biến mất. Kiểm tra `ls -la public/demo/{demo-slug}/` và `git status --short`; **không dùng `rm -rf` hoặc xóa file untracked** khi chưa xác định quyền sở hữu và được người dùng cho phép.
+7. Sau khi xử lý, xác minh URL UI không slash cuối trả HTTP 200, kiểm tra hành vi URL có slash cuối theo routing hiện hành, CSS/JS tải thành công, không có console error, không ảnh hưởng demo khác. Chạy focused tests → impacted regression → UI acceptance theo workflow. Không tuyên bố PASS nếu chưa có output/kiểm tra thực tế.
+
+**Gate bắt buộc cho PR HTML → Blade:** xác nhận route UI và thư mục vật lý asset **không trùng nhau**, kiểm tra cả hai dạng URL và có test/acceptance bảo vệ đường dẫn asset.
 
 ## 3. Thư viện dữ liệu JSON mẫu trên server
 
@@ -199,6 +229,7 @@ Kiểm tra focused + impacted tests, `git diff --check`, tracked tree sạch, ha
 
 - [ ] HTML đã audit; kiến trúc và phạm vi được duyệt.
 - [ ] Route/controller/Blade/assets độc lập; không phá hành vi gốc.
+- [ ] Không có thư mục `public/demo/{demo-slug}/` xung đột với route UI; HTTP không-slash/slash đã kiểm tra; CSS/JS load đúng; không xóa file untracked.
 - [ ] localStorage, JSON import/export hoạt động.
 - [ ] Dataset server bảo mật, giới hạn và validation đầy đủ nếu áp dụng.
 - [ ] 4 theme, persistence, responsive và cache busting nếu áp dụng.

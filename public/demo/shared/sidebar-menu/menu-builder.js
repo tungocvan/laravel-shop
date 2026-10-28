@@ -6,8 +6,8 @@
   const slug = root.dataset.demoMenu;
   const url = '/demo/' + slug + '/menu';
   const key = slug === 'quan-ly-cong-no' ? 'debt_management_sidebar_menu_v1' : 'shared_demo_sidebar_menu_v1_' + slug;
-  const debtMode = slug === 'quan-ly-cong-no';
-  const bridge = debtMode ? window.DebtDemoMenuBridge : null;
+  const debtMode = slug === 'quan-ly-cong-no' || slug === 'quan-ly-nhan-su';
+  const bridge = debtMode ? (slug === 'quan-ly-nhan-su' ? window.HrDemoMenuBridge : window.DebtDemoMenuBridge) : null;
   const nav = document.querySelector('#nav');
   const sidebar = document.querySelector('#sb');
   if (debtMode ? !bridge : (!nav || !sidebar)) return;
