@@ -43,4 +43,5 @@
 <script id="du-lieu" type="application/json">{}</script>
 <script src="{{ asset('demo/sales-employees/js/app.js') }}?v={{ filemtime(public_path('demo/sales-employees/js/app.js')) }}"></script>
 </body>
+<x-demo.sidebar-menu-builder slug="doanh-so-nhan-vien" />
 @endsection
