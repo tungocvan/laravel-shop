@@ -20,3 +20,11 @@
 - **Chưa triển khai** API lưu/preset JSON trên server, xác thực mã quản trị, kéo thả giữa nhóm hoặc export/import menu. Đây là batch tiếp theo, không được xem là hoàn thành tiêu chuẩn server-side.
 - Gate: `php artisan test tests/Feature/EnterpriseManagementReportDemoTest.php tests/Feature/EnterpriseManagementReportPreferencesTest.php`, `node --check public/demo-assets/bao-cao-quan-tri-doanh-nghiep/js/preferences.js`, sau đó regression demo Sales và UI desktop/tablet/iPhone.
 - UI acceptance cần xác nhận lại sau thay đổi, đặc biệt F5, thay theme, chỉnh footer, các menu điều hướng và hành vi lưu HTML offline.
+
+
+## Blade persistence safety (2026-10-28)
+
+- Trên HTTP(S), nút lưu và Ctrl+S chỉ xác nhận localStorage của trình duyệt, không tạo/tải file HTML. `saveToFile()` giữ nhánh offline cho bản HTML gốc nếu được chạy trực tiếp từ `file:`.
+- Không tuyên bố dữ liệu đã lưu lên server. Chức năng sao lưu/khôi phục JSON và Excel giữ nguyên.
+- Đã audit source tham khảo trên main: `public/demo-assets/quan-ly-cong-no/js/menu-builder.js` và `app/Http/Controllers/Demo/DebtManagementMenuController.php`. Editor riêng `preferences.js` hiện **chưa** được thay bằng cơ chế dùng chung, chưa có API server/presets. Cần batch tiếp theo sau audit chi tiết schema/route/auth và focused tests bảo mật.
+- Checkpoint: `php artisan test tests/Feature/EnterpriseManagementReportDemoTest.php tests/Feature/EnterpriseManagementReportPreferencesTest.php`, sau PASS chạy impacted regression; `node --check` cả `app.js` và `preferences.js`; UI cần xác nhận lại.
