@@ -1,8 +1,4 @@
-
-// Chụp lại mã gốc của trang trước khi vẽ giao diện, dùng làm khung khi lưu ra file
-const PRISTINE = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
-const KEY = 'qlns_data_v1';
-const DEPTS = ['Ban Giám đốc','Kế toán','Nhân sự','Kinh doanh','Marketing','Kho vận','IT'];
+// Browser-first HR demo; never overwrite rendered Blade/HTML.\nconst KEY = 'qlns_data_v2';\nconst DEPTS = ['Ban Giám đốc','Kế toán','Nhân sự','Kinh doanh','Marketing','Kho vận','IT'];
 const STATUSES = [['Đang làm','#22c55e'],['Thử việc','#3b82f6'],['Nghỉ phép','#f59e0b'],['Đã nghỉ việc','#94a3b8']];
 const photo = (g, n) => `https://randomuser.me/api/portraits/${g === 'Nữ' ? 'women' : 'men'}/${n}.jpg`;
 
@@ -53,19 +49,20 @@ let editing = null, tempPhoto = '';
 
 // Ưu tiên dữ liệu trong file. Chỉ lấy bản trong trình duyệt khi đó là phần sửa tiếp trên đúng bản file này mà chưa bấm Lưu.
 function load(){
-  try{
-    const s = JSON.parse(localStorage.getItem(KEY));
-    const local = Array.isArray(s) ? {base:null, data:s, dirty:true} : s;
-    if(local && Array.isArray(local.data) && local.base === fileStamp){ dirty = !!local.dirty; return local.data; }
-  }catch(e){}
-  if(FILE && Array.isArray(FILE.data)) return FILE.data;
+  try {
+    const saved=JSON.parse(localStorage.getItem(KEY));
+    if (saved && Array.isArray(saved.data)) return saved.data;
+    const legacy=JSON.parse(localStorage.getItem('qlns_data_v1'));
+    if (Array.isArray(legacy?.data)) return legacy.data;
+    if (Array.isArray(legacy)) return legacy;
+  } catch(e) { console.warn('Không đọc được dữ liệu cục bộ', e); }
+  if (FILE && Array.isArray(FILE.data)) return JSON.parse(JSON.stringify(FILE.data));
   return JSON.parse(JSON.stringify(SAMPLE));
 }
 function save(){
   dirty = true;
-  // Bộ nhớ trình duyệt chỉ giữ bản nháp. Đầy thì nhắc bấm Lưu, dữ liệu vẫn ghi vào file bình thường.
-  try{ localStorage.setItem(KEY, JSON.stringify({base:fileStamp, data, dirty:true})); }
-  catch(e){ try{ localStorage.removeItem(KEY); }catch(_){} toast('Dữ liệu lớn hơn bộ nhớ trình duyệt, nhớ bấm Lưu để ghi vào file'); }
+  try { localStorage.setItem(KEY, JSON.stringify({data, savedAt:new Date().toISOString()})); }
+  catch(e) { toast('Bộ nhớ trình duyệt đầy: hãy xuất JSON để sao lưu'); }
   updateSaveBtn();
 }
 
@@ -422,90 +419,94 @@ function resetData(){
   data = JSON.parse(JSON.stringify(SAMPLE)); save(); toggleSide(false); render(); toast('Đã nạp lại dữ liệu mẫu');
 }
 
-/* ---------- Lưu vào file ---------- */
-const FILE_NAME = decodeURIComponent(location.pathname.split('/').pop() || '') || 'Quan_ly_nhan_su.html';
-let fileHandle = null;
-
+/* ---------- Sao lưu JSON; thư viện server không ghi đè file HTML ---------- */
+function hrPayload(name='Dữ liệu nhân sự') {
+  return {name, savedAt:new Date().toISOString(), data};
+}
+function hrDownload(payload, filename) {
+  const url=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json;charset=utf-8'}));
+  const a=document.createElement('a');a.href=url;a.download=filename;a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function saveFile(){
+  toggleSide(false);
+  hrDownload(hrPayload(), 'Quan_ly_nhan_su_'+new Date().toISOString().slice(0,10)+'.json');
+  dirty=false;updateSaveBtn();toast('Đã tải bản sao lưu JSON');
+}
 function updateSaveBtn(){
-  const b = $('btnSave');
-  if(!b) return;
-  b.textContent = dirty ? '💾 Lưu •' : '💾 Lưu';
-  b.style.borderColor = dirty ? '#f59e0b' : '';
-  b.title = dirty ? 'Có thay đổi chưa lưu vào file (Ctrl+S)' : 'Lưu toàn bộ dữ liệu vào chính file này (Ctrl+S)';
+  const b=$('btnSave');if(!b)return;
+  b.textContent=dirty?'💾 Xuất JSON •':'💾 Xuất JSON';
+  b.title='Sao lưu dữ liệu thành file JSON (Ctrl+S)';
 }
-
-// Ghép dữ liệu hiện tại vào khung trang gốc thành một file HTML hoàn chỉnh
-function buildHtml(stamp){
-  const json = JSON.stringify({savedAt:stamp, data}).replace(/</g, '\\u003c');
-  const open = '<scr' + 'ipt id="savedData" type="application/json">', close = '<\/scr' + 'ipt>';
-  const i = PRISTINE.indexOf(open), j = PRISTINE.indexOf(close, i);
-  return PRISTINE.slice(0, i + open.length) + json + PRISTINE.slice(j);
-}
-
-// Nhớ file đã chọn để lần sau mở lại vẫn ghi đè được, chỉ cần bấm cho phép
-function idb(mode, val){
-  return new Promise(res => {
-    try{
-      const rq = indexedDB.open('qlns_file', 1);
-      rq.onupgradeneeded = () => rq.result.createObjectStore('h');
-      rq.onsuccess = () => {
-        try{
-          const tx = rq.result.transaction('h', mode), st = tx.objectStore('h');
-          const r = mode === 'readonly' ? st.get(FILE_NAME) : st.put(val, FILE_NAME);
-          r.onsuccess = () => res(r.result); r.onerror = () => res(null);
-        }catch(e){ res(null); }
-      };
-      rq.onerror = () => res(null);
-    }catch(e){ res(null); }
+function hrValidate(rows){
+  if(!Array.isArray(rows)||rows.length>10000)return false;
+  const ids=new Set();
+  return rows.every(e=>{
+    if(!e||typeof e!=='object'||typeof e.code!=='string'||!e.code||ids.has(e.code))return false;
+    ids.add(e.code);
+    return ['name','gender','dob','dept','role','phone','email','start','status'].every(k=>typeof e[k]==='string')
+      && Number.isFinite(Number(e.salary)) && Number(e.salary)>=0
+      && (e.photo===undefined || (typeof e.photo==='string'&&e.photo.length<=2000000));
   });
 }
-
-async function saveFile(){
+function hrRestore(payload){
+  if(!hrValidate(payload?.data))throw Error('Dữ liệu nhân viên không hợp lệ.');
+  if(!confirm('Thay thế toàn bộ dữ liệu nhân sự hiện tại?'))return;
+  data=JSON.parse(JSON.stringify(payload.data));save();render();toast('Đã khôi phục dữ liệu JSON');
+}
+async function hrImportFile(input){
+  const file=input.files?.[0];if(!file)return;
+  try{
+    if(file.size>10485760)throw Error('File vượt 10 MiB.');
+    hrRestore(JSON.parse(await file.text()));
+  }catch(e){toast(e.message);}finally{input.value='';}
+}
+async function openHrLibrary(){
   toggleSide(false);
-  const stamp = new Date().toISOString();
-  const html = buildHtml(stamp);
-  if(window.showSaveFilePicker){
-    try{
-      if(!fileHandle){
-        const h = await idb('readonly');
-        if(h && h.name === FILE_NAME && (await h.requestPermission({mode:'readwrite'})) === 'granted') fileHandle = h;
-      }
-      if(!fileHandle){
-        toast('Chọn đúng file đang mở để ghi đè: ' + FILE_NAME);
-        fileHandle = await showSaveFilePicker({suggestedName:FILE_NAME, startIn:'downloads', types:[{description:'Trang HTML', accept:{'text/html':['.html']}}]});
-        idb('readwrite', fileHandle);
-      }
-      const w = await fileHandle.createWritable();
-      await w.write(new Blob([html], {type:'text/html;charset=utf-8'}));
-      await w.close();
-      afterSave(stamp, fileHandle.name === FILE_NAME ? 'Đã lưu vào file ' + FILE_NAME : 'Đã lưu sang file ' + fileHandle.name);
-    }catch(e){
-      if(e.name === 'AbortError') return;
-      fileHandle = null;
-      toast('Không ghi được file, thử bấm Lưu lại');
-    }
-    return;
-  }
-  // Trình duyệt không cho ghi đè: tải về một bản mới có kèm ngày giờ
-  const d = new Date(), p = n => String(n).padStart(2, '0');
-  const name = FILE_NAME.replace(/\.html?$/i, '') + '_' + d.getFullYear() + p(d.getMonth()+1) + p(d.getDate()) + '_' + p(d.getHours()) + p(d.getMinutes()) + '.html';
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([html], {type:'text/html;charset=utf-8'}));
-  a.download = name;
-  a.click();
-  afterSave(stamp, 'Đã tải bản mới về Downloads: ' + name);
+  const dlg=$('hrLibrary');dlg.showModal();await hrRefreshLibrary();
 }
-
-function afterSave(stamp, msg){
-  fileStamp = stamp;
-  dirty = false;
-  try{ localStorage.setItem(KEY, JSON.stringify({base:fileStamp, data, dirty:false})); }catch(e){ try{ localStorage.removeItem(KEY); }catch(_){} }
-  updateSaveBtn();
-  toast(msg);
+async function hrRefreshLibrary(){
+  const target=$('hrDatasetList');target.textContent='Đang tải...';
+  try{
+    const r=await fetch('/demo/quan-ly-nhan-su/datasets',{cache:'no-store'});
+    if(!r.ok)throw Error('HTTP '+r.status);
+    const {datasets}=await r.json();target.replaceChildren();
+    if(!datasets.length)target.textContent='Chưa có dữ liệu trên server.';
+    datasets.forEach(item=>{
+      const b=document.createElement('button');b.type='button';b.className='btn btn-light';
+      b.textContent=item.name+' ('+item.employees+' nhân viên)';
+      b.onclick=async()=>{
+        try{const res=await fetch('/demo/quan-ly-nhan-su/datasets/'+encodeURIComponent(item.id),{cache:'no-store'});
+          if(!res.ok)throw Error('HTTP '+res.status);
+          hrRestore(await res.json());$('hrLibrary').close();
+        }catch(e){toast('Không thể nạp JSON: '+e.message);}
+      };target.append(b);
+    });
+  }catch(e){target.textContent='Không tải được thư viện: '+e.message;}
 }
-
+async function hrStoreLibrary(){
+  const code=$('hrBackupCode').value;
+  const name=$('hrDatasetName').value.trim();
+  if(!name||!code){toast('Nhập tên và mã quản trị');return;}
+  try{
+    const r=await fetch('/demo/quan-ly-nhan-su/datasets',{method:'POST',
+      headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content,'X-Demo-Backup-Code':code},
+      body:JSON.stringify({name,data})});
+    if(!r.ok)throw Error('HTTP '+r.status);
+    $('hrBackupCode').value='';toast('Đã lưu JSON lên server');await hrRefreshLibrary();
+  }catch(e){toast('Không thể lưu JSON: '+e.message);}
+}
+const HR_THEMES={ruby:'#C62828',ocean:'#087E9B',emerald:'#16835D',indigo:'#4F46E5'};
+function hrSetTheme(name){
+  if(!Object.hasOwn(HR_THEMES,name))name='emerald';
+  document.documentElement.style.setProperty('--primary',HR_THEMES[name]);
+  document.documentElement.style.setProperty('--accent',HR_THEMES[name]);
+  document.documentElement.dataset.hrTheme=name;
+  try{localStorage.setItem('qlns_theme_v1',name);}catch(e){}
+  const select=$('hrTheme');if(select)select.value=name;
+}
 document.addEventListener('keydown', ev => { if((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 's'){ ev.preventDefault(); saveFile(); } });
-window.addEventListener('beforeunload', ev => { if(dirty){ ev.preventDefault(); ev.returnValue = ''; } });
+
 
 function toast(msg){
   const t = $('toast');
@@ -520,3 +521,5 @@ $('fDeptIn').innerHTML = opts;
 $('dbDept').innerHTML += opts;
 render();
 updateSaveBtn();
+
+hrSetTheme(localStorage.getItem('qlns_theme_v1')||'emerald');
