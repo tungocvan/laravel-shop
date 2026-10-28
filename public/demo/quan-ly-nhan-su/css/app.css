@@ -202,3 +202,18 @@
     .col .v{font-size:12px}
     .db-filter select{min-width:0;flex:1}
   }
+
+/* Standalone HR theme and JSON library additions */
+.hr-theme-label{font-size:12px;color:var(--muted)}
+#hrTheme{border:1px solid var(--line);border-radius:8px;padding:9px;background:var(--card);color:var(--text)}
+#hrLibrary{border:1px solid var(--line);border-radius:16px;padding:0;max-width:min(620px,95vw);width:100%;color:var(--text);background:var(--card)}
+#hrLibrary::backdrop{background:rgba(15,23,42,.55)}
+.hr-library{padding:24px;display:grid;gap:12px}
+.hr-library h2{margin:0;font-size:20px}
+.hr-library p{margin:0;color:var(--muted);font-size:13px}
+.hr-library label{display:grid;gap:5px;font-size:13px}
+.hr-library input{width:100%;border:1px solid var(--line);border-radius:8px;padding:10px}
+.hr-library-actions{display:flex;flex-wrap:wrap;gap:8px}
+.hr-dataset-list{display:grid;gap:8px;max-height:35vh;overflow:auto}
+.hr-dataset-list button{text-align:left}
+@media(max-width:640px){.main header{flex-wrap:wrap}.hr-library{padding:16px}#hrTheme{max-width:130px}}
