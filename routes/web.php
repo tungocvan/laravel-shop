@@ -52,13 +52,13 @@ Route::post('/demo/quan-ly-xuat-nhap-ton/datasets', [WarehouseDemoDatasetControl
 
 
 // Route-cache-safe shared sidebar endpoints for two standalone demos.
-Route::prefix('/demo/{demo}/menu')->whereIn('demo', ['doanh-so-nhan-vien', 'quan-ly-xuat-nhap-ton'])->group(function () {
-    Route::get('/', [SharedSidebarMenuController::class, 'show']);
-    Route::post('/', [SharedSidebarMenuController::class, 'store'])->middleware('throttle:5,1');
-    Route::get('/presets', [SharedSidebarMenuController::class, 'index']);
-    Route::get('/presets/{preset}', [SharedSidebarMenuController::class, 'preset']);
-    Route::post('/presets', [SharedSidebarMenuController::class, 'savePreset'])->middleware('throttle:5,1');
-    Route::delete('/presets/{preset}', [SharedSidebarMenuController::class, 'deletePreset'])->middleware('throttle:5,1');
+Route::prefix('/demo/{demo}/menu')->group(function () {
+    Route::get('/', [SharedSidebarMenuController::class, 'show'])->where('demo', 'doanh-so-nhan-vien|quan-ly-xuat-nhap-ton');
+    Route::post('/', [SharedSidebarMenuController::class, 'store'])->middleware('throttle:5,1')->where('demo', 'doanh-so-nhan-vien|quan-ly-xuat-nhap-ton');
+    Route::get('/presets', [SharedSidebarMenuController::class, 'index'])->where('demo', 'doanh-so-nhan-vien|quan-ly-xuat-nhap-ton');
+    Route::get('/presets/{preset}', [SharedSidebarMenuController::class, 'preset'])->where('demo', 'doanh-so-nhan-vien|quan-ly-xuat-nhap-ton');
+    Route::post('/presets', [SharedSidebarMenuController::class, 'savePreset'])->middleware('throttle:5,1')->where('demo', 'doanh-so-nhan-vien|quan-ly-xuat-nhap-ton');
+    Route::delete('/presets/{preset}', [SharedSidebarMenuController::class, 'deletePreset'])->middleware('throttle:5,1')->where('demo', 'doanh-so-nhan-vien|quan-ly-xuat-nhap-ton');
 });
 
 Route::fallback(function (Request $request) {
