@@ -15,5 +15,6 @@
     <script src="{{ asset('demo-assets/cham-cong-tinh-luong/js/core.js') }}"></script>
     <script src="{{ asset('demo-assets/cham-cong-tinh-luong/js/payroll.js') }}"></script>
     <script src="{{ asset('demo-assets/cham-cong-tinh-luong/js/extensions.js') }}"></script>
+    <x-demo.sidebar-menu-builder slug="cham-cong-tinh-luong" />
 </body>
 </html>
