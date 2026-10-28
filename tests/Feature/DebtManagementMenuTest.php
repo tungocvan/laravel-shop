@@ -112,6 +112,23 @@ class DebtManagementMenuTest extends TestCase
         ])->assertUnprocessable();
     }
 
+    public function test_delete_preset_requires_code_and_does_not_delete_active_menu(): void
+    {
+        Storage::fake('local');
+        config()->set('warehouse_demo.backup_code', 'this-is-a-long-private-code');
+        $headers = ['X-Demo-Backup-Code' => 'this-is-a-long-private-code'];
+        $url = '/demo/quan-ly-cong-no/menu/presets';
+        $created = $this->postJson($url, ['name' => 'Sidebar A', 'config' => $this->menu()], $headers)
+            ->assertCreated()->json();
+        $target = $url.'/'.$created['id'];
+        $this->deleteJson($target)->assertForbidden();
+        $this->getJson($target)->assertOk();
+        $this->deleteJson($target, [], $headers)->assertOk()->assertJsonPath('deleted', true);
+        $this->getJson($target)->assertNotFound();
+        $this->getJson($url)->assertJsonCount(0, 'presets');
+        $this->getJson('/demo/quan-ly-cong-no/menu')->assertJsonPath('config', null);
+    }
+
     public function test_rejects_oversized_menu(): void
     {
         Storage::fake('local');
