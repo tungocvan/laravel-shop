@@ -127,7 +127,7 @@ function loadData(){
 }
 function persist(){try{localStorage.setItem(LSKEY(),JSON.stringify(S));return true}catch(e){return false}}
 function save(){S.updated=Date.now();DIRTY=true;
-  if(!persist())toast('Bộ nhớ tạm của trình duyệt đã đầy, hãy bấm Lưu đè dữ liệu ngay để ghi vào file','err');
+  if(!persist())toast('Không thể lưu trong trình duyệt; hãy sao lưu dữ liệu JSON','err');
   refreshChrome();refreshSave()}
 function askRestore(){const d=DRAFT_FOUND;
   openModal(`<div class="modal-h"><h3>Có bản tạm chưa lưu vào file</h3><button class="x" onclick="closeModal()">×</button></div>
@@ -153,6 +153,10 @@ async function buildHtml(data){
   if(a<0||b<0)throw new Error('Không tìm thấy khối dữ liệu trong mẫu HTML');
   return template.slice(0,a+open.length)+json+template.slice(b);
 }async function saveToFile(){
+  if(ONLINE){
+    if(persist()){DIRTY=false;refreshSave();toast('Đã lưu trong trình duyệt này. Hãy sao lưu JSON để chuyển thiết bị.')}else toast('Không thể lưu vào trình duyệt; hãy sao lưu JSON','err');
+    return;
+  }
   const data={...S,savedAt:Date.now()};data.updated=Math.max(S.updated||0,data.savedAt);
   const html=await buildHtml(data),name=FILE_NAME();
   if(ONLINE||!window.showSaveFilePicker)return downloadHtml(html,data);
@@ -181,10 +185,11 @@ function askPick(){return new Promise(res=>{
 async function forgetFile(){FH=null;await idbSet(LSKEY(),null);saveToFile()}
 function refreshSave(){
   const st=$('#saveSt'),bt=$('#saveBtn');if(!st)return;
+  if(ONLINE){bt.classList.remove('dirty');st.className='savest clean';st.innerHTML='<b>Dữ liệu trong trình duyệt</b>Không lưu lên server';return;}
   bt.classList.toggle('dirty',DIRTY);st.className='savest '+(DIRTY?'dirty':'clean');
   st.innerHTML=DIRTY?'<b>Chưa lưu vào file</b>có thay đổi mới':SAVED_AT?'<b>Đã lưu vào file</b>lúc '+hm(SAVED_AT):'<b>Dữ liệu mẫu</b>chưa lưu lần nào'}
 document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();saveToFile()}});
-window.addEventListener('beforeunload',e=>{if(DIRTY){e.preventDefault();e.returnValue=''}});
+window.addEventListener('beforeunload',e=>{if(!ONLINE&&DIRTY){e.preventDefault();e.returnValue=''}});
 
 /* =========================================================
    KHUNG GIAO DIỆN: sidebar, thanh trên, điều hướng
@@ -203,7 +208,7 @@ function buildShell(){
       ${(APP.quick||[]).map(q=>`<button class="btn ${q.cls||'pri'} qk noprint" onclick="${q.fn}">${IC[q.icon]||IC.plus}${esc(q.label)}</button>`).join('')}
       <button class="btn xl noprint" onclick="exportAll()" title="Xuất toàn bộ bảng ra file Excel .xlsx, mỗi bảng một sheet">${IC.xl}<span class="t">Xuất Excel</span></button>
       <div class="savebox noprint"><div class="savest" id="saveSt"></div>
-        <button class="btn save" id="saveBtn" title="Ghi dữ liệu vào chính file này (Ctrl + S)" onclick="saveToFile()">${IC.save}<span class="t">Lưu đè dữ liệu</span></button></div>
+        <button class="btn save" id="saveBtn" title="Lưu dữ liệu trong trình duyệt (Ctrl + S)" onclick="saveToFile()">${IC.save}<span class="t">Lưu trong trình duyệt</span></button></div>
     </div>`;
   $('#content').innerHTML=Object.keys(APP.pages).map(k=>`<section class="page" id="page-${k}"></section>`).join('');
   $$('#nav a').forEach(a=>a.onclick=()=>go(a.dataset.page));
@@ -622,7 +627,7 @@ function crud(cfg){
 function renderSettings(){
   const e=$('#page-settings');const c=co();
   e.innerHTML=`<div class="set-grid">
-    <div class="card"><div class="set-ic" style="background:var(--cd-nhat);color:var(--cd-dam)">${IC.save}</div><h4>Lưu đè dữ liệu vào file</h4><p>Ghi toàn bộ dữ liệu hiện tại vào chính file .html này. Lần sau mở file là thấy dữ liệu mới nhất. Phím tắt: Ctrl + S.</p><button class="btn save" onclick="saveToFile()">${IC.save}Lưu đè dữ liệu</button> <button class="btn sm" onclick="forgetFile()" title="Chọn lại file để ghi đè">Chọn lại file</button></div>
+    <div class="card"><div class="set-ic" style="background:var(--cd-nhat);color:var(--cd-dam)">${IC.save}</div><h4>Lưu dữ liệu trong trình duyệt</h4><p>Dữ liệu lưu trên thiết bị này, không ghi lên Laravel server. Nên tải bản sao lưu JSON định kỳ để tránh mất dữ liệu.</p><button class="btn save" onclick="saveToFile()">${IC.save}Lưu trong trình duyệt</button></div>
     <div class="card"><div class="set-ic" style="background:#e7f6ee;color:#137a48">${IC.xl}</div><h4>Xuất Excel</h4><p>Tải file .xlsx gồm mọi bảng dữ liệu, mỗi bảng một sheet, tiêu đề in đậm, số là số để tính tiếp trong Excel.</p><button class="btn xl" onclick="exportAll()">${IC.xl}Xuất Excel</button></div>
     <div class="card"><div class="set-ic" style="background:var(--inbg);color:var(--in)">${IC.down}</div><h4>Sao lưu dữ liệu</h4><p>Tải toàn bộ dữ liệu về một file .json để cất giữ riêng, phòng khi file bị hỏng hoặc xóa nhầm.</p><button class="btn" onclick="backupJson()">Tải file sao lưu</button></div>
     <div class="card"><div class="set-ic" style="background:#e0f2fe;color:#0369a1">${IC.up}</div><h4>Khôi phục dữ liệu</h4><p>Chọn file .json đã sao lưu trước đó. Dữ liệu hiện tại sẽ được thay bằng dữ liệu trong file.</p><label class="btn" style="cursor:pointer">Chọn file sao lưu<input type="file" accept=".json" hidden onchange="restoreJson(this)"></label></div>
