@@ -211,12 +211,50 @@ Kiểm tra focused + impacted tests, `git diff --check`, tracked tree sạch, ha
 
 **Audit → Plan → Approval → Implement → Pull/Test → Regression → UI PASS → PR → Approved Merge → Main Sync.**
 
-## Shared Sidebar Menu Builder — Refactor in progress (2026-10-28)
+## Shared Sidebar Menu Builder — Component chuẩn dùng chung (2026-10-28)
 
-- Shared Blade mount: `<x-demo.sidebar-menu-builder slug="doanh-so-nhan-vien" />` or `slug="quan-ly-xuat-nhap-ton"`.
-- Shared browser editor: `public/demo/shared/sidebar-menu/menu-builder.js` and `menu-builder.css`. It reads each demo's `#nav`, `#sb`, and `#page-settings` DOM as its adapter, without modifying business records.
-- Shared backend controller: `SharedSidebarMenuController`; API uses `/demo/{demo}/menu` and `/presets`, isolated local-disk directories and existing operator secret; GET public, POST/DELETE CSRF and throttled.
-- Browser localStorage key is namespaced by demo slug. Unknown hash targets are disabled and external URLs must be HTTPS.
-- Debt management currently retains its existing `DebtManagementMenuController` and `menu-builder.js` until its separate adapter migration and compatibility tests are completed. **Do not claim all three demos use one runtime component yet.**
-- Required checkpoint: focused tests `SharedDemoSidebarMenuTest.php` then impacted sales, warehouse and debt regression, followed by explicit UI PASS for all three demo routes.
-- Avoid deleting legacy debt assets/storage or changing server menu JSON without an explicit migration and rollback plan.
+**Trạng thái:** Đã tích hợp trên feature branch `feat/shared-demo-sidebar-menu-20261028`. Người dùng đã xác nhận focused tests và UI PASS sau batch sửa Footer; **chưa đồng nghĩa đã merge vào `main`**. Khi áp dụng cho demo mới phải đối chiếu code và trạng thái GitHub mới nhất.
+
+### Các route đang sử dụng
+
+| Demo | Trang thiết lập | Adapter / lưu trữ |
+| --- | --- | --- |
+| Quản lý công nợ | `/demo/quan-ly-cong-no#caidat` | `DebtDemoMenuBridge`, giữ API và JSON/localStorage cũ |
+| Doanh số nhân viên | `/demo/doanh-so-nhan-vien#settings` | DOM `#sb`, `#nav`, `#page-settings`, namespace riêng |
+| Quản lý xuất nhập tồn | `/demo/quan-ly-xuat-nhap-ton#settings` | DOM `#sb`, `#nav`, `#page-settings`, namespace riêng |
+
+### Source of truth / cấu trúc
+
+- Blade component: `resources/views/components/demo/sidebar-menu-builder.blade.php`, dùng `<x-demo.sidebar-menu-builder slug="..." />` khi phù hợp với lifecycle của demo.
+- Giao diện và hành vi editor chung: `public/demo/shared/sidebar-menu/menu-builder.js` và `menu-builder.css`. Không copy/fork editor riêng cho từng demo.
+- API của Sales/Warehouse: `app/Http/Controllers/Demo/SharedSidebarMenuController.php`, `/demo/{demo}/menu` và `/presets`, lưu JSON riêng trong `storage/app` qua Laravel local disk.
+- Debt Management: `public/demo-assets/quan-ly-cong-no/js/menu-builder.js` cung cấp `DebtDemoMenuBridge` và vẫn dùng `DebtManagementMenuController`; không xóa, đổi schema, khóa localStorage hoặc di chuyển JSON cũ nếu chưa có migration được duyệt.
+- Handoff triển khai: `docs/demos/SHARED_SIDEBAR_MENU.md`. Audit adapter trước khi dùng cho demo mới, không giả định mọi sidebar có DOM giống nhau.
+
+### Quy chuẩn UI/UX đã thống nhất
+
+- Đặt nút **Chỉnh sửa menu** trong màn hình Cài đặt, không thêm nút toàn cục.
+- Modal **căn giữa**, chiều rộng vừa phải trên desktop (hiện tối đa 1080px), responsive tablet và toàn màn hình trên mobile hẹp.
+- Tabpanel gồm **Menu (mặc định)**, **Header**, **Footer**, **Thư viện JSON**. Chuyển tab không làm mất dữ liệu bản nháp.
+- Chỉ vùng nội dung tab cuộn; thanh hành động **cố định ở đáy modal và căn giữa**. Giữ keyboard focus và trạng thái tab dễ nhận biết.
+- Tab Menu chỉnh nhóm/mục, thứ tự, nhãn, icon và href. Tab Header chỉnh title, subtitle, icon và href.
+- Tab Footer chỉ có hai ô: **Tên công ty** (schema `footer.credit`) và **Đường liên kết** (`footer.href`). Không hiển thị `footer.showSave` trong editor; thuộc tính này có thể tiếp tục tồn tại trong JSON để tương thích demo cũ.
+- Footer sidebar phải có vùng hiển thị thực tế: Sales/Warehouse dùng `.sbfoot`; Warehouse đặt **bên dưới thẻ thống kê tồn kho**, không thay thế `.sbcard`. Debt sử dụng `.sidebar .credit` qua bridge. Khi có tên công ty và href HTTPS/hash hợp lệ, hiển thị liên kết; khi href rỗng, hiển thị văn bản; khi credit rỗng, không tạo nội dung giả.
+- Tab Thư viện JSON giữ thao tác liệt kê, lưu, nạp, xóa preset; nút Cập nhật giao diện, Mặc định, Nhập/Xuất JSON và Lưu lên server nằm ở footer modal.
+
+### Dữ liệu, bảo mật và tương thích
+
+- Giữ cấu hình versioned `{version,header,footer,groups}`; `footer.credit` và `footer.href` là chuỗi, `footer.showSave` giữ trong schema runtime hiện tại để tương thích.
+- Laravel `ConvertEmptyStringsToNull` có thể chuyển href rỗng thành null: chỉ chuẩn hóa **href tùy chọn** về `""` trước validation; không nới lỏng kiểm tra URL nguy hiểm.
+- API ghi cần mã quản trị xác thực phía server, CSRF, throttle, giới hạn JSON/ID/path, URL HTTPS hoặc hash hợp lệ; không lưu bí mật vào trình duyệt hay hardcode.
+- Không ảnh hưởng menu điều hướng, badge động, dữ liệu nghiệp vụ, theme, backup/restore hoặc các demo khác. Tránh nhân bản DOM làm mất sự kiện và badge live; kiểm tra kỹ sau mỗi thay đổi adapter.
+- Mỗi demo giữ cấu hình server và localStorage riêng; **không** dùng chung dữ liệu menu chỉ vì dùng chung component.
+
+### Acceptance khi tái sử dụng hoặc sửa component
+
+1. Chạy `node --check` cho JS chung và JS adapter bị ảnh hưởng.
+2. Chạy `php artisan test tests/Feature/SharedDemoSidebarMenuTest.php` trước, rồi focused/impacted regression cho từng demo liên quan.
+3. Kiểm tra UI cả ba route trên desktop/tablet/iPhone: mở modal, tab mặc định Menu, chuyển tab, chỉnh Header/Footer, cập nhật, F5, lưu/nạp/xóa JSON server, liên kết Footer, điều hướng sidebar và badge động.
+4. Không tuyên bố TEST PASS chỉ dựa vào commit; UI PASS phải do người dùng xác nhận cho **phạm vi thay đổi hiện tại**. Chỉ tạo/review PR và merge sau khi các gate đạt và được người dùng đồng ý.
+
+**Quy tắc cho HTML Demo mới:** audit trước; chỉ tích hợp Sidebar Menu Builder khi có sidebar, có màn hình Settings phù hợp và được người dùng phê duyệt. Ưu tiên adapter mới dùng chung editor thay vì sao chép logic từ demo khác.
