@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Demo\HumanResourcesController;
 use App\Http\Controllers\Demo\SalesEmployeesController;
 use App\Http\Controllers\Demo\DebtManagementController;
 use App\Http\Controllers\Demo\DebtManagementDatasetController;
@@ -11,6 +12,8 @@ use App\Http\Controllers\Demo\WarehouseDemoDatasetController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Modules\System\Services\ApplicationRootRedirectService;
+
+Route::get('/demo/quan-ly-nhan-su', HumanResourcesController::class)->name('demo.human-resources');
 
 // Standalone debt management demo (one GET route, browser-only persistence).
 Route::get('/demo/quan-ly-cong-no', DebtManagementController::class)
