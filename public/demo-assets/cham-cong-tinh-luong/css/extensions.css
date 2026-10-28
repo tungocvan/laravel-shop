@@ -14,3 +14,13 @@ body[data-payroll-theme="indigo"]{--p:#4f46e5;--p-d:#4338ca;--p-50:#f4f4ff;--p-1
 .payroll-status{min-height:24px;color:var(--p-d)}
 @media(max-width:800px){.payroll-grid{grid-template-columns:1fr}.payroll-theme-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:420px){.payroll-theme-grid{grid-template-columns:1fr}}
+
+/* Keep original inline SVG icon alignment in shared-menu rendered anchors. */
+.sidebar .nav a .payroll-menu-icon{display:inline-flex;align-items:center;justify-content:center;flex:0 0 20px;width:20px;height:20px}
+.sidebar .nav a .payroll-menu-icon svg{width:18px;height:18px;display:block;stroke:currentColor}
+.sidebar .nav a[aria-disabled="true"]{opacity:.65;cursor:not-allowed}
+#payroll-demo-settings{margin-top:24px}
+.payroll-section-title{font-size:18px;line-height:1.4;font-weight:700;margin:0 0 12px;color:var(--ink)}
+#payroll-demo-settings .payroll-grid .card{padding:18px}
+#payroll-demo-settings .payroll-grid .card h3{margin:0 0 12px}
+@media(max-width:800px){#payroll-demo-settings .payroll-grid .card[style*="grid-column"]{grid-column:auto!important}}
