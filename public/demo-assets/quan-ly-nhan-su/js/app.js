@@ -1,4 +1,6 @@
-// Browser-first HR demo; never overwrite rendered Blade/HTML.\nconst KEY = 'qlns_data_v2';\nconst DEPTS = ['Ban Giám đốc','Kế toán','Nhân sự','Kinh doanh','Marketing','Kho vận','IT'];
+// Browser-first HR demo; never overwrite rendered Blade/HTML.
+const KEY = 'qlns_data_v2';
+const DEPTS = ['Ban Giám đốc','Kế toán','Nhân sự','Kinh doanh','Marketing','Kho vận','IT'];
 const STATUSES = [['Đang làm','#22c55e'],['Thử việc','#3b82f6'],['Nghỉ phép','#f59e0b'],['Đã nghỉ việc','#94a3b8']];
 const photo = (g, n) => `https://randomuser.me/api/portraits/${g === 'Nữ' ? 'women' : 'men'}/${n}.jpg`;
 
