@@ -447,15 +447,20 @@
       mount: callback => {
         const settings = App.views?.caidat;
         if (!settings) return;
-        const previous = settings.render;
-        settings.render = function (el) {
-          previous.call(this, el);
+        const insert = el => {
+          if (!el || el.querySelector('[data-open-menu]')) return;
           const wrapper = document.createElement('div');
           wrapper.className = 'menu-settings-entry';
           wrapper.innerHTML = '<div class="card"><div class="card-h"><b>Sidebar menu</b></div><div class="card-b"><p class="muted">Tùy chỉnh menu, header, footer và thư viện JSON.</p><button type="button" class="btn pri" data-open-menu>Chỉnh sửa menu</button></div></div>';
           el.append(wrapper);
           wrapper.querySelector('[data-open-menu]').onclick = callback;
         };
+        const previous = settings.render;
+        settings.render = function (el) {
+          previous.call(this, el);
+          insert(el);
+        };
+        if (App.cur === 'caidat') insert(document.querySelector('#view'));
       }
     };
     return;
