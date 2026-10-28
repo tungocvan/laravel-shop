@@ -27,7 +27,7 @@ final class HumanResourcesDemoRouteTest extends TestCase
     {
         $this->get('/demo/quan-ly-nhan-su')->assertOk()
             ->assertSee('id="page-settings"', false)
-            ->assertSee('Cài đặt & dữ liệu')
+            ->assertSee('Cài đặt & dữ liệu', false)
             ->assertSee('data-hr-theme-choice="ruby"', false)
             ->assertSee('data-hr-theme-choice="ocean"', false)
             ->assertSee('data-hr-theme-choice="emerald"', false)
