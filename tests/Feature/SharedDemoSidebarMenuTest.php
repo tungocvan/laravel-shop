@@ -33,7 +33,8 @@ class SharedDemoSidebarMenuTest extends TestCase
         Storage::fake('local');
         config()->set('warehouse_demo.backup_code', str_repeat('A', 20));
         $menu = $this->menu();
-        $this->postJson('/demo/doanh-so-nhan-vien/menu', ['config' => $menu], ['X-Demo-Backup-Code' => str_repeat('A', 20)])->dump()->assertOk();
+        $response = $this->postJson('/demo/doanh-so-nhan-vien/menu', ['config' => $menu], ['X-Demo-Backup-Code' => str_repeat('A', 20)]);
+        $this->assertSame(200, $response->status(), 'Menu response: '.$response->getContent());
         $this->getJson('/demo/doanh-so-nhan-vien/menu')->assertOk()->assertJsonPath('config.header.title', 'Demo');
         $this->getJson('/demo/quan-ly-xuat-nhap-ton/menu')->assertOk()->assertJsonPath('config', null);
         Storage::disk('local')->assertExists('demo-settings/sales-employees/sidebar-menu.json');
@@ -56,9 +57,10 @@ class SharedDemoSidebarMenuTest extends TestCase
     {
         Storage::fake('local');
         config()->set('warehouse_demo.backup_code', str_repeat('C', 20));
-        $this->postJson('/demo/doanh-so-nhan-vien/menu/presets', [
+        $response = $this->postJson('/demo/doanh-so-nhan-vien/menu/presets', [
             'name' => 'Menu A', 'config' => $this->menu(),
-        ], ['X-Demo-Backup-Code' => str_repeat('C', 20)])->dump()->assertCreated();
+        ], ['X-Demo-Backup-Code' => str_repeat('C', 20)]);
+        $this->assertSame(201, $response->status(), 'Preset response: '.$response->getContent());
         $this->getJson('/demo/doanh-so-nhan-vien/menu/presets')->assertOk()->assertJsonCount(1, 'presets');
         $this->getJson('/demo/quan-ly-xuat-nhap-ton/menu/presets')->assertOk()->assertJsonCount(0, 'presets');
         $this->getJson('/demo/doanh-so-nhan-vien/menu/presets/%2E%2E')->assertNotFound();
