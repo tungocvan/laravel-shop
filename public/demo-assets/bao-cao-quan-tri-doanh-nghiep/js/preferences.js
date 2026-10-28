@@ -19,7 +19,7 @@ function applyTheme(name){
 const defaultMenu=()=>({
  version:1,
  header:{title:'Báo Cáo Quản Trị',subtitle:'Báo cáo nội bộ hằng tháng',icon:'chart',href:'#dashboard'},
- footer:{credit:'File mẫu tặng học viên lớp Excel cuối tuần - thầy Phong Excel',href:''},
+ footer:{credit:'File mẫu tặng học viên lớp Excel cuối tuần - thầy Phong Excel',href:'',showSave:false},
  groups:(()=>{let groups=[],group=null;APP.nav.forEach(n=>{if(typeof n==='string'){group={title:n,items:[]};groups.push(group)}else{if(!group){group={title:'Menu',items:[]};groups.push(group)}group.items.push({id:n.id,label:n.label,icon:n.icon,href:'#'+n.id,badge:n.badge||null})}});return groups})()
 });
 function validUrl(href,allowEmpty=false){
@@ -30,7 +30,7 @@ function normalizeMenu(raw){
  if(!raw||raw.version!==1||!Array.isArray(raw.groups)||raw.groups.length>30)throw Error('Cấu hình menu không hợp lệ');
  const clean=s=>String(s??'').trim().slice(0,100);
  const header={title:clean(raw.header?.title),subtitle:clean(raw.header?.subtitle),icon:clean(raw.header?.icon),href:clean(raw.header?.href)};
- const footer={credit:clean(raw.footer?.credit),href:clean(raw.footer?.href)};
+ const footer={credit:clean(raw.footer?.credit),href:clean(raw.footer?.href),showSave:false};
  if(!header.title||!validUrl(header.href)||!validUrl(footer.href,true))throw Error('Liên kết header/footer không hợp lệ');
  if(!IC[header.icon])throw Error('Icon header không hợp lệ');
  const ids=new Set();
