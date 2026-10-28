@@ -29,4 +29,12 @@ class EnterpriseManagementReportPreferencesTest extends TestCase
         $this->assertStringContainsString('https:', $script);
         $this->assertStringNotContainsString('innerHTML = location', $script);
     }
+    public function test_blade_save_does_not_export_standalone_html(): void
+    {
+        $script = file_get_contents(public_path('demo-assets/bao-cao-quan-tri-doanh-nghiep/js/app.js'));
+        $this->assertStringContainsString('if(ONLINE){', $script);
+        $this->assertStringContainsString('Không lưu lên server', $script);
+        $this->assertStringContainsString('Lưu trong trình duyệt', $script);
+        $this->assertStringNotContainsString('<h4>Lưu đè dữ liệu vào file</h4>', $script);
+    }
 }
