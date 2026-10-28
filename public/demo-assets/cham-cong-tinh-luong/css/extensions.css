@@ -1,0 +1,16 @@
+/* Scoped extensions for the standalone payroll demo */
+body[data-payroll-theme="ruby"]{--p:#c62828;--p-d:#a91e1e;--p-50:#fff4f4;--p-100:#fee2e2;--ink:#451a1a;--ink2:#6b2424}
+body[data-payroll-theme="ocean"]{--p:#087e9b;--p-d:#06637b;--p-50:#effaff;--p-100:#d7f3fb;--ink:#082f49;--ink2:#0c4a6e}
+body[data-payroll-theme="emerald"]{--p:#16835d;--p-d:#106b4c;--p-50:#effcf6;--p-100:#d8f7e6;--ink:#073d32;--ink2:#125744}
+body[data-payroll-theme="indigo"]{--p:#4f46e5;--p-d:#4338ca;--p-50:#f4f4ff;--p-100:#e0e7ff;--ink:#24204c;--ink2:#373075}
+.payroll-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:16px 0}
+.payroll-grid .card{min-width:0}
+.payroll-theme-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.payroll-theme-grid button{border:2px solid #ddd;border-radius:12px;background:white;padding:14px;cursor:pointer;text-align:left}
+.payroll-theme-grid button[aria-pressed="true"]{border-color:var(--p);box-shadow:0 0 0 2px var(--p-100)}
+.payroll-theme-grid i{display:block;width:32px;height:32px;border-radius:50%;margin-bottom:8px}
+.payroll-data-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.payroll-data-actions input,.payroll-data-actions select{min-width:0;max-width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:8px}
+.payroll-status{min-height:24px;color:var(--p-d)}
+@media(max-width:800px){.payroll-grid{grid-template-columns:1fr}.payroll-theme-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:420px){.payroll-theme-grid{grid-template-columns:1fr}}
