@@ -16,13 +16,15 @@ window.HrDemoMenuBridge = (() => {
       {title:'Tiện ích',items:[
         {id:'add-employee',label:'Thêm nhân viên',icon:'user-plus',href:'#add-employee'},
         {id:'backup-json',label:'Sao lưu JSON',icon:'download',href:'#backup-json'},
-        {id:'library',label:'Thư viện JSON',icon:'database',href:'#library'}]}
+        {id:'library',label:'Thư viện JSON',icon:'database',href:'#library'}]},
+      {title:'Hệ thống',items:[{id:'settings',label:'Cài đặt & dữ liệu',icon:'settings',href:'#settings'}]}
     ]
   });
   const actions = {
     dashboard: () => goPage('dashboard'), analytics: () => goPage('analytics'),
     employees: () => goFilter('',''), 'add-employee': () => openForm(),
-    'backup-json': () => saveFile(), library: () => openHrLibrary()
+    'backup-json': () => saveFile(), library: () => openHrLibrary(),
+    settings: () => goPage('settings')
   };
   function apply(config) {
     nav.replaceChildren();
@@ -40,6 +42,11 @@ window.HrDemoMenuBridge = (() => {
         if (page==='analytics') a.id='navAnalytics';
         nav.append(a);
       }
+    }
+    // Always expose the settings entry even for older saved sidebar configurations.
+    if(!nav.querySelector('[data-hr-item="settings"]')){
+      const group=document.createElement('div');group.className='sec';group.textContent='Hệ thống';nav.append(group);
+      const link=document.createElement('a');link.className='item';link.dataset.hrItem='settings';link.textContent='⚙ Cài đặt & dữ liệu';link.onclick=()=>{goPage('settings');toggleSide(false);};nav.append(link);
     }
     // HR's renderNav() expects these elements and updates dynamic filters.
     for (const id of ['navDash','navAnalytics','navAll']) {
@@ -60,8 +67,7 @@ window.HrDemoMenuBridge = (() => {
     const button=document.createElement('button');button.type='button';button.className='btn btn-light';button.textContent='⚙ Cấu hình menu';button.dataset.openMenu='';
     const header=document.querySelector('.main header > div:last-child');
     if (header) header.prepend(button);
-    const settings=document.createElement('a');settings.className='item';settings.textContent='⚙ Chỉnh sửa menu';settings.onclick=open;
-    nav.append(settings);
+
   }
   return {defaults,apply,mount};
 })();
