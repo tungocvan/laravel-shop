@@ -37,6 +37,7 @@ class SharedSidebarMenuController extends Controller
         $path = $this->path($demo);
         if ($error = $this->authorizeWrite($request)) return $error;
         $validated = Validator::make($request->all(), ['config' => ['required', 'array']])->validate();
+        $validated['config'] = $this->normalizeOptionalHrefs($validated['config']);
         if ($reason = $this->configError($validated['config'])) return response()->json(['message' => 'Menu không hợp lệ.', 'field' => $reason], 422);
         $json = json_encode($validated['config'], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
         if (strlen($json) > 65536) return response()->json(['message' => 'JSON quá lớn.'], 413);
@@ -77,6 +78,7 @@ class SharedSidebarMenuController extends Controller
             'name' => ['required', 'string', 'max:100'],
             'config' => ['required', 'array'],
         ])->validate();
+        $v['config'] = $this->normalizeOptionalHrefs($v['config']);
         if ($reason = $this->configError($v['config'])) return response()->json(['message' => 'Menu không hợp lệ.', 'field' => $reason], 422);
         $id = substr(Str::slug($v['name']) ?: 'menu', 0, 40).'-'.Str::lower(Str::random(10));
         $json = json_encode(['name' => $v['name'], 'config' => $v['config']], JSON_UNESCAPED_UNICODE);
@@ -105,6 +107,24 @@ class SharedSidebarMenuController extends Controller
         $given = $request->header('X-Demo-Backup-Code', '');
         if (! is_string($given) || ! hash_equals($secret, $given)) return response()->json(['message' => 'Sai mã quản trị.'], 403);
         return null;
+    }
+
+    /**
+     * Laravel's ConvertEmptyStringsToNull middleware converts optional blank
+     * links in JSON requests to null. Restore only these two schema-defined
+     * optional fields; do not weaken URL or required item validation.
+     */
+    private function normalizeOptionalHrefs(array $config): array
+    {
+        foreach (['header', 'footer'] as $section) {
+            if (isset($config[$section]) && is_array($config[$section])
+                && array_key_exists('href', $config[$section])
+                && $config[$section]['href'] === null) {
+                $config[$section]['href'] = '';
+            }
+        }
+
+        return $config;
     }
 
     private function validConfig(mixed $config): bool
