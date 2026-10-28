@@ -233,3 +233,43 @@
 .hr-theme-grid b{font-size:12px}.hr-theme-grid small{font-size:10px;color:var(--muted)}
 @media(max-width:900px){.hr-theme-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:480px){.hr-theme-grid,.hr-settings-grid{grid-template-columns:1fr}.hr-settings-panel{padding:13px}}
+
+/* Sales-inspired sidebar; scoped to standalone HR demo. Theme tokens are set by hrSetTheme(). */
+:root{
+  --side:#164537;
+  --side-end:#0d2e25;
+  --side-2:#225846;
+  --side-text:#d8f2e6;
+  --side-muted:#acd4c1;
+}
+.sidebar{
+  background:linear-gradient(180deg,var(--side),var(--side-end));
+  color:var(--side-text);
+  border-right:1px solid rgba(255,255,255,.08);
+}
+.sidebar .brand b{color:#fff}
+.sidebar .brand small{color:var(--side-muted)}
+.sidebar .logo{
+  background:linear-gradient(135deg,var(--primary-2),var(--primary));
+  color:#fff;
+}
+.sidebar .sec{color:var(--side-muted);opacity:.9}
+.sidebar .item{color:var(--side-text)}
+.sidebar .item:hover{background:rgba(255,255,255,.08);color:#fff}
+.sidebar .item.active{
+  background:linear-gradient(90deg,var(--primary),var(--primary-2));
+  color:#fff;
+  box-shadow:0 4px 14px rgba(0,0,0,.16);
+}
+.sidebar .item .cnt{
+  background:rgba(255,255,255,.13);
+  color:#fff;
+}
+.sidebar .side-foot{
+  background:var(--side-2);
+  border-color:rgba(255,255,255,.09);
+  color:var(--side-text);
+}
+.sidebar .side-foot b{color:#fff}
+.sidebar .side-foot small{color:var(--side-muted)}
+.sidebar nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.25)}
