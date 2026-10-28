@@ -29,3 +29,6 @@ Implementation committed on feature branch. TEST PASS not asserted; requires act
 
 ## Nginx 403 fix
 Physical directory `public/demo/quan-ly-nhan-su` collided with GET route. Tracked assets moved to `public/demo-assets/quan-ly-nhan-su` and tracked originals deleted. After pull, verify `public/demo/quan-ly-nhan-su` no longer exists. Do not delete any residual untracked files without inspection. Check HTTP 200 for both slash and non-slash URLs; if residual directory exists, inspect first.
+
+## Settings workspace — 2026-10-28
+Added `Cài đặt & dữ liệu` as an in-page sidebar destination `#settings`, following the existing Sales demo's organization. Includes shared menu editor entry, four theme cards, JSON server library, local save, JSON export/import, sample reset and CSV export. No additional GET UI route. The HR menu bridge adds the settings entry to previously saved menu configurations. Focused test added. UI acceptance for the **new** settings screen is pending; prior UI PASS applies to the earlier demo only.
