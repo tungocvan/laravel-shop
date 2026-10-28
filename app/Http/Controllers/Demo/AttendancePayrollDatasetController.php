@@ -49,9 +49,9 @@ final class AttendancePayrollDatasetController extends Controller
             'name' => ['required', 'string', 'min:2', 'max:100'],
             'data' => ['required', 'array'],
             'data.settings' => ['required', 'array'],
-            'data.employees' => ['required', 'array', 'max:10000'],
-            'data.cham' => ['required', 'array'],
-            'data.extra' => ['required', 'array'],
+            'data.employees' => ['present', 'array', 'max:10000'],
+            'data.cham' => ['present', 'array'],
+            'data.extra' => ['present', 'array'],
         ])->validate();
         abort_unless($this->validData($v['data']), 422);
         $disk = Storage::disk('local');
