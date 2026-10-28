@@ -5,10 +5,12 @@
   if (!root) return;
   const slug = root.dataset.demoMenu;
   const url = '/demo/' + slug + '/menu';
-  const key = 'shared_demo_sidebar_menu_v1_' + slug;
+  const key = slug === 'quan-ly-cong-no' ? 'debt_management_sidebar_menu_v1' : 'shared_demo_sidebar_menu_v1_' + slug;
+  const debtMode = slug === 'quan-ly-cong-no';
+  const bridge = debtMode ? window.DebtDemoMenuBridge : null;
   const nav = document.querySelector('#nav');
   const sidebar = document.querySelector('#sb');
-  if (!nav || !sidebar) return;
+  if (debtMode ? !bridge : (!nav || !sidebar)) return;
   const original = Array.from(nav.children);
   const brand = sidebar.querySelector('.brand');
   const footer = sidebar.querySelector('.sbfoot');
@@ -30,7 +32,7 @@
     return {version:1, header:{title:brand?.querySelector('b')?.textContent || '',subtitle:brand?.querySelector('small')?.textContent || '',icon:'menu',href:'#dashboard'}, footer:{credit:originalFooter,href:'',showSave:false}, groups};
   };
   const clone = x => JSON.parse(JSON.stringify(x));
-  const defaults = defaultConfig();
+  const defaults = debtMode ? bridge.defaults() : defaultConfig();
   let applied = clone(defaults), working = null;
   const validHref = (s, empty=false) => typeof s === 'string' && ((empty && !s) || /^#[a-z0-9-]{1,64}$/.test(s) || /^https:\/\/[a-z0-9][a-z0-9.-]+(?:\/[^\s]*)?$/i.test(s) && s.length <= 250);
   function validate(c) {
@@ -53,6 +55,7 @@
   }
   function apply(c) {
     applied = clone(validate(c));
+    if (debtMode) { bridge.apply(c); document.dispatchEvent(new CustomEvent('demo-menu:applied',{detail:{slug}})); return; }
     nav.replaceChildren();
     for (const group of c.groups) {
       const h = document.createElement('h6'); h.textContent = group.title; nav.append(h);
@@ -84,7 +87,17 @@
       if (b) b.textContent=c.header.title;
       if (small) small.textContent=c.header.subtitle;
     }
-    if (footer) footer.textContent=c.footer.credit;
+    if (footer) {
+      footer.replaceChildren();
+      if (c.footer.href) {
+        const link = document.createElement('a');
+        link.textContent = c.footer.credit;
+        link.href = c.footer.href;
+        if (c.footer.href.startsWith('https://')) { link.target = '_blank'; link.rel = 'noopener noreferrer'; }
+        else if (c.footer.href.startsWith('#')) { const page = c.footer.href.slice(1); link.onclick = e => { const existing = known.get(page); if (existing) { e.preventDefault(); existing.click(); } }; }
+        footer.append(link);
+      } else footer.textContent = c.footer.credit;
+    }
     document.dispatchEvent(new CustomEvent('demo-menu:applied',{detail:{slug}}));
   }
   const dlg = document.createElement('dialog'); dlg.className='shared-menu-dialog';
@@ -154,7 +167,8 @@
     return r;
   }
   document.addEventListener('click',e=>{if(!e.target.closest('[data-open-menu]'))return;working=clone(applied);render();selectTab('menu');refresh();dlg.showModal();});
-  const settings = document.querySelector('#page-settings');
+  const settings = debtMode ? null : document.querySelector('#page-settings');
+  if (debtMode) bridge.mount(() => { working=clone(applied);render();selectTab('menu');refresh();dlg.showModal(); });
   if (settings) {
     const mount = () => {
       if (settings.querySelector('[data-open-menu]')) return;
