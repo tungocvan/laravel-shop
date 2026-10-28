@@ -63,11 +63,12 @@
     } catch (error) { status('Lưu server thất bại: ' + error.message); }
     finally { const input = document.querySelector('#payroll-admin-code'); if (input) input.value = ''; }
   };
-  const settingsView = {
-    title:'Cài đặt demo', label:'Cài đặt demo', icon:'settings', desc:'Màu giao diện, thư viện dữ liệu và menu',
-    print:false,
-    render(el) {
-      el.innerHTML = `<div class="payroll-grid">
+  const originalSettingsRender = App.views.caidat.render.bind(App.views.caidat);
+  const renderDemoSettings = (el) => {
+      const demoSection = document.createElement('section');
+      demoSection.id = 'payroll-demo-settings';
+      demoSection.setAttribute('aria-label', 'Giao diện và dữ liệu demo');
+      demoSection.innerHTML = `<h2 class="payroll-section-title">Giao diện &amp; dữ liệu demo</h2><div class="payroll-grid">
         <div class="card"><h3>4 theme màu sắc</h3><div class="payroll-theme-grid">
         ${themeNames.map((name,i)=>`<button type="button" data-payroll-theme="${name}" aria-pressed="false"><i style="background:${colors[i]}"></i>${name[0].toUpperCase()+name.slice(1)}</button>`).join('')}
         </div><p class="muted">Theme được lưu riêng, không ảnh hưởng dữ liệu lương.</p></div>
@@ -77,18 +78,19 @@
         <div class="payroll-data-actions"><select id="payroll-datasets" aria-label="Bộ JSON server"><option value="">Chọn bộ dữ liệu</option></select><button class="btn" id="payroll-refresh">Làm mới</button><button class="btn" id="payroll-load">Nạp vào trình duyệt</button></div>
         <div class="payroll-data-actions"><input id="payroll-dataset-name" maxlength="100" placeholder="Tên bộ JSON mới" aria-label="Tên bộ dữ liệu"><input id="payroll-admin-code" type="password" autocomplete="off" placeholder="Mã quản trị" aria-label="Mã quản trị"><button class="btn pri" id="payroll-save-server">Lưu JSON lên server</button></div>
         <p id="payroll-status" class="payroll-status" role="status" aria-live="polite"></p></div></div>`;
-      el.querySelectorAll('[data-payroll-theme]').forEach(button => button.onclick = () => applyTheme(button.dataset.payrollTheme));
+      el.append(demoSection);
+      demoSection.querySelectorAll('[data-payroll-theme]').forEach(button => button.onclick = () => applyTheme(button.dataset.payrollTheme));
       applyTheme(document.body.dataset.payrollTheme);
-      el.querySelector('#payroll-export-json').onclick = downloadJSON;
-      el.querySelector('#payroll-refresh').onclick = refreshDatasets;
-      el.querySelector('#payroll-save-server').onclick = saveServer;
-      el.querySelector('#payroll-load').onclick = async () => {
+      demoSection.querySelector('#payroll-export-json').onclick = downloadJSON;
+      demoSection.querySelector('#payroll-refresh').onclick = refreshDatasets;
+      demoSection.querySelector('#payroll-save-server').onclick = saveServer;
+      demoSection.querySelector('#payroll-load').onclick = async () => {
         const id = el.querySelector('#payroll-datasets').value;
         if (!/^[a-z0-9][a-z0-9-]{0,79}$/.test(id)) return status('Hãy chọn một bộ JSON.');
         try { const payload = await json(datasetBase + '/' + encodeURIComponent(id)); loadDB(payload.data); }
         catch(error) { status('Nạp JSON thất bại: ' + error.message); }
       };
-      el.querySelector('#payroll-import-json').onchange = async event => {
+      demoSection.querySelector('#payroll-import-json').onchange = async event => {
         const file = event.target.files[0]; if (!file) return;
         try { if(file.size>10485760) throw Error('File vượt quá 10 MiB.'); const payload = JSON.parse(await file.text()); loadDB(payload.data || payload); }
         catch(error) { status('Nhập JSON thất bại: ' + error.message); }
@@ -97,30 +99,59 @@
       refreshDatasets();
     }
   };
-  App.views['demo-settings'] = settingsView;
-  const nav = document.querySelector('.sidebar .nav');
-  const a = document.createElement('a');
-  a.dataset.nav = 'demo-settings'; a.innerHTML = ic('settings') + '<span>Cài đặt demo</span>';
-  nav.append(a);
-  const baseGo = App.go.bind(App);
-  App.go = id => baseGo(id);
+  App.views.caidat.render = function(el) {
+    originalSettingsRender(el);
+    renderDemoSettings(el);
+  };
+  // Backward-compatible deep link, without adding a second sidebar entry.
+  if (location.hash === '#demo-settings') history.replaceState(null, '', '#caidat');
   window.AttendancePayrollMenuBridge = {
     mount() { /* The shared editor uses document-level data-open-menu delegation. */ },
+    normalize(config) {
+      if (!config || !Array.isArray(config.groups)) return config;
+      const seen = new Set();
+      for (const group of config.groups) {
+        if (!Array.isArray(group.items)) continue;
+        group.items = group.items.filter(item => {
+          if (item.id === 'demo-settings' || item.href === '#demo-settings') {
+            item.id = 'caidat'; item.href = '#caidat'; item.label = 'Cài đặt'; item.icon = 'settings';
+          }
+          // Only de-duplicate the legacy settings entry; retain custom menu items.
+          if (item.id === 'caidat') { if (seen.has('caidat')) return false; seen.add('caidat'); }
+          return true;
+        });
+      }
+      return config;
+    },
     defaults() {
       const groups = App.cfg.nav.map(group => ({title:group.group,items:group.items.map(id => ({id,label:App.views[id].label||App.views[id].title,icon:App.views[id].icon||'link',href:'#'+id}))}));
-      groups.push({title:'Hệ thống',items:[{id:'data',label:'Dữ liệu & sao lưu',icon:'database',href:'#data'},{id:'demo-settings',label:'Cài đặt demo',icon:'settings',href:'#demo-settings'}]});
+      groups.push({title:'Hệ thống',items:[{id:'data',label:'Dữ liệu & sao lưu',icon:'database',href:'#data'}]});
       return {version:1,header:{title:App.cfg.title,subtitle:App.cfg.tagline,icon:'wallet',href:'#dashboard'},footer:{credit:'Phong Excel Academy',href:'',showSave:true},groups};
     },
     apply(config) {
       const sidebar = document.querySelector('.sidebar'), nav = sidebar.querySelector('.nav');
+      config = this.normalize(JSON.parse(JSON.stringify(config)));
       nav.replaceChildren();
       for (const group of config.groups) {
         const title = document.createElement('div'); title.className = 'nav-group'; title.textContent = group.title; nav.append(title);
         for (const item of group.items) {
           const link = document.createElement('a'); const page = item.href.startsWith('#') ? item.href.slice(1) : '';
           link.dataset.nav = App.views[page] ? page : '';
-          if (item.href.startsWith('https://')) {link.href=item.href;link.target='_blank';link.rel='noopener noreferrer';}
+          if (item.href.startsWith('https://')) {link.href=item.href;link.target='_blank';link.rel='noopener noreferrer';link.removeAttribute('data-nav');}
           else if (!App.views[page]) {link.setAttribute('aria-disabled','true');}
+          // The original demo uses inline SVG icons from its own icon registry.
+          // Map Lucide-style names to supported icons without injecting user JSON as HTML.
+          const iconAliases = {'layout-dashboard':'dashboard','users-round':'users','calendar-check':'calcheck','settings-2':'settings','database-backup':'database','percent':'percent'};
+          const iconName = iconAliases[item.icon] || item.icon;
+          const fallbackIcon = App.views[page]?.icon || 'file';
+          const svgName = typeof ICONS[iconName] === 'string' ? iconName : fallbackIcon;
+          if (typeof ICONS[svgName] === 'string') {
+            const iconNode = document.createElement('span');
+            iconNode.className = 'payroll-menu-icon';
+            iconNode.innerHTML = ic(svgName);
+            iconNode.setAttribute('aria-hidden', 'true');
+            link.append(iconNode);
+          }
           const label=document.createElement('span');label.textContent=item.label;
           link.append(label);nav.append(link);
         }
