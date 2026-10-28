@@ -53,3 +53,12 @@
 - After focused PASS, impacted regression: `php artisan test tests/Feature/DebtManagementDatasetLibraryTest.php tests/Feature/StandaloneSalesDemoRouteTest.php tests/Feature/StandaloneWarehouseInventoryDemoTest.php`.
 - UI checkpoint: header/footer edits, safe logo/footer links, save button visibility, named JSON save/list/import, active menu unchanged until explicit apply, browser refresh and second device, import/export compatibility, desktop/mobile and console errors.
 - No local tests executed by assistant; TEST/UI PASS pending user verification. No merge/deploy.
+
+## Sidebar update persistence (2026-10-28)
+
+- **Cập nhật giao diện** validates editor JSON, saves to browser key `debt_management_sidebar_menu_v1`, applies sidebar immediately, and displays a success modal. Local changes survive editor close and page reload on the same browser.
+- Initial load fetches shared server config, then overlays a valid browser-local configuration if present. Invalid local JSON is ignored.
+- **Lưu lên server** writes shared JSON with operator code; on successful POST it clears the browser override so the shared configuration is authoritative. On failure the local override is not deleted.
+- Editor close without clicking Update discards uncommitted editor changes, restoring the last applied configuration.
+- UI regression: update → success modal → close → reload; update → cancel further edits; failed server save preserves local state; successful server save clears override and persists after reload; separate browser shows server state only.
+- No TEST/UI PASS asserted for this change. No merge/deploy.
