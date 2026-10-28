@@ -97,10 +97,10 @@
       refreshDatasets();
     }
   };
-  App.views.demoSettings = settingsView;
+  App.views['demo-settings'] = settingsView;
   const nav = document.querySelector('.sidebar .nav');
   const a = document.createElement('a');
-  a.dataset.nav = 'demoSettings'; a.innerHTML = ic('settings') + '<span>Cài đặt demo</span>';
+  a.dataset.nav = 'demo-settings'; a.innerHTML = ic('settings') + '<span>Cài đặt demo</span>';
   nav.append(a);
   const baseGo = App.go.bind(App);
   App.go = id => baseGo(id);
@@ -108,7 +108,7 @@
     mount() { /* The shared editor uses document-level data-open-menu delegation. */ },
     defaults() {
       const groups = App.cfg.nav.map(group => ({title:group.group,items:group.items.map(id => ({id,label:App.views[id].label||App.views[id].title,icon:App.views[id].icon||'link',href:'#'+id}))}));
-      groups.push({title:'Hệ thống',items:[{id:'data',label:'Dữ liệu & sao lưu',icon:'database',href:'#data'},{id:'demoSettings',label:'Cài đặt demo',icon:'settings',href:'#demoSettings'}]});
+      groups.push({title:'Hệ thống',items:[{id:'data',label:'Dữ liệu & sao lưu',icon:'database',href:'#data'},{id:'demo-settings',label:'Cài đặt demo',icon:'settings',href:'#demo-settings'}]});
       return {version:1,header:{title:App.cfg.title,subtitle:App.cfg.tagline,icon:'wallet',href:'#dashboard'},footer:{credit:'Phong Excel Academy',href:'',showSave:true},groups};
     },
     apply(config) {
