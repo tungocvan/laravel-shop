@@ -26,6 +26,8 @@
 - UI regression required: old saved menu, newly created menu, SVG icons, all original business settings and new theme/JSON controls in the same page; desktop/tablet/iPhone and no JS errors.
 - **TEST/UI PASS not claimed**; awaiting user execution.
 
+- Sidebar footer cleanup: remove sample-data status and manual browser-save button from the payroll demo only; keep the credit, background localStorage autosave, JSON backup and server library. `Store.status()` is already null-safe when the status node is absent. Focused contract test covers this.
+
 ## Checkpoint Git Pull/Test
 
 ```bash
