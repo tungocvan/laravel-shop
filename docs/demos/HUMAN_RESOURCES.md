@@ -5,7 +5,7 @@ Branch: `feat/hr-standalone-blade-20261028`
 ## Scope
 - GET `/demo/quan-ly-nhan-su` through `HumanResourcesController`.
 - Blade view and independent layout under `resources/views/demo/quan-ly-nhan-su/`.
-- CSS/JS under `public/demo/quan-ly-nhan-su/`, preserving employee CRUD, filters, dashboard, CSV and printing.
+- CSS/JS under `public/demo-assets/quan-ly-nhan-su/`, preserving employee CRUD, filters, dashboard, CSV and printing.
 - Browser data `qlns_data_v2`, one-time read compatibility with `qlns_data_v1`, JSON download/import with schema checks.
 - Theme Ruby/Ocean/Emerald/Indigo stored at `qlns_theme_v1`.
 - JSON dataset library in local private storage `demo-datasets/human-resources`, GET list/show, POST write with configured `warehouse_demo.backup_code`, throttling, CSRF, schema/size/count/path controls.
@@ -26,3 +26,6 @@ Run impacted shared-menu tests and relevant existing demo route tests only after
 
 ## Acceptance status
 Implementation committed on feature branch. TEST PASS not asserted; requires actual local test output. UI PASS requires user's manual confirmation. No PR/merge/deploy performed.
+
+## Nginx 403 fix
+Physical directory `public/demo/quan-ly-nhan-su` collided with GET route. Tracked assets moved to `public/demo-assets/quan-ly-nhan-su` and tracked originals deleted. After pull, verify `public/demo/quan-ly-nhan-su` no longer exists. Do not delete any residual untracked files without inspection. Check HTTP 200 for both slash and non-slash URLs; if residual directory exists, inspect first.
