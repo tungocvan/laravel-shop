@@ -108,17 +108,64 @@ Các Demo mới nên **đề xuất** lựa chọn 4 theme, triển khai khi đ�
 - Xử lý cache CSS/JS bằng asset versioning hoặc cơ chế build hiện có. Với file tĩnh tồn tại, có thể dùng `?v={{ filemtime(public_path('demo/.../css/app.css')) }}` trong Blade; tránh lỗi file không tồn tại.
 - Không copy nguyên JS/CSS Demo khác nếu có dependency hoặc cấu trúc khác.
 
-## 5. Phase 2 — Implementation
+## 5. Sidebar Menu Builder trong trang Cài đặt (khi được phê duyệt)
+
+Áp dụng như một **tính năng tái sử dụng có điều kiện** cho các Standalone Demo có sidebar. Khi chuyển HTML mới sang Blade, phải audit sidebar, Settings, điều hướng, DOM và cơ chế lưu hiện tại trước; đề xuất bổ sung chức năng này trong kế hoạch và chỉ triển khai khi người dùng đồng ý. Không tự động áp dụng cho mọi route hoặc Module.
+
+### Vị trí và khả năng chỉnh sửa
+
+- Đặt thẻ **Sidebar menu** và nút **Chỉnh sửa menu** ngay trong màn hình Cài đặt của demo (hash/route theo demo thực tế); không đặt nút chỉnh sửa thường trực trên header toàn hệ thống.
+- Mở modal editor responsive, có vùng cuộn cho nội dung và thanh hành động dễ truy cập trên desktop/tablet/iPhone.
+- **Header sidebar**: tên ứng dụng, dòng mô tả, icon hợp lệ, liên kết logo.
+- **Footer sidebar**: dòng ghi chú và liên kết tùy chọn; không hardcode thương hiệu, dòng `Đang dùng dữ liệu mẫu` hoặc nút `Lưu trong trình duyệt` vào footer. Nếu demo có trạng thái dữ liệu quan trọng, hiển thị tại khu vực dữ liệu phù hợp thay vì footer tùy chỉnh.
+- **Nhóm menu**: thêm, đổi tên, sắp xếp, xóa nhóm có xác nhận. **Mục menu**: thêm, sửa tên/icon/href, nhân bản, xóa và kéo thả sắp xếp trong/giữa nhóm; có thể hỗ trợ nút lên/xuống để dùng bằng bàn phím/mobile.
+- Bảo toàn route, màn hình và quyền truy cập thực tế. Xóa mục khỏi sidebar **không** xóa route, chức năng hay dữ liệu nghiệp vụ. Chặn trùng ID, icon không hợp lệ, URL nguy hiểm và `javascript:`; liên kết nội bộ phải thuộc các view được phép, liên kết ngoài chỉ HTTPS.
+
+### Mô hình cấu hình JSON và hành vi nút
+
+Lưu **cả header, footer và groups** trong một cấu hình versioned, ví dụ:
+
+```json
+{
+  "version": 1,
+  "header": {"title": "Tên demo", "subtitle": "Mô tả", "icon": "layout-dashboard", "href": "#dashboard"},
+  "footer": {"credit": "Đơn vị sử dụng", "href": ""},
+  "groups": [
+    {"title": "Tổng quan", "items": [
+      {"id": "dashboard", "label": "Dashboard", "icon": "layout-dashboard", "href": "#dashboard"}
+    ]}
+  ]
+}
+```
+
+Đây là **schema tham khảo**, không áp đặt JSON v1 mới cho demo đang hoạt động: một số demo cũ có thuộc tính `footer.showSave` phục vụ tương thích. Khi tái sử dụng, phải kiểm tra schema/validator thực tế, chuẩn hóa dữ liệu cũ và giữ khả năng import trước khi thay đổi contract.
+
+- **Cập nhật giao diện**: validate, áp dụng ngay header/footer/menu và hiển thị modal thành công. Nếu yêu cầu giữ sau F5 trên thiết bị hiện tại, lưu vào khóa localStorage riêng theo demo. **Đóng** mà chưa cập nhật không áp dụng các thay đổi chưa xác nhận.
+- **Lưu lên server**: API xác thực mới ghi cấu hình sidebar đang sử dụng; modal nhập mã quản trị nhỏ gọn, `type=password`, có ẩn/hiện mã và lỗi ngay dưới input. Sai mã (403) cho nhập lại; 419/422/429/503 và lỗi mạng có thông báo riêng, không hiển thị bí mật. Không dùng `window.prompt` để nhập mã.
+- **Thư viện file JSON trên server**: lưu preset có tên, liệt kê, nhập, xuất, cập nhật và xóa file được chọn. Nếu trùng tên, **không tự tạo file mới**; phải chọn đúng file và xác nhận ghi đè. Xóa có xác nhận và xác thực; chỉ xóa preset, không xóa sidebar đang áp dụng hay dữ liệu nghiệp vụ. Modal thông báo kết quả thành công/thất bại.
+- **Nhập từ server**: sau xác nhận, áp dụng ngay cấu hình nhập vào sidebar và lưu trạng thái browser-local nếu có yêu cầu giữ sau F5; **không** tự ghi đè cấu hình server đang hoạt động. **Khôi phục mặc định**: có xác nhận và thông báo, không tự xóa file server.
+- Mỗi demo dùng namespace riêng cho localStorage, thư mục JSON private, route API, controller và schema. Ưu tiên tái sử dụng component/service đã được audit; không sao chép nguyên file JS từ demo khác nếu phụ thuộc `App`, DOM, hash hoặc biến toàn cục khác.
+
+### Security, tests và UI acceptance
+
+- JSON private trên Laravel local disk; API ghi/cập nhật/xóa yêu cầu mã quản trị được xác thực **ở server**, CSRF khi dùng session, throttle, giới hạn kích thước/số file, ID/path validation và không cho path traversal. Không tự thay `WAREHOUSE_DEMO_BACKUP_CODE`, giảm độ dài mã hoặc sửa `.env`.
+- Focused tests: cấu trúc header/footer/groups lưu và đọc lại; trường tùy chọn rỗng qua `ConvertEmptyStringsToNull`; sai/thiếu mã, cấu hình sai, URL nguy hiểm; trùng tên trả conflict, ghi đè đúng ID, xóa đúng file, không ảnh hưởng active menu; backward compatibility với JSON cũ.
+- JavaScript syntax check (ví dụ `node --check`) và browser regression: editor xuất hiện trong Cài đặt, không có lỗi console, cập nhật → đóng → F5, nhập từ server áp dụng ngay, lưu/xóa file và modal lỗi mã, kéo thả/nhân bản/xóa nhóm, desktop/tablet/iPhone, focus/scroll và các menu điều hướng.
+- Chỉ ghi **TEST PASS** khi có output thật và **UI PASS** khi người dùng xác nhận. Không merge/deploy khi chưa đạt gate theo workflow.
+
+Tham khảo triển khai hiện có: demo `/demo/quan-ly-cong-no#caidat` trên feature branch `feat/debt-management-blade-20261027`. **Đọc lại source và trạng thái merge mới nhất** trước khi reuse; không giả định branch này đã nằm trên `main`.
+
+## 6. Phase 2 — Implementation
 
 1. Feature branch từ `main` mới nhất, không dùng worktree.
 2. Controller + route chính; tách Blade layout/pages/partials, CSS/JS.
 3. Bảo toàn DOM ID/event và localStorage; tránh phá JS tạo DOM động.
-4. Bổ sung import/export JSON, API dataset và 4 theme **chỉ theo phạm vi duyệt**.
+4. Bổ sung import/export JSON, API dataset, 4 theme và Sidebar Menu Builder **chỉ theo phạm vi duyệt**.
 5. Bổ sung asset versioning và focused tests (route, Blade, JS contract, dataset security).
 6. Cập nhật `docs/demos/{DEMO_NAME}.md` với kiến trúc, API, data schema, tests, UI checklist.
 7. Commit/push theo batch; không sửa `.env`, database Production, file untracked.
 
-## 6. Phase 3 — Git Pull / Test
+## 7. Phase 3 — Git Pull / Test
 
 Cung cấp lệnh theo branch/test thực tế (không chạy placeholder):
 
@@ -131,30 +178,31 @@ php artisan test tests/Feature/<DemoTest>.php
 
 Nếu branch local chưa tồn tại, hướng dẫn `git switch --track origin/<feature-branch>`; nếu đã tồn tại, dùng `git switch <feature-branch>`. Chỉ ghi TEST PASS sau output. Chạy impacted regression **sau** focused PASS; không chạy full suite nếu không cần.
 
-## 7. Phase 4 — UI Regression
+## 8. Phase 4 — UI Regression
 
-Kiểm tra desktop/tablet/iPhone; sidebar, điều hướng, modal, CRUD, localStorage, backup/restore JSON, thư viện server, xác thực mã quản trị, Excel/in báo cáo nếu có, responsive và console errors.
+Kiểm tra desktop/tablet/iPhone; sidebar, điều hướng, modal, CRUD, localStorage, backup/restore JSON, thư viện server, xác thực mã quản trị, Excel/in báo cáo nếu có, responsive và console errors. Khi có Sidebar Menu Builder, áp dụng thêm toàn bộ acceptance ở mục 5.
 
 Riêng theme: đổi cả bốn, refresh, sidebar/nút/biểu đồ, khôi phục JSON/nạp server không làm mất theme. Chỉ ghi **UI PASS** khi người dùng xác nhận.
 
-## 8. Phase 5 — PR / Merge
+## 9. Phase 5 — PR / Merge
 
 Kiểm tra focused + impacted tests, `git diff --check`, tracked tree sạch, handoff; tạo/review PR. Nếu `main` tiến lên, đánh giá đồng bộ branch và test lại phần ảnh hưởng. **Chỉ merge khi các gate đạt và người dùng đồng ý**. Xác minh merge SHA và cung cấp lệnh đồng bộ `main`. Không tự deploy Production.
 
-## 9. Tài liệu tham chiếu
+## 11. Tài liệu tham chiếu
 
 - `docs/demos/SALES_EMPLOYEES.md`: `/demo/doanh-so-nhan-vien#settings` — JSON library, protected server backup, Ruby/Ocean/Emerald/Indigo.
 - `docs/demos/WAREHOUSE_INVENTORY.md`: `/demo/quan-ly-xuat-nhap-ton#settings` — JSON library, protected server backup, Indigo/Ruby/Ocean/Emerald.
 
 Đọc code **mới nhất** của từng Demo trước khi sao chép ý tưởng; tài liệu có thể ghi lại lịch sử triển khai, không phải mọi câu mô tả cũ đều phản ánh trạng thái mới nhất.
 
-## 10. Checklist kết thúc
+## 11. Checklist kết thúc
 
 - [ ] HTML đã audit; kiến trúc và phạm vi được duyệt.
 - [ ] Route/controller/Blade/assets độc lập; không phá hành vi gốc.
 - [ ] localStorage, JSON import/export hoạt động.
 - [ ] Dataset server bảo mật, giới hạn và validation đầy đủ nếu áp dụng.
 - [ ] 4 theme, persistence, responsive và cache busting nếu áp dụng.
+- [ ] Sidebar Menu Builder: Settings, header/footer, CRUD nhóm/mục, JSON server, modal xác thực, import áp dụng ngay và regression nếu áp dụng.
 - [ ] Focused tests PASS; impacted regression PASS khi cần.
 - [ ] UI PASS do người dùng xác nhận.
 - [ ] Tracked tree sạch, handoff cập nhật, PR review.
