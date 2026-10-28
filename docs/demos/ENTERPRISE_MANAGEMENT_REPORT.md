@@ -28,3 +28,13 @@
 - Không tuyên bố dữ liệu đã lưu lên server. Chức năng sao lưu/khôi phục JSON và Excel giữ nguyên.
 - Đã audit source tham khảo trên main: `public/demo-assets/quan-ly-cong-no/js/menu-builder.js` và `app/Http/Controllers/Demo/DebtManagementMenuController.php`. Editor riêng `preferences.js` hiện **chưa** được thay bằng cơ chế dùng chung, chưa có API server/presets. Cần batch tiếp theo sau audit chi tiết schema/route/auth và focused tests bảo mật.
 - Checkpoint: `php artisan test tests/Feature/EnterpriseManagementReportDemoTest.php tests/Feature/EnterpriseManagementReportPreferencesTest.php`, sau PASS chạy impacted regression; `node --check` cả `app.js` và `preferences.js`; UI cần xác nhận lại.
+
+
+## Sidebar Menu Builder — shared API integration (2026-10-28)
+
+- Tái sử dụng `app/Http/Controllers/Demo/SharedSidebarMenuController.php` và nhóm route `/demo/{demo}/menu` đã có; bổ sung namespace `bao-cao-quan-tri-doanh-nghiep` lưu private `storage/app/private/demo-settings/enterprise-management-report` (đường dẫn thực tế do Laravel local disk quyết định). Không tạo controller API trùng nghiệp vụ.
+- UI `#settings`: chỉnh header/footer/groups/items; nút kéo thả desktop giữa các nhóm, nút lên/xuống cho mobile/bàn phím; JSON import/export; thư viện preset list/load/create/update/delete; modal mã quản trị (password, hiện/ẩn), thông báo lỗi HTTP; giữ thẻ KPI `sbcard`.
+- API: GET menu và preset công khai, POST menu/preset và PUT/DELETE preset yêu cầu `X-Demo-Backup-Code` đối chiếu `config('warehouse_demo.backup_code')` dài tối thiểu 16 ký tự, CSRF, throttle 5/min. Không ghi secret vào HTML, localStorage hay log. Bổ sung phát hiện trùng tên 409, cập nhật đúng preset ID, giới hạn JSON 64 KiB, tối đa 100 preset.
+- Cấu hình sidebar version 1, header/footer/groups, localStorage key `enterprise_management_report_sidebar_v1`. Browser-local ưu tiên khi đã tùy chỉnh; GET server áp dụng nếu browser chưa có bản riêng. Import server chỉ áp dụng local, không ghi đè menu active trên server.
+- Handoff test: `tests/Feature/EnterpriseManagementReportMenuTest.php` (auth, 422, 409, private storage, preset isolation). Regression cross-demo cần kiểm tra vì SharedSidebarMenuController được thay đổi.
+- **Chưa xác nhận** PHP tests, JS syntax, browser UI hoặc tương thích các demo khác. Chỉ ghi PASS khi có kết quả thực tế. Không merge/deploy.
