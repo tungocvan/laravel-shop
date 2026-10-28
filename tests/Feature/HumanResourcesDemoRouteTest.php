@@ -17,7 +17,7 @@ final class HumanResourcesDemoRouteTest extends TestCase
     public function test_assets_exist(): void
     {
         foreach (['js/app.js','js/menu-adapter.js','css/app.css'] as $path) {
-            $this->assertFileExists(public_path('demo/quan-ly-nhan-su/'.$path));
+            $this->assertFileExists(public_path('demo-assets/quan-ly-nhan-su/'.$path));
         }
     }
 
@@ -74,7 +74,7 @@ final class HumanResourcesDemoRouteTest extends TestCase
 
     public function test_hr_assets_include_four_themes_and_json_import_export(): void
     {
-        $js = file_get_contents(public_path('demo/quan-ly-nhan-su/js/app.js'));
+        $js = file_get_contents(public_path('demo-assets/quan-ly-nhan-su/js/app.js'));
         foreach (['ruby','ocean','emerald','indigo','hrImportFile','hrStoreLibrary','hrSetTheme','hrRestore'] as $marker) {
             $this->assertStringContainsString($marker, $js);
         }
