@@ -440,6 +440,26 @@
     appliedConfig = copy(config);
     renderSidebar();
   }
+  if (document.querySelector('[data-demo-menu="quan-ly-cong-no"]')) {
+    window.DebtDemoMenuBridge = {
+      defaults: () => copy(fallback()),
+      apply: value => { config = copy(validate(value)); appliedConfig = copy(config); renderSidebar(); },
+      mount: callback => {
+        const settings = App.views?.caidat;
+        if (!settings) return;
+        const previous = settings.render;
+        settings.render = function (el) {
+          previous.call(this, el);
+          const wrapper = document.createElement('div');
+          wrapper.className = 'menu-settings-entry';
+          wrapper.innerHTML = '<div class="card"><div class="card-h"><b>Sidebar menu</b></div><div class="card-b"><p class="muted">Tùy chỉnh menu, header, footer và thư viện JSON.</p><button type="button" class="btn pri" data-open-menu>Chỉnh sửa menu</button></div></div>';
+          el.append(wrapper);
+          wrapper.querySelector('[data-open-menu]').onclick = callback;
+        };
+      }
+    };
+    return;
+  }
   const originalInit = App.init;
   App.init = function (cfg) {
     const settings = cfg.views.caidat;
