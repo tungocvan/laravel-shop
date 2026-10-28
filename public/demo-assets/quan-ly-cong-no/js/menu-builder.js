@@ -2,6 +2,7 @@
 /* Standalone menu editor. Never modifies business data or global routes. */
 (() => {
   const url = '/demo/quan-ly-cong-no/menu';
+  const localKey = 'debt_management_sidebar_menu_v1';
   const fallback = () => ({
     version: 1,
     header: { title: App.cfg.title, subtitle: App.cfg.tagline, icon: App.cfg.icon, href: '#dashboard' },
@@ -15,6 +16,14 @@
   let editor = null;
   let appliedConfig = null;
   const copy = v => JSON.parse(JSON.stringify(v));
+  const showUpdated = () => {
+    const modal = Modal.open({
+      title: 'Cập nhật thành công', width: 440,
+      body: '<p>Sidebar đã được cập nhật và lưu trên trình duyệt. Các thay đổi sẽ được giữ sau khi tải lại trang trên thiết bị này.</p><p class="muted">Để đồng bộ cho các thiết bị khác, hãy chọn Lưu lên server.</p>',
+      foot: '<button class="btn pri" data-ok>Đã hiểu</button>'
+    });
+    modal.el.querySelector('[data-ok]').onclick = () => modal.close();
+  };
   const safeHref = href => /^#[a-z0-9-]{1,64}$/.test(href) || /^https:\/\/[a-z0-9][a-z0-9.-]+(?:\/[^\s]*)?$/i.test(href);
   const safeIcon = name => /^[a-z0-9-]{1,48}$/.test(name);
   const validate = value => {
@@ -305,9 +314,11 @@
     el.querySelector('#menu-preview').onclick = () => {
       try {
         validate(config);
-        appliedConfig = copy(config);
+        const snapshot = copy(config);
+        localStorage.setItem(localKey, JSON.stringify(snapshot));
+        appliedConfig = snapshot;
         renderSidebar();
-        message('Đã cập nhật sidebar. Thay đổi được giữ khi đóng cửa sổ; nhấn Lưu lên server để giữ sau khi tải lại trang.');
+        showUpdated();
       } catch (e) { message('Không thể cập nhật: ' + e.message, true); }
     };
     el.querySelector('#menu-save').onclick = async () => {
@@ -323,6 +334,7 @@
           body: JSON.stringify({ config })
         });
         if (!response.ok) throw Error('HTTP ' + response.status);
+        localStorage.removeItem(localKey);
         appliedConfig = copy(config);
         renderSidebar();
         message('Đã lưu JSON menu trên server.');
@@ -338,6 +350,14 @@
       const data = await response.json();
       config = data.config ? validate(data.config) : fallback();
     } catch (e) { config = fallback(); }
+    // Local device overrides the shared server menu until an explicit server save.
+    // Validate imported browser data before rendering and ignore malformed JSON.
+    try {
+      const local = localStorage.getItem(localKey);
+      if (local) config = validate(JSON.parse(local));
+    } catch (e) {
+      // Storage may be disabled or JSON may be malformed; retain server/default.
+    }
     appliedConfig = copy(config);
     renderSidebar();
   }
