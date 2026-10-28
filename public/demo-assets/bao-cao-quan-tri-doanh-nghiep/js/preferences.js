@@ -187,7 +187,7 @@ function openEditor(){
   importFile.onchange=async()=>{try{const file=importFile.files[0];if(!file||file.size>65536)throw Error('File không hợp lệ hoặc vượt 64 KiB');const next=normalizeMenu(JSON.parse(await file.text()));if(confirm('Nhập JSON vào bản chỉnh sửa? Chưa ghi lên server.')){draft=next;draw()}}catch(e){messageDialog('Lỗi nhập JSON',e.message)}};
   importLabel.append(importFile);footer.append(importLabel);
   footer.append(action('Lưu lên server',async()=>{try{const config=normalizeMenu(draft);const result=await protectedMenu('','POST',{config});if(result?.saved)messageDialog('Đã lưu trên server','Sidebar dùng chung đã được lưu. Các trình duyệt khác có thể tải cấu hình này.')}catch(e){messageDialog('Không thể lưu',e.message)}}));
-  const server=document.createElement('div');server.className='enterprise-server-library';panel.append(server);
+  const server=document.createElement('div');server.className='enterprise-server-library';body.append(server);
   const heading=document.createElement('h4');heading.textContent='Thư viện JSON trên server';server.append(heading);
   const select=document.createElement('select');select.className='inp';server.append(select);presetSelect=select;
   const refresh=async()=>{try{const data=await requestMenu('/presets');select.replaceChildren(new Option('Chọn file JSON',''));data.presets.forEach(p=>select.add(new Option(p.name,p.id)))}catch(e){messageDialog('Không tải được thư viện',e.message)}};
