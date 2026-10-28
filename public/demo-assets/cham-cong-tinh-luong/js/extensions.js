@@ -103,7 +103,7 @@
     renderDemoSettings(el);
   };
   // Backward-compatible deep link, without adding a second sidebar entry.
-  if (location.hash === '#demo-settings') history.replaceState(null, '', '#caidat');
+  if (location.hash === '#demo-settings') App.go('caidat');
   window.AttendancePayrollMenuBridge = {
     mount() { /* The shared editor uses document-level data-open-menu delegation. */ },
     normalize(config) {
