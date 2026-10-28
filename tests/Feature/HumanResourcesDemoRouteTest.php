@@ -14,6 +14,15 @@ final class HumanResourcesDemoRouteTest extends TestCase
             ->assertSee('hrLibrary')->assertSee('data-demo-menu');
     }
 
+    public function test_hr_script_loads_after_embedded_data_and_markup(): void
+    {
+        $html = $this->get('/demo/quan-ly-nhan-su')->assertOk()->getContent();
+        $this->assertLessThan(strpos($html, 'demo-assets/quan-ly-nhan-su/js/app.js'), strpos($html, 'id="savedData"'));
+        $this->assertLessThan(strpos($html, 'demo-assets/quan-ly-nhan-su/js/app.js'), strpos($html, 'id="stats"'));
+        $js = file_get_contents(public_path('demo-assets/quan-ly-nhan-su/js/app.js'));
+        $this->assertStringNotContainsString('\\\\nconst KEY', substr($js, 0, 180));
+    }
+
     public function test_assets_exist(): void
     {
         foreach (['js/app.js','js/menu-adapter.js','css/app.css'] as $path) {
