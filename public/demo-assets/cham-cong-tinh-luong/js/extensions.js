@@ -105,6 +105,7 @@
   const baseGo = App.go.bind(App);
   App.go = id => baseGo(id);
   window.AttendancePayrollMenuBridge = {
+    mount() { /* The shared editor uses document-level data-open-menu delegation. */ },
     defaults() {
       const groups = App.cfg.nav.map(group => ({title:group.group,items:group.items.map(id => ({id,label:App.views[id].label||App.views[id].title,icon:App.views[id].icon||'link',href:'#'+id}))}));
       groups.push({title:'Hệ thống',items:[{id:'data',label:'Dữ liệu & sao lưu',icon:'database',href:'#data'},{id:'demoSettings',label:'Cài đặt demo',icon:'settings',href:'#demoSettings'}]});
