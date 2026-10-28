@@ -26,6 +26,8 @@
     <a class="item" onclick="openHrLibrary()"><span class="ic">🗄</span>Thư viện JSON server</a>
     <a class="item" onclick="document.getElementById('hrImport').click()"><span class="ic">📂</span>Nhập JSON</a>
     <a class="item" onclick="resetData()"><span class="ic">↺</span>Khôi phục dữ liệu mẫu</a>
+    <div class="sec">Hệ thống</div>
+    <a class="item" data-hr-item="settings" onclick="goPage('settings')"><span class="ic">⚙</span>Cài đặt & dữ liệu</a>
   </nav>
   <div class="side-foot">
     <div class="av">QT</div>
