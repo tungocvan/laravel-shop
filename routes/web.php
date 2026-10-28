@@ -1,4 +1,6 @@
 <?php
+use App\Http\Controllers\Demo\EnterpriseManagementReportController;
+
 
 use App\Http\Controllers\Demo\AttendancePayrollController;
 use App\Http\Controllers\Demo\AttendancePayrollDatasetController;
@@ -85,3 +87,6 @@ Route::fallback(function (Request $request) {
 
     abort(404);
 });
+
+Route::get('/demo/bao-cao-quan-tri-doanh-nghiep', EnterpriseManagementReportController::class)
+    ->name('demo.enterprise-management-report');
