@@ -1,9 +1,102 @@
-  function render() {
-    const fields=$('[data-fields]');fields.replaceChildren();
-    for (const [section,names] of Object.entries({header:['title','subtitle','icon','href'],footer:['credit','href']})) {
-      const h=document.createElement('h4');h.textContent=section==='header'?'Header':'Footer';fields.append(h);
-      for(const name of names) field(fields,name,working[section][name],v=>working[section][name]=v);
+/* Shared demo menu editor: DOM adapter, no business data mutations. */
+(() => {
+  'use strict';
+  const root = document.querySelector('[data-demo-menu]');
+  if (!root) return;
+  const slug = root.dataset.demoMenu;
+  const url = '/demo/' + slug + '/menu';
+  const key = 'shared_demo_sidebar_menu_v1_' + slug;
+  const nav = document.querySelector('#nav');
+  const sidebar = document.querySelector('#sb');
+  if (!nav || !sidebar) return;
+  const original = Array.from(nav.children);
+  const brand = sidebar.querySelector('.brand');
+  const footer = sidebar.querySelector('.sbfoot');
+  const originalBrand = brand?.cloneNode(true);
+  const originalFooter = footer?.textContent || '';
+  const known = new Map(Array.from(nav.querySelectorAll('a[data-page]')).map(a => [a.dataset.page, a]));
+  const defaultConfig = () => {
+    const groups = [];
+    for (const node of original) {
+      if (node.tagName === 'H6') groups.push({title: node.textContent.trim(), items: []});
+      else if (node.matches('a[data-page]')) {
+        if (!groups.length) groups.push({title:'Menu',items:[]});
+        groups[groups.length - 1].items.push({
+          id: node.dataset.page, label: node.textContent.trim(),
+          icon: node.dataset.ic || 'link', href: '#' + node.dataset.page
+        });
+      }
     }
+    return {version:1, header:{title:brand?.querySelector('b')?.textContent || '',subtitle:brand?.querySelector('small')?.textContent || '',icon:'menu',href:'#dashboard'}, footer:{credit:originalFooter,href:'',showSave:false}, groups};
+  };
+  const clone = x => JSON.parse(JSON.stringify(x));
+  const defaults = defaultConfig();
+  let applied = clone(defaults), working = null;
+  const validHref = (s, empty=false) => typeof s === 'string' && ((empty && !s) || /^#[a-z0-9-]{1,64}$/.test(s) || /^https:\/\/[a-z0-9][a-z0-9.-]+(?:\/[^\s]*)?$/i.test(s) && s.length <= 250);
+  function validate(c) {
+    if (!c || c.version !== 1 || !Array.isArray(c.groups) || c.groups.length > 20) throw Error('Nhóm menu không hợp lệ.');
+    for (const [section, fields] of Object.entries({header:['title','subtitle','icon','href'],footer:['credit','href']})) {
+      if (!c[section] || fields.some(f => typeof c[section][f] !== 'string' || c[section][f].length > 250) || !validHref(c[section].href,true)) throw Error('Header/footer không hợp lệ.');
+    }
+    if (!/^[a-z0-9-]{1,48}$/.test(c.header.icon) || typeof c.footer.showSave !== 'boolean') throw Error('Icon/footer không hợp lệ.');
+    const ids = new Set(); let count = 0;
+    for (const g of c.groups) {
+      if (typeof g.title !== 'string' || g.title.length > 60 || !Array.isArray(g.items)) throw Error('Nhóm không hợp lệ.');
+      for (const i of g.items) {
+        if (++count > 100 || !i || !/^[a-z0-9-]{1,64}$/.test(i.id) || ids.has(i.id) ||
+          typeof i.label !== 'string' || !i.label.trim() || i.label.length > 80 ||
+          typeof i.icon !== 'string' || !/^[a-z0-9-]{1,48}$/.test(i.icon) || !validHref(i.href)) throw Error('Mục menu không hợp lệ.');
+        ids.add(i.id);
+      }
+    }
+    return c;
+  }
+  function apply(c) {
+    applied = clone(validate(c));
+    nav.replaceChildren();
+    for (const group of c.groups) {
+      const h = document.createElement('h6'); h.textContent = group.title; nav.append(h);
+      for (const item of group.items) {
+        const page = item.href.startsWith('#') ? item.href.slice(1) : '';
+        const existing = known.get(page);
+        const a = existing ? existing.cloneNode(true) : document.createElement('a');
+        if (existing) {
+          // Preserve the demo's SVG icons and live badge nodes.
+          const textNode = Array.from(a.childNodes).find(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim());
+          if (textNode) textNode.textContent = item.label;
+          else a.append(document.createTextNode(item.label));
+        } else a.textContent = item.label;
+        if (existing) {
+          a.dataset.page = page;
+          // Original detached anchor retains the demo's own go() handler.
+          a.onclick = () => existing.click();
+        } else if (item.href.startsWith('https://')) {
+          a.href = item.href; a.target = '_blank'; a.rel = 'noopener noreferrer';
+        } else {
+          a.href = '#'; a.setAttribute('aria-disabled', 'true');
+        }
+        a.dataset.menuItem = item.id;
+        nav.append(a);
+      }
+    }
+    if (brand) {
+      const b=brand.querySelector('b'),small=brand.querySelector('small');
+      if (b) b.textContent=c.header.title;
+      if (small) small.textContent=c.header.subtitle;
+    }
+    if (footer) footer.textContent=c.footer.credit;
+    document.dispatchEvent(new CustomEvent('demo-menu:applied',{detail:{slug}}));
+  }
+  const dlg = document.createElement('dialog'); dlg.className='shared-menu-dialog';
+  dlg.innerHTML='<div class="shared-menu-shell"><header><div><h3>Chỉnh sửa menu</h3><p>Thiết lập sidebar cho demo</p></div><button type="button" data-close aria-label="Đóng">×</button></header><nav class="shared-menu-tabs" role="tablist" aria-label="Các phần cấu hình"><button type="button" role="tab" data-tab="menu">Menu</button><button type="button" role="tab" data-tab="header">Header</button><button type="button" role="tab" data-tab="footer">Footer</button><button type="button" role="tab" data-tab="library">Thư viện JSON</button></nav><div class="shared-menu-body"><div data-panel="menu" role="tabpanel"><div data-groups></div></div><div data-panel="header" role="tabpanel" hidden><div data-header-fields class="shared-menu-fields"></div></div><div data-panel="footer" role="tabpanel" hidden><div data-footer-fields class="shared-menu-fields"></div></div><div data-panel="library" role="tabpanel" hidden><section class="shared-menu-library"><h4>Thư viện JSON server</h4><input data-name placeholder="Tên cấu hình" aria-label="Tên cấu hình"><select data-presets aria-label="Cấu hình đã lưu"><option value="">Chọn file</option></select><button data-refresh>Làm mới</button><button data-load>Nạp JSON</button><button data-store-preset>Lưu file</button><button data-delete-preset>Xóa file</button></section></div></div><footer><div class="shared-menu-actions"><button data-add-group>+ Nhóm</button><button data-reset>Mặc định</button><button data-export>Xuất JSON</button><label>Nhập JSON<input type="file" accept=".json,application/json" data-import hidden></label><button data-preview>Cập nhật giao diện</button><button data-save>Lưu lên server</button></div><p role="status" aria-live="polite" data-status></p></footer></div>';
+  document.body.append(dlg);
+  const $ = s => dlg.querySelector(s);
+  const status = (s) => { $('[data-status]').textContent=s; };
+  function field(parent,label,value,change) {
+    const wrap=document.createElement('label'); wrap.textContent=label;
+    const input=document.createElement('input'); input.value=value; input.maxLength=250;
+    input.oninput=()=>change(input.value); wrap.append(input); parent.append(wrap);
+  }
   function selectTab(tab) {
     dlg.querySelectorAll('[data-tab]').forEach(button => {
       const active = button.dataset.tab === tab;
