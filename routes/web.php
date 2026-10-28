@@ -4,6 +4,7 @@ use App\Http\Controllers\Demo\SalesEmployeesController;
 use App\Http\Controllers\Demo\DebtManagementController;
 use App\Http\Controllers\Demo\DebtManagementDatasetController;
 use App\Http\Controllers\Demo\DebtManagementMenuController;
+use App\Http\Controllers\Demo\SharedSidebarMenuController;
 use App\Http\Controllers\Demo\SalesDemoDatasetController;
 use App\Http\Controllers\Demo\WarehouseInventoryController;
 use App\Http\Controllers\Demo\WarehouseDemoDatasetController;
@@ -48,6 +49,17 @@ Route::get('/demo/quan-ly-xuat-nhap-ton/datasets/{dataset}', [WarehouseDemoDatas
 Route::post('/demo/quan-ly-xuat-nhap-ton/datasets', [WarehouseDemoDatasetController::class, 'store'])
     ->middleware('throttle:5,1')
     ->name('demo.warehouse-inventory.datasets.store');
+
+
+// Route-cache-safe shared sidebar endpoints for two standalone demos.
+Route::prefix('/demo/{demo}/menu')->group(function () {
+    Route::get('/', [SharedSidebarMenuController::class, 'show'])->where('demo', 'doanh-so-nhan-vien|quan-ly-xuat-nhap-ton');
+    Route::post('/', [SharedSidebarMenuController::class, 'store'])->middleware('throttle:5,1')->where('demo', 'doanh-so-nhan-vien|quan-ly-xuat-nhap-ton');
+    Route::get('/presets', [SharedSidebarMenuController::class, 'index'])->where('demo', 'doanh-so-nhan-vien|quan-ly-xuat-nhap-ton');
+    Route::get('/presets/{preset}', [SharedSidebarMenuController::class, 'preset'])->where('demo', 'doanh-so-nhan-vien|quan-ly-xuat-nhap-ton');
+    Route::post('/presets', [SharedSidebarMenuController::class, 'savePreset'])->middleware('throttle:5,1')->where('demo', 'doanh-so-nhan-vien|quan-ly-xuat-nhap-ton');
+    Route::delete('/presets/{preset}', [SharedSidebarMenuController::class, 'deletePreset'])->middleware('throttle:5,1')->where('demo', 'doanh-so-nhan-vien|quan-ly-xuat-nhap-ton');
+});
 
 Route::fallback(function (Request $request) {
     if ($request->path() === '/') {

@@ -38,4 +38,5 @@
 <div id="tip"></div>
 <div id="printArea"></div>
 @include('demo.warehouse-inventory.partials.embedded-data')
+<x-demo.sidebar-menu-builder slug="quan-ly-xuat-nhap-ton" />
 @endsection

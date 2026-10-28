@@ -14,9 +14,12 @@
 </head>
 <body>
 @yield('content')
+<div data-demo-menu="quan-ly-cong-no" hidden></div>
+<link rel="stylesheet" href="{{ asset('demo/shared/sidebar-menu/menu-builder.css') }}?v={{ filemtime(public_path('demo/shared/sidebar-menu/menu-builder.css')) }}">
 <script src="{{ asset('demo-assets/quan-ly-cong-no/js/core.js') }}?v={{ filemtime(public_path('demo-assets/quan-ly-cong-no/js/core.js')) }}"></script>
 <script src="{{ asset('demo-assets/quan-ly-cong-no/js/menu-builder.js') }}?v={{ filemtime(public_path('demo-assets/quan-ly-cong-no/js/menu-builder.js')) }}"></script>
 <script src="{{ asset('demo-assets/quan-ly-cong-no/js/app.js') }}?v={{ filemtime(public_path('demo-assets/quan-ly-cong-no/js/app.js')) }}"></script>
+<script src="{{ asset('demo/shared/sidebar-menu/menu-builder.js') }}?v={{ filemtime(public_path('demo/shared/sidebar-menu/menu-builder.js')) }}"></script>
 <script src="{{ asset('demo-assets/quan-ly-cong-no/js/server-datasets.js') }}?v={{ filemtime(public_path('demo-assets/quan-ly-cong-no/js/server-datasets.js')) }}"></script>
 </body>
 </html>

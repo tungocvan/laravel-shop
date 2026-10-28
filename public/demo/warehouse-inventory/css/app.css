@@ -466,3 +466,9 @@ table.xnt tfoot td{font-size:13px}
 .warehouse-theme-choice small{display:block;font-size:11px;color:var(--muted);margin-top:4px}
 @media(max-width:860px){.warehouse-theme-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:420px){.warehouse-theme-grid{grid-template-columns:1fr}}
+
+/* Shared sidebar company credit, below the warehouse stock summary. */
+#sb .sbfoot{flex:none;padding:8px 16px 16px;text-align:center;color:var(--sbmuted,#cbd5e1);font-size:11px;line-height:1.5;overflow-wrap:anywhere}
+#sb .sbfoot:empty{display:none}
+#sb .sbfoot a{color:inherit;text-decoration:underline;text-underline-offset:3px}
+#sb .sbfoot a:hover,#sb .sbfoot a:focus-visible{color:#fff}

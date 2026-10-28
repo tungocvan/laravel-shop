@@ -22,4 +22,5 @@
       <div class="bar"><i id="sbBar" style="width:0"></i></div>
       <p id="sbNote"></p>
     </div>
+    <div class="sbfoot" aria-label="Thông tin công ty"></div>
   </aside>
