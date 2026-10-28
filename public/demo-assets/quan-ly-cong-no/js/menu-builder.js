@@ -29,6 +29,84 @@
     m.el.querySelector('[data-notice]').textContent = detail;
     m.el.querySelector('[data-ok]').onclick = () => m.close();
   };
+  // No secret is persisted or echoed. All failures remain inside the modal.
+  function requestSecret(action) {
+    return new Promise(resolve => {
+      let completed = false;
+      const modal = Modal.open({
+        title: 'Xác thực lưu trên server', width: 420,
+        body: '<label class="menu-secret-label" for="menu-secret-input">Mã quản trị</label><div class="menu-secret-row"><input id="menu-secret-input" class="inp" type="password" autocomplete="off" spellcheck="false" placeholder="Nhập mã quản trị"><button type="button" class="btn sm" data-toggle-secret>Hiện</button></div><p class="menu-secret-error" data-secret-error role="alert" aria-live="polite"></p>',
+        foot: '<button type="button" class="btn" data-secret-cancel>Hủy</button><button type="button" class="btn pri" data-secret-submit>Xác nhận</button>',
+        onClose: () => { if (!completed) resolve(null); }
+      });
+      const input = modal.el.querySelector('#menu-secret-input');
+      const error = modal.el.querySelector('[data-secret-error]');
+      const submit = modal.el.querySelector('[data-secret-submit]');
+      const toggle = modal.el.querySelector('[data-toggle-secret]');
+      toggle.onclick = () => { input.type = input.type === 'password' ? 'text' : 'password'; toggle.textContent = input.type === 'password' ? 'Hiện' : 'Ẩn'; };
+      modal.el.querySelector('[data-secret-cancel]').onclick = () => modal.close();
+      input.addEventListener('keydown', e => { if (e.key === 'Enter') submit.click(); });
+      submit.onclick = () => {
+        if (!input.value) { error.textContent = 'Vui lòng nhập mã quản trị.'; input.focus(); return; }
+        completed = true;
+        const code = input.value;
+        input.value = '';
+        modal.close();
+        resolve(code);
+      };
+      input.focus();
+    });
+  }
+  function writeError(response) {
+    if (response.status === 403) return 'Mã quản trị không chính xác. Vui lòng thử lại.';
+    if (response.status === 503) return 'Chức năng ghi server chưa được cấu hình hợp lệ. Liên hệ quản trị viên.';
+    if (response.status === 419) return 'Phiên làm việc đã hết hạn. Tải lại trang rồi thử lại.';
+    if (response.status === 429) return 'Bạn đã thử quá nhiều lần. Vui lòng chờ rồi thử lại.';
+    if (response.status === 413) return 'Dữ liệu vượt giới hạn cho phép.';
+    if (response.status === 422) return 'Cấu hình JSON không hợp lệ.';
+    if (response.status === 409) return 'Cấu hình đã thay đổi hoặc tên file đã tồn tại.';
+    return 'Không thể thực hiện (HTTP ' + response.status + ').';
+  }
+  async function authorizedWrite(action, perform) {
+    // Retry after 403 without closing the error dialog.
+    return new Promise(resolve => {
+      let finished = false;
+      const modal = Modal.open({
+        title: 'Xác thực: ' + action, width: 420,
+        body: '<label class="menu-secret-label" for="menu-secret-input">Mã quản trị</label><div class="menu-secret-row"><input id="menu-secret-input" class="inp" type="password" autocomplete="off" spellcheck="false" placeholder="Nhập mã quản trị"><button type="button" class="btn sm" data-toggle-secret>Hiện</button></div><p class="menu-secret-error" data-secret-error role="alert" aria-live="polite"></p>',
+        foot: '<button type="button" class="btn" data-secret-cancel>Hủy</button><button type="button" class="btn pri" data-secret-submit>Xác nhận</button>',
+        onClose: () => { if (!finished) resolve(false); }
+      });
+      const input = modal.el.querySelector('#menu-secret-input');
+      const error = modal.el.querySelector('[data-secret-error]');
+      const submit = modal.el.querySelector('[data-secret-submit]');
+      const toggle = modal.el.querySelector('[data-toggle-secret]');
+      toggle.onclick = () => { input.type = input.type === 'password' ? 'text' : 'password'; toggle.textContent = input.type === 'password' ? 'Hiện' : 'Ẩn'; };
+      modal.el.querySelector('[data-secret-cancel]').onclick = () => modal.close();
+      input.addEventListener('input', () => { error.textContent = ''; });
+      input.addEventListener('keydown', e => { if (e.key === 'Enter') submit.click(); });
+      submit.onclick = async () => {
+        if (!input.value) { error.textContent = 'Vui lòng nhập mã quản trị.'; input.focus(); return; }
+        const code = input.value;
+        input.value = '';
+        submit.disabled = true;
+        try {
+          const response = await perform(code);
+          if (!response.ok) {
+            error.textContent = writeError(response);
+            if (response.status !== 403) { submit.disabled = true; return; }
+            input.focus();
+            return;
+          }
+          finished = true;
+          modal.close();
+          resolve(response);
+        } catch (e) { error.textContent = 'Không kết nối được server. Vui lòng thử lại.'; }
+        finally { if (submit.isConnected && !finished && !submit.disabled) submit.disabled = false; if (submit.isConnected && !finished && error.textContent.startsWith('Mã quản trị')) submit.disabled = false; }
+      };
+      input.focus();
+    });
+  }
   const safeHref = href => /^#[a-z0-9-]{1,64}$/.test(href) || /^https:\/\/[a-z0-9][a-z0-9.-]+(?:\/[^\s]*)?$/i.test(href);
   const safeIcon = name => /^[a-z0-9-]{1,48}$/.test(name);
   const validate = value => {
@@ -81,7 +159,7 @@
       credit.onclick = () => { if (footer.href.startsWith('https://')) window.open(footer.href, '_blank', 'noopener,noreferrer'); else if (footer.href.startsWith('#') && App.views[footer.href.slice(1)]) App.go(footer.href.slice(1)); };
     }
     const save = document.querySelector('.sidebar .btn-save');
-    if (save) save.hidden = !footer.showSave;
+    if (save) save.remove();
     const nav = document.querySelector('.sidebar .nav');
     if (!nav) return;
     nav.replaceChildren();
@@ -224,14 +302,6 @@
         wrapper.appendChild(input);
         card.appendChild(wrapper);
       }
-      if (section === 'footer') {
-        const label = document.createElement('label');
-        const box = document.createElement('input');
-        box.type = 'checkbox'; box.checked = config.footer.showSave;
-        box.onchange = () => { config.footer.showSave = box.checked; };
-        label.append(box, document.createTextNode(' Hiện nút lưu dữ liệu'));
-        card.appendChild(label);
-      }
       area.appendChild(card);
     }
   }
@@ -252,14 +322,18 @@
     const id = editor?.el.querySelector('#menu-server-presets')?.value;
     if (!id) return message('Chọn một file JSON trên server.', true);
     try {
-      const response = await fetch(url + '/presets/' + encodeURIComponent(id), { cache: 'no-store' });
+      const response = await authorizedWrite('Xóa file JSON', code => fetch(url + '/presets/' + encodeURIComponent(id), { cache: 'no-store' });
       if (!response.ok) throw Error('HTTP ' + response.status);
       const payload = await response.json();
       const imported = validate(payload.config);
-      if (!await Modal.confirm('Nhập cấu hình từ server vào trình chỉnh sửa? Chưa áp dụng lên sidebar.', { ok: 'Nhập' })) return;
-      config = copy(imported);
+      if (!await Modal.confirm('Nhập cấu hình từ server và cập nhật sidebar ngay trên trình duyệt này?', { ok: 'Nhập & cập nhật' })) return;
+      const snapshot = copy(imported);
+      localStorage.setItem(localKey, JSON.stringify(snapshot));
+      config = snapshot;
+      appliedConfig = copy(snapshot);
+      renderSidebar();
       drawHeaderFooter(); drawEditor();
-      showNotice('Nhập JSON thành công', 'Đã nhập từ server vào bản chỉnh sửa. Nhấn Cập nhật giao diện hoặc Lưu lên server để áp dụng.');
+      showNotice('Nhập và cập nhật thành công', 'Sidebar đã được áp dụng ngay và sẽ giữ nguyên sau khi tải lại trang trên trình duyệt này.');
     } catch (e) { message('Nhập server thất bại: ' + e.message, true); }
   }
   async function saveNamedPreset() {
@@ -269,14 +343,14 @@
     const selected = editor?.el.querySelector('#menu-server-presets');
     const overwrite = !!selected?.value && selected.selectedOptions[0].textContent === name;
     if (overwrite && !await Modal.confirm('Cập nhật file JSON "' + name + '"? Dữ liệu cũ của file này sẽ bị thay thế.', { ok: 'Cập nhật file' })) return;
-    const code = window.prompt('Nhập mã quản trị để lưu JSON trên server:');
-    if (!code) return;
+
     try {
-      const response = await fetch(overwrite ? url + '/presets/' + encodeURIComponent(selected.value) : url + '/presets', {
+      const response = await authorizedWrite(overwrite ? 'Cập nhật file JSON' : 'Lưu file JSON', code => fetch(overwrite ? url + '/presets/' + encodeURIComponent(selected.value) : url + '/presets', {
         method: overwrite ? 'PUT' : 'POST', credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '', 'X-Demo-Backup-Code': code },
         body: JSON.stringify(overwrite ? { config } : { name, config })
-      });
+      }));
+      if (!response) return;
       if (response.status === 409) return message('Tên file đã tồn tại. Chọn file cùng tên trong danh sách để xác nhận cập nhật.', true);
       if (!response.ok) throw Error('HTTP ' + response.status);
       const result = await response.json();
@@ -291,16 +365,15 @@
     if (!id) return message('Chọn file JSON cần xóa.', true);
     const name = select.selectedOptions[0].textContent;
     if (!await Modal.confirm('Xóa vĩnh viễn file JSON "' + name + '" khỏi thư viện server? Sidebar đang áp dụng và dữ liệu công nợ không bị ảnh hưởng.', { ok: 'Xóa file' })) return;
-    const code = window.prompt('Nhập mã quản trị để xác nhận xóa file JSON:');
-    if (!code) return;
+
     const button = editor?.el.querySelector('#menu-delete-preset');
     if (button) button.disabled = true;
     try {
       const response = await fetch(url + '/presets/' + encodeURIComponent(id), {
         method: 'DELETE', credentials: 'same-origin',
         headers: { Accept: 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '', 'X-Demo-Backup-Code': code }
-      });
-      if (!response.ok) throw Error('HTTP ' + response.status);
+      }));
+      if (!response) return;
       await refreshPresets();
       showNotice('Xóa file thành công', 'Đã xóa file "' + name + '" khỏi thư viện JSON trên server. Sidebar hiện hành không thay đổi.');
     } catch (e) { message('Không xóa được file: ' + e.message, true); }
@@ -357,17 +430,16 @@
     };
     el.querySelector('#menu-save').onclick = async () => {
       try { validate(config); } catch (e) { return message(e.message, true); }
-      const code = window.prompt('Nhập mã quản trị để lưu menu lên server (mã không được lưu trong trình duyệt):');
-      if (!code) return;
+  
       const button = el.querySelector('#menu-save');
       button.disabled = true;
       try {
-        const response = await fetch(url, {
+        const response = await authorizedWrite('Lưu sidebar lên server', code => fetch(url, {
           method: 'POST', credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '', 'X-Demo-Backup-Code': code },
           body: JSON.stringify({ config })
-        });
-        if (!response.ok) throw Error('HTTP ' + response.status);
+        }));
+        if (!response) return;
         localStorage.removeItem(localKey);
         appliedConfig = copy(config);
         renderSidebar();
