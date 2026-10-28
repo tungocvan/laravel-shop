@@ -100,6 +100,18 @@ class DebtManagementMenuController extends Controller
         $validated['config'] = $this->normalizeOptionalText($validated['config']);
         abort_unless($this->valid($validated['config']), 422);
         $disk = Storage::disk('local');
+        // Never create another preset with an existing display name.
+        foreach ($disk->files(self::PRESETS) as $existingPath) {
+            try {
+                $existing = json_decode($disk->get($existingPath), true, 512, JSON_THROW_ON_ERROR);
+            } catch (\JsonException $e) {
+                continue;
+            }
+            if (is_array($existing) && isset($existing['name'])
+                && mb_strtolower(trim((string) $existing['name'])) === mb_strtolower(trim($validated['name']))) {
+                return response()->json(['message' => 'Tên cấu hình đã tồn tại. Hãy chọn file và xác nhận cập nhật.', 'id' => pathinfo($existingPath, PATHINFO_FILENAME)], 409);
+            }
+        }
         abort_if(count($disk->files(self::PRESETS)) >= 100, 409);
         $id = substr(Str::slug($validated['name']) ?: 'menu', 0, 40).'-'.Str::lower(Str::random(10));
         $json = json_encode(['name' => $validated['name'], 'config' => $validated['config']], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
@@ -107,6 +119,32 @@ class DebtManagementMenuController extends Controller
         abort_unless($disk->put(self::PRESETS.'/'.$id.'.json', $json), 500);
 
         return response()->json(['id' => $id, 'name' => $validated['name']], 201);
+    }
+
+    public function updatePreset(Request $request, string $preset): JsonResponse
+    {
+        $this->authorizeWrite($request);
+        abort_unless(preg_match('/^[a-z0-9-]{1,80}$/', $preset), 404);
+        $path = self::PRESETS.'/'.$preset.'.json';
+        $disk = Storage::disk('local');
+        abort_unless($disk->exists($path), 404);
+        $validated = Validator::make($request->all(), [
+            'config' => ['required', 'array'],
+        ])->validate();
+        $config = $this->normalizeOptionalText($validated['config']);
+        abort_unless($this->valid($config), 422);
+        try {
+            $existing = json_decode($disk->get($path), true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $e) {
+            abort(409, 'File JSON hiện tại không hợp lệ.');
+        }
+        abort_unless(is_array($existing) && is_string($existing['name'] ?? null), 409);
+        $json = json_encode(['name' => $existing['name'], 'config' => $config], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        abort_if(strlen($json) > 65536, 413);
+        abort_unless($disk->put($path, $json), 500);
+
+        return response()->json(['updated' => true, 'id' => $preset, 'name' => $existing['name']])
+            ->header('Cache-Control', 'no-store');
     }
 
     private function authorizeWrite(Request $request): void
