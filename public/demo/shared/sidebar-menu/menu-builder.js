@@ -60,7 +60,12 @@
         const page = item.href.startsWith('#') ? item.href.slice(1) : '';
         const existing = known.get(page);
         const a = existing ? existing.cloneNode(true) : document.createElement('a');
-        a.textContent = item.label;
+        if (existing) {
+          // Preserve the demo's SVG icons and live badge nodes.
+          const textNode = Array.from(a.childNodes).find(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim());
+          if (textNode) textNode.textContent = item.label;
+          else a.append(document.createTextNode(item.label));
+        } else a.textContent = item.label;
         if (existing) {
           a.dataset.page = page;
           // Original detached anchor retains the demo's own go() handler.
