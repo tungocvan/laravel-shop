@@ -1,106 +1,33 @@
-/* Shared demo menu editor: DOM adapter, no business data mutations. */
-(() => {
-  'use strict';
-  const root = document.querySelector('[data-demo-menu]');
-  if (!root) return;
-  const slug = root.dataset.demoMenu;
-  const url = '/demo/' + slug + '/menu';
-  const key = 'shared_demo_sidebar_menu_v1_' + slug;
-  const nav = document.querySelector('#nav');
-  const sidebar = document.querySelector('#sb');
-  if (!nav || !sidebar) return;
-  const original = Array.from(nav.children);
-  const brand = sidebar.querySelector('.brand');
-  const footer = sidebar.querySelector('.sbfoot');
-  const originalBrand = brand?.cloneNode(true);
-  const originalFooter = footer?.textContent || '';
-  const known = new Map(Array.from(nav.querySelectorAll('a[data-page]')).map(a => [a.dataset.page, a]));
-  const defaultConfig = () => {
-    const groups = [];
-    for (const node of original) {
-      if (node.tagName === 'H6') groups.push({title: node.textContent.trim(), items: []});
-      else if (node.matches('a[data-page]')) {
-        if (!groups.length) groups.push({title:'Menu',items:[]});
-        groups[groups.length - 1].items.push({
-          id: node.dataset.page, label: node.textContent.trim(),
-          icon: node.dataset.ic || 'link', href: '#' + node.dataset.page
-        });
-      }
-    }
-    return {version:1, header:{title:brand?.querySelector('b')?.textContent || '',subtitle:brand?.querySelector('small')?.textContent || '',icon:'menu',href:'#dashboard'}, footer:{credit:originalFooter,href:'',showSave:false}, groups};
-  };
-  const clone = x => JSON.parse(JSON.stringify(x));
-  const defaults = defaultConfig();
-  let applied = clone(defaults), working = null;
-  const validHref = (s, empty=false) => typeof s === 'string' && ((empty && !s) || /^#[a-z0-9-]{1,64}$/.test(s) || /^https:\/\/[a-z0-9][a-z0-9.-]+(?:\/[^\s]*)?$/i.test(s) && s.length <= 250);
-  function validate(c) {
-    if (!c || c.version !== 1 || !Array.isArray(c.groups) || c.groups.length > 20) throw Error('Nhóm menu không hợp lệ.');
-    for (const [section, fields] of Object.entries({header:['title','subtitle','icon','href'],footer:['credit','href']})) {
-      if (!c[section] || fields.some(f => typeof c[section][f] !== 'string' || c[section][f].length > 250) || !validHref(c[section].href,true)) throw Error('Header/footer không hợp lệ.');
-    }
-    if (!/^[a-z0-9-]{1,48}$/.test(c.header.icon) || typeof c.footer.showSave !== 'boolean') throw Error('Icon/footer không hợp lệ.');
-    const ids = new Set(); let count = 0;
-    for (const g of c.groups) {
-      if (typeof g.title !== 'string' || g.title.length > 60 || !Array.isArray(g.items)) throw Error('Nhóm không hợp lệ.');
-      for (const i of g.items) {
-        if (++count > 100 || !i || !/^[a-z0-9-]{1,64}$/.test(i.id) || ids.has(i.id) ||
-          typeof i.label !== 'string' || !i.label.trim() || i.label.length > 80 ||
-          typeof i.icon !== 'string' || !/^[a-z0-9-]{1,48}$/.test(i.icon) || !validHref(i.href)) throw Error('Mục menu không hợp lệ.');
-        ids.add(i.id);
-      }
-    }
-    return c;
-  }
-  function apply(c) {
-    applied = clone(validate(c));
-    nav.replaceChildren();
-    for (const group of c.groups) {
-      const h = document.createElement('h6'); h.textContent = group.title; nav.append(h);
-      for (const item of group.items) {
-        const page = item.href.startsWith('#') ? item.href.slice(1) : '';
-        const existing = known.get(page);
-        const a = existing ? existing.cloneNode(true) : document.createElement('a');
-        if (existing) {
-          // Preserve the demo's SVG icons and live badge nodes.
-          const textNode = Array.from(a.childNodes).find(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim());
-          if (textNode) textNode.textContent = item.label;
-          else a.append(document.createTextNode(item.label));
-        } else a.textContent = item.label;
-        if (existing) {
-          a.dataset.page = page;
-          // Original detached anchor retains the demo's own go() handler.
-          a.onclick = () => existing.click();
-        } else if (item.href.startsWith('https://')) {
-          a.href = item.href; a.target = '_blank'; a.rel = 'noopener noreferrer';
-        } else {
-          a.href = '#'; a.setAttribute('aria-disabled', 'true');
-        }
-        a.dataset.menuItem = item.id;
-        nav.append(a);
-      }
-    }
-    if (brand) {
-      const b=brand.querySelector('b'),small=brand.querySelector('small');
-      if (b) b.textContent=c.header.title;
-      if (small) small.textContent=c.header.subtitle;
-    }
-    if (footer) footer.textContent=c.footer.credit;
-    document.dispatchEvent(new CustomEvent('demo-menu:applied',{detail:{slug}}));
-  }
-  const dlg = document.createElement('dialog'); dlg.className='shared-menu-dialog';
-  dlg.innerHTML='<div class="shared-menu-shell"><header><h3>Chỉnh sửa menu</h3><button type="button" data-close aria-label="Đóng">×</button></header><div class="shared-menu-body"><div data-fields></div><div data-groups></div><section><h4>Thư viện JSON server</h4><input data-name placeholder="Tên cấu hình"><select data-presets><option value="">Chọn file</option></select><button data-refresh>Làm mới</button><button data-load>Nạp JSON</button><button data-store-preset>Lưu file</button><button data-delete-preset>Xóa file</button></section><p role="status" data-status></p></div><footer><button data-add-group>+ Nhóm</button><button data-reset>Mặc định</button><button data-export>Xuất JSON</button><label>Nhập JSON<input type="file" accept=".json,application/json" data-import hidden></label><button data-preview>Cập nhật giao diện</button><button data-save>Lưu lên server</button></footer></div>';
-  document.body.append(dlg);
-  const $ = s => dlg.querySelector(s);
-  const status = (s) => { $('[data-status]').textContent=s; };
-  function field(parent,label,value,change) {
-    const wrap=document.createElement('label'); wrap.textContent=label;
-    const input=document.createElement('input'); input.value=value; input.maxLength=250;
-    input.oninput=()=>change(input.value); wrap.append(input); parent.append(wrap);
-  }
   function render() {
     const fields=$('[data-fields]');fields.replaceChildren();
     for (const [section,names] of Object.entries({header:['title','subtitle','icon','href'],footer:['credit','href']})) {
       const h=document.createElement('h4');h.textContent=section==='header'?'Header':'Footer';fields.append(h);
+      for(const name of names) field(fields,name,working[section][name],v=>working[section][name]=v);
+    }
+  function selectTab(tab) {
+    dlg.querySelectorAll('[data-tab]').forEach(button => {
+      const active = button.dataset.tab === tab;
+      button.setAttribute('aria-selected', String(active));
+      button.tabIndex = active ? 0 : -1;
+    });
+    dlg.querySelectorAll('[data-panel]').forEach(panel => { panel.hidden = panel.dataset.panel !== tab; });
+    $('[data-add-group]').hidden = tab !== 'menu';
+  }
+  dlg.querySelectorAll('[data-tab]').forEach(button => {
+    button.onclick = () => selectTab(button.dataset.tab);
+    button.onkeydown = e => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      e.preventDefault();
+      const tabs = Array.from(dlg.querySelectorAll('[data-tab]'));
+      const next = tabs[(tabs.indexOf(button) + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+      selectTab(next.dataset.tab);
+      next.focus();
+    };
+  });
+  selectTab('menu');
+  function render() {
+    for (const [section,names] of Object.entries({header:['title','subtitle','icon','href'],footer:['credit','href']})) {
+      const fields=$('[data-'+section+'-fields]');fields.replaceChildren();
       for(const name of names) field(fields,name,working[section][name],v=>working[section][name]=v);
     }
     const groups=$('[data-groups]');groups.replaceChildren();
@@ -133,7 +60,7 @@
     if(!r.ok)throw Error('Server từ chối (HTTP '+r.status+').');
     return r;
   }
-  document.addEventListener('click',e=>{if(!e.target.closest('[data-open-menu]'))return;working=clone(applied);render();refresh();dlg.showModal();});
+  document.addEventListener('click',e=>{if(!e.target.closest('[data-open-menu]'))return;working=clone(applied);render();selectTab('menu');refresh();dlg.showModal();});
   const settings = document.querySelector('#page-settings');
   if (settings) {
     const mount = () => {
