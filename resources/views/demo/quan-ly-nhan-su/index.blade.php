@@ -19,13 +19,8 @@
     <div class="sec">Trạng thái</div>
     <div id="navStatus"></div>
 
-    <div class="sec">Tiện ích</div>
-    <a class="item" onclick="openForm()"><span class="ic">➕</span>Thêm nhân viên</a>
-    <a class="item" onclick="saveFile()"><span class="ic">💾</span>Xuất JSON</a>
-    <a class="item" onclick="exportCSV()"><span class="ic">⬇</span>Xuất Excel</a>
-    <a class="item" onclick="openHrLibrary()"><span class="ic">🗄</span>Thư viện JSON server</a>
-    <a class="item" onclick="document.getElementById('hrImport').click()"><span class="ic">📂</span>Nhập JSON</a>
-    <a class="item" onclick="resetData()"><span class="ic">↺</span>Khôi phục dữ liệu mẫu</a>
+    <div class="sec">Nhân sự</div>
+    <a class="item" onclick="openForm()"><span class="ic">✚</span>Thêm nhân viên</a>
     <div class="sec">Hệ thống</div>
     <a class="item" data-hr-item="settings" onclick="goPage('settings')"><span class="ic">⚙</span>Cài đặt & dữ liệu</a>
   </nav>
