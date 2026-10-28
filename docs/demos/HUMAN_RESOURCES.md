@@ -1,15 +1,28 @@
-# Human Resources standalone demo — work in progress
+# Standalone demo: Quản lý nhân sự
 
-Branch: feat/hr-standalone-blade-20261028
+Branch: `feat/hr-standalone-blade-20261028`
 
-Source: user-supplied Quản lý nhân sự.html. Imported original HTML DOM, embedded example dataset, CSS and JS to independent Blade route `/demo/quan-ly-nhan-su`. This is a migration foundation, NOT a finished/accepted demo.
+## Scope
+- GET `/demo/quan-ly-nhan-su` through `HumanResourcesController`.
+- Blade view and independent layout under `resources/views/demo/quan-ly-nhan-su/`.
+- CSS/JS under `public/demo/quan-ly-nhan-su/`, preserving employee CRUD, filters, dashboard, CSV and printing.
+- Browser data `qlns_data_v2`, one-time read compatibility with `qlns_data_v1`, JSON download/import with schema checks.
+- Theme Ruby/Ocean/Emerald/Indigo stored at `qlns_theme_v1`.
+- JSON dataset library in local private storage `demo-datasets/human-resources`, GET list/show, POST write with configured `warehouse_demo.backup_code`, throttling, CSRF, schema/size/count/path controls.
+- Shared Sidebar Menu Builder with HR bridge adapter, own server settings namespace `demo-settings/human-resources`; shared editor code reused.
+- No database migrations, module registration, production configuration or `.env` changes.
 
-## Outstanding blockers before checkpoint
-- Replace original save-to-HTML behavior with safe localStorage and JSON import/export.
-- Implement secured JSON dataset library with server-side schema validation and authorization.
-- Implement four themes with independent persistence.
-- Integrate shared sidebar menu builder via compatible adapter and protected API.
-- Audit original JS event/DOM compatibility and security; add focused tests.
-- Run focused tests, impacted regression and UI acceptance.
+## Security
+The server write requires an existing configured secret of at least 16 characters. Never include this secret in the repository. GET endpoints are public and therefore dataset files must contain **demo/sample data only**; do not upload real employee personal information. Browser storage is per browser, not a multiuser HR backend.
 
-No tests or UI acceptance have been reported as PASS. No production operations, migrations or .env changes.
+## Git Pull / focused tests
+```bash
+git fetch origin
+git switch feat/hr-standalone-blade-20261028
+git pull --ff-only
+php artisan test tests/Feature/HumanResourcesDemoRouteTest.php
+```
+Run impacted shared-menu tests and relevant existing demo route tests only after focused tests pass. UI requires manual desktop/tablet/iPhone checks: CRUD, filter, CSV, print, themes after refresh, JSON export/import, library auth/load, menu settings/presets, dynamic department/status sidebar.
+
+## Acceptance status
+Implementation committed on feature branch. TEST PASS not asserted; requires actual local test output. UI PASS requires user's manual confirmation. No PR/merge/deploy performed.
