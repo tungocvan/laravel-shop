@@ -23,6 +23,22 @@ final class HumanResourcesDemoRouteTest extends TestCase
         $this->assertStringNotContainsString('\\\\nconst KEY', substr($js, 0, 180));
     }
 
+    public function test_settings_workspace_reuses_existing_route_and_menu_editor(): void
+    {
+        $this->get('/demo/quan-ly-nhan-su')->assertOk()
+            ->assertSee('id="page-settings"', false)
+            ->assertSee('Cài đặt & dữ liệu')
+            ->assertSee('data-hr-theme-choice="ruby"', false)
+            ->assertSee('data-hr-theme-choice="ocean"', false)
+            ->assertSee('data-hr-theme-choice="emerald"', false)
+            ->assertSee('data-hr-theme-choice="indigo"', false)
+            ->assertSee('data-open-menu', false)
+            ->assertSee('hrSettingsCount');
+        $adapter = file_get_contents(public_path('demo-assets/quan-ly-nhan-su/js/menu-adapter.js'));
+        $this->assertStringContainsString("href:'#settings'", $adapter);
+        $this->assertStringContainsString("goPage('settings')", $adapter);
+    }
+
     public function test_assets_exist(): void
     {
         foreach (['js/app.js','js/menu-adapter.js','css/app.css'] as $path) {
