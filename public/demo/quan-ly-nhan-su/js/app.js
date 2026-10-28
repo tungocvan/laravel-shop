@@ -500,7 +500,8 @@ const HR_THEMES={ruby:'#C62828',ocean:'#087E9B',emerald:'#16835D',indigo:'#4F46E
 function hrSetTheme(name){
   if(!Object.hasOwn(HR_THEMES,name))name='emerald';
   document.documentElement.style.setProperty('--primary',HR_THEMES[name]);
-  document.documentElement.style.setProperty('--accent',HR_THEMES[name]);
+  document.documentElement.style.setProperty('--primary-2',HR_THEMES[name]);
+  document.documentElement.style.setProperty('--soft',name==='ruby'?'#fef2f2':name==='ocean'?'#ecfeff':name==='indigo'?'#eef2ff':'#ecfdf3');
   document.documentElement.dataset.hrTheme=name;
   try{localStorage.setItem('qlns_theme_v1',name);}catch(e){}
   const select=$('hrTheme');if(select)select.value=name;
