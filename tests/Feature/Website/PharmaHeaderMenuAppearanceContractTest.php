@@ -45,6 +45,23 @@ final class PharmaHeaderMenuAppearanceContractTest extends TestCase
         $this->assertSame(0, $service->resolve([])['menu_style']['mobile']['item_gap']);
     }
 
+    public function test_pharma_header_renders_nested_desktop_and_mobile_menu_items(): void
+    {
+        $frontend = file_get_contents(base_path('Modules/Website/resources/views/partials/pharma/header.blade.php'));
+        $service = file_get_contents(base_path('Modules/Website/Services/HeaderMenuService.php'));
+
+        $this->assertStringContainsString("getMenuTreeByLocation('pharma_primary')", $frontend);
+        $this->assertStringContainsString("getMenuTreeByLocation('pharma_mobile')", $frontend);
+        $this->assertStringContainsString('with([\'children\' => function ($query)', $service);
+        $this->assertSame(2, substr_count($frontend, '$children = is_array($item) ? collect() : $item->children'));
+        $this->assertSame(2, substr_count($frontend, '@foreach($children as $child)'));
+        $this->assertStringContainsString('@mouseenter="open = true"', $frontend);
+        $this->assertStringContainsString('@click="open = !open"', $frontend);
+        $this->assertStringContainsString('@click="expanded = !expanded"', $frontend);
+        $this->assertStringContainsString(':aria-expanded="expanded.toString()"', $frontend);
+        $this->assertStringContainsString('>{{ $child->title }}</a>', $frontend);
+    }
+
     public function test_menu_editor_and_frontend_share_presentation_and_theme_snapshot(): void
     {
         $hub = file_get_contents(base_path('Modules/Website/Livewire/Admin/Header/HeaderSettingsHub.php'));
