@@ -1,1 +1,0 @@
-<main class="main"><header class="top" id="top"></header><div class="content" id="content"></div></main>
