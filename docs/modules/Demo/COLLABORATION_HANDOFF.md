@@ -214,3 +214,5 @@ Checkpoint: focused tests, impacted regression and UI review are pending. Do not
 - Impacted after focused PASS: `php artisan test tests/Feature/SharedDemoSidebarMenuTest.php tests/Feature/StandaloneSalesDemoRouteTest.php tests/Feature/DemoModuleSalesEmployeesOwnershipTest.php`.
 - UI PENDING: desktop/tablet/iPhone, stock in/out, CRUD products, history, inventory reports, JSON import/export and server library, menu editor, five themes and refresh persistence, console/network.
 - No local PHP/Node/browser tests run by GitHub connector; no TEST/UI PASS claim and no merge/deploy.
+
+- Phase 11 impacted regression user report: 10 PASS / 1 FAIL (`SharedDemoSidebarMenuTest::test_shared_assets_are_mounted_in_both_demo_views`): outdated assertion expected legacy `demo/shared/sidebar-menu/menu-builder.js`. Audited Sales/Warehouse module Blade: both load their own module-owned shared menu editor asset, with preserved data-demo-menu markers. Updated only assertion to `demo-assets/{demo}/shared/menu-editor.js` in `d6e9da94014bd21ccca011e6209104ab5f24ae14`. Re-run focused + impacted regression and verify menu UI before PASS. No application code or API changed.
