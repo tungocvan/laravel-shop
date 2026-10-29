@@ -25,3 +25,10 @@ Run focused tests first, then impacted shared-menu regression. Verify manually: 
 - Focused: `php artisan test tests/Feature/CoffeeShopSalesDemoTest.php tests/Feature/DemoModuleCoffeeShopSalesOwnershipTest.php`.
 - Impacted regression: Equipment Maintenance, Hotel Uniform, Rental Room ownership and SharedDemoSidebarMenu tests after focused PASS.
 - TEST/UI PENDING. Do not merge or deploy.
+
+## Phase 04 — Theme preview cards and JSON settings simplification
+
+- The Coffee Shop Settings screen now offers five preview cards: original, Ruby, Ocean, Emerald and Indigo. The existing theme storage key is unchanged.
+- The separate Coffee Shop server JSON library widget has been removed from Settings at user request. Menu JSON management remains in the shared menu editor; **menu presets are not equivalent to business data snapshots**.
+- Dataset routes and private server snapshot files are intentionally retained for compatibility and to avoid deleting user data. Removing these endpoints or files would require separate authorization and data migration/retention review.
+- TEST/UI PENDING after this change.
