@@ -19,8 +19,17 @@ if(!settings||!nav)return;
 const panel=(title)=>{const p=document.createElement('div');p.className='card noprint';p.style.cssText='padding:18px;margin-bottom:16px';const h=document.createElement('h3');h.textContent=title;p.append(h);settings.prepend(p);return p};
 const el=(tag,label,cls='btn')=>{const e=document.createElement(tag);if(tag==='button'){e.type='button';e.className=cls;}if(label)e.textContent=label;return e};
 const row=()=>{const d=document.createElement('div');d.style.cssText='display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px';return d};
-const themePanel=panel('Giao diện · 4 themes và màu nguyên bản'),themeRow=row();
-for(const [id,name] of Object.entries({original:'Nguyên bản',ruby:'Ruby',ocean:'Ocean',emerald:'Emerald',indigo:'Indigo'})){const b=el('button',name);b.dataset.rentalTheme=id;b.onclick=()=>theme(id);themeRow.append(b)}
+const themePanel=panel('Màu sắc giao diện');
+themePanel.classList.add('rental-themes');
+const themeHint=document.createElement('p');themeHint.className='muted';themeHint.textContent='Chọn một trong 5 giao diện. Lựa chọn được lưu trên trình duyệt.';themePanel.append(themeHint);
+const themeRow=document.createElement('div');themeRow.className='rental-theme-options';
+for(const [id,name] of Object.entries({original:'Màu gốc',ruby:'Ruby',ocean:'Ocean',emerald:'Emerald',indigo:'Indigo'})){
+ const b=el('button');b.className='rental-theme-choice';b.dataset.rentalTheme=id;
+ b.style.setProperty('--choice-color',palettes[id][0]);b.style.setProperty('--choice-dark',palettes[id][6]);
+ const swatch=document.createElement('span');swatch.className='rental-theme-swatch';swatch.setAttribute('aria-hidden','true');
+ const label=document.createElement('span');label.className='rental-theme-label';label.textContent=name;
+ b.append(swatch,label);b.onclick=()=>theme(id);themeRow.append(b);
+}
 themePanel.append(themeRow);try{theme(localStorage.getItem(themeKey)||'original')}catch(_){theme('original')}
 const navItems=[...nav.querySelectorAll('a[data-page]')];
 const originalNodes=new Map(navItems.map(a=>[a.dataset.page,a]));
@@ -35,7 +44,8 @@ let menu=defaults;try{const saved=JSON.parse(localStorage.getItem(menuKey));if(v
 function renderMenu(){originalBadges.forEach(b=>badgeParking.append(b));nav.replaceChildren();for(const group of menu.groups){const h=document.createElement('h6');h.textContent=group.title;nav.append(h);for(const item of group.items){const a=document.createElement('a');a.dataset.page=item.href.startsWith('#')?item.href.slice(1):'';a.textContent=item.label;const original=originalNodes.get(a.dataset.page);if(original){const ico=original.querySelector('svg, i');if(ico)a.prepend(ico.cloneNode(true));const badge=originalBadges.find(b=>original.contains(b)||b.dataset.rentalPage===a.dataset.page);if(badge){badge.dataset.rentalPage=a.dataset.page;a.append(badge)}}if(item.href.startsWith('#'))a.onclick=()=>{if(typeof go==='function')go(a.dataset.page)};else{a.href=item.href;a.rel='noopener noreferrer';a.target='_blank'}nav.append(a)}}if(typeof CUR==='string')nav.querySelectorAll('a[data-page]').forEach(a=>a.classList.toggle('active',a.dataset.page===CUR));}
 function persistMenu(){localStorage.setItem(menuKey,JSON.stringify(menu));renderMenu()}
 renderMenu();
-const menuPanel=panel('Chỉnh sửa menu sidebar'),editButton=el('button','Chỉnh sửa menu'),menuRow=row(),editor=document.createElement('div');
+const menuPanel=panel('Sidebar menu'),editButton=el('button','Chỉnh sửa menu'),menuRow=row(),editor=document.createElement('div');
+menuPanel.classList.add('rental-menu-panel');const menuHint=document.createElement('p');menuHint.className='muted';menuHint.textContent='Chỉnh sửa nhóm, mục, header/footer và thư viện JSON riêng cho demo này.';menuPanel.append(menuHint);editButton.classList.add('rental-menu-toggle');
 menuPanel.append(menuRow,editor);menuRow.append(editButton);
 function input(value,placeholder){const i=el('input');i.className='inp';i.value=value||'';i.placeholder=placeholder;i.style.cssText='max-width:240px;flex:1;min-width:110px';return i}
 function buildEditor(){editor.replaceChildren();const h=row(),title=input(menu.header.title,'Tiêu đề'),sub=input(menu.header.subtitle,'Mô tả');title.onchange=()=>{menu.header.title=title.value;persistMenu()};sub.onchange=()=>{menu.header.subtitle=sub.value;persistMenu()};h.append(title,sub);editor.append(h);
@@ -58,7 +68,7 @@ applyPreset.onclick=async()=>{try{if(!selectPreset.value)return;const r=await ap
 updatePreset.onclick=async()=>{try{if(!selectPreset.value||!confirm('Ghi đè preset đã chọn?'))return;await api(base+'/menu/presets/'+encodeURIComponent(selectPreset.value),'PUT',{config:menu});notify('Đã cập nhật preset')}catch(e){notify(e.message)}};
 deletePreset.onclick=async()=>{try{if(!selectPreset.value||!confirm('Xóa preset đã chọn?'))return;await api(base+'/menu/presets/'+encodeURIComponent(selectPreset.value),'DELETE');notify('Đã xóa preset')}catch(e){notify(e.message)}};
 defaultPreset.onclick=async()=>{try{if(!selectPreset.value||!confirm('Đặt preset làm menu mặc định trên server?'))return;await api(base+'/menu/presets/'+encodeURIComponent(selectPreset.value)+'/default','PUT');notify('Đã đặt mặc định')}catch(e){notify(e.message)}};
-serverRow.append(saveMenu,loadMenu,presetName,savePreset,listPreset,selectPreset,applyPreset,updatePreset,deletePreset,defaultPreset);menuPanel.append(serverRow);
+serverRow.append(saveMenu,loadMenu,presetName,savePreset,listPreset,selectPreset,applyPreset,updatePreset,deletePreset,defaultPreset);editor.append(serverRow);
 const dataPanel=panel('Sao lưu JSON và dữ liệu mẫu trên server'),dataRow=row(),backupButton=el('button','Tải bản sao lưu JSON'),restoreInput=el('input');restoreInput.type='file';restoreInput.accept='.json,application/json';restoreInput.className='inp';const datasetName=input('','Tên bản dữ liệu'),saveData=el('button','Lưu dữ liệu lên server'),listData=el('button','Danh sách server'),selectData=el('select'),restoreData=el('button','Khôi phục server');selectData.className='inp';
 backupButton.onclick=()=>{const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='quan-ly-phong-tro-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
 window.saveToFile=backupButton.onclick;
