@@ -8,14 +8,6 @@
 // Equipment maintenance standalone demo
 
 
-// Coffee Shop Sales standalone demo (UI route; assets in public/demo-assets).
-Route::get('/demo/quan-ly-ban-hang-ca-phe', \App\Http\Controllers\Demo\CoffeeShopSalesController::class)
-    ->name('demo.coffee-shop-sales');
-Route::get('/demo/quan-ly-ban-hang-ca-phe/datasets', [\App\Http\Controllers\Demo\CoffeeShopSalesDatasetController::class, 'index'])->middleware('throttle:20,1')->name('demo.coffee-shop-sales.datasets');
-Route::get('/demo/quan-ly-ban-hang-ca-phe/datasets/{dataset}', [\App\Http\Controllers\Demo\CoffeeShopSalesDatasetController::class, 'show'])->middleware('throttle:20,1')->name('demo.coffee-shop-sales.datasets.show');
-Route::post('/demo/quan-ly-ban-hang-ca-phe/datasets', [\App\Http\Controllers\Demo\CoffeeShopSalesDatasetController::class, 'store'])->middleware('throttle:5,1')->name('demo.coffee-shop-sales.datasets.store');
-
-
 // Daily Work Report standalone demo
 Route::get(
     '/demo/bao-cao-cong-viec-hang-ngay',
