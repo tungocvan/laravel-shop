@@ -227,3 +227,12 @@ Checkpoint: focused tests, impacted regression and UI review are pending. Do not
 - Module asset allowlist preserves original URLs; web-server Laravel fallback must be checked before future deployment. No local PHP/Node/browser tests executed via GitHub connector. No TEST/UI PASS claim.
 
 - Phase 12 focused test user report: 2 PASS / 1 FAIL, dataset list returned 503 because new test omitted required `warehouse_demo.backup_code` and `X-Demo-Backup-Code`. Read-only audit confirmed existing ProductCostingDatasetController::authorizeDataset requires both, including for GET. Commit `f6d1127d58cd688650c56e6ab89e7d100440324f` updates test setup/header and asserts JSON datasets; production authorization unchanged. Rerun focused and impacted regression; TEST/UI remain pending after fix.
+
+## Batch 13 — Final Demo route cleanup + /demo hub (2026-10-29)
+
+- User confirmed Demo 12 TEST + UI PASS and approved final route cleanup and a central /demo hub.
+- New branch `refactor/demo-module-final-route-hub-20261029` stacked on accepted Demo 12. The existing 11-slug shared menu controller was moved to `Modules/Demo/Http/Controllers/Shared` with its validation, storage mapping, operator-code authorization and preset semantics unchanged. All original shared menu routes, method constraints, throttle limits and regex conditions moved verbatim from `routes/web.php` to `Modules/Demo/routes/web.php`.
+- Application `routes/web.php` now retains only system root redirect fallback; Demo routes are module-owned. Legacy shared controller removed only after rehome.
+- New GET `/demo` named `demo.hub` uses `DemoHubController` and Blade `demo::hub.index`, linking exactly 12 named Demo UI routes, responsive and without DB or new dependencies.
+- Focused PENDING: `php artisan test tests/Feature/DemoHubAndRouteOwnershipTest.php tests/Feature/SharedDemoSidebarMenuTest.php`. Then module/impacted regression for all 12 demos, plus `php artisan route:list --path=demo` and `php artisan route:cache` (test environment only).
+- UI PENDING: hub on desktop/tablet/iPhone, all 12 links, menu editing/presets on relevant demos, route and asset loading, browser console. No TEST/UI PASS claimed for Batch 13; no PR merge or deploy.
