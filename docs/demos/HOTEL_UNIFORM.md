@@ -25,3 +25,9 @@
 - Root cause confirmed: four new route declarations had been prepended *before* the `<?php` opening tag of `routes/web.php`, so PHP emitted them as plain text and did not register routes.
 - Fixed by moving exactly those four declarations inside the PHP block, preserving existing routes and all other demo files. Commit `f824fe7d`.
 - Re-run focused test after pulling feature branch; **TEST PENDING**, do not claim PASS until actual results. No impacted regression until focused PASS.
+
+## Shared menu 404 correction
+- Admin focused tests after route PHP fix: **1 PASS, 1 FAIL**. The remaining 404 was `GET /demo/quan-ly-dong-phuc-khach-san/menu`.
+- Root cause: `routes/web.php` has `where('demo', ...)` constraints for eight shared-menu routes, which omitted the new demo slug even though the controller allowlist was already updated.
+- Added `quan-ly-dong-phuc-khach-san` to exactly those eight route constraints, including default preset selection. No unrelated demo routes changed.
+- **Focused retest PENDING**. Only proceed to impacted regression after focused PASS.
