@@ -1,0 +1,33 @@
+name: Demo asset Nginx fallback
+
+on:
+  pull_request:
+    paths:
+      - 'docker/nginx/default.conf'
+      - 'tests/Feature/DemoAssetNginxFallbackTest.php'
+      - '.github/workflows/demo-asset-nginx.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  focused-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+      - name: Set up PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: bcmath, gd, intl, mbstring, pdo_mysql, xml, zip
+          coverage: none
+          tools: composer:v2
+      - name: Install locked dev dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress --no-scripts
+      - name: PHP syntax check
+        run: php -l tests/Feature/DemoAssetNginxFallbackTest.php
+      - name: Focused Nginx fallback regression
+        run: vendor/bin/phpunit tests/Feature/DemoAssetNginxFallbackTest.php
