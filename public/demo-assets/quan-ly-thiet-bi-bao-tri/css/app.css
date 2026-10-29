@@ -393,3 +393,13 @@ td.amt{font-weight:700;text-align:right;white-space:nowrap}
 @media (max-width:980px){.stcols{grid-template-columns:1fr 1fr}.prof{grid-template-columns:1fr 1fr}}
 @media (max-width:640px){.cell{min-height:64px;padding:3px}.chipc{font-size:0;padding:0;height:7px;border-left-width:0;border-radius:4px}.calg .wd{padding:6px 2px;font-size:10px;text-align:center}.prof{grid-template-columns:1fr}}
 
+/* Equipment maintenance theme previews and server snapshot controls */
+.equipment-theme-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:10px;margin-top:14px}
+.equipment-theme-choice{background:var(--card);border:2px solid var(--line);border-radius:12px;padding:10px;display:flex;align-items:center;gap:9px;cursor:pointer;text-align:left}
+.equipment-theme-choice[aria-pressed="true"]{border-color:var(--chu-dao);box-shadow:0 0 0 2px var(--cd-nhat)}
+.equipment-theme-choice:focus-visible{outline:3px solid var(--chu-dao);outline-offset:2px}
+.equipment-theme-swatch{width:28px;height:28px;flex:none;border-radius:8px;background:linear-gradient(135deg,var(--preview),var(--preview-dark))}
+.equipment-snapshots input,.equipment-snapshots select{width:100%;max-width:100%;margin:8px 0;padding:9px;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+.equipment-snapshots .btn{margin:4px 6px 4px 0}
+.equipment-snapshots [role="status"]{margin-top:10px;overflow-wrap:anywhere}
+@media(max-width:640px){.equipment-theme-options{grid-template-columns:repeat(2,minmax(0,1fr))}}
