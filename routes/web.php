@@ -41,10 +41,6 @@ Route::prefix('/demo/{demo}/menu')->group(function () {
 });
 
 // Product costing standalone demo; browser state and protected server snapshots.
-Route::get('/demo/tinh-gia-thanh-san-pham', \App\Http\Controllers\Demo\ProductCostingController::class)->name('demo.product-costing');
-Route::get('/demo/tinh-gia-thanh-san-pham/datasets', [\App\Http\Controllers\Demo\ProductCostingDatasetController::class,'index'])->middleware('throttle:20,1')->name('demo.product-costing.datasets');
-Route::get('/demo/tinh-gia-thanh-san-pham/datasets/{dataset}', [\App\Http\Controllers\Demo\ProductCostingDatasetController::class,'show'])->middleware('throttle:20,1')->name('demo.product-costing.datasets.show');
-Route::post('/demo/tinh-gia-thanh-san-pham/datasets', [\App\Http\Controllers\Demo\ProductCostingDatasetController::class,'store'])->middleware('throttle:5,1')->name('demo.product-costing.datasets.store');
 
 Route::fallback(function (Request $request) {
     if ($request->path() === '/') {
