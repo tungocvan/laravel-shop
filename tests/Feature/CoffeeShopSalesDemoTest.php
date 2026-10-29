@@ -52,7 +52,7 @@ class CoffeeShopSalesDemoTest extends TestCase
 
     public function test_dataset_reads_require_valid_backup_code(): void
     {
-        \\Illuminate\\Support\\Facades\\Storage::fake('local');
+        \Illuminate\Support\Facades\Storage::fake('local');
         config()->set('warehouse_demo.backup_code', 'coffee-test-secret-12345');
         $url = '/demo/quan-ly-ban-hang-ca-phe/datasets';
         $this->getJson($url)->assertForbidden();
