@@ -35,6 +35,8 @@
   const migrate = config => slug === 'cham-cong-tinh-luong' ? bridge.normalize(clone(config)) : config;
   const defaults = debtMode ? bridge.defaults() : defaultConfig();
   let applied = clone(defaults), working = null;
+  const equipmentMode = slug === 'quan-ly-thiet-bi-bao-tri';
+  let selectedPresetName = '';
   const validHref = (s, empty=false) => typeof s === 'string' && ((empty && !s) || /^#[a-z0-9-]{1,64}$/.test(s) || /^https:\/\/[a-z0-9][a-z0-9.-]+(?:\/[^\s]*)?$/i.test(s) && s.length <= 250);
   function validate(c) {
     if (!c || c.version !== 1 || !Array.isArray(c.groups) || c.groups.length > 20) throw Error('Nhóm menu không hợp lệ.');
@@ -111,6 +113,10 @@
   }
   const dlg = document.createElement('dialog'); dlg.className='shared-menu-dialog';
   dlg.innerHTML='<div class="shared-menu-shell"><header><div><h3>Chỉnh sửa menu</h3><p>Thiết lập sidebar cho demo</p></div><button type="button" data-close aria-label="Đóng">×</button></header><nav class="shared-menu-tabs" role="tablist" aria-label="Các phần cấu hình"><button type="button" role="tab" data-tab="menu">Menu</button><button type="button" role="tab" data-tab="header">Header</button><button type="button" role="tab" data-tab="footer">Footer</button><button type="button" role="tab" data-tab="library">Thư viện JSON</button></nav><div class="shared-menu-body"><div data-panel="menu" role="tabpanel"><div data-groups></div></div><div data-panel="header" role="tabpanel" hidden><div data-header-fields class="shared-menu-fields"></div></div><div data-panel="footer" role="tabpanel" hidden><div data-footer-fields class="shared-menu-fields"></div></div><div data-panel="library" role="tabpanel" hidden><section class="shared-menu-library"><h4>Thư viện JSON server</h4><input data-name placeholder="Tên cấu hình" aria-label="Tên cấu hình"><select data-presets aria-label="Cấu hình đã lưu"><option value="">Chọn file</option></select><button data-refresh>Làm mới</button><button data-load>Nạp JSON</button><button data-store-preset>Lưu file</button><button data-delete-preset>Xóa file</button></section></div></div><footer><div class="shared-menu-actions"><button data-add-group>+ Nhóm</button><button data-reset>Mặc định</button><button data-export>Xuất JSON</button><label>Nhập JSON<input type="file" accept=".json,application/json" data-import hidden></label><button data-preview>Cập nhật giao diện</button><button data-save>Lưu lên server</button></div><p role="status" aria-live="polite" data-status></p></footer></div>';
+  if (slug === 'quan-ly-thiet-bi-bao-tri') {
+    const button=document.createElement('button');button.type='button';button.dataset.makeDefault='';button.textContent='Đặt làm mặc định';
+    dlg.querySelector('[data-delete-preset]').after(button);
+  }
   document.body.append(dlg);
   const $ = s => dlg.querySelector(s);
   const status = (s) => { $('[data-status]').textContent=s; };
@@ -164,8 +170,8 @@
       groups.append(box);
     });
   }
-  async function refresh() {
-    try {const r=await fetch(url+'/presets');if(!r.ok)throw Error('HTTP '+r.status);const data=await r.json();const select=$('[data-presets]');select.replaceChildren(new Option('Chọn file',''));for(const p of data.presets||[])select.add(new Option(p.name,p.id));}
+  async function refresh(preferredId) {
+    try {const previous = preferredId ?? $('[data-presets]').value;const r=await fetch(url+'/presets');if(!r.ok)throw Error('HTTP '+r.status);const data=await r.json();const select=$('[data-presets]');select.replaceChildren(new Option('Chọn file',''));for(const p of data.presets||[])select.add(new Option(p.name+(p.id===data.defaultId?' (Mặc định)':''),p.id));if(previous && Array.from(select.options).some(o=>o.value===previous))select.value=previous;if(equipmentMode)select.dispatchEvent(new Event('change'));}
     catch(e){status('Không tải được thư viện: '+e.message);}
   }
   async function authorized(method,path,body) {
@@ -192,12 +198,31 @@
   }
   $('[data-close]').onclick=()=>dlg.close();
   $('[data-add-group]').onclick=()=>{working.groups.push({title:'Nhóm mới',items:[]});render();};
-  $('[data-reset]').onclick=()=>{if(confirm('Khôi phục menu mặc định?')){working=clone(defaults);render();}};
+  $('[data-reset]').onclick=async()=>{try{if(!confirm('Khôi phục menu mặc định?'))return;if(equipmentMode){const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);const data=await r.json();working=clone(validate(migrate(data.config||defaults)));}else working=clone(defaults);render();status('Đã nạp cấu hình mặc định vào bản chỉnh sửa. Nhấn Cập nhật giao diện để áp dụng.');}catch(e){status(e.message);}};
   $('[data-preview]').onclick=()=>{try{validate(working);localStorage.setItem(key,JSON.stringify(working));apply(working);status('Đã cập nhật và lưu trong trình duyệt.');}catch(e){status(e.message);}};
-  $('[data-save]').onclick=async()=>{try{validate(working);const r=await authorized('POST',url,{config:working});if(!r)return;localStorage.removeItem(key);apply(working);status('Đã lưu menu lên server.');}catch(e){status(e.message);}};
-  $('[data-refresh]').onclick=refresh;
-  $('[data-load]').onclick=async()=>{try{const id=$('[data-presets]').value;if(!id)return;const r=await fetch(url+'/presets/'+encodeURIComponent(id));if(!r.ok)throw Error('HTTP '+r.status);const data=await r.json();validate(migrate(data.config));if(confirm('Thay bản chỉnh sửa bằng JSON trên server?')){working=migrate(data.config);render();status('Đã nhập vào bản chỉnh sửa.');}}catch(e){status(e.message);}};
-  $('[data-store-preset]').onclick=async()=>{try{validate(working);const name=$('[data-name]').value.trim();if(!name)throw Error('Nhập tên file.');const r=await authorized('POST',url+'/presets',{name,config:working});if(r){await refresh();status('Đã lưu file JSON.');}}catch(e){status(e.message);}};
+  $('[data-save]').onclick=async()=>{try{validate(working);const id=equipmentMode?$('[data-presets]').value:'';if(id&&!confirm('Lưu cấu hình vào file JSON đang chọn và cập nhật menu trên server?'))return;const r=await authorized('POST',url,{config:working});if(!r)return;if(id){const updated=await authorized('PUT',url+'/presets/'+encodeURIComponent(id),{config:working});if(!updated){status('Đã lưu menu server, nhưng chưa cập nhật file JSON (đã hủy).');return;}}localStorage.removeItem(key);apply(working);if(id)await refresh(id);status(id?'Đã lưu menu và cập nhật file JSON đã chọn (bao gồm Header/Footer).':'Đã lưu menu lên server.');}catch(e){status(e.message);}};
+  $('[data-refresh]').onclick=()=>refresh();
+  if(equipmentMode)$('[data-presets]').addEventListener('change',()=>{const select=$('[data-presets]');const option=select.selectedOptions[0];selectedPresetName=option&&select.value?option.textContent.replace(/ \(Mặc định\)$/,''):'';$('[data-name]').value=selectedPresetName;});
+  $('[data-load]').onclick=async()=>{try{const id=$('[data-presets]').value;if(!id)return;const r=await fetch(url+'/presets/'+encodeURIComponent(id));if(!r.ok)throw Error('HTTP '+r.status);const data=await r.json();validate(migrate(data.config));if(confirm('Thay bản chỉnh sửa bằng JSON trên server?')){working=migrate(data.config);if(equipmentMode){selectedPresetName=data.name||selectedPresetName;$('[data-name]').value=selectedPresetName;}render();status('Đã nhập vào bản chỉnh sửa.');}}catch(e){status(e.message);}};
+  $('[data-store-preset]').onclick=async()=>{try{validate(working);const name=$('[data-name]').value.trim();if(!name)throw Error('Nhập tên file.');const id=equipmentMode?$('[data-presets]').value:'';if(id){if(!confirm('Ghi đè nội dung file JSON đã chọn?'))return;const r=await authorized('PUT',url+'/presets/'+encodeURIComponent(id),{config:working});if(r){await refresh(id);status('Đã cập nhật file JSON đã chọn, bao gồm Header/Footer.');}}else{const r=await authorized('POST',url+'/presets',{name,config:working});if(r){const data=await r.json();await refresh(data.id);status('Đã lưu file JSON mới.');}}}catch(e){status(e.message);}};
+  const defaultButton=$('[data-make-default]');
+  if(defaultButton)defaultButton.onclick=async()=>{
+    try {
+      const id=$('[data-presets]').value;
+      if(!id)throw Error('Chọn file JSON trước.');
+      if(!confirm('Đặt file đã chọn làm menu mặc định trên server?'))return;
+      const r=await authorized('PUT',url+'/presets/'+encodeURIComponent(id)+'/default');
+      if(!r)return;
+      localStorage.removeItem(key);
+      const response=await fetch(url,{cache:'no-store'});
+      if(!response.ok)throw Error('Không tải được menu mặc định.');
+      const data=await response.json();
+      apply(validate(migrate(data.config)));
+      working=clone(applied);render();
+      await refresh();$('[data-presets]').value=id;
+      status('Đã đặt làm mặc định và áp dụng menu trên server.');
+    }catch(e){status(e.message);}
+  };
   $('[data-delete-preset]').onclick=async()=>{try{const id=$('[data-presets]').value;if(!id||!confirm('Xóa file JSON này?'))return;const r=await authorized('DELETE',url+'/presets/'+encodeURIComponent(id));if(r){await refresh();status('Đã xóa file.');}}catch(e){status(e.message);}};
   $('[data-export]').onclick=()=>{try{validate(working);const blob=new Blob([JSON.stringify(working,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=slug+'-menu.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}catch(e){status(e.message);}};
   $('[data-import]').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{if(file.size>65536)throw Error('File quá 64 KiB.');const c=validate(migrate(JSON.parse(await file.text())));if(confirm('Nhập menu JSON?')){working=clone(c);render();}}catch(err){status(err.message);}e.target.value='';};

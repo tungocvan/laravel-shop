@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
 
 class SharedSidebarMenuController extends Controller
 {
-    private const DEMOS = ['doanh-so-nhan-vien' => 'sales-employees', 'quan-ly-xuat-nhap-ton' => 'warehouse-inventory', 'quan-ly-nhan-su' => 'human-resources', 'cham-cong-tinh-luong' => 'attendance-payroll', 'bao-cao-quan-tri-doanh-nghiep' => 'enterprise-management-report', 'bao-cao-cong-viec-hang-ngay' => 'daily-work-report', 'quan-ly-ban-hang-ca-phe' => 'coffee-shop-sales', 'tinh-gia-thanh-san-pham' => 'product-costing'];
+    private const DEMOS = ['doanh-so-nhan-vien' => 'sales-employees', 'quan-ly-xuat-nhap-ton' => 'warehouse-inventory', 'quan-ly-nhan-su' => 'human-resources', 'cham-cong-tinh-luong' => 'attendance-payroll', 'bao-cao-quan-tri-doanh-nghiep' => 'enterprise-management-report', 'bao-cao-cong-viec-hang-ngay' => 'daily-work-report', 'quan-ly-ban-hang-ca-phe' => 'coffee-shop-sales', 'tinh-gia-thanh-san-pham' => 'product-costing', 'quan-ly-thiet-bi-bao-tri' => 'equipment-maintenance'];
 
     private function path(string $demo): string
     {
@@ -25,10 +25,19 @@ class SharedSidebarMenuController extends Controller
         return 'demo-settings/'.self::DEMOS[$demo].'/presets';
     }
 
+    private function defaultPresetPath(string $demo): string
+    {
+        return 'demo-settings/'.self::DEMOS[$demo].'/default-preset.json';
+    }
+
     public function show(string $demo): JsonResponse
     {
         $path = $this->path($demo);
         $disk = Storage::disk('local');
+        if ($demo === 'quan-ly-thiet-bi-bao-tri') {
+            $default = $this->selectedDefault($demo);
+            if ($default !== null) return response()->json(['config' => $default['config']]);
+        }
         return response()->json(['config' => $disk->exists($path) ? json_decode($disk->get($path), true) : null]);
     }
 
@@ -57,7 +66,8 @@ class SharedSidebarMenuController extends Controller
             if (! is_array($data) || ! $this->validConfig($data['config'] ?? null)) continue;
             $items[] = ['id' => basename($file, '.json'), 'name' => $data['name'] ?? basename($file, '.json')];
         }
-        return response()->json(['presets' => $items]);
+        $selected = $demo === 'quan-ly-thiet-bi-bao-tri' ? $this->selectedDefault($demo) : null;
+        return response()->json(['presets' => $items, 'defaultId' => $selected['id'] ?? null]);
     }
 
     public function preset(string $demo, string $preset): JsonResponse
@@ -123,8 +133,42 @@ class SharedSidebarMenuController extends Controller
         abort_unless(preg_match('/^[a-z0-9-]{1,80}$/', $preset), 404);
         $file = $dir.'/'.$preset.'.json';
         abort_unless(Storage::disk('local')->exists($file), 404);
-        Storage::disk('local')->delete($file);
+        $disk = Storage::disk('local');
+        if ($demo === 'quan-ly-thiet-bi-bao-tri') {
+            $default = $this->selectedDefault($demo);
+            if (($default['id'] ?? null) === $preset) return response()->json(['message' => 'Không thể xóa file mặc định. Hãy đổi mặc định trước.'], 409);
+        }
+        $disk->delete($file);
         return response()->json(['ok' => true]);
+    }
+
+    private function selectedDefault(string $demo): ?array
+    {
+        $disk = Storage::disk('local');
+        $pointer = $this->defaultPresetPath($demo);
+        if (! $disk->exists($pointer)) return null;
+        $data = json_decode($disk->get($pointer), true);
+        $id = $data['id'] ?? null;
+        if (! is_string($id) || ! preg_match('/^[a-z0-9-]{1,80}$/', $id)) return null;
+        $file = $this->presets($demo).'/'.$id.'.json';
+        if (! $disk->exists($file)) return null;
+        $preset = json_decode($disk->get($file), true);
+        if (! is_array($preset) || ! $this->validConfig($preset['config'] ?? null)) return null;
+        return ['id' => $id, 'config' => $preset['config']];
+    }
+
+    public function setDefaultPreset(Request $request, string $demo, string $preset): JsonResponse
+    {
+        abort_unless($demo === 'quan-ly-thiet-bi-bao-tri', 404);
+        if ($error = $this->authorizeWrite($request)) return $error;
+        abort_unless((bool) preg_match('/^[a-z0-9-]{1,80}$/', $preset), 404);
+        $disk = Storage::disk('local');
+        $file = $this->presets($demo).'/'.$preset.'.json';
+        abort_unless($disk->exists($file), 404);
+        $data = json_decode($disk->get($file), true);
+        abort_unless(is_array($data) && $this->validConfig($data['config'] ?? null), 422);
+        abort_unless($disk->put($this->defaultPresetPath($demo), json_encode(['id' => $preset])), 500);
+        return response()->json(['ok' => true, 'defaultId' => $preset]);
     }
 
     private function authorizeWrite(Request $request): ?JsonResponse
