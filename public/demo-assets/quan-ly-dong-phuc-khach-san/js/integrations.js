@@ -53,4 +53,32 @@
   const settings=document.querySelector('#page-settings');
   if(settings){const observer=new MutationObserver(mount);observer.observe(settings,{childList:true});mount();}
   const saveBtn=document.querySelector('#saveBtn');if(saveBtn){saveBtn.title='Sao lưu dữ liệu JSON';const label=saveBtn.querySelector('.t');if(label)label.textContent='Sao lưu JSON';}
+  // Optional private server snapshots; never overwrite browser state automatically.
+  const datasetUrl='/demo/quan-ly-dong-phuc-khach-san/datasets';
+  let adminCode='';
+  function askCode(){const code=prompt('Nhập mã quản trị sao lưu server (không lưu trong trình duyệt):',adminCode);if(code===null)return null;adminCode=code;return code;}
+  async function requestSnapshot(path,method='GET',body=null){
+    const code=askCode();if(code===null)return null;
+    const response=await fetch(path,{method,headers:{'Accept':'application/json','Content-Type':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]')?.content||'','X-Demo-Backup-Code':code},body:body?JSON.stringify(body):undefined,cache:'no-store'});
+    if(!response.ok)throw Error('Server trả HTTP '+response.status+': '+((await response.json().catch(()=>({}))).message||'Không thể xử lý'));
+    return response.json();
+  }
+  function mountSnapshots(){
+    const page=document.querySelector('#page-settings');if(!page||page.querySelector('#uniformSnapshots'))return;
+    const card=document.createElement('div');card.className='card noprint';card.id='uniformSnapshots';card.style.cssText='padding:18px;margin-bottom:16px';
+    const title=document.createElement('h3');title.textContent='Dữ liệu mẫu trên server (riêng tư)';card.append(title);
+    const hint=document.createElement('p');hint.className='muted';hint.textContent='Lưu snapshot JSON riêng cho demo. Cần mã quản trị; khôi phục luôn yêu cầu xác nhận.';card.append(hint);
+    const name=document.createElement('input');name.className='inp';name.placeholder='Tên bản dữ liệu mẫu';name.style.margin='10px 0';card.append(name);
+    const saveButton=document.createElement('button');saveButton.className='btn pri';saveButton.textContent='Lưu bản dữ liệu lên server';
+    saveButton.onclick=async()=>{try{if(!name.value.trim())throw Error('Nhập tên bản dữ liệu');if(!confirm('Lưu một bản dữ liệu JSON mới lên server?'))return;const r=await requestSnapshot(datasetUrl,'POST',{name:name.value.trim(),data:S});if(r)toast('Đã lưu bản dữ liệu server: '+r.name)}catch(e){toast(e.message,'err')}};
+    const listButton=document.createElement('button');listButton.className='btn';listButton.textContent='Tải danh sách';listButton.style.marginLeft='8px';
+    const select=document.createElement('select');select.className='inp';select.style.margin='10px 0';select.innerHTML='<option value="">Chọn bản dữ liệu</option>';
+    listButton.onclick=async()=>{try{const r=await requestSnapshot(datasetUrl);if(!r)return;select.replaceChildren(new Option('Chọn bản dữ liệu',''));for(const d of r.datasets||[])select.add(new Option(d.name+' · '+d.savedAt,d.id));}catch(e){toast(e.message,'err')}};
+    const restore=document.createElement('button');restore.className='btn';restore.textContent='Khôi phục bản đã chọn';
+    restore.onclick=async()=>{try{if(!select.value)throw Error('Chọn bản dữ liệu trước');if(!confirm('Khôi phục bản server sẽ thay dữ liệu hiện tại trong trình duyệt. Tiếp tục?'))return;const r=await requestSnapshot(datasetUrl+'/'+encodeURIComponent(select.value));if(!r)return;if(!APP.valid(r.data))throw Error('Dữ liệu server không hợp lệ');S=r.data;APP.fix?.(S);save();rerender();toast('Đã khôi phục bản server.')}catch(e){toast(e.message,'err')}};
+    card.append(saveButton,listButton,select,restore);page.prepend(card);
+  }
+  const snapshotPage=document.querySelector('#page-settings');
+  if(snapshotPage){const observer=new MutationObserver(mountSnapshots);observer.observe(snapshotPage,{childList:true});mountSnapshots();}
+
 })();
