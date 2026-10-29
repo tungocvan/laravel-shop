@@ -21,6 +21,8 @@ class DailyWorkReportDemoTest extends TestCase
     public function test_demo_assets_do_not_shadow_ui_route(): void
     {
         $this->assertDirectoryDoesNotExist(public_path('demo/bao-cao-cong-viec-hang-ngay'));
-        $this->assertFileExists(public_path('demo-assets/bao-cao-cong-viec-hang-ngay/js/app.js'));
+        $this->assertFileExists(base_path('Modules/Demo/resources/assets/projects/daily-work-report/js/app.js'));
+        $this->get('/demo-assets/bao-cao-cong-viec-hang-ngay/js/app.js')->assertOk();
+        $this->get('/demo-assets/bao-cao-cong-viec-hang-ngay/original.html')->assertOk();
     }
 }
