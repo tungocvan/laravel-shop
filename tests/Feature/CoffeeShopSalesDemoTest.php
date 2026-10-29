@@ -20,7 +20,7 @@ class CoffeeShopSalesDemoTest extends TestCase
 
     public function test_dataset_library_starts_empty(): void
     {
-        \\Illuminate\\Support\\Facades\\Storage::fake('local');
+        \Illuminate\Support\Facades\Storage::fake('local');
         $this->getJson('/demo/quan-ly-ban-hang-ca-phe/datasets')
             ->assertOk()->assertExactJson(['datasets' => []]);
     }
@@ -35,7 +35,7 @@ class CoffeeShopSalesDemoTest extends TestCase
 
     public function test_dataset_roundtrip_with_valid_secret(): void
     {
-        \\Illuminate\\Support\\Facades\\Storage::fake('local');
+        \Illuminate\Support\Facades\Storage::fake('local');
         config()->set('warehouse_demo.backup_code', 'coffee-test-secret-12345');
         $payload = ['name' => 'Bản thử nghiệm', 'data' => [
             'nl' => [], 'menu' => [], 'orders' => [], 'ver' => 1,
