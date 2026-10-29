@@ -32,11 +32,11 @@ class DailyWorkReportMenuTest extends TestCase
 
     public function test_settings_contains_visible_menu_entry_and_theme_cards(): void
     {
-        $script = file_get_contents(public_path('demo-assets/bao-cao-cong-viec-hang-ngay/js/app.js'));
-        $css = file_get_contents(public_path('demo-assets/bao-cao-cong-viec-hang-ngay/css/app.css'));
+        $script = file_get_contents(base_path('Modules/Demo/resources/assets/projects/daily-work-report/js/app.js'));
+        $css = file_get_contents(base_path('Modules/Demo/resources/assets/projects/daily-work-report/css/app.css'));
         $this->assertStringContainsString('data-open-menu>Chỉnh sửa menu', $script);
-        $this->assertStringContainsString('daily-theme-swatch--', $script);
-        $this->assertStringContainsString('grid-template-columns:repeat(4,minmax(0,1fr))', $css);
+        $this->assertStringContainsString('daily-theme-swatch--original', $script);
+        $this->assertStringContainsString('grid-template-columns:repeat(5,minmax(0,1fr))', $css);
     }
 
     public function test_menu_is_isolated_and_requires_operator_code(): void
