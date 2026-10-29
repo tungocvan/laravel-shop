@@ -49,7 +49,7 @@ final class CoffeeShopSalesDatasetController extends Controller
             'data' => ['required', 'array'],
         ])->validate();
         $data = $validated['data'];
-        abort_unless(($data['v'] ?? null) !== null && count($data) <= 100 && $this->safeTree($data), 422);
+        abort_unless($this->validData($data), 422);
         $disk = Storage::disk('local');
         abort_if(count($disk->files(self::DIR)) >= self::MAX_FILES, 409);
         $payload = ['name' => trim($validated['name']), 'savedAt' => now()->toIso8601String(), 'data' => $data];
@@ -67,8 +67,16 @@ final class CoffeeShopSalesDatasetController extends Controller
         try { $payload = json_decode($disk->get($path), true, 512, JSON_THROW_ON_ERROR); }
         catch (\JsonException $e) { return null; }
         if (!is_array($payload) || !is_string($payload['name'] ?? null) || !is_string($payload['savedAt'] ?? null)
-            || !is_array($payload['data'] ?? null) || !isset($payload['data']['v']) || !$this->safeTree($payload['data'])) return null;
+            || !is_array($payload['data'] ?? null) || !$this->validData($payload['data'])) return null;
         return $payload;
+    }
+
+    private function validData(array $data): bool
+    {
+        foreach (['nl', 'menu', 'orders'] as $key) {
+            if (!isset($data[$key]) || !is_array($data[$key]) || !array_is_list($data[$key])) return false;
+        }
+        return count($data) <= 100 && $this->safeTree($data);
     }
 
     private function safeTree(mixed $value, int $depth = 0): bool
