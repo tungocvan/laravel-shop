@@ -246,3 +246,14 @@ Checkpoint: focused tests, impacted regression and UI review are pending. Do not
 - Focused PENDING: `php artisan test tests/Feature/DemoSharedSidebarAssetOwnershipTest.php tests/Feature/DailyWorkReportMenuTest.php`.
 - Impacted after focused PASS: `php artisan test tests/Feature/DemoHubAndRouteOwnershipTest.php tests/Feature/SharedDemoSidebarMenuTest.php`.
 - UI PENDING: `/demo` Hub, Daily Work Report menu editor, CSS/JS network responses, desktop/mobile, browser console. No tests executed by GitHub connector. No merge/deploy.
+
+## Production Demo asset Nginx fallback — Git Pull/Test checkpoint (2026-10-29)
+
+- Incident: Production `/demo/bao-cao-quan-tri-doanh-nghiep` HTTP 200 but module-owned CSS/JS HTTP 404 and browser MIME errors.
+- Verified: all three module asset files exist in app container; Laravel CLI route matches all three; Nginx web container on port 8080 returns 404; `docker/nginx/default.conf` generic static-extension regex intercepts `.css`/`.js` before Laravel fallback.
+- Branch: `fix/demo-assets-nginx-fallback-20261029` based on `main` `a21cd04ddd162fdb1d9b710bfc6a9e7cb55b1487`.
+- Fix: targeted `location ^~ /demo-assets/` with `try_files $uri $uri/ /index.php?$query_string;`; leave generic static assets, PHP upstream, socket, and Livewire rules unchanged. No database, module PHP, or browser data changes.
+- Focused gate PENDING: `php artisan test tests/Feature/DemoAssetNginxFallbackTest.php`; Nginx syntax check `nginx -t` against the updated config when available in test runtime.
+- Impacted gate PENDING: Demo asset route/ownership regression, then HTTP smoke for enterprise report CSS/JS, shared sidebar CSS/JS and representative other Demo asset routes. UI PASS is user-confirmed only.
+- Production deploy is NOT authorized: source pull alone does not update the running Nginx config if image-baked. Before any web-service rebuild/recreate/reload, inspect actual mount/image delivery, get operator approval, plan rollback, and verify HTTP status/MIME + browser console. Preserve production-only overlays and `.env`.
+- No PR merge or Production mutation without separate approval.
