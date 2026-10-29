@@ -11,4 +11,5 @@
 @yield('content')
 <script src="{{ asset('demo-assets/tinh-gia-thanh-san-pham/js/app.js') }}"></script>
 <script src="{{ asset('demo-assets/tinh-gia-thanh-san-pham/js/integrations.js') }}"></script>
+<script src="{{ asset('demo-assets/tinh-gia-thanh-san-pham/shared/menu-editor.js') }}"></script>
 </body></html>
