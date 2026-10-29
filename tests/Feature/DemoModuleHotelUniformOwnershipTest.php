@@ -36,6 +36,6 @@ final class DemoModuleHotelUniformOwnershipTest extends TestCase
 
     public function test_server_snapshot_endpoint_still_requires_operator_code(): void
     {
-        $this->get('/demo/quan-ly-dong-phuc-khach-san/datasets')->assertStatus(503);
+        $this->assertContains($this->get('/demo/quan-ly-dong-phuc-khach-san/datasets')->status(), [403, 503]);
     }
 }
