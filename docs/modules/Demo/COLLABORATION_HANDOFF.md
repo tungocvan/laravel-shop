@@ -194,3 +194,13 @@ Checkpoint: focused tests, impacted regression and UI review are pending. Do not
 - GitHub connector has not run local PHP/Node/browser tests. No merge, production deploy, runtime or environment modifications.
 
 - Phase 09 impacted regression reported by user: 21 PASS, 1 FAIL in `SharedDemoSidebarMenuTest::test_debt_demo_mounts_shared_editor_without_replacing_legacy_api` due to outdated legacy script URL assertion. Read-only audit confirmed module layout loads module shared editor URL and retains debt-specific bridge and menu API. Updated only that assertion to the module-owned shared editor URL in commit `e2084b35c8c537dbda46f30dab73cb1007d88214`. Focused/impacted rerun and manual menu UI verification PENDING; no PASS claim for this fix.
+
+## Phase 10 — Sales Employees checkpoint (2026-10-29)
+
+- User confirmed Demo 09 TEST + UI PASS. Branch `refactor/demo-module-sales-employees-20261029` inherits accepted Demo 09; no main merge before all 12 demos pass.
+- Rehome sales UI, datasets, 12 Blade partials/pages, JS/CSS, routes to Modules/Demo. Keep original business calculations, localStorage, JSON server snapshots and menu API; shared menu editor is module-owned.
+- Add fifth Original palette while retaining Ruby default and saved theme preferences. Asset allowlist uses /demo-assets/doanh-so-nhan-vien; check server fallback before any future deployment.
+- Focused PENDING: `php artisan test tests/Feature/StandaloneSalesDemoRouteTest.php tests/Feature/DemoModuleSalesEmployeesOwnershipTest.php`. Syntax PENDING: `node --check Modules/Demo/resources/assets/projects/sales-employees/js/app.js`.
+- Impacted after focused PASS: `php artisan test tests/Feature/SharedDemoSidebarMenuTest.php tests/Feature/DemoModuleDebtManagementOwnershipTest.php`.
+- UI PENDING: desktop/tablet/iPhone, sales journal CRUD, employee/product lists, dashboards/reports, import/export, server snapshots, shared menu editor, five themes, browser refresh, console/network.
+- No PHP/Node/browser tests run by GitHub connector; do not declare PASS or merge/deploy.
